@@ -65,7 +65,6 @@
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -184,11 +183,16 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   expose("callMysqlsh", &Testutils::call_mysqlsh, "args", "?stdInput", "?envp",
          "?execPath");
+  expose("callMysqlshAsync", &Testutils::call_mysqlsh_async, "args",
+         "?stdInput", "?envp", "?execPath");
+  expose("waitMysqlshAsync", &Testutils::wait_mysqlsh_async, "pid", "seconds");
 
   expose("makeFileReadOnly", &Testutils::make_file_readonly, "path");
   expose("grepFile", &Testutils::grep_file, "path", "pattern");
   expose("catFile", &Testutils::cat_file, "path");
   expose("wipeFileContents", &Testutils::wipe_file_contents, "path");
+  expose("preprocessFile", &Testutils::preprocess_file, "inPath", "variables",
+         "outPath");
 
   expose("isReplaying", &Testutils::is_replaying);
   expose("fail", &Testutils::fail, "context");
@@ -2603,6 +2607,40 @@ void Testutils::wipe_file_contents(const std::string &path) {
   out.close();
 }
 
+//!<  @name Misc Utilities
+///@{
+/**
+ * Copy file replacing ${VARIABLE}s
+ */
+#if DOXYGEN_JS
+List Testutils::preprocessFile(String path);
+#elif DOXYGEN_PY
+list Testutils::preprocess_file(str path);
+#endif
+///@}
+void Testutils::preprocess_file(const std::string &in_path,
+                                const std::vector<std::string> &vars,
+                                const std::string &out_path) {
+  std::string data = shcore::get_text_file(in_path);
+
+  data = shcore::str_subvars(
+      data,
+      [&vars](const std::string &s) {
+        for (const auto &v : vars) {
+          auto p = v.find('=');
+          if (p != std::string::npos) {
+            if (v.substr(0, p) == s) {
+              return v.substr(p + 1);
+            }
+          }
+        }
+        return s;
+      },
+      "${", "}");
+
+  shcore::create_file(out_path, data);
+}
+
 //!<  @name Testing Utilities
 ///@{
 /**
@@ -3463,6 +3501,41 @@ void setup_recorder_environment() {
   shcore::setenv("MYSQLSH_RECORDER_MODE", mode);
   shcore::setenv("MYSQLSH_RECORDER_PREFIX", prefix);
 }
+
+std::vector<const char *> prepare_mysqlsh_cmdline(
+    const std::vector<std::string> &args, const std::string &executable_path,
+    const std::string &mysqlsh_path, std::string *mysqlsh_found_path) {
+  std::vector<const char *> full_argv;
+
+  setup_recorder_environment();
+
+  if (executable_path == "mysqlshrec") {
+    mysqlsh_found_path->assign(
+        shcore::path::join_path(shcore::get_binary_folder(), "mysqlshrec"));
+  } else if (executable_path.empty()) {
+    if (mysqlshdk::db::replay::g_replay_mode !=
+        mysqlshdk::db::replay::Mode::Direct) {
+      // use mysqlshrec unless in direct mode
+      mysqlsh_found_path->assign(
+          shcore::path::join_path(shcore::get_binary_folder(), "mysqlshrec"));
+    } else {
+      mysqlsh_found_path->assign(mysqlsh_path);
+    }
+  } else {
+    mysqlsh_found_path->assign(executable_path);
+  }
+  full_argv.push_back(mysqlsh_found_path->c_str());
+  assert(strlen(full_argv.front()) > 0);
+
+  for (const std::string &arg : args) {
+    full_argv.push_back(arg.c_str());
+  }
+  if (g_test_trace_scripts) {
+    std::cerr << shcore::str_join(full_argv, " ") << "\n";
+  }
+  full_argv.push_back(nullptr);
+  return full_argv;
+}
 }  // namespace
 
 int Testutils::call_mysqlsh(const shcore::Array_t &args,
@@ -3479,41 +3552,12 @@ int Testutils::call_mysqlsh_c(const std::vector<std::string> &args,
                               const std::string &std_input,
                               const std::vector<std::string> &env,
                               const std::string &executable_path) {
-  std::vector<const char *> full_argv;
-  std::string mysqlsh_found_path;
-
-  setup_recorder_environment();
-
-  if (executable_path == "mysqlshrec") {
-    mysqlsh_found_path =
-        shcore::path::join_path(shcore::get_binary_folder(), "mysqlshrec");
-    full_argv.push_back(mysqlsh_found_path.c_str());
-  } else if (executable_path.empty()) {
-    if (mysqlshdk::db::replay::g_replay_mode !=
-        mysqlshdk::db::replay::Mode::Direct) {
-      // use mysqlshrec unless in direct mode
-      mysqlsh_found_path =
-          shcore::path::join_path(shcore::get_binary_folder(), "mysqlshrec");
-      full_argv.push_back(mysqlsh_found_path.c_str());
-    } else {
-      full_argv.push_back(_mysqlsh_path.c_str());
-    }
-  } else {
-    full_argv.push_back(executable_path.c_str());
-  }
-  assert(strlen(full_argv.front()) > 0);
-
-  for (const std::string &arg : args) {
-    full_argv.push_back(arg.c_str());
-  }
-  if (g_test_trace_scripts) {
-    std::cerr << shcore::str_join(full_argv, " ") << "\n";
-  }
-  full_argv.push_back(nullptr);
-
   char c;
   int exit_code = 1;
   std::string output;
+  std::string mysqlsh_found_path;
+  auto full_argv = prepare_mysqlsh_cmdline(args, executable_path, _mysqlsh_path,
+                                           &mysqlsh_found_path);
 
   shcore::Process_launcher process(&full_argv[0]);
 
@@ -3565,6 +3609,103 @@ int Testutils::call_mysqlsh_c(const std::vector<std::string> &args,
                       // launching the process
   }
   return exit_code;
+}
+
+Testutils::Async_mysqlsh_run::Async_mysqlsh_run(
+    const std::vector<std::string> &cmdline_, const std::string &stdin_,
+    const std::vector<std::string> &env_, const std::string &mysqlsh_path,
+    const std::string &executable_path)
+    : cmdline(cmdline_),
+      mysqlsh_found_path(),
+      argv(prepare_mysqlsh_cmdline(cmdline, executable_path, mysqlsh_path,
+                                   &mysqlsh_found_path)),
+      process(&argv[0]),
+      output(),
+      std_in(stdin_),
+      env(env_),
+      task(std::async(std::launch::async,
+                      &Testutils::Async_mysqlsh_run::run_mysqlsh_in_background,
+                      this)) {}
+
+int Testutils::Async_mysqlsh_run::run_mysqlsh_in_background() {
+  char c;
+  int exit_code = 1;
+  if (!env.empty()) process.set_environment(env);
+
+#ifdef _WIN32
+  process.set_create_process_group();
+#endif
+  try {
+    // Starts the process
+    process.start();
+
+    if (!std_in.empty()) {
+      process.write(&std_in[0], std_in.size());
+      process.finish_writing();  // Reader will see EOF
+    }
+
+    // Reads all produced output, until stdout is closed
+    while (process.read(&c, 1) > 0) {
+      if (g_test_trace_scripts) std::cout << c << std::flush;
+      if (c != '\r') output += c;
+    }
+
+    // Wait until it finishes
+    exit_code = process.wait();
+  } catch (const std::system_error &e) {
+    output += "Exception calling mysqlsh: ";
+    output += e.what();
+    exit_code = 256;  // This error code will indicate an error happened
+                      // launching the process
+  }
+  return exit_code;
+}
+
+int Testutils::call_mysqlsh_async(const shcore::Array_t &args,
+                                  const std::string &std_input,
+                                  const shcore::Array_t &env,
+                                  const std::string &executable_path) {
+  return call_mysqlsh_c_async(
+      shcore::Value(args).to_string_vector(), std_input,
+      env ? shcore::Value(env).to_string_vector() : std::vector<std::string>{},
+      executable_path);
+}
+
+int Testutils::call_mysqlsh_c_async(const std::vector<std::string> &args,
+                                    const std::string &std_input,
+                                    const std::vector<std::string> &env,
+                                    const std::string &executable_path) {
+  m_shell_runs.emplace_back(std::make_unique<Testutils::Async_mysqlsh_run>(
+      args, std_input, env, _mysqlsh_path, executable_path));
+  return m_shell_runs.size() - 1;
+}
+
+int Testutils::wait_mysqlsh_async(int id, int seconds) {
+  if (id >= static_cast<int>(m_shell_runs.size()) || !m_shell_runs[id])
+    throw std::logic_error("No process found with id: " + std::to_string(id));
+
+  auto run = m_shell_runs[id].get();
+
+  auto status = run->task.wait_for(std::chrono::seconds(seconds));
+  std::shared_ptr<mysqlsh::Command_line_shell> shell(_shell.lock());
+  if (status != std::future_status::ready) {
+    auto msg = "Process '" + run->mysqlsh_found_path + " " +
+               shcore::str_join(run->cmdline, " ") +
+               "' did not finish in time and will be killed";
+    if (shell)
+      mysqlsh::current_console()->println(msg);
+    else
+      std::cout << msg << std::endl;
+    run->process.kill();
+  }
+
+  int return_code = run->task.get();
+  if (shell)
+    mysqlsh::current_console()->println(run->output);
+  else
+    std::cout << run->output << std::endl;
+  m_shell_runs[id].reset();
+  return return_code;
 }
 
 void Testutils::try_rename(const std::string &source,

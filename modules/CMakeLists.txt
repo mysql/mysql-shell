@@ -35,6 +35,7 @@ INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/generate_metadata_source.cmake)
 file(GLOB api_module_SOURCES
       "devapi/*.cc"
       "dynamic_*.cc"
+      "util/dump/*.cc"
       "util/import_table/chunk_file.cc"
       "util/import_table/load_data.cc"
       "util/import_table/dialect.cc"

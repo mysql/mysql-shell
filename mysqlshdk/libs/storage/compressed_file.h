@@ -48,6 +48,7 @@ class Compressed_file : public IFile {
 
   void open(Mode m) override;
   bool is_open() const override;
+  int error() const override { return m_file->error(); }
   void close() override;
 
   size_t file_size() const override;

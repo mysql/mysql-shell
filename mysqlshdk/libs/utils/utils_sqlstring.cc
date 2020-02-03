@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -387,7 +387,7 @@ std::string quote_sql_string(const std::string &s) {
 //--------------------------------------------------------------------------------------------------
 
 std::string quote_identifier(const std::string &identifier) {
-  return "`" + escape_backticks(identifier) + "`";
+  return "`" + str_replace(identifier, "`", "``") + "`";
 }
 
 //--------------------------------------------------------------------------------------------------

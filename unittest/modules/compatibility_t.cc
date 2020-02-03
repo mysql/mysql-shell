@@ -1,0 +1,648 @@
+/*
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+#include "modules/util/dump/compatibility.h"
+#include "unittest/gtest_clean.h"
+#include "unittest/test_utils.h"
+
+namespace mysqlsh {
+namespace compatibility {
+
+class Compatibility_test : public tests::Shell_base_test {
+ protected:
+  const std::vector<std::string> multiline = {
+      R"(CREATE TABLE t(i int)
+ENCRYPTION = 'N' 
+DATA DIRECTORY = '\tmp' INDEX DIRECTORY = '\tmp',
+ENGINE = MyISAM)",
+      R"(CREATE TABLE t (i int PRIMARY KEY) ENGINE = MyISAM
+  DATA DIRECTORY = '/tmp'
+  ENCRYPTION = 'y'
+  PARTITION BY LIST (i) (
+    PARTITION p0 VALUES IN (0) ENGINE = MyISAM,
+    PARTITION p1 VALUES IN (1)
+    DATA DIRECTORY = '/tmp',
+    ENGINE = BLACKHOLE
+  ))",
+      R"(CREATE TABLE `tmq` (
+  `i` int(11) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 DATA DIRECTORY='/tmp/' INDEX DIRECTORY='/tmp/')",
+      R"(CREATE TABLE `tmq` (
+  `i` int(11) DEFAULT NULL
+) /*!50100 TABLESPACE `t s 1` */ ENGINE=InnoDB DEFAULT CHARSET=latin1 ENCRYPTION='N')",
+      R"(CREATE TABLE `tmq` (
+  `i` int(11) NOT NULL,
+  PRIMARY KEY (`i`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1
+/*!50100 PARTITION BY LIST (i)
+(PARTITION p0 VALUES IN (0) ENGINE = MyISAM,
+ PARTITION p1 VALUES IN (1) DATA DIRECTORY = '/tmp' ENGINE = MyISAM) */)",
+      R"(CREATE TABLE `tmq` (
+  `i` int NOT NULL,
+  PRIMARY KEY (`i`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+/*!50100 PARTITION BY LIST (`i`)
+(PARTITION p0 VALUES IN (0) DATA DIRECTORY = '/tmp/' ENGINE = InnoDB,
+ PARTITION p1 VALUES IN (1) DATA DIRECTORY = '/tmp/' ENGINE = InnoDB) */)",
+      R"(CREATE TABLE `tmq` (
+  `i` int(11) NOT NULL,
+  PRIMARY KEY (`i`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1
+/*!50100 PARTITION BY LIST (i)
+(PARTITION p0 VALUES IN (0) TABLESPACE = `t s 1` ENGINE = MyISAM,
+ PARTITION p1 VALUES IN (1) TABLESPACE = `t s 1` ENGINE = MyISAM) */)",
+      "CREATE DATABASE `dcs` /*!40100 DEFAULT CHARACTER SET latin1 COLLATE "
+      "latin1_danish_ci */ /*!80016 DEFAULT ENCRYPTION='N' */"};
+
+  const std::vector<std::string> rogue = {
+      R"(CREATE TABLE `rogue` (
+  `data` int DEFAULT NULL,
+  `index` int DEFAULT NULL,
+  `directory` int DEFAULT NULL,
+  `encryption` int DEFAULT NULL,
+  `engine` int DEFAULT NULL,
+  `tablespace` int DEFAULT NULL,
+  `collate` int DEFAULT NULL,
+  `charset` int DEFAULT NULL,
+  `character` int DEFAULT NULL,
+  `definer` int DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
+      " create table rogue (data int, `index` int, directory int, encryption "
+      "int, engine int, tablespace int, `collate` int, charset int, "
+      "`character` int, definer int);"};
+};
+
+TEST_F(Compatibility_test, check_privileges) {
+  std::string rewritten;
+
+  EXPECT_TRUE(
+      check_privileges(
+          "GRANT `app_delete`@`%`,`app_read`@`%`,`app_write`@`%`,`combz`@`%` "
+          "TO `combined`@`%`",
+          &rewritten)
+          .empty());
+
+  EXPECT_EQ(1,
+            check_privileges(
+                "GRANT SUPER, LOCK TABLES ON *.* TO 'superfirst'@'localhost';",
+                &rewritten)
+                .size());
+  EXPECT_EQ("GRANT LOCK TABLES ON *.* TO 'superfirst'@'localhost';", rewritten);
+
+  EXPECT_EQ(
+      1, check_privileges(
+             "GRANT INSERT,super, UPDATE ON *.* TO 'superafter'@'localhost';",
+             &rewritten)
+             .size());
+  EXPECT_EQ("GRANT INSERT, UPDATE ON *.* TO 'superafter'@'localhost';",
+            rewritten);
+
+  EXPECT_EQ(1,
+            check_privileges("GRANT  SUPER ON *.* TO 'superonly'@'localhost';",
+                             &rewritten)
+                .size());
+  EXPECT_TRUE(rewritten.empty());
+
+  EXPECT_EQ(4, check_privileges("GRANT SUPER,FILE, reload, BINLOG_ADMIN ON *.* "
+                                "TO 'empty'@'localhost';",
+                                &rewritten)
+                   .size());
+  EXPECT_TRUE(rewritten.empty());
+
+  EXPECT_EQ(4, check_privileges("GRANT INSERT,SUPER,FILE,LOCK TABLES , reload, "
+                                "BINLOG_ADMIN, SELECT ON *.* "
+                                "TO 'empty'@'localhost';",
+                                &rewritten)
+                   .size());
+  EXPECT_EQ("GRANT INSERT,LOCK TABLES , SELECT ON *.* TO 'empty'@'localhost';",
+            rewritten);
+
+  EXPECT_EQ(4, check_privileges("GRANT BINLOG_ADMIN, INSERT    , SUPER "
+                                ",`app_delete`@`%`, LOCK TABLES , reload, "
+                                "UPDATE,FILE, SELECT ON *.* "
+                                "TO 'empty'@'localhost';",
+                                &rewritten)
+                   .size());
+  EXPECT_EQ(
+      "GRANT INSERT     ,`app_delete`@`%`, LOCK TABLES , UPDATE, SELECT ON *.* "
+      "TO 'empty'@'localhost';",
+      rewritten);
+}
+
+TEST_F(Compatibility_test, data_index_dir_option) {
+  std::string rewritten;
+
+  EXPECT_FALSE(check_create_table_for_data_index_dir_option(
+      "CREATE TABLE t(i int) ENGINE=MyIsam", &rewritten));
+
+  EXPECT_TRUE(check_create_table_for_data_index_dir_option(
+      "CREATE TABLE t(i int) DATA DIRECTORY = 'c:/temporary directory'",
+      &rewritten));
+  EXPECT_EQ(
+      "CREATE TABLE t(i int) /* DATA DIRECTORY = 'c:/temporary directory'*/ ",
+      rewritten);
+
+  EXPECT_TRUE(check_create_table_for_data_index_dir_option(
+      "CREATE TABLE t(i int) index DIRECTORY = '\\tmp\\one\\t w o\\3'",
+      &rewritten));
+  EXPECT_EQ(
+      "CREATE TABLE t(i int) /* index DIRECTORY = '\\tmp\\one\\t w o\\3'*/ ",
+      rewritten);
+
+  EXPECT_TRUE(
+      check_create_table_for_data_index_dir_option(multiline[0], &rewritten));
+  EXPECT_EQ(
+      "CREATE TABLE t(i int)\n"
+      "ENCRYPTION = 'N' \n"
+      "/* DATA DIRECTORY = '\\tmp' INDEX DIRECTORY = '\\tmp',*/ \n"
+      "ENGINE = MyISAM",
+      rewritten);
+
+  EXPECT_TRUE(
+      check_create_table_for_data_index_dir_option(multiline[1], &rewritten));
+  EXPECT_EQ(
+      "CREATE TABLE t (i int PRIMARY KEY) ENGINE = MyISAM\n"
+      "  /* DATA DIRECTORY = '/tmp'*/ \n"
+      "  ENCRYPTION = 'y'\n"
+      "  PARTITION BY LIST (i) (\n"
+      "    PARTITION p0 VALUES IN (0) ENGINE = MyISAM,\n"
+      "    PARTITION p1 VALUES IN (1)\n"
+      "    /* DATA DIRECTORY = '/tmp',*/ \n"
+      "    ENGINE = BLACKHOLE\n"
+      "  )",
+      rewritten);
+
+  EXPECT_TRUE(
+      check_create_table_for_data_index_dir_option(multiline[4], &rewritten));
+  EXPECT_EQ(
+      "CREATE TABLE `tmq` (\n"
+      "  `i` int(11) NOT NULL,\n"
+      "  PRIMARY KEY (`i`)\n"
+      ") ENGINE=MyISAM DEFAULT CHARSET=latin1\n"
+      "/*!50100 PARTITION BY LIST (i)\n"
+      "(PARTITION p0 VALUES IN (0) ENGINE = MyISAM,\n"
+      " PARTITION p1 VALUES IN (1) -- DATA DIRECTORY = '/tmp'\n"
+      " ENGINE = MyISAM) */",
+      rewritten);
+
+  EXPECT_TRUE(
+      check_create_table_for_data_index_dir_option(multiline[5], &rewritten));
+  EXPECT_EQ(R"(CREATE TABLE `tmq` (
+  `i` int NOT NULL,
+  PRIMARY KEY (`i`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+/*!50100 PARTITION BY LIST (`i`)
+(PARTITION p0 VALUES IN (0) -- DATA DIRECTORY = '/tmp/'
+ ENGINE = InnoDB,
+ PARTITION p1 VALUES IN (1) -- DATA DIRECTORY = '/tmp/'
+ ENGINE = InnoDB) */)",
+            rewritten);
+}
+
+TEST_F(Compatibility_test, encryption_option) {
+  std::string rewritten;
+  auto ct = "CREATE TABLE t(i int) ENCRYPTION 'N'";
+  EXPECT_TRUE(check_create_table_for_encryption_option(ct, &rewritten));
+  EXPECT_EQ("CREATE TABLE t(i int) /* ENCRYPTION 'N'*/ ", rewritten);
+
+  EXPECT_TRUE(
+      check_create_table_for_encryption_option(multiline[0], &rewritten));
+  EXPECT_EQ(
+      "CREATE TABLE t(i int)\n"
+      "/* ENCRYPTION = 'N'*/  \n"
+      "DATA DIRECTORY = '\\tmp' INDEX DIRECTORY = '\\tmp',\n"
+      "ENGINE = MyISAM",
+      rewritten);
+
+  EXPECT_TRUE(
+      check_create_table_for_encryption_option(multiline[1], &rewritten));
+  EXPECT_EQ(
+      "CREATE TABLE t (i int PRIMARY KEY) ENGINE = MyISAM\n"
+      "  DATA DIRECTORY = '/tmp'\n"
+      "  /* ENCRYPTION = 'y'*/ \n"
+      "  PARTITION BY LIST (i) (\n"
+      "    PARTITION p0 VALUES IN (0) ENGINE = MyISAM,\n"
+      "    PARTITION p1 VALUES IN (1)\n"
+      "    DATA DIRECTORY = '/tmp',\n"
+      "    ENGINE = BLACKHOLE\n"
+      "  )",
+      rewritten);
+
+  EXPECT_TRUE(compatibility::check_create_table_for_encryption_option(
+      multiline[7], &rewritten));
+  EXPECT_EQ(
+      "CREATE DATABASE `dcs` /*!40100 DEFAULT CHARACTER SET latin1 COLLATE "
+      "latin1_danish_ci */ /*!80016 -- DEFAULT ENCRYPTION='N'\n"
+      " */",
+      rewritten);
+}
+
+TEST_F(Compatibility_test, engine_change) {
+  std::string rewritten;
+
+  EXPECT_EQ("MyISAM",
+            check_create_table_for_engine_option(multiline[0], &rewritten));
+  EXPECT_EQ(R"(CREATE TABLE t(i int)
+ENCRYPTION = 'N' 
+DATA DIRECTORY = '\tmp' INDEX DIRECTORY = '\tmp',
+ENGINE = InnoDB)",
+            rewritten);
+
+  EXPECT_EQ("BLACKHOLE",
+            check_create_table_for_engine_option(multiline[1], &rewritten));
+  EXPECT_EQ(R"(CREATE TABLE t (i int PRIMARY KEY) ENGINE = InnoDB
+  DATA DIRECTORY = '/tmp'
+  ENCRYPTION = 'y'
+  PARTITION BY LIST (i) (
+    PARTITION p0 VALUES IN (0) ENGINE = InnoDB,
+    PARTITION p1 VALUES IN (1)
+    DATA DIRECTORY = '/tmp',
+    ENGINE = InnoDB
+  ))",
+            rewritten);
+}
+
+TEST_F(Compatibility_test, tablespace_removal) {
+  std::string rewritten;
+  EXPECT_TRUE(check_create_table_for_tablespace_option(
+      "CREATE TABLE t1 (c1 INT, c2 INT) TABLESPACE ts_1 ENGINE NDB;",
+      &rewritten));
+
+  EXPECT_TRUE(check_create_table_for_tablespace_option(
+      "CREATE TABLE t1 (c1 INT, c2 INT) TABLESPACE `ts 1`;", &rewritten));
+  EXPECT_EQ("CREATE TABLE t1 (c1 INT, c2 INT) ;", rewritten);
+
+  EXPECT_TRUE(check_create_table_for_tablespace_option(
+      "CREATE TABLE t1 (c1 INT) TABLESPACE=`ts_1` ENGINE NDB", &rewritten));
+  EXPECT_EQ("CREATE TABLE t1 (c1 INT)  ENGINE NDB", rewritten);
+
+  EXPECT_TRUE(check_create_table_for_tablespace_option(
+      "CREATE TABLE t1 (c1 INT) ENGINE NDB, TABLESPACE= ts_1", &rewritten));
+  EXPECT_EQ("CREATE TABLE t1 (c1 INT) ENGINE NDB", rewritten);
+
+  EXPECT_TRUE(check_create_table_for_tablespace_option(
+      "CREATE TABLE t1 (c1 INT) TABLESPACE =ts_1", &rewritten));
+  EXPECT_EQ("CREATE TABLE t1 (c1 INT) ", rewritten);
+
+  EXPECT_TRUE(check_create_table_for_tablespace_option(
+      "CREATE TABLE t(i int) ENCRYPTION = 'N' DATA DIRECTORY = '\tmp', "
+      "/*!50100 TABLESPACE `t s 1` */ ENGINE = InnoDB;",
+      &rewritten));
+  EXPECT_EQ(
+      "CREATE TABLE t(i int) ENCRYPTION = 'N' DATA DIRECTORY = '\tmp' ENGINE = "
+      "InnoDB;",
+      rewritten);
+
+  EXPECT_TRUE(
+      check_create_table_for_tablespace_option(multiline[6], &rewritten));
+  EXPECT_EQ(R"(CREATE TABLE `tmq` (
+  `i` int(11) NOT NULL,
+  PRIMARY KEY (`i`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1
+/*!50100 PARTITION BY LIST (i)
+(PARTITION p0 VALUES IN (0)  ENGINE = MyISAM,
+ PARTITION p1 VALUES IN (1)  ENGINE = MyISAM) */)",
+            rewritten);
+}
+
+TEST_F(Compatibility_test, charset_option) {
+  std::string rewritten;
+  EXPECT_EQ(2, compatibility::check_statement_for_charset_option(
+                   R"(CREATE TABLE `dsc` (
+  `v` varchar(20) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `v1` varchar(10) COLLATE latin1_danish_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_danish_ci)",
+                   &rewritten)
+                   .size());
+
+  EXPECT_EQ(R"(CREATE TABLE `dsc` (
+  `v` varchar(20)   DEFAULT NULL,
+  `v1` varchar(10)  DEFAULT NULL
+) ENGINE=InnoDB  )",
+            rewritten);
+
+  EXPECT_EQ(1, compatibility::check_statement_for_charset_option(multiline[7],
+                                                                 &rewritten)
+                   .size());
+  EXPECT_EQ("CREATE DATABASE `dcs`  /*!80016 DEFAULT ENCRYPTION='N' */",
+            rewritten);
+}
+
+TEST_F(Compatibility_test, definer_option) {
+  std::string rewritten;
+  EXPECT_EQ(
+      "`root`@`localhost`",
+      compatibility::check_statement_for_definer_clause(
+          R"(CREATE DEFINER=`root`@`localhost` PROCEDURE `bug9056_proc2`(OUT a INT)
+BEGIN
+  select sum(id) from tr1 into a;
+END ;;)",
+          &rewritten));
+  EXPECT_EQ(R"(CREATE PROCEDURE `bug9056_proc2`(OUT a INT)
+BEGIN
+  select sum(id) from tr1 into a;
+END ;;)",
+            rewritten);
+
+  EXPECT_EQ(
+      "`root`@`localhost`",
+      compatibility::check_statement_for_definer_clause(
+          R"(CREATE DEFINER = `root`@`localhost` FUNCTION `bug9056_func2`(f1 char binary) RETURNS char(1) CHARSET utf8mb4
+begin
+  set f1= concat( 'hello', f1 );
+  return f1;
+end ;;)",
+          &rewritten));
+  EXPECT_EQ(
+      R"(CREATE FUNCTION `bug9056_func2`(f1 char binary) RETURNS char(1) CHARSET utf8mb4
+begin
+  set f1= concat( 'hello', f1 );
+  return f1;
+end ;;)",
+      rewritten);
+
+  EXPECT_EQ("`root`@`localhost`",
+            compatibility::check_statement_for_definer_clause(
+                "/*!50106 CREATE DEFINER=`root` @ `localhost` EVENT IF NOT "
+                "EXISTS `ee1` "
+                "ON "
+                "SCHEDULE AT '2035-12-31 20:01:23' ON COMPLETION NOT PRESERVE "
+                "ENABLE DO "
+                "set @a=5 */ ;;",
+                &rewritten));
+  EXPECT_EQ(
+      "/*!50106 CREATE EVENT IF NOT EXISTS `ee1` ON "
+      "SCHEDULE AT '2035-12-31 "
+      "20:01:23' ON COMPLETION NOT PRESERVE ENABLE DO set @a=5 */ ;;",
+      rewritten);
+
+  EXPECT_EQ(
+      "`root`@`localhost`",
+      compatibility::check_statement_for_definer_clause(
+          "/*!50001 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL "
+          "SECURITY DEFINER VIEW `v3` AS select `tv1`.`a` AS `a`,`tv1`.`b` AS "
+          "`b`,`tv1`.`c` AS `c` from `tv1` */;",
+          &rewritten));
+  EXPECT_EQ(
+      "/*!50001 CREATE ALGORITHM=UNDEFINED SQL SECURITY "
+      "DEFINER VIEW `v3` AS "
+      "select `tv1`.`a` AS `a`,`tv1`.`b` AS `b`,`tv1`.`c` AS `c` from `tv1` "
+      "*/;",
+      rewritten);
+
+  EXPECT_EQ(
+      "`root`@`localhost`",
+      compatibility::check_statement_for_definer_clause(
+          R"(/*!50003 CREATE DEFINER=`root`@`localhost` TRIGGER `trg4` BEFORE INSERT ON `t2` FOR EACH ROW begin
+  if new.a > 10 then
+    set @fired:= "No";
+  end if;
+end */;;)",
+          &rewritten));
+  EXPECT_EQ(
+      R"(/*!50003 CREATE TRIGGER `trg4` BEFORE INSERT ON `t2` FOR EACH ROW begin
+  if new.a > 10 then
+    set @fired:= "No";
+  end if;
+end */;;)",
+      rewritten);
+}
+
+TEST_F(Compatibility_test, sql_security_clause) {
+  std::string rewritten;
+
+  EXPECT_TRUE(compatibility::check_statement_for_sqlsecurity_clause(
+      R"(CREATE DEFINER = `root`@`localhost` FUNCTION `bug9056_func2`(f1 char binary) RETURNS char(1) SQL SECURITY DEFINER CHARSET utf8mb4
+begin
+  set f1= concat( 'hello', f1 );
+  return f1;
+end ;;)",
+      &rewritten));
+  EXPECT_EQ(
+      R"(CREATE DEFINER = `root`@`localhost` FUNCTION `bug9056_func2`(f1 char binary) RETURNS char(1) SQL SECURITY INVOKER CHARSET utf8mb4
+begin
+  set f1= concat( 'hello', f1 );
+  return f1;
+end ;;)",
+      rewritten);
+
+  EXPECT_TRUE(compatibility::check_statement_for_sqlsecurity_clause(
+      R"(CREATE procedure test.for_loop_example()
+wholeblock:BEGIN
+  DECLARE x INT;
+  DECLARE str VARCHAR(255);
+  SET x = -5;
+  SET str = '';
+
+  loop_label: LOOP
+    IF x > 0 THEN
+      LEAVE loop_label;
+    END IF;
+    SET str = CONCAT(str,x,',');
+    SET x = x + 1;
+    ITERATE loop_label;
+  END LOOP;
+
+  SELECT str;
+
+END//)",
+      &rewritten));
+  EXPECT_EQ(R"(CREATE procedure test.for_loop_example()
+SQL SECURITY INVOKER
+wholeblock:BEGIN
+  DECLARE x INT;
+  DECLARE str VARCHAR(255);
+  SET x = -5;
+  SET str = '';
+
+  loop_label: LOOP
+    IF x > 0 THEN
+      LEAVE loop_label;
+    END IF;
+    SET str = CONCAT(str,x,',');
+    SET x = x + 1;
+    ITERATE loop_label;
+  END LOOP;
+
+  SELECT str;
+
+END//)",
+            rewritten);
+
+  EXPECT_TRUE(compatibility::check_statement_for_sqlsecurity_clause(
+      "/*!50001 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL "
+      "SECURITY DEFINER VIEW `v3` AS select `tv1`.`a` AS `a`,`tv1`.`b` AS "
+      "`b`,`tv1`.`c` AS `c` from `tv1` */;",
+      &rewritten));
+  EXPECT_EQ(
+      "/*!50001 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL "
+      "SECURITY INVOKER VIEW `v3` AS select `tv1`.`a` AS `a`,`tv1`.`b` AS "
+      "`b`,`tv1`.`c` AS `c` from `tv1` */;",
+      rewritten);
+
+  EXPECT_TRUE(compatibility::check_statement_for_sqlsecurity_clause(
+      R"(CREATE DEFINER=`root`@`localhost` FUNCTION `hello`(s CHAR(20)) RETURNS char(50) CHARSET utf8mb4
+    DETERMINISTIC
+RETURN CONCAT('Hello, ',s,'!'))",
+      &rewritten));
+
+  EXPECT_EQ(
+      R"(CREATE DEFINER=`root`@`localhost` FUNCTION `hello`(s CHAR(20)) RETURNS char(50) CHARSET utf8mb4
+    DETERMINISTIC
+SQL SECURITY INVOKER
+RETURN CONCAT('Hello, ',s,'!'))",
+      rewritten);
+
+  EXPECT_TRUE(compatibility::check_statement_for_sqlsecurity_clause(
+      R"(CREATE DEFINER=`root`@`localhost` PROCEDURE `p1`()
+BEGIN   UPDATE t1 SET counter = counter + 1;
+END)",
+      &rewritten));
+  EXPECT_EQ(R"(CREATE DEFINER=`root`@`localhost` PROCEDURE `p1`()
+SQL SECURITY INVOKER
+BEGIN   UPDATE t1 SET counter = counter + 1;
+END)",
+            rewritten);
+
+  EXPECT_TRUE(compatibility::check_statement_for_sqlsecurity_clause(
+      R"(CREATE FUNCTION `func1`() RETURNS int(11)
+    NO SQL
+RETURN 0)",
+      &rewritten));
+  EXPECT_EQ(R"(CREATE FUNCTION `func1`() RETURNS int(11)
+    NO SQL
+SQL SECURITY INVOKER
+RETURN 0)",
+            rewritten);
+
+  EXPECT_FALSE(compatibility::check_statement_for_sqlsecurity_clause(
+      R"(CREATE FUNCTION `func2`() RETURNS int(11)
+    NO SQL
+    SQL SECURITY INVOKER
+RETURN 0)",
+      &rewritten));
+
+  EXPECT_FALSE(compatibility::check_statement_for_sqlsecurity_clause(
+      "/*!50001 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL "
+      "SECURITY INVOKER VIEW `v3` AS select `tv1`.`a` AS `a`,`tv1`.`b` AS "
+      "`b`,`tv1`.`c` AS `c` from `tv1` */;",
+      &rewritten));
+}
+
+TEST_F(Compatibility_test, create_table_combo) {
+  const auto EXPECT_MLE = [&](size_t i, const char *res) {
+    std::string rewritten;
+    check_create_table_for_data_index_dir_option(multiline[i], &rewritten);
+    check_create_table_for_encryption_option(rewritten, &rewritten);
+    check_create_table_for_engine_option(rewritten, &rewritten);
+    check_create_table_for_tablespace_option(rewritten, &rewritten);
+    check_statement_for_charset_option(rewritten, &rewritten);
+    if (res)
+      EXPECT_EQ(res, rewritten);
+    else
+      puts(rewritten.c_str());
+  };
+
+  const auto EXPECT_UNCHANGED = [&](size_t i) {
+    std::string rewritten;
+    check_create_table_for_data_index_dir_option(rogue[i], &rewritten);
+    check_create_table_for_encryption_option(rewritten, &rewritten);
+    check_create_table_for_engine_option(rewritten, &rewritten);
+    check_create_table_for_tablespace_option(rewritten, &rewritten);
+    check_statement_for_charset_option(rewritten, &rewritten);
+    EXPECT_EQ(rogue[i], rewritten);
+  };
+
+  EXPECT_MLE(0,
+             "CREATE TABLE t(i int)\n"
+             "/* ENCRYPTION = 'N'*/  \n"
+             "/* DATA DIRECTORY = '\\tmp' INDEX DIRECTORY = '\\tmp',*/ \n"
+             "ENGINE = InnoDB");
+
+  EXPECT_MLE(1,
+             "CREATE TABLE t (i int PRIMARY KEY) ENGINE = InnoDB\n"
+             "  /* DATA DIRECTORY = '/tmp'*/ \n"
+             "  /* ENCRYPTION = 'y'*/ \n"
+             "  PARTITION BY LIST (i) (\n"
+             "    PARTITION p0 VALUES IN (0) ENGINE = InnoDB,\n"
+             "    PARTITION p1 VALUES IN (1)\n"
+             "    /* DATA DIRECTORY = '/tmp',*/ \n"
+             "    ENGINE = InnoDB"
+             "\n  )");
+
+  EXPECT_MLE(
+      2,
+      "CREATE TABLE `tmq` (\n"
+      "  `i` int(11) DEFAULT NULL\n"
+      ") ENGINE=InnoDB  /* DATA DIRECTORY='/tmp/' INDEX DIRECTORY='/tmp/'*/ ");
+
+  EXPECT_MLE(3,
+             "CREATE TABLE `tmq` (\n"
+             "  `i` int(11) DEFAULT NULL\n"
+             ")  ENGINE=InnoDB  /* ENCRYPTION='N'*/ ");
+
+  EXPECT_MLE(4,
+             "CREATE TABLE `tmq` (\n"
+             "  `i` int(11) NOT NULL,\n"
+             "  PRIMARY KEY (`i`)\n"
+             ") ENGINE=InnoDB \n"
+             "/*!50100 PARTITION BY LIST (i)\n"
+             "(PARTITION p0 VALUES IN (0) ENGINE = InnoDB,\n"
+             " PARTITION p1 VALUES IN (1) -- DATA DIRECTORY = '/tmp'\n"
+             " ENGINE = InnoDB) */");
+
+  EXPECT_MLE(
+      5,
+      "CREATE TABLE `tmq` (\n"
+      "  `i` int NOT NULL,\n"
+      "  PRIMARY KEY (`i`)\n"
+      ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci\n"
+      "/*!50100 PARTITION BY LIST (`i`)\n"
+      "(PARTITION p0 VALUES IN (0) -- DATA DIRECTORY = '/tmp/'\n"
+      " ENGINE = InnoDB,\n"
+      " PARTITION p1 VALUES IN (1) -- DATA DIRECTORY = '/tmp/'\n"
+      " ENGINE = InnoDB) */");
+
+  EXPECT_MLE(6,
+             "CREATE TABLE `tmq` (\n"
+             "  `i` int(11) NOT NULL,\n"
+             "  PRIMARY KEY (`i`)\n"
+             ") ENGINE=InnoDB \n"
+             "/*!50100 PARTITION BY LIST (i)\n"
+             "(PARTITION p0 VALUES IN (0)  ENGINE = InnoDB,\n"
+             " PARTITION p1 VALUES IN (1)  ENGINE = InnoDB) */");
+
+  std::string rewritten;
+  compatibility::check_statement_for_charset_option(multiline[7], &rewritten);
+  compatibility::check_create_table_for_encryption_option(rewritten,
+                                                          &rewritten);
+  EXPECT_EQ(
+      "CREATE DATABASE `dcs`  /*!80016 -- DEFAULT ENCRYPTION='N'\n"
+      " */",
+      rewritten);
+
+  EXPECT_UNCHANGED(0);
+  EXPECT_UNCHANGED(1);
+}
+}  // namespace compatibility
+}  // namespace mysqlsh

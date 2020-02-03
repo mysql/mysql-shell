@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_STORAGE_COMPRESSION_GZ_FILE_H_
 
 #include <zlib.h>
+#include <algorithm>
 #include <cassert>
 #include <limits>
 #include <memory>
@@ -59,6 +60,9 @@ class Gz_file : public Compressed_file {
 
   off64_t seek(off64_t) override {
     throw std::logic_error("Gz_file::seek() - not supported");
+  }
+  off64_t tell() const override {
+    return std::max(m_stream.total_in, m_stream.total_out);
   }
 
   ssize_t read(void *buffer, size_t length) override;

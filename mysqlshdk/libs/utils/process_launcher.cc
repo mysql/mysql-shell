@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -438,7 +438,7 @@ void Process::close() {
   DWORD dwExit;
   if (GetExitCodeProcess(pi.hProcess, &dwExit)) {
     if (dwExit == STILL_ACTIVE) {
-      if (!TerminateProcess(pi.hProcess, 0)) report_error(NULL);
+      if (!TerminateProcess(pi.hProcess, 129)) report_error(NULL);
       // TerminateProcess is async, wait for process to end.
       WaitForSingleObject(pi.hProcess, INFINITE);
     }

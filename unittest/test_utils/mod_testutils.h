@@ -24,6 +24,7 @@
 #ifndef UNITTEST_TEST_UTILS_MOD_TESTUTILS_H_
 #define UNITTEST_TEST_UTILS_MOD_TESTUTILS_H_
 
+#include <future>
 #include <map>
 #include <memory>
 #include <string>
@@ -33,6 +34,7 @@
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/mod_extensible_object.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/utils/process_launcher.h"
 #include "scripting/types_cpp.h"
 #include "src/mysqlsh/cmdline_shell.h"
 
@@ -93,6 +95,7 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined touch(String file);
   List catFile(String path);
   List wipeFileContents(String path);
+  Undefined preprocessFile(String inPath, Array variables, String outPath);
   Undefined dbugSet(String s);
   Undefined dprint(String s);
   Undefined setenv(String var, String value);
@@ -151,6 +154,7 @@ class Testutils : public mysqlsh::Extensible_object {
   None touch(str file);
   list cat_file(str path);
   list wipe_file_contents(str path);
+  None preprocess_file(str inPath, list variables, str outPath);
   None dbug_set(str s);
   None dprint(str s);
   None skip(int port, bool start);
@@ -287,6 +291,10 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void wipe_file_contents(const std::string &path);
 
+  void preprocess_file(const std::string &in_path,
+                       const std::vector<std::string> &vars,
+                       const std::string &out_path);
+
   void dprint(const std::string &s);
 
   void set_trap(const std::string &type, const shcore::Array_t &conditions,
@@ -322,6 +330,16 @@ class Testutils : public mysqlsh::Extensible_object {
                      const std::string &std_input = "",
                      const std::vector<std::string> &env = {},
                      const std::string &executable_path = "");
+
+  int call_mysqlsh_async(const shcore::Array_t &args,
+                         const std::string &std_input = std::string{},
+                         const shcore::Array_t &env = nullptr,
+                         const std::string &executable_path = "");
+  int call_mysqlsh_c_async(const std::vector<std::string> &args,
+                           const std::string &std_input = "",
+                           const std::vector<std::string> &env = {},
+                           const std::string &executable_path = "");
+  int wait_mysqlsh_async(int id, int seconds = 60);
 
   // Sets the text to return next time an interactive prompt is shown.
   // if expected_prompt_text is not "", it will match the prompt text and fail
@@ -363,6 +381,26 @@ class Testutils : public mysqlsh::Extensible_object {
     std::thread thread;
     bool stop = false;
   };
+
+  struct Async_mysqlsh_run {
+    explicit Async_mysqlsh_run(const std::vector<std::string> &cmdline_,
+                               const std::string &stdin_,
+                               const std::vector<std::string> &env_,
+                               const std::string &mysqlsh_path,
+                               const std::string &executable_path);
+    int run_mysqlsh_in_background();
+
+    std::vector<std::string> cmdline;
+    std::string mysqlsh_found_path;
+    std::vector<const char *> argv;
+    shcore::Process_launcher process;
+    std::string output;
+    std::string std_in;
+    std::vector<std::string> env;
+    std::future<int> task;
+  };
+
+  std::vector<std::unique_ptr<Async_mysqlsh_run>> m_shell_runs;
 
   std::weak_ptr<mysqlsh::Command_line_shell> _shell;
   std::string _mysqlsh_path;

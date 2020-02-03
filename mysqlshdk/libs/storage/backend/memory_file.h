@@ -47,6 +47,9 @@ class Memory_file : public IFile {
 
   void open(Mode m) override;
   bool is_open() const override;
+  int error() const override {
+    throw std::logic_error("Memory_file::error() - not implemented");
+  }
   void close() override;
 
   size_t file_size() const override;
@@ -55,6 +58,9 @@ class Memory_file : public IFile {
   bool exists() const override;
 
   off64_t seek(off64_t offset) override;
+  off64_t tell() const override {
+    throw std::logic_error("Memory_file::tell() - not implemented");
+  }
   off64_t offset() { return m_offset; }
   ssize_t read(void *buffer, size_t length) override;
   ssize_t write(const void *buffer, size_t length) override;

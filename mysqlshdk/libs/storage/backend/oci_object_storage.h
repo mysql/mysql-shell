@@ -157,6 +157,9 @@ class Object : public mysqlshdk::storage::IFile {
    * Verifies if the object has been opened.
    */
   bool is_open() const override;
+  int error() const override {
+    throw std::logic_error("Oci_object_storage::error() - not implemented");
+  }
 
   /**
    * Finishes the operation being done on the object.
@@ -202,6 +205,10 @@ class Object : public mysqlshdk::storage::IFile {
    * For WRITE and APPEND this is a NO OP.
    */
   off64_t seek(off64_t offset) override;
+
+  off64_t tell() const override {
+    throw std::logic_error("Oci_object_storage::tell() - not implemented");
+  }
 
   /**
    * Fills up to length bytes into the buffer starting at the internal offset

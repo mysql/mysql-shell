@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,10 +21,15 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "utils_json.h"
-#include "scripting/types.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
+#include "m_string.h"  // my_gcvt()
+#include "mysqlshdk/include/scripting/types.h"
 
-using namespace shcore;
+namespace shcore {
+
+size_t fmt_double(double d, char *buffer, size_t buffer_len) {
+  return my_gcvt(d, MY_GCVT_ARG_DOUBLE, buffer_len, buffer, NULL);
+}
 
 JSON_dumper::JSON_dumper(bool pprint) {
   _deep_level = 0;
@@ -192,3 +197,5 @@ void JSON_dumper::append_json(const std::string &data) const {
   document.Parse(data.c_str());
   _writer->append_document(document);
 }
+
+}  // namespace shcore

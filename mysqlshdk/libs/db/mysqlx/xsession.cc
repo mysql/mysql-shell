@@ -750,6 +750,22 @@ void XSession_impl::store_error_and_throw(const Error &error,
 
 std::function<std::shared_ptr<Session>()> g_session_factory;
 
+std::string Session::escape_string(const std::string &s) const {
+  std::string res;
+  res.resize(s.length() * 2 + 1);
+  size_t l = mysql_escape_string(&res[0], s.data(), s.length());
+  res.resize(l);
+  return res;
+}
+
+std::string Session::escape_string(const char *buffer, size_t len) const {
+  std::string res;
+  res.resize(len * 2 + 1);
+  size_t l = mysql_escape_string(&res[0], buffer, len);
+  res.resize(l);
+  return res;
+}
+
 std::function<std::shared_ptr<Session>()> Session::set_factory_function(
     std::function<std::shared_ptr<Session>()> factory) {
   auto old = g_session_factory;

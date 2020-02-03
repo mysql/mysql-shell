@@ -65,5 +65,35 @@ std::unique_ptr<IFile> make_file(const std::string &filepath,
   return std::make_unique<backend::oci::Object>(options, filepath);
 }
 
+int fprintf(IFile *file, const char *format, ...) {
+  constexpr int BUFSIZE = 2048;
+  char buf[BUFSIZE];
+  va_list args, copy;
+  va_start(args, format);
+  va_copy(copy, args);
+  int ret = vsnprintf(buf, BUFSIZE, format, args);
+  if (ret > BUFSIZE) {
+    std::vector<char> vec(ret + 1);
+    ret = vsnprintf(&vec[0], vec.size(), format, copy);
+    assert(ret <= static_cast<int>(vec.size()));
+    if (ret > 0) ret = file->write(&vec[0], ret);
+  } else if (ret > 0) {
+    ret = file->write(buf, ret);
+  }
+  va_end(args);
+  va_end(copy);
+  return ret;
+}
+
+int fputs(const char *s, IFile *file) {
+  int ret = file->write(s, strlen(s));
+  return ret >= 0 ? ret : EOF;
+}
+
+int fputs(const std::string &s, IFile *file) {
+  int ret = file->write(s.c_str(), s.length());
+  return ret >= 0 ? ret : EOF;
+}
+
 }  // namespace storage
 }  // namespace mysqlshdk

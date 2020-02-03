@@ -48,6 +48,9 @@ class Http_get : public IFile {
 
   void open(Mode m) override;
   bool is_open() const override;
+  int error() const override {
+    throw std::logic_error("Http_get::error() - not implemented");
+  }
   void close() override;
 
   size_t file_size() const override;
@@ -62,6 +65,9 @@ class Http_get : public IFile {
   }
 
   off64_t seek(off64_t offset) override;
+  off64_t tell() const override {
+    throw std::logic_error("Http_get::tell() - not implemented");
+  }
   ssize_t read(void *buffer, size_t length) override;
 
   ssize_t write(const void *, size_t) override {

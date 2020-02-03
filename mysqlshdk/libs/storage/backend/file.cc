@@ -52,6 +52,12 @@ File::File(const std::string &filename)
 
 void File::open(Mode m) {
   assert(!is_open());
+#ifdef _WIN32
+  const auto wpath = shcore::utf8_to_wide(m_filepath);
+#endif
+
+#ifdef USE_UNBUFFERED_FILES
+
   m_fd = -1;
 
 #ifdef _WIN32
@@ -71,7 +77,7 @@ void File::open(Mode m) {
       break;
   }
 
-  _sopen_s(&m_fd, m_filepath.c_str(), oflag, _SH_DENYWR, _S_IREAD | _S_IWRITE);
+  _wsopen_s(&m_fd, wpath.c_str(), oflag, _SH_DENYWR, _S_IREAD | _S_IWRITE);
 #else
   int flags = 0;
 
@@ -92,15 +98,51 @@ void File::open(Mode m) {
   m_fd = ::open(m_filepath.c_str(), flags, S_IRUSR | S_IWUSR | S_IRGRP);
 #endif
 
+#else
+
+  int ret = 0;
+#ifdef _WIN32
+  const wchar_t *mode =
+      m == Mode::READ ? L"rb" : m == Mode::WRITE ? L"wb" : L"ab";
+  m_file = _wfsopen(wpath.c_str(), mode, _SH_DENYWR);
+  if (m != Mode::READ) ret = _wchmod(wpath.c_str(), _S_IREAD | _S_IWRITE);
+#else
+  const char *mode = m == Mode::READ ? "rb" : m == Mode::WRITE ? "wb" : "ab";
+  m_file = fopen(m_filepath.c_str(), mode);
+  if (m != Mode::READ)
+    ret = chmod(m_filepath.c_str(), S_IRUSR | S_IWUSR | S_IRGRP);
+#endif
+  if (ret)
+    throw std::runtime_error("Unable to set permissions on file: " +
+                             m_filepath);
+
+#endif
+
   if (!is_open()) {
     throw std::runtime_error("Cannot open file '" + full_path() +
                              "': " + shcore::errno_to_string(errno));
   }
 }
 
-bool File::is_open() const { return m_fd >= 0; }
+bool File::is_open() const {
+#ifdef USE_UNBUFFERED_FILES
+  return m_fd >= 0;
+#else
+  return m_file != nullptr;
+#endif
+}
+
+int File::error() const {
+#ifdef USE_UNBUFFERED_FILES
+  return m_error;
+#else
+  return ferror(m_file);
+#endif
+}
 
 void File::close() {
+#ifdef USE_UNBUFFERED_FILES
+
   if (m_fd >= 0) {
 #ifdef _WIN32
     ::_close(m_fd);
@@ -109,6 +151,13 @@ void File::close() {
 #endif
   }
   m_fd = -1;
+
+#else
+  if (m_file != nullptr) {
+    fclose(m_file);
+    m_file = nullptr;
+  }
+#endif
 }
 
 size_t File::file_size() const { return shcore::file_size(m_filepath); }
@@ -117,6 +166,8 @@ std::string File::full_path() const { return m_filepath; }
 
 off64_t File::seek(off64_t offset) {
   assert(is_open());
+#ifdef USE_UNBUFFERED_FILES
+
 #if defined(_WIN32)
   return _lseeki64(m_fd, offset, SEEK_SET);
 #elif defined(__APPLE__)
@@ -124,36 +175,90 @@ off64_t File::seek(off64_t offset) {
 #else
   return lseek64(m_fd, offset, SEEK_SET);
 #endif
+
+#else
+
+#if defined(_WIN32)
+  return _fseeki64(m_file, offset, SEEK_SET);
+#else
+  return fseeko(m_file, offset, SEEK_SET);
+#endif
+
+#endif
+}
+
+off64_t File::tell() const {
+  assert(is_open());
+#ifdef USE_UNBUFFERED_FILES
+
+#if defined(_WIN32)
+  return _lseeki64(m_fd, 0, SEEK_CUR);
+#elif defined(__APPLE__)
+  return lseek(m_fd, 0, SEEK_CUR);
+#else
+  return lseek64(m_fd, 0, SEEK_CUR);
+#endif
+
+#else
+
+#if defined(_WIN32)
+  return _ftelli64(m_file);
+#else
+  return ftello(m_file);
+#endif
+
+#endif
 }
 
 ssize_t File::read(void *buffer, size_t length) {
   assert(is_open());
+
+#ifdef USE_UNBUFFERED_FILES
+
 #ifdef _WIN32
   const int bytes = _read(m_fd, buffer, length);
 #else
   const ssize_t bytes = ::read(m_fd, buffer, length);
 #endif
+  if (bytes < 0) m_error = bytes;
   return bytes;
+
+#else
+  return fread(buffer, 1, length, m_file);
+#endif
 }
 
 ssize_t File::write(const void *buffer, size_t length) {
   assert(is_open());
+#ifdef USE_UNBUFFERED_FILES
+
 #ifdef _WIN32
   const int bytes = _write(m_fd, buffer, length);
 #else
   const ssize_t bytes = ::write(m_fd, buffer, length);
 #endif
+  if (bytes < 0) m_error = bytes;
   return bytes;
+
+#else
+  return fwrite(buffer, 1, length, m_file);
+#endif
 }
 
 bool File::flush() {
   assert(is_open());
+#ifdef USE_UNBUFFERED_FILES
+
 #ifdef _WIN32
   const int ret = _commit(m_fd);
 #else
   const int ret = ::fsync(m_fd);
 #endif
   return 0 == ret;
+
+#else
+  return fflush(m_file);
+#endif
 }
 
 bool File::exists() const { return shcore::is_file(full_path()); }
