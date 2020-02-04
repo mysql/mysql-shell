@@ -899,7 +899,7 @@ str Testutils::get_shell_log_path();
 #endif
 ///@}
 std::string Testutils::get_shell_log_path() {
-  return shcore::Logger::singleton()->logfile_name();
+  return shcore::current_logger()->logfile_name();
 }
 
 #ifndef ENABLE_SESSION_RECORDING

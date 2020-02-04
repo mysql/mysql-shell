@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,8 +68,6 @@ class CollectionRemove : public Collection_crud_definition,
   Result execute();
 #endif
   std::string class_name() const override { return "CollectionRemove"; }
-  static std::shared_ptr<shcore::Object_bridge> create(
-      const shcore::Argument_list &args);
 
  private:
   shcore::Value remove(const shcore::Argument_list &args);

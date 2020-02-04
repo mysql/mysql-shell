@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -44,7 +44,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
  public:
   Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
               shcore::Interpreter_delegate *custom_delegate);
-  ~Mysql_shell();
+  ~Mysql_shell() override;
 
   virtual std::shared_ptr<mysqlsh::ShellBaseSession> connect(
       const mysqlshdk::db::Connection_options &args,

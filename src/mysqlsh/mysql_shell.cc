@@ -659,8 +659,8 @@ void Mysql_shell::load_files(const File_list &file_list,
   if (load_failed) {
     auto msg = shcore::str_format(
         "Found errors loading %s, for more details look at the log at: %s",
-        context.c_str(), shcore::Logger::singleton()->logfile_name().c_str());
-    print_warning(msg);
+        context.c_str(), shcore::current_logger()->logfile_name().c_str());
+    current_console()->print_warning(msg);
   }
 }
 

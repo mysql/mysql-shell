@@ -181,6 +181,13 @@ static std::map<std::string, Op_data> Operations_text{
 }  // namespace sandbox
 
 namespace {
+
+const std::set<std::string> kDeployInstanceOpts = {
+    "portx",         "sandboxDir",     "password",
+    "allowRootFrom", "ignoreSslError", "mysqldOptions"};
+const std::set<std::string> kStopInstanceOpts = {"sandboxDir", "password"};
+const std::set<std::string> kDefaultLocalInstanceOpts = {"sandboxDir"};
+
 void validate_port(int port, const std::string &name) {
   if (port < 1024 || port > 65535)
     throw shcore::Exception::argument_error(
@@ -213,11 +220,6 @@ std::string get_sandbox_dir(shcore::Argument_map *opt_map = nullptr) {
 }  // namespace
 
 using mysqlshdk::db::uri::formats::only_transport;
-std::set<std::string> Dba::_deploy_instance_opts = {
-    "portx",         "sandboxDir",     "password",
-    "allowRootFrom", "ignoreSslError", "mysqldOptions"};
-std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password"};
-std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
 
 /*
  * Global helper text for setOption and setInstance Option namespaces
@@ -1756,8 +1758,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
       mycnf_options = (*options)["mysqldOptions"];
 
     } else if (function != "stop") {
-      opt_map.ensure_keys({}, _default_local_instance_opts,
-                          "the instance data");
+      opt_map.ensure_keys({}, kDefaultLocalInstanceOpts, "the instance data");
     }
   } else {
     sandbox_dir = get_sandbox_dir();
@@ -1891,7 +1892,7 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
       auto map = args.map_at(1);
       shcore::Argument_map opt_map(*map);
 
-      opt_map.ensure_keys({}, _deploy_instance_opts, "the instance data");
+      opt_map.ensure_keys({}, kDeployInstanceOpts, "the instance data");
 
       if (opt_map.has_key("portx")) {
         validate_port(opt_map.int_at("portx"), "portx");
@@ -2184,7 +2185,7 @@ shcore::Value Dba::stop_sandbox_instance(const shcore::Argument_list &args) {
       auto map = args.map_at(1);
       shcore::Argument_map opt_map(*map);
 
-      opt_map.ensure_keys({}, _stop_instance_opts, "the instance data");
+      opt_map.ensure_keys({}, kStopInstanceOpts, "the instance data");
 
       if (opt_map.has_key("password")) password = opt_map.string_at("password");
 

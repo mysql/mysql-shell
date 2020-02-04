@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -91,7 +91,6 @@ Logger::LOG_LEVEL get_level_by_name(const std::string &name) {
 
 }  // namespace
 
-std::unique_ptr<Logger> Logger::s_instance;
 std::string Logger::s_output_format;
 
 Logger::Log_entry::Log_entry()
@@ -122,10 +121,12 @@ void Logger::detach_log_hook(Log_hook hook) {
   }
 }
 
+bool Logger::log_allowed() const { return m_dont_log == 0; }
+
 void Logger::set_log_level(LOG_LEVEL log_level) { m_log_level = log_level; }
 
 void Logger::assert_logger_initialized() {
-  if (s_instance.get() == nullptr) {
+  if (current_logger().get() == nullptr) {
     static constexpr auto msg_noinit =
         "Logger: Tried to log to an uninitialized logger.\n";
 
@@ -159,39 +160,27 @@ std::string Logger::format(const char *formats, va_list args) {
 }
 
 void Logger::log(LOG_LEVEL level, const char *formats, ...) {
-  assert_logger_initialized();
+  va_list args;
+  va_start(args, formats);
+  const auto msg = format(formats, args);
+  va_end(args);
 
-  if (s_instance.get() != nullptr) {
-    va_list args;
-    va_start(args, formats);
-    const auto msg = format(formats, args);
-    va_end(args);
-
-    do_log({s_instance->context(), msg.c_str(), level});
-  }
+  do_log({current_logger()->context(), msg.c_str(), level});
 }
 
 void Logger::do_log(const Log_entry &entry) {
-  std::lock_guard<std::recursive_mutex> lock(s_instance->m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(current_logger()->m_mutex);
 
-  if (s_instance->m_log_file.is_open() &&
-      entry.level <= s_instance->m_log_level) {
+  if (current_logger()->m_log_file.is_open() &&
+      entry.level <= current_logger()->m_log_level) {
     const auto s = format_message(entry);
-    s_instance->m_log_file.write(s.c_str(), s.length());
-    s_instance->m_log_file.flush();
+    current_logger()->m_log_file.write(s.c_str(), s.length());
+    current_logger()->m_log_file.flush();
   }
 
-  for (const auto &f : s_instance->m_hook_list) {
-    if (std::get<2>(f) || entry.level <= s_instance->m_log_level)
+  for (const auto &f : current_logger()->m_hook_list) {
+    if (std::get<2>(f) || entry.level <= current_logger()->m_log_level)
       std::get<0>(f)(entry, std::get<1>(f));
-  }
-}
-
-Logger *Logger::singleton() {
-  if (s_instance.get() != nullptr) {
-    return s_instance.get();
-  } else {
-    throw std::logic_error("shcore::Logger not initialized");
   }
 }
 
@@ -278,38 +267,19 @@ std::string Logger::format_message(const Log_entry &entry) {
   return result;
 }
 
-void Logger::setup_instance(const char *filename, bool use_stderr,
-                            Logger::LOG_LEVEL log_level) {
-  if (s_instance) {
-    if (filename) {
-      if (filename != s_instance->m_log_file_name) {
-        if (s_instance->m_log_file.is_open()) s_instance->m_log_file.close();
-        s_instance->m_log_file_name = filename;
-
-        s_instance->m_log_file.open(filename, std::ios_base::app);
-        if (s_instance->m_log_file.fail())
-          throw std::logic_error(
-              std::string("Error in Logger::Logger when opening file '") +
-              filename + "' for writing");
-      }
-    } else {
-      if (s_instance->m_log_file.is_open()) s_instance->m_log_file.close();
-      s_instance->m_log_file_name.clear();
-    }
-
-    s_instance->detach_log_hook(&Logger::out_to_stderr);
-
-    if (use_stderr) {
-      s_instance->attach_log_hook(&Logger::out_to_stderr);
-    }
-  } else {
-    s_instance.reset(new Logger(filename, use_stderr));
-  }
-
-  s_instance->set_log_level(log_level);
+std::shared_ptr<Logger> Logger::create_instance(const char *filename,
+                                                bool use_stderr,
+                                                LOG_LEVEL level) {
+  std::shared_ptr<Logger> log(new Logger(filename, use_stderr));
+  log->set_log_level(level);
+  return log;
 }
 
-Logger::Logger(const char *filename, bool use_stderr) {
+void Logger::log_to_stderr() {
+  current_logger()->attach_log_hook(&Logger::out_to_stderr);
+}
+
+Logger::Logger(const char *filename, bool use_stderr) : m_dont_log(0) {
   if (filename != nullptr) {
     m_log_file_name = filename;
 #ifdef _WIN32

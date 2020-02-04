@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -229,6 +229,33 @@ class TYPES_COMMON_PUBLIC Python_context {
   AutoPyObject _shell_object_class;
   AutoPyObject _shell_indexed_object_class;
   AutoPyObject _shell_function_class;
+};
+
+// The static member _instance needs to be in a class not exported (no
+// TYPES_COMMON_PUBLIC), otherwise MSVC complains with C2491.
+class Python_init_singleton final {
+ public:
+  Python_init_singleton(const Python_init_singleton &py) = delete;
+  Python_init_singleton(Python_init_singleton &&py) = delete;
+  ~Python_init_singleton();
+  Python_init_singleton &operator=(const Python_init_singleton &py) = delete;
+  Python_init_singleton &operator=(Python_init_singleton &&py) = delete;
+
+  static void init_python();
+  static void destroy_python();
+
+  // Initializing and finalizing the Python context multiple times when tests
+  // are executed doesn't work well on macOS, so on that platform we use this
+  // function instead of destroy_python which is needed to be able to explicitly
+  // destroy it before the main logger will be removed.
+
+  static std::string get_new_scope_name();
+
+ private:
+  Python_init_singleton();
+  static std::unique_ptr<Python_init_singleton> s_instance;
+  static unsigned int s_cnt;
+  bool m_local_initialization;
 };
 }  // namespace shcore
 

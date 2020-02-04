@@ -37,7 +37,6 @@
 using namespace shcore;
 
 std::vector<std::string> Shell_test_output_handler::log;
-shcore::Logger *Shell_test_output_handler::_logger;
 
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern int g_profile_test_scripts;
@@ -56,22 +55,23 @@ Shell_test_output_handler::Shell_test_output_handler()
 
   // Initialize the logger and attach the hook for error verification
   // Assumes logfile already initialized
-  shcore::Logger::setup_instance(
-      shcore::Logger::singleton()->logfile_name().c_str(),
-      getenv("TEST_DEBUG") != nullptr);
-  _logger = shcore::Logger::singleton();
-  _logger->attach_log_hook(log_hook, this);
+  if (getenv("TEST_DEBUG") != nullptr) shcore::Logger::log_to_stderr();
+  m_logger = shcore::current_logger();
+  // By default we need to setup the logger to LOG_INFO.
+  m_logger->set_log_level(shcore::Logger::LOG_INFO);
+
+  m_logger->attach_log_hook(log_hook, this);
 }
 
 Shell_test_output_handler::~Shell_test_output_handler() {
-  _logger->detach_log_hook(log_hook);
+  m_logger->detach_log_hook(log_hook);
 }
 
 void Shell_test_output_handler::log_hook(const shcore::Logger::Log_entry &entry,
                                          void *self_ptr) {
-  shcore::Logger::LOG_LEVEL current_level = _logger->get_log_level();
   Shell_test_output_handler *self =
       reinterpret_cast<Shell_test_output_handler *>(self_ptr);
+  shcore::Logger::LOG_LEVEL current_level = self->m_logger->get_log_level();
 
   // If the level of the log is different than
   // the one set, we don't want to store the message
@@ -87,7 +87,8 @@ void Shell_test_output_handler::log_hook(const shcore::Logger::Log_entry &entry,
 }
 
 bool Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
-  Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
+  Shell_test_output_handler *target =
+      reinterpret_cast<Shell_test_output_handler *>(user_data);
 
   std::lock_guard<std::mutex> lock(target->stdout_mutex);
   if (!target->m_internal) {
@@ -107,7 +108,8 @@ bool Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
 
 bool Shell_test_output_handler::deleg_print_error(void *user_data,
                                                   const char *text) {
-  Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
+  Shell_test_output_handler *target =
+      reinterpret_cast<Shell_test_output_handler *>(user_data);
 
   // Note: print_error() should send output to stderr instead of stdout and
   // thus, be removed in favour of print_diag(). However, we keep print_error()
@@ -125,9 +127,9 @@ bool Shell_test_output_handler::deleg_print_error(void *user_data,
               << std::flush;
 
   if (!target->m_internal) {
-    if (target->m_errors_on_stderr)
+    if (target->m_errors_on_stderr) {
       target->std_err.append(text);
-    else {
+    } else {
       target->std_out.append(text);
     }
   } else {
@@ -139,7 +141,8 @@ bool Shell_test_output_handler::deleg_print_error(void *user_data,
 
 bool Shell_test_output_handler::deleg_print_diag(void *user_data,
                                                  const char *text) {
-  Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
+  Shell_test_output_handler *target =
+      reinterpret_cast<Shell_test_output_handler *>(user_data);
 
   if (!target->m_internal) {
     target->full_output << makered(text) << std::endl;
@@ -157,7 +160,8 @@ bool Shell_test_output_handler::deleg_print_diag(void *user_data,
 
 shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
     void *user_data, const char *prompt, std::string *ret) {
-  Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
+  Shell_test_output_handler *target =
+      reinterpret_cast<Shell_test_output_handler *>(user_data);
   std::string answer;
   std::string expected_prompt;
 
@@ -197,7 +201,8 @@ shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
 
 shcore::Prompt_result Shell_test_output_handler::deleg_password(
     void *user_data, const char *prompt, std::string *ret) {
-  Shell_test_output_handler *target = (Shell_test_output_handler *)(user_data);
+  Shell_test_output_handler *target =
+      reinterpret_cast<Shell_test_output_handler *>(user_data);
   std::string answer;
   std::string expected_prompt;
 

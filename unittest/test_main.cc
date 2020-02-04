@@ -20,6 +20,7 @@
    51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #ifdef HAVE_PYTHON
+#include "mysqlshdk/include/scripting/python_context.h"
 #include "mysqlshdk/include/scripting/python_utils.h"
 #endif
 
@@ -570,6 +571,34 @@ static void setup_test_skipper() {
   listeners.Append(new testing::Fail_logger());
 }
 
+std::shared_ptr<shcore::Logger> setup_logger() {
+  // Set HOME to same as TMPDIR
+  {
+    if (!shcore::setenv("HOME", getenv("TMPDIR"))) {
+      std::cerr << "HOME could not be overriden\n";
+      exit(1);
+    }
+  }
+
+  if (!getenv("MYSQLSH_USER_CONFIG_HOME")) {
+    // Override the configuration home for tests, to not mess with custom data
+    if (!shcore::setenv("MYSQLSH_USER_CONFIG_HOME",
+                        shcore::get_binary_folder())) {
+      std::cerr << "MYSQLSH_USER_CONFIG_HOME could not be set with putenv\n";
+    }
+  }
+
+  // Setup logger with default configs
+  std::string log_path =
+      shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
+  if (shcore::path_exists(log_path)) {
+    std::cerr << "Deleting old " << log_path << " file\n";
+    shcore::delete_file(log_path);
+  }
+
+  return shcore::Logger::create_instance(log_path.c_str(), false);
+}
+
 void setup_test_environment() {
   if (!getenv("MYSQL_PORT")) {
     if (!shcore::setenv("MYSQL_PORT", "3306")) {
@@ -626,31 +655,6 @@ void setup_test_environment() {
       exit(1);
     }
   }
-
-  // Set HOME to same as TMPDIR
-  {
-    if (!shcore::setenv("HOME", getenv("TMPDIR"))) {
-      std::cerr << "HOME could not be overriden\n";
-      exit(1);
-    }
-  }
-
-  if (!getenv("MYSQLSH_USER_CONFIG_HOME")) {
-    // Override the configuration home for tests, to not mess with custom data
-    if (!shcore::setenv("MYSQLSH_USER_CONFIG_HOME",
-                        shcore::get_binary_folder())) {
-      std::cerr << "MYSQLSH_USER_CONFIG_HOME could not be set with putenv\n";
-    }
-  }
-
-  // Setup logger with default configs
-  std::string log_path =
-      shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
-  if (shcore::path_exists(log_path)) {
-    std::cerr << "Deleting old " << log_path << " file\n";
-    shcore::delete_file(log_path);
-  }
-  shcore::Logger::setup_instance(log_path.c_str(), false);
 
   tests::sandbox::initialize();
 
@@ -861,6 +865,7 @@ int main(int argc, char **argv) {
   }
 
   std::string mysqld_path_variables;
+  mysqlsh::Scoped_logger sclogger(setup_logger());
   if (!listing_tests) {
     setup_test_environment();
 
@@ -1031,5 +1036,8 @@ int main(int argc, char **argv) {
   remove_test_keychain();
 #endif  // __APPLE__
 
+#ifdef HAVE_PYTHON
+  shcore::Python_init_singleton::destroy_python();
+#endif
   return ret_val;
 }

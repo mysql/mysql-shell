@@ -134,10 +134,12 @@ class Shell_test_output_handler {
   static std::vector<std::string> log;
 
   void set_log_level(shcore::Logger::LOG_LEVEL log_level) {
-    _logger->set_log_level(log_level);
+    m_logger->set_log_level(log_level);
   }
 
-  shcore::Logger::LOG_LEVEL get_log_level() { return _logger->get_log_level(); }
+  shcore::Logger::LOG_LEVEL get_log_level() {
+    return m_logger->get_log_level();
+  }
 
   void validate_stdout_content(const std::string &content, bool expected);
   void validate_stderr_content(const std::string &content, bool expected);
@@ -165,7 +167,7 @@ class Shell_test_output_handler {
   void set_errors_to_stderr(bool value) { m_errors_on_stderr = value; }
 
  protected:
-  static shcore::Logger *_logger;
+  std::shared_ptr<shcore::Logger> m_logger;
 
   static void log_hook(const shcore::Logger::Log_entry &entry, void *);
   bool m_internal;

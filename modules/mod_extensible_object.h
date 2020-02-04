@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -391,10 +391,6 @@ class Extensible_object
       shcore::Option_unpacker *unpacker) const;
 
  private:
-  static std::set<shcore::Value_type> s_allowed_member_types;
-  static std::set<std::string> s_allowed_param_types;
-  static std::map<std::string, shcore::Value_type> s_type_mapping;
-
   static void validate_name(const std::string &name, const std::string &label,
                             bool custom_names);
 
@@ -405,7 +401,7 @@ class Extensible_object
       const std::shared_ptr<Function_definition> &parameters);
 
   shcore::Value_type map_type(const std::string &type,
-                              const std::set<std::string> &allowed_types);
+                              const std::set<std::string> &allowed_types) const;
   std::shared_ptr<Parameter_definition> parse_parameter(
       const shcore::Dictionary_t &definition,
       shcore::Parameter_context *context,

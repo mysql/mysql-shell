@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,7 +38,7 @@ namespace shcore {
 class Shell_application_log_tests : public Shell_core_test_wrapper {
  protected:
   static int i;
-  shcore::Logger *_logger;
+  std::shared_ptr<shcore::Logger> m_logger;
 
   static std::string error;
 
@@ -54,10 +54,9 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
 
     const auto log_path =
         shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
-    shcore::Logger::setup_instance(log_path.c_str(), false,
-                                   shcore::Logger::LOG_DEBUG);
-    _logger = shcore::Logger::singleton();
-    _logger->attach_log_hook(my_hook);
+    m_logger = shcore::Logger::create_instance(log_path.c_str(), false,
+                                               shcore::Logger::LOG_DEBUG);
+    m_logger->attach_log_hook(my_hook);
 
     _interactive_shell->process_line("\\js");
 
@@ -66,13 +65,14 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
                         "');");
   }
 
-  virtual void TearDown() { _logger->detach_log_hook(my_hook); }
+  virtual void TearDown() { m_logger->detach_log_hook(my_hook); }
 };
 
 std::string Shell_application_log_tests::error = "";
 
 #ifdef HAVE_V8
 TEST_F(Shell_application_log_tests, test) {
+  mysqlsh::Scoped_logger log(m_logger);
   // issue a stmt with syntax error, then check the log.
   error = "SyntaxError: missing ) after argument list at :1:6\nin print('x';";
   execute("print('x';");

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -155,7 +155,7 @@ class Mysqlsh_extension_test : public Command_line_test {
   }
 
   static void wipe_log_file() {
-    const auto log = shcore::Logger::singleton()->logfile_name();
+    const auto log = shcore::current_logger()->logfile_name();
 
     {
       std::ifstream f(log);
@@ -173,7 +173,7 @@ class Mysqlsh_extension_test : public Command_line_test {
   }
 
   static std::string read_log_file() {
-    return shcore::get_text_file(shcore::Logger::singleton()->logfile_name());
+    return shcore::get_text_file(shcore::current_logger()->logfile_name());
   }
 
   virtual std::string get_plugin_folder_name() const = 0;

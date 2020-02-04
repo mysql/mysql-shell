@@ -68,13 +68,13 @@ namespace uri {
 #define IS_RESERVED(x) RESERVED.find(x) != std::string::npos
 #define IS_UNRESERVED(x) UNRESERVED.find(x) != std::string::npos
 
-std::map<char, char> Uri_parser::hex_literals = {
+const std::map<char, char> kUriHexLiterals = {
     {'1', 1},  {'2', 2},  {'3', 3},  {'4', 4},  {'5', 5},  {'6', 6},
     {'7', 7},  {'8', 8},  {'9', 9},  {'A', 10}, {'B', 11}, {'C', 12},
     {'D', 13}, {'E', 14}, {'F', 15}, {'a', 10}, {'b', 11}, {'c', 12},
     {'d', 13}, {'e', 14}, {'f', 15}};
 
-Uri_parser::Uri_parser() {}
+Uri_parser::Uri_parser() : _data(nullptr) {}
 
 void Uri_parser::parse_scheme() {
   if (_chunks.find(URI_SCHEME) != _chunks.end()) {
@@ -649,11 +649,19 @@ std::string Uri_parser::parse_value(const std::pair<size_t, size_t> &range,
   return ret_val;
 }
 
-char Uri_parser::percent_decode(const std::string &value) {
+char Uri_parser::percent_decode(const std::string &value) const {
   int ret_val = 0;
 
-  ret_val += hex_literals[value[1]] * 16;
-  ret_val += hex_literals[value[2]];
+  try {
+    ret_val += kUriHexLiterals.at(value[1]) * 16;
+  } catch (const std::out_of_range &) {
+    ret_val += 0;
+  }
+  try {
+    ret_val += kUriHexLiterals.at(value[2]);
+  } catch (const std::out_of_range &) {
+    ret_val += 0;
+  }
 
   return ret_val;
 }

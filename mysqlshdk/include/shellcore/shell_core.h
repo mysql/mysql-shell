@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -207,7 +207,7 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   virtual void clear_input();
 
   // To be used to stop processing from caller
-  void set_error_processing() { _global_return_code = 1; }
+  void set_error_processing() { m_global_return_code = 1; }
 
   Help_manager *get_helper() override { return &m_help; }
 
@@ -240,7 +240,7 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   std::string _input_source;
   std::vector<std::string> _input_args;
   Mode _mode;
-  int _global_return_code;
+  int m_global_return_code;
   Help_manager m_help;
 };
 }  // namespace shcore

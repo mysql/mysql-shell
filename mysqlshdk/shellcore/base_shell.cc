@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,12 +64,6 @@ Base_shell::Base_shell(const std::shared_ptr<Shell_options> &cmdline_options)
     : m_shell_options{cmdline_options},
       _deferred_output(std::make_unique<std::string>()) {
   shcore::Interrupts::setup();
-
-  std::string log_path =
-      shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
-
-  shcore::Logger::setup_instance(log_path.c_str(), options().log_to_stderr,
-                                 options().log_level);
 
   _input_mode = shcore::Input_state::Ok;
 

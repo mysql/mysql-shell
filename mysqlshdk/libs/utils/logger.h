@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -79,6 +79,8 @@ class SHCORE_PUBLIC Logger final {
                        bool catch_all = false);
   void detach_log_hook(Log_hook hook);
 
+  bool log_allowed() const;
+
   void set_log_level(LOG_LEVEL log_level);
   LOG_LEVEL get_log_level() const { return m_log_level; }
 
@@ -92,11 +94,11 @@ class SHCORE_PUBLIC Logger final {
   static void log(LOG_LEVEL level, const char *format, ...);
 #endif
 
-  static Logger *singleton();
+  static std::shared_ptr<Logger> create_instance(const char *filename,
+                                                 bool use_stderr = false,
+                                                 LOG_LEVEL level = LOG_INFO);
 
-  // Creates singleton instance with proper parameters
-  static void setup_instance(const char *filename, bool use_stderr = false,
-                             LOG_LEVEL level = LOG_INFO);
+  static void log_to_stderr();
 
   static LOG_LEVEL parse_log_level(const std::string &tag);
 
@@ -145,14 +147,32 @@ class SHCORE_PUBLIC Logger final {
   std::list<std::string> m_log_context;
 
   std::recursive_mutex m_mutex;
+
+  int m_dont_log;
+
+  friend class Log_reentrant_protector;
+};
+
+// implemented in scoped_contexts.cc
+std::shared_ptr<shcore::Logger> current_logger();
+
+/** The Shell_console::print* functions may log some information.
+ *  when --verbose is enable, those are also printed which may cause a cyclic
+ * call. This Log_protector is used to break the cycle, hence works as a shield
+ * for the Shell_console::print functions.
+ */
+class Log_reentrant_protector {
+ public:
+  Log_reentrant_protector() { current_logger()->m_dont_log++; }
+  ~Log_reentrant_protector() { current_logger()->m_dont_log--; }
 };
 
 struct Log_context {
-  Log_context(const std::string &context) {
-    Logger::singleton()->push_context(context);
+  explicit Log_context(const std::string &context) {
+    current_logger()->push_context(context);
   }
 
-  ~Log_context() { Logger::singleton()->pop_context(); }
+  ~Log_context() { current_logger()->pop_context(); }
 };
 
 #define log_error(...) \

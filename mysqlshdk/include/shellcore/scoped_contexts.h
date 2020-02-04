@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,47 +25,37 @@
 #define MYSQLSHDK_INCLUDE_SHELLCORE_SCOPED_CONTEXTS_H_
 
 #include <memory>
-
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
+#include "mysqlshdk/libs/utils/logger.h"
 
 namespace mysqlsh {
 
-class Scoped_console {
+template <typename T>
+class Global_scoped_object {
  public:
-  explicit Scoped_console(const std::shared_ptr<mysqlsh::IConsole> &console);
+  explicit Global_scoped_object(
+      const std::shared_ptr<T> &scoped_value,
+      const std::function<void(const std::shared_ptr<T> &)> &deleter = {});
+  ~Global_scoped_object();
 
-  ~Scoped_console();
+  Global_scoped_object(const Global_scoped_object &) = delete;
+  Global_scoped_object(Global_scoped_object &&) = delete;
+  Global_scoped_object &operator=(const Global_scoped_object &) = delete;
+  Global_scoped_object &operator=(Global_scoped_object &&) = delete;
 
-  Scoped_console(const Scoped_console &) = delete;
-  Scoped_console(Scoped_console &&) = delete;
-  Scoped_console &operator=(const Scoped_console &) = delete;
-  Scoped_console &operator=(Scoped_console &&) = delete;
-
-  std::shared_ptr<mysqlsh::IConsole> get() const;
+  std::shared_ptr<T> get() const;
 
  private:
-  std::shared_ptr<IConsole> m_console;
+  std::function<void(const std::shared_ptr<T> &)> m_deleter;
+  std::shared_ptr<T> m_scoped_value;
 };
 
-class Scoped_shell_options {
- public:
-  explicit Scoped_shell_options(
-      const std::shared_ptr<mysqlsh::Shell_options> &options);
-
-  ~Scoped_shell_options();
-
-  Scoped_shell_options(const Scoped_shell_options &) = delete;
-  Scoped_shell_options(Scoped_shell_options &&) = delete;
-  Scoped_shell_options &operator=(const Scoped_shell_options &) = delete;
-  Scoped_shell_options &operator=(Scoped_shell_options &&) = delete;
-
-  std::shared_ptr<mysqlsh::Shell_options> get() const;
-
- private:
-  std::shared_ptr<Shell_options> m_options;
-};
-
+using Scoped_console = Global_scoped_object<mysqlsh::IConsole>;
+using Scoped_shell_options = Global_scoped_object<mysqlsh::Shell_options>;
+using Scoped_interrupt_handler = Global_scoped_object<shcore::Interrupt_helper>;
+using Scoped_logger = Global_scoped_object<shcore::Logger>;
 }  // namespace mysqlsh
 
 #endif  // MYSQLSHDK_INCLUDE_SHELLCORE_SCOPED_CONTEXTS_H_

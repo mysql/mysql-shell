@@ -34,6 +34,9 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_init.h"
+#ifdef HAVE_PYTHON
+#include "mysqlshdk/include/scripting/python_context.h"
+#endif
 
 #include <sys/stat.h>
 #include <clocale>
@@ -642,12 +645,11 @@ int main(int argc, char **argv) {
   if (options.exit_code != 0) return options.exit_code;
 
   // Setup logging
-  {
-    std::string log_path =
-        shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
-    shcore::Logger::setup_instance(log_path.c_str(), options.log_to_stderr,
-                                   options.log_level);
-  }
+  std::string log_path =
+      shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
+
+  mysqlsh::Scoped_logger logger(shcore::Logger::create_instance(
+      log_path.c_str(), options.log_to_stderr, options.log_level));
 
   std::shared_ptr<mysqlsh::Command_line_shell> shell;
   try {
@@ -843,5 +845,9 @@ int main(int argc, char **argv) {
   }
 
 end:
+#ifdef HAVE_PYTHON
+  shell.reset();
+  shcore::Python_init_singleton::destroy_python();
+#endif
   return ret_val;
 }

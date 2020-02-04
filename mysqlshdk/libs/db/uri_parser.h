@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -94,13 +94,11 @@ class SHCORE_PUBLIC Uri_parser {
                                   const std::string &finalizers = "",
                                   const std::string &forbidden_delimiters = "");
 
-  char percent_decode(const std::string &value);
+  char percent_decode(const std::string &value) const;
   std::string get_input_chunk(const std::pair<size_t, size_t> &range);
 
   bool input_contains(const std::string &what,
                       size_t position = std::string::npos);
-
-  static std::map<char, char> hex_literals;
 };
 
 }  // namespace uri

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,7 +60,7 @@ REGISTER_HELP(COMMANDS_EXAMPLE_DESC,
               "Displays information about the <b>\\connect</b> command.");
 namespace shcore {
 
-Shell_core::Shell_core() : IShell_core() {
+Shell_core::Shell_core() : IShell_core(), m_global_return_code(0) {
   DEBUG_OBJ_ALLOC(Shell_core);
   _mode = Mode::None;
   _registry = new Object_registry();
@@ -121,13 +121,13 @@ int Shell_core::process_stream(std::istream &stream, const std::string &source,
   //       process_result this global return code may be used again once the
   //       exit() function is in place
   Input_state state = Input_state::Ok;
-  _global_return_code = 0;
+  m_global_return_code = 0;
 
   _input_source = source;
   _input_args = argv;
 
   if (_mode == Shell_core::Mode::SQL) {
-    if (!_langs[_mode]->handle_input_stream(&stream)) _global_return_code = 1;
+    if (!_langs[_mode]->handle_input_stream(&stream)) m_global_return_code = 1;
   } else {
     std::string data;
     if (&std::cin == &stream) {
@@ -157,7 +157,7 @@ int Shell_core::process_stream(std::istream &stream, const std::string &source,
   _input_source.clear();
   _input_args.clear();
 
-  return _global_return_code;
+  return m_global_return_code;
 }
 
 bool Shell_core::switch_mode(Mode mode) {

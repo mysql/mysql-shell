@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -28,8 +28,10 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 
 #ifndef _WIN32
@@ -77,24 +79,10 @@ class Logger_test : public ::testing::Test {
   }
 
   void SetUp() override {
-    m_previous_log_file = Logger::singleton()->logfile_name();
-    m_previous_use_stderr = Logger::singleton()->use_stderr();
-    m_previous_log_level = Logger::singleton()->get_log_level();
     m_previous_stderr_format = Logger::stderr_output_format();
   }
 
   void TearDown() override {
-    const auto current_log_file = Logger::singleton()->logfile_name();
-
-    if (current_log_file != m_previous_log_file) {
-      Logger::setup_instance(m_previous_log_file.c_str(), m_previous_use_stderr,
-                             m_previous_log_level);
-
-      if (!shcore::is_folder(current_log_file)) {
-        shcore::delete_file(current_log_file);
-      }
-    }
-
     Logger::set_stderr_output_format(m_previous_stderr_format);
 
     s_hook_executed = 0;
@@ -105,9 +93,6 @@ class Logger_test : public ::testing::Test {
   static int s_hook_executed;
   static int s_all_hook_executed;
 
-  std::string m_previous_log_file;
-  bool m_previous_use_stderr;
-  Logger::LOG_LEVEL m_previous_log_level;
   std::string m_previous_stderr_format;
 };
 
@@ -116,9 +101,16 @@ int Logger_test::s_all_hook_executed = 0;
 
 TEST_F(Logger_test, intialization) {
   const auto name = get_log_file("mylog.txt");
+  shcore::on_leave_scope scope_leave([&name]() {
+    if (!shcore::is_folder(name)) {
+      shcore::delete_file(name);
+    }
+  });
 
-  Logger::setup_instance(name.c_str(), false, Logger::LOG_DEBUG);
-  const auto l = Logger::singleton();
+  mysqlsh::Scoped_logger logger(
+      Logger::create_instance(name.c_str(), false, Logger::LOG_DEBUG));
+
+  const auto l = current_logger();
 
   EXPECT_EQ(name, l->logfile_name());
   EXPECT_EQ(Logger::LOG_DEBUG, l->get_log_level());
@@ -128,10 +120,17 @@ TEST_F(Logger_test, intialization) {
 }
 
 TEST_F(Logger_test, log_levels_and_hooks) {
-  Logger::setup_instance(get_log_file("mylog.txt").c_str(), false,
-                         Logger::LOG_WARNING);
+  const auto name = get_log_file("mylog.txt");
+  shcore::on_leave_scope scope_leave([&name]() {
+    if (!shcore::is_folder(name)) {
+      shcore::delete_file(name);
+    }
+  });
 
-  const auto l = Logger::singleton();
+  mysqlsh::Scoped_logger logger(
+      Logger::create_instance(name.c_str(), false, Logger::LOG_WARNING));
+
+  const auto l = current_logger();
   Log_context ctx("Unit Test Domain");
 
   l->attach_log_hook(log_all_hook, nullptr, true);
@@ -189,7 +188,7 @@ TEST_F(Logger_test, log_open_failure) {
       {
         const std::string filename = get_log_file("");
         try {
-          Logger::setup_instance(filename.c_str(), false, Logger::LOG_WARNING);
+          Logger::create_instance(filename.c_str(), false, Logger::LOG_WARNING);
         } catch (const std::logic_error &e) {
           EXPECT_EQ("Error in Logger::Logger when opening file '" + filename +
                         "' for writing",
@@ -201,10 +200,17 @@ TEST_F(Logger_test, log_open_failure) {
 }
 
 TEST_F(Logger_test, log_format) {
-  Logger::setup_instance(get_log_file("mylog.txt").c_str(), false,
-                         Logger::LOG_DEBUG);
+  const auto name = get_log_file("mylog.txt");
+  shcore::on_leave_scope scope_leave([&name]() {
+    if (!shcore::is_folder(name)) {
+      shcore::delete_file(name);
+    }
+  });
 
-  const auto l = Logger::singleton();
+  mysqlsh::Scoped_logger logger(Logger::create_instance(
+      get_log_file("mylog.txt").c_str(), false, Logger::LOG_DEBUG));
+
+  const auto l = current_logger();
 
   std::deque<std::pair<Logger::LOG_LEVEL, std::string>> tests = {
       {Logger::LOG_DEBUG, "Debug"},
@@ -310,10 +316,16 @@ TEST_F(Logger_test, stderr_output) {
   Stderr_reader reader;
 
   Logger::set_stderr_output_format("table");
-  Logger::setup_instance(get_log_file("mylog.txt").c_str(), true,
-                         Logger::LOG_WARNING);
+  mysqlsh::Scoped_logger logger(
+      Logger::create_instance(get_log_file("mylog.txt").c_str(), true,
+                              Logger::LOG_WARNING),
+      [](const std::shared_ptr<Logger> &l) {
+        if (!shcore::is_folder(l->logfile_name())) {
+          shcore::delete_file(l->logfile_name());
+        }
+      });
 
-  const auto l = Logger::singleton();
+  const auto l = current_logger();
   Log_context ctx("Unit Test Domain");
 
   l->log(Logger::LOG_DEBUG, "First");
@@ -337,10 +349,17 @@ TEST_F(Logger_test, stderr_json_output) {
   Stderr_reader reader;
 
   Logger::set_stderr_output_format("json");
-  Logger::setup_instance(get_log_file("mylog.txt").c_str(), true,
-                         Logger::LOG_WARNING);
 
-  const auto l = Logger::singleton();
+  mysqlsh::Scoped_logger logger(
+      Logger::create_instance(get_log_file("mylog.txt").c_str(), true,
+                              Logger::LOG_WARNING),
+      [](const std::shared_ptr<Logger> &l) {
+        if (!shcore::is_folder(l->logfile_name())) {
+          shcore::delete_file(l->logfile_name());
+        }
+      });
+
+  const auto l = current_logger();
 
   Log_context ctx("Unit Test Domain");
 
@@ -385,10 +404,16 @@ TEST_F(Logger_test, stderr_json_raw_output) {
   Stderr_reader reader;
 
   Logger::set_stderr_output_format("json/raw");
-  Logger::setup_instance(get_log_file("mylog.txt").c_str(), true,
-                         Logger::LOG_WARNING);
+  mysqlsh::Scoped_logger logger(
+      Logger::create_instance(get_log_file("mylog.txt").c_str(), true,
+                              Logger::LOG_WARNING),
+      [](const std::shared_ptr<Logger> &l) {
+        if (!shcore::is_folder(l->logfile_name())) {
+          shcore::delete_file(l->logfile_name());
+        }
+      });
 
-  const auto l = Logger::singleton();
+  const auto l = current_logger();
 
   Log_context ctx("Unit Test Domain");
 

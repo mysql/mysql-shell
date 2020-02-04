@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 
 #include "mysqlshdk/include/scripting/python_object_wrapper.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "scripting/common.h"
 #include "scripting/module_registry.h"
 #include "utils/utils_file.h"
@@ -232,147 +233,131 @@ PyObject *py_run_string_interactive(const char *str, PyObject *globals,
 bool Python_context::exit_error = false;
 bool Python_context::module_processing = false;
 
-// The static member _instance needs to be in a class not exported (no
-// TYPES_COMMON_PUBLIC), otherwise MSVC complains with C2491.
-class Python_init_singleton final {
- public:
-  Python_init_singleton(const Python_init_singleton &py) = delete;
-  Python_init_singleton(Python_init_singleton &&py) = delete;
+Python_init_singleton::~Python_init_singleton() {
+  if (m_local_initialization) Py_Finalize();
+}
 
-  ~Python_init_singleton() {
-    if (m_local_initialization) Py_Finalize();
+void Python_init_singleton::init_python() {
+  if (!s_instance) {
+    s_instance.reset(new Python_init_singleton());
   }
+}
 
-  Python_init_singleton &operator=(const Python_init_singleton &py) = delete;
-  Python_init_singleton &operator=(Python_init_singleton &&py) = delete;
+void Python_init_singleton::destroy_python() { s_instance.reset(); }
 
-  static void init_python() {
-    if (!s_instance) s_instance.reset(new Python_init_singleton());
-  }
+std::string Python_init_singleton::get_new_scope_name() {
+  return shcore::str_format("__main__%u", ++s_cnt);
+}
 
-  // Initializing and finalizing the Python context multiple times when tests
-  // are executed doesn't work well on macOS, hence there's no method to
-  // destroy the singleton.
-
-  static std::string get_new_scope_name() {
-    return shcore::str_format("__main__%u", ++s_cnt);
-  }
-
- private:
-  Python_init_singleton() : m_local_initialization(false) {
-    if (!Py_IsInitialized()) {
-      std::string home;
+Python_init_singleton::Python_init_singleton() : m_local_initialization(false) {
+  if (!Py_IsInitialized()) {
+    std::string home;
 #ifdef _WIN32
 #define MAJOR_MINOR STRINGIFY(PY_MAJOR_VERSION) "." STRINGIFY(PY_MINOR_VERSION)
-      const auto env_value = getenv("PYTHONHOME");
+    const auto env_value = getenv("PYTHONHOME");
 
-      // If PYTHONHOME is available, honors it
-      if (env_value) {
-        log_info("Setting Python home to '%s' from PYTHONHOME", env_value);
-        home = env_value;
+    // If PYTHONHOME is available, honors it
+    if (env_value) {
+      log_info("Setting Python home to '%s' from PYTHONHOME", env_value);
+      home = env_value;
+    } else {
+      // If not will associate what should be the right path in
+      // a standard distribution
+      std::string python_path = shcore::get_mysqlx_home_path();
+
+      if (!python_path.empty()) {
+        python_path =
+            shcore::path::join_path(python_path, "lib", "Python" MAJOR_MINOR);
       } else {
-        // If not will associate what should be the right path in
-        // a standard distribution
-        std::string python_path = shcore::get_mysqlx_home_path();
+        // Not a standard distribution
+        python_path = shcore::get_binary_folder();
+        python_path =
+            shcore::path::join_path(python_path, "Python" MAJOR_MINOR);
+      }
 
-        if (!python_path.empty()) {
-          python_path =
-              shcore::path::join_path(python_path, "lib", "Python" MAJOR_MINOR);
-        } else {
-          // Not a standard distribution
-          python_path = shcore::get_binary_folder();
-          python_path =
-              shcore::path::join_path(python_path, "Python" MAJOR_MINOR);
-        }
+      log_info("Setting Python home to '%s'", python_path.c_str());
+      home = python_path;
+    }
+#undef MAJOR_MINOR
+#else  // !_WIN32
+    const auto env_value = getenv("PYTHONHOME");
 
+    // If PYTHONHOME is available, honors it
+    if (env_value) {
+      log_info("Setting Python home to '%s' from PYTHONHOME", env_value);
+      home = env_value;
+    } else {
+#if defined(HAVE_PYTHON) && HAVE_PYTHON == 2
+      // If not will associate what should be the right path in
+      // a standard distribution
+      std::string python_path = shcore::path::join_path(
+          shcore::get_mysqlx_home_path(), "lib", "mysqlsh");
+      if (shcore::is_folder(python_path)) {
+        // Override the system Python install with the bundled one
         log_info("Setting Python home to '%s'", python_path.c_str());
         home = python_path;
       }
-#undef MAJOR_MINOR
-#else  // !_WIN32
-      const auto env_value = getenv("PYTHONHOME");
-
-      // If PYTHONHOME is available, honors it
-      if (env_value) {
-        log_info("Setting Python home to '%s' from PYTHONHOME", env_value);
-        home = env_value;
-      } else {
-#if defined(HAVE_PYTHON) && HAVE_PYTHON == 2
-        // If not will associate what should be the right path in
-        // a standard distribution
-        std::string python_path = shcore::path::join_path(
-            shcore::get_mysqlx_home_path(), "lib", "mysqlsh");
-        if (shcore::is_folder(python_path)) {
-          // Override the system Python install with the bundled one
-          log_info("Setting Python home to '%s'", python_path.c_str());
-          home = python_path;
-        }
 #endif
-      }
-#endif  // !_WIN32
-      set_python_home(home);
-      set_program_name();
-      Py_InitializeEx(0);
-
-      // Initialize the signal module, so we can use PyErr_SetInterrupt().
-      //
-      // Python 3.5+ uses PyErr_CheckSignals() to double check if time.sleep()
-      // was interrupted and continues to sleep if that function returns 0.
-      // PyErr_CheckSignals() returns non-zero if a signal was raised (either
-      // via PyErr_SetInterrupt() or Python's signal handler) AND if the call to
-      // the Python callback set for the raised signal results in an exception.
-      //
-      // The initialization of signal module installs its own handler for
-      // a signal only if it's currently set to SIG_DFL. In case of SIGINT it
-      // will then also set the Python callback to signal.default_int_handler,
-      // which generates KeyboardInterrupt when called. Since on non-Windows
-      // platforms we have our own SIGINT handler, the initialization of signal
-      // module is not going to install a handler and Python callback will
-      // remain to be set to None. If PyErr_CheckSignals() was called with such
-      // setup (after a previous call to PyErr_SetInterrupt() to raise the
-      // SIGINT signal, since Python's signal handler was not installed), it
-      // would return non-zero, but the exception would be "'NoneType' object is
-      // not callable".
-      //
-      // If we set the Python callback after the signal module is initialized
-      // (i.e.: signal.signal(signal.SIGINT, signal.default_int_handler)),
-      // we will lose our capability to detect SIGINT (i.e. in JS), as Python's
-      // implementation which sets that callback overwrites current (our) signal
-      // handler with its own.
-      //
-      // In order to overcome these issues, we proceed as follows:
-      //  1. Set the SIGINT handler to SIG_DFL, store the previous handler.
-      //  2. Initialize the signal module, it will install its own SIGINT
-      //     handler and set the callback to signal.default_int_handler.
-      //  3. Restore the previous handler, overwriting Python's signal handler.
-      // This will give us an initialized signal module with Python callback for
-      // SIGINT set, but with no Python signal handler. We can continue to use
-      // our own signal handler, and deliver the CTRL-C notification to Python
-      // via PyErr_SetInterrupt().
-      //
-      // Python 2 @ Windows:
-      // Initializing the signal module early and in a controlled way will also
-      // prevent an issue when user imports this module and calls time.sleep().
-      // In that case sleep cannot be interrupted by CTRL-C, because the
-      // initialization of signal module will overwrite the default signal
-      // handler and the mechanism used by Python 2.7 to wake up will not work.
-      {
-        const auto prev_signal = signal(SIGINT, SIG_DFL);
-        PyOS_InitInterrupts();
-        signal(SIGINT, prev_signal);
-      }
-
-      PY_CHAR_T *argv[] = {(PY_CHAR_T *)PY_CHAR_T_LITERAL("")};
-      PySys_SetArgvEx(1, argv, 0);
-
-      m_local_initialization = true;
     }
-  }
+#endif  // !_WIN32
+    set_python_home(home);
+    set_program_name();
+    Py_InitializeEx(0);
 
-  static std::unique_ptr<Python_init_singleton> s_instance;
-  static unsigned int s_cnt;
-  bool m_local_initialization;
-};
+    // Initialize the signal module, so we can use PyErr_SetInterrupt().
+    //
+    // Python 3.5+ uses PyErr_CheckSignals() to double check if time.sleep()
+    // was interrupted and continues to sleep if that function returns 0.
+    // PyErr_CheckSignals() returns non-zero if a signal was raised (either
+    // via PyErr_SetInterrupt() or Python's signal handler) AND if the call to
+    // the Python callback set for the raised signal results in an exception.
+    //
+    // The initialization of signal module installs its own handler for
+    // a signal only if it's currently set to SIG_DFL. In case of SIGINT it
+    // will then also set the Python callback to signal.default_int_handler,
+    // which generates KeyboardInterrupt when called. Since on non-Windows
+    // platforms we have our own SIGINT handler, the initialization of signal
+    // module is not going to install a handler and Python callback will
+    // remain to be set to None. If PyErr_CheckSignals() was called with such
+    // setup (after a previous call to PyErr_SetInterrupt() to raise the
+    // SIGINT signal, since Python's signal handler was not installed), it
+    // would return non-zero, but the exception would be "'NoneType' object is
+    // not callable".
+    //
+    // If we set the Python callback after the signal module is initialized
+    // (i.e.: signal.signal(signal.SIGINT, signal.default_int_handler)),
+    // we will lose our capability to detect SIGINT (i.e. in JS), as Python's
+    // implementation which sets that callback overwrites current (our) signal
+    // handler with its own.
+    //
+    // In order to overcome these issues, we proceed as follows:
+    //  1. Set the SIGINT handler to SIG_DFL, store the previous handler.
+    //  2. Initialize the signal module, it will install its own SIGINT
+    //     handler and set the callback to signal.default_int_handler.
+    //  3. Restore the previous handler, overwriting Python's signal handler.
+    // This will give us an initialized signal module with Python callback for
+    // SIGINT set, but with no Python signal handler. We can continue to use
+    // our own signal handler, and deliver the CTRL-C notification to Python
+    // via PyErr_SetInterrupt().
+    //
+    // Python 2 @ Windows:
+    // Initializing the signal module early and in a controlled way will also
+    // prevent an issue when user imports this module and calls time.sleep().
+    // In that case sleep cannot be interrupted by CTRL-C, because the
+    // initialization of signal module will overwrite the default signal
+    // handler and the mechanism used by Python 2.7 to wake up will not work.
+    {
+      const auto prev_signal = signal(SIGINT, SIG_DFL);
+      PyOS_InitInterrupts();
+      signal(SIGINT, prev_signal);
+    }
+
+    PY_CHAR_T *argv[] = {(PY_CHAR_T *)PY_CHAR_T_LITERAL("")};
+    PySys_SetArgvEx(1, argv, 0);
+
+    m_local_initialization = true;
+  }
+}
 
 std::unique_ptr<Python_init_singleton> Python_init_singleton::s_instance;
 unsigned int Python_init_singleton::s_cnt = 0;

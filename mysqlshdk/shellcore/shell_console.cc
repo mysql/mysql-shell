@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -131,7 +131,6 @@ class Shell_pager : public IPager {
 };
 
 namespace {
-int g_dont_log = 0;
 
 void log_hook(const shcore::Logger::Log_entry &log, void *data) {
   Shell_console *self = reinterpret_cast<Shell_console *>(data);
@@ -171,7 +170,7 @@ void log_hook(const shcore::Logger::Log_entry &log, void *data) {
         break;
     }
 
-    if (show_prefix && g_dont_log == 0) {
+    if (show_prefix && shcore::current_logger()->log_allowed()) {
       static char color_on[16] = {0};
       static char color_off[16] = {0};
       std::string ts = mysqlshdk::utils::fmttime(
@@ -179,12 +178,13 @@ void log_hook(const shcore::Logger::Log_entry &log, void *data) {
           &log.timestamp);
 
       if (self->use_colors() && color_on[0] == '\0') {
-        strcpy(color_on,
-               mysqlshdk::vt100::attr(-1, -1, mysqlshdk::vt100::Dim).c_str());
-        strcpy(color_off, mysqlshdk::vt100::attr().c_str());
+        snprintf(color_on, sizeof(color_on), "%s",
+                 mysqlshdk::vt100::attr(-1, -1, mysqlshdk::vt100::Dim).c_str());
+        snprintf(color_off, sizeof(color_off), "%s",
+                 mysqlshdk::vt100::attr().c_str());
       } else if (!self->use_colors() && color_on[0] != '\0') {
-        strcpy(color_on, "");
-        strcpy(color_off, "");
+        memset(color_on, 0, sizeof(color_on));
+        memset(color_off, 0, sizeof(color_off));
       }
 
       if (log.domain && *log.domain)
@@ -206,8 +206,7 @@ Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
     : m_ideleg(deleg) {
   m_print_handlers.emplace_back(deleg);
   // Capture logging output and if verbose is enabled, show them in the console
-  shcore::Logger::singleton()->attach_log_hook(log_hook, this, true);
-
+  shcore::current_logger()->attach_log_hook(log_hook, this, true);
 #ifndef _WIN32
   if (isatty(2)) {
     m_use_colors = true;
@@ -216,7 +215,7 @@ Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
 }
 
 Shell_console::~Shell_console() {
-  shcore::Logger::singleton()->detach_log_hook(log_hook);
+  shcore::current_logger()->detach_log_hook(log_hook);
 }
 
 void Shell_console::dump_json(const char *tag, const std::string &s) const {
@@ -290,10 +289,9 @@ void Shell_console::print_diag(const std::string &text) const {
   } else {
     delegate_print_diag(ftext.c_str());
   }
-  if (g_dont_log == 0) {
-    g_dont_log++;
+  if (shcore::current_logger()->log_allowed()) {
+    shcore::Log_reentrant_protector lock;
     log_debug("%s", ftext.c_str());
-    g_dont_log--;
   }
 }
 
@@ -305,10 +303,9 @@ void Shell_console::print_error(const std::string &text) const {
     delegate_print_error(
         (mysqlshdk::textui::error("ERROR: ") + ftext + "\n").c_str());
   }
-  if (g_dont_log == 0) {
-    g_dont_log++;
+  if (shcore::current_logger()->log_allowed()) {
+    shcore::Log_reentrant_protector lock;
     log_error("%s", ftext.c_str());
-    g_dont_log--;
   }
 }
 
@@ -320,10 +317,9 @@ void Shell_console::print_warning(const std::string &text) const {
     delegate_print_error(
         (mysqlshdk::textui::warning("WARNING: ") + ftext + "\n").c_str());
   }
-  if (g_dont_log == 0) {
-    g_dont_log++;
+  if (shcore::current_logger()->log_allowed()) {
+    shcore::Log_reentrant_protector lock;
     log_warning("%s", ftext.c_str());
-    g_dont_log--;
   }
 }
 
@@ -335,10 +331,9 @@ void Shell_console::print_note(const std::string &text) const {
     delegate_print_error(
         (mysqlshdk::textui::notice("NOTE: ") + ftext + "\n").c_str());
   }
-  if (g_dont_log == 0) {
-    g_dont_log++;
+  if (shcore::current_logger()->log_allowed()) {
+    shcore::Log_reentrant_protector lock;
     log_info("%s", text.c_str());
-    g_dont_log--;
   }
 }
 
@@ -349,10 +344,9 @@ void Shell_console::print_info(const std::string &text) const {
   } else {
     delegate_print_error((ftext + "\n").c_str());
   }
-  if (g_dont_log == 0 && !text.empty()) {
-    g_dont_log++;
+  if (shcore::current_logger()->log_allowed() && !text.empty()) {
+    shcore::Log_reentrant_protector lock;
     log_debug("%s", ftext.c_str());
-    g_dont_log--;
   }
 }
 
@@ -363,10 +357,9 @@ void Shell_console::print_status(const std::string &text) const {
   } else {
     delegate_print_error((ftext + "\n").c_str());
   }
-  if (g_dont_log == 0 && !text.empty()) {
-    g_dont_log++;
+  if (shcore::current_logger()->log_allowed() && !text.empty()) {
+    shcore::Log_reentrant_protector lock;
     log_debug("%s", ftext.c_str());
-    g_dont_log--;
   }
 }
 
@@ -377,10 +370,9 @@ void Shell_console::print_para(const std::string &text) const {
   } else {
     delegate_print_error((fit_screen(ftext) + "\n\n").c_str());
   }
-  if (g_dont_log == 0 && !text.empty()) {
-    g_dont_log++;
+  if (shcore::current_logger()->log_allowed() && !text.empty()) {
+    shcore::Log_reentrant_protector lock;
     log_debug2("%s", ftext.c_str());
-    g_dont_log--;
   }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #include <atomic>
 #include <exception>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -98,6 +99,8 @@ struct Interrupt_handler {
 
   bool _skip;
 };
+
+std::shared_ptr<Interrupt_helper> current_interrupt_helper();
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_INCLUDE_SHELLCORE_INTERRUPT_HANDLER_H_

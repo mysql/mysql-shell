@@ -1259,7 +1259,6 @@ std::shared_ptr<mysqlsh::dba::Instance> GRReplicaSet::get_online_instance(
 
         // Return the first valid (reachable) instance.
         return Instance::connect(coptions);
-
       } catch (const std::exception &e) {
         log_debug(
             "Unable to establish a session to the cluster member '%s': %s",

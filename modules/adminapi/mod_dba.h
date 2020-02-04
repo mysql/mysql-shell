@@ -95,10 +95,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   explicit Dba(shcore::IShell_core *owner);
   virtual ~Dba();
 
-  static std::set<std::string> _deploy_instance_opts;
-  static std::set<std::string> _stop_instance_opts;
-  static std::set<std::string> _default_local_instance_opts;
-
   virtual std::string class_name() const { return "Dba"; }
 
   virtual bool operator==(const Object_bridge &other) const;

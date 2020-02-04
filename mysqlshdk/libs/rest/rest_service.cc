@@ -208,7 +208,7 @@ class Rest_service::Impl {
     log_debug("%s-%d: %s %s", m_id.c_str(), m_request_sequence,
               shcore::str_upper(type_name(type)).c_str(), path.c_str());
 
-    if (!headers.empty() && shcore::Logger::singleton()->get_log_level() >=
+    if (!headers.empty() && shcore::current_logger()->get_log_level() >=
                                 shcore::Logger::LOG_LEVEL::LOG_DEBUG2) {
       std::vector<std::string> header_data;
       for (const auto &header : headers) {

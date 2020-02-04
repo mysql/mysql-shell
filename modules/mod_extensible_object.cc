@@ -75,7 +75,7 @@ For additional information on extension objects execute: \? extension objects
 REGISTER_HELP_TOPIC(Extension Objects, TOPIC, EXTENSION_OBJECTS, Contents,
                     SCRIPTING);
 REGISTER_HELP_TOPIC_TEXT(EXTENSION_OBJECTS, R"*(
-The MySQL Shell allows for an extension of its base functionality by using 
+The MySQL Shell allows for an extension of its base functionality by using
 special objects called <b>Extension Objects</b>.
 
 Once an extension object has been created it is possible to attach different
@@ -85,7 +85,7 @@ type of object members such as:
 @li Properties
 @li Other extension objects
 
-Once an extension object has been fully defined it can be registered as a 
+Once an extension object has been fully defined it can be registered as a
 regular <b>Global Object</b>. This way the object and its members will be
 available in the scripting languages the MySQL Shell supports, just as any other
 global object such as <b>shell</b>, <b>util</b>, etc.
@@ -117,8 +117,8 @@ You can get more details on these functions by executing:
 
 <b>Naming Convention</b>
 
-The core MySQL Shell APIs follow a specific naming convention for object 
-members. Extension objects should follow the same naming convention for 
+The core MySQL Shell APIs follow a specific naming convention for object
+members. Extension objects should follow the same naming convention for
 consistency reasons.
 
 @li JavaScript members use camelCaseNaming
@@ -128,10 +128,10 @@ To simplify this across languages, it is important to use camelCaseNaming when
 specifying the 'name' parameter of the shell.<<<addExtensionObjectMember>>>
 function.
 
-The MySQL Shell will then automatically handle the snake_case_naming for that 
+The MySQL Shell will then automatically handle the snake_case_naming for that
 member when it is switched to Python mode.
 
-NOTE: the naming convention is only applicable for extension object members. 
+NOTE: the naming convention is only applicable for extension object members.
 However, when a global object is registered, the name used to register that
 object will be exactly the same in both JavaScript and Python modes.
 
@@ -204,6 +204,21 @@ shcore::Cpp_function::Raw_signature to_raw_signature(
   return out;
 }
 
+const std::set<shcore::Value_type> kAllowedMemberTypes = {
+    shcore::Function, shcore::Array,   shcore::Map,      shcore::Null,
+    shcore::Bool,     shcore::Integer, shcore::UInteger, shcore::Float,
+    shcore::String,   shcore::Object};
+
+const std::set<std::string> kAllowedParamTypes = {
+    "string", "integer", "float", "bool", "object", "array", "dictionary"};
+
+const std::map<std::string, shcore::Value_type> kTypeMapping = {
+    {"string", shcore::String},  {"integer", shcore::Integer},
+    {"float", shcore::Float},    {"bool", shcore::Bool},
+    {"object", shcore::Object},  {"array", shcore::Array},
+    {"dictionary", shcore::Map}, {"function", shcore::Function},
+};
+
 }  // namespace
 
 Parameter_definition::Parameter_definition()
@@ -237,21 +252,6 @@ void Parameter_definition::validate_options() const {
     throw std::logic_error("Only map type can have options.");
   }
 }
-
-std::set<shcore::Value_type> Extensible_object::s_allowed_member_types = {
-    shcore::Function, shcore::Array,   shcore::Map,      shcore::Null,
-    shcore::Bool,     shcore::Integer, shcore::UInteger, shcore::Float,
-    shcore::String,   shcore::Object};
-
-std::set<std::string> Extensible_object::s_allowed_param_types = {
-    "string", "integer", "float", "bool", "object", "array", "dictionary"};
-
-std::map<std::string, shcore::Value_type> Extensible_object::s_type_mapping = {
-    {"string", shcore::String},  {"integer", shcore::Integer},
-    {"float", shcore::Float},    {"bool", shcore::Bool},
-    {"object", shcore::Object},  {"array", shcore::Array},
-    {"dictionary", shcore::Map}, {"function", shcore::Function},
-};
 
 Extensible_object::Extensible_object(const std::string &name,
                                      const std::string &qualified_name)
@@ -350,7 +350,7 @@ void Extensible_object::register_member(
     target_object =
         shcore::str_format("the '%s' extension object", m_name.c_str());
 
-  if (s_allowed_member_types.find(value.type) == s_allowed_member_types.end()) {
+  if (kAllowedMemberTypes.find(value.type) == kAllowedMemberTypes.end()) {
     throw shcore::Exception::argument_error("Unsupported member type.");
   } else if (value.type == shcore::Object) {
     auto object = value.as_object<Extensible_object>();
@@ -515,7 +515,7 @@ Extensible_object::parse_function_definition(
   // Builds the parameter list
   shcore::Parameter_context context{"", {{"parameter", {}}}};
   def->parameters =
-      parse_parameters(params, &context, s_allowed_param_types, true);
+      parse_parameters(params, &context, kAllowedParamTypes, true);
 
   return def;
 }
@@ -551,9 +551,9 @@ void Extensible_object::register_function(
 }
 
 shcore::Value_type Extensible_object::map_type(
-    const std::string &type, const std::set<std::string> &allowed_types) {
+    const std::string &type, const std::set<std::string> &allowed_types) const {
   if (allowed_types.find(type) != allowed_types.end())
-    return s_type_mapping[type];
+    return kTypeMapping.at(type);
   else
     return shcore::Value_type::Undefined;
 }

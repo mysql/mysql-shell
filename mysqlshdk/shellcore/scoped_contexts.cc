@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,63 +32,74 @@ namespace {
 template <typename T>
 class Scoped_storage {
  public:
-  std::shared_ptr<T> get() const {
+  void push(const std::shared_ptr<T> &value) {
+    assert(value);
+    m_objects.push(value);
+  }
+
+  void pop(const std::shared_ptr<T> &value) {
+    assert(!m_objects.empty() && m_objects.top() == value);
+    (void)value;  // silence warning if NDEBUG=0
+    m_objects.pop();
+  }
+
+  std::shared_ptr<T> get() {
     assert(!m_objects.empty());
     return m_objects.top();
   }
 
-  void push(const std::shared_ptr<T> &object) {
-    assert(object);
-    m_objects.push(object);
-  }
-
-  void pop(const std::shared_ptr<T> &object) {
-    assert(!m_objects.empty() && m_objects.top() == object);
-    (void)object;  // silence warning if NDEBUG=0
-    m_objects.pop();
-  }
-
  private:
-  // TODO(pawel): use separate stack per each thread
   std::stack<std::shared_ptr<T>> m_objects;
 };
 
-Scoped_storage<mysqlsh::IConsole> g_console_storage;
+class Multi_storage : public Scoped_storage<mysqlsh::IConsole>,
+                      public Scoped_storage<mysqlsh::Shell_options>,
+                      public Scoped_storage<shcore::Interrupt_helper>,
+                      public Scoped_storage<shcore::Logger> {};
 
-Scoped_storage<mysqlsh::Shell_options> g_options_storage;
+Multi_storage mstorage;
 
 }  // namespace
 
-Scoped_console::Scoped_console(
-    const std::shared_ptr<mysqlsh::IConsole> &console)
-    : m_console{console} {
-  g_console_storage.push(m_console);
+template <typename T>
+Global_scoped_object<T>::Global_scoped_object(
+    const std::shared_ptr<T> &scoped_value,
+    const std::function<void(const std::shared_ptr<T> &)> &deleter)
+    : m_deleter(deleter), m_scoped_value(scoped_value) {
+  mstorage.Scoped_storage<T>::push(scoped_value);
 }
 
-Scoped_console::~Scoped_console() { g_console_storage.pop(m_console); }
-
-std::shared_ptr<mysqlsh::IConsole> Scoped_console::get() const {
-  return m_console;
+template <typename T>
+Global_scoped_object<T>::~Global_scoped_object() {
+  if (m_deleter) {
+    m_deleter(m_scoped_value);
+  }
+  mstorage.Scoped_storage<T>::pop(m_scoped_value);
+}
+template <typename T>
+std::shared_ptr<T> Global_scoped_object<T>::get() const {
+  return m_scoped_value;
 }
 
-Scoped_shell_options::Scoped_shell_options(
-    const std::shared_ptr<mysqlsh::Shell_options> &options)
-    : m_options{options} {
-  g_options_storage.push(m_options);
-}
+template class Global_scoped_object<shcore::Interrupt_helper>;
+template class Global_scoped_object<mysqlsh::IConsole>;
+template class Global_scoped_object<mysqlsh::Shell_options>;
+template class Global_scoped_object<shcore::Logger>;
 
-Scoped_shell_options::~Scoped_shell_options() {
-  g_options_storage.pop(m_options);
+std::shared_ptr<IConsole> current_console() {
+  return mstorage.Scoped_storage<mysqlsh::IConsole>::get();
 }
-
-std::shared_ptr<mysqlsh::Shell_options> Scoped_shell_options::get() const {
-  return m_options;
-}
-
-std::shared_ptr<IConsole> current_console() { return g_console_storage.get(); }
 
 std::shared_ptr<Shell_options> current_shell_options() {
-  return g_options_storage.get();
+  return mstorage.Scoped_storage<mysqlsh::Shell_options>::get();
+}
+
+std::shared_ptr<shcore::Interrupt_helper> current_interrupt_helper() {
+  return mstorage.Scoped_storage<shcore::Interrupt_helper>::get();
 }
 
 }  // namespace mysqlsh
+
+std::shared_ptr<shcore::Logger> shcore::current_logger() {
+  return mysqlsh::mstorage.mysqlsh::Scoped_storage<shcore::Logger>::get();
+}

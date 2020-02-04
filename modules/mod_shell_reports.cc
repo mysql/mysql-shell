@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,10 +40,10 @@
 
 namespace mysqlsh {
 
-std::set<std::string> Shell_reports::s_report_option_types = {
-    "string", "integer", "float", "bool"};
-
 namespace {
+
+const std::set<std::string> kReportOptionTypes = {"string", "integer", "float",
+                                                  "bool"};
 
 REGISTER_HELP_OBJECT(reports, shell);
 REGISTER_HELP(REPORTS_BRIEF,
@@ -1121,7 +1121,7 @@ void Shell_reports::register_report(const std::string &name,
     new_report->set_details(details);
     shcore::Parameter_context context{"", {{"option", {}}}};
     new_report->set_options(downcast(
-        parse_parameters(options, &context, s_report_option_types, false)));
+        parse_parameters(options, &context, kReportOptionTypes, false)));
     new_report->set_argc(get_report_argc(argc));
     new_report->set_examples(get_report_examples(examples));
   }

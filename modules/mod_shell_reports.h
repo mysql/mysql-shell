@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -407,8 +407,6 @@ class SHCORE_PUBLIC Shell_reports : public Extensible_object {
       shcore::Option_unpacker *unpacker) const override;
 
   std::unordered_map<std::string, std::unique_ptr<Report_options>> m_reports;
-
-  static std::set<std::string> s_report_option_types;
 };
 
 }  // namespace mysqlsh
