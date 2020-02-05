@@ -52,8 +52,8 @@ class Testutils : public mysqlsh::Extensible_object {
 #if DOXYGEN_JS
   Undefined deploySandbox(Integer port, String pwd, Dictionary options);
   Undefined destroySandbox(Integer port);
-  Undefined startSandbox(Integer port);
-  Undefined stopSandbox(Integer port);
+  Undefined startSandbox(Integer port, Dictionary options);
+  Undefined stopSandbox(Integer port, Dictionary options);
   Undefined killSandbox(Integer port);
   Undefined restartSandbox(Integer port);
   Undefined waitSandboxAlive(Integer port);
@@ -112,7 +112,7 @@ class Testutils : public mysqlsh::Extensible_object {
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd, Dictionary options);
   None destroy_sandbox(int port);
-  None start_sandbox(int port);
+  None start_sandbox(int port, Dictionary options);
   None stop_sandbox(int port, Dictionary options);
   None kill_sandbox(int port);
   None restart_sandbox(int port);
@@ -217,7 +217,7 @@ class Testutils : public mysqlsh::Extensible_object {
                           const shcore::Dictionary_t &opts = {});
   void destroy_sandbox(int port, bool quiet_kill = false);
 
-  void start_sandbox(int port);
+  void start_sandbox(int port, const shcore::Dictionary_t &opts = {});
   void stop_sandbox(int port, const shcore::Dictionary_t &opts = {});
   void kill_sandbox(int port, bool quiet = false);
 
@@ -390,6 +390,9 @@ class Testutils : public mysqlsh::Extensible_object {
   void wait_sandbox_dead(int port);
 
   bool is_port_available_for_sandbox_to_bind(int port) const;
+
+  void wait_until_file_lock_released(const std::string &filepath,
+                                     int timeout) const;
 
   void handle_remote_root_user(const std::string &rootpass, int port,
                                bool create_remote_root = true) const;

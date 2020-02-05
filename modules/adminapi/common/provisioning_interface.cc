@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -428,11 +428,13 @@ int ProvisioningInterface::stop_sandbox(int port,
   return exec_sandbox_op("stop", port, 0, sandbox_dir, kwargs, errors);
 }
 
-int ProvisioningInterface::start_sandbox(
-    int port, const std::string &sandbox_dir,
-    shcore::Value::Array_type_ref *errors) {
-  return exec_sandbox_op("start", port, 0, sandbox_dir, shcore::Argument_map(),
-                         errors);
+int ProvisioningInterface::start_sandbox(int port,
+                                         const std::string &sandbox_dir,
+                                         shcore::Value::Array_type_ref *errors,
+                                         int timeout) {
+  shcore::Argument_map kwargs;
+  kwargs["timeout"] = shcore::Value(std::to_string(timeout));
+  return exec_sandbox_op("start", port, 0, sandbox_dir, kwargs, errors);
 }
 
 }  // namespace dba

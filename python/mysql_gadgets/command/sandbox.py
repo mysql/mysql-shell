@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -945,7 +945,7 @@ def start_sandbox(**kwargs):
         raise exceptions.GadgetError("It is mandatory to specify a port.")
 
     # Get default values for optional variables
-    timeout = kwargs.get("timeout", SANDBOX_TIMEOUT)
+    timeout = int(kwargs.get("timeout", SANDBOX_TIMEOUT))
 
     # Get list of options to override
     mysqld_opts = kwargs.get("opt", [])

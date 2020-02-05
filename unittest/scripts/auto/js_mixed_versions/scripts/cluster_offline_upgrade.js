@@ -87,14 +87,14 @@ session2.close();
 testutil.changeSandboxConf(__mysql_sandbox_port1, 'loose_group_replication_start_on_boot', 'OFF');
 testutil.changeSandboxConf(__mysql_sandbox_port2, 'loose_group_replication_start_on_boot', 'OFF');
 
-testutil.stopSandbox(__mysql_sandbox_port1);
-testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.stopSandbox(__mysql_sandbox_port1, {wait:1});
+testutil.stopSandbox(__mysql_sandbox_port2, {wait:1});
 testutil.upgradeSandbox(__mysql_sandbox_port1);
 testutil.upgradeSandbox(__mysql_sandbox_port2);
 
 //@<> Restart the sandboxes and wait for them to come alive
-testutil.startSandbox(__mysql_sandbox_port1);
-testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port1, {timeout: 120});
+testutil.startSandbox(__mysql_sandbox_port2, {timeout: 120});
 testutil.waitSandboxAlive(__mysql_sandbox_port1);
 testutil.waitSandboxAlive(__mysql_sandbox_port2);
 
