@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,8 @@
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
 
+constexpr int k_start_wait_timeout = 30;
+
 namespace mysqlsh {
 namespace dba {
 #if DOXYGEN_CPP
@@ -59,7 +61,8 @@ class ProvisioningInterface {
                    const std::string &password,
                    shcore::Value::Array_type_ref *errors);
   int start_sandbox(int port, const std::string &sandbox_dir,
-                    shcore::Value::Array_type_ref *errors);
+                    shcore::Value::Array_type_ref *errors,
+                    int timeout = k_start_wait_timeout);
 
   void set_verbose(int verbose) { _verbose = verbose; }
   int get_verbose() const { return _verbose; }

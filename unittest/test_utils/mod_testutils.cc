@@ -110,7 +110,6 @@ constexpr int k_wait_sandbox_alive_timeout = 120;
 constexpr int k_wait_repl_connection_error = 300;
 constexpr int k_wait_member_timeout = 120;
 constexpr int k_wait_delayed_gr_start_timeout = 300;
-constexpr int k_max_start_sandbox_retries = 5;
 const char *k_boilerplate_root_password = "root";
 
 Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -134,7 +133,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          "?myCnfOptions", "?options");
   expose("destroySandbox", &Testutils::destroy_sandbox, "port", "?quiet_kill",
          false);
-  expose("startSandbox", &Testutils::start_sandbox, "port");
+  expose("startSandbox", &Testutils::start_sandbox, "port", "?options");
   expose("stopSandbox", &Testutils::stop_sandbox, "port", "?options");
   expose("killSandbox", &Testutils::kill_sandbox, "port", "?quiet", false);
   expose("restartSandbox", &Testutils::restart_sandbox, "port");
@@ -1355,6 +1354,9 @@ void Testutils::destroy_sandbox(int port, bool quiet_kill) {
  * Starts the sandbox created at the indicated port
  * @param port The port where the sandbox listens for mysql protocol
  * connections.
+ * @param options: Optional dictionary that accepts the following options:
+ *        timeout: integer value with the timeout in seconds for the start
+ *                 operation.
  *
  * This function also works when using the --direct and --record modes of the
  * test suite.
@@ -1368,46 +1370,28 @@ void Testutils::destroy_sandbox(int port, bool quiet_kill) {
  * When using --replay mode, the function does nothing.
  */
 #if DOXYGEN_JS
-Undefined Testutils::startSandbox(Integer port);
+Undefined Testutils::startSandbox(Integer port, Dictionary options);
 #elif DOXYGEN_PY
-None Testutils::start_sandbox(int port);
+None Testutils::start_sandbox(int port, dict options);
 #endif
 ///@}
-void Testutils::start_sandbox(int port) {
-  int retries = k_max_start_sandbox_retries;
-  if (!_skip_server_interaction) {
-    bool failed = true;
+void Testutils::start_sandbox(int port, const shcore::Dictionary_t &opts) {
+  // Initialize to default value (30 sec)
+  int timeout = k_start_wait_timeout;
+  shcore::Option_unpacker(opts).optional("timeout", &timeout).end();
 
+  if (!_skip_server_interaction) {
     wait_sandbox_dead(port);
 
-    while (retries-- > 0) {
-      shcore::Value::Array_type_ref errors;
-      _mp->start_sandbox(port, _sandbox_dir, &errors);
-      if (errors && !errors->empty()) {
-        int num_errors = 0;
-        for (auto err : *errors) {
-          if ((*err.as_map())["type"].get_string() == "ERROR") {
-            num_errors++;
-          }
+    shcore::Value::Array_type_ref errors;
+    _mp->start_sandbox(port, _sandbox_dir, &errors, timeout);
+    if (errors && !errors->empty()) {
+      for (auto err : *errors) {
+        if ((*err.as_map())["type"].get_string() == "ERROR") {
+          throw std::runtime_error("Could not start sandbox instance " +
+                                   std::to_string(port));
         }
-        if (num_errors == 0) {
-          failed = false;
-          break;
-        }
-        if (retries == 0 || g_test_trace_scripts) {
-          std::cerr << "During start of " << port << ": "
-                    << shcore::Value(errors).descr() << "\n";
-          std::cerr << "Retried " << k_max_start_sandbox_retries << " times\n";
-        }
-        shcore::sleep_ms(1000);
-      } else {
-        failed = false;
-        break;
       }
-    }
-    if (failed) {
-      throw std::runtime_error("Could not start sandbox instance " +
-                               std::to_string(port));
     }
   }
 }
@@ -1563,24 +1547,7 @@ void Testutils::wait_sandbox_dead(int port) {
 
   log_info("Waiting for lock file...");
 
-#ifdef _WIN32
-  int retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
-  // In Windows, it should be enough to see if the ibdata file is locked
-  std::string ibdata =
-      shcore::path::join_path(get_sandbox_datadir(port), "ibdata1");
-  while (true) {
-    FILE *f = fopen(ibdata.c_str(), "a");
-    if (f) {
-      fclose(f);
-      break;
-    }
-    if (errno == ENOENT) break;
-    if (--retries < 0)
-      throw std::runtime_error("Timeout waiting for sandbox " +
-                               std::to_string(port) + " to shutdown");
-    shcore::sleep_ms(500);
-  }
-#else
+#ifndef _WIN32
   int retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
   while (mysqlshdk::utils::check_lock_file(get_sandbox_datadir(port) +
                                            "/mysqld.sock.lock")) {
@@ -1598,24 +1565,30 @@ void Testutils::wait_sandbox_dead(int port) {
                                std::to_string(port) + " to shutdown");
     shcore::sleep_ms(500);
   }
-
-  log_info("Waiting for ibdata file...");
-
-  // wait for innodb to release lock from ibdata file
-  int ibdata_fd =
-      open((get_sandbox_datadir(port) + "/ibdata1").c_str(), O_RDWR);
-  if (ibdata_fd > 0) {
-    retries = k_wait_sandbox_dead_timeout;
-    while (os_file_lock(ibdata_fd) > 0) {
-      if (--retries < 0)
-        throw std::runtime_error("Timeout waiting for sandbox " +
-                                 std::to_string(port) + " to shutdown");
-      shcore::sleep_ms(1000);
-    }
-    ::close(ibdata_fd);
-  }
 #endif
 
+  log_info("Waiting for ibdata file...");
+  // wait for innodb to release lock from ibdata file
+  std::string ibdata =
+      shcore::path::join_path(get_sandbox_datadir(port), "ibdata1");
+  wait_until_file_lock_released(ibdata, k_wait_sandbox_dead_timeout);
+
+  log_info("Waiting for doublewrite files ...");
+  // get list of files on the datadir and wait on any doublewrite files that are
+  // found
+  const std::string sandbox_datadir = get_sandbox_datadir(port);
+  // Since this method is also called in the context of deploy, the directory
+  // might not yet exist.
+  if (shcore::path::exists(sandbox_datadir)) {
+    auto dir_list = shcore::listdir(sandbox_datadir);
+    for (const auto &entry : dir_list) {
+      if (shcore::str_iendswith(entry.c_str(), ".dblwr")) {
+        wait_until_file_lock_released(
+            shcore::path::join_path(sandbox_datadir, entry),
+            k_wait_sandbox_dead_timeout);
+      }
+    }
+  }
   log_info("Finished waiting");
 }
 
@@ -1697,6 +1670,39 @@ bool Testutils::is_port_available_for_sandbox_to_bind(int port) const {
   } else {
     throw std::runtime_error("Could not resolve address 0.0.0.0");
   }
+}
+
+void Testutils::wait_until_file_lock_released(const std::string &filepath,
+                                              int timeout) const {
+  int retries = timeout * 1000 / 500;
+  log_info("Waiting for lock of file '%s' to be released...", filepath.c_str());
+  // Note this method should not throw any error if the file doesn't exist.
+#ifdef _WIN32
+  // In Windows, it should be enough to see if the file is locked
+  while (true) {
+    FILE *f = fopen(filepath.c_str(), "a");
+    if (f) {
+      fclose(f);
+      break;
+    }
+    if (errno == ENOENT) break;
+    if (--retries < 0)
+      throw std::runtime_error("Timeout waiting for lock of file '" + filepath +
+                               "' to be released.");
+    shcore::sleep_ms(500);
+  }
+#else
+  int file_fd = open(filepath.c_str(), O_RDWR);
+  if (file_fd > 0) {
+    while (os_file_lock(file_fd) > 0) {
+      if (--retries < 0)
+        throw std::runtime_error("Timeout waiting for lock of file '" +
+                                 filepath + "' to be released.");
+      shcore::sleep_ms(500);
+    }
+    ::close(file_fd);
+  }
+#endif
 }
 
 bool is_configuration_option(const std::string &option,
@@ -1908,6 +1914,9 @@ void Testutils::upgrade_sandbox(int port) {
 
   // Update the basedir on the config file
   change_sandbox_conf(port, "basedir", basedir, "mysqld");
+
+  // Remove mysqlx plugin load since it is installed by default on 8.0
+  remove_from_sandbox_conf(port, "plugin_load", "mysqld");
 
   // Update the start script. We can leave the stop script since even
   // the oldest mysqladmin versions that the shell supports are able to
