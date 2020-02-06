@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -287,21 +287,27 @@ TEST(Connection_options, uri_constructor) {
 }
 
 void combine(
-    const std::string &input, const std::string &twisted, size_t index,
+    const std::string &input,
     std::function<void(const std::string &, const std::string)> callback) {
-  std::string my_string(twisted);
-  if (my_string.empty()) my_string = shcore::str_lower(input);
+  std::string my_string(input);
 
-  if (index >= my_string.size()) {
-    callback(input, my_string);
-    return;
+  callback(input, my_string);
+
+  // Turn first character of each word to uppercase
+  bool convert = true;
+  for (size_t index = 0; index < my_string.size(); index++) {
+    if (convert) {
+      my_string[index] = std::toupper(my_string[index]);
+      convert = false;
+      callback(input, my_string);
+    } else {
+      convert = my_string[index] == '-';
+    }
   }
 
-  my_string[index] = std::tolower(my_string[index]);
-  combine(input, twisted, index + 1, callback);
-
-  my_string[index] = std::toupper(my_string[index]);
-  combine(input, my_string, index + 1, callback);
+  // Now try with all characters uppercase
+  my_string = shcore::str_upper(my_string);
+  callback(input, my_string);
 }
 
 namespace case_insensitive {
@@ -328,7 +334,7 @@ TEST(Connection_options, case_insensitive_ssl_mode) {
   auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
                             std::placeholders::_2, "REQUIRED");
 
-  combine(mysqlshdk::db::kSslMode, "", 0, callback);
+  combine(mysqlshdk::db::kSslMode, callback);
 }
 
 TEST(Connection_options, case_insensitive_get_server_public_key) {
@@ -337,9 +343,7 @@ TEST(Connection_options, case_insensitive_get_server_public_key) {
   auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
                             std::placeholders::_2, "true");
 
-  // We start from 10th index because this function has O(2^n) complexity
-  // and tested string length is 21 ("get-server-public-key").
-  combine(mysqlshdk::db::kGetServerPublicKey, "", 10, callback);
+  combine(mysqlshdk::db::kGetServerPublicKey, callback);
 }
 
 TEST(Connection_options, case_insensitive_server_public_key_path) {
@@ -348,9 +352,7 @@ TEST(Connection_options, case_insensitive_server_public_key_path) {
   auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
                             std::placeholders::_2, "pubkey.pem");
 
-  // We start from 11th index because this function has O(2^n) complexity
-  // and tested string length is 22 ("server-public-key-path").
-  combine(mysqlshdk::db::kServerPublicKeyPath, "", 11, callback);
+  combine(mysqlshdk::db::kServerPublicKeyPath, callback);
 }
 
 TEST(Connection_options, case_insensitive_options) {
@@ -372,7 +374,7 @@ TEST(Connection_options, case_insensitive_options) {
   attributes.erase(mysqlshdk::db::kConnectionAttributes);
 
   for (auto property : attributes) {
-    combine(property, "", 0, callback);
+    combine(property, callback);
   }
 }
 
@@ -383,7 +385,7 @@ TEST(Connection_options, connect_timeout) {
   auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
                             std::placeholders::_2, "1000");
 
-  combine(mysqlshdk::db::kConnectTimeout, "", 0, callback);
+  combine(mysqlshdk::db::kConnectTimeout, callback);
 
   // Test rejection of invalid values
   auto invalid_values = {"-1", "-100", "10.0", "whatever"};
@@ -429,7 +431,7 @@ TEST(Connection_options, compression) {
   auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
                             std::placeholders::_2, "REQUIRED");
 
-  combine(mysqlshdk::db::kCompression, "", 0, callback);
+  combine(mysqlshdk::db::kCompression, callback);
 
   // Test rejection of invalid values
   auto invalid_values = {"-1", "-100", "10.0", "whatever"};
@@ -684,7 +686,7 @@ TEST(Connection_options, case_insensitive_duplicated_attribute) {
                     data.set(twisted, "Whatever"));
   };
 
-  combine(mysqlshdk::db::kAuthMethod, "", 0, callback);
+  combine(mysqlshdk::db::kAuthMethod, callback);
 }
 
 TEST(Connection_options, invalid_options_after_WL10912) {
@@ -704,7 +706,7 @@ TEST(Connection_options, invalid_options_after_WL10912) {
       "sslMode",   "sslCa",   "sslCaPath", "sslCrl",     "sslCrlPath",
       "sslCipher", "sslCert", "sslKey",    "authMethod", "sslTlsVersion"};
 
-  for (auto property : invalid_options) combine(property, "", 0, callback);
+  for (auto property : invalid_options) combine(property, callback);
 }
 
 }  // namespace testing

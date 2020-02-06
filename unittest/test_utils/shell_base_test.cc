@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -265,6 +265,23 @@ bool Shell_base_test::multi_value_compare(const std::string &expected,
   return ret_val;
 }
 
+size_t Shell_base_test::find_line_matching(
+    const std::string &expected, const std::vector<std::string> &actual_lines,
+    size_t start_at) {
+  size_t actual_index = start_at;
+  while (actual_index < actual_lines.size()) {
+    // Ignore whitespace at the end of the actual and expected lines
+    std::string r_trimmed_actual =
+        shcore::str_rstrip(actual_lines[actual_index]);
+    if (multi_value_compare(expected, r_trimmed_actual))
+      break;
+    else
+      actual_index++;
+  }
+
+  return actual_index;
+}
+
 /**
  * Validates a string expectation that spans over multiple lines.
  * @param context Context information that identifies where the verification
@@ -310,10 +327,11 @@ bool Shell_base_test::check_multiline_expect(const std::string &context,
 
   // Removes empty lines at the beggining of the expectation
   // Multiline comparison should start from first non empty line
-  while (expected_lines.begin()->empty())
+  // ${*} at the beggining is ignored as well
+  while (expected_lines.begin()->empty() || (*expected_lines.begin() == "${*}"))
     expected_lines.erase(expected_lines.begin());
 
-  std::string r_trimmed_actual, r_trimmed_expected;
+  std::string r_trimmed_expected;
   // Does expected line resolution using the pre-defined tokens
   for (decltype(expected_lines)::size_type index = 0;
        index < expected_lines.size(); index++)
@@ -321,21 +339,40 @@ bool Shell_base_test::check_multiline_expect(const std::string &context,
 
   // Identifies the index of the actual line containing the first expected
   // line
-  size_t actual_index = 0;
   r_trimmed_expected = shcore::str_rstrip(expected_lines.at(0));
-  while (actual_index < actual_lines.size()) {
-    // Ignore whitespace at the end of the actual and expected lines
-    r_trimmed_actual = shcore::str_rstrip(actual_lines[actual_index]);
-    if (multi_value_compare(r_trimmed_expected, r_trimmed_actual))
-      break;
-    else
-      actual_index++;
-  }
+  size_t actual_index = find_line_matching(r_trimmed_expected, actual_lines);
 
   if (actual_index < actual_lines.size()) {
     size_t expected_index;
     for (expected_index = 0; expected_index < expected_lines.size();
          expected_index++) {
+      if (expected_lines[expected_index] == "${*}") {
+        if (expected_index == expected_lines.size() - 1) {
+          continue;  // Ignores ${*} if at the end of the expectation
+        } else {
+          expected_index++;
+          r_trimmed_expected =
+              shcore::str_rstrip(expected_lines.at(expected_index));
+          actual_index = find_line_matching(r_trimmed_expected, actual_lines,
+                                            actual_index + expected_index - 1);
+          if (actual_index < actual_lines.size()) {
+            actual_index -= expected_index;
+          } else {
+            SCOPED_TRACE(makeyellow(stream + " actual: ") + actual);
+
+            expected_lines[0] += makeyellow("<------ INCONSISTENCY");
+
+            SCOPED_TRACE(makeyellow(stream + " expected: ") +
+                         shcore::str_join(expected_lines, "\n"));
+            SCOPED_TRACE(makeblue("Executing: " + context) +
+                         ", validation at line " + std::to_string(valline));
+            ADD_FAILURE();
+            ret_val = false;
+            break;
+          }
+        }
+      }
+
       // if there are less actual lines than the ones expected
       if ((actual_index + expected_index) >= actual_lines.size()) {
         SCOPED_TRACE(makeyellow(stream + " actual: ") + actual);
