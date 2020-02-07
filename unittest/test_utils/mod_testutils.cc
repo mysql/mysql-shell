@@ -1466,7 +1466,7 @@ None Testutils::restart_sandbox(int port);
 #endif
 ///@}
 void Testutils::restart_sandbox(int port) {
-  stop_sandbox(port);
+  stop_sandbox(port, shcore::make_dict("wait", shcore::Value(1)));
   start_sandbox(port);
 }
 
@@ -1573,20 +1573,20 @@ void Testutils::wait_sandbox_dead(int port) {
     shcore::sleep_ms(500);
   }
 #endif
-
-  log_info("Waiting for ibdata file...");
-  // wait for innodb to release lock from ibdata file
-  std::string ibdata =
-      shcore::path::join_path(get_sandbox_datadir(port), "ibdata1");
-  wait_until_file_lock_released(ibdata, k_wait_sandbox_dead_timeout);
-
-  log_info("Waiting for doublewrite files ...");
-  // get list of files on the datadir and wait on any doublewrite files that are
-  // found
   const std::string sandbox_datadir = get_sandbox_datadir(port);
   // Since this method is also called in the context of deploy, the directory
   // might not yet exist.
   if (shcore::path::exists(sandbox_datadir)) {
+    log_info("Waiting for ibdata files...");
+    // wait for innodb to release lock from ibdata files
+    std::string ibdata = shcore::path::join_path(sandbox_datadir, "ibdata1");
+    wait_until_file_lock_released(ibdata, k_wait_sandbox_dead_timeout);
+    std::string ibdata_tmp = shcore::path::join_path(sandbox_datadir, "ibtmp1");
+    wait_until_file_lock_released(ibdata_tmp, k_wait_sandbox_dead_timeout);
+
+    log_info("Waiting for doublewrite files ...");
+    // get list of files on the datadir and wait on any doublewrite files that
+    // are found
     auto dir_list = shcore::listdir(sandbox_datadir);
     for (const auto &entry : dir_list) {
       if (shcore::str_iendswith(entry.c_str(), ".dblwr")) {
