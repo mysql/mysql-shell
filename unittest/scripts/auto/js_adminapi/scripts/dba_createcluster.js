@@ -494,7 +494,7 @@ var c = dba.createCluster('test', {clearReadOnly:true});
 c.disconnect();
 
 //@<> WL#12050: TSF1_2 Confirm group_replication_member_expel_timeout is set correctly (0) {VER(>=8.0.13)}
-EXPECT_EQ(0, get_sysvar(session, "group_replication_member_expel_timeout"));
+EXPECT_EQ(__default_gr_expel_timeout, get_sysvar(session, "group_replication_member_expel_timeout"));
 
 //@<> WL#12050: TSF1_2 Confirm group_replication_member_expel_timeout was not persisted since no value was provided. {VER(>=8.0.13)}
 EXPECT_EQ("", get_sysvar(session, "group_replication_member_expel_timeout", "PERSISTED"));

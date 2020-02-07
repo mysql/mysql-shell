@@ -454,7 +454,7 @@ one server failure.
                 },
                 {
                     "option": "expelTimeout",
-                    "value": "0",
+                    "value": "<<<__default_gr_expel_timeout>>>",
                     "variable": "group_replication_member_expel_timeout"
                 },
                 {
@@ -591,7 +591,7 @@ one server failure.
                 },
                 {
                     "option": "expelTimeout",
-                    "value": "0",
+                    "value": "<<<__default_gr_expel_timeout>>>",
                     "variable": "group_replication_member_expel_timeout"
                 },
                 {

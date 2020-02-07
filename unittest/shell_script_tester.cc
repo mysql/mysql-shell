@@ -1577,6 +1577,12 @@ void Shell_script_tester::set_defaults() {
                                '\'') +
               ";");
 
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 21)) {
+    def_var("__default_gr_expel_timeout", "5");
+  } else {
+    def_var("__default_gr_expel_timeout", "0");
+  }
+
 #ifdef WITH_OCI
   def_var("__with_oci", "1");
 #else
