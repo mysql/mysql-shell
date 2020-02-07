@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -438,7 +438,8 @@ bool Shell_script_tester::validate_line_by_line(const std::string &context,
       std::string line = expected_lines[index];
       if (!line.empty() && line[0] == '?') {
         auto size = line.size();
-        if (size > 1 && line[1] == '{' && line[size - 1] == '}') {
+        if (size > 2 && line[1] == '{' && line[2] != '*' &&
+            line[size - 1] == '}') {
           std::string condition = line.substr(2, size - 3);
 
           // Empty condition is simply ignored

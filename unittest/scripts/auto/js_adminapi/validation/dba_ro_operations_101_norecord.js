@@ -63,6 +63,7 @@
 ?{}
                     "workers": [
                         {
+${*}
 ?{VER(>=8.0.17)}
                             "lastApplied": {
                                 "applyTime": [[*]], 
@@ -132,6 +133,7 @@
 ?{}
                     "workers": [
                         {
+${*}
 ?{VER(>=8.0.17)}
                             "lastApplied": {
                                 "applyTime": [[*]], 

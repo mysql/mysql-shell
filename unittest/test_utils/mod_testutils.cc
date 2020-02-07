@@ -1381,17 +1381,24 @@ void Testutils::start_sandbox(int port, const shcore::Dictionary_t &opts) {
   shcore::Option_unpacker(opts).optional("timeout", &timeout).end();
 
   if (!_skip_server_interaction) {
-    wait_sandbox_dead(port);
+    try {
+      wait_sandbox_dead(port);
 
-    shcore::Value::Array_type_ref errors;
-    _mp->start_sandbox(port, _sandbox_dir, &errors, timeout);
-    if (errors && !errors->empty()) {
-      for (auto err : *errors) {
-        if ((*err.as_map())["type"].get_string() == "ERROR") {
-          throw std::runtime_error("Could not start sandbox instance " +
-                                   std::to_string(port));
+      shcore::Value::Array_type_ref errors;
+      _mp->start_sandbox(port, _sandbox_dir, &errors, timeout);
+      if (errors && !errors->empty()) {
+        for (auto err : *errors) {
+          if ((*err.as_map())["type"].get_string() == "ERROR") {
+            throw std::runtime_error("Could not start sandbox instance " +
+                                     std::to_string(port));
+          }
         }
       }
+    } catch (const std::runtime_error &error) {
+      // print the error log contents
+      std::string error_log_path = get_sandbox_log_path(port);
+      dprint(cat_file(error_log_path));
+      throw;
     }
   }
 }
