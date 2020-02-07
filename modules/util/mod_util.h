@@ -52,13 +52,12 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
 #if DOXYGEN_JS
   Undefined checkForServerUpgrade(ConnectionData connectionData,
                                   Dictionary options);
+  Undefined checkForServerUpgrade(Dictionary options);
 #elif DOXYGEN_PY
   None check_for_server_upgrade(ConnectionData connectionData, dict options);
+  None check_for_server_upgrade(dict options);
 #endif
-  void check_for_server_upgrade(
-      const mysqlshdk::utils::nullable<mysqlshdk::db::Connection_options>
-          &connection_options = {},
-      const shcore::Dictionary_t &options = {});
+  shcore::Value check_for_server_upgrade(const shcore::Argument_list &args);
 
 #if DOXYGEN_JS
   Undefined importJson(String file, Dictionary options);
