@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -111,8 +111,7 @@ class Api_connections : public Shell_js_script_tester {
                    "mysql_native_password by 'root'");
     session->close();
 
-    testutil->stop_sandbox(
-        port, shcore::make_dict("password", shcore::Value("root")));
+    testutil->stop_sandbox(port);
     testutil->change_sandbox_conf(port, "ssl", "0", "mysqld");
     testutil->change_sandbox_conf(port, "default_authentication_plugin",
                                   "mysql_native_password", "mysqld");

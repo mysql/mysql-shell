@@ -124,7 +124,7 @@ rs.status();
 testutil.startSandbox(__mysql_sandbox_port2);
 
 //@ Primary is down
-testutil.stopSandbox(__mysql_sandbox_port1);
+testutil.stopSandbox(__mysql_sandbox_port1, {wait:1});
 
 shell.connect(__sandbox_uri2);
 rs = dba.getReplicaSet();

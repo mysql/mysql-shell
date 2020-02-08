@@ -49,7 +49,7 @@ rs.add_instance(__sandbox_uri2, {"recoveryMethod":'incremental'})
 rs.set_primary_instance(__sandbox_uri3)
 
 #@ force_primary_instance (prepare)
-testutil.stop_sandbox(__mysql_sandbox_port3)
+testutil.stop_sandbox(__mysql_sandbox_port3, {"wait":1})
 rs = dba.get_replica_set()
 
 rs.status()
