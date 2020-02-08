@@ -1426,19 +1426,13 @@ None Testutils::stop_sandbox(int port, dict options);
 void Testutils::stop_sandbox(int port, const shcore::Dictionary_t &opts) {
   std::string pass;
   bool wait = false;
-  shcore::Option_unpacker(opts)
-      .optional("wait", &wait)
-      .optional("password", &pass)
-      .end();
+  shcore::Option_unpacker(opts).optional("wait", &wait).end();
 
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_skip_server_interaction) {
-    shcore::Value::Array_type_ref errors;
-    _mp->stop_sandbox(port, _sandbox_dir,
-                      pass.empty() ? _passwords[port] : pass, &errors);
-    if (errors && !errors->empty())
-      std::cerr << "During stop of " << port << ": "
-                << shcore::Value(errors).descr() << "\n";
+    auto session = connect_to_sandbox(port);
+    session->execute("shutdown");
+    session->close();
 
     if (wait) wait_sandbox_dead(port);
   }
@@ -1573,28 +1567,20 @@ void Testutils::wait_sandbox_dead(int port) {
     shcore::sleep_ms(500);
   }
 #endif
-  const std::string sandbox_datadir = get_sandbox_datadir(port);
-  // Since this method is also called in the context of deploy, the directory
-  // might not yet exist.
-  if (shcore::path::exists(sandbox_datadir)) {
-    log_info("Waiting for ibdata files...");
-    // wait for innodb to release lock from ibdata files
-    std::string ibdata = shcore::path::join_path(sandbox_datadir, "ibdata1");
-    wait_until_file_lock_released(ibdata, k_wait_sandbox_dead_timeout);
-    std::string ibdata_tmp = shcore::path::join_path(sandbox_datadir, "ibtmp1");
-    wait_until_file_lock_released(ibdata_tmp, k_wait_sandbox_dead_timeout);
-
-    log_info("Waiting for doublewrite files ...");
-    // get list of files on the datadir and wait on any doublewrite files that
-    // are found
-    auto dir_list = shcore::listdir(sandbox_datadir);
-    for (const auto &entry : dir_list) {
-      if (shcore::str_iendswith(entry.c_str(), ".dblwr")) {
-        wait_until_file_lock_released(
-            shcore::path::join_path(sandbox_datadir, entry),
-            k_wait_sandbox_dead_timeout);
-      }
-    }
+  std::string pidfile = shcore::path::join_path(get_sandbox_path(port),
+                                                std::to_string(port) + ".pid");
+  // Wait for the pid file to be deleted, which is one the last things the
+  // server does before exiting and is done right before logging
+  // "Shutdown complete".
+  // Obviously this won't be reliable if the sandbox is killed, tho.
+  log_info("Waiting for pid file '%s' to be deleted by mysqld...",
+           pidfile.c_str());
+  retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
+  while (shcore::path::exists(pidfile)) {
+    if (--retries < 0)
+      throw std::runtime_error("Timeout waiting for sandbox pid file " +
+                               pidfile + " to be deleted after shutdown");
+    shcore::sleep_ms(500);
   }
   log_info("Finished waiting");
 }

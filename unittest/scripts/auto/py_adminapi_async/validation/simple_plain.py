@@ -166,57 +166,53 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 
 127.0.0.1:<<<__mysql_sandbox_port3>>> was promoted to PRIMARY.
 
-#@<OUT> force_primary_instance (prepare)
-ERROR: Unable to connect to the PRIMARY of the replicaset myrs: MySQL Error 2003: 127.0.0.1:<<<__mysql_sandbox_port3>>>: Can't connect to MySQL server on '127.0.0.1' ([[*]])
-Cluster change operations will not be possible unless the PRIMARY can be reached.
-If the PRIMARY is unavailable, you must either repair it or perform a forced failover.
-See \help force_primary_instance for more information.
-WARNING: MYSQLSH 51118: PRIMARY instance is unavailable
-{
-    "replicaSet": {
-        "name": "myrs", 
-        "primary": "127.0.0.1:<<<__mysql_sandbox_port3>>>", 
-        "status": "UNAVAILABLE", 
-        "statusText": "PRIMARY instance is not available, but there is at least one SECONDARY that could be force-promoted.", 
-        "topology": {
-            "127.0.0.1:<<<__mysql_sandbox_port1>>>": {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
-                "instanceRole": "SECONDARY", 
-                "mode": "R/O", 
-                "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates", 
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
-                    "replicationLag": null
-                }, 
-                "status": "ONLINE"
-            }, 
-            "127.0.0.1:<<<__mysql_sandbox_port2>>>": {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>", 
-                "instanceRole": "SECONDARY", 
-                "mode": "R/O", 
-                "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates", 
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
-                    "replicationLag": null
-                }, 
-                "status": "ONLINE"
-            }, 
-            "127.0.0.1:<<<__mysql_sandbox_port3>>>": {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>", 
-                "connectError": "127.0.0.1:<<<__mysql_sandbox_port3>>>: Can't connect to MySQL server on '127.0.0.1' ([[*]])", 
-                "fenced": null, 
-                "instanceRole": "PRIMARY", 
-                "mode": null, 
-                "status": "UNREACHABLE"
-            }
-        }, 
-        "type": "ASYNC"
-    }
-}
+#@# force_primary_instance (prepare)
+|ERROR: Unable to connect to the PRIMARY of the replicaset myrs: MySQL Error 2003: 127.0.0.1:<<<__mysql_sandbox_port3>>>: Can't connect to MySQL server on '127.0.0.1' ([[*]])|
+|{|
+|    "replicaSet": {|
+|        "name": "myrs", |
+|        "primary": "127.0.0.1:<<<__mysql_sandbox_port3>>>", |
+|        "status": "UNAVAILABLE", |
+|        "statusText": "PRIMARY instance is not available, but there is at least one SECONDARY that could be force-promoted.", |
+|        "topology": {|
+|            "127.0.0.1:<<<__mysql_sandbox_port1>>>": {|
+|                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>", |
+|                "instanceRole": "SECONDARY", |
+|                "mode": "R/O", |
+|                "replication": {|
+|                    "applierStatus": "APPLIED_ALL", |
+|                    "applierThreadState": "Slave has read all relay log; waiting for more updates", |
+|                    "receiverStatus": "ERROR", |
+|                    "receiverThreadState": "", |
+|                    "replicationLag": null|
+|                }, |
+|                "status": "ERROR"|
+|            }, |
+|            "127.0.0.1:<<<__mysql_sandbox_port2>>>": {|
+|                "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>", |
+|                "instanceRole": "SECONDARY", |
+|                "mode": "R/O", |
+|                "replication": {|
+|                    "applierStatus": "APPLIED_ALL", |
+|                    "applierThreadState": "Slave has read all relay log; waiting for more updates", |
+|                    "receiverStatus": "ERROR", |
+|                    "receiverThreadState": "", |
+|                    "replicationLag": null|
+|                }, |
+|                "status": "ERROR"|
+|            }, |
+|            "127.0.0.1:<<<__mysql_sandbox_port3>>>": {|
+|                "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>", |
+|                "connectError": "127.0.0.1:<<<__mysql_sandbox_port3>>>: Can't connect to MySQL server on '127.0.0.1' ([[*]])", |
+|                "fenced": null, |
+|                "instanceRole": "PRIMARY", |
+|                "mode": null, |
+|                "status": "UNREACHABLE"|
+|            }|
+|        }, |
+|        "type": "ASYNC"|
+|    }|
+|}|
 
 #@<OUT> force_primary_instance
 * Connecting to replicaset instances
@@ -231,7 +227,7 @@ WARNING: MYSQLSH 51118: PRIMARY instance is unavailable
 * Checking status of last known PRIMARY
 NOTE: 127.0.0.1:<<<__mysql_sandbox_port3>>> is UNREACHABLE
 * Checking status of promoted instance
-NOTE: 127.0.0.1:<<<__mysql_sandbox_port1>>> has status ONLINE
+NOTE: 127.0.0.1:<<<__mysql_sandbox_port1>>> has status ERROR
 * Checking transaction set status
 * Promoting 127.0.0.1:<<<__mysql_sandbox_port1>>> to a PRIMARY...
 

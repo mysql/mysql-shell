@@ -66,7 +66,7 @@ rs.addInstance(sockuri2, {recoveryMethod:'incremental'});
 rs.setPrimaryInstance(sockuri3);
 
 //@ forcePrimaryInstance (prepare)
-testutil.stopSandbox(__mysql_sandbox_port3);
+testutil.stopSandbox(__mysql_sandbox_port3, {wait:1});
 rs = dba.getReplicaSet();
 
 rs.status();
