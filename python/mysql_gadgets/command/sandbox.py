@@ -1246,20 +1246,6 @@ def stop_sandbox(**kwargs):
         # Server was stopped
         _LOGGER.info("MySQL sandbox was stopped on port '%i' with process "
                      "ID: '%i'.", port, pid)
-
-        # remove pid file
-        try:
-            _LOGGER.debug("Removing pid file '%s'", pidf_path)
-            # On Windows os.unlink() issues an error if the encoded PID
-            # file path is used (despite actually removing the file). Not
-            # using the encoded PID file path works on Windows and avoids
-            # this problem.
-            if os.name == "nt":
-                os.unlink(pidf_path)
-            else:
-                os.unlink(enc_pidf_path)
-        except OSError as err:
-            _LOGGER.warning("Unable to remove pid file: '%s'", str(err))
     else:
         # no pid file was found
         raise exceptions.GadgetError("Unable to find pid file. Stop "
