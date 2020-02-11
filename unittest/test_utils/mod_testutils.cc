@@ -1424,7 +1424,6 @@ None Testutils::stop_sandbox(int port, dict options);
 #endif
 ///@}
 void Testutils::stop_sandbox(int port, const shcore::Dictionary_t &opts) {
-  std::string pass;
   bool wait = false;
   shcore::Option_unpacker(opts).optional("wait", &wait).end();
 
@@ -3584,7 +3583,8 @@ std::shared_ptr<mysqlshdk::db::ISession> Testutils::connect_to_sandbox(
     int port) {
   mysqlshdk::db::Connection_options cnx_opt;
   cnx_opt.set_user("root");
-  cnx_opt.set_password(_passwords[port]);
+  cnx_opt.set_password(
+      _passwords.find(port) == _passwords.end() ? "root" : _passwords[port]);
   cnx_opt.set_host("127.0.0.1");
   cnx_opt.set_port(port);
   auto session = mysqlshdk::db::mysql::Session::create();
