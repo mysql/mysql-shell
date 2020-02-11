@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/utils/oci_setup.h"
+#include "mysqlshdk/libs/oci/oci_setup.h"
 
 #include <regex>
 

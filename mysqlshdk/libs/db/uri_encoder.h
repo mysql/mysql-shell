@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,15 +43,15 @@ class SHCORE_PUBLIC Uri_encoder {
   std::string encode_host(const std::string &data);
   std::string encode_port(int port);
   std::string encode_port(const std::string &data);
-  std::string encode_schema(const std::string &data);
+  std::string encode_path_segment(const std::string &data);
   std::string encode_attribute(const std::string &data);
   std::string encode_values(const std::vector<std::string> &values,
                             bool force_array = false);
   std::string encode_value(const std::string &data);
+  std::string encode_query(const std::string &data);
 
  private:
   shcore::BaseTokenizer _tokenizer;
-  std::string pct_encode(const std::string &data);
   std::string process(const std::string &data);
 };
 }  // namespace uri

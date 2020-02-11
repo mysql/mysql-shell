@@ -38,6 +38,7 @@ ADD_SUBDIRECTORY(libs/config)
 ADD_SUBDIRECTORY(libs/secret-store-api)
 ADD_SUBDIRECTORY(libs/rest)
 ADD_SUBDIRECTORY(libs/storage)
+ADD_SUBDIRECTORY(libs/oci)
 ADD_SUBDIRECTORY(scripting)
 ADD_SUBDIRECTORY(shellcore)
 
@@ -59,7 +60,8 @@ merge_libraries(mysqlshdk-static STATIC
     textui
     scripting
     shellcore
-    storage NOINSTALL)
+    storage
+    oci NOINSTALL)
 
   #target_link_libraries(mysqlshdk
   #        ${V8_LINK_LIST}

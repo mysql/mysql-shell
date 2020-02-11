@@ -34,6 +34,8 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/oci/oci_options.h"
+#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -44,7 +46,9 @@ namespace import_table {
 
 Import_table_options::Import_table_options(const std::string &filename,
                                            const shcore::Dictionary_t &options)
-    : m_filename(filename) {
+    : m_filename(filename),
+      m_oci_options(
+          mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE) {
   m_table = std::get<0>(
       shcore::path::split_extension(shcore::path::basename(filename)));
   unpack(options);
@@ -82,12 +86,25 @@ void Import_table_options::validate() {
     }
   }
 
-  auto fh = mysqlshdk::storage::make_file(m_filename);
-  fh->open(mysqlshdk::storage::Mode::READ);
-  m_full_path = fh->full_path();
-  m_file_size = fh->file_size();
-  fh->close();
+  mysqlshdk::oci::parse_oci_options(mysqlshdk::oci::Oci_uri_type::FILE,
+                                    m_filename, {}, &m_oci_options,
+                                    &m_filename);
+
+  m_file_handle = create_file_handle();
+  m_file_handle->open(mysqlshdk::storage::Mode::READ);
+  m_full_path = m_file_handle->full_path();
+  m_file_size = m_file_handle->file_size();
+  m_file_handle->close();
   m_threads_size = calc_thread_size();
+}
+
+std::unique_ptr<mysqlshdk::storage::IFile>
+Import_table_options::create_file_handle() const {
+  if (!m_oci_options.os_bucket_name.is_null()) {
+    return mysqlshdk::storage::make_file(m_filename, m_oci_options);
+  } else {
+    return mysqlshdk::storage::make_file(m_filename);
+  }
 }
 
 size_t Import_table_options::calc_thread_size() {
@@ -142,6 +159,7 @@ std::string Import_table_options::target_import_info() const {
 
 void Import_table_options::unpack(const shcore::Dictionary_t &options) {
   auto unpack_options = Unpack_options(options);
+  unpack_options.unpack(&m_oci_options);
   unpack_options.optional("dialect", &m_base_dialect_name);
   if (m_base_dialect_name.empty()) {
     // nop
@@ -176,32 +194,7 @@ void Import_table_options::unpack(const shcore::Dictionary_t &options) {
       .optional("showProgress", &m_show_progress)
       .optional("skipRows", &m_skip_rows_count);
 
-  if (shcore::str_beginswith(m_filename, "oci+os://")) {
-    unpack_options.optional("ociProfile", &m_oci.profile)
-        .optional("ociConfigFile", &m_oci.config_file);
-
-    // Temporarily overwrite shell oci options. Original values will be restored
-    // on m_oci destruction.
-    const auto &shell_options = mysqlsh::current_shell_options();
-    shell_options->set("oci.configFile", m_oci.config_file);
-    shell_options->set("oci.profile", m_oci.profile);
-  }
-
   unpack_options.end();
-}
-
-Import_table_options::Oci_shell_options::Oci_shell_options() {
-  // save original shell oci options
-  const auto &get = mysqlsh::current_shell_options()->get();
-  profile_original = profile = get.oci_profile;
-  config_file_original = config_file = get.oci_config_file;
-}
-
-Import_table_options::Oci_shell_options::~Oci_shell_options() {
-  // restore original shell oci options
-  auto shell_options = mysqlsh::current_shell_options();
-  shell_options->set("oci.configFile", config_file_original);
-  shell_options->set("oci.profile", profile_original);
 }
 
 }  // namespace import_table

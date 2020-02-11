@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -110,6 +110,31 @@ struct Response {
    * Body of the response. Raw string.
    */
   shcore::Value body;
+};
+
+class Response_error : public std::runtime_error {
+ public:
+  Response_error(Response::Status_code code, const char *what = nullptr)
+      : std::runtime_error(what == nullptr ? Response::status_code(code)
+                                           : what),
+        m_code(code) {}
+
+  Response_error(Response::Status_code code, const std::string &description)
+      : std::runtime_error(description.empty() ? Response::status_code(code)
+                                               : description),
+        m_code(code) {}
+
+  virtual ~Response_error() {}
+
+  Response::Status_code code() const noexcept { return m_code; }
+
+  virtual std::string format() const {
+    return "HTTP Error " + std::to_string(static_cast<int>(m_code)) + ": " +
+           what();
+  }
+
+ protected:
+  Response::Status_code m_code;
 };
 
 }  // namespace rest

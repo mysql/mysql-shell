@@ -158,7 +158,8 @@ void Load_data_worker::operator()() {
 
     File_info fi;
     fi.filename = m_opt.full_path();
-    fi.filehandler = mysqlshdk::storage::make_file(m_opt.full_path());
+
+    fi.filehandler = m_opt.create_file_handle();
     fi.worker_id = m_thread_id;
     fi.prog = m_opt.show_progress() ? m_progress : nullptr;
     fi.prog_bytes = &m_prog_sent_bytes;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2020 Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -175,29 +175,29 @@ TEST(Uri_encoder, encode_socket) {
             encoder.encode_socket("\"%<>\\^`{}|"));
 }
 
-TEST(Uri_encoder, encode_schema) {
+TEST(Uri_encoder, encode_path_segment) {
   Uri_encoder encoder;
 
-  EXPECT_EQ("my%20schema", encoder.encode_schema("my schema"));
+  EXPECT_EQ("my%20schema", encoder.encode_path_segment("my schema"));
 
   // Unreserved are allowed
-  EXPECT_EQ(UNRESERVED, encoder.encode_schema(UNRESERVED));
+  EXPECT_EQ(UNRESERVED, encoder.encode_path_segment(UNRESERVED));
 
   // The sub-delimiters are allowed
-  EXPECT_EQ(SUBDELIMITERS, encoder.encode_schema(SUBDELIMITERS));
+  EXPECT_EQ(SUBDELIMITERS, encoder.encode_path_segment(SUBDELIMITERS));
 
   // These delimiters are NOT allowed
-  EXPECT_EQ("@:", encoder.encode_schema("@:"));
+  EXPECT_EQ("@:", encoder.encode_path_segment("@:"));
 
   // Delimiters are pct-encoded
-  EXPECT_EQ(":%2F%3F%23%5B%5D@", encoder.encode_schema(DELIMITERS));
+  EXPECT_EQ(":%2F%3F%23%5B%5D@", encoder.encode_path_segment(DELIMITERS));
 
   // Anything pct-encoded is not touched
-  EXPECT_EQ("my%20databas%65", encoder.encode_schema("my databas%65"));
+  EXPECT_EQ("my%20databas%65", encoder.encode_path_segment("my databas%65"));
 
   // Anything else is pct-encoded
   EXPECT_EQ("%22%25%3C%3E%5C%5E%60%7B%7D%7C",
-            encoder.encode_schema("\"%<>\\^`{}|"));
+            encoder.encode_path_segment("\"%<>\\^`{}|"));
 }
 
 TEST(Uri_encoder, encode_attribute) {

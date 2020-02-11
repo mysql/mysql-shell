@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -463,6 +463,16 @@ std::string wide_to_utf8(const wchar_t *utf16, const size_t utf16_length);
  * @returns true if the given string is a valid UTF-8 string
  */
 bool is_valid_utf8(const std::string &s);
+
+/**
+ * Generates a percent encoded string based on RFC-3986
+ */
+std::string pctencode(const std::string &s);
+
+/**
+ * Decodes a string that is percent encoded based on RFC-3986
+ */
+std::string pctdecode(const std::string &s);
 
 }  // namespace shcore
 

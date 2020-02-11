@@ -86,6 +86,7 @@
 #include "modules/mod_utils.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "mysqlshdk/libs/mysql/lock_service.h"
+#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 
 // clang-format off
 #ifndef _WIN32
@@ -230,6 +231,14 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("sslCreateCa", &Testutils::ssl_create_ca, "name");
   expose("sslCreateCerts", &Testutils::ssl_create_certs, "sbport", "caname",
          "servercn", "clientcn");
+
+  expose("validateOciConfig", &Testutils::validate_oci_config);
+  expose("getOciConfig", &Testutils::get_oci_config);
+  expose("uploadOciObject", &Testutils::upload_oci_object, "bucket", "object",
+         "filePath");
+  expose("createOciObject", &Testutils::create_oci_object, "bucket", "name",
+         "content");
+  expose("deleteOciObject", &Testutils::delete_oci_object, "bucket", "name");
 
   std::string local_mp_path =
       mysqlsh::current_shell_options()->get().gadgets_path;
@@ -3594,6 +3603,130 @@ std::shared_ptr<mysqlshdk::db::ISession> Testutils::connect_to_sandbox(
 
 std::string Testutils::get_user_config_path() {
   return shcore::get_user_config_path();
+}
+
+bool Testutils::validate_oci_config() {
+  const auto oci_config_path =
+      mysqlsh::current_shell_options()->get().oci_config_file;
+  const auto oci_config_profile =
+      mysqlsh::current_shell_options()->get().oci_profile;
+
+  bool ret_val = false;
+
+  mysqlshdk::config::Config_file config(mysqlshdk::config::Case::SENSITIVE,
+                                        mysqlshdk::config::Escape::NO);
+  try {
+    config.read(oci_config_path);
+
+    ret_val = config.has_group(oci_config_profile);
+  } catch (const std::runtime_error &error) {
+    // OK If the file does not exist
+    if (!shcore::str_beginswith(error.what(), "Cannot open file")) throw;
+  }
+  return ret_val;
+}
+
+shcore::Dictionary_t Testutils::get_oci_config() {
+  const auto oci_config_path =
+      mysqlsh::current_shell_options()->get().oci_config_file;
+  const auto oci_config_profile =
+      mysqlsh::current_shell_options()->get().oci_profile;
+
+  mysqlshdk::config::Config_file config(mysqlshdk::config::Case::SENSITIVE,
+                                        mysqlshdk::config::Escape::NO);
+  config.read(oci_config_path);
+
+  shcore::Dictionary_t ret_val;
+
+  if (config.has_group(oci_config_profile)) {
+    ret_val = shcore::make_dict();
+
+    auto set_option = [&ret_val, &config,
+                       &oci_config_profile](const std::string &option) {
+      if (config.has_option(oci_config_profile, option)) {
+        auto value = config.get(oci_config_profile, option);
+
+        if (value.is_null())
+          (*ret_val)[option] = shcore::Value::Null();
+        else
+          (*ret_val)[option] = shcore::Value(*value);
+      }
+    };
+
+    set_option("fingerprint");
+    set_option("key_file");
+    set_option("pass_phrase");
+    set_option("tenancy");
+    set_option("region");
+    set_option("user");
+  }
+
+  return ret_val;
+}
+
+void Testutils::upload_oci_object(const std::string &bucket,
+                                  const std::string &name,
+                                  const std::string &path) {
+  if (!validate_oci_config())
+    throw std::runtime_error(
+        "This function is ONLY available when the OCI configuration is in "
+        "place");
+
+  std::ifstream ifile(path, std::ifstream::binary);
+  if (!ifile.good()) {
+    throw std::runtime_error("Could not open file '" + path +
+                             "': " + shcore::errno_to_string(errno));
+  }
+
+  mysqlshdk::oci::Oci_options options;
+  options.os_bucket_name = bucket;
+  options.load_defaults();
+  mysqlshdk::storage::backend::oci::Object object(options, name);
+  object.open(mysqlshdk::storage::Mode::WRITE);
+
+  char buffer[1024];
+  while (ifile) {
+    ifile.read(buffer, 1024);
+    if (ifile) {
+      object.write(buffer, 1024);
+    } else {
+      object.write(buffer, ifile.gcount());
+    }
+  }
+
+  object.close();
+  ifile.close();
+}
+
+void Testutils::create_oci_object(const std::string &bucket,
+                                  const std::string &name,
+                                  const std::string &content) {
+  if (!validate_oci_config())
+    throw std::runtime_error(
+        "This function is ONLY available when the OCI configuration is in "
+        "place");
+
+  mysqlshdk::oci::Oci_options options;
+  options.os_bucket_name = bucket;
+  options.load_defaults();
+  mysqlshdk::storage::backend::oci::Object object(options, name);
+  object.open(mysqlshdk::storage::Mode::WRITE);
+  object.write(content.c_str(), content.size());
+  object.close();
+}
+
+void Testutils::delete_oci_object(const std::string &bucket_name,
+                                  const std::string &name) {
+  if (!validate_oci_config())
+    throw std::runtime_error(
+        "This function is ONLY available when the OCI configuration is in "
+        "place");
+
+  mysqlshdk::oci::Oci_options options;
+  options.os_bucket_name = bucket_name;
+  options.load_defaults();
+  mysqlshdk::storage::backend::oci::Bucket bucket(options);
+  bucket.delete_object(name);
 }
 
 }  // namespace tests

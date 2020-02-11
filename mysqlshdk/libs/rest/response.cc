@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,92 +38,91 @@ static constexpr auto k_application_json = "application/json";
 std::string Response::status_code(Status_code c) {
   switch (c) {
     case Status_code::CONTINUE:
-      return std::string{"100 Continue"};
+      return std::string{"Continue"};
     case Status_code::SWITCHING_PROTOCOLS:
-      return std::string{"101 Switching Protocols"};
+      return std::string{"Switching Protocols"};
     case Status_code::OK:
-      return std::string{"200 OK"};
+      return std::string{"OK"};
     case Status_code::CREATED:
-      return std::string{"201 Created"};
+      return std::string{"Created"};
     case Status_code::ACCEPTED:
-      return std::string{"202 Accepted"};
+      return std::string{"Accepted"};
     case Status_code::NON_AUTHORITATIVE_INFORMATION:
-      return std::string{"203 Non-Authoritative Information"};
+      return std::string{"Non-Authoritative Information"};
     case Status_code::NO_CONTENT:
-      return std::string{"204 No Content"};
+      return std::string{"No Content"};
     case Status_code::RESET_CONTENT:
-      return std::string{"205 Reset Content"};
+      return std::string{"Reset Content"};
     case Status_code::PARTIAL_CONTENT:
-      return std::string{"206 Partial Content"};
+      return std::string{"Partial Content"};
     case Status_code::MULTIPLE_CHOICES:
-      return std::string{"300 Multiple Choices"};
+      return std::string{"Multiple Choices"};
     case Status_code::MOVED_PERMANENTLY:
-      return std::string{"301 Moved Permanently"};
+      return std::string{"Moved Permanently"};
     case Status_code::FOUND:
-      return std::string{"302 Found"};
+      return std::string{"Found"};
     case Status_code::SEE_OTHER:
-      return std::string{"303 See Other"};
+      return std::string{"See Other"};
     case Status_code::NOT_MODIFIED:
-      return std::string{"304 Not Modified"};
+      return std::string{"Not Modified"};
     case Status_code::USE_PROXY:
-      return std::string{"305 Use Proxy"};
+      return std::string{"Use Proxy"};
     case Status_code::SWITCH_PROXY:
-      return std::string{"306 Switch Proxy"};
+      return std::string{"Switch Proxy"};
     case Status_code::TEMPORARY_REDIRECT:
-      return std::string{"307 Temporary Redirect"};
+      return std::string{"Temporary Redirect"};
     case Status_code::BAD_REQUEST:
-      return std::string{"400 Bad Request"};
+      return std::string{"Bad Request"};
     case Status_code::UNAUTHORIZED:
-      return std::string{"401 Unauthorized"};
+      return std::string{"Unauthorized"};
     case Status_code::PAYMENT_REQUIRED:
-      return std::string{"402 Payment Required"};
+      return std::string{"Payment Required"};
     case Status_code::FORBIDDEN:
-      return std::string{"403 Forbidden"};
+      return std::string{"Forbidden"};
     case Status_code::NOT_FOUND:
-      return std::string{"404 Not Found"};
+      return std::string{"Not Found"};
     case Status_code::METHOD_NOT_ALLOWED:
-      return std::string{"405 Method Not Allowed"};
+      return std::string{"Method Not Allowed"};
     case Status_code::NOT_ACCEPTABLE:
-      return std::string{"406 Not Acceptable"};
+      return std::string{"Not Acceptable"};
     case Status_code::PROXY_AUTHENTICATION_REQUIRED:
-      return std::string{"407 Proxy Authentication Required"};
+      return std::string{"Proxy Authentication Required"};
     case Status_code::REQUEST_TIMEOUT:
-      return std::string{"408 Request Timeout"};
+      return std::string{"Request Timeout"};
     case Status_code::CONFLICT:
-      return std::string{"409 Conflict"};
+      return std::string{"Conflict"};
     case Status_code::GONE:
-      return std::string{"410 Gone"};
+      return std::string{"Gone"};
     case Status_code::LENGTH_REQUIRED:
-      return std::string{"411 Length Required"};
+      return std::string{"Length Required"};
     case Status_code::PRECONDITION_FAILED:
-      return std::string{"412 Precondition Failed"};
+      return std::string{"Precondition Failed"};
     case Status_code::PAYLOAD_TOO_LARGE:
-      return std::string{"413 Request Entity Too Large"};
+      return std::string{"Request Entity Too Large"};
     case Status_code::URI_TOO_LONG:
-      return std::string{"414 Request-URI Too Long"};
+      return std::string{"Request-URI Too Long"};
     case Status_code::UNSUPPORTED_MEDIA_TYPE:
-      return std::string{"415 Unsupported Media Type"};
+      return std::string{"Unsupported Media Type"};
     case Status_code::RANGE_NOT_SATISFIABLE:
-      return std::string{"416 Requested Range Not Satisfiable"};
+      return std::string{"Requested Range Not Satisfiable"};
     case Status_code::EXPECTATION_FAILED:
-      return std::string{"417 Expectation Failed"};
+      return std::string{"Expectation Failed"};
     case Status_code::UPGRADE_REQUIRED:
-      return std::string{"426 Upgrade Required"};
+      return std::string{"Upgrade Required"};
     case Status_code::INTERNAL_SERVER_ERROR:
-      return std::string{"500 Internal Server Error"};
+      return std::string{"Internal Server Error"};
     case Status_code::NOT_IMPLEMENTED:
-      return std::string{"501 Not Implemented"};
+      return std::string{"Not Implemented"};
     case Status_code::BAD_GATEWAY:
-      return std::string{"502 Bad Gateway"};
+      return std::string{"Bad Gateway"};
     case Status_code::SERVICE_UNAVAILABLE:
-      return std::string{"503 Service Unavailable"};
+      return std::string{"Service Unavailable"};
     case Status_code::GATEWAY_TIMEOUT:
-      return std::string{"504 Gateway Timeout"};
+      return std::string{"Gateway Timeout"};
     case Status_code::HTTP_VERSION_NOT_SUPPORTED:
-      return std::string{"505 HTTP Version Not Supported"};
+      return std::string{"HTTP Version Not Supported"};
   }
-  return std::string{std::to_string(static_cast<int>(c)) +
-                     " Unknown HTTP status code"};
+  return std::string{"Unknown HTTP status code"};
 }
 
 shcore::Value Response::json() const {

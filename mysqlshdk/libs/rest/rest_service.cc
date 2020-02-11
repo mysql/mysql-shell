@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -186,6 +186,35 @@ class Rest_service::Impl {
     }
 
     return get_raw_response(response_headers, std::move(response_body));
+  }
+
+  Response execute(Type type, const std::string &path, unsigned char *body,
+                   size_t size, const Headers &headers) {
+    set_url(path);
+    // body needs to be set before the type, because it implicitly sets type to
+    // POST
+    set_body(body, size);
+    set_type(type);
+    const auto headers_deleter = set_headers(headers, true);
+
+    // set callbacks which will receive the response
+    std::string response_headers;
+    std::string response_body;
+
+    curl_easy_setopt(m_handle.get(), CURLOPT_HEADERDATA, &response_headers);
+    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA, &response_body);
+
+    // execute the request
+    if (curl_easy_perform(m_handle.get()) != CURLE_OK) {
+      throw Connection_error{m_error_buffer};
+    }
+
+    return get_raw_response(response_headers, std::move(response_body));
+  }
+
+  void set_body(unsigned char *body, size_t size) {
+    curl_easy_setopt(m_handle.get(), CURLOPT_POSTFIELDSIZE, size);
+    curl_easy_setopt(m_handle.get(), CURLOPT_COPYPOSTFIELDS, body);
   }
 
   std::future<Response> execute_async(Type type, const std::string &path,
@@ -379,9 +408,19 @@ Response Rest_service::post(const std::string &path, const shcore::Value &body,
   return m_impl->execute(Impl::Type::POST, path, body, headers);
 }
 
+Response Rest_service::post(const std::string &path, unsigned char *body,
+                            size_t size, const Headers &headers) {
+  return m_impl->execute(Impl::Type::POST, path, body, size, headers);
+}
+
 Response Rest_service::put(const std::string &path, const shcore::Value &body,
                            const Headers &headers) {
   return m_impl->execute(Impl::Type::PUT, path, body, headers);
+}
+
+Response Rest_service::put(const std::string &path, unsigned char *body,
+                           size_t size, const Headers &headers) {
+  return m_impl->execute(Impl::Type::PUT, path, body, size, headers);
 }
 
 Response Rest_service::patch(const std::string &path, const shcore::Value &body,

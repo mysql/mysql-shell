@@ -26,11 +26,15 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "mysqlshdk/libs/storage/ifile.h"
 
 namespace mysqlshdk {
+namespace oci {
+struct Oci_options;
+}
 namespace storage {
 
 class IDirectory {
@@ -69,14 +73,19 @@ class IDirectory {
    *
    * @returns Handle to the file.
    */
-  std::unique_ptr<IFile> file(const std::string &name) const;
+  virtual std::unique_ptr<IFile> file(const std::string &name) const;
 
  protected:
   virtual std::string join_path(const std::string &a,
                                 const std::string &b) const = 0;
 };
 
-std::unique_ptr<IDirectory> make_directory(const std::string &path);
+std::unique_ptr<IDirectory> make_directory(
+    const std::string &path,
+    const std::unordered_map<std::string, std::string> &options = {});
+
+std::unique_ptr<IDirectory> make_directory(
+    const std::string &path, const mysqlshdk::oci::Oci_options &options);
 
 }  // namespace storage
 }  // namespace mysqlshdk

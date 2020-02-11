@@ -95,7 +95,7 @@ void Import_table::spawn_workers() {
 void Import_table::chunk_file() {
   Chunk_file chunk;
   chunk.set_chunk_size(m_opt.bytes_per_chunk());
-  chunk.set_file_path(m_opt.full_path());
+  chunk.set_file_handle(m_opt.file_handle());
   chunk.set_dialect(m_opt.dialect());
   chunk.set_rows_to_skip(m_opt.skip_rows_count());
   chunk.set_output_queue(&m_range_queue);

@@ -41,19 +41,16 @@
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/oci/oci_setup.h"
 #include "mysqlshdk/libs/utils/document_parser.h"
 #include "mysqlshdk/libs/utils/profiling.h"
+#include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
-
-#ifdef WITH_OCI
-#include "mysqlshdk/libs/utils/oci_setup.h"
-#include "mysqlshdk/libs/utils/ssl_keygen.h"
-#endif
 
 namespace mysqlsh {
 
@@ -72,10 +69,8 @@ Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
       "data", shcore::Map);
 
   expose("importJson", &Util::import_json, "path", "?options");
-#ifdef WITH_OCI
   shcore::ssl::init();
   expose("configureOci", &Util::configure_oci, "?profile");
-#endif
   expose("importTable", &Util::import_table, "path", "?options");
 }
 
@@ -888,7 +883,6 @@ void Util::import_json(const std::string &file,
   importer.print_stats();
 }
 
-#ifdef WITH_OCI
 REGISTER_HELP_TOPIC(OCI, TOPIC, TOPIC_OCI, Contents, ALL);
 REGISTER_HELP_TOPIC_TEXT(TOPIC_OCI, R"*(
 The MySQL Shell offers support for the Oracle Cloud Infrastructure (OCI).
@@ -964,7 +958,6 @@ void Util::configure_oci(const std::string &profile) {
 
   helper.create_profile(profile);
 }
-#endif
 
 REGISTER_HELP_FUNCTION(importTable, util);
 REGISTER_HELP_FUNCTION_TEXT(UTIL_IMPORTTABLE, R"*(

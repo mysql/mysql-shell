@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_OCI_H_
-#define MODULES_UTIL_OCI_H_
+#ifndef MYSQLSHDK_LIBS_OCI_OCI_H_
+#define MYSQLSHDK_LIBS_OCI_OCI_H_
 
 #include <memory>
 #include <string>
@@ -39,4 +39,4 @@ void load_profile(const std::string &user_profile,
 }  // namespace oci
 }  // namespace mysqlsh
 
-#endif  // MODULES_UTIL_OCI_H_
+#endif  // MYSQLSHDK_LIBS_OCI_OCI_H_

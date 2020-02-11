@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -565,7 +565,6 @@ Shell_options::Shell_options(int argc, char **argv,
 #endif
         storage.dbug_options = value ? value : "";
       })
-#ifdef WITH_OCI
     (
       cmdline("--oci[=<profile>]"),
       "Starts the shell ready to work with OCI. "
@@ -581,7 +580,6 @@ Shell_options::Shell_options(int argc, char **argv,
           storage.initial_mode = shcore::IShell_core::Mode::Python;
 #endif
       })
-#endif
 ;  // <-- Note this is on purpose: Mark the termination of the option definition.
   // clang-format on
 

@@ -27,13 +27,13 @@
 // issue in some platforms
 #include "mysqlshdk/include/scripting/python_context.h"
 
-#include "modules/util/oci.h"
+#include "mysqlshdk/libs/oci/oci.h"
 
 #include <vector>
 
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_python.h"
-#include "mysqlshdk/libs/utils/oci_setup.h"
+#include "mysqlshdk/libs/oci/oci_setup.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"

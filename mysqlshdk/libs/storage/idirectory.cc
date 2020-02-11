@@ -25,7 +25,9 @@
 
 #include <stdexcept>
 
+#include "mysqlshdk/libs/oci/oci_options.h"
 #include "mysqlshdk/libs/storage/backend/directory.h"
+#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/storage/utils.h"
 
 namespace mysqlshdk {
@@ -35,15 +37,31 @@ std::unique_ptr<IFile> IDirectory::file(const std::string &name) const {
   return make_file(join_path(full_path(), name));
 }
 
-std::unique_ptr<IDirectory> make_directory(const std::string &path) {
-  const auto scheme = utils::get_scheme(path);
+std::unique_ptr<IDirectory> make_directory(
+    const std::string &path,
+    const std::unordered_map<std::string, std::string> &options) {
+  mysqlshdk::oci::Oci_options oci_options;
+  std::string os_path;
+  bool is_oci =
+      mysqlshdk::oci::parse_oci_options(mysqlshdk::oci::Oci_uri_type::DIRECTORY,
+                                        path, options, &oci_options, &os_path);
 
+  if (is_oci) {
+    return std::make_unique<backend::oci::Directory>(oci_options, os_path);
+  }
+
+  const auto scheme = utils::get_scheme(path);
   if (scheme.empty() || utils::scheme_matches(scheme, "file")) {
     return std::make_unique<backend::Directory>(path);
-  } else {
-    throw std::invalid_argument("Directory handling for " + scheme +
-                                " protocol is not supported.");
   }
+
+  throw std::invalid_argument("Directory handling for " + scheme +
+                              " protocol is not supported.");
+}
+
+std::unique_ptr<IDirectory> make_directory(
+    const std::string &path, const mysqlshdk::oci::Oci_options &options) {
+  return std::make_unique<backend::oci::Directory>(options, path);
 }
 
 }  // namespace storage

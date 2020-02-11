@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -138,17 +138,19 @@ class Rest_service {
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response post(const std::string &path, const shcore::Value &body = {},
+  Response post(const std::string &path, const shcore::Value &body,
                 const Headers &headers = {});
 
+  Response post(const std::string &path, unsigned char *body = nullptr,
+                size_t size = 0, const Headers &headers = {});
   /**
    * Executes a PUT request, blocks until response is available.
    *
    * @param path Path to the request, it is going to be appended to the base
    *        URL.
-   * @param body Optional body which is going to be sent along with the request.
-   *        Content-Type is going to be set to 'application/json', unless it is
-   *        explicitly set in headers.
+   * @param body Optional body which is going to be sent along with the
+   * request. Content-Type is going to be set to 'application/json', unless it
+   * is explicitly set in headers.
    * @param headers Optional request-specific headers. If default headers were
    *        also specified, request-specific headers are going to be appended
    *        that set, overwriting any duplicated values.
@@ -157,17 +159,20 @@ class Rest_service {
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response put(const std::string &path, const shcore::Value &body = {},
+  Response put(const std::string &path, const shcore::Value &body,
                const Headers &headers = {});
+
+  Response put(const std::string &path, unsigned char *body = nullptr,
+               size_t size = 0, const Headers &headers = {});
 
   /**
    * Executes a PATCH request, blocks until response is available.
    *
    * @param path Path to the request, it is going to be appended to the base
    *        URL.
-   * @param body Optional body which is going to be sent along with the request.
-   *        Content-Type is going to be set to 'application/json', unless it is
-   *        explicitly set in headers.
+   * @param body Optional body which is going to be sent along with the
+   * request. Content-Type is going to be set to 'application/json', unless it
+   * is explicitly set in headers.
    * @param headers Optional request-specific headers. If default headers were
    *        also specified, request-specific headers are going to be appended
    *        that set, overwriting any duplicated values.
@@ -184,9 +189,9 @@ class Rest_service {
    *
    * @param path Path to the request, it is going to be appended to the base
    *        URL.
-   * @param body Optional body which is going to be sent along with the request.
-   *        Content-Type is going to be set to 'application/json', unless it is
-   *        explicitly set in headers.
+   * @param body Optional body which is going to be sent along with the
+   * request. Content-Type is going to be set to 'application/json', unless it
+   * is explicitly set in headers.
    * @param headers Optional request-specific headers. If default headers were
    *        also specified, request-specific headers are going to be appended
    *        that set, overwriting any duplicated values.
@@ -242,9 +247,9 @@ class Rest_service {
    *
    * @param path Path to the request, it is going to be appended to the base
    *        URL.
-   * @param body Optional body which is going to be sent along with the request.
-   *        Content-Type is going to be set to 'application/json', unless it is
-   *        explicitly set in headers.
+   * @param body Optional body which is going to be sent along with the
+   * request. Content-Type is going to be set to 'application/json', unless it
+   * is explicitly set in headers.
    * @param headers Optional request-specific headers. If default headers were
    *        also specified, request-specific headers are going to be appended
    *        that set, overwriting any duplicated values.
@@ -265,9 +270,9 @@ class Rest_service {
    *
    * @param path Path to the request, it is going to be appended to the base
    *        URL.
-   * @param body Optional body which is going to be sent along with the request.
-   *        Content-Type is going to be set to 'application/json', unless it is
-   *        explicitly set in headers.
+   * @param body Optional body which is going to be sent along with the
+   * request. Content-Type is going to be set to 'application/json', unless it
+   * is explicitly set in headers.
    * @param headers Optional request-specific headers. If default headers were
    *        also specified, request-specific headers are going to be appended
    *        that set, overwriting any duplicated values.
@@ -288,9 +293,9 @@ class Rest_service {
    *
    * @param path Path to the request, it is going to be appended to the base
    *        URL.
-   * @param body Optional body which is going to be sent along with the request.
-   *        Content-Type is going to be set to 'application/json', unless it is
-   *        explicitly set in headers.
+   * @param body Optional body which is going to be sent along with the
+   * request. Content-Type is going to be set to 'application/json', unless it
+   * is explicitly set in headers.
    * @param headers Optional request-specific headers. If default headers were
    *        also specified, request-specific headers are going to be appended
    *        that set, overwriting any duplicated values.
@@ -306,14 +311,15 @@ class Rest_service {
                                     const Headers &headers = {});
 
   /**
-   * Asynchronously executes a DELETE request. This object must not be modified
-   * nor any other request can be executed again until response is received.
+   * Asynchronously executes a DELETE request. This object must not be
+   * modified nor any other request can be executed again until response is
+   * received.
    *
    * @param path Path to the request, it is going to be appended to the base
    *        URL.
-   * @param body Optional body which is going to be sent along with the request.
-   *        Content-Type is going to be set to 'application/json', unless it is
-   *        explicitly set in headers.
+   * @param body Optional body which is going to be sent along with the
+   * request. Content-Type is going to be set to 'application/json', unless it
+   * is explicitly set in headers.
    * @param headers Optional request-specific headers. If default headers were
    *        also specified, request-specific headers are going to be appended
    *        that set, overwriting any duplicated values.

@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_UTILS_OCI_SETUP_H_
-#define MYSQLSHDK_LIBS_UTILS_OCI_SETUP_H_
+#ifndef MYSQLSHDK_LIBS_OCI_OCI_SETUP_H_
+#define MYSQLSHDK_LIBS_OCI_OCI_SETUP_H_
 
 #include <string>
 
@@ -85,4 +85,4 @@ class Oci_setup : public shcore::wizard::Wizard {
 }  // namespace oci
 }  // namespace mysqlshdk
 
-#endif  // MYSQLSHDK_LIBS_UTILS_OCI_SETUP_H_
+#endif  // MYSQLSHDK_LIBS_OCI_OCI_SETUP_H_

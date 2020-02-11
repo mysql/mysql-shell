@@ -57,10 +57,6 @@ set(utils_SOURCE
     ssl_keygen.cc
 )
 
-IF(WITH_OCI)
-  LIST(APPEND utils_SOURCE "oci_setup.cc")
-ENDIF()
-
 IF(CMAKE_BUILD_TYPE STREQUAL Debug)
   LIST(APPEND utils_SOURCE fault_injection.cc)
 ENDIF()

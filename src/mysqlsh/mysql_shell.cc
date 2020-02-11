@@ -31,6 +31,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "commands/command_help.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/dba_utils.h"
 #include "modules/devapi/mod_mysqlx.h"
@@ -48,18 +49,13 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/db/utils_error.h"
+#include "mysqlshdk/libs/oci/oci.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
+#include "mysqlshdk/shellcore/shell_console.h"
 #include "scripting/shexcept.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_resultset_dumper.h"
-
-#ifdef WITH_OCI
-#include "modules/util/oci.h"
-#endif
-
-#include "commands/command_help.h"
-#include "mysqlshdk/shellcore/shell_console.h"
 #include "src/mysqlsh/commands/command_show.h"
 #include "src/mysqlsh/commands/command_watch.h"
 #include "utils/debug.h"

@@ -33,6 +33,7 @@
 using Rest_service = mysqlshdk::rest::Rest_service;
 using Headers = mysqlshdk::rest::Headers;
 using Response = mysqlshdk::rest::Response;
+using Response_error = mysqlshdk::rest::Response_error;
 
 namespace mysqlshdk {
 namespace storage {
@@ -51,7 +52,7 @@ Http_get::Http_get(const std::string &uri) : m_uri(uri) {
           "Target server does not support partial requests.");
     }
   } else {
-    throw std::runtime_error(Response::status_code(response.status));
+    throw Response_error(response.status);
   }
 }
 

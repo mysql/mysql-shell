@@ -34,6 +34,7 @@
 
 #include "modules/util/import_table/dialect.h"
 #include "modules/util/import_table/helpers.h"
+#include "mysqlshdk/libs/oci/oci_options.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
@@ -214,7 +215,7 @@ class File_iterator final {
 class File_handler final {
  public:
   File_handler() = default;
-  explicit File_handler(const std::string &pathname);
+  explicit File_handler(mysqlshdk::storage::IFile *fh);
 
   File_handler(const File_handler &other) = delete;
   File_handler(File_handler &&other) = delete;
@@ -236,7 +237,7 @@ class File_handler final {
   mutable Async_read_task m_aio{};
   mutable std::thread m_aio_worker;
   mutable shcore::Synchronized_queue<Async_read_task *> m_task_queue;
-  std::unique_ptr<mysqlshdk::storage::IFile> m_fh;
+  mysqlshdk::storage::IFile *m_fh;
   size_t m_file_size = 0;
 };
 
@@ -497,7 +498,7 @@ class Chunk_file final {
   ~Chunk_file() = default;
 
   void set_chunk_size(const size_t bytes);
-  void set_file_path(const std::string &path) { m_file_path = path; }
+  void set_file_handle(mysqlshdk::storage::IFile *fh) { m_file_handle = fh; }
   void set_dialect(const Dialect &dialect) { m_dialect = dialect; }
   void set_rows_to_skip(const size_t rows) { m_skip_rows_count = rows; }
   void set_output_queue(shcore::Synchronized_queue<Range> *queue) {
@@ -507,10 +508,10 @@ class Chunk_file final {
 
  private:
   size_t m_chunk_size = 2 * BUFFER_SIZE;
-  std::string m_file_path;
   Dialect m_dialect;
   uint64_t m_skip_rows_count = 0;
   shcore::Synchronized_queue<Range> *m_queue = nullptr;
+  mysqlshdk::storage::IFile *m_file_handle;
 };
 
 }  // namespace import_table

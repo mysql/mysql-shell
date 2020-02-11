@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -438,7 +438,7 @@ TEST_F(Rest_service_test, content_type) {
   FAIL_IF_NO_SERVER
 
   // POST with no data means that CURL will set Content-Type to its default
-  auto response = m_service.post("/post");
+  auto response = m_service.post("/post", shcore::Value());
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ(
       "application/x-www-form-urlencoded",

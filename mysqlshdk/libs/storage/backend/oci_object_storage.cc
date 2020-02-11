@@ -27,24 +27,12 @@
 #include <openssl/pem.h>
 #include <algorithm>
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/include/shellcore/shell_options.h"
-#include "mysqlshdk/libs/rest/rest_service.h"
-#include "mysqlshdk/libs/storage/utils.h"
-#include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/shellcore/private_key_manager.h"
-
-#ifdef WITH_OCI
-#include "mysqlshdk/libs/utils/oci_setup.h"
-#else
-#include "mysqlshdk/libs/config/config_file.h"
-#endif
 
 using Rest_service = mysqlshdk::rest::Rest_service;
-using Headers = mysqlshdk::rest::Headers;
 using Response = mysqlshdk::rest::Response;
 using BIO_ptr = std::unique_ptr<BIO, decltype(&::BIO_free)>;
 
@@ -52,259 +40,290 @@ namespace mysqlshdk {
 namespace storage {
 namespace backend {
 
-namespace {
-std::string sign(EVP_PKEY *sigkey, const std::string &string_to_sign) {
-// EVP_MD_CTX_create() and EVP_MD_CTX_destroy() were renamed to EVP_MD_CTX_new()
-// and EVP_MD_CTX_free() in OpenSSL 1.1.
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L /* 1.1.x */
-  std::unique_ptr<EVP_MD_CTX, decltype(&::EVP_MD_CTX_free)> mctx(
-      EVP_MD_CTX_new(), ::EVP_MD_CTX_free);
-#else
-  std::unique_ptr<EVP_MD_CTX, decltype(&::EVP_MD_CTX_destroy)> mctx(
-      EVP_MD_CTX_create(), ::EVP_MD_CTX_destroy);
-#endif
-  const EVP_MD *md = EVP_sha256();
-  int r = EVP_DigestSignInit(mctx.get(), nullptr, md, nullptr, sigkey);
-  if (r != 1) {
-    throw std::runtime_error("Cannot setup signing context.");
-  }
+namespace oci {
 
-  const auto siglen = EVP_PKEY_size(sigkey);
-  const auto md_value = std::make_unique<unsigned char[]>(siglen + 1);
+using Status_code = mysqlshdk::rest::Response::Status_code;
 
-  r = EVP_DigestSignUpdate(mctx.get(), string_to_sign.data(),
-                           string_to_sign.size());
-  if (r != 1) {
-    throw std::runtime_error("Cannot hash data while signing request.");
-  }
+using mysqlshdk::oci::Oci_error;
+using mysqlshdk::oci::Oci_options;
+using mysqlshdk::oci::Oci_rest_service;
+using mysqlshdk::oci::Oci_service;
 
-  size_t md_len = siglen;
-  r = EVP_DigestSignFinal(mctx.get(), md_value.get(), &md_len);
-  if (r != 1) {
-    throw std::runtime_error("Cannot finalize signing data.");
-  }
+const size_t KIB = 1024;
+const size_t MIB = KIB * 1024;
+const size_t MAX_PART_SIZE = MIB * 10;
+const size_t MAX_FILE_NAME_SIZE = 1024;
 
-  std::string signature_b64;
-  shcore::ssl::encode_base64(md_value.get(), md_len, &signature_b64);
-  return signature_b64;
-}
-}  // namespace
+Directory::Directory(const Oci_options &options, const std::string &name)
+    : m_name(name),
+      m_bucket(std::make_unique<Bucket>(options)),
+      m_created(false) {}
 
-void Oci_object_storage::parse_uri(const std::string &uri) {
-  const auto parts =
-      shcore::str_split(utils::strip_scheme(uri, "oci+os"), "/", 3);
-  if (parts.size() != 4) {
-    throw std::runtime_error(
-        "Invalid URI. Use oci+os://region/namespace/bucket/object pattern.");
-  }
-  m_uri.region = parts[0];
-  m_uri.tenancy = parts[1];
-  m_uri.bucket = parts[2];
-  m_uri.object = parts[3];
-
-  m_uri.hostname = "objectstorage." + m_uri.region + ".oraclecloud.com";
-  m_uri.path =
-      "/n/" + m_uri.tenancy + "/b/" + m_uri.bucket + "/o/" + m_uri.object;
-}
-
-Oci_object_storage::Oci_object_storage(const std::string &uri)
-    : m_oci_uri(uri) {
-  parse_uri(uri);
-  m_rest = std::make_unique<Rest_service>("https://" + m_uri.hostname, true);
-  m_rest->set_timeout(30000);  // todo(kg): default 2s was not enough, 30s is
-                               // ok? maybe we could make it configurable
-
-  const auto oci_config_path =
-      mysqlsh::current_shell_options()->get().oci_config_file;
-  const auto oci_profile = mysqlsh::current_shell_options()->get().oci_profile;
-
-#ifdef WITH_OCI
-  oci::Oci_setup oci_setup(oci_config_path);
-  bool has_profile = oci_setup.has_profile(oci_profile);
-  const auto config = oci_setup.get_cfg();
-#else
-  mysqlshdk::config::Config_file config(mysqlshdk::config::Case::SENSITIVE,
-                                        mysqlshdk::config::Escape::NO);
-  config.read(oci_config_path);
-  bool has_profile = config.has_group(oci_profile);
-#endif
-  if (!has_profile) {
-    throw std::runtime_error("Profile named \"" + oci_profile +
-                             "\" does not exists in \"" + oci_config_path +
-                             "\" OCI configuration file.");
-  }
-  m_key_file = *config.get(oci_profile, "key_file");
-  m_tenancy_id = *config.get(oci_profile, "tenancy");
-  m_user_id = *config.get(oci_profile, "user");
-  m_fingerprint = *config.get(oci_profile, "fingerprint");
-
-  std::string passphrase = config.has_option(oci_profile, "pass_phrase")
-                               ? *config.get(oci_profile, "pass_phrase")
-                               : std::string{};
-
-  auto k = shcore::Private_key_storage::get().contains(m_key_file);
-  if (!k.second) {
-#ifdef WITH_OCI
-    oci_setup.load_profile(oci_profile);
-    // Check if load_profile opened successfully private key and put it into
-    // private key storage.
-    auto pkey = shcore::Private_key_storage::get().contains(m_key_file);
-    if (!pkey.second) {
-      throw std::runtime_error(
-          "Cannot load \"" + m_key_file +
-          "\" private key associated with OCI configuration profile named \"" +
-          oci_profile + "\".");
-    } else {
-      m_private_key = pkey.first->second;
-    }
-#else
-    m_private_key =
-        shcore::Private_key_storage::get().from_file(m_key_file, passphrase);
-#endif
+bool Directory::exists() const {
+  if (m_name.empty() || m_created) {
+    // An empty name represents the root directory, since the bucket was created
+    // OK then it exists. If it has been "created" it exists as well.
+    return true;
   } else {
-    m_private_key = k.first->second;
+    // If it has a name then we need to make sure it is a directory, it will be
+    // verified by listing 1 object using as prefix as '<m_name>/'
+    auto objects = m_bucket->list_objects(m_name + "/", "", "", 1, false);
+    return !objects.empty();
+  }
+}
+
+void Directory::create() { m_created = true; }
+
+std::vector<IDirectory::File_info> Directory::list_files() const {
+  std::vector<IDirectory::File_info> files;
+  auto objects = m_bucket->list_objects(m_name.empty() ? "" : m_name + "/", "",
+                                        "", 0, false);
+
+  if (m_name.empty()) {
+    for (const auto &object : objects) {
+      files.push_back({object.name, object.size});
+    }
+  } else {
+    size_t name_offset = m_name.size() + 1;
+    for (const auto &object : objects) {
+      files.push_back({object.name.substr(name_offset), object.size});
+    }
   }
 
-  shcore::clear_buffer(&passphrase);
+  return files;
+}
 
-  m_auth_keyId = m_tenancy_id + "/" + m_user_id + "/" + m_fingerprint;
+std::string Directory::join_path(const std::string &a,
+                                 const std::string &b) const {
+  return a.empty() ? b : a + "/" + b;
+}
 
-  auto extract_from_ok_response = [&](mysqlshdk::rest::Response *response) {
-    m_file_size = std::stoul(response->headers["content-length"]);
-    m_open_status_code = response->status;
-    if (response->headers["Accept-Ranges"] != "bytes") {
-      throw std::runtime_error(
-          "Target server does not support partial requests.");
+std::unique_ptr<IFile> Directory::file(const std::string &name) const {
+  std::string file_name = join_path(m_name, name);
+
+  if (file_name.size() > MAX_FILE_NAME_SIZE) {
+    throw std::runtime_error(shcore::str_format(
+        "Unable to create file '%s', it exceeds the allowed name length: 1024",
+        file_name.c_str()));
+  }
+
+  return std::make_unique<Object>(m_bucket->get_options(), name);
+}
+
+Object::Object(const Oci_options &options, const std::string &name)
+    : m_name(name),
+      m_bucket(std::make_unique<Bucket>(options)),
+      m_max_part_size(MAX_PART_SIZE),
+      m_writer{},
+      m_reader{} {}
+
+void Object::set_max_part_size(size_t new_size) {
+  assert(!is_open());
+  m_max_part_size = new_size;
+}
+
+void Object::open(mysqlshdk::storage::Mode mode) {
+  switch (mode) {
+    case Mode::READ:
+      m_reader = std::make_unique<Reader>(this);
+      break;
+    case Mode::APPEND: {
+      auto uploads = m_bucket->list_multipart_uploads();
+      auto object = std::find_if(
+          uploads.begin(), uploads.end(),
+          [this](const Multipart_object &o) { return o.name == m_name; });
+
+      if (object == uploads.end()) {
+        throw std::runtime_error(
+            "Object Storage only supports APPEND mode for in-progress "
+            "multipart uploads.");
+      }
+
+      m_writer = std::make_unique<Writer>(this, &(*object));
+      break;
     }
-  };
-  // Wrongly signed headers disallow access to public buckets, so firstly we
-  // check if bucket is public by making an anonymous request (I didn't found
-  // OCI SDK API call that returns bucket type).
-  is_public_bucket = [&]() -> bool {
-    // Anonymous access to private buckets returns 404 BucketNotFound, while bad
-    // signed headers to public buckets returns 401 NotAuthorized
-    auto anonymous = m_rest->head(m_uri.path);
-    if (anonymous.status == Response::Status_code::OK) {
-      extract_from_ok_response(&anonymous);
-      return true;
-    }
-    // bucket either do not exists or is private
-    return false;
-  }();
+    case Mode::WRITE:
+      m_writer = std::make_unique<Writer>(this);
+      break;
+  }
 
-  if (!is_public_bucket) {
-    Headers h = make_signed_header(false);
-    auto response = m_rest->head(m_uri.path, h);
-    if (response.status == Response::Status_code::OK) {
-      extract_from_ok_response(&response);
+  m_open_mode = mode;
+}
+
+bool Object::is_open() const { return !m_open_mode.is_null(); }
+
+void Object::close() {
+  if (m_writer) m_writer->close();
+  m_open_mode.reset();
+  m_writer.reset();
+  m_reader.reset();
+}
+
+size_t Object::file_size() const {
+  assert(is_open());
+
+  size_t ret_val = 0;
+  if (m_reader)
+    ret_val = m_reader->size();
+  else if (m_writer)
+    ret_val = m_writer->size();
+
+  return ret_val;
+}
+
+std::string Object::filename() const { return m_name; }
+
+bool Object::exists() const {
+  bool ret_val = true;
+  try {
+    m_bucket->head_object(m_name);
+  } catch (const Oci_error &error) {
+    if (error.code() == Status_code::NOT_FOUND)
+      ret_val = false;
+    else
+      throw;
+  }
+
+  return ret_val;
+}
+
+off64_t Object::seek(off64_t offset) {
+  assert(is_open());
+
+  off64_t ret_val = 0;
+
+  if (m_reader)
+    ret_val = m_reader->seek(offset);
+  else if (m_writer)
+    ret_val = m_writer->seek(offset);
+
+  return ret_val;
+}
+
+ssize_t Object::read(void *buffer, size_t length) {
+  assert(is_open());
+
+  if (length <= 0) return 0;
+
+  return m_reader->read(buffer, length);
+}
+
+ssize_t Object::write(const void *buffer, size_t length) {
+  assert(is_open());
+
+  return m_writer->write(buffer, length);
+}
+
+void Object::rename(const std::string &new_name) {
+  m_bucket->rename_object(m_name, new_name);
+  m_name = new_name;
+}
+
+Object::Writer::Writer(Object *owner, Multipart_object *object)
+    : File_handler(owner), m_size(0), m_is_multipart(false) {
+  // This is the writer for an already started multipart object
+  if (object) {
+    m_multipart = *object;
+    m_is_multipart = true;
+
+    m_parts = m_object->m_bucket->list_multipart_upload_parts(m_multipart);
+    for (const auto &part : m_parts) {
+      m_size += part.size;
+    }
+  }
+}
+
+off64_t Object::Writer::seek(off64_t /*offset*/) { return 0; }
+
+ssize_t Object::Writer::write(const void *buffer, size_t length) {
+  const size_t MY_MAX_PART_SIZE = m_object->m_max_part_size;
+  size_t to_send = m_buffer.size() + length;
+  size_t incoming_offset = 0;
+  char *incoming = reinterpret_cast<char *>(const_cast<void *>(buffer));
+
+  // Initializes the multipart as soon as FILE_PART_SIZE data is provided
+  if (!m_is_multipart && to_send > MY_MAX_PART_SIZE) {
+    m_multipart = m_object->m_bucket->create_multipart_upload(m_object->m_name);
+    m_is_multipart = true;
+  }
+
+  // This loops handles the upload of N number of chunks of size
+  // MY_MAX_PART_SIZE including the buffered data and the incoming data
+  while (to_send > MY_MAX_PART_SIZE) {
+    if (!m_buffer.empty()) {
+      // BUFFERED DATA: fills the buffer and sends it
+      size_t buffer_space = MY_MAX_PART_SIZE - m_buffer.size();
+      m_buffer.append(incoming + incoming_offset, buffer_space);
+
+      m_parts.push_back(m_object->m_bucket->upload_part(
+          m_multipart, m_parts.size() + 1, m_buffer.data(), MY_MAX_PART_SIZE));
+      m_buffer.clear();
+      incoming_offset += buffer_space;
+      to_send -= MY_MAX_PART_SIZE;
     } else {
-      Headers get_headers = make_signed_header();
-      auto get_response = m_rest->get(m_uri.path, get_headers);
-      const auto &json = get_response.json().as_map();
-      const int http_status_code = static_cast<int>(get_response.status);
-      const std::string error_msg = std::to_string(http_status_code) + " " +
-                                    json->get_string("code") + ": " +
-                                    json->get_string("message");
-      throw std::runtime_error(error_msg);
+      // NO BUFFERED DATA: sends the data directly from the incoming buffer
+      m_parts.push_back(m_object->m_bucket->upload_part(
+          m_multipart, m_parts.size() + 1, incoming + incoming_offset,
+          MY_MAX_PART_SIZE));
+      incoming_offset += MY_MAX_PART_SIZE;
+      to_send -= MY_MAX_PART_SIZE;
     }
   }
+
+  // REMAINING DATA: gets buffered again
+  size_t remaining_input = length - incoming_offset;
+  if (remaining_input)
+    m_buffer.append(incoming + incoming_offset, remaining_input);
+
+  m_size += length;
+
+  return length;
 }
 
-Oci_object_storage::~Oci_object_storage() { shcore::clear_buffer(&m_key_file); }
+void Object::Writer::close() {
+  if (m_is_multipart) {
+    // MULTIPART UPLOAD STARTED: Sends last part if any and commits the upload
+    if (!m_buffer.empty()) {
+      m_parts.push_back(m_object->m_bucket->upload_part(
+          m_multipart, m_parts.size() + 1, m_buffer.data(), m_buffer.size()));
+    }
 
-void Oci_object_storage::open(Mode m) {
-  if (Mode::READ != m) {
-    throw std::logic_error(
-        "Oci_object_storage::open(): only read mode is supported");
+    m_object->m_bucket->commit_multipart_upload(m_multipart, m_parts);
+  } else {
+    // NO UPLOAD STARTED: Sends whatever buffered data in a single PUT
+    m_object->m_bucket->put_object(m_object->m_name, m_buffer.data(),
+                                   m_buffer.size());
   }
-
-  m_offset = 0;
 }
 
-bool Oci_object_storage::is_open() const {
-  return m_open_status_code == Response::Status_code::OK;
+Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
+  m_size = m_object->m_bucket->head_object(m_object->m_name);
 }
 
-void Oci_object_storage::close() {}
-
-size_t Oci_object_storage::file_size() const { return m_file_size; }
-
-std::string Oci_object_storage::full_path() const { return m_oci_uri; }
-
-off64_t Oci_object_storage::seek(off64_t offset) {
-  const off64_t fsize = file_size();
+off64_t Object::Reader::seek(off64_t offset) {
+  const off64_t fsize = m_size;
   m_offset = std::min(offset, fsize);
   return m_offset;
 }
 
-ssize_t Oci_object_storage::read(void *buffer, size_t length) {
-  if (!(length > 0)) return 0;
-  const off64_t fsize = file_size();
-  if (m_offset >= fsize) return 0;
-
+ssize_t Object::Reader::read(void *buffer, size_t length) {
   const size_t first = m_offset;
   const size_t last_unbounded = m_offset + length - 1;
-  // http range request is both sides inclusive
-  const size_t last = std::min(file_size() - 1, last_unbounded);
-  const std::string range =
-      "bytes=" + std::to_string(first) + "-" + std::to_string(last);
 
-  Headers h = make_header();
-  h["range"] = range;
+  const off64_t fsize = m_size;
+  if (m_offset >= fsize) return 0;
 
-  auto response = m_rest->get(m_uri.path, h);
+  const size_t last = std::min(m_size - 1, last_unbounded);
 
-  if (Response::Status_code::PARTIAL_CONTENT == response.status) {
-    const auto &content = response.body.get_string();
-    std::copy(content.data(), content.data() + content.size(),
-              reinterpret_cast<uint8_t *>(buffer));
-    m_offset += content.size();
-    return content.size();
-  } else if (Response::Status_code::OK == response.status) {
-    throw std::runtime_error("Range requests are not supported.");
-  } else if (Response::Status_code::RANGE_NOT_SATISFIABLE == response.status) {
-    throw std::runtime_error("Range request " + std::to_string(first) + "-" +
-                             std::to_string(last) + " is out of bounds.");
-  }
-  return 0;
+  size_t read =
+      m_object->m_bucket->get_object(m_object->m_name, buffer, first, last);
+
+  m_offset += read;
+
+  return read;
 }
 
-mysqlshdk::rest::Headers Oci_object_storage::make_signed_header(
-    bool is_get_request) {
-  time_t now = time(nullptr);
-  const auto idx = is_get_request ? 1 : 0;
-
-  // Maximum Allowed Client Clock Skew from the server's clock for OCI requests
-  // is 5 minutes. We can exploit that feature to cache auth header, because it
-  // is expensive to calculate.
-  if (now - m_signed_header_cache_time[idx] > 60) {
-    const auto date = mysqlshdk::utils::fmttime(
-        "%a, %d %b %Y %H:%M:%S GMT", mysqlshdk::utils::Time_type::GMT, &now);
-    const std::string string_to_sign{
-        "x-date: " + date +
-        "\n(request-target): " + (is_get_request ? "get " : "head ") +
-        m_uri.path + "\nhost: " + m_uri.hostname};
-    const std::string signature_b64 = sign(m_private_key.get(), string_to_sign);
-    const std::string auth_header =
-        "Signature version=\"1\",headers=\"x-date (request-target) "
-        "host\",keyId=\"" +
-        m_auth_keyId + "\",algorithm=\"rsa-sha256\",signature=\"" +
-        signature_b64 + "\"";
-    m_signed_header_cache_time[idx] = now;
-    m_cached_header[idx] =
-        Headers{{"authorization", auth_header}, {"x-date", date}};
-  }
-
-  return m_cached_header[idx];
-}
-
-mysqlshdk::rest::Headers Oci_object_storage::make_header(bool is_get_request) {
-  if (is_public_bucket) {
-    return {};
-  }
-  return make_signed_header(is_get_request);
-}
-
+}  // namespace oci
 }  // namespace backend
 }  // namespace storage
 }  // namespace mysqlshdk

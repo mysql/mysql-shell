@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,8 @@
 #include "modules/util/import_table/dialect.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/oci/oci_options.h"
+#include "mysqlshdk/libs/storage/ifile.h"
 
 namespace mysqlsh {
 namespace import_table {
@@ -48,13 +50,11 @@ class Import_table_options {
 
   explicit Import_table_options(const std::string &filename,
                                 const shcore::Dictionary_t &options);
-
-  Import_table_options(const Import_table_options &other) = default;
+  Import_table_options(const Import_table_options &other) = delete;
   Import_table_options(Import_table_options &&other) = default;
 
-  Import_table_options &operator=(const Import_table_options &other) = default;
+  Import_table_options &operator=(const Import_table_options &other) = delete;
   Import_table_options &operator=(Import_table_options &&other) = default;
-
   ~Import_table_options() = default;
 
   Dialect dialect() const { return m_dialect; }
@@ -66,6 +66,8 @@ class Import_table_options {
   }
 
   Connection_options connection_options() const;
+
+  const std::string &filename() const { return m_filename; }
 
   const std::string &full_path() const { return m_full_path; }
 
@@ -91,6 +93,18 @@ class Import_table_options {
 
   std::string target_import_info() const;
 
+  mysqlshdk::oci::Oci_options get_oci_options() const { return m_oci_options; }
+
+  /**
+   * Returns the raw pointer to the file handle
+   */
+  mysqlshdk::storage::IFile *file_handle() const { return m_file_handle.get(); }
+
+  /**
+   * Creates a new file handle using the provided options.
+   */
+  std::unique_ptr<mysqlshdk::storage::IFile> create_file_handle() const;
+
  private:
   void unpack(const shcore::Dictionary_t &options);
 
@@ -110,25 +124,9 @@ class Import_table_options {
   uint64_t m_skip_rows_count = 0;
   std::string m_base_dialect_name;
   Dialect m_dialect;
-
-  struct Oci_shell_options final {
-   public:
-    Oci_shell_options();
-    Oci_shell_options(const Oci_shell_options &other) = default;
-    Oci_shell_options(Oci_shell_options &&other) = default;
-
-    Oci_shell_options &operator=(const Oci_shell_options &other) = default;
-    Oci_shell_options &operator=(Oci_shell_options &&other) = default;
-
-    ~Oci_shell_options();
-
-    std::string profile;
-    std::string config_file;
-    std::string profile_original;
-    std::string config_file_original;
-  };
-  Oci_shell_options m_oci;
+  mysqlshdk::oci::Oci_options m_oci_options;
   std::shared_ptr<mysqlsh::ShellBaseSession> m_base_session;
+  std::unique_ptr<mysqlshdk::storage::IFile> m_file_handle;
 };
 
 }  // namespace import_table

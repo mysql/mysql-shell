@@ -141,8 +141,7 @@ void File_iterator::force_offset(size_t start_from_offset) {
   }
 }
 
-File_handler::File_handler(const std::string &pathname) {
-  m_fh = mysqlshdk::storage::make_file(pathname);
+File_handler::File_handler(mysqlshdk::storage::IFile *fh) : m_fh(fh) {
   m_fh->open(mysqlshdk::storage::Mode::READ);
   m_file_size = m_fh->file_size();
   m_aio_worker = std::thread([this]() -> void {
@@ -178,11 +177,11 @@ File_handler::~File_handler() {
 }
 
 File_iterator File_handler::begin(size_t needle_size) const {
-  return File_iterator(m_fh.get(), size(), 0, &m_buffer[0], &m_buffer[1],
-                       &m_aio, needle_size, &m_task_queue);
+  return File_iterator(m_fh, size(), 0, &m_buffer[0], &m_buffer[1], &m_aio,
+                       needle_size, &m_task_queue);
 }
 File_iterator File_handler::end(size_t needle_size) const {
-  return File_iterator(m_fh.get(), size(), size(), nullptr, nullptr, nullptr,
+  return File_iterator(m_fh, size(), size(), nullptr, nullptr, nullptr,
                        needle_size, &m_task_queue);
 }
 
@@ -192,7 +191,7 @@ void Chunk_file::set_chunk_size(const size_t bytes) {
 }
 
 void Chunk_file::start() {
-  File_handler fh{m_file_path};
+  File_handler fh{m_file_handle};
 
   const size_t needle_size = m_dialect.lines_terminated_by.size();
   auto first = fh.begin(needle_size);

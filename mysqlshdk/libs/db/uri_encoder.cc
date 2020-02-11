@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -232,12 +232,12 @@ std::string Uri_encoder::encode_socket(const std::string &data) {
 
   std::string ret_val = process(data);
 
-  if (ret_val.find("%2F") == 0) ret_val.replace(0, 3, "/");
+  if (shcore::str_ibeginswith(ret_val, "%2F")) ret_val.replace(0, 3, "/");
 
   return ret_val;
 }
 
-std::string Uri_encoder::encode_schema(const std::string &data) {
+std::string Uri_encoder::encode_path_segment(const std::string &data) {
   _tokenizer.reset();
   _tokenizer.set_allow_spaces(true);
   _tokenizer.set_allow_unknown_tokens(true);
@@ -289,23 +289,16 @@ std::string Uri_encoder::encode_value(const std::string &data) {
   return process(data);
 }
 
-std::string Uri_encoder::pct_encode(const std::string &data) {
-  std::string ret_val;
+std::string Uri_encoder::encode_query(const std::string &data) {
+  _tokenizer.reset();
+  _tokenizer.set_allow_spaces(true);
+  _tokenizer.set_allow_unknown_tokens(true);
+  _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
+  _tokenizer.set_complex_token("unreserved", UNRESERVED);
+  _tokenizer.set_complex_token("sub-delims", SUBDELIMITERS);
+  _tokenizer.set_simple_tokens(":@/?");
 
-  for (auto c : data) {
-    std::stringstream buffer;
-    buffer << std::hex << static_cast<int>(c);
-    auto hex_data = buffer.str();
-
-    std::transform(hex_data.begin(), hex_data.end(), hex_data.begin(),
-                   ::toupper);
-    if (hex_data.size() == 1)
-      ret_val += "%0" + hex_data;
-    else
-      ret_val += "%" + hex_data;
-  }
-
-  return ret_val;
+  return process(data);
 }
 
 std::string Uri_encoder::process(const std::string &data) {
@@ -317,7 +310,7 @@ std::string Uri_encoder::process(const std::string &data) {
     auto token = _tokenizer.consume_any_token();
 
     if (token.get_type() == "unknown")
-      ret_val += pct_encode(token.get_text());
+      ret_val += shcore::pctencode(token.get_text());
     else
       ret_val += token.get_text();
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -421,6 +421,76 @@ bool is_valid_utf8(const std::string &s) {
   }
 
   return true;
+}
+
+namespace {
+
+// Byte-values that are reserved and must be hex-encoded [0..255]
+static const int k_reserved_chars[] = {
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+
+// Numeric values for hex-digits [0..127]
+static const int k_hex_values[] = {
+    0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0,
+    0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0,
+    0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  2,  3,  4, 5, 6, 7, 8,
+    9, 0, 0,  0,  0,  0,  0,  0,  10, 11, 12, 13, 14, 15, 0, 0, 0, 0, 0,
+    0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0,
+    0, 0, 10, 11, 12, 13, 14, 15, 0,  0,  0,  0,  0,  0,  0, 0, 0, 0, 0,
+    0, 0, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0};
+
+}  // namespace
+
+std::string pctencode(const std::string &s) {
+  std::string enc;
+  size_t offs = 0;
+
+  enc.resize(s.size() * 3);
+
+  for (unsigned char c : s) {
+    unsigned int i = static_cast<unsigned int>(c);
+    if (k_reserved_chars[i]) {
+      sprintf(&enc[offs], "%%%02X", i);
+      offs += 3;
+    } else {
+      enc[offs] = c;
+      ++offs;
+    }
+  }
+
+  enc.resize(offs);
+
+  return enc;
+}
+
+std::string pctdecode(const std::string &s) {
+  std::string dec;
+
+  dec.reserve(s.size());
+
+  for (size_t i = 0, c = s.size(); i < c;) {
+    if (i <= c - 3 && s[i] == '%' && isxdigit(s[i + 1]) && isxdigit(s[i + 2])) {
+      int ch = k_hex_values[static_cast<int>(s[i + 1])] << 4 |
+               k_hex_values[static_cast<int>(s[i + 2])];
+      dec.push_back(ch);
+      i += 3;
+    } else {
+      dec.push_back(s[i]);
+      ++i;
+    }
+  }
+
+  return dec;
 }
 
 }  // namespace shcore

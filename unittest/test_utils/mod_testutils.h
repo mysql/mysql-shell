@@ -410,6 +410,14 @@ class Testutils : public mysqlsh::Extensible_object {
 
   std::shared_ptr<mysqlshdk::db::ISession> connect_to_sandbox(int port);
   std::string get_user_config_path();
+
+  bool validate_oci_config();
+  shcore::Dictionary_t get_oci_config();
+  void upload_oci_object(const std::string &bucket, const std::string &name,
+                         const std::string &path);
+  void create_oci_object(const std::string &bucket, const std::string &name,
+                         const std::string &content);
+  void delete_oci_object(const std::string &bucket, const std::string &name);
 };
 
 }  // namespace tests

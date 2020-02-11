@@ -125,11 +125,6 @@ file(GLOB api_module_SOURCES
       "reports/utils.cc"
 )
 
-IF(WITH_OCI)
-    LIST(APPEND api_module_SOURCES "util/oci.cc")
-ENDIF()
-
-
 add_convenience_library(api_modules ${api_module_SOURCES})
 target_link_libraries(api_modules utils)
 

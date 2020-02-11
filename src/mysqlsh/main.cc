@@ -24,6 +24,7 @@
 #include "modules/mod_utils.h"
 #include "modules/util/json_importer.h"
 #include "mysqlsh/cmdline_shell.h"
+#include "mysqlshdk/libs/oci/oci.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/document_parser.h"
@@ -33,10 +34,6 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/shell_init.h"
-
-#ifdef WITH_OCI
-#include "modules/util/oci.h"
-#endif
 
 #include <sys/stat.h>
 #include <clocale>
@@ -764,7 +761,6 @@ int main(int argc, char **argv) {
         }
       }
 
-#ifdef WITH_OCI
       if (options.oci_wizard) {
         if (options.interactive) {
           mysqlsh::oci::load_profile(options.oci_profile,
@@ -774,7 +770,6 @@ int main(int argc, char **argv) {
               "Option --oci requires interactive mode, ignoring option.");
         }
       }
-#endif
 
       try {
         // initialize globals requested via command line (i.e. --cluster,

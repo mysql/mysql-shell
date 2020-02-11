@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #if defined(_WIN32)
 using off64_t = __int64;
@@ -35,6 +36,9 @@ using off64_t = off_t;
 #endif
 
 namespace mysqlshdk {
+namespace oci {
+struct Oci_options;
+}
 namespace storage {
 
 enum class Mode { READ, WRITE, APPEND };
@@ -72,7 +76,12 @@ class IFile {
   virtual void rename(const std::string &new_name) = 0;
 };
 
-std::unique_ptr<IFile> make_file(const std::string &filepath);
+std::unique_ptr<IFile> make_file(
+    const std::string &filepath,
+    const std::unordered_map<std::string, std::string> &options = {});
+
+std::unique_ptr<IFile> make_file(const std::string &filepath,
+                                 const mysqlshdk::oci::Oci_options &options);
 
 }  // namespace storage
 }  // namespace mysqlshdk
