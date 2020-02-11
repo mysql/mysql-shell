@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,23 +21,16 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_OCI_SETUP_H_
-#define MODULES_UTIL_OCI_SETUP_H_
+#ifndef MYSQLSHDK_LIBS_UTILS_OCI_SETUP_H_
+#define MYSQLSHDK_LIBS_UTILS_OCI_SETUP_H_
 
-#include <map>
-#include <memory>
 #include <string>
-#include <vector>
 
-#include "mysqlshdk/include/shellcore/shell_core.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/shellcore/wizard.h"
 
-namespace mysqlsh {
+namespace mysqlshdk {
 namespace oci {
-void init(const std::shared_ptr<shcore::Shell_core> &shell);
-void load_profile(const std::string &user_profile,
-                  const std::shared_ptr<shcore::Shell_core> &shell);
 
 class Oci_setup : public shcore::wizard::Wizard {
  public:
@@ -90,6 +83,6 @@ class Oci_setup : public shcore::wizard::Wizard {
 };
 
 }  // namespace oci
-}  // namespace mysqlsh
+}  // namespace mysqlshdk
 
-#endif  // MODULES_UTIL_OCI_SETUP_H_
+#endif  // MYSQLSHDK_LIBS_UTILS_OCI_SETUP_H_

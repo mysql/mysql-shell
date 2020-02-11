@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,9 +32,9 @@ namespace mysqlsh {
 namespace import_table {
 
 File_iterator::File_iterator(
-    IFile *file_descriptor, size_t file_size, size_t start_from_offset,
-    Buffer *current_buffer, Buffer *next_buffer, Async_read_task *aio,
-    size_t needle_size,
+    mysqlshdk::storage::IFile *file_descriptor, size_t file_size,
+    size_t start_from_offset, Buffer *current_buffer, Buffer *next_buffer,
+    Async_read_task *aio, size_t needle_size,
     shcore::Synchronized_queue<Async_read_task *> *task_queue)
     : m_current(current_buffer),
       m_next(next_buffer),
@@ -142,9 +142,8 @@ void File_iterator::force_offset(size_t start_from_offset) {
 }
 
 File_handler::File_handler(const std::string &pathname) {
-  m_fh = make_file_handler(pathname);
-  m_fh->open();
-  // todo(kg): check if m_fh->is_open() and throw?
+  m_fh = mysqlshdk::storage::make_file(pathname);
+  m_fh->open(mysqlshdk::storage::Mode::READ);
   m_file_size = m_fh->file_size();
   m_aio_worker = std::thread([this]() -> void {
     while (true) {
@@ -194,10 +193,6 @@ void Chunk_file::set_chunk_size(const size_t bytes) {
 
 void Chunk_file::start() {
   File_handler fh{m_file_path};
-
-  if (!fh.is_open()) {
-    throw std::runtime_error("Cannot open file '" + m_file_path + "'");
-  }
 
   const size_t needle_size = m_dialect.lines_terminated_by.size();
   auto first = fh.begin(needle_size);

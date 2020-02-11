@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/util/import_table/file_backends/http.h"
+#include "mysqlshdk/libs/storage/backend/http.h"
 
 #include <algorithm>
 #include "mysqlshdk/libs/rest/rest_service.h"
@@ -34,8 +34,9 @@ using Rest_service = mysqlshdk::rest::Rest_service;
 using Headers = mysqlshdk::rest::Headers;
 using Response = mysqlshdk::rest::Response;
 
-namespace mysqlsh {
-namespace import_table {
+namespace mysqlshdk {
+namespace storage {
+namespace backend {
 
 Http_get::Http_get(const std::string &uri) : m_uri(uri) {
   m_rest = std::make_unique<Rest_service>(m_uri, true);
@@ -54,17 +55,23 @@ Http_get::Http_get(const std::string &uri) : m_uri(uri) {
   }
 }
 
-void Http_get::open() { m_offset = 0; }
+void Http_get::open(Mode m) {
+  if (Mode::READ != m) {
+    throw std::logic_error("Http_get::open(): only read mode is supported");
+  }
 
-bool Http_get::is_open() {
+  m_offset = 0;
+}
+
+bool Http_get::is_open() const {
   return m_open_status_code == Response::Status_code::OK;
 }
 
 void Http_get::close() {}
 
-size_t Http_get::file_size() { return m_file_size; }
+size_t Http_get::file_size() const { return m_file_size; }
 
-std::string Http_get::file_name() { return m_uri; }
+std::string Http_get::full_path() const { return m_uri; }
 
 off64_t Http_get::seek(off64_t offset) {
   const off64_t fsize = file_size();
@@ -101,5 +108,6 @@ ssize_t Http_get::read(void *buffer, size_t length) {
   return 0;
 }
 
-}  // namespace import_table
-}  // namespace mysqlsh
+}  // namespace backend
+}  // namespace storage
+}  // namespace mysqlshdk

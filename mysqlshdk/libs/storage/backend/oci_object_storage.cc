@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,7 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/util/import_table/file_backends/oci_object_storage.h"
+#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 
 #include <openssl/err.h>
 #include <openssl/pem.h>
@@ -29,6 +29,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/rest/rest_service.h"
+#include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -37,7 +38,7 @@
 #include "mysqlshdk/shellcore/private_key_manager.h"
 
 #ifdef WITH_OCI
-#include "modules/util/oci_setup.h"
+#include "mysqlshdk/libs/utils/oci_setup.h"
 #else
 #include "mysqlshdk/libs/config/config_file.h"
 #endif
@@ -47,8 +48,9 @@ using Headers = mysqlshdk::rest::Headers;
 using Response = mysqlshdk::rest::Response;
 using BIO_ptr = std::unique_ptr<BIO, decltype(&::BIO_free)>;
 
-namespace mysqlsh {
-namespace import_table {
+namespace mysqlshdk {
+namespace storage {
+namespace backend {
 
 namespace {
 std::string sign(EVP_PKEY *sigkey, const std::string &string_to_sign) {
@@ -89,15 +91,16 @@ std::string sign(EVP_PKEY *sigkey, const std::string &string_to_sign) {
 }  // namespace
 
 void Oci_object_storage::parse_uri(const std::string &uri) {
-  const auto parts = shcore::str_split(uri, "/", 5);
-  if (parts.size() != 6 || !shcore::str_beginswith(uri, "oci+os://")) {
+  const auto parts =
+      shcore::str_split(utils::strip_scheme(uri, "oci+os"), "/", 3);
+  if (parts.size() != 4) {
     throw std::runtime_error(
         "Invalid URI. Use oci+os://region/namespace/bucket/object pattern.");
   }
-  m_uri.region = parts[2];
-  m_uri.tenancy = parts[3];
-  m_uri.bucket = parts[4];
-  m_uri.object = parts[5];
+  m_uri.region = parts[0];
+  m_uri.tenancy = parts[1];
+  m_uri.bucket = parts[2];
+  m_uri.object = parts[3];
 
   m_uri.hostname = "objectstorage." + m_uri.region + ".oraclecloud.com";
   m_uri.path =
@@ -209,17 +212,24 @@ Oci_object_storage::Oci_object_storage(const std::string &uri)
 
 Oci_object_storage::~Oci_object_storage() { shcore::clear_buffer(&m_key_file); }
 
-void Oci_object_storage::open() { m_offset = 0; }
+void Oci_object_storage::open(Mode m) {
+  if (Mode::READ != m) {
+    throw std::logic_error(
+        "Oci_object_storage::open(): only read mode is supported");
+  }
 
-bool Oci_object_storage::is_open() {
+  m_offset = 0;
+}
+
+bool Oci_object_storage::is_open() const {
   return m_open_status_code == Response::Status_code::OK;
 }
 
 void Oci_object_storage::close() {}
 
-size_t Oci_object_storage::file_size() { return m_file_size; }
+size_t Oci_object_storage::file_size() const { return m_file_size; }
 
-std::string Oci_object_storage::file_name() { return m_oci_uri; }
+std::string Oci_object_storage::full_path() const { return m_oci_uri; }
 
 off64_t Oci_object_storage::seek(off64_t offset) {
   const off64_t fsize = file_size();
@@ -295,5 +305,6 @@ mysqlshdk::rest::Headers Oci_object_storage::make_header(bool is_get_request) {
   return make_signed_header(is_get_request);
 }
 
-}  // namespace import_table
-}  // namespace mysqlsh
+}  // namespace backend
+}  // namespace storage
+}  // namespace mysqlshdk

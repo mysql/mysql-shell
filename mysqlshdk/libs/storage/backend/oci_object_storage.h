@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,18 +21,20 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_IMPORT_TABLE_FILE_BACKENDS_OCI_OBJECT_STORAGE_H_
-#define MODULES_UTIL_IMPORT_TABLE_FILE_BACKENDS_OCI_OBJECT_STORAGE_H_
+#ifndef MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_OBJECT_STORAGE_H_
+#define MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_OBJECT_STORAGE_H_
 
 #include <openssl/evp.h>
 #include <memory>
 #include <string>
-#include "modules/util/import_table/file_backends/ifile.h"
+
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/rest/rest_service.h"
+#include "mysqlshdk/libs/storage/ifile.h"
 
-namespace mysqlsh {
-namespace import_table {
+namespace mysqlshdk {
+namespace storage {
+namespace backend {
 
 class Oci_object_storage : public IFile {
  public:
@@ -46,14 +48,35 @@ class Oci_object_storage : public IFile {
 
   ~Oci_object_storage() override;
 
-  void open() override;
-  bool is_open() override;
+  void open(Mode m) override;
+  bool is_open() const override;
   void close() override;
 
-  size_t file_size() override;
-  std::string file_name() override;
+  size_t file_size() const override;
+  std::string full_path() const override;
+
+  std::string filename() const override {
+    throw std::logic_error("Oci_object_storage::filename() - not implemented");
+  }
+
+  bool exists() const override {
+    throw std::logic_error("Oci_object_storage::exists() - not implemented");
+  }
+
   off64_t seek(off64_t offset) override;
   ssize_t read(void *buffer, size_t length) override;
+
+  ssize_t write(const void *, size_t) override {
+    throw std::logic_error("Oci_object_storage::write() - not implemented");
+  }
+
+  bool flush() override {
+    throw std::logic_error("Oci_object_storage::flush() - not implemented");
+  }
+
+  void rename(const std::string &) override {
+    throw std::logic_error("Oci_object_storage::rename() - not implemented");
+  }
 
  private:
   void parse_uri(const std::string &uri);
@@ -102,7 +125,8 @@ class Oci_object_storage : public IFile {
   std::shared_ptr<EVP_PKEY> m_private_key;
 };
 
-}  // namespace import_table
-}  // namespace mysqlsh
+}  // namespace backend
+}  // namespace storage
+}  // namespace mysqlshdk
 
-#endif  // MODULES_UTIL_IMPORT_TABLE_FILE_BACKENDS_OCI_OBJECT_STORAGE_H_
+#endif  // MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_OBJECT_STORAGE_H_

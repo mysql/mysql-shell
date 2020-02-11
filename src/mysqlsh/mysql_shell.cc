@@ -55,7 +55,7 @@
 #include "shellcore/shell_resultset_dumper.h"
 
 #ifdef WITH_OCI
-#include "modules/util/oci_setup.h"
+#include "modules/util/oci.h"
 #endif
 
 #include "commands/command_help.h"

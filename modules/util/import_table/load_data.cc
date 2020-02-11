@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,11 +55,10 @@ int local_infile_init(void **buffer, const char * /* filename */,
   File_info *file_info = static_cast<File_info *>(userdata);
   // todo(kg): we can get rid of file open and close (in local_infile_end()).
   //           We can open it when constructing File_info object.
-  file_info->filehandler->open();
-
-  if (!file_info->filehandler->is_open()) {
-    mysqlsh::current_console()->print_error("Cannot open file '" +
-                                            file_info->filename + "'\n");
+  try {
+    file_info->filehandler->open(mysqlshdk::storage::Mode::READ);
+  } catch (const std::runtime_error &ex) {
+    mysqlsh::current_console()->print_error(ex.what());
     return 1;
   }
 
@@ -159,7 +158,7 @@ void Load_data_worker::operator()() {
 
     File_info fi;
     fi.filename = m_opt.full_path();
-    fi.filehandler = make_file_handler(m_opt.full_path());
+    fi.filehandler = mysqlshdk::storage::make_file(m_opt.full_path());
     fi.worker_id = m_thread_id;
     fi.prog = m_opt.show_progress() ? m_progress : nullptr;
     fi.prog_bytes = &m_prog_sent_bytes;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,8 +33,8 @@
 #include <utility>
 
 #include "modules/util/import_table/dialect.h"
-#include "modules/util/import_table/file_backends/ifile.h"
 #include "modules/util/import_table/helpers.h"
+#include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
 namespace mysqlsh {
@@ -69,12 +69,12 @@ struct Buffer final {
 
 struct Async_read_task {
   enum class Status { Pending, Ok, Error, Cancelled };
-  std::atomic<Status> status;  //< Request status
-  IFile *fh;                   //< File handler
-  int64_t offset;              //< File offset
-  void *buffer;                //< Buffer location
-  size_t length;               //< Number of bytes to read
-  int return_value;            //< read() return value
+  std::atomic<Status> status;     //< Request status
+  mysqlshdk::storage::IFile *fh;  //< File handler
+  int64_t offset;                 //< File offset
+  void *buffer;                   //< Buffer location
+  size_t length;                  //< Number of bytes to read
+  int return_value;               //< read() return value
 
   std::mutex mutex;            //< mutex
   std::condition_variable cv;  //< Synchronization point
@@ -105,7 +105,7 @@ class File_iterator final {
   using iterator_category = std::forward_iterator_tag;
 
   File_iterator() = delete;
-  File_iterator(IFile *file_descriptor, size_t file_size,
+  File_iterator(mysqlshdk::storage::IFile *file_descriptor, size_t file_size,
                 size_t start_from_offset, Buffer *current_buffer,
                 Buffer *next_buffer, Async_read_task *aio, size_t needle_size,
                 shcore::Synchronized_queue<Async_read_task *> *task_queue);
@@ -175,7 +175,7 @@ class File_iterator final {
   uint8_t *m_ptr = nullptr;
   uint8_t *m_ptr_end = nullptr;
   size_t m_offset = 0;  //< Global file offset where m_ptr points
-  IFile *m_fh = nullptr;
+  mysqlshdk::storage::IFile *m_fh = nullptr;
   size_t m_file_size = 0;
   Async_read_task *m_aio{};
   bool m_eof = false;
@@ -236,7 +236,7 @@ class File_handler final {
   mutable Async_read_task m_aio{};
   mutable std::thread m_aio_worker;
   mutable shcore::Synchronized_queue<Async_read_task *> m_task_queue;
-  std::unique_ptr<IFile> m_fh;
+  std::unique_ptr<mysqlshdk::storage::IFile> m_fh;
   size_t m_file_size = 0;
 };
 

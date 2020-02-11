@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -32,10 +32,6 @@ INCLUDE_DIRECTORIES(BEFORE
 
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/generate_metadata_source.cmake)
 
-IF(OPENSSL_INCLUDE_DIR)
-    INCLUDE_DIRECTORIES(BEFORE ${OPENSSL_INCLUDE_DIR})
-ENDIF()
-
 file(GLOB api_module_SOURCES
       "devapi/*.cc"
       "dynamic_*.cc"
@@ -44,7 +40,6 @@ file(GLOB api_module_SOURCES
       "util/import_table/dialect.cc"
       "util/import_table/import_table_options.cc"
       "util/import_table/import_table.cc"
-      "util/import_table/file_backends/*.cc"
       "util/json_importer.cc"
       "util/mod_util.cc"
       "util/upgrade_check.cc"
@@ -131,7 +126,7 @@ file(GLOB api_module_SOURCES
 )
 
 IF(WITH_OCI)
-    LIST(APPEND api_module_SOURCES "util/oci_setup.cc")
+    LIST(APPEND api_module_SOURCES "util/oci.cc")
 ENDIF()
 
 

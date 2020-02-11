@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,48 +21,45 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_IMPORT_TABLE_FILE_BACKENDS_HTTP_H_
-#define MODULES_UTIL_IMPORT_TABLE_FILE_BACKENDS_HTTP_H_
+#ifndef MYSQLSHDK_LIBS_STORAGE_COMPRESSED_FILE_H_
+#define MYSQLSHDK_LIBS_STORAGE_COMPRESSED_FILE_H_
 
 #include <memory>
 #include <string>
 
-#include "modules/util/import_table/file_backends/ifile.h"
-#include "mysqlshdk/libs/rest/rest_service.h"
+#include "mysqlshdk/libs/storage/ifile.h"
 
-namespace mysqlsh {
-namespace import_table {
+namespace mysqlshdk {
+namespace storage {
 
-class Http_get : public IFile {
+class Compressed_file : public IFile {
  public:
-  Http_get() = delete;
-  explicit Http_get(const std::string &uri);
-  Http_get(const Http_get &other) = delete;
-  Http_get(Http_get &&other) = default;
+  Compressed_file() = delete;
+  explicit Compressed_file(std::unique_ptr<IFile> file);
+  Compressed_file(const Compressed_file &other) = delete;
+  Compressed_file(Compressed_file &&other) = default;
 
-  Http_get &operator=(const Http_get &other) = delete;
-  Http_get &operator=(Http_get &&other) = default;
+  Compressed_file &operator=(const Compressed_file &other) = delete;
+  Compressed_file &operator=(Compressed_file &&other) = default;
 
-  ~Http_get() = default;
+  ~Compressed_file() override = default;
 
-  void open() override;
-  bool is_open() override;
+  void open(Mode m) override;
+  bool is_open() const override;
   void close() override;
 
-  size_t file_size() override;
-  std::string file_name() override;
-  off64_t seek(off64_t offset) override;
-  ssize_t read(void *buffer, size_t length) override;
+  size_t file_size() const override;
+  std::string full_path() const override;
+  std::string filename() const override;
+  bool exists() const override;
+
+  void rename(const std::string &new_name) override;
 
  private:
-  std::unique_ptr<mysqlshdk::rest::Rest_service> m_rest;
-  off64_t m_offset = 0;
-  mysqlshdk::rest::Response::Status_code m_open_status_code;
-  size_t m_file_size = 0;
-  std::string m_uri;
+  std::unique_ptr<IFile> m_file;
 };
 
-}  // namespace import_table
-}  // namespace mysqlsh
+}  // namespace storage
+}  // namespace mysqlshdk
 
-#endif  // MODULES_UTIL_IMPORT_TABLE_FILE_BACKENDS_HTTP_H_
+#endif  // MYSQLSHDK_LIBS_STORAGE_COMPRESSED_FILE_H_

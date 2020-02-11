@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -56,6 +56,10 @@ set(utils_SOURCE
     rate_limit.cc
     ssl_keygen.cc
 )
+
+IF(WITH_OCI)
+  LIST(APPEND utils_SOURCE "oci_setup.cc")
+ENDIF()
 
 IF(CMAKE_BUILD_TYPE STREQUAL Debug)
   LIST(APPEND utils_SOURCE fault_injection.cc)

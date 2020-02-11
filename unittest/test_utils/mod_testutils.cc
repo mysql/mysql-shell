@@ -1547,9 +1547,8 @@ void Testutils::wait_sandbox_dead(int port) {
 
   log_info("Waiting for lock file...");
 
-  int retries = 0;
+  int retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
 #ifndef _WIN32
-  retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
   while (mysqlshdk::utils::check_lock_file(get_sandbox_datadir(port) +
                                            "/mysqld.sock.lock")) {
     if (--retries < 0)
@@ -1566,6 +1565,7 @@ void Testutils::wait_sandbox_dead(int port) {
                                std::to_string(port) + " to shutdown");
     shcore::sleep_ms(500);
   }
+  retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
 #endif
   std::string pidfile = shcore::path::join_path(get_sandbox_path(port),
                                                 std::to_string(port) + ".pid");
@@ -1575,7 +1575,6 @@ void Testutils::wait_sandbox_dead(int port) {
   // Obviously this won't be reliable if the sandbox is killed, tho.
   log_info("Waiting for pid file '%s' to be deleted by mysqld...",
            pidfile.c_str());
-  retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
   while (shcore::path::exists(pidfile)) {
     if (--retries < 0)
       throw std::runtime_error("Timeout waiting for sandbox pid file " +

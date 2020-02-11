@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,7 @@
 #include "modules/util/import_table/chunk_file.h"
 #include "modules/util/import_table/import_table.h"
 #include "modules/util/import_table/import_table_options.h"
+#include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/textui/text_progress.h"
 #include "mysqlshdk/libs/utils/rate_limit.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
@@ -49,7 +50,7 @@ struct File_info {
   int64_t max_rate = 0;    //< Max rate value for rate limiter
   int64_t worker_id = -1;  //< Thread worker id
   std::string filename;    //< Import data filename path
-  std::unique_ptr<IFile> filehandler = nullptr;
+  std::unique_ptr<mysqlshdk::storage::IFile> filehandler = nullptr;
   size_t chunk_start = 0;  //< File chunk start offset
   size_t bytes_left = 0;   //< Bytes left to read from file
 

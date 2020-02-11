@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,28 +21,33 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/util/import_table/file_backends/ifile.h"
+#include "mysqlshdk/libs/storage/compressed_file.h"
 
-#include "modules/util/import_table/file_backends/file.h"
-#include "modules/util/import_table/file_backends/http.h"
-#include "modules/util/import_table/file_backends/oci_object_storage.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
-#include "mysqlshdk/libs/utils/utils_path.h"
-#include "mysqlshdk/libs/utils/utils_string.h"
+#include <utility>
 
-namespace mysqlsh {
-namespace import_table {
+namespace mysqlshdk {
+namespace storage {
 
-std::unique_ptr<IFile> make_file_handler(const std::string &filepath) {
-  if (shcore::str_beginswith(filepath, "oci+os://")) {
-    return std::make_unique<Oci_object_storage>(filepath);
-  } else if (shcore::str_beginswith(filepath, "http://") ||
-             shcore::str_beginswith(filepath, "https://")) {
-    return std::make_unique<Http_get>(filepath);
-  }
-  // implicit file://
-  return std::make_unique<File>(filepath);
+Compressed_file::Compressed_file(std::unique_ptr<IFile> file)
+    : m_file(std::move(file)) {}
+
+void Compressed_file::open(Mode m) { m_file->open(m); }
+
+bool Compressed_file::is_open() const { return m_file->is_open(); }
+
+void Compressed_file::close() { m_file->close(); }
+
+size_t Compressed_file::file_size() const { return m_file->file_size(); }
+
+std::string Compressed_file::full_path() const { return m_file->full_path(); }
+
+bool Compressed_file::exists() const { return m_file->exists(); }
+
+void Compressed_file::rename(const std::string &new_name) {
+  m_file->rename(new_name);
 }
 
-}  // namespace import_table
-}  // namespace mysqlsh
+std::string Compressed_file::filename() const { return m_file->filename(); }
+
+}  // namespace storage
+}  // namespace mysqlshdk

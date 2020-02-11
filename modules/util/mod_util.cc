@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,7 +51,7 @@
 #include "rapidjson/stringbuffer.h"
 
 #ifdef WITH_OCI
-#include "modules/util/oci_setup.h"
+#include "mysqlshdk/libs/utils/oci_setup.h"
 #include "mysqlshdk/libs/utils/ssl_keygen.h"
 #endif
 
@@ -960,7 +960,7 @@ Undefined Util::configureOci(String profile) {}
 None Util::configure_oci(str profile) {}
 #endif
 void Util::configure_oci(const std::string &profile) {
-  oci::Oci_setup helper;
+  mysqlshdk::oci::Oci_setup helper;
 
   helper.create_profile(profile);
 }

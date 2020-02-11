@@ -114,7 +114,7 @@ rs.status();
 session1.runSql("STOP SLAVE");
 
 //@ A secondary is down
-testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.stopSandbox(__mysql_sandbox_port2, {wait:1});
 
 shell.connect(__sandbox_uri1);
 rs = dba.getReplicaSet();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,13 +28,13 @@
 #include <limits>
 
 #include "modules/mod_utils.h"
-#include "modules/util/import_table/file_backends/ifile.h"
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -82,12 +82,9 @@ void Import_table_options::validate() {
     }
   }
 
-  auto fh = make_file_handler(m_filename);
-  fh->open();
-  if (!fh->is_open()) {
-    throw std::runtime_error("Cannot open file '" + fh->file_name() + "'");
-  }
-  m_full_path = fh->file_name();
+  auto fh = mysqlshdk::storage::make_file(m_filename);
+  fh->open(mysqlshdk::storage::Mode::READ);
+  m_full_path = fh->full_path();
   m_file_size = fh->file_size();
   fh->close();
   m_threads_size = calc_thread_size();

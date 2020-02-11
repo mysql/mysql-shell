@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,7 +35,7 @@
 #include "shellcore/shell_init.h"
 
 #ifdef WITH_OCI
-#include "modules/util/oci_setup.h"
+#include "modules/util/oci.h"
 #endif
 
 #include <sys/stat.h>
