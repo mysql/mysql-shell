@@ -1547,8 +1547,9 @@ void Testutils::wait_sandbox_dead(int port) {
 
   log_info("Waiting for lock file...");
 
+  int retries = 0;
 #ifndef _WIN32
-  int retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
+  retries = (k_wait_sandbox_dead_timeout * 1000) / 500;
   while (mysqlshdk::utils::check_lock_file(get_sandbox_datadir(port) +
                                            "/mysqld.sock.lock")) {
     if (--retries < 0)

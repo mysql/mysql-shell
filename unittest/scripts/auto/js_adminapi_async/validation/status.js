@@ -402,5 +402,5 @@
 |WARNING: MYSQLSH 51118: PRIMARY instance is unavailable|
 |        "status": "UNAVAILABLE",|
 |                "status": "UNREACHABLE"|
-|                "status": "ONLINE"|
+|                "status": "ERROR"|
 
