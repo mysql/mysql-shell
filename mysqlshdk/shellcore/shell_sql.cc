@@ -1,6 +1,5 @@
-
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -152,7 +151,7 @@ bool Shell_sql::process_sql(const char *query_str, size_t query_len,
         Interrupts::pop_handler();
 
         timer.stage_end();
-        info.ellapsed_seconds = timer.total_seconds_ellapsed();
+        info.elapsed_seconds = timer.total_seconds_elapsed();
       } catch (const mysqlshdk::db::Error &e) {
         Interrupts::pop_handler();
         auto exc = shcore::Exception::mysql_error_with_code_and_state(

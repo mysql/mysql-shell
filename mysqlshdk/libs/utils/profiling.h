@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,7 +56,7 @@ class Profile_timer {
     _trace_points.at(stage).end = high_resolution_clock::now();
   }
 
-  uint64_t total_nanoseconds_ellapsed() const {
+  uint64_t total_nanoseconds_elapsed() const {
     high_resolution_clock::duration dur(
         high_resolution_clock::duration::zero());
     for (auto &tp : _trace_points) {
@@ -65,12 +65,12 @@ class Profile_timer {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(dur).count();
   }
 
-  double total_milliseconds_ellapsed() const {
-    return total_nanoseconds_ellapsed() / 1000000.0;
+  double total_milliseconds_elapsed() const {
+    return total_nanoseconds_elapsed() / 1000000.0;
   }
 
-  double total_seconds_ellapsed() const {
-    return total_nanoseconds_ellapsed() / 1000000000.0;
+  double total_seconds_elapsed() const {
+    return total_nanoseconds_elapsed() / 1000000000.0;
   }
 
   static Profile_timer *activate();

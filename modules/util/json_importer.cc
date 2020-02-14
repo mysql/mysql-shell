@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -219,7 +219,7 @@ void Json_importer::print_stats() {
   using mysqlshdk::utils::format_throughput_items;
 
   m_stats.timer.stage_end();
-  double import_time_seconds = m_stats.timer.total_seconds_ellapsed();
+  double import_time_seconds = m_stats.timer.total_seconds_elapsed();
 
   if (m_print) {
     auto human_bytes = format_bytes(m_stats.bytes_processed);

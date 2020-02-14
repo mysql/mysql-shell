@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -615,7 +615,7 @@ TEST_F(Interrupt_mysqlsh, command_show_watch) {
       timer.stage_end();
 
       MY_EXPECT_CMD_OUTPUT_CONTAINS(expected);
-      EXPECT_LT(timer.total_seconds_ellapsed(), 5.0);
+      EXPECT_LT(timer.total_seconds_elapsed(), 5.0);
 
       kill_thread.join();
     }
