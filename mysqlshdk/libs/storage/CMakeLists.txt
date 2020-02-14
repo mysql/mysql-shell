@@ -34,6 +34,7 @@ set(library_SRC
   backend/file.cc
   backend/http.cc
   backend/oci_object_storage.cc
+  compression/gz_file.cc
 )
 
 add_convenience_library(storage ${library_SRC})

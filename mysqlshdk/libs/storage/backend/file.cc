@@ -168,7 +168,11 @@ void File::rename(const std::string &new_name) {
 
   auto new_path =
       shcore::path::join_path(shcore::path::dirname(full_path()), new_name);
-  shcore::rename_file(full_path(), new_path);
+
+  if (exists()) {
+    shcore::rename_file(full_path(), new_path);
+  }
+
   m_filepath = std::move(new_path);
 }
 

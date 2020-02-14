@@ -32,6 +32,8 @@
 namespace mysqlshdk {
 namespace storage {
 
+enum class Compression { NONE, GZIP };
+
 class Compressed_file : public IFile {
  public:
   Compressed_file() = delete;
@@ -53,11 +55,24 @@ class Compressed_file : public IFile {
   std::string filename() const override;
   bool exists() const override;
 
+  bool flush() override;
+
   void rename(const std::string &new_name) override;
+
+ protected:
+  IFile *file() const { return m_file.get(); }
 
  private:
   std::unique_ptr<IFile> m_file;
 };
+
+Compression to_compression(const std::string &c);
+
+std::string to_string(Compression c);
+
+std::string get_extension(Compression c);
+
+std::unique_ptr<IFile> make_file(std::unique_ptr<IFile> file, Compression c);
 
 }  // namespace storage
 }  // namespace mysqlshdk

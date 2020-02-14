@@ -25,8 +25,19 @@
 
 #include <utility>
 
+#include "mysqlshdk/libs/storage/compression/gz_file.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
+
 namespace mysqlshdk {
 namespace storage {
+
+namespace {
+
+#define COMPRESSIONS  \
+  X(NONE, "none", "") \
+  X(GZIP, "gzip", ".gz")
+
+}  // namespace
 
 Compressed_file::Compressed_file(std::unique_ptr<IFile> file)
     : m_file(std::move(file)) {}
@@ -43,11 +54,67 @@ std::string Compressed_file::full_path() const { return m_file->full_path(); }
 
 bool Compressed_file::exists() const { return m_file->exists(); }
 
+bool Compressed_file::flush() { return m_file->flush(); }
+
 void Compressed_file::rename(const std::string &new_name) {
   m_file->rename(new_name);
 }
 
 std::string Compressed_file::filename() const { return m_file->filename(); }
+
+Compression to_compression(const std::string &c) {
+#define X(value, name, ext) \
+  if (c == name) return Compression::value;
+
+  COMPRESSIONS
+
+#undef X
+
+  throw std::invalid_argument("Unknown compression type: " + c);
+}
+
+std::string to_string(Compression c) {
+#define X(value, name, ext) \
+  case Compression::value:  \
+    return name;
+
+  switch (c) { COMPRESSIONS }
+
+#undef X
+
+  throw std::logic_error("Shouldn't happen, but compiler complains");
+}
+
+std::string get_extension(Compression c) {
+#define X(value, name, ext) \
+  case Compression::value:  \
+    return ext;
+
+  switch (c) { COMPRESSIONS }
+
+#undef X
+
+  throw std::logic_error("Shouldn't happen, but compiler complains");
+}
+
+std::unique_ptr<IFile> make_file(std::unique_ptr<IFile> file, Compression c) {
+  std::unique_ptr<IFile> result;
+
+  switch (c) {
+    case Compression::NONE:
+      result = std::move(file);
+      break;
+
+    case Compression::GZIP:
+      result = std::make_unique<compression::Gz_file>(std::move(file));
+      break;
+
+    default:
+      throw std::logic_error("Unhandled compression type: " + to_string(c));
+  }
+
+  return result;
+}
 
 }  // namespace storage
 }  // namespace mysqlshdk
