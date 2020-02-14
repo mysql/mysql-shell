@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -120,9 +120,9 @@ std::string Import_table::import_summary() const {
   const auto filesize = m_opt.file_size();
   return std::string{
       "File '" + m_opt.full_path() + "' (" + format_bytes(filesize) +
-      ") was imported in " + format_seconds(m_timer.total_seconds_ellapsed()) +
+      ") was imported in " + format_seconds(m_timer.total_seconds_elapsed()) +
       " at " +
-      format_throughput_bytes(filesize, m_timer.total_seconds_ellapsed())};
+      format_throughput_bytes(filesize, m_timer.total_seconds_elapsed())};
 }
 
 std::string Import_table::rows_affected_info() {

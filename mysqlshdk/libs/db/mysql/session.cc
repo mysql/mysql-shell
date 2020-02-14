@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -393,7 +393,7 @@ std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
                  mysql_info(_mysql), buffered));
 
   timer.stage_end();
-  result->set_execution_time(timer.total_seconds_ellapsed());
+  result->set_execution_time(timer.total_seconds_elapsed());
   return std::static_pointer_cast<IResult>(result);
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,7 +39,7 @@
 namespace shcore {
 
 struct Sql_result_info {
-  double ellapsed_seconds = 0.0;
+  double elapsed_seconds = 0.0;
   bool show_vertical = false;
 };
 

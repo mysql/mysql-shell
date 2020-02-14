@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -590,7 +590,7 @@ std::shared_ptr<IResult> XSession_impl::query(const char *sql, size_t len,
   }
   auto result = after_query(std::move(xresult), buffered);
   timer.stage_end();
-  result->set_execution_time(timer.total_seconds_ellapsed());
+  result->set_execution_time(timer.total_seconds_elapsed());
   return result;
 }
 
@@ -619,7 +619,7 @@ std::shared_ptr<IResult> XSession_impl::execute_stmt(
   check_error_and_throw(error, stmt.c_str());
   auto result = after_query(std::move(xresult));
   timer.stage_end();
-  result->set_execution_time(timer.total_seconds_ellapsed());
+  result->set_execution_time(timer.total_seconds_elapsed());
   return result;
 }
 
@@ -634,7 +634,7 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   check_error_and_throw(error);
   auto result = after_query(std::move(xresult));
   timer.stage_end();
-  result->set_execution_time(timer.total_seconds_ellapsed());
+  result->set_execution_time(timer.total_seconds_elapsed());
   return result;
 }
 
@@ -649,7 +649,7 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   check_error_and_throw(error);
   auto result = after_query(std::move(xresult));
   timer.stage_end();
-  result->set_execution_time(timer.total_seconds_ellapsed());
+  result->set_execution_time(timer.total_seconds_elapsed());
   return result;
 }
 
@@ -664,7 +664,7 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   check_error_and_throw(error);
   auto result = after_query(std::move(xresult));
   timer.stage_end();
-  result->set_execution_time(timer.total_seconds_ellapsed());
+  result->set_execution_time(timer.total_seconds_elapsed());
   return result;
 }
 
@@ -679,7 +679,7 @@ std::shared_ptr<IResult> XSession_impl::execute_crud(
   check_error_and_throw(error);
   auto result = after_query(std::move(xresult));
   timer.stage_end();
-  result->set_execution_time(timer.total_seconds_ellapsed());
+  result->set_execution_time(timer.total_seconds_elapsed());
   return result;
 }
 
@@ -703,7 +703,7 @@ std::shared_ptr<IResult> XSession_impl::execute_prep_stmt(
   check_error_and_throw(error);
   auto result = after_query(std::move(xresult));
   timer.stage_end();
-  result->set_execution_time(timer.total_seconds_ellapsed());
+  result->set_execution_time(timer.total_seconds_elapsed());
   return result;
 }
 
