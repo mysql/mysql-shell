@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,6 +54,12 @@ TEST(UtilsStrformat, format_bytes) {
 }
 
 TEST(UtilsStrformat, format_throughput_items) {
+  EXPECT_EQ("1.00 query/s",
+            format_throughput_items("query", "queries", 1, 0.25));
+  EXPECT_EQ("1.00 query/s",
+            format_throughput_items("query", "queries", 1, 0.5));
+  EXPECT_EQ("2.00 queries/s",
+            format_throughput_items("query", "queries", 2, 0.5));
   EXPECT_EQ("1.00 query/s", format_throughput_items("query", "queries", 1, 1));
   EXPECT_EQ("65.00 queries/s",
             format_throughput_items("query", "queries", 65, 1));
@@ -96,6 +102,8 @@ TEST(UtilsStrformat, format_throughput_bytes) {
   EXPECT_EQ("11.23 TB/s", format_throughput_bytes(11230000000000, 1));
   EXPECT_EQ("860.18 KB/s",
             format_throughput_bytes(1091311621, 21 * 60 + 8 + 0.6972));
+  EXPECT_EQ("1.37 GB/s", format_throughput_bytes(1372178973, 0.9119));
+  EXPECT_EQ("1.37 GB/s", format_throughput_bytes(1372178973, 0.42));
 }
 
 }  // namespace utils

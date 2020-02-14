@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -119,7 +119,7 @@ std::string format_throughput_items(const std::string &item_name_singular,
                                     const std::string &item_name_plural,
                                     const uint64_t items, double seconds) {
   char buffer[64] = {};
-  double ratio = items / seconds;
+  double ratio = seconds >= 1.0 ? items / seconds : items;
   std::string unit;
   double scaled_items;
   std::tie(unit, scaled_items) = scale_value(ratio);
@@ -134,7 +134,7 @@ std::string format_throughput_items(const std::string &item_name_singular,
 
 std::string format_throughput_bytes(uint64_t bytes, double seconds) {
   char buffer[64] = {};
-  double ratio = seconds >= 1 ? bytes / seconds : 1;
+  double ratio = seconds >= 1.0 ? bytes / seconds : bytes;
   std::string unit;
   double scaled_items;
   std::tie(unit, scaled_items) = scale_value(ratio);
