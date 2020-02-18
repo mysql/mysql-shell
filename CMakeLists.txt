@@ -468,7 +468,8 @@ INCLUDE_DIRECTORIES(
             ${PROJECT_SOURCE_DIR}/ext
             ${MYSQL_INCLUDE_DIRS}
             ${MYSQLX_INCLUDE_DIRS}
-            ${PROTOBUF_INCLUDE_DIRS})
+            ${PROTOBUF_INCLUDE_DIRS}
+            ${MYSQL_SOURCE_DIR}/extra/rapidjson/include)
 
 IF(HAVE_PYTHON)
   INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
