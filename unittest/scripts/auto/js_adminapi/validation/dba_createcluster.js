@@ -438,7 +438,7 @@ one server failure.
 ?{VER(>=8.0.16)}
                 {
                     "option": "autoRejoinTries",
-                    "value": "0",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
                     "variable": "group_replication_autorejoin_tries"
                 },
 ?{}
@@ -576,7 +576,7 @@ one server failure.
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
                     "option": "autoRejoinTries",
-                    "value": "0",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
                     "variable": "group_replication_autorejoin_tries"
                 },
                 {

@@ -333,7 +333,7 @@ session.close();
 //@<> WL#12066: TSF1_3, TSF1_6 Validate that when calling the functions [dba.]createCluster() and [cluster.]addInstance(), the GR variable group_replication_autorejoin_tries is persisted with the value given by the user on the target instance.{VER(>=8.0.16)}
 EXPECT_EQ(2, get_sysvar(__mysql_sandbox_port1, "group_replication_autorejoin_tries"));
 EXPECT_EQ(2016, get_sysvar(__mysql_sandbox_port2, "group_replication_autorejoin_tries"));
-EXPECT_EQ(0, get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries"));
+EXPECT_EQ(__default_gr_auto_rejoin_tries, get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries"));
 
 //@<> WL#12066: TSF1_3, TSF1_6 Confirm group_replication_autorejoin_tries value was persisted {VER(>=8.0.16)}
 EXPECT_EQ("2", get_sysvar(__mysql_sandbox_port1, "group_replication_autorejoin_tries", "PERSISTED"));

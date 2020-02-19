@@ -34,7 +34,7 @@
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
                     "option": "autoRejoinTries",
-                    "value": "0",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
                     "variable": "group_replication_autorejoin_tries"
                 },
                 {
@@ -76,7 +76,7 @@
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
                     "option": "autoRejoinTries",
-                    "value": "0",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
                     "variable": "group_replication_autorejoin_tries"
                 },
                 {
@@ -118,7 +118,7 @@
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
                 {
                     "option": "autoRejoinTries",
-                    "value": "0",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
                     "variable": "group_replication_autorejoin_tries"
                 },
                 {
@@ -359,7 +359,7 @@
                 },
                 {
                     "option": "autoRejoinTries",
-                    "value": "0",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
                     "variable": "group_replication_autorejoin_tries"
                 },
                 {
@@ -605,7 +605,7 @@
                 },
                 {
                     "option": "autoRejoinTries",
-                    "value": "0",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
                     "variable": "group_replication_autorejoin_tries"
                 },
                 {
@@ -851,7 +851,7 @@
                 },
                 {
                     "option": "autoRejoinTries",
-                    "value": "0",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
                     "variable": "group_replication_autorejoin_tries"
                 },
                 {
@@ -1684,7 +1684,7 @@
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
                     "option": "autoRejoinTries",
-                    "value": "0",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
                     "variable": "group_replication_autorejoin_tries"
                 },
                 {

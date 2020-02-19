@@ -1579,8 +1579,10 @@ void Shell_script_tester::set_defaults() {
 
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 21)) {
     def_var("__default_gr_expel_timeout", "5");
+    def_var("__default_gr_auto_rejoin_tries", "3");
   } else {
     def_var("__default_gr_expel_timeout", "0");
+    def_var("__default_gr_auto_rejoin_tries", "0");
   }
 
 #ifdef WITH_OCI

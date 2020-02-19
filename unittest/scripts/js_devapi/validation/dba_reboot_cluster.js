@@ -30,6 +30,8 @@
 //@<OUT> reboot with GR plugin uninstalled {VER(>=8.0.0)}
 Restoring the cluster 'dev' from complete outage...
 
+WARNING: The member will only proceed according to its exitStateAction if auto-rejoin fails (i.e. all retry attempts are exhausted).
+
 <<<hostname>>>:<<<__mysql_sandbox_port1>>> was restored.
 Rejoining 'localhost:<<<__mysql_sandbox_port2>>>' to the cluster.
 <Cluster:dev>
