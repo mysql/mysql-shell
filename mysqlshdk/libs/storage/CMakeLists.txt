@@ -19,6 +19,9 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+include(zlib)
+MYSQL_CHECK_ZLIB()
+
 include_directories(BEFORE "${CMAKE_SOURCE_DIR}")
 
 if(OPENSSL_INCLUDE_DIR)
@@ -34,6 +37,7 @@ set(library_SRC
   backend/file.cc
   backend/http.cc
   backend/oci_object_storage.cc
+  backend/memory_file.cc
   compression/gz_file.cc
 )
 
@@ -44,4 +48,5 @@ target_link_libraries(storage
   rest
   shellcore
   utils
+  ${ZLIB_LIBRARY}
 )

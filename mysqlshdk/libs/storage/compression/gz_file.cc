@@ -23,6 +23,8 @@
 
 #include "mysqlshdk/libs/storage/compression/gz_file.h"
 
+#include <algorithm>
+#include <limits>
 #include <utility>
 
 namespace mysqlshdk {
@@ -31,6 +33,141 @@ namespace compression {
 
 Gz_file::Gz_file(std::unique_ptr<IFile> file)
     : Compressed_file(std::move(file)) {}
+
+Gz_file::~Gz_file() {
+  if (is_open()) close();
+}
+
+ssize_t Gz_file::read(void *buffer, size_t length) {
+  m_stream.next_out = static_cast<Bytef *>(buffer);
+  m_stream.avail_out = length;
+  int result = Z_STREAM_END;
+
+  while (m_stream.avail_out) {
+    const auto input_buf = peek(CHUNK);
+    if (input_buf.length == 0) {
+      break;
+    }
+    const size_t avail =
+        std::min(std::numeric_limits<size_t>::max(), input_buf.length);
+    m_stream.next_in = input_buf.ptr;
+    m_stream.avail_in = avail;
+
+    result = inflate(&m_stream, Z_NO_FLUSH);
+    switch (result) {
+      case Z_NEED_DICT:
+        throw std::runtime_error(
+            std::string("inflate: input data requires custom dictionary (") +
+            m_stream.msg + ")");
+      case Z_STREAM_ERROR:
+        throw std::runtime_error(std::string("inflate: stream error (") +
+                                 m_stream.msg + ")");
+      case Z_DATA_ERROR:
+        throw std::runtime_error(std::string("inflate: data error (") +
+                                 m_stream.msg + ")");
+      case Z_MEM_ERROR:
+        throw std::runtime_error(
+            std::string("inflate: cannot allocate memory (") + m_stream.msg +
+            ")");
+    }
+    const auto consume_bytes = avail - m_stream.avail_in;
+    if (consume_bytes > 0) {
+      consume(consume_bytes);
+    }
+    if (result == Z_STREAM_END || result == Z_BUF_ERROR) {
+      break;
+    }
+  }
+  const auto have = length - m_stream.avail_out;
+  return have;
+}
+
+ssize_t Gz_file::write(const void *buffer, size_t length) {
+  return do_write(static_cast<Bytef *>(const_cast<void *>(buffer)), length,
+                  Z_NO_FLUSH);
+}
+
+void Gz_file::write_finish() { (void)do_write(nullptr, 0, Z_FINISH); }
+
+void Gz_file::init_read() {
+  m_stream.zalloc = nullptr;
+  m_stream.zfree = nullptr;
+  m_stream.opaque = nullptr;
+
+  m_stream.avail_in = 0;
+  m_stream.next_in = nullptr;
+
+  const int gzip_window_bits = 15 + 16;
+  int result = inflateInit2(&m_stream, gzip_window_bits);
+  if (result != Z_OK) {
+    throw std::runtime_error(std::string("inflate init failed: ") +
+                             m_stream.msg);
+  }
+  m_source.resize(0);
+}
+
+void Gz_file::init_write() {
+  m_stream.zalloc = nullptr;
+  m_stream.zfree = nullptr;
+  m_stream.opaque = nullptr;
+
+  m_stream.avail_in = 0;
+  m_stream.next_in = nullptr;
+
+  const int gzip_window_bits = 15 + 16;
+  const int mem_level = 8;
+  int result = deflateInit2(&m_stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
+                            gzip_window_bits, mem_level, Z_DEFAULT_STRATEGY);
+  if (result != Z_OK) {
+    throw std::runtime_error(std::string("deflate init failed: ") +
+                             m_stream.msg);
+  }
+}
+
+void Gz_file::open(Mode m) {
+  if (!file()->is_open()) {
+    file()->open(m);
+  }
+
+  switch (m) {
+    case Mode::READ:
+      init_read();
+      break;
+    case Mode::WRITE:
+      init_write();
+      break;
+    case Mode::APPEND:
+      break;
+  }
+
+  m_open_mode = m;
+}
+
+bool Gz_file::is_open() const {
+  return !m_open_mode.is_null() && file()->is_open();
+}
+
+void Gz_file::close() {
+  switch (*m_open_mode) {
+    case Mode::READ: {
+      auto result = inflateEnd(&m_stream);
+      (void)result;
+      assert(result == Z_OK);
+    } break;
+    case Mode::WRITE: {
+      write_finish();
+      auto result = deflateEnd(&m_stream);
+      (void)result;
+      assert(result == Z_OK);
+    } break;
+    case Mode::APPEND:
+      break;
+  }
+  if (file()->is_open()) {
+    file()->close();
+  }
+  m_open_mode.reset();
+}
 
 }  // namespace compression
 }  // namespace storage
