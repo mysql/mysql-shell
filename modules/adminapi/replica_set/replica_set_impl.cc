@@ -62,9 +62,6 @@ namespace dba {
 
 constexpr const char *k_async_cluster_channel_name = "";
 constexpr const char *k_async_cluster_user_name = "mysql_innodb_rs_";
-constexpr const char *k_error_connecting_to_instance =
-    "Unable to connect to the target instance %s. Please verify the connection "
-    "settings, make sure the instance is available and try again.";
 
 // # of seconds to wait until clone starts
 constexpr const int k_clone_start_timeout = 30;
@@ -1747,12 +1744,6 @@ shcore::Value Replica_set_impl::status(int extended) {
   return shcore::Value(status);
 }
 
-Cluster_check_info Replica_set_impl::check_preconditions(
-    const std::string &function_name) const {
-  return check_function_preconditions("ReplicaSet." + function_name,
-                                      get_target_server());
-}
-
 std::shared_ptr<Global_topology_manager>
 Replica_set_impl::setup_topology_manager(
     topology::Server_global_topology **out_topology, bool deep) {
@@ -2808,6 +2799,43 @@ void Replica_set_impl::drop_replication_user(
         slave->get_canonical_hostname().c_str(), e.format().c_str()));
     // ignore the error and move on
   }
+}
+
+shcore::Value Replica_set_impl::options() {
+  check_preconditions("options");
+
+  // command should go through the primary
+  try {
+    acquire_primary();
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE)
+      current_console()->print_warning(e.format());
+    else
+      throw;
+  }
+  auto finally = shcore::on_leave_scope([this]() { release_primary(); });
+
+  shcore::Dictionary_t inner_dict = shcore::make_dict();
+  (*inner_dict)["name"] = shcore::Value(get_name());
+  // get the tags
+  (*inner_dict)[kTags] = Base_cluster_impl::get_cluster_tags();
+
+  shcore::Dictionary_t res = shcore::make_dict();
+  (*res)["replicaSet"] = shcore::Value(inner_dict);
+  return shcore::Value(res);
+}
+
+void Replica_set_impl::_set_instance_option(
+    const std::string & /*instance_def*/, const std::string &option,
+    const shcore::Value & /*value*/) {
+  throw shcore::Exception::argument_error("Option '" + option +
+                                          "' not supported.");
+}
+
+void Replica_set_impl::_set_option(const std::string &option,
+                                   const shcore::Value & /*value*/) {
+  throw shcore::Exception::argument_error("Option '" + option +
+                                          "' not supported.");
 }
 
 }  // namespace dba

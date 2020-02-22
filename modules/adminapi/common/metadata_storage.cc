@@ -224,6 +224,10 @@ static constexpr char k_lock_name_metadata[] = "AdminAPI_metadata";
 // Timeout for the Metadata lock (60 sec).
 constexpr const int k_lock_timeout = 60;
 
+// Version where JSON_merge was deprecated
+static const mysqlshdk::utils::Version k_json_merge_deprecated_version =
+    mysqlshdk::utils::Version(5, 7, 22);
+
 }  // namespace
 
 class MetadataStorage::Transaction {
@@ -707,6 +711,89 @@ void MetadataStorage::update_instance_attribute(const std::string &uuid,
     query.done();
     execute_sql(query);
   }
+}
+
+void MetadataStorage::set_instance_tag(const std::string &uuid,
+                                       const std::string &tagname,
+                                       const shcore::Value &value) {
+  set_table_tag("instances", "mysql_server_uuid", uuid, tagname, value);
+}
+
+void MetadataStorage::set_cluster_tag(const std::string &uuid,
+                                      const std::string &tagname,
+                                      const shcore::Value &value) {
+  set_table_tag("clusters", "cluster_id", uuid, tagname, value);
+}
+
+void MetadataStorage::set_table_tag(const std::string &tablename,
+                                    const std::string &uuid_column_name,
+                                    const std::string &uuid,
+                                    const std::string &tagname,
+                                    const shcore::Value &value) {
+  if (value) {
+    // If md server version supports JSON_MERGE_PATCH use it since
+    // JSON_MERGE will be deprecated
+    shcore::sqlstring query;
+    if (m_md_server->get_version() < k_json_merge_deprecated_version) {
+      query = shcore::sqlstring(
+          "UPDATE mysql_innodb_cluster_metadata.! SET attributes = "
+          "JSON_SET(IF(JSON_CONTAINS_PATH(attributes,'all', '$.tags'), "
+          "attributes, "
+          "JSON_MERGE(attributes, '{\"tags\":{}}')), '$.tags." +
+              tagname +
+              "', CAST(? as "
+              "JSON)) WHERE ! = ?",
+          0);
+      query << tablename << value.repr() << uuid_column_name << uuid;
+    } else {
+      query = shcore::sqlstring(
+          "UPDATE mysql_innodb_cluster_metadata.! SET attributes = "
+          "JSON_MERGE_PATCH(attributes, CAST('{\"tags\": {\"" +
+              tagname + "\" : " + value.repr() +
+              "}}' as JSON)) "
+              "WHERE ! = ?",
+          0);
+      query << tablename << uuid_column_name << uuid;
+    }
+    query.done();
+    execute_sql(query);
+  } else {
+    shcore::sqlstring query(
+        "UPDATE mysql_innodb_cluster_metadata.! SET attributes = "
+        "JSON_REMOVE(attributes, '$.tags." +
+            tagname + "')  WHERE ! = ?",
+        0);
+    query << tablename << uuid_column_name << uuid;
+    query.done();
+    execute_sql(query);
+  }
+}
+
+std::string MetadataStorage::get_instance_tags(const std::string &uuid) const {
+  return get_table_tags("instances", "mysql_server_uuid", uuid);
+}
+
+std::string MetadataStorage::get_cluster_tags(const std::string &uuid) const {
+  return get_table_tags("clusters", "cluster_id", uuid);
+}
+
+std::string MetadataStorage::get_table_tags(const std::string &tablename,
+                                            const std::string &uuid_column_name,
+                                            const std::string &uuid) const {
+  shcore::sqlstring query = shcore::sqlstring{
+      "SELECT attributes->'$.tags' from "
+      "mysql_innodb_cluster_metadata.! WHERE ! = ?",
+      0};
+  query << tablename << uuid_column_name << uuid;
+  query.done();
+  std::string tags;
+
+  auto res = execute_sql(query);
+  auto row = res->fetch_one();
+  if (row) {
+    tags = row->get_string(0, "");
+  }
+  return tags;
 }
 
 void MetadataStorage::update_instance_recovery_account(

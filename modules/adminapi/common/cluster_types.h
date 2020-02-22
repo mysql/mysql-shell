@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,7 +50,8 @@ enum class Display_form {
   THINGS,        // clusters, replicasets
   THING_FULL,    // InnoDB Cluster, InnoDB ReplicaSet
   A_THING_FULL,  // an InnoDB Cluster, a ReplicaSet
-  THINGS_FULL    // InnoDB Clusters, ReplicaSets
+  THINGS_FULL,   // InnoDB Clusters, ReplicaSets
+  API_CLASS,     // Cluster, ReplicaSet
 };
 
 std::string to_display_string(Cluster_type type, Display_form form);
@@ -65,6 +66,10 @@ inline std::string a_thing(Cluster_type type) {
 
 inline std::string things(Cluster_type type) {
   return to_display_string(type, Display_form::THINGS);
+}
+
+inline std::string api_class(Cluster_type type) {
+  return to_display_string(type, Display_form::API_CLASS);
 }
 
 }  // namespace dba

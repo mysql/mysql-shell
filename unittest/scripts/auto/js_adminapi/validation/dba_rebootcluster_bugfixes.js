@@ -36,6 +36,11 @@
                 "value": false
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<uri1>>>": [],
+            "<<<uri2>>>": []
+        },
         "topology": {
             "<<<uri1>>>": [
                 {
@@ -145,6 +150,11 @@
                 "value": true
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<uri1>>>": [],
+            "<<<uri2>>>": []
+        },
         "topology": {
             "<<<uri1>>>": [
                 {
@@ -275,6 +285,11 @@ ONLINE
                 "value": false
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<uri1>>>": [],
+            "<<<uri2>>>": []
+        },
         "topology": {
             "<<<uri1>>>": [
                 {
@@ -384,6 +399,11 @@ ONLINE
                 "value": true
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<uri1>>>": [],
+            "<<<uri2>>>": []
+        },
         "topology": {
             "<<<uri1>>>": [
                 {

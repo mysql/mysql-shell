@@ -47,6 +47,10 @@ namespace dba {
 constexpr const char k_cluster_attribute_assume_gtid_set_complete[] =
     "opt_gtidSetIsComplete";
 
+constexpr const char *k_error_connecting_to_instance =
+    "Unable to connect to the target instance %s. Please verify the connection "
+    "settings, make sure the instance is available and try again.";
+
 class Base_cluster_impl {
  public:
   Base_cluster_impl(const std::string &cluster_name,
@@ -84,8 +88,9 @@ class Base_cluster_impl {
     return m_primary_master;
   }
 
-  virtual Cluster_check_info check_preconditions(
-      const std::string &function_name) const = 0;
+  Cluster_check_info check_preconditions(
+      const std::string &function_name,
+      FunctionAvailability *custom_func_avail = nullptr);
 
   std::shared_ptr<MetadataStorage> get_metadata_storage() const {
     return m_metadata_storage;
@@ -118,6 +123,27 @@ class Base_cluster_impl {
       const std::string &username, const std::string &host, bool interactive,
       bool update, bool dry_run,
       const mysqlshdk::utils::nullable<std::string> &password);
+
+  void set_instance_tag(const std::string &instance_def,
+                        const std::string &option, const shcore::Value &value);
+
+  void set_cluster_tag(const std::string &option, const shcore::Value &value);
+
+  void set_instance_option(const std::string &instance_def,
+                           const std::string &option,
+                           const shcore::Value &value);
+
+  void set_option(const std::string &option, const shcore::Value &value);
+
+  /**
+   * Get the tags for a specific Cluster/ReplicaSet
+   *
+   * This function gets the tags for a Cluster/ReplicaSet and for its members
+   *
+   * @return a shcore::Value containing a dictionary object with the command
+   * output
+   */
+  shcore::Value get_cluster_tags();
 
   virtual std::list<Scoped_instance> connect_all_members(
       uint32_t read_timeout, bool skip_primary,
@@ -163,7 +189,33 @@ class Base_cluster_impl {
       const mysqlshdk::utils::nullable<std::string> &password,
       const Setup_account_type &type);
 
+  virtual void _set_instance_option(const std::string &instance_def,
+                                    const std::string &option,
+                                    const shcore::Value &value) = 0;
+
+  virtual void _set_option(const std::string &option,
+                           const shcore::Value &value) = 0;
+
   void target_server_invalidated();
+
+  /**
+   * Does simple validation on the option provided to setOption and
+   * setInstanceOption methods and splits the option into a pair: namespace,
+   * option_name. If dealing with a built-in tag, it also converts the value to
+   * the expected type. If the namespace is empty, it means the option has no
+   * namespace.
+   * @param option the option parameter of the setOption and setInstance option
+   * methods.
+   * @param value the value that was provided for the option. We use it to
+   * validate if built-in tags are of the expected type or can be converted to
+   * it.
+   * @return a tuple with strings and value: namespace, option_name, value.
+   * @throws argumentError if the format of the option is invalid, or using an
+   * unsupported namespace.
+   */
+  std::tuple<std::string, std::string, shcore::Value>
+  validate_set_option_namespace(const std::string &option,
+                                const shcore::Value &value) const;
 
   /**
    * Connect to the given instance specification given, while validating its

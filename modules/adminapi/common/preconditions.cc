@@ -29,7 +29,6 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/global_topology_check.h"
 #include "modules/adminapi/common/instance_pool.h"
-#include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/db/utils_error.h"
@@ -161,37 +160,6 @@ std::string lookup_message(const std::string &function_name, MDS state) {
   return "";
 }
 
-enum class MDS_actions { NONE, NOTE, WARN, ERROR };
-
-// The AdminAPI maximum supported MySQL Server version
-const mysqlshdk::utils::Version k_max_adminapi_server_version =
-    mysqlshdk::utils::Version("8.1");
-
-// The AdminAPI minimum supported MySQL Server version
-const mysqlshdk::utils::Version k_min_adminapi_server_version =
-    mysqlshdk::utils::Version("5.7");
-
-// Specific minimum versions for GR and AR functions
-const mysqlshdk::utils::Version k_min_gr_version =
-    mysqlshdk::utils::Version("5.7");
-const mysqlshdk::utils::Version k_min_ar_version =
-    mysqlshdk::utils::Version("8.0");
-
-struct Metadata_validations {
-  metadata::States state;
-  MDS_actions action;
-};
-
-// Note that this structure may be initialized using initializer
-// lists, so the order of the fields is very important
-struct FunctionAvailability {
-  mysqlshdk::utils::Version min_version;
-  int instance_config_state;
-  ReplicationQuorum::State cluster_status;
-  int instance_status;
-  std::vector<Metadata_validations> metadata_validations;
-};
-
 // The replicaset functions do not use quorum
 ReplicationQuorum::State na_quorum;
 const std::map<std::string, FunctionAvailability>
@@ -203,14 +171,14 @@ const std::map<std::string, FunctionAvailability>
               GRInstanceType::GroupReplication,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR},
            {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
         {"Dba.getCluster",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
            {metadata::kIncompatible, MDS_actions::WARN},
            {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
         {"Dba.dropMetadataSchema",
@@ -226,9 +194,9 @@ const std::map<std::string, FunctionAvailability>
           GRInstanceType::StandaloneInMetadata | GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
            {metadata::States(metadata::State::MAJOR_HIGHER),
-            MDS_actions::ERROR},
+            MDS_actions::RAISE_ERROR},
            {metadata::States(metadata::State::MAJOR_LOWER), MDS_actions::WARN},
            {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
         {"Dba.configureLocalInstance",
@@ -259,7 +227,7 @@ const std::map<std::string, FunctionAvailability>
           GRInstanceType::InnoDBCluster | GRInstanceType::AsyncReplicaSet,
           ReplicationQuorum::State(ReplicationQuorum::States::All_online),
           ManagedInstance::State::Any,
-          {{metadata::kUpgradeInProgress, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeInProgress, MDS_actions::RAISE_ERROR}}}},
 
         {"Dba.configureReplicaSetInstance",
          {k_min_ar_version,
@@ -274,14 +242,14 @@ const std::map<std::string, FunctionAvailability>
           GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata,
           na_quorum,
           ManagedInstance::State::Any,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR},
            {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
         {"Dba.getReplicaSet",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::Any,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
            {metadata::kIncompatible, MDS_actions::WARN},
            {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
 
@@ -291,123 +259,123 @@ const std::map<std::string, FunctionAvailability>
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.removeInstance",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.rejoinInstance",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.describe",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.status",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.resetRecoveryAccountsPassword",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.options",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.dissolve",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.checkInstanceState",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.rescan",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.forceQuorumUsingPartitionOf",
          {k_min_gr_version,
           GRInstanceType::GroupReplication | GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
            {metadata::States(metadata::State::MAJOR_HIGHER),
-            MDS_actions::ERROR}}}},
+            MDS_actions::RAISE_ERROR}}}},
         {"Cluster.switchToSinglePrimaryMode",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::All_online),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.switchToMultiPrimaryMode",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::All_online),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.setPrimaryInstance",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::All_online),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.setOption",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::All_online),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.setInstanceOption",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.listRouters",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.removeRouterMetadata",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.setupAdminAccount",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
         {"Cluster.setupRouterAccount",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State(ReplicationQuorum::States::Normal),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
 
         // ReplicaSet Functions
         {"ReplicaSet.addInstance",
@@ -415,37 +383,37 @@ const std::map<std::string, FunctionAvailability>
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"ReplicaSet.rejoinInstance",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"ReplicaSet.removeInstance",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"ReplicaSet.describe",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::Any,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
         {"ReplicaSet.status",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::Any,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
         {"ReplicaSet.dissolve",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::OnlineRW,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"ReplicaSet.checkInstanceState",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
@@ -457,37 +425,55 @@ const std::map<std::string, FunctionAvailability>
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::Any,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"ReplicaSet.forcePrimaryInstance",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::Any,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
         {"ReplicaSet.listRouters",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::Any,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
         {"ReplicaSet.removeRouterMetadata",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::Any,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
         {"ReplicaSet.setupAdminAccount",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
         {"ReplicaSet.setupRouterAccount",
          {k_min_ar_version,
           GRInstanceType::AsyncReplicaSet,
           na_quorum,
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kUpgradeStates, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
+        {"ReplicaSet.setOption",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
+        {"ReplicaSet.setInstanceOption",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
+          {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}}},
+        {"ReplicaSet.options",
+         {k_min_ar_version,
+          GRInstanceType::AsyncReplicaSet,
+          na_quorum,
+          ManagedInstance::State::Any,
+          {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR}}}},
 };
 
 }  // namespace
@@ -752,14 +738,21 @@ Cluster_check_info get_cluster_check_info(const MetadataStorage &metadata) {
 }
 
 void check_preconditions(const std::string &function_name,
-                         const Cluster_check_info &state) {
-  // Retrieves the availability configuration for the given function
-  assert(AdminAPI_function_availability.find(function_name) !=
-         AdminAPI_function_availability.end());
-  FunctionAvailability availability =
-      AdminAPI_function_availability.at(function_name);
+                         const Cluster_check_info &state,
+                         FunctionAvailability *custom_func_avail) {
+  FunctionAvailability availability;
+  // If a FunctionAvailability is not provided, look it up based on the function
+  // name
+  if (!custom_func_avail) {
+    // Retrieves the availability configuration for the given function
+    assert(AdminAPI_function_availability.find(function_name) !=
+           AdminAPI_function_availability.end());
+    availability = AdminAPI_function_availability.at(function_name);
+  } else {
+    // If a function availability is provided use it
+    availability = *custom_func_avail;
+  }
   std::string error;
-
   // Check minimum version for the specific function
   if (availability.min_version > state.source_version) {
     throw shcore::Exception::runtime_error(
@@ -936,7 +929,7 @@ void check_metadata_preconditions(const std::string &function_name,
               console->print_warning(pre_formatted);
             } else if (validation.action == MDS_actions::NOTE) {
               console->print_note(pre_formatted);
-            } else if (validation.action == MDS_actions::ERROR) {
+            } else if (validation.action == MDS_actions::RAISE_ERROR) {
               throw std::runtime_error(shcore::str_subvars(
                   pre_formatted,
                   [](const std::string &var) {
@@ -954,7 +947,8 @@ void check_metadata_preconditions(const std::string &function_name,
 
 Cluster_check_info check_function_preconditions(
     const std::string &function_name,
-    const std::shared_ptr<Instance> &group_server) {
+    const std::shared_ptr<Instance> &group_server,
+    FunctionAvailability *custom_func_avail) {
   assert(function_name.find('.') != std::string::npos);
 
   if (!group_server || !group_server->get_session() ||
@@ -969,14 +963,15 @@ Cluster_check_info check_function_preconditions(
 
   Cluster_check_info info = get_cluster_check_info(metadata);
 
-  check_preconditions(function_name, info);
+  check_preconditions(function_name, info, custom_func_avail);
 
   return info;
 }
 
 Cluster_check_info check_function_preconditions(
     const std::string &function_name,
-    const std::shared_ptr<MetadataStorage> &metadata) {
+    const std::shared_ptr<MetadataStorage> &metadata,
+    FunctionAvailability *custom_func_avail) {
   assert(function_name.find('.') != std::string::npos);
 
   // Performs metadata state validations before anything else
@@ -984,7 +979,7 @@ Cluster_check_info check_function_preconditions(
 
   Cluster_check_info info = get_cluster_check_info(*metadata.get());
 
-  check_preconditions(function_name, info);
+  check_preconditions(function_name, info, custom_func_avail);
 
   return info;
 }

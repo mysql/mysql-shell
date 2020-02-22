@@ -123,14 +123,15 @@ class Cluster_impl : public Base_cluster_impl {
   void rejoin_instance(const Connection_options &instance_def,
                        const shcore::Dictionary_t &options);
 
-  void set_option(const std::string &option, const shcore::Value &value);
-
-  Cluster_check_info check_preconditions(
-      const std::string &function_name) const override;
-
  protected:
   std::string m_group_name;
   std::shared_ptr<GRReplicaSet> _default_replica_set;
+  void _set_option(const std::string &option,
+                   const shcore::Value &value) override;
+
+  void _set_instance_option(const std::string &instance_def,
+                            const std::string &option,
+                            const shcore::Value &value) override;
 
   // Used shell options
   void init();
@@ -145,9 +146,6 @@ class Cluster_impl : public Base_cluster_impl {
   void switch_to_single_primary_mode(const Connection_options &instance_def);
   void switch_to_multi_primary_mode();
   void set_primary_instance(const Connection_options &instance_def);
-  void set_instance_option(const Connection_options &instance_def,
-                           const std::string &option,
-                           const shcore::Value &value);
   shcore::Value check_instance_state(const Connection_options &instance_def);
   void reset_recovery_password(const shcore::Dictionary_t &options);
   void setup_admin_account(

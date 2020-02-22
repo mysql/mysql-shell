@@ -433,6 +433,10 @@ one server failure.
                 "value": <<<(__version_num>=80017)?"false":"true">>>
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": []
+        },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
 ?{VER(>=8.0.16)}
@@ -502,6 +506,10 @@ one server failure.
                 "value": true
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": []
+        },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
@@ -572,6 +580,10 @@ one server failure.
                 "value": true
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": []
+        },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {

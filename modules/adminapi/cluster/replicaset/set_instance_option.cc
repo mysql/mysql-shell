@@ -110,7 +110,7 @@ void Set_instance_option::ensure_instance_belong_to_replicaset() {
   }
 }
 
-void Set_instance_option::ensure_target_member_online() {
+void Set_instance_option::ensure_target_member_reachable() {
   log_debug("Connecting to instance '%s'", m_target_instance_address.c_str());
 
   try {
@@ -123,7 +123,7 @@ void Set_instance_option::ensure_target_member_online() {
     log_debug("Failed to connect to instance: %s", err.what());
 
     throw shcore::Exception::runtime_error(
-        "The instance '" + m_target_instance_address + "' is not ONLINE.");
+        "The instance '" + m_target_instance_address + "' is not reachable.");
   }
 }
 
@@ -179,7 +179,7 @@ void Set_instance_option::prepare() {
   }
 
   // Verify if the target cluster member is ONLINE
-  ensure_target_member_online();
+  ensure_target_member_reachable();
 
   // Verify if the target instance belongs to the replicaset
   ensure_instance_belong_to_replicaset();

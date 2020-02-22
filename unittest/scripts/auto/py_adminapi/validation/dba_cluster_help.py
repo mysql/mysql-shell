@@ -64,10 +64,10 @@ FUNCTIONS
             Reset the password of the recovery accounts of the cluster.
 
       set_instance_option(instance, option, value)
-            Changes the value of a configuration option in a Cluster member.
+            Changes the value of an option in a Cluster member.
 
       set_option(option, value)
-            Changes the value of a configuration option for the whole cluster.
+            Changes the value of an option for the whole Cluster.
 
       set_primary_instance(instance)
             Elects a specific cluster member as the new primary.
@@ -526,8 +526,8 @@ RETURNS
 
 DESCRIPTION
       This function lists the cluster configuration options for its ReplicaSets
-      and Instances. The following options may be given to controlthe amount of
-      information gathered and returned.
+      and Instances. The following options may be given to control the amount
+      of information gathered and returned.
 
       - all: if true, includes information about all group_replication system
         variables.
@@ -677,35 +677,30 @@ EXCEPTIONS
 
 #@<OUT> cluster.set_instance_option
 NAME
-      set_instance_option - Changes the value of a configuration option in a
-                            Cluster member.
+      set_instance_option - Changes the value of an option in a Cluster member.
 
 SYNTAX
       <Cluster>.set_instance_option(instance, option, value)
 
 WHERE
       instance: An instance definition.
-      option: The configuration option to be changed.
-      value: The value that the configuration option shall get.
+      option: The option to be changed.
+      value: The value that the option shall get.
 
 RETURNS
       Nothing.
 
 DESCRIPTION
-      This function changes an InnoDB Cluster configuration option in a member
-      of the cluster.
+      This function changes an option for a member of the cluster.
 
       The instance definition is the connection data for the instance.
 
       For additional information on connection data use \? connection.
 
-      The option parameter is the name of the configuration option to be
-      changed
+      The accepted options are:
 
-      The value parameter is the value that the configuration option shall get.
-
-      The accepted values for the configuration option are:
-
+      - tag:<option>: built-in and user-defined tags to be associated to the
+        Cluster.
       - exitStateAction: string value indicating the group replication exit
         state action.
       - memberWeight: integer value with a percentage weight for automatic
@@ -758,6 +753,25 @@ DESCRIPTION
 
       The default value is 0.
 
+      Tags
+
+      Tags make it possible to associate custom key/value pairs to a Cluster,
+      storing them in its metadata. Custom tag names can be any string starting
+      with letters and followed by letters, numbers and _. Tag values may be
+      any JSON value. If the value is null, the tag is deleted.
+
+      The following pre-defined tags are available:
+
+      - _hidden: bool - instructs the router to exclude the instance from the
+        list of possible destinations for client applications.
+      - _disconnect_existing_sessions_when_hidden: bool - instructs the router
+        to disconnect existing connections from instances that are marked to be
+        hidden.
+
+      NOTE: '_hidden' and '_disconnect_existing_sessions_when_hidden' can be
+            useful to shut down the instance and perform maintenance on it
+            without disrupting incoming application traffic.
+
 EXCEPTIONS
       ArgumentError in the following scenarios:
 
@@ -772,37 +786,32 @@ EXCEPTIONS
 
       - If 'instance' does not refer to a cluster member.
       - If the cluster has no visible quorum.
-      - If 'instance' is not ONLINE.
+      - If 'instance' is unreachable/offline.
       - If 'instance' does not support the configuration option passed in
         'option'.
       - If the value passed in 'option' is not valid for Group Replication.
 
 #@<OUT> cluster.set_option
 NAME
-      set_option - Changes the value of a configuration option for the whole
-                   cluster.
+      set_option - Changes the value of an option for the whole Cluster.
 
 SYNTAX
       <Cluster>.set_option(option, value)
 
 WHERE
-      option: The configuration option to be changed.
-      value: The value that the configuration option shall get.
+      option: The option to be changed.
+      value: The value that the option shall get.
 
 RETURNS
       Nothing.
 
 DESCRIPTION
-      This function changes an InnoDB Cluster configuration option in all
-      members of the cluster.
+      This function changes an option for the Cluster.
 
-      The 'option' parameter is the name of the configuration option to be
-      changed.
+      The accepted options are:
 
-      The value parameter is the value that the configuration option shall get.
-
-      The accepted values for the configuration option are:
-
+      - tag:<option>: built-in and user-defined tags to be associated to the
+        Cluster.
       - clusterName: string value to define the cluster name.
       - exitStateAction: string value indicating the group replication exit
         state action.
@@ -932,6 +941,13 @@ DESCRIPTION
 
       The default value is 0.
 
+      Tags
+
+      Tags make it possible to associate custom key/value pairs to a Cluster,
+      storing them in its metadata. Custom tag names can be any string starting
+      with letters and followed by letters, numbers and _. Tag values may be
+      any JSON value. If the value is null, the tag is deleted.
+
 EXCEPTIONS
       ArgumentError in the following scenarios:
 
@@ -945,7 +961,9 @@ EXCEPTIONS
         passed in 'option'.
       - If the value passed in 'option' is not valid for Group Replication.
       - If the cluster has no visible quorum.
-      - If any of the cluster members is not ONLINE.
+      - If setting a Group Replication option and any of the cluster members is
+        not ONLINE.
+
 
 #@<OUT> cluster.setup_admin_account
 NAME

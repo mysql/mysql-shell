@@ -699,7 +699,7 @@ Lists the cluster configuration options.
 @returns A JSON object describing the configuration options of the cluster.
 
 This function lists the cluster configuration options for its ReplicaSets and
-Instances. The following options may be given to controlthe amount of
+Instances. The following options may be given to control the amount of
 information gathered and returned.
 
 @li all: if true, includes information about all group_replication system
@@ -1242,22 +1242,17 @@ void Cluster::set_primary_instance(const Connection_options &instance_def) {
 
 REGISTER_HELP_FUNCTION(setOption, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETOPTION, R"*(
-Changes the value of a configuration option for the whole cluster.
+Changes the value of an option for the whole Cluster.
 
-@param option The configuration option to be changed.
-@param value The value that the configuration option shall get.
+@param option The option to be changed.
+@param value The value that the option shall get.
 
 @returns Nothing.
 
-This function changes an InnoDB Cluster configuration option in all members of
-the cluster.
+This function changes an option for the Cluster.
 
-The 'option' parameter is the name of the configuration option to be changed.
-
-The value parameter is the value that the configuration option shall get.
-
-The accepted values for the configuration option are:
-
+The accepted options are:
+${NAMESPACE_TAG}
 @li clusterName: string value to define the cluster name.
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
@@ -1287,6 +1282,8 @@ ${CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA}
 
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 
+${NAMESPACE_TAG_DETAIL_CLUSTER}
+
 @throw ArgumentError in the following scenarios:
 @li If the 'option' parameter is empty.
 @li If the 'value' parameter is empty.
@@ -1297,7 +1294,8 @@ ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 passed in 'option'.
 @li If the value passed in 'option' is not valid for Group Replication.
 @li If the cluster has no visible quorum.
-@li If any of the cluster members is not ONLINE.
+@li If setting a Group Replication option and any of the cluster members
+is not ONLINE.
 )*");
 
 /**
@@ -1320,26 +1318,22 @@ void Cluster::set_option(const std::string &option,
 
 REGISTER_HELP_FUNCTION(setInstanceOption, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_SETINSTANCEOPTION, R"*(
-Changes the value of a configuration option in a Cluster member.
+Changes the value of an option in a Cluster member.
 
 @param instance An instance definition.
-@param option The configuration option to be changed.
-@param value The value that the configuration option shall get.
+@param option The option to be changed.
+@param value The value that the option shall get.
 
 @returns Nothing.
 
-This function changes an InnoDB Cluster configuration option in a member of the
-cluster.
+This function changes an option for a member of the cluster.
 
 The instance definition is the connection data for the instance.
 
 ${TOPIC_CONNECTION_MORE_INFO}
 
-The option parameter is the name of the configuration option to be changed
-
-The value parameter is the value that the configuration option shall get.
-
-The accepted values for the configuration option are:
+The accepted options are:
+${NAMESPACE_TAG}
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
@@ -1353,6 +1347,10 @@ ${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
 
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 
+${NAMESPACE_TAG_DETAIL_CLUSTER}
+
+${NAMESPACE_TAG_INSTANCE_DETAILS_EXTRA}
+
 @throw ArgumentError in the following scenarios:
 @li If the 'instance' parameter is empty.
 @li If the 'instance' parameter is invalid.
@@ -1364,7 +1362,7 @@ ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 @throw RuntimeError in the following scenarios:
 @li If 'instance' does not refer to a cluster member.
 @li If the cluster has no visible quorum.
-@li If 'instance' is not ONLINE.
+@li If 'instance' is unreachable/offline.
 @li If 'instance' does not support the configuration option passed in 'option'.
 @li If the value passed in 'option' is not valid for Group Replication.
 )*");
@@ -1386,7 +1384,7 @@ void Cluster::set_instance_option(const Connection_options &instance_def,
   assert_valid("setInstanceOption");
 
   // Set the option in the Default ReplicaSet
-  m_impl->set_instance_option(instance_def, option, value);
+  m_impl->set_instance_option(instance_def.as_uri(), option, value);
 }
 
 REGISTER_HELP_FUNCTION(listRouters, Cluster);

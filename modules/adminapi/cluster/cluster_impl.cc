@@ -216,8 +216,16 @@ shcore::Value Cluster_impl::options(const shcore::Dictionary_t &options) {
   auto finally = shcore::on_leave_scope([&op_option]() { op_option.finish(); });
   // Prepare the Cluster_options command execution (validations).
   op_option.prepare();
+
   // Execute Cluster_options operations.
-  return op_option.execute();
+  shcore::Value res = op_option.execute();
+
+  // If everything went well insert the tags
+  auto res_dict = res.as_map();
+  (*res_dict)
+      .get_map("defaultReplicaSet")
+      ->emplace(kTags, Base_cluster_impl::get_cluster_tags());
+  return res;
 }
 
 void Cluster_impl::dissolve(const shcore::Dictionary_t &options) {
@@ -285,68 +293,6 @@ void Cluster_impl::set_primary_instance(
   // Set primary instance
 
   _default_replica_set->set_primary_instance(instance_def);
-}
-
-void Cluster_impl::set_option(const std::string &option,
-                              const shcore::Value &value) {
-  check_preconditions("setOption");
-
-  // Set Cluster configuration option
-
-  // Create the Cluster_set_option object and execute it.
-  std::unique_ptr<Cluster_set_option> op_cluster_set_option;
-
-  // Validation types due to a limitation on the expose() framework.
-  // Currently, it's not possible to do overloading of functions that overload
-  // an argument of type string/int since the type int is convertible to
-  // string, thus overloading becomes ambiguous. As soon as that limitation is
-  // gone, this type checking shall go away too.
-  if (value.type == shcore::String) {
-    std::string value_str = value.as_string();
-    op_cluster_set_option =
-        std::make_unique<Cluster_set_option>(this, option, value_str);
-  } else if (value.type == shcore::Integer || value.type == shcore::UInteger) {
-    int64_t value_int = value.as_int();
-    op_cluster_set_option =
-        std::make_unique<Cluster_set_option>(this, option, value_int);
-  } else if (value.type == shcore::Bool) {
-    bool value_bool = value.as_bool();
-    op_cluster_set_option =
-        std::make_unique<Cluster_set_option>(this, option, value_bool);
-  } else {
-    throw shcore::Exception::argument_error(
-        "Argument #2 is expected to be a string, an integer or a boolean.");
-  }
-
-  // Always execute finish when leaving "try catch".
-  auto finally = shcore::on_leave_scope(
-      [&op_cluster_set_option]() { op_cluster_set_option->finish(); });
-
-  // Prepare the Set_option command execution (validations).
-  op_cluster_set_option->prepare();
-
-  // Execute Set_instance_option operations.
-  op_cluster_set_option->execute();
-}
-
-void Cluster_impl::set_instance_option(const Connection_options &instance_def,
-                                       const std::string &option,
-                                       const shcore::Value &value) {
-  check_preconditions("setInstanceOption");
-
-  // Set the option in the Default ReplicaSet
-  _default_replica_set->set_instance_option(instance_def, option, value);
-}
-
-Cluster_check_info Cluster_impl::check_preconditions(
-    const std::string &function_name) const {
-  auto ret_val = check_function_preconditions("Cluster." + function_name,
-                                              get_target_server());
-
-  // Makes sure the metadata state is re-loaded on each API call
-  m_metadata_storage->invalidate_cached();
-
-  return ret_val;
 }
 
 mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version() const {
@@ -683,6 +629,52 @@ size_t Cluster_impl::setup_clone_plugin(bool enable_clone) {
   }
 
   return count;
+}
+
+void Cluster_impl::_set_instance_option(const std::string &instance_def,
+                                        const std::string &option,
+                                        const shcore::Value &value) {
+  auto instance_conn_opt = Connection_options(instance_def);
+  _default_replica_set->set_instance_option(instance_conn_opt, option, value);
+}
+
+void Cluster_impl::_set_option(const std::string &option,
+                               const shcore::Value &value) {
+  // Set Cluster configuration option
+  // Create the Cluster_set_option object and execute it.
+  std::unique_ptr<Cluster_set_option> op_cluster_set_option;
+
+  // Validation types due to a limitation on the expose() framework.
+  // Currently, it's not possible to do overloading of functions that overload
+  // an argument of type string/int since the type int is convertible to
+  // string, thus overloading becomes ambiguous. As soon as that limitation is
+  // gone, this type checking shall go away too.
+  if (value.type == shcore::String) {
+    std::string value_str = value.as_string();
+    op_cluster_set_option =
+        std::make_unique<Cluster_set_option>(this, option, value_str);
+  } else if (value.type == shcore::Integer || value.type == shcore::UInteger) {
+    int64_t value_int = value.as_int();
+    op_cluster_set_option =
+        std::make_unique<Cluster_set_option>(this, option, value_int);
+  } else if (value.type == shcore::Bool) {
+    bool value_bool = value.as_bool();
+    op_cluster_set_option =
+        std::make_unique<Cluster_set_option>(this, option, value_bool);
+  } else {
+    throw shcore::Exception::argument_error(
+        "Argument #2 is expected to be a string, an integer or a boolean.");
+  }
+
+  // Always execute finish when leaving "try catch".
+  auto finally = shcore::on_leave_scope(
+      [&op_cluster_set_option]() { op_cluster_set_option->finish(); });
+
+  // Prepare the Set_option command execution (validations).
+  op_cluster_set_option->prepare();
+
+  // Execute Set_instance_option operations.
+  op_cluster_set_option->execute();
 }
 
 }  // namespace dba

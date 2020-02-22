@@ -30,6 +30,9 @@ FUNCTIONS
       listRouters([options])
             Lists the Router instances.
 
+      options()
+            Lists the ReplicaSet configuration options.
+
       rejoinInstance(instance[, options])
             Rejoins an instance to the replicaset.
 
@@ -38,6 +41,12 @@ FUNCTIONS
 
       removeRouterMetadata(routerDef)
             Removes metadata for a router instance.
+
+      setInstanceOption(instance, option, value)
+            Changes the value of an option in a ReplicaSet member.
+
+      setOption(option, value)
+            Changes the value of an option for the whole ReplicaSet.
 
       setPrimaryInstance(instance, options)
             Performs a safe PRIMARY switchover, promoting the given instance.
@@ -614,3 +623,116 @@ DESCRIPTION
       - 2 - includes important replication related configuration settings, such
         as SSL, worker threads, replication delay and heartbeat delay.
 
+
+//@<OUT> options
+NAME
+      options - Lists the ReplicaSet configuration options.
+
+SYNTAX
+      <ReplicaSet>.options()
+
+RETURNS
+      A JSON object describing the configuration options of the ReplicaSet.
+
+DESCRIPTION
+      This function lists the configuration options for the ReplicaSet and its
+      instances.
+
+EXCEPTIONS
+      MetadataError in the following scenarios:
+
+      - If the Metadata is inaccessible.
+
+
+//@<OUT> setOption
+NAME
+      setOption - Changes the value of an option for the whole ReplicaSet.
+
+SYNTAX
+      <ReplicaSet>.setOption(option, value)
+
+WHERE
+      option: The option to be changed.
+      value: The value that the option shall get.
+
+RETURNS
+      Nothing.
+
+DESCRIPTION
+      This function changes an option for the ReplicaSet.
+
+      The accepted options are:
+
+      - tag:<option>: built-in and user-defined tags to be associated to the
+        Cluster.
+
+      Tags
+
+      Tags make it possible to associate custom key/value pairs to a
+      ReplicaSet, storing them in its metadata. Custom tag names can be any
+      string starting with letters and followed by letters, numbers and _. Tag
+      values may be any JSON value. If the value is null, the tag is deleted.
+
+EXCEPTIONS
+      ArgumentError in the following scenarios:
+
+      - If the 'option' parameter is empty.
+      - If the 'value' parameter is empty.
+      - If the 'option' parameter is invalid.
+
+
+//@<OUT> setInstanceOption
+NAME
+      setInstanceOption - Changes the value of an option in a ReplicaSet
+                          member.
+
+SYNTAX
+      <ReplicaSet>.setInstanceOption(instance, option, value)
+
+WHERE
+      instance: host:port of the target instance.
+      option: The option to be changed.
+      value: The value that the option shall get.
+
+RETURNS
+      Nothing.
+
+DESCRIPTION
+      This function changes an option for a member of the ReplicaSet.
+
+      The accepted options are:
+
+      - tag:<option>: built-in and user-defined tags to be associated to the
+        Cluster.
+
+      Tags
+
+      Tags make it possible to associate custom key/value pairs to a
+      ReplicaSet, storing them in its metadata. Custom tag names can be any
+      string starting with letters and followed by letters, numbers and _. Tag
+      values may be any JSON value. If the value is null, the tag is deleted.
+
+      The following pre-defined tags are available:
+
+      - _hidden: bool - instructs the router to exclude the instance from the
+        list of possible destinations for client applications.
+      - _disconnect_existing_sessions_when_hidden: bool - instructs the router
+        to disconnect existing connections from instances that are marked to be
+        hidden.
+
+      NOTE: '_hidden' and '_disconnect_existing_sessions_when_hidden' can be
+            useful to shut down the instance and perform maintenance on it
+            without disrupting incoming application traffic.
+
+EXCEPTIONS
+      ArgumentError in the following scenarios:
+
+      - If the 'instance' parameter is empty.
+      - If the 'instance' parameter is invalid.
+      - If the 'option' parameter is empty.
+      - If the 'value' parameter is empty.
+      - If the 'option' parameter is invalid.
+
+      RuntimeError in the following scenarios:
+
+      - If 'instance' does not refer to a replicaSet member.

@@ -4,6 +4,19 @@ function print_metadata_instance_label(session, address) {
   print(row[0] + "\n");
 }
 
+function get_tags_for_instance(cluster, uri) {
+    var opts = cluster.options();
+    var res = {};
+    if(typeof opts.defaultReplicaSet.tags[uri] == "undefined") {
+        testutil.fail("Found no list of tags for '" + uri + "' on cluster.");
+    }
+    // Buid a dictionary of key, value pairs that we can use easily to retrieve all the keys and their values
+    for (var i = 0; i < opts.defaultReplicaSet.tags[uri].length; ++i) {
+        res[opts.defaultReplicaSet.tags[uri][i]["option"]] = opts.defaultReplicaSet.tags[uri][i]["value"];
+    }
+    return res;
+}
+
 // WL#11465 AdminAPI: AdminAPI: change cluster member options
 //
 // Currently, it's not possible to change a previously configuration option
@@ -69,8 +82,8 @@ cluster.setInstanceOption(__sandbox_uri2, "memberWeight", 25);
 //@ WL#11465: F2.2.1.2 - Add instance 2 back to the cluster
 cluster.addInstance(__sandbox_uri2);
 
-// F2.2.1.1 - The function shall not be allowed if the cluster does not have quorum or the target 'instance' is not ONLINE.
-//@ WL#11465: Error when executing setInstanceOption when the target instance is not ONLINE
+// F2.2.1.1 - The function shall not be allowed if the cluster does not have quorum or the target 'instance' is not reachable.
+//@ WL#11465: Error when executing setInstanceOption when the target instance is not reachable
 testutil.killSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 cluster.setInstanceOption(__sandbox_uri3, "memberWeight", 25);
@@ -163,5 +176,125 @@ print(get_sysvar(__mysql_sandbox_port2, "group_replication_autorejoin_tries", "P
 print(get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries"));
 print(get_sysvar(__mysql_sandbox_port3, "group_replication_autorejoin_tries", "PERSISTED"));
 
-//@ WL#11465: Finalization
+//@<> Check that setInstanceOption works if you have quorum and the instance reachable but not online
+// keep instance 3 in RECOVERING state by setting a wrong recovery user.
+session3 = shell.connect(__sandbox_uri3);
+session3.runSql("CHANGE MASTER TO MASTER_USER = 'not_exist', MASTER_PASSWORD = '' FOR CHANNEL 'group_replication_recovery'");
+session3.runSql("STOP GROUP_REPLICATION");
+session3.runSql("START GROUP_REPLICATION");
+testutil.waitMemberState(__mysql_sandbox_port3, "RECOVERING");
+cluster.setInstanceOption(__sandbox_uri3, "memberWeight", 28);
+EXPECT_EQ(get_sysvar(session3, "group_replication_member_weight"), 28);
+
+//@<> WL#13788 Check that setInstanceOption allows setting a tag if you have quorum, the and instance is reachable even if it is not online
+// Verify it is still in recovering
+testutil.waitMemberState(__mysql_sandbox_port3, "RECOVERING");
+EXPECT_ARRAY_NOT_CONTAINS("recovering_tag", Object.keys(get_tags_for_instance(cluster, __endpoint3)));
+cluster.setInstanceOption(__sandbox_uri3, "tag:recovering_tag", true);
+EXPECT_ARRAY_CONTAINS("recovering_tag", Object.keys(get_tags_for_instance(cluster, __endpoint3)));
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["recovering_tag"] === true);
+
+//@<> WL#13788: Re-create the cluster
+session3.close();
+scene.destroy();
+scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
+cluster = scene.cluster;
+session = scene.session;
+
+//@<> WL#13788: Argument errors with tags - TSFR1_4
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:tagname")}, "Cluster.setInstanceOption: Invalid number of arguments, expected 3 but got 2", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:invalid_symbol#", 123)}, "Cluster.setInstanceOption: 'invalid_symbol#' is not a valid tag identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_invalid_builtin", 123)}, "Cluster.setInstanceOption: '_invalid_builtin' is not a valid built-in tag.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "unsupported_namespace:invalid_symbol#", 123)}, "Cluster.setInstanceOption: Namespace 'unsupported_namespace' not supported.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, ":invalid_symbol#", 123)}, "Cluster.setInstanceOption: ':invalid_symbol#' is not a valid identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:", 123)}, "Cluster.setInstanceOption: 'tag:' is not a valid identifier.", "ArgumentError");
+
+//@<> WL#13788 Built-in tag values are validated and throw error if value cannot be converted to expected type - TSFR1_5
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_hidden", "123")}, "Cluster.setInstanceOption: Built-in tag '_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_hidden", [true])}, "Cluster.setInstanceOption: Built-in tag '_hidden' is expected to be of type Bool, but is Array", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", "True")}, "Cluster.setInstanceOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", [123])}, "Cluster.setInstanceOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is Array", "TypeError");
+
+//@<> WL#13788 Validate cluster.options shows values about the tags set via setInstanceOption - TSFR1_7
+// we are using the output of cluster.options to validate the tag was set.
+EXPECT_ARRAY_NOT_CONTAINS("test_string", Object.keys(get_tags_for_instance(cluster, __endpoint1)));
+EXPECT_ARRAY_NOT_CONTAINS("test_int", Object.keys(get_tags_for_instance(cluster, __endpoint1)));
+EXPECT_ARRAY_NOT_CONTAINS("test_bool", Object.keys(get_tags_for_instance(cluster, __endpoint1)));
+EXPECT_ARRAY_NOT_CONTAINS("test_bool", Object.keys(get_tags_for_instance(cluster, __endpoint2)));
+
+cluster.setInstanceOption(__sandbox_uri1, "tag:test_string", "test");
+cluster.setInstanceOption(__sandbox_uri1, "tag:test_int", 123);
+cluster.setInstanceOption(__sandbox_uri1, "tag:test_bool", false);
+cluster.setInstanceOption(__sandbox_uri2, "tag:test_bool", true);
+
+EXPECT_ARRAY_CONTAINS("test_string", Object.keys(get_tags_for_instance(cluster, __endpoint1)));
+EXPECT_ARRAY_CONTAINS("test_int", Object.keys(get_tags_for_instance(cluster, __endpoint1)));
+EXPECT_ARRAY_CONTAINS("test_bool", Object.keys(get_tags_for_instance(cluster, __endpoint1)));
+EXPECT_ARRAY_CONTAINS("test_bool", Object.keys(get_tags_for_instance(cluster, __endpoint2)));
+
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint1)["test_string"] === "test");
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint1)["test_int"] === 123);
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint1)["test_bool"] === false);
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint2)["test_bool"] === true);
+
+
+//@<> WL#13788: SetInstanceOption must not allow setting tags for an instance if it is unreachable.
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING),UNREACHABLE");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_hidden", false)}, "Cluster.setInstanceOption: The instance '" + __sandbox2 + "' is not reachable.", "RuntimeError");
+
+//@<> WL#13788 setInstanceOption must not allow settings tags for an instance that doesn't belong to the cluster.
+testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri4, "tag:_hidden", false)}, "Cluster.setInstanceOption: The instance '" + __sandbox4 + "' does not belong to the Cluster.", "RuntimeError");
+testutil.destroySandbox(__mysql_sandbox_port4);
+
+//@<> WL#13788 use setInstanceOption to set built-in tags and check that they are saved correctly as long as there is quorum TSFR1_3
+EXPECT_ARRAY_NOT_CONTAINS("_hidden", Object.keys(get_tags_for_instance(cluster, __endpoint3)));
+EXPECT_ARRAY_NOT_CONTAINS("_disconnect_existing_sessions_when_hidden", Object.keys(get_tags_for_instance(cluster, __endpoint3)));
+
+cluster.setInstanceOption(__sandbox_uri3, "tag:_hidden", false);
+cluster.setInstanceOption(__sandbox_uri3, "tag:_disconnect_existing_sessions_when_hidden", true);
+
+EXPECT_ARRAY_CONTAINS("_hidden", Object.keys(get_tags_for_instance(cluster, __endpoint3)));
+EXPECT_ARRAY_CONTAINS("_disconnect_existing_sessions_when_hidden", Object.keys(get_tags_for_instance(cluster, __endpoint3)));
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_hidden"] === false);
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_disconnect_existing_sessions_when_hidden"] === true);
+
+// Values are converted and saved as the expected type
+cluster.setInstanceOption(__sandbox_uri3, "tag:_hidden", 1);
+cluster.setInstanceOption(__sandbox_uri3, "tag:_disconnect_existing_sessions_when_hidden", 0);
+
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_hidden"] === true);
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_disconnect_existing_sessions_when_hidden"] === false);
+
+cluster.setInstanceOption(__sandbox_uri3, "tag:_hidden", "false");
+cluster.setInstanceOption(__sandbox_uri3, "tag:_disconnect_existing_sessions_when_hidden", "true");
+
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_hidden"] === false);
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_disconnect_existing_sessions_when_hidden"] === true);
+
+cluster.setInstanceOption(__sandbox_uri3, "tag:_hidden", -1);
+cluster.setInstanceOption(__sandbox_uri3, "tag:_disconnect_existing_sessions_when_hidden", 0.1);
+
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_hidden"] === true);
+EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint3)["_disconnect_existing_sessions_when_hidden"] === true);
+
+//@<> WL#13788: TSFR3_2 Setting a null value to a tag, removes the tag from the metadata
+EXPECT_ARRAY_CONTAINS("_hidden", Object.keys(get_tags_for_instance(cluster, __endpoint3)));
+cluster.setInstanceOption(__sandbox_uri3, "tag:_hidden", null);
+EXPECT_ARRAY_NOT_CONTAINS("_hidden", Object.keys(get_tags_for_instance(cluster, __endpoint3)));
+
+// Setting a non existing tag to null, throws no error
+EXPECT_NO_THROWS(function(){cluster.setInstanceOption(__sandbox_uri3, "tag:non_existing", null)});
+EXPECT_ARRAY_NOT_CONTAINS("non_existing", Object.keys(get_tags_for_instance(cluster, __endpoint3)));
+
+//@<> WL#13788: SetInstanceOption must not allow setting tags for instances if there is no quorum TSFR1_6
+testutil.killSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING),UNREACHABLE");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri1, "tag:test1", "test")}, "There is no quorum to perform the operation", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:test1", "test")}, "There is no quorum to perform the operation", "RuntimeError");
+
+//@<>Finalization
+cluster.disconnect();
+session.close();
 scene.destroy();

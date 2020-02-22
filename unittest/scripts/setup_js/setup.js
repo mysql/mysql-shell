@@ -512,9 +512,24 @@ function EXPECT_THROWS(func, etext) {
     func();
     testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Missing expected exception throw like " + etext + "</red>");
   } catch (err) {
-    testutil.dprint("Expected exception: " + JSON.stringify(err));
+    testutil.dprint("Caught exception: " + JSON.stringify(err));
     if (err.message.indexOf(etext) < 0) {
       testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + err.message);
+    }
+  }
+}
+
+function EXPECT_THROWS_TYPE(func, etext, type) {
+  try {
+    func();
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Missing expected exception throw like " + etext + "</red>");
+  } catch (err) {
+    testutil.dprint("Caught exception: " + JSON.stringify(err));
+    if (err.message.indexOf(etext) < 0) {
+      testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + err.message);
+    }
+    if (err.type  !== type) {
+      testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception type expected:</red> " + type + "\n\t<yellow>Actual:</yellow> " + err.type);
     }
   }
 }

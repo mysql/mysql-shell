@@ -105,13 +105,13 @@ cluster.help("removeInstance");
 cluster.help("setInstanceOption")
 
 //@ SetInstanceOption, \? [USE:SetInstanceOption]
-\? setInstanceOption
+\? cluster.setInstanceOption
 
 //@ SetOption
 cluster.help("setOption")
 
 //@ SetOption, \? [USE:SetOption]
-\? setOption
+\? cluster.setOption
 
 //@ setupAdminAccount
 cluster.help("setupAdminAccount")

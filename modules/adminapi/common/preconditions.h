@@ -26,9 +26,12 @@
 
 #include <memory>
 #include <string>
+
+#include "modules/adminapi/common/metadata_management_mysql.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/enumset.h"
+#include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -106,10 +109,42 @@ struct Cluster_check_info {
   ManagedInstance::State source_state;
 };
 
+// The AdminAPI maximum supported MySQL Server version
+const mysqlshdk::utils::Version k_max_adminapi_server_version =
+    mysqlshdk::utils::Version("8.1");
+
+// The AdminAPI minimum supported MySQL Server version
+const mysqlshdk::utils::Version k_min_adminapi_server_version =
+    mysqlshdk::utils::Version("5.7");
+
+// Specific minimum versions for GR and AR functions
+const mysqlshdk::utils::Version k_min_gr_version =
+    mysqlshdk::utils::Version("5.7");
+const mysqlshdk::utils::Version k_min_ar_version =
+    mysqlshdk::utils::Version("8.0");
+
+enum class MDS_actions { NONE, NOTE, WARN, RAISE_ERROR };
+
+struct Metadata_validations {
+  metadata::States state;
+  MDS_actions action;
+};
+
+// Note that this structure may be initialized using initializer
+// lists, so the order of the fields is very important
+struct FunctionAvailability {
+  mysqlshdk::utils::Version min_version;
+  int instance_config_state;
+  ReplicationQuorum::State cluster_status;
+  int instance_status;
+  std::vector<Metadata_validations> metadata_validations;
+};
+
 void validate_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
 void check_preconditions(const std::string &function_name,
-                         const Cluster_check_info &info);
+                         const Cluster_check_info &info,
+                         FunctionAvailability *custom_func_avail = nullptr);
 
 Cluster_check_info get_cluster_check_info(const MetadataStorage &group_server);
 
@@ -121,12 +156,14 @@ Cluster_check_info get_cluster_check_info(const MetadataStorage &group_server);
 // following function should be deprecated in favor of the version below.
 Cluster_check_info check_function_preconditions(
     const std::string &function_name,
-    const std::shared_ptr<Instance> &group_server);
+    const std::shared_ptr<Instance> &group_server,
+    FunctionAvailability *custom_func_avail = nullptr);
 
 // All fun
 Cluster_check_info check_function_preconditions(
     const std::string &function_name,
-    const std::shared_ptr<MetadataStorage> &metadata);
+    const std::shared_ptr<MetadataStorage> &metadata,
+    FunctionAvailability *custom_func_avail = nullptr);
 
 }  // namespace dba
 }  // namespace mysqlsh

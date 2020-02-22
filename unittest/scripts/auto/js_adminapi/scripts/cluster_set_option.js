@@ -4,6 +4,23 @@ function print_metadata_clusters_cluster_name(session) {
     print(row[0] + "\n");
 }
 
+function get_tags_for_instance(cluster, uri) {
+    var opts = cluster.options();
+    var res = {};
+    if(typeof opts.defaultReplicaSet.tags[uri] == "undefined") {
+        testutil.fail("Found no list of tags for '" + uri + "' on cluster.");
+    }
+    // Buid a dictionary of key, value pairs that we can use easily to retrieve all the keys and their values
+    for (var i = 0; i < opts.defaultReplicaSet.tags[uri].length; ++i) {
+        res[opts.defaultReplicaSet.tags[uri][i]["option"]] = opts.defaultReplicaSet.tags[uri][i]["value"];
+    }
+    return res;
+}
+
+function get_global_tags(cluster){
+    return get_tags_for_instance(cluster,"global");
+}
+
 // WL#11465 AdminAPI: AdminAPI: change cluster member options
 //
 // Currently, it's not possible to change a previously configuration option
@@ -40,7 +57,7 @@ var session = scene.session
 //  - If any of the cluster members do not support the configuration option passed in 'option'.
 //  - If the value passed in 'option' is not valid for Group Replication.
 //  - If the cluster has no visible quorum.
-//  - If any of the cluster members is not ONLINE.
+//  - If setting a Group Replication option and any of the cluster members is not ONLINE.
 
 //@ WL#11465: ArgumentErrors of setOption
 cluster.setOption();
@@ -188,5 +205,93 @@ cluster.setOption("disableClone", true);
 //@ WL#13208: TS_FR2_2 verify disableClone is true with options(). {VER(>=8.0.17)}
 cluster.options();
 
+//@<> WL#13788: Re-create the cluster
+scene.destroy();
+scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
+cluster = scene.cluster;
+session = scene.session;
+
+//@<> WL#13788: Argument errors with tags - TSFR1_4
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:tagname")}, "Cluster.setOption: Invalid number of arguments, expected 2 but got 1", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:invalid_symbol#", 123)}, "Cluster.setOption: 'invalid_symbol#' is not a valid tag identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_invalid_builtin", 123)}, "Cluster.setOption: '_invalid_builtin' is not a valid built-in tag.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("unsupported_namespace:invalid_symbol#", 123)}, "Cluster.setOption: Namespace 'unsupported_namespace' not supported.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption(":invalid_symbol#", 123)}, "Cluster.setOption: ':invalid_symbol#' is not a valid identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:", 123)}, "Cluster.setOption: 'tag:' is not a valid identifier.", "ArgumentError");
+
+//@<> WL#13788 Built-in tag values are validated and throw error if value cannot be converted to expected type - TSFR1_5
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_hidden", "123")}, "Cluster.setOption: Built-in tag '_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_hidden", [true])}, "Cluster.setOption: Built-in tag '_hidden' is expected to be of type Bool, but is Array", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", "True")}, "Cluster.setOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", [123])}, "Cluster.setOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is Array", "TypeError");
+
+//@<> WL#13788 Validate cluster.options shows values about the tags set via setOption - TSFR1_7
+// we are using the output of cluster.options to validate the tag was set.
+EXPECT_ARRAY_NOT_CONTAINS("test_string", Object.keys(get_global_tags(cluster)));
+EXPECT_ARRAY_NOT_CONTAINS("test_int", Object.keys(get_global_tags(cluster)));
+EXPECT_ARRAY_NOT_CONTAINS("test_bool", Object.keys(get_global_tags(cluster)));
+
+cluster.setOption("tag:test_string", "test");
+cluster.setOption("tag:test_int", 123);
+cluster.setOption("tag:test_bool", true);
+
+EXPECT_ARRAY_CONTAINS("test_string", Object.keys(get_global_tags(cluster)));
+EXPECT_ARRAY_CONTAINS("test_int", Object.keys(get_global_tags(cluster)));
+EXPECT_ARRAY_CONTAINS("test_bool", Object.keys(get_global_tags(cluster)));
+EXPECT_TRUE(get_global_tags(cluster)["test_string"] === "test");
+EXPECT_TRUE(get_global_tags(cluster)["test_bool"] === true);
+EXPECT_TRUE(get_global_tags(cluster)["test_int"] === 123);
+
+
+//@<> WL#13788: SetOption must allow setting tags for instances as long as there is quorum TSFR1_6
+testutil.killSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
+
+// TSFR1_3 use setOption to set built-in tags and check that they are converted correctly if possible and saved with the expected type
+EXPECT_ARRAY_NOT_CONTAINS("_hidden", Object.keys(get_global_tags(cluster)));
+EXPECT_ARRAY_NOT_CONTAINS("_disconnect_existing_sessions_when_hidden", Object.keys(get_global_tags(cluster)));
+
+cluster.setOption("tag:_hidden", false);
+cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", true);
+
+EXPECT_ARRAY_CONTAINS("_hidden", Object.keys(get_global_tags(cluster)));
+EXPECT_ARRAY_CONTAINS("_disconnect_existing_sessions_when_hidden", Object.keys(get_global_tags(cluster)));
+EXPECT_TRUE(get_global_tags(cluster)["_hidden"] === false);
+EXPECT_TRUE(get_global_tags(cluster)["_disconnect_existing_sessions_when_hidden"] === true);
+
+cluster.setOption("tag:_hidden", 1);
+cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", 0.0);
+
+EXPECT_TRUE(get_global_tags(cluster)["_hidden"] === true);
+EXPECT_TRUE(get_global_tags(cluster)["_disconnect_existing_sessions_when_hidden"] === false);
+
+cluster.setOption("tag:_hidden", "false");
+cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", "true");
+
+EXPECT_TRUE(get_global_tags(cluster)["_hidden"] === false);
+EXPECT_TRUE(get_global_tags(cluster)["_disconnect_existing_sessions_when_hidden"] === true);
+
+cluster.setOption("tag:_hidden", -1);
+cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", 0.1);
+
+EXPECT_TRUE(get_global_tags(cluster)["_hidden"] === true);
+EXPECT_TRUE(get_global_tags(cluster)["_disconnect_existing_sessions_when_hidden"] === true);
+
+//@<> WL#13788: TSFR3_2 Setting a null value to a tag, removes the tag from the metadata
+EXPECT_ARRAY_CONTAINS("_hidden", Object.keys(get_global_tags(cluster)));
+cluster.setOption("tag:_hidden", null);
+EXPECT_ARRAY_NOT_CONTAINS("_hidden", Object.keys(get_global_tags(cluster)));
+
+// Setting a non existing tag to null, throws no error
+EXPECT_NO_THROWS(function(){cluster.setOption("tag:non_existing", null)});
+EXPECT_ARRAY_NOT_CONTAINS("non_existing", Object.keys(get_global_tags(cluster)));
+
+//@<> WL#13788: SetOption must not allow setting tags for instances if there is no quorum TSFR1_6
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:test1", "test")}, "There is no quorum to perform the operation", "RuntimeError");
+
 //@<> Finalization
+cluster.disconnect();
+session.close();
 scene.destroy();

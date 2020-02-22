@@ -203,7 +203,12 @@ ${*}
                 "option": "disableClone", 
                 "value": [[*]]
             }
-        ], 
+        ],
+        "tags": {
+            "global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": []
+        },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {

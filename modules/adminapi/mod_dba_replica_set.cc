@@ -102,6 +102,10 @@ void ReplicaSet::init() {
          "?options");
   expose("setupRouterAccount", &ReplicaSet::setup_router_account, "user",
          "?options");
+  expose("options", &ReplicaSet::options);
+  expose("setOption", &ReplicaSet::set_option, "option", "value");
+  expose("setInstanceOption", &ReplicaSet::set_instance_option, "instanceDef",
+         "option", "value");
 
   // TODO(alfredo):
   // - dissolve()
@@ -1129,6 +1133,127 @@ void ReplicaSet::setup_router_account(const std::string &user,
 
   m_impl->setup_router_account(username, host, interactive, update, dry_run,
                                password);
+}
+
+REGISTER_HELP_FUNCTION(options, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_OPTIONS, R"*(
+Lists the ReplicaSet configuration options.
+
+@returns A JSON object describing the configuration options of the ReplicaSet.
+
+This function lists the configuration options for the ReplicaSet and
+its instances.
+
+@throw MetadataError in the following scenarios:
+@li If the Metadata is inaccessible.
+)*");
+
+/**
+ * $(REPLICASET_OPTIONS_BRIEF)
+ *
+ * $(REPLICASET_OPTIONS)
+ */
+#if DOXYGEN_JS
+String ReplicaSet::options() {}
+#elif DOXYGEN_PY
+str ReplicaSet::options() {}
+#endif
+
+shcore::Value ReplicaSet::options() {
+  // Throw an error if the replicaset is invalid
+  assert_valid("options");
+
+  return execute_with_pool([&]() { return impl()->options(); }, false);
+}
+
+REGISTER_HELP_FUNCTION(setOption, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_SETOPTION, R"*(
+Changes the value of an option for the whole ReplicaSet.
+
+@param option The option to be changed.
+@param value The value that the option shall get.
+
+@returns Nothing.
+
+This function changes an option for the ReplicaSet.
+
+The accepted options are:
+${NAMESPACE_TAG}
+
+${NAMESPACE_TAG_DETAIL_REPLICASET}
+
+@throw ArgumentError in the following scenarios:
+@li If the 'option' parameter is empty.
+@li If the 'value' parameter is empty.
+@li If the 'option' parameter is invalid.
+)*");
+
+/**
+ * $(REPLICASET_SETOPTION_BRIEF)
+ *
+ * $(REPLICASET_SETOPTION)
+ */
+#if DOXYGEN_JS
+Undefined ReplicaSet::setOption(String option, String value) {}
+#elif DOXYGEN_PY
+None ReplicaSet::set_option(str option, str value) {}
+#endif
+
+void ReplicaSet::set_option(const std::string &option,
+                            const shcore::Value &value) {
+  assert_valid("setOption");
+
+  m_impl->set_option(option, value);
+}
+
+REGISTER_HELP_FUNCTION(setInstanceOption, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(ReplicaSet_SETINSTANCEOPTION, R"*(
+Changes the value of an option in a ReplicaSet member.
+
+@param instance host:port of the target instance.
+@param option The option to be changed.
+@param value The value that the option shall get.
+
+@returns Nothing.
+
+This function changes an option for a member of the ReplicaSet.
+
+The accepted options are:
+${NAMESPACE_TAG}
+
+${NAMESPACE_TAG_DETAIL_REPLICASET}
+
+${NAMESPACE_TAG_INSTANCE_DETAILS_EXTRA}
+
+@throw ArgumentError in the following scenarios:
+@li If the 'instance' parameter is empty.
+@li If the 'instance' parameter is invalid.
+@li If the 'option' parameter is empty.
+@li If the 'value' parameter is empty.
+@li If the 'option' parameter is invalid.
+
+@throw RuntimeError in the following scenarios:
+@li If 'instance' does not refer to a replicaSet member.
+)*");
+
+/**
+ * $(REPLICASET_SETINSTANCEOPTION_BRIEF)
+ *
+ * $(REPLICASET_SETINSTANCEOPTION)
+ */
+#if DOXYGEN_JS
+Undefined ReplicaSet::setInstanceOption(String instance, String option,
+                                        String value) {}
+#elif DOXYGEN_PY
+None ReplicaSet::set_instance_option(str instance, str option, str value);
+#endif
+void ReplicaSet::set_instance_option(const std::string &instance_def,
+                                     const std::string &option,
+                                     const shcore::Value &value) {
+  assert_valid("setInstanceOption");
+
+  // Set the option in the Default ReplicaSet
+  m_impl->set_instance_option(instance_def, option, value);
 }
 
 }  // namespace dba

@@ -30,6 +30,12 @@
                 "value": false
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": []
+        },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
@@ -181,6 +187,12 @@
                 "value": true
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": []
+        },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
@@ -339,6 +351,12 @@
                 "value": false
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": []
+        },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
@@ -351,7 +369,7 @@
                 },
 ?{VER(>=8.0.21)}
                 {
-                    "value": "DEFAULT",
+                    "value": "[[*]]",
                     "variable": "group_replication_advertise_recovery_endpoints"
                 },
 ?{}
@@ -603,7 +621,7 @@
                 },
 ?{VER(>=8.0.21)}
                 {
-                    "value": "DEFAULT",
+                    "value": "[[*]]",
                     "variable": "group_replication_advertise_recovery_endpoints"
                 },
 ?{}
@@ -855,7 +873,7 @@
                 },
 ?{VER(>=8.0.21)}
                 {
-                    "value": "DEFAULT",
+                    "value": "[[*]]",
                     "variable": "group_replication_advertise_recovery_endpoints"
                 },
 ?{}
@@ -1120,6 +1138,12 @@
                 "value": true
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": []
+        },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
@@ -1134,6 +1158,12 @@
                     "value": "OFF",
                     "variable": "group_replication_allow_local_disjoint_gtids_join"
                 },
+?{VER(>=8.0.21)}
+                {
+                    "value": "[[*]]",
+                    "variable": "group_replication_advertise_recovery_endpoints"
+                },
+?{}
                 {
                     "value": "OFF",
                     "variable": "group_replication_allow_local_lower_version_join"
@@ -1625,6 +1655,12 @@
                 "value": true
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": []
+        },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
@@ -1698,6 +1734,12 @@
                 "value": false
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": []
+        },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {

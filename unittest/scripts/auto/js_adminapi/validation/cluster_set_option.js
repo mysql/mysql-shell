@@ -115,6 +115,12 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                 "value": false
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": []
+        },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
@@ -272,6 +278,12 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                 "value": true
             }
         ],
+        "tags": {
+            "global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": []
+        },
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {

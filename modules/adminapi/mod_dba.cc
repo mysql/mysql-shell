@@ -220,6 +220,42 @@ std::set<std::string> Dba::_stop_instance_opts = {"sandboxDir", "password"};
 std::set<std::string> Dba::_default_local_instance_opts = {"sandboxDir"};
 
 /*
+ * Global helper text for setOption and setInstance Option namespaces
+ */
+REGISTER_HELP(NAMESPACE_TAG,
+              "@li tag:@<option@>: built-in and user-defined tags to be "
+              "associated to the Cluster.");
+
+REGISTER_HELP_DETAIL_TEXT(NAMESPACE_TAG_DETAIL_CLUSTER, R"*(
+<b>Tags</b>
+
+Tags make it possible to associate custom key/value pairs to a Cluster,
+storing them in its metadata. Custom tag names can be any string
+starting with letters and followed by letters, numbers and _.
+Tag values may be any JSON value. If the value is null, the tag is deleted.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(NAMESPACE_TAG_DETAIL_REPLICASET, R"*(
+<b>Tags</b>
+
+Tags make it possible to associate custom key/value pairs to a ReplicaSet,
+storing them in its metadata. Custom tag names can be any string
+starting with letters and followed by letters, numbers and _.
+Tag values may be any JSON value. If the value is null, the tag is deleted.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(NAMESPACE_TAG_INSTANCE_DETAILS_EXTRA, R"*(
+The following pre-defined tags are available:
+@li _hidden: bool - instructs the router to exclude the instance from the
+list of possible destinations for client applications.
+@li _disconnect_existing_sessions_when_hidden: bool - instructs the router
+to disconnect existing connections from instances that are marked to be hidden.
+@note '_hidden' and '_disconnect_existing_sessions_when_hidden' can be useful to shut
+down the instance and perform maintenance on it without disrupting incoming
+application traffic.
+)*");
+
+/*
  * Global helper text for InnoDB Cluster configuration options used in:
  *  - dba.createCluster()
  *  - Cluster.addInstance()

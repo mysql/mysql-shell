@@ -95,6 +95,33 @@ rs.help("status");
 //@ Status \? [USE:Status]
 \? ReplicaSet.status
 
+//@ options
+rs.help("options")
+
+//@ options. \? [USE:options]
+\? ReplicaSet.options
+
+//@ options. \help [USE:options]
+\help ReplicaSet.options
+
+//@ setOption
+rs.help("setOption")
+
+//@ setOption. \? [USE:setOption]
+\? ReplicaSet.setOption
+
+//@ setOption. \help [USE:setOption]
+\help ReplicaSet.setOption
+
+//@ setInstanceOption
+rs.help("setInstanceOption")
+
+//@ setInstanceOption. \? [USE:setInstanceOption]
+\? ReplicaSet.setInstanceOption
+
+//@ setInstanceOption. \help [USE:setInstanceOption]
+\help ReplicaSet.setInstanceOption
+
 //@<> Clean-up.
 rs.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);

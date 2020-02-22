@@ -100,6 +100,7 @@ constexpr const char kAutoRejoinTries[] = "autoRejoinTries";
 constexpr const char kGrAutoRejoinTries[] =
     "group_replication_autorejoin_tries";
 constexpr const char kDisableClone[] = "disableClone";
+constexpr const char kTags[] = "tags";
 constexpr const char kGtidSetIsComplete[] = "gtidSetIsComplete";
 
 // Group Replication configuration option availability regarding MySQL Server
@@ -151,6 +152,14 @@ const std::map<std::string, Option_availability>
          {kGrConsistency, mysqlshdk::utils::Version("8.0.14"), {}}},
         {kAutoRejoinTries,
          {kGrAutoRejoinTries, mysqlshdk::utils::Version("8.0.16"), {}}}};
+
+/**
+ * List with the supported build-in tags for setOption and setInstanceOption
+ */
+typedef std::map<std::string, shcore::Value_type> built_in_tags_map_t;
+const built_in_tags_map_t k_supported_set_option_tags{
+    {"_hidden", shcore::Value_type::Bool},
+    {"_disconnect_existing_sessions_when_hidden", shcore::Value_type::Bool}};
 
 /**
  * Map of the supported global Cluster configuration options in the AdminAPI

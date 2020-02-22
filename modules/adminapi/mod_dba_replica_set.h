@@ -62,6 +62,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   Boolean removeRouterMetadata(RouterDef routerDef);
   Undefined setupAdminAccount(String user, Dictionary options);
   Undefined setupRouterAccount(String user, Dictionary options);
+  Undefined setOption(String option, String value);
+  Undefined setInstanceOption(String instance, String option, String value);
+  String options(Dictionary options);
 #elif DOXYGEN_PY
   str name;  //!< $(REPLICASET_GETNAME_BRIEF)
   None add_instance(str instance, dict options);
@@ -78,6 +81,9 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   bool remove_router_metadata(RouterDef routerDef);
   None setup_admin_account(str user, dict options);
   None setup_router_account(str user, dict options);
+  str options();
+  None set_option(str option, str value);
+  None set_instance_option(str instance, str option, str value);
 #endif
 
   explicit ReplicaSet(const std::shared_ptr<Replica_set_impl> &cluster);
@@ -131,6 +137,14 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
 
   void setup_router_account(const std::string &user,
                             const shcore::Dictionary_t &options);
+
+  shcore::Value options();
+
+  void set_option(const std::string &option, const shcore::Value &value);
+
+  void set_instance_option(const std::string &instance_def,
+                           const std::string &option,
+                           const shcore::Value &value);
 
  protected:
   void init();

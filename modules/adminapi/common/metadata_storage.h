@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -160,6 +160,48 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void update_instance_attribute(const std::string &uuid,
                                  const std::string &attribute,
                                  const shcore::Value &value);
+
+  /**
+   * Update the information on the metadata about a tag set on the instance with
+   * the given uuid.
+   * @param uuid The uuid of the instance
+   * @param tagname string with the name of the tag
+   * @param value: Value of the tag.
+   * If the value is null, the provided tag will be dropped from the metadata of
+   * the instance.
+   */
+  void set_instance_tag(const std::string &uuid, const std::string &tagname,
+                        const shcore::Value &value);
+
+  /**
+   * Update the information on the metadata about a tag set on the cluster with
+   * the given uuid.
+   * @param uuid The uuid of the cluster
+   * @param tagname string with the name of the tag
+   * @param value: Value of the tag.
+   * If the value is null, the provided tag will be dropped from the metadata of
+   * the instance.
+   */
+  void set_cluster_tag(const std::string &uuid, const std::string &tagname,
+                       const shcore::Value &value);
+
+  /**
+   * Returns the list of tags for a given instance stored on the metadata
+   * @param uuid The uuid of the instance
+   * @return string with the json object representation of the tags for the
+   * given instance. Empty string means there are no tags.
+   */
+  std::string get_instance_tags(const std::string &uuid) const;
+
+  /**
+   * Returns the list of tags for a given cluster/replicaset stored on the
+   * metadata
+   * @param uuid The uuid of the cluster/replicaset
+   * @return string with the json object representation of the tags for the
+   * given cluster/replicaset. Empty string means there are no tags.
+   */
+  std::string get_cluster_tags(const std::string &uuid) const;
+
   /**
    * Update the information on the metadata about the recovery user being used
    * by the instance with the given uuid.
@@ -339,6 +381,15 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void begin_acl_change_record(const Cluster_id &cluster_id,
                                const char *operation, uint32_t *out_aclvid,
                                uint32_t *last_aclvid);
+
+  void set_table_tag(const std::string &tablename,
+                     const std::string &uuid_column_name,
+                     const std::string &uuid, const std::string &tagname,
+                     const shcore::Value &value);
+
+  std::string get_table_tags(const std::string &tablename,
+                             const std::string &uuid_column_name,
+                             const std::string &uuid) const;
 
   class Transaction;
   friend class Transaction;

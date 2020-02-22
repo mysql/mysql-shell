@@ -22,8 +22,8 @@ Cluster.setInstanceOption: The instance 'localhost:<<<__mysql_sandbox_port2>>>' 
 //@ WL#11465: F2.2.1.2 - Add instance 2 back to the cluster
 ||
 
-//@<ERR> WL#11465: Error when executing setInstanceOption when the target instance is not ONLINE
-Cluster.setInstanceOption: The instance 'localhost:<<<__mysql_sandbox_port3>>>' is not ONLINE. (RuntimeError)
+//@<ERR> WL#11465: Error when executing setInstanceOption when the target instance is not reachable
+Cluster.setInstanceOption: The instance 'localhost:<<<__mysql_sandbox_port3>>>' is not reachable. (RuntimeError)
 
 //@<ERR> WL#11465: Error when executing setInstanceOption on a cluster with no visible quorum {VER(>=8.0.14)}
 Cluster.setInstanceOption: There is no quorum to perform the operation (RuntimeError)
@@ -111,6 +111,3 @@ Successfully set the value of 'autoRejoinTries' to '0' in the cluster member: 'l
 //@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 3 {VER(>=8.0.16)}
 |0|
 |0|
-
-//@ WL#11465: Finalization
-||

@@ -96,6 +96,8 @@ class Replica_set_impl : public Base_cluster_impl {
   void force_primary_instance(const std::string &instance_def, uint32_t timeout,
                               bool invalidate_error_instances, bool dry_run);
 
+  shcore::Value options();
+
   void dissolve(const shcore::Dictionary_t & /*opts*/ = {}) {
     check_preconditions("dissolve");
     throw std::logic_error("not supported");
@@ -138,13 +140,17 @@ class Replica_set_impl : public Base_cluster_impl {
   void drop_replication_user(mysqlshdk::mysql::IInstance *slave);
 
  private:
+  void _set_option(const std::string &option,
+                   const shcore::Value &value) override;
+
+  void _set_instance_option(const std::string &instance_def,
+                            const std::string &option,
+                            const shcore::Value &value) override;
+
   void create(const std::string &instance_label, bool dry_run);
 
   void adopt(Global_topology_manager *topology,
              const std::string &instance_label, bool dry_run);
-
-  Cluster_check_info check_preconditions(
-      const std::string &function_name) const override;
 
   void validate_add_instance(Global_topology_manager *topology,
                              mysqlshdk::mysql::IInstance *master,
