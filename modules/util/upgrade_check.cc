@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -963,7 +963,8 @@ std::vector<Upgrade_issue> Config_check::run(
   std::vector<Upgrade_issue> res;
   for (const auto &group : cf.groups()) {
     for (const auto &option : cf.options(group)) {
-      const auto it = m_vars.find(option);
+      auto standardized = shcore::str_replace(option, "-", "_");
+      const auto it = m_vars.find(standardized);
       if (it == m_vars.end()) continue;
       if (m_mode == Mode::FLAG_DEFINED) {
         Upgrade_issue issue;
