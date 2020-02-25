@@ -2900,6 +2900,9 @@ TEST_F(Interactive_shell_test, sql_source_cmd) {
   if (!std::ifstream(file_name).good()) {
     std::ofstream f(file_name);
     f << "select 2;\n";
+    f << "select 3,\n"
+         "       4,\n"
+         "       5;\n";
     f.close();
   }
 
@@ -2917,39 +2920,39 @@ TEST_F(Interactive_shell_test, sql_source_cmd) {
   };
 
   execute("select 1; \\source " + file_name);
-  EXPECT_EQ(2, times_in_output("1 row in set"));
+  EXPECT_EQ(3, times_in_output("1 row in set"));
   EXPECT_TRUE(output_handler.std_err.empty());
 
   execute("\\history clear");
   wipe_all();
 
   execute("select 1; \\. " + file_name);
-  EXPECT_EQ(2, times_in_output("1 row in set"));
+  EXPECT_EQ(3, times_in_output("1 row in set"));
   EXPECT_TRUE(output_handler.std_err.empty());
 
   execute("\\history clear");
   wipe_all();
 
   execute("source " + file_name + "; select 1;");
-  EXPECT_EQ(2, times_in_output("1 row in set"));
+  EXPECT_EQ(3, times_in_output("1 row in set"));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
 
   execute("SoUrce " + file_name);
-  MY_EXPECT_STDOUT_CONTAINS("1 row in set");
+  EXPECT_EQ(2, times_in_output("1 row in set"));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
 
   execute("select 'sabra'; SOURCE " + file_name + ";");
   MY_EXPECT_STDOUT_CONTAINS("sabra");
-  MY_EXPECT_STDOUT_CONTAINS("2");
+  EXPECT_EQ(3, times_in_output("1 row in set"));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
 
   execute("delimiter sr");
   execute("SOURCE " + file_name + " sr");
   execute("delimiter ;");
-  MY_EXPECT_STDOUT_CONTAINS("2");
+  EXPECT_EQ(2, times_in_output("1 row in set"));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
 

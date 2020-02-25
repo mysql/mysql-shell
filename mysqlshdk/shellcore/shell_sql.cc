@@ -78,17 +78,21 @@ Shell_sql::Context::Context(Shell_sql *parent)
   parent->m_splitter = &splitter;
 }
 
-Shell_sql::Context_switcher::Context_switcher(Shell_sql *parent)
-    : m_parent(parent) {
-  parent->m_context_stack.emplace(parent);
+Shell_sql::Context_switcher::Context_switcher(Shell_sql *parent,
+                                              const Input_state &state)
+    : m_parent(parent), m_state(state) {
+  if (m_state != Input_state::ContinuedSingle)
+    parent->m_context_stack.emplace(parent);
 }
 
 Shell_sql::Context_switcher::~Context_switcher() {
-  assert(m_parent->m_context_stack.size() > 1);
-  m_parent->m_context_stack.pop();
-  auto &new_context = m_parent->m_context_stack.top();
-  m_parent->m_buffer = &new_context.buffer;
-  m_parent->m_splitter = &new_context.splitter;
+  if (m_state != Input_state::ContinuedSingle &&
+      m_parent->m_context_stack.size() > 1) {
+    m_parent->m_context_stack.pop();
+    auto &new_context = m_parent->m_context_stack.top();
+    m_parent->m_buffer = &new_context.buffer;
+    m_parent->m_splitter = &new_context.splitter;
+  }
 }
 
 Shell_sql::Shell_sql(IShell_core *owner) : Shell_language(owner) {
@@ -252,6 +256,7 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
     for (const auto s : {m_splitter->delimiter().c_str(), "\\G", "\\g"})
       if (code.find(s) != std::string::npos) {
         statement_complete = true;
+        context_switcher = std::make_unique<Context_switcher>(this, state);
         break;
       }
     // no need to re-parse code until statement is complete
@@ -261,7 +266,7 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
       return;
     }
   } else if (!m_buffer->empty()) {
-    context_switcher = std::make_unique<Context_switcher>(this);
+    context_switcher = std::make_unique<Context_switcher>(this, state);
   }
 
   state = Input_state::Ok;

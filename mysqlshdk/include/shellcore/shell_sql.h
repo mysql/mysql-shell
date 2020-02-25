@@ -91,7 +91,7 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
 
   class Context_switcher {
    public:
-    explicit Context_switcher(Shell_sql *parent);
+    explicit Context_switcher(Shell_sql *parent, const Input_state &state);
     ~Context_switcher();
 
    private:
@@ -101,6 +101,7 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
     Context_switcher &operator=(Context_switcher const &&) = delete;
 
     Shell_sql *m_parent;
+    const Input_state &m_state;
   };
 
   std::stack<Context> m_context_stack;
