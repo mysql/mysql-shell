@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -399,8 +399,7 @@ std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
     session->connect(copy);
   } catch (const mysqlshdk::db::Error &e) {
     if (connection_error.empty()) {
-      throw shcore::Exception::mysql_error_with_code_and_state(
-          e.what(), e.code(), e.sqlstate());
+      throw;
     } else {
       // If an error was cached for the X protocol connection
       // it is included on a new exception
@@ -448,66 +447,67 @@ void password_prompt(Connection_options *options) {
 std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     const Connection_options &options, bool prompt_for_password,
     bool prompt_in_loop) {
-  Connection_options copy = options;
+  try {
+    Connection_options copy = options;
 
-  copy.set_default_connection_data();
+    copy.set_default_connection_data();
 
-  if (!copy.has_password()) {
-    if (shcore::Credential_manager::get().get_password(&copy)) {
-      try {
-        return create_session(copy);
-      } catch (const mysqlshdk::db::Error &e) {
-        if (e.code() != ER_ACCESS_DENIED_ERROR) {
-          throw shcore::Exception::mysql_error_with_code_and_state(
-              e.what(), e.code(), e.sqlstate());
-        } else {
-          copy.clear_password();
-          shcore::Credential_manager::get().remove_password(copy);
-          log_info(
-              "Connection to \"%s\" could not be established using the "
-              "stored "
-              "password: %s. "
-              "Invalid password has been erased.",
-              copy.as_uri(mysqlshdk::db::uri::formats::user_transport())
-                  .c_str(),
-              e.format().c_str());
+    if (!copy.has_password()) {
+      if (shcore::Credential_manager::get().get_password(&copy)) {
+        try {
+          return create_session(copy);
+        } catch (const mysqlshdk::db::Error &e) {
+          if (e.code() != ER_ACCESS_DENIED_ERROR) {
+            throw;
+          } else {
+            copy.clear_password();
+            shcore::Credential_manager::get().remove_password(copy);
+            log_info(
+                "Connection to \"%s\" could not be established using the "
+                "stored password: %s. Invalid password has been erased.",
+                copy.as_uri(mysqlshdk::db::uri::formats::user_transport())
+                    .c_str(),
+                e.format().c_str());
+          }
         }
       }
     }
-  }
 
-  if (prompt_for_password) {
-    do {
-      bool prompted_for_password = false;
+    if (prompt_for_password) {
+      do {
+        bool prompted_for_password = false;
 
-      if (!copy.has_password()) {
-        password_prompt(&copy);
-        prompted_for_password = true;
-      }
-
-      try {
-        auto session = create_session(copy);
-
-        if (prompted_for_password) {
-          // save password using the same connection options as the ones used
-          // to fetch the password from the secret storage
-          shcore::Credential_manager::get().save_password(copy);
+        if (!copy.has_password()) {
+          password_prompt(&copy);
+          prompted_for_password = true;
         }
 
-        return session;
-      } catch (const mysqlshdk::db::Error &e) {
-        if (!prompt_in_loop || e.code() != ER_ACCESS_DENIED_ERROR) {
-          throw shcore::Exception::mysql_error_with_code_and_state(
-              e.what(), e.code(), e.sqlstate());
-        } else {
-          copy.clear_password();
-          current_console()->print_error(e.format());
-        }
-      }
-    } while (prompt_in_loop);
-  }
+        try {
+          auto session = create_session(copy);
 
-  return create_session(copy);
+          if (prompted_for_password) {
+            // save password using the same connection options as the ones used
+            // to fetch the password from the secret storage
+            shcore::Credential_manager::get().save_password(copy);
+          }
+
+          return session;
+        } catch (const mysqlshdk::db::Error &e) {
+          if (!prompt_in_loop || e.code() != ER_ACCESS_DENIED_ERROR) {
+            throw;
+          } else {
+            copy.clear_password();
+            current_console()->print_error(e.format());
+          }
+        }
+      } while (prompt_in_loop);
+    }
+
+    return create_session(copy);
+  } catch (const mysqlshdk::db::Error &e) {
+    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
+                                                             e.sqlstate());
+  }
 }
 
 std::shared_ptr<mysqlshdk::db::ISession> establish_mysql_session(
