@@ -1,3 +1,4 @@
+//@{WARNING_SKIPPED_TEST("This test is causing problems on master and is temporarily disabled.")}
 // Assumptions: smart deployment functions available
 
 //@ Initialization

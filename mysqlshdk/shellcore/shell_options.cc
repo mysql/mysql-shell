@@ -48,7 +48,7 @@ bool Shell_options::Storage::has_connection_data() const {
   return !uri.empty() || !user.empty() || !host.empty() || !schema.empty() ||
          !sock.is_null() || port != 0 || password != NULL || prompt_password ||
          !m_connect_timeout.empty() || ssl_options.has_data() ||
-         !compress.empty() || !compress_algorithm.empty() ||
+         !compress.empty() || !compress_algorithms.empty() ||
          !compress_level.is_null();
 }
 
@@ -96,7 +96,7 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
   shcore::update_connection_data(
       &target_server, user, password, host, port, sock, schema, ssl_options,
       auth_method, get_server_public_key, server_public_key_path,
-      m_connect_timeout, compress, compress_algorithm, compress_level);
+      m_connect_timeout, compress, compress_algorithms, compress_level);
 
   if (no_password && !target_server.has_password()) {
     target_server.set_password("");
@@ -206,7 +206,7 @@ Shell_options::Shell_options(int argc, char **argv,
         [this](const std::string&, const char* value) {
           storage.compress = value == nullptr ? "REQUIRED" : value;
         })
-    (&storage.compress_algorithm, "",
+    (&storage.compress_algorithms, "",
         cmdline("--compression-algorithms=<list>"),
         "Use compression algorithm in server/client protocol. Expects comma "
         "separated list of algorithms. Supported algorithms include "
@@ -215,10 +215,13 @@ Shell_options::Shell_options(int argc, char **argv,
         "succeed even if compression negotiation fails.")
     (cmdline("--compression-level=<int>", "--zstd-compression-level=<int>"),
         "Use this compression level in the client/server protocol. "
-        "Supported by zstd algorithm in classic protocol.",
-        [this](const std::string&, const char* value) {
+        "Supported by X protocol and zstd compression in classic protocol.",
+        [this](const std::string& opt, const char* value) {
           try {
-            storage.compress_level = shcore::lexical_cast<int>(value);
+            storage.compress_level = shcore::lexical_cast<int64_t>(value);
+            if (opt == "--zstd-compression-level"
+                && storage.compress_algorithms.empty())
+              storage.compress_algorithms = "zstd";
           } catch(...) {
             throw std::invalid_argument(
                 "The value of 'compression-level' must be an integer.");

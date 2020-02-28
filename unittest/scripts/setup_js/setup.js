@@ -842,3 +842,7 @@ function validate_crud_functions(crud, expected) {
     print("Extra Functions:", actual);
   }
 }
+
+function WARNING_SKIPPED_TEST(reason) {
+  return false;
+}

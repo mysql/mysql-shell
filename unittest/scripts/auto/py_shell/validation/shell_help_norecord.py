@@ -1226,8 +1226,13 @@ algorithms include:
 If "compression" connection option is not defined, its value will be deduced
 from "compression-algorithms" value when it is provided.
 
-"compression-level" is only supported by zstd algorithm in classic protocol.
-Valid range for this parameter is 1-22 (default is 3).
+"compression-level" expects an integer value. Valid range depends on the
+compression algorithm and server configuration, but generally following is
+expected:
+
+- zstd: 1-22 (default 3)
+- zlib: 1-9 (default 3), supported only by X protocol
+- lz4: 0-16 (default 2), supported only by X protocol.
 
 Connection Attributes
 
@@ -1484,8 +1489,13 @@ algorithms include:
 If "compression" connection option is not defined, its value will be deduced
 from "compression-algorithms" value when it is provided.
 
-"compression-level" is only supported by zstd algorithm in classic protocol.
-Valid range for this parameter is 1-22 (default is 3).
+"compression-level" expects an integer value. Valid range depends on the
+compression algorithm and server configuration, but generally following is
+expected:
+
+- zstd: 1-22 (default 3)
+- zlib: 1-9 (default 3), supported only by X protocol
+- lz4: 0-16 (default 2), supported only by X protocol.
 
 Connection Attributes
 

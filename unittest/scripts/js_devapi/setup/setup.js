@@ -361,3 +361,6 @@ function EXPECT_STDOUT_CONTAINS(text) {
   }
 }
 
+function WARNING_SKIPPED_TEST(reason) {
+  return false;
+}

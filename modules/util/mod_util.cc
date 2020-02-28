@@ -395,16 +395,20 @@ void check_upgrade(const Connection_options &connection_options,
   if (row == nullptr)
     throw std::runtime_error("Unable to get information about a user");
 
-  std::string user;
-  std::string host;
-  shcore::split_account(row->get_string(0), &user, &host, true);
-  if (user != "skip-grants user" && host != "skip-grants host") {
-    mysqlshdk::mysql::Instance instance(session);
-    auto res = instance.get_user_privileges(user, host)->validate({"all"});
-    if (res.has_missing_privileges())
-      throw std::invalid_argument(
-          "The upgrade check needs to be performed by user with ALL "
-          "privileges.");
+  try {
+    std::string user;
+    std::string host;
+    shcore::split_account(row->get_string(0), &user, &host, true);
+    if (user != "skip-grants user" && host != "skip-grants host") {
+      mysqlshdk::mysql::Instance instance(session);
+      auto res = instance.get_user_privileges(user, host)->validate({"all"});
+      if (res.has_missing_privileges())
+        throw std::invalid_argument(
+            "The upgrade check needs to be performed by user with ALL "
+            "privileges.");
+    }
+  } catch (const std::runtime_error &e) {
+    log_error("Unable to check permissions: %s", e.what());
   }
 
   auto version_result = session->query(

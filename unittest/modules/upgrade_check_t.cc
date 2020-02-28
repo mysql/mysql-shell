@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -728,10 +728,12 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
         "To run this check requires full path to MySQL server configuration "
         "file to be specified at 'configPath' key of options dictionary");
     opts.config_path.assign(
-        shcore::path::join_path(g_test_home, "data", "config", "my.cnf"));
+        shcore::path::join_path(g_test_home, "data", "config", "uc.cnf"));
     EXPECT_NO_THROW(issues = check->run(session, opts));
-    EXPECT_TRUE(issues.empty());
     opts.config_path.clear();
+    EXPECT_EQ(2, issues.size());
+    EXPECT_EQ("max_tmp_tables", issues[0].schema);
+    EXPECT_EQ("query-cache-type", issues[1].schema);
   } else {
     ASSERT_NO_THROW(issues = check->run(session, opts));
     EXPECT_TRUE(issues.empty());
@@ -756,7 +758,7 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults) {
   opts.config_path.assign(
       shcore::path::join_path(g_test_home, "data", "config", "my.cnf"));
   EXPECT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_EQ(26, issues.size());
+  EXPECT_EQ(25, issues.size());
   EXPECT_EQ("back_log", issues[0].schema);
   EXPECT_EQ("transaction_write_set_extraction", issues.back().schema);
   opts.config_path.clear();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -779,8 +779,13 @@ connection to succeed even if compression negotiation fails.
 If "compression" connection option is not defined, its value will be deduced
 from "compression-algorithms" value when it is provided.
 
-"compression-level" is only supported by zstd algorithm in classic protocol.
-Valid range for this parameter is 1-22 (default is 3).
+"compression-level" expects an integer value. Valid range depends on the
+compression algorithm and server configuration, but generally following is
+expected:
+
+@li zstd: 1-22 (default 3)
+@li zlib: 1-9 (default 3), supported only by X protocol
+@li lz4: 0-16 (default 2), supported only by X protocol.
 )*");
 
 REGISTER_HELP(TOPIC_CONNECTION_OPTION_SSL_MODE, "<b>SSL Mode</b>");

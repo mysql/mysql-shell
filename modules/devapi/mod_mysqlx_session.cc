@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1012,13 +1012,20 @@ shcore::Value::Map_type_ref Session::get_status() {
     }
 
     result = execute_sql(
-        "show session status like 'Mysqlx_bytes_sent_compressed_payload';");
+        "show status where variable_name in "
+        "('Mysqlx_bytes_sent_compressed_payload', "
+        "'Mysqlx_compression_algorithm');");
     row = result->fetch_one();
     if (row && !row->is_null(1) &&
-        shcore::lexical_cast<int>(row->get_string(1), 0) > 0)
-      (*status)["COMPRESSION"] = shcore::Value(std::string("Enabled"));
-    else
+        shcore::lexical_cast<int>(row->get_string(1), 0) > 0) {
+      std::string compr_status = "Enabled";
+      row = result->fetch_one();
+      if (row && !row->is_null(1) && !row->get_string(1).empty())
+        compr_status += " (" + row->get_string(1) + ")";
+      (*status)["COMPRESSION"] = shcore::Value(compr_status);
+    } else {
       (*status)["COMPRESSION"] = shcore::Value(std::string("Disabled"));
+    }
 
     result = execute_sql("SHOW GLOBAL STATUS LIKE 'Uptime';");
     row = result->fetch_one();

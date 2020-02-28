@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -700,7 +700,7 @@ TEST_F(Shell_cmdline_options, default_values) {
   EXPECT_FALSE(options.show_column_type_info);
   EXPECT_TRUE(options.compress.empty());
   EXPECT_FALSE(options.default_compress);
-  EXPECT_TRUE(options.compress_algorithm.empty());
+  EXPECT_TRUE(options.compress_algorithms.empty());
   EXPECT_TRUE(options.compress_level.is_null());
 }
 

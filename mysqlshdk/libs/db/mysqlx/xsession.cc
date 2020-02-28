@@ -267,6 +267,14 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
         xcl::XSession::Mysqlx_option::Compression_algorithms, av);
   }
 
+  if (_connection_options.has_compression_level()) {
+    auto level = _connection_options.get_compression_level();
+    _mysql->set_mysql_option(
+        xcl::XSession::Mysqlx_option::Compression_level_server, level);
+    _mysql->set_mysql_option(
+        xcl::XSession::Mysqlx_option::Compression_level_client, level);
+  }
+
   bool user_defined_connection_attributes = false;
   if (_connection_options.is_connection_attributes_enabled()) {
     auto attrs = _mysql->get_connect_attrs();
