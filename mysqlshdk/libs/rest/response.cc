@@ -109,6 +109,8 @@ std::string Response::status_code(Status_code c) {
       return std::string{"Expectation Failed"};
     case Status_code::UPGRADE_REQUIRED:
       return std::string{"Upgrade Required"};
+    case Status_code::TOO_MANY_REQUESTS:
+      return std::string{"Too Many Requests"};
     case Status_code::INTERNAL_SERVER_ERROR:
       return std::string{"Internal Server Error"};
     case Status_code::NOT_IMPLEMENTED:
@@ -125,12 +127,15 @@ std::string Response::status_code(Status_code c) {
   return std::string{"Unknown HTTP status code"};
 }
 
+bool Response::is_json(const Headers &hdrs) {
+  const auto content_type = hdrs.find(k_content_type);
+  return content_type != hdrs.end() &&
+         shcore::str_ibeginswith(content_type->second, k_application_json);
+}
+
 shcore::Value Response::json() const {
-  const auto content_type = headers.find(k_content_type);
-  if (content_type != headers.end() &&
-      shcore::str_ibeginswith(content_type->second, k_application_json) &&
-      !body.get_string().empty()) {
-    return shcore::Value::parse(body.get_string());
+  if (is_json(headers) && !body.empty()) {
+    return shcore::Value::parse(body);
   }
   throw std::runtime_error("Response " + std::string{k_content_type} +
                            " is not a " + std::string{k_application_json});

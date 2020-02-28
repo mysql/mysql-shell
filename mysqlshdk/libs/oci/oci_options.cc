@@ -29,7 +29,7 @@
 
 namespace mysqlshdk {
 namespace oci {
-using Status_code = mysqlshdk::rest::Response::Status_code;
+using Status_code = Response::Status_code;
 
 namespace {
 void validate_config_profile(const std::string &config_path,
@@ -65,16 +65,15 @@ void Oci_options::load_defaults() {
     check_option_values();
 
     Oci_rest_service identity(Oci_service::IDENTITY, *this);
-    auto response =
-        identity.get("/20160918/tenancies/" + identity.get_tenancy_id());
+    std::string raw_data;
+    identity.get("/20160918/tenancies/" + identity.get_tenancy_id(), {},
+                 &raw_data);
 
-    if (response.status == Status_code::OK) {
-      auto data = response.json().as_map();
-      os_namespace = data->get_string("name");
+    auto data = shcore::Value::parse(raw_data).as_map();
+    os_namespace = data->get_string("name");
 
-      mysqlshdk::config::Config_file config(mysqlshdk::config::Case::SENSITIVE,
-                                            mysqlshdk::config::Escape::NO);
-    }
+    mysqlshdk::config::Config_file config(mysqlshdk::config::Case::SENSITIVE,
+                                          mysqlshdk::config::Escape::NO);
   }
 }
 

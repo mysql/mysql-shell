@@ -23,15 +23,13 @@
 
 #include "mysqlshdk/libs/oci/oci_rest_service.h"
 #include "mysqlshdk/libs/oci/oci_setup.h"
+#include "mysqlshdk/libs/rest/retry_strategy.h"
 #include "mysqlshdk/libs/utils/ssl_keygen.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/shellcore/private_key_manager.h"
 
 namespace mysqlshdk {
-
 namespace oci {
-
-using Response = mysqlshdk::rest::Response;
 
 namespace {
 std::string sign(EVP_PKEY *sigkey, const std::string &string_to_sign) {
@@ -104,6 +102,21 @@ std::string encode_sha256(const char *data, size_t size) {
 
   return encoded;
 }
+
+void check_and_throw(Response::Status_code code, const Headers &headers,
+                     const std::string &data) {
+  if (code < Response::Status_code::OK ||
+      code >= Response::Status_code::MULTIPLE_CHOICES) {
+    if (Response::is_json(headers) && !data.empty()) {
+      auto json = shcore::Value::parse(data).as_map();
+      if (json->get_type("message") == shcore::Value_type::String) {
+        throw Response_error(code, json->get_string("message"));
+      }
+    }
+    throw Response_error(code);
+  }
+}
+
 }  // namespace
 
 Oci_rest_service::Oci_rest_service(Oci_service service,
@@ -170,47 +183,49 @@ void Oci_rest_service::set_service(Oci_service service) {
   }
 }
 
-mysqlshdk::rest::Response Oci_rest_service::get(
-    const std::string &path, const mysqlshdk::rest::Headers &headers) {
-  if (!m_rest) set_service(m_service);
-  return m_rest->get(path, make_header(path, "get", nullptr, 0L, headers));
+Response::Status_code Oci_rest_service::get(const std::string &path,
+                                            const Headers &headers,
+                                            std::string *response_data,
+                                            Headers *response_headers) {
+  return execute(Type::GET, path, nullptr, 0L, headers, response_data,
+                 response_headers);
 }
 
-mysqlshdk::rest::Response Oci_rest_service::head(
-    const std::string &path, const mysqlshdk::rest::Headers &headers) {
-  if (!m_rest) set_service(m_service);
-  return m_rest->head(path, make_header(path, "head", nullptr, 0L, headers));
+Response::Status_code Oci_rest_service::head(const std::string &path,
+                                             const Headers &headers,
+                                             std::string *response_data,
+                                             Headers *response_headers) {
+  return execute(Type::GET, path, nullptr, 0, headers, response_data,
+                 response_headers);
 }
 
-mysqlshdk::rest::Response Oci_rest_service::post(
-    const std::string &path, const char *body, size_t size,
-    const mysqlshdk::rest::Headers &headers) {
-  if (!m_rest) set_service(m_service);
-  return m_rest->post(
-      path, reinterpret_cast<unsigned char *>(const_cast<char *>(body)), size,
-      make_header(path, "post", body, size, headers));
+Response::Status_code Oci_rest_service::post(const std::string &path,
+                                             const char *body, size_t size,
+                                             const Headers &headers,
+                                             std::string *response_data,
+                                             Headers *response_headers) {
+  return execute(Type::POST, path, body, size, headers, response_data,
+                 response_headers);
 }
 
-mysqlshdk::rest::Response Oci_rest_service::put(
-    const std::string &path, const char *body, size_t size,
-    const mysqlshdk::rest::Headers &headers) {
-  if (!m_rest) set_service(m_service);
-  return m_rest->put(
-      path, reinterpret_cast<unsigned char *>(const_cast<char *>(body)), size,
-      make_header(path, "put", body, size, headers));
+Response::Status_code Oci_rest_service::put(const std::string &path,
+                                            const char *body, size_t size,
+                                            const Headers &headers,
+                                            std::string *response_data,
+                                            Headers *response_headers) {
+  return execute(Type::PUT, path, body, size, headers, response_data,
+                 response_headers);
 }
 
-mysqlshdk::rest::Response Oci_rest_service::delete_(
-    const std::string &path, const char *body, size_t size,
-    const mysqlshdk::rest::Headers &headers) {
-  if (!m_rest) set_service(m_service);
-  return m_rest->delete_(path, {},
-                         make_header(path, "delete", body, size, headers));
+Response::Status_code Oci_rest_service::delete_(const std::string &path,
+                                                const char *body, size_t size,
+                                                const Headers &headers) {
+  return execute(Type::DELETE, path, body, size, headers);
 }
 
-mysqlshdk::rest::Headers Oci_rest_service::make_header(
-    const std::string &path, const std::string &method, const char *body,
-    size_t size, const mysqlshdk::rest::Headers headers) {
+Headers Oci_rest_service::make_header(Type method, const std::string &path,
+                                      const char *body, size_t size,
+                                      const Headers headers) {
   time_t now = time(nullptr);
 
   if (m_signed_header_cache_time.find(path) ==
@@ -221,7 +236,7 @@ mysqlshdk::rest::Headers Oci_rest_service::make_header(
     }
   }
 
-  mysqlshdk::rest::Headers all_headers;
+  Headers all_headers;
 
   // Maximum Allowed Client Clock Skew from the server's clock for OCI
   // requests is 5 minutes. We can exploit that feature to cache auth header,
@@ -229,12 +244,14 @@ mysqlshdk::rest::Headers Oci_rest_service::make_header(
   //
   // PUT and POST requests are exceptions as the signature includes the body
   // sha256
-  if (now - m_signed_header_cache_time[path][method] > 60 || method == "post") {
+  if (now - m_signed_header_cache_time[path][method] > 60 ||
+      method == Type::POST) {
     const auto date = mysqlshdk::utils::fmttime(
         "%a, %d %b %Y %H:%M:%S GMT", mysqlshdk::utils::Time_type::GMT, &now);
 
-    std::string string_to_sign{"(request-target): " + method + " " + path +
-                               "\nhost: " + m_host + "\nx-date: " + date};
+    std::string string_to_sign{
+        "(request-target): " + mysqlshdk::rest::type_name(method) + " " + path +
+        "\nhost: " + m_host + "\nx-date: " + date};
 
     // Sets the content type to application/json if no other specified
     if (headers.find("content-type") != headers.end())
@@ -242,7 +259,7 @@ mysqlshdk::rest::Headers Oci_rest_service::make_header(
     else
       all_headers["content-type"] = "application/json";
 
-    if (method == "post") {
+    if (method == Type::POST) {
       all_headers["x-content-sha256"] = encode_sha256(size ? body : "", size);
       all_headers["content-length"] = std::to_string(size);
       string_to_sign.append(
@@ -255,7 +272,7 @@ mysqlshdk::rest::Headers Oci_rest_service::make_header(
     std::string auth_header =
         "Signature version=\"1\",headers=\"(request-target) host x-date";
 
-    if (method == "post") {
+    if (method == Type::POST) {
       auth_header.append(" x-content-sha256 content-length content-type");
     }
 
@@ -279,6 +296,53 @@ mysqlshdk::rest::Headers Oci_rest_service::make_header(
   }
 
   return final_headers;
+}
+
+Response::Status_code Oci_rest_service::execute(Type type,
+                                                const std::string &path,
+                                                const char *body, size_t size,
+                                                const Headers &request_headers,
+                                                std::string *response_data,
+                                                Headers *response_headers) {
+  std::string rdata;
+  Headers rheaders;
+
+  if (!m_rest) set_service(m_service);
+
+  if (!response_data) response_data = &rdata;
+  if (!response_headers) response_headers = &rheaders;
+
+  // Using exponential backoff retry logic with:
+  // 1 second as base sleep time
+  // 2 as the exponential factor
+  // 30 seconds as max time between retries
+  mysqlshdk::rest::Exponential_backoff_retry retry_strategy(1, 2, 30);
+
+  // Retry up to 5 times
+  retry_strategy.set_max_attempts(5);
+
+  // Keep retrying for 5 minutes
+  retry_strategy.set_max_ellapsed_time(300);
+
+  // Throttling handling: a response with TOO_MANY_REQUESTS makes the retry
+  // strategy to continue
+  retry_strategy.add_retriable_status(Response::Status_code::TOO_MANY_REQUESTS);
+
+  // Throttling handling: equal jitter guarantees some wait time before next
+  // attempt
+  retry_strategy.set_equal_jitter_for_throttling(true);
+
+  // Retry continues in responses with codes about server errors >=500
+  retry_strategy.set_retry_on_server_errors(true);
+
+  auto code =
+      m_rest->execute(type, path, body, size,
+                      make_header(type, path, body, size, request_headers),
+                      response_data, response_headers, &retry_strategy);
+
+  check_and_throw(code, *response_headers, *response_data);
+
+  return code;
 }
 
 }  // namespace oci

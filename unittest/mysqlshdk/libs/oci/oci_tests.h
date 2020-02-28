@@ -42,8 +42,8 @@ extern "C" const char *g_oci_config_path;
 namespace testing {
 
 using namespace mysqlshdk::storage::backend::oci;
-using mysqlshdk::oci::Oci_error;
 using mysqlshdk::oci::Oci_options;
+using mysqlshdk::oci::Response_error;
 using mysqlshdk::storage::Mode;
 
 #define SKIP_IF_NO_OCI_CONFIGURATION \

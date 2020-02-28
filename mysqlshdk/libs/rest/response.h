@@ -78,6 +78,7 @@ struct Response {
     RANGE_NOT_SATISFIABLE = 416,
     EXPECTATION_FAILED = 417,
     UPGRADE_REQUIRED = 426,
+    TOO_MANY_REQUESTS = 429,
     INTERNAL_SERVER_ERROR = 500,
     NOT_IMPLEMENTED = 501,
     BAD_GATEWAY = 502,
@@ -87,6 +88,11 @@ struct Response {
   };
 
   static std::string status_code(Status_code c);
+
+  /**
+   * Indicates if Content-Type of the response is set to 'application/json'.
+   */
+  static bool is_json(const Headers &hdrs);
 
   /**
    * Decode body as JSON object if Content-Type of the response is set to
@@ -109,7 +115,7 @@ struct Response {
   /**
    * Body of the response. Raw string.
    */
-  shcore::Value body;
+  std::string body;
 };
 
 class Response_error : public std::runtime_error {

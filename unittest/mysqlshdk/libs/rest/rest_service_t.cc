@@ -41,125 +41,149 @@ namespace mysqlshdk {
 namespace rest {
 namespace test {
 
-class Rest_service_test : public ::testing::Test {
+class Test_server {
  public:
-  Rest_service_test() : m_service(s_test_server_address, false) {}
+  bool start_server(int start_port, bool use_env_var) {
+    m_port = start_port;
 
- protected:
-  static void SetUpTestCase() {
-    int port = 8080;
+    if (!find_free_port(&m_port, use_env_var)) {
+      std::cerr << "Could not find an available port for HTTPS server"
+                << std::endl;
+      return false;
+    }
+
+    const auto script =
+        shcore::path::join_path(g_test_home, "data", "rest", "test-server.py");
+    const auto port_number = std::to_string(m_port);
+    std::vector<const char *> args{"python", script.c_str(),
+                                   port_number.c_str(), nullptr};
+
+    m_server = std::make_unique<shcore::Process_launcher>(&args[0]);
+    m_server->enable_reader_thread();
+#ifdef _WIN32
+    m_server->set_create_process_group();
+#endif  // _WIN32
+    m_server->start();
+
+    m_address = "https://127.0.0.1:" + port_number;
+
+    static constexpr uint32_t sleep_time = 100;   // 100ms
+    static constexpr uint32_t wait_time = 10000;  // 10s
+    uint32_t current_time = 0;
+    bool server_ready = false;
+    Rest_service rest{m_address, false};
+    const auto debug = getenv("TEST_DEBUG") != nullptr;
+
+    while (!server_ready && current_time < wait_time) {
+      shcore::sleep_ms(sleep_time);
+      current_time += sleep_time;
+
+      if (m_server->check()) {
+        // process is not running, exit immediately
+        break;
+      }
+
+      try {
+        const auto response = rest.head("/ping");
+
+        if (debug) {
+          std::cerr << "HTTPS server replied with: "
+                    << Response::status_code(response.status)
+                    << ", waiting time: " << current_time << "ms" << std::endl;
+        }
+
+        server_ready = response.status == Response::Status_code::OK;
+      } catch (const std::exception &e) {
+        std::cerr << "HTTPS server not ready after " << current_time << "ms";
+
+        if (debug) {
+          std::cerr << ": " << e.what() << std::endl;
+          std::cerr << "Output so far:" << std::endl;
+          std::cerr << m_server->read_all();
+        }
+
+        std::cerr << std::endl;
+      }
+    }
+
+    return server_ready;
+  }
+
+  void stop_server() {
+    if (getenv("TEST_DEBUG") != nullptr) {
+      std::cerr << m_server->read_all() << std::endl;
+    }
+
+    m_server->kill();
+    m_server.reset();
+  }
+
+  const std::string &get_address() const { return m_address; }
+  int get_port() const { return m_port; }
+
+  bool is_alive() { return m_server && !m_server->check(); }
+
+ private:
+  std::unique_ptr<shcore::Process_launcher> m_server;
+  std::string m_address;
+  int m_port;
+
+  bool find_free_port(int *port, bool use_env_var) {
     bool port_found = false;
 
-    if (getenv("MYSQLSH_TEST_HTTP_PORT")) {
-      port = std::stod(getenv("MYSQLSH_TEST_HTTP_PORT"));
+    if (use_env_var && getenv("MYSQLSH_TEST_HTTP_PORT")) {
+      *port = std::stod(getenv("MYSQLSH_TEST_HTTP_PORT"));
       port_found = true;
     } else {
       for (int i = 0; !port_found && i < 100; ++i) {
-        if (!utils::Net::is_port_listening("127.0.0.1", port + i)) {
-          port += i;
+        if (!utils::Net::is_port_listening("127.0.0.1", *port + i)) {
+          *port += i;
           port_found = true;
         }
       }
     }
+    return port_found;
+  }
+};
 
-    if (port_found) {
-      const auto script = shcore::path::join_path(g_test_home, "data", "rest",
-                                                  "test-server.py");
-      const auto port_number = std::to_string(port);
-      std::vector<const char *> args{"python", script.c_str(),
-                                     port_number.c_str(), nullptr};
+class Rest_service_test : public ::testing::Test {
+ public:
+  Rest_service_test() : m_service(s_test_server->get_address(), false) {}
 
-      s_test_server = std::make_unique<shcore::Process_launcher>(&args[0]);
-      s_test_server->enable_reader_thread();
-#ifdef _WIN32
-      s_test_server->set_create_process_group();
-#endif  // _WIN32
-      s_test_server->start();
+ protected:
+  static void SetUpTestCase() {
+    s_test_server = std::make_unique<Test_server>();
 
-      s_test_server_address = "https://127.0.0.1:" + port_number;
-
-      static constexpr uint32_t sleep_time = 100;   // 100ms
-      static constexpr uint32_t wait_time = 10000;  // 10s
-      uint32_t current_time = 0;
-      bool server_ready = false;
-      Rest_service rest{s_test_server_address, false};
-      const auto debug = getenv("TEST_DEBUG") != nullptr;
-
-      while (!server_ready && current_time < wait_time) {
-        shcore::sleep_ms(sleep_time);
-        current_time += sleep_time;
-
-        if (s_test_server->check()) {
-          // process is not running, exit immediately
-          break;
-        }
-
-        try {
-          const auto response = rest.head("/ping");
-
-          if (debug) {
-            std::cerr << "HTTPS server replied with: "
-                      << Response::status_code(response.status)
-                      << ", waiting time: " << current_time << "ms"
-                      << std::endl;
-          }
-
-          server_ready = response.status == Response::Status_code::OK;
-        } catch (const std::exception &e) {
-          std::cerr << "HTTPS server not ready after " << current_time << "ms";
-
-          if (debug) {
-            std::cerr << ": " << e.what() << std::endl;
-            std::cerr << "Output so far:" << std::endl;
-            std::cerr << s_test_server->read_all();
-          }
-
-          std::cerr << std::endl;
-        }
-      }
-
-      if (!server_ready) {
-        // server is not running, find out what went wrong
-        std::cerr << "HTTPS server failed to start:\n"
-                  << s_test_server->read_all() << std::endl;
-        // kill the process (if it's there), all test cases will fail with
-        // appropriate message
-        TearDownTestCase();
-      } else {
-        std::cerr << "HTTPS server is running: " << s_test_server_address
-                  << std::endl;
-      }
-    } else {
-      std::cerr << "Could not find an available port for HTTPS server"
+    if (s_test_server->start_server(8080, true)) {
+      std::cerr << "HTTPS server is running: " << s_test_server->get_address()
                 << std::endl;
+    } else {
+      // server is not running, find out what went wrong
+      std::cerr << "HTTPS server failed to start:\n" << std::endl;
+      // kill the process (if it's there), all test cases will fail with
+      // appropriate message
+      TearDownTestCase();
     }
   }
 
   static void TearDownTestCase() {
     if (s_test_server) {
-      if (getenv("TEST_DEBUG") != nullptr) {
-        std::cerr << s_test_server->read_all() << std::endl;
-      }
-
-      s_test_server->kill();
-      s_test_server.reset();
+      s_test_server->stop_server();
     }
   }
 
-  static bool has_server() { return s_test_server && !s_test_server->check(); }
+  static std::unique_ptr<Test_server> s_test_server;
 
-  static std::unique_ptr<shcore::Process_launcher> s_test_server;
-
-  static std::string s_test_server_address;
+  // static std::string s_test_server_address;
 
   Rest_service m_service;
-};
+};  // namespace test
 
-std::unique_ptr<shcore::Process_launcher> Rest_service_test::s_test_server;
-std::string Rest_service_test::s_test_server_address;
+std::unique_ptr<Test_server> Rest_service_test::s_test_server;
+// std::string Rest_service_test::s_test_server_address;
 
 #define FAIL_IF_NO_SERVER                                \
-  if (!has_server()) {                                   \
+  if (!s_test_server->is_alive()) {                      \
     FAIL() << "The HTTPS test server is not available."; \
   }
 
@@ -177,7 +201,7 @@ TEST_F(Rest_service_test, cycle_methods) {
 
   response = m_service.head("/head", {{"two", "2"}});
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("", response.body.as_string());
+  EXPECT_EQ("", response.body);
 
   response = m_service.post("/post", shcore::Value::parse("{'id' : 10}"),
                             {{"three", "3"}});
@@ -245,7 +269,7 @@ TEST_F(Rest_service_test, cycle_async_methods) {
 
   response = m_service.async_head("/head", {{"two", "2"}}).get();
   EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("", response.body.as_string());
+  EXPECT_EQ("", response.body);
 
   response = m_service
                  .async_post("/post", shcore::Value::parse("{'id' : 10}"),
@@ -487,14 +511,12 @@ TEST_F(Rest_service_test, response_content_type) {
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ("application/json", response.headers["Content-Type"]);
   EXPECT_EQ(shcore::Value_type::Map, response.json().type);
-  EXPECT_EQ(shcore::Value_type::String, response.body.type);
 
   // force server to return different Content-Type, body is going to be an
   // unparsed string
   response = m_service.get("/headers?Content-Type=text/plain");
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ("text/plain", response.headers["Content-Type"]);
-  EXPECT_EQ(shcore::Value_type::String, response.body.type);
 
   response = m_service.get(
       "/headers?Content-Type=application/json%3B%20charset=UTF-8");
@@ -502,7 +524,6 @@ TEST_F(Rest_service_test, response_content_type) {
   EXPECT_EQ("application/json; charset=UTF-8",
             response.headers["Content-Type"]);
   EXPECT_EQ(shcore::Value_type::Map, response.json().type);
-  EXPECT_EQ(shcore::Value_type::String, response.body.type);
 }
 
 TEST_F(Rest_service_test, timeout) {
@@ -526,6 +547,147 @@ TEST_F(Rest_service_test, timeout) {
 
   // request should be completed without any issues
   EXPECT_EQ(Response::Status_code::OK, m_service.get("/timeout/2.1").status);
+}
+
+TEST_F(Rest_service_test, retry_strategy_generic_errors) {
+  FAIL_IF_NO_SERVER
+
+  Test_server local_server;
+  if (local_server.start_server(s_test_server->get_port(), false)) {
+    // Once the rest service is initialized, we close the server
+    Rest_service local_service(local_server.get_address(), false);
+
+    local_server.stop_server();
+
+    // With no retries a generic error would throw an exception
+    EXPECT_THROW_MSG_CONTAINS(local_service.execute(Type::GET, "/get"),
+                              Connection_error,
+                              "Connection refused|couldn't connect to host");
+
+    // One second retry strategy
+    Retry_strategy retry_strategy(1);
+
+    // Some stop criteria must be defined otherwise we have infinite retries
+    EXPECT_THROW_MSG(
+        local_service.execute(Type::GET, "/get", nullptr, 0L, {}, nullptr,
+                              nullptr, &retry_strategy),
+        std::logic_error,
+        "A stop criteria must be defined to avoid infinite retries.");
+
+    retry_strategy.set_max_attempts(2);
+
+    // Even with retry logic the same error is generated at the end
+    EXPECT_THROW_MSG_CONTAINS(
+        local_service.execute(Type::GET, "/get", nullptr, 0L, {}, nullptr,
+                              nullptr, &retry_strategy),
+        Connection_error, "Connection refused|couldn't connect to host");
+    EXPECT_EQ(2, retry_strategy.get_retry_count());
+  } else {
+    SKIP_TEST("Unable to launch local HTTP server.");
+  }
+}
+
+TEST_F(Rest_service_test, retry_strategy_server_errors) {
+  FAIL_IF_NO_SERVER
+
+  // No retry test
+  auto code = m_service.execute(Type::GET, "/server_error/500");
+  EXPECT_EQ(Response::Status_code::INTERNAL_SERVER_ERROR, code);
+
+  // One second retry strategy
+  Retry_strategy retry_strategy(1);
+  retry_strategy.set_max_attempts(2);
+
+  // Server error codes are not configured to be retriable, so no retry is done
+  code = m_service.execute(Type::GET, "/server_error/500", nullptr, 0L, {},
+                           nullptr, nullptr, &retry_strategy);
+  EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
+  EXPECT_EQ(0, retry_strategy.get_retry_count());
+
+  // Configure specific error to be retriable
+  retry_strategy.add_retriable_status(
+      Response::Status_code::INTERNAL_SERVER_ERROR);
+  code = m_service.execute(Type::GET, "/server_error/500", nullptr, 0L, {},
+                           nullptr, nullptr, &retry_strategy);
+  EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
+  EXPECT_EQ(2, retry_strategy.get_retry_count());
+
+  // Other server error would not be retriable
+  code = m_service.execute(Type::GET, "/server_error/503", nullptr, 0L, {},
+                           nullptr, nullptr, &retry_strategy);
+  EXPECT_EQ(code, Response::Status_code::SERVICE_UNAVAILABLE);
+  EXPECT_EQ(0, retry_strategy.get_retry_count());
+
+  // All the server error are now retriable
+  retry_strategy.set_retry_on_server_errors(true);
+  code = m_service.execute(Type::GET, "/server_error/503", nullptr, 0L, {},
+                           nullptr, nullptr, &retry_strategy);
+  EXPECT_EQ(code, Response::Status_code::SERVICE_UNAVAILABLE);
+  EXPECT_EQ(2, retry_strategy.get_retry_count());
+}
+
+TEST_F(Rest_service_test, retry_strategy_max_ellapsed_time) {
+  FAIL_IF_NO_SERVER
+
+  // One second retry strategy
+  Retry_strategy retry_strategy(1);
+  retry_strategy.set_max_ellapsed_time(5);
+
+  // All the server error are now retriable
+  retry_strategy.set_retry_on_server_errors(true);
+  auto code = m_service.execute(Type::GET, "/server_error/500", nullptr, 0L, {},
+                                nullptr, nullptr, &retry_strategy);
+  EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
+
+  EXPECT_TRUE(retry_strategy.get_ellapsed_time() +
+                  retry_strategy.get_next_sleep_time() >
+              retry_strategy.get_max_ellapsed_time());
+
+  // Considering each attempt consumes at least 1 (sleep time) the 5th
+  // attempt would not take place
+  EXPECT_EQ(4, retry_strategy.get_retry_count());
+}
+
+TEST_F(Rest_service_test, retry_strategy_throttling) {
+  FAIL_IF_NO_SERVER
+
+  // 1 second as base wait time
+  // 2 as exponential grow factor
+  // 4 seconds as max wait time between calls
+  Exponential_backoff_retry retry_strategy(1, 2, 4);
+
+  // Time Table
+  // MET: Max exponential time topped with the maximum allowed between retries
+  // GW: Guaranteed Wait
+  // GA: Guaranteed Accumulated
+  // JW: Wait caused by Jitter
+  // MAA: Max time in attempt
+  // MTA: Max Total Accumulated (GA + Max JW)
+  // -------------------------------------------|
+  // Attempt | MET  | GW | GA | JW  | MAA | MTA |
+  // --------|------|----|----|-----|-----|-----|
+  // 1       | 2/2  | 1  | 1  | 0-1 | 2   | 2   |
+  // 2       | 4/4  | 2  | 3  | 0-2 | 4   | 6   |
+  // 3       | 8/4  | 2  | 5  | 0-2 | 4   | 10  |<-- Worse Case Scenario in 12s
+  // 4       | 16/4 | 2  | 7  | 0-2 | 4   | 14  |    Picked max jitter/attempt
+  // 5       | 32/4 | 2  | 9  | 0-2 | 4   | 18  |
+  // 6       | 64/4 | 2  | 11 | 0-2 | 4   | 20  |<-- Best Case Scenario in 12s
+  // 6       | 64/4 | 2  | 13 | 0-2 | 4   | 24  |    Picked 0 jitter/attemp
+  // --------------------------------------------
+
+  retry_strategy.set_equal_jitter_for_throttling(true);
+  retry_strategy.set_max_ellapsed_time(12);
+
+  auto code = m_service.execute(Type::GET, "/server_error/429", nullptr, 0L, {},
+                                nullptr, nullptr, &retry_strategy);
+
+  EXPECT_EQ(code, Response::Status_code::TOO_MANY_REQUESTS);
+
+  // Worse case scenario determines minimum attempts in 12 secs
+  EXPECT_TRUE(retry_strategy.get_retry_count() >= 3);
+
+  // Best case scenario determines maximum attempts in 12 secs
+  EXPECT_TRUE(retry_strategy.get_retry_count() <= 6);
 }
 
 }  // namespace test

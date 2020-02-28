@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -64,6 +64,8 @@ if(HAVE_PYTHON)
         provider_python.cc
         shell_python.cc)
 endif()
+
+include_directories(SYSTEM ${CURL_INCLUDE_DIR})
 
 if(WIN32)
   remove_definitions(-DUNICODE)

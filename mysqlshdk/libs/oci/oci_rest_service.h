@@ -21,8 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_REST_SERVICE_H_
-#define MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_REST_SERVICE_H_
+#ifndef MYSQLSHDK_LIBS_OCI_OCI_REST_SERVICE_H_
+#define MYSQLSHDK_LIBS_OCI_OCI_REST_SERVICE_H_
 
 #include <openssl/pem.h>
 #include <string>
@@ -34,28 +34,11 @@
 namespace mysqlshdk {
 namespace oci {
 
+using mysqlshdk::oci::Oci_options;
+using mysqlshdk::rest::Headers;
 using mysqlshdk::rest::Response;
 using mysqlshdk::rest::Response_error;
-
-class Oci_error : public Response_error {
- public:
-  Oci_error(Response::Status_code code, const char *what = nullptr)
-      : Response_error(code, what) {}
-
-  Oci_error(Response::Status_code code, const std::string &description)
-      : Response_error(code, description) {}
-
-  Oci_error(const Response &response)
-      : Response_error(response.status,
-                       response.json().as_map()->get_string("message")) {}
-
-  virtual ~Oci_error() {}
-
-  std::string format() const override {
-    return "OCI Error " + std::to_string(static_cast<int>(m_code)) + ": " +
-           what();
-  }
-};
+using mysqlshdk::rest::Type;
 
 enum class Oci_service { IDENTITY, OBJECT_STORAGE };
 
@@ -65,31 +48,41 @@ class Oci_rest_service {
   Oci_rest_service &operator=(Oci_rest_service &&other) = delete;
   Oci_rest_service(Oci_service service, const Oci_options &options);
 
-  mysqlshdk::rest::Response get(const std::string &path,
-                                const mysqlshdk::rest::Headers &headers = {});
+  Response::Status_code get(const std::string &path,
+                            const Headers &headers = {},
+                            std::string *response_data = nullptr,
+                            Headers *response_headers = nullptr);
 
-  mysqlshdk::rest::Response head(const std::string &path,
-                                 const mysqlshdk::rest::Headers &headers = {});
+  Response::Status_code head(const std::string &path,
+                             const Headers &headers = {},
+                             std::string *response_data = nullptr,
+                             Headers *response_headers = nullptr);
 
-  mysqlshdk::rest::Response post(const std::string &path, const char *body,
-                                 size_t size,
-                                 const mysqlshdk::rest::Headers &headers = {});
+  Response ::Status_code post(const std::string &path, const char *body,
+                              size_t size, const Headers &headers = {},
+                              std::string *response_data = nullptr,
+                              Headers *response_headers = nullptr);
 
-  mysqlshdk::rest::Response put(const std::string &path, const char *body,
-                                size_t size,
-                                const mysqlshdk::rest::Headers &headers = {});
+  Response::Status_code put(const std::string &path, const char *body,
+                            size_t size, const Headers &headers = {},
+                            std::string *response_data = nullptr,
+                            Headers *response_headers = nullptr);
 
-  mysqlshdk::rest::Response delete_(
-      const std::string &path, const char *body, size_t size,
-      const mysqlshdk::rest::Headers &headers = {});
+  Response::Status_code delete_(const std::string &path, const char *body,
+                                size_t size, const Headers &headers = {});
+
+  Response::Status_code execute(Type type, const std::string &path,
+                                const char *body = nullptr, size_t size = 0,
+                                const Headers &request_headers = {},
+                                std::string *response_data = nullptr,
+                                Headers *response_headers = nullptr);
 
   // TODO(rennox): These configuration properties/functions exists here because
-  // the configuration was loaded on the constructor of the RESR service,
+  // the configuration was loaded on the constructor of the REST service,
   // however, it cuold be i.e. passed down through all the chain call when a
   // Bucket/Directory/Object is created and reside somewhere else.
-  std::string get_region() { return m_region; }
-  std::string get_tenancy_id() { return m_tenancy_id; }
-  std::string get_uri() { return "oci+os://" + m_region; }
+  const std::string &get_region() const { return m_region; }
+  const std::string &get_tenancy_id() const { return m_tenancy_id; }
 
   /**
    * This function allows upadting the m_host to point to the right service to
@@ -106,17 +99,15 @@ class Oci_rest_service {
   std::shared_ptr<EVP_PKEY> m_private_key;
   std::unique_ptr<mysqlshdk::rest::Rest_service> m_rest;
 
-  using Time_method = std::map<std::string, time_t>;
-  std::map<std::string, Time_method> m_signed_header_cache_time;
-  using Header_method = std::map<std::string, mysqlshdk::rest::Headers>;
+  using Method_time = std::map<Type, time_t>;
+  std::map<std::string, Method_time> m_signed_header_cache_time;
+  using Header_method = std::map<Type, Headers>;
   std::map<std::string, Header_method> m_cached_header;
 
-  mysqlshdk::rest::Headers make_header(const std::string &path,
-                                       const std::string &method,
-                                       const char *body, size_t size,
-                                       const mysqlshdk::rest::Headers headers);
+  Headers make_header(Type method, const std::string &path, const char *body,
+                      size_t size, const Headers headers);
 };
 }  // namespace oci
 }  // namespace mysqlshdk
 
-#endif  // MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_REST_SERVICE_H_
+#endif  // MYSQLSHDK_LIBS_OCI_OCI_REST_SERVICE_H_

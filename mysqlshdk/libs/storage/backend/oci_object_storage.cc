@@ -42,12 +42,12 @@ namespace backend {
 
 namespace oci {
 
-using Status_code = mysqlshdk::rest::Response::Status_code;
+using Status_code = Response::Status_code;
 
-using mysqlshdk::oci::Oci_error;
 using mysqlshdk::oci::Oci_options;
 using mysqlshdk::oci::Oci_rest_service;
 using mysqlshdk::oci::Oci_service;
+using mysqlshdk::oci::Response_error;
 
 const size_t KIB = 1024;
 const size_t MIB = KIB * 1024;
@@ -177,7 +177,7 @@ bool Object::exists() const {
   bool ret_val = true;
   try {
     m_bucket->head_object(m_name);
-  } catch (const Oci_error &error) {
+  } catch (const Response_error &error) {
     if (error.code() == Status_code::NOT_FOUND)
       ret_val = false;
     else

@@ -34,9 +34,14 @@
 #include "mysqlshdk/libs/rest/error.h"
 #include "mysqlshdk/libs/rest/headers.h"
 #include "mysqlshdk/libs/rest/response.h"
+#include "mysqlshdk/libs/rest/retry_strategy.h"
 
 namespace mysqlshdk {
 namespace rest {
+
+enum class Type { GET, HEAD, POST, PUT, PATCH, DELETE };
+
+std::string type_name(Type t);
 
 /**
  * A REST service. By default, requests will follow redirections and
@@ -138,11 +143,9 @@ class Rest_service {
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response post(const std::string &path, const shcore::Value &body,
+  Response post(const std::string &path, const shcore::Value &body = {},
                 const Headers &headers = {});
 
-  Response post(const std::string &path, unsigned char *body = nullptr,
-                size_t size = 0, const Headers &headers = {});
   /**
    * Executes a PUT request, blocks until response is available.
    *
@@ -159,11 +162,8 @@ class Rest_service {
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response put(const std::string &path, const shcore::Value &body,
+  Response put(const std::string &path, const shcore::Value &body = {},
                const Headers &headers = {});
-
-  Response put(const std::string &path, unsigned char *body = nullptr,
-               size_t size = 0, const Headers &headers = {});
 
   /**
    * Executes a PATCH request, blocks until response is available.
@@ -202,6 +202,35 @@ class Rest_service {
    */
   Response delete_(const std::string &path, const shcore::Value &body = {},
                    const Headers &headers = {});
+
+  /**
+   * Executes a request, blocks until response is available.
+   *
+   * @param type Method to be used on the request execution.
+   * @param path Path to the request, it is going to be appended to the base
+   *        URL.
+   * @param body Optional body which is going to be sent along with the
+   * request. Content-Type is going to be set to 'application/json', unless it
+   * is explicitly set in headers.
+   * @param size The length in bytes of the body to be sent.
+   * @param headers Optional request-specific headers. If default headers were
+   *        also specified, request-specific headers are going to be appended
+   *        that set, overwriting any duplicated values.
+   * @param response_data pointer to a string buffer where the content of the
+   * response body will be written.
+   * @param response_headers pointer to a Headers struct where the response
+   * headers will be placed.
+   *
+   * @returns The code of the request response.
+   *
+   * @throw Connection_error In case of any connection-related problems.
+   */
+  Response::Status_code execute(Type type, const std::string &path,
+                                const char *body = nullptr, size_t size = 0,
+                                const Headers &request_headers = {},
+                                void *response_data = nullptr,
+                                Headers *response_headers = nullptr,
+                                Retry_strategy *retry_strategy = nullptr);
 
   /**
    * Asynchronously executes a GET request. This object must not be modified

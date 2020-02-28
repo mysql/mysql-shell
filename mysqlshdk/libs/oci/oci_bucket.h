@@ -85,7 +85,7 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
    * @param bucketName: the name of the bucket to be represented through the
    * created instance.
    *
-   * @throw Oci_error in case the indicated bucket does not exist on the
+   * @throw Response_error in case the indicated bucket does not exist on the
    * indicated tenancy.
    */
   explicit Bucket(const Oci_options &options);
@@ -142,7 +142,7 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
    *
    * @param: objectName: the name of the object to be deleted.
    *
-   * @throw Oci_error if the given object does not exist.
+   * @throw Response_error if the given object does not exist.
    */
   void delete_object(const std::string &objectName);
 
@@ -156,7 +156,7 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
    * available but should be added only if needed. For additional information
    * look at the HeadObject REST API.
    *
-   * @throw Oci_error if the object does not exist.
+   * @throw Response_error if the object does not exist.
    */
   size_t head_object(const std::string &objectName);
 

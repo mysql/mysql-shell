@@ -115,8 +115,8 @@ TEST_F(Oci_os_tests, file_write_multipart_upload) {
   EXPECT_EQ(4, parts.size());  // Last part is still on the buffer
 
   file->close();
-  EXPECT_THROW_LIKE(bucket.list_multipart_upload_parts(uploads[0]), Oci_error,
-                    "No such upload");
+  EXPECT_THROW_LIKE(bucket.list_multipart_upload_parts(uploads[0]),
+                    Response_error, "No such upload");
   uploads = bucket.list_multipart_uploads();
   EXPECT_TRUE(uploads.empty());
 
@@ -173,8 +173,8 @@ TEST_F(Oci_os_tests, file_write_resume_interrupted_upload) {
   offset += final_file->write(data.data() + offset, data.size() - offset);
 
   final_file->close();
-  EXPECT_THROW_LIKE(bucket.list_multipart_upload_parts(uploads[0]), Oci_error,
-                    "No such upload");
+  EXPECT_THROW_LIKE(bucket.list_multipart_upload_parts(uploads[0]),
+                    Response_error, "No such upload");
   uploads = bucket.list_multipart_uploads();
   EXPECT_TRUE(uploads.empty());
 

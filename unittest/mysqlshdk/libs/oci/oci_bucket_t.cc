@@ -247,7 +247,7 @@ TEST_F(Oci_os_tests, bucket_object_operations) {
 
 TEST_F(Oci_os_tests, bucket_error_conditions) {
   SKIP_IF_NO_OCI_CONFIGURATION
-  EXPECT_THROW_LIKE(Bucket(get_options("unexisting")), Oci_error,
+  EXPECT_THROW_LIKE(Bucket(get_options("unexisting")), Response_error,
                     "The bucket 'unexisting' does not exist in namespace");
 
   Bucket bucket(get_options(PUBLIC_BUCKET));
@@ -258,38 +258,40 @@ TEST_F(Oci_os_tests, bucket_error_conditions) {
   EXPECT_EQ(1, list.size());
   EXPECT_STREQ("sample.txt", list[0].name.c_str());
   EXPECT_THROW_LIKE(
-      bucket.put_object("sample.txt", "data", 4, false), Oci_error,
+      bucket.put_object("sample.txt", "data", 4, false), Response_error,
       "The If-None-Match header is '*' but there is an existing entity");
   bucket.delete_object("sample.txt");
 
   // DELETE: Unexsinting Object
-  EXPECT_THROW_LIKE(bucket.delete_object("sample.txt"), Oci_error,
+  EXPECT_THROW_LIKE(bucket.delete_object("sample.txt"), Response_error,
                     "The object 'sample.txt' does not exist in bucket '" +
                         PUBLIC_BUCKET + "' with namespace '" +
                         bucket.get_namespace() + "'");
 
   // HEAD: Unexsinting Object
-  EXPECT_THROW_LIKE(bucket.head_object("sample.txt"), Oci_error, "Not Found");
+  EXPECT_THROW_LIKE(
+      bucket.head_object("sample.txt"), Response_error,
+      "The object 'sample.txt' was not found in the bucket 'shell-rut-pub'");
 
   // GET: Unexsinting Object
-  EXPECT_THROW_LIKE(bucket.get_object("sample.txt", nullptr), Oci_error,
+  EXPECT_THROW_LIKE(bucket.get_object("sample.txt", nullptr), Response_error,
                     "The object 'sample.txt' was not found in the bucket '" +
                         PUBLIC_BUCKET + "'");
 
-  // RENAME: Unexsinting Object
-  EXPECT_THROW_LIKE(bucket.rename_object("sample.txt", "other.txt"), Oci_error,
-                    "Not Found");
+  // RENAME: Unexisting Object
+  EXPECT_THROW_LIKE(bucket.rename_object("sample.txt", "other.txt"),
+                    Response_error, "Not Found");
 
   Multipart_object object;
   object.name = "Sample.txt";
   object.upload_id = "SOME-WEIRD-UPLOAD-ID";
-  EXPECT_THROW_LIKE(bucket.list_multipart_upload_parts(object), Oci_error,
+  EXPECT_THROW_LIKE(bucket.list_multipart_upload_parts(object), Response_error,
                     "No such upload");
 
-  EXPECT_THROW_LIKE(bucket.upload_part(object, 1, "DATA", 4), Oci_error,
+  EXPECT_THROW_LIKE(bucket.upload_part(object, 1, "DATA", 4), Response_error,
                     "No such upload");
 
-  EXPECT_THROW_LIKE(bucket.commit_multipart_upload(object, {}), Oci_error,
+  EXPECT_THROW_LIKE(bucket.commit_multipart_upload(object, {}), Response_error,
                     "There are no parts to commit");
 }
 }  // namespace testing

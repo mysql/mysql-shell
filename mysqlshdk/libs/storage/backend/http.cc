@@ -95,7 +95,7 @@ ssize_t Http_get::read(void *buffer, size_t length) {
 
   auto response = m_rest->get(std::string{}, h);
   if (Response::Status_code::PARTIAL_CONTENT == response.status) {
-    const auto &content = response.body.get_string();
+    const auto &content = response.body;
     std::copy(content.data(), content.data() + content.size(),
               reinterpret_cast<uint8_t *>(buffer));
     m_offset += content.size();

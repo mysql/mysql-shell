@@ -26,6 +26,7 @@
 #include <curl/curl.h>
 #include <utility>
 
+#include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -115,13 +116,29 @@ static CURLcode sslctx_function(CURL *curl, void *sslctx, void *parm) {
 
 }  // namespace
 
+std::string type_name(Type method) {
+  switch (method) {
+    case Type::DELETE:
+      return "delete";
+    case Type::GET:
+      return "get";
+    case Type::HEAD:
+      return "head";
+    case Type::PATCH:
+      return "patch";
+    case Type::POST:
+      return "post";
+    case Type::PUT:
+      return "put";
+  }
+  throw std::logic_error("Unknown method received");
+}
+
 class Rest_service::Impl {
  public:
   /**
    * Type of the HTTP request.
    */
-  enum class Type { GET, HEAD, POST, PUT, PATCH, DELETE };
-
   Impl(const std::string &base_url, bool verify)
       : m_handle(curl_easy_init(), &curl_easy_cleanup), m_base_url{base_url} {
     // Disable signal handlers used by libcurl, we're potentially going to use
@@ -164,64 +181,87 @@ class Rest_service::Impl {
   ~Impl() = default;
 
   Response execute(Type type, const std::string &path,
-                   const shcore::Value &body, const Headers &headers) {
+                   const shcore::Value &body, const Headers &headers,
+                   bool synch = true) {
     set_url(path);
     // body needs to be set before the type, because it implicitly sets type to
     // POST
-    set_body(body);
+    // NOTE: This variable is required here so in synch requests the buffer is
+    // valid through the entire request
+    auto body_str = body.repr();
+    if (body.type == shcore::Value_type::Undefined) body_str.clear();
+
+    set_body(body_str.data(), body_str.length(), synch);
+
     set_type(type);
     const auto headers_deleter =
         set_headers(headers, body.type != shcore::Value_type::Undefined);
 
     // set callbacks which will receive the response
+    Response response;
+
     std::string response_headers;
-    std::string response_body;
 
     curl_easy_setopt(m_handle.get(), CURLOPT_HEADERDATA, &response_headers);
-    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA, &response_body);
+    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA, &response.body);
 
     // execute the request
     if (curl_easy_perform(m_handle.get()) != CURLE_OK) {
       throw Connection_error{m_error_buffer};
     }
 
-    return get_raw_response(response_headers, std::move(response_body));
+    response.status = get_status_code();
+    response.headers = parse_headers(response_headers);
+
+    return response;
   }
 
-  Response execute(Type type, const std::string &path, unsigned char *body,
-                   size_t size, const Headers &headers) {
+  Response::Status_code execute(Type type, const std::string &path,
+                                const char *body, size_t size,
+                                const Headers &request_headers,
+                                void *response_data,
+                                Headers *response_headers) {
     set_url(path);
-    // body needs to be set before the type, because it implicitly sets type to
-    // POST
-    set_body(body, size);
+    // body needs to be set before the type, because it implicitly sets type
+    // to POST
+    set_body(body, size, true);
     set_type(type);
-    const auto headers_deleter = set_headers(headers, true);
+    const auto headers_deleter = set_headers(request_headers, true);
 
     // set callbacks which will receive the response
-    std::string response_headers;
-    std::string response_body;
+    std::string data_dump;
+    std::string header_data;
 
-    curl_easy_setopt(m_handle.get(), CURLOPT_HEADERDATA, &response_headers);
-    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA, &response_body);
+    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA,
+                     response_data ? response_data : &data_dump);
+    curl_easy_setopt(m_handle.get(), CURLOPT_HEADERDATA, &header_data);
 
     // execute the request
-    if (curl_easy_perform(m_handle.get()) != CURLE_OK) {
+    auto ret_val = curl_easy_perform(m_handle.get());
+    if (ret_val != CURLE_OK) {
       throw Connection_error{m_error_buffer};
     }
 
-    return get_raw_response(response_headers, std::move(response_body));
+    if (response_headers) *response_headers = parse_headers(header_data);
+
+    return get_status_code();
   }
 
-  void set_body(unsigned char *body, size_t size) {
+  void set_body(const char *body, size_t size, bool synch) {
     curl_easy_setopt(m_handle.get(), CURLOPT_POSTFIELDSIZE, size);
-    curl_easy_setopt(m_handle.get(), CURLOPT_COPYPOSTFIELDS, body);
+    if (synch) {
+      curl_easy_setopt(m_handle.get(), CURLOPT_COPYPOSTFIELDS, NULL);
+      curl_easy_setopt(m_handle.get(), CURLOPT_POSTFIELDS, body);
+    } else {
+      curl_easy_setopt(m_handle.get(), CURLOPT_COPYPOSTFIELDS, body);
+    }
   }
 
   std::future<Response> execute_async(Type type, const std::string &path,
                                       const shcore::Value &body,
                                       const Headers &headers) {
     return std::async(std::launch::async, [this, type, path, body, headers]() {
-      return execute(type, path, body, headers);
+      return execute(type, path, body, headers, false);
     });
   }
 
@@ -249,7 +289,8 @@ class Rest_service::Impl {
   }
 
   void set_type(Type type) {
-    // custom request overwrites any other option, make sure it's set to default
+    // custom request overwrites any other option, make sure it's set to
+    // default
     curl_easy_setopt(m_handle.get(), CURLOPT_CUSTOMREQUEST, nullptr);
 
     switch (type) {
@@ -289,21 +330,6 @@ class Rest_service::Impl {
 
   void set_url(const std::string &path) {
     curl_easy_setopt(m_handle.get(), CURLOPT_URL, (m_base_url + path).c_str());
-  }
-
-  void set_body(const shcore::Value &body) {
-    if (body.type != shcore::Value_type::Undefined) {
-      // set the body
-      const auto request_body = body.repr();
-      curl_easy_setopt(m_handle.get(), CURLOPT_POSTFIELDSIZE,
-                       request_body.length());
-      curl_easy_setopt(m_handle.get(), CURLOPT_COPYPOSTFIELDS,
-                       request_body.c_str());
-    } else {
-      // no body, remove post data (if present)
-      curl_easy_setopt(m_handle.get(), CURLOPT_POSTFIELDSIZE, 0L);
-      curl_easy_setopt(m_handle.get(), CURLOPT_COPYPOSTFIELDS, nullptr);
-    }
   }
 
   std::unique_ptr<curl_slist, void (*)(curl_slist *)> set_headers(
@@ -346,20 +372,10 @@ class Rest_service::Impl {
         header_list, &curl_slist_free_all};
   }
 
-  Response get_raw_response(const std::string &headers, std::string &&body) {
-    // fill in the response object
-    Response response;
-
-    {
-      long response_code = 0;
-      curl_easy_getinfo(m_handle.get(), CURLINFO_RESPONSE_CODE, &response_code);
-      response.status = static_cast<Response::Status_code>(response_code);
-    }
-
-    response.headers = parse_headers(headers);
-    response.body = shcore::Value(std::move(body));
-
-    return response;
+  Response::Status_code get_status_code() const {
+    long response_code = 0;
+    curl_easy_getinfo(m_handle.get(), CURLINFO_RESPONSE_CODE, &response_code);
+    return static_cast<Response::Status_code>(response_code);
   }
 
   std::unique_ptr<CURL, void (*)(CURL *)> m_handle;
@@ -396,76 +412,93 @@ Rest_service &Rest_service::set_timeout(uint32_t timeout) {
 }
 
 Response Rest_service::get(const std::string &path, const Headers &headers) {
-  return m_impl->execute(Impl::Type::GET, path, {}, headers);
+  return m_impl->execute(Type::GET, path, {}, headers);
 }
 
 Response Rest_service::head(const std::string &path, const Headers &headers) {
-  return m_impl->execute(Impl::Type::HEAD, path, {}, headers);
+  return m_impl->execute(Type::HEAD, path, {}, headers);
 }
 
 Response Rest_service::post(const std::string &path, const shcore::Value &body,
                             const Headers &headers) {
-  return m_impl->execute(Impl::Type::POST, path, body, headers);
-}
-
-Response Rest_service::post(const std::string &path, unsigned char *body,
-                            size_t size, const Headers &headers) {
-  return m_impl->execute(Impl::Type::POST, path, body, size, headers);
+  return m_impl->execute(Type::POST, path, body, headers);
 }
 
 Response Rest_service::put(const std::string &path, const shcore::Value &body,
                            const Headers &headers) {
-  return m_impl->execute(Impl::Type::PUT, path, body, headers);
-}
-
-Response Rest_service::put(const std::string &path, unsigned char *body,
-                           size_t size, const Headers &headers) {
-  return m_impl->execute(Impl::Type::PUT, path, body, size, headers);
+  return m_impl->execute(Type::PUT, path, body, headers);
 }
 
 Response Rest_service::patch(const std::string &path, const shcore::Value &body,
                              const Headers &headers) {
-  return m_impl->execute(Impl::Type::PATCH, path, body, headers);
+  return m_impl->execute(Type::PATCH, path, body, headers);
 }
 
 Response Rest_service::delete_(const std::string &path,
                                const shcore::Value &body,
                                const Headers &headers) {
-  return m_impl->execute(Impl::Type::DELETE, path, body, headers);
+  return m_impl->execute(Type::DELETE, path, body, headers);
+}
+
+Response::Status_code Rest_service::execute(Type type, const std::string &path,
+                                            const char *body, size_t size,
+                                            const Headers &request_headers,
+                                            void *response_data,
+                                            Headers *response_headers,
+                                            Retry_strategy *retry_strategy) {
+  if (retry_strategy) retry_strategy->init();
+
+  while (true) {
+    try {
+      auto code = m_impl->execute(type, path, body, size, request_headers,
+                                  response_data, response_headers);
+
+      if (!retry_strategy || !retry_strategy->should_retry(code)) {
+        return code;
+      } else {
+        retry_strategy->wait_for_retry();
+      }
+    } catch (...) {
+      if (retry_strategy && retry_strategy->should_retry())
+        retry_strategy->wait_for_retry();
+      else
+        throw;
+    }
+  }
 }
 
 std::future<Response> Rest_service::async_get(const std::string &path,
                                               const Headers &headers) {
-  return m_impl->execute_async(Impl::Type::GET, path, {}, headers);
+  return m_impl->execute_async(Type::GET, path, {}, headers);
 }
 
 std::future<Response> Rest_service::async_head(const std::string &path,
                                                const Headers &headers) {
-  return m_impl->execute_async(Impl::Type::HEAD, path, {}, headers);
+  return m_impl->execute_async(Type::HEAD, path, {}, headers);
 }
 
 std::future<Response> Rest_service::async_post(const std::string &path,
                                                const shcore::Value &body,
                                                const Headers &headers) {
-  return m_impl->execute_async(Impl::Type::POST, path, body, headers);
+  return m_impl->execute_async(Type::POST, path, body, headers);
 }
 
 std::future<Response> Rest_service::async_put(const std::string &path,
                                               const shcore::Value &body,
                                               const Headers &headers) {
-  return m_impl->execute_async(Impl::Type::PUT, path, body, headers);
+  return m_impl->execute_async(Type::PUT, path, body, headers);
 }
 
 std::future<Response> Rest_service::Rest_service::async_patch(
     const std::string &path, const shcore::Value &body,
     const Headers &headers) {
-  return m_impl->execute_async(Impl::Type::PATCH, path, body, headers);
+  return m_impl->execute_async(Type::PATCH, path, body, headers);
 }
 
 std::future<Response> Rest_service::async_delete(const std::string &path,
                                                  const shcore::Value &body,
                                                  const Headers &headers) {
-  return m_impl->execute_async(Impl::Type::DELETE, path, body, headers);
+  return m_impl->execute_async(Type::DELETE, path, body, headers);
 }
 
 }  // namespace rest

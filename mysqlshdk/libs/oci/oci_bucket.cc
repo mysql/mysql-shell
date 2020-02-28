@@ -27,9 +27,6 @@
 namespace mysqlshdk {
 namespace oci {
 
-using Headers = mysqlshdk::rest::Headers;
-using Status_code = mysqlshdk::rest::Response::Status_code;
-
 const size_t MAX_LIST_OBJECTS_LIMIT = 1000;
 
 namespace {
@@ -60,17 +57,14 @@ Bucket::Bucket(const Oci_options &options)
   m_rest_service =
       std::make_shared<Oci_rest_service>(Oci_service::OBJECT_STORAGE, options);
 
-  auto response = m_rest_service->get(kBucketPath);
+  std::string raw_data;
+  m_rest_service->get(kBucketPath, {}, &raw_data);
+  auto data = shcore::Value::parse(raw_data).as_map();
 
-  if (response.status == Status_code::OK) {
-    auto data = response.json().as_map();
-    m_compartment_id = data->get_string("compartmentId");
-    m_etag = data->get_string("etag");
-    m_is_read_only = data->get_bool("isReadOnly");
-    m_access_type = data->get_string("publicAccessType");
-  } else {
-    throw Oci_error(response);
-  }
+  m_compartment_id = data->get_string("compartmentId");
+  m_etag = data->get_string("etag");
+  m_is_read_only = data->get_bool("isReadOnly");
+  m_access_type = data->get_string("publicAccessType");
 }
 
 std::vector<Object_details> Bucket::list_objects(
@@ -129,69 +123,66 @@ std::vector<Object_details> Bucket::list_objects(
                                                       encode_query(next_start))
                                 : path;
 
-    auto response = m_rest_service->get(real_path);
+    std::string raw_data;
+    m_rest_service->get(real_path, {}, &raw_data);
+    auto data = shcore::Value::parse(raw_data).as_map();
 
-    if (response.status == Status_code::OK) {
-      auto data = response.json().as_map();
-      auto objects = data->get_array("objects");
-      for (auto &value : *objects) {
-        Object_details details;
-        auto object = value.as_map();
+    auto objects = data->get_array("objects");
+    for (auto &value : *objects) {
+      Object_details details;
+      auto object = value.as_map();
 
-        if (fields.is_set(Object_fields::NAME))
-          details.name = object->get_string("name");
-        if (fields.is_set(Object_fields::MD5))
-          details.md5 = object->get_string("md5");
-        if (fields.is_set(Object_fields::ETAG))
-          details.etag = object->get_string("etag");
-        if (fields.is_set(Object_fields::SIZE))
-          details.size = static_cast<size_t>(object->get_uint("size"));
-        if (fields.is_set(Object_fields::TIME_CREATED))
-          details.time_created = object->get_string("timeCreated");
+      if (fields.is_set(Object_fields::NAME))
+        details.name = object->get_string("name");
+      if (fields.is_set(Object_fields::MD5))
+        details.md5 = object->get_string("md5");
+      if (fields.is_set(Object_fields::ETAG))
+        details.etag = object->get_string("etag");
+      if (fields.is_set(Object_fields::SIZE))
+        details.size = static_cast<size_t>(object->get_uint("size"));
+      if (fields.is_set(Object_fields::TIME_CREATED))
+        details.time_created = object->get_string("timeCreated");
 
-        list.push_back(details);
+      list.push_back(details);
+    }
+
+    if (out_prefixes && data->has_key("prefixes")) {
+      auto prefixes = data->get_array("prefixes");
+      for (const auto &aprefix : *prefixes) {
+        out_prefixes->push_back(aprefix.as_string());
       }
+    }
 
-      if (out_prefixes && data->has_key("prefixes")) {
-        auto prefixes = data->get_array("prefixes");
-        for (const auto &aprefix : *prefixes) {
-          out_prefixes->push_back(aprefix.as_string());
+    // The presense of nextStartWith indicates there are still more
+    // object names to retrieve
+    if (data->has_key("nextStartWith")) {
+      next_start = data->get_string("nextStartWith");
+      if (out_nextStart) *out_nextStart = next_start;
+      if (!has_start) {
+        if (parameters.empty() && !has_limit) {
+          path += "?start=" + start_place_holder;
+        } else {
+          path += "&start=" + start_place_holder;
         }
       }
 
-      // The presense of nextStartWith indicates there are still more
-      // object names to retrieve
-      if (data->has_key("nextStartWith")) {
-        next_start = data->get_string("nextStartWith");
-        if (out_nextStart) *out_nextStart = next_start;
-        if (!has_start) {
-          if (parameters.empty() && !has_limit) {
-            path += "?start=" + start_place_holder;
-          } else {
-            path += "&start=" + start_place_holder;
-          }
-        }
-
-        if (limit) {
-          size_t remaining = limit - list.size();
-          if (remaining == 0) {
-            done = true;
-          } else {
-            if (remaining <= MAX_LIST_OBJECTS_LIMIT) {
-              if (parameters.empty() && !has_start) {
-                path += "?limit=" + std::to_string(remaining);
-              } else {
-                path += "&limit=" + std::to_string(remaining);
-              }
+      if (limit) {
+        size_t remaining = limit - list.size();
+        if (remaining == 0) {
+          done = true;
+        } else {
+          if (remaining <= MAX_LIST_OBJECTS_LIMIT) {
+            if (parameters.empty() && !has_start) {
+              path += "?limit=" + std::to_string(remaining);
+            } else {
+              path += "&limit=" + std::to_string(remaining);
             }
           }
         }
-      } else {
-        if (out_nextStart) *out_nextStart = "";
-        done = true;
       }
     } else {
-      throw Oci_error(response);
+      if (out_nextStart) *out_nextStart = "";
+      done = true;
     }
   }
 
@@ -200,48 +191,30 @@ std::vector<Object_details> Bucket::list_objects(
 
 void Bucket::put_object(const std::string &objectName, const char *body,
                         size_t size, bool override) {
-  mysqlshdk::rest::Headers headers{
-      {"content-type", "application/octet-stream"}};
+  Headers headers{{"content-type", "application/octet-stream"}};
 
   if (!override) {
     headers["if-none-match"] = "*";
   }
 
-  auto response =
-      m_rest_service->put(shcore::str_format(kObjectActionFormat.c_str(),
-                                             encode_path(objectName).c_str()),
-                          body, size, headers);
-
-  if (response.status != Status_code::OK) {
-    throw Oci_error(response);
-  }
+  m_rest_service->put(shcore::str_format(kObjectActionFormat.c_str(),
+                                         encode_path(objectName).c_str()),
+                      body, size, headers);
 }
 
 void Bucket::delete_object(const std::string &objectName) {
-  auto response = m_rest_service->delete_(
-      shcore::str_format(kObjectActionFormat.c_str(),
-                         encode_path(objectName).c_str()),
-      nullptr, 0L, {{"accept", "*/*"}});
-
-  if (response.status != Status_code::NO_CONTENT) {
-    throw Oci_error(response);
-  }
+  m_rest_service->delete_(shcore::str_format(kObjectActionFormat.c_str(),
+                                             encode_path(objectName).c_str()),
+                          nullptr, 0L, {{"accept", "*/*"}});
 }
 
 size_t Bucket::head_object(const std::string &objectName) {
-  auto response = m_rest_service->head(shcore::str_format(
-      kObjectActionFormat.c_str(), encode_path(objectName).c_str()));
+  Headers response_headers;
+  m_rest_service->head(shcore::str_format(kObjectActionFormat.c_str(),
+                                          encode_path(objectName).c_str()),
+                       {}, nullptr, &response_headers);
 
-  if (response.status != Status_code::OK) {
-    // These responses come without the error description
-    if (response.status == Status_code::NOT_MODIFIED ||
-        response.status == Status_code::NOT_FOUND)
-      throw Oci_error(response.status);
-    else
-      throw Oci_error(response);
-  }
-
-  return std::stoul(response.headers.at("content-length"));
+  return std::stoul(response_headers.at("content-length"));
 }
 
 size_t Bucket::get_object(const std::string &objectName, void *buffer,
@@ -256,20 +229,14 @@ size_t Bucket::get_object(const std::string &objectName, void *buffer,
         (to_byte.is_null() ? "" : std::to_string(*to_byte).c_str()));
   }
 
-  auto response =
-      m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
-                                             encode_path(objectName).c_str()),
-                          headers);
+  std::string content;
+  m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
+                                         encode_path(objectName).c_str()),
+                      headers, &content);
 
-  if (Response::Status_code::PARTIAL_CONTENT == response.status ||
-      Response::Status_code::OK == response.status) {
-    const auto &content = response.body.get_string();
-    read_size = content.size();
-    std::copy(content.data(), content.data() + content.size(),
-              reinterpret_cast<uint8_t *>(buffer));
-  } else {
-    throw Oci_error(response);
-  }
+  read_size = content.size();
+  std::copy(content.data(), content.data() + content.size(),
+            reinterpret_cast<uint8_t *>(buffer));
 
   return read_size;
 }
@@ -286,16 +253,7 @@ void Bucket::rename_object(const std::string &sourceName,
   std::string rod =
       shcore::str_format(fmt.c_str(), sourceName.c_str(), newName.c_str());
 
-  auto response =
-      m_rest_service->post(kRenameObjectPath, rod.data(), rod.size());
-
-  if (response.status != Status_code::OK) {
-    // This response comes without the error description
-    if (response.status == Status_code::NOT_FOUND)
-      throw Oci_error(response.status);
-    else
-      throw Oci_error(response);
-  }
+  m_rest_service->post(kRenameObjectPath, rod.data(), rod.size());
 }
 
 std::vector<Multipart_object> Bucket::list_multipart_uploads(size_t limit) {
@@ -304,17 +262,14 @@ std::vector<Multipart_object> Bucket::list_multipart_uploads(size_t limit) {
   auto path = kMultipartActionPath;
   if (limit) path.append("?limit=" + std::to_string(limit));
 
-  auto response = m_rest_service->get(path);
+  std::string raw_data;
+  m_rest_service->get(path, {}, &raw_data);
 
-  if (response.status == Status_code::OK) {
-    auto data = response.json().as_array();
-    for (const auto &value : *data) {
-      const auto &object(value.as_map());
-      objects.push_back(
-          {object->get_string("object"), object->get_string("uploadId")});
-    }
-  } else {
-    throw Oci_error(response);
+  auto data = shcore::Value::parse(raw_data).as_array();
+  for (const auto &value : *data) {
+    const auto &object(value.as_map());
+    objects.push_back(
+        {object->get_string("object"), object->get_string("uploadId")});
   }
 
   return objects;
@@ -328,18 +283,15 @@ std::vector<Multipart_object_part> Bucket::list_multipart_upload_parts(
   path.append("?uploadId=" + object.upload_id);
   if (limit) path.append("&limit=" + std::to_string(limit));
 
-  auto response = m_rest_service->get(path);
+  std::string raw_data;
+  m_rest_service->get(path, {}, &raw_data);
 
-  if (response.status == Status_code::OK) {
-    auto data = response.json().as_array();
-    for (const auto &value : *data) {
-      const auto &part(value.as_map());
-      parts.push_back({static_cast<size_t>(part->get_uint("partNumber")),
-                       part->get_string("etag"),
-                       static_cast<size_t>(part->get_uint("size"))});
-    }
-  } else {
-    throw Oci_error(response);
+  auto data = shcore::Value::parse(raw_data).as_array();
+  for (const auto &value : *data) {
+    const auto &part(value.as_map());
+    parts.push_back({static_cast<size_t>(part->get_uint("partNumber")),
+                     part->get_string("etag"),
+                     static_cast<size_t>(part->get_uint("size"))});
   }
 
   return parts;
@@ -350,15 +302,12 @@ Multipart_object Bucket::create_multipart_upload(
   std::string upload_id;
   std::string body{"{\"object\":\"" + objectName + "\"}"};
 
-  auto response =
-      m_rest_service->post(kMultipartActionPath, body.c_str(), body.size());
+  std::string data;
+  m_rest_service->post(kMultipartActionPath, body.c_str(), body.size(), {},
+                       &data);
 
-  if (response.status == Status_code::OK) {
-    auto data = response.json().as_map();
-    upload_id = data->get_string("uploadId");
-  } else {
-    throw Oci_error(response);
-  }
+  auto map = shcore::Value::parse(data).as_map();
+  upload_id = map->get_string("uploadId");
 
   return {objectName, upload_id};
 }
@@ -370,16 +319,10 @@ Multipart_object_part Bucket::upload_part(const Multipart_object &object,
                                  encode_path(object.name).c_str(),
                                  object.upload_id.c_str(), partNum);
 
-  auto response = m_rest_service->put(path, body, size);
+  Headers response_headers;
+  m_rest_service->put(path, body, size, {}, nullptr, &response_headers);
 
-  std::string etag;
-  if (response.status == Status_code::OK) {
-    etag = response.headers.at("ETag");
-  } else {
-    throw Oci_error(response);
-  }
-
-  return {partNum, etag, size};
+  return {partNum, response_headers.at("ETag"), size};
 }
 
 void Bucket::commit_multipart_upload(
@@ -396,22 +339,14 @@ void Bucket::commit_multipart_upload(
 
   auto path = shcore::str_format(kMultipartActionFormat.c_str(),
                                  object.name.c_str(), object.upload_id.c_str());
-  auto response = m_rest_service->post(path, body.c_str(), body.size());
-
-  if (response.status != Status_code::OK) {
-    throw Oci_error(response);
-  }
+  m_rest_service->post(path, body.c_str(), body.size());
 }
 
 void Bucket::abort_multipart_upload(const Multipart_object &object) {
   auto path = shcore::str_format(kMultipartActionFormat.c_str(),
                                  encode_path(object.name).c_str(),
                                  object.upload_id.c_str());
-  auto response = m_rest_service->delete_(path, nullptr, 0L);
-
-  if (response.status != Status_code::NO_CONTENT) {
-    throw Oci_error(response);
-  }
+  m_rest_service->delete_(path, nullptr, 0L);
 }
 }  // namespace oci
 }  // namespace mysqlshdk
