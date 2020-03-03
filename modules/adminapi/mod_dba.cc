@@ -2602,6 +2602,10 @@ MySQL Shell is connected to as new seed instance and recovers the cluster.
 Optionally it also updates the cluster configuration based on user provided
 options.
 
+@note When used with a metadata version lower than the one supported by this
+version of the Shell, the removeInstances option is NOT allowed, as in such
+scenario, no changes to the metadata are allowed.
+
 On success, the restored cluster object is returned by the function.
 
 The current session must be connected to a former instance of the cluster.
@@ -2637,14 +2641,13 @@ Cluster Dba::reboot_cluster_from_complete_outage(str clusterName,
 std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     const mysqlshdk::utils::nullable<std::string> &cluster_name,
     const shcore::Dictionary_t &options) {
-  check_preconditions(std::make_shared<Instance>(get_active_shell_session()),
-                      "rebootClusterFromCompleteOutage");
-
   std::shared_ptr<MetadataStorage> metadata;
   std::shared_ptr<Instance> target_instance;
   // The cluster is completely dead, so we can't find the primary anyway...
   // thus this instance will be used as the primary
   connect_to_target_group({}, &metadata, &target_instance, false);
+
+  check_preconditions(metadata, "rebootClusterFromCompleteOutage");
 
   std::string instance_session_address;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
@@ -2683,10 +2686,22 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     }
   }
 
+  auto state = metadata->get_state();
+  mysqlshdk::utils::Version md_version;
+  metadata->check_version(&md_version);
+  bool rebooting_old_version = state == metadata::State::MAJOR_LOWER;
+
   // Check if removeInstances and/or rejoinInstances are specified
   // And if so add them to simple vectors so the check for types is done
   // before moving on in the function logic
   if (remove_instances_ref) {
+    if (!remove_instances_ref->empty() && rebooting_old_version) {
+      throw shcore::Exception::argument_error(
+          "removeInstances option can not be used if the metadata version is "
+          "lower than " +
+          metadata::current_version().get_base() + ". Metadata version is " +
+          md_version.get_base());
+    }
     for (auto value : *remove_instances_ref.get()) {
       // Check if seed instance is present on the list
       if (value.get_string() == instance_session_address)
@@ -2728,6 +2743,9 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
         "The following instances: '" + list +
         "' belong to both 'rejoinInstances' and 'removeInstances' lists.");
   }
+  // On this case a warning has been printed before, so a blank line is printed
+  // for readability
+  if (rebooting_old_version) console->print_info();
 
   // Getting the cluster from the metadata already complies with:
   // 1. Ensure that a Metadata Schema exists on the current session
@@ -2840,7 +2858,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
               "The instance '" + value + "' does not belong to the cluster: '" +
               cluster->impl()->get_name() + "'.");
       }
-    } else if (interactive) {
+    } else if (interactive || rebooting_old_version) {
       for (const auto &value : instances_status) {
         std::string instance_address = value.first;
         std::string instance_status = value.second;
@@ -2865,15 +2883,21 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
           if (it != remove_instances_list.end()) continue;
         }
 
-        console->println("The instance '" + instance_address +
-                         "' was part of the cluster configuration.");
-
-        if (console->confirm("Would you like to rejoin it to the cluster?",
-                             mysqlsh::Prompt_answer::NO) ==
-            mysqlsh::Prompt_answer::YES) {
+        // When rebooting old version there's no option to modify, instances are
+        // included in the cluster right away
+        if (rebooting_old_version) {
           rejoin_instances_list.push_back(instance_address);
+        } else {
+          console->println("The instance '" + instance_address +
+                           "' was part of the cluster configuration.");
+
+          if (console->confirm("Would you like to rejoin it to the cluster?",
+                               mysqlsh::Prompt_answer::NO) ==
+              mysqlsh::Prompt_answer::YES) {
+            rejoin_instances_list.push_back(instance_address);
+          }
+          console->println();
         }
-        console->println();
       }
     }
 
@@ -2900,7 +2924,8 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
               "The instance '" + value + "' does not belong to the cluster: '" +
               cluster->impl()->get_name() + "'.");
       }
-    } else if (interactive) {
+      // When rebooting old version there's no option to remove instances
+    } else if (interactive && !rebooting_old_version) {
       for (const auto &value : instances_status) {
         std::string instance_address = value.first;
         std::string instance_status = value.second;
@@ -3076,6 +3101,16 @@ Cluster_check_info Dba::check_preconditions(
   try {
     return check_function_preconditions("Dba." + function_name,
                                         target_instance);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
+  return Cluster_check_info{};
+}
+
+Cluster_check_info Dba::check_preconditions(
+    std::shared_ptr<MetadataStorage> metadata,
+    const std::string &function_name) const {
+  try {
+    return check_function_preconditions("Dba." + function_name, metadata);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
   return Cluster_check_info{};

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -106,8 +106,18 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   virtual void set_member(const std::string &prop, shcore::Value value);
   virtual shcore::Value get_member(const std::string &prop) const;
 
+  // NOTE: BUG#30628479 is applicable to all the API functions and the root
+  // cause is that several instances of the MetadataStorage class are created
+  // during a function execution. To solve this, all the API functions should
+  // create a single instance of the MetadataStorage class and pass it down
+  // through the chain call. In other words, the following function should be
+  // deprecated in favor of the version below.
   Cluster_check_info check_preconditions(
       std::shared_ptr<Instance> target_instance,
+      const std::string &function_name) const;
+
+  Cluster_check_info check_preconditions(
+      std::shared_ptr<MetadataStorage> metadata,
       const std::string &function_name) const;
 
   shcore::IShell_core *get_owner() { return _shell_core; }

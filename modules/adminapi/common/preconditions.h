@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -113,9 +113,20 @@ void check_preconditions(const std::string &function_name,
 
 Cluster_check_info get_cluster_check_info(const MetadataStorage &group_server);
 
+// NOTE: BUG#30628479 is applicable to all the API functions and the root cause
+// is that several instances of the Metadata class are created during a function
+// execution.
+// To solve this, all the API functions should create a single instance of the
+// Metadata class and pass it down through the chain call. In other words, the
+// following function should be deprecated in favor of the version below.
 Cluster_check_info check_function_preconditions(
     const std::string &function_name,
     const std::shared_ptr<Instance> &group_server);
+
+// All fun
+Cluster_check_info check_function_preconditions(
+    const std::string &function_name,
+    const std::shared_ptr<MetadataStorage> &metadata);
 
 }  // namespace dba
 }  // namespace mysqlsh

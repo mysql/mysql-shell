@@ -165,6 +165,58 @@ std::string get_all_online_check_query(
     return k_all_online_check_query;
 }
 
+constexpr const char *k_base_instance_in_cluster_query =
+    "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances "
+    "WHERE cluster_id = ? AND addresses->'$.mysqlClassic' = ?";
+
+constexpr const char *k_base_instance_in_cluster_query_1_0_1 =
+    "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances, "
+    "mysql_innodb_cluster_metadata.replicasets "
+    "WHERE cluster_id = ? AND addresses->'$.mysqlClassic' = ?";
+
+std::string get_instance_in_cluster_query(
+    const mysqlshdk::utils::Version &md_version) {
+  if (md_version.get_major() == 1)
+    return k_base_instance_in_cluster_query_1_0_1;
+  else
+    return k_base_instance_in_cluster_query;
+}
+
+constexpr const char *k_base_cluster_size_query =
+    "SELECT COUNT(*) as count "
+    "FROM mysql_innodb_cluster_metadata.instances "
+    "WHERE cluster_id = ?";
+
+constexpr const char *k_cluster_size_query_1_0_1 =
+    "SELECT COUNT(*) as count "
+    "FROM mysql_innodb_cluster_metadata.instances, "
+    "mysql_innodb_cluster_metadata.replicasets "
+    "WHERE cluster_id = ?";
+
+std::string get_cluster_size_query(
+    const mysqlshdk::utils::Version &md_version) {
+  if (md_version.get_major() == 1)
+    return k_cluster_size_query_1_0_1;
+  else
+    return k_base_cluster_size_query;
+}
+
+constexpr const char *k_base_topology_mode_query =
+    "SELECT primary_mode FROM mysql_innodb_cluster_metadata.clusters "
+    "WHERE cluster_id = ?";
+
+constexpr const char *k_base_topology_mode_query_1_0_1 =
+    "SELECT topology_type FROM mysql_innodb_cluster_metadata.replicasets "
+    "WHERE cluster_id = ?";
+
+std::string get_topology_mode_query(
+    const mysqlshdk::utils::Version &md_version) {
+  if (md_version.get_major() == 1)
+    return k_base_topology_mode_query_1_0_1;
+  else
+    return k_base_topology_mode_query;
+}
+
 // Constants with the names used to lock instances.
 static constexpr char k_lock[] = "AdminAPI_lock";
 static constexpr char k_lock_name_metadata[] = "AdminAPI_metadata";
@@ -853,11 +905,7 @@ void MetadataStorage::update_cluster_name(const Cluster_id &cluster_id,
 size_t MetadataStorage::get_cluster_size(const Cluster_id &cluster_id) const {
   shcore::sqlstring query;
 
-  query = shcore::sqlstring(
-      "SELECT COUNT(*) as count "
-      "FROM mysql_innodb_cluster_metadata.instances "
-      "WHERE cluster_id = ?",
-      0);
+  query = shcore::sqlstring(get_cluster_size_query(real_version()), 0);
   query << cluster_id;
   query.done();
 
@@ -875,10 +923,7 @@ bool MetadataStorage::is_instance_on_cluster(const Cluster_id &cluster_id,
                                              const std::string &address) {
   shcore::sqlstring query;
 
-  query = shcore::sqlstring(
-      "SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances "
-      "WHERE cluster_id = ? AND addresses->'$.mysqlClassic' = ?",
-      0);
+  query = shcore::sqlstring(get_instance_in_cluster_query(real_version()), 0);
   query << cluster_id;
   query << address;
   query.done();
@@ -1102,10 +1147,8 @@ Instance_metadata MetadataStorage::get_instance_by_address(
 mysqlshdk::gr::Topology_mode MetadataStorage::get_cluster_topology_mode(
     const Cluster_id &cluster_id) {
   // Execute query to obtain the topology mode from the metadata.
-  shcore::sqlstring query = shcore::sqlstring{
-      "SELECT primary_mode FROM mysql_innodb_cluster_metadata.clusters "
-      "WHERE cluster_id = ?",
-      0};
+  shcore::sqlstring query =
+      shcore::sqlstring{get_topology_mode_query(real_version()), 0};
   query << cluster_id;
   query.done();
 
