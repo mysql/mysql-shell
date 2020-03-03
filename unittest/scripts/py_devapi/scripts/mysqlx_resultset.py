@@ -261,4 +261,10 @@ print("Name with property: %s" % row.alias)
 print("Age with property: %s" % row.age)
 print("Unable to get length with property: %s" %  row.length)
 
+#@<> BUG#30825330 crash when SQL statement is executed after a stored procedure
+mySession.sql('CREATE PROCEDURE my_proc() BEGIN SELECT name FROM js_shell_test.buffer_table; END;').execute()
+res = mySession.sql('CALL my_proc();').execute()
+res2 = mySession.sql('SELECT 1;').execute()
+
+#@<> cleanup
 mySession.close()

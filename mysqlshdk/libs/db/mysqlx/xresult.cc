@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -352,6 +352,13 @@ std::shared_ptr<Field_names> Result::field_names() const {
       _field_names->add(column.get_column_label());
   }
   return _field_names;
+}
+
+void Result::drain_resultset() const {
+  if (_result) {
+    while (_result->next_resultset(nullptr)) {
+    }
+  }
 }
 
 }  // namespace mysqlx
