@@ -48,10 +48,14 @@ testutil.sampleModuleJS.stringFunction("one")
 
 //@ Register, function(dictionary)
 var f2 = function(data) {
-  if (data)
-    println("Function data: " + data['myOption']);
-  else
+  if (data) {
+    if (data.myOption)
+      println("Function data: " + data.myOption);
+    else
+      println ("Full data:" + data)
+  } else {
     println("No function data available");
+  }
 }
 
 shell.addExtensionObjectMember(testutil.sampleModuleJS, "dictFunction", f2,
@@ -93,6 +97,32 @@ testutil.sampleModuleJS.dictFunction({"myOption": 5})
 testutil.sampleModuleJS.dictFunction({"myOption": "whatever"})
 testutil.sampleModuleJS.dictFunction()
 testutil.sampleModuleJS.dictFunction({"myOption": "test"})
+
+//@ Register, function(dictionary), no option validation
+shell.addExtensionObjectMember(testutil.sampleModuleJS, "freeDictFunction", f2,
+                          {
+                            brief:"Brief definition for dictFunction.",
+                            details: ["Detailed description for dictFunction"],
+                            parameters:
+                            [
+                              {
+                                name: "data",
+                                type: "dictionary",
+                                brief: "Dictinary containing anything.",
+                                required: false,
+                                details: ["Detailed description for dictionary parameter."],
+                              }
+                            ]
+                          });
+
+//@ Usage, function(dictionary), no option validation
+testutil.sampleModuleJS.freeDictFunction({})
+testutil.sampleModuleJS.freeDictFunction({"someOption": 5})
+testutil.sampleModuleJS.freeDictFunction({"myOption": 5})
+testutil.sampleModuleJS.freeDictFunction({"myOption": "whatever"})
+testutil.sampleModuleJS.freeDictFunction()
+testutil.sampleModuleJS.freeDictFunction({"myOption": "test"})
+
 
 //@ Register, function(Session)
 var f3 = function(data) {
@@ -346,16 +376,6 @@ shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
                               class: "unexisting",
                               classes: [],
                               values: []
-                            }]
-                          });
-
-shell.addExtensionObjectMember(testutil.sampleModuleJS, "function", f5,
-                          {
-                            parameters:[
-                            {
-                              name: "sample",
-                              type: "dictionary",
-                              options: []
                             }]
                           });
 

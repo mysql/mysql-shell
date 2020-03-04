@@ -50,7 +50,10 @@ testutil.sample_module_p_y.string_function("one")
 #@ Register, function(dictionary)
 def f2(data=None):
   if data:
-    print("Function data: ", data['myOption'])
+    try:
+      print("Function data: ", data.myOption)
+    except IndexError:
+      print("Full data:", data)
   else:
     print("No function data available")
 
@@ -93,6 +96,32 @@ testutil.sample_module_p_y.dict_function({"myOption": 5})
 testutil.sample_module_p_y.dict_function({"myOption": "whatever"})
 testutil.sample_module_p_y.dict_function()
 testutil.sample_module_p_y.dict_function({"myOption": "test"})
+
+#@ Register, function(dictionary), no option validation
+shell.add_extension_object_member(testutil.sample_module_p_y, "freeDictFunction", f2,
+                          {
+                            "brief":"Brief definition for dictFunction.",
+                            "details": ["Detailed description for dictFunction"],
+                            "parameters":
+                            [
+                              {
+                                "name": "data",
+                                "type": "dictionary",
+                                "brief": "Dictinary containing anything.",
+                                "required": False,
+                                "details": ["Detailed description for dictionary parameter."],
+                              }
+                            ]
+                          });
+
+#@ Usage, function(dictionary), no option validation
+testutil.sample_module_p_y.free_dict_function({})
+testutil.sample_module_p_y.free_dict_function({"someOption": 5})
+testutil.sample_module_p_y.free_dict_function({"myOption": 5})
+testutil.sample_module_p_y.free_dict_function({"myOption": "whatever"})
+testutil.sample_module_p_y.free_dict_function()
+testutil.sample_module_p_y.free_dict_function({"myOption": "test"})
+
 
 #@ Register, function(Session)
 def f3(data):
@@ -310,16 +339,6 @@ shell.add_extension_object_member(testutil.sample_module_p_y, "function", f5,
                               "class": "unexisting",
                               "classes": [],
                               "values": []
-                            }]
-                          });
-
-shell.add_extension_object_member(testutil.sample_module_p_y, "function", f5,
-                          {
-                            "parameters":[
-                            {
-                              "name": "sample",
-                              "type": "dictionary",
-                              "options": []
                             }]
                           });
 
