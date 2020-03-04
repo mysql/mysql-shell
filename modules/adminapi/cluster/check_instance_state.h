@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_CLUSTER_CHECK_INSTANCE_STATE_H_
 #define MODULES_ADMINAPI_CLUSTER_CHECK_INSTANCE_STATE_H_
 
+#include <memory>
 #include <string>
 
 #include "adminapi/cluster/cluster_impl.h"

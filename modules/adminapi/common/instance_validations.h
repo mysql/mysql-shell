@@ -37,7 +37,6 @@
 
 namespace mysqlsh {
 namespace dba {
-
 namespace checks {
 
 void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
@@ -70,6 +69,10 @@ void ensure_instance_not_belong_to_metadata(
     const mysqlshdk::mysql::IInstance &instance,
     const std::string &address_in_metadata,
     const mysqlsh::dba::Cluster_impl &cluster);
+
+std::shared_ptr<Instance> ensure_matching_credentials_with_seed(
+    mysqlshdk::db::Connection_options *seed_opts,
+    const mysqlshdk::db::Connection_options &instance_opts);
 
 }  // namespace checks
 }  // namespace dba

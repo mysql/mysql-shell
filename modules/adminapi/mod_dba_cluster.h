@@ -120,7 +120,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
    */
   void invalidate() { m_invalidated = true; }
 
- public:
   void add_instance(const Connection_options &instance_def,
                     const shcore::Dictionary_t &options = {});
   void rejoin_instance(const Connection_options &instance_def,

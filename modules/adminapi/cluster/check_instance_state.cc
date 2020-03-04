@@ -23,6 +23,7 @@
 
 #include "modules/adminapi/cluster/check_instance_state.h"
 
+#include <memory>
 #include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -119,8 +120,6 @@ void Check_instance_state::ensure_instance_valid_gr_state() {
  * GTID state in relation to the cluster
  */
 shcore::Dictionary_t Check_instance_state::collect_instance_state() {
-  shcore::Dictionary_t ret = shcore::make_dict();
-
   std::shared_ptr<Instance> cluster_instance = m_cluster.get_target_server();
 
   // Check the gtid state in regards to the cluster_session
@@ -190,9 +189,9 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
     reason = "all_purged";
   }
 
+  shcore::Dictionary_t ret = shcore::make_dict();
   (*ret)["state"] = shcore::Value(status);
   (*ret)["reason"] = shcore::Value(reason);
-
   return ret;
 }
 
@@ -309,6 +308,14 @@ void Check_instance_state::prepare() {
   m_clone_available =
       mysqlshdk::mysql::is_clone_available(*m_target_instance) &&
       !m_cluster.get_disable_clone_option();
+
+  // Check if target instance has the same credentials as seed instance.
+  auto seed = m_cluster.pick_seed_instance();
+  auto seed_session =
+      checks::ensure_matching_credentials_with_seed(&seed, m_instance_cnx_opts);
+  if (seed_session) {
+    seed_session->close_session();
+  }
 }
 
 shcore::Value Check_instance_state::execute() {

@@ -522,6 +522,38 @@ void ensure_instance_not_belong_to_cluster(
   }
 }
 
+std::shared_ptr<Instance> ensure_matching_credentials_with_seed(
+    mysqlshdk::db::Connection_options *seed_opts,
+    const mysqlshdk::db::Connection_options &instance_opts) {
+  if (instance_opts.has_user()) {
+    seed_opts->clear_user();
+    seed_opts->set_user(instance_opts.get_user());
+  }
+  if (instance_opts.has_password()) {
+    seed_opts->clear_password();
+    seed_opts->set_password(instance_opts.get_password());
+  }
+
+  std::shared_ptr<Instance> seed_session = nullptr;
+
+  try {
+    seed_session =
+        Instance::connect(*seed_opts, current_shell_options()->get().wizards);
+  } catch (const shcore::Exception &e) {
+    if (e.code() == ER_ACCESS_DENIED_ERROR) {
+      mysqlsh::current_console()->print_error(
+          "The administrative account credentials provided do not match the "
+          "cluster's administrative account. The cluster administrative "
+          "account user name and password must be the same on all instances "
+          "that belong to an InnoDB cluster.");
+      throw shcore::Exception::runtime_error(
+          "Invalid administrative account credentials.");
+    }
+  }
+
+  return seed_session;
+}
+
 void ensure_instance_not_belong_to_metadata(
     const mysqlshdk::mysql::IInstance &instance,
     const std::string &address_in_metadata,

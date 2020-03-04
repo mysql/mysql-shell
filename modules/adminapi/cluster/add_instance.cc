@@ -27,6 +27,7 @@
 #include <mysqld_error.h>
 #include <climits>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "modules/adminapi/common/clone_options.h"
@@ -413,14 +414,20 @@ void Add_instance::prepare() {
     m_instance_cnx_opts = m_target_instance->get_connection_options();
   }
 
-  // Connect to the peer instance.
+  // User name and password must be the same on all instances that belong to a
+  // cluster. Check if we can connect to primary (seed) instance using provided
+  // credentials.
   if (!m_rebooting) {
-    mysqlshdk::db::Connection_options peer(m_cluster->pick_seed_instance());
-    if (peer.uri_endpoint() != m_cluster->get_target_server()
+    auto seed = m_cluster->pick_seed_instance();
+    std::shared_ptr<Instance> seed_session =
+        checks::ensure_matching_credentials_with_seed(&seed,
+                                                      m_instance_cnx_opts);
+
+    // Connect to the peer instance.
+    if (seed.uri_endpoint() != m_cluster->get_target_server()
                                    ->get_connection_options()
                                    .uri_endpoint()) {
-      m_peer_instance =
-          Instance::connect(peer, current_shell_options()->get().wizards);
+      m_peer_instance = std::move(seed_session);
       m_use_cluster_session_for_peer = false;
     } else {
       m_peer_instance = m_cluster->get_target_server();
