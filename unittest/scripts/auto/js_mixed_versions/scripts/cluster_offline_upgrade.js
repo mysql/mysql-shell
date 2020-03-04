@@ -29,7 +29,7 @@ dba.configureInstance(__sandbox_uri2, {mycnfPath: testutil.getSandboxConfPath(__
 //@<> createCluster on 5.7 instance
 var cluster;
 shell.connect(__sandbox_admin_uri1);
-cluster = dba.createCluster("mycluster")
+cluster = dba.createCluster("mycluster");
 
 //@<> status
 status = cluster.status();
@@ -128,6 +128,19 @@ if (__version_num <= 80021) {
 cluster.setupAdminAccount(CLUSTER_ADMIN, {update:true, password:CLUSTER_ADMIN_PWD});
 shell.connect(__sandbox_admin_uri1);
 cluster = dba.getCluster();
+
+//@<> Enable clone support on cluster
+cluster.setOption("disableClone", false);
+
+//@<> Deploy sandbox 4 using base server
+testutil.deploySandbox(__mysql_sandbox_port4, "root", { report_host: hostname });
+testutil.snapshotSandboxConf(__mysql_sandbox_port4);
+dba.configureLocalInstance(__sandbox_uri4, {clusterAdmin:CLUSTER_ADMIN, clusterAdminPassword:CLUSTER_ADMIN_PWD});
+
+//@<> Add Instance 4
+cluster.addInstance(__sandbox_admin_uri4, {recoveryMethod:'clone'});
+testutil.waitMemberState(__mysql_sandbox_port4, "ONLINE");
+
 
 //@<> removeInstance
 cluster.removeInstance(__sandbox_admin_uri2);

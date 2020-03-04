@@ -342,6 +342,7 @@ var CLUSTER_ADMIN_PWD = "AdminUserPwd";
 var __sandbox_admin_uri1 = 'mysql://AdminUser:AdminUserPwd@localhost:' + __mysql_sandbox_port1;
 var __sandbox_admin_uri2 = 'mysql://AdminUser:AdminUserPwd@localhost:' + __mysql_sandbox_port2;
 var __sandbox_admin_uri3 = 'mysql://AdminUser:AdminUserPwd@localhost:' + __mysql_sandbox_port3;
+var __sandbox_admin_uri4 = 'mysql://AdminUser:AdminUserPwd@localhost:' + __mysql_sandbox_port4;
 
 // JSON utils
 
