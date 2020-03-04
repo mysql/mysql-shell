@@ -234,6 +234,17 @@ DESCRIPTION
 |No function data available|
 |Function data: test|
 
+//@ Register, function(dictionary), no option validation
+||
+
+//@ Usage, function(dictionary), no option validation
+|Full data:[object Object]|
+|Full data:[object Object]|
+|Function data: 5|
+|Function data: whatever|
+|No function data available|
+|Function data: test|
+
 //@ Register, function(Session)
 ||
 
@@ -249,6 +260,9 @@ DESCRIPTION
 
 FUNCTIONS
       dictFunction([data])
+            Brief definition for dictFunction.
+
+      freeDictFunction([data])
             Brief definition for dictFunction.
 
       help([member])
@@ -296,6 +310,9 @@ DESCRIPTION
 
 FUNCTIONS
       dictFunction([data])
+            Brief definition for dictFunction.
+
+      freeDictFunction([data])
             Brief definition for dictFunction.
 
       help([member])
@@ -366,8 +383,7 @@ DESCRIPTION
 ||Shell.addExtensionObjectMember: Option 'classes' String expected, but value is Integer (TypeError)
 
 //@ Registration errors, dictionary parameters
-||Shell.addExtensionObjectMember: Invalid and missing options at dictionary parameter 'sample' (invalid: class, classes, values), (missing: options) (ArgumentError)
-||Shell.addExtensionObjectMember: Missing option definitions at parameter 'sample'. (ArgumentError)
+||Shell.addExtensionObjectMember: Invalid options at dictionary parameter 'sample': class, classes, values (ArgumentError)
 ||Shell.addExtensionObjectMember: Invalid definition at parameter 'sample', option #1 (ArgumentError)
 ||Shell.addExtensionObjectMember: Missing required options at parameter 'sample', option #1: name, type (ArgumentError)
 

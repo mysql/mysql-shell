@@ -456,17 +456,6 @@ shell.add_extension_object_member(obj, "function", f5,
                             }]
                           });
 
-#@ Dictionary parameter 'options' can't be empty
-shell.add_extension_object_member(obj, "function", f5,
-                          {
-                            "parameters":[
-                            {
-                              "name": "sample",
-                              "type": "dictionary",
-                              "options": []
-                            }]
-                          });
-
 #@ Dictionary parameter 'options' must be an array of dictionaries
 shell.add_extension_object_member(obj, "function", f5,
                           {

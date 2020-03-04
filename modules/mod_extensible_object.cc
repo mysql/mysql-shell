@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -716,7 +716,7 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
 
   shcore::Array_t options;
   if (param->type() == shcore::Value_type::Map)
-    unpacker.required("options", &options);
+    unpacker.optional("options", &options);
 
   std::string current_ctx;
   auto ctx_name_backup = context->levels.back().name;
@@ -1046,11 +1046,7 @@ void Extensible_object::validate_parameter(const shcore::Parameter &param,
     const auto &options =
         param.validator<shcore::Option_validator>()->allowed();
     // Options must be defined
-    if (options.empty()) {
-      auto error = shcore::str_format("Missing option definitions at %s.",
-                                      current_ctx.c_str());
-      throw shcore::Exception::argument_error(error);
-    } else {
+    if (!options.empty()) {
       int index = 0;
 
       for (const auto &option : options) {

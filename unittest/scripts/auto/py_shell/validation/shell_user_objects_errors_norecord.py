@@ -120,7 +120,7 @@ ArgumentError: Shell.add_extension_object_member: Invalid options at bool parame
 
 ArgumentError: Shell.add_extension_object_member: Invalid options at array parameter 'sample': class
 
-ArgumentError: Shell.add_extension_object_member: Invalid and missing options at dictionary parameter 'sample' (invalid: class), (missing: options)
+ArgumentError: Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': class
 
 ArgumentError: Shell.add_extension_object_member: Invalid options at boolean parameter 'sample': class
 
@@ -134,7 +134,7 @@ ArgumentError: Shell.add_extension_object_member: Invalid options at bool parame
 
 ArgumentError: Shell.add_extension_object_member: Invalid options at array parameter 'sample': classes
 
-ArgumentError: Shell.add_extension_object_member: Invalid and missing options at dictionary parameter 'sample' (invalid: classes), (missing: options)
+ArgumentError: Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': classes
 
 ArgumentError: Shell.add_extension_object_member: Invalid options at boolean parameter 'sample': classes
 
@@ -156,7 +156,7 @@ ArgumentError: Shell.add_extension_object_member: Invalid options at boolean par
 
 
 #@<OUT> Non string parameters do not accept 'values' attribute
-ArgumentError: Shell.add_extension_object_member: Invalid and missing options at dictionary parameter 'sample' (invalid: values), (missing: options)
+ArgumentError: Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': values
 
 ArgumentError: Shell.add_extension_object_member: Invalid options at integer parameter 'sample': values
 
@@ -204,10 +204,6 @@ ArgumentError: Shell.add_extension_object_member: Invalid options at boolean par
 
 #@Dictionary parameter 'options' should be an array
 ||SystemError: TypeError: Shell.add_extension_object_member: Option 'options' is expected to be of type Array, but is Integer
-
-
-#@Dictionary parameter 'options' can't be empty
-||SystemError: ArgumentError: Shell.add_extension_object_member: Missing option definitions at parameter 'sample'.
 
 
 #@Dictionary parameter 'options' must be an array of dictionaries

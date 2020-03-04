@@ -234,6 +234,17 @@ DESCRIPTION
 |No function data available|
 |Function data:  test|
 
+#@ Register, function(dictionary), no option validation
+||
+
+#@Usage, function(dictionary), no option validation
+|No function data available|
+|Full data: {"someOption": 5}|
+|Function data:  5|
+|Function data:  whatever|
+|No function data available|
+|Function data:  test|
+
 
 #@ Register, function(Session)
 ||
@@ -250,6 +261,9 @@ DESCRIPTION
 
 FUNCTIONS
       dict_function([data])
+            Brief definition for dictFunction.
+
+      free_dict_function([data])
             Brief definition for dictFunction.
 
       help([member])
@@ -297,6 +311,9 @@ DESCRIPTION
 
 FUNCTIONS
       dict_function([data])
+            Brief definition for dictFunction.
+
+      free_dict_function([data])
             Brief definition for dictFunction.
 
       help([member])
@@ -367,8 +384,7 @@ DESCRIPTION
 
 
 #@ Registration errors, dictionary parameters
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid and missing options at dictionary parameter 'sample' (invalid: class, classes, values), (missing: options)
-||SystemError: ArgumentError: Shell.add_extension_object_member: Missing option definitions at parameter 'sample'.
+||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': class, classes, values
 ||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid definition at parameter 'sample', option #1
 ||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter 'sample', option #1: name, type
 
