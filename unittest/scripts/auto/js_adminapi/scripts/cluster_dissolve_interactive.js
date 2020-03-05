@@ -205,9 +205,18 @@ testutil.expectPrompt("Are you sure you want to dissolve the cluster?", "y");
 testutil.expectPrompt("Do you want to continue anyway (only the instance metadata will be removed)? [y/N]:", "y");
 c.dissolve();
 
-//@ Finalization
+//@<> After the dissolve, none of the instances has information regarding the group_replication_applier channel BUG#30878446
+shell.connect(__sandbox_uri1);
+EXPECT_EQ(0, session.runSql("select COUNT(*) from performance_schema.replication_applier_status").fetchOne()[0]);
+session.close();
+shell.connect(__sandbox_uri2);
+EXPECT_EQ(0, session.runSql("select COUNT(*) from performance_schema.replication_applier_status").fetchOne()[0]);
+session.close();
+shell.connect(__sandbox_uri3);
+EXPECT_EQ(0, session.runSql("select COUNT(*) from performance_schema.replication_applier_status").fetchOne()[0]);
 session.close();
 
+//@ Finalization
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

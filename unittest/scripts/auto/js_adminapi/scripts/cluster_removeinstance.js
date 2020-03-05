@@ -26,6 +26,17 @@ var all_users_instance1 = get_all_users();
 c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
+//@<> After being removed, the instance has no information regarding the group_replication_applier channel BUG#30878446
+var session2 = mysql.getSession(__sandbox_uri2);
+EXPECT_NE(0, session2.runSql("select COUNT(*) from performance_schema.replication_applier_status").fetchOne()[0]);
+c.removeInstance(__sandbox_uri2);
+EXPECT_EQ(0, session2.runSql("select COUNT(*) from performance_schema.replication_applier_status").fetchOne()[0]);
+session2.close();
+
+//@<> Add instance back to the cluster
+c.addInstance(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
 //@<> BUG#29617572: Clear the mysql.slave_master_info table on instance 2
 session.close();
 shell.connect(__sandbox_uri2);
@@ -234,7 +245,7 @@ c.removeInstance(__sandbox_uri1);
 //@<> WL#13208: Re-add seed instance {VER(>=8.0.17)}
 session.close();
 shell.connect(__sandbox_uri2);
-var c = dba.getCluster()
+var c = dba.getCluster();
 c.addInstance(__sandbox_uri1, {recoveryMethod: "incremental"});
 
 //@ WL#13208: Cluster status {VER(>=8.0.17)}
