@@ -530,6 +530,43 @@ void Add_instance::prepare() {
         m_clone_disabled);
   }
 
+  // If recovery method was selected as clone, check that there is at least one
+  // ONLINE cluster instance not using IPV6, otherwise throw an error
+  if (m_clone_opts.recovery_method.get_safe() ==
+      Member_recovery_method::CLONE) {
+    bool found_ipv4 = false;
+    std::string full_msg;
+    // get online members
+    const auto online_instances =
+        m_replicaset.get_instances({mysqlshdk::gr::Member_state::ONLINE});
+    // check if at least one of them is not IPv6, otherwise throw an error
+    for (const auto &instance : online_instances) {
+      if (!mysqlshdk::utils::Net::is_ipv6(
+              mysqlshdk::utils::split_host_and_port(instance.endpoint).first)) {
+        found_ipv4 = true;
+        break;
+      } else {
+        std::string msg = "Instance '" + instance.endpoint +
+                          "' is not a suitable clone donor: Instance "
+                          "hostname/report_host is an IPv6 address, which is "
+                          "not supported for cloning.";
+        log_info("%s", msg.c_str());
+        full_msg += msg + "\n";
+      }
+    }
+    if (!found_ipv4) {
+      auto console = current_console();
+      console->print_error(
+          "None of the ONLINE members in the cluster are compatible to be used "
+          "as "
+          "clone donors for " +
+          m_target_instance->descr());
+      console->print_info(full_msg);
+      throw shcore::Exception("The Cluster has no compatible clone donors.",
+                              SHERR_DBA_CLONE_NO_DONORS);
+    }
+  }
+
   // Verify if the instance is running asynchronous (master-slave)
   // replication NOTE: Only verify if this is being called from a
   // addInstance() and not a createCluster() command.

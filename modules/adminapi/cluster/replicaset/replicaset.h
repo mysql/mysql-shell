@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -99,6 +99,17 @@ class GRReplicaSet {
   std::vector<Instance_metadata> get_active_instances() const;
 
   /**
+   * Get the list of instances in the states described in the states vector.
+   * @param states Vector of strings with the states of members whose
+   * instance_metadata we will retrieve from the cluster. If the states vector
+   * is empty, return the list of all instances.
+   *
+   * @return vector with the Instance definitions
+   */
+  std::vector<Instance_metadata> get_instances(
+      const std::vector<mysqlshdk::gr::Member_state> &states = {}) const;
+
+  /**
    * Get an online instance from the cluster.
    *
    * Return an online instance from the cluster that is reachable (able
@@ -113,8 +124,6 @@ class GRReplicaSet {
    */
   std::shared_ptr<mysqlsh::dba::Instance> get_online_instance(
       const std::string &exclude_uuid = "") const;
-
-  std::vector<Instance_metadata> get_instances() const;
 
   /**
    * Return list of instances registered in metadata along with their current
