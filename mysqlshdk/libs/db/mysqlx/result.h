@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -74,6 +74,9 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   uint64_t get_warning_count() const override;
   const std::vector<Column> &get_metadata() const override { return _metadata; }
   std::vector<std::string> get_generated_ids();
+
+  // read all resultsets without affecting the prefetched rows
+  void drain_resultset() const;
 
  protected:
   explicit Result(std::unique_ptr<xcl::XQuery_result> result);

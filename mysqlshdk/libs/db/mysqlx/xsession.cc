@@ -552,12 +552,13 @@ void XSession_impl::before_query() {
       // buffer the previous result to remove it from the connection
       // in case it's still active
       result->pre_fetch_rows(false);
-    } else {
-      // there's no data, but we need to call next_resultset() anyway
-      // bug#26581651 filed for this
-      while (result->next_resultset()) {
-      }
     }
+
+    // if there's no data, we need to call next_resultset() anyway
+    // (bug#26581651 was filed for this)
+    // if there are multiple resultsets, they need to drained as well
+    // (BUG#30825330)
+    result->drain_resultset();
   }
 }
 

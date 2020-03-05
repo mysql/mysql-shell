@@ -259,4 +259,11 @@ println("Unable to get gender from alias: " +  row.getField('alias'));
 println("Name with property: " +  row.alias);
 println("Age with property: " +  row.age);
 println("Unable to get length with property: " +  row.length);
+
+//@<> BUG#30825330 crash when SQL statement is executed after a stored procedure
+mySession.sql('CREATE PROCEDURE my_proc() BEGIN SELECT name FROM js_shell_test.buffer_table; END;').execute();
+var res = mySession.sql('CALL my_proc();').execute();
+var res2 = mySession.sql('SELECT 1;').execute();
+
+//@<> cleanup
 mySession.close()
