@@ -340,5 +340,9 @@
 //@ BUG#30628746: donor primary should not error with timeout {VER(>=8.0.17)}
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 
+//@ BUG#30281908: add instance using clone and simulating a restart timeout {VER(>= 8.0.17)}
+|Reverting topology changes...|
+||ReplicaSet.addInstance: Timeout waiting for server to restart (MYSQLSH 51156)
+
 //@# Cleanup
 ||

@@ -44,6 +44,13 @@
 #include "scripting/types.h"
 
 namespace mysqlsh {
+
+// Return how many iterations are needed for a given timeout in seconds using
+// the given polling interval in milliseconds
+inline int adjust_timeout(int timeout, int poll_interval) {
+  return (timeout * poll_interval) / 1000;
+}
+
 namespace dba {
 
 class cancel_sync : public std::exception {};

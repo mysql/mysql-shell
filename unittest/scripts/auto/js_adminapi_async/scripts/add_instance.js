@@ -522,6 +522,14 @@ EXPECT_SHELL_LOG_CONTAINS(bug_30632029[0]);
 EXPECT_SHELL_LOG_CONTAINS(bug_30632029[1]);
 WIPE_SHELL_LOG();
 
+//@ BUG#30281908: add instance using clone and simulating a restart timeout {VER(>= 8.0.17)}
+rs.removeInstance(__sandbox3);
+testutil.changeSandboxConf(__mysql_sandbox_port3, "foo", "bar");
+// Also tests the restartWaitTimeout option
+shell.options["dba.restartWaitTimeout"] = 1;
+rs.addInstance(__sandbox_uri3, {interactive:true, recoveryMethod:"clone"});
+shell.options["dba.restartWaitTimeout"] = 60;
+
 // TODO(miguel):
 // BUG#30657911: <REPLICASET>.ADDINSTANCE() USING CLONE SEGFAULTS WHEN RESTART IS NOT AVAILABLE
 //<> BUG#30657911: preparation
