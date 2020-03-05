@@ -38,11 +38,11 @@ function load_metadata_version(major, minor, patch, clear_data, replication_grou
 function format_messages(installed, current) {
     return {
         MAJOR_HIGHER_ERROR:
-        `Operation not allowed. The installed metadata version ${installed} is higher than the supported by the Shell which is version ${current}. Use a Shell version that supports this metadata version execute this operation.`,
+        `Operation not allowed. The installed metadata version ${installed} is higher than the supported by the Shell which is version ${current}. Please use the latest version of the Shell.`,
         MAJOR_LOWER_ERROR:
         `Operation not allowed. The installed metadata version ${installed} is lower than the version required by Shell which is version ${current}. Upgrade the metadata to execute this operation. See \\? dba.upgradeMetadata for additional details.`,
         MAJOR_HIGHER_WARNING:
-        `No cluster change operations can be executed because the installed metadata version ${installed} is higher than the supported by the Shell which is version ${current}. Use a Shell version that supports this metadata version to remove this restriction.`,
+        `No cluster change operations can be executed because the installed metadata version ${installed} is higher than the supported by the Shell which is version ${current}. Please use the latest version of the Shell.`,
         MAJOR_LOWER_WARNING:
         `No cluster change operations can be executed because the installed metadata version ${installed} is lower than the version required by Shell which is version ${current}. Upgrade the metadata to remove this restriction. See \\? dba.upgradeMetadata for additional details.`,
         MINOR_LOWER_NOTE:
@@ -50,7 +50,7 @@ function format_messages(installed, current) {
         PATCH_LOWER_NOTE:
         `The installed metadata version ${installed} is lower than the version required by Shell which is version ${current}. It is recommended to upgrade the metadata. See \\? dba.upgradeMetadata for additional details.`,
         CLUSTER_MAJOR_HIGHER_ERROR:
-        `Operation not allowed. No cluster change operations can be executed because the installed metadata version ${installed} is higher than the supported by the Shell which is version ${current}. Use a Shell version that supports this metadata version to remove this restriction.`,
+        `Operation not allowed. No cluster change operations can be executed because the installed metadata version ${installed} is higher than the supported by the Shell which is version ${current}. Please use the latest version of the Shell.`,
         CLUSTER_MAJOR_LOWER_ERROR:
         `Operation not allowed. No cluster change operations can be executed because the installed metadata version ${installed} is lower than the version required by Shell which is version ${current}. Upgrade the metadata to remove this restriction. See \\? dba.upgradeMetadata for additional details.`,
         FAILED_UPGRADE_ERROR:
@@ -325,10 +325,6 @@ for (index in tests) {
         function () {
             print_debug("Cluster.rescan()");
             cluster.rescan()
-        },
-        function () {
-            print_debug("Cluster.forceQuorumUsingPartitionOf()");
-            cluster.forceQuorumUsingPartitionOf(__sandbox_uri1)
         },
         function () {
             print_debug("Cluster.switchToSinglePrimaryMode()");

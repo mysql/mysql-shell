@@ -70,8 +70,7 @@ std::string lookup_message(const std::string &function_name, MDS state) {
       case MDS::MAJOR_HIGHER:
         return "Operation not allowed. The installed metadata version %s is "
                "higher than the supported by the Shell which is version %s. "
-               "Use a Shell version that supports this metadata version "
-               "execute this operation.";
+               "Please use the latest version of the Shell.";
       case MDS::MAJOR_LOWER:
         return "Operation not allowed. The installed metadata version %s is "
                "lower than the version required by Shell which is version %s. "
@@ -91,11 +90,31 @@ std::string lookup_message(const std::string &function_name, MDS state) {
         return "No " + thing(type) +
                " change operations can be executed because the installed "
                "metadata version %s is higher than the supported by the Shell "
-               "which is version %s. Use a Shell version that supports this "
-               "metadata version to remove this restriction.";
+               "which is version %s. Please use the latest version of the "
+               "Shell.";
       case MDS::MAJOR_LOWER:
         return "No " + thing(type) +
                " change operations can be executed because the installed "
+               "metadata version %s is lower than the version required by "
+               "Shell which is version %s. Upgrade the metadata to remove this "
+               "restriction. See \\? dba.<<<upgradeMetadata>>> for additional "
+               "details.";
+      default:
+        break;
+    }
+  } else if (function_name == "Dba.rebootClusterFromCompleteOutage") {
+    switch (state) {
+      case MDS::MAJOR_HIGHER:
+        return "Operation not allowed. No " +
+               thing(Cluster_type::GROUP_REPLICATION) +
+               " change operations can be executed because the installed "
+               "metadata version %s is higher than the supported by the Shell "
+               "which is version %s. Please use the latest version of the "
+               "Shell.";
+      case MDS::MAJOR_LOWER:
+        return "The " + thing(Cluster_type::GROUP_REPLICATION) +
+               " will be rebooted as configured on the metadata, however, no "
+               "change operations can be executed because the installed "
                "metadata version %s is lower than the version required by "
                "Shell which is version %s. Upgrade the metadata to remove this "
                "restriction. See \\? dba.<<<upgradeMetadata>>> for additional "
@@ -113,8 +132,8 @@ std::string lookup_message(const std::string &function_name, MDS state) {
         return "Operation not allowed. No " + thing(type) +
                " change operations can be executed because the installed "
                "metadata version %s is higher than the supported by the Shell "
-               "which is version %s. Use a Shell version that supports this "
-               "metadata version to remove this restriction.";
+               "which is version %s. Please use the latest version of the "
+               "Shell.";
       case MDS::MAJOR_LOWER:
         return "Operation not allowed. No " + thing(type) +
                " change operations can be executed because the installed "
@@ -207,7 +226,10 @@ const std::map<std::string, FunctionAvailability>
           GRInstanceType::StandaloneInMetadata | GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR},
+          {{metadata::kUpgradeStates, MDS_actions::ERROR},
+           {metadata::States(metadata::State::MAJOR_HIGHER),
+            MDS_actions::ERROR},
+           {metadata::States(metadata::State::MAJOR_LOWER), MDS_actions::WARN},
            {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
         {"Dba.configureLocalInstance",
          {k_min_gr_version,
@@ -235,7 +257,7 @@ const std::map<std::string, FunctionAvailability>
         {"Dba.upgradeMetadata",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster | GRInstanceType::AsyncReplicaSet,
-          ReplicationQuorum::State::any(),
+          ReplicationQuorum::State(ReplicationQuorum::States::All_online),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeInProgress, MDS_actions::ERROR}}}},
 
@@ -329,7 +351,9 @@ const std::map<std::string, FunctionAvailability>
           GRInstanceType::GroupReplication | GRInstanceType::InnoDBCluster,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
-          {{metadata::kIncompatibleOrUpgrading, MDS_actions::ERROR}}}},
+          {{metadata::kUpgradeStates, MDS_actions::ERROR},
+           {metadata::States(metadata::State::MAJOR_HIGHER),
+            MDS_actions::ERROR}}}},
         {"Cluster.switchToSinglePrimaryMode",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
@@ -944,6 +968,21 @@ Cluster_check_info check_function_preconditions(
   check_metadata_preconditions(function_name, metadata);
 
   Cluster_check_info info = get_cluster_check_info(metadata);
+
+  check_preconditions(function_name, info);
+
+  return info;
+}
+
+Cluster_check_info check_function_preconditions(
+    const std::string &function_name,
+    const std::shared_ptr<MetadataStorage> &metadata) {
+  assert(function_name.find('.') != std::string::npos);
+
+  // Performs metadata state validations before anything else
+  check_metadata_preconditions(function_name, *metadata.get());
+
+  Cluster_check_info info = get_cluster_check_info(*metadata.get());
 
   check_preconditions(function_name, info);
 

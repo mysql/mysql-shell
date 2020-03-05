@@ -34,6 +34,7 @@ EXPECT_THROWS(function(){dba.upgradeMetadata()}, "This function is not available
 shell.connect(cluster_admin_uri);
 var cluster = dba.createCluster('sample');
 cluster.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
+cluster.addInstance(__sandbox_uri3, {recoveryMethod:'incremental'});
 
 
 shell.connect(__sandbox_uri1);

@@ -1031,6 +1031,11 @@ DESCRIPTION
       recovers the cluster. Optionally it also updates the cluster
       configuration based on user provided options.
 
+      NOTE: When used with a metadata version lower than the one supported by
+            this version of the Shell, the removeInstances option is NOT
+            allowed, as in such scenario, no changes to the metadata are
+            allowed.
+
       On success, the restored cluster object is returned by the function.
 
       The current session must be connected to a former instance of the
