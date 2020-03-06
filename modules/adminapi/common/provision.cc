@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -179,6 +179,12 @@ void leave_replicaset(const mysqlsh::dba::Instance &instance) {
                         mysqlshdk::gr::to_string(state) +
                         ", Group Replication stop skipped.");
   }
+
+  // Reset the replication channels used by Group Replication.
+  instance.executef("RESET SLAVE ALL FOR CHANNEL ?",
+                    "group_replication_applier");
+  instance.executef("RESET SLAVE ALL FOR CHANNEL ?",
+                    "group_replication_recovery");
 
   // Disable and persist GR start on boot and reset values for
   // group_replication_bootstrap_group, group_replication_force_members,
