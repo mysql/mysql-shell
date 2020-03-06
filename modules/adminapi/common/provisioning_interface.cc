@@ -35,6 +35,7 @@
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
@@ -406,8 +407,16 @@ int ProvisioningInterface::create_sandbox(
 }
 
 int ProvisioningInterface::delete_sandbox(
-    int port, const std::string &sandbox_dir,
+    int port, const std::string &sandbox_dir, bool ignore_sandbox_not_exists,
     shcore::Value::Array_type_ref *errors) {
+  if (!ignore_sandbox_not_exists) {
+    std::string sandbox_path = shcore::path::normalize(
+        shcore::path::join_path(sandbox_dir, std::to_string(port)));
+    if (!shcore::path::exists(sandbox_path)) {
+      throw shcore::Exception::runtime_error(
+          "Sandbox instance on '" + sandbox_path + "' does not exist.");
+    }
+  }
   return exec_sandbox_op("delete", port, 0, sandbox_dir, shcore::Argument_map(),
                          errors);
 }

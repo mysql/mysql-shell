@@ -66,6 +66,11 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 rs.addInstance(__sandbox3);
 testutil.destroySandbox(__mysql_sandbox_port3);
 
+//@ Invalid loopback ip (should fail)
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: "127.0.1.1"});
+rs.addInstance(__sandbox3);
+testutil.destroySandbox(__mysql_sandbox_port3);
+
 //@ duplicated server_id with 1 server (should fail)
 session2.runSql("SET GLOBAL server_id=11");
 rs.addInstance(__sandbox2);

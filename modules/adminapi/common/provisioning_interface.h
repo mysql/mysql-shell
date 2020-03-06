@@ -54,6 +54,7 @@ class ProvisioningInterface {
                      const std::string &mysqld_path,
                      shcore::Value::Array_type_ref *errors);
   int delete_sandbox(int port, const std::string &sandbox_dir,
+                     bool ignore_sandbox_not_exists,
                      shcore::Value::Array_type_ref *errors);
   int kill_sandbox(int port, const std::string &sandbox_dir,
                    shcore::Value::Array_type_ref *errors);

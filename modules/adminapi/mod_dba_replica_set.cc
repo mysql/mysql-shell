@@ -263,8 +263,7 @@ incremental. Default is auto.
 level.
 @li cloneDonor: host:port of an existing replicaSet member to clone from.
 IPv6 addresses are not supported for this option.
-@li interactive: if true, enables interactive password and confirmation
-prompts. Defaults to the value of the useWizards shell option.
+${OPT_INTERACTIVE}
 @li timeout: timeout in seconds for transaction sync operations; 0 disables
 timeout and force the Shell to wait until the transaction sync finishes.
 Defaults to 0.
@@ -422,8 +421,7 @@ incremental. Default is auto.
 level.
 @li cloneDonor: host:port of an existing replicaSet member to clone from.
 IPv6 addresses are not supported for this option.
-@li interactive: if true, enables interactive password and confirmation
-prompts. Defaults to the value of the useWizards shell option.
+${OPT_INTERACTIVE}
 @li timeout: timeout in seconds for transaction sync operations; 0 disables
 timeout and force the Shell to wait until the transaction sync finishes.
 Defaults to 0.
@@ -553,7 +551,7 @@ The options dictionary may contain the following attributes:
 from metadata) in case it cannot be reached. By default, set to false.
 @li timeout: maximum number of seconds to wait for the instance to sync up with
 the PRIMARY. 0 means no timeout and <0 will skip sync.
-@li interactive: boolean value used to disable/enable the wizards in the
+${OPT_INTERACTIVE}
 
 The force option (set to true) is required to remove instances that are
 unreachable. Removed instances are normally synchronized with the rest of the
@@ -979,10 +977,7 @@ The options dictionary may contain the following attributes:
 @li password: The password for the InnoDB ReplicaSet administrator account.
 @li dryRun: boolean value used to enable a dry run of the account setup
 process. Default value is False.
-@li interactive: boolean value used to disable/enable the wizards in the
-command execution, i.e. prompts and confirmations will be provided or not
-according to the value set. The default value is equal to MySQL Shell wizard
-mode.
+${OPT_INTERACTIVE}
 @li update: boolean value that must be enabled to allow updating the privileges
 and/or password of existing accounts. Default value is False.
 
@@ -1072,10 +1067,7 @@ The options dictionary may contain the following attributes:
 @li password: The password for the MySQL Router account.
 @li dryRun: boolean value used to enable a dry run of the account setup
 process. Default value is False.
-@li interactive: boolean value used to disable/enable the wizards in the
-command execution, i.e. prompts and confirmations will be provided or not
-according to the value set. The default value is equal to MySQL Shell wizard
-mode.
+${OPT_INTERACTIVE}
 @li update: boolean value that must be enabled to allow updating the privileges
 and/or password of existing accounts. Default value is False.
 

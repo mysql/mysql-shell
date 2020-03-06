@@ -40,3 +40,9 @@
 
 //@ TEARDOWN BUG@29725222 add restart support to sandboxes {VER(>= 8.0.17)}
 ||
+
+//@ Delete a non existing sandbox must throw an error BUG#30863587
+||Dba.deleteSandboxInstance: Sandbox instance on '<<<test_dir>>><<<__path_splitter>>><<<__mysql_sandbox_port2>>>' does not exist. (RuntimeError)
+
+//@ testutil.destroySandbox must not throw any error if deleting a non existing sandbox BUG#30863587
+||

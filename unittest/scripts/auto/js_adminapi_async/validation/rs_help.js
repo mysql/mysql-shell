@@ -129,8 +129,10 @@ DESCRIPTION
         level.
       - cloneDonor: host:port of an existing replicaSet member to clone from.
         IPv6 addresses are not supported for this option.
-      - interactive: if true, enables interactive password and confirmation
-        prompts. Defaults to the value of the useWizards shell option.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
       - timeout: timeout in seconds for transaction sync operations; 0 disables
         timeout and force the Shell to wait until the transaction sync
         finishes. Defaults to 0.
@@ -315,8 +317,10 @@ DESCRIPTION
         level.
       - cloneDonor: host:port of an existing replicaSet member to clone from.
         IPv6 addresses are not supported for this option.
-      - interactive: if true, enables interactive password and confirmation
-        prompts. Defaults to the value of the useWizards shell option.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
       - timeout: timeout in seconds for transaction sync operations; 0 disables
         timeout and force the Shell to wait until the transaction sync
         finishes. Defaults to 0.
@@ -387,6 +391,9 @@ DESCRIPTION
       - timeout: maximum number of seconds to wait for the instance to sync up
         with the PRIMARY. 0 means no timeout and <0 will skip sync.
       - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
 
       The force option (set to true) is required to remove instances that are
       unreachable. Removed instances are normally synchronized with the rest of

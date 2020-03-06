@@ -107,6 +107,12 @@ testutil.startSandbox(__mysql_sandbox_port1);
 
 dba.createReplicaSet("myrs");
 
+//@ Invalid loopback ip (should fail)
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: "127.0.1.1"});
+dba.createReplicaSet("invalid_ip");
+testutil.destroySandbox(__mysql_sandbox_port1);
+
 // cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port1, "root");

@@ -1334,7 +1334,7 @@ void Testutils::destroy_sandbox(int port, bool quiet_kill) {
 #endif
   if (!_skip_server_interaction) {
     shcore::Value::Array_type_ref errors;
-    _mp->delete_sandbox(port, _sandbox_dir, &errors);
+    _mp->delete_sandbox(port, _sandbox_dir, true, &errors);
     if (errors && !errors->empty())
       std::cerr << "During delete of " << port << ": "
                 << shcore::Value(errors).descr() << "\n";

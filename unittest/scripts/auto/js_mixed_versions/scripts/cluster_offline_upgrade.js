@@ -236,4 +236,5 @@ EXPECT_NO_THROWS(function () {
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);
+testutil.destroySandbox(__mysql_sandbox_port4);
 }, "Cleaning Up Test Case");

@@ -45,6 +45,10 @@
 !ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
 !!ReplicaSet.addInstance: Instance check failed (MYSQLSH 51150
 
+//@# Invalid loopback ip (should fail)
+|ERROR: Cannot use host '127.0.1.1' for instance '127.0.1.1:<<<__mysql_sandbox_port3>>>' because it resolves to an IP address (127.0.1.1) that does not match a real network interface, thus it is not supported. Change your system settings and/or set the MySQL server 'report_host' variable to a hostname that resolves to a supported IP address.|
+||ReplicaSet.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which is not supported. (RuntimeError)
+
 //@# duplicated server_id with 1 server (should fail)
 ||ReplicaSet.addInstance: server_id in <<<__endpoint_uri2>>> is expected to be unique, but <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> already uses the same value
 

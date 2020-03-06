@@ -306,4 +306,5 @@ session.close();
 test_session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.rmfile(metadata_1_0_1_file);
