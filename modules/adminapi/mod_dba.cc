@@ -247,30 +247,49 @@ REGISTER_HELP(
     "@li autoRejoinTries: integer value to define the number of times an "
     "instance will attempt to rejoin the cluster after being expelled.");
 
+REGISTER_HELP(
+    OPT_INTERACTIVE,
+    "@li interactive: boolean value used to disable/enable the wizards in the "
+    "command execution, i.e. prompts and confirmations will be provided or not "
+    "according to the value set. The default value is equal to MySQL Shell "
+    "wizard mode.");
+
 REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL, R"*(
 The exitStateAction option supports the following values:
 @li ABORT_SERVER: if used, the instance shuts itself down if
-it leaves the cluster unintentionally.
+it leaves the cluster unintentionally or exhausts its auto-rejoin attempts.
 @li READ_ONLY: if used, the instance switches itself to
-super-read-only mode if it leaves the cluster unintentionally.
+super-read-only mode if it leaves the cluster unintentionally or exhausts
+its auto-rejoin attempts.
+@li OFFLINE_MODE: if used, the instance switches itself to offline mode if
+it leaves the cluster unintentionally or exhausts its auto-rejoin attempts.
+Requires MySQL 8.0.18 or newer.
 
 If exitStateAction is not specified READ_ONLY will be used by default.
 )*");
 
-REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA, R"*(
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA, R"*(
 The value for exitStateAction is used to configure how Group
 Replication behaves when a server instance leaves the group
-unintentionally, for example after encountering an applier
-error. When set to ABORT_SERVER, the instance shuts itself
-down, and when set to READ_ONLY the server switches itself to
-super-read-only mode. The exitStateAction option accepts
-case-insensitive string values, being the accepted values:
+unintentionally (for example after encountering an applier
+error) or exhausts its auto-rejoin attempts.
+When set to ABORT_SERVER, the instance shuts itself
+down.
+When set to READ_ONLY the server switches itself to
+super-read-only mode.
+When set to OFFLINE_MODE it switches itself to offline mode.
+In this mode, connected client users are disconnected on their
+next request and connections are no longer accepted, with the
+exception of client users that have the CONNECTION_ADMIN or
+SUPER privilege.
+The exitStateAction option accepts case-insensitive string
+values, being the accepted values: OFFLINE_MODE (or 2),
 ABORT_SERVER (or 1) and READ_ONLY (or 0).
 
 The default value is READ_ONLY.
 )*");
 
-REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA, R"*(
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA, R"*(
 The value for memberWeight is used to set the Group Replication
 system variable 'group_replication_member_weight'. The
 memberWeight option accepts integer values. Group Replication
@@ -924,9 +943,7 @@ of the seed instance corresponds to all transactions executed. Default is false.
 @li multiPrimary: boolean value used to define an InnoDB cluster with multiple
 writable instances.
 @li force: boolean, confirms that the multiPrimary option must be applied.
-@li interactive: boolean value used to disable the wizards in the command
-execution, i.e. prompts are not provided to the user and confirmation prompts
-are not shown.
+${OPT_INTERACTIVE}
 @li adoptFromGR: boolean value used to create the InnoDB cluster based on
 existing replication group.
 @li memberSslMode: SSL mode used to configure the members of the cluster.
@@ -1030,9 +1047,9 @@ ${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
 
 ${CLUSTER_OPT_CONSISTENCY_DETAIL}
 
-${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
-
 ${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
+
+${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
 
 ${CLUSTER_OPT_CONSISTENCY_EXTRA}
 
@@ -1350,9 +1367,7 @@ Alias for verifyMyCnf
 instance. If this option is given, the configuration file will be verified for
 the expected option values, in addition to the global MySQL system variables.
 @li password: The password to get connected to the instance.
-@li interactive: boolean value used to disable the wizards in the command
-execution, i.e. prompts are not provided to the user and confirmation prompts
-are not shown.
+${OPT_INTERACTIVE}
 
 The connection password may be contained on the instance definition, however,
 it can be overwritten if it is specified on the options.
@@ -1731,9 +1746,10 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
     rc = _provisioning_interface->create_sandbox(
         port, portx, sandbox_dir, password, mycnf_options, true,
         ignore_ssl_error, 0, "", &errors);
-  else if (function == "delete")
-    rc = _provisioning_interface->delete_sandbox(port, sandbox_dir, &errors);
-  else if (function == "kill")
+  else if (function == "delete") {
+    rc = _provisioning_interface->delete_sandbox(port, sandbox_dir, false,
+                                                 &errors);
+  } else if (function == "kill")
     rc = _provisioning_interface->kill_sandbox(port, sandbox_dir, &errors);
   else if (function == "stop")
     rc = _provisioning_interface->stop_sandbox(port, sandbox_dir, password,
@@ -2449,9 +2465,7 @@ file of the instance.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
 @li clearReadOnly: boolean value used to confirm that super_read_only must be
 disabled.
-@li interactive: boolean value used to disable the wizards in the command
-execution, i.e. prompts are not provided to the user and confirmation prompts
-are not shown.
+${OPT_INTERACTIVE}
 )*");
 
 REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_DETAILS_1, R"*(
@@ -2525,9 +2539,7 @@ The options dictionary may contain the following options:
 @li clusterAdmin: The name of a "cluster administrator" user to be
 created. The supported format is the standard MySQL account name format.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
-@li interactive: boolean value used to disable the wizards in the command
-execution, i.e. prompts are not provided to the user and confirmation prompts
-are not shown.
+${OPT_INTERACTIVE}
 @li restart: boolean value used to indicate that a remote restart of the target
 instance should be performed to finalize the operation.
 
@@ -3402,7 +3414,7 @@ installed metadata version is lower, an upgrade process will be started.
 The options dictionary accepts the following attributes:
 
 @li dryRun: boolean value used to enable a dry run of the upgrade process.
-@li interactive: boolean value used to disable/enable interactive mode.
+${OPT_INTERACTIVE}
 
 If dryRun is used, the function will determine whether a metadata upgrade
 or restore is required and inform the user without actually executing the

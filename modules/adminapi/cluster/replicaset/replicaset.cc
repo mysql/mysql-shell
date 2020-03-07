@@ -1208,26 +1208,34 @@ void GRReplicaSet::remove_instance_metadata(
 }
 
 std::vector<Instance_metadata> GRReplicaSet::get_active_instances() const {
-  std::vector<Instance_metadata> ret;
+  return get_instances({mysqlshdk::gr::Member_state::ONLINE,
+                        mysqlshdk::gr::Member_state::RECOVERING});
+}
 
-  std::vector<mysqlshdk::gr::Member> members(
-      mysqlshdk::gr::get_members(*m_cluster->get_target_server()));
+std::vector<Instance_metadata> GRReplicaSet::get_instances(
+    const std::vector<mysqlshdk::gr::Member_state> &states) const {
+  std::vector<Instance_metadata> all_instances =
+      m_cluster->get_metadata_storage()->get_all_instances(m_cluster->get_id());
 
-  std::vector<Instance_metadata> md(get_instances());
+  if (states.empty()) {
+    return all_instances;
+  } else {
+    std::vector<Instance_metadata> res;
+    std::vector<mysqlshdk::gr::Member> members(
+        mysqlshdk::gr::get_members(*m_cluster->get_target_server()));
 
-  for (const auto &i : md) {
-    auto m = std::find_if(members.begin(), members.end(),
-                          [&i](const mysqlshdk::gr::Member &member) {
-                            return member.uuid == i.uuid;
-                          });
-    if (m != members.end() &&
-        (m->state == mysqlshdk::gr::Member_state::ONLINE ||
-         m->state == mysqlshdk::gr::Member_state::RECOVERING)) {
-      ret.push_back(i);
+    for (const auto &i : all_instances) {
+      auto m = std::find_if(members.begin(), members.end(),
+                            [&i](const mysqlshdk::gr::Member &member) {
+                              return member.uuid == i.uuid;
+                            });
+      if (m != members.end() &&
+          std::find(states.begin(), states.end(), m->state) != states.end()) {
+        res.push_back(i);
+      }
     }
+    return res;
   }
-
-  return ret;
 }
 
 std::shared_ptr<mysqlsh::dba::Instance> GRReplicaSet::get_online_instance(
@@ -1598,11 +1606,6 @@ void GRReplicaSet::validate_server_uuid(
           "members must have a unique server UUID.");
     }
   }
-}
-
-std::vector<Instance_metadata> GRReplicaSet::get_instances() const {
-  return get_cluster()->get_metadata_storage()->get_all_instances(
-      m_cluster->get_id());
 }
 
 std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>

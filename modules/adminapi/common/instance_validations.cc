@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -267,19 +267,16 @@ void validate_host_address(const mysqlshdk::mysql::IInstance &instance,
       // leading to errors.
       console->print_error(shcore::str_format(
           "Cannot use host '%s' for instance '%s' because it resolves to an IP "
-          "address (%s) that does "
-          "not "
-          "match a real network interface, thus it is not supported by the "
-          "Group "
-          "Replication communication layer. Change your system settings "
-          "and/or "
+          "address (%s) that does not "
+          "match a real network interface, thus it is not supported. Change "
+          "your system settings and/or "
           "set the MySQL server 'report_host' variable to a hostname that "
           "resolves to a supported IP address.",
           hostname.c_str(), instance.descr().c_str(), seed_ip.c_str()));
 
       throw std::runtime_error(shcore::str_format(
           "Invalid host/IP '%s' resolves to '%s' which is not "
-          "supported by Group Replication.",
+          "supported.",
           hostname.c_str(), seed_ip.c_str()));
     }
   } catch (const mysqlshdk::utils::net_error &error) {

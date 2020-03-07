@@ -59,6 +59,10 @@
 //@# binlog filters (should fail)
 ||Dba.createReplicaSet: <<<__address1>>>: instance has binlog filters configured, but they are not supported in InnoDB ReplicaSets. (MYSQLSH 51150)
 
+//@# Invalid loopback ip (should fail)
+|ERROR: Cannot use host '127.0.1.1' for instance '127.0.1.1:<<<__mysql_sandbox_port1>>>' because it resolves to an IP address (127.0.1.1) that does not match a real network interface, thus it is not supported. Change your system settings and/or set the MySQL server 'report_host' variable to a hostname that resolves to a supported IP address.|
+||Dba.createReplicaSet: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which is not supported. (RuntimeError)
+
 //@# from a X protocol session
 |ReplicaSet object successfully created for <<<__address1>>>.|
 |<ReplicaSet:myrs>|

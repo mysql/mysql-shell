@@ -134,9 +134,10 @@ DESCRIPTION
         verified for the expected option values, in addition to the global
         MySQL system variables.
       - password: The password to get connected to the instance.
-      - interactive: boolean value used to disable the wizards in the command
-        execution, i.e. prompts are not provided to the user and confirmation
-        prompts are not shown.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
 
       The connection password may be contained on the instance definition,
       however, it can be overwritten if it is specified on the options.
@@ -208,9 +209,10 @@ DESCRIPTION
         account.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled.
-      - interactive: boolean value used to disable the wizards in the command
-        execution, i.e. prompts are not provided to the user and confirmation
-        prompts are not shown.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
       - restart: boolean value used to indicate that a remote restart of the
         target instance should be performed to finalize the operation.
 
@@ -299,9 +301,10 @@ DESCRIPTION
         account.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled.
-      - interactive: boolean value used to disable the wizards in the command
-        execution, i.e. prompts are not provided to the user and confirmation
-        prompts are not shown.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
 
       If the outputMycnfPath option is used, only that file is updated and
       mycnfPath is treated as read-only.
@@ -390,9 +393,10 @@ DESCRIPTION
         The supported format is the standard MySQL account name format.
       - clusterAdminPassword: The password for the "cluster administrator"
         account.
-      - interactive: boolean value used to disable the wizards in the command
-        execution, i.e. prompts are not provided to the user and confirmation
-        prompts are not shown.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
       - restart: boolean value used to indicate that a remote restart of the
         target instance should be performed to finalize the operation.
 
@@ -439,9 +443,10 @@ DESCRIPTION
       - multiPrimary: boolean value used to define an InnoDB cluster with
         multiple writable instances.
       - force: boolean, confirms that the multiPrimary option must be applied.
-      - interactive: boolean value used to disable the wizards in the command
-        execution, i.e. prompts are not provided to the user and confirmation
-        prompts are not shown.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
       - adoptFromGR: boolean value used to create the InnoDB cluster based on
         existing replication group.
       - memberSslMode: SSL mode used to configure the members of the cluster.
@@ -554,9 +559,13 @@ DESCRIPTION
       The exitStateAction option supports the following values:
 
       - ABORT_SERVER: if used, the instance shuts itself down if it leaves the
-        cluster unintentionally.
+        cluster unintentionally or exhausts its auto-rejoin attempts.
       - READ_ONLY: if used, the instance switches itself to super-read-only
-        mode if it leaves the cluster unintentionally.
+        mode if it leaves the cluster unintentionally or exhausts its
+        auto-rejoin attempts.
+      - OFFLINE_MODE: if used, the instance switches itself to offline mode if
+        it leaves the cluster unintentionally or exhausts its auto-rejoin
+        attempts. Requires MySQL 8.0.18 or newer.
 
       If exitStateAction is not specified READ_ONLY will be used by default.
 
@@ -571,12 +580,16 @@ DESCRIPTION
       If consistency is not specified, EVENTUAL will be used by default.
 
       The value for exitStateAction is used to configure how Group Replication
-      behaves when a server instance leaves the group unintentionally, for
-      example after encountering an applier error. When set to ABORT_SERVER,
-      the instance shuts itself down, and when set to READ_ONLY the server
-      switches itself to super-read-only mode. The exitStateAction option
-      accepts case-insensitive string values, being the accepted values:
-      ABORT_SERVER (or 1) and READ_ONLY (or 0).
+      behaves when a server instance leaves the group unintentionally (for
+      example after encountering an applier error) or exhausts its auto-rejoin
+      attempts. When set to ABORT_SERVER, the instance shuts itself down. When
+      set to READ_ONLY the server switches itself to super-read-only mode. When
+      set to OFFLINE_MODE it switches itself to offline mode. In this mode,
+      connected client users are disconnected on their next request and
+      connections are no longer accepted, with the exception of client users
+      that have the CONNECTION_ADMIN or SUPER privilege. The exitStateAction
+      option accepts case-insensitive string values, being the accepted values:
+      OFFLINE_MODE (or 2), ABORT_SERVER (or 1) and READ_ONLY (or 0).
 
       The default value is READ_ONLY.
 
@@ -1167,7 +1180,10 @@ DESCRIPTION
       The options dictionary accepts the following attributes:
 
       - dryRun: boolean value used to enable a dry run of the upgrade process.
-      - interactive: boolean value used to disable/enable interactive mode.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
 
       If dryRun is used, the function will determine whether a metadata upgrade
       or restore is required and inform the user without actually executing the

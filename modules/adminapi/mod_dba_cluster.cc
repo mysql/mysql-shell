@@ -224,10 +224,9 @@ used instead of the automatically generated one.
 @li groupSeeds: string value with a comma-separated list of the Group
 Replication peer addresses to be used instead of the automatically generated
 one.
-@li exitStateAction: string value indicating the group replication exit state
-action.
-@li memberWeight: integer value with a percentage weight for automatic primary
-election on failover.
+${OPT_INTERACTIVE}
+${CLUSTER_OPT_EXIT_STATE_ACTION}
+${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 
 The password may be contained on the instance definition, however, it can be
@@ -271,14 +270,7 @@ By default, if the standard output on which the Shell is running refers to a
 terminal, the waitRecovery option has the value of 3. Otherwise, it has the
 value of 2.
 
-The exitStateAction option supports the following values:
-
-@li ABORT_SERVER: if used, the instance shuts itself down if it leaves the
-cluster unintentionally.
-@li READ_ONLY: if used, the instance switches itself to super-read-only mode if
-it leaves the cluster unintentionally.
-
-If exitStateAction is not specified READ_ONLY will be used by default.
+${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
 
 The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR
 notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
@@ -303,19 +295,9 @@ The value for groupSeeds is used to set the Group Replication system variable
 'group_replication_group_seeds'. The groupSeeds option accepts a
 comma-separated list of addresses in the format: 'host1:port1,...,hostN:portN'.
 
-The value for exitStateAction is used to configure how Group Replication
-behaves when a server instance leaves the group unintentionally, for example
-after encountering an applier error. When set to ABORT_SERVER, the instance
-shuts itself down, and when set to READ_ONLY the server switches itself to
-super-read-only mode. The exitStateAction option accepts case-insensitive
-string values, being the accepted values: ABORT_SERVER (or 1) and READ_ONLY (or
-0). The default value is READ_ONLY.
+${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
 
-The value for memberWeight is used to set the Group Replication system variable
-'group_replication_member_weight'. The memberWeight option accepts integer
-values. Group Replication limits the value range from 0 to 100, automatically
-adjusting it if a lower/bigger value is provided. Group Replication uses a
-default value of 50 if no value is provided.
+${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
 
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 
@@ -510,10 +492,7 @@ The options dictionary may contain the following attributes:
 @li password: the instance connection password
 @li force: boolean, indicating if the instance must be removed (even if only
 from metadata) in case it cannot be reached. By default, set to false.
-@li interactive: boolean value used to disable/enable the wizards in the
-command execution, i.e. prompts and confirmations will be provided or not
-according to the value set. The default value is equal to MySQL Shell wizard
-mode.
+${OPT_INTERACTIVE}
 
 The password may be contained in the instance definition, however, it can be
 overwritten if it is specified on the options.
@@ -767,10 +746,7 @@ The options dictionary may contain the following attributes:
 executed, even if some members of the cluster cannot be reached or the timeout
 was reached when waiting for members to catch up with replication changes. By
 default, set to false.
-@li interactive: boolean value used to disable/enable the wizards in the
-command execution, i.e. prompts and confirmations will be provided or not
-according to the value set. The default value is equal to MySQL Shell wizard
-mode.
+${OPT_INTERACTIVE}
 
 The force option (set to true) must only be used to dissolve a cluster with
 instances that are permanently not available (no longer reachable) or never to
@@ -826,10 +802,7 @@ The options dictionary may contain the following attributes:
 @li force: boolean, indicating if the operation will continue in case an
 error occurs when trying to reset the passwords on any of the
 instances, for example if any of them is not online. By default, set to false.
-@li interactive: boolean value used to disable/enable the wizards in the
-command execution, i.e. prompts and confirmations will be provided or not
-according to the value set. The default value is equal to MySQL Shell wizard
-mode.
+${OPT_INTERACTIVE}
 
 The use of the force option (set to true) is not recommended. Use it only
 if really needed when instances are permanently not available (no longer
@@ -879,10 +852,7 @@ The options dictionary may contain the following attributes:
 @li addInstances: List with the connection data of the new active instances to
 add to the metadata, or "auto" to automatically add missing instances to the
 metadata.
-@li interactive: boolean value used to disable/enable the wizards in the
-command execution, i.e. prompts and confirmations will be provided or not
-according to the value set. The default value is equal to MySQL Shell wizard
-mode.
+${OPT_INTERACTIVE}
 @li removeInstances: List with the connection data of the obsolete instances to
 remove from the metadata, or "auto" to automatically remove obsolete instances
 from the metadata.
@@ -1307,9 +1277,9 @@ ${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
 
 ${CLUSTER_OPT_CONSISTENCY_DETAIL}
 
-${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
-
 ${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
+
+${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
 
 ${CLUSTER_OPT_CONSISTENCY_EXTRA}
 
@@ -1377,9 +1347,9 @@ ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
 
 ${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
 
-${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
-
 ${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
+
+${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
 
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 
@@ -1546,10 +1516,7 @@ The options dictionary may contain the following attributes:
 @li password: The password for the InnoDB cluster administrator account.
 @li dryRun: boolean value used to enable a dry run of the account setup
 process. Default value is False.
-@li interactive: boolean value used to disable/enable the wizards in the
-command execution, i.e. prompts and confirmations will be provided or not
-according to the value set. The default value is equal to MySQL Shell wizard
-mode.
+${OPT_INTERACTIVE}
 @li update: boolean value that must be enabled to allow updating the privileges
 and/or password of existing accounts. Default value is False.
 
@@ -1639,10 +1606,7 @@ The options dictionary may contain the following attributes:
 @li password: The password for the MySQL Router account.
 @li dryRun: boolean value used to enable a dry run of the account setup
 process. Default value is False.
-@li interactive: boolean value used to disable/enable the wizards in the
-command execution, i.e. prompts and confirmations will be provided or not
-according to the value set. The default value is equal to MySQL Shell wizard
-mode.
+${OPT_INTERACTIVE}
 @li update: boolean value that must be enabled to allow updating the privileges
 and/or password of existing accounts. Default value is False.
 

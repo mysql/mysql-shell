@@ -508,6 +508,8 @@ testutil.dbugSet("");
 session.close();
 session1.close();
 session2.close();
+session3.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.dbugSet("");

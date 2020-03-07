@@ -31,7 +31,7 @@ try_delete_sandbox(__mysql_sandbox_port1, test_dir);
 // BUG27181177: dba commands fail if user name has non-standard characters
 //@ Deploy sandbox in dir with non-ascii characters.
 dba.verbose = 2;
-var test_dir = __sandbox_dir + __path_splitter + "no_café_para_los_niños";
+var test_dir = __sandbox_dir + "no_café_para_los_niños";
 dba.deploySandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir, password: 'root'});
 
 //@ Stop sandbox in dir with non-ascii characters.
@@ -52,3 +52,9 @@ session = shell.connect(__sandbox_uri1);
 //@ TEARDOWN BUG@29725222 add restart support to sandboxes {VER(>= 8.0.17)}
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@ Delete a non existing sandbox must throw an error BUG#30863587
+dba.deleteSandboxInstance(__mysql_sandbox_port2, {sandboxDir: test_dir});
+
+//@ testutil.destroySandbox must not throw any error if deleting a non existing sandbox BUG#30863587
+testutil.destroySandbox(__mysql_sandbox_port2);

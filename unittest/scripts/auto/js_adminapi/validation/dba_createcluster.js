@@ -304,27 +304,27 @@ group_replication_start_on_boot = ON
 
 //@<OUT> BUG#29246110: check instance error with non supported host.
 This instance reports its own address as 127.0.1.1:<<<__mysql_sandbox_port1>>>
-ERROR: Cannot use host '127.0.1.1' for instance '127.0.1.1:<<<__mysql_sandbox_port1>>>' because it resolves to an IP address (127.0.1.1) that does not match a real network interface, thus it is not supported by the Group Replication communication layer. Change your system settings and/or set the MySQL server 'report_host' variable to a hostname that resolves to a supported IP address.
+ERROR: Cannot use host '127.0.1.1' for instance '127.0.1.1:<<<__mysql_sandbox_port1>>>' because it resolves to an IP address (127.0.1.1) that does not match a real network interface, thus it is not supported. Change your system settings and/or set the MySQL server 'report_host' variable to a hostname that resolves to a supported IP address.
 
 //@<ERR> BUG#29246110: check instance error with non supported host.
-Dba.checkInstanceConfiguration: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which is not supported by Group Replication. (RuntimeError)
+Dba.checkInstanceConfiguration: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which is not supported. (RuntimeError)
 
 //@<OUT> BUG#29246110: createCluster error with non supported host.
 This instance reports its own address as 127.0.1.1:<<<__mysql_sandbox_port1>>>
-ERROR: Cannot use host '127.0.1.1' for instance '127.0.1.1:<<<__mysql_sandbox_port1>>>' because it resolves to an IP address (127.0.1.1) that does not match a real network interface, thus it is not supported by the Group Replication communication layer. Change your system settings and/or set the MySQL server 'report_host' variable to a hostname that resolves to a supported IP address.
+ERROR: Cannot use host '127.0.1.1' for instance '127.0.1.1:<<<__mysql_sandbox_port1>>>' because it resolves to an IP address (127.0.1.1) that does not match a real network interface, thus it is not supported. Change your system settings and/or set the MySQL server 'report_host' variable to a hostname that resolves to a supported IP address.
 
 //@<ERR> BUG#29246110: createCluster error with non supported host.
-Dba.createCluster: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which is not supported by Group Replication. (RuntimeError)
+Dba.createCluster: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which is not supported. (RuntimeError)
 
 //@ BUG#29246110: create cluster succeed with supported host.
 ||
 
 //@<OUT> BUG#29246110: add instance error with non supported host.
 This instance reports its own address as 127.0.1.1:<<<__mysql_sandbox_port1>>>
-ERROR: Cannot use host '127.0.1.1' for instance '127.0.1.1:<<<__mysql_sandbox_port1>>>' because it resolves to an IP address (127.0.1.1) that does not match a real network interface, thus it is not supported by the Group Replication communication layer. Change your system settings and/or set the MySQL server 'report_host' variable to a hostname that resolves to a supported IP address.
+ERROR: Cannot use host '127.0.1.1' for instance '127.0.1.1:<<<__mysql_sandbox_port1>>>' because it resolves to an IP address (127.0.1.1) that does not match a real network interface, thus it is not supported. Change your system settings and/or set the MySQL server 'report_host' variable to a hostname that resolves to a supported IP address.
 
 //@<ERR> BUG#29246110: add instance error with non supported host.
-Cluster.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which is not supported by Group Replication. (RuntimeError)
+Cluster.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which is not supported. (RuntimeError)
 
 //@ BUG#29246110: finalization
 ||

@@ -126,6 +126,10 @@ DESCRIPTION
       - groupSeeds: string value with a comma-separated list of the Group
         Replication peer addresses to be used instead of the automatically
         generated one.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
       - exitStateAction: string value indicating the group replication exit
         state action.
       - memberWeight: integer value with a percentage weight for automatic
@@ -181,9 +185,13 @@ DESCRIPTION
       The exitStateAction option supports the following values:
 
       - ABORT_SERVER: if used, the instance shuts itself down if it leaves the
-        cluster unintentionally.
+        cluster unintentionally or exhausts its auto-rejoin attempts.
       - READ_ONLY: if used, the instance switches itself to super-read-only
-        mode if it leaves the cluster unintentionally.
+        mode if it leaves the cluster unintentionally or exhausts its
+        auto-rejoin attempts.
+      - OFFLINE_MODE: if used, the instance switches itself to offline mode if
+        it leaves the cluster unintentionally or exhausts its auto-rejoin
+        attempts. Requires MySQL 8.0.18 or newer.
 
       If exitStateAction is not specified READ_ONLY will be used by default.
 
@@ -213,17 +221,24 @@ DESCRIPTION
       'host1:port1,...,hostN:portN'.
 
       The value for exitStateAction is used to configure how Group Replication
-      behaves when a server instance leaves the group unintentionally, for
-      example after encountering an applier error. When set to ABORT_SERVER,
-      the instance shuts itself down, and when set to READ_ONLY the server
-      switches itself to super-read-only mode. The exitStateAction option
-      accepts case-insensitive string values, being the accepted values:
-      ABORT_SERVER (or 1) and READ_ONLY (or 0). The default value is READ_ONLY.
+      behaves when a server instance leaves the group unintentionally (for
+      example after encountering an applier error) or exhausts its auto-rejoin
+      attempts. When set to ABORT_SERVER, the instance shuts itself down. When
+      set to READ_ONLY the server switches itself to super-read-only mode. When
+      set to OFFLINE_MODE it switches itself to offline mode. In this mode,
+      connected client users are disconnected on their next request and
+      connections are no longer accepted, with the exception of client users
+      that have the CONNECTION_ADMIN or SUPER privilege. The exitStateAction
+      option accepts case-insensitive string values, being the accepted values:
+      OFFLINE_MODE (or 2), ABORT_SERVER (or 1) and READ_ONLY (or 0).
+
+      The default value is READ_ONLY.
 
       The value for memberWeight is used to set the Group Replication system
       variable 'group_replication_member_weight'. The memberWeight option
       accepts integer values. Group Replication limits the value range from 0
       to 100, automatically adjusting it if a lower/bigger value is provided.
+
       Group Replication uses a default value of 50 if no value is provided.
 
       The value for autoRejoinTries is used to set the Group Replication system
@@ -702,19 +717,27 @@ DESCRIPTION
       The exitStateAction option supports the following values:
 
       - ABORT_SERVER: if used, the instance shuts itself down if it leaves the
-        cluster unintentionally.
+        cluster unintentionally or exhausts its auto-rejoin attempts.
       - READ_ONLY: if used, the instance switches itself to super-read-only
-        mode if it leaves the cluster unintentionally.
+        mode if it leaves the cluster unintentionally or exhausts its
+        auto-rejoin attempts.
+      - OFFLINE_MODE: if used, the instance switches itself to offline mode if
+        it leaves the cluster unintentionally or exhausts its auto-rejoin
+        attempts. Requires MySQL 8.0.18 or newer.
 
       If exitStateAction is not specified READ_ONLY will be used by default.
 
       The value for exitStateAction is used to configure how Group Replication
-      behaves when a server instance leaves the group unintentionally, for
-      example after encountering an applier error. When set to ABORT_SERVER,
-      the instance shuts itself down, and when set to READ_ONLY the server
-      switches itself to super-read-only mode. The exitStateAction option
-      accepts case-insensitive string values, being the accepted values:
-      ABORT_SERVER (or 1) and READ_ONLY (or 0).
+      behaves when a server instance leaves the group unintentionally (for
+      example after encountering an applier error) or exhausts its auto-rejoin
+      attempts. When set to ABORT_SERVER, the instance shuts itself down. When
+      set to READ_ONLY the server switches itself to super-read-only mode. When
+      set to OFFLINE_MODE it switches itself to offline mode. In this mode,
+      connected client users are disconnected on their next request and
+      connections are no longer accepted, with the exception of client users
+      that have the CONNECTION_ADMIN or SUPER privilege. The exitStateAction
+      option accepts case-insensitive string values, being the accepted values:
+      OFFLINE_MODE (or 2), ABORT_SERVER (or 1) and READ_ONLY (or 0).
 
       The default value is READ_ONLY.
 
@@ -806,9 +829,13 @@ DESCRIPTION
       The exitStateAction option supports the following values:
 
       - ABORT_SERVER: if used, the instance shuts itself down if it leaves the
-        cluster unintentionally.
+        cluster unintentionally or exhausts its auto-rejoin attempts.
       - READ_ONLY: if used, the instance switches itself to super-read-only
-        mode if it leaves the cluster unintentionally.
+        mode if it leaves the cluster unintentionally or exhausts its
+        auto-rejoin attempts.
+      - OFFLINE_MODE: if used, the instance switches itself to offline mode if
+        it leaves the cluster unintentionally or exhausts its auto-rejoin
+        attempts. Requires MySQL 8.0.18 or newer.
 
       If exitStateAction is not specified READ_ONLY will be used by default.
 
@@ -823,12 +850,16 @@ DESCRIPTION
       If consistency is not specified, EVENTUAL will be used by default.
 
       The value for exitStateAction is used to configure how Group Replication
-      behaves when a server instance leaves the group unintentionally, for
-      example after encountering an applier error. When set to ABORT_SERVER,
-      the instance shuts itself down, and when set to READ_ONLY the server
-      switches itself to super-read-only mode. The exitStateAction option
-      accepts case-insensitive string values, being the accepted values:
-      ABORT_SERVER (or 1) and READ_ONLY (or 0).
+      behaves when a server instance leaves the group unintentionally (for
+      example after encountering an applier error) or exhausts its auto-rejoin
+      attempts. When set to ABORT_SERVER, the instance shuts itself down. When
+      set to READ_ONLY the server switches itself to super-read-only mode. When
+      set to OFFLINE_MODE it switches itself to offline mode. In this mode,
+      connected client users are disconnected on their next request and
+      connections are no longer accepted, with the exception of client users
+      that have the CONNECTION_ADMIN or SUPER privilege. The exitStateAction
+      option accepts case-insensitive string values, being the accepted values:
+      OFFLINE_MODE (or 2), ABORT_SERVER (or 1) and READ_ONLY (or 0).
 
       The default value is READ_ONLY.
 
