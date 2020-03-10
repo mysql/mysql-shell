@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,6 +41,24 @@
 #include "mysqlshdk/shellcore/shell_console.h"
 
 namespace shcore {
+namespace {
+std::string hexify(const std::string &data) {
+  if (data.size() == 0) {
+    return std::string{};
+  }
+  std::string s(3 * data.size(), 'x');
+
+  std::string::iterator k = s.begin();
+
+  for (const unsigned char i : data) {
+    *k++ = "0123456789abcdef"[i >> 4];
+    *k++ = "0123456789abcdef"[i & 0x0F];
+    *k++ = ' ';
+  }
+  s.resize(3 * data.size() - 1);
+  return s;
+}
+}  // namespace
 
 bool Document_reader_options::ignore_type(Bson_type type) const {
   if (convert_bson_types) {
@@ -75,6 +93,52 @@ std::string Json_reader::next() {
   Json_document_parser parser(m_source, m_options);
   return parser.parse();
 }
+
+void Json_reader::parse_bom() {
+  std::string header;
+  header.reserve(4);
+  for (int i = 0; i < 4; i++) {
+    const auto c = m_source->peek();
+    if (c == '{' || ::isspace(c) || m_source->eof()) {
+      break;
+    } else {
+      header += m_source->get();
+    }
+  }
+
+  if (header.size() == 0) {
+    return;
+  }
+
+  if (std::string{'\xef', '\xbb', '\xbf'}.compare(header) == 0) {
+    // nop
+  } else if (std::string{'\x00', '\x00', '\xfe', '\xff'}.compare(header) == 0) {
+    // utf-32 be
+    throw std::runtime_error("UTF-32BE encoded document is not supported.");
+  } else if (std::string{'\xff', '\xfe', '\x00', '\x00'}.compare(header) == 0) {
+    // utf-32 le
+    throw std::runtime_error("UTF-32LE encoded document is not supported.");
+  } else if (std::string{'\xfe', '\xff'}.compare(header) == 0) {
+    // utf-16 be
+    throw std::runtime_error("UTF-16BE encoded document is not supported.");
+  } else if (std::string{'\xff', '\xfe'}.compare(header) == 0) {
+    // utf-16 le
+    throw std::runtime_error("UTF-16LE encoded document is not supported.");
+  } else {
+    throw std::runtime_error("JSON document contains invalid bytes (" +
+                             hexify(header) + ") at the begining of the file.");
+  }
+}
+
+Document_parser::Document_parser(Buffered_input *input,
+                                 const Document_reader_options &options,
+                                 size_t depth, bool as_array,
+                                 const std::string context)
+    : m_source(input),
+      m_options(options),
+      m_depth(depth),
+      m_as_array(as_array),
+      m_context(context) {}
 
 void Json_document_parser::throw_premature_end() {
   throw invalid_json("Premature end of input stream", m_source->offset());

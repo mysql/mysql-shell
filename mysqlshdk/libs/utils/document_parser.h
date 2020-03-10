@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,7 +81,7 @@ class Document_reader {
  public:
   Document_reader(Buffered_input *input,
                   const shcore::Document_reader_options &options)
-      : m_source(input), m_options(options){};
+      : m_source(input), m_options(options) {}
 
   virtual std::string next() = 0;
   bool eof() { return m_source->eof(); }
@@ -101,6 +101,7 @@ class Json_reader : public Document_reader {
               const shcore::Document_reader_options &options)
       : Document_reader(input, options) {}
   std::string next() override;
+  void parse_bom();
 };
 
 /**
@@ -118,12 +119,7 @@ class Document_parser {
 
   Document_parser(Buffered_input *input, const Document_reader_options &options,
                   size_t depth = 0, bool as_array = false,
-                  const std::string context = "")
-      : m_source(input),
-        m_options(options),
-        m_depth(depth),
-        m_as_array(as_array),
-        m_context(context) {}
+                  const std::string context = "");
 
  protected:
   Buffered_input *m_source;
@@ -161,7 +157,7 @@ class Json_document_parser : public Document_parser {
           value(astring),
           target(string_ptr),
           ntarget(number),
-          length(len){};
+          length(len) {}
     char type;
     std::string value = "";
     std::string *target = nullptr;
