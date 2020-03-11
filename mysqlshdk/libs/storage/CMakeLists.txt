@@ -22,6 +22,10 @@
 include(zlib)
 MYSQL_CHECK_ZLIB()
 
+include(zstd)
+MYSQL_CHECK_ZSTD()
+
+
 include_directories(BEFORE "${CMAKE_SOURCE_DIR}")
 
 if(OPENSSL_INCLUDE_DIR)
@@ -39,6 +43,7 @@ set(library_SRC
   backend/oci_object_storage.cc
   backend/memory_file.cc
   compression/gz_file.cc
+  compression/zstd_file.cc
 )
 
 add_convenience_library(storage ${library_SRC})

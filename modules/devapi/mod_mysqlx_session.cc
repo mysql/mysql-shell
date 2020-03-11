@@ -970,7 +970,7 @@ shcore::Value::Map_type_ref Session::get_status() {
         "select @@character_set_client, @@character_set_connection, "
         "@@character_set_server, @@character_set_database, "
         "concat(@@version, \" \", @@version_comment) as version, "
-        "@@mysqlx_socket, @@mysqlx_port, @@datadir "
+        "@@mysqlx_socket, @@mysqlx_port, @@datadir, @@character_set_results "
         "limit 1");
     row = result->fetch_one();
     if (row) {
@@ -984,6 +984,8 @@ shcore::Value::Map_type_ref Session::get_status() {
           shcore::Value(row->is_null(3) ? "" : row->get_string(3));
       (*status)["SERVER_VERSION"] =
           shcore::Value(row->is_null(4) ? "" : row->get_string(4));
+      (*status)["RESULTS_CHARSET"] =
+          shcore::Value(row->is_null(8) ? "" : row->get_string(8));
 
       mysqlshdk::db::Transport_type transport_type =
           mysqlshdk::db::Transport_type::Tcp;

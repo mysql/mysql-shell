@@ -71,7 +71,8 @@ class Testutils : public mysqlsh::Extensible_object {
   Array fetchDbaSqlLog(Boolean flush);
 #endif
   Undefined dumpData(String uri, String path, Array schemaList);
-  Undefined importData(String uri, String path, String defaultSchema);
+  Undefined importData(String uri, String path, String defaultSchema,
+                       String importCharset);
   String waitMemberState(Integer port, String[] states);
   Boolean waitMemberTransactions(Integer destPort, Integer sourcePort = 0);
   Undefined waitForDelayedGRStart(Integer port, String rootpass,
@@ -89,6 +90,7 @@ class Testutils : public mysqlsh::Extensible_object {
   Boolean versionCheck(String v1, String op, String v2);
   Undefined mkdir(String path, Boolean recursive);
   Undefined rmdir(String path, Boolean recursive);
+  Undefined rename(String path, String newpath);
   Integer chmod(String path, Integer mode);
   Undefined cpfile(String source, String target);
   Undefined rmfile(String path);
@@ -131,7 +133,7 @@ class Testutils : public mysqlsh::Extensible_object {
   list fetch_dba_sql_log(bool flush);
 #endif
   None dump_data(str uri, str path, list schemaList);
-  None import_data(str uri, str path, str defaultSchema);
+  None import_data(str uri, str path, str defaultSchema, str defaultCharset);
   str wait_member_state(int port, str[] states);
   bool wait_member_transactions(int destPort, int sourcePort = 0);
   None wait_for_delayed_gr_start(int port, str rootpass, int timeout = 60);
@@ -148,6 +150,7 @@ class Testutils : public mysqlsh::Extensible_object {
   bool version_check(str v1, str op, str v2);
   None mkdir(str path, bool recursive);
   None rmdir(str path, bool recursive);
+  None rename(str path, str newpath);
   int chmod(str path, int mode);
   None cpfile(str source, str target);
   None rmfile(str path);
@@ -247,7 +250,8 @@ class Testutils : public mysqlsh::Extensible_object {
                  const std::vector<std::string> &schemas,
                  const shcore::Dictionary_t &options);
   void import_data(const std::string &uri, const std::string &path,
-                   const std::string &schema = "");
+                   const std::string &schema = "",
+                   const std::string &default_charset = "");
 
   bool is_tcp_port_listening(const std::string &host, int port);
 
@@ -273,6 +277,7 @@ class Testutils : public mysqlsh::Extensible_object {
   int make_file_readonly(const std::string &path);
   void mk_dir(const std::string &path, bool recursive = false);
   void rm_dir(const std::string &path, bool recursive = false);
+  void rename(const std::string &path, const std::string &newpath);
   int ch_mod(const std::string &path, int mode);
   void cp_file(const std::string &source, const std::string &target);
   void rm_file(const std::string &target);
@@ -293,7 +298,8 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void preprocess_file(const std::string &in_path,
                        const std::vector<std::string> &vars,
-                       const std::string &out_path);
+                       const std::string &out_path,
+                       const std::vector<std::string> &skip_sections = {});
 
   void dprint(const std::string &s);
 
@@ -432,6 +438,7 @@ class Testutils : public mysqlsh::Extensible_object {
   void wait_until_file_lock_released(const std::string &filepath,
                                      int timeout) const;
 
+  void handle_sandbox_encryption(const std::string &path) const;
   void handle_remote_root_user(const std::string &rootpass, int port,
                                bool create_remote_root = true) const;
   void prepare_sandbox_boilerplate(const std::string &rootpass, int port,
@@ -453,9 +460,13 @@ class Testutils : public mysqlsh::Extensible_object {
   shcore::Dictionary_t get_oci_config();
   void upload_oci_object(const std::string &bucket, const std::string &name,
                          const std::string &path);
+  void download_oci_object(const std::string &bucket, const std::string &name,
+                           const std::string &path);
   void create_oci_object(const std::string &bucket, const std::string &name,
                          const std::string &content);
   void delete_oci_object(const std::string &bucket, const std::string &name);
+
+  void anycopy(const shcore::Value &from, const shcore::Value &to);
 };
 
 }  // namespace tests

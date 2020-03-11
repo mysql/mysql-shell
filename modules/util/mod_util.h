@@ -84,6 +84,13 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
                     const shcore::Dictionary_t &options);
 
 #if DOXYGEN_JS
+  Undefined loadDump(String url, Dictionary options);
+#elif DOXYGEN_PY
+  None load_dump(str url, dict options);
+#endif
+  void load_dump(const std::string &url, const shcore::Dictionary_t &options);
+
+#if DOXYGEN_JS
   Undefined dumpSchemas(List schemas, String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
   None dump_schemas(list schemas, str outputUrl, dict options);

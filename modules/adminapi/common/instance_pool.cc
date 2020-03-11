@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -314,7 +314,7 @@ int Instance::get_lock(mysqlshdk::mysql::Lock_mode mode, unsigned int timeout,
               k_lock, descr().c_str());
     mysqlshdk::mysql::get_lock(*this, k_lock_name_instance, k_lock, mode,
                                timeout);
-  } catch (const shcore::Exception &err) {
+  } catch (const shcore::Error &err) {
     // Abort the operation in case the required lock cannot be acquired.
     log_debug("Failed to get %s lock ('%s', '%s'): %s",
               mysqlshdk::mysql::to_string(mode).c_str(), k_lock_name_instance,

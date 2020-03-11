@@ -104,17 +104,17 @@ std::string format_microseconds(double secs) {
 
 std::string format_items(const std::string &full,
                          const std::string &abbreviation, uint64_t items,
-                         bool space_before_item) {
+                         bool space_before_item, bool compact) {
   std::string unit;
   double nitems;
   std::tie(unit, nitems) = scale_value(items);
   if (nitems == items) {
-    return std::to_string(items) + " " + full;
+    return std::to_string(items) + (compact ? "" : " ") + full;
   } else {
     char buffer[64];
-    snprintf(buffer, sizeof(buffer), "%.2f", nitems);
-    return std::string(buffer) + (!space_before_item ? " " : "") + unit +
-           (space_before_item ? " " : "") + abbreviation;
+    snprintf(buffer, sizeof(buffer), compact ? "%.1f" : "%.2f", nitems);
+    return std::string(buffer) + ((!space_before_item && !compact) ? " " : "") +
+           unit + (space_before_item ? " " : "") + abbreviation;
   }
 }
 
@@ -125,18 +125,18 @@ std::string format_bytes(uint64_t bytes) {
 std::string format_throughput_items(const std::string &item_name_singular,
                                     const std::string &item_name_plural,
                                     const uint64_t items, double seconds,
-                                    bool space_before_item) {
+                                    bool space_before_item, bool compact) {
   char buffer[64] = {};
   double ratio = seconds >= 1.0 ? items / seconds : items;
   std::string unit;
   double scaled_items;
   std::tie(unit, scaled_items) = scale_value(ratio);
-  snprintf(buffer, sizeof(buffer), "%.2f", scaled_items);
+  snprintf(buffer, sizeof(buffer), compact ? "%.1f" : "%.2f", scaled_items);
 
   // Singular/plural form for English language.
   const auto singular = ratio > 0 && ratio <= 1.0;
-  return std::string(buffer) + (!space_before_item ? " " : "") + unit +
-         (space_before_item ? " " : "") +
+  return std::string(buffer) + ((!space_before_item && !compact) ? " " : "") +
+         unit + (space_before_item ? " " : "") +
          (singular ? item_name_singular : item_name_plural) + "/s";
 }
 

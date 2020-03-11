@@ -38,7 +38,7 @@ Gz_file::Gz_file(std::unique_ptr<IFile> file)
 
 Gz_file::~Gz_file() {
   try {
-    if (is_open()) close();
+    if (is_open()) do_close();
   } catch (const std::runtime_error &e) {
     log_error("Failed to close GZ file: %s", e.what());
   }
@@ -126,7 +126,8 @@ void Gz_file::init_write() {
 
   const int gzip_window_bits = 15 + 16;
   const int mem_level = 8;
-  int result = deflateInit2(&m_stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED,
+  const int compression_level = 1;  // Z_DEFAULT_COMPRESSION
+  int result = deflateInit2(&m_stream, compression_level, Z_DEFLATED,
                             gzip_window_bits, mem_level, Z_DEFAULT_STRATEGY);
   if (result != Z_OK) {
     throw std::runtime_error(std::string("deflate init failed: ") +
@@ -147,7 +148,7 @@ void Gz_file::open(Mode m) {
       init_write();
       break;
     case Mode::APPEND:
-      break;
+      throw std::invalid_argument("append not supported for gz file");
   }
 
   m_open_mode = m;
@@ -157,7 +158,9 @@ bool Gz_file::is_open() const {
   return !m_open_mode.is_null() && file()->is_open();
 }
 
-void Gz_file::close() {
+void Gz_file::close() { do_close(); }
+
+void Gz_file::do_close() {
   switch (*m_open_mode) {
     case Mode::READ: {
       auto result = inflateEnd(&m_stream);

@@ -35,6 +35,8 @@
 #include "modules/util/import_table/import_table.h"
 #include "modules/util/import_table/import_table_options.h"
 #include "modules/util/json_importer.h"
+#include "modules/util/load/dump_loader.h"
+#include "modules/util/load/load_dump_options.h"
 #include "modules/util/upgrade_check.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -79,6 +81,7 @@ Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
   expose("dumpSchemas", &Util::dump_schemas, "schemas", "outputUrl",
          "?options");
   expose("dumpInstance", &Util::dump_instance, "outputUrl", "?options");
+  expose("loadDump", &Util::load_dump, "url", "?options");
 }
 
 namespace {
@@ -970,6 +973,35 @@ void Util::configure_oci(const std::string &profile) {
   helper.create_profile(profile);
 }
 
+REGISTER_HELP_DETAIL_TEXT(IMPORT_EXPORT_URL_DETAIL, R"*(
+<b>url</b> can be one of:
+@li <b>/path/to/file</b> - Path to a locally or remotely (e.g. in OCI Object
+Storage) accessible file or directory
+@li <b>file:///path/to/file</b> - Path to a locally accessible file or directory
+@li <b>http[s]://host.domain[:port]/path/to/file</b> - Location of a remote file
+accessible through HTTP(s) (<<<importTable>>>() only)
+
+If the <b>osBucketName</b> option is given, the path argument must specify a
+plain path in that OCI (Oracle Cloud Infrastructure) Object Storage bucket.
+
+The OCI configuration profile is located through the oci.profile and
+oci.configFile global shell options and can be overriden with ociProfile and
+ociConfigFile, respectively.)*");
+
+REGISTER_HELP_DETAIL_TEXT(IMPORT_EXPORT_OCI_OPTIONS_DETAIL, R"*(
+<b>OCI Object Storage Options</b>
+
+@li <b>osBucketName</b>: string (default: not set) - Name of the Object Storage
+bucket to use. The bucket must already exist.
+@li <b>osNamespace</b>: string (default: not set) - Specifies the namespace
+(tenancy name) where the bucket is located, if not given it will be obtained
+using the tenancy id on the OCI configuration.
+@li <b>ociConfigFile</b>: string (default: not set) - Override oci.configFile
+shell option, to specify the path to the OCI configuration file.
+@li <b>ociProfile</b>: string (default: not set) - Override oci.profile shell
+option, to specify the name of the OCI profile to use.
+)*");
+
 REGISTER_HELP_FUNCTION(importTable, util);
 REGISTER_HELP_FUNCTION_TEXT(UTIL_IMPORTTABLE, R"*(
 Import table dump stored in filename to target table using LOAD DATA LOCAL
@@ -1042,6 +1074,9 @@ that matches specific data file format. Can be used as base dialect and
 customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
 fieldsEscapedBy and linesTerminatedBy options. Must be one of the following
 values: csv, tsv, json or csv-unix.
+@li <b>decodeColumns</b>: map (default: not set) - a map between columns names
+to decode methods (UNHEX or FROM_BASE64) to be applied on the loaded data.
+Requires 'columns' to be set.
 @li <b>ociConfigFile</b>: string (default: not set) - Override oci.configFile
 shell option. Available only if oci+os:// transport protocol is in use.
 @li <b>ociProfile</b>: string (default: not set) - Override oci.profile shell
@@ -1105,20 +1140,17 @@ Each parallel connection sets the following session variables:
 @li SET foreign_key_checks = 0
 @li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 )*");
-// clang-format off
 /**
- * \ingroup util
- *
  * Import table dump stored in filename to target table using LOAD DATA LOCAL
  * INFILE calls in parallel connections.
  *
  * @param filename Path to file with user data
  * @param options Optional dictionary with import options
  *
- * Scheme part of <b>filename</b> contains infomation about the transport backend.
- * Supported transport backends are: file://, http://, https://, oci+os://.
- * If scheme part of <b>filename</b> is omitted, then file:// transport
- * backend will be chosen.
+ * Scheme part of <b>filename</b> contains infomation about the transport
+ * backend. Supported transport backends are: file://, http://, https://,
+ * oci+os://. If scheme part of <b>filename</b> is omitted, then file://
+ * transport backend will be chosen.
  *
  * Supported filename formats:
  * @li <b>[file://]/path/to/file</b> - Read import data from local file
@@ -1135,35 +1167,36 @@ Each parallel connection sets the following session variables:
  * Options dictionary:
  * @li <b>schema</b>: string (default: current shell active schema) - Name of
  * target schema
- * @li <b>table</b>: string (default: filename without extension) - Name of target
- * table
+ * @li <b>table</b>: string (default: filename without extension) - Name of
+ * target table
  * @li <b>columns</b>: string array (default: empty array) - This option takes a
- * array of column names as its value. The order of the column names indicates how
- * to match data file columns with table columns.
- * @li <b>fieldsTerminatedBy</b>: string (default: "\t"), <b>fieldsEnclosedBy</b>:
- * char (default: ''), <b>fieldsEscapedBy</b>: char (default: '\\') - These options
- * have the same meaning as the corresponding clauses for LOAD DATA INFILE. For
- * more information use <b>\\? LOAD DATA</b>, (a session is required).
- * @li <b>fieldsOptionallyEnclosed</b>: bool (default: false) - Set to true if the
- * input values are not necessarily enclosed within quotation marks specified by
- * <b>fieldsEnclosedBy</b> option. Set to false if all fields are quoted by
- * character specified by <b>fieldsEnclosedBy</b> option.
- * @li <b>linesTerminatedBy</b>: string (default: "\n") - This option has the same
- * meaning as the corresponding clause for LOAD DATA INFILE. For example, to import
- * Windows files that have lines terminated with carriage return/linefeed pairs,
- * use --lines-terminated-by="\r\n". (You might have to double the backslashes,
- * depending on the escaping conventions of your command interpreter.)
- * See Section 13.2.7, "LOAD DATA INFILE Syntax".
- * @li <b>replaceDuplicates</b>: bool (default: false) - If true, input rows that
- * have the same value for a primary key or unique index as an existing row will be
- * replaced, otherwise input rows will be skipped.
- * @li <b>threads</b>: int (default: 8) - Use N threads to sent file chunks to the
- * server.
+ * array of column names as its value. The order of the column names indicates
+ * how to match data file columns with table columns.
+ * @li <b>fieldsTerminatedBy</b>: string (default: "\t"),
+ * <b>fieldsEnclosedBy</b>: char (default: ''), <b>fieldsEscapedBy</b>: char
+ * (default: '\\') - These options have the same meaning as the corresponding
+ * clauses for LOAD DATA INFILE. For more information use <b>\\? LOAD DATA</b>,
+ * (a session is required).
+ * @li <b>fieldsOptionallyEnclosed</b>: bool (default: false) - Set to true if
+ * the input values are not necessarily enclosed within quotation marks
+ * specified by <b>fieldsEnclosedBy</b> option. Set to false if all fields are
+ * quoted by character specified by <b>fieldsEnclosedBy</b> option.
+ * @li <b>linesTerminatedBy</b>: string (default: "\n") - This option has the
+ * same meaning as the corresponding clause for LOAD DATA INFILE. For example,
+ * to import Windows files that have lines terminated with carriage
+ * return/linefeed pairs, use --lines-terminated-by="\r\n". (You might have to
+ * double the backslashes, depending on the escaping conventions of your command
+ * interpreter.) See Section 13.2.7, "LOAD DATA INFILE Syntax".
+ * @li <b>replaceDuplicates</b>: bool (default: false) - If true, input rows
+ * that have the same value for a primary key or unique index as an existing row
+ * will be replaced, otherwise input rows will be skipped.
+ * @li <b>threads</b>: int (default: 8) - Use N threads to sent file chunks to
+ * the server.
  * @li <b>bytesPerChunk</b>: string (minimum: "131072", default: "50M") - Send
  * bytesPerChunk (+ bytes to end of the row) in single LOAD DATA call. Unit
- * suffixes, k - for Kilobytes (n * 1'000 bytes), M - for Megabytes (n * 1'000'000
- * bytes), G - for Gigabytes (n * 1'000'000'000 bytes), bytesPerChunk="2k" - ~2
- * kilobyte data chunk will send to the MySQL Server.
+ * suffixes, k - for Kilobytes (n * 1'000 bytes), M - for Megabytes (n *
+ * 1'000'000 bytes), G - for Gigabytes (n * 1'000'000'000 bytes),
+ * bytesPerChunk="2k" - ~2 kilobyte data chunk will send to the MySQL Server.
  * @li <b>maxRate</b>: string (default: "0") - Limit data send throughput to
  * maxRate in bytes per second per thread.
  * maxRate="0" - no limit. Unit suffixes, k - for Kilobytes (n * 1'000 bytes),
@@ -1172,13 +1205,16 @@ Each parallel connection sets the following session variables:
  * @li <b>showProgress</b>: bool (default: true if stdout is a tty, false
  * otherwise) - Enable or disable import progress information.
  * @li <b>skipRows</b>: int (default: 0) - Skip first n rows of the data in the
- * file. You can use this option to skip an initial header line containing column
- * names.
- * @li <b>dialect</b>: enum (default: "default") - Setup fields and lines options
- * that matches specific data file format. Can be used as base dialect and
- * customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
- * fieldsEscapedBy and linesTerminatedBy options. Must be one of the following
- * values: csv, tsv, json or csv-unix.
+ * file. You can use this option to skip an initial header line containing
+ * column names.
+ * @li <b>dialect</b>: enum (default: "default") - Setup fields and lines
+ * options that matches specific data file format. Can be used as base dialect
+ * and customized with fieldsTerminatedBy, fieldsEnclosedBy,
+ * fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy options. Must
+ * be one of the following values: csv, tsv, json or csv-unix.
+ * @li <b>decodeColumns</b>: map (default: not set) - a map between columns
+ * names to decode methods (UNHEX or FROM_BASE64) to be applied on the loaded
+ * data. Requires 'columns' to be set.
  * @li <b>ociConfigFile</b>: string (default: not set) - Override oci.configFile
  * shell option. Available only if oci+os:// transport protocol is in use.
  * @li <b>ociProfile</b>: string (default: not set) - Override oci.profile shell
@@ -1216,8 +1252,10 @@ Each parallel connection sets the following session variables:
  * @endcode
  * @li json:
  * @code{.unparsed}
- * {"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is my bar?\""}<LF>
- * {"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is my \u000b char?\""}<LF>
+ * {"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is my
+ * bar?\""}<LF>
+ * {"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is my
+ * \u000b char?\""}<LF>
  * @endcode
  * @li csv-unix:
  * @code{.unparsed}
@@ -1225,24 +1263,23 @@ Each parallel connection sets the following session variables:
  * "2","-12.5000","baz said: \"Where is my <TAB> char?\""<LF>
  * @endcode
  *
- * If the <b>schema</b> is not provided, an active schema on the global session, if
- * set, will be used.
+ * If the <b>schema</b> is not provided, an active schema on the global session,
+ * if set, will be used.
  *
- * If the input values are not necessarily enclosed within <b>fieldsEnclosedBy</b>,
- * set <b>fieldsOptionallyEnclosed</b> to true.
+ * If the input values are not necessarily enclosed within
+ * <b>fieldsEnclosedBy</b>, set <b>fieldsOptionallyEnclosed</b> to true.
  *
  * If you specify one separator that is the same as or a prefix of another, LOAD
  * DATA INFILE cannot interpret the input properly.
  *
- * Connection options set in the global session, such as compression, ssl-mode, etc.
- * are used in parallel connections.
+ * Connection options set in the global session, such as compression, ssl-mode,
+ * etc. are used in parallel connections.
  *
  * Each parallel connection sets the following session variables:
  * @li SET unique_checks = 0
  * @li SET foreign_key_checks = 0
  * @li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
  */
-// clang-format on
 #if DOXYGEN_JS
 Undefined Util::importTable(String filename, Dictionary options);
 #elif DOXYGEN_PY
@@ -1255,12 +1292,21 @@ void Util::import_table(const std::string &filename,
   using mysqlshdk::utils::format_bytes;
 
   Import_table_options opt(filename, options);
-  opt.base_session(_shell_core.get_dev_session());
+
+  auto shell_session = _shell_core.get_dev_session();
+  if (!shell_session || !shell_session->is_open() ||
+      shell_session->get_node_type().compare("mysql") != 0) {
+    throw shcore::Exception::runtime_error(
+        "A classic protocol session is required to perform this operation.");
+  }
+
+  opt.base_session(std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(
+      shell_session->get_core_session()));
   opt.validate();
 
   volatile bool interrupt = false;
   shcore::Interrupt_handler intr_handler([&interrupt]() -> bool {
-    mysqlsh::current_console()->print_warning(
+    mysqlsh::current_console()->print_note(
         "Interrupted by user. Cancelling...");
     interrupt = true;
     return false;
@@ -1287,6 +1333,220 @@ void Util::import_table(const std::string &filename,
   importer.rethrow_exceptions();
 }
 
+REGISTER_HELP_FUNCTION(loadDump, util);
+REGISTER_HELP_FUNCTION_TEXT(UTIL_LOADDUMP, R"*(
+Loads database dumps created by MySQL Shell.
+
+@param url URL or path to the dump directory
+@param options Optional dictionary with load options
+
+${IMPORT_EXPORT_URL_DETAIL}
+
+<<<loadDump>>>() will load a dump from the specified path. It transparently
+handles compressed files and directly streams data when loading from remote
+storage (currently HTTP and OCI Object Storage). If the 'waitDumpTimeout'
+option is set, it will load a dump on-the-fly, loading table data chunks as the
+dumper produces them.
+
+Although DDL scripts in the dump will be loaded in a single thread, table
+data will be loaded in parallel using the configured number of threads
+(4 by default). Multiple threads per table will be used if the dump was created
+with table chunking. Compressed data files are handled transparently.
+
+LOAD DATA LOCAL INFILE is used to load table data and thus, the 'local_infile'
+MySQL global setting must be enabled.
+
+<b>Resuming</b>
+
+The load command will store progress information into a file for each step of
+the loading process, including successfully completed and interrupted/failed
+ones. If that file already exists, its contents will be used to skip steps that
+have already been completed and retry those that failed or didn't start yet.
+
+When resuming, table chunks that have started being loaded but didn't finish are
+loaded again. Duplicate rows are discarded by the server. Tables that do not
+have unique keys are truncated before the load is resumed.
+
+IMPORTANT: Resuming assumes that no changes have been made to the partially
+loaded data between the failure and the retry. Resuming after external changes
+has undefined behavior and may lead to data loss.
+
+The progress state file has a default name of load-progress.@<server_uuid@>.json
+and is written to the same location as the dump. If 'progressFile' is specified,
+progress will be written to a local file at the given path. Setting it to ''
+will disable progress tracking and resuming.
+
+If the 'resetProgress' option is enabled, progress information from previous
+load attempts of the dump to the destination server is discarded and the load
+is restarted. You may use this option to retry loading the whole dump from the
+beginning. However, changes made to the database are not reverted, so previously
+loaded objects should be manually dropped first.
+
+Options dictionary:
+
+@li <b>analyzeTables</b>: "off", "on", "histogram" (default: off) - If 'on',
+executes ANALYZE TABLE for all tables, once loaded. If set to 'histogram', only
+tables that have histogram information stored in the dump will be analyzed. This
+option can be used even if all 'load' options are disabled.
+@li <b>defaultCharacterSet</b>: string (default taken from dump) - Specifies
+the character set to be used for loading the dump. By default, the same
+character set used for dumping will be used (utf8mb4 if not set at dump).
+@li <b>dryRun</b>: bool (default: false) - Scans the dump and prints everything
+that would be performed, without actually doing so.
+@li <b>excludeSchemas</b>: array of strings (default not set) - Skip loading
+specified schemas from the dump.
+@li <b>excludeTables</b>: array of strings (default not set) - Skip loading
+specified tables from the dump. Strings are in format schema.table or
+`schema`.`table`.
+@li <b>ignoreExistingObjects</b>: bool (default false) - Load the dump even if
+it contains objects that already exist in the target database.
+@li <b>ignoreVersion</b>: bool (default false) - Load the dump even if the
+major version number of the server where it was created is different from where
+it will be loaded.
+@li <b>includeSchemas</b>: array of strings (default not set) - Loads only the
+specified schemas from the dump. By default, all schemas are included.
+@li <b>includeTables</b>: array of strings (default not set) - Loads only the
+specified tables from the dump. Strings are in format schema.table or
+`schema`.`table`. By default, all tables from all schemas are included.
+@li <b>loadData</b>: bool (default: true) - Loads table data from the dump.
+@li <b>loadDdl</b>: bool (default: true) - Executes DDL/SQL scripts in the
+dump.
+@li <b>loadUsers</b>: bool (default: false) - Executes SQL scripts for user
+accounts, roles and grants contained in the dump. Note: statements for the 
+current user will be skipped.
+@li <b>progressFile</b>: path (default: @<server_uuid@>.progress) - Stores
+load progress information in the given local file path.
+@li <b>resetProgress</b>: bool (default: false) - Discards progress information
+of previous load attempts to the destination server and loads the whole dump
+again.
+@li <b>showProgress</b>: bool (default: true if stdout is a tty, false
+otherwise) - Enable or disable import progress information.
+@li <b>skipBinlog</b>: bool (default: false) - Disables the binary log
+for the MySQL sessions used by the loader (set sql_log_bin=0).
+@li <b>threads</b>: int (default: 4) - Number of threads to use to import table
+data.
+@li <b>waitDumpTimeout</b>: int (default: 0) - Loads a dump while it's still
+being created. Once all available tables are processed the command will either
+wait for more data, the dump is marked as completed or the given timeout passes.
+<= 0 disables waiting.
+${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
+
+${IMPORT_EXPORT_OCI_OPTIONS_DETAIL}
+
+Connection options set in the global session, such as compression, ssl-mode, etc.
+are used in parallel connections.
+
+Examples:
+
+@code
+util.<<<loadDump>>>("sakila_dump")
+
+util.<<<loadDump>>>("mysql/sales", {
+    "osBucketName": "mybucket",    // OCI Object Storage bucket
+    "waitDumpTimeout": 1800        // wait for new data for up to 30mins
+})
+@endcode
+)*");
+/**
+ * \ingroup util
+ *
+ * $(UTIL_LOADDUMP_BRIEF)
+ *
+ * $(UTIL_LOADDUMP)
+ */
+#if DOXYGEN_JS
+Undefined loadDump(String url, Dictionary options){};
+#elif DOXYGEN_PY
+None load_dump(str url, dict options){};
+#endif
+void Util::load_dump(const std::string &url,
+                     const shcore::Dictionary_t &options) {
+  Load_dump_options opt(url);
+
+  auto session = _shell_core.get_dev_session();
+  if (!session || !session->is_open()) {
+    throw std::runtime_error(
+        "An open session is required to perform this operation.");
+  }
+
+  opt.set_session(session->get_core_session());
+  opt.set_options(options);
+  opt.validate();
+
+  Dump_loader loader(opt);
+
+  shcore::Interrupt_handler intr_handler([&loader]() -> bool {
+    loader.interrupt();
+    return false;
+  });
+
+  auto console = mysqlsh::current_console();
+  console->print_info(opt.target_import_info());
+
+  try {
+    loader.run();
+  }
+  CATCH_AND_TRANSLATE();
+}
+
+REGISTER_HELP_TOPIC_TEXT(TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION, R"*(
+<b>MySQL Database Service Compatibility</b>
+
+The MySQL Database Service has a few security related restrictions that
+are not present in a regular, on-premise instance of MySQL. In order to make it
+easier to load existing databases into the Service, the dump commands in the
+MySQL Shell has options to detect potential issues and in some cases, to
+automatically adjust your schema definition to be compliant.
+
+The <b>ocimds</b> option, when set to true, will perform schema checks for
+most of these issues and abort the dump if any are found. The <<<loadDump>>>
+command will also only allow loading dumps that have been created with the
+"ocimds" option enabled.
+
+Some issues found by the <b>ocimds</b> option may require you to manually
+make changes to your database schema before it can be loaded into the MySQL
+Database Service. However, the <b>compatibility</b> option can be used to
+automatically modify the dumped schema SQL scripts, resolving some of these
+compatibility issues. You may pass one or more of the following options to
+"compatibility", separated by a comma (,).
+
+<b>force_innodb</b> - The MySQL Database Service requires use of the InnoDB
+storage engine. This option will modify the ENGINE= clause of CREATE TABLE
+statements that use incompatible storage engines and replace them with InnoDB.
+
+<b>strip_definers</b> - strips the "DEFINER=account" clause from views, routines,
+events and triggers. The MySQL Database Service requires special privileges to
+create these objects with a definer other than the user loading the schema.
+By stripping the DEFINER clause, these objects will be created with that default
+definer. Views and Routines will additionally have their SQL SECURITY clause
+changed from DEFINER to INVOKER. This ensures that the access permissions 
+of the account querying or calling these are applied, instead of the user that
+created them. This should be sufficient for most users, but if your database
+security model requires that views and routines have more privileges than their
+invoker, you will need to manually modify the schema before loading it.
+
+Please refer to the MySQL manual for details about DEFINER and SQL SECURITY.
+
+<b>strip_restricted_grants</b> - Certain privileges are restricted in the MySQL
+Database Service. Attempting to create users granting these privileges would
+fail, so this option allows dumped GRANT statements to be stripped of these
+privileges.
+
+<b>strip_tablespaces</b> - Tablespaces have some restrictions in the MySQL
+Database Service. If you'd like to have tables created in their default
+tablespaces, this option will strip the TABLESPACE= option from CREATE TABLE
+statements.
+
+Additionally, the following changes will always be made to DDL scripts
+when the <b>ocimds</b> option is enabled:
+
+@li <b>DATA DIRECTORY</b>, <b>INDEX DIRECTORY</b> and <b>ENCRYPTION</b> options
+in <b>CREATE TABLE</b> statements will be commented out.
+
+Please refer to the MySQL Database Service documentation for more information
+about restrictions and compatibility.
+)*");
+
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_COMMON_PARAMETERS_DESCRIPTION, R"*(
 The <b>outputUrl</b> specifies where the dump is going to be stored.
 
@@ -1311,20 +1571,20 @@ maximum rate, measured in bytes per second per thread. Use maxRate="0" to set no
 limit.
 @li <b>showProgress</b>: bool (default: true if stdout is a TTY device, false
 otherwise) - Enable or disable dump progress information.
-@li <b>compression</b>: string (default: "gzip") - Compression used when writing
-the data dump files, one of: "none", "gzip".
+@li <b>compression</b>: string (default: "zstd") - Compression used when writing
+the data dump files, one of: "none", "gzip", "zstd".
 @li <b>defaultCharacterSet</b>: string (default: "utf8mb4") - Character set used
 for the dump.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS, R"*(
-@li <b>osBucketName</b>: string (default: "") - Write dump data to the specified
-OCI bucket.
-@li <b>osNamespace</b>: string (default: "") - Specify the OCI namespace
+@li <b>osBucketName</b>: string (default: not set) - Use specified OCI bucket
+for the location of the dump.
+@li <b>osNamespace</b>: string (default: not set) - Specify the OCI namespace
 (tenancy name) where the OCI bucket is located.
-@li <b>ociConfigFile</b>: string (default: "") - Use the specified OCI
+@li <b>ociConfigFile</b>: string (default: not set) - Use the specified OCI
 configuration file instead of the one in the default location.
-@li <b>ociProfile</b>: string (default: "") - Use the specified OCI profile
+@li <b>ociProfile</b>: string (default: not set) - Use the specified OCI profile
 instead of the default one.
 )*");
 
@@ -1407,25 +1667,6 @@ the global read lock is released.
 The <b>ddlOnly</b> and <b>dataOnly</b> options cannot both be set to true at
 the same time.
 
-If the <b>ocimds</b> option is set to <b>true</b>, the following modifications
-are applied to the created SQL files:
-@li <b>DATA DIRECTORY</b>, <b>INDEX DIRECTORY</b> and <b>ENCRYPTION</b> options
-in <b>CREATE TABLE</b> statements will be commented out.
-
-Additionally, the following checks are performed and an exception will be raised
-if an incompatible SQL statement is found:
-@li users and roles granted the SUPER, FILE, RELOAD, or BINLOG_ADMIN privileges,
-@li the engine used in <b>CREATE TABLE</b> statement is set to <b>InnoDB</b>.
-
-In order to automatically fix the issues, use the <b>compatibility</b> option.
-
-The <b>compatibility</b> option supports the following values:
-@li force_innodb - replaces incompatible table engines with <b>InnoDB</b>
-@li strip_definers - removes DEFINER clause from views, triggers, events and
-routines, changes SQL SECURITY property to INVOKER for views and routines
-@li strip_restricted_grants - removes disallowed grants
-@li strip_tablespaces - removes unsupported TABLESPACE syntax
-
 The <b>chunking</b> option causes the the data from each table to be split and
 written to multiple chunk files. If this option is set to false, table data is
 written to a single file.
@@ -1445,7 +1686,9 @@ i.e. maxRate="2k" - limit throughput to 2 kilobytes per second.
 
 The value of the <b>bytesPerChunk</b> option cannot be smaller than "128k".
 
-<b>Dumping to OCI</b>
+${TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION}
+
+<b>Dumping to a Bucket in the OCI Object Storage</b>
 
 If the <b>osBucketName</b> option is used, the dump is stored in the specified
 OCI bucket, connection is established using the local OCI profile. The directory

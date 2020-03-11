@@ -58,6 +58,8 @@ class Rest_service {
    * @param base_url Base URL of the REST service.
    * @param verify_ssl If false, disables the SSL verification of target host.
    *        Validity of SSL certificates is not going to be checked.
+   * @param service_label Label to be used when logging requests for this
+   *        service.
    */
   explicit Rest_service(const std::string &base_url, bool verify_ssl = true,
                         const std::string &service_label = "");

@@ -27,6 +27,7 @@
 #include <limits>
 #include <utility>
 
+#include "modules/util/dump/console_with_progress.h"
 #include "modules/util/import_table/chunk_file.h"
 #include "modules/util/import_table/load_data.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
@@ -39,7 +40,9 @@ namespace mysqlsh {
 namespace import_table {
 
 Import_table::Import_table(const Import_table_options &options)
-    : m_opt(options) {
+    : m_console(std::make_shared<dump::Console_with_progress>(m_progress,
+                                                              &m_output_mutex)),
+      m_opt(options) {
   m_thread_exception.resize(options.threads_size(), nullptr);
 
   m_use_json = (mysqlsh::current_shell_options()->get().wrap_json != "off");
@@ -84,9 +87,9 @@ void Import_table::progress_shutdown() {
 
 void Import_table::spawn_workers() {
   for (int64_t i = 0; i < m_opt.threads_size(); i++) {
-    Load_data_worker worker(m_opt, i, m_progress.get(), &m_prog_sent_bytes,
-                            &m_output_mutex, m_interrupt, &m_range_queue,
-                            &m_thread_exception, m_use_json, &m_stats);
+    Load_data_worker worker(m_opt, i, m_progress.get(), &m_output_mutex,
+                            &m_prog_sent_bytes, m_interrupt, &m_range_queue,
+                            &m_thread_exception, &m_stats);
     std::thread t(&Load_data_worker::operator(), std::move(worker));
     m_threads.emplace_back(std::move(t));
   }

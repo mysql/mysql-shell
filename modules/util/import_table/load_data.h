@@ -33,6 +33,7 @@
 #include "modules/util/import_table/chunk_file.h"
 #include "modules/util/import_table/import_table.h"
 #include "modules/util/import_table/import_table_options.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/textui/text_progress.h"
 #include "mysqlshdk/libs/utils/rate_limit.h"
@@ -51,11 +52,14 @@ struct File_info {
   int64_t worker_id = -1;  //< Thread worker id
   std::string filename;    //< Import data filename path
   std::unique_ptr<mysqlshdk::storage::IFile> filehandler = nullptr;
-  size_t chunk_start = 0;  //< File chunk start offset
-  size_t bytes_left = 0;   //< Bytes left to read from file
+  mysqlshdk::storage::IFile *raw_filehandler = nullptr;
+  size_t chunk_start = 0;   //< File chunk start offset
+  size_t bytes_left = 0;    //< Bytes left to read from file
+  bool range_read = false;  //< Reading whole file vs chunk range
 
   std::mutex *prog_mutex;  //< Pointer to mutex for progress bar access
   mysqlshdk::textui::IProgress *prog;  //< Pointer to current progress bar
+  size_t bytes = 0;                    //< bytes send to MySQL server
   std::atomic<size_t>
       *prog_bytes;  //< Pointer cumulative bytes send to MySQL Server
   volatile bool *user_interrupt = nullptr;  //< Pointer to user interrupt flag
@@ -73,11 +77,12 @@ class Load_data_worker final {
   Load_data_worker() = delete;
   Load_data_worker(const Import_table_options &opt, int64_t thread_id,
                    mysqlshdk::textui::IProgress *progress,
+                   std::mutex *output_mutex,
                    std::atomic<size_t> *prog_sent_bytes,
-                   std::mutex *output_mutex, volatile bool *interrupt,
+                   volatile bool *interrupt,
                    shcore::Synchronized_queue<Range> *range_queue,
                    std::vector<std::exception_ptr> *thread_exception,
-                   bool use_json, Stats *stats);
+                   Stats *stats);
   Load_data_worker(const Load_data_worker &other) = default;
   Load_data_worker(Load_data_worker &&other) = default;
 
@@ -87,6 +92,8 @@ class Load_data_worker final {
   ~Load_data_worker() = default;
 
   void operator()();
+  void execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+               std::unique_ptr<mysqlshdk::storage::IFile> file);
 
  private:
   const Import_table_options &m_opt;
@@ -95,9 +102,8 @@ class Load_data_worker final {
   std::atomic<size_t> &m_prog_sent_bytes;
   std::mutex &m_output_mutex;
   volatile bool &m_interrupt;
-  shcore::Synchronized_queue<Range> &m_range_queue;
+  shcore::Synchronized_queue<Range> *m_range_queue;
   std::vector<std::exception_ptr> &m_thread_exception;
-  bool m_use_json;
   Stats &m_stats;
 };
 

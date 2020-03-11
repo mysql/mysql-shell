@@ -526,8 +526,8 @@ EXPECT_SUCCESS([test_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: Could not select a column to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_non_unique))
 EXPECT_STDOUT_CONTAINS("WARNING: Could not select a column to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_no_index))
 
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".tsv.gz")))
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".tsv.gz")))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".tsv.zstd")))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".tsv.zstd")))
 
 # WL13807: WL13804-FR5.2.2 - If the `chunking` option is set to `true` and the `indexColumn` option is not set to an empty string or the index column can be selected automatically as described in 5.1.1, the data must to written to multiple dump files. The data is partitioned into chunks using values from index column.
 # WL13807-TSFR_3_522_1
@@ -651,7 +651,7 @@ EXPECT_FALSE(os.path.isdir(test_output_absolute))
 rc = testutil.call_mysqlsh([uri, "--py", "-e", 'util.dump_schemas(["{0}"], "'.format(types_schema) + test_output_relative + '", { "showProgress": True })'])
 EXPECT_EQ(0, rc)
 EXPECT_TRUE(os.path.isdir(test_output_absolute))
-EXPECT_STDOUT_MATCHES(re.compile(r'\d+% \(\d+\.?\d*[TGMK]? rows / \d+\.?\d*[TGMK]? rows\), \d+\.?\d*[TGMK]? rows?/s, \d+\.?\d* [TGMK]?B/s', re.MULTILINE))
+EXPECT_STDOUT_MATCHES(re.compile(r'\d+ thds dumping - \d+% \(\d+\.?\d*[TGMK]? rows / ~\d+\.?\d*[TGMK]? rows\), \d+\.?\d*[TGMK]? rows?/s, \d+\.?\d* [TGMK]?B/s', re.MULTILINE))
 
 #@<> WL13807: WL13804-FR5.6.2 - If the `showProgress` option is not given, a default value of `true` must be used instead if shell is used interactively. Otherwise, it is set to `false`.
 shutil.rmtree(test_output_absolute, True)
@@ -673,9 +673,13 @@ EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basen
 #@<> WL13807: WL13804-FR5.7.1 - The allowed values for the `compression` option are:
 # * `"none"` - no compression is used,
 # * `"gzip"` - gzip compression is used.
+# * `"zstd"` - zstd compression is used.
 # WL13807-TSFR_3_571_3
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "compression": "gzip", "chunking": False, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.gz")))
+
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "compression": "zstd", "chunking": False, "showProgress": False })
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.zstd")))
 
 EXPECT_FAIL("ArgumentError", "The option 'compression' cannot be set to an empty string.", [types_schema], test_output_relative, { "compression": "" })
 EXPECT_FAIL("ArgumentError", "Unknown compression type: dummy", [types_schema], test_output_relative, { "compression": "dummy" })
@@ -683,7 +687,7 @@ EXPECT_FAIL("ArgumentError", "Unknown compression type: dummy", [types_schema], 
 #@<> WL13807: WL13804-FR5.7.2 - If the `compression` option is not given, a default value of `"gzip"` must be used instead.
 # WL13807-TSFR_3_572_1
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "chunking": False, "showProgress": False })
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.gz")))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.zstd")))
 
 #@<> WL13807: WL13804-FR5.8 - The `options` dictionary may contain a `osBucketName` key with a string value, which specifies the OCI bucket name where the data dump files are going to be stored.
 # WL13807-TSFR_3_58
@@ -804,13 +808,13 @@ TEST_BOOL_OPTION("ddlOnly")
 # WL13807-FR4.7.1 - If the `ddlOnly` option is set to `true`, only the DDL files must be written.
 # WL13807-TSFR4_20
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
-EXPECT_EQ(0, count_files_with_extension(test_output_absolute, ".gz"))
+EXPECT_EQ(0, count_files_with_extension(test_output_absolute, ".zstd"))
 EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".sql"))
 
 #@<> WL13807-FR4.7.2 - If the `ddlOnly` option is not given, a default value of `false` must be used instead.
 # WL13807-TSFR4_19
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "showProgress": False })
-EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".gz"))
+EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".zstd"))
 EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".sql"))
 
 #@<> WL13807-FR4.8 - The `options` dictionary may contain a `dataOnly` key with a Boolean value, which specifies whether the DDL files should be written.
@@ -820,7 +824,7 @@ TEST_BOOL_OPTION("dataOnly")
 # WL13807-FR4.8.1 - If the `dataOnly` option is set to `true`, only the data dump files must be written.
 # WL13807-TSFR4_23
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "dataOnly": True, "showProgress": False })
-EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".gz"))
+EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".zstd"))
 # WL13807-TSFR9_2
 # WL13807-TSFR10_2
 # WL13807-TSFR11_2
@@ -833,7 +837,7 @@ EXPECT_FAIL("ArgumentError", "The 'ddlOnly' and 'dataOnly' options cannot be bot
 #@<> WL13807-FR4.8.3 - If the `dataOnly` option is not given, a default value of `false` must be used instead.
 # WL13807-TSFR4_22
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "showProgress": False })
-EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".gz"))
+EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".zstd"))
 EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".sql"))
 
 #@<> WL13807-FR4.9 - The `options` dictionary may contain a `dryRun` key with a Boolean value, which specifies whether a dry run should be performed.
@@ -916,7 +920,7 @@ EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basen
 EXPECT_SUCCESS(["mysql"], test_output_absolute, { "chunking": False, "showProgress": False })
 
 for table in ["apply_status", "general_log", "schema", "slow_log"]:
-    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename("mysql", table) + ".tsv.gz")))
+    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename("mysql", table) + ".tsv.zstd")))
     exists = os.path.isfile(os.path.join(test_output_absolute, encode_table_basename("mysql", table) + ".sql"))
     if 1 == session.run_sql("SELECT COUNT(*) FROM information_schema.tables WHERE TABLE_SCHEMA = 'mysql' AND TABLE_NAME = ?", [table]).fetch_one()[0]:
         EXPECT_TRUE(exists)
@@ -924,7 +928,7 @@ for table in ["apply_status", "general_log", "schema", "slow_log"]:
         EXPECT_FALSE(exists)
 
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename("mysql", "user") + ".sql")))
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename("mysql", "user") + ".tsv.gz")))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename("mysql", "user") + ".tsv.zstd")))
 
 #@<> run dump for all SQL-related tests below
 EXPECT_SUCCESS([types_schema, test_schema], test_output_absolute, { "users": True, "ddlOnly": True, "showProgress": False })

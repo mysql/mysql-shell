@@ -36,6 +36,7 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/oci/oci_options.h"
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
+#include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -54,17 +55,19 @@ Import_table_options::Import_table_options(const std::string &filename,
   unpack(options);
 }
 
+Import_table_options::Import_table_options(const shcore::Dictionary_t &options)
+    : m_oci_options(
+          mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE) {
+  unpack(options);
+}
+
 void Import_table_options::validate() {
   m_dialect.validate();
 
-  if (!m_base_session || !m_base_session->is_open() ||
-      m_base_session->get_node_type().compare("mysql") != 0) {
-    throw shcore::Exception::runtime_error(
-        "A classic protocol session is required to perform this operation.");
-  }
-
   if (m_schema.empty()) {
-    m_schema = m_base_session->get_current_schema();
+    auto res = m_base_session->query("SELECT schema()");
+    auto row = res->fetch_one_or_throw();
+    m_schema = row->is_null(0) ? "" : row->get_string(0);
     if (m_schema.empty()) {
       throw std::runtime_error(
           "There is no active schema on the current session, the target "
@@ -73,8 +76,8 @@ void Import_table_options::validate() {
   }
 
   {
-    auto result = m_base_session->get_core_session()->query(
-        "SHOW GLOBAL VARIABLES LIKE 'local_infile'");
+    auto result =
+        m_base_session->query("SHOW GLOBAL VARIABLES LIKE 'local_infile'");
     auto row = result->fetch_one();
     auto local_infile_value = row->get_string(1);
 
@@ -86,25 +89,39 @@ void Import_table_options::validate() {
     }
   }
 
-  mysqlshdk::oci::parse_oci_options(mysqlshdk::oci::Oci_uri_type::FILE,
-                                    m_filename, {}, &m_oci_options,
-                                    &m_filename);
+  if (!m_filename.empty() || m_oci_options) {
+    mysqlshdk::oci::parse_oci_options(mysqlshdk::oci::Oci_uri_type::FILE,
+                                      m_filename, {}, &m_oci_options,
+                                      &m_filename);
 
-  m_file_handle = create_file_handle();
-  m_file_handle->open(mysqlshdk::storage::Mode::READ);
-  m_full_path = m_file_handle->full_path();
-  m_file_size = m_file_handle->file_size();
-  m_file_handle->close();
-  m_threads_size = calc_thread_size();
+    m_file_handle = create_file_handle();
+    m_file_handle->open(mysqlshdk::storage::Mode::READ);
+    m_full_path = m_file_handle->full_path();
+    m_file_size = m_file_handle->file_size();
+    m_file_handle->close();
+    m_threads_size = calc_thread_size();
+  }
 }
 
 std::unique_ptr<mysqlshdk::storage::IFile>
 Import_table_options::create_file_handle() const {
+  std::unique_ptr<mysqlshdk::storage::IFile> file;
+
   if (!m_oci_options.os_bucket_name.is_null()) {
-    return mysqlshdk::storage::make_file(m_filename, m_oci_options);
+    file = mysqlshdk::storage::make_file(m_filename, m_oci_options);
   } else {
-    return mysqlshdk::storage::make_file(m_filename);
+    file = mysqlshdk::storage::make_file(m_filename);
   }
+
+  mysqlshdk::storage::Compression compr;
+  try {
+    compr = mysqlshdk::storage::from_extension(
+        std::get<1>(shcore::path::split_extension(m_filename)));
+  } catch (...) {
+    compr = mysqlshdk::storage::Compression::NONE;
+  }
+
+  return mysqlshdk::storage::make_file(std::move(file), compr);
 }
 
 size_t Import_table_options::calc_thread_size() {
@@ -137,6 +154,16 @@ Connection_options Import_table_options::connection_options() const {
     connection_options.remove(mysqlshdk::db::kLocalInfile);
   }
   connection_options.set(mysqlshdk::db::kLocalInfile, "true");
+
+  // Set long timeouts by default
+  std::string timeout = "86400";  // 1 day in seconds
+  if (!connection_options.has(mysqlshdk::db::kNetReadTimeout)) {
+    connection_options.set(mysqlshdk::db::kNetReadTimeout, timeout);
+  }
+  if (!connection_options.has(mysqlshdk::db::kNetWriteTimeout)) {
+    connection_options.set(mysqlshdk::db::kNetWriteTimeout, timeout);
+  }
+
   return connection_options;
 }
 
@@ -163,6 +190,7 @@ void Import_table_options::unpack(const shcore::Dictionary_t &options) {
   unpack_options.unpack(&m_oci_options);
 
   m_dialect = Dialect::unpack(&unpack_options);
+  shcore::Dictionary_t decode_columns = nullptr;
 
   unpack_options.optional("table", &m_table)
       .optional("schema", &m_schema)
@@ -172,9 +200,23 @@ void Import_table_options::unpack(const shcore::Dictionary_t &options) {
       .optional("replaceDuplicates", &m_replace_duplicates)
       .optional("maxRate", &m_max_rate)
       .optional("showProgress", &m_show_progress)
-      .optional("skipRows", &m_skip_rows_count);
+      .optional("skipRows", &m_skip_rows_count)
+      .optional("decodeColumns", &decode_columns)
+      .optional("defaultCharacterSet", &m_character_set);
 
   unpack_options.end();
+
+  if (decode_columns) {
+    for (const auto &it : *decode_columns) {
+      if (it.second.type != shcore::Null) {
+        std::string method = shcore::str_upper(it.second.descr());
+        if (method != "UNHEX" && method != "FROM_BASE64" && !method.empty())
+          throw std::runtime_error("Invalid value for decodeColumns: " +
+                                   method);
+        if (!method.empty()) m_decode_columns[it.first] = method;
+      }
+    }
+  }
 }
 
 }  // namespace import_table

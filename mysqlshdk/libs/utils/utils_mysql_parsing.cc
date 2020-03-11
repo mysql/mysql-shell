@@ -24,6 +24,7 @@
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 #include <algorithm>
 #include <iterator>
+#include <sstream>
 #include <tuple>
 #include <utility>
 #include "mysqlshdk/libs/utils/utils_lexing.h"
@@ -603,6 +604,19 @@ std::vector<std::tuple<std::string, std::string, size_t>> split_sql_stream(
   return results;
 }
 
+std::vector<std::string> split_sql(const std::string &str) {
+  std::istringstream s(str);
+  auto parts = split_sql_stream(&s, str.size(), [](const std::string &err) {
+    throw std::runtime_error("Error splitting SQL script: " + err);
+  });
+
+  std::vector<std::string> stmts;
+  for (const auto &p : parts) {
+    stmts.emplace_back(std::get<0>(p) + std::get<1>(p));
+  }
+  return stmts;
+}
+
 /** Apply a callback on each statement read from a stream object.
  *
  * @param stream stream object to read from
@@ -693,7 +707,7 @@ bool iterate_sql_stream(
   if (delimiter) *delimiter = splitter.delimiter();
 
   return !stop;
-}  // namespace utils
+}
 
 std::string to_string(Sql_splitter::Context context) {
   switch (context) {

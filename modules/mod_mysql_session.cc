@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -657,7 +657,7 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
         "select @@character_set_client, @@character_set_connection, "
         "@@character_set_server, @@character_set_database, "
         "concat(@@version, \" \", @@version_comment) as version, "
-        "@@socket, @@port, @@datadir "
+        "@@socket, @@port, @@datadir, @@character_set_results "
         "limit 1");
 
     row = result->fetch_one();
@@ -668,6 +668,7 @@ shcore::Value::Map_type_ref ClassicSession::get_status() {
       (*status)["SERVER_CHARSET"] = shcore::Value(row->get_string(2));
       (*status)["SCHEMA_CHARSET"] = shcore::Value(row->get_string(3));
       (*status)["SERVER_VERSION"] = shcore::Value(row->get_string(4));
+      (*status)["RESULTS_CHARSET"] = shcore::Value(row->get_string(8));
 
       if (!_connection_options.has_transport_type() ||
           _connection_options.get_transport_type() ==

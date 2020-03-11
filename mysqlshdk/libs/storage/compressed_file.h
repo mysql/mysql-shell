@@ -32,7 +32,7 @@
 namespace mysqlshdk {
 namespace storage {
 
-enum class Compression { NONE, GZIP };
+enum class Compression { NONE, GZIP, ZSTD };
 
 class Compressed_file : public IFile {
  public:
@@ -59,6 +59,7 @@ class Compressed_file : public IFile {
   bool flush() override;
 
   void rename(const std::string &new_name) override;
+  void remove() override;
 
   IFile *file() const { return m_file.get(); }
 
@@ -71,6 +72,7 @@ Compression to_compression(const std::string &c);
 std::string to_string(Compression c);
 
 std::string get_extension(Compression c);
+Compression from_extension(const std::string &e);
 
 std::unique_ptr<IFile> make_file(std::unique_ptr<IFile> file, Compression c);
 

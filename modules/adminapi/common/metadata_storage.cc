@@ -1301,7 +1301,7 @@ void MetadataStorage::get_lock_exclusive() const {
                 k_lock, m_md_server->descr().c_str());
       mysqlshdk::mysql::get_lock(*m_md_server, k_lock_name_metadata, k_lock,
                                  mode, timeout);
-    } catch (const shcore::Exception &err) {
+    } catch (const shcore::Error &err) {
       // Abort the operation in case the required lock cannot be acquired.
       log_debug("Failed to get %s lock ('%s', '%s'): %s",
                 mysqlshdk::mysql::to_string(mode).c_str(), k_lock_name_metadata,

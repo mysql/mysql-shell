@@ -65,7 +65,9 @@ class Memory_file : public IFile {
   bool flush() override;
 
   void rename(const std::string &new_name) override;
+  void remove() override;
 
+  void set_content(const std::string &s);
   const std::string &content() const { return m_content; }
 
  private:

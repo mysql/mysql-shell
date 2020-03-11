@@ -1777,6 +1777,9 @@ TEST_F(Interactive_shell_test, status_x) {
   EXPECT_NE(std::string::npos, line.find("Conn. characterset"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(std::string::npos, line.find("Result characterset"));
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("Compression"));
   if (g_target_server_version >= mysqlshdk::utils::Version(8, 0, 19))
     EXPECT_NE(std::string::npos, line.find("Enabled"));
@@ -1845,6 +1848,9 @@ TEST_F(Interactive_shell_test, status_classic) {
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   ASSERT_NE(line.find("Conn. characterset"), std::string::npos);
+
+  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  EXPECT_NE(std::string::npos, line.find("Result characterset"));
 
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   ASSERT_NE(line.find("Compression"), std::string::npos);

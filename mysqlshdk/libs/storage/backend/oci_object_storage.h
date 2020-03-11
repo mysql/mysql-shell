@@ -160,6 +160,7 @@ class Object : public mysqlshdk::storage::IFile {
    * Verifies if the object has been opened.
    */
   bool is_open() const override;
+
   int error() const override {
     // OCI throws exceptions
     return 0;
@@ -237,6 +238,11 @@ class Object : public mysqlshdk::storage::IFile {
    * Renames this object to the new name.
    */
   void rename(const std::string &new_name) override;
+
+  /**
+   * Delets the object.
+   */
+  void remove() override;
 
   /**
    * Does NOTHING

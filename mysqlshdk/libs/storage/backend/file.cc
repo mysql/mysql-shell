@@ -296,6 +296,8 @@ void File::rename(const std::string &new_name) {
   m_filepath = std::move(new_path);
 }
 
+void File::remove() { shcore::delete_file(m_filepath); }
+
 std::string File::filename() const {
   return shcore::path::basename(full_path());
 }

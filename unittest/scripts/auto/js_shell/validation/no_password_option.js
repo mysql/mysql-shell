@@ -18,7 +18,6 @@
 |Conflicting options: --no-password cannot be used if password is provided.|
 
 //@ no password and URI empty password
-|WARNING: Using a password on the command line interface can be insecure.|
 |<ClassicSession:|
 
 //@ no password and URI password

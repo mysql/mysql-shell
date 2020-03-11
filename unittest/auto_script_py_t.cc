@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -195,7 +195,7 @@ TEST_P(Auto_script_py, run_and_check) {
   else
     output_handler.set_answers_to_stdout(false);
 
-  if (g_mysqld_path_variables && folder == "py_mixed_versions") {
+  if (g_mysqld_path_variables) {
     auto variables = shcore::str_split(g_mysqld_path_variables, ",");
     exec_and_out_equals("import os");
     for (const auto &variable : variables) {
@@ -217,6 +217,9 @@ std::vector<std::string> find_py_tests(const std::string &subdir,
   std::string path = shcore::path::join_path(g_test_home, "scripts", "auto",
                                              subdir, "scripts");
   if (!shcore::is_folder(path)) return {};
+
+  if (!getenv("OCI_CONFIG_HOME") && subdir == "py_oci") return {};
+
   auto tests = shcore::listdir(path);
   std::sort(tests.begin(), tests.end());
 
@@ -238,6 +241,10 @@ INSTANTIATE_TEST_CASE_P(Admin_api_async, Auto_script_py,
 
 INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_py,
                         testing::ValuesIn(find_py_tests("py_shell", ".py")),
+                        fmt_param);
+
+INSTANTIATE_TEST_CASE_P(Oci_scripted, Auto_script_py,
+                        testing::ValuesIn(find_py_tests("py_oci", ".py")),
                         fmt_param);
 
 INSTANTIATE_TEST_CASE_P(Dev_api_scripted, Auto_script_py,

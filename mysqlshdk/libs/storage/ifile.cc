@@ -95,5 +95,27 @@ int fputs(const std::string &s, IFile *file) {
   return ret >= 0 ? ret : EOF;
 }
 
+std::string read_file(IFile *file) {
+  constexpr const size_t read_len = 4098;
+  std::string buffer;
+  ssize_t c;
+  size_t data_read = 0;
+
+  do {
+    buffer.resize(data_read + read_len);
+
+    c = file->read(&buffer[data_read], read_len);
+    if (c < 0) {
+      throw std::runtime_error("Error reading " + file->full_path() + ": " +
+                               shcore::errno_to_string(file->error()));
+    }
+    data_read += c;
+  } while (c > 0);
+
+  buffer.resize(data_read);
+
+  return buffer;
+}
+
 }  // namespace storage
 }  // namespace mysqlshdk

@@ -48,14 +48,15 @@ std::string format_microseconds(double secs);
 
 std::string format_items(const std::string &full,
                          const std::string &abbreviation, uint64_t items,
-                         bool space_before_item = true);
+                         bool space_before_item = true, bool compact = false);
 
 std::string format_bytes(uint64_t bytes);
 
 std::string format_throughput_items(const std::string &item_name_singular,
                                     const std::string &item_name_plural,
                                     const uint64_t items, double seconds,
-                                    bool space_before_item = true);
+                                    bool space_before_item = true,
+                                    bool compact = false);
 
 std::string format_throughput_bytes(uint64_t bytes, double seconds);
 

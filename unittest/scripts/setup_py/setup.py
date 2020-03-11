@@ -22,8 +22,8 @@ def get_members(object):
 ##
 def defined(cb):
   try:
-    cb();
-    return True;
+    cb()
+    return True
   except:
     return False
 
@@ -57,10 +57,9 @@ def has_oci_environment(context):
     return False
   return True
 
-
-def EXPECT_EQ(expected, actual):
+def EXPECT_EQ(expected, actual, note=""):
   if expected != actual:
-    context = "Tested values don't match as expected:\n\tActual: " + str(actual) + "\n\tExpected: " + str(expected)
+    context = "Tested values don't match as expected:"+note+"\n\tActual: " + str(actual) + "\n\tExpected: " + str(expected)
     testutil.fail(context)
 
 def EXPECT_NE(expected, actual):
@@ -91,7 +90,7 @@ def EXPECT_NO_THROWS(func, context):
   try:
     func()
   except:
-    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Unexpected exception thrown (" + context + "): " + str(e) + "</red>");
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Unexpected exception thrown (" + context + "): " + str(e) + "</red>")
 
 def EXPECT_STDOUT_CONTAINS(text):
   out = testutil.fetch_captured_stdout(False)
@@ -233,3 +232,4 @@ def ensure_plugin_disabled(plugin_name, session):
 
     if is_installed:
         session.run_sql("UNINSTALL PLUGIN " + plugin_name + ";")
+

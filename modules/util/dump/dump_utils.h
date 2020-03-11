@@ -31,7 +31,6 @@ namespace dump {
 
 // Encodes/decodes filenames for schema/table dumps
 // All strings must be UTF-8
-// ext must not contain .
 
 std::string encode_schema_basename(const std::string &schema);
 

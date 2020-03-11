@@ -12,11 +12,9 @@ FUNCTIONS
             Performs series of tests on specified MySQL server to check if the
             upgrade process will succeed.
 
-?{__with_oci==1}
       configure_oci([profile])
             Wizard to create a valid configuration for the OCI SDK.
 
-?{}
       dump_instance(outputUrl[, options])
             Dumps the whole database to files in the output directory.
 
@@ -33,6 +31,9 @@ FUNCTIONS
       import_table(filename[, options])
             Import table dump stored in filename to target table using LOAD
             DATA LOCAL INFILE calls in parallel connections.
+
+      load_dump(url[, options])
+            Loads database dumps created by MySQL Shell.
 
 #@<OUT> util check_for_server_upgrade help
 NAME
@@ -197,17 +198,17 @@ DESCRIPTION
         no limit.
       - showProgress: bool (default: true if stdout is a TTY device, false
         otherwise) - Enable or disable dump progress information.
-      - compression: string (default: "gzip") - Compression used when writing
-        the data dump files, one of: "none", "gzip".
+      - compression: string (default: "zstd") - Compression used when writing
+        the data dump files, one of: "none", "gzip", "zstd".
       - defaultCharacterSet: string (default: "utf8mb4") - Character set used
         for the dump.
-      - osBucketName: string (default: "") - Write dump data to the specified
-        OCI bucket.
-      - osNamespace: string (default: "") - Specify the OCI namespace (tenancy
-        name) where the OCI bucket is located.
-      - ociConfigFile: string (default: "") - Use the specified OCI
+      - osBucketName: string (default: not set) - Use specified OCI bucket for
+        the location of the dump.
+      - osNamespace: string (default: not set) - Specify the OCI namespace
+        (tenancy name) where the OCI bucket is located.
+      - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one in the default location.
-      - ociProfile: string (default: "") - Use the specified OCI profile
+      - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
 
       Requirements
@@ -273,30 +274,6 @@ DESCRIPTION
       The ddlOnly and dataOnly options cannot both be set to true at the same
       time.
 
-      If the ocimds option is set to true, the following modifications are
-      applied to the created SQL files:
-
-      - DATA DIRECTORY, INDEX DIRECTORY and ENCRYPTION options in CREATE TABLE
-        statements will be commented out.
-
-      Additionally, the following checks are performed and an exception will be
-      raised if an incompatible SQL statement is found:
-
-      - users and roles granted the SUPER, FILE, RELOAD, or BINLOG_ADMIN
-        privileges,
-      - the engine used in CREATE TABLE statement is set to InnoDB.
-
-      In order to automatically fix the issues, use the compatibility option.
-
-      The compatibility option supports the following values:
-
-      - force_innodb - replaces incompatible table engines with InnoDB
-      - strip_definers - removes DEFINER clause from views, triggers, events
-        and routines, changes SQL SECURITY property to INVOKER for views and
-        routines
-      - strip_restricted_grants - removes disallowed grants
-      - strip_tablespaces - removes unsupported TABLESPACE syntax
-
       The chunking option causes the the data from each table to be split and
       written to multiple chunk files. If this option is set to false, table
       data is written to a single file.
@@ -317,7 +294,67 @@ DESCRIPTION
 
       The value of the bytesPerChunk option cannot be smaller than "128k".
 
-      Dumping to OCI
+      MySQL Database Service Compatibility
+
+      The MySQL Database Service has a few security related restrictions that
+      are not present in a regular, on-premise instance of MySQL. In order to
+      make it easier to load existing databases into the Service, the dump
+      commands in the MySQL Shell has options to detect potential issues and in
+      some cases, to automatically adjust your schema definition to be
+      compliant.
+
+      The ocimds option, when set to true, will perform schema checks for most
+      of these issues and abort the dump if any are found. The load_dump
+      command will also only allow loading dumps that have been created with
+      the "ocimds" option enabled.
+
+      Some issues found by the ocimds option may require you to manually make
+      changes to your database schema before it can be loaded into the MySQL
+      Database Service. However, the compatibility option can be used to
+      automatically modify the dumped schema SQL scripts, resolving some of
+      these compatibility issues. You may pass one or more of the following
+      options to "compatibility", separated by a comma (,).
+
+      force_innodb - The MySQL Database Service requires use of the InnoDB
+      storage engine. This option will modify the ENGINE= clause of CREATE
+      TABLE statements that use incompatible storage engines and replace them
+      with InnoDB.
+
+      strip_definers - strips the "DEFINER=account" clause from views,
+      routines, events and triggers. The MySQL Database Service requires
+      special privileges to create these objects with a definer other than the
+      user loading the schema. By stripping the DEFINER clause, these objects
+      will be created with that default definer. Views and Routines will
+      additionally have their SQL SECURITY clause changed from DEFINER to
+      INVOKER. This ensures that the access permissions of the account querying
+      or calling these are applied, instead of the user that created them. This
+      should be sufficient for most users, but if your database security model
+      requires that views and routines have more privileges than their invoker,
+      you will need to manually modify the schema before loading it.
+
+      Please refer to the MySQL manual for details about DEFINER and SQL
+      SECURITY.
+
+      strip_restricted_grants - Certain privileges are restricted in the MySQL
+      Database Service. Attempting to create users granting these privileges
+      would fail, so this option allows dumped GRANT statements to be stripped
+      of these privileges.
+
+      strip_tablespaces - Tablespaces have some restrictions in the MySQL
+      Database Service. If you'd like to have tables created in their default
+      tablespaces, this option will strip the TABLESPACE= option from CREATE
+      TABLE statements.
+
+      Additionally, the following changes will always be made to DDL scripts
+      when the ocimds option is enabled:
+
+      - DATA DIRECTORY, INDEX DIRECTORY and ENCRYPTION options in CREATE TABLE
+        statements will be commented out.
+
+      Please refer to the MySQL Database Service documentation for more
+      information about restrictions and compatibility.
+
+      Dumping to a Bucket in the OCI Object Storage
 
       If the osBucketName option is used, the dump is stored in the specified
       OCI bucket, connection is established using the local OCI profile. The
@@ -403,17 +440,17 @@ DESCRIPTION
         no limit.
       - showProgress: bool (default: true if stdout is a TTY device, false
         otherwise) - Enable or disable dump progress information.
-      - compression: string (default: "gzip") - Compression used when writing
-        the data dump files, one of: "none", "gzip".
+      - compression: string (default: "zstd") - Compression used when writing
+        the data dump files, one of: "none", "gzip", "zstd".
       - defaultCharacterSet: string (default: "utf8mb4") - Character set used
         for the dump.
-      - osBucketName: string (default: "") - Write dump data to the specified
-        OCI bucket.
-      - osNamespace: string (default: "") - Specify the OCI namespace (tenancy
-        name) where the OCI bucket is located.
-      - ociConfigFile: string (default: "") - Use the specified OCI
+      - osBucketName: string (default: not set) - Use specified OCI bucket for
+        the location of the dump.
+      - osNamespace: string (default: not set) - Specify the OCI namespace
+        (tenancy name) where the OCI bucket is located.
+      - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one in the default location.
-      - ociProfile: string (default: "") - Use the specified OCI profile
+      - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
 
       Requirements
@@ -468,30 +505,6 @@ DESCRIPTION
       The ddlOnly and dataOnly options cannot both be set to true at the same
       time.
 
-      If the ocimds option is set to true, the following modifications are
-      applied to the created SQL files:
-
-      - DATA DIRECTORY, INDEX DIRECTORY and ENCRYPTION options in CREATE TABLE
-        statements will be commented out.
-
-      Additionally, the following checks are performed and an exception will be
-      raised if an incompatible SQL statement is found:
-
-      - users and roles granted the SUPER, FILE, RELOAD, or BINLOG_ADMIN
-        privileges,
-      - the engine used in CREATE TABLE statement is set to InnoDB.
-
-      In order to automatically fix the issues, use the compatibility option.
-
-      The compatibility option supports the following values:
-
-      - force_innodb - replaces incompatible table engines with InnoDB
-      - strip_definers - removes DEFINER clause from views, triggers, events
-        and routines, changes SQL SECURITY property to INVOKER for views and
-        routines
-      - strip_restricted_grants - removes disallowed grants
-      - strip_tablespaces - removes unsupported TABLESPACE syntax
-
       The chunking option causes the the data from each table to be split and
       written to multiple chunk files. If this option is set to false, table
       data is written to a single file.
@@ -512,7 +525,67 @@ DESCRIPTION
 
       The value of the bytesPerChunk option cannot be smaller than "128k".
 
-      Dumping to OCI
+      MySQL Database Service Compatibility
+
+      The MySQL Database Service has a few security related restrictions that
+      are not present in a regular, on-premise instance of MySQL. In order to
+      make it easier to load existing databases into the Service, the dump
+      commands in the MySQL Shell has options to detect potential issues and in
+      some cases, to automatically adjust your schema definition to be
+      compliant.
+
+      The ocimds option, when set to true, will perform schema checks for most
+      of these issues and abort the dump if any are found. The load_dump
+      command will also only allow loading dumps that have been created with
+      the "ocimds" option enabled.
+
+      Some issues found by the ocimds option may require you to manually make
+      changes to your database schema before it can be loaded into the MySQL
+      Database Service. However, the compatibility option can be used to
+      automatically modify the dumped schema SQL scripts, resolving some of
+      these compatibility issues. You may pass one or more of the following
+      options to "compatibility", separated by a comma (,).
+
+      force_innodb - The MySQL Database Service requires use of the InnoDB
+      storage engine. This option will modify the ENGINE= clause of CREATE
+      TABLE statements that use incompatible storage engines and replace them
+      with InnoDB.
+
+      strip_definers - strips the "DEFINER=account" clause from views,
+      routines, events and triggers. The MySQL Database Service requires
+      special privileges to create these objects with a definer other than the
+      user loading the schema. By stripping the DEFINER clause, these objects
+      will be created with that default definer. Views and Routines will
+      additionally have their SQL SECURITY clause changed from DEFINER to
+      INVOKER. This ensures that the access permissions of the account querying
+      or calling these are applied, instead of the user that created them. This
+      should be sufficient for most users, but if your database security model
+      requires that views and routines have more privileges than their invoker,
+      you will need to manually modify the schema before loading it.
+
+      Please refer to the MySQL manual for details about DEFINER and SQL
+      SECURITY.
+
+      strip_restricted_grants - Certain privileges are restricted in the MySQL
+      Database Service. Attempting to create users granting these privileges
+      would fail, so this option allows dumped GRANT statements to be stripped
+      of these privileges.
+
+      strip_tablespaces - Tablespaces have some restrictions in the MySQL
+      Database Service. If you'd like to have tables created in their default
+      tablespaces, this option will strip the TABLESPACE= option from CREATE
+      TABLE statements.
+
+      Additionally, the following changes will always be made to DDL scripts
+      when the ocimds option is enabled:
+
+      - DATA DIRECTORY, INDEX DIRECTORY and ENCRYPTION options in CREATE TABLE
+        statements will be commented out.
+
+      Please refer to the MySQL Database Service documentation for more
+      information about restrictions and compatibility.
+
+      Dumping to a Bucket in the OCI Object Storage
 
       If the osBucketName option is used, the dump is stored in the specified
       OCI bucket, connection is established using the local OCI profile. The
@@ -534,6 +607,7 @@ EXCEPTIONS
       - If there is no open global session.
       - If creating the output directory fails.
       - If creating or writing to the output file fails.
+
 
 #@<OUT> util import_json help
 NAME
@@ -782,6 +856,9 @@ DESCRIPTION
         fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy
         options. Must be one of the following values: csv, tsv, json or
         csv-unix.
+      - decodeColumns: map (default: not set) - a map between columns names to
+        decode methods (UNHEX or FROM_BASE64) to be applied on the loaded data.
+        Requires 'columns' to be set.
       - ociConfigFile: string (default: not set) - Override oci.configFile
         shell option. Available only if oci+os:// transport protocol is in use.
       - ociProfile: string (default: not set) - Override oci.profile shell
@@ -839,4 +916,153 @@ DESCRIPTION
       - SET unique_checks = 0
       - SET foreign_key_checks = 0
       - SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
+
+#@<OUT> util load_dump help
+NAME
+      load_dump - Loads database dumps created by MySQL Shell.
+
+SYNTAX
+      util.load_dump(url[, options])
+
+WHERE
+      url: URL or path to the dump directory
+      options: Dictionary with load options
+
+DESCRIPTION
+      url can be one of:
+
+      - /path/to/file - Path to a locally or remotely (e.g. in OCI Object
+        Storage) accessible file or directory
+      - file:///path/to/file - Path to a locally accessible file or directory
+      - http[s]://host.domain[:port]/path/to/file - Location of a remote file
+        accessible through HTTP(s) (import_table() only)
+
+      If the osBucketName option is given, the path argument must specify a
+      plain path in that OCI (Oracle Cloud Infrastructure) Object Storage
+      bucket.
+
+      load_dump() will load a dump from the specified path. It transparently
+      handles compressed files and directly streams data when loading from
+      remote storage (currently HTTP and OCI Object Storage). If the
+      'waitDumpTimeout' option is set, it will load a dump on-the-fly, loading
+      table data chunks as the dumper produces them.
+
+      Although DDL scripts in the dump will be loaded in a single thread, table
+      data will be loaded in parallel using the configured number of threads (4
+      by default). Multiple threads per table will be used if the dump was
+      created with table chunking. Compressed data files are handled
+      transparently.
+
+      LOAD DATA LOCAL INFILE is used to load table data and thus, the
+      'local_infile' MySQL global setting must be enabled.
+
+      Resuming
+
+      The load command will store progress information into a file for each
+      step of the loading process, including successfully completed and
+      interrupted/failed ones. If that file already exists, its contents will
+      be used to skip steps that have already been completed and retry those
+      that failed or didn't start yet.
+
+      When resuming, table chunks that have started being loaded but didn't
+      finish are loaded again. Duplicate rows are discarded by the server.
+      Tables that do not have unique keys are truncated before the load is
+      resumed.
+
+      IMPORTANT: Resuming assumes that no changes have been made to the
+      partially loaded data between the failure and the retry. Resuming after
+      external changes has undefined behavior and may lead to data loss.
+
+      The progress state file has a default name of
+      load-progress.<server_uuid>.json and is written to the same location as
+      the dump. If 'progressFile' is specified, progress will be written to a
+      local file at the given path. Setting it to '' will disable progress
+      tracking and resuming.
+
+      If the 'resetProgress' option is enabled, progress information from
+      previous load attempts of the dump to the destination server is discarded
+      and the load is restarted. You may use this option to retry loading the
+      whole dump from the beginning. However, changes made to the database are
+      not reverted, so previously loaded objects should be manually dropped
+      first.
+
+      Options dictionary:
+
+      - analyzeTables: "off", "on", "histogram" (default: off) - If 'on',
+        executes ANALYZE TABLE for all tables, once loaded. If set to
+        'histogram', only tables that have histogram information stored in the
+        dump will be analyzed. This option can be used even if all 'load'
+        options are disabled.
+      - defaultCharacterSet: string (default taken from dump) - Specifies the
+        character set to be used for loading the dump. By default, the same
+        character set used for dumping will be used (utf8mb4 if not set at
+        dump).
+      - dryRun: bool (default: false) - Scans the dump and prints everything
+        that would be performed, without actually doing so.
+      - excludeSchemas: array of strings (default not set) - Skip loading
+        specified schemas from the dump.
+      - excludeTables: array of strings (default not set) - Skip loading
+        specified tables from the dump. Strings are in format schema.table or
+        `schema`.`table`.
+      - ignoreExistingObjects: bool (default false) - Load the dump even if it
+        contains objects that already exist in the target database.
+      - ignoreVersion: bool (default false) - Load the dump even if the major
+        version number of the server where it was created is different from
+        where it will be loaded.
+      - includeSchemas: array of strings (default not set) - Loads only the
+        specified schemas from the dump. By default, all schemas are included.
+      - includeTables: array of strings (default not set) - Loads only the
+        specified tables from the dump. Strings are in format schema.table or
+        `schema`.`table`. By default, all tables from all schemas are included.
+      - loadData: bool (default: true) - Loads table data from the dump.
+      - loadDdl: bool (default: true) - Executes DDL/SQL scripts in the dump.
+      - loadUsers: bool (default: false) - Executes SQL scripts for user
+        accounts, roles and grants contained in the dump. Note: statements for
+        the current user will be skipped.
+      - progressFile: path (default: <server_uuid>.progress) - Stores load
+        progress information in the given local file path.
+      - resetProgress: bool (default: false) - Discards progress information of
+        previous load attempts to the destination server and loads the whole
+        dump again.
+      - showProgress: bool (default: true if stdout is a tty, false otherwise)
+        - Enable or disable import progress information.
+      - skipBinlog: bool (default: false) - Disables the binary log for the
+        MySQL sessions used by the loader (set sql_log_bin=0).
+      - threads: int (default: 4) - Number of threads to use to import table
+        data.
+      - waitDumpTimeout: int (default: 0) - Loads a dump while it's still being
+        created. Once all available tables are processed the command will
+        either wait for more data, the dump is marked as completed or the given
+        timeout passes. <= 0 disables waiting.
+      - osBucketName: string (default: not set) - Use specified OCI bucket for
+        the location of the dump.
+      - osNamespace: string (default: not set) - Specify the OCI namespace
+        (tenancy name) where the OCI bucket is located.
+      - ociConfigFile: string (default: not set) - Use the specified OCI
+        configuration file instead of the one in the default location.
+      - ociProfile: string (default: not set) - Use the specified OCI profile
+        instead of the default one.
+
+      OCI Object Storage Options
+
+      - osBucketName: string (default: not set) - Name of the Object Storage
+        bucket to use. The bucket must already exist.
+      - osNamespace: string (default: not set) - Specifies the namespace
+        (tenancy name) where the bucket is located, if not given it will be
+        obtained using the tenancy id on the OCI configuration.
+      - ociConfigFile: string (default: not set) - Override oci.configFile
+        shell option, to specify the path to the OCI configuration file.
+      - ociProfile: string (default: not set) - Override oci.profile shell
+        option, to specify the name of the OCI profile to use.
+
+      Connection options set in the global session, such as compression,
+      ssl-mode, etc. are used in parallel connections.
+
+      Examples:
+      util.load_dump("sakila_dump")
+
+      util.load_dump("mysql/sales", {
+          "osBucketName": "mybucket",    // OCI Object Storage bucket
+          "waitDumpTimeout": 1800        // wait for new data for up to 30mins
+      })
 

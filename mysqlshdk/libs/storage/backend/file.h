@@ -62,6 +62,7 @@ class File : public IFile {
   bool flush() override;
 
   void rename(const std::string &new_name) override;
+  void remove() override;
 
  private:
   void do_close();

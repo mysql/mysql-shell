@@ -61,6 +61,7 @@ class Gz_file : public Compressed_file {
   off64_t seek(off64_t) override {
     throw std::logic_error("Gz_file::seek() - not supported");
   }
+
   off64_t tell() const override {
     return std::max(m_stream.total_in, m_stream.total_out);
   }
@@ -94,6 +95,7 @@ class Gz_file : public Compressed_file {
   void init_write();
   inline ssize_t do_write(void *buffer, size_t length, int flag);
   void write_finish();
+  void do_close();
 
   inline Buf_view peek(const size_t length);
 

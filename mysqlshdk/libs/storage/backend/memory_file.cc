@@ -107,6 +107,10 @@ bool Memory_file::flush() { return true; }
 
 void Memory_file::rename(const std::string & /* new_name */) {}
 
+void Memory_file::remove() {}
+
+void Memory_file::set_content(const std::string &s) { m_content = s; }
+
 }  // namespace backend
 }  // namespace storage
 }  // namespace mysqlshdk

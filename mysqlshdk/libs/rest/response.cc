@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -147,23 +147,16 @@ std::string Response_error::format() const {
   return shcore::str_format("%s (%d)", what(), static_cast<int>(m_code));
 }
 
-size_t Base_response_buffer::append_data(const char *data, size_t data_size) {
-  if (m_buffer_size == 0 || m_content_size + data_size <= m_buffer_size) {
-    append(data, data_size);
+size_t Static_char_ref_buffer::append_data(const char *data, size_t data_size) {
+  if (m_content_size + data_size <= m_buffer_size) {
+    std::copy(data, data + data_size, m_buffer + m_content_size);
+
     m_content_size += data_size;
+
     return data_size;
   } else {
     return static_cast<size_t>(0);
   }
-}
-
-String_ref_buffer::String_ref_buffer(std::string *buffer)
-    : Base_response_buffer(CURL_MAX_WRITE_SIZE), m_buffer(buffer) {
-  m_buffer->reserve(m_buffer_size);
-}
-
-String_buffer::String_buffer() : Base_response_buffer(CURL_MAX_WRITE_SIZE) {
-  m_buffer.reserve(m_buffer_size);
 }
 
 }  // namespace rest

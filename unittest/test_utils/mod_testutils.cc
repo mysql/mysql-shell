@@ -86,6 +86,7 @@
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "mysqlshdk/libs/mysql/lock_service.h"
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
+#include "mysqlshdk/libs/storage/compressed_file.h"
 
 // clang-format off
 #ifndef _WIN32
@@ -158,7 +159,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("dumpData", &Testutils::dump_data, "uri", "filename", "schemas",
          "?options");
   expose("importData", &Testutils::import_data, "uri", "filename",
-         "?default_schema");
+         "?default_schema", "?default_charset");
 
   expose("getShellLogPath", &Testutils::get_shell_log_path);
 
@@ -185,14 +186,15 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          "?execPath");
   expose("callMysqlshAsync", &Testutils::call_mysqlsh_async, "args",
          "?stdInput", "?envp", "?execPath");
-  expose("waitMysqlshAsync", &Testutils::wait_mysqlsh_async, "pid", "seconds");
+  expose("waitMysqlshAsync", &Testutils::wait_mysqlsh_async, "pid", "?seconds",
+         60);
 
   expose("makeFileReadOnly", &Testutils::make_file_readonly, "path");
   expose("grepFile", &Testutils::grep_file, "path", "pattern");
   expose("catFile", &Testutils::cat_file, "path");
   expose("wipeFileContents", &Testutils::wipe_file_contents, "path");
   expose("preprocessFile", &Testutils::preprocess_file, "inPath", "variables",
-         "outPath");
+         "outPath", "?skipSections");
 
   expose("isReplaying", &Testutils::is_replaying);
   expose("fail", &Testutils::fail, "context");
@@ -203,6 +205,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          static_cast<int>(k_wait_delayed_gr_start_timeout));
   expose("mkdir", &Testutils::mk_dir, "name", "?recursive");
   expose("rmdir", &Testutils::rm_dir, "name", "?recursive");
+  expose("rename", &Testutils::rename, "path", "newpath");
   expose("chmod", &Testutils::ch_mod, "path", "mode");
   expose("cpfile", &Testutils::cp_file, "source", "target");
   expose("rmfile", &Testutils::rm_file, "target");
@@ -240,9 +243,12 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("getOciConfig", &Testutils::get_oci_config);
   expose("uploadOciObject", &Testutils::upload_oci_object, "bucket", "object",
          "filePath");
+  expose("downloadOciObject", &Testutils::download_oci_object, "bucket",
+         "object", "filePath");
   expose("createOciObject", &Testutils::create_oci_object, "bucket", "name",
          "content");
   expose("deleteOciObject", &Testutils::delete_oci_object, "bucket", "name");
+  expose("anycopy", &Testutils::anycopy, "from", "to");
 
   std::string local_mp_path =
       mysqlsh::current_shell_options()->get().gadgets_path;
@@ -766,13 +772,16 @@ void Testutils::dump_data(const std::string &uri, const std::string &path,
  * Loads a SQL script from a file using mysql cli.
  */
 #if DOXYGEN_JS
-Undefined Testutils::importData(String uri, String path, String defaultSchema);
+Undefined Testutils::importData(String uri, String path, String defaultSchema,
+                                String defaultCharset);
 #elif DOXYGEN_PY
-None Testutils::import_data(str uri, str path, str defaultSchema);
+None Testutils::import_data(str uri, str path, str defaultSchema,
+                            str defaultCharset);
 #endif
 ///@}
 void Testutils::import_data(const std::string &uri, const std::string &path,
-                            const std::string &default_schema) {
+                            const std::string &default_schema,
+                            const std::string &default_charset) {
   // When replaying we don't need to do anything
   mysqlshdk::db::replay::No_replay dont_record;
   if (_skip_server_interaction) return;
@@ -804,7 +813,13 @@ void Testutils::import_data(const std::string &uri, const std::string &path,
     argv.push_back("-P");
     argv.push_back(sport.c_str());
   }
+  std::string defcharset;
+  if (!default_charset.empty()) {
+    defcharset = "--default-character-set=" + default_charset;
+    argv.push_back(defcharset.c_str());
+  }
   if (!default_schema.empty()) argv.push_back(default_schema.c_str());
+
   if (g_test_trace_scripts > 0) {
     std::cerr << shcore::str_join(argv, " ") << "\n";
   }
@@ -1226,11 +1241,30 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
                                const shcore::Dictionary_t &my_cnf_options,
                                const shcore::Dictionary_t &opts) {
   bool create_remote_root{true};
+  bool keyring_plugin{false};
   std::string mysqld_path;
 
   if (opts) {
     create_remote_root = opts->get_bool("createRemoteRoot", true);
     mysqld_path = opts->get_string("mysqldPath", "");
+    keyring_plugin = opts->get_bool("enableKeyringPlugin", false);
+  }
+
+  if (keyring_plugin) {
+    std::string plugin_file("keyring_file");
+#ifdef _WIN32
+    plugin_file.append(".dll");
+#else
+    plugin_file.append(".so");
+#endif
+
+    (*my_cnf_options)["early-plugin-load"] = shcore::Value(plugin_file);
+
+    if (!my_cnf_options->has_key("keyring_file_data")) {
+      auto keyring_file_data = shcore::path::join_path(
+          _sandbox_dir, std::to_string(port), "keyring", "keyfile");
+      (*my_cnf_options)["keyring_file_data"] = shcore::Value(keyring_file_data);
+    }
   }
 
   _passwords[port] = rootpass;
@@ -2446,7 +2480,7 @@ void Testutils::cp_file(const std::string &source, const std::string &target) {
 //!< @name File Operations
 ///@{
 /**
- * Deletes a file
+ * Deletes a file matching a glob pattern
  * @param path The name of the file to be deleted.
  */
 #if DOXYGEN_JS
@@ -2456,7 +2490,31 @@ None Testutils::rmfile(str path);
 #endif
 ///@}
 void Testutils::rm_file(const std::string &target) {
-  shcore::delete_file(target, false);
+  std::string dir = shcore::path::dirname(target);
+  std::string file = shcore::path::basename(target);
+  shcore::iterdir(dir, [=](const std::string &f) {
+    if (shcore::match_glob(file, f)) {
+      shcore::delete_file(shcore::path::join_path(dir, f), false);
+    }
+    return true;
+  });
+}
+
+//!< @name File Operations
+///@{
+/**
+ * Renames a file or directory.
+ * @param path The name of the file to be renamed.
+ * @param newpath The new name of the file.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::rename(String path, String newpath);
+#elif DOXYGEN_PY
+None Testutils::rename(str path, str newpath);
+#endif
+///@}
+void Testutils::rename(const std::string &path, const std::string &newpath) {
+  shcore::rename_file(path, newpath);
 }
 
 //!< @name File Operations
@@ -2620,7 +2678,8 @@ list Testutils::preprocess_file(str path);
 ///@}
 void Testutils::preprocess_file(const std::string &in_path,
                                 const std::vector<std::string> &vars,
-                                const std::string &out_path) {
+                                const std::string &out_path,
+                                const std::vector<std::string> &skip_sections) {
   std::string data = shcore::get_text_file(in_path);
 
   data = shcore::str_subvars(
@@ -2637,6 +2696,20 @@ void Testutils::preprocess_file(const std::string &in_path,
         return s;
       },
       "${", "}");
+
+  // Removes sections enclosed by a specific indicator
+  if (!skip_sections.empty()) {
+    for (const auto &section : skip_sections) {
+      bool found = false;
+      auto split1 = shcore::str_partition(data, section, &found);
+      if (found) {
+        auto split2 = shcore::str_partition(split1.second, section, &found);
+        if (found) {
+          data = split1.first + split2.second;
+        }
+      }
+    }
+  }
 
   shcore::create_file(out_path, data);
 }
@@ -2945,6 +3018,11 @@ void Testutils::setenv(const std::string &var, const std::string &value) {
     shcore::unsetenv(var);
   else
     shcore::setenv(var, value);
+}
+
+void Testutils::handle_sandbox_encryption(const std::string &path) const {
+  shcore::create_directory(path);
+  shcore::ch_mod(path, 0750);
 }
 
 void Testutils::handle_remote_root_user(const std::string &rootpass, int port,
@@ -3291,6 +3369,13 @@ bool Testutils::deploy_sandbox_from_boilerplate(
     for (const auto &option : (*opts)) {
       change_sandbox_conf(port, option.first, option.second.descr(), "mysqld");
     }
+  }
+
+  if (opts && opts->has_key("keyring_file_data")) {
+    auto keyring_path =
+        shcore::path::basename(opts->get_string("keyring_file_data"));
+    shcore::create_directory(keyring_path);
+    shcore::ch_mod(keyring_path, 0570);
   }
 
   start_sandbox(port);
@@ -3847,6 +3932,39 @@ void Testutils::upload_oci_object(const std::string &bucket,
   ifile.close();
 }
 
+void Testutils::download_oci_object(const std::string &bucket,
+                                    const std::string &name,
+                                    const std::string &path) {
+  if (!validate_oci_config())
+    throw std::runtime_error(
+        "This function is ONLY available when the OCI configuration is in "
+        "place");
+
+  std::ofstream ofile(path, std::ifstream::binary);
+  if (!ofile.good()) {
+    throw std::runtime_error("Could not open file '" + path +
+                             "': " + shcore::errno_to_string(errno));
+  }
+
+  mysqlshdk::oci::Oci_options options;
+  options.os_bucket_name = bucket;
+  options.check_option_values();
+  mysqlshdk::storage::backend::oci::Object object(options, name);
+  object.open(mysqlshdk::storage::Mode::READ);
+
+  const size_t buffer_size = 10485760;
+  std::string buffer;
+  buffer.reserve(buffer_size);
+  auto count = object.read(&buffer[0], buffer_size);
+  while (count) {
+    ofile.write(buffer.data(), count);
+    count = object.read(&buffer[0], buffer_size);
+  }
+
+  object.close();
+  ofile.close();
+}
+
 void Testutils::create_oci_object(const std::string &bucket,
                                   const std::string &name,
                                   const std::string &content) {
@@ -3876,6 +3994,76 @@ void Testutils::delete_oci_object(const std::string &bucket_name,
   options.check_option_values();
   mysqlshdk::storage::backend::oci::Bucket bucket(options);
   bucket.delete_object(name);
+}
+
+namespace {
+
+std::unique_ptr<mysqlshdk::storage::IFile> file(const shcore::Value &location) {
+  if (location.type == shcore::String) {
+    return mysqlshdk::storage::make_file(location.as_string());
+  } else if (location.type == shcore::Map) {
+    mysqlshdk::oci::Oci_options oci_options;
+    std::string name;
+
+    mysqlsh::Unpack_options(location.as_map())
+        .required("name", &name)
+        .unpack(&oci_options)
+        .end();
+
+    if (oci_options) {
+      oci_options.check_option_values();
+      return mysqlshdk::storage::make_file(name, oci_options);
+    } else {
+      throw std::runtime_error("map arg must be a OCI-OS object");
+    }
+  } else {
+    throw std::runtime_error("arg must be a string or map");
+  }
+}
+
+}  // namespace
+
+void Testutils::anycopy(const shcore::Value &from, const shcore::Value &to) {
+  std::unique_ptr<mysqlshdk::storage::IFile> from_file = file(from);
+  std::unique_ptr<mysqlshdk::storage::IFile> to_file = file(to);
+
+  // handle compression/decompression
+  mysqlshdk::storage::Compression from_compr;
+  mysqlshdk::storage::Compression to_compr;
+  try {
+    from_compr = mysqlshdk::storage::from_extension(
+        std::get<1>(shcore::path::split_extension(from_file->filename())));
+  } catch (...) {
+    from_compr = mysqlshdk::storage::Compression::NONE;
+  }
+
+  try {
+    to_compr = mysqlshdk::storage::from_extension(
+        std::get<1>(shcore::path::split_extension(to_file->filename())));
+  } catch (...) {
+    to_compr = mysqlshdk::storage::Compression::NONE;
+  }
+
+  if (from_compr != to_compr) {
+    from_file = mysqlshdk::storage::make_file(std::move(from_file), from_compr);
+    to_file = mysqlshdk::storage::make_file(std::move(to_file), to_compr);
+  }
+
+  from_file->open(mysqlshdk::storage::Mode::READ);
+  to_file->open(mysqlshdk::storage::Mode::WRITE);
+
+  std::string buffer;
+
+  buffer.resize(2 * 1024 * 1024);
+
+  for (;;) {
+    auto c = from_file->read(&buffer[0], buffer.size());
+    if (c <= 0) break;
+    to_file->write(&buffer[0], c);
+  }
+
+  from_file->close();
+  to_file->close();
 }
 
 }  // namespace tests

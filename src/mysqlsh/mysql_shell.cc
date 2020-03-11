@@ -1370,6 +1370,11 @@ bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
               format.c_str(), "Conn. characterset: ",
               (*status)["CONNECTION_CHARSET"].descr(true).c_str()));
 
+        if (status->has_key("RESULTS_CHARSET"))
+          println(shcore::str_format(
+              format.c_str(), "Result characterset: ",
+              (*status)["RESULTS_CHARSET"].descr(true).c_str()));
+
         if (status->has_key("COMPRESSION"))
           println(shcore::str_format(
               format.c_str(),

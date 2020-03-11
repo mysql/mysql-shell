@@ -80,6 +80,8 @@ struct Table_task {
 
 static constexpr auto k_dump_in_progress_ext = ".dumping";
 
+static constexpr const int k_mysql_server_net_write_timeout = 5 * 60;
+
 const auto k_ignored_users = {"mysql.infoschema", "mysql.session", "mysql.sys"};
 
 std::string quote_value(const std::string &value, mysqlshdk::db::Type type) {
@@ -473,7 +475,9 @@ class Dumper::Table_worker final {
                                   &rows_per_chunk,
                                   this](const auto min, const auto max) {
       const auto estimated_chunks =
-          std::max(task.row_count / rows_per_chunk, UINT64_C(1));
+          rows_per_chunk > 0
+              ? std::max(task.row_count / rows_per_chunk, UINT64_C(1))
+              : UINT64_C(1);
       const auto estimated_step = (max - min + 1) / estimated_chunks;
       const auto accuracy = std::max(estimated_step / 10, UINT64_C(10));
 
@@ -1011,6 +1015,11 @@ void Dumper::on_init_thread_session(
   session->execute("SET SQL_MODE = '';");
   session->executef("SET NAMES ?;", m_options.character_set());
 
+  // The amount of time the server should wait for us to read data from it
+  // like resultsets. Result reading can be delayed by slow uploads.
+  session->executef("SET SESSION net_write_timeout = ?",
+                    k_mysql_server_net_write_timeout);
+
   if (use_timezone_utc()) {
     session->execute("SET TIME_ZONE = '+00:00';");
   }
@@ -1037,13 +1046,16 @@ void Dumper::open_session() {
     }
   }
 
-  {
-    // set read timeout
-    if (co.has(mysqlshdk::db::kNetReadTimeout)) {
-      co.remove(mysqlshdk::db::kNetReadTimeout);
-    }
+  // set read timeout, if not already set by user
+  if (!co.has(mysqlshdk::db::kNetReadTimeout)) {
+    const auto k_one_day = "86400000";
+    co.set(mysqlshdk::db::kNetReadTimeout, k_one_day);
+  }
 
-    co.set(mysqlshdk::db::kNetReadTimeout, "86400000");  // 1 day in ms
+  // set size of max packet (~size of 1 row) we can get from server
+  if (!co.has(mysqlshdk::db::kMaxAllowedPacket)) {
+    const auto k_one_gb = "1073741824";
+    co.set(mysqlshdk::db::kMaxAllowedPacket, k_one_gb);
   }
 
   m_session = establish_session(co, false);
@@ -1648,6 +1660,11 @@ void Dumper::write_dump_started_metadata() const {
                 a);
   doc.AddMember(StringRef("gtidExecuted"), ref(m_dump_info->gtid_executed()),
                 a);
+  doc.AddMember(StringRef("consistent"), consistent_dump(), a);
+  if (!mds_compatibility().is_null()) {
+    bool compat = mds_compatibility();
+    doc.AddMember(StringRef("mdsCompatibility"), compat, a);
+  }
   doc.AddMember(StringRef("begin"), ref(m_dump_info->begin()), a);
 
   write_json(make_file("@.json"), &doc);
@@ -1685,6 +1702,8 @@ void Dumper::write_schema_metadata(const Schema_task &schema) const {
   auto &a = doc.GetAllocator();
 
   doc.AddMember(StringRef("schema"), ref(schema.name), a);
+  doc.AddMember(StringRef("includesDdl"), should_dump_ddl(), a);
+  doc.AddMember(StringRef("includesData"), should_dump_data(), a);
 
   {
     // list of tables
@@ -1697,7 +1716,7 @@ void Dumper::write_schema_metadata(const Schema_task &schema) const {
     doc.AddMember(StringRef("tables"), std::move(tables), a);
   }
 
-  {
+  if (should_dump_ddl()) {
     // list of views
     Value views{Type::kArrayType};
 
@@ -1708,7 +1727,7 @@ void Dumper::write_schema_metadata(const Schema_task &schema) const {
     doc.AddMember(StringRef("views"), std::move(views), a);
   }
 
-  {
+  if (should_dump_ddl()) {
     const auto dumper = schema_dumper(session());
 
     if (dump_events()) {
@@ -1827,7 +1846,7 @@ void Dumper::write_table_metadata(
 
   const auto dumper = schema_dumper(session);
 
-  if (dump_triggers()) {
+  if (dump_triggers() && should_dump_ddl()) {
     // list of triggers
     Value triggers{Type::kArrayType};
 
@@ -1856,6 +1875,9 @@ void Dumper::write_table_metadata(
 
     doc.AddMember(StringRef("histograms"), std::move(histograms), a);
   }
+
+  doc.AddMember(StringRef("includesData"), should_dump_data(), a);
+  doc.AddMember(StringRef("includesDdl"), should_dump_ddl(), a);
 
   doc.AddMember(StringRef("extension"), {get_table_data_ext().c_str(), a}, a);
   doc.AddMember(StringRef("chunking"), chunked, a);
@@ -1970,7 +1992,7 @@ void Dumper::initialize_progress() {
           "rows", "rows", "row", "rows");
     } else {
       m_progress = std::make_unique<mysqlshdk::textui::Text_progress>(
-          "rows", "rows", "row", "rows");
+          "rows", "rows", "row", "rows", true, true);
     }
   } else {
     m_progress = std::make_unique<mysqlshdk::textui::IProgress>();

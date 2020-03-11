@@ -170,7 +170,11 @@ bool Shell_sql::process_sql(const char *query_str, size_t query_len,
       _result_processor(result, info);
 
       ret_val = true;
-    } catch (shcore::Exception &exc) {
+    } catch (const mysqlshdk::db::Error &exc) {
+      print_exception(shcore::Exception::mysql_error_with_code_and_state(
+          exc.what(), exc.code(), exc.sqlstate()));
+      ret_val = false;
+    } catch (const shcore::Exception &exc) {
       print_exception(exc);
       ret_val = false;
     }

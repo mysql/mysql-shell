@@ -101,6 +101,7 @@ class IProgress {
   virtual void show_status(bool = false, const std::string & = "") {}
   virtual void current(uint64_t /* value */) {}
   virtual void total(uint64_t /* value */) {}
+  virtual void total(uint64_t /* value */, uint64_t /* initial */) {}
   virtual void set_left_label(const std::string &) {}
   virtual void hide(bool) {}
   virtual void shutdown() {}
@@ -149,7 +150,7 @@ class Text_progress final : public IProgress {
    */
   void current(uint64_t value) override {
     m_current = value;
-    m_throughput.push(value);
+    m_throughput.push(value - m_initial);
     m_changed = true;
   }
 
@@ -168,17 +169,30 @@ class Text_progress final : public IProgress {
   void total(uint64_t value) override { m_total = value; }
 
   /**
+   * Set total value of work to-do.
+   *
+   * @param value Absolute value of work to-do.
+   * @param initial Initial value for "current"
+   */
+  void total(uint64_t value, uint64_t initial) override {
+    m_total = value;
+    m_initial = initial;
+  }
+
+  /**
    * Finish progress status display.
    */
   void shutdown() override;
 
  private:
-  unsigned long long m_current = 0;
-  unsigned long long m_total = 0;
+  uint64_t m_initial = 0;
+  uint64_t m_current = 0;
+  uint64_t m_total = 0;
   bool m_changed = true;
   Throughput m_throughput;
   unsigned int m_last_status_size = 0;  //< Last displayed status length
   std::string m_status;
+  std::string m_prev_status;
   std::chrono::steady_clock::time_point
       m_refresh_clock;  //< Last status refresh
   std::string m_items_full;
@@ -255,7 +269,7 @@ class Json_progress final : public IProgress {
    */
   void current(uint64_t value) override {
     m_current = value;
-    m_throughput.push(value);
+    m_throughput.push(value - m_initial);
     m_changed = true;
   }
 
@@ -266,9 +280,21 @@ class Json_progress final : public IProgress {
    */
   void total(uint64_t value) override { m_total = value; }
 
+  /**
+   * Set total value of work to-do.
+   *
+   * @param value Absolute value of work to-do.
+   * @param initial Initial value for "current"
+   */
+  void total(uint64_t value, uint64_t initial) override {
+    m_total = value;
+    m_initial = initial;
+  }
+
  private:
-  unsigned long long m_current = 0;
-  unsigned long long m_total = 0;
+  uint64_t m_initial = 0;
+  uint64_t m_current = 0;
+  uint64_t m_total = 0;
   bool m_changed = true;
   Throughput m_throughput;
   std::string m_status;

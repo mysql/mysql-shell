@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,7 @@
 
 #include "modules/util/import_table/chunk_file.h"
 #include "modules/util/import_table/import_table_options.h"
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/textui/text_progress.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
@@ -45,6 +46,7 @@ struct Stats {
   size_t total_deleted = 0;
   size_t total_skipped = 0;
   size_t total_warnings = 0;
+  size_t total_bytes = 0;
 
   std::string to_string() const {
     return std::string{"Records: " + std::to_string(total_records) +
@@ -82,8 +84,10 @@ class Import_table final {
   void progress_shutdown();
 
   std::atomic<size_t> m_prog_sent_bytes{0};
-  std::mutex m_output_mutex;
   std::unique_ptr<mysqlshdk::textui::IProgress> m_progress = nullptr;
+  std::mutex m_output_mutex;
+  Scoped_console m_console;
+
   shcore::Synchronized_queue<Range> m_range_queue;
 
   const Import_table_options &m_opt;

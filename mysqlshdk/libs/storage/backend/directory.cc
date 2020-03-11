@@ -52,17 +52,14 @@ std::vector<IDirectory::File_info> Directory::list_files(
   std::vector<IDirectory::File_info> files;
 
   shcore::iterdir(path, [this, &path, &files](const std::string &name) {
-    if (shcore::is_file(join_path(path, name))) {
-      IDirectory::File_info fi = {name, 0};
+    auto file_path = join_path(path, name);
+    if (shcore::is_file(file_path)) {
+      IDirectory::File_info fi = {name, shcore::file_size(file_path)};
       files.emplace_back(std::move(fi));
     }
 
     return true;
   });
-
-  for (auto &fi : files) {
-    fi.size = file(fi.name)->file_size();
-  }
 
   return files;
 }

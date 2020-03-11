@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -121,7 +121,8 @@ struct Response {
 
 class Response_error : public std::runtime_error {
  public:
-  Response_error(Response::Status_code code, const char *what = nullptr)
+  explicit Response_error(Response::Status_code code,
+                          const char *what = nullptr)
       : std::runtime_error(what == nullptr ? Response::status_code(code)
                                            : what),
         m_code(code) {}
@@ -142,55 +143,36 @@ class Response_error : public std::runtime_error {
 };
 
 /**
- * Base class providing the required interface to handle data received on an
- * Response.
- *
- * Many calls to append_data maybe done for each request, this keeps track of
- * the data received for a response ensuring it fits in the buffer given a
- * buffer size.
- *
- * If no buffer size is provided then it is assumed that the buffer can hold any
- * data received.
+ * Interface to handle data received on a Response.
  */
 class Base_response_buffer {
  public:
-  explicit Base_response_buffer(size_t bsize)
-      : m_buffer_size(bsize), m_content_size(0) {}
+  //!  Appends the received data into the buffer
+  virtual size_t append_data(const char *data, size_t data_size) = 0;
 
-  Base_response_buffer(const Base_response_buffer &other) = default;
-  Base_response_buffer(Base_response_buffer &&other) = default;
-
-  Base_response_buffer &operator=(const Base_response_buffer &other) = default;
-  Base_response_buffer &operator=(Base_response_buffer &&other) = default;
-
-  /**
-   * Ensures the data received fits in the buffer, if so calls append().
-   *
-   * @returns if the data fits on the buffer, returns the processed bytes (all),
-   * otherwise returns 0. Returning a value different than the received will
-   * cause an error to be generated and the read to be stopped. ()
-   */
-  size_t append_data(const char *data, size_t data_size);
-
-  //!  Returns the amount of data received.
-  size_t size() { return m_content_size; }
+  //!  Returns the amount of data received so far
+  virtual size_t size() const = 0;
 
   //! Retuns a reference to the data received
   virtual const char *data() const = 0;
 
- protected:
-  virtual void append(const char *data, size_t data_size) = 0;
-
-  //! The max buffer size, if 0 indicates there's no limits
-  size_t m_buffer_size;
-
-  //! The data received so far.
-  size_t m_content_size;
+  //! Clears the buffer..
+  virtual void clear() = 0;
 };
 
+/**
+ * Response buffer that uses internal string to hold the data.
+ *
+ * The internal string will grow as needed to hold the received data.
+ *
+ * If buffer_length is used on the constructor, the internal string capacity
+ * will increaste to hold such length.
+ */
 class String_buffer : public Base_response_buffer {
  public:
-  String_buffer();
+  explicit String_buffer(size_t buffer_length = 0) {
+    if (buffer_length) m_buffer.reserve(buffer_length);
+  };
 
   String_buffer(const String_buffer &other) = default;
   String_buffer(String_buffer &&other) = default;
@@ -198,14 +180,19 @@ class String_buffer : public Base_response_buffer {
   String_buffer &operator=(const String_buffer &other) = default;
   String_buffer &operator=(String_buffer &&other) = default;
 
+  size_t append_data(const char *data, size_t data_size) override {
+    m_buffer.append(data, data_size);
+    return data_size;
+  }
+
   const char *data() const override { return m_buffer.data(); }
+
+  size_t size() const override { return m_buffer.size(); }
+
+  void clear() override { m_buffer.clear(); }
 
  private:
   std::string m_buffer;
-
-  void append(const char *data, size_t data_size) override {
-    m_buffer.append(data, data_size);
-  }
 };
 
 /**
@@ -217,7 +204,7 @@ class String_buffer : public Base_response_buffer {
 class Static_char_ref_buffer : public Base_response_buffer {
  public:
   Static_char_ref_buffer(char *buffer_ptr, size_t bsize)
-      : Base_response_buffer(bsize), m_buffer(buffer_ptr) {
+      : m_buffer(buffer_ptr), m_buffer_size(bsize), m_content_size(0) {
     // Both parameters should be valid
     assert(m_buffer);
     assert(m_buffer_size);
@@ -230,32 +217,28 @@ class Static_char_ref_buffer : public Base_response_buffer {
       delete;
   Static_char_ref_buffer &operator=(Static_char_ref_buffer &&other) = delete;
 
+  size_t append_data(const char *data, size_t data_size) override;
+
   const char *data() const override { return m_buffer; }
+
+  size_t size() const override { return m_content_size; }
+
+  void clear() override { m_content_size = 0; }
 
  private:
   char *m_buffer;
-
-  void append(const char *data, size_t data_size) override {
-    std::copy(data, data + data_size, m_buffer + m_content_size);
-  }
+  size_t m_buffer_size;
+  size_t m_content_size;
 };
 
 /**
- * Response buffer that uses either internal or external string to hold the
- * data.
+ * Response buffer that uses external string to hold the data.
  *
- * @param external_buffer_ptr pointer to an external string to hold the data.
- * If not provided an internal buffer will be used.
- *
- * @param bsize buffer size. If not provided or 0 the data will be just appended
- * to the buffer with no limits, this is recommended when it is known that the
- * response data is small. If given, the indicated size will be pre-allocated to
- * improve performance by avoiding the normal string re-allocation when data
- * exceeds string capacity, recommended for bigger responses.
+ * @param buffer pointer to a string to hold the data.
  */
 class String_ref_buffer : public Base_response_buffer {
  public:
-  explicit String_ref_buffer(std::string *buffer);
+  explicit String_ref_buffer(std::string *buffer) : m_buffer(buffer) {}
 
   String_ref_buffer(const String_ref_buffer &other) = delete;
   String_ref_buffer(String_ref_buffer &&other) = delete;
@@ -263,14 +246,19 @@ class String_ref_buffer : public Base_response_buffer {
   String_ref_buffer &operator=(const String_ref_buffer &other) = delete;
   String_ref_buffer &operator=(String_ref_buffer &&other) = delete;
 
+  size_t append_data(const char *data, size_t data_size) override {
+    m_buffer->append(data, data_size);
+    return data_size;
+  }
+
   const char *data() const override { return m_buffer->data(); }
+
+  size_t size() const override { return m_buffer->size(); }
+
+  void clear() override { m_buffer->clear(); }
 
  private:
   std::string *m_buffer;
-
-  void append(const char *data, size_t data_size) override {
-    m_buffer->append(data, data_size);
-  }
 };
 
 }  // namespace rest
