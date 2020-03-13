@@ -195,7 +195,7 @@ Response::Status_code Oci_rest_service::head(const std::string &path,
                                              const Headers &headers,
                                              std::string *response_data,
                                              Headers *response_headers) {
-  return execute(Type::GET, path, nullptr, 0, headers, response_data,
+  return execute(Type::HEAD, path, nullptr, 0, headers, response_data,
                  response_headers);
 }
 

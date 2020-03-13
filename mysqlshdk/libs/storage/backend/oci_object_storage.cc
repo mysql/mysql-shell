@@ -315,11 +315,17 @@ ssize_t Object::Reader::read(void *buffer, size_t length) {
 
   const size_t last = std::min(m_size - 1, last_unbounded);
 
+  std::string content;
+  content.reserve(length);
   size_t read =
-      m_object->m_bucket->get_object(m_object->m_name, buffer, first, last);
+      m_object->m_bucket->get_object(m_object->m_name, &content, first, last);
+  if (length < read) {
+    throw std::runtime_error("Got more data than expected.");
+  }
 
+  std::copy(content.data(), content.data() + content.size(),
+            reinterpret_cast<uint8_t *>(buffer));
   m_offset += read;
-
   return read;
 }
 

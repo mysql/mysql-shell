@@ -199,50 +199,63 @@ TEST_F(Oci_os_tests, bucket_object_operations) {
   bucket.put_object("sakila.txt", "0123456789", 10);
 
   // GET Using different byte ranges
-  char buffer[10];
-  size_t read = bucket.get_object("sakila.txt", buffer);
-  EXPECT_EQ(10, read);
-  std::string data(buffer, read);
-  EXPECT_STREQ("0123456789", data.c_str());
+  {
+    std::string buffer;
+    auto read = bucket.get_object("sakila.txt", &buffer);
+    EXPECT_EQ(10, read);
+    EXPECT_EQ("0123456789", buffer);
+  }
 
-  read = bucket.get_object("sakila.txt", buffer, 0, 3);
-  EXPECT_EQ(4, read);
-  data.assign(buffer, read);
-  EXPECT_STREQ("0123", data.c_str());
+  {
+    std::string buffer;
+    auto read = bucket.get_object("sakila.txt", &buffer, 0, 3);
+    EXPECT_EQ(4, read);
+    EXPECT_EQ("0123", buffer);
+  }
 
-  read = bucket.get_object("sakila.txt", buffer, 5, 5);
-  EXPECT_EQ(1, read);
-  data.assign(buffer, read);
-  EXPECT_STREQ("5", data.c_str());
+  {
+    std::string buffer;
+    auto read = bucket.get_object("sakila.txt", &buffer, 5, 5);
+    EXPECT_EQ(1, read);
+    EXPECT_EQ("5", buffer);
+  }
 
-  read = bucket.get_object("sakila.txt", buffer, 8, 15);
-  EXPECT_EQ(2, read);
-  data.assign(buffer, read);
-  EXPECT_STREQ("89", data.c_str());
-
-  read = bucket.get_object("sakila.txt", buffer, 4);
-  EXPECT_EQ(6, read);
-  data.assign(buffer, read);
-  EXPECT_STREQ("456789", data.c_str());
-
-  read = bucket.get_object("sakila.txt", buffer, 4);
-  EXPECT_EQ(6, read);
-  data.assign(buffer, read);
-  EXPECT_STREQ("456789", data.c_str());
-
-  read = bucket.get_object("sakila.txt", buffer, {}, 4);
-  EXPECT_EQ(4, read);
-  data.assign(buffer, read);
-  EXPECT_STREQ("6789", data.c_str());
+  {
+    std::string buffer;
+    auto read = bucket.get_object("sakila.txt", &buffer, 8, 15);
+    EXPECT_EQ(2, read);
+    EXPECT_EQ("89", buffer);
+  }
+  {
+    std::string buffer;
+    auto read = bucket.get_object("sakila.txt", &buffer, 4);
+    EXPECT_EQ(6, read);
+    EXPECT_EQ("456789", buffer);
+  }
+  {
+    std::string buffer;
+    auto read = bucket.get_object("sakila.txt", &buffer, 4);
+    EXPECT_EQ(6, read);
+    EXPECT_EQ("456789", buffer);
+  }
+  {
+    std::string buffer;
+    auto read = bucket.get_object("sakila.txt", &buffer,
+                                  mysqlshdk::utils::nullable<size_t>{},
+                                  mysqlshdk::utils::nullable<size_t>{4});
+    EXPECT_EQ(4, read);
+    EXPECT_EQ("6789", buffer);
+  }
 
   // RENAME
-  bucket.rename_object("sakila.txt", "sakila/metadata.txt");
-  std::string final_data;
-  read = bucket.get_object("sakila/metadata.txt", buffer);
-  data.assign(buffer, read);
-  EXPECT_STREQ("0123456789", data.c_str());
-
-  bucket.delete_object("sakila/metadata.txt");
+  {
+    bucket.rename_object("sakila.txt", "sakila/metadata.txt");
+    std::string buffer;
+    auto read = bucket.get_object("sakila/metadata.txt", &buffer);
+    EXPECT_EQ(10, read);
+    EXPECT_EQ("0123456789", buffer);
+    bucket.delete_object("sakila/metadata.txt");
+  }
 }
 
 TEST_F(Oci_os_tests, bucket_error_conditions) {
@@ -262,18 +275,17 @@ TEST_F(Oci_os_tests, bucket_error_conditions) {
       "The If-None-Match header is '*' but there is an existing entity");
   bucket.delete_object("sample.txt");
 
-  // DELETE: Unexsinting Object
+  // DELETE: Unexisting Object
   EXPECT_THROW_LIKE(bucket.delete_object("sample.txt"), Response_error,
                     "The object 'sample.txt' does not exist in bucket '" +
                         PUBLIC_BUCKET + "' with namespace '" +
                         bucket.get_namespace() + "'");
 
-  // HEAD: Unexsinting Object
-  EXPECT_THROW_LIKE(
-      bucket.head_object("sample.txt"), Response_error,
-      "The object 'sample.txt' was not found in the bucket 'shell-rut-pub'");
+  // HEAD: Unexisting Object
+  EXPECT_THROW_LIKE(bucket.head_object("sample.txt"), Response_error,
+                    "Not Found");
 
-  // GET: Unexsinting Object
+  // GET: Unexisting Object
   EXPECT_THROW_LIKE(bucket.get_object("sample.txt", nullptr), Response_error,
                     "The object 'sample.txt' was not found in the bucket '" +
                         PUBLIC_BUCKET + "'");

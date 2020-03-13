@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "mysqlshdk/libs/oci/oci_options.h"
 #include "mysqlshdk/libs/oci/oci_rest_service.h"
@@ -174,17 +175,18 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
    * be retrieved. The range definition has different meanings depending on the
    * presense of the two parameters:
    *
-   * from-to: Retrieves the indicated range of data (inclusive).
+   * from-to: Retrieves the indicated range of data (inclusive-inclusive).
    * from-: Retrieves all the data starting at from.
-   * -to: Retrieves the last 'to' bytes.
-   * -: Retrieves all the data.
-   *
-   * NOTE: This function assumes buffer has enough room to hold the read buffer,
-   * so the provided range should be according to the available buffer space.
+   * -to: Retrieves the last 'to' bytes. Use nullable<> overload.
    */
-  size_t get_object(const std::string &objectName, void *buffer,
-                    const mysqlshdk::utils::nullable<size_t> &from_byte = {},
-                    const mysqlshdk::utils::nullable<size_t> &to_byte = {});
+  size_t get_object(const std::string &objectName, std::string *buffer);
+  size_t get_object(const std::string &objectName, std::string *buffer,
+                    size_t from_byte);
+  size_t get_object(const std::string &objectName, std::string *buffer,
+                    size_t from_byte, size_t to_byte);
+  size_t get_object(const std::string &objectName, std::string *buffer,
+                    const mysqlshdk::utils::nullable<size_t> &from_byte,
+                    const mysqlshdk::utils::nullable<size_t> &to_byte);
 
   void rename_object(const std::string &srcName, const std::string &newName);
 

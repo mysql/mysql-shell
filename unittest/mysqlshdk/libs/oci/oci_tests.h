@@ -19,13 +19,14 @@
  along with this program; if not, write to the Free Software Foundation, Inc.,
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
-#ifndef UNITTESTS_MYSQLSHDK_LIBS_OCI_OCI_TESTS_H_
-#define UNITTESTS_MYSQLSHDK_LIBS_OCI_OCI_TESTS_H_
+#ifndef UNITTEST_MYSQLSHDK_LIBS_OCI_OCI_TESTS_H_
+#define UNITTEST_MYSQLSHDK_LIBS_OCI_OCI_TESTS_H_
 
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include "gtest_clean.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
@@ -119,4 +120,4 @@ class Oci_os_tests : public Shell_core_test_wrapper {
 
 }  // namespace testing
 
-#endif  // UNITTESTS_MYSQLSHDK_LIBS_OCI_OCI_TESTS_H_
+#endif  // UNITTEST_MYSQLSHDK_LIBS_OCI_OCI_TESTS_H_

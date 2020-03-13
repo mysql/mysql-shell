@@ -96,6 +96,9 @@ ssize_t Http_get::read(void *buffer, size_t length) {
   auto response = m_rest->get(std::string{}, h);
   if (Response::Status_code::PARTIAL_CONTENT == response.status) {
     const auto &content = response.body;
+    if (length < content.size()) {
+      throw std::runtime_error("Got more data than expected");
+    }
     std::copy(content.data(), content.data() + content.size(),
               reinterpret_cast<uint8_t *>(buffer));
     m_offset += content.size();

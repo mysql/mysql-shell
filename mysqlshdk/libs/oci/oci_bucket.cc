@@ -22,6 +22,8 @@
  */
 
 #include "mysqlshdk/libs/oci/oci_bucket.h"
+#include <algorithm>
+#include <vector>
 #include "mysqlshdk/libs/db/uri_encoder.h"
 
 namespace mysqlshdk {
@@ -98,7 +100,7 @@ std::vector<Object_details> Bucket::list_objects(
   if (!end.empty()) parameters.emplace_back("end=" + encode_query(end));
 
   // Only sets the limit when the request will be satisfied in one call,
-  // otherwise the limit will be set after the necessary calls to fulfull the
+  // otherwise the limit will be set after the necessary calls to fulfill the
   // limit request
   bool has_limit = false;
   if (limit && limit <= MAX_LIST_OBJECTS_LIMIT) {
@@ -217,11 +219,36 @@ size_t Bucket::head_object(const std::string &objectName) {
   return std::stoul(response_headers.at("content-length"));
 }
 
-size_t Bucket::get_object(const std::string &objectName, void *buffer,
+size_t Bucket::get_object(const std::string &objectName, std::string *buffer) {
+  m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
+                                         encode_path(objectName).c_str()),
+                      {}, buffer);
+  return buffer->size();
+}
+
+size_t Bucket::get_object(const std::string &objectName, std::string *buffer,
+                          size_t from_byte) {
+  Headers headers{{"range", "bytes=" + std::to_string(from_byte) + "-"}};
+  m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
+                                         encode_path(objectName).c_str()),
+                      headers, buffer);
+  return buffer->size();
+}
+
+size_t Bucket::get_object(const std::string &objectName, std::string *buffer,
+                          size_t from_byte, size_t to_byte) {
+  Headers headers{{"range", "bytes=" + std::to_string(from_byte) + "-" +
+                                std::to_string(to_byte) + ""}};
+  m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
+                                         encode_path(objectName).c_str()),
+                      headers, buffer);
+  return buffer->size();
+}
+
+size_t Bucket::get_object(const std::string &objectName, std::string *buffer,
                           const mysqlshdk::utils::nullable<size_t> &from_byte,
                           const mysqlshdk::utils::nullable<size_t> &to_byte) {
   Headers headers;
-  size_t read_size = 0;
   if (!from_byte.is_null() || !to_byte.is_null()) {
     headers["range"] = shcore::str_format(
         "bytes=%s-%s",
@@ -229,16 +256,10 @@ size_t Bucket::get_object(const std::string &objectName, void *buffer,
         (to_byte.is_null() ? "" : std::to_string(*to_byte).c_str()));
   }
 
-  std::string content;
   m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
                                          encode_path(objectName).c_str()),
-                      headers, &content);
-
-  read_size = content.size();
-  std::copy(content.data(), content.data() + content.size(),
-            reinterpret_cast<uint8_t *>(buffer));
-
-  return read_size;
+                      headers, buffer);
+  return buffer->size();
 }
 
 void Bucket::rename_object(const std::string &sourceName,
