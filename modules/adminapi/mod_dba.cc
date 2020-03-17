@@ -595,8 +595,7 @@ void Dba::init() {
          "?options");
   expose("configureReplicaSetInstance", &Dba::configure_replica_set_instance,
          "?instanceDef", "?options");
-  expose("createReplicaSet", &Dba::create_replica_set, "replicaSetName",
-         "?options");
+  expose("createReplicaSet", &Dba::create_replica_set, "name", "?options");
   expose("getReplicaSet", &Dba::get_replica_set);
 
   std::string local_mp_path =

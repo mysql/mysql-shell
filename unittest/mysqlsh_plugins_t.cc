@@ -89,6 +89,10 @@ class Mysqlsh_extension_test : public Command_line_test {
     return shcore::str_join(m_expected_output, "\n");
   }
 
+  const std::vector<std::string> &get_expected_output() const {
+    return m_expected_output;
+  }
+
   void add_test(const std::string &input, const std::string &output = "") {
     m_test_input.emplace_back(input);
 
@@ -1026,6 +1030,103 @@ Bye!
 
   // cleanup
   delete_user_plugin("plugin");
+}
+
+TEST_F(Mysqlsh_plugin_test, py_kwargs_plugin) {
+  // create fourth-py plugin - which defines a new global object
+  write_user_plugin("kwargs-py",
+                    R"(def describe(one, two, three, four, five):
+  print(one, two, three, four, five)
+
+obj = shell.create_extension_object()
+shell.add_extension_object_member(obj, "selfDescribe", describe,{
+        "brief": "Creates a function to test KW arg passing.",
+        "parameters": [
+            {
+                "name": "one",
+                "brief": "The first mandatory parameter.",
+                "type": "integer",
+            },
+            {
+                "name": "two",
+                "brief": "The second mandatory parameter.",
+                "type": "string",
+            },
+            {
+                "name": "three",
+                "brief": "The first optional parameter.",
+                "type": "integer",
+                "required": False,
+                "default": 3
+            },
+            {
+                "name": "four",
+                "brief": "The second optional parameter.",
+                "type": "string",
+                "required": False,
+                "default": "fourth"
+            },
+            {
+                "name": "five",
+                "brief": "The second optional parameter.",
+                "type": "integer",
+                "required": False,
+                "default": 5
+            },
+        ]
+    });
+
+shell.register_global('pyObject', obj);
+)",
+                    ".py");
+
+  // check if jsObject.test_function was properly registered in PY
+  add_py_test("\\py");
+  // TEST: Missing required parameters
+  add_py_test("pyObject.self_describe()",
+              "pyObject.self_describe: Invalid number of arguments, expected 2 "
+              "to 5 but got 0");
+  add_py_test("pyObject.self_describe(1)",
+              "pyObject.self_describe: Invalid number of arguments, expected 2 "
+              "to 5 but got 1");
+  add_py_test("pyObject.self_describe(1, five=10)",
+              "pyObject.self_describe: Missing value for argument 'two'");
+  // TEST: Providing invalid keyword parameters
+  add_py_test(
+      "pyObject.self_describe(1,'some',five=10, six=6)",
+      "ArgumentError: pyObject.self_describe: Invalid keyword argument: 'six'");
+  add_py_test("pyObject.self_describe(1,'some',five=10, six=6, seven=7)",
+              "ArgumentError: pyObject.self_describe: Invalid keyword "
+              "arguments: 'seven', 'six'");
+  // TEST: Passing keyword parameters in addition to positional parameters
+  add_py_test("pyObject.self_describe(1,'some',one=2)",
+              "ArgumentError: pyObject.self_describe: Got multiple values for "
+              "argument 'one'");
+  // TEST: Passing positional parameter using keyword parameter
+  add_py_test("pyObject.self_describe(1, two=10)",
+              "ArgumentError: pyObject.self_describe: Argument 'two' is "
+              "expected to be a string");
+  // TEST: Passing keyword parameter skipping optional parameters
+  add_py_test("pyObject.self_describe(1,'some',four='other')",
+              "1 some 3 other 5");
+  add_py_test("pyObject.self_describe(1,'some',five=10)", "1 some 3 fourth 10");
+  // TEST: Skipping optional parameters
+  add_py_test("pyObject.self_describe(1,'some')", "1 some 3 fourth 5");
+  // TEST: Passing optional parameters as positional
+  add_py_test("pyObject.self_describe(1,'some',7,'world')", "1 some 7 world 5");
+  // TEST: Passing all the parameters as keyword parameters
+  add_py_test(
+      "pyObject.self_describe(one=5, two='five', three=8, four='eight', "
+      "five=15)",
+      "5 five 8 eight 15");
+  // run the test
+  run({"--log-level=debug"});
+
+  // check the output
+  for (const auto &output : get_expected_output()) {
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(output);
+  }
+  delete_user_plugin("kwargs-py");
 }
 
 }  // namespace tests

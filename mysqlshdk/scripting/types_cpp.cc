@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,145 +63,236 @@ Cpp_function::Raw_signature Cpp_function::gen_signature(
 }
 
 std::tuple<bool, int, std::string> Cpp_function::match_signatures(
-    const Raw_signature &cand, const std::vector<Value_type> &wanted) {
-  // this function follows mostly the same rules for finding viable functions
-  // as c++ for function overload resolution
-  size_t m = wanted.size();
-  size_t c = cand.size();
+    const Raw_signature &cand, const std::vector<Value_type> &wanted,
+    const shcore::Dictionary_t &kwds) {
   bool match = true;
   std::string error;
+  bool have_object_params = false;
+  size_t exact_matches = 0;
 
-  // more than 7 params not supported atm...
-  // extend when more expose() variations added
-  switch (static_cast<int>(cand.size()) - m) {
-    case 7:  // 7 params extra, if the rest is optional, it's a match
-      match = match && (cand[c - 7]->flag == Param_flag::Optional);
-      // fallthrough
-    case 6:  // 6 params extra, if the rest is optional, it's a match
-      match = match && (cand[c - 6]->flag == Param_flag::Optional);
-      // fallthrough
-    case 5:  // 5 params extra, if the rest is optional, it's a match
-      match = match && (cand[c - 5]->flag == Param_flag::Optional);
-      // fallthrough
-    case 4:  // 4 params extra, if the rest is optional, it's a match
-      match = match && (cand[c - 4]->flag == Param_flag::Optional);
-      // fallthrough
-    case 3:  // 3 params extra, if the rest is optional, it's a match
-      match = match && (cand[c - 3]->flag == Param_flag::Optional);
-      // fallthrough
-    case 2:  // 2 params extra, if the rest is optional, it's a match
-      match = match && (cand[c - 2]->flag == Param_flag::Optional);
-      // fallthrough
-    case 1:  // 1 param extra, if the rest is optional, it's a match
-      match = match && (cand[c - 1]->flag == Param_flag::Optional);
-      // fallthrough
-    case 0:  // # of params match
-      break;
-    default:
-      match = false;
-      break;
-  }
+  // If keyword parameters are provided, function matching evaluation is done
+  // reviewing parameter by parameter from the function signature
+  if (kwds && !kwds->empty()) {
+    std::set<std::string> kwd_names;
+    std::set<std::string> params;
 
-  // In case of parameter count mistmatch, creates the appropiate error message
-  if (!match) {
-    size_t max = cand.size();
-    size_t min = 0;
+    // First of all, we ensure all the provided keywords are valid parameters
     for (const auto &param : cand) {
-      if (param->flag == Param_flag::Optional) {
-        break;
-      } else {
-        min++;
+      params.insert(param->name);
+    }
+
+    for (const auto &kwd : *kwds) {
+      kwd_names.insert(kwd.first);
+    }
+
+    std::vector<std::string> diff;
+    std::set_difference(kwd_names.begin(), kwd_names.end(), params.begin(),
+                        params.end(), std::inserter(diff, diff.begin()));
+
+    if (!diff.empty()) {
+      match = false;
+      error = shcore::str_format(
+          "Invalid keyword argument%s: %s", diff.size() == 1 ? "" : "s",
+          shcore::str_join(diff, ", ", [](const std::string &item) {
+            return "'" + item + "'";
+          }).c_str());
+    } else {
+      size_t param_count = 0;
+      // We make sure the data for each parameter is correctly defined
+      for (const auto &param : cand) {
+        // For each parameter ensures:
+        // A positional parameter is given, or
+        // A named parameter is given, or
+        // Verify wether the parameter is optional
+        // If a value was given ensures it is of a compatible type
+        if (wanted.size() > param_count) {
+          // A positional parameter was given, we must ensure:
+          // - The given type is compatible with the expected one
+          // - That NO keyword has been defined for the parameter
+          if (param->valid_type(wanted[param_count])) {
+            if (kwds->find(param->name) != kwds->end()) {
+              match = false;
+              error = shcore::str_format(
+                  "Got multiple values for argument '%s'", param->name.c_str());
+            } else if (param->type() == wanted[param_count]) {
+              exact_matches++;
+            }
+            have_object_params =
+                have_object_params || (wanted[param_count] == Object);
+          } else {
+            match = false;
+            error = shcore::str_format("Argument #%zu is expected to be %s",
+                                       param_count + 1,
+                                       type_description(param->type()).c_str());
+          }
+        } else if (kwds->has_key(param->name)) {
+          // A keyword parameter is given, we must ensure
+          // - The given type is compatible with the expected one
+          if (param->valid_type(kwds->get_type(param->name))) {
+            if (param->type() == kwds->get_type(param->name)) {
+              exact_matches++;
+            }
+            have_object_params =
+                have_object_params || (kwds->at(param->name).type == Object);
+          } else {
+            match = false;
+            error = shcore::str_format("Argument '%s' is expected to be %s",
+                                       param->name.c_str(),
+                                       type_description(param->type()).c_str());
+          }
+        } else if (param->flag != Param_flag::Optional) {
+          match = false;
+          error = shcore::str_format("Missing value for argument '%s'",
+                                     param->name.c_str());
+        }
+        param_count++;
+        if (!match) break;
       }
     }
-
-    if (min == max)
-      error = shcore::str_format(
-          "Invalid number of arguments, expected %zu but got %zu", min, m);
-    else
-      error = shcore::str_format(
-          "Invalid number of arguments, expected %zu to %zu but got %zu", min,
-          max, m);
   } else {
-    bool have_object_params = false;
-    size_t exact_matches = m;
-    // check if all provided params are implicitly convertible to the ones
-    // from the candidate
-    switch (m) {
-      case 7:  // 7 params to be considered
-        if (!cand[6]->valid_type(wanted[6])) {
-          match = false;
-          error = shcore::str_format("Argument #7 is expected to be %s",
-                                     type_description(cand[6]->type()).c_str());
-        }
-        exact_matches -= (wanted[6] != cand[6]->type());
-        have_object_params = have_object_params || (wanted[6] == Object);
+    // this function follows mostly the same rules for finding viable
+    // functions as c++ for function overload resolution
+    size_t m = wanted.size();
+    size_t c = cand.size();
+
+    // more than 7 params not supported atm...
+    // extend when more expose() variations added
+    switch (static_cast<int>(cand.size()) - m) {
+      case 7:  // 7 params extra, if the rest is optional, it's a match
+        match = match && (cand[c - 7]->flag == Param_flag::Optional);
         // fallthrough
-      case 6:  // 6 params to be considered
-        if (!cand[5]->valid_type(wanted[5])) {
-          match = false;
-          error = shcore::str_format("Argument #6 is expected to be %s",
-                                     type_description(cand[5]->type()).c_str());
-        }
-        exact_matches -= (wanted[5] != cand[5]->type());
-        have_object_params = have_object_params || (wanted[5] == Object);
+      case 6:  // 6 params extra, if the rest is optional, it's a match
+        match = match && (cand[c - 6]->flag == Param_flag::Optional);
         // fallthrough
-      case 5:  // 5 params to be considered
-        if (!cand[4]->valid_type(wanted[4])) {
-          match = false;
-          error = shcore::str_format("Argument #5 is expected to be %s",
-                                     type_description(cand[4]->type()).c_str());
-        }
-        exact_matches -= (wanted[4] != cand[4]->type());
-        have_object_params = have_object_params || (wanted[4] == Object);
+      case 5:  // 5 params extra, if the rest is optional, it's a match
+        match = match && (cand[c - 5]->flag == Param_flag::Optional);
         // fallthrough
-      case 4:  // 4 params to be considered
-        if (!cand[3]->valid_type(wanted[3])) {
-          match = false;
-          error = shcore::str_format("Argument #4 is expected to be %s",
-                                     type_description(cand[3]->type()).c_str());
-        }
-        exact_matches -= (wanted[3] != cand[3]->type());
-        have_object_params = have_object_params || (wanted[3] == Object);
+      case 4:  // 4 params extra, if the rest is optional, it's a match
+        match = match && (cand[c - 4]->flag == Param_flag::Optional);
         // fallthrough
-      case 3:  // 3 params to be considered
-        if (!cand[2]->valid_type(wanted[2])) {
-          match = false;
-          error = shcore::str_format("Argument #3 is expected to be %s",
-                                     type_description(cand[2]->type()).c_str());
-        }
-        exact_matches -= (wanted[2] != cand[2]->type());
-        have_object_params = have_object_params || (wanted[2] == Object);
+      case 3:  // 3 params extra, if the rest is optional, it's a match
+        match = match && (cand[c - 3]->flag == Param_flag::Optional);
         // fallthrough
-      case 2:  // 2 params to be considered
-        if (!cand[1]->valid_type(wanted[1])) {
-          match = false;
-          error = shcore::str_format("Argument #2 is expected to be %s",
-                                     type_description(cand[1]->type()).c_str());
-        }
-        exact_matches -= (wanted[1] != cand[1]->type());
-        have_object_params = have_object_params || (wanted[1] == Object);
+      case 2:  // 2 params extra, if the rest is optional, it's a match
+        match = match && (cand[c - 2]->flag == Param_flag::Optional);
         // fallthrough
-      case 1:  // 1 param to be considered
-        if (!cand[0]->valid_type(wanted[0])) {
-          match = false;
-          error = shcore::str_format("Argument #1 is expected to be %s",
-                                     type_description(cand[0]->type()).c_str());
-        }
-        exact_matches -= (wanted[0] != cand[0]->type());
-        have_object_params = have_object_params || (wanted[0] == Object);
+      case 1:  // 1 param extra, if the rest is optional, it's a match
+        match = match && (cand[c - 1]->flag == Param_flag::Optional);
         // fallthrough
-      case 0:  // 0 params to be considered = nothing to check
+      case 0:  // # of params match
+        break;
+      default:
+        match = false;
         break;
     }
 
-    if (exact_matches == m && !have_object_params) {
-      return std::make_tuple(match, std::numeric_limits<int>::max(), error);
+    // In case of parameter count mistmatch, creates the appropiate error
+    // message
+    if (!match) {
+      size_t max = cand.size();
+      size_t min = 0;
+      for (const auto &param : cand) {
+        if (param->flag == Param_flag::Optional) {
+          break;
+        } else {
+          min++;
+        }
+      }
+
+      if (min == max)
+        error = shcore::str_format(
+            "Invalid number of arguments, expected %zu but got %zu", min, m);
+      else
+        error = shcore::str_format(
+            "Invalid number of arguments, expected %zu to %zu but got %zu", min,
+            max, m);
     } else {
-      return std::make_tuple(match, have_object_params ? 0 : exact_matches,
-                             error);
+      exact_matches = m;
+      // check if all provided params are implicitly convertible to the ones
+      // from the candidate
+      switch (m) {
+        case 7:  // 7 params to be considered
+          if (!cand[6]->valid_type(wanted[6])) {
+            match = false;
+            error =
+                shcore::str_format("Argument #7 is expected to be %s",
+                                   type_description(cand[6]->type()).c_str());
+          }
+          exact_matches -= (wanted[6] != cand[6]->type());
+          have_object_params = have_object_params || (wanted[6] == Object);
+          // fallthrough
+        case 6:  // 6 params to be considered
+          if (!cand[5]->valid_type(wanted[5])) {
+            match = false;
+            error =
+                shcore::str_format("Argument #6 is expected to be %s",
+                                   type_description(cand[5]->type()).c_str());
+          }
+          exact_matches -= (wanted[5] != cand[5]->type());
+          have_object_params = have_object_params || (wanted[5] == Object);
+          // fallthrough
+        case 5:  // 5 params to be considered
+          if (!cand[4]->valid_type(wanted[4])) {
+            match = false;
+            error =
+                shcore::str_format("Argument #5 is expected to be %s",
+                                   type_description(cand[4]->type()).c_str());
+          }
+          exact_matches -= (wanted[4] != cand[4]->type());
+          have_object_params = have_object_params || (wanted[4] == Object);
+          // fallthrough
+        case 4:  // 4 params to be considered
+          if (!cand[3]->valid_type(wanted[3])) {
+            match = false;
+            error =
+                shcore::str_format("Argument #4 is expected to be %s",
+                                   type_description(cand[3]->type()).c_str());
+          }
+          exact_matches -= (wanted[3] != cand[3]->type());
+          have_object_params = have_object_params || (wanted[3] == Object);
+          // fallthrough
+        case 3:  // 3 params to be considered
+          if (!cand[2]->valid_type(wanted[2])) {
+            match = false;
+            error =
+                shcore::str_format("Argument #3 is expected to be %s",
+                                   type_description(cand[2]->type()).c_str());
+          }
+          exact_matches -= (wanted[2] != cand[2]->type());
+          have_object_params = have_object_params || (wanted[2] == Object);
+          // fallthrough
+        case 2:  // 2 params to be considered
+          if (!cand[1]->valid_type(wanted[1])) {
+            match = false;
+            error =
+                shcore::str_format("Argument #2 is expected to be %s",
+                                   type_description(cand[1]->type()).c_str());
+          }
+          exact_matches -= (wanted[1] != cand[1]->type());
+          have_object_params = have_object_params || (wanted[1] == Object);
+          // fallthrough
+        case 1:  // 1 param to be considered
+          if (!cand[0]->valid_type(wanted[0])) {
+            match = false;
+            error =
+                shcore::str_format("Argument #1 is expected to be %s",
+                                   type_description(cand[0]->type()).c_str());
+          }
+          exact_matches -= (wanted[0] != cand[0]->type());
+          have_object_params = have_object_params || (wanted[0] == Object);
+          // fallthrough
+        case 0:  // 0 params to be considered = nothing to check
+          break;
+      }
     }
   }
-  return std::make_tuple(false, 0, error);
+
+  if (exact_matches == cand.size() && !have_object_params) {
+    return std::make_tuple(match, std::numeric_limits<int>::max(), error);
+  } else {
+    return std::make_tuple(match, have_object_params ? 0 : exact_matches,
+                           error);
+  }
 }
 
 using FunctionEntry = std::pair<std::string, std::shared_ptr<Cpp_function>>;
@@ -481,11 +572,40 @@ void Cpp_object_bridge::delete_property(const std::string &name,
 }
 
 Value Cpp_object_bridge::call_advanced(const std::string &name,
-                                       const Argument_list &args) {
-  auto func = lookup_function_overload(name, args);
+                                       const Argument_list &args,
+                                       const shcore::Dictionary_t &kwargs) {
+  auto func = lookup_function_overload(name, args, kwargs);
   if (func) {
+    // At this point func is the best function valid with the given arguments
+    // and keyword arguments.
     auto scope = get_function_name(name, true);
-    return call_function(scope, func, args);
+
+    auto signature = func->function_signature();
+
+    // If all the arguments are already in place the function is called
+    if (args.size() == signature.size()) {
+      return call_function(scope, func, args);
+    } else {
+      // If missing arguments, they are taken from the keywords or the default
+      // values
+      Argument_list new_args;
+      for (const auto &arg : args) {
+        new_args.push_back(arg);
+      }
+
+      std::vector<size_t> skipped_optionals;
+      for (size_t index = new_args.size(); index < signature.size(); index++) {
+        if (kwargs && kwargs->has_key(signature.at(index)->name)) {
+          new_args.push_back(kwargs->at(signature.at(index)->name));
+        } else if (signature.at(index)->flag == Param_flag::Optional) {
+          // An undefined Value is used as a trigger to use the defined
+          // default for optional paraeters the parameter when the function is
+          // called
+          new_args.push_back(signature.at(index)->def_value);
+        }
+      }
+      return call_function(scope, func, new_args);
+    }
   } else {
     throw Exception::attrib_error("Invalid object function " + name);
   }
@@ -536,7 +656,8 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function(
 }
 
 std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
-    const std::string &method, const shcore::Argument_list &args) const {
+    const std::string &method, const shcore::Argument_list &args,
+    const shcore::Dictionary_t &kwds) const {
   // NOTE this linear lookup is no good, but needed until the naming style
   // mechanism is improved
   std::multimap<std::string, std::shared_ptr<Cpp_function>>::const_iterator i;
@@ -567,7 +688,7 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
     int score;
     std::string error;
     std::tie(match, score, error) = Cpp_function::match_signatures(
-        i->second->function_signature(), arg_types);
+        i->second->function_signature(), arg_types, kwds);
     if (match) {
       candidates.push_back({score, i->second});
     } else {
@@ -636,8 +757,8 @@ std::string Cpp_object_bridge::help(const std::string &item) {
   shcore::Topic_mask mask;
   std::string pattern = get_help_id();
   if (!item.empty()) {
-    // This group represents the API topics that can be children of another API
-    // topic
+    // This group represents the API topics that can be children of another
+    // API topic
     pattern += "." + item;
     mask.set(shcore::Topic_type::FUNCTION);
     mask.set(shcore::Topic_type::PROPERTY);
@@ -769,13 +890,17 @@ Value Cpp_function::invoke(const Argument_list &args) {
     while (s != s_end) {
       if (a == args.end()) {
         if ((*s)->flag == Param_flag::Optional) {
-          // param is optional... remaining expected params can only be optional
-          // too
+          // param is optional... remaining expected params can only be
+          // optional too
           break;
         }
       }
 
-      if (!(*s)->valid_type(a->type)) {
+      // NOTE: Undefined Optional parameters will skip this validation as they
+      // will be taking the default value
+      if ((a->type != Value_type::Undefined ||
+           (*s)->flag != Param_flag::Optional) &&
+          !(*s)->valid_type(a->type)) {
         throw Exception::argument_error(
             name() + ": Argument #" + std::to_string(n + 1) +
             " is expected to be " + type_description((*s)->type()));
@@ -787,9 +912,9 @@ Value Cpp_function::invoke(const Argument_list &args) {
     }
   }
 
-  // Note: exceptions caught here should all be self-descriptive and be enough
-  // for the caller to figure out what's wrong. Other specific exception
-  // types should have been caught earlier, in the bridges
+  // Note: exceptions caught here should all be self-descriptive and be
+  // enough for the caller to figure out what's wrong. Other specific
+  // exception types should have been caught earlier, in the bridges
   try {
     return _func(args);
   } catch (const shcore::Exception &e) {
@@ -859,6 +984,12 @@ bool Parameter_validator::valid_type(const Parameter &param,
 void Parameter_validator::validate(const Parameter &param, const Value &data,
                                    Parameter_context *context) const {
   try {
+    // NOTE: Skipping validation for Undefined parameters that are optional as
+    // they will use the default value
+    if (param.flag == Param_flag::Optional &&
+        data.type == Value_type::Undefined)
+      return;
+
     if (!valid_type(param, data.type)) {
       throw std::invalid_argument("Invalid type");
     }
@@ -885,6 +1016,10 @@ void Parameter_validator::validate(const Parameter &param, const Value &data,
 
 void Object_validator::validate(const Parameter &param, const Value &data,
                                 Parameter_context *context) const {
+  // NOTE: Skipping validation for Undefined parameters that are optional as
+  // they will use the default value
+  if (param.flag == Param_flag::Optional && data.type == Value_type::Undefined)
+    return;
   Parameter_validator::validate(param, data, context);
 
   if (!m_allowed.empty()) {
@@ -913,6 +1048,10 @@ void Object_validator::validate(const Parameter &param, const Value &data,
 
 void String_validator::validate(const Parameter &param, const Value &data,
                                 Parameter_context *context) const {
+  // NOTE: Skipping validation for Undefined parameters that are optional as
+  // they will use the default value
+  if (param.flag == Param_flag::Optional && data.type == Value_type::Undefined)
+    return;
   Parameter_validator::validate(param, data, context);
 
   if (!m_allowed.empty()) {
@@ -928,6 +1067,10 @@ void String_validator::validate(const Parameter &param, const Value &data,
 
 void Option_validator::validate(const Parameter &param, const Value &data,
                                 Parameter_context *context) const {
+  // NOTE: Skipping validation for Undefined parameters that are optional as
+  // they will use the default value
+  if (param.flag == Param_flag::Optional && data.type == Value_type::Undefined)
+    return;
   Parameter_validator::validate(param, data, context);
 
   if (!m_allowed.empty()) {
