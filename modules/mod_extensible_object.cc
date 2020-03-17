@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -326,13 +326,14 @@ shcore::Value Extensible_object::call(const std::string &name,
 }
 
 shcore::Value Extensible_object::call_advanced(
-    const std::string &name, const shcore::Argument_list &args) {
+    const std::string &name, const shcore::Argument_list &args,
+    const shcore::Dictionary_t &kwargs) {
   if (!is_registered()) {
     throw shcore::Exception::runtime_error(
         "Unable to call functions in an unregistered extension object.");
   }
 
-  return Cpp_object_bridge::call_advanced(name, args);
+  return Cpp_object_bridge::call_advanced(name, args, kwargs);
 }
 
 void Extensible_object::register_member(
@@ -639,6 +640,7 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
   unpacker.required("name", &param->name);
   unpacker.required("type", &type);
   unpacker.optional("required", &required);
+  unpacker.optional("default", &param->def_value);
   unpacker.optional("brief", &param_definition->brief);
   unpacker.optional("details", &param_definition->details);
 

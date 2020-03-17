@@ -77,7 +77,8 @@ void translate_python_exception(const std::string &context = "") {
 }
 
 static PyObject *call_object_method(std::shared_ptr<Cpp_object_bridge> object,
-                                    const char *method, PyObject *args) {
+                                    const char *method, PyObject *args,
+                                    PyObject *kwargs) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
 
@@ -96,12 +97,14 @@ static PyObject *call_object_method(std::shared_ptr<Cpp_object_bridge> object,
     }
   }
 
+  auto keyword_args = ctx->pyobj_to_shcore_value(kwargs);
+
   try {
     Value result;
     {
       WillLeavePython lock;
       shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
-      result = object->call_advanced(method, arglist);
+      result = object->call_advanced(method, arglist, keyword_args.as_map());
     }
     return ctx->shcore_value_to_pyobj(result);
   } catch (...) {
@@ -119,8 +122,8 @@ static void method_dealloc(PyShMethodObject *self) {
 }
 
 static PyObject *method_call(PyShMethodObject *self, PyObject *args,
-                             PyObject *UNUSED(kw)) {
-  return call_object_method(*self->object, self->method->c_str(), args);
+                             PyObject *kw) {
+  return call_object_method(*self->object, self->method->c_str(), args, kw);
 }
 
 static PyTypeObject PyShMethodObjectType = {

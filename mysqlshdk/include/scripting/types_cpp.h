@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -119,6 +119,7 @@ struct Parameter final {
 
   std::string name;
   Param_flag flag;
+  Value def_value;
 
   void validate(const Value &data, Parameter_context *context) const;
 
@@ -209,7 +210,8 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
   static Raw_signature gen_signature(
       const std::vector<std::pair<std::string, Value_type>> &param_types);
   static std::tuple<bool, int, std::string> match_signatures(
-      const Raw_signature &cand, const std::vector<Value_type> &wanted);
+      const Raw_signature &cand, const std::vector<Value_type> &wanted,
+      const shcore::Dictionary_t &kwds);
 
   Cpp_function(const std::string &name, const Function &func,
                const std::vector<std::pair<std::string, Value_type>>
@@ -217,6 +219,8 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
   Cpp_function(const Metadata *meta, const Function &func);
 
   const Raw_signature &function_signature() const { return _meta->signature; }
+
+  const Metadata *get_metadata() const { return _meta; }
 
  private:
   // Each instance holds it's names on the different styles
@@ -268,7 +272,8 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   virtual void set_member_advanced(const std::string &prop, Value value);
   virtual bool has_method_advanced(const std::string &name) const;
   virtual Value call_advanced(const std::string &name,
-                              const Argument_list &args);
+                              const Argument_list &args,
+                              const shcore::Dictionary_t &kwargs = {});
 
   std::string &append_descr(std::string &s_out, int indent = -1,
                             int quote_strings = 0) const override;
@@ -826,7 +831,8 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
 
   // Returns named function which signature that matches the given argument list
   std::shared_ptr<Cpp_function> lookup_function_overload(
-      const std::string &method, const shcore::Argument_list &args) const;
+      const std::string &method, const shcore::Argument_list &args,
+      const shcore::Dictionary_t &kwds = {}) const;
 
   std::shared_ptr<Cpp_function> lookup_function(
       const std::string &method) const;
@@ -1002,8 +1008,9 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
                 const std::tuple<Type_info_t<A>...> &defs,
                 std::index_sequence<I...>) {
     const auto size = args.size();
-    return func(
-        (size <= I ? std::get<I>(defs) : Arg_handler<A>::get(I, args))...);
+    return func((size <= I || args.at(I).type == Value_type::Undefined
+                     ? std::get<I>(defs)
+                     : Arg_handler<A>::get(I, args))...);
   }
 
 #ifdef FRIEND_TEST
