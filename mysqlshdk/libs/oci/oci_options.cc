@@ -65,11 +65,11 @@ void Oci_options::load_defaults() {
     check_option_values();
 
     Oci_rest_service identity(Oci_service::IDENTITY, *this);
-    std::string raw_data;
+    mysqlshdk::rest::String_buffer raw_data;
     identity.get("/20160918/tenancies/" + identity.get_tenancy_id(), {},
                  &raw_data);
 
-    auto data = shcore::Value::parse(raw_data).as_map();
+    auto data = shcore::Value::parse(raw_data.data(), raw_data.size()).as_map();
     os_namespace = data->get_string("name");
 
     mysqlshdk::config::Config_file config(mysqlshdk::config::Case::SENSITIVE,

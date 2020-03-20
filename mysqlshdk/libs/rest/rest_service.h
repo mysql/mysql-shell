@@ -228,7 +228,7 @@ class Rest_service {
   Response::Status_code execute(Type type, const std::string &path,
                                 const char *body = nullptr, size_t size = 0,
                                 const Headers &request_headers = {},
-                                void *response_data = nullptr,
+                                Base_response_buffer *buffer = nullptr,
                                 Headers *response_headers = nullptr,
                                 Retry_strategy *retry_strategy = nullptr);
 

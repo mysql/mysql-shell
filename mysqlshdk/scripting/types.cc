@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -987,6 +987,29 @@ Value Value::parse(const std::string &s) {
           "Unexpected characters left at the end of document: ..." +
           std::string(pc));
   }
+  return tmp;
+}
+
+Value Value::parse(const char *s, size_t size) {
+  const char *begin = s;
+  const char *pc = begin;
+
+  // ignore any white-space at the beginning of string
+  skip_whitespace(&pc);
+
+  Value tmp(parse(&pc));
+  size_t parsed_length = pc - begin;
+
+  if (parsed_length < size) {
+    // ensure any leftover chars are just whitespaces
+    skip_whitespace(&pc);
+    parsed_length = pc - begin;
+    if (parsed_length < size)
+      throw Exception::parser_error(
+          "Unexpected characters left at the end of document: ..." +
+          std::string(pc));
+  }
+
   return tmp;
 }
 

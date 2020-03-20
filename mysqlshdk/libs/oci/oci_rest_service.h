@@ -35,6 +35,7 @@ namespace mysqlshdk {
 namespace oci {
 
 using mysqlshdk::oci::Oci_options;
+using mysqlshdk::rest::Base_response_buffer;
 using mysqlshdk::rest::Headers;
 using mysqlshdk::rest::Response;
 using mysqlshdk::rest::Response_error;
@@ -50,22 +51,22 @@ class Oci_rest_service {
 
   Response::Status_code get(const std::string &path,
                             const Headers &headers = {},
-                            std::string *response_data = nullptr,
+                            Base_response_buffer *buffer = nullptr,
                             Headers *response_headers = nullptr);
 
   Response::Status_code head(const std::string &path,
                              const Headers &headers = {},
-                             std::string *response_data = nullptr,
+                             Base_response_buffer *buffer = nullptr,
                              Headers *response_headers = nullptr);
 
   Response ::Status_code post(const std::string &path, const char *body,
                               size_t size, const Headers &headers = {},
-                              std::string *response_data = nullptr,
+                              Base_response_buffer *buffer = nullptr,
                               Headers *response_headers = nullptr);
 
   Response::Status_code put(const std::string &path, const char *body,
                             size_t size, const Headers &headers = {},
-                            std::string *response_data = nullptr,
+                            Base_response_buffer *buffer = nullptr,
                             Headers *response_headers = nullptr);
 
   Response::Status_code delete_(const std::string &path, const char *body,
@@ -74,7 +75,7 @@ class Oci_rest_service {
   Response::Status_code execute(Type type, const std::string &path,
                                 const char *body = nullptr, size_t size = 0,
                                 const Headers &request_headers = {},
-                                std::string *response_data = nullptr,
+                                Base_response_buffer *buffer = nullptr,
                                 Headers *response_headers = nullptr);
 
   // TODO(rennox): These configuration properties/functions exists here because

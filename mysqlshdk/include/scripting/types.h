@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -263,6 +263,7 @@ struct SHCORE_PUBLIC Value {
 
   //! parse a string returned by repr() back into a Value
   static Value parse(const std::string &s);
+  static Value parse(const char *s, size_t length);
 
   ~Value();
 

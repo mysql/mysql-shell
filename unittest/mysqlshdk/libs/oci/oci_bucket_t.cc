@@ -200,60 +200,95 @@ TEST_F(Oci_os_tests, bucket_object_operations) {
 
   // GET Using different byte ranges
   {
-    std::string buffer;
-    auto read = bucket.get_object("sakila.txt", &buffer);
+    mysqlshdk::rest::String_buffer data;
+    auto read = bucket.get_object("sakila.txt", &data);
     EXPECT_EQ(10, read);
-    EXPECT_EQ("0123456789", buffer);
+    EXPECT_STREQ("0123456789", data.data());
   }
 
   {
-    std::string buffer;
-    auto read = bucket.get_object("sakila.txt", &buffer, 0, 3);
+    mysqlshdk::rest::String_buffer data;
+    auto read = bucket.get_object("sakila.txt", &data, 0, 3);
     EXPECT_EQ(4, read);
-    EXPECT_EQ("0123", buffer);
+    EXPECT_STREQ("0123", data.data());
   }
 
   {
-    std::string buffer;
+    mysqlshdk::rest::String_buffer data;
+    auto read = bucket.get_object("sakila.txt", &data, 5, 5);
+    EXPECT_EQ(1, read);
+    EXPECT_STREQ("5", data.data());
+  }
+
+  {
+    mysqlshdk::rest::String_buffer data;
+    auto read = bucket.get_object("sakila.txt", &data, 8, 15);
+    EXPECT_EQ(2, read);
+    EXPECT_STREQ("89", data.data());
+  }
+
+  {
+    mysqlshdk::rest::String_buffer data;
+    auto read = bucket.get_object("sakila.txt", &data, 4);
+    EXPECT_EQ(6, read);
+    EXPECT_STREQ("456789", data.data());
+  }
+
+  {
+    mysqlshdk::rest::String_buffer data;
+    auto read = bucket.get_object("sakila.txt", &data, 4);
+    EXPECT_EQ(6, read);
+    EXPECT_STREQ("456789", data.data());
+  }
+
+  {
+    mysqlshdk::rest::String_buffer data;
+    auto read = bucket.get_object("sakila.txt", &data, {}, 4);
+    EXPECT_EQ(5, read);
+    EXPECT_STREQ("01234", data.data());
+  }
+
+  {
+    mysqlshdk::rest::String_buffer buffer;
     auto read = bucket.get_object("sakila.txt", &buffer, 5, 5);
     EXPECT_EQ(1, read);
-    EXPECT_EQ("5", buffer);
+    EXPECT_STREQ("5", buffer.data());
   }
 
   {
-    std::string buffer;
+    mysqlshdk::rest::String_buffer buffer;
     auto read = bucket.get_object("sakila.txt", &buffer, 8, 15);
     EXPECT_EQ(2, read);
-    EXPECT_EQ("89", buffer);
+    EXPECT_STREQ("89", buffer.data());
   }
   {
-    std::string buffer;
+    mysqlshdk::rest::String_buffer buffer;
     auto read = bucket.get_object("sakila.txt", &buffer, 4);
     EXPECT_EQ(6, read);
-    EXPECT_EQ("456789", buffer);
+    EXPECT_STREQ("456789", buffer.data());
   }
   {
-    std::string buffer;
+    mysqlshdk::rest::String_buffer buffer;
     auto read = bucket.get_object("sakila.txt", &buffer, 4);
     EXPECT_EQ(6, read);
-    EXPECT_EQ("456789", buffer);
+    EXPECT_STREQ("456789", buffer.data());
   }
   {
-    std::string buffer;
+    mysqlshdk::rest::String_buffer buffer;
     auto read = bucket.get_object("sakila.txt", &buffer,
                                   mysqlshdk::utils::nullable<size_t>{},
                                   mysqlshdk::utils::nullable<size_t>{4});
     EXPECT_EQ(4, read);
-    EXPECT_EQ("6789", buffer);
+    EXPECT_STREQ("6789", buffer.data());
   }
 
   // RENAME
   {
     bucket.rename_object("sakila.txt", "sakila/metadata.txt");
-    std::string buffer;
+    mysqlshdk::rest::String_buffer buffer;
     auto read = bucket.get_object("sakila/metadata.txt", &buffer);
     EXPECT_EQ(10, read);
-    EXPECT_EQ("0123456789", buffer);
+    EXPECT_STREQ("0123456789", buffer.data());
     bucket.delete_object("sakila/metadata.txt");
   }
 }
@@ -281,7 +316,7 @@ TEST_F(Oci_os_tests, bucket_error_conditions) {
                         PUBLIC_BUCKET + "' with namespace '" +
                         bucket.get_namespace() + "'");
 
-  // HEAD: Unexisting Object
+  // HEAD: Unexisnting Object
   EXPECT_THROW_LIKE(bucket.head_object("sample.txt"), Response_error,
                     "Not Found");
 

@@ -23,7 +23,9 @@
 
 #include "mysqlshdk/libs/rest/response.h"
 
+#include <curl/curl.h>
 #include <string>
+
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -139,6 +141,25 @@ shcore::Value Response::json() const {
   }
   throw std::runtime_error("Response " + std::string{k_content_type} +
                            " is not a " + std::string{k_application_json});
+}
+
+size_t Base_response_buffer::append_data(const char *data, size_t data_size) {
+  if (m_buffer_size == 0 || m_content_size + data_size <= m_buffer_size) {
+    append(data, data_size);
+    m_content_size += data_size;
+    return data_size;
+  } else {
+    return static_cast<size_t>(0);
+  }
+}
+
+String_ref_buffer::String_ref_buffer(std::string *buffer)
+    : Base_response_buffer(CURL_MAX_WRITE_SIZE), m_buffer(buffer) {
+  m_buffer->reserve(m_buffer_size);
+}
+
+String_buffer::String_buffer() : Base_response_buffer(CURL_MAX_WRITE_SIZE) {
+  m_buffer.reserve(m_buffer_size);
 }
 
 }  // namespace rest

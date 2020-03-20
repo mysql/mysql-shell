@@ -104,11 +104,11 @@ std::string encode_sha256(const char *data, size_t size) {
 }
 
 void check_and_throw(Response::Status_code code, const Headers &headers,
-                     const std::string &data) {
+                     Base_response_buffer *buffer) {
   if (code < Response::Status_code::OK ||
       code >= Response::Status_code::MULTIPLE_CHOICES) {
-    if (Response::is_json(headers) && !data.empty()) {
-      auto json = shcore::Value::parse(data).as_map();
+    if (Response::is_json(headers) && buffer->size()) {
+      auto json = shcore::Value::parse(buffer->data(), buffer->size()).as_map();
       if (json->get_type("message") == shcore::Value_type::String) {
         throw Response_error(code, json->get_string("message"));
       }
@@ -185,35 +185,35 @@ void Oci_rest_service::set_service(Oci_service service) {
 
 Response::Status_code Oci_rest_service::get(const std::string &path,
                                             const Headers &headers,
-                                            std::string *response_data,
+                                            Base_response_buffer *buffer,
                                             Headers *response_headers) {
-  return execute(Type::GET, path, nullptr, 0L, headers, response_data,
+  return execute(Type::GET, path, nullptr, 0L, headers, buffer,
                  response_headers);
 }
 
 Response::Status_code Oci_rest_service::head(const std::string &path,
                                              const Headers &headers,
-                                             std::string *response_data,
+                                             Base_response_buffer *buffer,
                                              Headers *response_headers) {
-  return execute(Type::HEAD, path, nullptr, 0, headers, response_data,
+  return execute(Type::HEAD, path, nullptr, 0, headers, buffer,
                  response_headers);
 }
 
 Response::Status_code Oci_rest_service::post(const std::string &path,
                                              const char *body, size_t size,
                                              const Headers &headers,
-                                             std::string *response_data,
+                                             Base_response_buffer *buffer,
                                              Headers *response_headers) {
-  return execute(Type::POST, path, body, size, headers, response_data,
+  return execute(Type::POST, path, body, size, headers, buffer,
                  response_headers);
 }
 
 Response::Status_code Oci_rest_service::put(const std::string &path,
                                             const char *body, size_t size,
                                             const Headers &headers,
-                                            std::string *response_data,
+                                            Base_response_buffer *buffer,
                                             Headers *response_headers) {
-  return execute(Type::PUT, path, body, size, headers, response_data,
+  return execute(Type::PUT, path, body, size, headers, buffer,
                  response_headers);
 }
 
@@ -302,14 +302,12 @@ Response::Status_code Oci_rest_service::execute(Type type,
                                                 const std::string &path,
                                                 const char *body, size_t size,
                                                 const Headers &request_headers,
-                                                std::string *response_data,
+                                                Base_response_buffer *buffer,
                                                 Headers *response_headers) {
-  std::string rdata;
   Headers rheaders;
 
   if (!m_rest) set_service(m_service);
 
-  if (!response_data) response_data = &rdata;
   if (!response_headers) response_headers = &rheaders;
 
   // Using exponential backoff retry logic with:
@@ -335,12 +333,20 @@ Response::Status_code Oci_rest_service::execute(Type type,
   // Retry continues in responses with codes about server errors >=500
   retry_strategy.set_retry_on_server_errors(true);
 
+  // Caller might not be interested on handling the response data directly, i.e.
+  // if just expecting the call to either succeed or fail.
+  // We need to ensure a response handler is in place in order to properly fail
+  // on errors.
+  mysqlshdk::rest::String_buffer response_data;
+  Base_response_buffer *response_buffer_ptr = buffer;
+  if (!response_buffer_ptr) response_buffer_ptr = &response_data;
+
   auto code =
       m_rest->execute(type, path, body, size,
                       make_header(type, path, body, size, request_headers),
-                      response_data, response_headers, &retry_strategy);
+                      response_buffer_ptr, response_headers, &retry_strategy);
 
-  check_and_throw(code, *response_headers, *response_data);
+  check_and_throw(code, *response_headers, response_buffer_ptr);
 
   return code;
 }

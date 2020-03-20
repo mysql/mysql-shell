@@ -59,9 +59,9 @@ Bucket::Bucket(const Oci_options &options)
   m_rest_service =
       std::make_shared<Oci_rest_service>(Oci_service::OBJECT_STORAGE, options);
 
-  std::string raw_data;
+  mysqlshdk::rest::String_buffer raw_data;
   m_rest_service->get(kBucketPath, {}, &raw_data);
-  auto data = shcore::Value::parse(raw_data).as_map();
+  auto data = shcore::Value::parse(raw_data.data(), raw_data.size()).as_map();
 
   m_compartment_id = data->get_string("compartmentId");
   m_etag = data->get_string("etag");
@@ -125,9 +125,9 @@ std::vector<Object_details> Bucket::list_objects(
                                                       encode_query(next_start))
                                 : path;
 
-    std::string raw_data;
+    mysqlshdk::rest::String_buffer raw_data;
     m_rest_service->get(real_path, {}, &raw_data);
-    auto data = shcore::Value::parse(raw_data).as_map();
+    auto data = shcore::Value::parse(raw_data.data(), raw_data.size()).as_map();
 
     auto objects = data->get_array("objects");
     for (auto &value : *objects) {
@@ -219,33 +219,8 @@ size_t Bucket::head_object(const std::string &objectName) {
   return std::stoul(response_headers.at("content-length"));
 }
 
-size_t Bucket::get_object(const std::string &objectName, std::string *buffer) {
-  m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
-                                         encode_path(objectName).c_str()),
-                      {}, buffer);
-  return buffer->size();
-}
-
-size_t Bucket::get_object(const std::string &objectName, std::string *buffer,
-                          size_t from_byte) {
-  Headers headers{{"range", "bytes=" + std::to_string(from_byte) + "-"}};
-  m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
-                                         encode_path(objectName).c_str()),
-                      headers, buffer);
-  return buffer->size();
-}
-
-size_t Bucket::get_object(const std::string &objectName, std::string *buffer,
-                          size_t from_byte, size_t to_byte) {
-  Headers headers{{"range", "bytes=" + std::to_string(from_byte) + "-" +
-                                std::to_string(to_byte) + ""}};
-  m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
-                                         encode_path(objectName).c_str()),
-                      headers, buffer);
-  return buffer->size();
-}
-
-size_t Bucket::get_object(const std::string &objectName, std::string *buffer,
+size_t Bucket::get_object(const std::string &objectName,
+                          mysqlshdk::rest::Base_response_buffer *buffer,
                           const mysqlshdk::utils::nullable<size_t> &from_byte,
                           const mysqlshdk::utils::nullable<size_t> &to_byte) {
   Headers headers;
@@ -259,6 +234,39 @@ size_t Bucket::get_object(const std::string &objectName, std::string *buffer,
   m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
                                          encode_path(objectName).c_str()),
                       headers, buffer);
+
+  return buffer->size();
+}
+
+size_t Bucket::get_object(const std::string &objectName,
+                          mysqlshdk::rest::Base_response_buffer *buffer,
+                          size_t from_byte, size_t to_byte) {
+  Headers headers{{"range", "bytes=" + std::to_string(from_byte) + "-" +
+                                std::to_string(to_byte) + ""}};
+
+  m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
+                                         encode_path(objectName).c_str()),
+                      headers, buffer);
+
+  return buffer->size();
+}
+
+size_t Bucket::get_object(const std::string &objectName,
+                          mysqlshdk::rest::Base_response_buffer *buffer,
+                          size_t from_byte) {
+  Headers headers{{"range", "bytes=" + std::to_string(from_byte) + "-"}};
+
+  m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
+                                         encode_path(objectName).c_str()),
+                      headers, buffer);
+  return buffer->size();
+}
+
+size_t Bucket::get_object(const std::string &objectName,
+                          mysqlshdk::rest::Base_response_buffer *buffer) {
+  m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
+                                         encode_path(objectName).c_str()),
+                      {}, buffer);
   return buffer->size();
 }
 
@@ -283,10 +291,10 @@ std::vector<Multipart_object> Bucket::list_multipart_uploads(size_t limit) {
   auto path = kMultipartActionPath;
   if (limit) path.append("?limit=" + std::to_string(limit));
 
-  std::string raw_data;
+  mysqlshdk::rest::String_buffer raw_data;
   m_rest_service->get(path, {}, &raw_data);
 
-  auto data = shcore::Value::parse(raw_data).as_array();
+  auto data = shcore::Value::parse(raw_data.data(), raw_data.size()).as_array();
   for (const auto &value : *data) {
     const auto &object(value.as_map());
     objects.push_back(
@@ -304,10 +312,10 @@ std::vector<Multipart_object_part> Bucket::list_multipart_upload_parts(
   path.append("?uploadId=" + object.upload_id);
   if (limit) path.append("&limit=" + std::to_string(limit));
 
-  std::string raw_data;
+  mysqlshdk::rest::String_buffer raw_data;
   m_rest_service->get(path, {}, &raw_data);
 
-  auto data = shcore::Value::parse(raw_data).as_array();
+  auto data = shcore::Value::parse(raw_data.data(), raw_data.size()).as_array();
   for (const auto &value : *data) {
     const auto &part(value.as_map());
     parts.push_back({static_cast<size_t>(part->get_uint("partNumber")),
@@ -323,11 +331,11 @@ Multipart_object Bucket::create_multipart_upload(
   std::string upload_id;
   std::string body{"{\"object\":\"" + objectName + "\"}"};
 
-  std::string data;
+  mysqlshdk::rest::String_buffer data;
   m_rest_service->post(kMultipartActionPath, body.c_str(), body.size(), {},
                        &data);
 
-  auto map = shcore::Value::parse(data).as_map();
+  auto map = shcore::Value::parse(data.data(), data.size()).as_map();
   upload_id = map->get_string("uploadId");
 
   return {objectName, upload_id};

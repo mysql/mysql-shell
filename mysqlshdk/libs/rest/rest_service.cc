@@ -52,8 +52,20 @@ size_t request_callback(char *, size_t, size_t, void *) {
   return 0;
 }
 
-size_t response_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
-  const auto data = static_cast<std::string *>(userdata);
+size_t response_data_callback(char *ptr, size_t size, size_t nmemb,
+                              void *userdata) {
+  auto buffer = static_cast<Base_response_buffer *>(userdata);
+  const auto bytes = size * nmemb;
+
+  // If a handler for the response was set, the data is passed there
+  if (buffer) buffer->append_data(ptr, bytes);
+
+  return bytes;
+}
+
+size_t response_header_callback(char *ptr, size_t size, size_t nmemb,
+                                void *userdata) {
+  auto data = static_cast<std::string *>(userdata);
   const auto bytes = size * nmemb;
 
   data->append(ptr, bytes);
@@ -168,7 +180,10 @@ class Rest_service::Impl {
     // set the callbacks
     curl_easy_setopt(m_handle.get(), CURLOPT_READDATA, nullptr);
     curl_easy_setopt(m_handle.get(), CURLOPT_READFUNCTION, request_callback);
-    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEFUNCTION, response_callback);
+    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEFUNCTION,
+                     response_data_callback);
+    curl_easy_setopt(m_handle.get(), CURLOPT_HEADERFUNCTION,
+                     response_header_callback);
 
 #ifdef _WIN32
     curl_easy_setopt(m_handle.get(), CURLOPT_CAINFO, nullptr);
@@ -203,7 +218,8 @@ class Rest_service::Impl {
     std::string response_headers;
 
     curl_easy_setopt(m_handle.get(), CURLOPT_HEADERDATA, &response_headers);
-    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA, &response.body);
+    String_ref_buffer buffer(&response.body);
+    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA, &buffer);
 
     // execute the request
     if (curl_easy_perform(m_handle.get()) != CURLE_OK) {
@@ -219,7 +235,7 @@ class Rest_service::Impl {
   Response::Status_code execute(Type type, const std::string &path,
                                 const char *body, size_t size,
                                 const Headers &request_headers,
-                                void *response_data,
+                                Base_response_buffer *buffer,
                                 Headers *response_headers) {
     set_url(path);
     // body needs to be set before the type, because it implicitly sets type
@@ -229,12 +245,9 @@ class Rest_service::Impl {
     const auto headers_deleter = set_headers(request_headers, true);
 
     // set callbacks which will receive the response
-    std::string data_dump;
     std::string header_data;
-
-    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA,
-                     response_data ? response_data : &data_dump);
     curl_easy_setopt(m_handle.get(), CURLOPT_HEADERDATA, &header_data);
+    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA, buffer);
 
     // execute the request
     auto ret_val = curl_easy_perform(m_handle.get());
@@ -443,7 +456,7 @@ Response Rest_service::delete_(const std::string &path,
 Response::Status_code Rest_service::execute(Type type, const std::string &path,
                                             const char *body, size_t size,
                                             const Headers &request_headers,
-                                            void *response_data,
+                                            Base_response_buffer *buffer,
                                             Headers *response_headers,
                                             Retry_strategy *retry_strategy) {
   if (retry_strategy) retry_strategy->init();
@@ -451,7 +464,7 @@ Response::Status_code Rest_service::execute(Type type, const std::string &path,
   while (true) {
     try {
       auto code = m_impl->execute(type, path, body, size, request_headers,
-                                  response_data, response_headers);
+                                  buffer, response_headers);
 
       if (!retry_strategy || !retry_strategy->should_retry(code)) {
         return code;

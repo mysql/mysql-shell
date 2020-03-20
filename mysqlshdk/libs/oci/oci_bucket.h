@@ -179,14 +179,18 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
    * from-: Retrieves all the data starting at from.
    * -to: Retrieves the last 'to' bytes. Use nullable<> overload.
    */
-  size_t get_object(const std::string &objectName, std::string *buffer);
-  size_t get_object(const std::string &objectName, std::string *buffer,
-                    size_t from_byte);
-  size_t get_object(const std::string &objectName, std::string *buffer,
-                    size_t from_byte, size_t to_byte);
-  size_t get_object(const std::string &objectName, std::string *buffer,
+  size_t get_object(const std::string &objectName,
+                    mysqlshdk::rest::Base_response_buffer *buffer,
                     const mysqlshdk::utils::nullable<size_t> &from_byte,
                     const mysqlshdk::utils::nullable<size_t> &to_byte);
+  size_t get_object(const std::string &objectName,
+                    mysqlshdk::rest::Base_response_buffer *buffer,
+                    size_t from_byte, size_t to_byte);
+  size_t get_object(const std::string &objectName,
+                    mysqlshdk::rest::Base_response_buffer *buffer,
+                    size_t from_byte);
+  size_t get_object(const std::string &objectName,
+                    mysqlshdk::rest::Base_response_buffer *buffer);
 
   void rename_object(const std::string &srcName, const std::string &newName);
 
