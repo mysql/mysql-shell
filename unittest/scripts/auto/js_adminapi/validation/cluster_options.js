@@ -349,6 +349,12 @@
                     "value": "2",
                     "variable": "auto_increment_offset"
                 },
+?{VER(>=8.0.21)}
+                {
+                    "value": "DEFAULT",
+                    "variable": "group_replication_advertise_recovery_endpoints"
+                },
+?{}
                 {
                     "value": "OFF",
                     "variable": "group_replication_allow_local_lower_version_join"
@@ -595,6 +601,12 @@
                     "value": "2",
                     "variable": "auto_increment_offset"
                 },
+?{VER(>=8.0.21)}
+                {
+                    "value": "DEFAULT",
+                    "variable": "group_replication_advertise_recovery_endpoints"
+                },
+?{}
                 {
                     "value": "OFF",
                     "variable": "group_replication_allow_local_lower_version_join"
@@ -841,6 +853,12 @@
                     "value": "2",
                     "variable": "auto_increment_offset"
                 },
+?{VER(>=8.0.21)}
+                {
+                    "value": "DEFAULT",
+                    "variable": "group_replication_advertise_recovery_endpoints"
+                },
+?{}
                 {
                     "value": "OFF",
                     "variable": "group_replication_allow_local_lower_version_join"
