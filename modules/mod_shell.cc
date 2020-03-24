@@ -755,12 +755,12 @@ REGISTER_HELP_TOPIC_TEXT(TOPIC_CONNECTION_COMPRESSION, R"*(
 Connection compression is governed by following connection options:
 "compression", "compression-algorithms", and "compression-level".
 
-"compression" accepts following values:  
+"compression" accepts following values:
 
-@li REQUIRED: connection will only be made when compression negotiation is 
+@li REQUIRED: connection will only be made when compression negotiation is
 succesful.
-@li PREFFERED: (default for X protocol connections) shell will attempt to 
-establish connection with compression enabled, but if compression negotiation 
+@li PREFFERED: (default for X protocol connections) shell will attempt to
+establish connection with compression enabled, but if compression negotiation
 fails, connection will be established without compression.
 @li DISABLED: (defalut for classic protocol connections) connection will be
 established without compression.
@@ -774,7 +774,7 @@ Supported algorithms include:
 @li zstd
 @li zlib
 @li lz4 (X protocol only)
-@li uncompressed - special value, which if it appears in the list, causes 
+@li uncompressed - special value, which if it appears in the list, causes
 connection to succeed even if compression negotiation fails.
 
 If "compression" connection option is not defined, its value will be deduced
@@ -953,8 +953,8 @@ Establishes and returns session.
 This function will establish the session with the received connection data.
 
 The password may be included on the connectionData, the optional parameter
-should be used only if the connectionData does not contain it already. 
-If both are specified the password parameter will override the password 
+should be used only if the connectionData does not contain it already.
+If both are specified the password parameter will override the password
 defined on the connectionData.
 
 ${TOPIC_CONNECTION_DATA}

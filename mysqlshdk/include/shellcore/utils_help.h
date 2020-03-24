@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_INCLUDE_SHELLCORE_UTILS_HELP_H_
 #define MYSQLSHDK_INCLUDE_SHELLCORE_UTILS_HELP_H_
 
+#include <deque>
 #include <map>
 #include <set>
 #include <string>
@@ -54,6 +55,12 @@ enum class Topic_id_mode {
   FULL = 1,           // Generate IDs considering all parent topics
   EXCLUDE_ROOT,       // Generate IDs removing the ROOT category
   EXCLUDE_CATEGORIES  // Generate IDs removing categories
+};
+
+enum class Keyword_location {
+  GLOBAL_CTX = 1,  // Keyword should be created on the global context,
+  LOCAL_CTX,       // Keyword should be created on the thread local context,
+  BOTH_CTX  // Keyword should be created on both, local and global context
 };
 
 typedef mysqlshdk::utils::Enum_set<Topic_type, Topic_type::PROPERTY> Topic_mask;
@@ -194,7 +201,8 @@ class Help_registry {
    * @param token The token under which the text entry will be associated
    * @param data The help data
    */
-  void add_help(const std::string &token, const std::string &data);
+  void add_help(const std::string &token, const std::string &data,
+                Keyword_location loc = Keyword_location::GLOBAL_CTX);
 
   /**
    * Helper function to register a sigle help entry using a prefix and a tag.
@@ -207,7 +215,8 @@ class Help_registry {
    * using this token.
    */
   void add_help(const std::string &prefix, const std::string &tag,
-                const std::string &data);
+                const std::string &data,
+                Keyword_location loc = Keyword_location::GLOBAL_CTX);
 
   /**
    * Helper function to register a series of data elements under the same tag.
@@ -226,7 +235,8 @@ class Help_registry {
    * The sequence will be increased after each entry is registered.
    */
   void add_help(const std::string &prefix, const std::string &tag,
-                size_t *sequence, const std::vector<std::string> &data);
+                size_t *sequence, const std::vector<std::string> &data,
+                Keyword_location loc = Keyword_location::GLOBAL_CTX);
 
   /**
    * Helper function to register a series of data elements under the same tag.
@@ -236,21 +246,26 @@ class Help_registry {
    * @param tag The suffix of the token to be used to register the data.
    * @param data An array with the help entries to be registered using the
    *             same tag.
+   * @param bool Indicate if the help should be registered per thread context.
    *
    * This function initializes a sequence in 0 and calls the function above.
    */
   void add_help(const std::string &prefix, const std::string &tag,
-                const std::vector<std::string> &data);
+                const std::vector<std::string> &data,
+                Keyword_location loc = Keyword_location::GLOBAL_CTX);
 
-  void add_help(const std::string &prefix, const std::vector<Example> &data);
+  void add_help(const std::string &prefix, const std::vector<Example> &data,
+                Keyword_location loc = Keyword_location::GLOBAL_CTX);
 
   void add_help(const std::string &prefix, size_t *sequence,
-                const std::vector<Example> &data);
+                const std::vector<Example> &data,
+                Keyword_location loc = Keyword_location::GLOBAL_CTX);
 
   // Registers a new topic and it's associated keywords
-  Help_topic *add_help_topic(const std::string &name, Topic_type type,
-                             const std::string &tag, const std::string &parent,
-                             IShell_core::Mode_mask mode);
+  std::vector<Help_topic *> add_help_topic(
+      const std::string &name, Topic_type type, const std::string &tag,
+      const std::string &parent, IShell_core::Mode_mask mode,
+      Keyword_location loc = Keyword_location::GLOBAL_CTX);
 
   // Registers class inheritance
   void add_help_class(const std::string &name, const std::string &parent,
@@ -266,9 +281,10 @@ class Help_registry {
                                           IShell_core::Mode_mask mode,
                                           bool case_sensitive);
 
-  Help_topic *get_topic(const std::string &id, bool allow_unexisting = false);
+  Help_topic *get_topic(const std::string &id, bool allow_unexisting = false,
+                        const Topic_mask &type = Topic_mask::any()) const;
 
-  Help_topic *get_class_parent(Help_topic *topic);
+  Help_topic *get_class_parent(Help_topic *topic) const;
 
   bool is_enabled(const Help_topic *topic, IShell_core::Mode mode) const;
 
@@ -277,16 +293,28 @@ class Help_registry {
   void register_keyword(const std::string &keyword, IShell_core::Mode_mask mode,
                         Help_topic *topic, bool case_sensitive = false);
 
-  const std::vector<Help_topic *> &get_help_topics(Topic_type type) const {
-    return m_topics_by_type.at(type);
+  const std::vector<Help_topic *> get_help_topics(Topic_type type) const {
+    auto topics = m_topics_by_type.at(type);
+    try {
+      auto ret = get_thread_context_help()->m_topics_by_type.at(type);
+      topics.insert(topics.end(), ret.begin(), ret.end());
+    } catch (const std::out_of_range &) {
+      // We skip this out_of_range as thread_context_help may not have
+      // registered this type of help, we don't care about this.
+    }
+
+    return topics;
   }
+
+  Help_registry *get_thread_context_help() const;
 
  private:
   // Options will be stored on a MAP
   Data_registry m_help_data;
 
   // Holds all the registered topics
-  std::map<size_t, Help_topic> m_topics;
+  std::deque<Help_topic> m_topics;
+
   std::map<Topic_type, std::vector<Help_topic *>> m_topics_by_type;
 
   // List of orphan topics
@@ -301,8 +329,10 @@ class Help_registry {
 
   Keyword_case_sensitive_registry m_cs_keywords;
 
+  Topic_mask get_parent_topic_types();
+
   // Private constructor since this is a singleton
-  Help_registry();
+  explicit Help_registry(bool threaded = false);
 
   static bool icomp(const std::string &lhs, const std::string &rhs);
 
@@ -310,6 +340,16 @@ class Help_registry {
   void register_topic(Help_topic *topic, bool new_topic,
                       IShell_core::Mode_mask mode);
   void register_keywords(Help_topic *topic, IShell_core::Mode_mask mode);
+
+  Help_topic *get_topic(const Help_registry *registry, const std::string &id,
+                        bool allow_unexisting = false,
+                        const Topic_mask &type = Topic_mask::any()) const;
+
+  // Registers a new topic and it's associated keywords
+  Help_topic *add_help_topic(const std::string &name, Topic_type type,
+                             const std::string &tag,
+                             const std::string &parent_id, Help_topic *parent,
+                             IShell_core::Mode_mask mode);
 };
 
 /**
@@ -375,7 +415,6 @@ struct Help_topic_register {
         mask = IShell_core::Mode_mask(Mode::SQL);
         break;
     }
-
     Help_registry::get()->add_help_topic(name, type, tag, parent, mask);
   }
 };
@@ -483,9 +522,10 @@ class Help_manager {
    *
    */
   std::map<std::string, std::string> preprocess_help(
-      std::vector<std::string> *text_lines);
+      std::vector<std::string> *text_lines) const;
   std::string format_help_text(std::vector<std::string> *lines, size_t width,
-                               size_t left_padding, bool paragraph_per_line);
+                               size_t left_padding,
+                               bool paragraph_per_line) const;
 
   /**
    * Gets all the help data associated to the given token
@@ -500,7 +540,6 @@ class Help_manager {
    */
   std::vector<std::string> resolve_help_text(const Help_topic &object,
                                              const std::string &suffix);
-
   /**
    * Parses a parameter definition list and returns the corresponding signature
    * as well as a vector of parameters and descriptions.
@@ -546,7 +585,7 @@ class Help_manager {
    * - Topic aliases (command alias)
    */
   size_t get_max_topic_length(const std::vector<Help_topic *> &topics,
-                              bool members, bool alias = false);
+                              bool members, bool alias = false) const;
 
   /**
    * Takes a list of topics and produces a formatted list as follows:

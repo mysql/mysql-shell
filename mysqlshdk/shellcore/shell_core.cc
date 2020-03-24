@@ -522,16 +522,19 @@ void Shell_command_handler::add_command(const std::string &triggers,
                                                       case_sensitive_help);
 
     if (topics.empty()) {
-      Help_topic *topic;
-      topic = Help_registry::get()->add_help_topic(
-          tokens[0], shcore::Topic_type::COMMAND, help_tag, "Commands", mode);
+      std::vector<Help_topic *> new_topics =
+          Help_registry::get()->add_help_topic(tokens[0],
+                                               shcore::Topic_type::COMMAND,
+                                               help_tag, "Commands", mode);
 
       // If case insensitive, first trigger is already registered
       if (!case_sensitive_help) tokens.erase(tokens.begin());
 
       for (auto &token : tokens) {
-        Help_registry::get()->register_keyword(token, mode, topic,
-                                               case_sensitive_help);
+        for (auto &topic : new_topics) {
+          Help_registry::get()->register_keyword(token, mode, topic,
+                                                 case_sensitive_help);
+        }
       }
 
       // If case sensitive, we need now to remove the first trigger

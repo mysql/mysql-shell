@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,7 +24,9 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_THREADS_H_
 #define MYSQLSHDK_LIBS_UTILS_THREADS_H_
 
+#include <atomic>
 #include <functional>
+#include <string>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -32,7 +34,6 @@
 
 namespace mysqlshdk {
 namespace utils {
-
 /**
  * Executes the map function on each value of the given list in parallel and
  * return the aggregation of their results, as computed by the reduce function.

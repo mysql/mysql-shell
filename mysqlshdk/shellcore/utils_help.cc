@@ -204,17 +204,33 @@ const char Help_registry::HELP_ROOT[] = "Contents";
 const char Help_registry::HELP_COMMANDS[] = "Shell Commands";
 const char Help_registry::HELP_SQL[] = "SQL Syntax";
 
-Help_registry::Help_registry()
-    : m_help_data(Help_registry::icomp), m_keywords(Help_registry::icomp) {
-  // The Contents category is registered right away since it is the root
-  // Of the help system
-  add_help_topic(HELP_ROOT, Topic_type::CATEGORY, "CONTENTS", "",
-                 Mode_mask::all());
+Topic_mask Help_registry::get_parent_topic_types() {
+  static const Topic_mask kParentTopicTypes{Topic_mask(Topic_type::OBJECT)
+                                                .set(Topic_type::GLOBAL_OBJECT)
+                                                .set(Topic_type::CONSTANTS)
+                                                .set(Topic_type::CATEGORY)
+                                                .set(Topic_type::TOPIC)
+                                                .set(Topic_type::SQL)
+                                                .set(Topic_type::COMMAND)
+                                                .set(Topic_type::MODULE)
+                                                .set(Topic_type::CLASS)};
 
-  // The SQL category is also registered right away, it doesn't have content
-  // at the client side but will be used as parent for SQL topics
-  add_help_topic(HELP_SQL, Topic_type::SQL, "SQL_CONTENTS", HELP_ROOT,
-                 Mode_mask::all());
+  return kParentTopicTypes;
+}
+
+Help_registry::Help_registry(bool threaded)
+    : m_help_data(Help_registry::icomp), m_keywords(Help_registry::icomp) {
+  if (!threaded) {
+    // The Contents category is registered right away since it is the root
+    // Of the help system
+    add_help_topic(HELP_ROOT, Topic_type::CATEGORY, "CONTENTS", "",
+                   Mode_mask::all());
+
+    // The SQL category is also registered right away, it doesn't have content
+    // at the client side but will be used as parent for SQL topics
+    add_help_topic(HELP_SQL, Topic_type::SQL, "SQL_CONTENTS", HELP_ROOT,
+                   Mode_mask::all());
+  }
 }
 
 bool Help_registry::icomp(const std::string &lhs, const std::string &rhs) {
@@ -343,58 +359,88 @@ void Help_registry::add_split_help(const std::string &prefix,
   }
 }
 
-void Help_registry::add_help(const std::string &token,
-                             const std::string &data) {
-  m_help_data[token] = data;
+void Help_registry::add_help(const std::string &token, const std::string &data,
+                             Keyword_location loc) {
+  if (loc == Keyword_location::LOCAL_CTX) {
+    get_thread_context_help()->m_help_data[token] = data;
+  } else if (loc == Keyword_location::GLOBAL_CTX) {
+    m_help_data[token] = data;
+  } else {
+    get_thread_context_help()->m_help_data[token] = data;
+    m_help_data[token] = data;
+  }
 }
 
 void Help_registry::add_help(const std::string &prefix, const std::string &tag,
-                             const std::string &data) {
+                             const std::string &data, Keyword_location loc) {
   auto full_prefix = prefix + "_" + tag;
 
-  add_help(full_prefix, data);
+  add_help(full_prefix, data, loc);
 }
 
 void Help_registry::add_help(const std::string &prefix, const std::string &tag,
-                             const std::vector<std::string> &data) {
+                             const std::vector<std::string> &data,
+                             Keyword_location loc) {
   size_t sequence = 0;
-  add_help(prefix, tag, &sequence, data);
+  add_help(prefix, tag, &sequence, data, loc);
 }
 
 void Help_registry::add_help(const std::string &prefix, const std::string &tag,
                              size_t *sequence,
-                             const std::vector<std::string> &data) {
+                             const std::vector<std::string> &data,
+                             Keyword_location loc) {
   assert(sequence);
 
   std::string index = (*sequence) ? std::to_string(*sequence) : "";
 
   for (auto &entry : data) {
     auto full_prefix = prefix + "_" + tag + index;
-    add_help(full_prefix, entry);
+    add_help(full_prefix, entry, loc);
     (*sequence)++;
     index = std::to_string(*sequence);
   }
 }
 
 void Help_registry::add_help(const std::string &prefix,
-                             const std::vector<Example> &data) {
+                             const std::vector<Example> &data,
+                             Keyword_location loc) {
   size_t sequence = 0;
-  add_help(prefix, &sequence, data);
+  add_help(prefix, &sequence, data, loc);
 }
 
 void Help_registry::add_help(const std::string &prefix, size_t *sequence,
-                             const std::vector<Example> &data) {
+                             const std::vector<Example> &data,
+                             Keyword_location loc) {
   assert(sequence);
 
   auto index = (*sequence) ? std::to_string(*sequence) : "";
 
   for (const auto &entry : data) {
     const auto full_prefix = prefix + "_EXAMPLE" + index;
-    add_help(full_prefix, entry.code);
-    add_help(full_prefix + "_DESC", entry.description);
+    add_help(full_prefix, entry.code, loc);
+    add_help(full_prefix + "_DESC", entry.description, loc);
 
     (*sequence)++;
     index = std::to_string(*sequence);
+  }
+}
+
+std::vector<Help_topic *> Help_registry::add_help_topic(
+    const std::string &name, Topic_type type, const std::string &tag,
+    const std::string &parent_id, Mode_mask mode, Keyword_location loc) {
+  auto parent = get_topic(parent_id, true, get_parent_topic_types());
+
+  if (loc == Keyword_location::LOCAL_CTX) {
+    return {get_thread_context_help()->add_help_topic(name, type, tag,
+                                                      parent_id, parent, mode)};
+  } else if (loc == Keyword_location::GLOBAL_CTX) {
+    return {add_help_topic(name, type, tag, parent_id, parent, mode)};
+  } else {
+    std::vector<Help_topic *> ret;
+    ret.push_back(get_thread_context_help()->add_help_topic(
+        name, type, tag, parent_id, parent, mode));
+    ret.push_back(add_help_topic(name, type, tag, parent_id, parent, mode));
+    return ret;
   }
 }
 
@@ -402,37 +448,14 @@ Help_topic *Help_registry::add_help_topic(const std::string &name,
                                           Topic_type type,
                                           const std::string &tag,
                                           const std::string &parent_id,
-                                          Mode_mask mode) {
-  size_t topic_count = m_topics.size();
-  m_topics[topic_count] = {name, name, type, tag, nullptr, {}, this, true};
-  Help_topic *new_topic = &m_topics[topic_count];
+                                          Help_topic *parent, Mode_mask mode) {
+  Help_topic *new_topic = &(*m_topics.insert(
+      m_topics.end(), {name, name, type, tag, nullptr, {}, this, true}));
   m_topics_by_type[type].push_back(new_topic);
 
   std::string splitter;
 
   if (!parent_id.empty()) {
-    // Lookup the parent topic
-    Help_topic *parent = nullptr;
-
-    if (m_keywords.find(parent_id) != m_keywords.end()) {
-      auto topics = &m_keywords[parent_id];
-
-      for (const auto &topic : *topics) {
-        // Only considers non members or object members as the others can't have
-        // children
-        if (!topic.first->is_member() || topic.first->is_object()) {
-          if (parent == nullptr) {
-            parent = topic.first;
-          } else {
-            std::string error = "Error registering topic '" + name +
-                                "': parent topic is ambiguous: '" + parent_id +
-                                "'";
-            throw std::logic_error(error);
-          }
-        }
-      }
-    }
-
     if (parent) {
       new_topic->m_parent = parent;
 
@@ -459,7 +482,7 @@ void Help_registry::add_help_class(const std::string &name,
   mode.set(IShell_core::Mode::Python);
 
   Help_topic *topic =
-      add_help_topic(name, Topic_type::CLASS, name, parent, mode);
+      add_help_topic(name, Topic_type::CLASS, name, parent, mode).back();
 
   // A parent class has been specified
   if (!upper_class.empty()) {
@@ -668,14 +691,16 @@ void Help_registry::register_keyword(const std::string &keyword,
     register_keyword(keyword, IShell_core::Mode::SQL, topic, case_sensitive);
 }
 
+Help_registry *Help_registry::get_thread_context_help() const {
+  thread_local static Help_registry instance_thread(true);
+  return &instance_thread;
+}
+
 void Help_registry::register_keyword(const std::string &keyword,
                                      IShell_core::Mode mode, Help_topic *topic,
                                      bool case_sensitive) {
   if (!case_sensitive) {
-    if (m_keywords.find(keyword) == m_keywords.end()) {
-      m_keywords[keyword] = {};
-    }
-
+    // The keywords topics will be created here if it doesn't exist.
     auto &topics = m_keywords[keyword];
 
     if (topics.find(topic) == topics.end())
@@ -683,10 +708,7 @@ void Help_registry::register_keyword(const std::string &keyword,
     else
       topics[topic].set(mode);
   } else {
-    if (m_cs_keywords.find(keyword) == m_cs_keywords.end()) {
-      m_cs_keywords[keyword] = {};
-    }
-
+    // The cs_keywords topics will be created here if it doesn't exist.
     auto &topics = m_cs_keywords[keyword];
 
     if (topics.find(topic) == topics.end())
@@ -699,8 +721,15 @@ void Help_registry::register_keyword(const std::string &keyword,
 std::string Help_registry::get_token(const std::string &token) {
   std::string ret_val;
 
-  if (m_help_data.find(token) != m_help_data.end())
-    ret_val = m_help_data[token];
+  try {
+    ret_val = m_help_data.at(token);
+  } catch (const std::out_of_range &) {
+    try {
+      ret_val = get_thread_context_help()->m_help_data.at(token);
+    } catch (const std::out_of_range &) {
+      // noop
+    }
+  }
 
   return ret_val;
 }
@@ -769,6 +798,19 @@ std::vector<Help_topic *> Help_registry::search_topics(
     ret_val = get_topics(m_keywords, pattern, mode);
   }
 
+  // We need to also look for the pattern in the thread context help,
+  {
+    std::vector<Help_topic *> thread_result =
+        get_topics(get_thread_context_help()->m_cs_keywords, pattern, mode);
+    ret_val.insert(ret_val.end(), thread_result.begin(), thread_result.end());
+  }
+
+  if (ret_val.empty() && !case_sensitive) {
+    std::vector<Help_topic *> thread_result =
+        get_topics(get_thread_context_help()->m_keywords, pattern, mode);
+    ret_val.insert(ret_val.end(), thread_result.begin(), thread_result.end());
+  }
+
   return ret_val;
 }
 
@@ -778,26 +820,58 @@ std::vector<Help_topic *> Help_registry::search_topics(
 }
 
 Help_topic *Help_registry::get_topic(const std::string &id,
-                                     bool allow_unexisting) {
-  if (m_keywords.find(id) == m_keywords.end()) {
+                                     bool allow_unexisting,
+                                     const Topic_mask &type) const {
+  auto topics = get_topic(this, id, true, type);
+  if (topics == nullptr) {
+    topics = get_topic(get_thread_context_help(), id, allow_unexisting, type);
+  }
+
+  if (!allow_unexisting && topics == nullptr) {
+    throw std::logic_error("Unable to find topic '" + id + "'");
+  }
+
+  return topics;
+}
+
+Help_topic *Help_registry::get_topic(const Help_registry *registry,
+                                     const std::string &id,
+                                     bool allow_unexisting,
+                                     const Topic_mask &type) const {
+  try {
+    auto &topics = registry->m_keywords.at(id);
+    if (type == Topic_mask::any()) {
+      if (topics.size() > 1)
+        throw std::logic_error("Non unique topic found as '" + id + "'");
+      return topics.begin()->first;
+    } else {
+      Help_topic *found_topic = nullptr;
+      int topic_count = 0;
+      for (const auto &topic : topics) {
+        if (type.is_set(topic.first->m_type)) {
+          found_topic = topic.first;
+          topic_count++;
+          if (topic_count > 1)
+            throw std::logic_error("Non unique topic found as '" + id + "'");
+        }
+      }
+      return found_topic;
+    }
+  } catch (const std::out_of_range &) {
     if (!allow_unexisting)
       throw std::logic_error("Unable to find topic '" + id + "'");
-  } else {
-    auto &topics = m_keywords[id];
-
-    if (topics.size() > 1)
-      throw std::logic_error("Non unique topic found as '" + id + "'");
-
-    return topics.begin()->first;
   }
 
   return nullptr;
 }
 
-Help_topic *Help_registry::get_class_parent(Help_topic *topic) {
+Help_topic *Help_registry::get_class_parent(Help_topic *topic) const {
   if (m_class_parents.find(topic) != m_class_parents.end())
     return m_class_parents.at(topic);
 
+  if (get_thread_context_help()->m_class_parents.find(topic) !=
+      get_thread_context_help()->m_class_parents.end())
+    return get_thread_context_help()->m_class_parents.at(topic);
   return nullptr;
 }
 
@@ -1255,7 +1329,7 @@ std::string Help_manager::format_list_description(
 }
 
 size_t Help_manager::get_max_topic_length(
-    const std::vector<Help_topic *> &topics, bool members, bool alias) {
+    const std::vector<Help_topic *> &topics, bool members, bool alias) const {
   size_t ret_val = 0;
 
   if (members) {
@@ -1733,7 +1807,7 @@ void Help_manager::add_examples_section(const std::string &tag,
 }
 
 std::map<std::string, std::string> Help_manager::preprocess_help(
-    std::vector<std::string> *text_lines) {
+    std::vector<std::string> *text_lines) const {
   std::map<std::string, std::string> no_format_data;
   for (auto &text : *text_lines) {
     if (shcore::str_beginswith(text.c_str(), HELP_NO_FORMAT)) {
@@ -1769,7 +1843,7 @@ std::map<std::string, std::string> Help_manager::preprocess_help(
 
 std::string Help_manager::format_help_text(std::vector<std::string> *lines,
                                            size_t width, size_t left_padding,
-                                           bool paragraph_per_line) {
+                                           bool paragraph_per_line) const {
   std::map<std::string, std::string> no_formats;
   no_formats = preprocess_help(lines);
   std::string formatted = textui::format_markup_text(
@@ -1791,12 +1865,15 @@ std::string Help_manager::get_help(const Help_topic &topic,
     case Topic_type::CLASS:
     case Topic_type::OBJECT:
     case Topic_type::CONSTANTS:
-    case Topic_type::GLOBAL_OBJECT:
+    case Topic_type::GLOBAL_OBJECT: {
       return format_object_help(topic, options);
-    case Topic_type::FUNCTION:
+    }
+    case Topic_type::FUNCTION: {
       return format_function_help(topic);
-    case Topic_type::PROPERTY:
+    }
+    case Topic_type::PROPERTY: {
       return format_property_help(topic);
+    }
     case Topic_type::COMMAND:
       return format_command_help(topic, options);
     case Topic_type::SQL:

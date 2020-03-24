@@ -405,7 +405,9 @@ void Extensible_object::set_registered(const std::string &name) {
 
     for (const auto &fdef : m_function_definition) register_function_help(fdef);
 
-    for (auto &child : m_children) child.second->set_registered();
+    for (auto &child : m_children) {
+      child.second->set_registered();
+    }
   }
 }
 
@@ -674,13 +676,15 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
         error = "An empty array is not valid for the classes option.";
       } else {
         callowed = *allowed_classes;
-        auto help = shcore::Help_registry::get();
+
         std::set<std::string> classes;
 
         for (const auto allowed_type :
              {shcore::Topic_type::CLASS, shcore::Topic_type::GLOBAL_OBJECT,
               shcore::Topic_type::OBJECT}) {
-          auto topics = help->get_help_topics(allowed_type);
+          auto topics =
+              shcore::Help_registry::get()->get_help_topics(allowed_type);
+
           for (const auto &topic : topics) {
             classes.insert(topic->get_base_name());
           }
@@ -793,15 +797,20 @@ void Extensible_object::register_help(const std::string &brief,
       // Creates the help topic for the object
       auto type = is_global ? shcore::Topic_type::GLOBAL_OBJECT
                             : shcore::Topic_type::OBJECT;
-      help->add_help_topic(m_name, type, m_qualified_name, parent, mask);
+      help->add_help_topic(m_name, type, m_qualified_name, parent, mask,
+                           shcore::Keyword_location::LOCAL_CTX);
 
       // Now registers the object brief, parameters and details
       auto prefix = shcore::str_upper(m_qualified_name);
 
-      help->add_help(prefix, "BRIEF", brief);
-      help->add_help(prefix, "DETAIL", &m_detail_sequence, details);
+      help->add_help(prefix, "BRIEF", brief,
+                     shcore::Keyword_location::LOCAL_CTX);
+      help->add_help(prefix, "DETAIL", &m_detail_sequence, details,
+                     shcore::Keyword_location::LOCAL_CTX);
 
-      if (is_global) help->add_help(prefix, "GLOBAL_BRIEF", brief);
+      if (is_global)
+        help->add_help(prefix, "GLOBAL_BRIEF", brief,
+                       shcore::Keyword_location::LOCAL_CTX);
     }
   } else {
     m_definition.reset(new Member_definition("", brief, details));
@@ -817,19 +826,22 @@ void Extensible_object::register_property_help(
 
   // Creates the help topic for the object
   help->add_help_topic(def->name, shcore::Topic_type::PROPERTY, def->name,
-                       m_qualified_name, mask);
+                       m_qualified_name, mask,
+                       shcore::Keyword_location::LOCAL_CTX);
 
   // Now registers the object brief, parameters and details
   auto object = shcore::str_upper(m_name);
   auto prefix = object + "_" + shcore::str_upper(def->name);
   if (!def->brief.empty()) {
-    help->add_help(prefix, "BRIEF", def->brief);
+    help->add_help(prefix, "BRIEF", def->brief,
+                   shcore::Keyword_location::LOCAL_CTX);
   }
 
   size_t member_sequence = 0;
 
   if (!def->details.empty()) {
-    help->add_help(prefix, "DETAIL", &member_sequence, def->details);
+    help->add_help(prefix, "DETAIL", &member_sequence, def->details,
+                   shcore::Keyword_location::LOCAL_CTX);
   }
 }
 
@@ -851,14 +863,17 @@ void Extensible_object::register_function_help(
 
     // Creates the help topic for the function
     help->add_help_topic(name, shcore::Topic_type::FUNCTION, names[0],
-                         m_qualified_name, mask);
+                         m_qualified_name, mask,
+                         shcore::Keyword_location::LOCAL_CTX);
 
     // Now registers the function brief, parameters and details
     auto prefix = shcore::str_upper(m_name + "_" + names[0]);
     if (!brief.empty()) help->add_help(prefix, "BRIEF", brief);
-    help->add_help(prefix, "PARAM", params);
-    help->add_help(prefix, "DETAIL", details);
-    help->add_help(prefix, examples);
+    help->add_help(prefix, "PARAM", params,
+                   shcore::Keyword_location::LOCAL_CTX);
+    help->add_help(prefix, "DETAIL", details,
+                   shcore::Keyword_location::LOCAL_CTX);
+    help->add_help(prefix, examples, shcore::Keyword_location::LOCAL_CTX);
   } else {
     topic->set_enabled(true);
   }

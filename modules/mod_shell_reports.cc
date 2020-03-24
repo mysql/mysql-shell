@@ -670,11 +670,16 @@ class Shell_reports::Report_options : public shcore::Options {
     if (nullptr == m_help_topic) {
       const auto help = shcore::Help_registry::get();
       const auto prefix = "CMD_SHOW_" + shcore::str_upper(m_report_name);
-      const auto topic = help->add_help_topic(
-          m_report_name, shcore::Topic_type::COMMAND, prefix, "CMD_SHOW",
-          shcore::IShell_core::all_scripting_modes());
+      const auto topic =
+          help->add_help_topic(m_report_name, shcore::Topic_type::COMMAND,
+                               prefix, "CMD_SHOW",
+                               shcore::IShell_core::all_scripting_modes(),
+                               shcore::Keyword_location::LOCAL_CTX)
+              .back();
 
-      if (!brief.empty()) help->add_help(prefix, "BRIEF", brief);
+      if (!brief.empty())
+        help->add_help(prefix, "BRIEF", brief,
+                       shcore::Keyword_location::LOCAL_CTX);
 
       const auto has_arguments = m_argc.second > 0;
 
@@ -700,7 +705,8 @@ class Shell_reports::Report_options : public shcore::Options {
           syntax.emplace_back(std::move(line));
         }
 
-        help->add_help(prefix, "SYNTAX", syntax);
+        help->add_help(prefix, "SYNTAX", syntax,
+                       shcore::Keyword_location::LOCAL_CTX);
       }
 
       {
@@ -742,7 +748,8 @@ class Shell_reports::Report_options : public shcore::Options {
                                 ".");
         }
 
-        help->add_help(prefix, "DETAIL", contents);
+        help->add_help(prefix, "DETAIL", contents,
+                       shcore::Keyword_location::LOCAL_CTX);
       }
 
       {
@@ -807,7 +814,7 @@ class Shell_reports::Report_options : public shcore::Options {
           ex.emplace_back(std::move(e));
         }
 
-        help->add_help(prefix, ex);
+        help->add_help(prefix, ex, shcore::Keyword_location::LOCAL_CTX);
       }
 
       m_help_topic = topic;
@@ -1063,7 +1070,6 @@ Shell_reports::Shell_reports(const std::string &name,
                              const std::string &qualified_name)
     : Extensible_object(name, qualified_name, true) {
   enable_help();
-
   reports::register_query_report(this);
   reports::register_threads_report(this);
   reports::register_thread_report(this);
