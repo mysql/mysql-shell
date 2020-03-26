@@ -28,6 +28,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
+#include <random>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -491,6 +492,29 @@ std::string pctdecode(const std::string &s) {
   }
 
   return dec;
+}
+
+std::string get_random_string(size_t size, const char *source) {
+  std::random_device rd;
+  std::string data;
+
+  std::uniform_int_distribution<int> dist_num(0, strlen(source) - 1);
+
+  for (size_t i = 0; i < size; i++) {
+    char random = source[dist_num(rd)];
+
+    // Make sure there are no consecutive values
+    if (i == 0) {
+      data += random;
+    } else {
+      if (random != data[i - 1])
+        data += random;
+      else
+        i--;
+    }
+  }
+
+  return data;
 }
 
 }  // namespace shcore

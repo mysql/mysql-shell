@@ -603,7 +603,7 @@
                 },
 ?{VER(>=8.0.21)}
                 {
-                    "value": "[[*]]",
+                    "value": "MYSQL_MAIN",
                     "variable": "group_replication_tls_source"
                 },
 ?{}
@@ -861,7 +861,7 @@
                 },
 ?{VER(>=8.0.21)}
                 {
-                    "value": "[[*]]",
+                    "value": "MYSQL_MAIN",
                     "variable": "group_replication_tls_source"
                 },
 ?{}
@@ -1119,7 +1119,7 @@
                 },
 ?{VER(>=8.0.21)}
                 {
-                    "value": "[[*]]",
+                    "value": "MYSQL_MAIN",
                     "variable": "group_replication_tls_source"
                 },
 ?{}

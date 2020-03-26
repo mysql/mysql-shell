@@ -59,7 +59,8 @@ class Rest_service {
    * @param verify_ssl If false, disables the SSL verification of target host.
    *        Validity of SSL certificates is not going to be checked.
    */
-  explicit Rest_service(const std::string &base_url, bool verify_ssl = true);
+  explicit Rest_service(const std::string &base_url, bool verify_ssl = true,
+                        const std::string &service_label = "");
 
   Rest_service(const Rest_service &) = delete;
   Rest_service(Rest_service &&);

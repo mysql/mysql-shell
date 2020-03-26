@@ -151,8 +151,10 @@ class Rest_service::Impl {
   /**
    * Type of the HTTP request.
    */
-  Impl(const std::string &base_url, bool verify)
-      : m_handle(curl_easy_init(), &curl_easy_cleanup), m_base_url{base_url} {
+  Impl(const std::string &base_url, bool verify, const std::string &label)
+      : m_handle(curl_easy_init(), &curl_easy_cleanup),
+        m_base_url{base_url},
+        m_request_sequence(0) {
     // Disable signal handlers used by libcurl, we're potentially going to use
     // timeouts and background threads.
     curl_easy_setopt(m_handle.get(), CURLOPT_NOSIGNAL, 1L);
@@ -191,13 +193,52 @@ class Rest_service::Impl {
     curl_easy_setopt(m_handle.get(), CURLOPT_SSL_CTX_FUNCTION,
                      *sslctx_function);
 #endif  // _WIN32
+
+    // Initializes the ID for this Rest Service Instance
+    m_id = "REST-";
+    if (!label.empty()) m_id += label + "-";
+
+    m_id += shcore::get_random_string(
+        5, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890");
   }
 
   ~Impl() = default;
 
+  void log_request(Type type, const std::string &path, const Headers &headers) {
+    log_debug("%s-%d: %s %s", m_id.c_str(), m_request_sequence,
+              shcore::str_upper(type_name(type)).c_str(), path.c_str());
+
+    if (!headers.empty() && shcore::Logger::singleton()->get_log_level() >=
+                                shcore::Logger::LOG_LEVEL::LOG_DEBUG2) {
+      std::vector<std::string> header_data;
+      for (const auto &header : headers) {
+        header_data.push_back("'" + header.first + "' : '" + header.second +
+                              "'");
+      }
+      log_debug2("%s-%d: REQUEST HEADERS:\n  %s", m_id.c_str(),
+                 m_request_sequence,
+                 shcore::str_join(header_data, "\n  ").c_str());
+    }
+  }
+
+  void log_response(int sequence, Response::Status_code code,
+                    const std::string &headers) {
+    log_debug("%s-%d: %d-%s", m_id.c_str(), sequence, static_cast<int>(code),
+              Response::status_code(code).c_str());
+
+    if (!headers.empty()) {
+      log_debug2("%s-%d: RESPONSE HEADERS:\n  %s", m_id.c_str(), sequence,
+                 headers.c_str());
+    }
+  }
+
   Response execute(Type type, const std::string &path,
                    const shcore::Value &body, const Headers &headers,
                    bool synch = true) {
+    m_request_sequence++;
+
+    log_request(type, path, headers);
+
     set_url(path);
     // body needs to be set before the type, because it implicitly sets type to
     // POST
@@ -223,11 +264,14 @@ class Rest_service::Impl {
 
     // execute the request
     if (curl_easy_perform(m_handle.get()) != CURLE_OK) {
+      log_error("%s-%d %s", m_id.c_str(), m_request_sequence, m_error_buffer);
       throw Connection_error{m_error_buffer};
     }
 
     response.status = get_status_code();
     response.headers = parse_headers(response_headers);
+
+    log_response(m_request_sequence, response.status, response_headers);
 
     return response;
   }
@@ -237,6 +281,10 @@ class Rest_service::Impl {
                                 const Headers &request_headers,
                                 Base_response_buffer *buffer,
                                 Headers *response_headers) {
+    m_request_sequence++;
+
+    log_request(type, path, request_headers);
+
     set_url(path);
     // body needs to be set before the type, because it implicitly sets type
     // to POST
@@ -252,12 +300,17 @@ class Rest_service::Impl {
     // execute the request
     auto ret_val = curl_easy_perform(m_handle.get());
     if (ret_val != CURLE_OK) {
+      log_error("%s-%d: %s", m_id.c_str(), m_request_sequence, m_error_buffer);
       throw Connection_error{m_error_buffer};
     }
 
     if (response_headers) *response_headers = parse_headers(header_data);
 
-    return get_status_code();
+    auto status = get_status_code();
+
+    log_response(m_request_sequence, status, header_data);
+
+    return status;
   }
 
   void set_body(const char *body, size_t size, bool synch) {
@@ -398,10 +451,15 @@ class Rest_service::Impl {
   std::string m_base_url;
 
   Headers m_default_headers;
+
+  std::string m_id;
+
+  int m_request_sequence;
 };
 
-Rest_service::Rest_service(const std::string &base_url, bool verify_ssl)
-    : m_impl(std::make_unique<Impl>(base_url, verify_ssl)) {}
+Rest_service::Rest_service(const std::string &base_url, bool verify_ssl,
+                           const std::string &service_label)
+    : m_impl(std::make_unique<Impl>(base_url, verify_ssl, service_label)) {}
 
 Rest_service::Rest_service(Rest_service &&) = default;
 

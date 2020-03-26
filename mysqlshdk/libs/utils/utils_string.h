@@ -474,6 +474,12 @@ std::string pctencode(const std::string &s);
  */
 std::string pctdecode(const std::string &s);
 
+/**
+ * Returns a string of the given size created with random characters from the
+ * provided source.
+ */
+std::string get_random_string(size_t size, const char *source);
+
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_STRING_H_

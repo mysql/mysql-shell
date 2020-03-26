@@ -43,6 +43,8 @@ using mysqlshdk::rest::Type;
 
 enum class Oci_service { IDENTITY, OBJECT_STORAGE };
 
+std::string service_identifier(Oci_service service);
+
 class Oci_rest_service {
  public:
   Oci_rest_service() = default;

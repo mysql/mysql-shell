@@ -31,6 +31,16 @@
 namespace mysqlshdk {
 namespace oci {
 
+std::string service_identifier(Oci_service service) {
+  switch (service) {
+    case Oci_service::IDENTITY:
+      return "OCI-ID";
+    case Oci_service::OBJECT_STORAGE:
+      return "OCI-OS";
+  }
+  return "";
+}
+
 namespace {
 std::string sign(EVP_PKEY *sigkey, const std::string &string_to_sign) {
 // EVP_MD_CTX_create() and EVP_MD_CTX_destroy() were renamed to EVP_MD_CTX_new()
@@ -176,7 +186,7 @@ void Oci_rest_service::set_service(Oci_service service) {
     m_service = service;
 
     m_rest = std::make_unique<mysqlshdk::rest::Rest_service>(
-        "https://" + m_host, true);
+        "https://" + m_host, true, service_identifier(service));
 
     m_rest->set_timeout(30000);  // todo(kg): default 2s was not enough, 30s is
     // ok? maybe we could make it configurable
