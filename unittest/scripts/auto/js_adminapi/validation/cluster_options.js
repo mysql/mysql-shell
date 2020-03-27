@@ -601,6 +601,12 @@
                     "value": "ON",
                     "variable": "group_replication_start_on_boot"
                 },
+?{VER(>=8.0.21)}
+                {
+                    "value": "[[*]]",
+                    "variable": "group_replication_tls_source"
+                },
+?{}
                 {
                     "value": "150000000",
                     "variable": "group_replication_transaction_size_limit"
@@ -853,6 +859,12 @@
                     "value": "ON",
                     "variable": "group_replication_start_on_boot"
                 },
+?{VER(>=8.0.21)}
+                {
+                    "value": "[[*]]",
+                    "variable": "group_replication_tls_source"
+                },
+?{}
                 {
                     "value": "150000000",
                     "variable": "group_replication_transaction_size_limit"
@@ -1105,6 +1117,12 @@
                     "value": "ON",
                     "variable": "group_replication_start_on_boot"
                 },
+?{VER(>=8.0.21)}
+                {
+                    "value": "[[*]]",
+                    "variable": "group_replication_tls_source"
+                },
+?{}
                 {
                     "value": "150000000",
                     "variable": "group_replication_transaction_size_limit"
@@ -1158,12 +1176,6 @@
                     "value": "OFF",
                     "variable": "group_replication_allow_local_disjoint_gtids_join"
                 },
-?{VER(>=8.0.21)}
-                {
-                    "value": "[[*]]",
-                    "variable": "group_replication_advertise_recovery_endpoints"
-                },
-?{}
                 {
                     "value": "OFF",
                     "variable": "group_replication_allow_local_lower_version_join"
