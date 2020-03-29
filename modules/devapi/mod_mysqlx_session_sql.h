@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,6 +31,7 @@
 #include <string>
 #include "db/mysqlx/mysqlxclient_clean.h"
 #include "modules/devapi/dynamic_object.h"
+#include "modules/devapi/mod_mysqlx_resultset.h"
 
 namespace mysqlsh {
 namespace mysqlx {
@@ -47,33 +48,31 @@ class SqlExecute : public Dynamic_object,
  public:
 #if DOXYGEN_JS
   SqlExecute sql(String statement);
-  SqlExecute bind(Value value);
-  SqlExecute bind(List values);
+  SqlExecute bind(Value data);
   SqlResult execute();
 #elif DOXYGEN_PY
   SqlExecute sql(str statement);
-  SqlExecute bind(Value value);
-  SqlExecute bind(list values);
+  SqlExecute bind(Value data);
   SqlResult execute();
 #endif
   explicit SqlExecute(std::shared_ptr<Session> owner);
   std::string class_name() const override { return "SqlExecute"; }
-  shcore::Value sql(const shcore::Argument_list &args);
+  std::shared_ptr<SqlExecute> sql(const std::string &statement);
   inline void set_sql(const std::string &sql) { _sql = sql; };
-  shcore::Value bind(const shcore::Argument_list &args);
+  std::shared_ptr<SqlExecute> bind(const shcore::Value &data);
   inline void add_bind(const shcore::Value &value) {
-    _parameters.push_back(value);
+    _parameters->push_back(value);
   }
-  virtual shcore::Value execute(const shcore::Argument_list &args);
+  std::shared_ptr<SqlResult> execute();
 
  private:
   std::weak_ptr<Session> _session;
   std::string _sql;
-  shcore::Argument_list _parameters;
+  shcore::Array_t _parameters = shcore::make_array();
   Mysqlx::Prepare::Prepare m_prep_stmt;
   uint64_t m_execution_count;
 
-  shcore::Value execute_sql(
+  std::shared_ptr<SqlResult> execute_sql(
       const std::shared_ptr<mysqlsh::mysqlx::Session> &session);
 
   struct F {

@@ -15,14 +15,23 @@ FUNCTIONS
       file_exists(path)
             Checks if the given path exists and is a file.
 
+            ATTENTION: This function will be removed in a future release, use
+                       the os.path.isfile() function instead.
+
       get_binary_folder()
             Provides the path to the folder which contains the binary of shell.
+
+            ATTENTION: This function will be removed in a future release.
 
       get_mysqlx_home_path()
             Provides the path to the home folder for the shell.
 
+            ATTENTION: This function will be removed in a future release.
+
       get_user_config_path()
             Provides the path to the shell configuration folder.
+
+            ATTENTION: This function will be removed in a future release.
 
       getcwd()
             Retrieves the absolute path of the current working directory.
@@ -35,6 +44,9 @@ FUNCTIONS
 
       load_text_file(path)
             Reads the contents of a text file.
+
+            ATTENTION: This function will be removed in a future release, use
+                       the loadTextFile() function instead.
 
       loadTextFile(path)
             Reads the contents of a text file.
@@ -208,3 +220,4 @@ DESCRIPTION
 
 EXCEPTIONS
       RuntimeError If the specified file does not exist.
+

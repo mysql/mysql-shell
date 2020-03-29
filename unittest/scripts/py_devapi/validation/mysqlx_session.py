@@ -17,7 +17,7 @@
 |<Schema:node_session_schema>|
 
 #@ Session: create schema failure
-||MySQL Error (1007): Can't create database 'node_session_schema'; database exists
+||MySQL Error (1007): Session.create_schema: Can't create database 'node_session_schema'; database exists
 
 #@ Session: Transaction handling: rollback
 |Inserted Documents: 0|
@@ -31,7 +31,7 @@
 ||
 
 #@# Savepoint Error Conditions (WL10859-ET1_2)
-||Session.set_savepoint: Argument #1 is expected to be a string
+||ArgumentError: Session.set_savepoint: Argument #1 is expected to be a string
 ||Session.set_savepoint: Invalid number of arguments, expected 0 to 1 but got 2
 
 #@ Create a savepoint without specifying a name (WL10869-SR1_1)
@@ -190,7 +190,7 @@
 ||ArgumentError: Session.quote_name: Invalid number of arguments, expected 1 but got 0
 
 #@ Session: quote_name wrong param type
-||TypeError: Argument #1 is expected to be a string
+||ArgumentError: Session.quote_name: Argument #1 is expected to be a string
 
 #@ Session: quote_name with correct parameters
 |`sample`|

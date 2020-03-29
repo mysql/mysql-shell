@@ -120,7 +120,7 @@ session.runSql('DROP SCHEMA MYS_492')
 session.close();
 
 
-//@ MY-495 STATUS BEHAVES DIFFERENTLY WHEN CONNECTION IS LOST
+//@<> MY-495 STATUS BEHAVES DIFFERENTLY WHEN CONNECTION IS LOST
 shell.connect(__uripwd);
 \status
 EXPECT_OUTPUT_CONTAINS("MySQL Shell version");
@@ -128,6 +128,7 @@ EXPECT_THROWS(function() {session.runSql('kill connection_id()')}, "Session.runS
 
 \status
 EXPECT_OUTPUT_CONTAINS("MySQL Shell version");
+EXPECT_OUTPUT_CONTAINS("MySQL server has gone away");
 
 session.close();
 
