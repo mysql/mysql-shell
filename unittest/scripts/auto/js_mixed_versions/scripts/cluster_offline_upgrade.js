@@ -119,7 +119,7 @@ shell.connect(__sandbox_uri1);
 cluster = dba.getCluster();
 
 // Hack because of BUG#30783149
-if (__version_num <= 80021) {
+if (__version_num <= 80022) {
   session1 = mysql.getSession(__sandbox_admin_uri1);
   session1.runSql("GRANT REPLICATION_APPLIER ON *.* TO 'root'@'localhost' WITH GRANT OPTION");
   session1.close();
