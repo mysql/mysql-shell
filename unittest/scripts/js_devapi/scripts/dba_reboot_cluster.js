@@ -54,9 +54,21 @@ cluster.addInstance(__sandbox_uri2);
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@ reboot with GR plugin uninstalled {VER(>=8.0.0)}
+//@<> Persist the configuration on the cnf file {VER(<8.0.11)}
+var cnfPath1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
+var cnfPath2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
+
+// Test that even if a group_replication variable already exists in the config file, it gets
+// the loose_ prefix after the configureInstance
+testutil.changeSandboxConf(__mysql_sandbox_port1, "group_replication_ssl_mode", "DISABLED");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "group_replication_ssl_mode", "DISABLED");
+
+dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: cnfPath1});
+dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: cnfPath2});
+
+//@<> reboot with GR plugin uninstalled
 // covers Bug#30531848 RESTARTED INNODB CLUSTER NOT FINDING GR PLUGIN
-// NOTE: This works in 8.0 but not 5.7 (see bug#30768504)
+// and BUG#30768504 REBOOTCLUSTER PARTIAL FAILURE IF MYSQL 5.7 IF GR PLUGIN UNINSTALLED
 
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
@@ -75,8 +87,15 @@ session2.runSql("set sql_log_bin=0");
 session2.runSql("/*!80000 set persist group_replication_start_on_boot=0 */");
 session2.runSql("uninstall plugin group_replication");
 
+session1.close();
+testutil.restartSandbox(__mysql_sandbox_port1);
+session1 = mysql.getSession(__sandbox_uri1);
+session2.close();
+testutil.restartSandbox(__mysql_sandbox_port2);
+session2 = mysql.getSession(__sandbox_uri2);
+
 shell.connect(__sandbox_uri1);
-dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances:[__sandbox_uri2]});
+cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances:[__sandbox_uri2]});
 
 session2.runSql("/*!80000 set persist group_replication_start_on_boot=1 */");
 

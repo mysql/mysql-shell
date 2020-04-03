@@ -59,9 +59,13 @@ Config_file::Option_key Config_file::convert_option_to_key(
   std::replace(opt_key.key.begin(), opt_key.key.end(), '-', '_');
 
   // Ignore loose_ prefix
-  if (shcore::str_ibeginswith(opt_key.key, "loose_"))
+  if (shcore::str_ibeginswith(opt_key.key, "loose_")) {
     opt_key.key = opt_key.key.substr(6);
-
+  } else if (shcore::str_ibeginswith(opt_key.key, "group_replication_")) {
+    // if it doesn't start with loose_ and is a group_replication option,
+    // prepend the original_option (the one written to the file) with loose_.
+    opt_key.original_option = "loose_" + opt_key.original_option;
+  }
   return opt_key;
 }
 
