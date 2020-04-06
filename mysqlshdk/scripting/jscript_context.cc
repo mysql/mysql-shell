@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -157,7 +157,8 @@ class Current_script {
 void SHCORE_PUBLIC JScript_context_init() {
   if (!g_platform) {
     g_platform = v8::platform::NewDefaultPlatform(
-        0, v8::platform::IdleTaskSupport::kDisabled,
+        1,  // number of worker threads to allocate for background jobs
+        v8::platform::IdleTaskSupport::kDisabled,
         v8::platform::InProcessStackDumping::kDisabled, initialize_tracing());
     v8::V8::InitializePlatform(g_platform.get());
     v8::V8::Initialize();
