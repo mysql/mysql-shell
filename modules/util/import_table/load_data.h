@@ -33,6 +33,7 @@
 #include "modules/util/import_table/chunk_file.h"
 #include "modules/util/import_table/import_table.h"
 #include "modules/util/import_table/import_table_options.h"
+#include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/textui/text_progress.h"

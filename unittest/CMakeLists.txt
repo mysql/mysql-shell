@@ -138,6 +138,7 @@ if(WITH_TESTS)
             api_modules
             db
             mysqlshdk-static
+            shellcore-minimal
             ${GTEST_LIBRARIES}
             ${MYSQLX_LIBRARIES}
             ${PROTOBUF_LIBRARY}

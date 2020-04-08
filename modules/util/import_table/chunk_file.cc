@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <cassert>
 
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 
 namespace mysqlsh {
@@ -144,7 +145,7 @@ void File_iterator::force_offset(size_t start_from_offset) {
 File_handler::File_handler(mysqlshdk::storage::IFile *fh) : m_fh(fh) {
   m_fh->open(mysqlshdk::storage::Mode::READ);
   m_file_size = m_fh->file_size();
-  m_aio_worker = std::thread([this]() -> void {
+  m_aio_worker = mysqlsh::spawn_scoped_thread([this]() -> void {
     while (true) {
       Async_read_task *r = m_task_queue.pop();
 

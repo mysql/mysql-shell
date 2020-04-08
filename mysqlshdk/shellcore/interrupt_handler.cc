@@ -22,23 +22,13 @@
  */
 
 #include "shellcore/interrupt_handler.h"
-
 #include <cassert>
+
 #include <stdexcept>
 
 #include "mysqlshdk/libs/utils/logger.h"
 
 namespace shcore {
-
-Interrupt_helper *Interrupts::_helper = nullptr;
-std::function<bool()> Interrupts::_handlers[kMax_interrupt_handlers];
-std::atomic<int> Interrupts::_num_handlers;
-std::mutex Interrupts::_handler_mutex;
-bool Interrupts::_propagates_interrupt = false;
-std::thread::id Interrupts::_main_thread_id;
-thread_local int Interrupts::_ignore_current_thread = false;
-Sigint_event Interrupts::s_sigint_event;
-
 /** User interruption (^C) handler. Called by SIGINT handler in console shell.
 
   ### User Interruption Handling Mechanics
@@ -174,38 +164,35 @@ Sigint_event Interrupts::s_sigint_event;
 
   Caller must pass a subclass of Interrupt_handler which performs platform
   specific signal-like actions.
+*/
 
-  MUST be called from the main thread (the thread where user actions are
-  executed, as opposed to background threads)
-  */
-void Interrupts::init(Interrupt_helper *helper) {
-  _helper = helper;
-  _main_thread_id = std::this_thread::get_id();
+std::shared_ptr<Interrupts> Interrupts::create(Interrupt_helper *helper) {
+  std::shared_ptr<Interrupts> interrupt(new Interrupts(helper));
+  return interrupt;
 }
 
-void Interrupts::ignore_thread() { _ignore_current_thread = true; }
+Interrupts::Interrupts(Interrupt_helper *helper)
+    : m_helper(helper), m_num_handlers(0), m_propagates_interrupt(false) {
+  m_creator_thread_id = std::this_thread::get_id();
+}
 
 void Interrupts::setup() {
-  if (_helper) {
-    _helper->setup();
+  if (m_helper) {
+    m_helper->setup();
   }
 }
 
-bool Interrupts::in_main_thread() {
-  return std::this_thread::get_id() == _main_thread_id;
+bool Interrupts::in_creator_thread() {
+  return std::this_thread::get_id() == m_creator_thread_id;
 }
 
 void Interrupts::push_handler(const std::function<bool()> &handler) {
-  // The interrupt handler can be disabled by thread,
-  // if that's the case this is a no-op
-  if (_ignore_current_thread) return;
-
-  // Only allow cancellation handlers registered in the main thread.
+  // Only allow cancellation handlers registered in the creator thread.
   // We don't want background threads to be affected directly by ^C
-  // If you do want a background thread to be cancelled, the main thread should
-  // register a handler that will in turn result in the cancellation of the
-  // background thread.
-  if (!in_main_thread()) {
+  // If you do want a background thread to be cancelled, the creator thread
+  // should register a handler that will in turn result in the cancellation of
+  // the background thread.
+  if (!in_creator_thread()) {
     return;
   }
 
@@ -214,52 +201,39 @@ void Interrupts::push_handler(const std::function<bool()> &handler) {
   // Interrupt handlers should be installed once per language. If code in a
   // scripting language can call code in the language, that should probably
   // not result in the installation of another interrupt handler.
-  int n = _num_handlers.load();
-  if (n >= kMax_interrupt_handlers) {
+  if (m_num_handlers.load() >= kMax_interrupt_handlers) {
     throw std::logic_error(
         "Internal error: interrupt handler stack overflow during "
         "push_interrupt_handler()");
   }
-  _handlers[_num_handlers++] = handler;
+  m_handlers[m_num_handlers++] = handler;
 }
 
 void Interrupts::pop_handler() {
-  // The interrupt handler can be disabled by thread,
-  // if that's the case this is a no-op
-  if (_ignore_current_thread) return;
-
-  if (!in_main_thread()) {
+  if (!in_creator_thread()) {
     return;
   }
-  std::lock_guard<std::mutex> lock(_handler_mutex);
-  int n = _num_handlers.load();
-  if (n == 0) {
+  std::lock_guard<std::mutex> lock(m_handler_mutex);
+  if (m_num_handlers.load() == 0) {
     throw std::logic_error(
         "Internal error: interrupt handler stack underflow during "
         "pop_interrupt_handler()");
   }
-  _handlers[--_num_handlers] = 0;
+  m_handlers[--m_num_handlers] = 0;
 }
 
 void Interrupts::interrupt() {
-  // The interrupt handler can be disabled by thread,
-  // if that's the case this is a no-op
-  if (_ignore_current_thread) return;
-
-  {
-    Block_interrupts block_ints;
-    std::lock_guard<std::mutex> lock(_handler_mutex);
-    int n = _num_handlers.load();
-    if (n > 0) {
-      for (int i = n - 1; i >= 0; --i) {
-        try {
-          if (!_handlers[i]()) break;
-        } catch (const std::exception &e) {
-          log_error("Unexpected exception in interruption handler: %s",
-                    e.what());
-          assert(0);
-          throw;
-        }
+  Block_interrupts block_ints;
+  std::lock_guard<std::mutex> lock(m_handler_mutex);
+  int n = m_num_handlers.load();
+  if (n > 0) {
+    for (int i = n - 1; i >= 0; --i) {
+      try {
+        if (!m_handlers[i]()) break;
+      } catch (const std::exception &e) {
+        log_error("Unexpected exception in interruption handler: %s", e.what());
+        assert(0);
+        throw;
       }
       block_ints.clear_pending(true);
     }
@@ -269,17 +243,17 @@ void Interrupts::interrupt() {
 }
 
 void Interrupts::set_propagate_interrupt(bool flag) {
-  _propagates_interrupt = flag;
+  m_propagates_interrupt = flag;
 }
 
-bool Interrupts::propagates_interrupt() { return _propagates_interrupt; }
+bool Interrupts::propagates_interrupt() { return m_propagates_interrupt; }
 
 void Interrupts::block() {
-  if (_helper) _helper->block();
+  if (m_helper) m_helper->block();
 }
 
 void Interrupts::unblock(bool clear_pending) {
-  if (_helper) _helper->unblock(clear_pending);
+  if (m_helper) m_helper->unblock(clear_pending);
 }
 
 void Interrupts::wait(uint32_t ms) { s_sigint_event.wait(ms); }
@@ -287,11 +261,11 @@ void Interrupts::wait(uint32_t ms) { s_sigint_event.wait(ms); }
 Interrupt_handler::Interrupt_handler(const std::function<bool()> &handler,
                                      bool skip)
     : m_skip(skip) {
-  if (!m_skip) Interrupts::push_handler(handler);
+  if (!m_skip) current_interrupt()->push_handler(handler);
 }
 
 Interrupt_handler::~Interrupt_handler() {
-  if (!m_skip) Interrupts::pop_handler();
+  if (!m_skip) current_interrupt()->pop_handler();
 }
 
 }  // namespace shcore

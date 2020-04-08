@@ -352,7 +352,7 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
 }
 
 Dump_loader::Worker::Worker(size_t id, Dump_loader *owner)
-    : m_id(id), m_owner(owner) {}
+    : m_id(id), m_owner(owner), m_connection_id(0), m_task_type(ANALYZE) {}
 
 void Dump_loader::Worker::run() {
   auto console = current_console();
@@ -1654,7 +1654,7 @@ void Dump_loader::spawn_workers() {
 
     Worker &worker = m_workers.back();
 
-    m_worker_threads.push_back(std::thread([&worker]() {
+    m_worker_threads.push_back(mysqlsh::spawn_scoped_thread([&worker]() {
       mysqlsh::Mysql_thread mysql_thread;
 
       worker.run();

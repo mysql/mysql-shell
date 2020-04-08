@@ -48,50 +48,49 @@ class Interrupt_helper {
 
 class Interrupts {
  public:
-  static void init(Interrupt_helper *helper);
+  static std::shared_ptr<Interrupts> create(Interrupt_helper *helper);
+  void setup();
 
-  static void setup();
+  bool in_creator_thread();
 
-  static bool in_main_thread();
+  void push_handler(const std::function<bool()> &handler);
+  void pop_handler();
 
-  static void push_handler(const std::function<bool()> &handler);
-  static void pop_handler();
+  void set_propagate_interrupt(bool flag);
+  bool propagates_interrupt();
 
-  static void set_propagate_interrupt(bool flag);
-  static bool propagates_interrupt();
+  void block();
+  void unblock(bool clear_pending = false);
 
-  static void block();
-  static void unblock(bool clear_pending = false);
+  void interrupt();
 
-  static void interrupt();
-  static void ignore_thread();
-
-  static void wait(uint32_t ms);
+  void wait(uint32_t ms);
 
  private:
-  static Interrupt_helper *_helper;
-  static std::function<bool()> _handlers[kMax_interrupt_handlers];
-  static std::atomic<int> _num_handlers;
-  static std::mutex _handler_mutex;
-  static bool _propagates_interrupt;
-  static std::thread::id _main_thread_id;
-  // use int instead of bool as we sometimes seem to hit
-  // https://sourceware.org/bugzilla/show_bug.cgi?id=14898
-  static thread_local int _ignore_current_thread;
-  static Sigint_event s_sigint_event;
+  explicit Interrupts(Interrupt_helper *helper);
+
+  Interrupt_helper *m_helper;
+  std::function<bool()> m_handlers[kMax_interrupt_handlers];
+  std::atomic<int> m_num_handlers;
+  std::mutex m_handler_mutex;
+  bool m_propagates_interrupt;
+  std::thread::id m_creator_thread_id;
+  Sigint_event s_sigint_event;
 };
+
+std::shared_ptr<Interrupts> current_interrupt(bool allow_empty = false);
 
 struct Block_interrupts {
   explicit Block_interrupts(bool clear_on_unblock = false)
-      : clear_on_unblock_(clear_on_unblock) {
-    Interrupts::block();
+      : m_clear_on_unblock(clear_on_unblock) {
+    current_interrupt()->block();
   }
 
-  ~Block_interrupts() { Interrupts::unblock(clear_on_unblock_); }
+  ~Block_interrupts() { current_interrupt()->unblock(m_clear_on_unblock); }
 
-  void clear_pending(bool flag = true) { clear_on_unblock_ = flag; }
+  void clear_pending(bool flag = true) { m_clear_on_unblock = flag; }
 
-  bool clear_on_unblock_;
+  bool m_clear_on_unblock;
 };
 
 class Interrupt_handler final {
@@ -113,7 +112,6 @@ class Interrupt_handler final {
   bool m_skip;
 };
 
-std::shared_ptr<Interrupt_helper> current_interrupt_helper();
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_INCLUDE_SHELLCORE_INTERRUPT_HANDLER_H_

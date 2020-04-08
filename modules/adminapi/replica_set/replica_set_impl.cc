@@ -48,6 +48,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -2278,8 +2279,8 @@ void Replica_set_impl::handle_clone(
 
     std::exception_ptr error_ptr;
 
-    std::thread clone_thread = std::thread(
-        [&recipient_clone, clone_donor_opts, ar_options, &error_ptr]() {
+    auto clone_thread = spawn_scoped_thread(
+        [&recipient_clone, clone_donor_opts, ar_options, &error_ptr] {
           mysqlsh::thread_init();
 
           try {

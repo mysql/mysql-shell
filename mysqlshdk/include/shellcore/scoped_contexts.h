@@ -25,6 +25,7 @@
 #define MYSQLSHDK_INCLUDE_SHELLCORE_SCOPED_CONTEXTS_H_
 
 #include <memory>
+#include <utility>
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
@@ -54,8 +55,50 @@ class Global_scoped_object {
 
 using Scoped_console = Global_scoped_object<mysqlsh::IConsole>;
 using Scoped_shell_options = Global_scoped_object<mysqlsh::Shell_options>;
-using Scoped_interrupt_handler = Global_scoped_object<shcore::Interrupt_helper>;
+using Scoped_interrupt = Global_scoped_object<shcore::Interrupts>;
 using Scoped_logger = Global_scoped_object<shcore::Logger>;
+
+namespace detail {
+template <class T>
+std::decay_t<T> decay_copy(T &&v) {
+  return std::forward<T>(v);
+}
+template <class Function, class... Args>
+std::thread spawn_scoped_thread(Function &&f, Args &&... args) {
+  auto thd_current_logger = shcore::current_logger(true);
+  auto thd_current_shell_opts = mysqlsh::current_shell_options(true);
+  auto thd_current_interrupt = shcore::current_interrupt(true);
+  auto thd_current_console = mysqlsh::current_console(true);
+  return std::thread(
+      [f = decay_copy(std::forward<Function>(f)), thd_current_logger,
+       thd_current_shell_opts, thd_current_interrupt,
+       thd_current_console](const std::decay_t<Args> &... a) {
+        mysqlsh::Scoped_logger logger(thd_current_logger);
+        mysqlsh::Scoped_shell_options shell_opts(thd_current_shell_opts);
+        mysqlsh::Scoped_interrupt interrupt(thd_current_interrupt);
+        mysqlsh::Scoped_console console(thd_current_console);
+        f(a...);
+      },
+      std::forward<Args>(args)...);
+}
+}  // namespace detail
+template <class Function, class... Args>
+std::thread spawn_scoped_thread(Function &&f, Args &&... args) {
+  return detail::spawn_scoped_thread(std::forward<Function>(f),
+                                     std::forward<Args>(args)...);
+}
+template <
+    class Function, class C, class... Args,
+    std::enable_if_t<std::is_member_pointer<std::decay_t<Function>>{}, int> = 0>
+std::thread spawn_scoped_thread(Function &&f, C &&c, Args &&... args) {
+  return detail::spawn_scoped_thread(
+      [f = detail::decay_copy(std::forward<Function>(f)),
+       c = std::forward<C>(c)](const std::decay_t<Args> &... a) {
+        (const_cast<C *>(&c)->*f)(a...);
+      },
+      std::forward<Args>(args)...);
+}
+
 }  // namespace mysqlsh
 
 #endif  // MYSQLSHDK_INCLUDE_SHELLCORE_SCOPED_CONTEXTS_H_

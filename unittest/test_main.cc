@@ -762,9 +762,9 @@ int main(int argc, char **argv) {
     std::cout << "  TO: " << rlp.rlim_cur << std::endl;
   }
 #endif
+  mysqlsh::Scoped_interrupt interrupt_handler(
+      shcore::Interrupts::create(nullptr));
 
-  // init the ^C handler, so it knows what's the main thread
-  shcore::Interrupts::init(nullptr);
   // Disable colors for tests
   mysqlshdk::textui::set_color_capability(mysqlshdk::textui::No_color);
 

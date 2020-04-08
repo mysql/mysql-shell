@@ -75,7 +75,7 @@ void print_value(const shcore::Value &value, const std::string &s) {
 Base_shell::Base_shell(const std::shared_ptr<Shell_options> &cmdline_options)
     : m_shell_options{cmdline_options},
       _deferred_output(std::make_unique<std::string>()) {
-  shcore::Interrupts::setup();
+  shcore::current_interrupt()->setup();
 
   _input_mode = shcore::Input_state::Ok;
 

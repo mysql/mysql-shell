@@ -21,14 +21,6 @@
 ||Invalid value for groupSeeds, string value cannot be empty. (ArgumentError)
 ||Dba.createCluster: Invalid address format: 'abc'
 
-//@ Create cluster errors using groupName option {VER(<8.0.21)}
-||Invalid value for groupName, string value cannot be empty. (ArgumentError)
-||Unable to set value 'abc' for 'groupName': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: The group name is not a valid UUID (RuntimeError)
-
-//@ Create cluster errors using groupName option {VER(>=8.0.21)}
-||Invalid value for groupName, string value cannot be empty. (ArgumentError)
-||Unable to set value 'abc' for 'groupName': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: The group_replication_group_name is not a valid UUID (RuntimeError)
-
 //@ Create cluster specifying :<valid_port> for localAddress (FR1-TS-1-2)
 ||
 

@@ -149,7 +149,7 @@ class IConsole {
   virtual void on_set_verbose() {}
 };
 
-std::shared_ptr<IConsole> current_console();
+std::shared_ptr<IConsole> current_console(bool allow_empty = false);
 
 }  // namespace mysqlsh
 

@@ -30,6 +30,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
 namespace mysqlshdk {
@@ -48,13 +49,13 @@ OutputT map_reduce(InputIter begin, InputIter end, MapF map, ReduceF reduce) {
   std::vector<std::thread> workers;
 
   auto iter = begin;
-
   // start computation in threads
   while (iter != end) {
     size_t index = workers.size();
-    workers.push_back(std::thread([&results, map, iter, index]() {
-      results.push({index, map(*iter)});
-    }));
+    workers.push_back(
+        mysqlsh::spawn_scoped_thread([&results, map, iter, index]() {
+          results.push({index, map(*iter)});
+        }));
     ++iter;
   }
 

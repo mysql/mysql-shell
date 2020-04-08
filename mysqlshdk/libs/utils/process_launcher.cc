@@ -20,6 +20,7 @@
    51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include "mysqlshdk/libs/utils/process_launcher.h"
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 
 #include <algorithm>
 #include <cassert>
@@ -911,33 +912,36 @@ void Process::start_reader_threads() {
     // operations non-blocking. This may be required i.e. on Windows, where we
     // use anonymous pipes to transfer output from child processes. If output is
     // not read, pipe's buffer will become full and child process will hang.
-    m_reader_thread = std::make_unique<std::thread>([this]() {
-      try {
-        static constexpr size_t k_buffer_size = 512;
-        char buffer[k_buffer_size];
-        int n = 0;
-        while ((n = do_read(buffer, k_buffer_size)) > 0) {
-          std::lock_guard<std::mutex> lock(m_read_buffer_mutex);
-          m_read_buffer.insert(m_read_buffer.end(), buffer, buffer + n);
-        }
-      } catch (...) {
-      }
-    });
+    m_reader_thread =
+        std::make_unique<std::thread>(mysqlsh::spawn_scoped_thread([this]() {
+          try {
+            static constexpr size_t k_buffer_size = 512;
+            char buffer[k_buffer_size];
+            int n = 0;
+            while ((n = do_read(buffer, k_buffer_size)) > 0) {
+              std::lock_guard<std::mutex> lock(m_read_buffer_mutex);
+              m_read_buffer.insert(m_read_buffer.end(), buffer, buffer + n);
+            }
+          } catch (...) {
+          }
+        }));
   }
 
 #ifdef __APPLE__
   // need to drain output from controlling terminal, otherwise launched
   // process will hang on exit
   if (m_use_pseudo_tty && !m_terminal_reader_thread) {
-    m_terminal_reader_thread = std::make_unique<std::thread>([this]() {
-      static constexpr size_t k_buffer_size = 512;
-      char buffer[k_buffer_size];
-      int n = 0;
-      while ((n = ::read(m_master_device, buffer, k_buffer_size)) > 0) {
-        std::lock_guard<std::mutex> lock{m_terminal_buffer_mutex};
-        m_terminal_buffer.insert(m_terminal_buffer.end(), buffer, buffer + n);
-      }
-    });
+    m_terminal_reader_thread =
+        std::make_unique<std::thread>(mysqlsh::spawn_scoped_thread([this]() {
+          static constexpr size_t k_buffer_size = 512;
+          char buffer[k_buffer_size];
+          int n = 0;
+          while ((n = ::read(m_master_device, buffer, k_buffer_size)) > 0) {
+            std::lock_guard<std::mutex> lock{m_terminal_buffer_mutex};
+            m_terminal_buffer.insert(m_terminal_buffer.end(), buffer,
+                                     buffer + n);
+          }
+        }));
   }
 #endif  // __APPLE__
 }

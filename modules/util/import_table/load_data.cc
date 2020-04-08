@@ -43,6 +43,7 @@ using off64_t = off_t;
 #include <utility>
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/libs/rest/error.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"

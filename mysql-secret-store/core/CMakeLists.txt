@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2018, 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -38,6 +38,7 @@ set(core_SRC
   program.cc
   store_command.cc
   version_command.cc
+  ${CMAKE_SOURCE_DIR}/mysqlshdk/shellcore/interrupt_helper.cc
 )
 
 add_convenience_library(mysql-secret-store-core ${core_SRC})

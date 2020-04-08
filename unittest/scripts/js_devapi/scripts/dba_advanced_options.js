@@ -57,11 +57,16 @@ var c = dba.createCluster('test', {groupSeeds: "abc"});
 // Clear invalid group seed value (to avoid further GR errors for next tests).
 session.runSql('SET @@GLOBAL.group_replication_group_seeds = ""');
 
-//@ Create cluster errors using groupName option
+//@<> Create cluster errors using groupName option
 // FR3-TS-1-2
-var c = dba.createCluster('test', {groupName: ""});
+EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {groupName: ""}); }, "Dba.createCluster: Invalid value for groupName, string value cannot be empty", "ArgumentError");
+
 // FR3-TS-1-3
-var c = dba.createCluster('test', {groupName: "abc"});
+if (__version_num >= 80022) {
+  EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {groupName: "abc"}); }, "Dba.createCluster: Unable to set value 'abc' for 'groupName': " + hostname + ":" + __mysql_sandbox_port1 + ": The group_replication_group_name is not a valid UUID", "RuntimeError");
+} else {
+  EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {groupName: "abc"}); }, "Dba.createCluster: Unable to set value 'abc' for 'groupName': " + hostname + ":" + __mysql_sandbox_port1 + ": The group name is not a valid UUID", "RuntimeError");
+}
 
 //@ Create cluster specifying :<valid_port> for localAddress (FR1-TS-1-2)
 var valid_port = __mysql_sandbox_port1 + 20000;

@@ -27,6 +27,7 @@
 #include <utility>
 #include <vector>
 
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -336,9 +337,14 @@ class Rest_service::Impl {
   std::future<Response> execute_async(Type type, const std::string &path,
                                       const shcore::Value &body,
                                       const Headers &headers) {
-    return std::async(std::launch::async, [this, type, path, body, headers]() {
-      return execute(type, path, body, headers, false);
-    });
+    auto current_logger = shcore::current_logger();
+    return std::async(std::launch::async,
+                      [this, type, path, body, headers, current_logger]() {
+                        // We're here in different thread, but we should use the
+                        // parent logger
+                        mysqlsh::Scoped_logger logger(current_logger);
+                        return execute(type, path, body, headers, false);
+                      });
   }
 
   void set(const Basic_authentication &basic) {

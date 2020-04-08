@@ -41,13 +41,13 @@ function check_auto_increment_settings(uri) {
 }
 
 //@ Initialize.
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {server_uuid: "cd93e780-b558-11ea-b3de-0242ac130004", report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 var mycnf_path1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {server_uuid: "cd93e9a6-b558-11ea-b3de-0242ac130004", report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 var mycnf_path2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {server_uuid: "cd93eab4-b558-11ea-b3de-0242ac130004", report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 var mycnf_path3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
 

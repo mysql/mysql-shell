@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,26 +21,33 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysql-secret-store/core/program.h"
-#include "mysqlshdk/include/shellcore/scoped_contexts.h"
-#include "shellcore/interrupt_helper.h"
+#ifndef MYSQLSHDK_INCLUDE_SHELLCORE_INTERRUPT_HELPER_H_
+#define MYSQLSHDK_INCLUDE_SHELLCORE_INTERRUPT_HELPER_H_
 
-namespace mysql {
-namespace secret_store {
-namespace client {
+#include "mysqlshdk/include/shellcore/interrupt_handler.h"
 
-std::unique_ptr<common::Helper> get_helper();
+#ifdef _WIN32
+class Interrupt_windows_helper {
+  std::thread m_scoped_thread;
 
-}  // namespace client
-}  // namespace secret_store
-}  // namespace mysql
+ public:
+  Interrupt_windows_helper();
+  Interrupt_windows_helper(const Interrupt_windows_helper &) = delete;
+  Interrupt_windows_helper(Interrupt_windows_helper &&) = delete;
+  Interrupt_windows_helper &operator=(const Interrupt_windows_helper &) =
+      delete;
+  Interrupt_windows_helper &operator=(Interrupt_windows_helper &&) = delete;
+  ~Interrupt_windows_helper();
+};
+#endif
 
-int main(int argc, char *argv[]) {
-  using mysql::secret_store::client::get_helper;
-  using mysql::secret_store::core::Program;
-  Interrupt_helper helper;
-  mysqlsh::Scoped_interrupt interrupt_handler(
-      shcore::Interrupts::create(&helper));
+class Interrupt_helper : public shcore::Interrupt_helper {
+ public:
+  void setup() override;
 
-  return Program(get_helper()).run(argc, argv);
-}
+  void block() override;
+
+  void unblock(bool) override;
+};
+
+#endif  // MYSQLSHDK_INCLUDE_SHELLCORE_INTERRUPT_HELPER_H_

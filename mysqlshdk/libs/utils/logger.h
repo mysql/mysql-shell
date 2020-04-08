@@ -156,7 +156,7 @@ class SHCORE_PUBLIC Logger final {
 };
 
 // implemented in scoped_contexts.cc
-std::shared_ptr<shcore::Logger> current_logger();
+std::shared_ptr<shcore::Logger> current_logger(bool allow_empty = false);
 
 /** The Shell_console::print* functions may log some information.
  *  when --verbose is enable, those are also printed which may cause a cyclic

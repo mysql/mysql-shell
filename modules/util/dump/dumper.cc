@@ -1239,7 +1239,7 @@ void Dumper::create_worker_threads() {
   m_worker_synchronization = std::make_unique<Synchronize_workers>();
 
   for (std::size_t i = 0; i < m_options.threads(); ++i) {
-    std::thread t(
+    auto t = mysqlsh::spawn_scoped_thread(
         &Table_worker::run,
         Table_worker{i, this, Table_worker::Exception_strategy::ABORT});
     m_workers.emplace_back(std::move(t));

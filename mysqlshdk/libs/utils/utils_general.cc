@@ -948,7 +948,7 @@ std::string SHCORE_PUBLIC unquote_identifier(const std::string &str) {
   return object;
 }
 
-void sleep_ms(uint32_t ms) { Interrupts::wait(ms); }
+void sleep_ms(uint32_t ms) { shcore::current_interrupt()->wait(ms); }
 
 /*
  * Determines the current Operating System

@@ -28,6 +28,7 @@
 #include "unittest/test_utils/command_line_test.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
+#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -301,7 +302,7 @@ shell.register_report('py_report', 'print', py_report);
   // check if PY report is available
   add_py_test("\\show py_report", "PY report");
 
-  std::thread thd([this]() {
+  auto thd = mysqlsh::spawn_scoped_thread([this] {
     shcore::sleep_ms(1000);
     delete_plugin("plugin.js");
     delete_plugin("plugin.py");

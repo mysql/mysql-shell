@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,7 +32,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "shellcore/interrupt_handler.h"
+#include "shellcore/interrupt_helper.h"
 #include "shellcore/shell_init.h"
 #ifdef HAVE_PYTHON
 #include "mysqlshdk/include/scripting/python_context.h"
@@ -45,7 +45,7 @@
 #include <sstream>
 
 #ifndef WIN32
-#include <unistd.h>
+#include <signal.h>
 #endif
 
 #ifdef ENABLE_SESSION_RECORDING
@@ -55,128 +55,6 @@ void finalize_debug_shell(mysqlsh::Command_line_shell *shell);
 #endif
 
 const char *g_mysqlsh_path;
-
-#ifdef WIN32
-#include <windows.h>
-
-class Interrupt_helper : public shcore::Interrupt_helper {
- public:
-  void setup() override {
-    // if we're being executed using CreateProcess() with
-    // CREATE_NEW_PROCESS_GROUP flag set, an implicit call to
-    // SetConsoleCtrlHandler(NULL, TRUE) is made, need to revert that
-    SetConsoleCtrlHandler(nullptr, FALSE);
-    // set our own handler
-    SetConsoleCtrlHandler(windows_ctrl_handler, TRUE);
-  }
-
-  void block() override {}
-
-  void unblock(bool) override {}
-
- private:
-  static BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
-    switch (fdwCtrlType) {
-      case CTRL_C_EVENT:
-      case CTRL_BREAK_EVENT:
-        interrupt();
-        // Don't let the default handler terminate us
-        return TRUE;
-      case CTRL_CLOSE_EVENT:
-      case CTRL_LOGOFF_EVENT:
-      case CTRL_SHUTDOWN_EVENT:
-        // TODO: Add proper exit handling if needed
-        break;
-    }
-    // Pass signal to the next control handler function.
-    return FALSE;
-  }
-
-  static void interrupt() {
-    try {
-      // we're being called from another thread, first notify the interrupt
-      // handlers, so they update their state before main thread resumes
-      shcore::Interrupts::interrupt();
-    } catch (const std::exception &e) {
-      log_error("Unhandled exception in SIGINT handler: %s", e.what());
-    }
-  }
-};
-
-#else  // !WIN32
-
-#include <signal.h>
-
-/**
-SIGINT signal handler.
-
-@description
-This function handles SIGINT (Ctrl-C). It will call a shell function
-which should handle the interruption in an appropriate fashion.
-If the interrupt() function returns false, it will interret as a signal
-that the shell itself should abort immediately.
-
-@param [IN]               Signal number
-*/
-
-static void handle_ctrlc_signal(int /* sig */) {
-  int errno_save = errno;
-  try {
-    shcore::Interrupts::interrupt();
-  } catch (const std::exception &e) {
-    log_error("Unhandled exception in SIGINT handler: %s", e.what());
-  }
-  if (shcore::Interrupts::propagates_interrupt()) {
-    // propagate the ^C to the caller of the shell
-    // this is the usual handling when we're running in batch mode
-    signal(SIGINT, SIG_DFL);
-    kill(getpid(), SIGINT);
-  }
-  errno = errno_save;
-}
-
-static void install_signal_handler() {
-  // install signal handler
-  signal(SIGINT, handle_ctrlc_signal);
-  // allow system calls to be interrupted
-  siginterrupt(SIGINT, 1);
-  // Ignore broken pipe signal
-  signal(SIGPIPE, SIG_IGN);
-}
-
-class Interrupt_helper : public shcore::Interrupt_helper {
- public:
-  virtual void setup() { install_signal_handler(); }
-
-  virtual void block() {
-    sigset_t sigset;
-    sigemptyset(&sigset);
-    sigaddset(&sigset, SIGINT);
-    sigprocmask(SIG_BLOCK, &sigset, nullptr);
-  }
-
-  virtual void unblock(bool clear_pending) {
-    sigset_t sigset;
-    sigemptyset(&sigset);
-    sigaddset(&sigset, SIGINT);
-
-    if (clear_pending && sigpending(&sigset)) {
-      struct sigaction ign, old;
-      // set to ignore SIGINT
-      ign.sa_handler = SIG_IGN;
-      ign.sa_flags = 0;
-      sigaction(SIGINT, &ign, &old);
-      // unblock and let SIGINT be delivered (and ignored)
-      sigprocmask(SIG_UNBLOCK, &sigset, nullptr);
-      // restore original SIGINT handler
-      sigaction(SIGINT, &old, nullptr);
-    } else {
-      sigprocmask(SIG_UNBLOCK, &sigset, nullptr);
-    }
-  }
-};
-
-#endif  //! WIN32
 
 static int enable_x_protocol(
     std::shared_ptr<mysqlsh::Command_line_shell> shell) {
@@ -653,7 +531,9 @@ int main(int argc, char **argv) {
 
   int ret_val = 0;
   Interrupt_helper sighelper;
-  shcore::Interrupts::init(&sighelper);
+
+  mysqlsh::Scoped_interrupt interrupt_handler(
+      shcore::Interrupts::create(&sighelper));
 
   std::shared_ptr<mysqlsh::Shell_options> shell_options =
       process_args(&argc, &argv);
@@ -669,10 +549,17 @@ int main(int argc, char **argv) {
       log_path.c_str(), options.log_to_stderr, options.log_level));
 
   std::shared_ptr<mysqlsh::Command_line_shell> shell;
+#ifdef HAVE_PYTHON
+  shcore::Scoped_callback cleanup([&shell] {
+    shell.reset();
+    shcore::Python_init_singleton::destroy_python();
+  });
+#endif
+
   try {
     bool interrupted = false;
     if (!options.interactive) {
-      shcore::Interrupts::push_handler([&interrupted]() {
+      shcore::current_interrupt()->push_handler([&interrupted]() {
         interrupted = true;
         return false;
       });
@@ -683,6 +570,10 @@ int main(int argc, char **argv) {
     shell.reset(new mysqlsh::Command_line_shell(shell_options), finalize_shell);
 
     init_shell(shell);
+
+#ifdef _WIN32
+    Interrupt_windows_helper whelper;
+#endif
 
     log_debug("Using color mode %i",
               static_cast<int>(mysqlshdk::textui::get_color_capability()));
@@ -764,8 +655,7 @@ int main(int argc, char **argv) {
           return 1;
         } catch (const std::exception &e) {
           std::cerr << e.what() << "\n";
-          ret_val = 1;
-          goto end;
+          return 1;
         }
       } else {
         shell->restore_print();
@@ -861,10 +751,5 @@ int main(int argc, char **argv) {
     ret_val = 1;
   }
 
-end:
-#ifdef HAVE_PYTHON
-  shell.reset();
-  shcore::Python_init_singleton::destroy_python();
-#endif
   return ret_val;
 }

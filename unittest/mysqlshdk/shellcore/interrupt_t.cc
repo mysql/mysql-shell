@@ -67,76 +67,77 @@ class Interrupt_tester : public shcore::Interrupt_helper {
 static Interrupt_tester interrupt_tester;
 
 TEST(Interrupt, basics) {
-  shcore::Interrupts::init(&interrupt_tester);
+  mysqlsh::Scoped_interrupt interrupt_handler(
+      shcore::Interrupts::create(&interrupt_tester));
   EXPECT_EQ(0, interrupt_tester.unblocked_);
 
-  shcore::Interrupts::setup();
+  shcore::current_interrupt()->setup();
   EXPECT_TRUE(interrupt_tester.setup_);
   EXPECT_EQ(1, interrupt_tester.unblocked_);
 
-  shcore::Interrupts::unblock();
+  shcore::current_interrupt()->unblock();
   EXPECT_EQ(0, interrupt_tester.unblocked_);
-  shcore::Interrupts::block();
+  shcore::current_interrupt()->block();
   EXPECT_EQ(1, interrupt_tester.unblocked_);
-  shcore::Interrupts::unblock();
+  shcore::current_interrupt()->unblock();
   EXPECT_EQ(0, interrupt_tester.unblocked_);
 
   bool flag = false;
-  shcore::Interrupts::interrupt();  // nothing should happen
+  shcore::current_interrupt()->interrupt();  // nothing should happen
 
   EXPECT_EQ(0, interrupt_tester.unblocked_);
 
-  shcore::Interrupts::push_handler([&flag]() {
+  shcore::current_interrupt()->push_handler([&flag]() {
     flag = true;
     return true;
   });
   EXPECT_EQ(0, interrupt_tester.unblocked_);
-  shcore::Interrupts::pop_handler();
+  shcore::current_interrupt()->pop_handler();
   EXPECT_EQ(0, interrupt_tester.unblocked_);
   ASSERT_FALSE(flag);
-  shcore::Interrupts::interrupt();
+  shcore::current_interrupt()->interrupt();
   ASSERT_FALSE(flag);
 
-  shcore::Interrupts::push_handler([&flag]() {
+  shcore::current_interrupt()->push_handler([&flag]() {
     flag = true;
     return true;
   });
   EXPECT_EQ(0, interrupt_tester.unblocked_);
-  shcore::Interrupts::interrupt();
+  shcore::current_interrupt()->interrupt();
   EXPECT_EQ(0, interrupt_tester.unblocked_);
   ASSERT_TRUE(flag);
   flag = false;
-  shcore::Interrupts::pop_handler();
+  shcore::current_interrupt()->pop_handler();
   EXPECT_EQ(0, interrupt_tester.unblocked_);
   ASSERT_FALSE(flag);
 
-  shcore::Interrupts::push_handler([&flag]() {
+  shcore::current_interrupt()->push_handler([&flag]() {
     flag = true;
     return true;
   });
   EXPECT_EQ(0, interrupt_tester.unblocked_);
-  shcore::Interrupts::push_handler([&flag]() {
+  shcore::current_interrupt()->push_handler([&flag]() {
     flag = true;
     return true;
   });
   EXPECT_EQ(0, interrupt_tester.unblocked_);
-  shcore::Interrupts::pop_handler();
+  shcore::current_interrupt()->pop_handler();
   EXPECT_EQ(0, interrupt_tester.unblocked_);
-  shcore::Interrupts::pop_handler();
+  shcore::current_interrupt()->pop_handler();
   EXPECT_EQ(0, interrupt_tester.unblocked_);
 
-  shcore::Interrupts::block();
+  shcore::current_interrupt()->block();
   EXPECT_EQ(1, interrupt_tester.unblocked_);
-  shcore::Interrupts::unblock();
+  shcore::current_interrupt()->unblock();
   EXPECT_EQ(0, interrupt_tester.unblocked_);
 
-  EXPECT_THROW(shcore::Interrupts::pop_handler(), std::logic_error);
+  EXPECT_THROW(shcore::current_interrupt()->pop_handler(), std::logic_error);
   EXPECT_EQ(0, interrupt_tester.unblocked_);
 
   // check default propagation value
-  EXPECT_FALSE(shcore::Interrupts::propagates_interrupt());
-  shcore::Interrupts::set_propagate_interrupt(true);
-  EXPECT_TRUE(shcore::Interrupts::propagates_interrupt());
+  EXPECT_FALSE(shcore::current_interrupt()->propagates_interrupt());
+  shcore::current_interrupt()->set_propagate_interrupt(true);
+  EXPECT_TRUE(shcore::current_interrupt()->propagates_interrupt());
 }
 
 //------------------------------------------------------------
@@ -151,11 +152,14 @@ struct Call_on_leave {
 
 class Interrupt_mysql : public Shell_core_test_wrapper {
  public:
-  Interrupt_mysql() : m_handler(nullptr, slow_deleg_print, nullptr, nullptr) {}
+  Interrupt_mysql() : m_handler(nullptr, slow_deleg_print, nullptr, nullptr) {
+    m_current_interrupt = shcore::Interrupts::create(&interrupt_tester);
+  }
   void set_options() override { _options->interactive = true; }
 
   void SetUp() override {
-    shcore::Interrupts::init(&interrupt_tester);
+    mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
+    m_current_interrupt->setup();
     Shell_core_test_wrapper::SetUp();
     execute("\\connect --mc " + _mysql_uri);
     execute("\\py");
@@ -166,6 +170,8 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   // This function is overriden in order to grab a pointer to the final
   // delegate so we can set the slow printer.
   void reset_shell() override {
+    mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
+    m_current_interrupt->setup();
     // If the options have not been set, they must be set now, otherwise
     // they should be explicitly reset
     if (!_opts) reset_options();
@@ -281,6 +287,9 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
     FAIL() << "timeout waiting for " << str << "\n";
   }
 
+ protected:
+  std::shared_ptr<shcore::Interrupts> m_current_interrupt;
+
  private:
   shcore::Interpreter_print_handler m_handler;
 };
@@ -288,7 +297,8 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
 class Interrupt_mysqlx : public Interrupt_mysql {
  public:
   void SetUp() override {
-    shcore::Interrupts::init(&interrupt_tester);
+    mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
+    m_current_interrupt->setup();
     Shell_core_test_wrapper::SetUp();
     execute("\\py");
     execute("import time");
@@ -298,6 +308,8 @@ class Interrupt_mysqlx : public Interrupt_mysql {
 };
 
 TEST_F(Interrupt_mysql, sql_classic) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
+
   // Test case for FR2
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
 
@@ -311,14 +323,15 @@ TEST_F(Interrupt_mysql, sql_classic) {
     bool kill_sent = false;
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id, &kill_sent]() {
-      Mysql_thread mysql;
-      // wait for the test session to popup up to 3s
-      session_wait(connection_id, 3, "test1");
-      // then kill it
-      kill_sent = true;
-      shcore::Interrupts::interrupt();
-    });
+    std::thread thd =
+        mysqlsh::spawn_scoped_thread([connection_id, &kill_sent]() {
+          Mysql_thread mysql;
+          // wait for the test session to popup up to 3s
+          session_wait(connection_id, 3, "test1");
+          // then kill it
+          kill_sent = true;
+          shcore::current_interrupt()->interrupt();
+        });
     try {
       auto result = session->execute_sql("select sleep(5) as test1");
       auto row = result->fetch_one();
@@ -332,6 +345,7 @@ TEST_F(Interrupt_mysql, sql_classic) {
 }
 #ifdef HAVE_V8
 TEST_F(Interrupt_mysql, sql_classic_javascript) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR5-a
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
 
@@ -344,10 +358,10 @@ TEST_F(Interrupt_mysql, sql_classic_javascript) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep(42)");
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     wipe_all();
     EXPECT_NO_THROW(
@@ -365,6 +379,7 @@ TEST_F(Interrupt_mysql, sql_classic_javascript) {
 #endif
 
 TEST_F(Interrupt_mysql, sql_classic_py) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR7-a
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
 
@@ -378,10 +393,10 @@ TEST_F(Interrupt_mysql, sql_classic_py) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep(42)");
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     wipe_all();
     EXPECT_NO_THROW(
@@ -399,6 +414,7 @@ TEST_F(Interrupt_mysql, sql_classic_py) {
 }
 
 TEST_F(Interrupt_mysqlx, sql_x) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR2
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
 
@@ -411,14 +427,15 @@ TEST_F(Interrupt_mysqlx, sql_x) {
     bool kill_sent = false;
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id, &kill_sent]() {
-      Mysql_thread mysql;
-      // wait for the test session to popup up to 3s
-      session_wait(connection_id, 3, "test1");
-      // then kill it
-      kill_sent = true;
-      shcore::Interrupts::interrupt();
-    });
+    std::thread thd =
+        mysqlsh::spawn_scoped_thread([connection_id, &kill_sent]() {
+          Mysql_thread mysql;
+          // wait for the test session to popup up to 3s
+          session_wait(connection_id, 3, "test1");
+          // then kill it
+          kill_sent = true;
+          shcore::current_interrupt()->interrupt();
+        });
     try {
       auto result = session->execute_sql("select sleep(5) as test1");
       auto row = result->fetch_one();
@@ -432,6 +449,7 @@ TEST_F(Interrupt_mysqlx, sql_x) {
 }
 
 TEST_F(Interrupt_mysqlx, sql_x_err) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR2
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
 
@@ -443,10 +461,10 @@ TEST_F(Interrupt_mysqlx, sql_x_err) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "mysql");
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     try {
       auto result =
@@ -462,6 +480,7 @@ TEST_F(Interrupt_mysqlx, sql_x_err) {
 #ifdef HAVE_V8
 // Test that JS code running SQL gets interrupted
 TEST_F(Interrupt_mysqlx, db_javascript_sql) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR5-b-1
   execute("\\js");
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
@@ -474,10 +493,10 @@ TEST_F(Interrupt_mysqlx, db_javascript_sql) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep(42)");
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     wipe_all();
     EXPECT_NO_THROW(
@@ -495,6 +514,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_sql) {
 }
 
 TEST_F(Interrupt_mysqlx, db_javascript_crud_table) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR5-b-2,3
   execute("\\js");
   execute("\\use itst");
@@ -509,10 +529,10 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_table) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     wipe_all();
     execute(
@@ -533,6 +553,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_table) {
 }
 
 TEST_F(Interrupt_mysqlx, db_javascript_crud_table2) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR5-b-2,3
   execute("\\js");
   execute("\\use itst");
@@ -547,10 +568,10 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_table2) {
   {  // Again with sleep on filter
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute(
         "print(db.getTable('data').select(['b']).where('sleep(20)')"
@@ -568,6 +589,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_table2) {
 }
 
 TEST_F(Interrupt_mysqlx, db_javascript_crud_collection) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR5-b-2,3
   execute("\\js");
   execute("\\use itst");
@@ -582,10 +604,10 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute(
         "res = db.getCollection('cdata').find().fields(['sleep(99)','b'])"
@@ -606,6 +628,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection) {
 }
 
 TEST_F(Interrupt_mysqlx, db_javascript_crud_collection2) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR5-b-2,3
   execute("\\js");
   execute("\\use itst");
@@ -620,10 +643,10 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection2) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute(
         "db.getCollection('cdata').find('sleep(10)').fields(['b'])."
@@ -643,6 +666,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection2) {
 }
 
 TEST_F(Interrupt_mysqlx, db_javascript_crud_collection_changes) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR5-b-2,3
   execute("\\js");
   execute("\\use itst");
@@ -661,10 +685,10 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection_changes) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute(
         "db.getCollection('cdata').modify('sleep(10)').set('newfield', 42)."
@@ -678,10 +702,10 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection_changes) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute("db.getCollection('cdata').remove('sleep(10)').execute();");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
@@ -707,6 +731,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_crud_collection_changes) {
 
 // Test that Python code running SQL gets interrupted
 TEST_F(Interrupt_mysqlx, db_python_sql) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR7-b-1
   execute("\\py");
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
@@ -719,10 +744,10 @@ TEST_F(Interrupt_mysqlx, db_python_sql) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     wipe_all();
     EXPECT_NO_THROW(
@@ -740,6 +765,7 @@ TEST_F(Interrupt_mysqlx, db_python_sql) {
 }
 
 TEST_F(Interrupt_mysqlx, db_python_crud_table) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR7-b-2,3
   execute("\\py");
   execute("\\use itst");
@@ -754,10 +780,10 @@ TEST_F(Interrupt_mysqlx, db_python_crud_table) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     wipe_all();
     execute("db.get_table('data').select(['sleep(20)','b']).execute()");
@@ -776,6 +802,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_table) {
 }
 
 TEST_F(Interrupt_mysqlx, db_python_crud_table2) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR7-b-2,3
   execute("\\py");
   execute("\\use itst");
@@ -789,10 +816,10 @@ TEST_F(Interrupt_mysqlx, db_python_crud_table2) {
   {  // Again with sleep on filter
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute("db.get_table('data').select(['b']).where('sleep(20)').execute();");
     MY_EXPECT_STDOUT_NOT_CONTAINS("first");
@@ -810,6 +837,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_table2) {
 }
 
 TEST_F(Interrupt_mysqlx, db_python_crud_collection) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR7-b-2,3
   execute("\\py");
   execute("\\use itst");
@@ -824,10 +852,10 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute(
         "res = db.get_collection('cdata').find().fields(['sleep(99)','b'])"
@@ -848,6 +876,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection) {
 }
 
 TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR7-b-2,3
   execute("\\py");
   execute("\\use itst");
@@ -862,10 +891,10 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute(
         "db.get_collection('cdata').find('sleep(10)').fields(['b'])."
@@ -888,10 +917,10 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "sleep", k_processlist_info_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute(
         "db.get_collection('cdata').modify('sleep(10)=0').set('x', 123)."
@@ -908,6 +937,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
 
 #ifdef HAVE_V8
 TEST_F(Interrupt_mysqlx, db_javascript_drop) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR5 b
   execute("\\js");
   execute("\\use itst");
@@ -931,10 +961,10 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "Waiting", k_processlist_state_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute("session.getSchema('itst').dropCollection('cdata')");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
@@ -947,10 +977,10 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "Waiting", k_processlist_state_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute("session.dropSchema('itst')");
     MY_EXPECT_STDERR_CONTAINS("interrupted");
@@ -970,6 +1000,7 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
 #endif
 
 TEST_F(Interrupt_mysqlx, db_python_drop) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR7 b
   execute("\\py");
   execute("\\use itst");
@@ -994,10 +1025,10 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "Waiting", k_processlist_state_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute("session.get_schema('itst').drop_collection('cdata')");
     MY_EXPECT_STDERR_CONTAINS("nterrupt");
@@ -1011,10 +1042,10 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
   {
     // thread should not use `session`, get the connection ID before creating it
     const auto connection_id = session->get_connection_id();
-    std::thread thd([connection_id]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([connection_id]() {
       Mysql_thread mysql;
       session_wait(connection_id, 3, "Waiting", k_processlist_state_column);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute("session.drop_schema('itst')");
     MY_EXPECT_STDERR_CONTAINS("nterrupt");
@@ -1036,11 +1067,12 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
 // Test that native JavaScript code gets interrupted
 #ifdef HAVE_V8
 TEST_F(Interrupt_mysql, javascript) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR4 JS
   execute("\\js");
-  std::thread thd([this]() {
+  std::thread thd = mysqlsh::spawn_scoped_thread([this]() {
     output_wait("READY", 3);
-    shcore::Interrupts::interrupt();
+    shcore::current_interrupt()->interrupt();
   });
   wipe_all();
   EXPECT_NO_THROW(
@@ -1054,6 +1086,7 @@ TEST_F(Interrupt_mysql, javascript) {
 
 // Test that native Python code gets interrupted
 TEST_F(Interrupt_mysql, python) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR4 Py
   execute("\\py");
   execute("import time");
@@ -1063,9 +1096,9 @@ TEST_F(Interrupt_mysql, python) {
   execute(
       "def sleep():\n"
       "  for i in xrange(1000000000): time.sleep(0.1)");
-  std::thread thd([this]() {
+  std::thread thd = mysqlsh::spawn_scoped_thread([this]() {
     output_wait("READY", 3);
-    shcore::Interrupts::interrupt();
+    shcore::current_interrupt()->interrupt();
   });
   wipe_all();
   // execute() allows only for single_input as specified in Python's Grammar
@@ -1084,16 +1117,16 @@ TEST_F(Interrupt_mysql, python) {
 // log to verify the KILL QUERY was sent) and error is displayed to the user.
 
 TEST_F(Interrupt_mysql, sql_classic_resultset) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR3
   execute("\\sql");
 
   make_output_slow();
   Call_on_leave restore([this]() { unmake_output_slow(); });
-
   {
-    std::thread thd([this]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([this]() {
       output_wait("first", 3);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute("select * from itst.data;");
     MY_EXPECT_STDOUT_NOT_CONTAINS("last");
@@ -1104,6 +1137,7 @@ TEST_F(Interrupt_mysql, sql_classic_resultset) {
 }
 
 TEST_F(Interrupt_mysql, sql_classic_resultset_vertical) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR3
   execute("\\sql");
 
@@ -1111,9 +1145,9 @@ TEST_F(Interrupt_mysql, sql_classic_resultset_vertical) {
   Call_on_leave restore([this]() { unmake_output_slow(); });
 
   {
-    std::thread thd([this]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([this]() {
       output_wait("first", 3);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute("select * from itst.data\\G");
     MY_EXPECT_STDOUT_NOT_CONTAINS("last");
@@ -1124,16 +1158,16 @@ TEST_F(Interrupt_mysql, sql_classic_resultset_vertical) {
 }
 
 TEST_F(Interrupt_mysqlx, sql_x_sql_resultset) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR3
   execute("\\sql");
 
   make_output_slow();
   Call_on_leave restore([this]() { unmake_output_slow(); });
-
   {
-    std::thread thd([this]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([this]() {
       output_wait("first", 3);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute("select * from itst.data;");
     MY_EXPECT_STDOUT_NOT_CONTAINS("last");
@@ -1144,6 +1178,7 @@ TEST_F(Interrupt_mysqlx, sql_x_sql_resultset) {
 }
 
 TEST_F(Interrupt_mysqlx, sql_x_sql_resultset_vertical) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR3
   execute("\\sql");
 
@@ -1151,9 +1186,9 @@ TEST_F(Interrupt_mysqlx, sql_x_sql_resultset_vertical) {
   Call_on_leave restore([this]() { unmake_output_slow(); });
 
   {
-    std::thread thd([this]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([this]() {
       output_wait("first", 3);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute("select * from itst.data\\G");
     MY_EXPECT_STDOUT_NOT_CONTAINS("last");
@@ -1165,15 +1200,16 @@ TEST_F(Interrupt_mysqlx, sql_x_sql_resultset_vertical) {
 
 #if 0  // not reliable until resultset printing rewrite
 TEST_F(Interrupt_mysqlx, js_x_crud_resultset) {
+  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   execute("\\js");
   execute("\\use itst");
   wipe_all();
   make_output_slow();
   {
     Call_on_leave restore([this]() { unmake_output_slow(); });
-    std::thread thd([this]() {
+    std::thread thd = mysqlsh::spawn_scoped_thread([this]() {
       output_wait("first", 3);
-      shcore::Interrupts::interrupt();
+      shcore::current_interrupt()->interrupt();
     });
     execute("db.getTable('data').select().execute();");
     MY_EXPECT_STDOUT_NOT_CONTAINS("last");

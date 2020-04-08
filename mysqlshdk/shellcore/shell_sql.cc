@@ -141,24 +141,23 @@ bool Shell_sql::process_sql(const char *query_str, size_t query_len,
         // Install kill query as ^C handler
         uint64_t conn_id = session->get_connection_id();
         const auto &conn_opts = session->get_connection_options();
-        Interrupts::push_handler([this, conn_id, conn_opts]() {
-          kill_query(conn_id, conn_opts);
-          return true;
-        });
+        {
+          shcore::Interrupt_handler interrupt([this, conn_id, conn_opts]() {
+            kill_query(conn_id, conn_opts);
+            return true;
+          });
 
-        result = session->querys(query_str, query_len);
-        Interrupts::pop_handler();
+          result = session->querys(query_str, query_len);
+        }
 
         timer.stage_end();
         info.elapsed_seconds = timer.total_seconds_elapsed();
       } catch (const mysqlshdk::db::Error &e) {
-        Interrupts::pop_handler();
         auto exc = shcore::Exception::mysql_error_with_code_and_state(
             e.what(), e.code(), e.sqlstate());
         if (line_num > 0) exc.set_file_context("", line_num);
         throw exc;
       } catch (...) {
-        Interrupts::pop_handler();
         throw;
       }
 

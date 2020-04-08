@@ -40,6 +40,7 @@ set(mysh_SRC
     mysqlsh/commands/command_show.cc
     mysqlsh/commands/command_system.cc
     mysqlsh/commands/command_watch.cc
+    ${CMAKE_SOURCE_DIR}/mysqlshdk/shellcore/interrupt_helper.cc
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/linenoise.cpp
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp
     ${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/wcwidth.cpp

@@ -70,7 +70,8 @@ var cluster = dba.getCluster();
 //@<> Remove two instances of the cluster and add back one of them with a different label
 cluster.removeInstance(__sandbox_uri2);
 cluster.removeInstance(__sandbox_uri3);
-cluster.addInstance(__sandbox_uri2, {label: "zzLabel"});
+// NOTE: set the highest weight so it's picked as primary
+cluster.addInstance(__sandbox_uri2, {label: "zzLabel", memberWeight: 100});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> Status cluster with 2 instances having one of them a non-default label

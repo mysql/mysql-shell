@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -175,7 +175,7 @@ std::string ShellBaseSession::sub_query_placeholders(
 void ShellBaseSession::begin_query() {
   if (_guard_active++ == 0) {
     // Install kill query as ^C handler
-    Interrupts::push_handler([this]() {
+    current_interrupt()->push_handler([this]() {
       kill_query();
       return true;
     });
@@ -184,6 +184,6 @@ void ShellBaseSession::begin_query() {
 
 void ShellBaseSession::end_query() {
   if (--_guard_active == 0) {
-    Interrupts::pop_handler();
+    current_interrupt()->pop_handler();
   }
 }

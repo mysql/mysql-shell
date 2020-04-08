@@ -243,7 +243,7 @@ class Shell_options : public shcore::Options {
   void notify(const std::string &option);
 };
 
-std::shared_ptr<Shell_options> current_shell_options();
+std::shared_ptr<Shell_options> current_shell_options(bool allow_empty = false);
 
 }  // namespace mysqlsh
 
