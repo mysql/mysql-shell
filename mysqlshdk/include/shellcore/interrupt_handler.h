@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,7 +51,7 @@ class Interrupts {
 
   static bool in_main_thread();
 
-  static void push_handler(std::function<bool()> handler);
+  static void push_handler(const std::function<bool()> &handler);
   static void pop_handler();
 
   static void set_propagate_interrupt(bool flag);
@@ -86,17 +86,23 @@ struct Block_interrupts {
   bool clear_on_unblock_;
 };
 
-struct Interrupt_handler {
-  explicit Interrupt_handler(std::function<bool()> handler, bool skip = false) {
-    _skip = skip;
-    if (!skip) Interrupts::push_handler(handler);
-  }
+class Interrupt_handler final {
+ public:
+  Interrupt_handler() = delete;
 
-  ~Interrupt_handler() {
-    if (!_skip) Interrupts::pop_handler();
-  }
+  explicit Interrupt_handler(const std::function<bool()> &handler,
+                             bool skip = false);
 
-  bool _skip;
+  Interrupt_handler(const Interrupt_handler &) = delete;
+  Interrupt_handler(Interrupt_handler &&) = delete;
+
+  Interrupt_handler &operator=(const Interrupt_handler &) = delete;
+  Interrupt_handler &operator=(Interrupt_handler &&) = delete;
+
+  ~Interrupt_handler();
+
+ private:
+  bool m_skip;
 };
 }  // namespace shcore
 

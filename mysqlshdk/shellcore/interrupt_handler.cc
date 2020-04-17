@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,7 +25,9 @@
 
 #include <cassert>
 #include <stdexcept>
+
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/sigint_event.h"
 
 namespace shcore {
 
@@ -193,7 +195,7 @@ bool Interrupts::in_main_thread() {
   return std::this_thread::get_id() == _main_thread_id;
 }
 
-void Interrupts::push_handler(std::function<bool()> handler) {
+void Interrupts::push_handler(const std::function<bool()> &handler) {
   // The interrupt handler can be disabled by thread,
   // if that's the case this is a no-op
   if (_ignore_current_thread) return;
@@ -244,21 +246,26 @@ void Interrupts::interrupt() {
   // if that's the case this is a no-op
   if (_ignore_current_thread) return;
 
-  Block_interrupts block_ints;
-  std::lock_guard<std::mutex> lock(_handler_mutex);
-  int n = _num_handlers.load();
-  if (n > 0) {
-    for (int i = n - 1; i >= 0; --i) {
-      try {
-        if (!_handlers[i]()) break;
-      } catch (const std::exception &e) {
-        log_error("Unexpected exception in interruption handler: %s", e.what());
-        assert(0);
-        throw;
+  {
+    Block_interrupts block_ints;
+    std::lock_guard<std::mutex> lock(_handler_mutex);
+    int n = _num_handlers.load();
+    if (n > 0) {
+      for (int i = n - 1; i >= 0; --i) {
+        try {
+          if (!_handlers[i]()) break;
+        } catch (const std::exception &e) {
+          log_error("Unexpected exception in interruption handler: %s",
+                    e.what());
+          assert(0);
+          throw;
+        }
       }
+      block_ints.clear_pending(true);
     }
-    block_ints.clear_pending(true);
   }
+
+  shcore::Sigint_event::get().interrupt();
 }
 
 void Interrupts::set_propagate_interrupt(bool flag) {
@@ -274,4 +281,15 @@ void Interrupts::block() {
 void Interrupts::unblock(bool clear_pending) {
   if (_helper) _helper->unblock(clear_pending);
 }
+
+Interrupt_handler::Interrupt_handler(const std::function<bool()> &handler,
+                                     bool skip)
+    : m_skip(skip) {
+  if (!m_skip) Interrupts::push_handler(handler);
+}
+
+Interrupt_handler::~Interrupt_handler() {
+  if (!m_skip) Interrupts::pop_handler();
+}
+
 }  // namespace shcore
