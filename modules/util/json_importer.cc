@@ -261,7 +261,8 @@ void Json_importer::load_from(shcore::Buffered_input *input,
 
   // schema and collection target are already set here, so we can cache
   // mysqlx::crud::insert header size here
-  m_packet_size_tracker.crud_insert_overhead_bytes = m_batch_insert.ByteSize();
+  m_packet_size_tracker.crud_insert_overhead_bytes =
+      m_batch_insert.ByteSizeLong();
 
   m_session->execute("START TRANSACTION");
 
