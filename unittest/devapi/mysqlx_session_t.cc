@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,7 +38,7 @@ std::string message_to_text(const Message_type &msg) {
 
 void print_message(const std::string &direction,
                    const xcl::XProtocol::Message &msg) {
-  std::cout << direction << "\t" << msg.ByteSize() + 1 << "\t"
+  std::cout << direction << "\t" << msg.ByteSizeLong() + 1 << "\t"
             << message_to_text(msg) << "\n";
 }
 

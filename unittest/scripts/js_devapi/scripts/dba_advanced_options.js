@@ -1,4 +1,3 @@
-//@{WARNING_SKIPPED_TEST("This test is causing problems on master and is temporarily disabled.")}
 // Assumptions: smart deployment functions available
 
 //@ Initialization
@@ -347,8 +346,8 @@ var cnfPath2 = __sandbox_dir + __mysql_sandbox_port2 + "/my.cnf";
 dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port2, password:'root', user: 'root'}, {mycnfPath: cnfPath2});
 
 //@ Stop seed and added instance with specific options (FR1-TS-4)
-testutil.stopSandbox(__mysql_sandbox_port2);
-testutil.stopSandbox(__mysql_sandbox_port1);
+testutil.stopSandbox(__mysql_sandbox_port2, {wait: 1});
+testutil.stopSandbox(__mysql_sandbox_port1, {wait: 1});
 
 //@ Restart added instance (FR1-TS-4)
 testutil.startSandbox(__mysql_sandbox_port2);
@@ -374,6 +373,8 @@ session.close();
 
 //@ Dissolve cluster (FR1-TS-4)
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 c = dba.getCluster();
 c.dissolve({force: true});
 

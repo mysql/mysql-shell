@@ -1438,11 +1438,18 @@ void Testutils::stop_sandbox(int port, const shcore::Dictionary_t &opts) {
 
   mysqlshdk::db::replay::No_replay dont_record;
   if (!_skip_server_interaction) {
-    auto session = connect_to_sandbox(port);
-    session->execute("shutdown");
-    session->close();
+    try {
+      auto session = connect_to_sandbox(port);
+      session->execute("shutdown");
+      session->close();
 
-    if (wait) wait_sandbox_dead(port);
+      if (wait) wait_sandbox_dead(port);
+    } catch (const std::runtime_error &error) {
+      // print the error log contents
+      std::string error_log_path = get_sandbox_log_path(port);
+      dprint(cat_file(error_log_path));
+      throw;
+    }
   }
 }
 

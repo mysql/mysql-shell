@@ -468,8 +468,14 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
 
   // Set all GR configurations.
   log_debug("Set all group replication configurations to be applied.");
+  // persist the GR configs using the loose_ prefix so that even if the
+  // plugin is disabled, the server can start
   for (const auto &gr_cfg : gr_cfgs) {
-    config->set_for_handler(gr_cfg.first, gr_cfg.second,
+    std::string option_name = gr_cfg.first;
+    if (shcore::str_ibeginswith(option_name, "group_replication_")) {
+      option_name = "loose_" + option_name;
+    }
+    config->set_for_handler(option_name, gr_cfg.second,
                             mysqlshdk::config::k_dft_cfg_file_handler);
   }
 
