@@ -1,5 +1,5 @@
-# Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
-# 
+# Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
 # as published by the Free Software Foundation.
@@ -39,15 +39,15 @@ MACRO (MYSQL_USE_BUNDLED_LZ4)
   SET(WITH_LZ4 "bundled" CACHE STRING "By default use bundled lz4 library")
   SET(BUILD_BUNDLED_LZ4 1)
   INCLUDE_DIRECTORIES(BEFORE SYSTEM ${CMAKE_SOURCE_DIR}/extra/lz4)
-  SET(LZ4_LIBRARY lz4_lib)
-
 
   IF (MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
     IF (WIN32)
-      SET(LZ4_LIBRARY "${MYSQL_BUILD_DIR}/utilities/${CMAKE_BUILD_TYPE}/lz4_lib.lib")
+      find_file(LZ4_LIBRARY NAMES "lz4_lib.lib" PATHS "${MYSQL_BUILD_DIR}/${CMAKE_BUILD_TYPE}" "${MYSQL_BUILD_DIR}/utilities/${CMAKE_BUILD_TYPE}" NO_DEFAULT_PATH)
     ELSE()
-      SET(LZ4_LIBRARY "${MYSQL_BUILD_DIR}/utilities/liblz4_lib.a")
+      find_file(LZ4_LIBRARY NAMES "liblz4_lib.a" PATHS "${MYSQL_BUILD_DIR}" "${MYSQL_BUILD_DIR}/utilities" NO_DEFAULT_PATH)
     ENDIF()
+  ELSE()
+    SET(LZ4_LIBRARY lz4_lib)
   ENDIF()
 ENDMACRO()
 
@@ -61,7 +61,7 @@ MACRO (MYSQL_CHECK_LZ4)
   ELSEIF(WITH_LZ4 STREQUAL "system")
     FIND_SYSTEM_LZ4()
     IF (NOT SYSTEM_LZ4_FOUND)
-      MESSAGE(FATAL_ERROR "Cannot find system lz4 libraries.") 
+      MESSAGE(FATAL_ERROR "Cannot find system lz4 libraries.")
     ENDIF()
   ELSE()
     MESSAGE(FATAL_ERROR "WITH_LZ4 must be bundled or system")
