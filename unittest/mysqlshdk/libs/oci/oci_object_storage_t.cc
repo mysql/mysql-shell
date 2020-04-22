@@ -57,17 +57,21 @@ TEST_F(Oci_os_tests, directory_list_files) {
   EXPECT_STREQ("", root_directory.full_path().c_str());
 
   root_files = root_directory.list_files();
-  EXPECT_EQ(3, root_files.size());
+  EXPECT_EQ(5, root_files.size());
   EXPECT_STREQ("sakila.sql", root_files[0].name.c_str());
   EXPECT_STREQ("sakila_metadata.txt", root_files[1].name.c_str());
   EXPECT_STREQ("sakila_tables.txt", root_files[2].name.c_str());
+  EXPECT_STREQ("uncommon%25%name.txt", root_files[3].name.c_str());
+  EXPECT_STREQ("uncommon's name.txt", root_files[4].name.c_str());
 
   root_files = root_directory.list_files(true);
-  EXPECT_EQ(4, root_files.size());
+  EXPECT_EQ(6, root_files.size());
   EXPECT_STREQ("sakila.sql", root_files[0].name.c_str());
   EXPECT_STREQ("sakila_metadata.txt", root_files[1].name.c_str());
   EXPECT_STREQ("sakila_tables.txt", root_files[2].name.c_str());
-  EXPECT_STREQ("multipart_object.txt", root_files[3].name.c_str());
+  EXPECT_STREQ("uncommon%25%name.txt", root_files[3].name.c_str());
+  EXPECT_STREQ("uncommon's name.txt", root_files[4].name.c_str());
+  EXPECT_STREQ("multipart_object.txt", root_files[5].name.c_str());
 
   EXPECT_STREQ("sakila", sakila.full_path().c_str());
 

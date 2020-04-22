@@ -43,7 +43,8 @@ class SHCORE_PUBLIC Uri_encoder {
   std::string encode_host(const std::string &data);
   std::string encode_port(int port);
   std::string encode_port(const std::string &data);
-  std::string encode_path_segment(const std::string &data);
+  std::string encode_path_segment(const std::string &data,
+                                  bool skip_already_encoded = true);
   std::string encode_attribute(const std::string &data);
   std::string encode_values(const std::vector<std::string> &values,
                             bool force_array = false);

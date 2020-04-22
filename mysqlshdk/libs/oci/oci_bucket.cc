@@ -34,7 +34,7 @@ const size_t MAX_LIST_OBJECTS_LIMIT = 1000;
 namespace {
 std::string encode_path(const std::string &data) {
   mysqlshdk::db::uri::Uri_encoder encoder;
-  return encoder.encode_path_segment(data);
+  return encoder.encode_path_segment(data, false);
 }
 
 std::string encode_query(const std::string &data) {

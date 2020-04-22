@@ -237,12 +237,17 @@ std::string Uri_encoder::encode_socket(const std::string &data) {
   return ret_val;
 }
 
-std::string Uri_encoder::encode_path_segment(const std::string &data) {
+std::string Uri_encoder::encode_path_segment(const std::string &data,
+                                             bool skip_already_encoded) {
   _tokenizer.reset();
   _tokenizer.set_allow_spaces(true);
   _tokenizer.set_allow_unknown_tokens(true);
   _tokenizer.set_simple_tokens(":@");
-  _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
+  // Skipping already encoded (default behavior) will cause to not double encode
+  // already percent encoded sequences
+  if (skip_already_encoded) {
+    _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
+  }
   _tokenizer.set_complex_token("unreserved", UNRESERVED);
   _tokenizer.set_complex_token("sub-delims", SUBDELIMITERS);
 

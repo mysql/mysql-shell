@@ -54,7 +54,7 @@ TEST_F(Oci_os_tests, bucket_list_objects) {
 
   // DEFAULT LIST: returns name and size only
   auto objects = bucket.list_objects();
-  EXPECT_EQ(9, objects.size());
+  EXPECT_EQ(11, objects.size());
 
   for (size_t index = 0; index < m_objects.size(); index++) {
     EXPECT_STREQ(m_objects[index].c_str(), objects[index].name.c_str());
@@ -67,7 +67,7 @@ TEST_F(Oci_os_tests, bucket_list_objects) {
   // FIELD FILTER: just names
   objects = bucket.list_objects("", "", "", 0, true,
                                 mysqlshdk::oci::object_fields::kName);
-  EXPECT_EQ(9, objects.size());
+  EXPECT_EQ(11, objects.size());
 
   for (size_t index = 0; index < m_objects.size(); index++) {
     EXPECT_STREQ(m_objects[index].c_str(), objects[index].name.c_str());
@@ -80,7 +80,7 @@ TEST_F(Oci_os_tests, bucket_list_objects) {
   // FIELD FILTER: all fields
   objects = bucket.list_objects("", "", "", 0, true,
                                 mysqlshdk::oci::Object_fields_mask::all());
-  EXPECT_EQ(9, objects.size());
+  EXPECT_EQ(11, objects.size());
 
   for (size_t index = 0; index < m_objects.size(); index++) {
     EXPECT_STREQ(m_objects[index].c_str(), objects[index].name.c_str());
@@ -96,10 +96,12 @@ TEST_F(Oci_os_tests, bucket_list_objects) {
       "", "", "", 0, false, mysqlshdk::oci::object_fields::kName, &prefixes);
 
   // Validates the returned files
-  EXPECT_EQ(3, objects.size());
+  EXPECT_EQ(5, objects.size());
   EXPECT_STREQ("sakila.sql", objects[0].name.c_str());
   EXPECT_STREQ("sakila_metadata.txt", objects[1].name.c_str());
   EXPECT_STREQ("sakila_tables.txt", objects[2].name.c_str());
+  EXPECT_STREQ("uncommon%25%name.txt", objects[3].name.c_str());
+  EXPECT_STREQ("uncommon's name.txt", objects[4].name.c_str());
 
   // Validates the returned prefixes (i.e. 'subdirectories')
   EXPECT_EQ(1, prefixes.size());
