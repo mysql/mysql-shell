@@ -63,7 +63,7 @@
 //@ Remove instance failure due to wrong credentials
 // NOTE: Do not use @<ERR> because it matches the whole line but result after
 // 'foo' is not deterministic: @'hostanme' or @'hostname_ip' can appear.
-||Cluster.removeInstance: Access denied for user 'foo'@'[[*]]' (using password: YES) (MySQL Error 1045)
+||Cluster.removeInstance: Could not open connection to '[[*]]:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@'[[*]]' (using password: YES) (MySQL Error 1045)
 
 //@<OUT> Cluster status after remove failed
 {

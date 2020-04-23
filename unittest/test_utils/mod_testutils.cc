@@ -138,7 +138,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("stopSandbox", &Testutils::stop_sandbox, "port", "?options");
   expose("killSandbox", &Testutils::kill_sandbox, "port", "?quiet", false);
   expose("restartSandbox", &Testutils::restart_sandbox, "port");
-  expose("waitSandboxAlive", &Testutils::wait_sandbox_alive, "port");
+  expose("waitSandboxAlive", &Testutils::wait_sandbox_alive, "port_or_uri");
   expose("snapshotSandboxConf", &Testutils::snapshot_sandbox_conf, "port");
   expose("beginSnapshotSandboxErrorLog",
          &Testutils::begin_snapshot_sandbox_error_log, "port");
@@ -1636,13 +1636,31 @@ void Testutils::wait_sandbox_dead(int port) {
   log_info("Finished waiting");
 }
 
-void Testutils::wait_sandbox_alive(int port) {
-  log_info("Waiting for sandbox (%d) to accept connections...", port);
+void Testutils::wait_sandbox_alive(const shcore::Value &port_or_uri) {
+  if (shcore::Value_type::Integer == port_or_uri.type) {
+    const auto port = port_or_uri.as_int();
+
+    wait_sandbox_alive([this, port]() { return connect_to_sandbox(port); },
+                       std::to_string(port));
+  } else {
+    const auto co = mysqlsh::get_connection_options(port_or_uri);
+
+    wait_sandbox_alive(
+        [&co]() { return mysqlsh::establish_session(co, false); },
+        co.as_uri(mysqlshdk::db::uri::formats::full()));
+  }
+}
+
+void Testutils::wait_sandbox_alive(
+    const std::function<std::shared_ptr<mysqlshdk::db::ISession>()> &connect,
+    const std::string &context) {
+  log_info("Waiting for sandbox (%s) to accept connections...",
+           context.c_str());
   int retries = (k_wait_sandbox_alive_timeout * 1000) / 500;
   std::shared_ptr<mysqlshdk::db::ISession> session;
   while (retries > 0) {
     try {
-      session = connect_to_sandbox(port);
+      session = connect();
     } catch (const std::exception &err) {
       --retries;
       shcore::sleep_ms(500);
@@ -1652,8 +1670,8 @@ void Testutils::wait_sandbox_alive(int port) {
     break;
   }
   if (retries <= 0) {
-    throw std::runtime_error("Timeout waiting for sandbox " +
-                             std::to_string(port) + " to accept connections");
+    throw std::runtime_error("Timeout waiting for sandbox " + context +
+                             " to accept connections");
   }
 }
 
@@ -3823,8 +3841,16 @@ std::shared_ptr<mysqlshdk::db::ISession> Testutils::connect_to_sandbox(
     int port) {
   mysqlshdk::db::Connection_options cnx_opt;
   cnx_opt.set_user("root");
-  cnx_opt.set_password(
-      _passwords.find(port) == _passwords.end() ? "root" : _passwords[port]);
+  {
+    auto pass = _passwords.find(port);
+
+    if (_passwords.end() == pass) {
+      // maybe it's an X port, try again
+      pass = _passwords.find(port / 10);
+    }
+
+    cnx_opt.set_password(_passwords.end() == pass ? "root" : pass->second);
+  }
   cnx_opt.set_host("127.0.0.1");
   cnx_opt.set_port(port);
   auto session = mysqlshdk::db::mysql::Session::create();

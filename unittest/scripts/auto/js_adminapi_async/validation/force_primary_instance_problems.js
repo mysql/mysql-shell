@@ -32,7 +32,7 @@
 |"status": "ONLINE"|
 
 //@# promoted is down (should fail)
-||ReplicaSet.forcePrimaryInstance: localhost:<<<__mysql_sandbox_port3>>>: Can't connect to MySQL server on 'localhost' ([[*]])
+||ReplicaSet.forcePrimaryInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on 'localhost' ([[*]])
 
 //@# a secondary is down (should fail and suggest invalidateErrorInstances)
 |ERROR: Could not connect to one or more SECONDARY instances. Use the 'invalidateErrorInstances' option to perform the failover anyway by skipping and invalidating unreachable instances.|

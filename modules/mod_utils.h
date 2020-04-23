@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -155,6 +155,21 @@ establish_session(const Connection_options &options, bool prompt_for_password,
 std::shared_ptr<mysqlshdk::db::ISession> SHCORE_PUBLIC
 establish_mysql_session(const Connection_options &options,
                         bool prompt_for_password, bool prompt_in_loop = false);
+
+/**
+ * Provides connection options for a classic session. If session parameter is a
+ * classic session, simply returns its connection options, if it's not, queries
+ * the server for relevant parameters, maintaining the transport type.
+ *
+ * @param session An open session.
+ *
+ * @returns Connection options which can be used to establish a classic session.
+ *
+ * @throws std::logic_error If the given session uses the X protocol and classic
+ *         port/socket cannot be determined.
+ */
+Connection_options SHCORE_PUBLIC get_classic_connection_options(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
 void unpack_json_import_flags(shcore::Option_unpacker *unpacker,
                               shcore::Document_reader_options *options);

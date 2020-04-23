@@ -30,6 +30,7 @@
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/db/replay/mysqlx.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
@@ -293,10 +294,16 @@ std::shared_ptr<IResult> Replayer_mysqlx::querys(const char *sql_,
 
 std::shared_ptr<IResult> Replayer_mysqlx::execute_stmt(
     const std::string &ns, const std::string &stmt,
-    const ::xcl::Argument_array &) {
+    const ::xcl::Argument_array &args) {
   if (ns != "sql")
     throw std::logic_error("replay for namespace " + ns + " not implemented");
-  return querys(stmt.data(), stmt.length(), true);
+
+  if (args.empty()) {
+    return querys(stmt.data(), stmt.length(), true);
+  } else {
+    const auto sql = replay::query(stmt, args);
+    return querys(sql.data(), sql.length(), true);
+  }
 }
 
 void Replayer_mysqlx::executes(const char *sql, size_t length) {

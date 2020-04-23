@@ -47,10 +47,6 @@ namespace dba {
 constexpr const char k_cluster_attribute_assume_gtid_set_complete[] =
     "opt_gtidSetIsComplete";
 
-constexpr const char *k_error_connecting_to_instance =
-    "Unable to connect to the target instance %s. Please verify the connection "
-    "settings, make sure the instance is available and try again.";
-
 class Base_cluster_impl {
  public:
   Base_cluster_impl(const std::string &cluster_name,

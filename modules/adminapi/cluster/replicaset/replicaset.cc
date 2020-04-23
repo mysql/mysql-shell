@@ -45,6 +45,7 @@
 #include "modules/adminapi/cluster/replicaset/switch_to_single_primary_mode.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/provision.h"
@@ -600,11 +601,8 @@ void GRReplicaSet::rejoin_instance(
              instance_def.uri_endpoint().c_str());
     instance =
         Instance::connect(instance_def, current_shell_options()->get().wizards);
-  } catch (const std::exception &e) {
-    std::string err_msg = "Could not open connection to '" +
-                          instance_def.uri_endpoint() + "': " + e.what();
-    throw shcore::Exception::runtime_error(err_msg);
   }
+  CATCH_REPORT_AND_THROW_CONNECTION_ERROR(instance_def.uri_endpoint())
 
   // Before rejoining an instance we must verify if the instance's
   // 'group_replication_group_name' matches the one registered in the
@@ -1307,11 +1305,8 @@ void GRReplicaSet::force_quorum_using_partition_of(
              instance_address.c_str());
     target_instance =
         Instance::connect(instance_def, current_shell_options()->get().wizards);
-  } catch (const std::exception &e) {
-    log_error("Could not open connection to '%s': %s", instance_address.c_str(),
-              e.what());
-    throw;
   }
+  CATCH_REPORT_AND_THROW_CONNECTION_ERROR(instance_address)
 
   // Before rejoining an instance we must verify if the instance's
   // 'group_replication_group_name' matches the one registered in the

@@ -11,21 +11,6 @@ function create_table(table_name, column_name) {
          column_name + '` JSON);';
 }
 
-function wait_for_server(uri) {
-  var max_retries = 60 * 5;
-  const sleep_time = 1;  // second
-  while (max_retries-- > 0) {
-    try {
-      if (shell.connect(uri)) {
-        return true;
-      }
-      os.sleep(sleep_time);
-    } catch (error) {
-      println(error);
-    }
-  }
-}
-
 testutil.deployRawSandbox(target_port, "root", {report_host: hostname});
 
 //@ Only X Protocol is supported
@@ -38,7 +23,7 @@ EXPECT_THROWS(function() {
 classic_session.close();
 
 //@ Setup test
-wait_for_server(xuri);
+testutil.waitSandboxAlive(xuri);
 shell.connect(xuri);
 var schema_handler = session.createSchema(target_schema);
 
@@ -479,7 +464,7 @@ testutil.stopSandbox(target_port);
 testutil.changeSandboxConf(target_port, "max_allowed_packet",        "1M");
 testutil.changeSandboxConf(target_port, "mysqlx_max_allowed_packet", "1M");
 testutil.startSandbox(target_port);
-wait_for_server(xuri);
+testutil.waitSandboxAlive(xuri);
 shell.connect(xuri);
 
 EXPECT_THROWS(function() {
@@ -499,7 +484,7 @@ testutil.stopSandbox(target_port);
 testutil.changeSandboxConf(target_port, "max_allowed_packet",        "2M"); // 2M == 2097152 bytes
 testutil.changeSandboxConf(target_port, "mysqlx_max_allowed_packet", "2M");
 testutil.startSandbox(target_port);
-wait_for_server(xuri);
+testutil.waitSandboxAlive(xuri);
 shell.connect(xuri);
 
 EXPECT_THROWS(function() {
@@ -519,7 +504,7 @@ testutil.stopSandbox(target_port);
 testutil.changeSandboxConf(target_port, "max_allowed_packet",        "2049K"); // max_allowed_packet must be rounded to kilobytes.
 testutil.changeSandboxConf(target_port, "mysqlx_max_allowed_packet", "2097228");
 testutil.startSandbox(target_port);
-wait_for_server(xuri);
+testutil.waitSandboxAlive(xuri);
 shell.connect(xuri);
 
 util.importJson(__import_data_path + '/2MB_doc.json', {
@@ -537,7 +522,7 @@ testutil.stopSandbox(target_port);
 testutil.changeSandboxConf(target_port, "max_allowed_packet",        "4M");
 testutil.changeSandboxConf(target_port, "mysqlx_max_allowed_packet", "4M");
 testutil.startSandbox(target_port);
-wait_for_server(xuri);
+testutil.waitSandboxAlive(xuri);
 shell.connect(xuri);
 
 util.importJson(__import_data_path + '/2MB_doc.json', {

@@ -18,7 +18,7 @@
 
 //@ remove invalid host (should fail)
 ||ReplicaSet.removeInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> does not belong to the replicaset (MYSQLSH 51310)
-||ReplicaSet.removeInstance: bogushost: Unknown MySQL server host 'bogushost'
+||ReplicaSet.removeInstance: Could not open connection to 'bogushost': Unknown MySQL server host 'bogushost'
 
 //@ remove PRIMARY (should fail)
 ||ReplicaSet.removeInstance: PRIMARY instance cannot be removed from the replicaset. (MYSQLSH 51302)
@@ -75,7 +75,7 @@ The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was removed from th
 ERROR: Unable to connect to the target instance localhost:<<<__mysql_sandbox_port2>>>. Please make sure the instance is available and try again. If the instance is permanently not reachable, use the 'force' option to remove it from the replicaset metadata and skip reconfiguration of that instance.
 
 //@<ERR> remove while target down - no force (should fail)
-ReplicaSet.removeInstance: localhost:<<<__mysql_sandbox_port2>>>: Can't connect to MySQL server on 'localhost' [[*]]
+ReplicaSet.removeInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port2>>>': Can't connect to MySQL server on 'localhost' [[*]]
 
 //@<OUT> remove while target down (localhost) - force (should fail)
 ERROR: Instance localhost:<<<__mysql_sandbox_port2>>> is unreachable and was not found in the replicaset metadata. The exact address of the instance as recorded in the metadata must be used in cases where the target is unreachable.

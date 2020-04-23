@@ -241,7 +241,7 @@ EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint2)["test_bool"] === true);
 //@<> WL#13788: SetInstanceOption must not allow setting tags for an instance if it is unreachable.
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING),UNREACHABLE");
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_hidden", false)}, "Cluster.setInstanceOption: The instance '" + __sandbox2 + "' is not reachable.", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_hidden", false)}, "Cluster.setInstanceOption: Could not open connection to '" + __sandbox2 + "': Can't connect to MySQL server on", "MySQL Error");
 
 //@<> WL#13788 setInstanceOption must not allow settings tags for an instance that doesn't belong to the cluster.
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});

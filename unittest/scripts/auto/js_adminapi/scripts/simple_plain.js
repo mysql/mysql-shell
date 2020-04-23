@@ -43,6 +43,7 @@ expected_pids1 = get_open_sessions(session1);
 expected_pids2 = get_open_sessions(session2);
 
 //@<> configureLocalInstance
+EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureLocalInstance", dba.configureLocalInstance, __sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 
 dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
 
@@ -55,6 +56,8 @@ session1 = mysql.getSession(__sandbox_uri1);
 expected_pids1 = get_open_sessions(session1);
 
 //@<> configureInstance
+EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureInstance", dba.configureInstance, __sandbox_uri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
+
 dba.configureInstance(__sandbox_uri2, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
 
 check_open_sessions(session1, expected_pids1);
@@ -77,6 +80,8 @@ check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> checkInstanceState
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.checkInstanceState", cluster.checkInstanceState, __sandbox_uri2);
+
 cluster.checkInstanceState(__sandbox_uri2);
 
 check_open_sessions(session1, expected_pids1);
@@ -98,12 +103,16 @@ check_open_sessions(session2, expected_pids2);
 cluster = dba.getCluster();
 
 //@<> addInstance
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.addInstance", cluster.addInstance, __sandbox_uri2, {recoveryMethod:'incremental'});
+
 cluster.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 
 //@<> removeInstance
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.removeInstance", cluster.removeInstance, __sandbox_uri2);
+
 cluster.removeInstance(__sandbox_uri2);
 
 check_open_sessions(session1, expected_pids1);
@@ -112,6 +121,8 @@ check_open_sessions(session2, expected_pids2);
 cluster.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
 
 //@<> setPrimaryInstance {VER(>=8.0.0)}
+CHECK_MYSQLX_EXPECT_THROWS_ERROR(`Cluster.setPrimaryInstance: The instance '${get_mysqlx_endpoint(__sandbox_uri2)}' does not belong to the cluster: 'mycluster'.`, cluster.setPrimaryInstance, __sandbox_uri2);
+
 cluster.setPrimaryInstance(__sandbox_uri2);
 
 check_open_sessions(session1, expected_pids1);
@@ -122,6 +133,8 @@ cluster.setPrimaryInstance(__sandbox_uri1);
 //@<> rejoinInstance
 session2.runSql("STOP group_replication");
 
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.rejoinInstance", cluster.rejoinInstance, __sandbox_uri2);
+
 cluster.rejoinInstance(__sandbox_uri2);
 
 check_open_sessions(session1, expected_pids1);
@@ -130,6 +143,8 @@ check_open_sessions(session2, expected_pids2);
 //@<> forceQuorumUsingPartitionOf
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING),UNREACHABLE");
+
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.forceQuorumUsingPartitionOf", cluster.forceQuorumUsingPartitionOf, __sandbox_uri1);
 
 cluster.forceQuorumUsingPartitionOf(__sandbox_uri1);
 
@@ -165,6 +180,9 @@ custom_weigth=50;
 
 //@<> setInstanceOption {VER(>=8.0.0)}
 custom_weigth=20;
+
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.setInstanceOption", cluster.setInstanceOption, __sandbox_uri1, "memberWeight", custom_weigth);
+
 cluster.setInstanceOption(__sandbox_uri1, "memberWeight", custom_weigth);
 
 check_open_sessions(session1, expected_pids1);

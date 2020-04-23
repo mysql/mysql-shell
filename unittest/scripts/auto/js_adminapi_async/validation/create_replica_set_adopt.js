@@ -67,8 +67,8 @@
 ||Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
 
 //@# admin account has mismatched passwords (should fail)
-|ERROR: Could not connect to 127.0.0.1:<<<__mysql_sandbox_port2>>> (slave of <<<__address1>>>): MySQL Error 1045: 127.0.0.1:<<<__mysql_sandbox_port2>>>: Access denied for user 'rooty'@'localhost' (using password: YES)|
-||Dba.createReplicaSet: 127.0.0.1:<<<__mysql_sandbox_port2>>>: Access denied for user 'rooty'@'localhost' (using password: YES) (MySQL Error 1045)
+|ERROR: Could not connect to 127.0.0.1:<<<__mysql_sandbox_port2>>> (slave of <<<__address1>>>): MySQL Error 1045: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port2>>>': Access denied for user 'rooty'@'localhost' (using password: YES)|
+||Dba.createReplicaSet: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port2>>>': Access denied for user 'rooty'@'localhost' (using password: YES) (MySQL Error 1045)
 
 //@# admin account passwords match, but they don't allow connection from the shell (should fail)
 ||Dba.createReplicaSet: Unable to detect target instance state. Please check account privileges. (RuntimeError)

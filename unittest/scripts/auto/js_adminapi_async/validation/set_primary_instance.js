@@ -23,7 +23,7 @@ ReplicaSet.setPrimaryInstance: The replicaset object is disconnected. Please use
 ReplicaSet.setPrimaryInstance: Target instance localhost:<<<__mysql_sandbox_port3>>> is not a managed instance. (MYSQLSH 51300)
 
 //@# promoted doesn't exist (should fail)
-||ReplicaSet.setPrimaryInstance: localhost:<<<__mysql_sandbox_port3>>>1: Can't connect to MySQL server on 'localhost'
+||ReplicaSet.setPrimaryInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>1': Can't connect to MySQL server on 'localhost'
 
 //@# bad target with a different user (should fail)
 |ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them.|
@@ -189,7 +189,7 @@ dryRun finished.
 
 //@# primary is down (should fail)
 ||ReplicaSet.setPrimaryInstance: Failed to execute query on Metadata server <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Lost connection to MySQL server during query (MySQL Error 2013)
-|ERROR: Unable to connect to the PRIMARY of the replicaset myrs: MySQL Error 2003: <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Can't connect to MySQL server on '<<<hostname_ip>>>'|
+|ERROR: Unable to connect to the PRIMARY of the replicaset myrs: MySQL Error 2003: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<hostname_ip>>>'|
 |Cluster change operations will not be possible unless the PRIMARY can be reached.|
 |If the PRIMARY is unavailable, you must either repair it or perform a forced failover.|
 |See \help forcePrimaryInstance for more information.|
@@ -205,8 +205,8 @@ dryRun finished.
 ||ReplicaSet.setPrimaryInstance: Replication or configuration errors at <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> (MYSQLSH 51131)
 
 //@# promoted is down (should fail)
-|ERROR: Unable to connect to the target instance localhost:<<<__mysql_sandbox_port3>>>. Please verify the connection settings, make sure the instance is available and try again.|
-||ReplicaSet.setPrimaryInstance: localhost:<<<__mysql_sandbox_port3>>>: Can't connect to MySQL server on 'localhost' ([[*]]) (MySQL Error 2003)
+|ERROR: Unable to connect to the target instance 'localhost:<<<__mysql_sandbox_port3>>>'. Please verify the connection settings, make sure the instance is available and try again.|
+||ReplicaSet.setPrimaryInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on 'localhost' ([[*]]) (MySQL Error 2003)
 
 //@# a secondary is down (should fail)
 |<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> will be promoted to PRIMARY of 'myrs'.|
@@ -216,7 +216,7 @@ dryRun finished.
 |** Connecting to <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
 |** Connecting to <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>|
 |** Connecting to <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>|
-|WARNING: Could not connect to SECONDARY instance: MySQL Error 2003: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>: Can't connect to MySQL server on '<<<hostname_ip>>>' ([[*]])|
+|WARNING: Could not connect to SECONDARY instance: MySQL Error 2003: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<hostname_ip>>>' ([[*]])|
 ||ReplicaSet.setPrimaryInstance: One or more instances are unreachable (MYSQLSH 51124)
 
 //@# a secondary has errant GTIDs (should fail)

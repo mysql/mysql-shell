@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
@@ -247,8 +248,13 @@ void Remove_instance::prepare() {
     // if the error is a server side error, then it means are able to connect to
     // it, so we just bubble it up to the user (unless force:1)
     if (!mysqlshdk::db::is_mysql_client_error(err.code()) &&
-        !m_force.get_safe())
-      throw;
+        !m_force.get_safe()) {
+      try {
+        throw;
+      }
+      CATCH_REPORT_AND_THROW_CONNECTION_ERROR(
+          m_instance_cnx_opts.uri_endpoint())
+    }
 
     // We can't connect directly to the instance. At this point, the
     // following cases are possible:

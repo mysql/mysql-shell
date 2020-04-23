@@ -31,6 +31,7 @@
 
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/member_recovery_monitoring.h"
@@ -409,12 +410,8 @@ void Add_instance::prepare() {
     try {
       m_target_instance = Instance::connect(
           m_instance_cnx_opts, current_shell_options()->get().wizards);
-    } catch (const shcore::Exception &e) {
-      if (e.is_mysql()) {
-        throw shcore::Exception::mysql_error_with_code(
-            m_instance_cnx_opts.uri_endpoint() + ": " + e.what(), e.code());
-      }
     }
+    CATCH_REPORT_AND_THROW_CONNECTION_ERROR(m_instance_cnx_opts.uri_endpoint())
   }
 
   //  Override connection option if no password was initially provided.

@@ -1028,25 +1028,7 @@ void Dumper::on_init_thread_session(
 }
 
 void Dumper::open_session() {
-  const auto &s = m_options.session();
-  // copy the connection options
-  auto co = s->get_connection_options();
-
-  // switch from X protocol to classic
-  if (mysqlsh::SessionType::X == co.get_session_type()) {
-    co.clear_scheme();
-    co.set_scheme("mysql");
-
-    if (co.has_port()) {
-      co.clear_port();
-      co.set_port(s->query("SELECT @@GLOBAL.port;")->fetch_one()->get_int(0));
-    } else {
-      // if we're here then socket was used
-      co.clear_socket();
-      co.set_socket(
-          s->query("SELECT @@GLOBAL.socket;")->fetch_one()->get_string(0));
-    }
-  }
+  auto co = get_classic_connection_options(m_options.session());
 
   // set read timeout, if not already set by user
   if (!co.has(mysqlshdk::db::kNetReadTimeout)) {

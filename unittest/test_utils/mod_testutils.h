@@ -24,6 +24,7 @@
 #ifndef UNITTEST_TEST_UTILS_MOD_TESTUTILS_H_
 #define UNITTEST_TEST_UTILS_MOD_TESTUTILS_H_
 
+#include <functional>
 #include <future>
 #include <map>
 #include <memory>
@@ -59,6 +60,8 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined killSandbox(Integer port);
   Undefined restartSandbox(Integer port);
   Undefined waitSandboxAlive(Integer port);
+  Undefined waitSandboxAlive(String uri);
+  Undefined waitSandboxAlive(ConnectionData data);
   Undefined changeSandboxConf(Integer port, String option, String value,
                               String section);
   Undefined upgradeSandbox(Integer port);
@@ -122,6 +125,8 @@ class Testutils : public mysqlsh::Extensible_object {
   None kill_sandbox(int port);
   None restart_sandbox(int port);
   None wait_sandbox_alive(int port);
+  None wait_sandbox_alive(str uri);
+  None wait_sandbox_alive(ConnectionData data);
   None change_sandbox_conf(int port, str option, str value, str section);
   None upgrade_sandbox(int port);
   None remove_from_sandbox_conf(int port, str option, str section);
@@ -230,7 +235,10 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void restart_sandbox(int port);
 
-  void wait_sandbox_alive(int port);
+  void wait_sandbox_alive(const shcore::Value &port_or_uri);
+  void wait_sandbox_alive(
+      const std::function<std::shared_ptr<mysqlshdk::db::ISession>()> &connect,
+      const std::string &context);
 
   void snapshot_sandbox_conf(int port);
   void begin_snapshot_sandbox_error_log(int port);

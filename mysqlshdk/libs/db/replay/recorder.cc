@@ -30,6 +30,7 @@
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/db/replay/mysqlx.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_stacktrace.h"
@@ -164,7 +165,10 @@ std::shared_ptr<IResult> Recorder_mysqlx::querys(const char *sql, size_t length,
     // assuming that error log contents change when a query is executed
     // if (set_log_save_point) set_log_save_point(_port);
 
-    _trace->serialize_query(std::string(sql, length));
+    const auto query = std::string(sql, length);
+    _trace->serialize_query(on_recorder_query_replace_hook
+                                ? on_recorder_query_replace_hook(query)
+                                : query);
     // Always buffer to make row serialization easier
     std::shared_ptr<IResult> result(super::querys(sql, length, true));
     _trace->serialize_result(result, nullptr);
@@ -176,69 +180,6 @@ std::shared_ptr<IResult> Recorder_mysqlx::querys(const char *sql, size_t length,
   }
 }
 
-namespace {
-
-class Argument_visitor : public xcl::Argument_visitor {
- public:
-  shcore::sqlstring *sql;
-
-  void visit_null() { *sql << nullptr; }
-
-  void visit_integer(const int64_t value) { *sql << value; }
-
-  void visit_uinteger(const uint64_t value) { *sql << value; }
-
-  void visit_double(const double value) { *sql << value; }
-
-  void visit_float(const float value) { *sql << value; }
-
-  void visit_bool(const bool value) { *sql << value; }
-
-  void visit_object(const xcl::Argument_value::Object &) {
-    throw std::logic_error("type not implemented");
-  }
-
-  void visit_uobject(const xcl::Argument_value::Unordered_object &) {
-    throw std::logic_error("type not implemented");
-  }
-
-  void visit_array(const xcl::Argument_value::Arguments &) {
-    throw std::logic_error("type not implemented");
-  }
-
-  void visit_string(const std::string &value) { *sql << value; }
-
-  void visit_octets(const std::string &value) { *sql << value; }
-
-  void visit_decimal(const std::string &value) { *sql << value; }
-};
-
-std::string sub_query_placeholders(const std::string &query,
-                                   const ::xcl::Argument_array &args) {
-  shcore::sqlstring squery(query.c_str(), 0);
-  Argument_visitor v;
-  v.sql = &squery;
-
-  int i = 0;
-  for (const auto &value : args) {
-    try {
-      value.accept(&v);
-    } catch (const std::exception &e) {
-      throw std::invalid_argument(shcore::str_format(
-          "%s while substituting placeholder value at index #%i", e.what(), i));
-    }
-    ++i;
-  }
-  try {
-    return squery.str();
-  } catch (const std::exception &e) {
-    throw std::invalid_argument(
-        "Insufficient number of values for placeholders in query");
-  }
-  return query;
-}
-}  // namespace
-
 std::shared_ptr<IResult> Recorder_mysqlx::execute_stmt(
     const std::string &ns, const std::string &stmt,
     const ::xcl::Argument_array &args) {
@@ -248,7 +189,7 @@ std::shared_ptr<IResult> Recorder_mysqlx::execute_stmt(
   if (args.empty()) {
     return querys(stmt.data(), stmt.length(), true);
   } else {
-    std::string sql = sub_query_placeholders(stmt, args);
+    const auto sql = replay::query(stmt, args);
     return querys(sql.data(), sql.length(), true);
   }
 }

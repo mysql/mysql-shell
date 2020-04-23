@@ -23,6 +23,8 @@
 
 #include "modules/util/load/load_dump_options.h"
 
+#include "modules/mod_utils.h"
+
 namespace mysqlsh {
 
 Load_dump_options::Load_dump_options(const std::string &url)
@@ -34,25 +36,7 @@ void Load_dump_options::set_session(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   m_base_session = session;
 
-  m_target = m_base_session->get_connection_options();
-
-  // switch from X protocol to classic
-  if (mysqlsh::SessionType::X == m_target.get_session_type()) {
-    m_target.clear_scheme();
-    m_target.set_scheme("mysql");
-
-    if (m_target.has_port()) {
-      m_target.clear_port();
-      m_target.set_port(
-          session->query("SELECT @@GLOBAL.port;")->fetch_one()->get_int(0));
-    } else {
-      // if we're here then socket was used
-      m_target.clear_socket();
-      m_target.set_socket(session->query("SELECT @@GLOBAL.socket;")
-                              ->fetch_one()
-                              ->get_string(0));
-    }
-  }
+  m_target = get_classic_connection_options(m_base_session);
 
   if (m_target.has(mysqlshdk::db::kLocalInfile)) {
     m_target.remove(mysqlshdk::db::kLocalInfile);

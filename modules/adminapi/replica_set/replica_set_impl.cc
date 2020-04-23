@@ -33,6 +33,7 @@
 #include "modules/adminapi/common/async_utils.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/global_topology_check.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/instance_monitoring.h"
@@ -650,17 +651,9 @@ void Replica_set_impl::add_instance(
   auto console = current_console();
 
   // Connect to the target Instance.
-  Scoped_instance target_instance;
-  std::string target_uuid;
-  try {
-    target_instance = Scoped_instance(connect_target_instance(instance_def));
-    target_uuid = target_instance->get_uuid();
-  } catch (const shcore::Exception &e) {
-    current_console()->print_error(shcore::str_format(
-        k_error_connecting_to_instance,
-        Connection_options(instance_def).uri_endpoint().c_str()));
-    throw;
-  }
+  const auto target_instance =
+      Scoped_instance(connect_target_instance(instance_def));
+  const auto target_uuid = target_instance->get_uuid();
 
   // Acquire required locks on target instance (acquired on primary after).
   // No "write" operation allowed to be executed concurrently on the target
@@ -865,17 +858,9 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
   auto console = current_console();
 
   log_debug("Connecting to target instance.");
-  Scoped_instance target_instance;
-  std::string target_uuid;
-  try {
-    target_instance = Scoped_instance(connect_target_instance(instance_def));
-    target_uuid = target_instance->get_uuid();
-  } catch (const shcore::Exception &e) {
-    current_console()->print_error(shcore::str_format(
-        k_error_connecting_to_instance,
-        Connection_options(instance_def).uri_endpoint().c_str()));
-    throw;
-  }
+  const auto target_instance =
+      Scoped_instance(connect_target_instance(instance_def));
+  const auto target_uuid = target_instance->get_uuid();
 
   // Acquire required locks on target instance (already acquired on primary).
   // No "write" operation allowed to be executed concurrently on the target
@@ -1085,19 +1070,25 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
   Scoped_instance target_server;
   try {
     target_server = Scoped_instance(connect_target_instance(instance_def_));
-  } catch (const shcore::Exception &e) {
+  } catch (const shcore::Exception &) {
     // Check if instance belongs to the replicaset (to send a more user-friendly
     // message to users)
     bool belong_to_md = true;
     std::string target_address =
         target_server ? target_server->get_canonical_address() : instance_def;
-    try {
-      m_metadata_storage->get_instance_by_address(target_address);
-    } catch (const shcore::Exception &err) {
-      if (err.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
-        belong_to_md = false;
+
+    if (Connection_options(target_address).has_port()) {
+      try {
+        m_metadata_storage->get_instance_by_address(target_address);
+      } catch (const shcore::Exception &err) {
+        if (err.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
+          belong_to_md = false;
+        }
+        // Ignore any error here: when checking if belongs to metadata.
       }
-      // Ignore any error here: when checking if belongs to metadata.
+    } else {
+      // user didn't provide a port, we cannot check if instance is in metadata
+      belong_to_md = false;
     }
 
     if (force.is_null() || *force == false) {
@@ -1982,14 +1973,7 @@ void Replica_set_impl::ensure_compatible_donor(
 
   auto console = current_console();
 
-  Scoped_instance target;
-  try {
-    target = Scoped_instance(connect_target_instance(instance_def));
-  } catch (const shcore::Exception &e) {
-    console->print_error(shcore::str_format(k_error_connecting_to_instance,
-                                            instance_def.c_str()));
-    throw;
-  }
+  const auto target = Scoped_instance(connect_target_instance(instance_def));
 
   // Check if the target belongs to the ReplicaSet (MD)
   std::string target_address = target->get_canonical_address();
@@ -2161,7 +2145,6 @@ void Replica_set_impl::handle_clone(
     const Recovery_progress_style &progress_style, int sync_timeout,
     bool dry_run) {
   auto console = current_console();
-  Scoped_instance donor_instance;
   /*
    * Clone handling:
    *
@@ -2192,14 +2175,7 @@ void Replica_set_impl::handle_clone(
   }
 
   // Install the clone plugin on the recipient and donor
-  try {
-    donor_instance = Scoped_instance(connect_target_instance(donor));
-  } catch (const shcore::Exception &e) {
-    console->print_error(
-        shcore::str_format(k_error_connecting_to_instance,
-                           Connection_options(donor).uri_endpoint().c_str()));
-    throw;
-  }
+  const auto donor_instance = Scoped_instance(connect_target_instance(donor));
 
   log_info("Installing the clone plugin on donor '%s'%s.",
            donor_instance.get()->get_canonical_address().c_str(),
@@ -2285,16 +2261,10 @@ void Replica_set_impl::handle_clone(
     }
 
     // Create a new connection to the recipient and run clone asynchronously
-    Scoped_instance recipient_clone;
     std::string instance_def =
         recipient->get_connection_options().uri_endpoint();
-    try {
-      recipient_clone = Scoped_instance(connect_target_instance(instance_def));
-    } catch (const shcore::Exception &e) {
-      current_console()->print_error(shcore::str_format(
-          k_error_connecting_to_instance, instance_def.c_str()));
-      throw;
-    }
+    const auto recipient_clone =
+        Scoped_instance(connect_target_instance(instance_def));
 
     mysqlshdk::db::Connection_options clone_donor_opts(donor);
 
@@ -2491,15 +2461,8 @@ const topology::Server *Replica_set_impl::check_target_member(
   auto console = current_console();
   // we can't print instance_def directly because it may contain credentials
   std::string instance_label = Connection_options(instance_def).uri_endpoint();
-
-  Scoped_instance target_instance;
-  try {
-    target_instance = Scoped_instance(connect_target_instance(instance_def));
-  } catch (const shcore::Exception &e) {
-    current_console()->print_error(shcore::str_format(
-        k_error_connecting_to_instance, instance_label.c_str()));
-    throw;
-  }
+  const auto target_instance =
+      Scoped_instance(connect_target_instance(instance_def));
 
   try {
     return topology->get_server(target_instance->get_uuid());
@@ -2529,16 +2492,19 @@ std::list<Scoped_instance> Replica_set_impl::connect_all_members(
     if ((i.primary_master && skip_primary) || i.invalidated) continue;
 
     try {
-      mysqlshdk::db::Connection_options opts(i.endpoint);
-      ipool->default_auth_opts().set(&opts);
-      // The read timeout will allow commands that block at the server but
-      // have no server-side timeouts to not block the shell indefinitely.
-      if (read_timeout > 0)
-        opts.set(mysqlshdk::db::kNetReadTimeout,
-                 {std::to_string(read_timeout * 1000)});
+      try {
+        mysqlshdk::db::Connection_options opts(i.endpoint);
+        ipool->default_auth_opts().set(&opts);
+        // The read timeout will allow commands that block at the server but
+        // have no server-side timeouts to not block the shell indefinitely.
+        if (read_timeout > 0)
+          opts.set(mysqlshdk::db::kNetReadTimeout,
+                   {std::to_string(read_timeout * 1000)});
 
-      console->print_info("** Connecting to " + i.label);
-      r.emplace_back(ipool->connect_unchecked(opts));
+        console->print_info("** Connecting to " + i.label);
+        r.emplace_back(ipool->connect_unchecked(opts));
+      }
+      CATCH_AND_THROW_CONNECTION_ERROR(i.endpoint)
     } catch (const shcore::Exception &e) {
       // Client errors are likely because the server is unreachable/crashed
       if (e.is_mysql() && mysqlshdk::db::is_mysql_client_error(e.code())) {

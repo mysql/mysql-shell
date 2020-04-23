@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -26,53 +26,73 @@
 #ifndef MODULES_ADMINAPI_COMMON_ERRORS_H_
 #define MODULES_ADMINAPI_COMMON_ERRORS_H_
 
+#include <stdexcept>
 #include <string>
-#include "scripting/types.h"
 
-using shcore::Exception;
-using shcore::Value;
-
-// AdminAPI / InnoDB cluster error codes
-
-#define SHERR_DBA_FIRST 0x10000
-
-// Errors caused by bad user input / arguments
-#define SHERR_DBA_INSTANCE_NOT_IN_CLUSTER 0x10000
-
-// Errors casued by cluster state
-
-// Errors caused by DB errors
-
-// Errors caused by system errors
-
-#define SHERR_DBA_LAST 0x20000
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/utils/logger.h"
 
 namespace mysqlsh {
 namespace dba {
-inline Exception make_error(int code, const std::string &summary,
-                            const std::string &description,
-                            const std::string &cause) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
-  (*error)["type"] = Value("AdminAPI");
-  (*error)["message"] = Value(summary);
-  (*error)["description"] = Value(description);
-  (*error)["cause"] = Value(cause);
-  (*error)["code"] = Value(code);
-  return Exception(error);
+
+inline shcore::Exception make_unsupported_protocol_error() {
+  return shcore::Exception::runtime_error(
+      "The provided URI uses the X protocol, which is not supported by this "
+      "command.");
 }
 
-inline Exception make_error(int code, const std::string &summary,
-                            const std::string &description,
-                            const std::string &cause,
-                            const std::exception_ptr &root_exception) {
-  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
-  (*error)["type"] = Value("AdminAPI");
-  (*error)["message"] = Value(summary);
-  (*error)["description"] = Value(description);
-  (*error)["cause"] = Value(cause);
-  (*error)["code"] = Value(code);
-  return Exception(error, root_exception);
+namespace detail {
+
+inline std::string connection_error_msg(const std::exception &e,
+                                        const std::string &context) {
+  return "Could not open connection to '" + context + "': " + e.what();
 }
+
+inline void report_connection_error(const std::exception &e,
+                                    const std::string &context) {
+  log_warning("Failed to connect to instance: %s", e.what());
+  mysqlsh::current_console()->print_error(
+      "Unable to connect to the target instance '" + context +
+      "'. Please verify the connection settings, make sure the instance is "
+      "available and try again.");
+}
+
+}  // namespace detail
+
+#define CATCH_AND_THROW_CONNECTION_ERROR(address)                          \
+  catch (const shcore::Exception &e) {                                     \
+    throw shcore::Exception::error_with_code(                              \
+        e.type(), mysqlsh::dba::detail::connection_error_msg(e, address),  \
+        e.code());                                                         \
+  }                                                                        \
+  catch (const shcore::Error &e) {                                         \
+    throw shcore::Exception::mysql_error_with_code(                        \
+        mysqlsh::dba::detail::connection_error_msg(e, address), e.code()); \
+  }                                                                        \
+  catch (const std::exception &e) {                                        \
+    throw shcore::Exception::runtime_error(                                \
+        mysqlsh::dba::detail::connection_error_msg(e, address));           \
+  }
+
+#define CATCH_REPORT_AND_THROW_CONNECTION_ERROR(address)                   \
+  catch (const shcore::Exception &e) {                                     \
+    mysqlsh::dba::detail::report_connection_error(e, address);             \
+    throw shcore::Exception::error_with_code(                              \
+        e.type(), mysqlsh::dba::detail::connection_error_msg(e, address),  \
+        e.code());                                                         \
+  }                                                                        \
+  catch (const shcore::Error &e) {                                         \
+    mysqlsh::dba::detail::report_connection_error(e, address);             \
+    throw shcore::Exception::mysql_error_with_code(                        \
+        mysqlsh::dba::detail::connection_error_msg(e, address), e.code()); \
+  }                                                                        \
+  catch (const std::exception &e) {                                        \
+    mysqlsh::dba::detail::report_connection_error(e, address);             \
+    throw shcore::Exception::runtime_error(                                \
+        mysqlsh::dba::detail::connection_error_msg(e, address));           \
+  }
+
 }  // namespace dba
 }  // namespace mysqlsh
 
