@@ -53,7 +53,8 @@ class Directory : public IDirectory {
 
   std::string full_path() const override;
 
-  std::vector<IDirectory::File_info> list_files() const override;
+  std::vector<IDirectory::File_info> list_files(
+      bool hidden_files = false) const override;
 
  protected:
   std::string join_path(const std::string &a,

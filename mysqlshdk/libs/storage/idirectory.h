@@ -64,7 +64,8 @@ class IDirectory {
    *
    * @returns All files in this directory.
    */
-  virtual std::vector<File_info> list_files() const = 0;
+  virtual std::vector<File_info> list_files(
+      bool hidden_files = false) const = 0;
 
   /**
    * Provides handle to the file with the specified name in this directory.
@@ -75,7 +76,6 @@ class IDirectory {
    */
   virtual std::unique_ptr<IFile> file(const std::string &name) const;
 
- protected:
   virtual std::string join_path(const std::string &a,
                                 const std::string &b) const = 0;
 };

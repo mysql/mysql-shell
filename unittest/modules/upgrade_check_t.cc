@@ -489,7 +489,7 @@ TEST_F(MySQL_upgrade_check_test, circular_directory_reference) {
       session->execute("CREATE TABLESPACE circular ADD DATAFILE "
                        "'mysql/../circular.ibd' ENGINE=INNODB;"));
   EXPECT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_EQ(1, issues.size());
+  ASSERT_EQ(1, issues.size());
   EXPECT_EQ("circular", issues[0].schema);
   EXPECT_NO_THROW(session->execute("drop tablespace circular"));
 }
@@ -537,32 +537,29 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
       session->execute("create event e_contains ON SCHEDULE AT "
                        "CURRENT_TIMESTAMP + INTERVAL 1 HOUR "
                        "DO select contains(col2,col3) from geotab1;"));
-  // Unable to test generated columns as at least in 5.7.19 they are
+  // Unable to test generated columns and views as at least in 5.7.26 they are
   // automatically converted to supported functions
   ASSERT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_EQ(6, issues.size());
-  EXPECT_NE(std::string::npos, issues[0].description.find("TOUCHES"));
-  EXPECT_NE(std::string::npos, issues[0].description.find("ST_TOUCHES"));
-  EXPECT_NE(std::string::npos, issues[0].description.find("VIEW"));
-  EXPECT_NE(std::string::npos, issues[1].description.find("CONTAINS"));
+  ASSERT_EQ(5, issues.size());
+  EXPECT_NE(std::string::npos, issues[0].description.find("CONTAINS"));
   EXPECT_NE(std::string::npos,
-            issues[1].description.find("consider using MBRCONTAINS"));
-  EXPECT_NE(std::string::npos, issues[1].description.find("TOUCHES"));
-  EXPECT_NE(std::string::npos, issues[1].description.find("PROCEDURE"));
+            issues[0].description.find("consider using MBRCONTAINS"));
+  EXPECT_NE(std::string::npos, issues[0].description.find("TOUCHES"));
+  EXPECT_NE(std::string::npos, issues[0].description.find("PROCEDURE"));
   EXPECT_NE(std::string::npos,
             issues[0].description.find("ST_TOUCHES instead"));
-  EXPECT_NE(std::string::npos, issues[2].description.find("PASSWORD"));
-  EXPECT_NE(std::string::npos, issues[2].description.find("ASTEXT"));
-  EXPECT_NE(std::string::npos, issues[2].description.find("ST_ASTEXT"));
+  EXPECT_NE(std::string::npos, issues[1].description.find("PASSWORD"));
+  EXPECT_NE(std::string::npos, issues[1].description.find("ASTEXT"));
+  EXPECT_NE(std::string::npos, issues[1].description.find("ST_ASTEXT"));
+  EXPECT_NE(std::string::npos, issues[1].description.find("FUNCTION"));
+  EXPECT_NE(std::string::npos, issues[2].description.find("ENCRYPT"));
+  EXPECT_NE(std::string::npos, issues[2].description.find("SHA2"));
   EXPECT_NE(std::string::npos, issues[2].description.find("FUNCTION"));
-  EXPECT_NE(std::string::npos, issues[3].description.find("ENCRYPT"));
-  EXPECT_NE(std::string::npos, issues[3].description.find("SHA2"));
-  EXPECT_NE(std::string::npos, issues[3].description.find("FUNCTION"));
-  EXPECT_NE(std::string::npos, issues[4].description.find("TOUCHES"));
-  EXPECT_NE(std::string::npos, issues[4].description.find("ST_TOUCHES"));
-  EXPECT_NE(std::string::npos, issues[5].description.find("CONTAINS"));
-  EXPECT_NE(std::string::npos, issues[5].description.find("MBRCONTAINS"));
-  EXPECT_NE(std::string::npos, issues[5].description.find("EVENT"));
+  EXPECT_NE(std::string::npos, issues[3].description.find("TOUCHES"));
+  EXPECT_NE(std::string::npos, issues[3].description.find("ST_TOUCHES"));
+  EXPECT_NE(std::string::npos, issues[4].description.find("CONTAINS"));
+  EXPECT_NE(std::string::npos, issues[4].description.find("MBRCONTAINS"));
+  EXPECT_NE(std::string::npos, issues[4].description.find("EVENT"));
 }
 
 TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {

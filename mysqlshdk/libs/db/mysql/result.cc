@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,6 +50,8 @@ Result::Result(std::shared_ptr<mysqlshdk::db::mysql::Session_impl> owner,
   if (owner) {
     owner->prepare_fetch(this);
   }
+
+  _row.reset(new Row(this));
 }
 
 // MYSQL-SERVER-CODE mysql.cc:3341
@@ -196,7 +198,6 @@ const IRow *Result::fetch_one() {
       }
     }
   } else {
-    _row.reset();
     if (has_resultset()) {
       // Loads the first row
       std::shared_ptr<MYSQL_RES> res = _result.lock();
@@ -207,11 +208,12 @@ const IRow *Result::fetch_one() {
           unsigned long *lengths;
           lengths = mysql_fetch_lengths(res.get());
 
-          _row.reset(new Row(this, mysql_row, lengths));
+          _row->reset(mysql_row, lengths);
 
           // Each read row increases the count
           _fetched_row_count++;
         } else {
+          _row.reset();
           if (auto session = _session.lock()) {
             int code = 0;
             const char *state;
@@ -221,7 +223,11 @@ const IRow *Result::fetch_one() {
                   err, code, state);
           }
         }
+      } else {
+        _row.reset();
       }
+    } else {
+      _row.reset();
     }
     return _row.get();
   }
@@ -236,6 +242,8 @@ bool Result::next_resultset() {
     ret_val = s->next_resultset();
 
     if (ret_val) s->prepare_fetch(this);
+
+    _row.reset(new Row(this));
   }
 
   return ret_val;
@@ -243,6 +251,8 @@ bool Result::next_resultset() {
 
 void Result::rewind() {
   _fetched_row_count = 0;
+  _row.reset(new Row(this));
+
   if (std::shared_ptr<MYSQL_RES> res = _result.lock())
     mysql_data_seek(res.get(), 0);
 }

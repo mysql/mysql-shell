@@ -25,8 +25,12 @@
 
 #include <openssl/err.h>
 #include <openssl/pem.h>
+
 #include <algorithm>
+#include <vector>
+
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -49,13 +53,10 @@ using mysqlshdk::oci::Oci_rest_service;
 using mysqlshdk::oci::Oci_service;
 using mysqlshdk::oci::Response_error;
 
-const size_t KIB = 1024;
-const size_t MIB = KIB * 1024;
-const size_t MAX_PART_SIZE = MIB * 10;
 const size_t MAX_FILE_NAME_SIZE = 1024;
 
 Directory::Directory(const Oci_options &options, const std::string &name)
-    : m_name(name),
+    : m_name(utils::strip_scheme(name, "oci+os")),
       m_bucket(std::make_unique<Bucket>(options)),
       m_created(false) {}
 
@@ -67,26 +68,58 @@ bool Directory::exists() const {
   } else {
     // If it has a name then we need to make sure it is a directory, it will be
     // verified by listing 1 object using as prefix as '<m_name>/'
-    auto objects = m_bucket->list_objects(m_name + "/", "", "", 1, false);
-    return !objects.empty();
+    auto files = list_files(true);
+    return !files.empty();
   }
 }
 
 void Directory::create() { m_created = true; }
 
-std::vector<IDirectory::File_info> Directory::list_files() const {
+std::vector<IDirectory::File_info> Directory::list_files(
+    bool hidden_files) const {
   std::vector<IDirectory::File_info> files;
-  auto objects = m_bucket->list_objects(m_name.empty() ? "" : m_name + "/", "",
-                                        "", 0, false);
+  std::string prefix = m_name.empty() ? "" : m_name + "/";
 
-  if (m_name.empty()) {
+  std::vector<mysqlshdk::oci::Object_details> objects;
+  try {
+    objects = m_bucket->list_objects(prefix, "", "", 0, false);
+  } catch (const Response_error &error) {
+    throw shcore::Exception::runtime_error(error.format());
+  }
+
+  if (prefix.empty()) {
     for (const auto &object : objects) {
       files.push_back({object.name, object.size});
     }
   } else {
-    size_t name_offset = m_name.size() + 1;
     for (const auto &object : objects) {
-      files.push_back({object.name.substr(name_offset), object.size});
+      files.push_back({object.name.substr(prefix.size()), object.size});
+    }
+  }
+
+  if (hidden_files) {
+    // Active multipart uploads to the target path should be considered files
+    std::vector<mysqlshdk::oci::Multipart_object> uploads;
+
+    try {
+      uploads = m_bucket->list_multipart_uploads();
+    } catch (const Response_error &error) {
+      throw shcore::Exception::runtime_error(error.format());
+    }
+
+    if (prefix.empty()) {
+      for (const auto &upload : uploads) {
+        // Only uploads not having '/' in the name belong to the root folder
+        if (upload.name.find("/") == std::string::npos) {
+          files.push_back({upload.name, 0});
+        }
+      }
+    } else {
+      for (const auto &upload : uploads) {
+        if (shcore::str_beginswith(upload.name, prefix)) {
+          files.push_back({upload.name.substr(prefix.size()), 0});
+        }
+      }
     }
   }
 
@@ -102,18 +135,22 @@ std::unique_ptr<IFile> Directory::file(const std::string &name) const {
   std::string file_name = join_path(m_name, name);
 
   if (file_name.size() > MAX_FILE_NAME_SIZE) {
-    throw std::runtime_error(shcore::str_format(
-        "Unable to create file '%s', it exceeds the allowed name length: 1024",
-        file_name.c_str()));
+    throw std::runtime_error(
+        shcore::str_format("Unable to create file '%s', it exceeds the "
+                           "allowed name length: 1024",
+                           file_name.c_str()));
   }
 
-  return std::make_unique<Object>(m_bucket->get_options(), name);
+  return std::make_unique<Object>(m_bucket->get_options(), name,
+                                  m_name.empty() ? "" : m_name + "/");
 }
 
-Object::Object(const Oci_options &options, const std::string &name)
+Object::Object(const Oci_options &options, const std::string &name,
+               const std::string &prefix)
     : m_name(name),
+      m_prefix(prefix),
       m_bucket(std::make_unique<Bucket>(options)),
-      m_max_part_size(MAX_PART_SIZE),
+      m_max_part_size(*options.part_size),
       m_writer{},
       m_reader{} {}
 
@@ -128,15 +165,32 @@ void Object::open(mysqlshdk::storage::Mode mode) {
       m_reader = std::make_unique<Reader>(this);
       break;
     case Mode::APPEND: {
-      auto uploads = m_bucket->list_multipart_uploads();
+      std::vector<mysqlshdk::oci::Multipart_object> uploads;
+      try {
+        uploads = m_bucket->list_multipart_uploads();
+      } catch (const Response_error &error) {
+        throw shcore::Exception::runtime_error(error.format());
+      }
+
       auto object = std::find_if(
           uploads.begin(), uploads.end(),
-          [this](const Multipart_object &o) { return o.name == m_name; });
+          [this](const Multipart_object &o) { return o.name == full_path(); });
 
+      // If there no active upload, the APPEND operation will be allowed if the
+      // file does not exist
       if (object == uploads.end()) {
-        throw std::runtime_error(
-            "Object Storage only supports APPEND mode for in-progress "
-            "multipart uploads.");
+        try {
+          // Verifies if the file exists, if not, an error will be thrown by
+          // head_object
+          m_bucket->head_object(full_path());
+
+          throw std::invalid_argument(
+              "Object Storage only supports APPEND mode for in-progress "
+              "multipart uploads or new files.");
+        } catch (const mysqlshdk::rest::Response_error &error) {
+          // If the file did not exist then OK to continue as a new file
+          mode = Mode::WRITE;
+        }
       }
 
       m_writer = std::make_unique<Writer>(this, &(*object));
@@ -176,12 +230,12 @@ std::string Object::filename() const { return m_name; }
 bool Object::exists() const {
   bool ret_val = true;
   try {
-    m_bucket->head_object(m_name);
+    m_bucket->head_object(full_path());
   } catch (const Response_error &error) {
     if (error.code() == Status_code::NOT_FOUND)
       ret_val = false;
     else
-      throw;
+      throw shcore::Exception::runtime_error(error.format());
   }
 
   return ret_val;
@@ -196,6 +250,19 @@ off64_t Object::seek(off64_t offset) {
     ret_val = m_reader->seek(offset);
   else if (m_writer)
     ret_val = m_writer->seek(offset);
+
+  return ret_val;
+}
+
+off64_t Object::tell() const {
+  assert(is_open());
+
+  off64_t ret_val = 0;
+
+  if (m_reader)
+    ret_val = m_reader->tell();
+  else if (m_writer)
+    ret_val = m_writer->tell();
 
   return ret_val;
 }
@@ -215,7 +282,11 @@ ssize_t Object::write(const void *buffer, size_t length) {
 }
 
 void Object::rename(const std::string &new_name) {
-  m_bucket->rename_object(m_name, new_name);
+  try {
+    m_bucket->rename_object(m_prefix + m_name, m_prefix + new_name);
+  } catch (const Response_error &error) {
+    throw shcore::Exception::runtime_error(error.format());
+  }
   m_name = new_name;
 }
 
@@ -226,7 +297,12 @@ Object::Writer::Writer(Object *owner, Multipart_object *object)
     m_multipart = *object;
     m_is_multipart = true;
 
-    m_parts = m_object->m_bucket->list_multipart_upload_parts(m_multipart);
+    try {
+      m_parts = m_object->m_bucket->list_multipart_upload_parts(m_multipart);
+    } catch (const Response_error &error) {
+      throw shcore::Exception::runtime_error(error.format());
+    }
+
     for (const auto &part : m_parts) {
       m_size += part.size;
     }
@@ -234,6 +310,8 @@ Object::Writer::Writer(Object *owner, Multipart_object *object)
 }
 
 off64_t Object::Writer::seek(off64_t /*offset*/) { return 0; }
+
+off64_t Object::Writer::tell() const { return size(); }
 
 ssize_t Object::Writer::write(const void *buffer, size_t length) {
   const size_t MY_MAX_PART_SIZE = m_object->m_max_part_size;
@@ -243,7 +321,13 @@ ssize_t Object::Writer::write(const void *buffer, size_t length) {
 
   // Initializes the multipart as soon as FILE_PART_SIZE data is provided
   if (!m_is_multipart && to_send > MY_MAX_PART_SIZE) {
-    m_multipart = m_object->m_bucket->create_multipart_upload(m_object->m_name);
+    try {
+      m_multipart =
+          m_object->m_bucket->create_multipart_upload(m_object->full_path());
+    } catch (const Response_error &error) {
+      throw shcore::Exception::runtime_error(error.format());
+    }
+
     m_is_multipart = true;
   }
 
@@ -255,16 +339,46 @@ ssize_t Object::Writer::write(const void *buffer, size_t length) {
       size_t buffer_space = MY_MAX_PART_SIZE - m_buffer.size();
       m_buffer.append(incoming + incoming_offset, buffer_space);
 
-      m_parts.push_back(m_object->m_bucket->upload_part(
-          m_multipart, m_parts.size() + 1, m_buffer.data(), MY_MAX_PART_SIZE));
+      try {
+        m_parts.push_back(
+            m_object->m_bucket->upload_part(m_multipart, m_parts.size() + 1,
+                                            m_buffer.data(), MY_MAX_PART_SIZE));
+      } catch (const mysqlshdk::rest::Response_error &error) {
+        try {
+          m_object->m_bucket->abort_multipart_upload(m_multipart);
+        } catch (const mysqlshdk::rest::Response_error &inner_error) {
+          log_error(
+              "Error cancelling multipart upload after failure uploading part, "
+              "error %s\ninitial failure: %s\n, object: %s\n upload id: %s",
+              inner_error.format().c_str(), error.format().c_str(),
+              m_multipart.name.c_str(), m_multipart.upload_id.c_str());
+        }
+
+        throw shcore::Exception::runtime_error(error.format());
+      }
       m_buffer.clear();
       incoming_offset += buffer_space;
       to_send -= MY_MAX_PART_SIZE;
     } else {
       // NO BUFFERED DATA: sends the data directly from the incoming buffer
-      m_parts.push_back(m_object->m_bucket->upload_part(
-          m_multipart, m_parts.size() + 1, incoming + incoming_offset,
-          MY_MAX_PART_SIZE));
+      try {
+        m_parts.push_back(m_object->m_bucket->upload_part(
+            m_multipart, m_parts.size() + 1, incoming + incoming_offset,
+            MY_MAX_PART_SIZE));
+      } catch (const mysqlshdk::rest::Response_error &error) {
+        try {
+          m_object->m_bucket->abort_multipart_upload(m_multipart);
+        } catch (const mysqlshdk::rest::Response_error &inner_error) {
+          log_error(
+              "Error cancelling multipart upload after failure uploading part, "
+              "error %s\ninitial failure: %s\n, object: %s\n upload id: %s",
+              inner_error.format().c_str(), error.format().c_str(),
+              m_multipart.name.c_str(), m_multipart.upload_id.c_str());
+        }
+
+        throw shcore::Exception::runtime_error(error.format());
+      }
+
       incoming_offset += MY_MAX_PART_SIZE;
       to_send -= MY_MAX_PART_SIZE;
     }
@@ -283,27 +397,63 @@ ssize_t Object::Writer::write(const void *buffer, size_t length) {
 void Object::Writer::close() {
   if (m_is_multipart) {
     // MULTIPART UPLOAD STARTED: Sends last part if any and commits the upload
-    if (!m_buffer.empty()) {
-      m_parts.push_back(m_object->m_bucket->upload_part(
-          m_multipart, m_parts.size() + 1, m_buffer.data(), m_buffer.size()));
+    try {
+      if (!m_buffer.empty()) {
+        m_parts.push_back(m_object->m_bucket->upload_part(
+            m_multipart, m_parts.size() + 1, m_buffer.data(), m_buffer.size()));
+      }
+
+      m_object->m_bucket->commit_multipart_upload(m_multipart, m_parts);
+    } catch (const mysqlshdk::rest::Response_error &error) {
+      try {
+        m_object->m_bucket->abort_multipart_upload(m_multipart);
+      } catch (const mysqlshdk::rest::Response_error &inner_error) {
+        log_error(
+            "Error cancelling multipart upload after failure completing the "
+            "upload, error %s\ninitial failure: %s\n, object: %s\n upload id: "
+            "%s",
+            inner_error.format().c_str(), error.format().c_str(),
+            m_multipart.name.c_str(), m_multipart.upload_id.c_str());
+      }
+
+      throw shcore::Exception::runtime_error(error.format());
     }
 
-    m_object->m_bucket->commit_multipart_upload(m_multipart, m_parts);
   } else {
     // NO UPLOAD STARTED: Sends whatever buffered data in a single PUT
-    m_object->m_bucket->put_object(m_object->m_name, m_buffer.data(),
-                                   m_buffer.size());
+    try {
+      m_object->m_bucket->put_object(m_object->full_path(), m_buffer.data(),
+                                     m_buffer.size());
+    } catch (const Response_error &error) {
+      throw shcore::Exception::runtime_error(error.format());
+    }
   }
 }
 
 Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
-  m_size = m_object->m_bucket->head_object(m_object->m_name);
+  try {
+    m_size = m_object->m_bucket->head_object(m_object->full_path());
+  } catch (const Response_error &error) {
+    if (error.code() == Response::Status_code::NOT_FOUND) {
+      // For Not Found generates a custom message as the one for the get()
+      // doesn't make much sense
+      throw shcore::Exception::runtime_error(
+          "Failed opening object '" + m_object->m_name +
+          "' in READ mode: " + Response_error(error.code()).format());
+    } else {
+      throw shcore::Exception::runtime_error(error.format());
+    }
+  }
 }
 
 off64_t Object::Reader::seek(off64_t offset) {
   const off64_t fsize = m_size;
   m_offset = std::min(offset, fsize);
   return m_offset;
+}
+
+off64_t Object::Reader::tell() const {
+  throw std::logic_error("Object::Reader::tell() - not implemented");
 }
 
 ssize_t Object::Reader::read(void *buffer, size_t length) {
@@ -319,8 +469,13 @@ ssize_t Object::Reader::read(void *buffer, size_t length) {
   mysqlshdk::rest::Static_char_ref_buffer rbuffer(
       reinterpret_cast<char *>(buffer), length);
 
-  size_t read =
-      m_object->m_bucket->get_object(m_object->m_name, &rbuffer, first, last);
+  size_t read = 0;
+  try {
+    read = m_object->m_bucket->get_object(m_object->full_path(), &rbuffer,
+                                          first, last);
+  } catch (const Response_error &error) {
+    throw shcore::Exception::runtime_error(error.format());
+  }
 
   m_offset += read;
 

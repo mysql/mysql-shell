@@ -54,7 +54,7 @@ TEST_F(Oci_os_tests, bucket_list_objects) {
 
   // DEFAULT LIST: returns name and size only
   auto objects = bucket.list_objects();
-  EXPECT_EQ(9, objects.size());
+  EXPECT_EQ(11, objects.size());
 
   for (size_t index = 0; index < m_objects.size(); index++) {
     EXPECT_STREQ(m_objects[index].c_str(), objects[index].name.c_str());
@@ -67,7 +67,7 @@ TEST_F(Oci_os_tests, bucket_list_objects) {
   // FIELD FILTER: just names
   objects = bucket.list_objects("", "", "", 0, true,
                                 mysqlshdk::oci::object_fields::kName);
-  EXPECT_EQ(9, objects.size());
+  EXPECT_EQ(11, objects.size());
 
   for (size_t index = 0; index < m_objects.size(); index++) {
     EXPECT_STREQ(m_objects[index].c_str(), objects[index].name.c_str());
@@ -80,7 +80,7 @@ TEST_F(Oci_os_tests, bucket_list_objects) {
   // FIELD FILTER: all fields
   objects = bucket.list_objects("", "", "", 0, true,
                                 mysqlshdk::oci::Object_fields_mask::all());
-  EXPECT_EQ(9, objects.size());
+  EXPECT_EQ(11, objects.size());
 
   for (size_t index = 0; index < m_objects.size(); index++) {
     EXPECT_STREQ(m_objects[index].c_str(), objects[index].name.c_str());
@@ -96,10 +96,12 @@ TEST_F(Oci_os_tests, bucket_list_objects) {
       "", "", "", 0, false, mysqlshdk::oci::object_fields::kName, &prefixes);
 
   // Validates the returned files
-  EXPECT_EQ(3, objects.size());
+  EXPECT_EQ(5, objects.size());
   EXPECT_STREQ("sakila.sql", objects[0].name.c_str());
   EXPECT_STREQ("sakila_metadata.txt", objects[1].name.c_str());
   EXPECT_STREQ("sakila_tables.txt", objects[2].name.c_str());
+  EXPECT_STREQ("uncommon%25%name.txt", objects[3].name.c_str());
+  EXPECT_STREQ("uncommon's name.txt", objects[4].name.c_str());
 
   // Validates the returned prefixes (i.e. 'subdirectories')
   EXPECT_EQ(1, prefixes.size());
@@ -295,8 +297,11 @@ TEST_F(Oci_os_tests, bucket_object_operations) {
 
 TEST_F(Oci_os_tests, bucket_error_conditions) {
   SKIP_IF_NO_OCI_CONFIGURATION
-  EXPECT_THROW_LIKE(Bucket(get_options("unexisting")), Response_error,
-                    "The bucket 'unexisting' does not exist in namespace");
+  Bucket unexisting(get_options("unexisting"));
+  EXPECT_THROW_LIKE(unexisting.put_object("sample.txt", "data", 4, false),
+                    Response_error,
+                    "Failed to put object 'sample.txt': Either the bucket "
+                    "named 'unexisting' does not exist in the namespace");
 
   Bucket bucket(get_options(PUBLIC_BUCKET));
 
@@ -305,40 +310,47 @@ TEST_F(Oci_os_tests, bucket_error_conditions) {
   auto list = bucket.list_objects();
   EXPECT_EQ(1, list.size());
   EXPECT_STREQ("sample.txt", list[0].name.c_str());
-  EXPECT_THROW_LIKE(
-      bucket.put_object("sample.txt", "data", 4, false), Response_error,
-      "The If-None-Match header is '*' but there is an existing entity");
+  EXPECT_THROW_LIKE(bucket.put_object("sample.txt", "data", 4, false),
+                    Response_error,
+                    "Failed to put object 'sample.txt': The If-None-Match "
+                    "header is '*' but there is an existing entity");
   bucket.delete_object("sample.txt");
 
   // DELETE: Unexisting Object
   EXPECT_THROW_LIKE(bucket.delete_object("sample.txt"), Response_error,
-                    "The object 'sample.txt' does not exist in bucket '" +
+                    "Failed to delete object 'sample.txt': The object "
+                    "'sample.txt' does not exist in bucket '" +
                         PUBLIC_BUCKET + "' with namespace '" +
                         bucket.get_namespace() + "'");
 
   // HEAD: Unexisnting Object
   EXPECT_THROW_LIKE(bucket.head_object("sample.txt"), Response_error,
-                    "Not Found");
+                    "Failed to get summary for object 'sample.txt': Not Found");
 
   // GET: Unexisting Object
   EXPECT_THROW_LIKE(bucket.get_object("sample.txt", nullptr), Response_error,
-                    "The object 'sample.txt' was not found in the bucket '" +
+                    "Failed to get object 'sample.txt': The object "
+                    "'sample.txt' was not found in the bucket '" +
                         PUBLIC_BUCKET + "'");
 
   // RENAME: Unexisting Object
-  EXPECT_THROW_LIKE(bucket.rename_object("sample.txt", "other.txt"),
-                    Response_error, "Not Found");
+  EXPECT_THROW_LIKE(
+      bucket.rename_object("sample.txt", "other.txt"), Response_error,
+      "Failed to rename object 'sample.txt' to 'other.txt': Not Found");
 
   Multipart_object object;
   object.name = "Sample.txt";
   object.upload_id = "SOME-WEIRD-UPLOAD-ID";
-  EXPECT_THROW_LIKE(bucket.list_multipart_upload_parts(object), Response_error,
-                    "No such upload");
+  EXPECT_THROW_LIKE(
+      bucket.list_multipart_upload_parts(object), Response_error,
+      "Failed to list uploaded parts for object 'Sample.txt': No such upload");
 
-  EXPECT_THROW_LIKE(bucket.upload_part(object, 1, "DATA", 4), Response_error,
-                    "No such upload");
+  EXPECT_THROW_LIKE(
+      bucket.upload_part(object, 1, "DATA", 4), Response_error,
+      "Failed to upload part 1 for object 'Sample.txt': No such upload");
 
   EXPECT_THROW_LIKE(bucket.commit_multipart_upload(object, {}), Response_error,
-                    "There are no parts to commit");
+                    "Failed to commit multipart upload for object "
+                    "'Sample.txt': There are no parts to commit");
 }
 }  // namespace testing

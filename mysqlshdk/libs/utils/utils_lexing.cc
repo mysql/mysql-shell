@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,8 +28,9 @@ namespace mysqlshdk {
 namespace utils {
 
 SQL_string_iterator::SQL_string_iterator(const std::string &str,
-                                         std::string::size_type offset)
-    : m_s(str), m_offset(offset - 1) {
+                                         std::string::size_type offset,
+                                         bool skip_quoted_sql_ids)
+    : m_s(str), m_offset(offset - 1), m_skip_quoted_ids(skip_quoted_sql_ids) {
   // Let's make sure we start from valid SQL
   ++(*this);
 }
@@ -48,13 +49,31 @@ SQL_string_iterator &SQL_string_iterator::operator++() {
         m_offset = span_quoted_string_dq(m_s, m_offset);
         break;
       case '`':
-        m_offset = span_quoted_sql_identifier_bt(m_s, m_offset);
-        break;
-      case '/':
-        if (m_s[m_offset + 1] == '*')
-          m_offset = span_cstyle_comment(m_s, m_offset);
+        if (m_skip_quoted_ids)
+          m_offset = span_quoted_sql_identifier_bt(m_s, m_offset);
         else
           incremented = true;
+        break;
+      case '/':
+        if (m_s[m_offset + 1] == '*') {
+          if (m_s[m_offset + 2] == '!' || m_s[m_offset + 2] == '+') {
+            m_comment_hint = true;
+            m_offset += 3;
+            while (std::isdigit(m_s[m_offset])) ++m_offset;
+          } else {
+            m_offset = span_cstyle_comment(m_s, m_offset);
+          }
+        } else {
+          incremented = true;
+        }
+        break;
+      case '*':
+        if (m_comment_hint && m_s[m_offset + 1] == '/') {
+          m_offset += 2;
+          m_comment_hint = false;
+        } else {
+          incremented = true;
+        }
         break;
       case '#':
         m_offset = span_to_eol(m_s, m_offset + 1);
@@ -82,13 +101,24 @@ std::string SQL_string_iterator::get_next_sql_token() {
   auto previous = m_offset;
   const auto start = previous;
 
+  if (!m_skip_quoted_ids && get_char() == '`') {
+    m_offset = span_quoted_sql_identifier_bt(m_s, m_offset);
+    return m_s.substr(start, m_offset - start);
+  }
+
   do {
-    if (std::isspace(get_char()) || get_char() == ';' || get_char() == '(' ||
-        get_char() == ')' || m_offset - previous > 1)
+    const auto c = get_char();
+    if (std::isspace(c) || c == ',' || c == ';' || c == '(' || c == ')' ||
+        c == '=' || (!m_skip_quoted_ids && c == '`') || m_offset - previous > 1)
       break;
     previous = m_offset;
+    if (c == ':') {
+      ++(*this);
+      break;
+    }
   } while ((++(*this)).valid());
-  if (m_offset == start) ++m_offset;
+
+  if (m_offset == start) ++(*this);
   return m_s.substr(start, previous + 1 - start);
 }
 

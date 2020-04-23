@@ -28,6 +28,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
+#include <cwchar>
 #include <random>
 
 #ifdef _WIN32
@@ -35,6 +36,8 @@
 // Starting with Windows 8: MultiByteToWideChar is declared in Stringapiset.h.
 // Before Windows 8, it was declared in Winnls.h.
 #include <Stringapiset.h>
+#else
+#include <cwchar>
 #endif
 
 namespace shcore {
@@ -339,10 +342,15 @@ std::string str_subvars(
   return out_s;
 }
 
-#ifdef _WIN32
 std::wstring utf8_to_wide(const std::string &utf8) {
   return utf8_to_wide(&utf8[0], utf8.size());
 }
+
+std::string wide_to_utf8(const std::wstring &wide) {
+  return wide_to_utf8(&wide[0], wide.size());
+}
+
+#ifdef _WIN32
 
 std::wstring utf8_to_wide(const char *utf8, const size_t utf8_length) {
   auto buffer_size_needed =
@@ -354,19 +362,90 @@ std::wstring utf8_to_wide(const char *utf8, const size_t utf8_length) {
   return wide_string;
 }
 
-std::string wide_to_utf8(const std::wstring &utf16) {
-  return wide_to_utf8(&utf16[0], utf16.size());
-}
-
-std::string wide_to_utf8(const wchar_t *utf16, const size_t utf16_length) {
-  auto string_size = WideCharToMultiByte(CP_UTF8, 0, utf16, utf16_length,
-                                         nullptr, 0, nullptr, nullptr);
+std::string wide_to_utf8(const wchar_t *wide, const size_t wide_length) {
+  auto string_size = WideCharToMultiByte(CP_UTF8, 0, wide, wide_length, nullptr,
+                                         0, nullptr, nullptr);
   std::string result_string(string_size, 0);
-  WideCharToMultiByte(CP_UTF8, 0, utf16, utf16_length, &result_string[0],
+  WideCharToMultiByte(CP_UTF8, 0, wide, wide_length, &result_string[0],
                       string_size, nullptr, nullptr);
   return result_string;
 }
+
+#else
+
+std::wstring utf8_to_wide(const char *utf8, const size_t utf8_length) {
+  std::mbstate_t state{};
+  const char *end = utf8 + utf8_length;
+  int len = 0;
+  std::wstring result;
+  wchar_t wc;
+
+  while ((len = std::mbrtowc(&wc, utf8, end - utf8, &state)) > 0) {
+    result += wc;
+    utf8 += len;
+  }
+
+  return result;
+}
+
+std::string wide_to_utf8(const wchar_t *wide, const size_t wide_length) {
+  std::mbstate_t state{};
+  std::string result;
+  std::string mb(MB_CUR_MAX, '\0');
+
+  for (size_t i = 0; i < wide_length; ++i) {
+    const auto len = std::wcrtomb(&mb[0], wide[i], &state);
+    result.append(mb.c_str(), len);
+  }
+
+  return result;
+}
+
 #endif
+
+std::string truncate(const std::string &str, const size_t max_length) {
+  return truncate(str.c_str(), str.length(), max_length);
+}
+
+std::string truncate(const char *str, const size_t length,
+                     const size_t max_length) {
+  return wide_to_utf8(truncate(utf8_to_wide(str, length), max_length));
+}
+
+std::wstring truncate(const std::wstring &str, const size_t max_length) {
+  return truncate(str.c_str(), str.length(), max_length);
+}
+
+std::wstring truncate(const wchar_t *str, const size_t length,
+                      const size_t max_length) {
+#if (WCHAR_MAX + 0) <= 0xffff
+  // UTF-16
+  std::wstring truncated;
+  std::size_t idx = 0;
+  std::size_t truncated_length = 0;
+
+  while (truncated_length < max_length && idx < length) {
+    // detect high surrogate
+    if (0xD800 == (str[idx] & 0xFC00)) {
+      if (idx + 1 == length) {
+        // no low surrogate, finish here
+        break;
+      }
+
+      truncated.append(1, str[idx++]);
+    }
+
+    // low surrogate or a code point
+    truncated.append(1, str[idx++]);
+    ++truncated_length;
+  }
+
+  return truncated;
+#else
+  // UTF-32
+  return std::wstring(str, std::min(length, max_length));
+#endif
+}
 
 bool is_valid_utf8(const std::string &s) {
   auto c = reinterpret_cast<const unsigned char *>(s.c_str());

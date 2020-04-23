@@ -219,28 +219,28 @@ WIPE_STDOUT()
 
 \show thread --tid <<<__test_ids['tid']>>> --locks
 
-EXPECT_STDOUT_MATCHES(re.compile(r'| Wait started +| Elapsed +| Locked table +| Type +| CID +| Query +|'))
+EXPECT_STDOUT_MATCHES(re.compile(r'\| Wait started +\| Elapsed +\| Locked table +\| Type +\| CID +\| Query +\|'))
 EXPECT_STDOUT_CONTAINS(str(blocked_cid))
 EXPECT_STDOUT_CONTAINS('`thread_test`.`innodb`')
 EXPECT_STDOUT_CONTAINS('SHARED_READ (TRANSACTION)')
 EXPECT_STDOUT_CONTAINS('SELECT * FROM thread_test.innodb')
 
-#@ WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (1)
-EXPECT_STDOUT_MATCHES(re.compile(r'^|-+|-+|-+|-+|-+|-+|$'))
+# WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (1)
+EXPECT_STDOUT_MATCHES(re.compile(r'^\+-+\+-+\+-+\+-+\+-+\+-+\+$', re.MULTILINE))
 
 #@ WL11651-TSFR18_2 - --locks - blocked
 WIPE_STDOUT()
 
 \show thread --cid <<<blocked_cid>>> --locks
 
-EXPECT_STDOUT_MATCHES(re.compile(r'| Wait started +| Elapsed +| Locked table +| Type +| CID +| Query +| Account +| Transaction started +| Elapsed +|'))
+EXPECT_STDOUT_MATCHES(re.compile(r'\| Wait started +\| Elapsed +\| Locked table +\| Type +\| CID +\| Query +\| Account +\| Transaction started +\| Elapsed +\|'))
 EXPECT_STDOUT_CONTAINS(str(__test_ids['cid']))
 EXPECT_STDOUT_CONTAINS('`thread_test`.`innodb`')
 EXPECT_STDOUT_CONTAINS('SHARED_READ (TRANSACTION)')
 EXPECT_STDOUT_CONTAINS('thread_test@{0}'.format(__host))
 
-#@ WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (2)
-EXPECT_STDOUT_MATCHES(re.compile(r'^|-+|-+|-+|-+|-+|-+|-+|-+|-+|$'))
+# WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (2)
+EXPECT_STDOUT_MATCHES(re.compile(r'^\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+$', re.MULTILINE))
 
 #@ WL11651-TSFR7_5 - Validate that all the columns listed in FR5 can be requested using the --format (-o) option. - nblocked, nblocking - metadata
 report = shell.reports.threads(session, [], {'foreground': True, 'format': 'nblocked,nblocking', 'where': 'tid = {0}'.format(__test_ids['tid'])})['report']
@@ -269,28 +269,28 @@ WIPE_STDOUT()
 
 \show thread --tid <<<__test_ids['tid']>>> --locks
 
-EXPECT_STDOUT_MATCHES(re.compile(r'| Wait started +| Elapsed +| Locked table +| Type +| CID +| Query +|'))
+EXPECT_STDOUT_MATCHES(re.compile(r'\| Wait started +\| Elapsed +\| Locked table +\| Type +\| CID +\| Query +\|'))
 EXPECT_STDOUT_CONTAINS(str(blocked_cid))
 EXPECT_STDOUT_CONTAINS('`thread_test`.`innodb`')
 EXPECT_STDOUT_CONTAINS('RECORD')
 EXPECT_STDOUT_CONTAINS('UPDATE thread_test.innodb SET value = 7')
 
-#@ WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (3)
-EXPECT_STDOUT_MATCHES(re.compile(r'^|-+|-+|-+|-+|-+|-+|$'))
+# WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (3)
+EXPECT_STDOUT_MATCHES(re.compile(r'^\+-+\+-+\+-+\+-+\+-+\+-+\+$', re.MULTILINE))
 
 #@ WL11651-TSFR18_2 - --locks - blocked - InnoDB
 WIPE_STDOUT()
 
 \show thread --cid <<<blocked_cid>>> --locks
 
-EXPECT_STDOUT_MATCHES(re.compile(r'| Wait started +| Elapsed +| Locked table +| Type +| CID +| Query +| Account +| Transaction started +| Elapsed +|'))
+EXPECT_STDOUT_MATCHES(re.compile(r'\| Wait started +\| Elapsed +\| Locked table +\| Type +\| CID +\| Query +\| Account +\| Transaction started +\| Elapsed +\|'))
 EXPECT_STDOUT_CONTAINS(str(__test_ids['cid']))
 EXPECT_STDOUT_CONTAINS('`thread_test`.`innodb`')
 EXPECT_STDOUT_CONTAINS('RECORD')
 EXPECT_STDOUT_CONTAINS('thread_test@{0}'.format(__host))
 
-#@ WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (4)
-EXPECT_STDOUT_MATCHES(re.compile(r'^|-+|-+|-+|-+|-+|-+|-+|-+|-+|$'))
+# WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (4)
+EXPECT_STDOUT_MATCHES(re.compile(r'^\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+$', re.MULTILINE))
 
 #@ WL11651-TSFR7_5 - Validate that all the columns listed in FR5 can be requested using the --format (-o) option. - nblocked, nblocking - InnoDB
 report = shell.reports.threads(session, [], {'foreground': True, 'format': 'nblocked,nblocking', 'where': 'tid = {0}'.format(__test_ids['tid'])})['report']
@@ -326,11 +326,11 @@ WIPE_STDOUT()
 
 \show thread --tid <<<__test_ids['tid']>>> --prep-stmts
 
-EXPECT_STDOUT_MATCHES(re.compile(r'| ID +| Event ID +| Name +| Owner +| Prepared in +| Executed +| Total time +| Min. time +| Avg. time +| Max. time +|'))
-EXPECT_STDOUT_MATCHES(re.compile(r'| 1 +| \d+:\d+ +| stmt1 +| +|[^|]+| 3 +|[^|]+|[^|]+|[^|]+|[^|]+|'))
+EXPECT_STDOUT_MATCHES(re.compile(r'\| ID +\| Event ID +\| Name +\| Owner +\| Prepared in +\| Executed +\| Total time +\| Min. time +\| Avg. time +\| Max. time +\|'))
+EXPECT_STDOUT_MATCHES(re.compile(r'\| 1 +\| \d+:\d+ +\| stmt1 +\| +\|[^\|]+\| 3 +\|[^\|]+\|[^\|]+\|[^\|]+\|[^\|]+\|'))
 
-#@ WL11651-TSFR19_4 - When using the --prep-stmts (-P) option and thread has prepared statements, validate that the additional information is displayed in tables.
-EXPECT_STDOUT_MATCHES(re.compile(r'^|-+|-+|-+|-+|-+|-+|-+|-+|-+|-+|$'))
+# WL11651-TSFR19_4 - When using the --prep-stmts (-P) option and thread has prepared statements, validate that the additional information is displayed in tables.
+EXPECT_STDOUT_MATCHES(re.compile(r'^\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+-+\+$', re.MULTILINE))
 
 #@ WL11651-TSFR19_2 - cleanup
 __test_session.run_sql("DEALLOCATE PREPARE stmt1")

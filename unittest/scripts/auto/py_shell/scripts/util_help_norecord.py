@@ -10,6 +10,20 @@ util.help('check_for_server_upgrade')
 #@ util check_for_server_upgrade help, \? [USE:util check_for_server_upgrade help]
 \? check_for_server_upgrade
 
+# WL13807-TSFR_1_1
+#@ util dump_instance help
+util.help('dump_instance');
+
+#@ util dump_instance help, \? [USE:util dump_instance help]
+\? dump_instance
+
+# WL13807-TSFR_2_1
+#@ util dump_schemas help
+util.help('dump_schemas');
+
+#@ util dump_schemas help, \? [USE:util dump_schemas help]
+\? dump_schemas
+
 #@ util import_json help
 util.help('import_json')
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_INCLUDE_SCRIPTING_TYPE_INFO_GENERIC_H_
 #define MYSQLSHDK_INCLUDE_SCRIPTING_TYPE_INFO_GENERIC_H_
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -135,6 +136,13 @@ struct Type_info<std::vector<std::string>> {
   static std::vector<std::string> to_native(const shcore::Value &in) {
     std::vector<std::string> strs;
     shcore::Array_t array(in.as_array());
+    if (!array) {
+      // std:: invalid_argument is more appropriate, but Arg_handler would
+      // rethrow it keeping this message, we want to generate the standard
+      // error message to make it consistent with other conversion errors
+      throw std::runtime_error(
+          "Argument is expected to be an array of strings");
+    }
     for (size_t i = 0; i < array->size(); ++i) {
       strs.push_back(array->at(i).get_string());
     }
@@ -143,7 +151,9 @@ struct Type_info<std::vector<std::string>> {
   static Value_type vtype() { return shcore::Array; }
   static const char *code() { return "A"; }
   static std::vector<std::string> default_value() { return {}; }
-  static std::string desc() { return type_description(vtype()); }
+  static std::string desc() {
+    return type_description(vtype()) + " of strings";
+  }
 };
 
 }  // namespace detail

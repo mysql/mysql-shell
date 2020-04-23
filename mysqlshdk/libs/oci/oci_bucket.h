@@ -103,10 +103,6 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
    */
   const std::string &get_namespace() const { return *m_options.os_namespace; }
   const std::string &get_name() const { return *m_options.os_bucket_name; }
-  const std::string &get_compartment_id() const { return m_compartment_id; }
-  const std::string &get_etag() const { return m_etag; }
-  bool is_read_only() const { return m_is_read_only; }
-  const std::string &get_access_type() const { return m_access_type; }
 
   /**
    * Retrieves information for the objects available on the bucket.
@@ -277,13 +273,7 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
   const std::string kUploadPartFormat;
   const std::string kMultipartActionFormat;
 
-  // NOTE: Minimal list of fields is read and stored, for full list of available
-  // fields look at
-  // https://docs.cloud.oracle.com/en-us/iaas/api/#/en/objectstorage/20160918/Bucket/
-  std::string m_compartment_id;
-  std::string m_etag;
-  bool m_is_read_only;
-  std::string m_access_type;
+  void ensure_connection();
 };
 }  // namespace oci
 }  // namespace mysqlshdk

@@ -56,6 +56,7 @@ class Oci_os_tests : public Shell_core_test_wrapper {
  public:
   void SetUp() override {
     Shell_core_test_wrapper::SetUp();
+    // Note that these object names are in alphabetical order on purpose
     m_objects = {"sakila.sql",
                  "sakila/actor.csv",
                  "sakila/actor_metadata.txt",
@@ -64,7 +65,9 @@ class Oci_os_tests : public Shell_core_test_wrapper {
                  "sakila/category.csv",
                  "sakila/category_metadata.txt",
                  "sakila_metadata.txt",
-                 "sakila_tables.txt"};
+                 "sakila_tables.txt",
+                 "uncommon%25%name.txt",
+                 "uncommon's name.txt"};
 
     const auto oci_config_path =
         mysqlsh::current_shell_options()->get().oci_config_file;
@@ -88,7 +91,13 @@ class Oci_os_tests : public Shell_core_test_wrapper {
   Oci_options get_options(const std::string bucket) {
     Oci_options options;
     options.os_bucket_name = bucket;
-    options.load_defaults();
+
+    const char *ns = getenv("OS_NAMESPACE");
+    if (ns) {
+      options.os_namespace = std::string(ns);
+    }
+
+    options.check_option_values();
     return options;
   }
 

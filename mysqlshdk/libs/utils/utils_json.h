@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,10 +29,11 @@
 #include <rapidjson/writer.h>
 #include <string>
 
-#include "mysqlshdk/libs/utils/dtoa.h"
 #include "mysqlshdk_export.h"
 
 namespace shcore {
+
+size_t fmt_double(double d, char *buffer, size_t buffer_len);
 /**
  * Raw JSON wrapper with custom conversion of the Double value using
  * the my_gcvt function ported from the server, which generates a string
@@ -44,8 +45,7 @@ class My_writer : public rapidjson::Writer<T> {
   My_writer(T &outstream) : rapidjson::Writer<T>(outstream) {}
   bool Double(double data) {
     char buffer[32];
-    size_t len;
-    len = my_gcvt(data, MY_GCVT_ARG_DOUBLE, sizeof(buffer) - 1, buffer, NULL);
+    size_t len = fmt_double(data, buffer, sizeof(buffer));
 
     rapidjson::Writer<T>::Prefix(rapidjson::kNumberType);
     return rapidjson::Writer<T>::WriteRawValue(buffer, len);
@@ -63,8 +63,7 @@ class My_pretty_writer : public rapidjson::PrettyWriter<T> {
   My_pretty_writer(T &outstream) : rapidjson::PrettyWriter<T>(outstream) {}
   bool Double(double data) {
     char buffer[32];
-    size_t len;
-    len = my_gcvt(data, MY_GCVT_ARG_DOUBLE, sizeof(buffer) - 1, buffer, NULL);
+    size_t len = fmt_double(data, buffer, sizeof(buffer));
 
     rapidjson::PrettyWriter<T>::PrettyPrefix(rapidjson::kNumberType);
     return rapidjson::PrettyWriter<T>::WriteRawValue(buffer, len);

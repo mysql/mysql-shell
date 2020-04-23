@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -105,6 +105,10 @@ class Array_as_result : public mysqlshdk::db::IResult {
     }
 
     std::pair<const char *, size_t> get_string_data(uint32_t) const override {
+      throw std::logic_error("Not implemented.");
+    }
+
+    void get_raw_data(uint32_t, const char **, size_t *) const override {
       throw std::logic_error("Not implemented.");
     }
 

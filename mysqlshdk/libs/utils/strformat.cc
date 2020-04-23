@@ -102,22 +102,30 @@ std::string format_microseconds(double secs) {
   return str;
 }
 
-std::string format_bytes(uint64_t bytes) {
+std::string format_items(const std::string &full,
+                         const std::string &abbreviation, uint64_t items,
+                         bool space_before_item) {
   std::string unit;
   double nitems;
-  std::tie(unit, nitems) = scale_value(bytes);
-  if (nitems == bytes) {
-    return std::to_string(bytes) + " bytes";
+  std::tie(unit, nitems) = scale_value(items);
+  if (nitems == items) {
+    return std::to_string(items) + " " + full;
   } else {
     char buffer[64];
-    snprintf(buffer, sizeof(buffer), "%.2f ", nitems);
-    return buffer + unit + "B";
+    snprintf(buffer, sizeof(buffer), "%.2f", nitems);
+    return std::string(buffer) + (!space_before_item ? " " : "") + unit +
+           (space_before_item ? " " : "") + abbreviation;
   }
+}
+
+std::string format_bytes(uint64_t bytes) {
+  return format_items("bytes", "B", bytes, false);
 }
 
 std::string format_throughput_items(const std::string &item_name_singular,
                                     const std::string &item_name_plural,
-                                    const uint64_t items, double seconds) {
+                                    const uint64_t items, double seconds,
+                                    bool space_before_item) {
   char buffer[64] = {};
   double ratio = seconds >= 1.0 ? items / seconds : items;
   std::string unit;
@@ -126,20 +134,14 @@ std::string format_throughput_items(const std::string &item_name_singular,
   snprintf(buffer, sizeof(buffer), "%.2f", scaled_items);
 
   // Singular/plural form for English language.
-  if (ratio > 0 && ratio <= 1.0) {
-    return buffer + unit + " " + item_name_singular + "/s";
-  }
-  return buffer + unit + " " + item_name_plural + "/s";
+  const auto singular = ratio > 0 && ratio <= 1.0;
+  return std::string(buffer) + (!space_before_item ? " " : "") + unit +
+         (space_before_item ? " " : "") +
+         (singular ? item_name_singular : item_name_plural) + "/s";
 }
 
 std::string format_throughput_bytes(uint64_t bytes, double seconds) {
-  char buffer[64] = {};
-  double ratio = seconds >= 1.0 ? bytes / seconds : bytes;
-  std::string unit;
-  double scaled_items;
-  std::tie(unit, scaled_items) = scale_value(ratio);
-  snprintf(buffer, sizeof(buffer), "%.2f ", scaled_items);
-  return buffer + unit + "B/s";
+  return format_throughput_items("B", "B", bytes, seconds, false);
 }
 
 std::string fmttime(const char *fmt, Time_type type, const time_t *time_ptr) {
@@ -169,12 +171,35 @@ std::string fmttime(const char *fmt, Time_type type, const time_t *time_ptr) {
 }
 
 size_t expand_to_bytes(const std::string &number) {
-  std::string x{number};
-  size_t bytes = stoull(x);
   constexpr size_t kilobyte = 1000;
+  std::string x{number};
+  size_t bytes;
+
+  const auto throw_wrong_input_number = [&number]() {
+    throw std::invalid_argument("Wrong input number \"" + number + "\"");
+  };
+
+  try {
+    bytes = stoull(x);
+  } catch (const std::invalid_argument &) {
+    throw_wrong_input_number();
+  } catch (const std::out_of_range &) {
+    throw_wrong_input_number();
+  }
+
+  if (std::string::npos != number.find('-')) {
+    throw std::invalid_argument("Input number \"" + number +
+                                "\" cannot be negative");
+  }
+
+  if (std::string::npos != number.find('.') ||
+      std::string::npos != number.find(',')) {
+    throw_wrong_input_number();
+  }
 
   while (const auto &last = x.back()) {
-    if (last == 'k') {
+    if (last == 'k' || last == 'K') {
+      // K is accepted for backwards compatibility with server
       bytes *= kilobyte;
     } else if (last == 'M') {
       bytes *= kilobyte * kilobyte;
@@ -183,7 +208,7 @@ size_t expand_to_bytes(const std::string &number) {
     } else if (::isdigit(last)) {
       break;
     } else {
-      throw std::invalid_argument("Wrong input number \"" + number + "\"");
+      throw_wrong_input_number();
     }
     x.pop_back();
   }

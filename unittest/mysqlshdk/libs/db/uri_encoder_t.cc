@@ -195,6 +195,10 @@ TEST(Uri_encoder, encode_path_segment) {
   // Anything pct-encoded is not touched
   EXPECT_EQ("my%20databas%65", encoder.encode_path_segment("my databas%65"));
 
+  // Even pct-encoded are re-encoded
+  EXPECT_EQ("my%20databas%2565",
+            encoder.encode_path_segment("my databas%65", false));
+
   // Anything else is pct-encoded
   EXPECT_EQ("%22%25%3C%3E%5C%5E%60%7B%7D%7C",
             encoder.encode_path_segment("\"%<>\\^`{}|"));

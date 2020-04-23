@@ -21,6 +21,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -204,7 +205,8 @@ bool SHCORE_PUBLIC is_absolute(const std::string &path) {
 std::string SHCORE_PUBLIC getcwd() {
   char path[PATH_MAX] = {0};
   if (nullptr == ::getcwd(path, PATH_MAX)) {
-    throw std::runtime_error("Failed to get current working directory.");
+    throw std::runtime_error("Failed to get current working directory: " +
+                             errno_to_string(errno));
   }
   return path;
 }

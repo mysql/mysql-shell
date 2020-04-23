@@ -56,6 +56,7 @@ class IFile {
 
   virtual void open(Mode m) = 0;
   virtual bool is_open() const = 0;
+  virtual int error() const = 0;
   virtual void close() = 0;
 
   virtual size_t file_size() const = 0;
@@ -64,6 +65,7 @@ class IFile {
   virtual bool exists() const = 0;
 
   virtual off64_t seek(off64_t offset) = 0;
+  virtual off64_t tell() const = 0;
   virtual ssize_t read(void *buffer, size_t length) = 0;
   virtual ssize_t write(const void *buffer, size_t length) = 0;
   virtual bool flush() = 0;
@@ -82,6 +84,10 @@ std::unique_ptr<IFile> make_file(
 
 std::unique_ptr<IFile> make_file(const std::string &filepath,
                                  const mysqlshdk::oci::Oci_options &options);
+
+int fprintf(IFile *, const char *format, ...);
+int fputs(const char *s, IFile *file);
+int fputs(const std::string &s, IFile *file);
 
 }  // namespace storage
 }  // namespace mysqlshdk

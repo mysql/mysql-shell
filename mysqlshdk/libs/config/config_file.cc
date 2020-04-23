@@ -789,13 +789,13 @@ std::string Config_file::parse_include_path(
 
     // Get absolute path for included file
     std::string base_dir = shcore::path::dirname(base_path);
-    res = shcore::get_absolute_path(base_dir, include_file_path);
+    res = shcore::get_absolute_path(include_file_path, base_dir);
   } else if (shcore::str_beginswith(line, "!includedir ")) {
     std::string include_dir_path = shcore::str_strip(line.substr(12));
 
     // Get absolute path for included dir
     std::string base_dir = shcore::path::dirname(base_path);
-    res = shcore::get_absolute_path(base_dir, include_dir_path);
+    res = shcore::get_absolute_path(include_dir_path, base_dir);
   } else {
     throw std::runtime_error(
         "No !include or !includedir directive found on "

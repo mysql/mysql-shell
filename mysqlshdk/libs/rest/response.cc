@@ -143,6 +143,10 @@ shcore::Value Response::json() const {
                            " is not a " + std::string{k_application_json});
 }
 
+std::string Response_error::format() const {
+  return shcore::str_format("%s (%d)", what(), static_cast<int>(m_code));
+}
+
 size_t Base_response_buffer::append_data(const char *data, size_t data_size) {
   if (m_buffer_size == 0 || m_content_size + data_size <= m_buffer_size) {
     append(data, data_size);

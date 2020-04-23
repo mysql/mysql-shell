@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,6 +55,8 @@ inline bool is_mysql_server_error(int code) {
 
 class Error : public shcore::Error {
  public:
+  Error() : Error("", 0, nullptr) {}
+
   Error(const char *what, int code) : Error(what, code, nullptr) {}
 
   Error(const std::string &what, int code) : shcore::Error(what, code) {}
@@ -138,6 +140,9 @@ class SHCORE_PUBLIC ISession {
 
   virtual ~ISession() {}
 
+  virtual std::string escape_string(const std::string &s) const = 0;
+  virtual std::string escape_string(const char *buffer, size_t len) const = 0;
+
   // TODO(rennox): This is a convenient function as URI is being retrieved from
   // the session in many places, eventually should be removed, if needed URI
   // should be retrieved as get_connection_options().as_uri()
@@ -164,6 +169,8 @@ class SHCORE_PUBLIC ISession {
       m_sql_mode.reset(new std::string(sql_mode));
       m_ansi_quotes_enabled = sql_mode.find("ANSI_QUOTES") != std::string::npos;
     } catch (...) {
+      m_sql_mode.reset(new std::string());
+      m_ansi_quotes_enabled = false;
     }
   }
 

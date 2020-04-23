@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,6 +52,8 @@ class Mock_row : public mysqlshdk::db::IRow {
   MOCK_CONST_METHOD1(get_string, std::string(uint32_t index));
   MOCK_CONST_METHOD1(get_string_data,
                      std::pair<const char *, size_t>(uint32_t index));
+  MOCK_CONST_METHOD3(get_raw_data, void(uint32_t index, const char **out_data,
+                                        size_t *out_size));
   MOCK_CONST_METHOD1(get_float, float(uint32_t index));
   MOCK_CONST_METHOD1(get_double, double(uint32_t index));
   MOCK_CONST_METHOD1(get_bit, uint64_t(uint32_t index));
@@ -72,6 +74,8 @@ class Mock_row : public mysqlshdk::db::IRow {
   virtual std::string def_get_string(uint32_t index) const;
   virtual std::pair<const char *, size_t> def_get_string_data(
       uint32_t index) const;
+  virtual void def_get_raw_data(uint32_t index, const char **out_data,
+                                size_t *out_size) const;
   virtual float def_get_float(uint32_t index) const;
   virtual double def_get_double(uint32_t index) const;
   virtual uint64_t def_get_bit(uint32_t index) const;

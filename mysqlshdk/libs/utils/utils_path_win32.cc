@@ -240,8 +240,11 @@ std::string normalize(const std::string &path) {
   std::wstring result(length, 'x');
   // get the data
   GetFullPathNameW(wide_norm.c_str(), result.length(), &result[0], nullptr);
-  // remove the terminating null character
-  result.pop_back();
+
+  // remove the terminating null characters
+  while (!result.empty() && L'\0' == result.back()) {
+    result.pop_back();
+  }
 
   return shcore::wide_to_utf8(result);
 }
@@ -310,8 +313,11 @@ std::string SHCORE_PUBLIC getcwd() {
   std::wstring result(length, 'x');
   // get the data
   GetCurrentDirectoryW(result.length(), &result[0]);
-  // remove the terminating null character
-  result.pop_back();
+
+  // remove the terminating null characters
+  while (!result.empty() && L'\0' == result.back()) {
+    result.pop_back();
+  }
 
   return shcore::wide_to_utf8(result);
 }
@@ -330,8 +336,12 @@ std::string SHCORE_PUBLIC get_canonical_path(const std::string &path) {
         "Error attempting to get the canonical path for '%s': %s", path.c_str(),
         last_error_to_string(GetLastError()).c_str()));
   }
-  // remove the terminating null character
-  buffer.pop_back();
+
+  // remove the terminating null characters
+  while (!buffer.empty() && L'\0' == buffer.back()) {
+    buffer.pop_back();
+  }
+
   return shcore::wide_to_utf8(buffer);
 }
 

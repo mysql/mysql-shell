@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -257,7 +257,8 @@ class SQL_string_iterator {
    * @arg offset offset in str, need to point to valid part of SQL.
    */
   explicit SQL_string_iterator(const std::string &str,
-                               std::string::size_type offset = 0);
+                               std::string::size_type offset = 0,
+                               bool skip_quoted_sql_ids = true);
 
   SQL_string_iterator &operator++();
 
@@ -295,9 +296,13 @@ class SQL_string_iterator {
 
   std::string get_next_sql_function();
 
+  bool inside_hint() const { return m_comment_hint; }
+
  private:
   const std::string &m_s;
   std::string::size_type m_offset;
+  bool m_skip_quoted_ids;
+  bool m_comment_hint = false;
 };
 
 }  // namespace utils

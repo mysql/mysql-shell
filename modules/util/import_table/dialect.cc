@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,13 +26,23 @@
 
 #include "modules/util/import_table/dialect.h"
 #include "modules/util/import_table/helpers.h"
+#include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
 namespace import_table {
 
-void Dialect::validate() {
+bool Dialect::operator==(const Dialect &d) const {
+  return lines_terminated_by == d.lines_terminated_by &&
+         fields_escaped_by == d.fields_escaped_by &&
+         fields_terminated_by == d.fields_terminated_by &&
+         fields_enclosed_by == d.fields_enclosed_by &&
+         fields_optionally_enclosed == d.fields_optionally_enclosed &&
+         lines_starting_by == d.lines_starting_by;
+}
+
+void Dialect::validate() const {
   if (!((lines_terminated_by.size() / 2) < BUFFER_SIZE)) {
     throw std::invalid_argument("Line terminator string is too long.");
   }
@@ -60,12 +70,6 @@ void Dialect::validate() {
   if (fields_optionally_enclosed && fields_enclosed_by.empty()) {
     throw std::invalid_argument(
         "fieldsEnclosedBy must be set if fieldsOptionallyEnclosed is true.");
-  }
-
-  // If LINES TERMINATED BY is an empty string and FIELDS TERMINATED BY is
-  // nonempty, lines are also terminated with FIELDS TERMINATED BY.
-  if (lines_terminated_by.empty() && !fields_terminated_by.empty()) {
-    lines_terminated_by = fields_terminated_by;
   }
 }
 
@@ -125,5 +129,45 @@ std::string Dialect::build_sql() {
              .str();
   return sql;
 }
+
+Dialect Dialect::unpack(shcore::Option_unpacker *unpacker) {
+  Dialect dialect;
+  std::string name;
+
+  unpacker->optional("dialect", &name);
+
+  if (name.empty()) {
+    // nop
+  } else if (shcore::str_casecmp(name, "default") == 0) {
+    // nop
+  } else if (shcore::str_casecmp(name, "csv") == 0) {
+    dialect = csv();
+  } else if (shcore::str_casecmp(name, "tsv") == 0) {
+    dialect = tsv();
+  } else if (shcore::str_casecmp(name, "json") == 0) {
+    dialect = json();
+  } else if (shcore::str_casecmp(name, "csv-unix") == 0) {
+    dialect = csv_unix();
+  } else {
+    throw shcore::Exception::argument_error(
+        "dialect value must be csv, tsv, json or csv-unix.");
+  }
+
+  unpacker->optional("fieldsTerminatedBy", &dialect.fields_terminated_by)
+      .optional("fieldsEnclosedBy", &dialect.fields_enclosed_by)
+      .optional("fieldsOptionallyEnclosed", &dialect.fields_optionally_enclosed)
+      .optional("fieldsEscapedBy", &dialect.fields_escaped_by)
+      .optional("linesTerminatedBy", &dialect.lines_terminated_by);
+
+  // If LINES TERMINATED BY is an empty string and FIELDS TERMINATED BY is
+  // nonempty, lines are also terminated with FIELDS TERMINATED BY.
+  if (dialect.lines_terminated_by.empty() &&
+      !dialect.fields_terminated_by.empty()) {
+    dialect.lines_terminated_by = dialect.fields_terminated_by;
+  }
+
+  return dialect;
+}
+
 }  // namespace import_table
 }  // namespace mysqlsh

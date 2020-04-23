@@ -43,10 +43,11 @@ class File : public IFile {
   File &operator=(const File &other) = delete;
   File &operator=(File &&other) = default;
 
-  ~File() override = default;
+  ~File() override;
 
   void open(Mode m) override;
   bool is_open() const override;
+  int error() const override;
   void close() override;
 
   size_t file_size() const override;
@@ -55,6 +56,7 @@ class File : public IFile {
   bool exists() const override;
 
   off64_t seek(off64_t offset) override;
+  off64_t tell() const override;
   ssize_t read(void *buffer, size_t length) override;
   ssize_t write(const void *buffer, size_t length) override;
   bool flush() override;
@@ -62,7 +64,15 @@ class File : public IFile {
   void rename(const std::string &new_name) override;
 
  private:
+  void do_close();
+
+#ifdef USE_UNBUFFERED_FILES
   int m_fd = -1;
+  int m_error = 0;
+#else
+  FILE *m_file = nullptr;
+#endif
+
   std::string m_filepath;
 };
 

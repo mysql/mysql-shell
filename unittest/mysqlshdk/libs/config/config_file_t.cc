@@ -269,7 +269,7 @@ TEST_F(ConfigFileTest, test_read) {
     cfg_path = shcore::path::join_path(m_option_files_basedir,
                                        "my_include_error3.cnf");
     EXPECT_THROW_LIKE(cfg.read(cfg_path), std::runtime_error,
-                      "Unable to get absolute path for '");
+                      "Cannot open file: ");
   }
   {
     // Test error including file with an invalid format (parsing error).

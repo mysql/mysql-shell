@@ -223,34 +223,37 @@ void Load_data_worker::operator()() {
       } catch (const mysqlshdk::db::Error &e) {
         m_thread_exception[m_thread_id] = std::current_exception();
         std::lock_guard<std::mutex> lock(*(fi.prog_mutex));
-        m_progress->clear_status();
+        m_progress->hide(true);
         const std::string error_msg{
             worker_name + m_opt.schema() + "." + m_opt.table() + ": " +
             e.format() + " @ file bytes range [" + std::to_string(r.begin) +
             ", " + std::to_string(r.end) + ")"};
         mysqlsh::current_console()->print_error(error_msg);
+        m_progress->hide(false);
         m_progress->show_status(!m_use_json);
         throw std::runtime_error(error_msg);
       } catch (const mysqlshdk::rest::Connection_error &e) {
         m_thread_exception[m_thread_id] = std::current_exception();
         std::lock_guard<std::mutex> lock(*(fi.prog_mutex));
-        m_progress->clear_status();
+        m_progress->hide(true);
         const std::string error_msg{
             worker_name + m_opt.schema() + "." + m_opt.table() + ": " +
             e.what() + " @ file bytes range [" + std::to_string(r.begin) +
             ", " + std::to_string(r.end) + ")"};
         mysqlsh::current_console()->print_error(error_msg);
+        m_progress->hide(false);
         m_progress->show_status(!m_use_json);
         throw std::runtime_error(error_msg);
       } catch (const std::exception &e) {
         m_thread_exception[m_thread_id] = std::current_exception();
         std::lock_guard<std::mutex> lock(*(fi.prog_mutex));
-        m_progress->clear_status();
+        m_progress->hide(true);
         const std::string error_msg{
             worker_name + m_opt.schema() + "." + m_opt.table() + ": " +
             e.what() + " @ file bytes range [" + std::to_string(r.begin) +
             ", " + std::to_string(r.end) + ")"};
         mysqlsh::current_console()->print_error(error_msg);
+        m_progress->hide(false);
         m_progress->show_status(!m_use_json);
         throw std::exception(e);
       }
@@ -261,7 +264,7 @@ void Load_data_worker::operator()() {
       {
         const char *mysql_info = session->get_mysql_info();
         std::lock_guard<std::mutex> lock(*(fi.prog_mutex));
-        m_progress->clear_status();
+        m_progress->hide(true);
         mysqlsh::current_console()->print_info(
             worker_name + m_opt.schema() + "." + m_opt.table() + ": " +
             (mysql_info ? mysql_info : "ERROR"));
@@ -333,6 +336,7 @@ void Load_data_worker::operator()() {
                 (remaining_warnings_count == 1 ? "" : "s") + ".");
           }
         }
+        m_progress->hide(false);
         m_progress->show_status(!m_use_json);
       }
     }

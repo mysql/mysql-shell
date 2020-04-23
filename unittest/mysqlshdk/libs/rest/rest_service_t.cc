@@ -28,12 +28,12 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
+#include "mysqlshdk/libs/rest/rest_service.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
-
-#include "mysqlshdk/libs/rest/rest_service.h"
+#include "unittest/test_utils/shell_test_env.h"
 
 extern "C" const char *g_test_home;
 
@@ -529,24 +529,46 @@ TEST_F(Rest_service_test, response_content_type) {
 TEST_F(Rest_service_test, timeout) {
   FAIL_IF_NO_SERVER
 
-  // by default, timeout is set to two seconds, perform request which takes 2.1s
-  EXPECT_THROW(
-      {
-        try {
-          m_service.get("/timeout/2.1");
-        } catch (const Connection_error &ex) {
-          EXPECT_THAT(ex.what(),
-                      ::testing::HasSubstr("Operation timed out after "));
-          throw;
-        }
-      },
-      Connection_error);
+  // reduce the timeout
+  m_service.set_timeout(1999, 1, 2);
+
+  EXPECT_THROW_LIKE(m_service.head("/timeout/2.1"), Connection_error,
+                    "Operation timed out after ");
+
+  EXPECT_THROW_LIKE(m_service.delete_("/timeout/2.1"), Connection_error,
+                    "Operation timed out after ");
+
+  // Tests for low transfer rate timeout in EL6 fail because the functionality
+  // seems to be not working correctly in the system curl. This means we are
+  // running without timeouts there which is acceptable.
+  // We are disabling such tests when using CURL >= 7.19.7
+  mysqlshdk::utils::Version curl_version(CURL_VERSION);
+  mysqlshdk::utils::Version no_transfer_rate_timeout_curl_version("7.19.7");
+
+  if (curl_version > no_transfer_rate_timeout_curl_version) {
+    EXPECT_THROW_LIKE(
+        m_service.get("/timeout/2.1"), Connection_error,
+        "Operation too slow. Less than 1 bytes/sec transferred the "
+        "last 2 seconds");
+
+    EXPECT_THROW_LIKE(
+        m_service.put("/timeout/2.1"), Connection_error,
+        "Operation too slow. Less than 1 bytes/sec transferred the "
+        "last 2 seconds");
+
+    EXPECT_THROW_LIKE(
+        m_service.post("/timeout/2.1"), Connection_error,
+        "Operation too slow. Less than 1 bytes/sec transferred the "
+        "last 2 seconds");
+  }
 
   // increase the timeout
-  m_service.set_timeout(3000);
+  m_service.set_timeout(3000, 0, 0);
 
   // request should be completed without any issues
   EXPECT_EQ(Response::Status_code::OK, m_service.get("/timeout/2.1").status);
+
+  EXPECT_EQ(Response::Status_code::OK, m_service.head("/timeout/2.1").status);
 }
 
 TEST_F(Rest_service_test, retry_strategy_generic_errors) {

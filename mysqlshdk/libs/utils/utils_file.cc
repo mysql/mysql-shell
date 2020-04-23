@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -464,27 +464,50 @@ void ensure_dir_exists(const std::string &path) {
 /*
  * Recursively create a directory and its parents if they don't exist.
  */
-void SHCORE_PUBLIC create_directory(const std::string &path, bool recursive) {
+void SHCORE_PUBLIC create_directory(const std::string &path, bool recursive,
+                                    int mode) {
   assert(!path.empty());
   for (;;) {
 #ifdef _WIN32
     const auto wide_path = utf8_to_wide(path);
-    if (CreateDirectoryW(wide_path.c_str(), nullptr) != 0 ||
-        GetLastError() == ERROR_ALREADY_EXISTS) {
+    if (CreateDirectoryW(wide_path.c_str(), nullptr) != 0) {
       break;
     }
-    if (GetLastError() == ERROR_PATH_NOT_FOUND && recursive) {
-      create_directory(path::dirname(path), recursive);
+
+    const auto last_error = GetLastError();
+
+    if (ERROR_ALREADY_EXISTS == last_error) {
+      if (!is_folder(path)) {
+        // path already exist but it's not a directory
+        throw std::runtime_error(
+            str_format("Could not create directory %s: %s", path.c_str(),
+                       last_error_to_string(last_error).c_str()));
+      }
+
+      break;
+    }
+
+    if (ERROR_PATH_NOT_FOUND == last_error && recursive) {
+      create_directory(path::dirname(path), recursive, mode);
     } else {
       throw std::runtime_error(
-          str_format("Could not create directory %s", path.c_str()));
+          str_format("Could not create directory %s: %s", path.c_str(),
+                     last_error_to_string(last_error).c_str()));
     }
 #else
-    if (mkdir(path.c_str(), 0700) == 0 || errno == EEXIST) {
+    if (mkdir(path.c_str(), mode) == 0 || errno == EEXIST) {
+      const auto error = errno;
+
+      if (error == EEXIST && !is_folder(path)) {
+        // path already exist but it's not a directory
+        throw std::runtime_error(str_format("Could not create directory %s: %s",
+                                            path.c_str(), strerror(error)));
+      }
+
       break;
     }
     if (errno == ENOENT && recursive) {
-      create_directory(path::dirname(path), recursive);
+      create_directory(path::dirname(path), recursive, mode);
     } else {
       throw std::runtime_error(str_format("Could not create directory %s: %s",
                                           path.c_str(), strerror(errno)));
@@ -512,11 +535,11 @@ bool iterdir(const std::string &path,
 #ifdef _WIN32
   WIN32_FIND_DATAW ffd;
   HANDLE hFind = INVALID_HANDLE_VALUE;
-
   auto wide_path = utf8_to_wide(path);
 
   // Add wildcard to search for all contents in path.
-  const std::wstring search_path = wide_path + L"\\*";
+  const std::wstring search_path =
+      wide_path + (path::is_path_separator(path.back()) ? L"*" : L"\\*");
   hFind = FindFirstFileW(search_path.c_str(), &ffd);
   if (hFind == INVALID_HANDLE_VALUE)
     throw std::runtime_error(
@@ -581,7 +604,9 @@ void remove_directory(const std::string &path, bool recursive) {
       HANDLE hFind = INVALID_HANDLE_VALUE;
 
       // Add wildcard to search for all contents in path.
-      const std::wstring search_path = wide_path + L"\\*";
+      const std::wstring search_path =
+          wide_path + (path::is_path_separator(path.back()) ? L"*" : L"\\*");
+
       hFind = FindFirstFileW(search_path.c_str(), &ffd);
       if (hFind == INVALID_HANDLE_VALUE)
         throw std::runtime_error(
@@ -605,7 +630,9 @@ void remove_directory(const std::string &path, bool recursive) {
           remove_directory(dir_elem);
         } else {
           // It is a file, remove it.
-          const auto delete_file_path = wide_path + L"\\" + ffd.cFileName;
+          const auto delete_file_path =
+              wide_path + (path::is_path_separator(path.back()) ? L"" : L"\\") +
+              ffd.cFileName;
           int res = DeleteFileW(delete_file_path.c_str());
           if (!res) {
             throw std::runtime_error(str_format(
@@ -858,7 +885,30 @@ void copy_file(const std::string &from, const std::string &to,
 }
 
 void rename_file(const std::string &from, const std::string &to) {
-  if (rename(from.c_str(), to.c_str()) < 0) {
+#ifdef _WIN32
+  const auto w_from = utf8_to_wide(from);
+  const auto w_to = utf8_to_wide(to);
+  auto ret = _wrename(w_from.c_str(), w_to.c_str());
+
+  if (EACCES == ret) {
+    try {
+      // rename on Windows fails if destination file exists, delete it first
+      delete_file(to, true);
+    } catch (const std::runtime_error &e) {
+      throw std::runtime_error(
+          shcore::str_format("Could not rename '%s' to '%s': destination "
+                             "exists and could not be deleted: %s",
+                             from.c_str(), to.c_str(), e.what()));
+    }
+
+    ret = _wrename(w_from.c_str(), w_to.c_str());
+  }
+
+#else
+  const auto ret = rename(from.c_str(), to.c_str());
+#endif
+
+  if (ret < 0) {
     throw std::runtime_error(
         shcore::str_format("Could not rename '%s' to '%s': %s", from.c_str(),
                            to.c_str(), strerror(errno)));
@@ -1090,60 +1140,28 @@ int SHCORE_PUBLIC set_user_only_permissions(const std::string &path) {
   return ret_val;
 }
 
-std::string get_absolute_path(const std::string &base_dir,
-                              const std::string &file_path) {
+std::string get_absolute_path(const std::string &file_path,
+                              const std::string &base_dir) {
 #ifdef _WIN32
-  const bool is_absolute = !PathIsRelativeW(utf8_to_wide(file_path).c_str());
-#else
-  const std::string path_sep{"/"};
-  const bool is_absolute = str_beginswith(file_path, path_sep);
-#endif
-  if (is_absolute) {
-    return file_path;
-  }
+  const auto long_path = [](const std::string &path) {
+    if (path.length() > 0 && '\\' != path[0]) {
+      return R"(\\?\)" + path;
+    } else {
+      return path;
+    }
+  };
+#else   // !_WIN32
+  const auto long_path = [](const std::string &path) -> const std::string & {
+    return path;
+  };
+#endif  // _WIN32
 
-  std::string abolute_path;
-
-  const std::string path = shcore::path::join_path(base_dir, file_path);
-#ifdef _WIN32
-  const auto wide_path = utf8_to_wide(path);
-  // NOTE: GetFullPathName does not verify if the path exists.
-  const auto full_path_length =
-      GetFullPathNameW(wide_path.c_str(), 0, nullptr, nullptr);
-  if (full_path_length == 0) {
-    throw std::runtime_error(
-        str_format("Unable to get absolute path for '%s': %s", path.c_str(),
-                   shcore::get_last_error().c_str()));
-  }
-  std::wstring full_path(full_path_length, '\0');
-  GetFullPathNameW(wide_path.c_str(), full_path.size(), &full_path[0], nullptr);
-  full_path.pop_back();  // remove terminating null character
-
-  const auto long_path_name_length =
-      GetLongPathNameW(full_path.c_str(), nullptr, 0);
-  std::wstring long_path(long_path_name_length, '\0');
-  // Expand the resulting path (if needed) and validate access.
-  if (GetLongPathNameW(full_path.c_str(), &long_path[0], long_path.size()) ==
-      0) {
-    throw std::runtime_error(
-        str_format("Unable to get absolute path for '%s': %s", path.c_str(),
-                   shcore::get_last_error().c_str()));
+  if (path::is_absolute(file_path)) {
+    return path::normalize(long_path(path::expand_user(file_path)));
   } else {
-    long_path.pop_back();  // remove terminaing null character
-    abolute_path = shcore::wide_to_utf8(long_path);
+    return path::normalize(long_path(shcore::path::join_path(
+        base_dir.empty() ? path::getcwd() : base_dir, file_path)));
   }
-#else
-  char *out_path = realpath(path.c_str(), nullptr);
-  if (out_path) {
-    abolute_path = std::string(out_path);
-    free(out_path);
-  } else {
-    throw std::runtime_error(
-        str_format("Unable to get absolute path for '%s': %s", path.c_str(),
-                   shcore::get_last_error().c_str()));
-  }
-#endif
-  return abolute_path;
 }
 
 std::string get_tempfile_path(const std::string &cnf_path) {

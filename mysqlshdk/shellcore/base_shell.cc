@@ -525,7 +525,12 @@ int Base_shell::process_file(const std::string &path,
       return ret_val;
     }
 
+#ifdef _WIN32
+    std::ifstream s(shcore::utf8_to_wide(file));
+#else
     std::ifstream s(file.c_str());
+#endif
+
     if (!s.fail()) {
       // The return value now depends on the stream processing
       ret_val = process_stream(s, file, argv);

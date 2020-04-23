@@ -29,3 +29,8 @@
 
 //@ cleanup
 ||
+
+//@ async mysqlsh
+|Abra|
+|Cadabra|
+|--js' did not finish in time and will be killed|

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -215,6 +215,9 @@ class SHCORE_PUBLIC Session : public ISession,
   virtual const char *get_server_info() { return _impl->get_server_info(); }
 
   virtual const char *get_stats() { return _impl->get_stats(); }
+
+  std::string escape_string(const std::string &s) const override;
+  std::string escape_string(const char *buffer, size_t len) const override;
 
   mysqlshdk::utils::Version get_server_version() const override {
     return _impl->get_server_version();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,15 +81,17 @@
 
 namespace mysqlshdk {
 namespace db {
+
 namespace mysql {
+
+Row::Row(Result *result) : _result(*result), _row(nullptr), _lengths(nullptr) {
+  m_num_fields = static_cast<uint32_t>(_result.get_metadata().size());
+}
 
 Row::Row(Result *result, MYSQL_ROW row, const unsigned long *lengths)
     : _result(*result), _row(row) {
-  // TODO(alfredo) there's actually no need to keep a copy of the lengths list
-  // because it is valid for as long as MYSQL_ROW is and both should become
-  // invalidated when the next row is fetched
-  for (size_t index = 0; index < result->get_metadata().size(); index++)
-    _lengths.push_back(lengths[index]);
+  m_num_fields = static_cast<uint32_t>(_result.get_metadata().size());
+  _lengths = lengths;
 }
 
 #define FIELD_ERROR(index, msg)                                              \
@@ -103,13 +105,13 @@ Row::Row(Result *result, MYSQL_ROW row, const unsigned long *lengths)
 
 #define VALIDATE_INDEX(index)                          \
   do {                                                 \
-    if (index >= num_fields())                         \
+    if (index >= m_num_fields)                         \
       throw FIELD_ERROR(index, "index out of bounds"); \
   } while (0)
 
 #define VALIDATE_TYPE(index, TYPE_CHECK)                                       \
   do {                                                                         \
-    if (index >= num_fields())                                                 \
+    if (index >= m_num_fields)                                                 \
       throw FIELD_ERROR(index, "index out of bounds");                         \
     if (_row[index] == nullptr) throw FIELD_ERROR(index, "field is NULL");     \
     Type ftype = get_type(index);                                              \
@@ -123,9 +125,7 @@ bool Row::is_null(uint32_t index) const {
   return _row[index] == NULL;
 }
 
-uint32_t Row::num_fields() const {
-  return static_cast<uint32_t>(_result.get_metadata().size());
-}
+uint32_t Row::num_fields() const { return m_num_fields; }
 
 Type Row::get_type(uint32_t index) const {
   VALIDATE_INDEX(index);
@@ -199,6 +199,13 @@ std::string Row::get_string(uint32_t index) const {
 std::pair<const char *, size_t> Row::get_string_data(uint32_t index) const {
   VALIDATE_TYPE(index, (is_string_type(ftype)));
   return std::pair<const char *, size_t>(_row[index], _lengths[index]);
+}
+
+void Row::get_raw_data(uint32_t index, const char **out_data,
+                       size_t *out_size) const {
+  VALIDATE_INDEX(index);
+  *out_data = _row[index];
+  *out_size = _lengths[index];
 }
 
 float Row::get_float(uint32_t index) const {

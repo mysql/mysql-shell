@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,8 +60,8 @@ class Mock_session : public mysqlshdk::db::ISession {
       void(const mysqlshdk::db::Connection_options &connection_options));
 
   // Execution
-  virtual std::shared_ptr<mysqlshdk::db::IResult> querys(const char *, size_t,
-                                                         bool buffered);
+  std::shared_ptr<mysqlshdk::db::IResult> querys(const char *, size_t,
+                                                 bool buffered) override;
   MOCK_METHOD2(executes, void(const char *, size_t));
   MOCK_METHOD1(execute, void(const std::string &));
   MOCK_METHOD0(start_transaction, void());
@@ -84,6 +84,10 @@ class Mock_session : public mysqlshdk::db::ISession {
   Mock_session &expect_query(const std::string &query);
   void then_return(const std::vector<Fake_result_data> &data);
   void then_throw();
+
+  std::string escape_string(const std::string &s) const override;
+
+  std::string escape_string(const char *buffer, size_t len) const override;
 
  private:
   size_t _last_query;

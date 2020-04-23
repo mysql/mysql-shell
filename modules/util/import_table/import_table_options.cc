@@ -159,36 +159,16 @@ std::string Import_table_options::target_import_info() const {
 
 void Import_table_options::unpack(const shcore::Dictionary_t &options) {
   auto unpack_options = Unpack_options(options);
+
   unpack_options.unpack(&m_oci_options);
-  unpack_options.optional("dialect", &m_base_dialect_name);
-  if (m_base_dialect_name.empty()) {
-    // nop
-  } else if (shcore::str_casecmp(m_base_dialect_name, "default") == 0) {
-    // nop
-  } else if (shcore::str_casecmp(m_base_dialect_name, "csv") == 0) {
-    m_dialect = Dialect::csv();
-  } else if (shcore::str_casecmp(m_base_dialect_name, "tsv") == 0) {
-    m_dialect = Dialect::tsv();
-  } else if (shcore::str_casecmp(m_base_dialect_name, "json") == 0) {
-    m_dialect = Dialect::json();
-  } else if (shcore::str_casecmp(m_base_dialect_name, "csv-unix") == 0) {
-    m_dialect = Dialect::csv_unix();
-  } else {
-    throw shcore::Exception::argument_error(
-        "dialect value must be csv, tsv, json or csv-unix.");
-  }
+
+  m_dialect = Dialect::unpack(&unpack_options);
 
   unpack_options.optional("table", &m_table)
       .optional("schema", &m_schema)
       .optional("threads", &m_threads_size)
       .optional("bytesPerChunk", &m_bytes_per_chunk)
       .optional("columns", &m_columns)
-      .optional("fieldsTerminatedBy", &m_dialect.fields_terminated_by)
-      .optional("fieldsEnclosedBy", &m_dialect.fields_enclosed_by)
-      .optional("fieldsOptionallyEnclosed",
-                &m_dialect.fields_optionally_enclosed)
-      .optional("fieldsEscapedBy", &m_dialect.fields_escaped_by)
-      .optional("linesTerminatedBy", &m_dialect.lines_terminated_by)
       .optional("replaceDuplicates", &m_replace_duplicates)
       .optional("maxRate", &m_max_rate)
       .optional("showProgress", &m_show_progress)

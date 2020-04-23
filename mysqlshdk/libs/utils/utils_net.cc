@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -696,6 +696,32 @@ std::string make_host_and_port(const std::string &host, uint16_t port) {
     return "[" + host + "]:" + std::to_string(port);
   else
     return host + ":" + std::to_string(port);
+}
+
+uint64_t host_to_network(uint64_t v) {
+#ifdef htonll
+  return htonll(v);
+#else
+  int le = 1;
+  if (*(char *)&le == 1) {
+    return ((uint64_t)htonl(v & 0xFFFFFFFFLL) << 32) | htonl(v >> 32);
+  } else {
+    return v;
+  }
+#endif
+}
+
+uint64_t network_to_host(uint64_t v) {
+#ifdef ntohll
+  return ntohll(v);
+#else
+  int le = 1;
+  if (*(char *)&le == 1) {
+    return ((uint64_t)ntohl(v & 0xFFFFFFFFLL) << 32) | ntohl(v >> 32);
+  } else {
+    return v;
+  }
+#endif
 }
 
 }  // namespace utils

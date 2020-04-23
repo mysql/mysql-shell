@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,7 @@
  */
 
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
+#include <mysql.h>
 #include <memory>
 #include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
@@ -76,4 +77,19 @@ std::shared_ptr<mysqlshdk::db::IResult> Mock_session::querys(
   return _results[s];
 }
 
+std::string Mock_session::escape_string(const std::string &s) const {
+  std::string res;
+  res.resize(s.length() * 2 + 1);
+  size_t l = mysql_escape_string(&res[0], s.data(), s.length());
+  res.resize(l);
+  return res;
+}
+
+std::string Mock_session::escape_string(const char *buffer, size_t len) const {
+  std::string res;
+  res.resize(len * 2 + 1);
+  size_t l = mysql_escape_string(&res[0], buffer, len);
+  res.resize(l);
+  return res;
+}
 }  // namespace testing

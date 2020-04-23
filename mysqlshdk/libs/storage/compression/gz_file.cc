@@ -27,6 +27,8 @@
 #include <limits>
 #include <utility>
 
+#include "mysqlshdk/libs/utils/logger.h"
+
 namespace mysqlshdk {
 namespace storage {
 namespace compression {
@@ -35,7 +37,11 @@ Gz_file::Gz_file(std::unique_ptr<IFile> file)
     : Compressed_file(std::move(file)) {}
 
 Gz_file::~Gz_file() {
-  if (is_open()) close();
+  try {
+    if (is_open()) close();
+  } catch (const std::runtime_error &e) {
+    log_error("Failed to close GZ file: %s", e.what());
+  }
 }
 
 ssize_t Gz_file::read(void *buffer, size_t length) {
@@ -87,7 +93,11 @@ ssize_t Gz_file::write(const void *buffer, size_t length) {
                   Z_NO_FLUSH);
 }
 
-void Gz_file::write_finish() { (void)do_write(nullptr, 0, Z_FINISH); }
+void Gz_file::write_finish() {
+  // deflate() may return Z_STREAM_ERROR if next_in is NULL
+  char c = 0;
+  (void)do_write(&c, 0, Z_FINISH);
+}
 
 void Gz_file::init_read() {
   m_stream.zalloc = nullptr;

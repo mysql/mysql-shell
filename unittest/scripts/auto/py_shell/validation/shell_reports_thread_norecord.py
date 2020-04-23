@@ -125,13 +125,7 @@ N/A
 #@ WL11651-TSFR18_2 - --locks - blocking
 ||
 
-#@ WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (1)
-||
-
 #@ WL11651-TSFR18_2 - --locks - blocked
-||
-
-#@ WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (2)
 ||
 
 #@ WL11651-TSFR7_5 - Validate that all the columns listed in FR5 can be requested using the --format (-o) option. - nblocked, nblocking - metadata
@@ -146,13 +140,7 @@ N/A
 #@ WL11651-TSFR18_2 - --locks - blocking - InnoDB
 ||
 
-#@ WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (3)
-||
-
 #@ WL11651-TSFR18_2 - --locks - blocked - InnoDB
-||
-
-#@ WL11651-TSFR18_4 - When using the --locks (-L) option and thread has lock information, validate that the additional information is displayed in tables. (4)
 ||
 
 #@ WL11651-TSFR7_5 - Validate that all the columns listed in FR5 can be requested using the --format (-o) option. - nblocked, nblocking - InnoDB
@@ -179,9 +167,6 @@ N/A
 ||
 
 #@ WL11651-TSFR19_2 - --prep-stmts
-||
-
-#@ WL11651-TSFR19_4 - When using the --prep-stmts (-P) option and thread has prepared statements, validate that the additional information is displayed in tables.
 ||
 
 #@ WL11651-TSFR19_2 - cleanup

@@ -118,9 +118,18 @@ void check_and_throw(Response::Status_code code, const Headers &headers,
   if (code < Response::Status_code::OK ||
       code >= Response::Status_code::MULTIPLE_CHOICES) {
     if (Response::is_json(headers) && buffer->size()) {
-      auto json = shcore::Value::parse(buffer->data(), buffer->size()).as_map();
-      if (json->get_type("message") == shcore::Value_type::String) {
-        throw Response_error(code, json->get_string("message"));
+      try {
+        auto json =
+            shcore::Value::parse(buffer->data(), buffer->size()).as_map();
+        if (json->get_type("message") == shcore::Value_type::String) {
+          throw Response_error(code, json->get_string("message"));
+        }
+      } catch (const shcore::Exception &error) {
+        // This handles the case where the content/type indicates it's JSON but
+        // parsing failed. The default error message is used on this case.
+        log_debug2("%s\n%.*s", error.what(), static_cast<int>(buffer->size()),
+                   buffer->data());
+        throw Response_error(code);
       }
     }
     throw Response_error(code);
@@ -187,9 +196,6 @@ void Oci_rest_service::set_service(Oci_service service) {
 
     m_rest = std::make_unique<mysqlshdk::rest::Rest_service>(
         "https://" + m_host, true, service_identifier(service));
-
-    m_rest->set_timeout(30000);  // todo(kg): default 2s was not enough, 30s is
-    // ok? maybe we could make it configurable
   }
 }
 

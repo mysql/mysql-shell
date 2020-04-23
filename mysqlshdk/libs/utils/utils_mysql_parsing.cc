@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -258,10 +258,11 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
       if (skip == 0) return false;
       if (delimited) skip += m_delimiter.size();
       p = bos + skip;
-      memmove(bos, p, m_end - p);
+      memmove(bos, p, m_end - p + 1);
       m_shrinked_bytes += skip;
       p = bos;
       eol -= skip;
+      next_bol -= skip;
       m_end -= skip;
       m_context = NONE;
       return true;

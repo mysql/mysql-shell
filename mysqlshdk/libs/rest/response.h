@@ -26,6 +26,7 @@
 
 #include "mysqlshdk/include/scripting/types.h"
 
+#include <algorithm>
 #include <string>
 
 #include "mysqlshdk/libs/rest/headers.h"
@@ -134,10 +135,7 @@ class Response_error : public std::runtime_error {
 
   Response::Status_code code() const noexcept { return m_code; }
 
-  virtual std::string format() const {
-    return "HTTP Error " + std::to_string(static_cast<int>(m_code)) + ": " +
-           what();
-  }
+  virtual std::string format() const;
 
  protected:
   Response::Status_code m_code;

@@ -116,7 +116,7 @@ INSERT INTO t_date VALUES ('2015-07-23', '16:34:12', '2015-07-23 16:34:12', '201
 INSERT INTO t_date VALUES ('0-1-1', '-1:0:0.12', '2000-1-1 0:0:2', '0-1-1', '1999');
 INSERT INTO t_date VALUES (NULL, NULL, NULL, NULL, NULL);
 INSERT INTO t_date VALUES ('0000-00-00', '00:00:00', '0000-00-00 00:00:00', '0000-00-00 00:00:00', 0);
-SET @@sql_mode = @SAVE_sql_mode ; 
+SET @@sql_mode = @SAVE_sql_mode ;
 
 #
 # BINARY
@@ -185,3 +185,14 @@ CREATE TABLE t_set (c1 SET('v1','v2','v3'), c2 SET(''));
 INSERT INTO t_set  VALUES ('v1,v1,v2', '');
 INSERT INTO t_set  VALUES ('', '');
 INSERT INTO t_set  VALUES (NULL, NULL);
+
+CREATE TABLE t_json (jdoc JSON);
+INSERT INTO t_json VALUES('{"char": "varchar", "binary": "varbinary"}');
+INSERT INTO t_json VALUES('{"çhár": "varçhár", "çínary": "çarbínary"}');
+INSERT INTO t_json VALUES('["abc", 10, null, true, false]');
+
+CREATE TABLE t_geom (g GEOMETRY);
+INSERT INTO t_geom VALUES (ST_GeomFromText('POINT(1 1)'));
+INSERT INTO t_geom VALUES (ST_GeomFromText('LINESTRING(0 0,1 1,2 2)'));
+INSERT INTO t_geom VALUES (ST_GeomFromText('POLYGON((0 0,10 0,10 10,0 10,0 0),(5 5,7 5,7 7,5 7, 5 5))'));
+INSERT INTO t_geom VALUES (ST_GeomFromText('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(0 0,1 1,2 2,3 3,4 4))'));

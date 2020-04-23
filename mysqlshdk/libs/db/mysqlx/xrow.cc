@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -83,10 +83,7 @@ std::string Row::get_as_string(uint32_t index) const {
   if (_row->is_null(index)) return "NULL";
   std::string data;
   const Column &column = _owner->get_metadata().at(index);
-  if (column.get_type() == Type::Date || column.get_type() == Type::DateTime) {
-    // TODO workaround for libmysqlxclient bug
-    return get_string(index);
-  } else if (column.get_type() == Type::Bit) {
+  if (column.get_type() == Type::Bit) {
     return shcore::bits_to_string(get_bit(index), column.get_length());
   }
   if (!_row->get_field_as_string(index, &data)) {
@@ -151,18 +148,12 @@ std::string Row::get_string(uint32_t index) const {
     case Type::Date: {
       ::xcl::DateTime date;
       if (!_row->get_datetime(index, &date)) FAILED_GET_TYPE(index, (true));
-      // FIXME workaround for libmysqlxclient bug that always returns a
-      // DateTime object with time
-      date = xcl::DateTime(date.year(), date.month(), date.day());
-
-      // FIXME remove the replace once libmysqlx is fixed
-      return shcore::str_replace(date.to_string(), "/", "-");
+      return date.to_string();
     }
     case Type::DateTime: {
       ::xcl::DateTime date;
       if (!_row->get_datetime(index, &date)) FAILED_GET_TYPE(index, (true));
-      // FIXME remove the replace once libmysqlx is fixed
-      return shcore::str_replace(date.to_string(), "/", "-");
+      return date.to_string();
     }
     case Type::Time: {
       ::xcl::Time time;
@@ -207,6 +198,25 @@ std::pair<const char *, size_t> Row::get_string_data(uint32_t index) const {
   if (!_row->get_string(index, &data, &length))
     FAILED_GET_TYPE(index, (ftype == Type::String || ftype == Type::Bytes));
   return {data, length};
+}
+
+void Row::get_raw_data(uint32_t index, const char **out_data,
+                       size_t *out_size) const {
+  if (is_null(index)) {
+    *out_data = nullptr;
+    *out_size = 0;
+  } else {
+    const auto type = get_type(index);
+
+    if (Type::String == type || Type::Bytes == type || Type::Json == type ||
+        Type::Geometry == type) {
+      std::tie(*out_data, *out_size) = get_string_data(index);
+    } else {
+      m_raw_data_cache = get_as_string(index);
+      *out_data = m_raw_data_cache.c_str();
+      *out_size = m_raw_data_cache.length();
+    }
+  }
 }
 
 float Row::get_float(uint32_t index) const {

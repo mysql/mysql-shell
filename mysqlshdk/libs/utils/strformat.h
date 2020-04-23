@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,11 +46,16 @@ inline std::pair<std::string, double> scale_value(T n) {
 std::string format_seconds(double secs, bool show_fractional_seconds = true);
 std::string format_microseconds(double secs);
 
+std::string format_items(const std::string &full,
+                         const std::string &abbreviation, uint64_t items,
+                         bool space_before_item = true);
+
 std::string format_bytes(uint64_t bytes);
 
 std::string format_throughput_items(const std::string &item_name_singular,
                                     const std::string &item_name_plural,
-                                    const uint64_t items, double seconds);
+                                    const uint64_t items, double seconds,
+                                    bool space_before_item = true);
 
 std::string format_throughput_bytes(uint64_t bytes, double seconds);
 

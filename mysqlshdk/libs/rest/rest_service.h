@@ -92,11 +92,21 @@ class Rest_service {
    * Sets the maximum time in milliseconds the execution of a request can take.
    * By default, timeout is set to two seconds. Use 0 for an infinite timeout.
    *
-   * @param timeout Maximum allowed time for the execution.
+   * @param timeout Maximum allowed time for the execution of HEAD/DELETE
+   * requests.
+   * @param low_speed_limit Lowest transfer rate in bytes/second.
+   * @param low_speed_time Number of seconds to meter the low_speed_limit before
+   * timing out.
    *
    * @returns Reference to self.
+   *
+   * A timeout will occurs in two situations:
+   * - A HEAD or DELETE request took more than timeout milliseconds to complete.
+   * - The transfaer/rate has been lower than low_speed_limit for more than
+   *   low_speed_time.
    */
-  Rest_service &set_timeout(uint32_t timeout);
+  Rest_service &set_timeout(long timeout, long low_speed_limit,
+                            long low_speed_time);
 
   /**
    * Executes a GET request, blocks until response is available.

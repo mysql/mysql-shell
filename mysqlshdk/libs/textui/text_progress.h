@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -98,10 +98,11 @@ class IProgress {
 
   virtual ~IProgress() = default;
 
-  virtual void show_status(bool force = false) { (void)force; }
+  virtual void show_status(bool = false, const std::string & = "") {}
   virtual void current(uint64_t /* value */) {}
   virtual void total(uint64_t /* value */) {}
-  virtual void clear_status() {}
+  virtual void set_left_label(const std::string &) {}
+  virtual void hide(bool) {}
   virtual void shutdown() {}
 };
 
@@ -110,7 +111,18 @@ class IProgress {
  */
 class Text_progress final : public IProgress {
  public:
-  Text_progress() : m_status(80, ' ') {}
+  Text_progress() : Text_progress("bytes", "B", "B", "B", false) {}
+
+  Text_progress(const char *items_full, const char *items_abbrev,
+                const char *item_singular, const char *item_plural,
+                bool space_before_item = true, bool total_is_approx = false)
+      : m_status(80, ' '),
+        m_items_full(items_full),
+        m_items_abbrev(items_abbrev),
+        m_item_singular(item_singular),
+        m_item_plural(item_plural),
+        m_space_before_item(space_before_item),
+        m_total_is_approx(total_is_approx) {}
 
   Text_progress(const Text_progress &other) = default;
   Text_progress(Text_progress &&other) = default;
@@ -120,17 +132,15 @@ class Text_progress final : public IProgress {
 
   ~Text_progress() override = default;
 
+  void set_left_label(const std::string &label) override;
+
   /**
    * Update and print progress information status.
    *
    * @param force If true, force status refresh and print.
+   * @param extra Extra message to be appended to the status.
    */
-  void show_status(bool force = false) override;
-
-  /**
-   * Erase currently visible progress information status.
-   */
-  void clear_status() override;
+  void show_status(bool force = false, const std::string &extra = "") override;
 
   /**
    * Update done work value.
@@ -142,6 +152,13 @@ class Text_progress final : public IProgress {
     m_throughput.push(value);
     m_changed = true;
   }
+
+  /**
+   * Hide progress text.
+   *
+   * @param flag If true, hides/clears the text, false shows it again.
+   */
+  void hide(bool flag) override;
 
   /**
    * Set total value of work to-do.
@@ -164,6 +181,15 @@ class Text_progress final : public IProgress {
   std::string m_status;
   std::chrono::steady_clock::time_point
       m_refresh_clock;  //< Last status refresh
+  std::string m_items_full;
+  std::string m_items_abbrev;
+  std::string m_item_singular;
+  std::string m_item_plural;
+  std::string m_left_label;
+  bool m_space_before_item;
+  bool m_total_is_approx = false;
+  int m_hide = 0;
+  bool was_shown = false;
 
   /**
    * Calculates work done to total work to-do ratio.
@@ -182,6 +208,11 @@ class Text_progress final : public IProgress {
   int percent() const noexcept { return ratio() * 100; }
 
   /**
+   * Erase currently visible progress information status.
+   */
+  void clear_status();
+
+  /**
    * Renders progress information status string.
    */
   void render_status();
@@ -189,7 +220,18 @@ class Text_progress final : public IProgress {
 
 class Json_progress final : public IProgress {
  public:
-  Json_progress() : m_status(80, ' ') {}
+  Json_progress() : Json_progress("bytes", "B", "B", "B", false) {}
+
+  Json_progress(const char *items_full, const char *items_abbrev,
+                const char *item_singular, const char *item_plural,
+                bool space_before_item = true)
+      : m_status(80, ' '),
+        m_items_full(items_full),
+        m_items_abbrev(items_abbrev),
+        m_item_singular(item_singular),
+        m_item_plural(item_plural),
+        m_space_before_item(space_before_item) {}
+
   Json_progress(const Json_progress &other) = default;
   Json_progress(Json_progress &&other) = default;
 
@@ -202,8 +244,9 @@ class Json_progress final : public IProgress {
    * Update and print progress information status.
    *
    * @param force If true, force status refresh and print.
+   * @param extra Extra message to be appended to the status.
    */
-  void show_status(bool force = false) override;
+  void show_status(bool force = false, const std::string &extra = "") override;
 
   /**
    * Update done work value.
@@ -231,6 +274,11 @@ class Json_progress final : public IProgress {
   std::string m_status;
   std::chrono::steady_clock::time_point
       m_refresh_clock;  //< Last status refresh
+  std::string m_items_full;
+  std::string m_items_abbrev;
+  std::string m_item_singular;
+  std::string m_item_plural;
+  bool m_space_before_item;
 
   double ratio() const noexcept {
     return (m_total > 0) ? (static_cast<double>(m_current) / m_total) : 0;
