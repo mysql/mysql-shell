@@ -413,30 +413,32 @@ session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET primary_mode =
 //@<> WL10644 - TSF4_1: Topology mode in MD before rescan().
 get_metadata_topology_mode();
 
-//@<> WL10644 - TSF4_1: Rescan with updateTopologyMode:false and change needed.
-cluster.rescan({updateTopologyMode: false});
-
-//@<> WL10644 - TSF4_1: Check topology mode in MD after rescan().
-get_metadata_topology_mode();
-
 //@ WL10644 - TSF4_5: Set auto_increment settings to unused values.
 set_auto_increment_to_unused_values(__sandbox_uri1);
 set_auto_increment_to_unused_values(__sandbox_uri2);
 set_auto_increment_to_unused_values(__sandbox_uri3);
-
-//@<> WL10644 - TSF4_2: Topology mode in MD before rescan().
-get_metadata_topology_mode();
 
 //@<> WL10644 - TSF4_2: status() error because topology mode changed.
 // NOTE: dba.getCluster() needed for new metadata info to be loaded by cluster object.
 cluster = dba.getCluster();
 cluster.status();
 
-//@<> WL10644 - TSF4_2: Rescan with updateTopologyMode:true and change needed.
-cluster.rescan({updateTopologyMode: true});
+//BUG#29330769: UPDATETOPOLOGYMODE SHOULD DEFAULT TO TRUE
 
-//@<> WL10644 - TSF4_2: Check topology mode in MD after rescan().
+//@<> BUG#29330769: Change the topology mode in the MD to the wrong value again
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET primary_mode = 'mm'");
+
+//@<> BUG#29330769: Topology mode in MD before rescan().
 get_metadata_topology_mode();
+
+//@<> BUG#29330769: Rescan without using updateTopologyMode and change needed.
+cluster.rescan();
+
+//@<> BUG#29330769: Check topology mode in MD after rescan().
+get_metadata_topology_mode();
+
+//@<> BUG#29330769: Verify deprecation message added about updateTopologyMode
+cluster.rescan({updateTopologyMode: true});
 
 //@<> WL10644 - TSF4_2: status() succeeds after rescan() updates topology mode.
 cluster.status();
@@ -468,7 +470,6 @@ set_auto_increment_to_unused_values(__sandbox_uri2);
 set_auto_increment_to_unused_values(__sandbox_uri3);
 
 //@<> WL10644 - TSF4_3: Rescan with interactive:true and change needed.
-testutil.expectPrompt("Would you like to update it in the cluster metadata? [Y/n]: ", "y");
 cluster.rescan({interactive: true});
 
 //@<> WL10644 - TSF4_3: Check topology mode in MD after rescan().

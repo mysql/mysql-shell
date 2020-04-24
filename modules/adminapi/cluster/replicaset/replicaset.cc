@@ -1060,6 +1060,17 @@ void GRReplicaSet::rescan(const shcore::Dictionary_t &options) {
     opts_unpack.optional("updateTopologyMode", &update_topology_mode)
         .optional("interactive", &interactive);
 
+    // The updateTopologyMode option is deprecated.
+    // BUG#29330769: UPDATETOPOLOGYMODE SHOULD DEFAULT TO TRUE
+    if (!update_topology_mode.is_null()) {
+      auto console = mysqlsh::current_console();
+      std::string warn_msg =
+          "The updateTopologyMode option is deprecated. The topology-mode is "
+          "now automatically updated.";
+      console->print_info(warn_msg);
+      console->print_info();
+    }
+
     // Extract value for addInstances, it can be a string "auto" or a list.
     unpack_auto_instances_list(&opts_unpack, "addInstances", &auto_add_instance,
                                &add_instances_list);
@@ -1074,9 +1085,8 @@ void GRReplicaSet::rescan(const shcore::Dictionary_t &options) {
   // Rescan replicaset.
   {
     // Create the rescan command and execute it.
-    Rescan op_rescan(interactive, update_topology_mode, auto_add_instance,
-                     auto_remove_instance, add_instances_list,
-                     remove_instances_list, this);
+    Rescan op_rescan(interactive, auto_add_instance, auto_remove_instance,
+                     add_instances_list, remove_instances_list, this);
 
     // Always execute finish when leaving "try catch".
     auto finally =

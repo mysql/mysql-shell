@@ -39,13 +39,11 @@ namespace mysqlsh {
 namespace dba {
 
 Rescan::Rescan(
-    bool interactive, mysqlshdk::utils::nullable<bool> update_topology_mode,
-    bool auto_add_instances, bool auto_remove_instances,
+    bool interactive, bool auto_add_instances, bool auto_remove_instances,
     const std::vector<mysqlshdk::db::Connection_options> &add_instances_list,
     const std::vector<mysqlshdk::db::Connection_options> &remove_instances_list,
     GRReplicaSet *replicaset)
     : m_interactive(interactive),
-      m_update_topology_mode(update_topology_mode),
       m_auto_add_instances(auto_add_instances),
       m_auto_remove_instances(auto_remove_instances),
       m_add_instances_list(std::move(add_instances_list)),
@@ -545,23 +543,11 @@ shcore::Value Rescan::execute() {
     std::string new_topology_mode = result->get_string("newTopologyMode");
 
     if (!new_topology_mode.empty()) {
-      console->println("The topology mode of the cluster changed to '" +
-                       new_topology_mode + "'.");
+      console->print_note("The topology mode of the cluster changed to '" +
+                          new_topology_mode + "'.");
 
-      // Determine if the topology mode will be updated in the metadata.
-      if (!m_update_topology_mode.is_null() && *m_update_topology_mode) {
-        // Update topology mode in the metadata.
-        update_topology_mode(
-            mysqlshdk::gr::to_topology_mode(new_topology_mode));
-      } else if (m_update_topology_mode.is_null() && m_interactive) {
-        // Ask to update the topology mode if prompts are enabled.
-        if (console->confirm(
-                "Would you like to update it in the cluster metadata?",
-                Prompt_answer::YES) == Prompt_answer::YES) {
-          update_topology_mode(
-              mysqlshdk::gr::to_topology_mode(new_topology_mode));
-        }
-      }
+      // Update the topology mode in the Metadata
+      update_topology_mode(mysqlshdk::gr::to_topology_mode(new_topology_mode));
     }
   }
 
