@@ -78,7 +78,14 @@ namespace oci {
 using mysqlsh::current_console;
 
 Oci_setup::Oci_setup()
-    : Oci_setup(mysqlsh::current_shell_options()->get().oci_config_file) {}
+    : shcore::wizard::Wizard(),
+      m_config(mysqlshdk::config::Case::SENSITIVE,
+               mysqlshdk::config::Escape::NO),
+      m_oci_path(shcore::path::dirname(
+          mysqlsh::current_shell_options()->get().oci_config_file)),
+      m_oci_cfg_path(mysqlsh::current_shell_options()->get().oci_config_file) {
+  if (shcore::is_file(m_oci_cfg_path)) m_config.read(m_oci_cfg_path);
+}
 
 Oci_setup::Oci_setup(const std::string &oci_config_path)
     : shcore::wizard::Wizard(),
@@ -86,9 +93,7 @@ Oci_setup::Oci_setup(const std::string &oci_config_path)
                mysqlshdk::config::Escape::NO),
       m_oci_path(shcore::path::dirname(oci_config_path)),
       m_oci_cfg_path(oci_config_path) {
-  if (shcore::is_file(m_oci_cfg_path)) {
-    m_config.read(m_oci_cfg_path);
-  }
+  m_config.read(m_oci_cfg_path);
 }
 
 void Oci_setup::init_create_profile_wizard() {

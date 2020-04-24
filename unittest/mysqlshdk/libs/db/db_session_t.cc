@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -242,6 +242,34 @@ TEST_F(Db_tests, connect_read_timeout) {
 
   EXPECT_THROW_LIKE(session->execute("SELECT SLEEP(2)"), mysqlshdk::db::Error,
                     "Lost connection to MySQL server during query");
+}
+
+TEST_F(Db_tests, connect_write_timeout) {
+  auto connection_options = shcore::get_connection_options(uri());
+
+  connection_options.set_unchecked("net-write-timeout", "500");
+
+  EXPECT_NO_THROW(session->connect(connection_options));
+
+  // no way to easily test this
+}
+
+TEST_F(Db_tests, connect_max_allowed_packet) {
+  auto connection_options = shcore::get_connection_options(uri());
+
+  connection_options.set_unchecked("max-allowed-packet", "4096");
+  connection_options.set_unchecked("net-buffer-length", "2048");
+
+  EXPECT_NO_THROW(session->connect(connection_options));
+
+  session->execute("use mysql");
+  session->execute(
+      "create temporary table big (a int primary key, b longtext)");
+  session->execute("insert into big values (1, repeat('x', 10000))");
+
+  auto result = session->query("select * from big");
+  EXPECT_THROW_LIKE(result->fetch_one(), mysqlshdk::db::Error,
+                    "Got packet bigger than 'max_allowed_packet' bytes");
 }
 
 }  // namespace db

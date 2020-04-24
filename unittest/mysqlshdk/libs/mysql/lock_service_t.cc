@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -106,14 +106,14 @@ TEST_F(Lock_service_test, lock_erros) {
   // Name space and lock name cannot be empty.
   EXPECT_THROW_LIKE(mysqlshdk::mysql::get_lock(*instance, "", "lock1",
                                                Lock_mode::EXCLUSIVE, 0),
-                    shcore::Exception,
+                    mysqlshdk::db::Error,
                     "Incorrect locking service lock name ''.");
   EXPECT_THROW_LIKE(mysqlshdk::mysql::get_lock(*instance, "test_locks", "",
                                                Lock_mode::SHARED, 0),
-                    shcore::Exception,
+                    mysqlshdk::db::Error,
                     "Incorrect locking service lock name ''.");
   EXPECT_THROW_LIKE(mysqlshdk::mysql::release_lock(*instance, ""),
-                    shcore::Exception,
+                    mysqlshdk::db::Error,
                     "Incorrect locking service lock name ''.");
 
   // Name space and lock name have a maximum length of 64 characters.
@@ -122,7 +122,7 @@ TEST_F(Lock_service_test, lock_erros) {
           *instance,
           "very_very_long_name_space_with_more_than_64_characters_are_invalid",
           "lock1", Lock_mode::SHARED, 0),
-      shcore::Exception,
+      mysqlshdk::db::Error,
       "Incorrect locking service lock name "
       "'very_very_long_name_space_with_more_than_64_characters_are_invalid'.");
   EXPECT_THROW_LIKE(
@@ -130,14 +130,14 @@ TEST_F(Lock_service_test, lock_erros) {
           *instance, "test_locks",
           "very_very_long_lock_name_with_more_than_64_characters_are_invalid",
           Lock_mode::EXCLUSIVE, 0),
-      shcore::Exception,
+      mysqlshdk::db::Error,
       "Incorrect locking service lock name "
       "'very_very_long_lock_name_with_more_than_64_characters_are_invalid'.");
   EXPECT_THROW_LIKE(
       mysqlshdk::mysql::release_lock(
           *instance,
           "very_very_long_name_space_with_more_than_64_characters_are_invalid"),
-      shcore::Exception,
+      mysqlshdk::db::Error,
       "Incorrect locking service lock name "
       "'very_very_long_name_space_with_more_than_64_characters_are_invalid'.");
 }
@@ -167,7 +167,7 @@ TEST_F(Lock_service_test, locks_usage) {
   EXPECT_THROW_LIKE(
       mysqlshdk::mysql::get_lock(*instance2, "test_locks", "lock1",
                                  Lock_mode::EXCLUSIVE, 0),
-      shcore::Exception, "Service lock wait timeout exceeded.");
+      mysqlshdk::db::Error, "Service lock wait timeout exceeded.");
 
   // Ok to acquire an exclusive lock on a different name.
   EXPECT_NO_THROW(mysqlshdk::mysql::get_lock(*instance2, "test_locks", "lock2",
@@ -184,16 +184,19 @@ TEST_F(Lock_service_test, locks_usage) {
   // another session.
   EXPECT_THROW_LIKE(mysqlshdk::mysql::get_lock(*instance, "test_locks", "lock1",
                                                Lock_mode::SHARED, 0),
-                    shcore::Exception, "Service lock wait timeout exceeded.");
+                    mysqlshdk::db::Error,
+                    "Service lock wait timeout exceeded.");
 
   // Fail to acquire an exclusive lock if one is already hold by another
   // session.
   EXPECT_THROW_LIKE(mysqlshdk::mysql::get_lock(*instance, "test_locks", "lock1",
                                                Lock_mode::EXCLUSIVE, 0),
-                    shcore::Exception, "Service lock wait timeout exceeded.");
+                    mysqlshdk::db::Error,
+                    "Service lock wait timeout exceeded.");
   EXPECT_THROW_LIKE(mysqlshdk::mysql::get_lock(*instance, "test_locks", "lock2",
                                                Lock_mode::EXCLUSIVE, 0),
-                    shcore::Exception, "Service lock wait timeout exceeded.");
+                    mysqlshdk::db::Error,
+                    "Service lock wait timeout exceeded.");
 
   // Closing a session, implicitly releases locks.
   instance2->close_session();

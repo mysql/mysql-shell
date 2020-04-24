@@ -111,7 +111,8 @@ class Test_debugger {
         }
         m_stepping = false;
         return interact();
-      } else if (shcore::str_strip(code) == "//BREAK") {
+      } else if (shcore::str_strip(code) == "//BREAK" ||
+                 shcore::str_strip(code) == "#BREAK") {
         println("//BREAK hit");
         return interact();
       }
@@ -774,6 +775,17 @@ static bool is_identifier_assignment(const std::string &s) {
   return true;
 }
 
+static std::string find_in_parent_dir(std::string dir,
+                                      const std::string &file) {
+  while (!dir.empty() && dir != "/" && dir != "\\") {
+    std::string path = shcore::path::join_path(dir, file);
+    fprintf(stderr, "CHECK %s\n", path.c_str());
+    if (shcore::path_exists(path)) return path;
+    dir = shcore::path::dirname(dir);
+  }
+  return "";
+}
+
 bool Shell_script_tester::load_source_chunks(const std::string &path,
                                              std::istream &stream,
                                              const std::string &prefix) {
@@ -846,18 +858,35 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
             include = tokens[3];
           }
 
+          // Try in the same dir as the test
           std::string inc_path =
               shcore::path::join_path(shcore::path::dirname(path), include);
-          std::ifstream inc_stream(inc_path.c_str());
 
-          if (!inc_stream.fail()) {
-            std::string namespc =
-                std::get<0>(shcore::path::split_extension(include));
-            if (!tag.empty()) namespc = tag + "::" + namespc;
-            load_source_chunks(include, inc_stream, namespc + "::");
-          } else {
-            ADD_FAILURE_AT(path.c_str(), linenum - 1)
-                << makered("Could not load include file " + inc_path) << "\n";
+          auto load = [this, include, tag](const std::string &ipath) {
+            if (!ipath.empty()) {
+              std::ifstream inc_stream(ipath.c_str());
+
+              if (!inc_stream.fail()) {
+                std::string namespc =
+                    std::get<0>(shcore::path::split_extension(include));
+                if (!tag.empty()) namespc = tag + "::" + namespc;
+                load_source_chunks(include, inc_stream, namespc + "::");
+                return true;
+              }
+            }
+            return false;
+          };
+
+          if (!load(inc_path)) {
+            // Try in the setup dir for the language
+            std::string lang =
+                std::get<1>(shcore::path::split_extension(path)).substr(1);
+            if (!load(find_in_parent_dir(
+                    shcore::path::dirname(path),
+                    shcore::path::join_path("setup_" + lang, include)))) {
+              ADD_FAILURE_AT(path.c_str(), linenum - 1)
+                  << makered("Could not load include file " + inc_path) << "\n";
+            }
           }
         } else {
           ADD_FAILURE_AT(path.c_str(), linenum - 1)

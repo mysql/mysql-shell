@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -209,30 +209,36 @@ class Rest_service::Impl {
   ~Impl() = default;
 
   void log_request(Type type, const std::string &path, const Headers &headers) {
-    log_debug("%s-%d: %s %s", m_id.c_str(), m_request_sequence,
-              shcore::str_upper(type_name(type)).c_str(), path.c_str());
+    if (shcore::current_logger()->get_log_level() >=
+        shcore::Logger::LOG_LEVEL::LOG_DEBUG) {
+      log_debug("%s-%d: %s %s", m_id.c_str(), m_request_sequence,
+                shcore::str_upper(type_name(type)).c_str(), path.c_str());
 
-    if (!headers.empty() && shcore::current_logger()->get_log_level() >=
-                                shcore::Logger::LOG_LEVEL::LOG_DEBUG2) {
-      std::vector<std::string> header_data;
-      for (const auto &header : headers) {
-        header_data.push_back("'" + header.first + "' : '" + header.second +
-                              "'");
+      if (!headers.empty() && shcore::current_logger()->get_log_level() >=
+                                  shcore::Logger::LOG_LEVEL::LOG_DEBUG2) {
+        std::vector<std::string> header_data;
+        for (const auto &header : headers) {
+          header_data.push_back("'" + header.first + "' : '" + header.second +
+                                "'");
+        }
+        log_debug2("%s-%d: REQUEST HEADERS:\n  %s", m_id.c_str(),
+                   m_request_sequence,
+                   shcore::str_join(header_data, "\n  ").c_str());
       }
-      log_debug2("%s-%d: REQUEST HEADERS:\n  %s", m_id.c_str(),
-                 m_request_sequence,
-                 shcore::str_join(header_data, "\n  ").c_str());
     }
   }
 
   void log_response(int sequence, Response::Status_code code,
                     const std::string &headers) {
-    log_debug("%s-%d: %d-%s", m_id.c_str(), sequence, static_cast<int>(code),
-              Response::status_code(code).c_str());
+    if (shcore::current_logger()->get_log_level() >=
+        shcore::Logger::LOG_LEVEL::LOG_DEBUG) {
+      log_debug("%s-%d: %d-%s", m_id.c_str(), sequence, static_cast<int>(code),
+                Response::status_code(code).c_str());
 
-    if (!headers.empty()) {
-      log_debug2("%s-%d: RESPONSE HEADERS:\n  %s", m_id.c_str(), sequence,
-                 headers.c_str());
+      if (!headers.empty()) {
+        log_debug2("%s-%d: RESPONSE HEADERS:\n  %s", m_id.c_str(), sequence,
+                   headers.c_str());
+      }
     }
   }
 
@@ -268,7 +274,7 @@ class Rest_service::Impl {
 
     // execute the request
     if (curl_easy_perform(m_handle.get()) != CURLE_OK) {
-      log_error("%s-%d %s", m_id.c_str(), m_request_sequence, m_error_buffer);
+      log_error("%s-%d: %s", m_id.c_str(), m_request_sequence, m_error_buffer);
       throw Connection_error{m_error_buffer};
     }
 
@@ -353,6 +359,10 @@ class Rest_service::Impl {
                      static_cast<long>(low_speed_limit));
     curl_easy_setopt(m_handle.get(), CURLOPT_LOW_SPEED_TIME,
                      static_cast<long>(low_speed_time));
+  }
+
+  std::string get_last_request_id() const {
+    return m_id + "-" + std::to_string(m_request_sequence);
   }
 
  private:
@@ -540,13 +550,24 @@ Response::Status_code Rest_service::execute(Type type, const std::string &path,
       if (!retry_strategy || !retry_strategy->should_retry(code)) {
         return code;
       } else {
+        if (buffer) buffer->clear();
         retry_strategy->wait_for_retry();
+        // A retriable error occurred, this log is to have visibility of it
+        log_info("RETRYING %s: Error %d-%s",
+                 m_impl->get_last_request_id().c_str(), static_cast<int>(code),
+                 Response::status_code(code).c_str());
       }
-    } catch (...) {
-      if (retry_strategy && retry_strategy->should_retry())
+    } catch (const std::exception &error) {
+      if (retry_strategy && retry_strategy->should_retry()) {
+        // A unexpected error occurred but the retry strategy indicates we
+        // should retry, this log is to have visibility of the error
+        if (buffer) buffer->clear();
         retry_strategy->wait_for_retry();
-      else
+        log_info("RETRYING %s: %s", m_impl->get_last_request_id().c_str(),
+                 error.what());
+      } else {
         throw;
+      }
     }
   }
 }

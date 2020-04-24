@@ -95,14 +95,14 @@ class Dump_options {
   virtual void validate_options() const {}
 
   std::string m_output_directory;
-  bool m_use_base64 = false;
+  bool m_use_base64 = true;
   bool m_split = true;
   uint64_t m_bytes_per_chunk;
   std::size_t m_threads = 4;
   int64_t m_max_rate = 0;
   bool m_show_progress;
   mysqlshdk::storage::Compression m_compression =
-      mysqlshdk::storage::Compression::GZIP;
+      mysqlshdk::storage::Compression::ZSTD;
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   import_table::Dialect m_dialect;
   mysqlshdk::oci::Oci_options m_oci_options;

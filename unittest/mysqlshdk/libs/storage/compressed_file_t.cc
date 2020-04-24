@@ -144,80 +144,104 @@ std::string Generate_text::bytes(size_t length) {
 
 }  // namespace
 
-void compress_decompress(const std::string &input_data) {
-  using Memory_file = mysqlshdk::storage::backend::Memory_file;
-  using Mode = mysqlshdk::storage::Mode;
+class Compression
+    : public testing::TestWithParam<mysqlshdk::storage::Compression> {
+ public:
+  void compress_decompress(const std::string &input_data,
+                           mysqlshdk::storage::Compression ctype) {
+    using Memory_file = mysqlshdk::storage::backend::Memory_file;
+    using Mode = mysqlshdk::storage::Mode;
 
-  byte buffer[BUFSIZE];
+    byte buffer[BUFSIZE];
 
-  auto memfile = Memory_file("");
-  memfile.open(Mode::WRITE);
-  memfile.write(input_data.data(), input_data.size());
-  memfile.close();
+    auto memfile = Memory_file("");
+    memfile.open(Mode::WRITE);
+    memfile.write(input_data.data(), input_data.size());
+    memfile.close();
 
-  // compress
-  std::unique_ptr<mysqlshdk::storage::IFile> compress_storage =
-      std::make_unique<Memory_file>("");
-  auto compress_storage_ptr =
-      dynamic_cast<Memory_file *>(compress_storage.get());
-  auto compress = mysqlshdk::storage::make_file(
-      std::move(compress_storage), mysqlshdk::storage::Compression::GZIP);
+    // compress
+    std::unique_ptr<mysqlshdk::storage::IFile> compress_storage =
+        std::make_unique<Memory_file>("");
+    auto compress_storage_ptr =
+        dynamic_cast<Memory_file *>(compress_storage.get());
+    auto compress =
+        mysqlshdk::storage::make_file(std::move(compress_storage), ctype);
 
-  memfile.open(Mode::READ);
-  compress->open(Mode::WRITE);
-  for (auto read_bytes = memfile.read(buffer, BUFSIZE); read_bytes > 0;
-       read_bytes = memfile.read(buffer, BUFSIZE)) {
-    compress->write(buffer, read_bytes);
-  }
-  compress->close();
-  memfile.close();
-
-  // uncompress some bytes to test if we can reopen compressed stream later
-  {
-    compress->open(Mode::READ);
-    const ssize_t first_bytes = 100;
-    auto bytes_read = compress->read(buffer, first_bytes);
-    const ssize_t bytes_to_compare =
-        bytes_read < first_bytes ? bytes_read : first_bytes;
-    EXPECT_EQ(bytes_to_compare, bytes_read);
-    {
-      const auto expected = input_data.substr(0, bytes_to_compare);
-      const auto actual = std::string(buffer, buffer + bytes_to_compare);
-      EXPECT_EQ(expected, actual);
+    memfile.open(Mode::READ);
+    compress->open(Mode::WRITE);
+    for (auto read_bytes = memfile.read(buffer, BUFSIZE); read_bytes > 0;
+         read_bytes = memfile.read(buffer, BUFSIZE)) {
+      compress->write(buffer, read_bytes);
     }
     compress->close();
+    memfile.close();
+
+    // uncompress some bytes to test if we can reopen compressed stream later
+    {
+      compress->open(Mode::READ);
+      const ssize_t first_bytes = 100;
+      auto bytes_read = compress->read(buffer, first_bytes);
+      const ssize_t bytes_to_compare =
+          bytes_read < first_bytes ? bytes_read : first_bytes;
+      EXPECT_EQ(bytes_to_compare, bytes_read);
+      {
+        const auto expected = input_data.substr(0, bytes_to_compare);
+        const auto actual = std::string(buffer, buffer + bytes_to_compare);
+        EXPECT_EQ(expected, actual);
+      }
+      compress->close();
+    }
+
+    switch (ctype) {
+      case mysqlshdk::storage::Compression::GZIP:
+        // is gzip? (gzip header startswith "\x1f\x8b")
+        EXPECT_EQ(static_cast<std::string::value_type>(0x1f),
+                  compress_storage_ptr->content()[0]);
+        EXPECT_EQ(static_cast<std::string::value_type>(0x8b),
+                  compress_storage_ptr->content()[1]);
+        break;
+
+      case mysqlshdk::storage::Compression::ZSTD:
+        // is zstd? (zstd header startswith "\x28\xb5\x2f\xfd")
+        EXPECT_EQ(static_cast<std::string::value_type>(0x28),
+                  compress_storage_ptr->content()[0]);
+        EXPECT_EQ(static_cast<std::string::value_type>(0xb5),
+                  compress_storage_ptr->content()[1]);
+        EXPECT_EQ(static_cast<std::string::value_type>(0x2f),
+                  compress_storage_ptr->content()[2]);
+        EXPECT_EQ(static_cast<std::string::value_type>(0xfd),
+                  compress_storage_ptr->content()[3]);
+        break;
+
+      case mysqlshdk::storage::Compression::NONE:
+        break;
+    }
+
+    // uncompress
+    auto uncompress = Memory_file("");
+
+    compress->open(Mode::READ);
+    uncompress.open(Mode::WRITE);
+    for (auto read_bytes = compress->read(buffer, BUFSIZE); read_bytes > 0;
+         read_bytes = compress->read(buffer, BUFSIZE)) {
+      uncompress.write(buffer, read_bytes);
+    }
+    compress->close();
+    uncompress.close();
+
+    // check
+    EXPECT_EQ(input_data.size(), uncompress.file_size());
+    EXPECT_EQ(memfile.content(), uncompress.content());
+    EXPECT_EQ(input_data, uncompress.content());
   }
+};
 
-  // is gzip? (gzip header startswith "\x1f\x8b")
-  EXPECT_EQ(static_cast<std::string::value_type>(0x1f),
-            compress_storage_ptr->content()[0]);
-  EXPECT_EQ(static_cast<std::string::value_type>(0x8b),
-            compress_storage_ptr->content()[1]);
-
-  // uncompress
-  auto uncompress = Memory_file("");
-
-  compress->open(Mode::READ);
-  uncompress.open(Mode::WRITE);
-  for (auto read_bytes = compress->read(buffer, BUFSIZE); read_bytes > 0;
-       read_bytes = compress->read(buffer, BUFSIZE)) {
-    uncompress.write(buffer, read_bytes);
-  }
-  compress->close();
-  uncompress.close();
-
-  // check
-  EXPECT_EQ(input_data.size(), uncompress.file_size());
-  EXPECT_EQ(memfile.content(), uncompress.content());
-  EXPECT_EQ(input_data, uncompress.content());
-}
-
-TEST(storage_gz, ascii_text) {
+TEST_P(Compression, ascii_text) {
   {
     SCOPED_TRACE("ascii text by bytes");
     Generate_text g;
     auto input_text = g.bytes(4 * 1024 * 1024);
-    compress_decompress(input_text);
+    compress_decompress(input_text, GetParam());
   }
   {
     for (const ssize_t count : {0, 1, 2, 4, 8, 1024, 2000, 8313}) {
@@ -225,34 +249,108 @@ TEST(storage_gz, ascii_text) {
 
       Generate_text g;
       auto input_text = g.words(count);
-      compress_decompress(input_text);
+      compress_decompress(input_text, GetParam());
     }
   }
 }
 
-TEST(storage_gz, ascii_text_with_null_bytes) {
+TEST_P(Compression, ascii_text_with_null_bytes) {
   Generate_text g;
   auto input_text = g.bytes(2 * 1024 * 1024);
   for (const int pos : {21, 50, 100, 112, 4000, 43000}) {
     input_text.insert(input_text.begin() + pos, '\0');
   }
-  compress_decompress(input_text);
+  compress_decompress(input_text, GetParam());
 }
 
-TEST(storage_gz, empty_input) {
+TEST_P(Compression, empty_input) {
   const std::string empty;
-  compress_decompress(empty);
+  compress_decompress(empty, GetParam());
 }
 
-TEST(storage_gz, binary_data) {
+TEST_P(Compression, binary_data) {
   for (const ssize_t length :
        {0, 1, 2, 4, 8, 1024, 2000, 8313, 1024 * 1024, 4 * 1024 * 1024}) {
     SCOPED_TRACE(length);
     Generate_binary g;
     auto input_data = g.bytes(length);
-    compress_decompress(input_data);
+    compress_decompress(input_data, GetParam());
   }
 }
+
+extern "C" const char *g_test_home;
+TEST_P(Compression, compress_decompress_bigdata) {
+  SKIP_TEST("Slow test");
+
+  std::string test_file =
+      shcore::path::join_path(g_test_home, "data/sql/sakila-data.sql");
+
+  auto in_file = make_file(test_file);
+
+  auto out_file = make_file(make_file(test_file + ".zstd"), GetParam());
+
+  for (size_t bufsize = 1024; bufsize < 100000; bufsize++) {
+    printf("testing with buffer size %zi\n", bufsize);
+
+    in_file->open(Mode::READ);
+    out_file->open(Mode::WRITE);
+
+    std::string buffer;
+    buffer.resize(bufsize);
+
+    for (;;) {
+      auto c = in_file->read(&buffer[0], buffer.size());
+      if (c <= 0) break;
+      out_file->write(&buffer[0], c);
+    }
+    in_file->close();
+    out_file->close();
+
+    // puts("compression done");
+
+    auto file = make_file(test_file + ".out");
+    file->open(Mode::WRITE);
+    out_file->open(Mode::READ);
+    for (;;) {
+      auto c = out_file->read(&buffer[0], buffer.size());
+      if (c <= 0) break;
+      file->write(&buffer[0], c);
+    }
+    file->close();
+    out_file->close();
+
+    // puts("decompression done");
+
+    file->open(Mode::READ);
+    in_file->open(Mode::READ);
+
+    std::string buffer2;
+    buffer2.resize(bufsize);
+
+    for (;;) {
+      auto c = file->read(&buffer[0], buffer.size());
+      auto c2 = in_file->read(&buffer2[0], buffer2.size());
+
+      ASSERT_EQ(c, c2);
+      if (c == 0) break;
+      ASSERT_EQ(buffer2, buffer);
+    }
+    file->close();
+    in_file->close();
+  }
+}
+
+inline std::string fmt_compr(
+    const testing::TestParamInfo<mysqlshdk::storage::Compression> &info) {
+  // get the script filename alone, without the prefix directory
+  return mysqlshdk::storage::to_string(info.param);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    StorageCompression, Compression,
+    ::testing::Values(mysqlshdk::storage::Compression::GZIP,
+                      mysqlshdk::storage::Compression::ZSTD),
+    fmt_compr);
 
 }  // namespace tests
 }  // namespace storage

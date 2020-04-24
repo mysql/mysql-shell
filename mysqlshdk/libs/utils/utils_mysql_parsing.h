@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -119,6 +119,8 @@ std::vector<std::tuple<std::string, std::string, size_t>> split_sql_stream(
     std::istream *stream, size_t chunk_size,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes = false,
     std::string *delimiter = nullptr);
+
+std::vector<std::string> split_sql(const std::string &str);
 
 bool iterate_sql_stream(
     std::istream *stream, size_t chunk_size,

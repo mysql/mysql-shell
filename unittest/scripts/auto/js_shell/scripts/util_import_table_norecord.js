@@ -107,11 +107,11 @@ util.importTable(__import_data_path + '/world_x_cities.csv', {
 
 var keyname = testutil.versionCheck(__version, '<', '8.0.19') ? `'PRIMARY'` : `'cities.PRIMARY'`;
 
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '1' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '2' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '3' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '4' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '5' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities.csv error 1062: Duplicate entry '1' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities.csv error 1062: Duplicate entry '2' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities.csv error 1062: Duplicate entry '3' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities.csv error 1062: Duplicate entry '4' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities.csv error 1062: Duplicate entry '5' for key " + keyname);
 EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities.csv' (250.53 KB) was imported in ");
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079");
 
@@ -122,11 +122,11 @@ util.importTable(__import_data_path + '/world_x_cities_header.csv', {
 });
 
 EXPECT_STDOUT_CONTAINS("wl12193.cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '1' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '2' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '3' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '4' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`cities` error 1062: Duplicate entry '5' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities_header.csv error 1062: Duplicate entry '1' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities_header.csv error 1062: Duplicate entry '2' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities_header.csv error 1062: Duplicate entry '3' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities_header.csv error 1062: Duplicate entry '4' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: world_x_cities_header.csv error 1062: Duplicate entry '5' for key " + keyname);
 EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities_header.csv' (250.57 KB) was imported in ");
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 4079  Warnings: 4079");
 
@@ -195,11 +195,11 @@ util.importTable(__import_data_path + '/primer-dataset-id.json', {
 keyname = testutil.versionCheck(__version, '<', '8.0.19') ? `'PRIMARY'` : `'document_store.PRIMARY'`;
 
 EXPECT_STDOUT_CONTAINS("wl12193.document_store: Records: 25359  Deleted: 0  Skipped: 25359  Warnings: 25359");
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000001' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000002' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000003' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000004' for key " + keyname);
-EXPECT_STDOUT_CONTAINS("WARNING: `wl12193`.`document_store` error 1062: Duplicate entry '000000000005' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: primer-dataset-id.json error 1062: Duplicate entry '000000000001' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: primer-dataset-id.json error 1062: Duplicate entry '000000000002' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: primer-dataset-id.json error 1062: Duplicate entry '000000000003' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: primer-dataset-id.json error 1062: Duplicate entry '000000000004' for key " + keyname);
+EXPECT_STDOUT_CONTAINS("WARNING: primer-dataset-id.json error 1062: Duplicate entry '000000000005' for key " + keyname);
 EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/primer-dataset-id.json' (11.29 MB) was imported in ");
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".document_store: Records: 25359  Deleted: 0  Skipped: 25359  Warnings: 25359");
 
@@ -209,8 +209,8 @@ util.importTable(__import_data_path + '/world_x_cities.dump', {
     schema: target_schema, table: 'cities',
     bytesPerChunk: '1'
 });
-EXPECT_STDOUT_CONTAINS("wl12193.cities: Records: 1523  Deleted: 0  Skipped: 1523  Warnings: 1523");
-EXPECT_STDOUT_CONTAINS("wl12193.cities: Records: 2556  Deleted: 0  Skipped: 2556  Warnings: 2556");
+EXPECT_STDOUT_CONTAINS("world_x_cities.dump: Records: 1523  Deleted: 0  Skipped: 1523  Warnings: 1523");
+EXPECT_STDOUT_CONTAINS("world_x_cities.dump: Records: 2556  Deleted: 0  Skipped: 2556  Warnings: 2556");
 EXPECT_STDOUT_CONTAINS("File '" + __import_data_path + "/world_x_cities.dump' (209.75 KB) was imported in ");
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".document_store: Records: 25359  Deleted: 0  Skipped: 25359  Warnings: 25359");
 
@@ -248,6 +248,48 @@ shell.options.resultFormat = 'tabbed'
 session.runSql('select * from ' + target_schema + '.employee order by boss asc');
 shell.options.resultFormat = original_output_format
 
+//@<> decodeColumns
+session.runSql("CREATE TABLE IF NOT EXISTS `t_lob` ("+
+    "`c1` tinyblob,"+
+    "`c2` blob,"+
+    "`c3` mediumblob,"+
+    "`c4` longblob,"+
+    "`c5` tinytext,"+
+    "`c6` text,"+
+    "`c7` mediumtext,"+
+    "`c8` longtext,"+
+    "`c9` tinytext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,"+
+    "`c10` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,"+
+    "`c11` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,"+
+    "`c12` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin"+
+  ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+util.importTable(__import_data_path + '/xtest.t_lob.tsv', {
+    schema: target_schema, table: 't_lob',
+    "columns": [
+        "c1",
+        "c2",
+        "c3",
+        "c4",
+        "c5",
+        "c6",
+        "c7",
+        "c8",
+        "c9",
+        "c10",
+        "c11",
+        "c12"
+    ],
+    decodeColumns: {
+        "c1": "UNHEX",
+        "c2": "UNHEX",
+        "c3": "UNHEX",
+        "c4": "UNHEX"
+    }
+});
+
+//@<OUT> dump blob data
+shell.dumpRows(session.runSql("SELECT md5(c1), md5(c2), md5(c3), md5(c4), md5(c5), md5(c6), md5(c7), md5(c8), md5(c9), md5(c10), md5(c11), md5(c12) FROM "+target_schema+".t_lob"), "tabbed");
 
 //@<> Teardown
 session.runSql("DROP SCHEMA IF EXISTS " + target_schema);

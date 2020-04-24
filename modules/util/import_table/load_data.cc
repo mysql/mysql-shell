@@ -40,11 +40,13 @@ using off64_t = off_t;
 #include <mysql.h>
 #include <algorithm>
 #include <memory>
+#include <utility>
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/rest/error.h"
+#include "mysqlshdk/libs/storage/compressed_file.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -62,9 +64,11 @@ int local_infile_init(void **buffer, const char * /* filename */,
     return 1;
   }
 
-  off64_t offset = file_info->filehandler->seek(file_info->chunk_start);
-  if (offset == static_cast<off64_t>(-1)) {
-    return 1;
+  if (file_info->range_read) {
+    off64_t offset = file_info->filehandler->seek(file_info->chunk_start);
+    if (offset == static_cast<off64_t>(-1)) {
+      return 1;
+    }
   }
 
   *buffer = file_info;
@@ -76,13 +80,21 @@ int local_infile_init(void **buffer, const char * /* filename */,
 int local_infile_read(void *userdata, char *buffer, unsigned int length) {
   File_info *file_info = static_cast<File_info *>(userdata);
 
-  size_t len = std::min({static_cast<size_t>(length), file_info->bytes_left});
+  ssize_t bytes;
+  if (file_info->range_read) {
+    size_t len = std::min({static_cast<size_t>(length), file_info->bytes_left});
 
-  auto bytes = file_info->filehandler->read(buffer, len);
-  if (bytes == -1) return bytes;
+    bytes = file_info->filehandler->read(buffer, len);
+    if (bytes == -1) return bytes;
 
-  file_info->bytes_left -= bytes;
+    file_info->bytes_left -= bytes;
+  } else {
+    bytes = file_info->filehandler->read(buffer, length);
+    if (bytes == -1) return bytes;
+  }
+
   *(file_info->prog_bytes) += bytes;
+  file_info->bytes += bytes;
 
   if (file_info->rate_limit.enabled()) {
     file_info->rate_limit.throttle(bytes);
@@ -123,57 +135,73 @@ int local_infile_error(void *userdata, char *error_msg,
                        unsigned int error_msg_len) {
   File_info *file_info = static_cast<File_info *>(userdata);
   if (*file_info->user_interrupt) {
-    snprintf(error_msg, error_msg_len, "Interrupted by user.");
+    snprintf(error_msg, error_msg_len, "Interrupted");
   } else {
-    snprintf(error_msg, error_msg_len, "Unknown error during DATA LOAD.");
+    snprintf(error_msg, error_msg_len, "Unknown error during DATA LOAD");
   }
   return CR_UNKNOWN_ERROR;
 }
 
 Load_data_worker::Load_data_worker(
     const Import_table_options &options, int64_t thread_id,
-    mysqlshdk::textui::IProgress *progress,
-    std::atomic<size_t> *prog_sent_bytes, std::mutex *output_mutex,
-    volatile bool *interrupt, shcore::Synchronized_queue<Range> *range_queue,
-    std::vector<std::exception_ptr> *thread_exception, bool use_json,
-    Stats *stats)
+    mysqlshdk::textui::IProgress *progress, std::mutex *output_mutex,
+    std::atomic<size_t> *prog_sent_bytes, volatile bool *interrupt,
+    shcore::Synchronized_queue<Range> *range_queue,
+    std::vector<std::exception_ptr> *thread_exception, Stats *stats)
     : m_opt(options),
       m_thread_id(thread_id),
       m_progress(progress),
       m_prog_sent_bytes(*prog_sent_bytes),
       m_output_mutex(*output_mutex),
       m_interrupt(*interrupt),
-      m_range_queue(*range_queue),
+      m_range_queue(range_queue),
       m_thread_exception(*thread_exception),
-      m_use_json(use_json),
       m_stats(*stats) {}
 
 void Load_data_worker::operator()() {
+  mysqlsh::Mysql_thread t;
+
+  auto session = mysqlshdk::db::mysql::Session::create();
+
   try {
-    std::shared_ptr<mysqlshdk::db::mysql::Session> session =
-        mysqlshdk::db::mysql::Session::create();
-
-    mysqlsh::Mysql_thread t;
     auto const conn_opts = m_opt.connection_options();
+    session->connect(conn_opts);
+  } catch (...) {
+    m_thread_exception[m_thread_id] = std::current_exception();
+    return;
+  }
 
+  execute(session, m_opt.create_file_handle());
+}
+
+void Load_data_worker::execute(
+    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+    std::unique_ptr<mysqlshdk::storage::IFile> file) {
+  mysqlshdk::storage::IFile *raw_file = file.get();
+
+  mysqlshdk::storage::Compression compr;
+  try {
+    compr = mysqlshdk::storage::from_extension(
+        std::get<1>(shcore::path::split_extension(file->filename())));
+  } catch (...) {
+    compr = mysqlshdk::storage::Compression::NONE;
+  }
+
+  file = mysqlshdk::storage::make_file(std::move(file), compr);
+  std::string task = file->filename();
+
+  try {
     File_info fi;
-    fi.filename = m_opt.full_path();
-
-    fi.filehandler = m_opt.create_file_handle();
+    fi.filename = file->full_path();
+    fi.filehandler = std::move(file);
+    fi.raw_filehandler = raw_file;
     fi.worker_id = m_thread_id;
     fi.prog = m_opt.show_progress() ? m_progress : nullptr;
     fi.prog_bytes = &m_prog_sent_bytes;
     fi.prog_mutex = &m_output_mutex;
     fi.user_interrupt = &m_interrupt;
     fi.max_rate = m_opt.max_rate();
-
-    session->set_local_infile_userdata(static_cast<void *>(&fi));
-    session->set_local_infile_init(local_infile_init);
-    session->set_local_infile_read(local_infile_read);
-    session->set_local_infile_end(local_infile_end);
-    session->set_local_infile_error(local_infile_error);
-
-    session->connect(conn_opts);
+    fi.range_read = m_range_queue ? true : false;
 
     // set session variables
     session->execute("SET unique_checks = 0");
@@ -181,18 +209,50 @@ void Load_data_worker::operator()() {
     session->execute(
         "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
 
+    session->set_local_infile_userdata(static_cast<void *>(&fi));
+    session->set_local_infile_init(local_infile_init);
+    session->set_local_infile_read(local_infile_read);
+    session->set_local_infile_end(local_infile_end);
+    session->set_local_infile_error(local_infile_error);
+
     const std::string on_duplicate_rows =
         m_opt.replace_duplicates() ? std::string{"REPLACE "} : std::string{};
 
+    const std::string character_set =
+        m_opt.character_set().empty()
+            ? ""
+            : "CHARACTER SET " +
+                  shcore::quote_sql_string(m_opt.character_set()) + " ";
+
     std::string query_template = "LOAD DATA LOCAL INFILE ? " +
                                  on_duplicate_rows + "INTO TABLE !.! " +
-                                 m_opt.dialect().build_sql();
+                                 character_set + m_opt.dialect().build_sql();
 
-    auto columns = m_opt.columns();
+    const auto &decode_columns = m_opt.decode_columns();
+
+    const auto &columns = m_opt.columns();
     if (!columns.empty()) {
       const std::vector<std::string> x(columns.size(), "!");
-      const auto placeholders = shcore::str_join(x, ", ");
+      const auto placeholders = shcore::str_join(
+          columns, ", ",
+          [&decode_columns](const std::string &c) -> std::string {
+            if (decode_columns.find(c) != decode_columns.end())
+              return "@!";
+            else
+              return "!";
+          });
       query_template += " (" + placeholders + ")";
+    }
+
+    if (!decode_columns.empty()) {
+      query_template += " SET ";
+      for (const auto &it : decode_columns) {
+        assert(it.second == "UNHEX" || it.second == "FROM_BASE64" ||
+               it.second.empty());
+
+        if (!it.second.empty()) query_template += "! = " + it.second + "(@!),";
+      }
+      query_template.pop_back();  // strip the last ,
     }
 
     shcore::sqlstring sql(query_template, 0);
@@ -200,61 +260,71 @@ void Load_data_worker::operator()() {
     for (const auto &col : columns) {
       sql << col;
     }
+    for (const auto &it : decode_columns) {
+      if (!it.second.empty()) sql << it.first << it.first;
+    }
     sql.done();
 
     char worker_name[64];
     snprintf(worker_name, sizeof(worker_name), "[Worker%03u] ",
              static_cast<unsigned int>(m_thread_id));
 
+#ifndef NDEBUG
+    log_debug("%s %s %i", worker_name, sql.str().c_str(),
+              m_range_queue != nullptr);
+#endif
+
     while (true) {
-      const auto r = m_range_queue.pop();
+      mysqlsh::import_table::Range r;
 
-      if (r.begin == 0 && r.end == 0) {
-        break;
+      if (m_range_queue) {
+        r = m_range_queue->pop();
+
+        if (r.begin == 0 && r.end == 0) {
+          break;
+        }
+
+        fi.chunk_start = r.begin;
+        fi.bytes_left = r.end - r.begin;
+      } else {
+        r = {0, 0};
+        fi.chunk_start = 0;
+        fi.bytes_left = 0;
       }
-
-      fi.chunk_start = r.begin;
-      fi.bytes_left = r.end - r.begin;
 
       std::shared_ptr<mysqlshdk::db::IResult> load_result = nullptr;
 
       try {
         load_result = session->query(sql);
+
+        m_stats.total_bytes = fi.bytes;
       } catch (const mysqlshdk::db::Error &e) {
         m_thread_exception[m_thread_id] = std::current_exception();
-        std::lock_guard<std::mutex> lock(*(fi.prog_mutex));
-        m_progress->hide(true);
         const std::string error_msg{
-            worker_name + m_opt.schema() + "." + m_opt.table() + ": " +
-            e.format() + " @ file bytes range [" + std::to_string(r.begin) +
-            ", " + std::to_string(r.end) + ")"};
+            worker_name + task + ": " + e.format() +
+            (fi.range_read ? " @ file bytes range [" + std::to_string(r.begin) +
+                                 ", " + std::to_string(r.end) + "): "
+                           : ": ") +
+            sql.str()};
         mysqlsh::current_console()->print_error(error_msg);
-        m_progress->hide(false);
-        m_progress->show_status(!m_use_json);
         throw std::runtime_error(error_msg);
       } catch (const mysqlshdk::rest::Connection_error &e) {
         m_thread_exception[m_thread_id] = std::current_exception();
-        std::lock_guard<std::mutex> lock(*(fi.prog_mutex));
-        m_progress->hide(true);
         const std::string error_msg{
-            worker_name + m_opt.schema() + "." + m_opt.table() + ": " +
-            e.what() + " @ file bytes range [" + std::to_string(r.begin) +
-            ", " + std::to_string(r.end) + ")"};
+            worker_name + task + ": " + e.what() +
+            (fi.range_read ? " @ file bytes range [" + std::to_string(r.begin) +
+                                 ", " + std::to_string(r.end) + ")"
+                           : "")};
         mysqlsh::current_console()->print_error(error_msg);
-        m_progress->hide(false);
-        m_progress->show_status(!m_use_json);
         throw std::runtime_error(error_msg);
       } catch (const std::exception &e) {
         m_thread_exception[m_thread_id] = std::current_exception();
-        std::lock_guard<std::mutex> lock(*(fi.prog_mutex));
-        m_progress->hide(true);
         const std::string error_msg{
-            worker_name + m_opt.schema() + "." + m_opt.table() + ": " +
-            e.what() + " @ file bytes range [" + std::to_string(r.begin) +
-            ", " + std::to_string(r.end) + ")"};
+            worker_name + task + ": " + e.what() +
+            (fi.range_read ? " @ file bytes range [" + std::to_string(r.begin) +
+                                 ", " + std::to_string(r.end) + ")"
+                           : "")};
         mysqlsh::current_console()->print_error(error_msg);
-        m_progress->hide(false);
-        m_progress->show_status(!m_use_json);
         throw std::exception(e);
       }
 
@@ -263,11 +333,8 @@ void Load_data_worker::operator()() {
 
       {
         const char *mysql_info = session->get_mysql_info();
-        std::lock_guard<std::mutex> lock(*(fi.prog_mutex));
-        m_progress->hide(true);
         mysqlsh::current_console()->print_info(
-            worker_name + m_opt.schema() + "." + m_opt.table() + ": " +
-            (mysql_info ? mysql_info : "ERROR"));
+            worker_name + task + ": " + (mysql_info ? mysql_info : "ERROR"));
 
         if (mysql_info) {
           size_t records = 0;
@@ -291,9 +358,8 @@ void Load_data_worker::operator()() {
 
           for (int i = 0; w && i < warnings_to_show;
                w = load_result->fetch_one_warning(), i++) {
-            const std::string msg = "`" + m_opt.schema() + "`.`" +
-                                    m_opt.table() + "` error " +
-                                    std::to_string(w->code) + ": " + w->msg;
+            const std::string msg =
+                task + " error " + std::to_string(w->code) + ": " + w->msg;
 
             switch (w->level) {
               case mysqlshdk::db::Warning::Level::Error:
@@ -312,9 +378,8 @@ void Load_data_worker::operator()() {
           size_t remaining_warnings_count = 0;
           for (; w; w = load_result->fetch_one_warning()) {
             remaining_warnings_count++;
-            const std::string msg = "`" + m_opt.schema() + "`.`" +
-                                    m_opt.table() + "` error " +
-                                    std::to_string(w->code) + ": " + w->msg;
+            const std::string msg =
+                task + " error " + std::to_string(w->code) + ": " + w->msg;
 
             switch (w->level) {
               case mysqlshdk::db::Warning::Level::Error:
@@ -330,15 +395,15 @@ void Load_data_worker::operator()() {
           }
 
           if (remaining_warnings_count > 0) {
-            mysqlsh::current_console()->println(
+            mysqlsh::current_console()->print_info(
                 "Check mysqlsh.log for " +
                 std::to_string(remaining_warnings_count) + " more warning" +
                 (remaining_warnings_count == 1 ? "" : "s") + ".");
           }
         }
-        m_progress->hide(false);
-        m_progress->show_status(!m_use_json);
       }
+
+      if (!m_range_queue) break;
     }
   } catch (...) {
     m_thread_exception[m_thread_id] = std::current_exception();

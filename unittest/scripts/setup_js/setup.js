@@ -63,6 +63,37 @@ function defined(cb) {
   }
 }
 
+function hasOciEnvironment(context) {
+  if (['OS', 'MDS'].indexOf(context) == -1) {
+    return false
+  }
+
+  let variables = ['OCI_CONFIG_HOME',
+                   'OCI_COMPARTMENT_ID',
+                   'OS_NAMESPACE'];
+  if (context == 'MDS') {
+    variables = variables.concat(['OCI_INSTANCE_HOST',
+                                  'OCI_INSTANCE_USER',
+                                  'OCI_SSH_PKEY_PATH',
+                                  'OCI_SSH_PKEY_PASSPHRASE',
+                                  'OCI_INSTANCE_SHELL_PATH',
+                                  'MDS_HOST',
+                                  'MDS_USER',
+                                  'MDS_PASSWORD']);
+  }
+
+  let missing=[];
+  for (var index = 0; index < variables.length; index ++) {
+    if (!defined(function(){eval(variables[index])})) {
+      missing.push(variables[index])
+    }
+  }
+  if (missing.length) {
+    return false;
+  }
+  return true;
+}
+
 function set_sysvar(session, variable, value) {
   session.runSql("SET GLOBAL " + variable + " = ?", [value]);
 }
@@ -77,7 +108,7 @@ function get_sysvar(session, variable, type) {
     close_session = true;
   }
 
-  if (type == undefined)
+  if (type === undefined)
     type = "GLOBAL";
 
   if (type == "GLOBAL") {
@@ -147,7 +178,7 @@ function get_query_single_result(session, query) {
     close_session = true;
   }
 
-  if (query == undefined)
+  if (query === undefined)
     testutil.fail("query argument for get_query_single_result() can't be empty");
 
   var row = session.runSql(query).fetchOne();
@@ -432,7 +463,7 @@ function EXPECT_SQL(instance, logs, expected_stmt) {
 }
 
 function EXPECT_EQ(expected, actual, note) {
-  if (note == undefined)
+  if (note === undefined)
     note = "";
   if (repr(expected) != repr(actual)) {
     var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> " + note + "\n\t<yellow>Actual: </yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
@@ -441,14 +472,59 @@ function EXPECT_EQ(expected, actual, note) {
 }
 
 function EXPECT_JSON_EQ(expected, actual, note) {
-  if (note == undefined)
+
+  function compare_values(expected, actual, path) {
+    if (typeof expected != typeof actual) {
+      println(" =>", path, "mismatched values. Expected:\n", expected, "\nActual:\n", actual, "\n");
+      return 1;
+    } else if (typeof expected == "object") {
+      return compare_objects(expected, actual, path);
+    } else {
+      jexpected = JSON.stringify(expected, undefined, 2);
+      jactual = JSON.stringify(actual, undefined, 2);
+      if (jexpected != jactual) {
+        println(" =>", path, "mismatched values. Expected:\n", jexpected, "\nActual:\n", jactual, "\n");
+        return 1;
+      }
+    }
+    return 0;
+  }
+
+  function compare_objects(expected, actual, path) {
+    ndiffs = 0
+    for (k in expected) {
+      if (actual[k] === undefined) {
+        ndiffs += 1;
+        println(" =>", path + "." + k, "expected but missing from result");
+      } else {
+        ndiffs += compare_values(expected[k], actual[k], path + "." + k);
+      }
+    }
+    for (k in actual) {
+      if (expected[k] === undefined) {
+        ndiffs += 1;
+        println(" =>", path + "." + k, "unexpected but found in result");
+      }
+    }
+    return ndiffs;
+  }
+
+  if (note === undefined)
     note = "";
 
-  expected = JSON.stringify(expected, undefined, 2);
-  actual = JSON.stringify(actual, undefined, 2);
-  if (expected != actual) {
-    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> "+note+"\n\t<yellow>Actual:</yellow> " + actual + "\n\t<yellow>Expected:</yellow> " + expected;
-    testutil.fail(context);
+  if (typeof expected == "object" && typeof actual == "object" && !Array.isArray(expected) && !Array.isArray(actual)) {
+    diffs = compare_objects(expected, actual, "$");
+    if (diffs > 0) {
+      var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected.</red> "+note;
+      testutil.fail(context);
+    }
+  } else {
+    expected = JSON.stringify(expected, undefined, 2);
+    actual = JSON.stringify(actual, undefined, 2);
+    if (expected != actual) {
+      var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> "+note+"\n\t<yellow>Actual:</yellow> " + actual + "\n\t<yellow>Expected:</yellow> " + expected;
+      testutil.fail(context);
+    }
   }
 }
 
@@ -469,7 +545,7 @@ function EXPECT_ARRAY_CONTAINS(expected, actual) {
 }
 
 function EXPECT_NE(expected, actual, note) {
-  if (note == undefined)
+  if (note === undefined)
     note = "";
   if (expected == actual) {
     var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't differ as expected:</red> " + note + "\n\t<yellow>Actual Value:</yellow> " + actual + "\n\t<yellow>Checked Value:</yellow> " + expected;
@@ -512,7 +588,7 @@ function EXPECT_THROWS(func, etext) {
     func();
     testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Missing expected exception throw like " + etext + "</red>");
   } catch (err) {
-    testutil.dprint("Caught exception: " + JSON.stringify(err));
+    testutil.dprint("Got exception as expected: " + JSON.stringify(err));
     if (err.message.indexOf(etext) < 0) {
       testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + err.message);
     }

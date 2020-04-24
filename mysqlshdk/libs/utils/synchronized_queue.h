@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_SYNCHRONIZED_QUEUE_H_
 #define MYSQLSHDK_LIBS_UTILS_SYNCHRONIZED_QUEUE_H_
 
+#include <chrono>
 #include <condition_variable>
 #include <deque>
 #include <memory>
@@ -70,6 +71,17 @@ class Synchronized_queue final {
     return r;
   }
 
+  T try_pop(int timeout_msec) {
+    std::unique_lock<std::mutex> lock(m_queue_mutex);
+    if (m_task_ready.wait_for(lock, std::chrono::milliseconds(timeout_msec),
+                              [this]() { return !m_queue.empty(); })) {
+      auto r = std::move(m_queue.front());
+      m_queue.pop_front();
+      return r;
+    }
+    return T();
+  }
+
   /**
    * Method that push to the queue n guard objects that signals to consumer
    * threads to complete operation.
@@ -84,6 +96,11 @@ class Synchronized_queue final {
       }
     }
     m_task_ready.notify_all();
+  }
+
+  size_t size() {
+    std::unique_lock<std::mutex> lock(m_queue_mutex);
+    return m_queue.size();
   }
 
  private:

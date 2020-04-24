@@ -30,13 +30,13 @@ util.help('import_json')
 #@ util import_json help, \? [USE:util import_json help]
 \? import_json
 
-#@ util configure_oci help {__with_oci == 1}
+#@ util configure_oci help
 util.help('configure_oci');
 
-#@ util configure_oci help, \? [USE:util configure_oci help] {__with_oci == 1}
+#@ util configure_oci help, \? [USE:util configure_oci help]
 \? configure_oci
 
-#@ oci help {__with_oci == 1}
+#@ oci help
 \? oci
 
 #@ util import_table help
@@ -44,3 +44,9 @@ util.help('import_table')
 
 #@ util import_table help, \? [USE:util import_table help]
 \? import_table
+
+#@ util load_dump help
+util.help('load_dump')
+
+#@ util load_dump help, \? [USE:util load_dump help]
+\? load_dump

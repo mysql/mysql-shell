@@ -214,15 +214,11 @@ void Object::close() {
 }
 
 size_t Object::file_size() const {
-  assert(is_open());
-
-  size_t ret_val = 0;
-  if (m_reader)
-    ret_val = m_reader->size();
-  else if (m_writer)
-    ret_val = m_writer->size();
-
-  return ret_val;
+  if (!m_open_mode.is_null() && *m_open_mode == Mode::APPEND) {
+    return m_writer->size();
+  } else {
+    return m_bucket->head_object(full_path());
+  }
 }
 
 std::string Object::filename() const { return m_name; }
@@ -230,7 +226,7 @@ std::string Object::filename() const { return m_name; }
 bool Object::exists() const {
   bool ret_val = true;
   try {
-    m_bucket->head_object(full_path());
+    file_size();
   } catch (const Response_error &error) {
     if (error.code() == Status_code::NOT_FOUND)
       ret_val = false;
@@ -290,6 +286,8 @@ void Object::rename(const std::string &new_name) {
   m_name = new_name;
 }
 
+void Object::remove() { m_bucket->delete_object(full_path()); }
+
 Object::Writer::Writer(Object *owner, Multipart_object *object)
     : File_handler(owner), m_size(0), m_is_multipart(false) {
   // This is the writer for an already started multipart object
@@ -345,13 +343,20 @@ ssize_t Object::Writer::write(const void *buffer, size_t length) {
                                             m_buffer.data(), MY_MAX_PART_SIZE));
       } catch (const mysqlshdk::rest::Response_error &error) {
         try {
+          log_info(
+              "Cancelling multipart upload after failure uploading part, "
+              "error %s\nobject: %s\n upload id: %s",
+              error.format().c_str(), m_multipart.name.c_str(),
+              m_multipart.upload_id.c_str());
+
           m_object->m_bucket->abort_multipart_upload(m_multipart);
         } catch (const mysqlshdk::rest::Response_error &inner_error) {
           log_error(
-              "Error cancelling multipart upload after failure uploading part, "
-              "error %s\ninitial failure: %s\n, object: %s\n upload id: %s",
-              inner_error.format().c_str(), error.format().c_str(),
-              m_multipart.name.c_str(), m_multipart.upload_id.c_str());
+              "Error cancelling multipart upload after failure uploading "
+              "part, "
+              "error %s\nobject: %s\n upload id: %s",
+              inner_error.format().c_str(), m_multipart.name.c_str(),
+              m_multipart.upload_id.c_str());
         }
 
         throw shcore::Exception::runtime_error(error.format());
@@ -367,13 +372,20 @@ ssize_t Object::Writer::write(const void *buffer, size_t length) {
             MY_MAX_PART_SIZE));
       } catch (const mysqlshdk::rest::Response_error &error) {
         try {
+          log_info(
+              "Cancelling multipart upload after failure uploading part, "
+              "error %s\nobject: %s\n upload id: %s",
+              error.format().c_str(), m_multipart.name.c_str(),
+              m_multipart.upload_id.c_str());
+
           m_object->m_bucket->abort_multipart_upload(m_multipart);
         } catch (const mysqlshdk::rest::Response_error &inner_error) {
           log_error(
-              "Error cancelling multipart upload after failure uploading part, "
-              "error %s\ninitial failure: %s\n, object: %s\n upload id: %s",
-              inner_error.format().c_str(), error.format().c_str(),
-              m_multipart.name.c_str(), m_multipart.upload_id.c_str());
+              "Error cancelling multipart upload after failure uploading "
+              "part, "
+              "error %s\nobject: %s\n upload id: %s",
+              inner_error.format().c_str(), m_multipart.name.c_str(),
+              m_multipart.upload_id.c_str());
         }
 
         throw shcore::Exception::runtime_error(error.format());
@@ -406,14 +418,19 @@ void Object::Writer::close() {
       m_object->m_bucket->commit_multipart_upload(m_multipart, m_parts);
     } catch (const mysqlshdk::rest::Response_error &error) {
       try {
+        log_info(
+            "Cancelling multipart upload after failure completing the "
+            "upload, error %s\nobject: %s\n upload id: %s",
+            error.format().c_str(), m_multipart.name.c_str(),
+            m_multipart.upload_id.c_str());
+
         m_object->m_bucket->abort_multipart_upload(m_multipart);
       } catch (const mysqlshdk::rest::Response_error &inner_error) {
         log_error(
             "Error cancelling multipart upload after failure completing the "
-            "upload, error %s\ninitial failure: %s\n, object: %s\n upload id: "
-            "%s",
-            inner_error.format().c_str(), error.format().c_str(),
-            m_multipart.name.c_str(), m_multipart.upload_id.c_str());
+            "upload, error %s\nobject: %s\n upload id: %s",
+            inner_error.format().c_str(), m_multipart.name.c_str(),
+            m_multipart.upload_id.c_str());
       }
 
       throw shcore::Exception::runtime_error(error.format());

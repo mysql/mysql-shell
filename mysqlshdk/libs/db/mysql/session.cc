@@ -147,6 +147,13 @@ void Session_impl::connect(
     mysql_options(_mysql, MYSQL_OPT_READ_TIMEOUT, &read_timeout);
   }
 
+  if (_connection_options.has(kNetWriteTimeout)) {
+    uint write_timeout = std::stoi(_connection_options.get(kNetWriteTimeout));
+
+    write_timeout = std::ceil(write_timeout / 1000.0);
+    mysql_options(_mysql, MYSQL_OPT_WRITE_TIMEOUT, &write_timeout);
+  }
+
   if (_connection_options.has_compression()) {
     auto compress = _connection_options.get_compression();
     if (!compress.empty() && compress != kCompressionDisabled)
@@ -178,7 +185,18 @@ void Session_impl::connect(
   _mysql->options.local_infile_userdata = m_local_infile.userdata;
 
   // set max_allowed_packet and net_buffer_length
-  {
+  // Note: Manual is wrong about docs for this, but my understanding is:
+  // max_allowed_packet sets the maximum size of a full packet that can
+  // be received from the server, such as a single row.
+  // net_buffer_length is the size of the buffer used for reading results
+  // packets from the server. Multiple buffer reads may be needed to completely
+  // read a packet, so net_buffer_length can be smaller, but max_allowed_packet
+  // must be as big as the biggest expected row to be fetched.
+  if (connection_options.has(mysqlshdk::db::kMaxAllowedPacket)) {
+    const unsigned long max_allowed_packet =  // NOLINT(runtime/int)
+        std::stoul(connection_options.get(kMaxAllowedPacket));
+    mysql_options(_mysql, MYSQL_OPT_MAX_ALLOWED_PACKET, &max_allowed_packet);
+  } else {
     unsigned long opt_max_allowed_packet = 32 * 1024L * 1024L;  // 32MB
     mysql_options(_mysql, MYSQL_OPT_MAX_ALLOWED_PACKET,
                   &opt_max_allowed_packet);

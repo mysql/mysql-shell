@@ -82,6 +82,10 @@ class Http_get : public IFile {
     throw std::logic_error("Http_get::rename() - not implemented");
   }
 
+  void remove() override {
+    throw std::logic_error("Http_get::remove() - not implemented");
+  }
+
  private:
   std::unique_ptr<mysqlshdk::rest::Rest_service> m_rest;
   off64_t m_offset = 0;

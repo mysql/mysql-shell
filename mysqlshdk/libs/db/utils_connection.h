@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -85,11 +85,13 @@ constexpr const char kGetServerPublicKey[] = "get-server-public-key";
 constexpr const char kServerPublicKeyPath[] = "server-public-key-path";
 constexpr const char kConnectTimeout[] = "connect-timeout";
 constexpr const char kNetReadTimeout[] = "net-read-timeout";
+constexpr const char kNetWriteTimeout[] = "net-write-timeout";
 constexpr const char kCompression[] = "compression";
 constexpr const char kCompressionAlgorithms[] = "compression-algorithms";
 constexpr const char kCompressionLevel[] = "compression-level";
 constexpr const char kLocalInfile[] = "local-infile";
 constexpr const char kNetBufferLength[] = "net-buffer-length";
+constexpr const char kMaxAllowedPacket[] = "max-allowed-packet";
 constexpr const char kConnectionAttributes[] = "connection-attributes";
 
 constexpr const char kSslModeDisabled[] = "disabled";
@@ -126,6 +128,7 @@ const std::set<std::string> connection_attributes = {kHost,
                                                      kServerPublicKeyPath,
                                                      kConnectTimeout,
                                                      kNetReadTimeout,
+                                                     kNetWriteTimeout,
                                                      kCompression,
                                                      kCompressionAlgorithms,
                                                      kCompressionLevel,
@@ -150,15 +153,11 @@ const std::set<std::string> uri_connection_attributes = {kSslCa,
                                                          kCompressionLevel,
                                                          kConnectionAttributes};
 
-const std::set<std::string> uri_extra_options = {kAuthMethod,
-                                                 kGetServerPublicKey,
-                                                 kServerPublicKeyPath,
-                                                 kConnectTimeout,
-                                                 kNetReadTimeout,
-                                                 kCompression,
-                                                 kCompressionAlgorithms,
-                                                 kLocalInfile,
-                                                 kNetBufferLength};
+const std::set<std::string> uri_extra_options = {
+    kAuthMethod,      kGetServerPublicKey,    kServerPublicKeyPath,
+    kConnectTimeout,  kNetReadTimeout,        kNetWriteTimeout,
+    kCompression,     kCompressionAlgorithms, kLocalInfile,
+    kNetBufferLength, kMaxAllowedPacket};
 
 const std::vector<std::string> ssl_modes = {"",
                                             kSslModeDisabled,

@@ -26,6 +26,7 @@
 #include <utility>
 
 #include "mysqlshdk/libs/storage/compression/gz_file.h"
+#include "mysqlshdk/libs/storage/compression/zstd_file.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -33,9 +34,10 @@ namespace storage {
 
 namespace {
 
-#define COMPRESSIONS  \
-  X(NONE, "none", "") \
-  X(GZIP, "gzip", ".gz")
+#define COMPRESSIONS     \
+  X(NONE, "none", "")    \
+  X(GZIP, "gzip", ".gz") \
+  X(ZSTD, "zstd", ".zstd")
 
 }  // namespace
 
@@ -50,6 +52,8 @@ int Compressed_file::error() const { return m_file->error(); }
 
 void Compressed_file::close() { m_file->close(); }
 
+// TODO(alfredo) - this should return the uncompressed size, but there's no way
+// to do that
 size_t Compressed_file::file_size() const { return m_file->file_size(); }
 
 std::string Compressed_file::full_path() const { return m_file->full_path(); }
@@ -61,6 +65,8 @@ bool Compressed_file::flush() { return m_file->flush(); }
 void Compressed_file::rename(const std::string &new_name) {
   m_file->rename(new_name);
 }
+
+void Compressed_file::remove() { m_file->remove(); }
 
 std::string Compressed_file::filename() const { return m_file->filename(); }
 
@@ -99,6 +105,17 @@ std::string get_extension(Compression c) {
   throw std::logic_error("Shouldn't happen, but compiler complains");
 }
 
+Compression from_extension(const std::string &e) {
+#define X(value, name, ext) \
+  if (e == ext) return Compression::value;
+
+  COMPRESSIONS
+
+#undef X
+
+  throw std::invalid_argument("Unknown compression type: " + e);
+}
+
 std::unique_ptr<IFile> make_file(std::unique_ptr<IFile> file, Compression c) {
   std::unique_ptr<IFile> result;
 
@@ -109,6 +126,10 @@ std::unique_ptr<IFile> make_file(std::unique_ptr<IFile> file, Compression c) {
 
     case Compression::GZIP:
       result = std::make_unique<compression::Gz_file>(std::move(file));
+      break;
+
+    case Compression::ZSTD:
+      result = std::make_unique<compression::Zstd_file>(std::move(file));
       break;
 
     default:

@@ -76,6 +76,8 @@ void Text_progress::show_status(bool force, const std::string &extra) {
                              .count();
   const bool refresh_timeout = time_diff >= 2000;  // update status every 2000ms
   if ((refresh_timeout && m_changed) || force) {
+    m_prev_status = m_status;
+
     render_status();
     m_status += extra;
     m_changed = false;
@@ -85,8 +87,11 @@ void Text_progress::show_status(bool force, const std::string &extra) {
       clear_status();
     }
     {
-      const auto ignore = write(fileno(stderr), &m_status[0], m_status.size());
-      (void)ignore;
+      if (force || m_prev_status != m_status) {
+        const auto ignore =
+            write(fileno(stderr), &m_status[0], m_status.size());
+        (void)ignore;
+      }
       was_shown = true;
     }
     m_last_status_size = status_printable_size;

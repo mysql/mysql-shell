@@ -719,7 +719,7 @@ int main(int argc, char **argv) {
           mysqlshdk::db::Connection_options target =
               options.connection_options();
 
-          if (target.has_password()) {
+          if (target.has_password() && !options.no_password) {
             mysqlsh::current_console()->print_warning(
                 "Using a password on the command line interface can be "
                 "insecure.");

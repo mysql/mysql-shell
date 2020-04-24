@@ -103,7 +103,7 @@ class SHCORE_PUBLIC Writer_base {
   virtual void append_document(const rapidjson::Document &document) = 0;
 
  public:
-  std::string str() { return _data.data; }
+  const std::string &str() const { return _data.data; }
 };
 
 class SHCORE_PUBLIC Raw_writer : public Writer_base {
@@ -222,9 +222,9 @@ class SHCORE_PUBLIC JSON_dumper {
 
   void append_json(const std::string &data) const;
 
-  int deep_level() { return _deep_level; }
+  int deep_level() const { return _deep_level; }
 
-  std::string str() { return _writer->str(); }
+  const std::string &str() const { return _writer->str(); }
 
  private:
   int _deep_level;

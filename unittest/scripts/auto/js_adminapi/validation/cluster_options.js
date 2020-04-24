@@ -571,13 +571,13 @@
                 },
 ?{VER(>=8.0.19)}
                 {
-                    "value": "", 
+                    "value": "",
                     "variable": "group_replication_recovery_tls_ciphersuites"
-                }, 
+                },
                 {
-                    "value": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3", 
+                    "value": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3",
                     "variable": "group_replication_recovery_tls_version"
-                }, 
+                },
 ?{}
                 {
                     "value": "ON",
@@ -829,13 +829,13 @@
                 },
 ?{VER(>=8.0.19)}
                 {
-                    "value": "", 
+                    "value": "",
                     "variable": "group_replication_recovery_tls_ciphersuites"
-                }, 
+                },
                 {
-                    "value": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3", 
+                    "value": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3",
                     "variable": "group_replication_recovery_tls_version"
-                }, 
+                },
 ?{}
                 {
                     "value": "ON",
@@ -1087,13 +1087,13 @@
                 },
 ?{VER(>=8.0.19)}
                 {
-                    "value": "", 
+                    "value": "",
                     "variable": "group_replication_recovery_tls_ciphersuites"
-                }, 
+                },
                 {
-                    "value": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3", 
+                    "value": "TLSv1,TLSv1.1,TLSv1.2,TLSv1.3",
                     "variable": "group_replication_recovery_tls_version"
-                }, 
+                },
 ?{}
                 {
                     "value": "ON",
@@ -1313,6 +1313,12 @@
                     "value": "ON",
                     "variable": "group_replication_start_on_boot"
                 },
+?{VER(>=8.0.21)}
+                {
+                    "value": "MYSQL_MAIN",
+                    "variable": "group_replication_tls_source"
+                },
+?{}
                 {
                     "value": "0",
                     "variable": "group_replication_transaction_size_limit"
@@ -1472,6 +1478,12 @@
                     "value": "ON",
                     "variable": "group_replication_start_on_boot"
                 },
+?{VER(>=8.0.21)}
+                {
+                    "value": "MYSQL_MAIN",
+                    "variable": "group_replication_tls_source"
+                },
+?{}
                 {
                     "value": "0",
                     "variable": "group_replication_transaction_size_limit"
@@ -1631,6 +1643,12 @@
                     "value": "ON",
                     "variable": "group_replication_start_on_boot"
                 },
+?{VER(>=8.0.21)}
+                {
+                    "value": "MYSQL_MAIN",
+                    "variable": "group_replication_tls_source"
+                },
+?{}
                 {
                     "value": "0",
                     "variable": "group_replication_transaction_size_limit"

@@ -233,24 +233,34 @@ class SHCORE_PUBLIC Session : public ISession,
   void set_local_infile_init(int (*local_infile_init)(void **, const char *,
                                                       void *)) {
     _impl->m_local_infile.init = local_infile_init;
+    if (_impl->_mysql)
+      _impl->_mysql->options.local_infile_init = local_infile_init;
   }
 
   void set_local_infile_read(int (*local_infile_read)(void *, char *,
                                                       unsigned int)) {
     _impl->m_local_infile.read = local_infile_read;
+    if (_impl->_mysql)
+      _impl->_mysql->options.local_infile_read = local_infile_read;
   }
 
   void set_local_infile_end(void (*local_infile_end)(void *)) {
     _impl->m_local_infile.end = local_infile_end;
+    if (_impl->_mysql)
+      _impl->_mysql->options.local_infile_end = local_infile_end;
   }
 
   void set_local_infile_error(int (*local_infile_error)(void *, char *,
                                                         unsigned int)) {
     _impl->m_local_infile.error = local_infile_error;
+    if (_impl->_mysql)
+      _impl->_mysql->options.local_infile_error = local_infile_error;
   }
 
   void set_local_infile_userdata(void *local_infile_userdata) {
     _impl->m_local_infile.userdata = local_infile_userdata;
+    if (_impl->_mysql)
+      _impl->_mysql->options.local_infile_userdata = local_infile_userdata;
   }
 
   ~Session() override {

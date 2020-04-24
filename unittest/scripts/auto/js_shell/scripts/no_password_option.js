@@ -29,6 +29,7 @@ var rc = testutil.callMysqlsh([uri_, '--no-password', '--password=xyz', '-e', 'p
 EXPECT_EQ(1, rc);
 
 //@ no password and URI empty password
+// --no-password should suppress the WARNING
 var rc = testutil.callMysqlsh([uri_empty_pass, '--no-password', '-e', 'println(session)'], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
 EXPECT_EQ(0, rc);
 

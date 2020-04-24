@@ -76,6 +76,11 @@ class IFile {
    * @param new_name New name of the file.
    */
   virtual void rename(const std::string &new_name) = 0;
+
+  /**
+   * Deletes the file.
+   */
+  virtual void remove() = 0;
 };
 
 std::unique_ptr<IFile> make_file(
@@ -88,6 +93,8 @@ std::unique_ptr<IFile> make_file(const std::string &filepath,
 int fprintf(IFile *, const char *format, ...);
 int fputs(const char *s, IFile *file);
 int fputs(const std::string &s, IFile *file);
+
+std::string read_file(IFile *file);
 
 }  // namespace storage
 }  // namespace mysqlshdk
