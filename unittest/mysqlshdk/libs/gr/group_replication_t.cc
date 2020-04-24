@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1614,27 +1614,30 @@ TEST_F(Group_replication_test, is_instance_only_read_compatible) {
     }
   };
 
-  // Test: instance_version >= 8.0.16 and lowest_cluster_version >= 8.0.0
+  // Test: instance_version >= 8.0.17 and lowest_cluster_version >= 8.0.0
   // Only read compatible, if version > lowest_cluster_version
-  test(Version(8, 0, 16), Version(8, 0, 0), true);
   test(Version(8, 0, 17), Version(8, 0, 0), true);
-  test(Version(8, 0, 16), Version(8, 0, 15), true);
-  test(Version(8, 0, 17), Version(8, 0, 16), true);
+  test(Version(8, 0, 18), Version(8, 0, 0), true);
+  test(Version(8, 0, 17), Version(8, 0, 15), true);
   test(Version(8, 0, 17), Version(8, 0, 16), true);
 
-  // Test: instance_version >= 8.0.16 and lowest_cluster_version >= 8.0.0
+  // BUG#30896344: CHECK FOR READ-ONLY COMPATIBILITY IN ADDINSTANCE USES WRONG
+  // MINIMUM VERSION
+  test(Version(8, 0, 16), Version(8, 0, 15), false);
+
+  // Test: instance_version >= 8.0.17 and lowest_cluster_version >= 8.0.0
   // Not only read compatible, if version <= lowest_cluster_version
-  test(Version(8, 0, 16), Version(8, 0, 16), false);
-  test(Version(8, 0, 16), Version(8, 0, 17), false);
   test(Version(8, 0, 17), Version(8, 0, 17), false);
   test(Version(8, 0, 17), Version(8, 0, 18), false);
+  test(Version(8, 0, 18), Version(8, 0, 18), false);
+  test(Version(8, 0, 18), Version(8, 0, 19), false);
 
-  // Test: instance_version < 8.0.16
+  // Test: instance_version < 8.0.17
   // Not only read compatible, independently of the lowest_cluster_version
-  test(Version(8, 0, 15), Version(8, 0, 0), false);
-  test(Version(8, 0, 15), Version(8, 0, 15), false);
-  test(Version(8, 0, 15), Version(8, 0, 16), false);
-  test(Version(8, 0, 15), Version(5, 7, 26), false);
+  test(Version(8, 0, 16), Version(8, 0, 0), false);
+  test(Version(8, 0, 16), Version(8, 0, 16), false);
+  test(Version(8, 0, 16), Version(8, 0, 17), false);
+  test(Version(8, 0, 16), Version(5, 7, 26), false);
   test(Version(8, 0, 0), Version(8, 0, 0), false);
   test(Version(8, 0, 0), Version(8, 0, 15), false);
   test(Version(8, 0, 0), Version(8, 0, 16), false);
