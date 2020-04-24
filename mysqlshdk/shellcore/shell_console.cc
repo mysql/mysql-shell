@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -205,8 +205,6 @@ void log_hook(const shcore::Logger::Log_entry &log, void *data) {
 Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
     : m_ideleg(deleg) {
   m_print_handlers.emplace_back(deleg);
-  // Capture logging output and if verbose is enabled, show them in the console
-  shcore::Logger::singleton()->attach_log_hook(log_hook, this, true);
 
 #ifndef _WIN32
   if (isatty(2)) {
@@ -215,9 +213,7 @@ Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
 #endif
 }
 
-Shell_console::~Shell_console() {
-  shcore::Logger::singleton()->detach_log_hook(log_hook);
-}
+Shell_console::~Shell_console() { detach_log_hook(); }
 
 void Shell_console::dump_json(const char *tag, const std::string &s) const {
   delegate_print(json_obj(tag, s).c_str());
@@ -713,6 +709,26 @@ void Shell_console::delegate(
     if ((*it->*func)(msg)) {
       return;
     }
+  }
+}
+
+void Shell_console::on_set_verbose() {
+  if (get_verbose() > 0) {
+    if (!m_hook_registered) {
+      // if verbose is enabled, capture logging output and show them in the
+      // console
+      shcore::Logger::singleton()->attach_log_hook(log_hook, this, true);
+      m_hook_registered = true;
+    }
+  } else {
+    detach_log_hook();
+  }
+}
+
+void Shell_console::detach_log_hook() {
+  if (m_hook_registered) {
+    shcore::Logger::singleton()->detach_log_hook(log_hook);
+    m_hook_registered = false;
   }
 }
 

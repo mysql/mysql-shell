@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -132,6 +132,8 @@ class SHCORE_PUBLIC Logger final {
   static std::string format(const char *formats, va_list args);
 
   static void do_log(const Log_entry &entry);
+
+  bool will_log(LOG_LEVEL level) const;
 
   static std::unique_ptr<Logger> s_instance;
   static std::string s_output_format;

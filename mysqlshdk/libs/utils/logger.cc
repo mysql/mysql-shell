@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -161,7 +161,7 @@ std::string Logger::format(const char *formats, va_list args) {
 void Logger::log(LOG_LEVEL level, const char *formats, ...) {
   assert_logger_initialized();
 
-  if (s_instance.get() != nullptr) {
+  if (s_instance && s_instance->will_log(level)) {
     va_list args;
     va_start(args, formats);
     const auto msg = format(formats, args);
@@ -185,6 +185,20 @@ void Logger::do_log(const Log_entry &entry) {
     if (std::get<2>(f) || entry.level <= s_instance->m_log_level)
       std::get<0>(f)(entry, std::get<1>(f));
   }
+}
+
+bool Logger::will_log(LOG_LEVEL level) const {
+  if (level <= m_log_level) {
+    return true;
+  }
+
+  for (const auto &hook : m_hook_list) {
+    if (std::get<2>(hook)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 Logger *Logger::singleton() {

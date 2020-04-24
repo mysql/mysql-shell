@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -135,12 +135,18 @@ class IConsole {
 
   virtual void remove_print_handler(shcore::Interpreter_print_handler *) = 0;
 
-  void set_verbose(int level) { m_verbose = level; }
+  void set_verbose(int level) {
+    m_verbose = level;
+    on_set_verbose();
+  }
 
   int get_verbose() const { return m_verbose; }
 
  protected:
   int m_verbose = 0;
+
+ private:
+  virtual void on_set_verbose() {}
 };
 
 std::shared_ptr<IConsole> current_console();
