@@ -824,22 +824,20 @@ void Testutils::import_data(const std::string &uri, const std::string &path,
     std::cerr << shcore::str_join(argv, " ") << "\n";
   }
   argv.push_back(nullptr);
+
   shcore::Process dump(&argv[0]);
+#ifdef _WIN32
+  dump.set_create_process_group();
+#endif  // _WIN32
+  dump.enable_reader_thread();
   dump.redirect_file_to_stdin(path);
   dump.start();
 
-  char c;
-  std::string output;
-  // Reads all produced output, until stdout is closed
-  while (dump.read(&c, 1) > 0) {
-    output += c;
-  }
-
-  int rc = dump.wait();
+  const auto rc = dump.wait();
 
   if (rc != 0) {
     throw std::runtime_error("mysql exited with code " + std::to_string(rc) +
-                             ": " + output);
+                             ": " + dump.read_all());
   }
 }
 
