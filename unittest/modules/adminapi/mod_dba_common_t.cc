@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -621,6 +621,65 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
       .then_return({{"", {"grantee"}, {Type::String}, {{"'admin'@'%'"}}}});
   EXPECT_TRUE(
       check_admin_account_access_restrictions(instance, "admin", "%", false));
+
+  // TEST: Only one account with netmask which is the same
+  // currently used (passed as parameter):
+  // - Return true independently of the interactive mode.
+  mock_session
+      ->expect_query(
+          "SELECT DISTINCT grantee "
+          "FROM information_schema.user_privileges "
+          "WHERE grantee like '\\'admin\\'@%'")
+      .then_return({{"",
+                     {"grantee"},
+                     {Type::String},
+                     {{"'admin'@'192.168.1.0/255.255.255.0'"}}}});
+  EXPECT_TRUE(check_admin_account_access_restrictions(instance, "admin",
+                                                      "192.168.1.20", true));
+
+  mock_session
+      ->expect_query(
+          "SELECT DISTINCT grantee "
+          "FROM information_schema.user_privileges "
+          "WHERE grantee like '\\'admin\\'@%'")
+      .then_return({{"",
+                     {"grantee"},
+                     {Type::String},
+                     {{"'admin'@'192.168.1.0/255.255.255.0'"}}}});
+  EXPECT_TRUE(check_admin_account_access_restrictions(instance, "admin",
+                                                      "192.168.1.20", false));
+
+  // TEST: Only one account with IPv6 which is the same
+  // currently used (passed as parameter):
+  // - Interactive 'true': return false;
+  // - Interactive 'false': throw exception;
+  mock_session
+      ->expect_query(
+          "SELECT DISTINCT grantee "
+          "FROM information_schema.user_privileges "
+          "WHERE grantee like '\\'admin\\'@%'")
+      .then_return({{"",
+                     {"grantee"},
+                     {Type::String},
+                     {{"'admin'@'2001:0db8:85a3:0000:0000:8a2e:0370'"}}}});
+  EXPECT_FALSE(check_admin_account_access_restrictions(
+      instance, "admin", "2001:0db8:85a3:0000:0000:8a2e:0370", true));
+
+  mock_session
+      ->expect_query(
+          "SELECT DISTINCT grantee "
+          "FROM information_schema.user_privileges "
+          "WHERE grantee like '\\'admin\\'@%'")
+      .then_return({{"",
+                     {"grantee"},
+                     {Type::String},
+                     {{"'admin'@'2001:0db8:85a3:0000:0000:8a2e:0370'"}}}});
+  EXPECT_THROW_LIKE(
+      check_admin_account_access_restrictions(
+          instance, "admin", "2001:0db8:85a3:0000:0000:8a2e:0370", false),
+      std::runtime_error,
+      "User 'admin' can only connect from "
+      "'2001:0db8:85a3:0000:0000:8a2e:0370'.");
 
   // TEST: Multiple accounts and one with wildcard (%) with the needed
   // privileges, which is not the one currently used (passed as parameter):
