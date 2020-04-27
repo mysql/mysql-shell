@@ -11,9 +11,12 @@ DESCRIPTION
       Session instance.
 
 FUNCTIONS
-      bind(data)
-            Registers a value or a list of values to be bound on the execution
-            of the SQL statement.
+      bind(value, values)
+            Registers a parameter to be bound on the execution of the SQL
+            statement.
+
+            Registers a list of parameter to be bound on the execution of the
+            SQL statement.
 
       execute()
             Executes the sql statement.
@@ -26,21 +29,25 @@ FUNCTIONS
 
 #@<OUT> sqlexecute.bind
 NAME
-      bind - Registers a value or a list of values to be bound on the execution
-             of the SQL statement.
+      bind - Registers a parameter to be bound on the execution of the SQL
+             statement.
+
+             Registers a list of parameter to be bound on the execution of the
+             SQL statement.
 
 SYNTAX
-      <SqlExecute>.bind(data)
+      <SqlExecute>.bind(value, values)
 
 WHERE
-      data: the value or list of values to be bound.
+      value: the value to be bound.
+      values: the value list to be bound.
 
 RETURNS
       This SqlExecute object.
 
 DESCRIPTION
       This method can be invoked any number of times, each time the received
-      parameters will be added to an internal binding list.
+      parameter will be added to an internal binding list.
 
       This function can be invoked after:
 
@@ -110,4 +117,3 @@ DESCRIPTION
       - bind(Value value)
       - bind(List values)
       - execute().
-

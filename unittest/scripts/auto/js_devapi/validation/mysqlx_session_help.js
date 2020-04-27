@@ -163,9 +163,6 @@ WHERE
 RETURNS
       The created schema object.
 
-EXCEPTIONS
-      A MySQL error is thrown if fails creating the schema.
-
 //@<OUT> Help on dropSchema
 NAME
       dropSchema - Drops the schema with the specified name.
@@ -214,9 +211,6 @@ WHERE
 RETURNS
       The Schema object with the given name.
 
-EXCEPTIONS
-      RuntimeError If the given name is not a valid schema.
-
 //@<OUT> Help on getSchemas
 NAME
       getSchemas - Retrieves the Schemas available on the session.
@@ -258,9 +252,8 @@ RETURNS
       A boolean value indicating if the session is still open.
 
 DESCRIPTION
-      Returns true if the session is still open and false otherwise.
-      
-      NOTE: This function may return true if connection is lost.
+      Returns true if the session is still open and false otherwise. Note: may
+      return true if connection is lost.
 
 //@<OUT> Help on quoteName
 NAME
@@ -427,7 +420,7 @@ NAME
 
 SYNTAX
       Session.sql(statement)
-             [.bind(data)]
+             [.bind(value, values)]
              [.execute()]
 
 DESCRIPTION
@@ -459,9 +452,9 @@ DESCRIPTION
             - bind(List values)
             - execute().
 
-      bind(data)
+      bind(value, values)
             This method can be invoked any number of times, each time the
-            received parameters will be added to an internal binding list.
+            received parameter will be added to an internal binding list.
 
             This function can be invoked after:
 
@@ -500,7 +493,7 @@ DESCRIPTION
       only when commit() is called.
 
       All the operations executed after calling this function, will be
-      discarded if rollback() is called.
+      discarded is rollback() is called.
 
       When commit() or rollback() are called, the server autocommit mode will
       return back to it's state before calling startTransaction().

@@ -467,8 +467,8 @@ TEST_F(Interrupt_mysqlsh, dba_js) {
   EXPECT_EQ(1, rc);
 
   // Check if the test table is intact
-  auto result = 
-      session->get_core_session()->query("select count(*) from itst.data");
+  auto result = std::static_pointer_cast<mysqlsh::mysql::ClassicResult>(
+      session->raw_execute_sql("select count(*) from itst.data"));
   auto row = result->fetch_one();
   EXPECT_EQ("52", row->get_value_as_string(0));
 }
@@ -486,8 +486,8 @@ TEST_F(Interrupt_mysqlsh, sql_cli) {
   EXPECT_EQ(130, rc);
 
   // Check if the test table is intact
-  auto result =
-      session->get_core_session()->query("select count(*) from itst.data");
+  auto result = std::static_pointer_cast<mysqlsh::mysql::ClassicResult>(
+      session->raw_execute_sql("select count(*) from itst.data"));
   auto row = result->fetch_one();
   EXPECT_EQ("52", row->get_as_string(0));
 }
@@ -502,8 +502,8 @@ TEST_F(Interrupt_mysqlsh, sqlx_cli) {
   EXPECT_EQ(130, rc);
 
   // Check if the test table is intact
-  auto result =
-      session->get_core_session()->query("select count(*) from itst.data");
+  auto result = std::static_pointer_cast<mysqlsh::mysql::ClassicResult>(
+      session->raw_execute_sql("select count(*) from itst.data"));
   auto row = result->fetch_one();
   EXPECT_EQ("52", row->get_as_string(0));
 }

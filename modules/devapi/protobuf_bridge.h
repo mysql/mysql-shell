@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,7 +33,7 @@
 namespace mysqlsh {
 namespace mysqlx {
 void insert_bound_values(
-    const shcore::Array_t &parameters,
+    shcore::Argument_list *parameters,
     ::google::protobuf::RepeatedPtrField<::Mysqlx::Datatypes::Any> *target);
 std::unique_ptr<Mysqlx::Datatypes::Scalar> convert_value(
     const shcore::Value &value);

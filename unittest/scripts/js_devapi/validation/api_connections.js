@@ -170,7 +170,7 @@
 
 //@ shell.connect, with X URI, ssl-mode=DISABLED {VER(<8.0.4) && secure_transport == 'on'}
 ||Secure transport required. To log in you must use TCP+SSL or UNIX socket connection.
-||SqlExecute.execute: Not connected
+||ERROR: SqlExecute.execute: Not connected
 
 //@ shell.connect, with X URI, ssl-mode=DISABLED {VER(>=8.0.4) && secure_transport == 'on'}
 ||Connections using insecure transport are prohibited while --require_secure_transport=ON.

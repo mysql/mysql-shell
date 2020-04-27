@@ -926,9 +926,12 @@ DESCRIPTION
       Session instance.
 
 FUNCTIONS
-      bind(data)
-            Registers a value or a list of values to be bound on the execution
-            of the SQL statement.
+      bind(value, values)
+            Registers a parameter to be bound on the execution of the SQL
+            statement.
+
+            Registers a list of parameter to be bound on the execution of the
+            SQL statement.
 
       execute()
             Executes the sql statement.
@@ -1128,4 +1131,3 @@ FUNCTIONS
 
       where(expression)
             Sets the search condition to filter the records to be updated.
-

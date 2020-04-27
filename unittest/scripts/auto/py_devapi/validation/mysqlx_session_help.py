@@ -33,7 +33,7 @@ FUNCTIONS
 
       commit()
             Commits all the operations executed after a call to
-            start_transaction().
+            startTransaction().
 
       create_schema(name)
             Creates a schema on the database and returns the corresponding
@@ -72,7 +72,7 @@ FUNCTIONS
 
       rollback()
             Discards all the operations executed after a call to
-            start_transaction().
+            startTransaction().
 
       rollback_to(name)
             Rolls back the transaction to the named savepoint without
@@ -107,13 +107,12 @@ SYNTAX
 
 DESCRIPTION
       After closing the session it is still possible to make read only
-      operations to gather metadata info, like get_table(name) or
-      get_schemas().
+      operations to gather metadata info, like getTable(name) or getSchemas().
 
 #@<OUT> session.commit
 NAME
       commit - Commits all the operations executed after a call to
-               start_transaction().
+               startTransaction().
 
 SYNTAX
       <Session>.commit()
@@ -122,11 +121,11 @@ RETURNS
       A SqlResult object.
 
 DESCRIPTION
-      All the operations executed after calling start_transaction() will take
+      All the operations executed after calling startTransaction() will take
       place when this function is called.
 
       The server autocommit mode will return back to it's state before calling
-      start_transaction().
+      startTransaction().
 
 #@<OUT> session.create_schema
 NAME
@@ -141,9 +140,6 @@ WHERE
 
 RETURNS
       The created schema object.
-
-EXCEPTIONS
-      A MySQL error is thrown if fails creating the schema.
 
 #@<OUT> session.current_schema
 NAME
@@ -208,9 +204,6 @@ WHERE
 RETURNS
       The Schema object with the given name.
 
-EXCEPTIONS
-      RuntimeError If the given name is not a valid schema.
-
 #@<OUT> session.get_schemas
 NAME
       get_schemas - Retrieves the Schemas available on the session.
@@ -252,9 +245,8 @@ RETURNS
       A boolean value indicating if the session is still open.
 
 DESCRIPTION
-      Returns true if the session is still open and false otherwise.
-      
-      NOTE: This function may return true if connection is lost.
+      Returns true if the session is still open and false otherwise. Note: may
+      return true if connection is lost.
 
 #@<OUT> session.quote_name
 NAME
@@ -289,7 +281,7 @@ DESCRIPTION
 #@<OUT> session.rollback
 NAME
       rollback - Discards all the operations executed after a call to
-                 start_transaction().
+                 startTransaction().
 
 SYNTAX
       <Session>.rollback()
@@ -298,11 +290,11 @@ RETURNS
       A SqlResult object.
 
 DESCRIPTION
-      All the operations executed after calling start_transaction() will be
+      All the operations executed after calling startTransaction() will be
       discarded when this function is called.
 
       The server autocommit mode will return back to it's state before calling
-      start_transaction().
+      startTransaction().
 
 #@<OUT> session.rollback_to
 NAME
@@ -422,7 +414,7 @@ NAME
 
 SYNTAX
       Session.sql(statement)
-             [.bind(data)]
+             [.bind(value, values)]
              [.execute()]
 
 DESCRIPTION
@@ -454,9 +446,9 @@ DESCRIPTION
             - bind(List values)
             - execute().
 
-      bind(data)
+      bind(value, values)
             This method can be invoked any number of times, each time the
-            received parameters will be added to an internal binding list.
+            received parameter will be added to an internal binding list.
 
             This function can be invoked after:
 
@@ -495,10 +487,10 @@ DESCRIPTION
       only when commit() is called.
 
       All the operations executed after calling this function, will be
-      discarded if rollback() is called.
+      discarded is rollback() is called.
 
       When commit() or rollback() are called, the server autocommit mode will
-      return back to it's state before calling start_transaction().
+      return back to it's state before calling startTransaction().
 
 #@<OUT> session.uri
 NAME
@@ -506,4 +498,3 @@ NAME
 
 SYNTAX
       <Session>.uri
-

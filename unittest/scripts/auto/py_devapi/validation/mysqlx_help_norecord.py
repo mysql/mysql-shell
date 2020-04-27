@@ -998,7 +998,7 @@ FUNCTIONS
 
       commit()
             Commits all the operations executed after a call to
-            start_transaction().
+            startTransaction().
 
       create_schema(name)
             Creates a schema on the database and returns the corresponding
@@ -1037,7 +1037,7 @@ FUNCTIONS
 
       rollback()
             Discards all the operations executed after a call to
-            start_transaction().
+            startTransaction().
 
       rollback_to(name)
             Rolls back the transaction to the named savepoint without
@@ -1073,9 +1073,12 @@ DESCRIPTION
       Session instance.
 
 FUNCTIONS
-      bind(data)
-            Registers a value or a list of values to be bound on the execution
-            of the SQL statement.
+      bind(value, values)
+            Registers a parameter to be bound on the execution of the SQL
+            statement.
+
+            Registers a list of parameter to be bound on the execution of the
+            SQL statement.
 
       execute()
             Executes the sql statement.

@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -320,7 +320,8 @@ TEST_F(Interrupt_mysql, sql_classic) {
       shcore::Interrupts::interrupt();
     });
     try {
-      auto result = session->execute_sql("select sleep(5) as test1");
+      auto result = std::static_pointer_cast<mysqlsh::mysql::ClassicResult>(
+          session->raw_execute_sql("select sleep(5) as test1"));
       auto row = result->fetch_one();
       EXPECT_TRUE(kill_sent);
       EXPECT_EQ("1", row->get_as_string(0));
@@ -420,10 +421,11 @@ TEST_F(Interrupt_mysqlx, sql_x) {
       shcore::Interrupts::interrupt();
     });
     try {
-      auto result = session->execute_sql("select sleep(5) as test1");
-      auto row = result->fetch_one();
+      auto result = std::static_pointer_cast<mysqlsh::mysqlx::SqlResult>(
+          session->raw_execute_sql("select sleep(5) as test1"));
+      shcore::Value row = result->fetch_one({});
       EXPECT_TRUE(kill_sent);
-      EXPECT_EQ("1", row->get_as_string(0));
+      EXPECT_EQ("1", row.as_object<mysqlsh::Row>()->get_member(0).repr());
     } catch (const std::exception &e) {
       FAIL() << e.what();
     }
@@ -449,8 +451,8 @@ TEST_F(Interrupt_mysqlx, sql_x_err) {
       shcore::Interrupts::interrupt();
     });
     try {
-      auto result =
-          session->execute_sql("select * from mysql.user where sleep(1)");
+      auto result = std::static_pointer_cast<mysqlsh::mysqlx::SqlResult>(
+          session->raw_execute_sql("select * from mysql.user where sleep(1)"));
       FAIL() << "Did not get expected exception\n";
     } catch (const std::exception &e) {
       EXPECT_STREQ("Query execution was interrupted", e.what());
@@ -923,9 +925,9 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
   // enough that we can interrupt them
   std::shared_ptr<mysqlsh::ShellBaseSession> conn(
       connect_classic(_mysql_uri, _pwd));
-  conn->execute_sql("start transaction");
-  conn->execute_sql("insert into itst.data values (DEFAULT,1)");
-  conn->execute_sql(
+  conn->raw_execute_sql("start transaction");
+  conn->raw_execute_sql("insert into itst.data values (DEFAULT,1)");
+  conn->raw_execute_sql(
       "insert into itst.cdata (doc) values ('{\"_id\":\"dummyyy\"}')");
 
   {
@@ -960,10 +962,11 @@ TEST_F(Interrupt_mysqlx, db_javascript_drop) {
     wipe_all();
   }
 
-  conn->execute_sql("rollback");
-  auto result = conn->execute_sql(
-      "select count(*) from information_schema.tables where "
-      "table_schema='itst'");
+  conn->raw_execute_sql("rollback");
+  auto result = std::static_pointer_cast<mysqlsh::mysql::ClassicResult>(
+      conn->raw_execute_sql(
+          "select count(*) from information_schema.tables where "
+          "table_schema='itst'"));
   auto row = result->fetch_one();
   EXPECT_EQ(2, row->get_int(0));
 }
@@ -986,9 +989,9 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
   // enough that we can interrupt them
   std::shared_ptr<mysqlsh::ShellBaseSession> conn(
       connect_classic(_mysql_uri, _pwd));
-  conn->execute_sql("start transaction");
-  conn->execute_sql("insert into itst.data values (DEFAULT,1)");
-  conn->execute_sql(
+  conn->raw_execute_sql("start transaction");
+  conn->raw_execute_sql("insert into itst.data values (DEFAULT,1)");
+  conn->raw_execute_sql(
       "insert into itst.cdata (doc) values ('{\"_id\":\"dummyyy\"}')");
 
   {
@@ -1025,10 +1028,11 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
     wipe_all();
   }
 
-  conn->execute_sql("rollback");
-  auto result = conn->execute_sql(
-      "select count(*) from information_schema.tables where "
-      "table_schema='itst'");
+  conn->raw_execute_sql("rollback");
+  auto result = std::static_pointer_cast<mysqlsh::mysql::ClassicResult>(
+      conn->raw_execute_sql(
+          "select count(*) from information_schema.tables where "
+          "table_schema='itst'"));
   auto row = result->fetch_one();
   EXPECT_EQ(2, row->get_int(0));
 }
