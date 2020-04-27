@@ -26,6 +26,7 @@
 
 #include <deque>
 #include <map>
+#include <mutex>
 #include <set>
 #include <string>
 #include <utility>
@@ -91,7 +92,6 @@ struct Help_topic {
   std::string m_help_tag;
   Help_topic *m_parent;
   Help_topic_refs m_childs;
-  Help_registry *m_help;
   bool m_enabled;
 
   Help_topic *get_category();
@@ -177,7 +177,7 @@ class Help_registry {
     std::string description;
   };
 
-  virtual ~Help_registry() {}
+  virtual ~Help_registry();
 
   // Access to the singleton
   static Help_registry *get();
@@ -221,7 +221,8 @@ class Help_registry {
 
   /**
    * Helper function to register a series of data elements under the same tag.
-   * This function allows registering data for the same tag in separate groups.
+   * This function allows registering data for the same tag in separate
+   * groups.
    *
    * @param prefix The prefix of the token to be used to register the data
    * @param tag The suffix of the token to be used to register the data.
@@ -230,8 +231,9 @@ class Help_registry {
    * @param data An array with the help entries to be registered using the
    *             same tag.
    *
-   * For each entry in data, a token will be created as <prefix>_<tag><sequence>
-   * and the data will be registered using this token.
+   * For each entry in data, a token will be created as
+   * <prefix>_<tag><sequence> and the data will be registered using this
+   * token.
    *
    * The sequence will be increased after each entry is registered.
    */
@@ -268,9 +270,13 @@ class Help_registry {
       const std::string &parent, IShell_core::Mode_mask mode,
       Keyword_location loc = Keyword_location::GLOBAL_CTX);
 
+  void remove_topic(Help_topic *topic, Keyword_location loc);
+
   // Registers class inheritance
-  void add_help_class(const std::string &name, const std::string &parent,
-                      const std::string &upper_class = "");
+  void add_help_class(
+      const std::string &name, const std::string &parent,
+      const std::string &upper_class = "",
+      IShell_core::Mode_mask mode = IShell_core::all_scripting_modes());
   void inherit_members(Help_topic *parent, Help_topic *child);
   void inherit_member(Help_topic *parent, Help_topic *member);
 
@@ -309,6 +315,10 @@ class Help_registry {
 
   Help_registry *get_thread_context_help() const;
 
+  std::unique_lock<std::recursive_mutex> ensure_lock();
+
+  std::unique_lock<std::recursive_mutex> ensure_lock_threaded();
+
  private:
   // Options will be stored on a MAP
   Data_registry m_help_data;
@@ -329,6 +339,27 @@ class Help_registry {
   Keyword_registry m_keywords;
 
   Keyword_case_sensitive_registry m_cs_keywords;
+
+  std::recursive_mutex m_mutex;
+
+  std::recursive_mutex m_th_help;
+
+  bool m_threaded;
+
+  std::vector<Help_registry *> m_threaded_help;
+
+  /**
+   * This is set on each threaded help instance so each one knows it shouldn't
+   * try to deregister from the global_ctx if it's already gone.
+   */
+  bool m_global_removed;
+
+  /**
+   * This is used in the global_ctx so the first time it's calling add_topic it
+   * will also create the local_ctx  while trying to find existing topic. This
+   * can result in order creation fiasco which this var is protecting.
+   */
+  bool m_c_tor;
 
   Topic_mask get_parent_topic_types();
 
@@ -351,6 +382,10 @@ class Help_registry {
                              const std::string &tag,
                              const std::string &parent_id, Help_topic *parent,
                              IShell_core::Mode_mask mode);
+  void remove_topic(Help_topic *topic);
+
+  bool is_enabled(const Keyword_registry &registry, const Help_topic *topic,
+                  IShell_core::Mode mode) const;
 };
 
 /**
@@ -425,9 +460,8 @@ struct Help_topic_register {
  */
 struct Help_class_register {
   Help_class_register(const std::string &child, const std::string &parent,
-                      const std::string &upper_class) {
-    Help_registry::get()->add_help_class(child, parent, upper_class);
-  }
+                      const std::string &upper_class,
+                      Help_mode mode = Help_mode::SCRIPTING);
 };
 
 enum class Help_option {
@@ -536,8 +570,8 @@ class Help_manager {
                                   const Help_options &options);
 
   /**
-   * Parses and updates the text_lines to update function names so they matches
-   * the required naming convention.
+   * Parses and updates the text_lines to update function names so they
+   * matches the required naming convention.
    *
    * These function names must named in camelCase format and enclosed between
    * <<< and >>>
@@ -563,8 +597,8 @@ class Help_manager {
   std::vector<std::string> resolve_help_text(const Help_topic &object,
                                              const std::string &suffix);
   /**
-   * Parses a parameter definition list and returns the corresponding signature
-   * as well as a vector of parameters and descriptions.
+   * Parses a parameter definition list and returns the corresponding
+   * signature as well as a vector of parameters and descriptions.
    */
   std::vector<std::pair<std::string, std::string>> parse_function_parameters(
       const std::vector<std::string> &parameters,
@@ -650,8 +684,11 @@ class Help_manager {
 
 #define REGISTER_HELP(x, y) shcore::Help_register x(#x, y)
 
+#define REGISTER_HELP_CLASS_MODE(name, parent, mode) \
+  shcore::Help_class_register class_##parent##name(#name, #parent, "", mode)
+
 #define REGISTER_HELP_CLASS(name, parent) \
-  shcore::Help_class_register class_##parent##name(#name, #parent, "")
+  REGISTER_HELP_CLASS_MODE(name, parent, shcore::Help_mode::SCRIPTING)
 
 #define REGISTER_HELP_SUB_CLASS(name, parent, upper) \
   shcore::Help_class_register class_##parent##name(#name, #parent, #upper)

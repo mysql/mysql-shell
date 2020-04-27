@@ -59,6 +59,7 @@ set(utils_SOURCE
     dtoa.cc
     syslog.cc
     syslog_level.cc
+    threads.cc
 )
 
 IF(CMAKE_BUILD_TYPE STREQUAL Debug)

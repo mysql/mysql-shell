@@ -72,6 +72,8 @@ file(GLOB api_module_SOURCES
       "mod_extensible_object.cc"
       "mod_os.cc"
       "mod_path.cc"
+      "mod_shell.cc"
+      "mod_shell_context.cc"
       "mod_shell_options.cc"
       "mod_shell_reports.cc"
       "mod_sys.cc"

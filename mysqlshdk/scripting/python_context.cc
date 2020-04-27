@@ -452,7 +452,6 @@ Python_context::Python_context(bool redirect_stdio) {
         PyModule_GetDict(PyDict_GetItemString(_globals, "__builtins__")),
         "raw_input", raw_input);
   }
-
   // Stores the main thread state
   _main_thread_state = PyThreadState_Get();
 
@@ -532,6 +531,7 @@ Python_context::~Python_context() {
 
   PyEval_RestoreThread(_main_thread_state);
   _main_thread_state = nullptr;
+  shcore::Python_init_singleton::destroy_python();
 }
 
 /*

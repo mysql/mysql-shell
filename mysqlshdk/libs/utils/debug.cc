@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,19 +48,21 @@ bool debug_object_dump_report(bool verbose) {
   std::cout << "Instrumented mysqlsh object allocation report:\n";
   int count = 0;
   int fatal_found = 0;
+
   for (const auto &c : g_debug_object_list) {
-    if (verbose || c->allocs != c->deallocs) {
-      std::cout << c->name << "\t" << (c->allocs - c->deallocs) << " leaks ("
-                << c->allocs << " allocations vs " << c->deallocs
+    std::lock_guard<std::mutex> lock(c->m_mtx);
+    if (verbose || c->allocs != c->m_deallocs) {
+      std::cout << c->name << "\t" << (c->allocs - c->m_deallocs) << " leaks ("
+                << c->allocs << " allocations vs " << c->m_deallocs
                 << " deallocations)\n";
     }
-    if (c->allocs != c->deallocs) {
+    if (c->allocs != c->m_deallocs) {
       if (c->fatal_leaks) {
         std::cerr << "FATAL LEAK: " << c->name << "\n";
         fatal_found++;
       }
       c->dump();
-      count += c->allocs - c->deallocs;
+      count += c->allocs - c->m_deallocs;
     }
   }
   if (count == 0)
@@ -102,7 +104,8 @@ void Debug_object_info::on_alloc(void *p,
 }
 
 void Debug_object_info::on_dealloc(void *p) {
-  ++deallocs;
+  std::lock_guard<std::mutex> lock(m_mtx);
+  ++m_deallocs;
   if (track_instances) {
     std::cout << "DEALLOC " << name << "  " << p << "\n";
     instances.erase(p);

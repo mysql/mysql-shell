@@ -29,32 +29,38 @@
 namespace mysqlsh {
 
 namespace {
-
 template <typename T>
 class Scoped_storage {
  public:
   void push(const std::shared_ptr<T> &value) {
+    std::lock_guard<std::mutex> lock(m_mtx);
     assert(value);
     m_objects.push(value);
   }
 
   void pop(const std::shared_ptr<T> &value) {
+    std::lock_guard<std::mutex> lock(m_mtx);
     assert(!m_objects.empty() && m_objects.top() == value);
     (void)value;  // silence warning if NDEBUG=0
     m_objects.pop();
   }
 
   std::shared_ptr<T> get(bool allow_empty = false) const {
+    std::lock_guard<std::mutex> lock(m_mtx);
     if (allow_empty && m_objects.empty()) return std::shared_ptr<T>();
 
     assert(!m_objects.empty());
     return m_objects.top();
   }
 
-  bool empty() const { return m_objects.empty(); }
+  bool empty() const {
+    std::lock_guard<std::mutex> lock(m_mtx);
+    return m_objects.empty();
+  }
 
  private:
   std::stack<std::shared_ptr<T>> m_objects;
+  mutable std::mutex m_mtx;
 };
 
 class Multi_storage : public Scoped_storage<mysqlsh::IConsole>,

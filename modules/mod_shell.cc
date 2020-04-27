@@ -40,7 +40,9 @@
 #include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 
 using namespace std::placeholders;
@@ -207,6 +209,8 @@ void Shell::init() {
       ->cli(false);
   expose("openSession", &Shell::open_session, "connectionData", "?password")
       ->cli(false);
+  if (mysqlshdk::utils::in_main_thread())
+    expose("createContext", &Shell::create_context, "callbacks");
 }
 
 Shell::~Shell() {}
@@ -1085,6 +1089,68 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell::set_session_global(
  */
 std::shared_ptr<mysqlsh::ShellBaseSession> Shell::get_dev_session() {
   return _shell_core->get_dev_session();
+}
+
+REGISTER_HELP_FUNCTION_MODE(createContext, shell, PYTHON);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_CREATECONTEXT, R"*(
+Create a shell context wrapper used in multiuser environments. The returned
+object should be explicitly deleted when no longer needed.
+
+@param options Dictionary that holds optional callbacks and additional options.
+
+@returns ShellContextWrapper Wrapper around context isolating the shell scope.
+
+This function is meant to be used only inside of the Python in new thread.
+It's creating a scope which will isolate logger, interrupt handlers and
+delegates. All the delegates can run into infinite loop if one would
+try to print to stdout directly from the callback functions.
+
+
+@li printDelegate: function (default not set) which will be called when shell
+function will need to print something to stdout, expected signature: None
+printDelegate(str).
+@li errorDelegate: function (default not set) which will be called when shell
+function will need to print something to stderr, expected signature: None
+errorDelegate(str).
+@li diagDelegate: function (default not set) which will be called when shell
+function will need to print something diagnostics, expected signature: None
+diagDelegate(str).
+@li promptDelegate: function (default not set) which will be called when shell
+function will need to ask user for input, this should return a tuple where
+first arguments is boolean indicating if user did input something, and second
+is a user input string, expected signature: tuple<bool,str> promptDelegate(str).
+@li passwordDelegate: function (default not set) which will be called when
+shell function will need to ask user for input, this should return a tuple
+where first arguments is boolean indicating if user did input anything, and
+second is a user input string, expected signature: tuple<bool,str> passwordDelegate(str).
+@li logFile string which spcifies the location for the log file for new context.
+If this is not specified, logs from all threads will be stored in the mysqlsh.log
+file. If the file cannot be created, and exception will be thrown.
+)*");
+
+#if DOXYGEN_PY
+/**
+ * $(SHELL_CREATECONTEXT_BRIEF)
+ *
+ * $(SHELL_CREATECONTEXT)
+ */
+ShellContextWrapper Shell::create_context(dict options) {}
+#endif
+std::shared_ptr<Shell_context_wrapper> Shell::create_context(
+    const shcore::Option_pack_ref<Shell_context_wrapper_options> &callbacks) {
+  if (mysqlshdk::utils::in_main_thread())
+    throw shcore::Exception::logic_error(
+        "This function cannot be called from the main thread");
+
+  thread_local static std::weak_ptr<Shell_context_wrapper> s_ctx;
+  if (auto spt = s_ctx.lock()) {
+    return spt;
+  }
+
+  auto spt =
+      std::make_shared<Shell_context_wrapper>(callbacks, _shell->get_options());
+  s_ctx = spt;
+  return spt;
 }
 
 REGISTER_HELP_FUNCTION(setSession, shell);
@@ -2050,6 +2116,14 @@ void Shell::register_global(const std::string &name,
     throw shcore::Exception::type_error(
         "Argument #2 is expected to be an extension object.");
   }
+}
+
+shcore::Dictionary_t Shell::get_globals(shcore::IShell_core::Mode mode) const {
+  shcore::Dictionary_t globals = shcore::make_dict();
+  for (const auto &it : _shell_core->get_global_objects(mode)) {
+    (*globals)[it] = _shell_core->get_global(it);
+  }
+  return globals;
 }
 
 REGISTER_HELP_FUNCTION(dumpRows, shell);

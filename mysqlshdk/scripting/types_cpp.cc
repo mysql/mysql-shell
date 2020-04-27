@@ -241,6 +241,7 @@ std::tuple<bool, int, shcore::Exception> Cpp_function::match_signatures(
 using FunctionEntry = std::pair<std::string, std::shared_ptr<Cpp_function>>;
 
 std::map<std::string, Cpp_function::Metadata> Cpp_object_bridge::mdtable;
+std::mutex Cpp_object_bridge::s_mtx;
 
 void Cpp_object_bridge::clear_metadata() { mdtable.clear(); }
 

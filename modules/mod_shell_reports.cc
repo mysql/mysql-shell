@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,7 @@
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/options.h"
+#include "mysqlshdk/libs/utils/threads.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -1070,9 +1071,13 @@ Shell_reports::Shell_reports(const std::string &name,
                              const std::string &qualified_name)
     : Extensible_object(name, qualified_name, true) {
   enable_help();
-  reports::register_query_report(this);
-  reports::register_threads_report(this);
-  reports::register_thread_report(this);
+  // Do not register the reports for the second time if we're inside of a
+  // thread.
+  if (mysqlshdk::utils::in_main_thread()) {
+    reports::register_query_report(this);
+    reports::register_threads_report(this);
+    reports::register_thread_report(this);
+  }
 }
 
 // needs to be defined here due to Shell_reports::Report_options being

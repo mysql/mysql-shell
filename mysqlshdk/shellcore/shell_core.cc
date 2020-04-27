@@ -83,11 +83,16 @@ Shell_core::~Shell_core() {
   }
   _globals.clear();
 
-  if (_langs[Mode::JavaScript]) delete _langs[Mode::JavaScript];
+  auto remove_language = [this](Mode m) {
+    auto it = _langs.find(m);
+    if (it != _langs.end()) {
+      delete it->second;
+    }
+  };
 
-  if (_langs[Mode::Python]) delete _langs[Mode::Python];
-
-  if (_langs[Mode::SQL]) delete _langs[Mode::SQL];
+  remove_language(Mode::JavaScript);
+  remove_language(Mode::Python);
+  remove_language(Mode::SQL);
 }
 
 std::string Shell_core::preprocess_input_line(const std::string &s) {

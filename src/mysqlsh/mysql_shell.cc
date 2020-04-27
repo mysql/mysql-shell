@@ -494,7 +494,6 @@ Mysql_shell::Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
 
   set_global_object("shell", _global_shell,
                     shcore::IShell_core::all_scripting_modes());
-
   set_global_object("dba", _global_dba,
                     shcore::IShell_core::all_scripting_modes());
 
@@ -613,69 +612,80 @@ Mysql_shell::~Mysql_shell() { DEBUG_OBJ_DEALLOC(Mysql_shell); }
 
 void Mysql_shell::finish_init() {
   // Python needs to be initialized in case there are python start files/plugins
-  shell_context()->init_py();
+  // but we do this only once for the whole application.
+  if (mysqlshdk::utils::in_main_thread()) shell_context()->init_py();
+
   Base_shell::finish_init();
 
-  File_list startup_files;
-  get_startup_scripts(&startup_files);
-  load_files(startup_files, "startup files");
+  // if Python is disabled it means we're creating another instance of shell in
+  // a thread. because of that we don't want to initialize everything again for
+  // the scripting languages.
+  // Also the shell_cli_operation is not needed as context won't need that.
 
-  File_list plugins;
-  get_plugins(&plugins);
-  load_files(plugins, "plugins");
+  if (mysqlshdk::utils::in_main_thread()) {
+    File_list startup_files;
+    get_startup_scripts(&startup_files);
+    load_files(startup_files, "startup files");
 
-  auto shell_cli_operation = m_shell_options.get()->get_shell_cli_operation();
-  if (shell_cli_operation) {
-    auto providers = shell_cli_operation->get_provider();
+    File_list plugins;
+    get_plugins(&plugins);
+    load_files(plugins, "plugins");
 
-    providers->register_provider("dba", _global_dba);
-    providers->register_provider("cluster", [this](bool for_help) {
-      return create_default_cluster_object(for_help);
-    });
-    providers->register_provider("rs", [this](bool for_help) {
-      return create_default_replicaset_object(for_help);
-    });
-    providers->register_provider("util", _global_util);
-    auto shell_provider = providers->register_provider("shell", _global_shell);
-    shell_provider->register_provider("options",
-                                      _global_shell->get_shell_options());
+    auto shell_cli_operation = m_shell_options.get()->get_shell_cli_operation();
+    if (shell_cli_operation) {
+      auto providers = shell_cli_operation->get_provider();
 
-    // Callback to recursively register CLI enabled plugin objects
-    std::function<void(shcore::cli::Provider * parent,
-                       const std::shared_ptr<Extensible_object> &)>
-        register_providers;
+      providers->register_provider("dba", _global_dba);
+      providers->register_provider("cluster", [this](bool for_help) {
+        return create_default_cluster_object(for_help);
+      });
+      providers->register_provider("rs", [this](bool for_help) {
+        return create_default_replicaset_object(for_help);
+      });
+      providers->register_provider("util", _global_util);
+      auto shell_provider =
+          providers->register_provider("shell", _global_shell);
+      shell_provider->register_provider("options",
+                                        _global_shell->get_shell_options());
 
-    register_providers = [&register_providers](
-                             shcore::cli::Provider *parent,
-                             const std::shared_ptr<Extensible_object> &object) {
-      // If the object is CLI enabled, registers it as a provider
-      if (object->cli_enabled()) {
-        auto new_provider =
-            parent->register_provider(object->get_name(), object);
+      // Callback to recursively register CLI enabled plugin objects
+      std::function<void(shcore::cli::Provider * parent,
+                         const std::shared_ptr<Extensible_object> &)>
+          register_providers;
 
-        // Iterates over the object childrens to register CLI enabled objects
-        // recursively
-        auto child_names = object->get_members();
-        for (const auto &name : child_names) {
-          auto child = object->get_member(name);
-          if (child.type == shcore::Value_type::Object) {
-            auto child_object = child.as_object<Extensible_object>();
+      register_providers =
+          [&register_providers](
+              shcore::cli::Provider *parent,
+              const std::shared_ptr<Extensible_object> &object) {
+            // If the object is CLI enabled, registers it as a provider
+            if (object->cli_enabled()) {
+              auto new_provider =
+                  parent->register_provider(object->get_name(), object);
 
-            if (child_object) {
-              register_providers(new_provider.get(), child_object);
+              // Iterates over the object childrens to register CLI enabled
+              // objects recursively
+              auto child_names = object->get_members();
+              for (const auto &name : child_names) {
+                auto child = object->get_member(name);
+                if (child.type == shcore::Value_type::Object) {
+                  auto child_object = child.as_object<Extensible_object>();
+
+                  if (child_object) {
+                    register_providers(new_provider.get(), child_object);
+                  }
+                }
+              }
             }
-          }
-        }
-      }
-    };
+          };
 
-    // Iterates over the global extensible objects to register anything that is
-    // CLI enabled as a provider
-    auto global_object_names = _shell->get_global_objects(interactive_mode());
-    for (const auto &name : global_object_names) {
-      auto extension_object =
-          _shell->get_global(name).as_object<Extensible_object>();
-      if (extension_object) register_providers(providers, extension_object);
+      // Iterates over the global extensible objects to register anything that
+      // is CLI enabled as a provider
+      auto global_object_names = _shell->get_global_objects(interactive_mode());
+      for (const auto &name : global_object_names) {
+        auto extension_object =
+            _shell->get_global(name).as_object<Extensible_object>();
+        if (extension_object) register_providers(providers, extension_object);
+      }
     }
   }
 }
@@ -1898,7 +1908,7 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
   return ret_val;
 }
 
-static std::vector<std::string> g_patterns;
+thread_local static std::vector<std::string> g_patterns;
 
 bool Mysql_shell::sql_safe_for_logging(const std::string &sql) {
   for (auto &pat : g_patterns) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -164,7 +164,6 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
                                   name,
                                   sql,
                                   {},
-                                  shcore::Help_registry::get(),
                                   true});
             entry = result->fetch_one();
           }
@@ -179,7 +178,6 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
                                 entry->get_string(desc_col),
                                 sql,
                                 {},
-                                shcore::Help_registry::get(),
                                 true});
         }
       }
@@ -328,7 +326,6 @@ void Command_help::print_help_global() {
                                  object->class_name() + "_GLOBAL",
                                  nullptr,
                                  {},
-                                 nullptr,
                                  {}});
       }
     }
@@ -340,7 +337,6 @@ void Command_help::print_help_global() {
                              "MYSQLX_GLOBAL",
                              nullptr,
                              {},
-                             nullptr,
                              {}});
     global_topics.push_back({"",
                              "mysql",
@@ -348,7 +344,6 @@ void Command_help::print_help_global() {
                              "MYSQL_GLOBAL",
                              nullptr,
                              {},
-                             nullptr,
                              {}});
 
     // We need the references to use the existing formatting code

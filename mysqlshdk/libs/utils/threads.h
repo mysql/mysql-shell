@@ -35,6 +35,9 @@
 
 namespace mysqlshdk {
 namespace utils {
+
+bool in_main_thread();
+
 /**
  * Executes the map function on each value of the given list in parallel and
  * return the aggregation of their results, as computed by the reduce function.

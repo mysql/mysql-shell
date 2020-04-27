@@ -536,6 +536,9 @@ int main(int argc, char **argv) {
   shcore::setenv("LC_ALL", "en_US.UTF-8");
 #endif  // _WIN32
 
+  // Has to be called once in main so internal static variable is properly set
+  // with the main thread id.
+  mysqlshdk::utils::in_main_thread();
   int ret_val = 0;
   Interrupt_helper sighelper;
 
