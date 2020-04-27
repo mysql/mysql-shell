@@ -718,8 +718,7 @@ bool Shell_script_tester::validate(const std::string &context,
     _cout.clear();
   } else {
     // There were errors
-    if (!original_std_err.empty() &&
-        !_chunks[chunk_id].is_validation_optional()) {
+    if (!original_std_err.empty()) {
       ADD_FAILURE_AT(_chunks[chunk_id].source.c_str(),
                      _chunks[chunk_id].code[0].first)
           << "while executing chunk: " + _chunks[chunk_id].def->line << "\n"
