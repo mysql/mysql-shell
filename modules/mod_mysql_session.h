@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -75,68 +75,59 @@ class SHCORE_PUBLIC ClassicSession
   ClassicSession(const ClassicSession &session);
   virtual ~ClassicSession();
 
-// We need to hide this from doxygen to avoid warnings
-#if !defined DOXYGEN_JS && !defined DOXYGEN_PY
-  std::shared_ptr<ClassicResult> execute_sql(const std::string &query);
-#endif
-
   // Virtual methods from object bridge
-  virtual std::string class_name() const { return "ClassicSession"; };
-
-  virtual shcore::Value get_member(const std::string &prop) const;
+  std::string class_name() const override { return "ClassicSession"; };
+  shcore::Value get_member(const std::string &prop) const override;
 
   // Virtual methods from ISession
-  virtual void connect(const mysqlshdk::db::Connection_options &data);
-  virtual void close();
-  virtual void create_schema(const std::string &name);
-  virtual void drop_schema(const std::string &name);
-  virtual void set_current_schema(const std::string &name);
-  virtual void start_transaction();
-  virtual void commit();
-  virtual void rollback();
+  void connect(const mysqlshdk::db::Connection_options &data) override;
+  void close() override;
+  void create_schema(const std::string &name) override;
+  void drop_schema(const std::string &name) override;
+  void set_current_schema(const std::string &name) override;
+  void start_transaction() override;
+  void commit() override;
+  void rollback() override;
+  std::string get_current_schema() override;
 
-  virtual std::string get_current_schema();
+  std::shared_ptr<ClassicResult> _start_transaction();
+  std::shared_ptr<ClassicResult> _commit();
+  std::shared_ptr<ClassicResult> _rollback();
 
-  virtual shcore::Value query(const shcore::Argument_list &args);
+  std::shared_ptr<ClassicResult> query(const std::string &query,
+                                       const shcore::Array_t &args = {});
 
-  shcore::Value _close(const shcore::Argument_list &args);
-  virtual shcore::Value run_sql(const shcore::Argument_list &args);
-  virtual shcore::Value _start_transaction(const shcore::Argument_list &args);
-  virtual shcore::Value _commit(const shcore::Argument_list &args);
-  virtual shcore::Value _rollback(const shcore::Argument_list &args);
-  shcore::Value _is_open(const shcore::Argument_list &args);
+  std::shared_ptr<ClassicResult> run_sql(const std::string &query,
+                                         const shcore::Array_t &args = {});
 
-  virtual shcore::Value::Map_type_ref get_status();
+  shcore::Value::Map_type_ref get_status() override;
 
-  virtual std::string db_object_exists(std::string &type,
-                                       const std::string &name,
-                                       const std::string &owner);
+  std::string db_object_exists(std::string &type, const std::string &name,
+                               const std::string &owner) override;
 
   static std::shared_ptr<shcore::Object_bridge> create(
       const mysqlshdk::db::Connection_options &co);
 
-  virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() {
+  std::shared_ptr<mysqlshdk::db::ISession> get_core_session() override {
     return _session;
   }
 
   mysqlshdk::db::mysql::Session *session() const;
 
-  virtual uint64_t get_connection_id() const;
-  virtual std::string query_one_string(const std::string &query, int field = 0);
-  virtual std::string get_ssl_cipher() const;
-  shcore::Value execute_sql(const std::string &query,
-                            const shcore::Array_t &args);
-
- private:
-  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string &query);
+  uint64_t get_connection_id() const override;
+  std::string query_one_string(const std::string &query,
+                               int field = 0) override;
+  std::string get_ssl_cipher() const override;
+  std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
+      const std::string &query, const shcore::Array_t &args = {}) override;
 
  public:
-  virtual SessionType session_type() const { return SessionType::Classic; }
+  SessionType session_type() const override { return SessionType::Classic; }
 
-  virtual void kill_query();
+  void kill_query() override;
 
 #if DOXYGEN_JS
-  String uri;  //!< Same as getUri()
+  String uri;  //!< $(CLASSICSESSION_GETURI_BRIEF)
   String getUri();
   ClassicResult runSql(String query, Array args = []);
   ClassicResult query(String query, Array args = []);
@@ -144,6 +135,7 @@ class SHCORE_PUBLIC ClassicSession
   ClassicResult startTransaction();
   ClassicResult commit();
   ClassicResult rollback();
+  Bool isOpen();
 #elif DOXYGEN_PY
   str uri;  //!< Same as get_uri()
   str get_uri();
@@ -153,27 +145,14 @@ class SHCORE_PUBLIC ClassicSession
   ClassicResult start_transaction();
   ClassicResult commit();
   ClassicResult rollback();
+  bool is_open();
 #endif
 
-  /**
-   * $(SHELLBASESESSION_ISOPEN_BRIEF)
-   *
-   * $(SHELLBASESESSION_ISOPEN_RETURNS)
-   *
-   * $(SHELLBASESESSION_ISOPEN_DETAIL)
-   */
-#if DOXYGEN_JS
-  Bool isOpen() {}
-#elif DOXYGEN_PY
-  bool is_open() {}
-#endif
-  virtual bool is_open() const;
+  bool is_open() const override;
 
  private:
   void init();
   std::shared_ptr<mysqlshdk::db::mysql::Session> _session;
-  shcore::Value _run_sql(const std::string &function,
-                         const shcore::Argument_list &args);
 };
 }  // namespace mysql
 }  // namespace mysqlsh

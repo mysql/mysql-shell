@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,19 +46,20 @@ class ShellBaseResult : public shcore::Cpp_object_bridge {
   ShellBaseResult();
 
   // Needed because expose() in the c-tor will end up in a call to class_name()
-  virtual std::string class_name() const { return "ShellBaseResult"; }
+  std::string class_name() const override { return "ShellBaseResult"; }
 
-  virtual bool operator==(const Object_bridge &other) const;
+  bool operator==(const Object_bridge &other) const override;
   virtual mysqlshdk::db::IResult *get_result() const = 0;
   virtual std::shared_ptr<std::vector<std::string>> get_column_names() const {
     return {};
   }
+  std::vector<std::string> get_members() const override;
 
   std::unique_ptr<mysqlsh::Row> fetch_one_row() const;
 
   shcore::Dictionary_t fetch_one_object() const;
 
-  void dump(const shcore::Dictionary_t &options);
+  void dump();
 };
 
 /**

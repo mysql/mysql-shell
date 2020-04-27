@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,10 +61,9 @@ TableUpdate::TableUpdate(std::shared_ptr<Table> owner)
 
   // Registers the dynamic function behavior
   register_dynamic_function(F::update, F::set);
-  register_dynamic_function(F::set,
-                            F::where | F::orderBy | F::limit | F::bind |
-                                F::execute | F::__shell_hook__,
-                            K_DISABLE_NONE, K_ALLOW_REUSE);
+  register_dynamic_function(
+      F::set, F::where | F::orderBy | F::limit | F::bind | F::execute,
+      K_DISABLE_NONE, K_ALLOW_REUSE);
   register_dynamic_function(F::where, K_ENABLE_NONE, F::set);
   register_dynamic_function(F::orderBy, K_ENABLE_NONE, F::set | F::where);
   register_dynamic_function(F::limit, K_ENABLE_NONE,

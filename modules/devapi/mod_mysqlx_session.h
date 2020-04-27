@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <string>
 #include "db/mysqlx/mysqlxclient_clean.h"
 #include "db/mysqlx/session.h"
+#include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/mod_common.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
@@ -43,6 +44,7 @@ class DatabaseObject;
 namespace mysqlx {
 
 class Schema;
+class SqlExecute;
 /**
  * \ingroup XDevAPI
  * @brief $(SESSION_BRIEF)
@@ -70,9 +72,9 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
                               public std::enable_shared_from_this<Session> {
  public:
 #if DOXYGEN_JS
-  String uri;            //!< Same as getUri()
-  Schema defaultSchema;  //!< Same as getDefaultSchema()
-  Schema currentSchema;  //!< Same as getCurrentSchema()
+  String uri;            //!< $(SESSION_GETURI_BRIEF)
+  Schema defaultSchema;  //!< $(SESSION_GETDEFAULTSCHEMA_BRIEF)
+  Schema currentSchema;  //!< $(SESSION_GETCURRENTSCHEMA_BRIEF)
 
   Schema createSchema(String name);
   Schema getSchema(String name);
@@ -98,9 +100,9 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
 
  private:
 #elif DOXYGEN_PY
-  str uri;                //!< Same as get_uri()
-  Schema default_schema;  //!< Same as get_default_schema()
-  Schema current_schema;  //!< Same as get_current_schema()
+  str uri;                //!< $(SESSION_GETURI_BRIEF)
+  Schema default_schema;  //!< $(SESSION_GETDEFAULTSCHEMA_BRIEF)
+  Schema current_schema;  //!< $(SESSION_GETCURRENTSCHEMA_BRIEF)
 
   Schema create_schema(str name);
   Schema get_schema(str name);
@@ -132,90 +134,77 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   Session(const Session &s);
   virtual ~Session();
 
-  virtual std::string class_name() const { return "Session"; }
+  std::string class_name() const override { return "Session"; }
 
-  virtual shcore::Value get_member(const std::string &prop) const;
+  shcore::Value get_member(const std::string &prop) const override;
 
-  virtual std::string get_node_type() { return "X"; }
+  std::string get_node_type() override { return "X"; }
 
-  virtual SessionType session_type() const { return SessionType::X; }
+  SessionType session_type() const override { return SessionType::X; }
 
   static std::shared_ptr<shcore::Object_bridge> create(
       const mysqlshdk::db::Connection_options &co);
 
-  virtual void connect(const mysqlshdk::db::Connection_options &data);
-  virtual void close();
-  virtual void create_schema(const std::string &name);
-  virtual void drop_schema(const std::string &name);
-  virtual void set_current_schema(const std::string &name);
-  shcore::Object_bridge_ref get_schema(const std::string &name);
-  virtual void start_transaction();
-  virtual void commit();
-  virtual void rollback();
+  void connect(const mysqlshdk::db::Connection_options &data) override;
+  void close() override;
+  void create_schema(const std::string &name) override;
+  void drop_schema(const std::string &name) override;
+  void set_current_schema(const std::string &name) override;
+  std::shared_ptr<Schema> get_schema(const std::string &name);
+  void start_transaction() override;
+  void commit() override;
+  void rollback() override;
 
-  virtual std::string get_current_schema();
+  std::shared_ptr<SqlResult> _start_transaction();
+  std::shared_ptr<SqlResult> _commit();
+  std::shared_ptr<SqlResult> _rollback();
 
-  shcore::Value _close(const shcore::Argument_list &args);
-  virtual shcore::Value _create_schema(const shcore::Argument_list &args);
-  virtual shcore::Value _start_transaction(const shcore::Argument_list &args);
-  virtual shcore::Value _commit(const shcore::Argument_list &args);
-  virtual shcore::Value _rollback(const shcore::Argument_list &args);
-  shcore::Value _drop_schema(const shcore::Argument_list &args);
-  shcore::Value _is_open(const shcore::Argument_list &args);
-  shcore::Value _set_current_schema(const shcore::Argument_list &args);
-  shcore::Value sql(const shcore::Argument_list &args);
-  shcore::Value run_sql(const std::string sql,
-                        const shcore::Array_t &bound_args);
-  shcore::Value quote_name(const shcore::Argument_list &args);
+  std::string get_current_schema() override;
 
-  shcore::Value _set_savepoint(const shcore::Argument_list &args);
-  shcore::Value _release_savepoint(const shcore::Argument_list &args);
-  shcore::Value _rollback_to(const shcore::Argument_list &args);
+  std::shared_ptr<Schema> _create_schema(const std::string &name);
+  std::shared_ptr<Schema> _set_current_schema(const std::string &name);
+  std::shared_ptr<SqlExecute> sql(const std::string &statement);
+  std::shared_ptr<SqlResult> run_sql(const std::string sql,
+                                     const shcore::Array_t &args = {});
+  std::string quote_name(const std::string &id);
 
-  virtual bool is_open() const;
-  virtual shcore::Value::Map_type_ref get_status();
+  std::string set_savepoint(const std::string &name = "");
+  void release_savepoint(const std::string &name);
+  void rollback_to(const std::string &name);
 
-  virtual std::string get_ssl_cipher() const {
+  bool is_open() const override;
+  shcore::Value::Map_type_ref get_status() override;
+
+  std::string get_ssl_cipher() const override {
     return _session->get_ssl_cipher() ? _session->get_ssl_cipher() : "";
   }
 
-  shcore::Value _get_schema(const shcore::Argument_list &args);
+  shcore::Array_t get_schemas();
 
-  shcore::Value get_schemas(const shcore::Argument_list &args);
+  std::string db_object_exists(std::string &type, const std::string &name,
+                               const std::string &owner) override;
 
-  virtual std::string db_object_exists(std::string &type,
-                                       const std::string &name,
-                                       const std::string &owner);
-
-  shcore::Value set_fetch_warnings(const shcore::Argument_list &args);
+  std::shared_ptr<Result> set_fetch_warnings(bool enable);
 
   bool table_name_compare(const std::string &n1, const std::string &n2);
 
-  virtual void set_option(const char *option, int value);
+  void set_option(const char *option, int value) override;
 
-  virtual uint64_t get_connection_id() const;
-  virtual std::string query_one_string(const std::string &query, int field = 0);
+  uint64_t get_connection_id() const override;
+  std::string query_one_string(const std::string &query,
+                               int field = 0) override;
 
-  virtual void kill_query();
+  void kill_query() override;
 
   mysqlshdk::db::mysqlx::Session *session() { return _session.get(); }
 
-  virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() {
+  std::shared_ptr<mysqlshdk::db::ISession> get_core_session() override {
     return _session;
   }
 
  public:
-  // TODO(alfredo) delete this eventually
-  virtual shcore::Object_bridge_ref raw_execute_sql(const std::string &query);
-
- public:
-  std::shared_ptr<mysqlshdk::db::mysqlx::Result> execute_sql(
-      const std::string &command,
-      const shcore::Argument_list &args = shcore::Argument_list());
-
-  shcore::Value _execute_sql(
-      const std::string &command,
-      const shcore::Argument_list &args = shcore::Argument_list());
+  std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
+      const std::string &command, const shcore::Array_t &args = {}) override;
 
   shcore::Value _execute_mysqlx_stmt(const std::string &command,
                                      const shcore::Dictionary_t &args);

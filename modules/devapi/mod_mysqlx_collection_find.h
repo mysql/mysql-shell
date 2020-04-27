@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -113,26 +113,22 @@ class CollectionFind : public Collection_crud_definition,
   shcore::Value this_object() override;
 
   struct F {
-    static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;
-    static constexpr Allowed_function_mask find = 1 << 1;
-    static constexpr Allowed_function_mask fields = 1 << 2;
-    static constexpr Allowed_function_mask groupBy = 1 << 3;
-    static constexpr Allowed_function_mask having = 1 << 4;
-    static constexpr Allowed_function_mask sort = 1 << 5;
-    static constexpr Allowed_function_mask limit = 1 << 6;
-    static constexpr Allowed_function_mask skip = 1 << 7;
-    static constexpr Allowed_function_mask offset = 1 << 8;
-    static constexpr Allowed_function_mask lockShared = 1 << 9;
-    static constexpr Allowed_function_mask lockExclusive = 1 << 10;
-    static constexpr Allowed_function_mask bind = 1 << 11;
-    static constexpr Allowed_function_mask execute = 1 << 12;
+    static constexpr Allowed_function_mask find = 1 << 0;
+    static constexpr Allowed_function_mask fields = 1 << 1;
+    static constexpr Allowed_function_mask groupBy = 1 << 2;
+    static constexpr Allowed_function_mask having = 1 << 3;
+    static constexpr Allowed_function_mask sort = 1 << 4;
+    static constexpr Allowed_function_mask limit = 1 << 5;
+    static constexpr Allowed_function_mask skip = 1 << 6;
+    static constexpr Allowed_function_mask offset = 1 << 7;
+    static constexpr Allowed_function_mask lockShared = 1 << 8;
+    static constexpr Allowed_function_mask lockExclusive = 1 << 9;
+    static constexpr Allowed_function_mask bind = 1 << 10;
+    static constexpr Allowed_function_mask execute = 1 << 11;
   };
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("__shell_hook__" == s) {
-      return F::__shell_hook__;
-    }
     if ("find" == s) {
       return F::find;
     }

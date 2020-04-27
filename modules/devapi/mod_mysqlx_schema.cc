@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -776,9 +776,8 @@ shcore::Value Schema::drop_schema_object(const shcore::Argument_list &args,
     if (type == "View") {
       std::shared_ptr<Session> sess(
           std::static_pointer_cast<Session>(_session.lock()));
-      sess->_execute_sql(sqlstring("drop view if exists !.!", 0)
-                             << schema.get_string() << name + "",
-                         shcore::Argument_list());
+      sess->execute_sql(sqlstring("drop view if exists !.!", 0)
+                        << schema.get_string() << name);
     } else {
       if ((type == "Table") || (type == "Collection")) {
         auto command_args = shcore::make_dict();

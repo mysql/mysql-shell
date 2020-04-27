@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,11 +67,8 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
   virtual void drop_schema(const std::string &name) = 0;
   virtual void set_current_schema(const std::string &name) = 0;
 
-  // This function should be execute_sql, but BaseSession and ClassicSession
-  // Have another function with the same signature except the return value
-  // Using this name temporarily, at the end only one execute_sql
-  virtual shcore::Object_bridge_ref raw_execute_sql(
-      const std::string &query) = 0;
+  virtual std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
+      const std::string &query, const shcore::Array_t &args = {}) = 0;
 
   std::string uri(mysqlshdk::db::uri::Tokens_mask format =
                       mysqlshdk::db::uri::formats::full_no_password()) const;

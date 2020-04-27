@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -82,7 +82,7 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   // Registers the dynamic function behavior
   register_dynamic_function(
       F::find, F::fields | F::groupBy | F::sort | F::limit | F::lockShared |
-                   F::lockExclusive | F::bind | F::execute | F::__shell_hook__);
+                   F::lockExclusive | F::bind | F::execute);
   register_dynamic_function(F::fields);
   register_dynamic_function(F::groupBy, F::having, F::fields);
   register_dynamic_function(F::having);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,8 +49,6 @@ namespace mysqlx {
 Crud_definition::Crud_definition(std::shared_ptr<DatabaseObject> owner)
     : _owner(owner), m_execution_count(0) {
   try {
-    add_method("__shell_hook__", std::bind(&Crud_definition::execute, this, _1),
-               "data");
     add_method("execute", std::bind(&Crud_definition::execute, this, _1),
                "data");
   } catch (const shcore::Exception &e) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,8 +64,8 @@ CollectionRemove::CollectionRemove(std::shared_ptr<Collection> owner)
              "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function(
-      F::remove, F::sort | F::limit | F::bind | F::execute | F::__shell_hook__);
+  register_dynamic_function(F::remove,
+                            F::sort | F::limit | F::bind | F::execute);
   register_dynamic_function(F::sort);
   register_dynamic_function(F::limit, K_ENABLE_NONE, F::sort);
   register_dynamic_function(F::bind, K_ENABLE_NONE, F::limit | F::sort,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,7 +61,8 @@ class Mock_shell_base_session : public ShellBaseSession {
   MOCK_METHOD1(create_schema, void(const std::string &));
   MOCK_METHOD1(drop_schema, void(const std::string &));
   MOCK_METHOD1(set_current_schema, void(const std::string &));
-  MOCK_METHOD1(raw_execute_sql, Object_bridge_ref(const std::string &));
+  MOCK_METHOD2(execute_sql, std::shared_ptr<mysqlshdk::db::IResult>(
+                                const std::string &, const shcore::Array_t &));
   MOCK_CONST_METHOD0(session_type, SessionType());
   MOCK_CONST_METHOD0(get_ssl_cipher, std::string());
   MOCK_METHOD3(db_object_exists, std::string(std::string &, const std::string &,

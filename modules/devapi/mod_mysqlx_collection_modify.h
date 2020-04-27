@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights
+ * reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -115,28 +116,24 @@ class CollectionModify : public Collection_crud_definition,
 
   struct F {
     static constexpr Allowed_function_mask operation = 1 << 0;
-    static constexpr Allowed_function_mask __shell_hook__ = 1 << 1;
-    static constexpr Allowed_function_mask modify = 1 << 2;
-    static constexpr Allowed_function_mask set = 1 << 3;
-    static constexpr Allowed_function_mask unset = 1 << 4;
-    static constexpr Allowed_function_mask merge = 1 << 5;
-    static constexpr Allowed_function_mask patch = 1 << 6;
-    static constexpr Allowed_function_mask arrayInsert = 1 << 7;
-    static constexpr Allowed_function_mask arrayAppend = 1 << 8;
-    static constexpr Allowed_function_mask arrayDelete = 1 << 9;
-    static constexpr Allowed_function_mask sort = 1 << 10;
-    static constexpr Allowed_function_mask limit = 1 << 11;
-    static constexpr Allowed_function_mask bind = 1 << 12;
-    static constexpr Allowed_function_mask execute = 1 << 13;
+    static constexpr Allowed_function_mask modify = 1 << 1;
+    static constexpr Allowed_function_mask set = 1 << 2;
+    static constexpr Allowed_function_mask unset = 1 << 3;
+    static constexpr Allowed_function_mask merge = 1 << 4;
+    static constexpr Allowed_function_mask patch = 1 << 5;
+    static constexpr Allowed_function_mask arrayInsert = 1 << 6;
+    static constexpr Allowed_function_mask arrayAppend = 1 << 7;
+    static constexpr Allowed_function_mask arrayDelete = 1 << 8;
+    static constexpr Allowed_function_mask sort = 1 << 9;
+    static constexpr Allowed_function_mask limit = 1 << 10;
+    static constexpr Allowed_function_mask bind = 1 << 11;
+    static constexpr Allowed_function_mask execute = 1 << 12;
   };
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
     if ("operation" == s) {
       return F::operation;
-    }
-    if ("__shell_hook__" == s) {
-      return F::__shell_hook__;
     }
     if ("modify" == s) {
       return F::modify;

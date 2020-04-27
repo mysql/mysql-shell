@@ -20,7 +20,7 @@ FUNCTIONS
 
       commit()
             Commits all the operations executed after a call to
-            startTransaction().
+            start_transaction().
 
       get_uri()
             Retrieves the URI for the current session.
@@ -40,7 +40,7 @@ FUNCTIONS
 
       rollback()
             Discards all the operations executed after a call to
-            startTransaction().
+            start_transaction().
 
       run_sql(query[, args])
             Executes a query and returns the corresponding ClassicResult
@@ -60,7 +60,7 @@ SYNTAX
 #@<OUT> session.commit
 NAME
       commit - Commits all the operations executed after a call to
-               startTransaction().
+               start_transaction().
 
 SYNTAX
       <ClassicSession>.commit()
@@ -69,11 +69,11 @@ RETURNS
       A ClassicResult object.
 
 DESCRIPTION
-      All the operations executed after calling startTransaction() will take
+      All the operations executed after calling start_transaction() will take
       place when this function is called.
 
       The server autocommit mode will return back to it's state before calling
-      startTransaction().
+      start_transaction().
 
 #@<OUT> session.get_uri
 NAME
@@ -106,8 +106,9 @@ RETURNS
       A boolean value indicating if the session is still open.
 
 DESCRIPTION
-      Returns true if the session is still open and false otherwise. Note: may
-      return true if connection is lost.
+      Returns true if the session is still open and false otherwise.
+      
+      NOTE: This function may return true if connection is lost.
 
 #@<OUT> session.query
 NAME
@@ -118,7 +119,7 @@ SYNTAX
       <ClassicSession>.query(query[, args])
 
 WHERE
-      query: the SQL query string to execute, with optional ? placeholders
+      query: the SQL query string to execute, with optional ? placeholders.
       args: List of literals to use when replacing ? placeholders in the query
             string.
 
@@ -129,10 +130,13 @@ DESCRIPTION
       ATTENTION: This function will be removed in a future release, use the
                  run_sql function instead.
 
+EXCEPTIONS
+      An exception is thrown if an error occurs on the SQL execution.
+
 #@<OUT> session.rollback
 NAME
       rollback - Discards all the operations executed after a call to
-                 startTransaction().
+                 start_transaction().
 
 SYNTAX
       <ClassicSession>.rollback()
@@ -141,11 +145,11 @@ RETURNS
       A ClassicResult object.
 
 DESCRIPTION
-      All the operations executed after calling startTransaction() will be
+      All the operations executed after calling start_transaction() will be
       discarded when this function is called.
 
       The server autocommit mode will return back to it's state before calling
-      startTransaction().
+      start_transaction().
 
 #@<OUT> session.run_sql
 NAME
@@ -185,10 +189,10 @@ DESCRIPTION
       only when commit() is called.
 
       All the operations executed after calling this function, will be
-      discarded is rollback() is called.
+      discarded if rollback() is called.
 
       When commit() or rollback() are called, the server autocommit mode will
-      return back to it's state before calling startTransaction().
+      return back to it's state before calling start_transaction().
 
 #@<OUT> session.uri
 NAME

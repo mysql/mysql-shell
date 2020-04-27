@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,10 +68,9 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
              std::bind(&TableSelect::lock_exclusive, this, _1));
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::select, F::where | F::groupBy | F::orderBy |
-                                           F::limit | F::lockShared |
-                                           F::lockExclusive | F::bind |
-                                           F::execute | F::__shell_hook__);
+  register_dynamic_function(
+      F::select, F::where | F::groupBy | F::orderBy | F::limit | F::lockShared |
+                     F::lockExclusive | F::bind | F::execute);
   register_dynamic_function(F::where);
   register_dynamic_function(F::groupBy, F::having, F::where);
   register_dynamic_function(F::having);

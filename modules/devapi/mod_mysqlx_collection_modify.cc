@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -82,8 +82,8 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
                                      F::arrayInsert | F::arrayAppend |
                                      F::arrayDelete;
   register_dynamic_function(F::modify, operations);
-  register_dynamic_function(F::operation, F::sort | F::limit | F::bind |
-                                              F::execute | F::__shell_hook__);
+  register_dynamic_function(F::operation,
+                            F::sort | F::limit | F::bind | F::execute);
   register_dynamic_function(F::sort, K_ENABLE_NONE, operations);
   register_dynamic_function(F::limit, K_ENABLE_NONE, operations | F::sort);
   register_dynamic_function(F::bind, K_ENABLE_NONE,

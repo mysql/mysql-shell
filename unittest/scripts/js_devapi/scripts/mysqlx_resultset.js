@@ -12,7 +12,6 @@ var result = mySession.sql('create table js_shell_test.buffer_table (name varcha
 
 //@<> SqlResult member validation
 validateMembers(result, [
-    '__shell_hook__',
     'executionTime',
     'warningCount',
     'warnings',
@@ -55,7 +54,6 @@ var table = schema.getTable('buffer_table');
 var collection = schema.createCollection('buffer_collection');
 
 validateMembers(result, [
-    '__shell_hook__',
     'executionTime',
     'warningCount',
     'warnings',
@@ -77,7 +75,6 @@ validateMembers(result, [
 //@<> RowResult member validation
 var result = table.select().execute();
 validateMembers(result, [
-    '__shell_hook__',
     'affectedItemsCount',
     'executionTime',
     'warningCount',
@@ -103,7 +100,6 @@ validateMembers(result, [
 var result = collection.find().execute();
 
 validateMembers(result, [
-    '__shell_hook__',
     'affectedItemsCount',
     'executionTime',
     'warningCount',

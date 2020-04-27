@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,8 +56,7 @@ CollectionAdd::CollectionAdd(std::shared_ptr<Collection> owner)
   add_method("add", std::bind(&CollectionAdd::add, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::add, F::execute | F::__shell_hook__,
-                            K_DISABLE_NONE, K_ALLOW_REUSE);
+  register_dynamic_function(F::add, F::execute, K_DISABLE_NONE, K_ALLOW_REUSE);
 
   // Initial function update
   enable_function(F::add);

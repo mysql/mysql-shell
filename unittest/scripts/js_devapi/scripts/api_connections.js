@@ -204,7 +204,7 @@ mySession.close();
 //@ shell.connect, with X URI, ssl-mode=DISABLED
 var uri = 'mysqlx://' + uri_base + __my_x_port + '?ssl-mode=DISABLED';
 shell.connect(uri)
-session.sql("show status like 'Mysqlx_ssl_cipher'");
+session.sql("show status like 'Mysqlx_ssl_cipher'").execute();
 session.close();
 
 //@ getSession with URI, ssl-mode=DISABLED and other ssl option

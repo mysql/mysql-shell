@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -779,7 +779,6 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
     return to_function_t<decltype(&L::operator())>(std::forward<L>(l));
   }
 
- protected:
   // delme
   void add_method_(const std::string &name, Cpp_function::Function func,
                    std::vector<std::pair<std::string, Value_type>> *signature);
@@ -825,7 +824,6 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
 
   std::vector<Cpp_property_name> _properties;
 
- protected:
   // Returns named function which signature that matches the given argument list
   std::shared_ptr<Cpp_function> lookup_function_overload(
       const std::string &method, const shcore::Argument_list &args) const;
