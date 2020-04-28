@@ -1348,10 +1348,14 @@ storage (currently HTTP and OCI Object Storage). If the 'waitDumpTimeout'
 option is set, it will load a dump on-the-fly, loading table data chunks as the
 dumper produces them.
 
-Although DDL scripts in the dump will be loaded in a single thread, table
-data will be loaded in parallel using the configured number of threads
-(4 by default). Multiple threads per table will be used if the dump was created
-with table chunking. Compressed data files are handled transparently.
+Table data will be loaded in parallel using the configured number of threads
+(4 by default). Multiple threads per table can be used if the dump was created
+with table chunking enabled. Data loads are scheduled across threads in a way
+that tries to maximize parallelism, while also minimizing lock contention from
+concurrent loads to the same table. If there are more tables than threads,
+different tables will be loaded per thread, larger tables first. If there are
+more threads than tables, then chunks from larger tables will be proportionally
+assigned more threads.
 
 LOAD DATA LOCAL INFILE is used to load table data and thus, the 'local_infile'
 MySQL global setting must be enabled.
@@ -1431,10 +1435,8 @@ wait for more data, the dump is marked as completed or the given timeout passes.
 <= 0 disables waiting.
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 
-${IMPORT_EXPORT_OCI_OPTIONS_DETAIL}
-
 Connection options set in the global session, such as compression, ssl-mode, etc.
-are used in parallel connections.
+are inherited by load sessions.
 
 Examples:
 
