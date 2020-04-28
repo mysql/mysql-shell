@@ -186,7 +186,7 @@ DESCRIPTION
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
         values: "force_innodb", "strip_definers", "strip_restricted_grants",
-        "strip_tablespaces".
+        "strip_role_admin", "strip_tablespaces".
       - chunking: bool (default: true) - Enable chunking of the tables.
       - bytesPerChunk: string (default: "32M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
@@ -339,6 +339,11 @@ DESCRIPTION
       would fail, so this option allows dumped GRANT statements to be stripped
       of these privileges.
 
+      strip_role_admin - ROLE_ADMIN privilege can be restricted in the MySQL
+      Database Service, so attempting to create users granting it would fail.
+      This option allows dumped GRANT statements to be stripped of this
+      privilege.
+
       strip_tablespaces - Tablespaces have some restrictions in the MySQL
       Database Service. If you'd like to have tables created in their default
       tablespaces, this option will strip the TABLESPACE= option from CREATE
@@ -428,7 +433,7 @@ DESCRIPTION
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
         values: "force_innodb", "strip_definers", "strip_restricted_grants",
-        "strip_tablespaces".
+        "strip_role_admin", "strip_tablespaces".
       - chunking: bool (default: true) - Enable chunking of the tables.
       - bytesPerChunk: string (default: "32M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
@@ -569,6 +574,11 @@ DESCRIPTION
       Database Service. Attempting to create users granting these privileges
       would fail, so this option allows dumped GRANT statements to be stripped
       of these privileges.
+
+      strip_role_admin - ROLE_ADMIN privilege can be restricted in the MySQL
+      Database Service, so attempting to create users granting it would fail.
+      This option allows dumped GRANT statements to be stripped of this
+      privilege.
 
       strip_tablespaces - Tablespaces have some restrictions in the MySQL
       Database Service. If you'd like to have tables created in their default

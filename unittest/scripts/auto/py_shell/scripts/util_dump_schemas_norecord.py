@@ -1120,7 +1120,8 @@ EXPECT_FAIL("ArgumentError", "Unknown compatibility option: ", [incompatible_sch
 # * `strip_restricted_grants` - remove disallowed grants.
 # * `strip_tablespaces` - remove unsupported tablespace syntax.
 # * `strip_definers` - remove DEFINER clause from views, triggers, events and routines and change SQL SECURITY property to INVOKER for views and routines.
-EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "force_innodb", "strip_definers", "strip_restricted_grants", "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False })
+# * `strip_role_admin` - remove ROLE_ADMIN privilege.
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "force_innodb", "strip_definers", "strip_restricted_grants", "strip_role_admin", "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False })
 
 #@<> WL13807-FR16.2.1 - force_innodb
 # WL13807-TSFR16_3

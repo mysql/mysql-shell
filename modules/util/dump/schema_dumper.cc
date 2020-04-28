@@ -2476,6 +2476,12 @@ std::string Schema_dumper::normalize_user(const std::string &user,
 std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
     IFile *file, const std::vector<std::string> &filter) {
   std::vector<Issue> problems;
+  std::set<std::string> restricted_privs =
+      opt_mysqlaas || opt_strip_restricted_grants
+          ? m_mysqlaas_restricted_priveleges
+          : std::set<std::string>();
+  if (opt_strip_role_admin) restricted_privs.insert("ROLE_ADMIN");
+  bool compatibility = opt_strip_restricted_grants || opt_strip_role_admin;
   log_debug("Dumping grants for server");
 
   fputs("--\n-- Dumping user accounts\n--\n\n", file);
@@ -2507,14 +2513,13 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
     std::vector<std::string> grants;
     for (auto row = res->fetch_one(); row; row = res->fetch_one()) {
       auto grant = row->get_string(0);
-      if (opt_mysqlaas || opt_strip_restricted_grants) {
+      if (opt_mysqlaas || compatibility) {
         std::string rewritten;
         const auto privs = compatibility::check_privileges(
-            grant, opt_strip_restricted_grants ? &rewritten : nullptr,
-            m_mysqlaas_restricted_priveleges);
+            grant, compatibility ? &rewritten : nullptr, restricted_privs);
         if (!privs.empty()) {
           restricted.insert(restricted.end(), privs.begin(), privs.end());
-          if (opt_strip_restricted_grants) grant = rewritten;
+          if (compatibility) grant = rewritten;
         }
       }
       if (!grant.empty()) grants.emplace_back(grant);

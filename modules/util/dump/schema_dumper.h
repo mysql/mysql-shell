@@ -130,6 +130,7 @@ class Schema_dumper {
   bool opt_force_innodb = false;
   bool opt_strip_directory = false;
   bool opt_strip_restricted_grants = false;
+  bool opt_strip_role_admin = false;
   bool opt_strip_tablespaces = false;
   bool opt_strip_definer = false;
   std::string opt_character_set_results = "utf8mb4";

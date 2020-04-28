@@ -32,7 +32,7 @@ test_view = "sample_view"
 test_role = "sample_role"
 test_user = "sample_user"
 test_user_pwd = "p4$$"
-test_privilege = "FILE"
+test_privilege = "FILE" if __version_num < 80000 else "FILE, ROLE_ADMIN"
 
 verification_schema = "wl13807_ver"
 
@@ -1102,7 +1102,7 @@ EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first. You can check for potential upgrade issues using util.check_for_server_upgrade().")
 
-EXPECT_STDOUT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, test_privilege))
+EXPECT_STDOUT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, "FILE"))
 
 EXPECT_STDOUT_CONTAINS("ERROR: Database {0} uses unsupported character set latin1".format(incompatible_schema))
 
@@ -1140,7 +1140,8 @@ EXPECT_FAIL("ArgumentError", "Unknown compatibility option: ", test_output_relat
 # * `strip_restricted_grants` - remove disallowed grants.
 # * `strip_tablespaces` - remove unsupported tablespace syntax.
 # * `strip_definers` - remove DEFINER clause from views, triggers, events and routines and change SQL SECURITY property to INVOKER for views and routines.
-EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "force_innodb", "strip_definers", "strip_restricted_grants", "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False })
+# * `strip_role_admin` - remove ROLE_ADMIN privilege.
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "force_innodb", "strip_definers", "strip_restricted_grants", "strip_role_admin", "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False })
 
 #@<> WL13807-FR16.2.1 - force_innodb
 # WL13807-TSFR16_3
@@ -1154,8 +1155,11 @@ EXPECT_STDOUT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQL SE
 
 #@<> WL13807-FR16.2.1 - strip_restricted_grants
 # WL13807-TSFR16_5
-EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_restricted_grants" ] , "ddlOnly": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS("NOTE: User {0}@localhost had restricted privilege ({1}) removed".format(test_user, test_privilege))
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_restricted_grants", "strip_role_admin" ] , "ddlOnly": True, "showProgress": False })
+if __version_num < 80000:
+    EXPECT_STDOUT_CONTAINS("NOTE: User {0}@localhost had restricted privilege ({1}) removed".format(test_user, test_privilege))
+else:
+    EXPECT_STDOUT_CONTAINS("NOTE: User {0}@localhost had restricted privileges ({1}) removed".format(test_user, test_privilege))
 
 #@<> WL13807-FR16.2.1 - strip_tablespaces
 # WL13807-TSFR16_4

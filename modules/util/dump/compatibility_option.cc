@@ -32,6 +32,7 @@ namespace {
 constexpr auto k_force_innodb = "force_innodb";
 constexpr auto k_strip_definers = "strip_definers";
 constexpr auto k_strip_restricted_grants = "strip_restricted_grants";
+constexpr auto k_strip_role_admin = "strip_role_admin";
 constexpr auto k_strip_tablespaces = "strip_tablespaces";
 }  // namespace
 
@@ -40,6 +41,7 @@ Compatibility_option to_compatibility_option(const std::string &c) {
   if (c == k_strip_definers) return Compatibility_option::STRIP_DEFINERS;
   if (c == k_strip_restricted_grants)
     return Compatibility_option::STRIP_RESTRICTED_GRANTS;
+  if (c == k_strip_role_admin) return Compatibility_option::STRIP_ROLE_ADMIN;
   if (c == k_strip_tablespaces) return Compatibility_option::STRIP_TABLESPACES;
 
   throw std::invalid_argument("Unknown compatibility option: " + c);
@@ -55,6 +57,9 @@ std::string to_string(Compatibility_option c) {
 
     case Compatibility_option::STRIP_RESTRICTED_GRANTS:
       return k_strip_restricted_grants;
+
+    case Compatibility_option::STRIP_ROLE_ADMIN:
+      return k_strip_role_admin;
 
     case Compatibility_option::STRIP_TABLESPACES:
       return k_strip_tablespaces;

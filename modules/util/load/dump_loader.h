@@ -34,6 +34,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 #include "modules/util/load/dump_reader.h"
 #include "modules/util/load/load_dump_options.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
@@ -242,8 +243,6 @@ class Dump_loader {
   const std::string &pre_data_script() const;
   const std::string &post_data_script() const;
 
-  std::string preprocess_users_script(const std::string &script);
-
   void update_progress();
 
   void check_server_version();
@@ -331,6 +330,11 @@ class Dump_loader {
   std::atomic<size_t> m_num_warnings;
   std::atomic<size_t> m_num_errors;
 };
+
+namespace loader {
+std::string preprocess_users_script(const std::string &script,
+                                    const std::vector<std::string> &excluded);
+}
 
 }  // namespace mysqlsh
 

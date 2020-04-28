@@ -400,8 +400,8 @@ shell.connect("mysql://loader:secret@127.0.0.1:"+__mysql_sandbox_port1);
 
 util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: true});
 
-EXPECT_OUTPUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for current user loader@%");
-EXPECT_OUTPUT_CONTAINS("NOTE: Skipping GRANT statements for current user loader@%");
+EXPECT_OUTPUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user loader@%");
+EXPECT_OUTPUT_CONTAINS("NOTE: Skipping GRANT statements for user loader@%");
 
 session.runSql("set global sql_mode=?", [old_sql_mode]);
 session.runSql("set sql_mode=?", [old_sql_mode]);
