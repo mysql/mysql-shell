@@ -1193,13 +1193,16 @@ DESCRIPTION
       - updateTopologyMode: boolean value used to indicate if the topology mode
         (single-primary or multi-primary) in the metadata should be updated
         (true) or not (false) to match the one being used by the cluster. By
-        default, the metadata is not updated (false).
+        default, the metadata is not updated (false). Deprecated.
 
       The value for addInstances and removeInstances is used to specify which
       instances to add or remove from the metadata, respectively. Both options
       accept list connection data. In addition, the "auto" value can be used
       for both options in order to automatically add or remove the instances in
       the metadata, without having to explicitly specify them.
+
+      ATTENTION: The updateTopologyMode option will be removed in a future
+                 release.
 
 EXCEPTIONS
       ArgumentError in the following scenarios:

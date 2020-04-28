@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -44,7 +44,7 @@ enum Prompt_type {
 
 void msg_recovery_possible_and_safe(
     Cluster_type cluster_type, Member_recovery_method recovery_method,
-    mysqlshdk::mysql::IInstance *target_instance) {
+    mysqlshdk::mysql::IInstance *target_instance, bool clone_only = false) {
   auto console = current_console();
   std::string msg;
 
@@ -58,29 +58,32 @@ void msg_recovery_possible_and_safe(
         " member. To use this method by default, set the 'recoveryMethod' "
         "option to 'clone'.";
     console->print_info(msg);
-    console->print_info();
 
-    if (cluster_type == Cluster_type::GROUP_REPLICATION) {
-      msg =
-          "The incremental state recovery may be safely used "
-          "if you are sure all updates ever executed in the cluster were "
-          "done with GTIDs enabled, there are no purged transactions and "
-          "the new instance contains the same GTID set as the cluster or "
-          "a subset of it. To use this method by default, set the "
-          "'recoveryMethod' option to 'incremental'.";
+    if (!clone_only) {
+      console->print_info();
 
-      console->print_info(msg);
-    } else if (cluster_type == Cluster_type::ASYNC_REPLICATION) {
-      msg =
-          "It should be safe to rely on replication to incrementally "
-          "recover the state of the new instance if you are sure all "
-          "updates ever executed in the replicaset were done with GTIDs "
-          "enabled, there are no purged transactions and the new "
-          "instance contains the same GTID set as the replicaset or a "
-          "subset of it. To use this method by default, set the "
-          "'recoveryMethod' option to 'incremental'.";
+      if (cluster_type == Cluster_type::GROUP_REPLICATION) {
+        msg =
+            "The incremental state recovery may be safely used "
+            "if you are sure all updates ever executed in the cluster were "
+            "done with GTIDs enabled, there are no purged transactions and "
+            "the new instance contains the same GTID set as the cluster or "
+            "a subset of it. To use this method by default, set the "
+            "'recoveryMethod' option to 'incremental'.";
 
-      console->print_warning(msg);
+        console->print_info(msg);
+      } else if (cluster_type == Cluster_type::ASYNC_REPLICATION) {
+        msg =
+            "It should be safe to rely on replication to incrementally "
+            "recover the state of the new instance if you are sure all "
+            "updates ever executed in the replicaset were done with GTIDs "
+            "enabled, there are no purged transactions and the new "
+            "instance contains the same GTID set as the replicaset or a "
+            "subset of it. To use this method by default, set the "
+            "'recoveryMethod' option to 'incremental'.";
+
+        console->print_warning(msg);
+      }
     }
   }
 }
@@ -227,6 +230,10 @@ void check_gtid_consistency_and_recoverability(
     Member_recovery_method recovery_method, bool gtid_set_is_complete,
     bool *out_recovery_possible, bool *out_recovery_safe,
     bool *gtid_set_diverged) {
+  assert(out_recovery_possible);
+  assert(out_recovery_safe);
+  assert(gtid_set_diverged);
+
   auto console = current_console();
 
   std::string errant_gtid_set, msg;
@@ -256,8 +263,8 @@ void check_gtid_consistency_and_recoverability(
 
         console->print_note(msg);
 
-        if (out_recovery_possible) *out_recovery_possible = true;
-        if (out_recovery_safe) *out_recovery_safe = true;
+        *out_recovery_possible = true;
+        *out_recovery_safe = true;
       } else {
         msg = "The target instance '" + target_instance->descr() +
               "' has not been pre-provisioned (GTID set is empty). The Shell is"
@@ -273,8 +280,8 @@ void check_gtid_consistency_and_recoverability(
 
         console->print_note(msg);
 
-        if (out_recovery_possible) *out_recovery_possible = true;
-        if (out_recovery_safe) *out_recovery_safe = false;
+        *out_recovery_possible = true;
+        *out_recovery_safe = false;
       }
 
       msg_recovery_possible_and_safe(cluster_type, recovery_method,
@@ -313,9 +320,9 @@ void check_gtid_consistency_and_recoverability(
           "data "
           "can be removed prior to choosing the clone recovery method.");
 
-      if (out_recovery_possible) *out_recovery_possible = false;
-      if (out_recovery_safe) *out_recovery_safe = false;
-      if (gtid_set_diverged) *gtid_set_diverged = true;
+      *out_recovery_possible = false;
+      *out_recovery_safe = false;
+      *gtid_set_diverged = true;
       break;
 
     case mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE:
@@ -326,11 +333,37 @@ void check_gtid_consistency_and_recoverability(
                             "were purged from all " +
                             thing(cluster_type) + " members.");
 
-        if (out_recovery_possible) *out_recovery_possible = false;
-        if (out_recovery_safe) *out_recovery_safe = false;
+        *out_recovery_possible = false;
+
+        // Recovery should be safe, regardless if based on incremental or clone
+        // recovery as long as the target instance does not have an empty
+        // GTID-set. In that case, we do not know the instance's state so we
+        // cannot assume recovery is safe.
+        // BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T
+        // PROMPT FOR CLONE
+        if (out_recovery_safe) {
+          auto slave_gtid_set = get_executed_gtid_set(*target_instance);
+          if (slave_gtid_set.empty()) {
+            msg = "The target instance '" + target_instance->descr() +
+                  "' has not been pre-provisioned (GTID set is "
+                  "empty). The Shell is unable to decide whether "
+                  "clone based recovery is safe to use.";
+
+            console->print_note(msg);
+
+            *out_recovery_safe = false;
+
+            msg_recovery_possible_and_safe(cluster_type, recovery_method,
+                                           target_instance, true);
+
+            console->print_info();
+          } else {
+            *out_recovery_safe = true;
+          }
+        }
       } else {
-        if (out_recovery_possible) *out_recovery_possible = true;
-        if (out_recovery_safe) *out_recovery_safe = true;
+        *out_recovery_possible = true;
+        *out_recovery_safe = true;
       }
       break;
 
@@ -338,8 +371,8 @@ void check_gtid_consistency_and_recoverability(
     case mysqlshdk::mysql::Replica_gtid_state::IDENTICAL:
       // This is the only case where it's safe to assume that the instance
       // can be safely recovered through binlog.
-      if (out_recovery_possible) *out_recovery_possible = true;
-      if (out_recovery_safe) *out_recovery_safe = true;
+      *out_recovery_possible = true;
+      *out_recovery_safe = true;
 
       // TODO(alfredo) - this doesn't seem necessary?
       msg_recovery_possible_and_safe(cluster_type, recovery_method,
@@ -394,33 +427,47 @@ Member_recovery_method validate_instance_recovery(
 
     recovery_method = Member_recovery_method::INCREMENTAL;
   } else {
-    if (recovery_possible && recovery_safe) {
-      mysqlshdk::utils::nullable<int64_t> current_threshold;
+    // When recovery is safe we do not need to prompt. If possible, incremental
+    // recovery should be used, otherwise clone.
+    // BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T
+    // PROMPT FOR CLONE
+    if (recovery_safe) {
+      if (recovery_possible) {
+        mysqlshdk::utils::nullable<int64_t> current_threshold;
 
-      // Even though we detected that incremental distributed recovery is
-      // safely usable, it might not be used if
-      // group_replication_clone_threshold was set to 1 - in InnoDB cluster
-      // only
-      if (cluster_type == Cluster_type::GROUP_REPLICATION) {
-        current_threshold = target_instance->get_sysvar_int(
-            "group_replication_clone_threshold");
-      }
+        // Even though we detected that incremental distributed recovery is
+        // safely usable, it might not be used if
+        // group_replication_clone_threshold was set to 1 - in InnoDB cluster
+        // only
+        if (cluster_type == Cluster_type::GROUP_REPLICATION) {
+          current_threshold = target_instance->get_sysvar_int(
+              "group_replication_clone_threshold");
+        }
 
-      if ((cluster_type == Cluster_type::GROUP_REPLICATION) &&
-          (!current_threshold.is_null() && *current_threshold != LLONG_MAX)) {
-        console->print_note(
-            "Incremental state recovery was determined to be "
-            "safely usable, however, group_replication_clone_threshold has "
-            "been set to " +
-            std::to_string(*current_threshold) +
-            ", which may cause Group Replication to use clone based "
-            "recovery.");
+        if ((cluster_type == Cluster_type::GROUP_REPLICATION) &&
+            (!current_threshold.is_null() && *current_threshold != LLONG_MAX)) {
+          console->print_note(
+              "Incremental state recovery was determined to be "
+              "safely usable, however, group_replication_clone_threshold has "
+              "been set to " +
+              std::to_string(*current_threshold) +
+              ", which may cause Group Replication to use clone based "
+              "recovery.");
+        } else {
+          console->print_info(
+              "Incremental state recovery was selected because it "
+              "seems to be safely usable.");
+          console->print_info();
+          recovery_method = Member_recovery_method::INCREMENTAL;
+        }
       } else {
-        console->print_info(
-            "Incremental state recovery was selected because it "
-            "seems to be safely usable.");
-        console->print_info();
-        recovery_method = Member_recovery_method::INCREMENTAL;
+        if (!clone_disabled && clone_supported) {
+          console->print_info(
+              "Clone based recovery was selected because it "
+              "seems to be safely usable.");
+          console->print_info();
+          recovery_method = Member_recovery_method::CLONE;
+        }
       }
     } else {
       Prompt_type prompt = validate_auto_recovery(

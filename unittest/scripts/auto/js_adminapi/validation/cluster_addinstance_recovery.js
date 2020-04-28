@@ -212,12 +212,42 @@
 //@# purge GTIDs from cluster
 ||
 
-//@# recoveryMethod:auto, interactive, purged GTID -> prompt c/a
+//@# recoveryMethod:auto, interactive, purged GTID, new -> prompt c/a
 |NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |is missing transactions that were purged from all cluster members.|
-//@# recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>=8.0.17)}
+|NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
+|empty). The Shell is unable to decide whether clone based recovery is safe to use.|
+//@# recoveryMethod:auto, interactive, purged GTID, new -> prompt c/a {VER(>=8.0.17)}
 ||Cluster.addInstance: Cancelled (RuntimeError)
-//@# recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(<8.0.17)}
+//@# recoveryMethod:auto, interactive, purged GTID, new -> prompt c/a {VER(<8.0.17)}
+||Cluster.addInstance: Instance provisioning required
+
+//@ recoveryMethod:auto, no-interactive, purged GTID, new -> error {VER(>=8.0.17)}
+|NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
+|is missing transactions that were purged from all cluster members.|
+|NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
+|empty). The Shell is unable to decide whether clone based recovery is safe to use.|
+//@ recoveryMethod:auto, no-interactive, purged GTID, new -> error {VER(>=8.0.17)}
+||Cluster.addInstance: Instance provisioning required
+
+// BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR CLONE
+//@# recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt
+|NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
+|is missing transactions that were purged from all cluster members.|
+|Clone based recovery was selected because it seems to be safely usable.|
+//@# recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+||Cluster.addInstance: debug (LogicError)
+//@# recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(<8.0.17)}
+||Cluster.addInstance: Instance provisioning required
+
+// BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR CLONE
+//@# recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt
+|NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
+|is missing transactions that were purged from all cluster members.|
+|Clone based recovery was selected because it seems to be safely usable.|
+//@# recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+||Cluster.addInstance: debug (LogicError)
+//@# recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(<8.0.17)}
 ||Cluster.addInstance: Instance provisioning required
 
 //@# recoveryMethod:auto, interactive, cloneDisabled, purged GTID -> error

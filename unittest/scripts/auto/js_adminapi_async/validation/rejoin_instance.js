@@ -94,11 +94,25 @@ The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' rejoined the replic
 //@ Rejoin instance with connection failure, rpl user password reset (succeed).
 ||
 
-//@ Try to rejoin instance with purged transactions on PRIMARY (fail).
+// BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR CLONE
+//@ Try to rejoin instance with purged transactions on PRIMARY (should work, clone automatically selected)
 |* Validating instance...|
 |** Checking transaction state of the instance...|
 |NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' determined that it|
 |is missing transactions that were purged from all replicaset members.|
+|Clone based recovery was selected because it seems to be safely usable.|
+|* Rejoining instance to replicaset...|
+|* Waiting for clone to finish...|
+|NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> is being cloned from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
+|The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.|
+
+//@ Try to rejoin instance with purged transactions on PRIMARY and gtid-set empty (should fail)
+|* Validating instance...|
+|** Checking transaction state of the instance...|
+|NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' determined that it|
+|is missing transactions that were purged from all replicaset members.|
+|NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' has not been pre-provisioned (GTID set is|
+|empty). The Shell is unable to decide whether clone based recovery is safe to use.|
 ||ReplicaSet.rejoinInstance: 'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
 
 //@ Try to rejoin instance with purged transactions on PRIMARY (should work with clone) {VER(>=8.0.17)}

@@ -210,8 +210,21 @@ session2.runSql("CREATE DATABASE purged_trx_db");
 session2.runSql("FLUSH BINARY LOGS");
 session2.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(), INTERVAL 1 DAY)");
 
-//@ Try to rejoin instance with purged transactions on PRIMARY (fail).
+// BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR CLONE
+//@ Try to rejoin instance with purged transactions on PRIMARY (should work, clone automatically selected)
 rs.rejoinInstance(__sandbox3);
+
+//@<> Stop replication at instance 3..
+var session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("STOP SLAVE");
+
+//@ Try to rejoin instance with purged transactions on PRIMARY and gtid-set empty (should fail)
+session3.runSql("RESET MASTER");
+rs.rejoinInstance(__sandbox3);
+
+//@<> Stop replication at instance 3...
+var session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("STOP SLAVE");
 
 //@ Try to rejoin instance with purged transactions on PRIMARY (should work with clone) {VER(>=8.0.17)}
 rs.rejoinInstance(__sandbox3, {recoveryMethod: "clone"});

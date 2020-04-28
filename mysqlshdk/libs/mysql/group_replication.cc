@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1110,7 +1110,7 @@ bool is_instance_only_read_compatible(
     mysqlshdk::utils::Version lowest_cluster_version) {
   mysqlshdk::utils::Version version = instance.get_version();
 
-  if (version >= mysqlshdk::utils::Version(8, 0, 16) &&
+  if (version >= mysqlshdk::utils::Version(8, 0, 17) &&
       lowest_cluster_version.get_major() >= 8 &&
       version > lowest_cluster_version) {
     return true;

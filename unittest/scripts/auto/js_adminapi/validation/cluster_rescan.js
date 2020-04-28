@@ -1136,52 +1136,14 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
 //@<OUT> WL10644 - TSF4_1: Topology mode in MD before rescan().
 mm
 
-//@<OUT> WL10644 - TSF4_1: Rescan with updateTopologyMode:false and change needed.
-Rescanning the cluster...
-
-Result of the rescanning operation for the 'c' cluster:
-{
-    "name": "c",
-    "newTopologyMode": "Single-Primary",
-    "newlyDiscoveredInstances": [],
-    "unavailableInstances": []
-}
-
-The topology mode of the cluster changed to 'Single-Primary'.
-
-//@<OUT> WL10644 - TSF4_1: Check topology mode in MD after rescan().
-mm
-
 //@ WL10644 - TSF4_5: Set auto_increment settings to unused values.
 ||
-
-//@<OUT> WL10644 - TSF4_2: Topology mode in MD before rescan().
-mm
 
 //@<> WL10644 - TSF4_2: status() error because topology mode changed.
 ||Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match the current Group Replication configuration (Single-Primary). Please use <cluster>.rescan() or change the Group Replication configuration accordingly. (RuntimeError)
 
-//@<OUT> WL10644 - TSF4_2: Rescan with updateTopologyMode:true and change needed.
-Rescanning the cluster...
-
-Result of the rescanning operation for the 'c' cluster:
-{
-    "name": "c",
-    "newTopologyMode": "Single-Primary",
-    "newlyDiscoveredInstances": [],
-    "unavailableInstances": []
-}
-
-The topology mode of the cluster changed to 'Single-Primary'.
-Updating topology mode in the cluster metadata...
-<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port2+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port3+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-Topology mode was successfully updated to 'Single-Primary' in the cluster metadata.
-
-
-//@<OUT> WL10644 - TSF4_2: Check topology mode in MD after rescan().
-pm
+//@<> BUG#29330769: Verify deprecation message added about updateTopologyMode
+|The updateTopologyMode option is deprecated. The topology-mode is now automatically updated.|
 
 //@<OUT> WL10644 - TSF4_2: status() succeeds after rescan() updates topology mode.
 {
@@ -1284,8 +1246,8 @@ Result of the rescanning operation for the 'c' cluster:
     "unavailableInstances": []
 }
 
-The topology mode of the cluster changed to 'Multi-Primary'.
-Would you like to update it in the cluster metadata? [Y/n]: Updating topology mode in the cluster metadata...
+NOTE: The topology mode of the cluster changed to 'Multi-Primary'.
+Updating topology mode in the cluster metadata...
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port2+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port3+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
@@ -1319,10 +1281,10 @@ Result of the rescanning operation for the 'c' cluster:
     "unavailableInstances": []
 }
 
-The topology mode of the cluster changed to 'Multi-Primary'.
+NOTE: The topology mode of the cluster changed to 'Multi-Primary'.
 
 //@<OUT> WL10644 - TSF4_4: Check topology mode in MD after rescan().
-pm
+mm
 
 //@ Finalize.
 ||

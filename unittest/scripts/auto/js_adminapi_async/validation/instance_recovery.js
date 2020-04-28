@@ -442,9 +442,36 @@
 //@ addInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>= 8.0.0)}
 |NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' determined that it|
 |is missing transactions that were purged from all replicaset members.|
+|NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is|
+|empty). The Shell is unable to decide whether clone based recovery is safe to use.|
 //@ addInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>=8.0.17)}
 ||ReplicaSet.addInstance: Cancelled (RuntimeError)
-//@ addInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>= 8.0.0) && VER(< 8.0.17)}f
+//@ addInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>= 8.0.0) && VER(< 8.0.17)}
+||ReplicaSet.addInstance: Instance provisioning required
+
+//@ addInstance: recoveryMethod:auto, no-interactive, purged GTID -> error {VER(>=8.0.17)}
+|NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' determined that it|
+|is missing transactions that were purged from all replicaset members.|
+|NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is|
+|empty). The Shell is unable to decide whether clone based recovery is safe to use.|
+||ReplicaSet.addInstance: Instance provisioning required
+
+//@ addInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+|NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' determined that it|
+|is missing transactions that were purged from all replicaset members.|
+|Clone based recovery was selected because it seems to be safely usable.|
+//@ addInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+||ReplicaSet.addInstance: debug (LogicError)
+//@ addInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>= 8.0.0) && VER(< 8.0.17)}
+||ReplicaSet.addInstance: Instance provisioning required
+
+//@ addInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+|NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' determined that it|
+|is missing transactions that were purged from all replicaset members.|
+|Clone based recovery was selected because it seems to be safely usable.|
+//@ addInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+||ReplicaSet.addInstance: debug (LogicError)
+//@ addInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>= 8.0.0) && VER(< 8.0.17)}
 ||ReplicaSet.addInstance: Instance provisioning required
 
 //@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>= 8.0.0)}
@@ -453,6 +480,24 @@
 //@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>=8.0.17)}
 ||ReplicaSet.rejoinInstance: Cancelled (RuntimeError)
 //@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>= 8.0.0) && VER(< 8.0.17)}
+||ReplicaSet.rejoinInstance: Instance provisioning required
+
+//@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+|NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' determined that it|
+|is missing transactions that were purged from all replicaset members.|
+|Clone based recovery was selected because it seems to be safely usable.|
+//@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+||ReplicaSet.rejoinInstance: debug (LogicError)
+//@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>= 8.0.0) && VER(< 8.0.17)}
+||ReplicaSet.rejoinInstance: Instance provisioning required
+
+//@ rejoinInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+|NOTE: A GTID set check of the MySQL instance at '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' determined that it|
+|is missing transactions that were purged from all replicaset members.|
+|Clone based recovery was selected because it seems to be safely usable.|
+//@ rejoinInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+||ReplicaSet.rejoinInstance: debug (LogicError)
+//@ rejoinInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>= 8.0.0) && VER(< 8.0.17)}
 ||ReplicaSet.rejoinInstance: Instance provisioning required
 
 //@ addInstance: recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a {VER(<8.0.17)}

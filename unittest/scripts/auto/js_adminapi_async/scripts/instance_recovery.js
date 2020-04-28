@@ -36,7 +36,10 @@
 //             PROMPT Recovery, Abort
 //    ELSE
 //         IF clone_supported THEN
-//             PROMPT Clone, Abort
+//             IF gtid-set empty THEN
+//                 PROMPT Clone, Abort
+//             ELSE
+//                 CONTINUE WITH CLONE
 //         ELSE
 //             ABORT
 //
@@ -60,7 +63,10 @@
 //                  Abort
 //      ELSE
 //          IF clone_supported and GTID-set is not Diverged THEN
-//              PROMPT Clone, Abort
+//              IF gtid-set empty THEN
+//                  PROMPT Clone, Abort
+//              ELSE
+//                  CONTINUE WITH CLONE
 //          ELSE IF clone_supported and GTID-set Diverged THEN
 //              ERROR: The instance has a diverged GTID-set. (indicate that
 //                     something went out of our control and show the gtid-set
@@ -89,7 +95,7 @@ function mark_gtid_set_complete(flag) {
         session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = JSON_REMOVE(attributes, '$.opt_gtidSetIsComplete')");
 }
 
-//@<> Setup {VER(>= 8.0.0)
+//@<> Setup {VER(>= 8.0.0)}
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {"report_host": hostname_ip});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {"report_host": hostname_ip});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {"report_host": hostname_ip});
@@ -435,6 +441,7 @@ EXPECT_FALSE(clone_installed(session3));
 //@<> purge GTIDs from replicaset {VER(>= 8.0.0)}
 session.runSql("FLUSH BINARY LOGS");
 session.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
+
 session2.runSql("RESET MASTER");
 session3.runSql("RESET MASTER");
 
@@ -443,10 +450,45 @@ testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default 
 mark_gtid_set_complete(false);
 rs.addInstance(__sandbox_uri2, {interactive: true});
 
+//@ addInstance: recoveryMethod:auto, no-interactive, purged GTID -> error {VER(>=8.0.17)}
+mark_gtid_set_complete(false);
+rs.addInstance(__sandbox_uri2, {interactive: false});
+
+// BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR CLONE
+//@ addInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+mark_gtid_set_complete(false);
+session2.runSql("RESET MASTER");
+session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
+
+rs.addInstance(__sandbox_uri2, {interactive: true});
+
+//@ addInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+mark_gtid_set_complete(false);
+session2.runSql("RESET MASTER");
+session2.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
+
+rs.addInstance(__sandbox_uri2, {interactive: false});
+
 //@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>=8.0.17)}
 testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Abort): ", "a");
 mark_gtid_set_complete(false);
 rs.rejoinInstance(__sandbox_uri3, {interactive: true});
+
+// BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR CLONE
+//@ rejoinInstance: recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+mark_gtid_set_complete(false);
+session3.runSql("RESET MASTER");
+session3.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
+
+rs.rejoinInstance(__sandbox_uri3, {interactive: true});
+
+// BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR CLONE
+//@ rejoinInstance: recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
+mark_gtid_set_complete(false);
+session3.runSql("RESET MASTER");
+session3.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
+
+rs.rejoinInstance(__sandbox_uri3, {interactive: false});
 
 //@ addInstance: recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a {VER(>=8.0.17)}
 session2.runSql("RESET MASTER");
