@@ -66,8 +66,10 @@ util.configure_oci('passwordless')
 #@ Now start the shell using --oci=passwordless
 testutil.call_mysqlsh(["--oci=passwordless", "-e", "config", "-i", "--passwords-from-stdin"], "MySamplePwd", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
 
-#@ WL13046-FR-TS-02 Importing paramiko
-testutil.call_mysqlsh(["--py", "-e", "import paramiko; print(paramiko.__version__)"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
+#@<> WL13046-FR-TS-02 Importing paramiko
+testutil.call_mysqlsh(["--py", "-e", "import paramiko; print('Paramiko Version: {0}'.format(paramiko.__version__))"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
+EXPECT_STDOUT_NOT_CONTAINS("No module named 'paramiko'")
+EXPECT_STDOUT_CONTAINS("Paramiko Version: ")
 
 #@<> Cleanup
 os.remove(config_path);
