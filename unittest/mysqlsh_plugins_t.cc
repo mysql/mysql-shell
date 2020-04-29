@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -971,8 +971,10 @@ print("Paramiko Version: {0}".format(paramiko.__version__))
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("WARNING: Found errors loading plugins");
   // NOTE: it is not important to check the OCI version, but just make sure that
   // there were no failures
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("No module named 'oci'");
+  MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("No module named 'paramiko'");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("OCI Version: ");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Paramiko Version: 2.4.2");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Paramiko Version: ");
 
   wipe_out();
 
