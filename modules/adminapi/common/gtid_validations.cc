@@ -26,6 +26,7 @@
 
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/gtid_validations.h"
+#include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/replication.h"

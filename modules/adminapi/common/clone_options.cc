@@ -26,6 +26,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include "adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -56,8 +57,12 @@ void validate_clone_supported(const mysqlshdk::utils::Version &version,
   // server version is >= k_mysql_clone_plugin_initial_version
   switch (target) {
     case Clone_options::CREATE_CLUSTER:
-      if (!is_option_supported(version, option,
-                               k_global_cluster_supported_options)) {
+      if (!is_option_supported(
+              version, option,
+              {{kDisableClone,
+                {"",
+                 mysqlshdk::mysql::k_mysql_clone_plugin_initial_version,
+                 {}}}})) {
         throw shcore::Exception::runtime_error(
             "Option '" + option +
             "' not supported on target server "
@@ -148,7 +153,7 @@ void Clone_options::do_unpack(shcore::Option_unpacker *unpacker) {
 }
 
 void Clone_options::check_option_values(
-    const mysqlshdk::utils::Version &version, const GRReplicaSet *replicaset) {
+    const mysqlshdk::utils::Version &version, const Cluster_impl *cluster) {
   if (!disable_clone.is_null()) {
     // Validate if the disableClone option is supported on the target
     validate_clone_supported(version, kDisableClone, target);
@@ -158,16 +163,14 @@ void Clone_options::check_option_values(
                              target);
 
     // Verify if ALL the cluster members support clone
-    if (replicaset) {
+    if (cluster) {
       Unpack_target trg = target;
 
-      replicaset->execute_in_members(
+      cluster->execute_in_members(
           {mysqlshdk::gr::Member_state::ONLINE,
            mysqlshdk::gr::Member_state::RECOVERING},
-          replicaset->get_cluster()
-              ->get_target_server()
-              ->get_connection_options(),
-          {}, [&trg](const std::shared_ptr<Instance> &instance) {
+          cluster->get_target_server()->get_connection_options(), {},
+          [&trg](const std::shared_ptr<Instance> &instance) {
             validate_clone_supported(instance->get_version(),
                                      std::string(kRecoveryMethod) + "=clone",
                                      trg, true);

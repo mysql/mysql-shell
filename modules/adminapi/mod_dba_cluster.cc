@@ -344,10 +344,62 @@ void Cluster::add_instance(const Connection_options &instance_def_,
   // Throw an error if the cluster has already been dissolved
   assert_valid("addInstance");
 
+  Group_replication_options gr_options(Group_replication_options::JOIN);
+  Clone_options clone_options(Clone_options::JOIN_CLUSTER);
+  mysqlshdk::utils::nullable<std::string> label;
+  int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
+  bool interactive = current_shell_options()->get().wizards;
+
+  // Get optional options.
+  if (options) {
+    // Retrieves optional options if exists
+    Unpack_options(options)
+        .unpack(&gr_options)
+        .unpack(&clone_options)
+        .optional("interactive", &interactive)
+        .optional("label", &label)
+        .optional("waitRecovery", &wait_recovery)
+        .end();
+  }
+
+  // Validate waitRecovery option UInteger [0, 3]
+  if (wait_recovery > 3) {
+    throw shcore::Exception::argument_error(
+        "Invalid value '" + std::to_string(wait_recovery) +
+        "' for option 'waitRecovery'. It must be an integer in the range [0, "
+        "3].");
+  }
+
+  // Validate the label value.
+  if (!label.is_null()) {
+    mysqlsh::dba::validate_label(*label);
+
+    if (!m_impl->get_metadata_storage()->is_instance_label_unique(
+            m_impl->get_id(), *label)) {
+      throw shcore::Exception::argument_error(
+          "An instance with label '" + *label +
+          "' is already part of this InnoDB cluster");
+    }
+  }
+
   validate_connection_options(instance_def);
 
-  // Add the Instance to the Default ReplicaSet
-  m_impl->add_instance(instance_def, options);
+  // Init progress_style
+  Recovery_progress_style progress_style;
+
+  if (wait_recovery == 0) {
+    progress_style = Recovery_progress_style::NOWAIT;
+  } else if (wait_recovery == 1) {
+    progress_style = Recovery_progress_style::NOINFO;
+  } else if (wait_recovery == 2) {
+    progress_style = Recovery_progress_style::TEXTUAL;
+  } else {
+    progress_style = Recovery_progress_style::PROGRESSBAR;
+  }
+
+  // Add the Instance to the Cluster
+  m_impl->add_instance(instance_def, gr_options, clone_options, label,
+                       progress_style, interactive);
 }
 
 REGISTER_HELP_FUNCTION(rejoinInstance, Cluster);
@@ -539,8 +591,19 @@ void Cluster::remove_instance(const Connection_options &instance_def_,
   // Throw an error if the cluster has already been dissolved
   assert_valid("removeInstance");
 
-  // Remove the Instance from the Default ReplicaSet
-  m_impl->remove_instance(instance_def, options);
+  mysqlshdk::utils::nullable<bool> force;
+  bool interactive = current_shell_options()->get().wizards;
+
+  // Get optional options.
+  if (options) {
+    Unpack_options(options)
+        .optional("force", &force)
+        .optional("interactive", &interactive)
+        .end();
+  }
+
+  // Remove the Instance from the Cluster
+  m_impl->remove_instance(instance_def, force, interactive);
 }
 
 REGISTER_HELP_FUNCTION(describe, Cluster);
@@ -724,7 +787,11 @@ shcore::Value Cluster::options(const shcore::Dictionary_t &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("options");
 
-  return m_impl->options(options);
+  bool all = false;
+  // Retrieves optional options
+  Unpack_options(options).optional("all", &all).end();
+
+  return m_impl->options(all);
 }
 
 REGISTER_HELP_FUNCTION(dissolve, Cluster);
@@ -776,7 +843,20 @@ void Cluster::dissolve(const shcore::Dictionary_t &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("dissolve");
 
-  m_impl->dissolve(options);
+  mysqlshdk::utils::nullable<bool> force;
+  bool interactive;
+
+  interactive = current_shell_options()->get().wizards;
+
+  // Get optional options.
+  if (options) {
+    Unpack_options(options)
+        .optional("force", &force)
+        .optional("interactive", &interactive)
+        .end();
+  }
+
+  m_impl->dissolve(force, interactive);
 
   // Set the flag, marking this cluster instance as invalid.
   invalidate();
@@ -831,8 +911,19 @@ void Cluster::reset_recovery_accounts_password(
   // Throw an error if the cluster has already been dissolved
   assert_valid("resetRecoveryAccountsPassword");
 
+  mysqlshdk::utils::nullable<bool> force;
+  bool interactive = current_shell_options()->get().wizards;
+
+  // Get optional options.
+  if (options) {
+    Unpack_options(options)
+        .optional("force", &force)
+        .optional("interactive", &interactive)
+        .end();
+  }
+
   // Reset the recovery passwords.
-  m_impl->reset_recovery_password(options);
+  m_impl->reset_recovery_password(force, interactive);
 }
 
 REGISTER_HELP_FUNCTION(rescan, Cluster);
@@ -899,10 +990,111 @@ Undefined Cluster::rescan(Dictionary options) {}
 None Cluster::rescan(dict options) {}
 #endif
 
+namespace {
+void unpack_auto_instances_list(
+    mysqlsh::Unpack_options *opts_unpack, const std::string &option_name,
+    bool *out_auto,
+    std::vector<mysqlshdk::db::Connection_options> *instances_list) {
+  // Extract value for addInstances, it can be a string "auto" or a list.
+  shcore::Array_t instances_array;
+  try {
+    // Try to extract the "auto" string.
+    mysqlshdk::utils::nullable<std::string> auto_option_str;
+    opts_unpack->optional(option_name.c_str(), &auto_option_str);
+
+    // Validate if "auto" was specified (case insensitive).
+    if (!auto_option_str.is_null() &&
+        shcore::str_casecmp(*auto_option_str, "auto") == 0) {
+      *out_auto = true;
+    } else if (!auto_option_str.is_null()) {
+      throw shcore::Exception::argument_error(
+          "Option '" + option_name +
+          "' only accepts 'auto' as a valid string "
+          "value, otherwise a list of instances is expected.");
+    }
+  } catch (const shcore::Exception &err) {
+    // Try to extract a list of instances (will fail with a TypeError when
+    // trying to read it as a string previously).
+    if (std::string(err.type()).compare("TypeError") == 0) {
+      opts_unpack->optional(option_name.c_str(), &instances_array);
+    } else {
+      throw;
+    }
+  }
+
+  if (instances_array) {
+    if (instances_array.get()->empty()) {
+      throw shcore::Exception::argument_error("The list for '" + option_name +
+                                              "' option cannot be empty.");
+    }
+
+    // Process values from addInstances list (must be valid connection data).
+    for (const shcore::Value &value : *instances_array.get()) {
+      try {
+        auto cnx_opt = mysqlsh::get_connection_options(value);
+
+        if (cnx_opt.get_host().empty()) {
+          throw shcore::Exception::argument_error("host cannot be empty.");
+        }
+
+        if (!cnx_opt.has_port()) {
+          throw shcore::Exception::argument_error("port is missing.");
+        }
+
+        instances_list->emplace_back(std::move(cnx_opt));
+      } catch (const std::exception &err) {
+        std::string error(err.what());
+        throw shcore::Exception::argument_error(
+            "Invalid value '" + value.descr() + "' for '" + option_name +
+            "' option: " + error);
+      }
+    }
+  }
+}
+}  // namespace
+
 void Cluster::rescan(const shcore::Dictionary_t &options) {
   assert_valid("rescan");
 
-  m_impl->rescan(options);
+  bool interactive, auto_add_instance = false, auto_remove_instance = false;
+  mysqlshdk::utils::nullable<bool> update_topology_mode;
+  std::vector<mysqlshdk::db::Connection_options> add_instances_list,
+      remove_instances_list;
+
+  interactive = current_shell_options()->get().wizards;
+
+  // Get optional options.
+  if (options) {
+    shcore::Array_t add_instances_array, remove_instances_array;
+
+    auto opts_unpack = Unpack_options(options);
+    opts_unpack.optional("updateTopologyMode", &update_topology_mode)
+        .optional("interactive", &interactive);
+
+    // The updateTopologyMode option is deprecated.
+    // BUG#29330769: UPDATETOPOLOGYMODE SHOULD DEFAULT TO TRUE
+    if (!update_topology_mode.is_null()) {
+      auto console = mysqlsh::current_console();
+      std::string warn_msg =
+          "The updateTopologyMode option is deprecated. The topology-mode is "
+          "now automatically updated.";
+      console->print_info(warn_msg);
+      console->print_info();
+    }
+
+    // Extract value for addInstances, it can be a string "auto" or a list.
+    unpack_auto_instances_list(&opts_unpack, "addInstances", &auto_add_instance,
+                               &add_instances_list);
+
+    // Extract value for removeInstances, it can be a string "auto" or a list.
+    unpack_auto_instances_list(&opts_unpack, "removeInstances",
+                               &auto_remove_instance, &remove_instances_list);
+
+    opts_unpack.end();
+  }
+
+  m_impl->rescan(auto_add_instance, auto_remove_instance, add_instances_list,
+                 remove_instances_list, interactive);
 }
 
 REGISTER_HELP_FUNCTION(disconnect, Cluster);
@@ -988,58 +1180,17 @@ void Cluster::force_quorum_using_partition_of(
   // Throw an error if the cluster has already been dissolved
   assert_valid("forceQuorumUsingPartitionOf");
 
-  m_impl->check_preconditions("forceQuorumUsingPartitionOf");
+  validate_connection_options(instance_def);
+
+  if (!instance_def.has_port() && !instance_def.has_socket()) {
+    instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
+  }
+
+  instance_def.set_default_connection_data();
 
   bool interactive = current_shell_options()->get().wizards;
-  const auto console = current_console();
 
-  auto default_rs = m_impl->get_default_replicaset();
-
-  if (!default_rs)
-    throw shcore::Exception::logic_error("cluster not initialized.");
-
-  std::vector<Instance_metadata> online_instances =
-      default_rs->get_active_instances();
-
-  std::vector<std::string> online_instances_array;
-  for (const auto &instance : online_instances) {
-    online_instances_array.push_back(instance.endpoint);
-  }
-
-  if (online_instances_array.empty())
-    throw shcore::Exception::logic_error(
-        "No online instances are visible from the given one.");
-
-  auto group_peers = shcore::str_join(online_instances_array, ",");
-
-  // Remove the trailing comma of group_peers
-  if (group_peers.back() == ',') group_peers.pop_back();
-
-  if (interactive) {
-    std::string message = "Restoring cluster '" + impl()->get_name() +
-                          "' from loss of quorum, by using the partition "
-                          "composed of [" +
-                          group_peers + "]\n\n";
-    console->print(message);
-
-    console->println("Restoring the InnoDB cluster ...");
-    console->println();
-  }
-
-  m_impl->force_quorum_using_partition_of(instance_def);
-
-  if (interactive) {
-    console->println(
-        "The InnoDB cluster was successfully restored using the partition from "
-        "the instance '" +
-        instance_def.as_uri(user_transport()) + "'.");
-    console->println();
-    console->println(
-        "WARNING: To avoid a split-brain scenario, ensure that all other "
-        "members of the cluster are removed or joined back to the group that "
-        "was restored.");
-    console->println();
-  }
+  m_impl->force_quorum_using_partition_of(instance_def, interactive);
 }
 
 REGISTER_HELP_FUNCTION(checkInstanceState, Cluster);

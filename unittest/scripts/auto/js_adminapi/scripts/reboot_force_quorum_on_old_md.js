@@ -41,6 +41,7 @@ dba.upgradeMetadata()
 
 //@ Testing rebootClusterFromCompleteOutage
 var cluster = dba.rebootClusterFromCompleteOutage()
+var state = testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.status()
 
 //@ Testing upgrade metadata on rebooted cluster

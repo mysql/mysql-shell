@@ -133,11 +133,12 @@ const std::map<std::string, std::string> k_instance_options{
     {kAutoRejoinTries, kGrAutoRejoinTries}};
 
 /**
- * Map of the supported global ReplicaSet configuration options in the
+ * Map of the supported global cluster configuration options in the
  * AdminAPI <sysvar, name>
  */
+// TODO(.) This and its dependencies must be moved out to a new user_options.h
 const std::map<std::string, Option_availability>
-    k_global_replicaset_supported_options{
+    k_global_cluster_supported_options{
         {kExitStateAction,
          {kGrExitStateAction, mysqlshdk::utils::Version("8.0.12"),
           mysqlshdk::utils::Version("5.7.24")}},
@@ -160,16 +161,6 @@ typedef std::map<std::string, shcore::Value_type> built_in_tags_map_t;
 const built_in_tags_map_t k_supported_set_option_tags{
     {"_hidden", shcore::Value_type::Bool},
     {"_disconnect_existing_sessions_when_hidden", shcore::Value_type::Bool}};
-
-/**
- * Map of the supported global Cluster configuration options in the AdminAPI
- * <sysvar, name>
- */
-// TODO(.) This and its dependencies must be moved out to a new user_options.h
-const std::map<std::string, Option_availability>
-    k_global_cluster_supported_options{
-        {kClusterName, {"", {}, {}}},
-        {kDisableClone, {"", mysqlshdk::utils::Version("8.0.17"), {}}}};
 
 /**
  * Map of the supported instance configuration options in the AdminAPI
@@ -199,11 +190,11 @@ struct Instance_definition {
   bool operator==(const Instance_definition &other) const = delete;
 };
 
-namespace ReplicaSetStatus {
+namespace ClusterStatus {
 enum Status { OK, OK_PARTIAL, OK_NO_TOLERANCE, NO_QUORUM, UNKNOWN };
 
 std::string describe(Status state);
-}  // namespace ReplicaSetStatus
+}  // namespace ClusterStatus
 
 enum class ConfigureInstanceAction {
   UPDATE_SERVER_AND_CONFIG_DYNAMIC,  // "server_update+config_update" - no
@@ -278,7 +269,7 @@ std::vector<MissingInstanceInfo> get_unavailable_instances(
     const mysqlshdk::mysql::IInstance &group_server,
     const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id);
 
-bool SHCORE_PUBLIC validate_replicaset_group_name(
+bool SHCORE_PUBLIC validate_cluster_group_name(
     const mysqlshdk::mysql::IInstance &instance, const std::string &group_name);
 
 bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,

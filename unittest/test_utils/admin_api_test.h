@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2020, Oracle and/or its affiliates.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2.0,
@@ -82,7 +82,6 @@ class Admin_api_test : public Shell_core_test_wrapper {
     return session;
   }
   static std::shared_ptr<mysqlsh::dba::Cluster> _cluster;
-  static std::shared_ptr<mysqlsh::dba::GRReplicaSet> _replicaset;
   static std::string group_name;
   static std::string uuid_1;
   static std::string uuid_2;

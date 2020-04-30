@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,7 +26,6 @@
 
 #include <string>
 #include <vector>
-#include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mod_common.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/version.h"
@@ -34,6 +33,8 @@
 
 namespace mysqlsh {
 namespace dba {
+
+class Cluster_impl;
 
 enum class Member_recovery_method { AUTO, INCREMENTAL, CLONE };
 
@@ -56,7 +57,7 @@ struct Clone_options {
   }
 
   void check_option_values(const mysqlshdk::utils::Version &version,
-                           const GRReplicaSet *replicaset = nullptr);
+                           const Cluster_impl *cluster = nullptr);
 
   Unpack_target target;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,7 +28,6 @@
 #include <string>
 #include <vector>
 
-#include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/instance_pool.h"
@@ -41,7 +40,7 @@ namespace mysqlsh {
 namespace dba {
 
 /**
- * Remove the specified instance from its current replicaset (using Group
+ * Remove the specified instance from its current cluster (using Group
  * Replication).
  *
  * In more detail, the following steps are executed:
@@ -49,12 +48,12 @@ namespace dba {
  * - Reset/disable necessary Group Replication variables on removed instance;
  *
  * NOTE: Metedata is NOT changed by this function, it only remove the instance
- *       from the MySQL Group Replication (replicaset) and update any necessary
+ *       from the MySQL Group Replication (cluster) and update any necessary
  *       variables on the instance itself.
  *
- * @param instance target Instance object to remove from the replicaset.
+ * @param instance target Instance object to remove from the cluster.
  */
-void leave_replicaset(const mysqlsh::dba::Instance &instance);
+void leave_cluster(const mysqlsh::dba::Instance &instance);
 
 /**
  * Check the instance configuration.
@@ -119,21 +118,21 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
                                mysqlshdk::config::Config *config);
 
 /**
- * Start the replicaset (Group Replication group) using the given instance.
+ * Start the cluster (Group Replication group) using the given instance.
  *
  * This function starts the Group Replication (GR) group but it does not
  * create the recovery user nor sets it, thus that step must be performed
  * afterwards to allow the instance to recover from other members in case
  * of a fault. The recovery user should be created after starting the
- * replicaset to ensure that the group UUID is associated to that transaction.
+ * cluster to ensure that the group UUID is associated to that transaction.
  *
  * NOTE: Metadata is NOT changed by this function, it only starts MySQL
- *       Group Replication (replicaset), updating any necessary variables
+ *       Group Replication (cluster), updating any necessary variables
  *       on the target instance.
  *       Any variables changes are persisted (using SET PERSIST) if
  *       supported by the used server version (through the config object).
  *
- * @param instance target Instance object to start the replicaset.
+ * @param instance target Instance object to start the cluster.
  * @param gr_opts Group_replication_options structure with the GR options
  *                to set for the instance (i.e., group_name, ssl_mode,
  *                local_address, group_seeds, ip_whitelist, member_weight,
@@ -142,17 +141,17 @@ void persist_gr_configurations(const mysqlshdk::mysql::IInstance &instance,
  * @param multi_primary nullable boolean indicating the GR topology mode that
  *                      will be set. Multi-primary mode if true and
  *                      single-primary mode if false, otherwise not set.
- * @param config Config object for the target instance to start the replicaset.
+ * @param config Config object for the target instance to start the cluster.
  */
-void start_replicaset(const mysqlshdk::mysql::IInstance &instance,
-                      const Group_replication_options &gr_opts,
-                      const mysqlshdk::utils::nullable<bool> &multi_primary,
-                      mysqlshdk::config::Config *config);
+void start_cluster(const mysqlshdk::mysql::IInstance &instance,
+                   const Group_replication_options &gr_opts,
+                   const mysqlshdk::utils::nullable<bool> &multi_primary,
+                   mysqlshdk::config::Config *config);
 
 /**
- * Join the instance to the replicaset (Group Replication group).
+ * Join the instance to the cluster (Group Replication group).
  *
- * To join instances and to obtain any required information from the replicaset,
+ * To join instances and to obtain any required information from the cluster,
  * a peer instance (group session) is used as contact node of the Group
  * Replication (GR) group. In more detail, the following steps are executed:
  * - Get needed information (GR configurations) from peer instance;
@@ -161,12 +160,12 @@ void start_replicaset(const mysqlshdk::mysql::IInstance &instance,
  * - Start Group Replication;
  *
  * NOTE: Metadata is NOT changed by this function, it only starts MySQL
- *       Group Replication (replicaset), updating any necessary variables
+ *       Group Replication (cluster), updating any necessary variables
  *       on the instance itself.
  *       Any variables changes are persisted (using SET PERSIST) if
  *       supported by the used server version.
  *
- * @param instance target Instance object to join the replicaset.
+ * @param instance target Instance object to join the cluster.
  * @param peer_instance Instance object of the member used as contact node
  *                      to join.
  * @param rpl_user string with the GR recovery user name. Note: If no user
@@ -177,17 +176,16 @@ void start_replicaset(const mysqlshdk::mysql::IInstance &instance,
  *                to set for the instance (i.e., ssl_mode, local_address,
  *                group_seeds, ip_whitelist, member_weight, expel_timeout,
  *                exit_state_action, and failover_consistency) when defined.
- * @param replicaset_size integer with the size of the replicaset (before adding
+ * @param replicaset_size integer with the size of the cluster (before adding
  *                        the instance).
- * @param config Config object for the target instance to join the replicaset.
+ * @param config Config object for the target instance to join the cluster.
  */
-void join_replicaset(
-    const mysqlshdk::mysql::IInstance &instance,
-    const mysqlshdk::mysql::IInstance &peer_instance,
-    const std::string &rpl_user, const std::string &rpl_user_pwd,
-    const Group_replication_options &gr_opts,
-    const mysqlshdk::utils::nullable<uint64_t> &replicaset_size,
-    mysqlshdk::config::Config *config);
+void join_cluster(const mysqlshdk::mysql::IInstance &instance,
+                  const mysqlshdk::mysql::IInstance &peer_instance,
+                  const std::string &rpl_user, const std::string &rpl_user_pwd,
+                  const Group_replication_options &gr_opts,
+                  const mysqlshdk::utils::nullable<uint64_t> &cluster_size,
+                  mysqlshdk::config::Config *config);
 
 }  // namespace dba
 }  // namespace mysqlsh

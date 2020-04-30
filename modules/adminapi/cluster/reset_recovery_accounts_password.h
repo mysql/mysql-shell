@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,7 @@
 
 namespace mysqlsh {
 namespace dba {
+namespace cluster {
 
 class Reset_recovery_accounts_password : public Command_interface {
  public:
@@ -133,6 +134,8 @@ class Reset_recovery_accounts_password : public Command_interface {
   void handle_not_online_instances(const std::string &instance_address,
                                    const std::string &instance_state);
 };
+
+}  // namespace cluster
 }  // namespace dba
 }  // namespace mysqlsh
 

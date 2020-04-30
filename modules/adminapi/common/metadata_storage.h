@@ -69,6 +69,9 @@ struct Cluster_metadata {
 
   // GR specific
   std::string group_name;
+
+  mysqlshdk::gr::Topology_mode cluster_topology_type;
+
   std::string topology_type;
 
   // AR specific

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,7 +24,6 @@
 #ifndef MODULES_ADMINAPI_COMMON_SETUP_ACCOUNT_H_
 #define MODULES_ADMINAPI_COMMON_SETUP_ACCOUNT_H_
 
-#include <modules/adminapi/cluster/base_cluster_impl.h>
 #include <string>
 #include <utility>
 #include <vector>

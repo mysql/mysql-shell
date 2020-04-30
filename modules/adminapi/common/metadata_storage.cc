@@ -30,6 +30,7 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
+#include "mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 
@@ -443,10 +444,19 @@ Cluster_metadata MetadataStorage::unserialize_cluster_metadata(
   } else {
     rs.cluster_id = row.get_string("cluster_id");
     rs.topology_type = row.get_string("primary_mode", "");
-    if (row.get_string("cluster_type") == "ar")
+
+    if (row.get_string("cluster_type") == "ar") {
       rs.type = Cluster_type::ASYNC_REPLICATION;
-    else
+    } else {
       rs.type = Cluster_type::GROUP_REPLICATION;
+
+      if (rs.topology_type == "pm") {
+        rs.cluster_topology_type = mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY;
+      } else if (rs.topology_type == "mm") {
+        rs.cluster_topology_type = mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
+      }
+    }
+
     if (!row.is_null("async_topology_type"))
       rs.async_topology_type =
           to_topology_type(row.get_string("async_topology_type"));
@@ -618,7 +628,11 @@ Cluster_id MetadataStorage::create_cluster_record(Cluster_impl *cluster,
         " JSON_OBJECT('adopted', ?,"
         "      'group_replication_group_name', ?))",
         cluster_id, cluster->cluster_name(), cluster->get_description(),
-        cluster->get_topology_type(), adopted, cluster->get_group_name());
+        (cluster->get_cluster_topology_type() ==
+                 mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY
+             ? "pm"
+             : "mm"),
+        adopted, cluster->get_group_name());
   } catch (const shcore::Exception &e) {
     if (e.code() == ER_DUP_ENTRY) {
       log_info("DBA: A Cluster with the name '%s' already exists: %s",

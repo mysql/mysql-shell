@@ -37,7 +37,7 @@
 #include <utility>
 #include <vector>
 
-#include "modules/adminapi/cluster/replicaset/add_instance.h"
+#include "modules/adminapi/cluster/add_instance.h"
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
@@ -943,8 +943,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
 
   // Verify if the current session instance group_replication_group_name
   // value differs from the one registered in the Metadata
-  if (!validate_replicaset_group_name(*group_server,
-                                      cluster->get_group_name())) {
+  if (!validate_cluster_group_name(*group_server, cluster->get_group_name())) {
     std::string nice_error =
         "Unable to get an InnoDB cluster handle. "
         "The instance '" +
@@ -2701,7 +2700,6 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
   std::string instance_session_address;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
-  std::shared_ptr<mysqlsh::dba::GRReplicaSet> default_replicaset;
   shcore::Array_t remove_instances_ref, rejoin_instances_ref;
   std::vector<std::string> remove_instances_list, rejoin_instances_list,
       instances_lists_intersection;
@@ -2842,9 +2840,6 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
       get_replicaset_instances_status(cluster, options);
 
   if (cluster) {
-    // Get the default replicaset
-    default_replicaset = cluster->impl()->get_default_replicaset();
-
     // Get get instance address in metadata.
     std::string group_md_address = target_instance->get_canonical_address();
 
@@ -2999,17 +2994,19 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
         if (console->confirm(
                 "Would you like to remove it from the cluster's metadata?",
-                mysqlsh::Prompt_answer::NO) == mysqlsh::Prompt_answer::YES)
+                mysqlsh::Prompt_answer::NO) == mysqlsh::Prompt_answer::YES) {
           remove_instances_list.push_back(instance_address);
+        }
         console->println();
       }
     }
   } else {
-    if (!cluster_name)
+    if (!cluster_name) {
       throw shcore::Exception::logic_error("No default cluster is configured.");
-    else
+    } else {
       throw shcore::Exception::logic_error(shcore::str_format(
           "The cluster '%s' is not configured.", cluster_name->c_str()));
+    }
   }
 
   // 4. Verify the status of all instances of the cluster:
@@ -3065,9 +3062,9 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     // replication user credentials left empty.
     try {
       // Create the add_instance command and execute it.
-      Add_instance op_add_instance(target_instance, *default_replicaset,
-                                   gr_options, clone_options, {}, interactive,
-                                   0, "", "", true);
+      cluster::Add_instance op_add_instance(
+          target_instance, cluster->impl().get(), gr_options, clone_options, {},
+          interactive, Recovery_progress_style::NOWAIT, "", "", true);
 
       // Always execute finish when leaving scope.
       auto finally = shcore::on_leave_scope(
@@ -3102,10 +3099,10 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
   // 7. Update the Metadata Schema information
   // 7.1 Remove the list of instances of "removeInstances" from the Metadata
-  default_replicaset->remove_instances(remove_instances_list);
+  cluster->impl()->remove_instances(remove_instances_list);
 
   // 8. Rejoin the list of instances of "rejoinInstances"
-  default_replicaset->rejoin_instances(rejoin_instances_list, options);
+  cluster->impl()->rejoin_instances(rejoin_instances_list, options);
 
   // Handling of GR protocol version:
   // Verify if an upgrade of the protocol is required
@@ -3185,8 +3182,7 @@ Dba::get_replicaset_instances_status(
   log_info("Checking instance status for cluster '%s'",
            cluster->impl()->get_name().c_str());
 
-  std::vector<Instance_metadata> instances =
-      cluster->impl()->get_default_replicaset()->get_instances();
+  std::vector<Instance_metadata> instances = cluster->impl()->get_instances();
 
   auto current_session_options =
       cluster->impl()->get_target_server()->get_connection_options();
@@ -3381,8 +3377,7 @@ void Dba::validate_instances_gtid_reboot_cluster(
   }
 
   // Get the cluster instances
-  std::vector<Instance_metadata> instances =
-      cluster->impl()->get_default_replicaset()->get_instances();
+  std::vector<Instance_metadata> instances = cluster->impl()->get_instances();
 
   for (const auto &inst : instances) {
     if (inst.endpoint == instance_gtids[0].server) continue;

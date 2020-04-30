@@ -65,7 +65,7 @@ constexpr const char kSandboxDatadir[] = "sandboxdata";
 constexpr uint16_t k_max_port = 65535;
 }  // namespace
 
-namespace ReplicaSetStatus {
+namespace ClusterStatus {
 std::string describe(Status state) {
   std::string ret_val;
 
@@ -88,7 +88,7 @@ std::string describe(Status state) {
   }
   return ret_val;
 }
-}  // namespace ReplicaSetStatus
+}  // namespace ClusterStatus
 
 std::string get_mysqlprovision_error_string(
     const shcore::Value::Array_type_ref &errors) {
@@ -644,7 +644,7 @@ std::string get_gr_replicaset_group_name(
 
 /**
  * Validates if the current session instance 'group_replication_group_name'
- * differs from the one registered in the corresponding ReplicaSet table of the
+ * differs from the one registered in the corresponding Cluster table of the
  * Metadata
  *
  * @param session session to instance that is supposed to belong to a group
@@ -654,8 +654,8 @@ std::string get_gr_replicaset_group_name(
  * 'group_replication_group_name' is the same as the one registered in the
  * corresponding replicaset in the Metadata
  */
-bool validate_replicaset_group_name(const mysqlshdk::mysql::IInstance &instance,
-                                    const std::string &md_group_name) {
+bool validate_cluster_group_name(const mysqlshdk::mysql::IInstance &instance,
+                                 const std::string &md_group_name) {
   std::string gr_group_name = get_gr_replicaset_group_name(instance);
 
   log_info("Group Replication 'group_name' value: %s", gr_group_name.c_str());

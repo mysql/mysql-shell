@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -801,7 +801,7 @@ TEST_F(Dba_common_cluster_functions, get_newly_discovered_instances) {
 
   try {
     auto newly_discovered_instances_list(get_newly_discovered_instances(
-        *md_instance, metadata, _replicaset->get_cluster()->get_id()));
+        *md_instance, metadata, _cluster->impl()->get_id()));
 
     EXPECT_TRUE(newly_discovered_instances_list.empty());
   } catch (const shcore::Exception &e) {
@@ -822,7 +822,7 @@ TEST_F(Dba_common_cluster_functions, get_unavailable_instances) {
 
   try {
     auto unavailable_instances_list(get_unavailable_instances(
-        *md_instance, metadata, _replicaset->get_cluster()->get_id()));
+        *md_instance, metadata, _cluster->impl()->get_id()));
 
     EXPECT_TRUE(unavailable_instances_list.empty());
   } catch (const shcore::Exception &e) {
@@ -839,7 +839,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
   auto md_instance = create_session(_mysql_sandbox_ports[0]);
   auto instance = create_session(_mysql_sandbox_ports[2]);
 
-  auto cluster_id = _replicaset->get_cluster()->get_id();
+  auto cluster_id = _cluster->impl()->get_id();
 
   // Insert a fake record for the third instance on the metadata
   std::string query =
@@ -864,7 +864,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
 
   try {
     bool is_rejoinable(validate_instance_rejoinable(
-        *instance, metadata, _replicaset->get_cluster()->get_id()));
+        *instance, metadata, _cluster->impl()->get_id()));
 
     EXPECT_TRUE(is_rejoinable);
   } catch (const shcore::Exception &e) {
@@ -886,7 +886,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
   auto md_instance = create_session(_mysql_sandbox_ports[0]);
   auto instance = create_session(_mysql_sandbox_ports[2]);
 
-  auto cluster_id = _replicaset->get_cluster()->get_id();
+  auto cluster_id = _cluster->impl()->get_id();
 
   // Insert a fake record for the third instance on the metadata
   std::string query =
@@ -911,7 +911,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
 
   try {
     bool is_rejoinable(validate_instance_rejoinable(
-        *instance, metadata, _replicaset->get_cluster()->get_id()));
+        *instance, metadata, _cluster->impl()->get_id()));
 
     EXPECT_FALSE(is_rejoinable);
   } catch (const shcore::Exception &e) {
@@ -937,7 +937,7 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_03) {
 
   try {
     bool is_rejoinable(validate_instance_rejoinable(
-        *instance, metadata, _replicaset->get_cluster()->get_id()));
+        *instance, metadata, _cluster->impl()->get_id()));
 
     EXPECT_FALSE(is_rejoinable);
   } catch (const shcore::Exception &e) {
@@ -1448,7 +1448,7 @@ TEST(mod_dba_common, is_option_supported) {
   EXPECT_THROW_LIKE(
       mysqlsh::dba::is_option_supported(
           Version(9, 0, 0), mysqlsh::dba::kExitStateAction,
-          mysqlsh::dba::k_global_replicaset_supported_options),
+          mysqlsh::dba::k_global_cluster_supported_options),
       std::runtime_error,
       "Unexpected version found for option support check: '9.0.0'.");
 
@@ -1456,28 +1456,28 @@ TEST(mod_dba_common, is_option_supported) {
   // both 5.7 and the 8.0 MySQL versions.
   EXPECT_FALSE(mysqlsh::dba::is_option_supported(
       Version(8, 0, 11), mysqlsh::dba::kExitStateAction,
-      mysqlsh::dba::k_global_replicaset_supported_options));
+      mysqlsh::dba::k_global_cluster_supported_options));
   EXPECT_TRUE(mysqlsh::dba::is_option_supported(
       Version(8, 0, 12), mysqlsh::dba::kExitStateAction,
-      mysqlsh::dba::k_global_replicaset_supported_options));
+      mysqlsh::dba::k_global_cluster_supported_options));
   EXPECT_FALSE(mysqlsh::dba::is_option_supported(
       Version(5, 7, 23), mysqlsh::dba::kExitStateAction,
-      mysqlsh::dba::k_global_replicaset_supported_options));
+      mysqlsh::dba::k_global_cluster_supported_options));
   EXPECT_TRUE(mysqlsh::dba::is_option_supported(
       Version(5, 7, 24), mysqlsh::dba::kExitStateAction,
-      mysqlsh::dba::k_global_replicaset_supported_options));
+      mysqlsh::dba::k_global_cluster_supported_options));
 
   // testing the result of autoRejoinRetries which is only supported on 8.0.16
   // onwards (BUG#29246657)
   EXPECT_FALSE(mysqlsh::dba::is_option_supported(
       Version(8, 0, 11), mysqlsh::dba::kAutoRejoinTries,
-      mysqlsh::dba::k_global_replicaset_supported_options));
+      mysqlsh::dba::k_global_cluster_supported_options));
   EXPECT_TRUE(mysqlsh::dba::is_option_supported(
       Version(8, 0, 16), mysqlsh::dba::kAutoRejoinTries,
-      mysqlsh::dba::k_global_replicaset_supported_options));
+      mysqlsh::dba::k_global_cluster_supported_options));
   EXPECT_FALSE(mysqlsh::dba::is_option_supported(
       Version(5, 7, 23), mysqlsh::dba::kAutoRejoinTries,
-      mysqlsh::dba::k_global_replicaset_supported_options));
+      mysqlsh::dba::k_global_cluster_supported_options));
 }
 
 TEST(mod_dba_common, validate_group_name_option) {

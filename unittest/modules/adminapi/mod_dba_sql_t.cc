@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -85,7 +85,7 @@ TEST_F(Dba_sql_test, get_peer_seeds_only_in_metadata) {
   auto session = create_session(_mysql_sandbox_ports[0]);
   mysqlsh::dba::Instance instance(session);
 
-  auto rs_id = _replicaset->get_cluster()->get_id();
+  auto rs_id = _cluster->impl()->get_id();
 
   // Insert a fake record for the third instance on the metadata
   std::string query =

@@ -108,7 +108,7 @@ void validate_exit_state_action_supported(
         "Invalid value for exitStateAction, string value cannot be empty.");
 
   if (!is_option_supported(version, kExitStateAction,
-                           k_global_replicaset_supported_options)) {
+                           k_global_cluster_supported_options)) {
     throw shcore::Exception::runtime_error(
         "Option 'exitStateAction' not supported on target server "
         "version: '" +
@@ -134,7 +134,7 @@ void validate_consistency_supported(
           "empty.");
     }
     if (!is_option_supported(version, kConsistency,
-                             k_global_replicaset_supported_options)) {
+                             k_global_cluster_supported_options)) {
       throw std::runtime_error(
           "Option 'consistency' not supported on target server "
           "version: '" +
@@ -163,7 +163,7 @@ void validate_expel_timeout_supported(
           "[0, 3600]");
     }
     if (!is_option_supported(version, kExpelTimeout,
-                             k_global_replicaset_supported_options)) {
+                             k_global_cluster_supported_options)) {
       throw std::runtime_error(
           "Option 'expelTimeout' not supported on target server "
           "version: '" +
@@ -184,7 +184,7 @@ void validate_auto_rejoin_tries_supported(
   // The rejoinRetries option shall only be allowed if the target MySQL
   // server version is >= 8.0.16.
   if (!is_option_supported(version, kAutoRejoinTries,
-                           k_global_replicaset_supported_options)) {
+                           k_global_cluster_supported_options)) {
     throw shcore::Exception::runtime_error(
         "Option 'autoRejoinTries' not supported on target server "
         "version: '" +
@@ -206,7 +206,7 @@ void validate_member_weight_supported(
   // server version is >= 5.7.20 if 5.0, or >= 8.0.11 if 8.0.
 
   if (!is_option_supported(version, kMemberWeight,
-                           k_global_replicaset_supported_options)) {
+                           k_global_cluster_supported_options)) {
     throw shcore::Exception::runtime_error(
         "Option 'memberWeight' not supported on target server "
         "version: '" +

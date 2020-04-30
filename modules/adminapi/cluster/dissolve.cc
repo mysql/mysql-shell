@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,7 @@
 
 namespace mysqlsh {
 namespace dba {
+namespace cluster {
 
 Dissolve::Dissolve(const bool interactive,
                    mysqlshdk::utils::nullable<bool> force,
@@ -262,8 +263,7 @@ void Dissolve::prepare() {
   };
 
   // Get all cluster instances, including state information.
-  std::vector<Instance_metadata> instance_defs =
-      m_cluster->get_default_replicaset()->get_instances();
+  std::vector<Instance_metadata> instance_defs = m_cluster->get_instances();
 
   // Check if instances can be dissolved. More specifically, verify if their
   // state is valid, if they are reachable (i.e., able to connect to them).
@@ -306,7 +306,7 @@ void Dissolve::remove_instance(const std::string &instance_address,
                                const std::size_t instance_index) {
   try {
     // Stop Group Replication and reset (persist) GR variables.
-    mysqlsh::dba::leave_replicaset(*m_available_instances[instance_index]);
+    mysqlsh::dba::leave_cluster(*m_available_instances[instance_index]);
 
   } catch (const std::exception &err) {
     auto console = mysqlsh::current_console();
@@ -336,7 +336,7 @@ shcore::Value Dissolve::execute() {
   auto console = mysqlsh::current_console();
 
   // JOB: Remove replication accounts used for recovery of GR.
-  // Note: This operation MUST be performed before leave-replicaset to ensure
+  // Note: This operation MUST be performed before leave-cluster to ensure
   // that all changed are propagated to the online instances.
   for (auto &instance : m_available_instances) {
     m_cluster->drop_replication_user(instance.get());
@@ -404,7 +404,7 @@ shcore::Value Dissolve::execute() {
         }
       }
 
-      // JOB: Remove the instance from the replicaset (Stop GR)
+      // JOB: Remove the instance from the cluster (Stop GR)
       remove_instance(instance_address, i);
     } else {
       primary_index = i;
@@ -414,7 +414,7 @@ shcore::Value Dissolve::execute() {
   // Remove primary instance at the end (if there is one).
   if (primary_index != SIZE_MAX) {
     // No need to catch with transactions, since it is the primary.
-    // JOB: Remove the instance from the replicaset (Stop GR)
+    // JOB: Remove the instance from the cluster (Stop GR)
     std::string instance_address =
         m_available_instances[primary_index]->get_connection_options().as_uri(
             mysqlshdk::db::uri::formats::only_transport());
@@ -497,5 +497,6 @@ void Dissolve::finish() {
   m_sync_error_instances.clear();
 }
 
+}  // namespace cluster
 }  // namespace dba
 }  // namespace mysqlsh

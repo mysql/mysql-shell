@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,13 +29,13 @@
 #include <vector>
 
 #include "modules/adminapi/cluster/cluster_impl.h"
-#include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlsh {
 namespace dba {
+namespace cluster {
 
 class Dissolve : public Command_interface {
  public:
@@ -64,15 +64,15 @@ class Dissolve : public Command_interface {
   /**
    * Execute the dissolve command.
    * More specifically:
-   * - Remove the cluster data (including replicasets and instances) from the
+   * - Remove the cluster data (including clusters and instances) from the
    *   metadata;
    * - For all reachable instances (except primary if there is only one):
    *    - Sync cluster transactions (to ensure removal of cluster data from
    *      metadata is applied on the instance);
-   *    - Remove the instance from the replicaset (GR group);
+   *    - Remove the instance from the cluster (GR group);
    *    - Remove replication (recovery) users from the instance;
    * - On the primary (if there is only one):
-   *    - Remove the instance from the replicaset (GR group);
+   *    - Remove the instance from the cluster (GR group);
    *    - Remove replication (recovery) users from the instance;
    * - Mark cluster as dissolved;
    *
@@ -178,7 +178,7 @@ class Dissolve : public Command_interface {
    *
    * This function avoids duplication of code, since the primary need to be
    * remove last in single primary mode. In more detail, this function includes
-   * the removal of the instance from the replicaset and removal all replication
+   * the removal of the instance from the cluster and removal all replication
    * users (including all associated exception and force option handling).
    *
    * @param instance_address string with the adress of the instance to be
@@ -190,6 +190,7 @@ class Dissolve : public Command_interface {
                        const std::size_t instance_index);
 };
 
+}  // namespace cluster
 }  // namespace dba
 }  // namespace mysqlsh
 

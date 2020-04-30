@@ -32,7 +32,6 @@
 #include "shellcore/shell_options.h"
 
 #include "modules/adminapi/cluster/cluster_impl.h"
-#include "modules/adminapi/cluster/replicaset/replicaset.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"

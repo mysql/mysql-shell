@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 
 namespace mysqlsh {
 namespace dba {
+namespace cluster {
 
 Reset_recovery_accounts_password::Reset_recovery_accounts_password(
     const bool interactive, mysqlshdk::utils::nullable<bool> force,
@@ -50,8 +51,7 @@ bool Reset_recovery_accounts_password::prompt_to_force_reset() const {
 void Reset_recovery_accounts_password::prepare() {
   // Get all cluster instances from the Metadata and their respective GR state.
   std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
-      instance_defs =
-          m_cluster.get_default_replicaset()->get_instances_with_state();
+      instance_defs = m_cluster.get_instances_with_state();
 
   for (const auto &instance_def : instance_defs) {
     mysqlshdk::gr::Member_state state = instance_def.second.state;
@@ -256,5 +256,6 @@ void Reset_recovery_accounts_password::finish() {
   m_skipped_instances.clear();
 }
 
+}  // namespace cluster
 }  // namespace dba
 }  // namespace mysqlsh

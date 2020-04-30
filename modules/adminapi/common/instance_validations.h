@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-#include "modules/adminapi/cluster/replicaset/replicaset.h"
+#include "adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/session.h"
@@ -69,7 +69,7 @@ void ensure_instance_not_belong_to_cluster(
 void ensure_instance_not_belong_to_metadata(
     const mysqlshdk::mysql::IInstance &instance,
     const std::string &address_in_metadata,
-    const mysqlsh::dba::GRReplicaSet &replicaset);
+    const mysqlsh::dba::Cluster_impl &cluster);
 
 }  // namespace checks
 }  // namespace dba

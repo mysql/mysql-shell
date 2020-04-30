@@ -28,8 +28,8 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "modules/adminapi/cluster/base_cluster_impl.h"
 #include "modules/adminapi/common/async_replication_options.h"
+#include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"

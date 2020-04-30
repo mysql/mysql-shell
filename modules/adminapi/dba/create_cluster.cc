@@ -28,6 +28,7 @@
 #include <utility>
 #include <vector>
 
+#include "adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
@@ -240,7 +241,7 @@ void Create_cluster::prepare() {
       // the target instance
       if (m_gr_opts.exit_state_action.is_null() &&
           is_option_supported(m_target_instance->get_version(), kExpelTimeout,
-                              k_global_replicaset_supported_options)) {
+                              k_global_cluster_supported_options)) {
         m_gr_opts.exit_state_action = "READ_ONLY";
       }
 
@@ -416,7 +417,7 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
   std::set<std::string> new_users;
   std::set<std::string> old_users;
 
-  cluster->get_default_replicaset()->execute_in_members(
+  cluster->execute_in_members(
       {}, cluster->get_target_server()->get_connection_options(), {},
       [&](const std::shared_ptr<Instance> &target) {
         old_users.insert(mysqlshdk::gr::get_recovery_user(*target));
@@ -454,8 +455,7 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
 void Create_cluster::persist_sro_all(Cluster_impl *cluster) {
   log_info("Persisting super_read_only=1 across the cluster...");
 
-  auto config =
-      cluster->get_default_replicaset()->create_config_object({}, false, true);
+  auto config = cluster->create_config_object({}, false, true);
 
   config->set("super_read_only", mysqlshdk::utils::nullable<bool>(true));
 
@@ -520,8 +520,8 @@ shcore::Value Create_cluster::execute() {
     if (!m_adopt_from_gr) {
       // Start GR before creating the recovery user and metadata, so that
       // all transactions executed by us have the same GTID prefix
-      mysqlsh::dba::start_replicaset(*m_target_instance, m_gr_opts,
-                                     m_multi_primary, m_cfg.get());
+      mysqlsh::dba::start_cluster(*m_target_instance, m_gr_opts,
+                                  m_multi_primary, m_cfg.get());
     }
 
     std::string group_name = m_target_instance->get_group_name();
@@ -539,15 +539,16 @@ shcore::Value Create_cluster::execute() {
                                        &cluster_name);
     if (domain_name.empty()) domain_name = k_default_domain_name;
 
+    mysqlshdk::gr::Topology_mode topology_mode =
+        (*m_multi_primary) ? mysqlshdk::gr::Topology_mode::MULTI_PRIMARY
+                           : mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY;
+
     auto cluster_impl = std::make_shared<Cluster_impl>(
-        cluster_name, group_name, m_target_instance, metadata);
+        cluster_name, group_name, m_target_instance, metadata, topology_mode);
 
     // Update the properties
     // For V1.0, let's see the Cluster's description to "default"
     cluster_impl->set_description("Default Cluster");
-
-    // Create the default replicaset in the Metadata and set it to the cluster.
-    cluster_impl->create_default_replicaset("default", *m_multi_primary);
 
     // Insert Cluster (and ReplicaSet) on the Metadata Schema.
     metadata->create_cluster_record(cluster_impl.get(), m_adopt_from_gr);
@@ -565,14 +566,14 @@ shcore::Value Create_cluster::execute() {
     if (m_adopt_from_gr) {
       // Adoption from an existing GR group is performed after creating/updating
       // the metadata (since it is used internally by adopt_from_gr()).
-      cluster_impl->get_default_replicaset()->adopt_from_gr();
+      cluster_impl->adopt_from_gr();
 
       // Reset recovery channel in all instances to use our own account
       reset_recovery_all(cluster_impl.get());
 
       persist_sro_all(cluster_impl.get());
     } else {
-      // Check if instance address already belong to replicaset (metadata).
+      // Check if instance address already belong to cluster (metadata).
       // TODO(alfredo) - this check seems redundant?
       bool is_instance_on_md =
           cluster_impl->contains_instance_with_address(m_address_in_metadata);
@@ -585,7 +586,7 @@ shcore::Value Create_cluster::execute() {
 
       // If the instance is not in the Metadata, we must add it.
       if (!is_instance_on_md) {
-        cluster_impl->get_default_replicaset()->add_instance_metadata(
+        cluster_impl->add_instance_metadata(
             m_target_instance->get_connection_options());
       }
 

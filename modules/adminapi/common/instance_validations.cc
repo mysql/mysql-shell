@@ -525,16 +525,15 @@ void ensure_instance_not_belong_to_cluster(
 void ensure_instance_not_belong_to_metadata(
     const mysqlshdk::mysql::IInstance &instance,
     const std::string &address_in_metadata,
-    const mysqlsh::dba::GRReplicaSet &replicaset) {
+    const mysqlsh::dba::Cluster_impl &cluster) {
   auto console = mysqlsh::current_console();
 
   // Check if the instance exists on the cluster
   log_debug("Checking if the instance belongs to the cluster");
   Instance_metadata instance_md;
   try {
-    instance_md = replicaset.get_cluster()
-                      ->get_metadata_storage()
-                      ->get_instance_by_address(address_in_metadata);
+    instance_md = cluster.get_metadata_storage()->get_instance_by_address(
+        address_in_metadata);
   } catch (const shcore::Exception &e) {
     if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
       return;
@@ -542,17 +541,18 @@ void ensure_instance_not_belong_to_metadata(
     throw;
   }
 
-  if (instance_md.cluster_id == replicaset.get_cluster()->get_id()) {
+  if (instance_md.cluster_id == cluster.get_id()) {
     // Check if instance is running auto-rejoin
     bool is_rejoining = mysqlshdk::gr::is_running_gr_auto_rejoin(instance);
 
     std::string err_msg = "The instance '" + instance.descr() +
                           "' already belongs to the cluster: '" +
-                          replicaset.get_name() + "'";
-    if (is_rejoining)
+                          cluster.get_name() + "'";
+    if (is_rejoining) {
       err_msg += " and is currently trying to auto-rejoin.";
-    else
+    } else {
       err_msg += ".";
+    }
     throw shcore::Exception::runtime_error(err_msg);
   }
 }

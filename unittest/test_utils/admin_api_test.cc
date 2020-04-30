@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2020, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -33,7 +33,6 @@
 namespace tests {
 
 std::shared_ptr<mysqlsh::dba::Cluster> Admin_api_test::_cluster = {};
-std::shared_ptr<mysqlsh::dba::GRReplicaSet> Admin_api_test::_replicaset = {};
 std::string Admin_api_test::uuid_1 = "";
 std::string Admin_api_test::uuid_2 = "";
 std::string Admin_api_test::uuid_3 = "";
@@ -65,7 +64,6 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   _cluster =
       dba->create_cluster("sample", options).as_object<mysqlsh::dba::Cluster>();
   _cluster->add_instance({"root:root@localhost:" + shell_env.sb_port_str(1)});
-  _replicaset = _cluster->impl()->get_default_replicaset();
 
   shell_env.execute("session.close()");
 
