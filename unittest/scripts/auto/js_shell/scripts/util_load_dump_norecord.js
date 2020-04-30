@@ -89,6 +89,28 @@ function check_load_progress_all_data_failed(path) {
   EXPECT_FALSE(failed);
 }
 
+const task_status = {
+  NOT_STARTED: 'not_started',
+  STARTED: 'started',
+  FINISHED: 'finished'
+};
+
+function get_task_status(path, op, schema, table = undefined) {
+  let status = task_status.NOT_STARTED;
+
+  for (const entry of load_progress(path)) {
+    if (entry.op === op && entry.schema === schema && entry.table === table) {
+      status = entry.done ? task_status.FINISHED : task_status.STARTED;
+    }
+  }
+
+  return status;
+}
+
+function get_table_data_status(path, schema, table) {
+  return get_task_status(path, "TABLE-DATA", schema, table);
+}
+
 function check_worker_distribution(nthreads, ntables, path) {
   // check that all tables finish loading at about the same time
   var entries=load_progress(path);
@@ -759,16 +781,27 @@ wipe_instance(session);
 
 //@<> load data partially (during data load)
 
+// find a file to be corrupted
+var corrupted_file;
+
+for (let idx = 130; idx >= 0; --idx) {
+  corrupted_file = __tmp_dir + `/ldtest/dump-big/test@primer-dataset-id@${idx}.tsv.zstd`;
+
+  if (os.path.isfile(corrupted_file)) {
+    break;
+  }
+}
+
 // force an error in the middle by corrupting one of the files
-testutil.cpfile(__tmp_dir+"/ldtest/dump-big/test@primer-dataset-id@130.tsv.zstd", __tmp_dir+"/ldtest/dump-big/test@primer-dataset-id@130.tsv.zstd.bak");
-testutil.createFile(__tmp_dir+"/ldtest/dump-big/test@primer-dataset-id@130.tsv.zstd", "badfile");
+testutil.cpfile(corrupted_file, corrupted_file + ".bak");
+testutil.createFile(corrupted_file, "badfile");
 
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-big");}, "Error loading dump");
 
 EXPECT_OUTPUT_CONTAINS("Executing DDL script for ");
 
 // restore corrupted file
-testutil.cpfile(__tmp_dir+"/ldtest/dump-big/test@primer-dataset-id@130.tsv.zstd.bak", __tmp_dir+"/ldtest/dump-big/test@primer-dataset-id@130.tsv.zstd");
+testutil.cpfile(corrupted_file + ".bak", corrupted_file);
 
 //@<> resume partial load of data
 // TSFR12_3
@@ -862,10 +895,12 @@ EXPECT_OUTPUT_NOT_CONTAINS("Timeout while waiting");
 
 testutil.waitMysqlshAsync(p);
 
-//@<> Create a dump with histogram in some tables
+//@<> Create histograms in some tables {VER(>=8.0.0)}
 session.runSql("ANALYZE TABLE sakila.film UPDATE HISTOGRAM ON film_id, title");
 session.runSql("ANALYZE TABLE sakila.rental UPDATE HISTOGRAM ON customer_id WITH 7 BUCKETS");
 session.runSql("ANALYZE TABLE sakila.payment UPDATE HISTOGRAM ON rental_id, customer_id, staff_id WITH 2 BUCKETS");
+
+//@<> Create a dump with histogram in some tables
 util.dumpSchemas(["sakila"], __tmp_dir+"/ldtest/dump-sakila");
 wipe_instance(session);
 
@@ -929,7 +964,12 @@ testutil.createFile(__tmp_dir+"/ldtest/dump-nopktest/test@ukn.tsv", "1\taaaa\n2\
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nopktest", {ignoreExistingObjects: true});}, "Util.loadDump: Error loading dump");
 
 // check that the progress file marked all tables are failed
-check_load_progress_all_data_failed(__tmp_dir+"/ldtest/dump-nopktest/load-progress."+uuid+".json");
+const nopktest_progress_file = __tmp_dir + "/ldtest/dump-nopktest/load-progress." + uuid + ".json";
+check_load_progress_all_data_failed(nopktest_progress_file);
+
+// check if tasks for tables that should be truncated were started
+const nopk_status = get_table_data_status(nopktest_progress_file, "test", "nopk");
+const ukn_status = get_table_data_status(nopktest_progress_file, "test", "ukn");
 
 // try again, resuming with good data
 testutil.createFile(__tmp_dir+"/ldtest/dump-nopktest/test@nopk.tsv", "1\t{}\n2\t{}\n");
@@ -938,9 +978,9 @@ testutil.createFile(__tmp_dir+"/ldtest/dump-nopktest/test@uk.tsv", "1\t{}\n2\t{}
 testutil.createFile(__tmp_dir+"/ldtest/dump-nopktest/test@ukn.tsv", "1\t{}\n2\t{}\n");
 util.loadDump(__tmp_dir+"/ldtest/dump-nopktest", {ignoreExistingObjects: true});
 
-// this should have been truncated before the load
-r=shell.dumpRows(session.runSql("select * from test.nopk"));
-EXPECT_EQ(2, r);
+// this should have been truncated before the load if the failed load of this table has started
+r = shell.dumpRows(session.runSql("select * from test.nopk"));
+EXPECT_EQ(task_status.STARTED === nopk_status ? 2 : 3, r);
 
 // this should not be truncated
 r=shell.dumpRows(session.runSql("select * from test.pk"));
@@ -950,9 +990,9 @@ EXPECT_EQ(3, r);
 r=shell.dumpRows(session.runSql("select * from test.uk"));
 EXPECT_EQ(3, r);
 
-// this should be truncated
-r=shell.dumpRows(session.runSql("select * from test.ukn"));
-EXPECT_EQ(2, r);
+// this should be truncated if the failed load of this table has started
+r = shell.dumpRows(session.runSql("select * from test.ukn"));
+EXPECT_EQ(task_status.STARTED === ukn_status ? 2 : 3, r);
 
 //@<> Check work distribution across threads
 // Tables should finish loading at about the same time regardless of the 

@@ -890,7 +890,7 @@ void rename_file(const std::string &from, const std::string &to) {
   const auto w_to = utf8_to_wide(to);
   auto ret = _wrename(w_from.c_str(), w_to.c_str());
 
-  if (EACCES == ret) {
+  if (ret < 0 && (EACCES == errno || EEXIST == errno)) {
     try {
       // rename on Windows fails if destination file exists, delete it first
       delete_file(to, true);
