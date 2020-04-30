@@ -1778,6 +1778,15 @@ void Cluster_impl::set_disable_clone_option(const bool disable_clone) {
       disable_clone ? shcore::Value::True() : shcore::Value::False());
 }
 
+bool Cluster_impl::get_manual_start_on_boot_option() const {
+  shcore::Value flag;
+  if (m_metadata_storage->query_cluster_attribute(
+          get_id(), k_cluster_attribute_manual_start_on_boot, &flag))
+    return flag.as_bool();
+  // default false
+  return false;
+}
+
 shcore::Value Cluster_impl::check_instance_state(
     const Connection_options &instance_def) {
   check_preconditions("checkInstanceState");

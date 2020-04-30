@@ -44,7 +44,6 @@
 //@# Dba: checkInstanceConfiguration errors
 ||Access denied for user 'root'@'localhost' (using password: NO) (MySQL Error 1045)
 ||Access denied for user 'sample'@'localhost' (using password: NO) (MySQL Error 1045)
-||Dba.checkInstanceConfiguration: This function is not available through a session to an instance already in an InnoDB cluster (MYSQLSH 51305)
 
 //@ Dba: checkInstanceConfiguration ok1
 |The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.|

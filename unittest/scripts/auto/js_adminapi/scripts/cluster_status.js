@@ -133,5 +133,20 @@ shell.connect(__sandbox_uri2);
 var cluster = dba.getCluster();
 cluster.status();
 
+//@<> Check that cluster.status() timeout is < 10s
+// Bug #30884174   CLUSTER.STATUS() HANGS FOR TOO LONG WHEN CONNECTION/READ TIMEOUTS HAPPEN
+
+// force timeout by making cluster.status() try to connect to the GR port
+var iid = session.runSql("select instance_id from mysql_innodb_cluster_metadata.instances order by instance_id desc limit 1").fetchOne()[0];
+session.runSql("update mysql_innodb_cluster_metadata.instances set addresses=json_set(addresses, '$.mysqlClassic', concat(addresses->>'$.mysqlClassic', '1')) where instance_id=?", [iid])
+var start = new Date();
+
+cluster.status();
+
+var end = new Date();
+
+// time elapsed should be around 5000ms, but we give an extra 1s margin
+EXPECT_GT(6000, end-start);
+
 //@<> Finalization
 scene.destroy();

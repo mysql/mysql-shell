@@ -213,6 +213,8 @@ const std::map<std::string, FunctionAvailability>
         {"Dba.checkInstanceConfiguration",
          {k_min_gr_version,
           GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
+              GRInstanceType::StandaloneInMetadata |
+              GRInstanceType::InnoDBCluster | GRInstanceType::GroupReplication |
               GRInstanceType::Unknown,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
@@ -753,6 +755,8 @@ void check_preconditions(const std::string &function_name,
     availability = *custom_func_avail;
   }
   std::string error;
+  int code = 0;
+
   // Check minimum version for the specific function
   if (availability.min_version > state.source_version) {
     throw shcore::Exception::runtime_error(
@@ -788,6 +792,7 @@ void check_preconditions(const std::string &function_name,
           } else if (state.quorum.is_set(
                          ReplicationQuorum::States::Quorumless)) {
             error = "There is no quorum to perform the operation";
+            code = SHERR_DBA_GROUP_HAS_NO_QUORUM;
           } else if (state.quorum.is_set(ReplicationQuorum::States::Dead)) {
             error =
                 "Unable to perform the operation on a dead InnoDB "
@@ -830,6 +835,7 @@ void check_preconditions(const std::string &function_name,
         break;
       case GRInstanceType::Standalone:
         error += " to a standalone instance";
+        code = SHERR_DBA_BADARG_INSTANCE_NOT_MANAGED;
         break;
       case GRInstanceType::StandaloneWithMetadata:
         if (availability.instance_config_state &
@@ -854,6 +860,7 @@ void check_preconditions(const std::string &function_name,
               " to a standalone instance (metadata exists, instance belongs to "
               "that metadata, but GR is not active)";
         }
+        code = SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE;
         break;
       case GRInstanceType::GroupReplication:
         error +=
@@ -862,19 +869,22 @@ void check_preconditions(const std::string &function_name,
         break;
       case GRInstanceType::InnoDBCluster:
         error += " to an instance already in an InnoDB cluster";
-
-        throw shcore::Exception(error,
-                                SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
+        code = SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER;
+        break;
 
       case GRInstanceType::AsyncReplicaSet:
         error += " to an instance that is a member of an InnoDB ReplicaSet";
-
-        throw shcore::Exception(
-            error, SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_REPLICASET);
+        code = SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_REPLICASET;
+        break;
     }
   }
 
-  if (!error.empty()) throw shcore::Exception::runtime_error(error);
+  if (!error.empty()) {
+    if (code != 0)
+      throw shcore::Exception(error, code);
+    else
+      throw shcore::Exception::runtime_error(error);
+  }
 }
 
 /**

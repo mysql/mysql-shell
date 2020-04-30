@@ -25,6 +25,6 @@
 |Final Row Count: 3|
 
 //@ WL12412-TS2_2: Count throws error on unexisting table
-||Table.count: Table 'js_shell_test.table_count' doesn't exist (RuntimeError)
+||Table.count: Table 'js_shell_test.table_count' doesn't exist (MYSQLSH 1146)
 
 

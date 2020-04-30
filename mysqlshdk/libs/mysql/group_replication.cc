@@ -408,7 +408,10 @@ std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
         !mysqlshdk::gr::get_group_primary_uuid(instance, nullptr).empty();
   }
 
-  assert(!out_group_view_id || !out_group_view_id->empty());
+  assert(
+      (members.size() == 1 && (members.front().state == Member_state::OFFLINE ||
+                               members.front().state == Member_state::ERROR)) ||
+      !out_group_view_id || !out_group_view_id->empty());
 
   if (out_has_quorum) *out_has_quorum = online_members > members.size() / 2;
 

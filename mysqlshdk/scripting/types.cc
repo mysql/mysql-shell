@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -239,6 +239,10 @@ bool Exception::is_attribute() const {
 bool Exception::is_value() const { return strcmp(type(), "ValueError") == 0; }
 
 bool Exception::is_type() const { return strcmp(type(), "TypeError") == 0; }
+
+bool Exception::is_runtime() const {
+  return strcmp(type(), "RuntimeError") == 0;
+}
 
 bool Exception::is_mysql() const { return strcmp(type(), "MySQL Error") == 0; }
 

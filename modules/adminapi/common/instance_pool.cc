@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,6 +46,9 @@ namespace {
 static constexpr char k_lock[] = "AdminAPI_lock";
 static constexpr char k_lock_name_instance[] = "AdminAPI_instance";
 
+// Reduce the default timeout from 10s to 5s
+static const char k_default_adminapi_connect_timeout[] = "5000";
+
 std::shared_ptr<mysqlshdk::db::ISession> connect_session(
     const mysqlshdk::db::Connection_options &opts, bool interactive) {
   if (SessionType::X == opts.get_session_type()) {
@@ -76,7 +79,12 @@ static constexpr const char *k_default_sql_mode =
 
 std::shared_ptr<Instance> Instance::connect_raw(
     const mysqlshdk::db::Connection_options &opts, bool interactive) {
-  return std::make_shared<Instance>(connect_session(opts, interactive));
+  mysqlshdk::db::Connection_options op(opts);
+
+  if (!op.has_value(mysqlshdk::db::kConnectTimeout))
+    op.set(mysqlshdk::db::kConnectTimeout, k_default_adminapi_connect_timeout);
+
+  return std::make_shared<Instance>(connect_session(op, interactive));
 }
 
 std::shared_ptr<Instance> Instance::connect(

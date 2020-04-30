@@ -13,7 +13,7 @@ Cluster.switchToSinglePrimaryMode: Operation not supported on target server vers
 ||Cluster.switchToSinglePrimaryMode: This operation requires all the cluster members to be ONLINE (RuntimeError)
 
 //@<ERR> WL#12052: Error when executing switchToSinglePrimaryMode on a cluster with no visible quorum < 8.0.13 {VER(>=8.0.13)}
-Cluster.switchToSinglePrimaryMode: There is no quorum to perform the operation (RuntimeError)
+Cluster.switchToSinglePrimaryMode: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@ WL#12052: Re-create the cluster {VER(>=8.0.13)}
 ||

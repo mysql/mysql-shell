@@ -14,6 +14,7 @@
 validate_members(mysql, [
   'get_classic_session',
   'get_session',
+  'ErrorCode',
   'help'])
 
 #@# get_classic_session errors
@@ -27,3 +28,6 @@ mysql.get_session()
 mysql.get_session(1, 2, 3)
 mysql.get_session(["bla"])
 mysql.get_session("some@uri", 25)
+
+#@<> ErrorCode
+assert 1045 == mysql.ErrorCode.ER_ACCESS_DENIED_ERROR

@@ -237,6 +237,9 @@ coll.create_index('myIndex', {'fields': [{'field': '$.myField', 'type': 'Dates'}
 #@ Create an index specifiying geojson options for non geojson data type. (WL10858-FR5_8)
 coll.create_index('myField', {'fields': [{'field': '$.myField', 'type': 'TEXT(10)', 'options': 2, 'srid': 4326}]})
 
+#@<> check sql_mode
+print(session.run_sql("select @@sql_mode").fetch_one()[0])
+
 #@ Create an index with mismatched data types (WL10858-ET_1)
 coll.add({'numeric':10})
 coll.create_index('myIntField', {'fields': [{'field': '$.numeric', 'type': 'DATETIME'}]})

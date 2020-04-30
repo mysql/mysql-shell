@@ -490,6 +490,15 @@ function EXPECT_EQ(expected, actual, note) {
   }
 }
 
+function EXPECT_GT(value1, value2, note) {
+  if (note === undefined)
+    note = "";
+  if (value1 <= value2) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>EXPECT_GT failed:</red> " + note + "\n\t"+repr(value1)+" expected to be > "+repr(value2)+" but isn't.";
+    testutil.fail(context);
+  }
+}
+
 function EXPECT_JSON_EQ(expected, actual, note) {
 
   function compare_values(expected, actual, path) {

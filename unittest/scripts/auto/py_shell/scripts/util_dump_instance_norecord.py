@@ -416,16 +416,16 @@ session.run_sql("CREATE ROLE ?;", [ test_role ])
 session.run_sql("ANALYZE TABLE !.! UPDATE HISTOGRAM ON `id`;", [ test_schema, test_table_no_index ])
 
 #@<> WL13807-TSFR_1_3 - first parameter
-EXPECT_FAIL("ArgumentError", "Argument #1 is expected to be a string", None)
-EXPECT_FAIL("ArgumentError", "Argument #1 is expected to be a string", 1)
-EXPECT_FAIL("ArgumentError", "Argument #1 is expected to be a string", [])
-EXPECT_FAIL("ArgumentError", "Argument #1 is expected to be a string", {})
-EXPECT_FAIL("ArgumentError", "Argument #1 is expected to be a string", False)
+EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", None)
+EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", 1)
+EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", [])
+EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", {})
+EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", False)
 
 #@<> WL13807-TSFR_3_1 - second parameter
-EXPECT_FAIL("ArgumentError", "Argument #2 is expected to be a map", test_output_relative, 1)
-EXPECT_FAIL("ArgumentError", "Argument #2 is expected to be a map", test_output_relative, "string")
-EXPECT_FAIL("ArgumentError", "Argument #2 is expected to be a map", test_output_relative, [])
+EXPECT_FAIL("ValueError", "Argument #2 is expected to be a map", test_output_relative, 1)
+EXPECT_FAIL("ValueError", "Argument #2 is expected to be a map", test_output_relative, "string")
+EXPECT_FAIL("ValueError", "Argument #2 is expected to be a map", test_output_relative, [])
 
 #@<> WL13807-FR1.1 - The `outputUrl` parameter must be a string value which specifies the output directory, where the dump data is going to be stored.
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
@@ -474,7 +474,7 @@ util.dump_instance(test_output_absolute, { "excludeSchemas": exclude_all_but_typ
 EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
 
 #@<> dump once again to the same directory, should fail
-EXPECT_THROWS(lambda: util.dump_instance(test_output_relative, { "showProgress": False }), "ArgumentError: Util.dump_instance: Cannot proceed with the dump, the specified directory '{0}' already exists at the target location {1} and is not empty.".format(test_output_relative, absolute_path_for_output(test_output_absolute)))
+EXPECT_THROWS(lambda: util.dump_instance(test_output_relative, { "showProgress": False }), "ValueError: Util.dump_instance: Cannot proceed with the dump, the specified directory '{0}' already exists at the target location {1} and is not empty.".format(test_output_relative, absolute_path_for_output(test_output_absolute)))
 
 # WL13807-FR3 - Both new functions must accept the following options specified in WL#13804, FR5:
 # * The `maxRate` option specified in WL#13804, FR5.1.
@@ -528,16 +528,16 @@ EXPECT_TRUE(has_file_with_basename(test_output_absolute, encode_table_basename(t
 EXPECT_TRUE(count_files_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_primary) + "@") > number_of_dump_files)
 
 #@<> WL13807-FR4.13.2 - The value of the `bytesPerChunk` option must use the same format as specified in WL#12193.
-EXPECT_FAIL("ArgumentError", 'Wrong input number "xyz"', test_output_absolute, { "bytesPerChunk": "xyz" })
-EXPECT_FAIL("ArgumentError", 'Wrong input number "1xyz"', test_output_absolute, { "bytesPerChunk": "1xyz" })
-EXPECT_FAIL("ArgumentError", 'Wrong input number "2Mhz"', test_output_absolute, { "bytesPerChunk": "2Mhz" })
+EXPECT_FAIL("ValueError", 'Wrong input number "xyz"', test_output_absolute, { "bytesPerChunk": "xyz" })
+EXPECT_FAIL("ValueError", 'Wrong input number "1xyz"', test_output_absolute, { "bytesPerChunk": "1xyz" })
+EXPECT_FAIL("ValueError", 'Wrong input number "2Mhz"', test_output_absolute, { "bytesPerChunk": "2Mhz" })
 # WL13807-TSFR_3_532_3
-EXPECT_FAIL("ArgumentError", 'Wrong input number "0.1k"', test_output_absolute, { "bytesPerChunk": "0.1k" })
-EXPECT_FAIL("ArgumentError", 'Wrong input number "0,3M"', test_output_absolute, { "bytesPerChunk": "0,3M" })
-EXPECT_FAIL("ArgumentError", 'Input number "-1G" cannot be negative', test_output_absolute, { "bytesPerChunk": "-1G" })
-EXPECT_FAIL("ArgumentError", "The option 'bytesPerChunk' cannot be set to an empty string.", test_output_absolute, { "bytesPerChunk": "" })
+EXPECT_FAIL("ValueError", 'Wrong input number "0.1k"', test_output_absolute, { "bytesPerChunk": "0.1k" })
+EXPECT_FAIL("ValueError", 'Wrong input number "0,3M"', test_output_absolute, { "bytesPerChunk": "0,3M" })
+EXPECT_FAIL("ValueError", 'Input number "-1G" cannot be negative', test_output_absolute, { "bytesPerChunk": "-1G" })
+EXPECT_FAIL("ValueError", "The option 'bytesPerChunk' cannot be set to an empty string.", test_output_absolute, { "bytesPerChunk": "" })
 # WL13807-TSFR_3_532_2
-EXPECT_FAIL("ArgumentError", "The option 'bytesPerChunk' cannot be used if the 'chunking' option is set to false.", test_output_absolute, { "bytesPerChunk": "128k", "chunking": False })
+EXPECT_FAIL("ValueError", "The option 'bytesPerChunk' cannot be used if the 'chunking' option is set to false.", test_output_absolute, { "bytesPerChunk": "128k", "chunking": False })
 
 #@<> WL13807-TSFR_3_532_1
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "bytesPerChunk": "1000k", "ddlOnly": True, "showProgress": False })
@@ -547,11 +547,11 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "bytesPerChunk": "128000"
 
 #@<> WL13807-FR4.13.3 - If the value of the `bytesPerChunk` option is smaller than `128k`, an exception must be thrown.
 # WL13807-TSFR_3_533_1
-EXPECT_FAIL("ArgumentError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", test_output_relative, { "bytesPerChunk": "127k" })
-EXPECT_FAIL("ArgumentError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", test_output_relative, { "bytesPerChunk": "127999" })
-EXPECT_FAIL("ArgumentError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", test_output_relative, { "bytesPerChunk": "1" })
-EXPECT_FAIL("ArgumentError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", test_output_relative, { "bytesPerChunk": "0" })
-EXPECT_FAIL("ArgumentError", 'Input number "-1" cannot be negative', test_output_relative, { "bytesPerChunk": "-1" })
+EXPECT_FAIL("ValueError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", test_output_relative, { "bytesPerChunk": "127k" })
+EXPECT_FAIL("ValueError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", test_output_relative, { "bytesPerChunk": "127999" })
+EXPECT_FAIL("ValueError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", test_output_relative, { "bytesPerChunk": "1" })
+EXPECT_FAIL("ValueError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", test_output_relative, { "bytesPerChunk": "0" })
+EXPECT_FAIL("ValueError", 'Input number "-1" cannot be negative', test_output_relative, { "bytesPerChunk": "-1" })
 
 #@<> WL13807-FR4.14 - The `options` dictionary may contain a `threads` key with an unsigned integer value, which specifies the number of threads to be used to perform the dump.
 # WL13807-TSFR_3_54
@@ -563,7 +563,7 @@ EXPECT_STDOUT_CONTAINS("Running data dump using 2 threads.")
 
 #@<> WL13807-FR4.14.1 - If the value of the `threads` option is set to `0`, an exception must be thrown.
 # WL13807-TSFR_3_54
-EXPECT_FAIL("ArgumentError", "The value of 'threads' option must be greater than 0.", test_output_relative, { "threads": 0 })
+EXPECT_FAIL("ValueError", "The value of 'threads' option must be greater than 0.", test_output_relative, { "threads": 0 })
 
 #@<> WL13807-FR4.14.2 - If the `threads` option is not given, a default value of `4` must be used instead.
 # WL13807-TSFR_3_542
@@ -581,16 +581,16 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "maxRate": "1M", "ddlOnly
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "maxRate": "1G", "ddlOnly": True, "showProgress": False })
 
 #@<> WL13807: WL13804-FR5.1.1 - The value of the `maxRate` option must use the same format as specified in WL#12193.
-EXPECT_FAIL("ArgumentError", 'Wrong input number "xyz"', test_output_absolute, { "maxRate": "xyz" })
-EXPECT_FAIL("ArgumentError", 'Wrong input number "1xyz"', test_output_absolute, { "maxRate": "1xyz" })
-EXPECT_FAIL("ArgumentError", 'Wrong input number "2Mhz"', test_output_absolute, { "maxRate": "2Mhz" })
+EXPECT_FAIL("ValueError", 'Wrong input number "xyz"', test_output_absolute, { "maxRate": "xyz" })
+EXPECT_FAIL("ValueError", 'Wrong input number "1xyz"', test_output_absolute, { "maxRate": "1xyz" })
+EXPECT_FAIL("ValueError", 'Wrong input number "2Mhz"', test_output_absolute, { "maxRate": "2Mhz" })
 # WL13807-TSFR_3_552
-EXPECT_FAIL("ArgumentError", 'Wrong input number "hello world!"', test_output_absolute, { "maxRate": "hello world!" })
-EXPECT_FAIL("ArgumentError", 'Input number "-1" cannot be negative', test_output_absolute, { "maxRate": "-1" })
-EXPECT_FAIL("ArgumentError", 'Input number "-1234567890123456" cannot be negative', test_output_absolute, { "maxRate": "-1234567890123456" })
-EXPECT_FAIL("ArgumentError", 'Input number "-2K" cannot be negative', test_output_absolute, { "maxRate": "-2K" })
-EXPECT_FAIL("ArgumentError", 'Wrong input number "3m"', test_output_absolute, { "maxRate": "3m" })
-EXPECT_FAIL("ArgumentError", 'Wrong input number "4g"', test_output_absolute, { "maxRate": "4g" })
+EXPECT_FAIL("ValueError", 'Wrong input number "hello world!"', test_output_absolute, { "maxRate": "hello world!" })
+EXPECT_FAIL("ValueError", 'Input number "-1" cannot be negative', test_output_absolute, { "maxRate": "-1" })
+EXPECT_FAIL("ValueError", 'Input number "-1234567890123456" cannot be negative', test_output_absolute, { "maxRate": "-1234567890123456" })
+EXPECT_FAIL("ValueError", 'Input number "-2K" cannot be negative', test_output_absolute, { "maxRate": "-2K" })
+EXPECT_FAIL("ValueError", 'Wrong input number "3m"', test_output_absolute, { "maxRate": "3m" })
+EXPECT_FAIL("ValueError", 'Wrong input number "4g"', test_output_absolute, { "maxRate": "4g" })
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "maxRate": "1000000", "ddlOnly": True, "showProgress": False })
 
@@ -655,8 +655,8 @@ EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basen
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "compression": "gzip", "chunking": False, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.gz")))
 
-EXPECT_FAIL("ArgumentError", "The option 'compression' cannot be set to an empty string.", test_output_relative, { "compression": "" })
-EXPECT_FAIL("ArgumentError", "Unknown compression type: dummy", test_output_relative, { "compression": "dummy" })
+EXPECT_FAIL("ValueError", "The option 'compression' cannot be set to an empty string.", test_output_relative, { "compression": "" })
+EXPECT_FAIL("ValueError", "Unknown compression type: dummy", test_output_relative, { "compression": "dummy" })
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "compression": "zstd", "chunking": False, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.zst")))
@@ -678,7 +678,7 @@ TEST_STRING_OPTION("osNamespace")
 
 #@<> WL13807: WL13804-FR5.5.2 - If the value of `osNamespace` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
 # WL13807-TSFR_3_592_1
-EXPECT_FAIL("ArgumentError", "The option 'osNamespace' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "osNamespace": "namespace" })
+EXPECT_FAIL("ValueError", "The option 'osNamespace' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "osNamespace": "namespace" })
 
 #@<> WL13807: WL13804-FR5.6 - The `options` dictionary may contain a `ociConfigFile` key with a string value, which specifies the path to the OCI configuration file.
 # WL13807-TSFR_3_510_1
@@ -686,31 +686,31 @@ TEST_STRING_OPTION("ociConfigFile")
 
 #@<> WL13807: WL13804-FR5.6.2 - If the value of `ociConfigFile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
 # WL13807-TSFR_3_5102
-EXPECT_FAIL("ArgumentError", "The option 'ociConfigFile' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "ociConfigFile": "config" })
+EXPECT_FAIL("ValueError", "The option 'ociConfigFile' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "ociConfigFile": "config" })
 
 #@<> WL13807: WL13804-FR5.7 - The `options` dictionary may contain a `ociProfile` key with a string value, which specifies the name of the OCI profile to use.
 TEST_STRING_OPTION("ociProfile")
 
 #@<> WL13807: WL13804-FR5.7.2 - If the value of `ociProfile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
-EXPECT_FAIL("ArgumentError", "The option 'ociProfile' cannot be used when the value of 'osBucketName' option is not set", test_output_relative, { "ociProfile": "profile" })
+EXPECT_FAIL("ValueError", "The option 'ociProfile' cannot be used when the value of 'osBucketName' option is not set", test_output_relative, { "ociProfile": "profile" })
 
 #@<> WL14154: WL14154-TSFR1_2 - Validate that the option ociParManifest only take boolean values as valid values.
 TEST_BOOL_OPTION("ociParManifest")
 
 #@<> WL14154: WL14154-TSFR1_3 - Validate that the option ociParManifest is valid only when doing a dump to OCI.
-EXPECT_FAIL("ArgumentError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "ociParManifest": True })
-EXPECT_FAIL("ArgumentError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "ociParManifest": False })
+EXPECT_FAIL("ValueError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "ociParManifest": True })
+EXPECT_FAIL("ValueError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "ociParManifest": False })
 
 #@<> WL14154: WL14154-TSFR2_12 - Doing a dump to file system with ociParManifest set to True and ociParExpireTime set to a valid value. Validate that dump fails because ociParManifest is not valid if osBucketName is not specified.
-EXPECT_FAIL("ArgumentError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "ociParManifest": True, "ociParExpireTime": "2021-01-01" })
+EXPECT_FAIL("ValueError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "ociParManifest": True, "ociParExpireTime": "2021-01-01" })
 
 #@<> WL14154: WL14154-TSFR2_2 - Validate that the option ociParExpireTime only take string values
 TEST_STRING_OPTION("ociParExpireTime")
 
 #@<> WL14154: WL14154-TSFR2_6 - Doing a dump to OCI ociParManifest not set or set to False and ociParExpireTime set to a valid value. Validate that the dump fail because ociParExpireTime it's valid only when ociParManifest is set to True.
-EXPECT_FAIL("ArgumentError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", test_output_relative, { "ociParExpireTime": "2021-01-01" })
-EXPECT_FAIL("ArgumentError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", test_output_relative, { "osBucketName": "bucket", "ociParExpireTime": "2021-01-01" })
-EXPECT_FAIL("ArgumentError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", test_output_relative, { "osBucketName": "bucket", "ociParManifest": False, "ociParExpireTime": "2021-01-01" })
+EXPECT_FAIL("ValueError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", test_output_relative, { "ociParExpireTime": "2021-01-01" })
+EXPECT_FAIL("ValueError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", test_output_relative, { "osBucketName": "bucket", "ociParExpireTime": "2021-01-01" })
+EXPECT_FAIL("ValueError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", test_output_relative, { "osBucketName": "bucket", "ociParManifest": False, "ociParExpireTime": "2021-01-01" })
 
 #@<> WL13807: WL13804-FR5.8 - The `options` dictionary may contain a `defaultCharacterSet` key with a string value, which specifies the character set to be used during the dump. The session variables `character_set_client`, `character_set_connection`, and `character_set_results` must be set to this value for each opened connection.
 # WL13807-TSFR4_43
@@ -723,8 +723,8 @@ EXPECT_FILE_CONTAINS("CREATE TABLE IF NOT EXISTS `{0}`".format(test_table_non_un
 
 #@<> WL13807: WL13804-FR5.8.1 - If the value of the `defaultCharacterSet` option is not a character set supported by the MySQL server, an exception must be thrown.
 # WL13807-TSFR4_41
-EXPECT_FAIL("RuntimeError", "Unknown character set: ''", test_output_relative, { "defaultCharacterSet": "" })
-EXPECT_FAIL("RuntimeError", "Unknown character set: 'dummy'", test_output_relative, { "defaultCharacterSet": "dummy" })
+EXPECT_FAIL("MySQL Error (1115)", "Unknown character set: ''", test_output_relative, { "defaultCharacterSet": "" })
+EXPECT_FAIL("MySQL Error (1115)", "Unknown character set: 'dummy'", test_output_relative, { "defaultCharacterSet": "dummy" })
 
 #@<> WL13807: WL13804-FR5.8.2 - If the `defaultCharacterSet` option is not given, a default value of `"utf8mb4"` must be used instead.
 # WL13807-TSFR4_39
@@ -733,14 +733,14 @@ EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProg
 EXPECT_FILE_CONTAINS("CREATE TABLE IF NOT EXISTS `{0}`".format(test_table_non_unique), os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".sql"))
 
 #@<> WL13807-TSFR_3_2 - options param being a dictionary that contains an unknown key
-EXPECT_FAIL("ArgumentError", "Invalid options: dummy", test_output_relative, { "dummy": "fails" })
-EXPECT_FAIL("ArgumentError", "Invalid options: indexColumn", test_output_relative, { "indexColumn": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: fieldsTerminatedBy", test_output_relative, { "fieldsTerminatedBy": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: fieldsEnclosedBy", test_output_relative, { "fieldsEnclosedBy": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: fieldsEscapedBy", test_output_relative, { "fieldsEscapedBy": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: fieldsOptionallyEnclosed", test_output_relative, { "fieldsOptionallyEnclosed": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: linesTerminatedBy", test_output_relative, { "linesTerminatedBy": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: dialect", test_output_relative, { "dialect": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: dummy", test_output_relative, { "dummy": "fails" })
+EXPECT_FAIL("ValueError", "Invalid options: indexColumn", test_output_relative, { "indexColumn": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: fieldsTerminatedBy", test_output_relative, { "fieldsTerminatedBy": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: fieldsEnclosedBy", test_output_relative, { "fieldsEnclosedBy": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: fieldsEscapedBy", test_output_relative, { "fieldsEscapedBy": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: fieldsOptionallyEnclosed", test_output_relative, { "fieldsOptionallyEnclosed": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: linesTerminatedBy", test_output_relative, { "linesTerminatedBy": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: dialect", test_output_relative, { "dialect": "dummy" })
 
 # WL13807-FR4 - Both new functions must accept a set of additional options:
 
@@ -833,7 +833,7 @@ EXPECT_EQ(0, count_files_with_extension(test_output_absolute, ".sql"))
 
 #@<> WL13807-FR4.8.2 - If both `ddlOnly` and `dataOnly` options are set to `true`, an exception must be raised.
 # WL13807-TSFR4_25
-EXPECT_FAIL("ArgumentError", "The 'ddlOnly' and 'dataOnly' options cannot be both set to true.", test_output_relative, { "ddlOnly": True, "dataOnly": True })
+EXPECT_FAIL("ValueError", "The 'ddlOnly' and 'dataOnly' options cannot be both set to true.", test_output_relative, { "ddlOnly": True, "dataOnly": True })
 
 #@<> WL13807-FR4.8.3 - If the `dataOnly` option is not given, a default value of `false` must be used instead.
 # WL13807-TSFR4_22
@@ -880,21 +880,21 @@ TEST_ARRAY_OF_STRINGS_OPTION("includeUsers")
 TEST_ARRAY_OF_STRINGS_OPTION("excludeUsers")
 
 #@<> the `includeUsers` and `excludeUsers` options cannot be used when `users` is false
-EXPECT_FAIL("ArgumentError", "The 'includeUsers' option cannot be used if the 'users' option is set to false.", test_output_relative, { "users": False, "includeUsers": ["third"] })
-EXPECT_FAIL("ArgumentError", "The 'excludeUsers' option cannot be used if the 'users' option is set to false.", test_output_relative, { "users": False, "excludeUsers": ["third"] })
+EXPECT_FAIL("ValueError", "The 'includeUsers' option cannot be used if the 'users' option is set to false.", test_output_relative, { "users": False, "includeUsers": ["third"] })
+EXPECT_FAIL("ValueError", "The 'excludeUsers' option cannot be used if the 'users' option is set to false.", test_output_relative, { "users": False, "excludeUsers": ["third"] })
 
 #@<> test invalid user names
-EXPECT_FAIL("ArgumentError", "User name must not be empty.", test_output_relative, { "includeUsers": [""] })
-EXPECT_FAIL("ArgumentError", "User name must not be empty.", test_output_relative, { "excludeUsers": [""] })
+EXPECT_FAIL("ValueError", "User name must not be empty.", test_output_relative, { "includeUsers": [""] })
+EXPECT_FAIL("ValueError", "User name must not be empty.", test_output_relative, { "excludeUsers": [""] })
 
-EXPECT_FAIL("ArgumentError", "User name must not be empty.", test_output_relative, { "includeUsers": ["@"] })
-EXPECT_FAIL("ArgumentError", "User name must not be empty.", test_output_relative, { "excludeUsers": ["@"] })
+EXPECT_FAIL("ValueError", "User name must not be empty.", test_output_relative, { "includeUsers": ["@"] })
+EXPECT_FAIL("ValueError", "User name must not be empty.", test_output_relative, { "excludeUsers": ["@"] })
 
-EXPECT_FAIL("ArgumentError", "Invalid user name: @", test_output_relative, { "includeUsers": ["@@"] })
-EXPECT_FAIL("ArgumentError", "Invalid user name: @", test_output_relative, { "excludeUsers": ["@@"] })
+EXPECT_FAIL("ValueError", "Invalid user name: @", test_output_relative, { "includeUsers": ["@@"] })
+EXPECT_FAIL("ValueError", "Invalid user name: @", test_output_relative, { "excludeUsers": ["@@"] })
 
-EXPECT_FAIL("ArgumentError", "Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes", test_output_relative, { "includeUsers": ["foo@''nope"] })
-EXPECT_FAIL("ArgumentError", "Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes", test_output_relative, { "excludeUsers": ["foo@''nope"] })
+EXPECT_FAIL("ValueError", "Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes", test_output_relative, { "includeUsers": ["foo@''nope"] })
+EXPECT_FAIL("ValueError", "Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes", test_output_relative, { "excludeUsers": ["foo@''nope"] })
 
 #@<> create an invalid test user with a ' character, which would be dumped wrong
 session.run_sql("CREATE USER IF NOT EXISTS 'foo''bar'@'localhost' IDENTIFIED BY 'pwd';")
@@ -1015,14 +1015,14 @@ EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basen
 
 #@<> WL13807-FR4.11.1 - The table names must be in form `schema.table`. Both `schema` and `table` must be valid MySQL identifiers and must be quoted with backtick (`` ` ``) character when required.
 # WL13807-TSFR4_36
-EXPECT_FAIL("ArgumentError", "The table to be excluded must be in the following form: schema.table, with optional backtick quotes, wrong value: 'dummy'.", test_output_relative, { "excludeTables": [ "dummy" ] })
-EXPECT_FAIL("ArgumentError", "Failed to parse table to be excluded 'dummy.dummy.dummy': Invalid object name, expected end of name, but got: '.'", test_output_relative, { "excludeTables": [ "dummy.dummy.dummy" ] })
-EXPECT_FAIL("ArgumentError", "Failed to parse table to be excluded '@.dummy': Invalid character in identifier", test_output_relative, { "excludeTables": [ "@.dummy" ] })
-EXPECT_FAIL("ArgumentError", "Failed to parse table to be excluded 'dummy.@': Invalid character in identifier", test_output_relative, { "excludeTables": [ "dummy.@" ] })
-EXPECT_FAIL("ArgumentError", "Failed to parse table to be excluded '@.@': Invalid character in identifier", test_output_relative, { "excludeTables": [ "@.@" ] })
-EXPECT_FAIL("ArgumentError", "Failed to parse table to be excluded '1.dummy': Invalid identifier: identifiers may begin with a digit but unless quoted may not consist solely of digits.", test_output_relative, { "excludeTables": [ "1.dummy" ] })
-EXPECT_FAIL("ArgumentError", "Failed to parse table to be excluded 'dummy.1': Invalid identifier: identifiers may begin with a digit but unless quoted may not consist solely of digits.", test_output_relative, { "excludeTables": [ "dummy.1" ] })
-EXPECT_FAIL("ArgumentError", "Failed to parse table to be excluded '2.1': Invalid identifier: identifiers may begin with a digit but unless quoted may not consist solely of digits.", test_output_relative, { "excludeTables": [ "2.1" ] })
+EXPECT_FAIL("ValueError", "The table to be excluded must be in the following form: schema.table, with optional backtick quotes, wrong value: 'dummy'.", test_output_relative, { "excludeTables": [ "dummy" ] })
+EXPECT_FAIL("ValueError", "Failed to parse table to be excluded 'dummy.dummy.dummy': Invalid object name, expected end of name, but got: '.'", test_output_relative, { "excludeTables": [ "dummy.dummy.dummy" ] })
+EXPECT_FAIL("ValueError", "Failed to parse table to be excluded '@.dummy': Invalid character in identifier", test_output_relative, { "excludeTables": [ "@.dummy" ] })
+EXPECT_FAIL("ValueError", "Failed to parse table to be excluded 'dummy.@': Invalid character in identifier", test_output_relative, { "excludeTables": [ "dummy.@" ] })
+EXPECT_FAIL("ValueError", "Failed to parse table to be excluded '@.@': Invalid character in identifier", test_output_relative, { "excludeTables": [ "@.@" ] })
+EXPECT_FAIL("ValueError", "Failed to parse table to be excluded '1.dummy': Invalid identifier: identifiers may begin with a digit but unless quoted may not consist solely of digits.", test_output_relative, { "excludeTables": [ "1.dummy" ] })
+EXPECT_FAIL("ValueError", "Failed to parse table to be excluded 'dummy.1': Invalid identifier: identifiers may begin with a digit but unless quoted may not consist solely of digits.", test_output_relative, { "excludeTables": [ "dummy.1" ] })
+EXPECT_FAIL("ValueError", "Failed to parse table to be excluded '2.1': Invalid identifier: identifiers may begin with a digit but unless quoted may not consist solely of digits.", test_output_relative, { "excludeTables": [ "2.1" ] })
 
 #@<> WL13807-FR4.11.2 - If the specified table does not exist in the schema, or the schema is not included in dump, the table name is discarded.
 # WL13807-TSFR4_34
@@ -1281,8 +1281,8 @@ EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ddlOnly": True, "
 #@<> WL13807-FR16.2 - The `options` dictionary may contain a `compatibility` key with an array of strings value, which specifies the `MySQL Database Service`-related compatibility modifications that should be applied when creating the DDL files.
 TEST_ARRAY_OF_STRINGS_OPTION("compatibility")
 
-EXPECT_FAIL("ArgumentError", "Unknown compatibility option: dummy", test_output_relative, { "compatibility": [ "dummy" ] })
-EXPECT_FAIL("ArgumentError", "Unknown compatibility option: ", test_output_relative, { "compatibility": [ "" ] })
+EXPECT_FAIL("ValueError", "Unknown compatibility option: dummy", test_output_relative, { "compatibility": [ "dummy" ] })
+EXPECT_FAIL("ValueError", "Unknown compatibility option: ", test_output_relative, { "compatibility": [ "" ] })
 
 #@<> WL13807-FR16.2.1 - The `compatibility` option may contain the following values:
 # * `force_innodb` - replace incompatible table engines with `InnoDB`,
@@ -1403,7 +1403,7 @@ create_user()
 EXPECT_FAIL("RuntimeError", "Failed to get object list", '', {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"})
 
 #@<> An error should occur when dumping using oci+os://
-EXPECT_FAIL("ArgumentError", "Directory handling for oci+os protocol is not supported.", 'oci+os://sakila')
+EXPECT_FAIL("ValueError", "Directory handling for oci+os protocol is not supported.", 'oci+os://sakila')
 
 #@<> Drop roles {VER(>=8.0.0)}
 session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])

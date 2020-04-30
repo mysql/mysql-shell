@@ -873,8 +873,8 @@ Value Cpp_function::invoke(const Argument_list &args) {
   // exception types should have been caught earlier, in the bridges
   try {
     return _func(args);
-  } catch (const shcore::Exception &e) {
-    // shcore::Exception can be thrown by bridges
+  } catch (const shcore::Error &) {
+    // shcore::Error can be thrown by bridges
     throw;
   } catch (const std::invalid_argument &e) {
     throw Exception::argument_error(e.what());

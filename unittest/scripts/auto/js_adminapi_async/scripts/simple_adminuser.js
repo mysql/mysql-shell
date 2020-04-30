@@ -23,7 +23,7 @@ session2.runSql('SET GLOBAL validate_password_policy=\'LOW\'');
 session2.runSql('SET GLOBAL validate_password_length=1');
 
 //@<> configureReplicaSetInstance - validate_password error
-EXPECT_THROWS_TYPE(function(){dba.configureReplicaSetInstance(__sandbox_uri1, {clusterAdmin:"admin", clusterAdminPassword:"bla"})}, "Dba.configureReplicaSetInstance: " + __sb1 + ": Your password does not satisfy the current policy requirements", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){dba.configureReplicaSetInstance(__sandbox_uri1, {clusterAdmin:"admin", clusterAdminPassword:"bla"})}, "Dba.configureReplicaSetInstance: " + __sb1 + ": Your password does not satisfy the current policy requirements", "MYSQLSH");
 
 //@ configureReplicaSetInstance + create admin user
 dba.configureReplicaSetInstance(__sandbox_uri1, {clusterAdmin:"admin", clusterAdminPassword:"blaa"});

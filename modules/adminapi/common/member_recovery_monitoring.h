@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,7 +51,7 @@ std::shared_ptr<mysqlsh::dba::Instance> wait_clone_start(
 void monitor_distributed_recovery(const mysqlshdk::mysql::IInstance &instance,
                                   Recovery_progress_style /*progress_style*/);
 
-void monitor_clone_instance(
+void monitor_standalone_clone_instance(
     const mysqlshdk::db::Connection_options &instance_def,
     const std::string &begin_time, Recovery_progress_style progress_style,
     int startup_timeout_sec, int restart_timeout_sec);

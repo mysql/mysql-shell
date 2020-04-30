@@ -17,7 +17,7 @@ session1.runSql('SET GLOBAL validate_password_policy=\'LOW\'');
 session1.runSql('SET GLOBAL validate_password_length=1');
 
 //@<> With validate_password plugin enabled, an error must be thrown when the password does not satisfy the requirements
-EXPECT_THROWS_TYPE(function(){dba.configureInstance(__sandbox_uri1, {mycnfPath:mycnf, clusterAdmin:'admin', clusterAdminPassword:'foo'});}, "Dba.configureInstance: " + __endpoint1 + ": Your password does not satisfy the current policy requirements", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){dba.configureInstance(__sandbox_uri1, {mycnfPath:mycnf, clusterAdmin:'admin', clusterAdminPassword:'foo'});}, "Dba.configureInstance: " + __endpoint1 + ": Your password does not satisfy the current policy requirements", "MYSQLSH");
 
 //@ configureInstance custom cluster admin and password
 var root_uri1 = "root@" + uri1;

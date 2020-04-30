@@ -31,7 +31,7 @@
 ||
 
 #@# Savepoint Error Conditions (WL10859-ET1_2)
-||ArgumentError: Session.set_savepoint: Argument #1 is expected to be a string
+||ValueError: Session.set_savepoint: Argument #1 is expected to be a string
 ||Session.set_savepoint: Invalid number of arguments, expected 0 to 1 but got 2
 
 #@ Create a savepoint without specifying a name (WL10869-SR1_1)
@@ -187,10 +187,10 @@
 |Can't drop database 'unexisting'; database doesn't exist|
 
 #@ Session: quote_name no parameters
-||ArgumentError: Session.quote_name: Invalid number of arguments, expected 1 but got 0
+||ValueError: Session.quote_name: Invalid number of arguments, expected 1 but got 0
 
 #@ Session: quote_name wrong param type
-||ArgumentError: Session.quote_name: Argument #1 is expected to be a string
+||ValueError: Session.quote_name: Argument #1 is expected to be a string
 
 #@ Session: quote_name with correct parameters
 |`sample`|

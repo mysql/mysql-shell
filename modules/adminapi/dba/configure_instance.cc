@@ -739,7 +739,7 @@ shcore::Value Configure_instance::execute() {
 
   if (m_needs_configuration_update) {
     // Execute the configure instance operation
-    console->println("Configuring instance...");
+    console->print_info("Configuring instance...");
     m_needs_restart = mysqlsh::dba::configure_instance(
         m_cfg.get(), m_invalid_cfgs, m_cluster_type);
     if (!m_output_mycnf_path.empty() && m_output_mycnf_path != m_mycnf_path &&
@@ -767,7 +767,7 @@ shcore::Value Configure_instance::execute() {
     // We can restart and user wants to restart
     if (m_can_restart && !m_restart.is_null() && *m_restart) {
       try {
-        console->println("Restarting MySQL...");
+        console->print_info("Restarting MySQL...");
         m_target_instance->query("RESTART");
         console->print_note("MySQL server at " + m_target_instance->descr() +
                             " was restarted.");
@@ -775,7 +775,10 @@ shcore::Value Configure_instance::execute() {
         log_error("Error executing RESTART: %s", err.format().c_str());
         console->print_error("Remote restart of MySQL server failed: " +
                              err.format());
-        console->println("Please restart MySQL manually");
+        console->print_info("Please restart MySQL manually");
+        // Rethrow the exception so that the caller can know that it needs
+        // a restart and the requested action (restart) failed.
+        throw;
       }
     } else {
       console->print_note(

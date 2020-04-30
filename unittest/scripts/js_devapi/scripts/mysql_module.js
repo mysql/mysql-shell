@@ -1,5 +1,5 @@
 // Assumptions: validateMembers exists
-var mysql = require('mysql');
+var mysql=require('mysql');
 
 // The tests assume the next variables have been put in place
 // on the JS Context
@@ -12,6 +12,7 @@ var mysql = require('mysql');
 //@<> mysql module: exports
 validateMembers(mysql, [
     'getClassicSession',
+    'ErrorCode',
     'getSession',
     'help'])
 
@@ -26,3 +27,6 @@ mysql.getSession()
 mysql.getSession(1, 2, 3)
 mysql.getSession(["bla"])
 mysql.getSession("some@uri", 25)
+
+//@<> ErrorCode
+EXPECT_EQ(1045, mysql.ErrorCode.ER_ACCESS_DENIED_ERROR)

@@ -64,13 +64,15 @@ void translate_python_exception(const std::string &context = "") {
   try {
     throw;
   } catch (const mysqlshdk::db::Error &e) {
-    PyObject *err = PyTuple_New(2);
-    PyTuple_SET_ITEM(err, 0, PyInt_FromLong(e.code()));
-    PyTuple_SET_ITEM(err, 1, PyString_FromString(e.what()));
-    PyErr_SetObject(Python_context::get()->db_error(), err);
-    Py_DECREF(err);
-  } catch (Exception &e) {
+    Python_context::set_shell_error(e);
+  } catch (const shcore::Exception &e) {
     Python_context::set_python_error(e, context);
+  } catch (const shcore::Error &e) {
+    if (context.empty())
+      Python_context::set_shell_error(e);
+    else
+      Python_context::set_shell_error(
+          shcore::Error((context + ": " + e.what()).c_str(), e.code()));
   } catch (const std::exception &exc) {
     Python_context::set_python_error(exc);
   }
@@ -126,6 +128,26 @@ static PyObject *method_call(PyShMethodObject *self, PyObject *args,
   return call_object_method(*self->object, self->method->c_str(), args, kw);
 }
 
+static PyObject *method_getattro(PyShMethodObject *self, PyObject *attr_name) {
+  std::string attrname;
+
+  if (Python_context::pystring_to_string(attr_name, &attrname)) {
+    PyObject *object;
+    if ((object = PyObject_GenericGetAttr((PyObject *)self, attr_name)))
+      return object;
+
+    if (attrname == "__name__") {
+      PyErr_Clear();
+      return PyString_FromString(self->method->c_str());
+    } else if (attrname == "__qualname__") {
+      PyErr_Clear();
+      std::string qname = (*self->object)->class_name() + "." + *self->method;
+      return PyString_FromString(qname.c_str());
+    }
+  }
+  return NULL;
+}
+
 static PyTypeObject PyShMethodObjectType = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
     "builtin_function_or_method",  // char *tp_name; /* For printing, in format
@@ -150,11 +172,11 @@ static PyTypeObject PyShMethodObjectType = {
 
     /* More standard operations (here for binary compatibility) */
 
-    0,                         //  hashfunc tp_hash;
-    (ternaryfunc)method_call,  //  ternaryfunc tp_call;
-    0,                         //  reprfunc tp_str;
-    PyObject_GenericGetAttr,   //  getattrofunc tp_getattro;
-    PyObject_GenericSetAttr,   //  setattrofunc tp_setattro;
+    0,                              //  hashfunc tp_hash;
+    (ternaryfunc)method_call,       //  ternaryfunc tp_call;
+    0,                              //  reprfunc tp_str;
+    (getattrofunc)method_getattro,  //  getattrofunc tp_getattro;
+    PyObject_GenericSetAttr,        //  setattrofunc tp_setattro;
 
     /* Functions to access object as input/output buffer */
     0,  //  PyBufferProcs *tp_as_buffer;

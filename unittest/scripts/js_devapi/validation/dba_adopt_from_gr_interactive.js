@@ -87,7 +87,7 @@ mysql_innodb_cluster_2222
 }
 
 //@ Create cluster adopting from GR - answer 'no' to prompt
-||Dba.createCluster: Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true (ArgumentError)
+||Dba.createCluster: Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true (MYSQLSH 51315)
 
 //@ Check cluster status - failure
 ||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)

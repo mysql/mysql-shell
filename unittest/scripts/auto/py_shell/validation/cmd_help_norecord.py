@@ -385,6 +385,10 @@ No help items found matching 'unknown'
 #@<OUT> Help on topic with several matches
 Found several entries matching session
 
+The following topics were found at the AdminAPI category:
+
+- dba.session
+
 The following topics were found at the X DevAPI category:
 
 - mysqlx.Collection.session
@@ -395,7 +399,7 @@ The following topics were found at the X DevAPI category:
 
 For help on a specific topic use: \? <topic>
 
-e.g.: \? mysqlx.Collection.session
+e.g.: \? dba.session
 
 #@<OUT> Help for sandbox operations
 Found several entries matching *sandbox*

@@ -691,6 +691,9 @@ class Help_manager {
 #define REGISTER_HELP_FUNCTION_TEXT(x, y) \
   shcore::Help_register_split x##function(#x, y, true, false)
 
+#define REGISTER_HELP_PROPERTY_TEXT(x, y) \
+  shcore::Help_register_split x##property(#x, y, true, false)
+
 #define REGISTER_HELP_DETAIL_TEXT(x, y) \
   shcore::Help_register_split x##detail(#x, y, false, true)
 

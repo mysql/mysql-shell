@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -133,6 +133,7 @@ class TYPES_COMMON_PUBLIC Python_context {
                                const std::string &location = "");
   static void set_python_error(const std::exception &exc,
                                const std::string &location = "");
+  static void set_shell_error(const shcore::Error &e);
   static void set_python_error(PyObject *obj, const std::string &location);
   static bool pystring_to_string(PyObject *strobject, std::string *result,
                                  bool convert = false);
@@ -144,6 +145,7 @@ class TYPES_COMMON_PUBLIC Python_context {
   AutoPyObject get_shell_function_class();
 
   PyObject *db_error() { return _db_error; }
+  PyObject *error() { return _error; }
 
   std::string fetch_and_clear_exception();
 
@@ -166,6 +168,7 @@ class TYPES_COMMON_PUBLIC Python_context {
   static PyObject *shell_raw_input(PyObject *self, PyObject *args);
   static PyObject *shell_stdin_read(PyObject *self, PyObject *args);
   static PyObject *shell_stdin_readline(PyObject *self, PyObject *args);
+  static PyObject *shell_stdin_isatty(PyObject *self, PyObject *args);
   static PyObject *shell_interactive_eval_hook(PyObject *self, PyObject *args);
 
   std::pair<shcore::Prompt_result, std::string> read_line(
@@ -185,6 +188,7 @@ class TYPES_COMMON_PUBLIC Python_context {
   std::string _stdin_buffer;
 
   PyObject *_db_error;
+  PyObject *_error;
 
   Python_type_bridger _types;
 

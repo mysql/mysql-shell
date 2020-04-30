@@ -86,7 +86,7 @@ TEST_F(Shell_error_printing, python_stack) {
   EXPECT_EQ(
       "Traceback (most recent call last):\n"
       "  File \"<string>\", line 1, in <module>\n"
-      "SystemError: ArgumentError: Dba.deploy_sandbox_instance: "
+      "ValueError: Dba.deploy_sandbox_instance: "
       "Invalid value for 'port': Please use a valid TCP port number >= 1024 "
       "and <= 65535\n\n",
       output_handler.std_err);

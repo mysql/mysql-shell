@@ -39,7 +39,8 @@ namespace dba {
 
 std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
     mysqlsh::dba::Instance *instance, const std::string &begin_time,
-    Recovery_progress_style progress_style, int restart_timeout_sec);
+    Recovery_progress_style progress_style, int restart_timeout_sec,
+    bool is_group_member);
 
 namespace {
 
@@ -138,7 +139,7 @@ void do_monitor_gr_recovery_status(
         throw_clone_recovery_error(*instance, begin_time);
       } else if (progress_style != Recovery_progress_style::NOWAIT) {
         Scoped_instance new_instance(monitor_clone_recovery(
-            instance, begin_time, progress_style, restart_timeout_sec));
+            instance, begin_time, progress_style, restart_timeout_sec, true));
 
         // After a clone, a distributed recovery is done by GR, but there's a
         // time gap between clone finishing and the next recovery starting.
@@ -401,7 +402,7 @@ void monitor_distributed_recovery(const mysqlshdk::mysql::IInstance &instance,
   console->print_info();
 }
 
-void monitor_clone_instance(
+void monitor_standalone_clone_instance(
     const mysqlshdk::db::Connection_options &instance_def,
     const std::string &begin_time, Recovery_progress_style progress_style,
     int startup_timeout_sec, int restart_timeout_sec) {
@@ -418,12 +419,13 @@ void monitor_clone_instance(
       wait_clone_start(instance_def, begin_time, startup_timeout_sec));
 
   monitor_clone_recovery(instance.get(), begin_time, progress_style,
-                         restart_timeout_sec);
+                         restart_timeout_sec, false);
 }
 
 std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
     mysqlsh::dba::Instance *instance, const std::string &begin_time,
-    Recovery_progress_style progress_style, int restart_timeout_sec) {
+    Recovery_progress_style progress_style, int restart_timeout_sec,
+    bool is_group_member) {
   auto console = current_console();
   bool wait_restart = false;
   bool ignore_cancel = false;
@@ -508,6 +510,13 @@ std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
 
     console->print_info("* " + instance->get_canonical_address() +
                         " has restarted, waiting for clone to finish...");
+
+    // if start_on_boot is disabled, start GR by hand
+    if (is_group_member &&
+        !new_instance->get_sysvar_bool("group_replication_start_on_boot")
+             .get_safe()) {
+      new_instance->execute("START GROUP_REPLICATION");
+    }
   }
   // Wait for clone recovery to finish
   while (!stop) {

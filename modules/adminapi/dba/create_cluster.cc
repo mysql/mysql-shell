@@ -95,9 +95,10 @@ void Create_cluster::validate_create_cluster_options() {
       }
     }
     if (!m_adopt_from_gr && !m_retrying)
-      throw shcore::Exception::argument_error(
+      throw shcore::Exception(
           "Creating a cluster on an unmanaged replication group requires "
-          "adoptFromGR option to be true");
+          "adoptFromGR option to be true",
+          SHERR_DBA_BADARG_INSTANCE_ALREADY_IN_GR);
   }
 
   if (m_adopt_from_gr && !m_gr_opts.ssl_mode.is_null()) {
@@ -613,6 +614,12 @@ shcore::Value Create_cluster::execute() {
         cluster_impl->get_id(), k_cluster_attribute_assume_gtid_set_complete,
         m_clone_opts.gtid_set_is_complete ? shcore::Value::True()
                                           : shcore::Value::False());
+
+    metadata->update_cluster_attribute(
+        cluster_impl->get_id(), k_cluster_attribute_manual_start_on_boot,
+        m_gr_opts.manual_start_on_boot.get_safe(false)
+            ? shcore::Value::True()
+            : shcore::Value::False());
 
     metadata->update_cluster_attribute(cluster_impl->get_id(),
                                        k_cluster_attribute_default,

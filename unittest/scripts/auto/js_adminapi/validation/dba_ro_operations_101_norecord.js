@@ -11,6 +11,7 @@
     "defaultReplicaSet": {
         "GRProtocolVersion": "[[*]]",
         "groupName": "<<<gr_uuid>>>",
+        "groupViewId": "[[*]]",
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
         "ssl": "REQUIRED",
@@ -205,7 +206,7 @@ ${*}
             }
         ],
         "tags": {
-            "global": [],
+            ".global": [],
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": []
         },

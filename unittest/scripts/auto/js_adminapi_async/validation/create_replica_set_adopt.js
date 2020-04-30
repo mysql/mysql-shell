@@ -31,7 +31,7 @@
 ||Dba.createReplicaSet: Unable to detect target instance state. Please check account privileges. (RuntimeError)
 |ERROR: <<<__address1>>>: could not query instance: MySQL Error 1227 (42000): Access denied; you need (at least one of) the REPLICATION SLAVE privilege(s) for this operation|
 |ERROR: <<<__address1>>>: could not query instance: MySQL Error 1227 (42000): Access denied; you need (at least one of) the REPLICATION SLAVE privilege(s) for this operation|
-||Dba.createReplicaSet: Access denied; you need (at least one of) the SUPER, REPLICATION CLIENT privilege(s) for this operation (RuntimeError)
+||Dba.createReplicaSet: Access denied; you need (at least one of) the SUPER, REPLICATION CLIENT privilege(s) for this operation (MYSQLSH 1227)
 
 //@# adopt with existing old metadata, belongs to other (should fail)
 ||Dba.createReplicaSet: Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.0.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)

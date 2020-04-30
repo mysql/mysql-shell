@@ -57,6 +57,22 @@ var c = dba.createCluster('test', {interactive: true, multiPrimary: true});
 //@<> WL#12011: FR2-03 - no interactive option (default: non-interactive).
 var c = dba.createCluster('test', {multiPrimary: true, force: true});
 
+c.dissolve();
+
+//@<> Create cluster without group_replication_start_on_boot
+session.runSql("set global group_replication_start_on_boot=1");
+var start_on_boot = session.runSql("select @@group_replication_start_on_boot").fetchOne()[0];
+EXPECT_EQ(1, start_on_boot);
+
+// this also ensures the ensure_updates_everywhere_checks option
+// is updated correctly when we're switching from multi-primary to single-primary
+session.runSql("set global group_replication_single_primary_mode=0");
+session.runSql("set global group_replication_enforce_update_everywhere_checks=1");
+
+c = dba.createCluster("test", {manualStartOnBoot:true});
+var start_on_boot = session.runSql("select @@group_replication_start_on_boot").fetchOne()[0];
+EXPECT_EQ(0, start_on_boot);
+
 //@ WL#12011: Finalization.
 c.disconnect();
 session.close();

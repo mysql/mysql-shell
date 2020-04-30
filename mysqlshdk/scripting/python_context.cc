@@ -568,7 +568,7 @@ void Python_context::set_argv(const std::vector<std::string> &argv) {
 }
 
 Value Python_context::execute(const std::string &code,
-                              const std::string &UNUSED(source),
+                              const std::string &source,
                               const std::vector<std::string> &argv) {
   PyObject *py_result;
   Value retvalue;
@@ -576,8 +576,39 @@ Value Python_context::execute(const std::string &code,
 
   set_argv(argv);
 
-  py_result = PyRun_StringFlags(code.c_str(), Py_file_input, _globals, _locals,
+  PyObject *m = PyImport_AddModule("__main__");
+  if (!m) return Value();
+
+  Py_INCREF(m);
+
+  PyObject *d = PyModule_GetDict(m);
+
+  if (!source.empty()) {
+    if (!PyDict_GetItemString(d, "__file__")) {
+      {
+        PyObject *f = PyUnicode_DecodeFSDefault(source.c_str());
+        if (f && PyDict_SetItemString(d, "__file__", f) < 0) {
+          Py_DECREF(f);
+          Py_DECREF(m);
+
+          PyErr_Print();
+          return Value();
+        }
+        Py_XDECREF(f);
+      }
+      if (PyDict_SetItemString(d, "__cached__", Py_None) < 0) {
+        Py_DECREF(m);
+
+        PyErr_Print();
+        return Value();
+      }
+    }
+  }
+
+  py_result = PyRun_StringFlags(code.c_str(), Py_file_input, _globals, d,
                                 &m_compiler_flags);
+
+  Py_DECREF(m);
 
   if (!py_result) {
     PyErr_Print();
@@ -788,21 +819,26 @@ void Python_context::set_python_error(const shcore::Exception &exc,
   int64_t code = exc.error()->get_int("code", -1);
   std::string error_location = exc.error()->get_string("location", "");
 
-  if (exc.is_mysql()) {
-    PyObject *args = PyTuple_New(2);
-    if (args) {
-      PyTuple_SET_ITEM(args, 0, PyInt_FromLong(code));
-      PyTuple_SET_ITEM(args, 1, PyString_FromString(message.c_str()));
-      PyErr_SetObject(get()->_db_error, args);
-      Py_DECREF(args);
-      return;
-    }
+  if (code > 0) {
+    set_shell_error(exc);
+    return;
   }
 
   if (error_location.empty()) error_location = location;
 
+  PyObject *exctype = PyExc_RuntimeError;
+
   if (!message.empty()) {
-    if (!type.empty()) error_message += type;
+    if (!type.empty()) {
+      if (exc.is_argument())
+        exctype = PyExc_ValueError;
+      else if (exc.is_type())
+        exctype = PyExc_TypeError;
+      else if (exc.is_runtime())
+        exctype = PyExc_RuntimeError;
+      else
+        error_message += type;
+    }
 
     if (code != -1)
       error_message += shcore::str_format(" (%lld)", (long long int)code);
@@ -817,10 +853,22 @@ void Python_context::set_python_error(const shcore::Exception &exc,
   }
 
   PyErr_SetString(
-      PyExc_SystemError,
-      (error_location.empty() ? error_message
-                              : error_location + ": " + error_message)
-          .c_str());
+      exctype, (error_location.empty() ? error_message
+                                       : error_location + ": " + error_message)
+                   .c_str());
+}
+
+void Python_context::set_shell_error(const shcore::Error &e) {
+  PyObject *args = PyTuple_New(2);
+  if (args) {
+    PyTuple_SET_ITEM(args, 0, PyInt_FromLong(e.code()));
+    PyTuple_SET_ITEM(args, 1, PyString_FromString(e.what()));
+    if (e.code() < 50000)  // MySQL server/client error codes
+      PyErr_SetObject(get()->_db_error, args);
+    else
+      PyErr_SetObject(get()->_error, args);
+    Py_DECREF(args);
+  }
 }
 
 void Python_context::set_python_error(PyObject *obj,
@@ -1049,6 +1097,12 @@ PyObject *Python_context::shell_stdin_readline(PyObject *, PyObject *) {
   return PyString_FromString(line.c_str());
 }
 
+PyObject *Python_context::shell_stdin_isatty(PyObject *, PyObject *) {
+  PyObject *r = Py_False;
+  Py_INCREF(r);
+  return r;
+}
+
 PyObject *Python_context::shell_interactive_eval_hook(PyObject *,
                                                       PyObject *args) {
   Python_context *ctx;
@@ -1094,6 +1148,7 @@ PyMethodDef Python_context::ShellStdInMethods[] = {
      "Read a string through the shell input mechanism."},
     {"readline", &Python_context::shell_stdin_readline, METH_NOARGS,
      "Read a line of string through the shell input mechanism."},
+    {"isatty", &Python_context::shell_stdin_isatty, METH_NOARGS, ""},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
@@ -1110,13 +1165,31 @@ PyMethodDef Python_context::ShellPythonSupportMethods[] = {
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
+static void add_module_members(
+    Python_context *ctx, PyObject *py_module_ref,
+    const std::shared_ptr<shcore::Cpp_object_bridge> &module) {
+  // Now inserts every element on the module
+  PyObject *py_dict = PyModule_GetDict(py_module_ref);
+
+  for (const auto &member_name : module->get_members()) {
+    shcore::Value member = module->get_member_advanced(member_name);
+    PyObject *value;
+    if (member.type == shcore::Function) {
+      value = wrap(module, member_name);
+    } else {
+      value = ctx->shcore_value_to_pyobj(member);
+    }
+    // incrs ref
+    PyDict_SetItemString(py_dict, member_name.c_str(), value);
+    Py_XDECREF(value);
+  }
+}
+
 void Python_context::register_mysqlsh_builtins() {
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
   // Now add built-in shell modules/objects in the mysqlsh module
   auto modules = Object_factory::package_contents("__modules__");
-
-  shcore::Scoped_naming_style lower(NamingStyle::LowerCaseUnderscores);
 
   for (const auto &name : modules) {
     auto module_obj = Object_factory::call_constructor("__modules__", name,
@@ -1127,7 +1200,15 @@ void Python_context::register_mysqlsh_builtins() {
 
     std::string module_name = "mysqlsh." + name;
 
-    PyObject *py_module_ref = py_register_module(module_name, nullptr);
+    PyObject *py_module_ref;
+
+    // add mysqlsh module methods directly into the top-level mysqlsh module
+    if (name == "mysqlsh") {
+      py_module_ref = _mysqlsh_module;
+      Py_INCREF(py_module_ref);
+    } else {
+      py_module_ref = py_register_module(module_name, nullptr);
+    }
 
     if (py_module_ref == NULL)
       throw std::runtime_error("Error initializing the '" + name +
@@ -1140,28 +1221,13 @@ void Python_context::register_mysqlsh_builtins() {
       PyDict_SetItemString(PyModule_GetDict(_mysqlsh_module), name.c_str(),
                            py_module_ref);
 
-    // Now inserts every element on the module
-    PyObject *py_dict = PyModule_GetDict(py_module_ref);
-
-    for (const auto &member_name : module->get_members()) {
-      shcore::Value member = module->get_member_advanced(member_name);
-      if (member.type == shcore::Function || member.type == shcore::Object) {
-        PyObject *p = member.type == shcore::Object
-                          ? _types.shcore_value_to_pyobj(member)
-                          : wrap(module, member_name);
-        // incrs ref
-        PyDict_SetItemString(py_dict, member_name.c_str(), p);
-        Py_XDECREF(p);
-      }
-    }
+    add_module_members(this, py_module_ref, module);
 
     Py_DECREF(py_module_ref);
   }
 }
 
 void Python_context::register_mysqlsh_module() {
-  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
-
   // Registers the mysqlsh module/package, at least for now this exists
   // only on the python side of things, this module encloses the inner
   // modules: mysql and mysqlx to prevent class names i.e. using connector/py
@@ -1180,6 +1246,10 @@ void Python_context::register_mysqlsh_module() {
   _db_error = PyDict_GetItemString(py_mysqlsh_dict, "DBError");
   if (!_db_error) PyErr_Print();
   assert(_db_error);
+
+  _error = PyDict_GetItemString(py_mysqlsh_dict, "Error");
+  if (!_error) PyErr_Print();
+  assert(_error);
 
   _mysqlsh_globals = PyDict_GetItemString(py_mysqlsh_dict, "globals");
   assert(_mysqlsh_globals);

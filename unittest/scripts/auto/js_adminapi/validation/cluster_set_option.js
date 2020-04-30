@@ -10,10 +10,10 @@ Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 ||Cluster.setOption: This operation requires all the cluster members to be ONLINE (RuntimeError)
 
 //@<ERR> WL#11465: Error when executing setOption on a cluster with no visible quorum {VER(>=8.0.14)}
-Cluster.setOption: There is no quorum to perform the operation (RuntimeError)
+Cluster.setOption: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@<ERR> WL#11465: Error when executing setOption on a cluster with no visible quorum 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-Cluster.setOption: There is no quorum to perform the operation (RuntimeError)
+Cluster.setOption: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@ WL#11465: Re-create the cluster
 ||
@@ -45,7 +45,7 @@ Setting the value of 'memberWeight' to '25' in all cluster members ...
 Successfully set the value of 'memberWeight' to '25' in the 'newName' cluster.
 
 //@<ERR> WL#11465: setOption exitStateAction with invalid value
-Cluster.setOption: <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (RuntimeError)
+Cluster.setOption: <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (MYSQLSH 1231)
 
 //@<OUT> WL#11465: setOption exitStateAction {VER(>=8.0.0)}
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in all cluster members ...
@@ -78,10 +78,10 @@ Setting the value of 'autoRejoinTries' to '2016' in all cluster members ...
 Successfully set the value of 'autoRejoinTries' to '2016' in the 'newName' cluster.
 
 //@ WL#12066: TSF2_4 setOption autoRejoinTries doesn't accept negative values {VER(>=8.0.16)}
-||Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (RuntimeError)
+||Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (MYSQLSH 1231)
 
 //@ WL#12066: TSF2_5 setOption autoRejoinTries doesn't accept values out of range {VER(>=8.0.16)}
-||Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (RuntimeError)
+||Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (MYSQLSH 1231)
 
 //@ WL#13208: TS_FR2 verify disableClone cannot be set with setOption() to false in a 5.7 cluster {VER(>=5.7.24) && VER(<8.0.0)}
 ||Cluster.setOption: Option 'disableClone' not supported on Cluster. (RuntimeError)

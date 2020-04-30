@@ -33,6 +33,9 @@ DESCRIPTION
       can be used to create test clusters and replicasets.
 
 PROPERTIES
+      session
+            The session the dba object will use by default.
+
       verbose
             Controls debug message verbosity for sandbox related dba
             operations.
@@ -461,6 +464,9 @@ DESCRIPTION
       - groupSeeds: string value with a comma-separated list of the Group
         Replication peer addresses to be used instead of the automatically
         generated one.
+      - manualStartOnBoot: boolean (default false). If false, Group Replication
+        in cluster instances will automatically start and rejoin when MySQL
+        starts, otherwise it must be started manually.
       - exitStateAction: string value indicating the group replication exit
         state action.
       - memberWeight: integer value with a percentage weight for automatic

@@ -240,15 +240,15 @@
 
 //@ SP - Connect with --cluster on a non-cluster member + cmd (error)
 |Option --cluster requires a session to a member of an InnoDB cluster.|
-|ERROR: RuntimeError: This function is not available through a session to a standalone instance|
+|ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance|
 
 //@ SP - Connect with --cluster on a non-cluster member interactive (error)
 |Option --cluster requires a session to a member of an InnoDB cluster.|
-|ERROR: RuntimeError: This function is not available through a session to a standalone instance|
+|ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance|
 
 //@ SP - Connect with --cluster on a non-cluster member (error)
 |Option --cluster requires a session to a member of an InnoDB cluster.|
-|ERROR: RuntimeError: This function is not available through a session to a standalone instance|
+|ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance|
 
 //@ SP - Connect with --replicaset, expect error {VER(>8.0.0)}
 |Option --replicaset requires a session to a member of an InnoDB ReplicaSet.|
@@ -316,7 +316,7 @@
 
 //@ SPX - Connect with --cluster on a non-cluster member (error)
 |Option --cluster requires a session to a member of an InnoDB cluster.|
-|ERROR: RuntimeError: This function is not available through a session to a standalone instance|
+|ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance|
 
 //@ SPX - Connect with --cluster + --redirect-primary 1
 |NOTE: --redirect-primary ignored because target is already a PRIMARY|
@@ -361,7 +361,7 @@
 
 //@ SPX implicit - Connect with --cluster on a non-cluster member (error)
 |Option --cluster requires a session to a member of an InnoDB cluster.|
-|ERROR: RuntimeError: This function is not available through a session to a standalone instance|
+|ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance|
 
 //@ SPX implicit - Connect with --cluster + --redirect-primary 1
 |NOTE: --redirect-primary ignored because target is already a PRIMARY|

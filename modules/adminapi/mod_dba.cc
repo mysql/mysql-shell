@@ -568,6 +568,11 @@ REGISTER_HELP(DBA_CLOSING3, "e.g. \\? dba.<<<deploySandboxInstance>>>");
 
 Dba::Dba(shcore::IShell_core *owner) : _shell_core(owner) { init(); }
 
+Dba::Dba(const std::shared_ptr<ShellBaseSession> &session)
+    : m_session(session) {
+  init();
+}
+
 Dba::~Dba() {}
 
 bool Dba::operator==(const Object_bridge &other) const {
@@ -576,6 +581,7 @@ bool Dba::operator==(const Object_bridge &other) const {
 
 void Dba::init() {
   add_property("verbose");
+  add_property("session");
 
   // Pure functions
   expose("createCluster", &Dba::create_cluster, "clusterName", "?options");
@@ -629,36 +635,54 @@ void Dba::set_member(const std::string &prop, shcore::Value value) {
 }
 
 REGISTER_HELP_PROPERTY(verbose, dba);
-REGISTER_HELP(DBA_VERBOSE_BRIEF,
-              "Controls debug message verbosity for sandbox related <b>dba</b> "
-              "operations.");
-REGISTER_HELP(DBA_VERBOSE_DETAIL,
-              "The assigned value can be either boolean or integer, the result "
-              "depends on the assigned value:");
-REGISTER_HELP(DBA_VERBOSE_DETAIL1, "@li 0: disables mysqlprovision verbosity");
-REGISTER_HELP(DBA_VERBOSE_DETAIL2, "@li 1: enables mysqlprovision verbosity");
-REGISTER_HELP(DBA_VERBOSE_DETAIL3,
-              "@li >1: enables mysqlprovision debug verbosity");
-REGISTER_HELP(DBA_VERBOSE_DETAIL4,
-              "@li Boolean: equivalent to assign either 0 or 1");
+REGISTER_HELP_PROPERTY_TEXT(DBA_VERBOSE, R"*(
+Controls debug message verbosity for sandbox related <b>dba</b> operations.
+
+The assigned value can be either boolean or integer, the result 
+depends on the assigned value:
+@li 0: disables mysqlprovision verbosity
+@li 1: enables mysqlprovision verbosity
+@li >1: enables mysqlprovision debug verbosity
+@li Boolean: equivalent to assign either 0 or 1
+)*");
 
 /**
  * $(DBA_VERBOSE_BRIEF)
  *
  * $(DBA_VERBOSE_DETAIL)
- * $(DBA_VERBOSE_DETAIL1)
- * $(DBA_VERBOSE_DETAIL2)
- * $(DBA_VERBOSE_DETAIL3)
- * $(DBA_VERBOSE_DETAIL4)
  */
 #if DOXYGEN_JS || DOXYGEN_PY
-Cluster Dba::verbose;
+int Dba::verbose;
+#endif
+
+REGISTER_HELP_PROPERTY(session, dba);
+REGISTER_HELP_PROPERTY_TEXT(DBA_SESSION, R"*(
+The session the dba object will use by default.
+
+Reference to the MySQL session that will be used as the default target for
+AdminAPI operations such as <<<getCluster>>>() or <<<createCluster>>>().
+
+This is a read-only property.
+)*");
+/**
+ * $(DBA_SESSION_BRIEF)
+ *
+ * $(DBA_SESSION_DETAIL)
+ */
+#if DOXYGEN_JS || DOXYGEN_PY
+Session Dba::session;
 #endif
 shcore::Value Dba::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
   if (prop == "verbose") {
     ret_val = shcore::Value(_provisioning_interface.get_verbose());
+  } else if (prop == "session") {
+    if (m_session) {
+      ret_val = shcore::Value(m_session);
+    } else if (_shell_core && _shell_core->get_dev_session()) {
+      ret_val = shcore::Value(_shell_core->get_dev_session());
+    }
   } else {
     ret_val = Cpp_object_bridge::get_member(prop);
   }
@@ -766,6 +790,8 @@ void Dba::connect_to_target_group(
 }
 
 std::shared_ptr<mysqlshdk::db::ISession> Dba::get_active_shell_session() const {
+  if (m_session) return m_session->get_core_session();
+
   if (_shell_core && _shell_core->get_dev_session())
     return _shell_core->get_dev_session()->get_core_session();
   return {};
@@ -1043,6 +1069,9 @@ used instead of the automatically generated one.
 @li groupSeeds: string value with a comma-separated list of the Group
 Replication peer addresses to be used instead of the automatically generated
 one.
+@li manualStartOnBoot: boolean (default false). If false, Group Replication in
+cluster instances will automatically start and rejoin when MySQL starts,
+otherwise it must be started manually.
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
 ${CLUSTER_OPT_FAILOVER_CONSISTENCY}

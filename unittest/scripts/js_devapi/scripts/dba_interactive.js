@@ -29,6 +29,7 @@ validateMembers(dba, [
     'startSandboxInstance',
     'stopSandboxInstance',
     'upgradeMetadata',
+    'session',
     'verbose'])
 
 //@# Dba: createCluster errors
@@ -129,7 +130,7 @@ session.runSql("SET sql_log_bin = 1");
 //@<OUT> Dba: createCluster with interaction
 var c1 = dba.createCluster('devCluster', {memberSslMode: 'REQUIRED', clearReadOnly: true});
 
-//@ Dba: checkInstanceConfiguration error
+//@ Dba: checkInstanceConfiguration in a cluster member
 testutil.expectPassword("*", "root");
 dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port1);
 

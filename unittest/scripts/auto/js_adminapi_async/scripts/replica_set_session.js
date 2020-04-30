@@ -86,7 +86,7 @@ expect_rs_variable();
 //@<> WL13236-TSFR1_3
 function expect_error_standalone_instance() {
   EXPECT_STDOUT_CONTAINS_MULTILINE(`WARNING: Option --replicaset requires a session to a member of an InnoDB ReplicaSet.
-ERROR: RuntimeError: This function is not available through a session to a standalone instance`);
+ERROR: MYSQLSH 51300: This function is not available through a session to a standalone instance`);
 }
 
 mysqlsh([__hostname_ip_uri3, '--replicaset', '--execute', 'println(rs.status())']);

@@ -58,13 +58,23 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
 
   // Set the GR primary mode (topology mode) (if provided).
   if (!single_primary_mode.is_null()) {
-    config->set("group_replication_single_primary_mode",
-                mysqlshdk::utils::nullable<bool>(single_primary_mode));
-
     // Enable GR enforce update everywhere checks for multi-primary clusters
     // and disable it for single-primary.
-    config->set("group_replication_enforce_update_everywhere_checks",
-                mysqlshdk::utils::nullable<bool>(!*single_primary_mode));
+    // Note: order matters, enforce_update must be already OFF if we're enabling
+    // single_primary_mode
+    if (*single_primary_mode) {
+      config->set("group_replication_enforce_update_everywhere_checks",
+                  mysqlshdk::utils::nullable<bool>(false));
+
+      config->set("group_replication_single_primary_mode",
+                  mysqlshdk::utils::nullable<bool>(true));
+    } else {
+      config->set("group_replication_single_primary_mode",
+                  mysqlshdk::utils::nullable<bool>(false));
+
+      config->set("group_replication_enforce_update_everywhere_checks",
+                  mysqlshdk::utils::nullable<bool>(true));
+    }
   }
 
   if (!gr_opts.ssl_mode.is_null()) {
@@ -152,9 +162,10 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
                 "autoRejoinTries");
   }
 
-  // Enable GR start on boot.
+  // Enable GR start on boot (unless disabled).
   config->set("group_replication_start_on_boot",
-              mysqlshdk::utils::nullable<bool>(true));
+              mysqlshdk::utils::nullable<bool>(
+                  !gr_opts.manual_start_on_boot.get_safe(false)));
 }
 }  // namespace
 
