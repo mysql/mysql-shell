@@ -91,9 +91,12 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
   EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
                         Version("5.7.19"), Version("8.1.0"), "", ""}),
                     std::invalid_argument, "This tool supports checking");
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
-                        Upgrade_check_options{current, current, "", ""}),
-                    std::invalid_argument, "must upgrade MySQL Shell");
+  EXPECT_THROW_LIKE(
+      Upgrade_check::create_checklist(
+          Upgrade_check_options{current, current, "", ""}),
+      std::invalid_argument,
+      "MySQL Shell cannot check MySQL server instances for upgrade if they are "
+      "at a version the same as or higher than the MySQL Shell version.");
   EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
                         Version("8.0.12"), Version("8.0.12"), "", ""}),
                     std::invalid_argument, "Target version must be greater");
@@ -1051,6 +1054,10 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
         ASSERT_TRUE(checks[i].HasMember("detectedProblems"));
         ASSERT_TRUE(checks[i]["detectedProblems"].IsArray());
         auto issues = checks[i]["detectedProblems"].GetArray();
+        if (issues.Size() == 0) {
+          EXPECT_FALSE(checks[i].HasMember("documentationLink"));
+          EXPECT_FALSE(checks[i].HasMember("description"));
+        }
         for (rapidjson::SizeType j = 0; j < issues.Size(); j++) {
           ASSERT_TRUE(issues[j].IsObject());
           ASSERT_TRUE(issues[j].HasMember("level"));

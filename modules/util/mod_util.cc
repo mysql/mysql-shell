@@ -242,14 +242,16 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     check_object.AddMember("title", rapidjson::StringRef(check.get_title()),
                            m_allocator);
     check_object.AddMember("status", rapidjson::StringRef("OK"), m_allocator);
-    if (check.get_description() != nullptr)
-      check_object.AddMember("description",
-                             rapidjson::StringRef(check.get_description()),
-                             m_allocator);
-    if (check.get_doc_link() != nullptr)
-      check_object.AddMember("documentationLink",
-                             rapidjson::StringRef(check.get_doc_link()),
-                             m_allocator);
+    if (!results.empty()) {
+      if (check.get_description() != nullptr)
+        check_object.AddMember("description",
+                               rapidjson::StringRef(check.get_description()),
+                               m_allocator);
+      if (check.get_doc_link() != nullptr)
+        check_object.AddMember("documentationLink",
+                               rapidjson::StringRef(check.get_doc_link()),
+                               m_allocator);
+    }
 
     rapidjson::Value issues(rapidjson::kArrayType);
     for (const auto &issue : results) {
