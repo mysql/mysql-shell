@@ -55,6 +55,7 @@ set(utils_SOURCE
     profiling.cc
     rate_limit.cc
     ssl_keygen.cc
+    sigint_event.cc
 )
 
 IF(CMAKE_BUILD_TYPE STREQUAL Debug)

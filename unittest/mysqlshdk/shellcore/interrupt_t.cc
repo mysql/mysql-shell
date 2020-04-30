@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -1093,6 +1093,7 @@ TEST_F(Interrupt_mysql, sql_classic_resultset) {
 
   make_output_slow();
   Call_on_leave restore([this]() { unmake_output_slow(); });
+
   {
     std::thread thd([this]() {
       output_wait("first", 3);
@@ -1104,7 +1105,15 @@ TEST_F(Interrupt_mysql, sql_classic_resultset) {
         "Result printing interrupted, rows may be missing from the output.");
     thd.join();
   }
-  wipe_all();
+}
+
+TEST_F(Interrupt_mysql, sql_classic_resultset_vertical) {
+  // Test case for FR3
+  execute("\\sql");
+
+  make_output_slow();
+  Call_on_leave restore([this]() { unmake_output_slow(); });
+
   {
     std::thread thd([this]() {
       output_wait("first", 3);
@@ -1124,6 +1133,7 @@ TEST_F(Interrupt_mysqlx, sql_x_sql_resultset) {
 
   make_output_slow();
   Call_on_leave restore([this]() { unmake_output_slow(); });
+
   {
     std::thread thd([this]() {
       output_wait("first", 3);
@@ -1135,7 +1145,15 @@ TEST_F(Interrupt_mysqlx, sql_x_sql_resultset) {
         "Result printing interrupted, rows may be missing from the output.");
     thd.join();
   }
-  wipe_all();
+}
+
+TEST_F(Interrupt_mysqlx, sql_x_sql_resultset_vertical) {
+  // Test case for FR3
+  execute("\\sql");
+
+  make_output_slow();
+  Call_on_leave restore([this]() { unmake_output_slow(); });
+
   {
     std::thread thd([this]() {
       output_wait("first", 3);

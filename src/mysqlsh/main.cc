@@ -97,8 +97,6 @@ class Interrupt_helper : public shcore::Interrupt_helper {
       // we're being called from another thread, first notify the interrupt
       // handlers, so they update their state before main thread resumes
       shcore::Interrupts::interrupt();
-      // notify the event, potentially waking up the main thread
-      shcore::Sigint_event::get().notify();
     } catch (const std::exception &e) {
       log_error("Unhandled exception in SIGINT handler: %s", e.what());
     }

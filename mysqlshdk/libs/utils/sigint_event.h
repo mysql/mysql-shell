@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,39 +21,39 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/utils/rate_limit.h"
+#ifndef MYSQLSHDK_LIBS_UTILS_SIGINT_EVENT_H_
+#define MYSQLSHDK_LIBS_UTILS_SIGINT_EVENT_H_
 
-#include <ratio>
+#include <condition_variable>
+#include <mutex>
 
-#include "mysqlshdk/libs/utils/utils_general.h"
+namespace shcore {
 
-namespace mysqlshdk {
-namespace utils {
+class Sigint_event final {
+ public:
+  Sigint_event(const Sigint_event &) = delete;
+  Sigint_event(Sigint_event &&) = delete;
 
-constexpr int k_micro = 1000000;
+  Sigint_event &operator=(const Sigint_event &) = delete;
+  Sigint_event &operator=(Sigint_event &&) = delete;
 
-void Rate_limit::throttle(int64_t bytes) {
-  m_now = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double, std::micro> diff = m_now - m_last;
-  if (diff.count() < 0) {
-    return;
-  }
+  ~Sigint_event() = default;
 
-  int64_t allowed_bytes =
-      m_unused_bytes + (diff.count() * m_bytes_limit / k_micro);
-  m_last = m_now;
+  static Sigint_event &get();
 
-  if (bytes <= allowed_bytes) {
-    m_unused_bytes = allowed_bytes - bytes;
-    return;
-  }
+  void interrupt();
 
-  auto over_sent = bytes - allowed_bytes;
-  auto sleep_us = k_micro * over_sent / m_bytes_limit;
+  void wait(uint32_t ms);
 
-  m_last += std::chrono::duration<long, std::micro>(sleep_us);
+ private:
+  Sigint_event() = default;
 
-  shcore::sleep_ms(sleep_us / 1000);
-}
-} /* namespace utils */
-} /* namespace mysqlshdk */
+  std::mutex m_mutex;
+  std::condition_variable m_condition;
+  bool m_interrupted = false;
+  std::size_t m_threads = 0;
+};
+
+}  // namespace shcore
+
+#endif  // MYSQLSHDK_LIBS_UTILS_SIGINT_EVENT_H_

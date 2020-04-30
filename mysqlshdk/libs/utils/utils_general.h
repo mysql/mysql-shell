@@ -210,27 +210,6 @@ const char *SHCORE_PUBLIC get_long_version();
 
 std::string SHCORE_PUBLIC last_error_to_string(DWORD code);
 
-class Sigint_event final {
- public:
-  ~Sigint_event();
-
-  Sigint_event(const Sigint_event &) = delete;
-  Sigint_event(Sigint_event &&) = delete;
-  Sigint_event &operator=(const Sigint_event &) = delete;
-  Sigint_event &operator=(Sigint_event &&) = delete;
-
-  static Sigint_event &get();
-
-  void notify();
-
-  void wait(uint32_t ms);
-
- private:
-  Sigint_event();
-
-  HANDLE m_event;
-};
-
 #endif  // _WIN32
 
 template <class T>

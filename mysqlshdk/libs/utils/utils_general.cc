@@ -59,6 +59,7 @@ errno_t memset_s(void *__s, rsize_t __smax, int __c, rsize_t __n);
 
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
+#include "mysqlshdk/libs/utils/sigint_event.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -947,13 +948,7 @@ std::string SHCORE_PUBLIC unquote_identifier(const std::string &str) {
   return object;
 }
 
-void sleep_ms(uint32_t ms) {
-#ifdef _WIN32
-  Sigint_event::get().wait(ms);
-#else
-  usleep(ms * 1000);
-#endif
-}
+void sleep_ms(uint32_t ms) { Sigint_event::get().wait(ms); }
 
 /*
  * Determines the current Operating System
@@ -1167,24 +1162,6 @@ std::string SHCORE_PUBLIC last_error_to_string(DWORD code) {
   }
 
   return ret;
-}
-
-Sigint_event::Sigint_event() {
-  m_event = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-}
-
-Sigint_event::~Sigint_event() { CloseHandle(m_event); }
-
-Sigint_event &Sigint_event::get() {
-  static Sigint_event instance;
-  return instance;
-}
-
-void Sigint_event::notify() { SetEvent(m_event); }
-
-void Sigint_event::wait(uint32_t ms) {
-  ResetEvent(m_event);
-  WaitForSingleObjectEx(m_event, ms, FALSE);
 }
 
 #endif  // _WIN32
