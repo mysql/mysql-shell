@@ -57,9 +57,9 @@ errno_t memset_s(void *__s, rsize_t __smax, int __c, rsize_t __n);
 #include <ctime>
 #include <locale>
 
+#include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
-#include "mysqlshdk/libs/utils/sigint_event.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -948,7 +948,7 @@ std::string SHCORE_PUBLIC unquote_identifier(const std::string &str) {
   return object;
 }
 
-void sleep_ms(uint32_t ms) { Sigint_event::get().wait(ms); }
+void sleep_ms(uint32_t ms) { Interrupts::wait(ms); }
 
 /*
  * Determines the current Operating System

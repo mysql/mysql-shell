@@ -31,6 +31,8 @@
 #include <mutex>
 #include <thread>
 
+#include "mysqlshdk/include/shellcore/sigint_event.h"
+
 namespace shcore {
 
 // Max number of SIGINT handlers to allow at a time in the stack
@@ -64,6 +66,8 @@ class Interrupts {
   static void interrupt();
   static void ignore_thread();
 
+  static void wait(uint32_t ms);
+
  private:
   static Interrupt_helper *_helper;
   static std::function<bool()> _handlers[kMax_interrupt_handlers];
@@ -71,7 +75,10 @@ class Interrupts {
   static std::mutex _handler_mutex;
   static bool _propagates_interrupt;
   static std::thread::id _main_thread_id;
-  static thread_local bool _ignore_current_thread;
+  // use int instead of bool as we sometimes seem to hit
+  // https://sourceware.org/bugzilla/show_bug.cgi?id=14898
+  static thread_local int _ignore_current_thread;
+  static Sigint_event s_sigint_event;
 };
 
 struct Block_interrupts {

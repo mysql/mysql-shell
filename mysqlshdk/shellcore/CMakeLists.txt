@@ -20,13 +20,15 @@
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 IF(OPENSSL_INCLUDE_DIR)
-	INCLUDE_DIRECTORIES(BEFORE ${OPENSSL_INCLUDE_DIR})
+  INCLUDE_DIRECTORIES(BEFORE ${OPENSSL_INCLUDE_DIR})
 ENDIF()
 
 SET(SHELLCORE_MINIMAL_SOURCES
   base_shell.cc
+  interrupt_handler.cc
   scoped_contexts.cc
   shell_console.cc
+  sigint_event.cc
   )
 
 set(SHELLCORE_SOURCES
@@ -36,7 +38,6 @@ set(SHELLCORE_SOURCES
   credential_manager.cc
   private_key_manager.cc
   provider_script.cc
-  interrupt_handler.cc
   ishell_core.cc
   shell_cli_operation.cc
   shell_core.cc

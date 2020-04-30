@@ -21,37 +21,38 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/utils/sigint_event.h"
+#ifndef MYSQLSHDK_INCLUDE_SHELLCORE_SIGINT_EVENT_H_
+#define MYSQLSHDK_INCLUDE_SHELLCORE_SIGINT_EVENT_H_
 
-#include <chrono>
+#include <condition_variable>
+#include <mutex>
 
 namespace shcore {
 
-Sigint_event &Sigint_event::get() {
-  static Sigint_event instance;
-  return instance;
-}
+class Sigint_event final {
+ public:
+  Sigint_event(const Sigint_event &) = delete;
+  Sigint_event(Sigint_event &&) = delete;
 
-void Sigint_event::interrupt() {
-  std::unique_lock<std::mutex> lock(m_mutex);
+  Sigint_event &operator=(const Sigint_event &) = delete;
+  Sigint_event &operator=(Sigint_event &&) = delete;
 
-  if (m_threads > 0) {
-    m_interrupted = true;
-    m_condition.notify_all();
-  }
-}
+  ~Sigint_event() = default;
 
-void Sigint_event::wait(uint32_t ms) {
-  std::unique_lock<std::mutex> lock(m_mutex);
+  void interrupt();
 
-  ++m_threads;
+  void wait(uint32_t ms);
 
-  m_condition.wait_for(lock, std::chrono::milliseconds(ms),
-                       [this]() { return m_interrupted; });
+ private:
+  friend class Interrupts;
+  Sigint_event() = default;
 
-  if (0 == --m_threads) {
-    m_interrupted = false;
-  }
-}
+  std::mutex m_mutex;
+  std::condition_variable m_condition;
+  bool m_interrupted = false;
+  std::size_t m_threads = 0;
+};
 
 }  // namespace shcore
+
+#endif  // MYSQLSHDK_INCLUDE_SHELLCORE_SIGINT_EVENT_H_

@@ -55,7 +55,6 @@ set(utils_SOURCE
     profiling.cc
     rate_limit.cc
     ssl_keygen.cc
-    sigint_event.cc
     dtoa.cc
 )
 

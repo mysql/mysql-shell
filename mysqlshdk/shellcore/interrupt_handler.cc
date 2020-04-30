@@ -27,7 +27,6 @@
 #include <stdexcept>
 
 #include "mysqlshdk/libs/utils/logger.h"
-#include "mysqlshdk/libs/utils/sigint_event.h"
 
 namespace shcore {
 
@@ -37,7 +36,8 @@ std::atomic<int> Interrupts::_num_handlers;
 std::mutex Interrupts::_handler_mutex;
 bool Interrupts::_propagates_interrupt = false;
 std::thread::id Interrupts::_main_thread_id;
-thread_local bool Interrupts::_ignore_current_thread = false;
+thread_local int Interrupts::_ignore_current_thread = false;
+Sigint_event Interrupts::s_sigint_event;
 
 /** User interruption (^C) handler. Called by SIGINT handler in console shell.
 
@@ -265,7 +265,7 @@ void Interrupts::interrupt() {
     }
   }
 
-  shcore::Sigint_event::get().interrupt();
+  s_sigint_event.interrupt();
 }
 
 void Interrupts::set_propagate_interrupt(bool flag) {
@@ -281,6 +281,8 @@ void Interrupts::block() {
 void Interrupts::unblock(bool clear_pending) {
   if (_helper) _helper->unblock(clear_pending);
 }
+
+void Interrupts::wait(uint32_t ms) { s_sigint_event.wait(ms); }
 
 Interrupt_handler::Interrupt_handler(const std::function<bool()> &handler,
                                      bool skip)
