@@ -249,6 +249,7 @@ var wrong_pwd_uri = "root:wrongpawd@" + hostname + ":" + __mysql_sandbox_port2;
 c.removeInstance(wrong_pwd_uri, {force: true});
 
 //@<> BUG28056944 Error adding instance already in group but not in Metadata.
+// This should pass by just adding the instance to the metadata
 c.addInstance(__hostname_uri2);
 
 //@ BUG28056944 clean-up.

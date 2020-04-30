@@ -115,8 +115,10 @@ constexpr const char *k_base_instance_query =
     "SELECT i.instance_id, i.cluster_id, c.group_name,"
     " am.master_instance_id, am.master_member_id, am.member_role, am.view_id,"
     " i.label, i.mysql_server_uuid, i.address,"
-    " i.endpoint, i.xendpoint, '' as grendpoint"
+    " i.endpoint, i.xendpoint, ii.addresses->>'$.grLocal' as grendpoint"
     " FROM mysql_innodb_cluster_metadata.v2_instances i"
+    " LEFT JOIN mysql_innodb_cluster_metadata.instances ii"
+    "   ON ii.instance_id = i.instance_id"
     " LEFT JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
     "   ON c.cluster_id = i.cluster_id"
     " LEFT JOIN mysql_innodb_cluster_metadata.v2_ar_members am"
@@ -128,7 +130,7 @@ constexpr const char *k_base_instance_query_1_0_1 =
     " i.instance_name label, i.mysql_server_uuid, "
     " i.addresses->>'$.mysqlClassic' endpoint,"
     " i.addresses->>'$.mysqlX' xendpoint,"
-    " i.addresses->>'$.grEndpoint' grendpoint"
+    " i.addresses->>'$.grLocal' grendpoint"
     " FROM mysql_innodb_cluster_metadata.instances i"
     " LEFT JOIN mysql_innodb_cluster_metadata.replicasets r"
     "   ON r.replicaset_id = i.replicaset_id";
@@ -236,31 +238,6 @@ static const mysqlshdk::utils::Version k_json_merge_deprecated_version =
     mysqlshdk::utils::Version(5, 7, 22);
 
 }  // namespace
-
-class MetadataStorage::Transaction {
- public:
-  explicit Transaction(MetadataStorage *md) : _md(md) {
-    md->execute_sql("START TRANSACTION");
-  }
-
-  ~Transaction() {
-    try {
-      if (_md) _md->execute_sql("ROLLBACK");
-    } catch (const std::exception &e) {
-      log_error("Error implicitly rolling back transaction: %s", e.what());
-    }
-  }
-
-  void commit() {
-    if (_md) {
-      _md->execute_sql("COMMIT");
-      _md = nullptr;
-    }
-  }
-
- private:
-  MetadataStorage *_md;
-};
 
 MetadataStorage::MetadataStorage(const std::shared_ptr<Instance> &instance)
     : m_md_server(instance), m_owns_md_server(true) {
@@ -976,7 +953,7 @@ void MetadataStorage::drop_cluster(const std::string &cluster_name) {
     return cluster_id;
   };
 
-  Transaction tx(this);
+  Transaction tx(shared_from_this());
 
   // It exists, so let's get the cluster_id and move on
   Cluster_id cluster_id = get_cluster_id(cluster_name);
@@ -1387,7 +1364,7 @@ constexpr const char *k_async_view_change_reason_remove_instance =
 
 Cluster_id MetadataStorage::create_async_cluster_record(
     Replica_set_impl *cluster, bool adopted) {
-  Transaction tx(this);
+  Transaction tx(shared_from_this());
 
   Cluster_id cluster_id;
   try {
@@ -1519,7 +1496,7 @@ Instance_id MetadataStorage::record_async_member_added(
   // Always release locks at the end, when leaving the function scope.
   auto finally = shcore::on_leave_scope([this]() { release_lock(); });
 
-  Transaction tx(this);
+  Transaction tx(shared_from_this());
 
   Instance_id member_id = insert_instance(member);
 
@@ -1570,7 +1547,7 @@ void MetadataStorage::record_async_member_rejoined(
   // Always release locks at the end, when leaving the function scope.
   auto finally = shcore::on_leave_scope([this]() { release_lock(); });
 
-  Transaction tx(this);
+  Transaction tx(shared_from_this());
 
   uint32_t aclvid;
   uint32_t last_aclvid;
@@ -1620,7 +1597,7 @@ void MetadataStorage::record_async_member_removed(const Cluster_id &cluster_id,
   uint32_t aclvid;
   uint32_t last_aclvid;
 
-  Transaction tx(this);
+  Transaction tx(shared_from_this());
 
   begin_acl_change_record(cluster_id,
                           k_async_view_change_reason_remove_instance, &aclvid,
@@ -1656,7 +1633,7 @@ void MetadataStorage::record_async_primary_switch(Instance_id new_primary_id) {
   uint32_t aclvid;
   uint32_t last_aclvid;
 
-  Transaction tx(this);
+  Transaction tx(shared_from_this());
 
   auto res = execute_sqlf(
       "SELECT c.cluster_id, c.async_topology_type"
@@ -1752,7 +1729,7 @@ void MetadataStorage::record_async_primary_forced_switch(
   uint32_t aclvid;
   uint32_t last_aclvid;
 
-  Transaction tx(this);
+  Transaction tx(shared_from_this());
 
   auto res = execute_sqlf(
       "SELECT c.cluster_id, c.async_topology_type"

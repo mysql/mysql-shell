@@ -506,8 +506,10 @@ void Add_instance::prepare() {
   }
 
   // Make sure the target instance does not already belong to a cluster.
+  // Unless it's our cluster, in that case we keep adding it since it
+  // may be a retry.
   mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-      *m_target_instance, m_cluster->get_target_server());
+      *m_target_instance, m_cluster->get_target_server(), &m_already_member);
 
   // Check GTID consistency and whether clone is needed (not needed in
   // rebootCluster)
@@ -613,7 +615,7 @@ void Add_instance::prepare() {
   // TODO(alfredo) - m_rebooting is only true when this is called from
   // rebootCluster. Once rebootCluster is rewritten to not use addInstance,
   // this check can be removed
-  if (!m_rebooting) {
+  if (!m_rebooting && !m_already_member) {
     // Check instance server UUID (must be unique among the cluster members).
     m_cluster->validate_server_uuid(*m_target_instance);
 
@@ -630,7 +632,7 @@ void Add_instance::prepare() {
   try {
     m_gr_opts.local_address = mysqlsh::dba::resolve_gr_local_address(
         m_gr_opts.local_address, hostname,
-        *m_target_instance->get_sysvar_int("port"));
+        *m_target_instance->get_sysvar_int("port"), !m_already_member);
   } catch (const std::runtime_error &e) {
     // TODO: this is a hack.. rebootCluster shouldn't do the busy port check,
     // which can fail if the instance is trying to auto-rejoin. Once
@@ -894,15 +896,22 @@ shcore::Value Add_instance::execute() {
       m_gr_opts.group_seeds = m_cluster->get_cluster_group_seeds();
     }
 
-    log_info("Joining '%s' to cluster using account %s to peer '%s'.",
-             m_instance_address.c_str(),
-             m_peer_instance->get_connection_options().get_user().c_str(),
-             m_peer_instance->descr().c_str());
+    if (m_already_member) {
+      // START GROUP_REPLICATION is the last thing that happens in join_cluster,
+      // so if it's already running, we don't need to do that again
+      log_info("%s is already a group member, skipping join",
+               m_instance_address.c_str());
+    } else {
+      log_info("Joining '%s' to cluster using account %s to peer '%s'.",
+               m_instance_address.c_str(),
+               m_peer_instance->get_connection_options().get_user().c_str(),
+               m_peer_instance->descr().c_str());
 
-    // Join the instance to the Group Replication group.
-    mysqlsh::dba::join_cluster(*m_target_instance, *m_peer_instance, m_rpl_user,
-                               m_rpl_pwd, m_gr_opts, cluster_member_count,
-                               m_cfg.get());
+      // Join the instance to the Group Replication group.
+      mysqlsh::dba::join_cluster(*m_target_instance, *m_peer_instance,
+                                 m_rpl_user, m_rpl_pwd, m_gr_opts,
+                                 cluster_member_count, m_cfg.get());
+    }
 
     // Wait until recovery done. Will throw an exception if recovery fails.
     try {
@@ -953,6 +962,8 @@ shcore::Value Add_instance::execute() {
             m_instance_address.c_str(),
             is_instance_on_md ? "is already in the Metadata."
                               : "is being added to the Metadata...");
+
+  MetadataStorage::Transaction trx(m_cluster->get_metadata_storage());
 
   // If the instance is not on the Metadata, we must add it.
   if (!is_instance_on_md) {
@@ -1031,6 +1042,10 @@ shcore::Value Add_instance::execute() {
   if (owns_repl_user && m_progress_style != Recovery_progress_style::NOWAIT) {
     update_change_master();
   }
+
+  // Only commit transaction once everything is done, so that things don't look
+  // all fine if something fails in the middle
+  trx.commit();
 
   log_debug("Instance add finished");
 

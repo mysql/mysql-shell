@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,7 +36,7 @@ namespace mysqlsh {
 namespace dba {
 
 void prepare_metadata_schema(const std::shared_ptr<Instance> &target_instance,
-                             bool dry_run);
+                             bool force_overwrite, bool dry_run);
 
 namespace metadata {
 namespace upgrade {
@@ -50,6 +50,9 @@ const mysqlshdk::utils::Version kNotInstalled =
 constexpr char kMetadataSchemaName[] = "mysql_innodb_cluster_metadata";
 constexpr char kMetadataSchemaBackupName[] =
     "mysql_innodb_cluster_metadata_bkp";
+
+static constexpr const char *kClusterSetupIndicatorTag =
+    "__mysql_innodb_cluster_creating_cluster__";
 
 constexpr char kFailedUpgradeError[] =
     "An unfinished metadata upgrade was detected, which may have left it in an "
@@ -65,6 +68,7 @@ enum State {
   PATCH_LOWER,
   UPGRADING,
   FAILED_UPGRADE,
+  FAILED_SETUP,
   NONEXISTING
 };
 

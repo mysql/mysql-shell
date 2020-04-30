@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -119,6 +119,7 @@ class Create_cluster : public Command_interface {
   bool m_adopt_from_gr;
   bool m_force;
   bool m_interactive;
+  bool m_retrying = false;
 
   std::string m_address_in_metadata;
 

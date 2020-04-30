@@ -346,6 +346,8 @@ void Testutils::bp(bool flag) {
  *
  * ## The following conditions are supported:
  * opt == str
+ * opt != str
+ * opt !regex str
  * opt regex pattern
  * opt > int
  * ++match_counter == int

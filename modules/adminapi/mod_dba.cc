@@ -1468,8 +1468,6 @@ shcore::Value Dba::check_instance_configuration(
 
   // Establish the session to the target instance
   if (has_co) {
-    validate_connection_options(*instance_def);
-
     instance = Instance::connect(*instance_def, interactive);
   } else {
     instance = connect_to_target_member();
@@ -2307,8 +2305,6 @@ void Dba::do_configure_instance(
 
   // Establish the session to the target instance
   if (instance_def.has_data()) {
-    validate_connection_options(instance_def);
-
     instance = Instance::connect(instance_def, interactive);
   } else {
     instance = connect_to_target_member();

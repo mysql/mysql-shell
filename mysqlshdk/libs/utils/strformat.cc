@@ -170,6 +170,10 @@ std::string fmttime(const char *fmt, Time_type type, const time_t *time_ptr) {
   return buf;
 }
 
+std::string isotime(const time_t *time_ptr) {
+  return fmttime("%Y-%m-%dT%H:%M:%S", Time_type::GMT, time_ptr);
+}
+
 size_t expand_to_bytes(const std::string &number) {
   constexpr size_t kilobyte = 1000;
   std::string x{number};

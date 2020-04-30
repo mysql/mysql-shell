@@ -150,10 +150,6 @@ void Set_instance_option::prepare() {
   // Validate if the option is valid
   ensure_option_valid();
 
-  // Validate connection options.
-  log_debug("Verifying connection options");
-  validate_connection_options(m_instance_cnx_opts);
-
   // Use default port if not provided in the connection options.
   if (!m_instance_cnx_opts.has_port() && !m_instance_cnx_opts.has_socket()) {
     m_instance_cnx_opts.set_port(mysqlshdk::db::k_default_mysql_port);

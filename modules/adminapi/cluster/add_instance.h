@@ -124,6 +124,8 @@ class Add_instance : public Command_interface {
   //               used directly instead of the Add_instance operation.
   bool m_rebooting;
 
+  bool m_already_member = false;
+
   std::string m_instance_address;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   bool m_reuse_session_for_target_instance = false;

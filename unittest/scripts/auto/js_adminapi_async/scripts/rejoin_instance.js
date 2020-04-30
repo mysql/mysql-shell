@@ -24,7 +24,6 @@ rs.rejoinInstance(0);
 rs.rejoinInstance({});
 rs.rejoinInstance([]);
 rs.rejoinInstance("");
-rs.rejoinInstance("invalid_uri");
 rs.rejoinInstance("", {});
 rs.rejoinInstance(__sandbox1, {}, {});
 rs.rejoinInstance(__sandbox1, {badOption:123});

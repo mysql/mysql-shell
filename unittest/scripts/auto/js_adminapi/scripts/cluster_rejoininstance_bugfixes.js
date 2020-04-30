@@ -27,6 +27,19 @@ testutil.startSandbox(__mysql_sandbox_port2);
 EXPECT_THROWS_TYPE(function(){cluster.rejoinInstance(__sandbox_uri2);}, "Cluster.rejoinInstance: The 'default_table_encryption' value 'ON' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster 'OFF'.", "RuntimeError");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Cannot join instance 'localhost:${__mysql_sandbox_port2}' to cluster: incompatible 'default_table_encryption' value.`);
 
+//@<> rejoinInstance without credentials
+// Bug #31632554   CLUSTER.REJOININSTANCE() USES WRONG CREDENTIALS
+shell.connect(__sandbox_uri3);
+session.runSql("stop group_replication");
+
+EXPECT_EQ(cluster.status()["defaultReplicaSet"]["topology"]["127.0.0.1:"+__mysql_sandbox_port3]["status"], "(MISSING)");
+
+cluster.rejoinInstance("localhost:"+__mysql_sandbox_port3);
+
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+EXPECT_EQ(cluster.status()["defaultReplicaSet"]["topology"]["127.0.0.1:"+__mysql_sandbox_port3]["status"], "ONLINE");
+
 //@<> BUG#29255212 Cleanup
 session.close();
 cluster.disconnect();

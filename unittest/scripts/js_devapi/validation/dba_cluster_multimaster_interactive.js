@@ -255,7 +255,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
 ||
 
 //@ Cluster: Error cannot remove last instance
-||Cluster.removeInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is the last member of the cluster (LogicError)
+||Cluster.removeInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is the last member of the cluster (RuntimeError)
 
 //@ Dissolve cluster with success
 |The cluster was successfully dissolved.|

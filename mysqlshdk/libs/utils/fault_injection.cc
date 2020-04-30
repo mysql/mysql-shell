@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -111,11 +111,15 @@ FI::Conditions &FI::Conditions::add(const std::string &str) {
     throw std::runtime_error("Invalid condition string: " + str);
 
   if (tokens[1] == "==") {
-    add_eq(tokens[0], tokens[2]);
+    add_eq(tokens[0], tokens[2], false);
+  } else if (tokens[1] == "!=") {
+    add_eq(tokens[0], tokens[2], true);
   } else if (tokens[1] == ">") {
     add_gt(tokens[0], std::stoi(tokens[2]));
   } else if (tokens[1] == "regex") {
-    add_regex(tokens[0], tokens[2]);
+    add_regex(tokens[0], tokens[2], false);
+  } else if (tokens[1] == "!regex") {
+    add_regex(tokens[0], tokens[2], true);
   } else {
     throw std::runtime_error("Invalid condition operator: " + tokens[1]);
   }
@@ -124,19 +128,20 @@ FI::Conditions &FI::Conditions::add(const std::string &str) {
 }
 
 FI::Conditions &FI::Conditions::add_regex(const std::string &key,
-                                          const std::string &value) {
+                                          const std::string &value,
+                                          bool invert) {
   std::regex re(value, std::regex::icase);
 
   m_matchers.push_back(
-      [key, re, value](Trap *, const Trigger_options &options) {
+      [key, re, value, invert](Trap *, const Trigger_options &options) {
         auto it = options.find(key);
         if (it != options.end()) {
           bool r = std::regex_search(it->second, re);
           if (g_debug_fi)
-            fprintf(stderr, "FI: \"%s\" matches \"%s\" = %s\n",
+            fprintf(stderr, "FI: \"%s\" matches \"%s\" => %s\n",
                     it->second.c_str(), value.c_str(), r ? "true" : "false");
 
-          return r;
+          return invert ? (!r) : r;
         }
         return false;
       });
@@ -145,31 +150,33 @@ FI::Conditions &FI::Conditions::add_regex(const std::string &key,
 }
 
 FI::Conditions &FI::Conditions::add_eq(const std::string &key,
-                                       const std::string &value) {
+                                       const std::string &value, bool invert) {
   if (key == "++match_counter") {
     int ivalue = std::stoi(value);
 
-    m_matchers.push_back([key, ivalue](Trap *trap, const Trigger_options &) {
-      bool r = ivalue == ++trap->match_counter;
-      if (g_debug_fi)
-        fprintf(stderr, "FI: match_counter (%i) = %i => %s\n",
-                trap->match_counter, ivalue, r ? "true" : "false");
+    m_matchers.push_back(
+        [key, ivalue, invert](Trap *trap, const Trigger_options &) {
+          bool r = ivalue == ++trap->match_counter;
+          if (g_debug_fi)
+            fprintf(stderr, "FI: match_counter (%i) = %i => %s\n",
+                    trap->match_counter, ivalue, r ? "true" : "false");
 
-      return r;
-    });
+          return invert ? (!r) : r;
+        });
   } else {
-    m_matchers.push_back([key, value](Trap *, const Trigger_options &options) {
-      auto it = options.find(key);
-      if (it != options.end()) {
-        bool r = value == it->second;
-        if (g_debug_fi)
-          fprintf(stderr, "FI: \"%s\" = \"%s\" => %s\n", it->second.c_str(),
-                  value.c_str(), r ? "true" : "false");
+    m_matchers.push_back(
+        [key, value, invert](Trap *, const Trigger_options &options) {
+          auto it = options.find(key);
+          if (it != options.end()) {
+            bool r = value == it->second;
+            if (g_debug_fi)
+              fprintf(stderr, "FI: \"%s\" = \"%s\" => %s\n", it->second.c_str(),
+                      value.c_str(), r ? "true" : "false");
 
-        return r;
-      }
-      return false;
-    });
+            return invert ? (!r) : r;
+          }
+          return false;
+        });
   }
   return *this;
 }
@@ -208,7 +215,7 @@ bool FI::Conditions::match(Trap *injector,
                            const Trigger_options &options) const {
   bool r = true;
   for (const auto &m : m_matchers) {
-    if (!m(injector, options)) {
+    if (false == m(injector, options)) {
       r = false;
       break;
     }

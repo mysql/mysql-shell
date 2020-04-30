@@ -378,6 +378,40 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    */
   void release_lock(bool no_throw = true) const;
 
+  class Transaction {
+   public:
+    explicit Transaction(const std::shared_ptr<MetadataStorage> &md) : _md(md) {
+      md->execute_sql("START TRANSACTION");
+    }
+
+    ~Transaction() {
+      try {
+        rollback();
+      } catch (const std::exception &e) {
+        log_error("Error implicitly rolling back transaction: %s", e.what());
+      }
+    }
+
+    void rollback() {
+      if (_md) {
+        auto tmp = _md;
+        _md.reset();
+        tmp->execute_sql("ROLLBACK");
+      }
+    }
+
+    void commit() {
+      if (_md) {
+        auto tmp = _md;
+        _md.reset();
+        tmp->execute_sql("COMMIT");
+      }
+    }
+
+   private:
+    std::shared_ptr<MetadataStorage> _md;
+  };
+
  private:
   uint32_t inc_view_failover_counter(uint32_t view_id) const;
   void begin_acl_change_record(const Cluster_id &cluster_id,
@@ -393,7 +427,6 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
                              const std::string &uuid_column_name,
                              const std::string &uuid) const;
 
-  class Transaction;
   friend class Transaction;
 
   std::shared_ptr<Instance> m_md_server;

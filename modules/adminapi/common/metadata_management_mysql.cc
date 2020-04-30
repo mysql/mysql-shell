@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -509,63 +509,71 @@ State check_installed_schema_version(
 
   if (schema_exists(group_server, kMetadataSchemaName) ||
       schema_exists(group_server, kMetadataSchemaBackupName)) {
-    upgrade::Stage stage = upgrade::detect_failed_stage(group_server);
+    upgrade::Stage stage;
 
-    switch (stage) {
-      case upgrade::Stage::OK:
-      case upgrade::Stage::NONE: {
-        auto current = current_version();
-        installed = installed_version(group_server, version_schema);
-        real_md_version = installed;
+    if (mysqlshdk::mysql::check_indicator_tag(*group_server,
+                                              kClusterSetupIndicatorTag))
+      state = State::FAILED_SETUP;
+    else
+      stage = upgrade::detect_failed_stage(group_server);
 
-        if (installed == current) {
-          state = State::EQUAL;
-        } else {
-          if (current.get_major() == installed.get_major()) {
-            if (current.get_minor() == installed.get_minor()) {
-              if (current.get_patch() < installed.get_patch()) {
-                state = State::PATCH_HIGHER;
-              } else {
-                state = State::PATCH_LOWER;
-              }
-            } else {
-              if (current.get_minor() < installed.get_minor()) {
-                state = State::MINOR_HIGHER;
-              } else {
-                state = State::MINOR_LOWER;
-              }
-            }
+    if (state != State::FAILED_SETUP) {
+      switch (stage) {
+        case upgrade::Stage::OK:
+        case upgrade::Stage::NONE: {
+          auto current = current_version();
+          installed = installed_version(group_server, version_schema);
+          real_md_version = installed;
+
+          if (installed == current) {
+            state = State::EQUAL;
           } else {
-            if (current.get_major() < installed.get_major()) {
-              state = State::MAJOR_HIGHER;
+            if (current.get_major() == installed.get_major()) {
+              if (current.get_minor() == installed.get_minor()) {
+                if (current.get_patch() < installed.get_patch()) {
+                  state = State::PATCH_HIGHER;
+                } else {
+                  state = State::PATCH_LOWER;
+                }
+              } else {
+                if (current.get_minor() < installed.get_minor()) {
+                  state = State::MINOR_HIGHER;
+                } else {
+                  state = State::MINOR_LOWER;
+                }
+              }
             } else {
-              state = State::MAJOR_LOWER;
+              if (current.get_major() < installed.get_major()) {
+                state = State::MAJOR_HIGHER;
+              } else {
+                state = State::MAJOR_LOWER;
+              }
             }
           }
+          break;
         }
-        break;
-      }
-      case upgrade::Stage::SETTING_UPGRADE_VERSION:
-      case upgrade::Stage::UPGRADING:
-        version_schema = kMetadataSchemaBackupName;
-        real_md_version = installed_version(group_server, version_schema);
-        installed = kUpgradingVersion;
-        if (upgrade::get_lock(group_server)) {
-          upgrade::release_lock(group_server);
-          state = State::FAILED_UPGRADE;
-        } else {
-          state = State::UPGRADING;
-        }
-        break;
-      case upgrade::Stage::DONE:
-      case upgrade::Stage::CLEANUP:
-        installed = installed_version(group_server, version_schema);
-        real_md_version = Version(k_metadata_schema_version);
+        case upgrade::Stage::SETTING_UPGRADE_VERSION:
+        case upgrade::Stage::UPGRADING:
+          version_schema = kMetadataSchemaBackupName;
+          real_md_version = installed_version(group_server, version_schema);
+          installed = kUpgradingVersion;
+          if (upgrade::get_lock(group_server)) {
+            upgrade::release_lock(group_server);
+            state = State::FAILED_UPGRADE;
+          } else {
+            state = State::UPGRADING;
+          }
+          break;
+        case upgrade::Stage::DONE:
+        case upgrade::Stage::CLEANUP:
+          installed = installed_version(group_server, version_schema);
+          real_md_version = Version(k_metadata_schema_version);
 
-        // Sinc ethe upgrade was not completed this is handled as a failed
-        // upgrade
-        state = State::FAILED_UPGRADE;
-        break;
+          // Since the upgrade was not completed this is handled as a failed
+          // upgrade
+          state = State::FAILED_UPGRADE;
+          break;
+      }
     }
   }
 
@@ -892,7 +900,7 @@ bool is_valid_version(const mysqlshdk::utils::Version &version) {
 }  // namespace metadata
 
 void prepare_metadata_schema(const std::shared_ptr<Instance> &target_instance,
-                             bool dry_run) {
+                             bool force_overwrite, bool dry_run) {
   // Ensure that the metadata schema is ready for creating a new cluster in it
   // If the metadata schema does not exist, we create it
   // If the metadata schema already exists:
@@ -901,7 +909,12 @@ void prepare_metadata_schema(const std::shared_ptr<Instance> &target_instance,
   // We ensure both by always dropping the old schema and re-creating it from
   // scratch.
 
-  auto version = metadata::installed_version(target_instance);
+  mysqlshdk::utils::Version version;
+
+  if (force_overwrite)
+    version = metadata::kNotInstalled;
+  else
+    version = metadata::installed_version(target_instance);
 
   if (version != metadata::kNotInstalled) {
     current_console()->print_note("Metadata schema found in target instance");

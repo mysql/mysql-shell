@@ -100,9 +100,11 @@ class Remove_instance : public Command_interface {
   std::string m_address_in_metadata;
   bool m_upgrade_gr_protocol_version = false;
   bool m_skip_sync = false;
+  std::string m_instance_gr_local_address;
   mysqlshdk::utils::Version m_gr_protocol_version_to_upgrade;
 
-  void validate_metadata_for_address(const std::string &address);
+  void validate_metadata_for_address(const std::string &address,
+                                     Instance_metadata *out_metadata);
   Instance_metadata lookup_metadata_for_uuid(const std::string &uuid);
 
   /**

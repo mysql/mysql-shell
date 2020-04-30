@@ -1224,29 +1224,6 @@ void print_validation_results(const shcore::Value::Map_type_ref &result,
   }
 }
 
-void validate_connection_options(
-    const Connection_options &options,
-    std::function<shcore::Exception(const std::string &)> factory) {
-  auto throw_exception = [&options, &factory](const std::string &error) {
-    throw factory(
-        "Connection '" +
-        options.as_uri(mysqlshdk::db::uri::formats::user_transport()) +
-        "' is not valid: " + error + ".");
-  };
-
-  if (options.has_host()) {
-    // host has to be an IPv4 or IPv6 address or resolve to an IPv4 or IPv6
-    // address
-    const std::string &host = options.get_host();
-    try {
-      mysqlshdk::utils::Net::get_hostname_ips(host);
-    } catch (const mysqlshdk::utils::net_error &error) {
-      throw_exception(
-          "unable to resolve the address as either an IPv4 or IPv6 host");
-    }
-  }
-}
-
 std::string get_report_host_address(
     const mysqlshdk::db::Connection_options &cnx_opts,
     const mysqlshdk::db::Connection_options &group_cnx_opts) {
@@ -1362,7 +1339,7 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
 
 std::string resolve_gr_local_address(
     const mysqlshdk::utils::nullable<std::string> &local_address,
-    const std::string &raw_report_host, int port) {
+    const std::string &raw_report_host, int port, bool check_if_busy) {
   assert(!raw_report_host.empty());  // First we need to get the report host.
   bool generated = false;
 
@@ -1466,21 +1443,23 @@ std::string resolve_gr_local_address(
     throw shcore::Exception::argument_error(msg);
   }
 
-  // Verify if the port is already in use.
-  bool port_busy = false;
-  try {
-    port_busy =
-        mysqlshdk::utils::Net::is_port_listening(local_host, local_port);
-  } catch (...) {
-    // Ignore any error while checking if the port is busy, let GR try later and
-    // possibly fail (e.g., if a wrong host is used).
-  }
-  if (port_busy) {
-    throw shcore::Exception::runtime_error(
-        "The port '" + std::to_string(local_port) +
-        "' for localAddress option is already in use. Specify an "
-        "available port to be used with localAddress option or free port '" +
-        std::to_string(local_port) + "'.");
+  if (check_if_busy) {
+    // Verify if the port is already in use.
+    bool port_busy = false;
+    try {
+      port_busy =
+          mysqlshdk::utils::Net::is_port_listening(local_host, local_port);
+    } catch (...) {
+      // Ignore any error while checking if the port is busy, let GR try later
+      // and possibly fail (e.g., if a wrong host is used).
+    }
+    if (port_busy) {
+      throw shcore::Exception::runtime_error(
+          "The port '" + std::to_string(local_port) +
+          "' for localAddress option is already in use. Specify an "
+          "available port to be used with localAddress option or free port '" +
+          std::to_string(local_port) + "'.");
+    }
   }
 
   // Return the final local address value to use for GR.

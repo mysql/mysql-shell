@@ -383,8 +383,6 @@ void Cluster::add_instance(const Connection_options &instance_def_,
     }
   }
 
-  validate_connection_options(instance_def);
-
   // Init progress_style
   Recovery_progress_style progress_style;
 
@@ -514,7 +512,6 @@ void Cluster::rejoin_instance(const Connection_options &instance_def_,
     console->println();
   }
 
-  validate_connection_options(instance_def);
   // rejoin the Instance to the Default ReplicaSet
   m_impl->rejoin_instance(instance_def, options);
 
@@ -1180,8 +1177,6 @@ void Cluster::force_quorum_using_partition_of(
 
   // Throw an error if the cluster has already been dissolved
   assert_valid("forceQuorumUsingPartitionOf");
-
-  validate_connection_options(instance_def);
 
   if (!instance_def.has_port() && !instance_def.has_socket()) {
     instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
