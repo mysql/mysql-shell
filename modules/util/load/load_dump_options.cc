@@ -60,7 +60,7 @@ void Load_dump_options::set_session(
   m_target.set(mysqlshdk::db::kLocalInfile, "true");
 
   // Set long timeouts by default
-  std::string timeout = "86400";  // 1 day in seconds
+  std::string timeout = "86400000";  // 1 day in milliseconds
   if (!m_target.has(mysqlshdk::db::kNetReadTimeout)) {
     m_target.set(mysqlshdk::db::kNetReadTimeout, timeout);
   }

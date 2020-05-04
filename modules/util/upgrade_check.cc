@@ -86,16 +86,11 @@ std::vector<std::unique_ptr<Upgrade_check>> Upgrade_check::create_checklist(
                            "requires server to be at least at version 5.7",
                            src_version.get_base().c_str()));
 
-  if (src_version >= Version(MYSH_VERSION)) {
-    Version current(MYSH_VERSION);
-    Version prev(current.get_major(), current.get_minor(),
-                 current.get_patch() - 1);
-    throw std::invalid_argument(shcore::str_format(
-        "Detected MySQL server version is %s, but this tool "
-        "supports server versions up to %s. You must upgrade MySQL Shell to "
-        "the latest version to be able to check this server",
-        src_version.get_base().c_str(), prev.get_base().c_str()));
-  }
+  if (src_version >= Version(MYSH_VERSION))
+    throw std::invalid_argument(
+        "Detected MySQL Server version is " + src_version.get_base() +
+        ". MySQL Shell cannot check MySQL server instances for upgrade if they "
+        "are at a version the same as or higher than the MySQL Shell version.");
 
   if (dst_version < Version("8.0") || dst_version > Version(MYSH_VERSION))
     throw std::invalid_argument(

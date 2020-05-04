@@ -41,7 +41,10 @@
 
 namespace mysqlsh {
 
-static constexpr const int k_mysql_server_net_read_timeout = 5 * 60;
+// how many seconds the server should wait to finish reading data from client
+// basically how long it may take for a block of data to be read from its source
+// (download + decompression)
+static constexpr const int k_mysql_server_net_read_timeout = 30 * 60;
 
 // the version of the dump we support in this code
 static constexpr const int k_supported_dump_version_major = 1;
