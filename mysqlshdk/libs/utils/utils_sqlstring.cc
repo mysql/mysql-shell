@@ -509,11 +509,10 @@ sqlstring &sqlstring::operator<<(const sqlstringformat format) {
 sqlstring &sqlstring::operator<<(const std::string &v) {
   int esc = next_escape();
   if (esc == '!') {
-    std::string escaped = escape_backticks(v);
     if ((_format._flags & QuoteOnlyIfNeeded) != 0)
-      append(quote_identifier_if_needed(escaped));
+      append(quote_identifier_if_needed(v));
     else
-      append(quote_identifier(escaped));
+      append(quote_identifier(v));
   } else if (esc == '?') {
     append("'").append(escape_sql_string(v)).append("'");
   } else {  // shouldn't happen
@@ -542,11 +541,10 @@ sqlstring &sqlstring::operator<<(const char *v) {
     if (!v)
       throw std::invalid_argument(
           "Error formatting SQL query: NULL value found for identifier");
-    std::string quoted = escape_backticks(v);
-    if (quoted == v && (_format._flags & QuoteOnlyIfNeeded))
-      append(quoted);
+    if (_format._flags & QuoteOnlyIfNeeded)
+      append(quote_identifier_if_needed(v));
     else
-      append("`").append(quoted).append("`");
+      append(quote_identifier(v));
   } else if (esc == '?') {
     if (v) {
       append(quote_sql_string(v));

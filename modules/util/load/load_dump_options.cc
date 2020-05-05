@@ -292,4 +292,13 @@ bool Load_dump_options::include_table(const std::string &schema,
   return false;
 }
 
+std::vector<std::string> Load_dump_options::get_excluded_users(bool is_mds) {
+  std::vector<std::string> ret = {"mysql.sys", "mysql.session",
+                                  "mysql.infoschema"};
+  if (is_mds)
+    ret.insert(ret.end(),
+               {"ociadmin", "ocirpl", "ocimonitor", "administrator"});
+  return ret;
+}
+
 }  // namespace mysqlsh

@@ -1536,6 +1536,10 @@ Database Service. Attempting to create users granting these privileges would
 fail, so this option allows dumped GRANT statements to be stripped of these
 privileges.
 
+<b>strip_role_admin</b> - ROLE_ADMIN privilege can be restricted in the MySQL
+Database Service, so attempting to create users granting it would fail. 
+This option allows dumped GRANT statements to be stripped of this privilege.
+
 <b>strip_tablespaces</b> - Tablespaces have some restrictions in the MySQL
 Database Service. If you'd like to have tables created in their default
 tablespaces, this option will strip the TABLESPACE= option from CREATE TABLE
@@ -1612,7 +1616,7 @@ MySQL Database Service (MDS)
 @li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
 Database Service compatibility modifications when writing dump files. Supported
 values: "force_innodb", "strip_definers", "strip_restricted_grants",
-"strip_tablespaces".
+"strip_role_admin", "strip_tablespaces".
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_COMMON_OPTIONS, R"*(

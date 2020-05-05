@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -475,9 +475,10 @@ void copy_schema(const mysql::IInstance &instance, const std::string &name,
 
         for (const auto &object : extra_objects) {
           try {
-            auto query = shcore::sqlstring("DROP ! IF EXISTS !.!",
-                                           shcore::QuoteOnlyIfNeeded);
-            query << entry.first.c_str() << target.c_str() << object.c_str();
+            auto query =
+                shcore::sqlstring("DROP " + entry.first + " IF EXISTS !.!",
+                                  shcore::QuoteOnlyIfNeeded);
+            query << target.c_str() << object.c_str();
             query.done();
             instance.execute(query.str());
           } catch (const mysqlshdk::db::Error &error) {

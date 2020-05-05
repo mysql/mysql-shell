@@ -25,7 +25,9 @@
 #define MODULES_UTIL_LOAD_LOAD_DUMP_OPTIONS_H_
 
 #include <memory>
+#include <string>
 #include <unordered_set>
+#include <vector>
 #include "modules/mod_utils.h"
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/scripting/types.h"
@@ -117,6 +119,8 @@ class Load_dump_options final {
   bool ignore_version() const { return m_ignore_version; }
 
   Analyze_table_mode analyze_tables() const { return m_analyze_tables; }
+
+  static std::vector<std::string> get_excluded_users(bool is_mds);
 
  private:
   std::string m_url;

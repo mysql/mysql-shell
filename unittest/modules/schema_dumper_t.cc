@@ -23,6 +23,7 @@
 #include <stdio.h>
 
 #include "modules/util/dump/schema_dumper.h"
+#include "modules/util/load/dump_loader.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/backend/file.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -103,10 +104,12 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
     EXPECT_EQ(res, testutil->cat_file(file_path));
   }
 
-  void expect_output_contains(std::vector<const char *> items) {
+  void expect_output_contains(std::vector<const char *> items,
+                              std::string *output = nullptr) {
     file->flush();
     file->close();
     auto out = testutil->cat_file(file_path);
+    if (output != nullptr) *output = out;
     for (const auto i : items) {
       if (std::string::npos == out.find(i)) {
         EXPECT_EQ(out, i);
@@ -655,8 +658,39 @@ TEST_F(Schema_dumper_test, dump_grants) {
   EXPECT_NO_THROW(sd.dump_grants(file.get(), {}));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
-  expect_output_contains({"CREATE USER IF NOT EXISTS", "ALTER USER", "GRANT",
-                          "FLUSH PRIVILEGES;"});
+  std::string out;
+  expect_output_contains(
+      {"CREATE USER IF NOT EXISTS", "ALTER USER", "GRANT", "FLUSH PRIVILEGES;"},
+      &out);
+
+  // Test filtering users during load
+  auto filter = Load_dump_options::get_excluded_users(false);
+  for (const auto &f : filter) {
+    EXPECT_TRUE(shcore::str_beginswith(f, "mysql"));
+  }
+
+  auto oci_filter = Load_dump_options::get_excluded_users(true);
+  EXPECT_TRUE(oci_filter.size() >= filter.size() + 4);
+  for (const auto &f : filter) {
+    if (!shcore::str_beginswith(f, "mysql")) {
+      EXPECT_TRUE(shcore::str_beginswith(f, "oci") || f == "administrator");
+    }
+  }
+
+  // mysql and current users should be present in unfiltered dump
+  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 0))
+    filter.erase(std::find(filter.begin(), filter.end(), "mysql.infoschema"));
+  filter.emplace_back(
+      session->query("SELECT current_user()")->fetch_one()->get_string(0));
+  for (const auto &f : filter) {
+    EXPECT_NE(std::string::npos,
+              out.find(f.find("@") == std::string::npos ? f + "@" : f));
+  }
+  auto filtered = loader::preprocess_users_script(out, filter);
+  for (const auto &f : filter) {
+    EXPECT_EQ(std::string::npos,
+              filtered.find(f.find("@") == std::string::npos ? f + "@" : f));
+  }
 }
 
 TEST_F(Schema_dumper_test, dump_filtered_grants) {
@@ -687,13 +721,15 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 0)) {
     session->execute("CREATE ROLE IF NOT EXISTS da_dumper");
     session->execute(
-        "GRANT INSERT, BINLOG_ADMIN, UPDATE, DELETE ON * . * TO 'da_dumper';");
+        "GRANT INSERT, BINLOG_ADMIN, UPDATE, ROLE_ADMIN, DELETE ON * . * TO "
+        "'da_dumper';");
     session->execute("GRANT 'da_dumper' TO 'dumptestuser'@'localhost';");
   }
 
   Schema_dumper sd(session);
   sd.opt_mysqlaas = true;
   sd.opt_strip_restricted_grants = true;
+  sd.opt_strip_role_admin = true;
   EXPECT_GE(sd.dump_grants(file.get(), {"mysql%", "root"}).size(), 3);
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
@@ -1218,7 +1254,6 @@ TEST_F(Schema_dumper_test, compat_ddl) {
 TEST_F(Schema_dumper_test, dump_and_load) {
   for (const char *db : {compat_db_name, db_name, crazy_names_db}) {
     if (!file->is_open()) file->open(mysqlshdk::storage::Mode::WRITE);
-    if (!session->is_open()) session = connect_session();
     Schema_dumper sd(session);
     sd.opt_drop_trigger = true;
     sd.opt_mysqlaas = true;
@@ -1260,6 +1295,14 @@ TEST_F(Schema_dumper_test, dump_and_load) {
     session->close();
     testutil->call_mysqlsh_c({_mysql_uri, "--sql", "-f", file_path});
     EXPECT_TRUE(output_handler.std_err.empty());
+    session = connect_session();
+    session->execute(std::string("use ") + db);
+    res = session->query("show tables", true);
+    while (auto row = res->fetch_one())
+      tables.erase(
+          std::remove(tables.begin(), tables.end(), row->get_string(0)),
+          tables.end());
+    EXPECT_TRUE(tables.empty());
   }
 }
 

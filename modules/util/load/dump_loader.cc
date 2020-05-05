@@ -23,6 +23,7 @@
 
 #include "modules/util/load/dump_loader.h"
 #include <mysqld_error.h>
+#include <algorithm>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -76,6 +77,58 @@ bool has_pke(mysqlshdk::db::ISession *session, const std::string &schema,
   return false;
 }
 }  // namespace
+
+namespace loader {
+std::string preprocess_users_script(const std::string &script,
+                                    const std::vector<std::string> &excluded) {
+  std::string out;
+  bool skip = false;
+
+  static constexpr const char *k_create_user_cmt = "-- begin user ";
+  static constexpr const char *k_grant_cmt = "-- begin grants ";
+  static constexpr const char *k_end_cmt = "-- end ";
+
+  auto lines = shcore::str_split(script, "\n");
+  // Skip create and grant statements for the excluded users
+  for (const std::string &line : lines) {
+    std::string user;
+    bool grant_statement = false;
+    if (shcore::str_beginswith(line, k_create_user_cmt)) {
+      user = line.substr(strlen(k_create_user_cmt));
+    } else if (shcore::str_beginswith(line, k_grant_cmt)) {
+      user = line.substr(strlen(k_grant_cmt));
+      grant_statement = true;
+    }
+
+    if (!user.empty()) {
+      for (const auto &f : excluded) {
+        if (f.find("@") != std::string::npos) {
+          if (user != f) continue;
+        } else if (!shcore::str_beginswith(user, f + "@")) {
+          continue;
+        }
+        if (grant_statement)
+          current_console()->print_note("Skipping GRANT statements for user " +
+                                        user);
+        else
+          current_console()->print_note(
+              "Skipping CREATE/ALTER USER statements for user " + user);
+        skip = true;
+        break;
+      }
+    }
+
+    if (skip)
+      log_info("Skipping %s", line.c_str());
+    else
+      out.append(line + "\n");
+
+    if (shcore::str_beginswith(line, k_end_cmt)) skip = false;
+  }
+
+  return out;
+}
+}  // namespace loader
 
 bool Dump_loader::Worker::Load_chunk_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
@@ -328,51 +381,6 @@ Dump_loader::Dump_loader(const Load_dump_options &options)
 
 Dump_loader::~Dump_loader() {}
 
-std::string Dump_loader::preprocess_users_script(const std::string &script) {
-  std::string current_user =
-      m_session->query("SELECT current_user()")->fetch_one()->get_string(0);
-  std::string out;
-  bool skip = false;
-
-  static constexpr const char *k_create_user_cmt = "-- begin user ";
-  static constexpr const char *k_grant_cmt = "-- begin grants ";
-  static constexpr const char *k_end_cmt = "-- end ";
-
-  auto stmts = mysqlshdk::utils::split_sql(script);
-  // Skip create and grant statements for the user we're connected as
-  for (const std::string &line : stmts) {
-    if (shcore::str_beginswith(line, k_create_user_cmt)) {
-      std::string user = line.substr(strlen(k_create_user_cmt));
-
-      if (user == current_user) {
-        current_console()->print_note(
-            "Skipping CREATE/ALTER USER statements for current user " + user);
-        skip = true;
-      } else {
-        skip = false;
-      }
-    } else if (shcore::str_beginswith(line, k_grant_cmt)) {
-      std::string user = line.substr(strlen(k_grant_cmt));
-
-      if (user == current_user) {
-        current_console()->print_note(
-            "Skipping GRANT statements for current user " + user);
-        skip = true;
-      } else {
-        skip = false;
-      }
-    } else if (shcore::str_beginswith(line, k_end_cmt)) {
-      skip = false;
-    }
-    if (skip)
-      log_info("Skipping %s", line.c_str());
-    else
-      out.append(line + "\n");
-  }
-
-  return out;
-}
-
 std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session(
     bool data_loader) {
   auto session = mysqlshdk::db::mysql::Session::create();
@@ -412,7 +420,11 @@ void Dump_loader::on_dump_begin() {
 
     current_console()->print_status("Executing user accounts SQL...");
 
-    script = preprocess_users_script(script);
+    std::string current_user =
+        m_session->query("SELECT current_user()")->fetch_one()->get_string(0);
+    auto filter = m_options.get_excluded_users(is_mds(m_target_server_version));
+    filter.emplace_back(current_user);
+    script = loader::preprocess_users_script(script, filter);
 
     if (!m_options.dry_run())
       execute_script(m_session, script, "While executing user accounts SQL");

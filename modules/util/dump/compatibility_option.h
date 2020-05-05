@@ -35,6 +35,7 @@ enum class Compatibility_option {
   FORCE_INNODB,
   STRIP_DEFINERS,
   STRIP_RESTRICTED_GRANTS,
+  STRIP_ROLE_ADMIN,
   STRIP_TABLESPACES
 };
 
