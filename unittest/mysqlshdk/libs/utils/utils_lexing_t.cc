@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -134,9 +134,9 @@ TEST(Utils_lexing, span_sql_identifier) {
   EXPECT_EQ(std::string::npos, span_quoted_sql_identifier_bt("`foo", 0));
 }
 
-TEST(Utils_lexing, SQL_string_iterator) {
+TEST(Utils_lexing, SQL_iterator) {
   std::string ts("# foo * \ns'* '/* foo*  */s\"* \"s-- * \ns");
-  SQL_string_iterator it(ts);
+  SQL_iterator it(ts);
   EXPECT_EQ('s', *(it++));
   EXPECT_EQ('s', *it);
   EXPECT_EQ('s', *(++it));
@@ -146,17 +146,17 @@ TEST(Utils_lexing, SQL_string_iterator) {
 
   std::string ts1(
       "# foo * \nselect '* '/* foo*  */select \"* \" from -- * \n *");
-  SQL_string_iterator it1(ts1);
+  SQL_iterator it1(ts1);
   for (std::size_t i = 0; i < 17; ++i) EXPECT_NO_THROW(++it1);
   EXPECT_THROW(++it, std::out_of_range);
 
   std::string ts2("# test");
-  SQL_string_iterator it2(ts2);
+  SQL_iterator it2(ts2);
   EXPECT_EQ(ts2.length(), it2);
   EXPECT_THROW(++it2, std::out_of_range);
 
   std::string ts3("/* foo; bar */a-- 'foo'\nb 'foo\"'`bar'\"z`c d");
-  SQL_string_iterator it3(ts3);
+  SQL_iterator it3(ts3);
 
   EXPECT_EQ('a', *(it3++));
   EXPECT_EQ('b', *(it3++));
@@ -173,112 +173,112 @@ TEST(Utils_lexing, SQL_string_iterator_get_next_sql_token) {
       "movies for "
       "each\nrow INSERT INTO genre_summary (genre, count, time) select genre, "
       "\"qoted\", now() from movies group/* psikus */by genre\nasc;"};
-  SQL_string_iterator it(sql);
+  SQL_iterator it(sql);
 
-  EXPECT_EQ("create", it.get_next_sql_token());
-  EXPECT_EQ("trigger", it.get_next_sql_token());
-  EXPECT_EQ("genre_summary_asc", it.get_next_sql_token());
-  EXPECT_EQ("AFTER", it.get_next_sql_token());
-  EXPECT_EQ("INSERT", it.get_next_sql_token());
-  EXPECT_EQ("on", it.get_next_sql_token());
-  EXPECT_EQ("movies", it.get_next_sql_token());
-  EXPECT_EQ("for", it.get_next_sql_token());
-  EXPECT_EQ("each", it.get_next_sql_token());
-  EXPECT_EQ("row", it.get_next_sql_token());
-  EXPECT_EQ("INSERT", it.get_next_sql_token());
-  EXPECT_EQ("INTO", it.get_next_sql_token());
-  EXPECT_EQ("genre_summary", it.get_next_sql_token());
-  EXPECT_EQ("(", it.get_next_sql_token());
-  EXPECT_EQ("genre", it.get_next_sql_token());
-  EXPECT_EQ(",", it.get_next_sql_token());
-  EXPECT_EQ("count", it.get_next_sql_token());
-  EXPECT_EQ(",", it.get_next_sql_token());
-  EXPECT_EQ("time", it.get_next_sql_token());
-  EXPECT_EQ(")", it.get_next_sql_token());
-  EXPECT_EQ("select", it.get_next_sql_token());
-  EXPECT_EQ("genre", it.get_next_sql_token());
-  EXPECT_EQ(",", it.get_next_sql_token());
-  EXPECT_EQ(",", it.get_next_sql_token());
-  EXPECT_EQ("now", it.get_next_sql_token());
-  EXPECT_EQ("(", it.get_next_sql_token());
-  EXPECT_EQ(")", it.get_next_sql_token());
-  EXPECT_EQ("from", it.get_next_sql_token());
-  EXPECT_EQ("movies", it.get_next_sql_token());
-  EXPECT_EQ("group", it.get_next_sql_token());
-  EXPECT_EQ("by", it.get_next_sql_token());
-  EXPECT_EQ("genre", it.get_next_sql_token());
-  EXPECT_EQ("asc", it.get_next_sql_token());
-  EXPECT_EQ(";", it.get_next_sql_token());
+  EXPECT_EQ("create", it.get_next_token());
+  EXPECT_EQ("trigger", it.get_next_token());
+  EXPECT_EQ("genre_summary_asc", it.get_next_token());
+  EXPECT_EQ("AFTER", it.get_next_token());
+  EXPECT_EQ("INSERT", it.get_next_token());
+  EXPECT_EQ("on", it.get_next_token());
+  EXPECT_EQ("movies", it.get_next_token());
+  EXPECT_EQ("for", it.get_next_token());
+  EXPECT_EQ("each", it.get_next_token());
+  EXPECT_EQ("row", it.get_next_token());
+  EXPECT_EQ("INSERT", it.get_next_token());
+  EXPECT_EQ("INTO", it.get_next_token());
+  EXPECT_EQ("genre_summary", it.get_next_token());
+  EXPECT_EQ("(", it.get_next_token());
+  EXPECT_EQ("genre", it.get_next_token());
+  EXPECT_EQ(",", it.get_next_token());
+  EXPECT_EQ("count", it.get_next_token());
+  EXPECT_EQ(",", it.get_next_token());
+  EXPECT_EQ("time", it.get_next_token());
+  EXPECT_EQ(")", it.get_next_token());
+  EXPECT_EQ("select", it.get_next_token());
+  EXPECT_EQ("genre", it.get_next_token());
+  EXPECT_EQ(",", it.get_next_token());
+  EXPECT_EQ(",", it.get_next_token());
+  EXPECT_EQ("now", it.get_next_token());
+  EXPECT_EQ("(", it.get_next_token());
+  EXPECT_EQ(")", it.get_next_token());
+  EXPECT_EQ("from", it.get_next_token());
+  EXPECT_EQ("movies", it.get_next_token());
+  EXPECT_EQ("group", it.get_next_token());
+  EXPECT_EQ("by", it.get_next_token());
+  EXPECT_EQ("genre", it.get_next_token());
+  EXPECT_EQ("asc", it.get_next_token());
+  EXPECT_EQ(";", it.get_next_token());
   EXPECT_TRUE(it.get_next_sql_function().empty());
   EXPECT_FALSE(it.valid());
 
   std::string grant{
       "GRANT `app_delete`@`%`,`app_read`@`%`, `app_write` @ `%` ,`combz`@`%` "
       "TO `combined`\n@\n`%`;"};
-  SQL_string_iterator itg(grant);
+  SQL_iterator itg(grant);
 
-  EXPECT_EQ("GRANT", itg.get_next_sql_token());
-  EXPECT_EQ("@", itg.get_next_sql_token());
-  EXPECT_EQ(",", itg.get_next_sql_token());
-  EXPECT_EQ("@", itg.get_next_sql_token());
-  EXPECT_EQ(",", itg.get_next_sql_token());
-  EXPECT_EQ("@", itg.get_next_sql_token());
-  EXPECT_EQ(",", itg.get_next_sql_token());
-  EXPECT_EQ("@", itg.get_next_sql_token());
-  EXPECT_EQ("TO", itg.get_next_sql_token());
-  EXPECT_EQ("@", itg.get_next_sql_token());
-  EXPECT_EQ(";", itg.get_next_sql_token());
+  EXPECT_EQ("GRANT", itg.get_next_token());
+  EXPECT_EQ("@", itg.get_next_token());
+  EXPECT_EQ(",", itg.get_next_token());
+  EXPECT_EQ("@", itg.get_next_token());
+  EXPECT_EQ(",", itg.get_next_token());
+  EXPECT_EQ("@", itg.get_next_token());
+  EXPECT_EQ(",", itg.get_next_token());
+  EXPECT_EQ("@", itg.get_next_token());
+  EXPECT_EQ("TO", itg.get_next_token());
+  EXPECT_EQ("@", itg.get_next_token());
+  EXPECT_EQ(";", itg.get_next_token());
   EXPECT_TRUE(itg.get_next_sql_function().empty());
   EXPECT_FALSE(itg.valid());
 
-  SQL_string_iterator git(grant, 0, false);
-  EXPECT_EQ("GRANT", git.get_next_sql_token());
-  EXPECT_EQ("`app_delete`", git.get_next_sql_token());
-  EXPECT_EQ("@", git.get_next_sql_token());
-  EXPECT_EQ("`%`", git.get_next_sql_token());
-  EXPECT_EQ(",", git.get_next_sql_token());
-  EXPECT_EQ("`app_read`", git.get_next_sql_token());
-  EXPECT_EQ("@", git.get_next_sql_token());
-  EXPECT_EQ("`%`", git.get_next_sql_token());
-  EXPECT_EQ(",", git.get_next_sql_token());
-  EXPECT_EQ("`app_write`", git.get_next_sql_token());
-  EXPECT_EQ("@", git.get_next_sql_token());
-  EXPECT_EQ("`%`", git.get_next_sql_token());
-  EXPECT_EQ(",", git.get_next_sql_token());
-  EXPECT_EQ("`combz`", git.get_next_sql_token());
-  EXPECT_EQ("@", git.get_next_sql_token());
-  EXPECT_EQ("`%`", git.get_next_sql_token());
-  EXPECT_EQ("TO", git.get_next_sql_token());
-  EXPECT_EQ("`combined`", git.get_next_sql_token());
-  EXPECT_EQ("@", git.get_next_sql_token());
-  EXPECT_EQ("`%`", git.get_next_sql_token());
-  EXPECT_EQ(";", git.get_next_sql_token());
+  SQL_iterator git(grant, 0, false);
+  EXPECT_EQ("GRANT", git.get_next_token());
+  EXPECT_EQ("`app_delete`", git.get_next_token());
+  EXPECT_EQ("@", git.get_next_token());
+  EXPECT_EQ("`%`", git.get_next_token());
+  EXPECT_EQ(",", git.get_next_token());
+  EXPECT_EQ("`app_read`", git.get_next_token());
+  EXPECT_EQ("@", git.get_next_token());
+  EXPECT_EQ("`%`", git.get_next_token());
+  EXPECT_EQ(",", git.get_next_token());
+  EXPECT_EQ("`app_write`", git.get_next_token());
+  EXPECT_EQ("@", git.get_next_token());
+  EXPECT_EQ("`%`", git.get_next_token());
+  EXPECT_EQ(",", git.get_next_token());
+  EXPECT_EQ("`combz`", git.get_next_token());
+  EXPECT_EQ("@", git.get_next_token());
+  EXPECT_EQ("`%`", git.get_next_token());
+  EXPECT_EQ("TO", git.get_next_token());
+  EXPECT_EQ("`combined`", git.get_next_token());
+  EXPECT_EQ("@", git.get_next_token());
+  EXPECT_EQ("`%`", git.get_next_token());
+  EXPECT_EQ(";", git.get_next_token());
   EXPECT_TRUE(git.get_next_sql_function().empty());
   EXPECT_FALSE(git.valid());
 
   std::string ct =
       "CREATE TABLE t(i int) ENCRYPTION = 'N' DATA DIRECTORY = '\tmp', "
       "/*!50100 TABLESPACE `t s 1` */ ENGINE = InnoDB;";
-  SQL_string_iterator cit(ct, 0, false);
-  EXPECT_EQ("CREATE", cit.get_next_sql_token());
-  EXPECT_EQ("TABLE", cit.get_next_sql_token());
-  EXPECT_EQ("t", cit.get_next_sql_token());
-  EXPECT_EQ("(", cit.get_next_sql_token());
-  EXPECT_EQ("i", cit.get_next_sql_token());
-  EXPECT_EQ("int", cit.get_next_sql_token());
-  EXPECT_EQ(")", cit.get_next_sql_token());
-  EXPECT_EQ("ENCRYPTION", cit.get_next_sql_token());
-  EXPECT_EQ("=", cit.get_next_sql_token());
-  EXPECT_EQ("DATA", cit.get_next_sql_token());
-  EXPECT_EQ("DIRECTORY", cit.get_next_sql_token());
-  EXPECT_EQ("=", cit.get_next_sql_token());
-  EXPECT_EQ(",", cit.get_next_sql_token());
-  EXPECT_EQ("TABLESPACE", cit.get_next_sql_token());
-  EXPECT_EQ("`t s 1`", cit.get_next_sql_token());
-  EXPECT_EQ("ENGINE", cit.get_next_sql_token());
-  EXPECT_EQ("=", cit.get_next_sql_token());
-  EXPECT_EQ("InnoDB", cit.get_next_sql_token());
-  EXPECT_EQ(";", cit.get_next_sql_token());
+  SQL_iterator cit(ct, 0, false);
+  EXPECT_EQ("CREATE", cit.get_next_token());
+  EXPECT_EQ("TABLE", cit.get_next_token());
+  EXPECT_EQ("t", cit.get_next_token());
+  EXPECT_EQ("(", cit.get_next_token());
+  EXPECT_EQ("i", cit.get_next_token());
+  EXPECT_EQ("int", cit.get_next_token());
+  EXPECT_EQ(")", cit.get_next_token());
+  EXPECT_EQ("ENCRYPTION", cit.get_next_token());
+  EXPECT_EQ("=", cit.get_next_token());
+  EXPECT_EQ("DATA", cit.get_next_token());
+  EXPECT_EQ("DIRECTORY", cit.get_next_token());
+  EXPECT_EQ("=", cit.get_next_token());
+  EXPECT_EQ(",", cit.get_next_token());
+  EXPECT_EQ("TABLESPACE", cit.get_next_token());
+  EXPECT_EQ("`t s 1`", cit.get_next_token());
+  EXPECT_EQ("ENGINE", cit.get_next_token());
+  EXPECT_EQ("=", cit.get_next_token());
+  EXPECT_EQ("InnoDB", cit.get_next_token());
+  EXPECT_EQ(";", cit.get_next_token());
   EXPECT_TRUE(cit.get_next_sql_function().empty());
   EXPECT_FALSE(cit.valid());
 
@@ -303,77 +303,77 @@ wholeblock:BEGIN
   SELECT str;
 
 END//)";
-  SQL_string_iterator pit(proc, 0, false);
-  EXPECT_EQ("delimiter", pit.get_next_sql_token());
-  EXPECT_EQ("//", pit.get_next_sql_token());
-  EXPECT_EQ("CREATE", pit.get_next_sql_token());
-  EXPECT_EQ("procedure", pit.get_next_sql_token());
-  EXPECT_EQ("yourdatabase.for_loop_example", pit.get_next_sql_token());
-  EXPECT_EQ("(", pit.get_next_sql_token());
-  EXPECT_EQ(")", pit.get_next_sql_token());
-  EXPECT_EQ("wholeblock:", pit.get_next_sql_token());
-  EXPECT_EQ("BEGIN", pit.get_next_sql_token());
-  EXPECT_EQ("DECLARE", pit.get_next_sql_token());
-  EXPECT_EQ("x", pit.get_next_sql_token());
-  EXPECT_EQ("INT", pit.get_next_sql_token());
-  EXPECT_EQ(";", pit.get_next_sql_token());
-  EXPECT_EQ("DECLARE", pit.get_next_sql_token());
-  EXPECT_EQ("str", pit.get_next_sql_token());
-  EXPECT_EQ("VARCHAR", pit.get_next_sql_token());
-  EXPECT_EQ("(", pit.get_next_sql_token());
-  EXPECT_EQ("255", pit.get_next_sql_token());
-  EXPECT_EQ(")", pit.get_next_sql_token());
-  EXPECT_EQ(";", pit.get_next_sql_token());
-  EXPECT_EQ("SET", pit.get_next_sql_token());
-  EXPECT_EQ("x", pit.get_next_sql_token());
-  EXPECT_EQ("=", pit.get_next_sql_token());
-  EXPECT_EQ("-5", pit.get_next_sql_token());
-  EXPECT_EQ(";", pit.get_next_sql_token());
-  EXPECT_EQ("SET", pit.get_next_sql_token());
-  EXPECT_EQ("str", pit.get_next_sql_token());
-  EXPECT_EQ("=", pit.get_next_sql_token());
-  EXPECT_EQ(";", pit.get_next_sql_token());
-  EXPECT_EQ("loop_label:", pit.get_next_sql_token());
-  EXPECT_EQ("LOOP", pit.get_next_sql_token());
-  EXPECT_EQ("IF", pit.get_next_sql_token());
-  EXPECT_EQ("x", pit.get_next_sql_token());
-  EXPECT_EQ(">", pit.get_next_sql_token());
-  EXPECT_EQ("0", pit.get_next_sql_token());
-  EXPECT_EQ("THEN", pit.get_next_sql_token());
-  EXPECT_EQ("LEAVE", pit.get_next_sql_token());
-  EXPECT_EQ("loop_label", pit.get_next_sql_token());
-  EXPECT_EQ(";", pit.get_next_sql_token());
-  EXPECT_EQ("END", pit.get_next_sql_token());
-  EXPECT_EQ("IF", pit.get_next_sql_token());
-  EXPECT_EQ(";", pit.get_next_sql_token());
-  EXPECT_EQ("SET", pit.get_next_sql_token());
-  EXPECT_EQ("str", pit.get_next_sql_token());
-  EXPECT_EQ("=", pit.get_next_sql_token());
-  EXPECT_EQ("CONCAT", pit.get_next_sql_token());
-  EXPECT_EQ("(", pit.get_next_sql_token());
-  EXPECT_EQ("str", pit.get_next_sql_token());
-  EXPECT_EQ(",", pit.get_next_sql_token());
-  EXPECT_EQ("x", pit.get_next_sql_token());
-  EXPECT_EQ(",", pit.get_next_sql_token());
-  EXPECT_EQ(")", pit.get_next_sql_token());
-  EXPECT_EQ(";", pit.get_next_sql_token());
-  EXPECT_EQ("SET", pit.get_next_sql_token());
-  EXPECT_EQ("x", pit.get_next_sql_token());
-  EXPECT_EQ("=", pit.get_next_sql_token());
-  EXPECT_EQ("x", pit.get_next_sql_token());
-  EXPECT_EQ("+", pit.get_next_sql_token());
-  EXPECT_EQ("1", pit.get_next_sql_token());
-  EXPECT_EQ(";", pit.get_next_sql_token());
-  EXPECT_EQ("ITERATE", pit.get_next_sql_token());
-  EXPECT_EQ("loop_label", pit.get_next_sql_token());
-  EXPECT_EQ(";", pit.get_next_sql_token());
-  EXPECT_EQ("END", pit.get_next_sql_token());
-  EXPECT_EQ("LOOP", pit.get_next_sql_token());
-  EXPECT_EQ(";", pit.get_next_sql_token());
-  EXPECT_EQ("SELECT", pit.get_next_sql_token());
-  EXPECT_EQ("str", pit.get_next_sql_token());
-  EXPECT_EQ(";", pit.get_next_sql_token());
-  EXPECT_EQ("END//", pit.get_next_sql_token());
+  SQL_iterator pit(proc, 0, false);
+  EXPECT_EQ("delimiter", pit.get_next_token());
+  EXPECT_EQ("//", pit.get_next_token());
+  EXPECT_EQ("CREATE", pit.get_next_token());
+  EXPECT_EQ("procedure", pit.get_next_token());
+  EXPECT_EQ("yourdatabase.for_loop_example", pit.get_next_token());
+  EXPECT_EQ("(", pit.get_next_token());
+  EXPECT_EQ(")", pit.get_next_token());
+  EXPECT_EQ("wholeblock:", pit.get_next_token());
+  EXPECT_EQ("BEGIN", pit.get_next_token());
+  EXPECT_EQ("DECLARE", pit.get_next_token());
+  EXPECT_EQ("x", pit.get_next_token());
+  EXPECT_EQ("INT", pit.get_next_token());
+  EXPECT_EQ(";", pit.get_next_token());
+  EXPECT_EQ("DECLARE", pit.get_next_token());
+  EXPECT_EQ("str", pit.get_next_token());
+  EXPECT_EQ("VARCHAR", pit.get_next_token());
+  EXPECT_EQ("(", pit.get_next_token());
+  EXPECT_EQ("255", pit.get_next_token());
+  EXPECT_EQ(")", pit.get_next_token());
+  EXPECT_EQ(";", pit.get_next_token());
+  EXPECT_EQ("SET", pit.get_next_token());
+  EXPECT_EQ("x", pit.get_next_token());
+  EXPECT_EQ("=", pit.get_next_token());
+  EXPECT_EQ("-5", pit.get_next_token());
+  EXPECT_EQ(";", pit.get_next_token());
+  EXPECT_EQ("SET", pit.get_next_token());
+  EXPECT_EQ("str", pit.get_next_token());
+  EXPECT_EQ("=", pit.get_next_token());
+  EXPECT_EQ(";", pit.get_next_token());
+  EXPECT_EQ("loop_label:", pit.get_next_token());
+  EXPECT_EQ("LOOP", pit.get_next_token());
+  EXPECT_EQ("IF", pit.get_next_token());
+  EXPECT_EQ("x", pit.get_next_token());
+  EXPECT_EQ(">", pit.get_next_token());
+  EXPECT_EQ("0", pit.get_next_token());
+  EXPECT_EQ("THEN", pit.get_next_token());
+  EXPECT_EQ("LEAVE", pit.get_next_token());
+  EXPECT_EQ("loop_label", pit.get_next_token());
+  EXPECT_EQ(";", pit.get_next_token());
+  EXPECT_EQ("END", pit.get_next_token());
+  EXPECT_EQ("IF", pit.get_next_token());
+  EXPECT_EQ(";", pit.get_next_token());
+  EXPECT_EQ("SET", pit.get_next_token());
+  EXPECT_EQ("str", pit.get_next_token());
+  EXPECT_EQ("=", pit.get_next_token());
+  EXPECT_EQ("CONCAT", pit.get_next_token());
+  EXPECT_EQ("(", pit.get_next_token());
+  EXPECT_EQ("str", pit.get_next_token());
+  EXPECT_EQ(",", pit.get_next_token());
+  EXPECT_EQ("x", pit.get_next_token());
+  EXPECT_EQ(",", pit.get_next_token());
+  EXPECT_EQ(")", pit.get_next_token());
+  EXPECT_EQ(";", pit.get_next_token());
+  EXPECT_EQ("SET", pit.get_next_token());
+  EXPECT_EQ("x", pit.get_next_token());
+  EXPECT_EQ("=", pit.get_next_token());
+  EXPECT_EQ("x", pit.get_next_token());
+  EXPECT_EQ("+", pit.get_next_token());
+  EXPECT_EQ("1", pit.get_next_token());
+  EXPECT_EQ(";", pit.get_next_token());
+  EXPECT_EQ("ITERATE", pit.get_next_token());
+  EXPECT_EQ("loop_label", pit.get_next_token());
+  EXPECT_EQ(";", pit.get_next_token());
+  EXPECT_EQ("END", pit.get_next_token());
+  EXPECT_EQ("LOOP", pit.get_next_token());
+  EXPECT_EQ(";", pit.get_next_token());
+  EXPECT_EQ("SELECT", pit.get_next_token());
+  EXPECT_EQ("str", pit.get_next_token());
+  EXPECT_EQ(";", pit.get_next_token());
+  EXPECT_EQ("END//", pit.get_next_token());
   EXPECT_TRUE(pit.get_next_sql_function().empty());
   EXPECT_FALSE(pit.valid());
 }
@@ -387,7 +387,7 @@ TEST(Utils_lexing, SQL_string_iterator_get_next_sql_function) {
       "# This is a test GLENGTH()\n"
       "/* just a comment X() */end;");
 
-  SQL_string_iterator it(sql);
+  SQL_iterator it(sql);
   EXPECT_EQ("contains_proc", it.get_next_sql_function());
   EXPECT_EQ("contains", it.get_next_sql_function());
   EXPECT_EQ("TOUCHES", it.get_next_sql_function());
@@ -403,7 +403,7 @@ TEST(Utils_lexing, SQL_string_iterator_get_next_sql_function) {
       "`TOUCHES(``COL2``,``COL3``)` FROM "
       "`AAA_TEST_REMOVED_FUNCTIONS`.`GEOTAB1`");
 
-  SQL_string_iterator it1(sql1);
+  SQL_iterator it1(sql1);
   EXPECT_EQ("ST_TOUCHES", it1.get_next_sql_function());
   EXPECT_TRUE(it1.get_next_sql_function().empty());
 }

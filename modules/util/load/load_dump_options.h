@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -118,6 +118,8 @@ class Load_dump_options final {
 
   bool ignore_version() const { return m_ignore_version; }
 
+  bool defer_table_indexes() const { return m_defer_table_indexes; }
+
   Analyze_table_mode analyze_tables() const { return m_analyze_tables; }
 
   static std::vector<std::string> get_excluded_users(bool is_mds);
@@ -150,6 +152,7 @@ class Load_dump_options final {
   bool m_skip_binlog = false;
   bool m_ignore_existing_objects = false;
   bool m_ignore_version = false;
+  bool m_defer_table_indexes = true;
 };
 
 }  // namespace mysqlsh

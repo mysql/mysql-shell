@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -174,7 +174,8 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
       .optional("skipBinlog", &m_skip_binlog)
       .optional("ignoreExistingObjects", &m_ignore_existing_objects)
       .optional("ignoreVersion", &m_ignore_version)
-      .optional("analyzeTables", &analyze_tables);
+      .optional("analyzeTables", &analyze_tables)
+      .optional("deferTableIndexes", &m_defer_table_indexes);
 
   unpacker.unpack(&m_oci_options);
   unpacker.end();

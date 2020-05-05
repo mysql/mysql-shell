@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1397,6 +1397,9 @@ option can be used even if all 'load' options are disabled.
 @li <b>defaultCharacterSet</b>: string (default taken from dump) - Specifies
 the character set to be used for loading the dump. By default, the same
 character set used for dumping will be used (utf8mb4 if not set at dump).
+@li <b>deferTableIndexes</b>: bool (default: true) - Defer all but PRIMARY index
+creation for table until data has already been loaded, which should improve
+performance.
 @li <b>dryRun</b>: bool (default: false) - Scans the dump and prints everything
 that would be performed, without actually doing so.
 @li <b>excludeSchemas</b>: array of strings (default not set) - Skip loading

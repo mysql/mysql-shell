@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #include <numeric>
 #include <utility>
 #include "modules/util/dump/dump_utils.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -215,6 +216,12 @@ void Dump_reader::schema_table_triggers(
   }
 }
 
+const std::vector<std::string> &Dump_reader::deferred_schema_fks(
+    const std::string &schema) const {
+  const auto &s = m_contents.schemas.at(schema);
+  return s->fk_queries;
+}
+
 std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
   std::string script;
 
@@ -360,12 +367,30 @@ bool Dump_reader::next_table_chunk(
   return false;
 }
 
+bool Dump_reader::next_deferred_index(std::string *out_schema,
+                                      std::string *out_table,
+                                      std::vector<std::string> **out_indexes) {
+  for (auto &schema : m_contents.schemas) {
+    for (auto &table : schema.second->tables) {
+      if (!table.second->indexes_done && table.second->data_done()) {
+        table.second->indexes_done = true;
+        *out_schema = schema.second->schema;
+        *out_table = table.second->table;
+        *out_indexes = &table.second->indexes;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 bool Dump_reader::next_table_analyze(std::string *out_schema,
                                      std::string *out_table,
                                      std::vector<Histogram> *out_histograms) {
   for (auto &schema : m_contents.schemas) {
     for (auto &table : schema.second->tables) {
-      if (table.second->data_done() && !table.second->analyze_done) {
+      if (table.second->data_done() && table.second->indexes_done &&
+          !table.second->analyze_done) {
         table.second->analyze_done = true;
         *out_schema = schema.second->schema;
         *out_table = table.second->table;
@@ -407,6 +432,37 @@ void Dump_reader::rescan() {
     m_dump_status = Status::COMPLETE;
     m_contents.parse_done_metadata(m_dir.get());
   }
+}
+
+void Dump_reader::add_deferred_indexes(const std::string &schema,
+                                       const std::string &table,
+                                       std::vector<std::string> &&indexes) {
+  auto s = m_contents.schemas.find(schema);
+  if (s == m_contents.schemas.end())
+    throw std::runtime_error("Unable to find schema " + schema +
+                             " for adding index");
+  auto t = s->second->tables.find(table);
+  if (t == s->second->tables.end())
+    throw std::runtime_error("Unable to find table " + table + " in schema " +
+                             schema + " for adding index");
+  t->second->indexes_done = false;
+  t->second->indexes = std::move(indexes);
+  auto &idx = t->second->indexes;
+  idx.erase(
+      std::remove_if(
+          idx.begin(), idx.end(),
+          [&s](const std::string &q) {
+            mysqlshdk::utils::SQL_iterator it(q);
+            while (it.valid() &&
+                   !shcore::str_caseeq(it.get_next_token(), "FOREIGN")) {
+            }
+            if (it.valid() && shcore::str_caseeq(it.get_next_token(), "KEY")) {
+              s->second->fk_queries.emplace_back(q);
+              return true;
+            }
+            return false;
+          }),
+      idx.end());
 }
 
 std::string Dump_reader::Table_info::script_name() const {
@@ -510,6 +566,7 @@ void Dump_reader::Table_info::rescan(
       }
     }
     if (found_data) reader->m_tables_with_data.insert(this);
+    has_data = found_data;
   }
 }
 

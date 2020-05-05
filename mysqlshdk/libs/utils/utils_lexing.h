@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -247,7 +247,7 @@ inline size_t span_cstyle_comment(const std::string &s, size_t offset) {
  * This iterator casts implicitly to size_t and can be used as substitute for
  * size_t in standard for loop iterating over std::string.
  */
-class SQL_string_iterator {
+class SQL_iterator {
  public:
   typedef std::string::value_type value_type;
 
@@ -256,14 +256,14 @@ class SQL_string_iterator {
    * @arg str string containing SQL query.
    * @arg offset offset in str, need to point to valid part of SQL.
    */
-  explicit SQL_string_iterator(const std::string &str,
-                               std::string::size_type offset = 0,
-                               bool skip_quoted_sql_ids = true);
+  explicit SQL_iterator(const std::string &str,
+                        std::string::size_type offset = 0,
+                        bool skip_quoted_sql_ids = true);
 
-  SQL_string_iterator &operator++();
+  SQL_iterator &operator++();
 
-  SQL_string_iterator operator++(int) {
-    SQL_string_iterator ans = *this;
+  SQL_iterator operator++(int) {
+    SQL_iterator ans = *this;
     ++(*this);
     return ans;
   }
@@ -277,11 +277,11 @@ class SQL_string_iterator {
 
   std::string::value_type operator*() const { return get_char(); }
 
-  bool operator==(const SQL_string_iterator &a) const {
+  bool operator==(const SQL_iterator &a) const {
     return m_offset == a.m_offset && m_s == a.m_s;
   }
 
-  bool operator!=(const SQL_string_iterator &a) const { return !(*this == a); }
+  bool operator!=(const SQL_iterator &a) const { return !(*this == a); }
 
   operator std::string::size_type() const { return m_offset; }
 
@@ -292,7 +292,7 @@ class SQL_string_iterator {
   /** Is iterator pointing to valid character inside SQL string */
   bool valid() const { return m_offset < m_s.length(); }
 
-  std::string get_next_sql_token();
+  std::string get_next_token();
 
   std::string get_next_sql_function();
 

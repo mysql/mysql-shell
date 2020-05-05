@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,15 +27,15 @@
 namespace mysqlshdk {
 namespace utils {
 
-SQL_string_iterator::SQL_string_iterator(const std::string &str,
-                                         std::string::size_type offset,
-                                         bool skip_quoted_sql_ids)
+SQL_iterator::SQL_iterator(const std::string &str,
+                           std::string::size_type offset,
+                           bool skip_quoted_sql_ids)
     : m_s(str), m_offset(offset - 1), m_skip_quoted_ids(skip_quoted_sql_ids) {
   // Let's make sure we start from valid SQL
   ++(*this);
 }
 
-SQL_string_iterator &SQL_string_iterator::operator++() {
+SQL_iterator &SQL_iterator::operator++() {
   if (++m_offset > m_s.length())
     throw std::out_of_range("SQL_string_iterator offset out of range");
 
@@ -94,7 +94,7 @@ SQL_string_iterator &SQL_string_iterator::operator++() {
   return *this;
 }
 
-std::string SQL_string_iterator::get_next_sql_token() {
+std::string SQL_iterator::get_next_token() {
   while (valid() && std::isspace(get_char())) ++(*this);
   if (!valid()) return std::string();
 
@@ -122,9 +122,9 @@ std::string SQL_string_iterator::get_next_sql_token() {
   return m_s.substr(start, previous + 1 - start);
 }
 
-std::string SQL_string_iterator::get_next_sql_function() {
+std::string SQL_iterator::get_next_sql_function() {
   std::string token;
-  while (!(token = get_next_sql_token()).empty()) {
+  while (!(token = get_next_token()).empty()) {
     if (!std::isalpha(token.front())) continue;
     if (valid() && get_char() == '(') break;
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,6 +61,10 @@ std::string check_statement_for_definer_clause(
 
 bool check_statement_for_sqlsecurity_clause(const std::string &statement,
                                             std::string *rewritten = nullptr);
+
+std::vector<std::string> check_create_table_for_indexes(
+    const std::string &statement, std::string *rewritten = nullptr,
+    bool return_alter_table = false);
 
 }  // namespace compatibility
 }  // namespace mysqlsh

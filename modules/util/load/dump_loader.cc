@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <utility>
 #include <vector>
 #include "modules/mod_utils.h"
+#include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/console_with_progress.h"
 #include "modules/util/import_table/load_data.h"
 #include "modules/util/load/load_progress_log.h"
@@ -37,6 +38,7 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/mysql/script.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -280,6 +282,64 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
   return true;
 }
 
+bool Dump_loader::Worker::Index_recreation_task::execute(
+    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+    Worker *worker, Dump_loader *loader) {
+  log_debug("worker%zu will recreate indexes for table `%s`.`%s`", id(),
+            schema().c_str(), table().c_str());
+
+  auto console = current_console();
+
+  if (!m_queries.empty())
+    console->print_status(shcore::str_format(
+        "Recreating indexes for `%s`.`%s`", schema().c_str(), table().c_str()));
+
+  loader->post_worker_event(worker, Worker_event::INDEX_START);
+
+  // do work
+  if (!loader->m_options.dry_run()) {
+    try {
+      int retries = 0;
+      session->execute("SET unique_checks = 0");
+      for (size_t i = 0; i < m_queries.size(); i++) {
+        try {
+          session->execute(m_queries[i]);
+        } catch (const shcore::Error &e) {
+          // Deadlocks and duplicate key errors should not happen but if they do
+          // they can be ignored at least for a while
+          if (e.code() == ER_LOCK_DEADLOCK && retries < 20) {
+            console->print_note(
+                "Deadlock detected when recreating indexes for table `" +
+                m_table + "`, will retry after " + std::to_string(++retries) +
+                " seconds");
+            shcore::sleep_ms(retries * 1000);
+            --i;
+          } else if (e.code() == ER_DUP_KEYNAME) {
+            console->print_note("Index already existed for query: " +
+                                m_queries[i]);
+          } else {
+            throw;
+          }
+        }
+      }
+    } catch (const std::exception &e) {
+      console->print_error(shcore::str_format(
+          "[Worker%03zu] While recreating indexes for table `%s`.`%s`: %s",
+          id(), schema().c_str(), table().c_str(), e.what()));
+      loader->m_thread_exceptions[id()] = std::current_exception();
+
+      loader->post_worker_event(worker, Worker_event::FATAL_ERROR);
+      return false;
+    }
+  }
+
+  log_debug("worker%zu done", id());
+
+  // signal for more work
+  loader->post_worker_event(worker, Worker_event::INDEX_END);
+  return true;
+}
+
 Dump_loader::Worker::Worker(size_t id, Dump_loader *owner)
     : m_id(id), m_owner(owner) {}
 
@@ -332,6 +392,18 @@ void Dump_loader::Worker::load_chunk_file(
       m_id, schema, table, chunk_index, std::move(file), options, resuming);
   static_cast<Load_chunk_task *>(m_task.get())->raw_bytes_loaded = chunk_size;
 
+  m_work_ready.push(true);
+}
+
+void Dump_loader::Worker::recreate_indexes(
+    const std::string &schema, const std::string &table,
+    const std::vector<std::string> &indexes) {
+  log_debug("Recreating indexes for `%s`.`%s`", schema.c_str(), table.c_str());
+  assert(!schema.empty());
+  assert(!table.empty());
+
+  m_task =
+      std::make_unique<Index_recreation_task>(m_id, schema, table, indexes);
   m_work_ready.push(true);
 }
 
@@ -464,6 +536,25 @@ void Dump_loader::on_dump_end() {
 }
 
 void Dump_loader::on_schema_end(const std::string &schema) {
+  const auto &fks = m_dump->deferred_schema_fks(schema);
+  if (!fks.empty()) {
+    current_console()->print_status(
+        "Recreating FOREIGN KEY constraints for schema " +
+        shcore::quote_identifier(schema));
+    if (!m_options.dry_run()) {
+      for (const auto &q : fks) {
+        try {
+          m_session->execute(q);
+        } catch (const std::exception &e) {
+          current_console()->print_error(
+              "Error while restoring FOREIGN KEY constraint in schema `" +
+              schema + "` with query: " + q);
+          throw;
+        }
+      }
+    }
+  }
+
   std::list<Dump_reader::Name_and_file> triggers;
 
   m_dump->schema_table_triggers(schema, &triggers);
@@ -510,12 +601,7 @@ void Dump_loader::handle_schema_scripts() {
 
     if (m_options.load_ddl() && has_ddl) {
       m_load_log->start_schema_ddl(schema);
-
-      if (status != Load_progress_log::DONE) {
-        handle_schema(schema, tables, views,
-                      status == Load_progress_log::INTERRUPTED);
-      }
-
+      handle_schema(schema, tables, views);
       m_load_log->end_schema_ddl(schema);
     }
   }
@@ -524,49 +610,70 @@ void Dump_loader::handle_schema_scripts() {
 void Dump_loader::handle_schema(
     const std::string &schema,
     const std::list<Dump_reader::Name_and_file> &tables,
-    const std::list<Dump_reader::Name_and_file> &views, bool resuming) {
-  log_debug("Executing schema DDL for %s", schema.c_str());
+    const std::list<Dump_reader::Name_and_file> &views) {
+  auto status = m_load_log->schema_ddl_status(schema);
+  if (status != Load_progress_log::DONE) {
+    auto resuming = status == mysqlsh::Load_progress_log::INTERRUPTED;
+    log_debug("Executing schema DDL for %s", schema.c_str());
 
-  std::string script = m_dump->fetch_schema_script(schema);
+    std::string script = m_dump->fetch_schema_script(schema);
 
-  try {
-    current_console()->print_info((resuming
-                                       ? "Re-executing DDL script for schema `"
-                                       : "Executing DDL script for schema `") +
-                                  schema + "`");
-    if (!m_options.dry_run()) {
-      // execute sql
-      execute_script(
-          m_session, script,
-          shcore::str_format("While processing schema `%s`", schema.c_str()));
+    try {
+      current_console()->print_info(
+          (resuming ? "Re-executing DDL script for schema `"
+                    : "Executing DDL script for schema `") +
+          schema + "`");
+      if (!m_options.dry_run()) {
+        // execute sql
+        execute_script(
+            m_session, script,
+            shcore::str_format("While processing schema `%s`", schema.c_str()));
+      }
+    } catch (const std::exception &e) {
+      current_console()->print_error(shcore::str_format(
+          "Error processing schema `%s`: %s", schema.c_str(), e.what()));
+
+      if (!m_options.force()) throw;
+
+      m_skip_schemas.insert(schema);
     }
-  } catch (const std::exception &e) {
-    current_console()->print_error(shcore::str_format(
-        "Error processing schema `%s`: %s", schema.c_str(), e.what()));
-
-    if (!m_options.force()) throw;
-
-    m_skip_schemas.insert(schema);
+  } else if (!m_options.dry_run()) {
+    try {
+      m_session->executef("use !", schema.c_str());
+    } catch (const std::exception &e) {
+      current_console()->print_error(shcore::str_format(
+          "Unable to use schema `%s` that according to load status was "
+          "already created, consider reseting progress, error message: %s",
+          schema.c_str(), e.what()));
+      if (!m_options.force()) throw;
+      m_skip_schemas.insert(schema);
+      return;
+    }
   }
 
   // Process tables of the schema
   for (const auto &it : tables) {
     const std::string &table = it.first;
 
-    auto status = m_load_log->table_ddl_status(schema, table);
+    status = m_load_log->table_ddl_status(schema, table);
 
     log_debug("Table DDL for '%s'.'%s' (%s)", schema.c_str(), table.c_str(),
               to_string(status).c_str());
 
     if (m_options.load_ddl()) {
       m_load_log->start_table_ddl(schema, table);
+      it.second->open(mysqlshdk::storage::Mode::READ);
+      auto script = mysqlshdk::storage::read_file(it.second.get());
+
+      bool indexes_deferred = false;
+      if (m_options.defer_table_indexes())
+        indexes_deferred = handle_indexes(schema, table, &script,
+                                          status == Load_progress_log::DONE);
 
       if (status != Load_progress_log::DONE) {
-        it.second->open(mysqlshdk::storage::Mode::READ);
-        script = mysqlshdk::storage::read_file(it.second.get());
-
         handle_table(schema, table, script,
-                     status == Load_progress_log::INTERRUPTED);
+                     status == Load_progress_log::INTERRUPTED,
+                     indexes_deferred);
       }
 
       m_load_log->end_table_ddl(schema, table);
@@ -577,7 +684,7 @@ void Dump_loader::handle_schema(
   for (const auto &it : views) {
     const std::string &view = it.first;
 
-    auto status = m_load_log->table_ddl_status(schema, view);
+    status = m_load_log->table_ddl_status(schema, view);
 
     log_debug("View DDL for '%s'.'%s' (%s)", schema.c_str(), view.c_str(),
               to_string(status).c_str());
@@ -587,7 +694,7 @@ void Dump_loader::handle_schema(
 
       if (status != Load_progress_log::DONE) {
         it.second->open(mysqlshdk::storage::Mode::READ);
-        script = mysqlshdk::storage::read_file(it.second.get());
+        auto script = mysqlshdk::storage::read_file(it.second.get());
 
         handle_table(schema, view, script,
                      status == Load_progress_log::INTERRUPTED);
@@ -598,17 +705,87 @@ void Dump_loader::handle_schema(
   }
 }
 
+namespace {
+std::vector<std::string> preprocess_table_script_for_indexes(
+    std::string *script, const std::string &key) {
+  std::vector<std::string> indexes;
+  auto script_length = script->length();
+  std::istringstream stream(*script);
+  script->clear();
+  mysqlshdk::utils::iterate_sql_stream(
+      &stream, script_length,
+      [&](const char *s, size_t len, const std::string &delim, size_t) {
+        auto sql = std::string(s, len) + delim + "\n";
+        mysqlshdk::utils::SQL_iterator sit(sql);
+        if (shcore::str_caseeq(sit.get_next_token(), "CREATE") &&
+            shcore::str_caseeq(sit.get_next_token(), "TABLE")) {
+          assert(indexes.empty());
+          indexes = compatibility::check_create_table_for_indexes(sql, &sql);
+        }
+        script->append(sql);
+        return true;
+      },
+      [&key](const std::string &err) {
+        throw std::runtime_error("Error splitting DDL script for table " + key +
+                                 ": " + err);
+      });
+  return indexes;
+}
+}  // namespace
+
+bool Dump_loader::handle_indexes(const std::string &schema,
+                                 const std::string &table, std::string *script,
+                                 bool check_recreated) {
+  auto key =
+      shcore::quote_identifier(schema) + "." + shcore::quote_identifier(table);
+  auto indexes = preprocess_table_script_for_indexes(script, key);
+
+  if (check_recreated && !indexes.empty()) {
+    try {
+      auto ct = m_session->query("show create table " + key)
+                    ->fetch_one()
+                    ->get_string(1);
+      auto recreated = compatibility::check_create_table_for_indexes(ct);
+      indexes.erase(std::remove_if(indexes.begin(), indexes.end(),
+                                   [&recreated](const std::string &i) {
+                                     return std::find(recreated.begin(),
+                                                      recreated.end(),
+                                                      i) != recreated.end();
+                                   }),
+                    indexes.end());
+    } catch (const std::exception &e) {
+      current_console()->print_error(
+          shcore::str_format("Unable to get status of table %s that "
+                             "according to load status "
+                             "was already created, consider reseting "
+                             "progress, error message: %s",
+                             key.c_str(), e.what()));
+      if (!m_options.force()) throw;
+    }
+  }
+
+  if (indexes.empty()) return false;
+  const auto prefix = "ALTER TABLE " + key + " ADD ";
+  for (size_t i = 0; i < indexes.size(); ++i)
+    indexes[i] = prefix + indexes[i] + ";";
+  m_dump->add_deferred_indexes(schema, table, std::move(indexes));
+  return true;
+}
+
 void Dump_loader::handle_table(const std::string &schema,
                                const std::string &table,
-                               const std::string &script, bool resuming) {
+                               const std::string &script, bool resuming,
+                               bool indexes_deferred) {
   std::string key = schema_table_key(schema, table);
 
   log_debug("Executing table DDL for %s", key.c_str());
 
   try {
-    current_console()->print_info((resuming ? "Re-executing DDL script for "
-                                            : "Executing DDL script for ") +
-                                  key);
+    current_console()->print_info(
+        (resuming ? "Re-executing DDL script for "
+                  : "Executing DDL script for ") +
+        key +
+        (indexes_deferred ? " (indexes removed for deferred creation)" : ""));
     if (!m_options.dry_run()) {
       // execute sql
       execute_script(m_session, script,
@@ -705,6 +882,10 @@ size_t Dump_loader::handle_worker_events() {
         return "LOAD_START";
       case Worker_event::Event::LOAD_END:
         return "LOAD_END";
+      case Worker_event::Event::INDEX_START:
+        return "INDEX_START";
+      case Worker_event::Event::INDEX_END:
+        return "INDEX_END";
       case Worker_event::Event::ANALYZE_START:
         return "ANALYZE_START";
       case Worker_event::Event::ANALYZE_END:
@@ -721,8 +902,8 @@ size_t Dump_loader::handle_worker_events() {
   while (!done && idle_workers.size() < m_workers.size()) {
     Worker_event event;
 
-    // Wait for events from workers, but update progress and check for ^C every
-    // now and then
+    // Wait for events from workers, but update progress and check for ^C
+    // every now and then
     for (;;) {
       update_progress();
 
@@ -753,9 +934,11 @@ size_t Dump_loader::handle_worker_events() {
         break;
       }
 
+      case Worker_event::INDEX_START:
       case Worker_event::ANALYZE_START:
         break;
 
+      case Worker_event::INDEX_END:
       case Worker_event::ANALYZE_END:
         event.event = Worker_event::READY;
         break;
@@ -800,6 +983,14 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
   if (!handle_table_data(worker)) {
     std::string schema;
     std::string table;
+    std::vector<std::string> *indexes = nullptr;
+    if (m_options.defer_table_indexes() &&
+        m_dump->next_deferred_index(&schema, &table, &indexes)) {
+      assert(indexes != nullptr);
+      worker->recreate_indexes(schema, table, *indexes);
+      return true;
+    }
+
     std::vector<Dump_reader::Histogram> histograms;
 
     switch (m_options.analyze_tables()) {
@@ -979,8 +1170,8 @@ void Dump_loader::check_server_version() {
   if (mds && !m_dump->mds_compatibility()) {
     console->print_error(
         "Destination is a MySQL Database Service instance but the dump was "
-        "produced without the compatibility option. Please enable the 'ocimds' "
-        "option when dumping your database.");
+        "produced without the compatibility option. Please enable the "
+        "'ocimds' option when dumping your database.");
     throw std::runtime_error("Dump is not MDS compatible");
   } else if (m_target_server_version.get_major() !=
              m_dump->server_version().get_major()) {
@@ -1068,9 +1259,9 @@ void Dump_loader::check_existing_objects() {
   console->print_status("Checking for pre-existing objects...");
 
   // Case handling:
-  // Partition, subpartition, column, index, stored routine, event, and resource
-  // group names are not case-sensitive on any platform, nor are column aliases.
-  // Schema, table and trigger names depend on the value of
+  // Partition, subpartition, column, index, stored routine, event, and
+  // resource group names are not case-sensitive on any platform, nor are
+  // column aliases. Schema, table and trigger names depend on the value of
   // lower_case_table_names
 
   // Get list of schemas being loaded that already exist
@@ -1149,8 +1340,8 @@ void Dump_loader::check_existing_objects() {
     } else {
       console->print_error(
           "One or more objects in the dump already exist in the destination "
-          "database. You must either DROP these objects, exclude them from the "
-          "load or enable the 'ignoreExistingObjects' option to ignore "
+          "database. You must either DROP these objects, exclude them from "
+          "the load or enable the 'ignoreExistingObjects' option to ignore "
           "these duplicates and load anyway.");
       throw std::runtime_error(
           "Duplicate objects found in destination database");
@@ -1264,8 +1455,8 @@ void Dump_loader::execute_tasks() {
       m_progress->hide(false);
     }
 
-    // handle events from workers and schedule more chunks when a worker becomes
-    // available
+    // handle events from workers and schedule more chunks when a worker
+    // becomes available
     num_idle_workers = handle_worker_events();
 
     // If the whole dump is already available and there's no more data to be

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -803,7 +803,7 @@ class Removed_functions_check : public Sql_upgrade_check {
     Upgrade_issue res;
     std::vector<std::pair<std::string, const char *>> flagged_functions;
     std::string definition = row->get_as_string(4);
-    mysqlshdk::utils::SQL_string_iterator it(definition);
+    mysqlshdk::utils::SQL_iterator it(definition);
     std::string func;
     while (!(func = it.get_next_sql_function()).empty()) {
       auto i = functions.find(func);
@@ -878,14 +878,14 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row) override {
     Upgrade_issue res;
     std::string definition = row->get_as_string(3);
-    mysqlshdk::utils::SQL_string_iterator it(definition);
+    mysqlshdk::utils::SQL_iterator it(definition);
     bool gb_found = false;
     std::string token;
 
-    while (!(token = it.get_next_sql_token()).empty()) {
+    while (!(token = it.get_next_token()).empty()) {
       if (token == "GROUP") {
         auto pos = it.position();
-        if (it.get_next_sql_token() == "BY")
+        if (it.get_next_token() == "BY")
           gb_found = true;
         else
           it.set_position(pos);
@@ -893,7 +893,7 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
         gb_found = false;
       } else if (token == "ORDER") {
         auto pos = it.position();
-        if (it.get_next_sql_token() == "BY")
+        if (it.get_next_token() == "BY")
           gb_found = false;
         else
           it.set_position(pos);

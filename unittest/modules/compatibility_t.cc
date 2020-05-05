@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -644,5 +644,191 @@ TEST_F(Compatibility_test, create_table_combo) {
   EXPECT_UNCHANGED(0);
   EXPECT_UNCHANGED(1);
 }
+
+TEST_F(Compatibility_test, indexes) {
+  std::string rewritten;
+  std::vector<std::string> idxs;
+
+  EXPECT_NO_THROW(idxs = compatibility::check_create_table_for_indexes(
+                      R"(CREATE TABLE `author` (
+  `author` varchar(200) DEFAULT NULL,
+  `age` int DEFAULT NULL,
+  FULLTEXT KEY `author` (`author`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
+                      &rewritten));
+  ASSERT_EQ(1, idxs.size());
+  EXPECT_EQ("FULLTEXT KEY `author` (`author`)", idxs[0]);
+  EXPECT_EQ(rewritten, R"(CREATE TABLE `author` (
+  `author` varchar(200) DEFAULT NULL,
+  `age` int DEFAULT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)");
+
+  EXPECT_NO_THROW(idxs = compatibility::check_create_table_for_indexes(
+                      R"(CREATE TABLE `opening_lines` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `opening_line` text,
+  `author` varchar(200) DEFAULT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  FULLTEXT INDEX `idx` (`opening_line`),
+  FULLTEXT key `idx2` (`author`,`title`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
+                      &rewritten, true));
+
+  ASSERT_EQ(2, idxs.size());
+  EXPECT_EQ(
+      "ALTER TABLE `opening_lines` ADD FULLTEXT INDEX `idx` (`opening_line`);",
+      idxs[0]);
+  EXPECT_EQ(
+      "ALTER TABLE `opening_lines` ADD FULLTEXT key `idx2` "
+      "(`author`,`title`);",
+      idxs[1]);
+  EXPECT_EQ(rewritten, R"(CREATE TABLE `opening_lines` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `opening_line` text,
+  `author` varchar(200) DEFAULT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)");
+
+  EXPECT_NO_THROW(idxs = compatibility::check_create_table_for_indexes(
+                      R"(CREATE TABLE IF NOT EXISTS `films` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `opening_line` text,
+  `author` varchar(200) DEFAULT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  `oli` int unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `oli` (`oli`),
+  FULLTEXT KEY (`opening_line`),
+  CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
+                      &rewritten, true));
+  ASSERT_EQ(3, idxs.size());
+  EXPECT_EQ("ALTER TABLE `films` ADD KEY `oli` (`oli`);", idxs[0]);
+  EXPECT_EQ("ALTER TABLE `films` ADD FULLTEXT KEY (`opening_line`);", idxs[1]);
+  EXPECT_EQ(
+      "ALTER TABLE `films` ADD CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) "
+      "REFERENCES `opening_lines` (`id`);",
+      idxs[2]);
+  EXPECT_EQ(rewritten, R"(CREATE TABLE IF NOT EXISTS `films` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `opening_line` text,
+  `author` varchar(200) DEFAULT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  `oli` int unsigned NOT NULL,
+  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)");
+
+  EXPECT_NO_THROW(idxs = compatibility::check_create_table_for_indexes(
+                      R"(CREATE TABLE part_tbl2 (
+  pk INT PRIMARY KEY,
+  xx INT GENERATED ALWAYS AS (pk+2)
+) PARTITION BY HASH(pk) (
+    PARTITION p1
+    DATA DIRECTORY = '${TMPDIR}/test datadir',
+    PARTITION p2
+    DATA DIRECTORY = '${TMPDIR}/test datadir2'
+  );)"));
+  EXPECT_TRUE(idxs.empty());
+}
+
+TEST_F(Compatibility_test, indexes_recreation) {
+  auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(shcore::get_connection_options(_mysql_uri));
+  session->execute("drop database if exists index_recreation_test");
+  session->execute("create database index_recreation_test");
+  session->execute("use index_recreation_test");
+
+  const auto check_recreation = [&](const std::string &table_name,
+                                    const char *ddl, int index_count) {
+    ASSERT_NO_THROW(session->execute(ddl));
+    auto create_table = session->query("show create table " + table_name)
+                            ->fetch_one()
+                            ->get_string(1);
+    std::string rewritten;
+    std::vector<std::string> idxs;
+    EXPECT_NO_THROW(idxs = compatibility::check_create_table_for_indexes(
+                        create_table, &rewritten, true));
+    EXPECT_EQ(index_count, idxs.size());
+    if (idxs.size() == 0) return;
+    ASSERT_NO_THROW(session->execute("drop table " + table_name));
+    ASSERT_NO_THROW(session->execute(rewritten));
+    for (const auto &q : idxs) {
+      ASSERT_NO_THROW(session->execute(q));
+    }
+    EXPECT_EQ(create_table, session->query("show create table " + table_name)
+                                ->fetch_one()
+                                ->get_string(1));
+  };
+
+  check_recreation("t1", "create table t1 (i int primary key, j int unique)",
+                   1);
+  check_recreation(
+      "t2",
+      "create table t2 (i int, j int, t text, fulltext (t), primary key (i,j))",
+      1);
+
+  check_recreation("parent", R"(CREATE TABLE parent (
+    id INT NOT NULL,
+    PRIMARY KEY (id)
+) ENGINE=INNODB;)",
+                   0);
+
+  check_recreation("child", R"(CREATE TABLE child (
+    id INT,
+    category INT NOT NULL,
+    parent_id INT CHECK (parent_id <> 666),
+    first_words TEXT,
+    PRIMARY KEY(category, id),
+    INDEX par_ind (parent_id),
+    FULLTEXT(first_words),
+    FOREIGN KEY (parent_id)
+        REFERENCES parent(id)
+        ON DELETE CASCADE
+) ENGINE=INNODB;)",
+                   3);
+
+  check_recreation("pair", R"(CREATE TABLE pair (
+    no INT NOT NULL AUTO_INCREMENT,
+    product_category INT NOT NULL,
+    product_id INT NOT NULL,
+    customer_id INT NOT NULL UNIQUE,
+    customer_hash INT NOT NULL,
+
+    CHECK (customer_id >= customer_hash),
+    PRIMARY KEY(no),
+    INDEX (product_category, product_id),
+    INDEX (customer_id),
+
+    FOREIGN KEY (product_category, product_id)
+      REFERENCES child(category, id)
+      ON UPDATE CASCADE ON DELETE RESTRICT,
+
+    FOREIGN KEY (customer_id)
+      REFERENCES parent(id)
+)   ENGINE=INNODB;)",
+                   5);
+
+  check_recreation("jemp", R"(CREATE TABLE jemp (
+    c JSON,
+    g INT GENERATED ALWAYS AS (c->"$.id"),
+    geo GEOMETRY NOT NULL,
+    SPATIAL INDEX(geo),
+    INDEX i (g)
+    );)",
+                   2);
+
+  check_recreation("part_tbl2", R"(CREATE TABLE part_tbl2 (
+  pk INT PRIMARY KEY,
+  idx INT,
+  xx INT GENERATED ALWAYS AS (pk+2),
+  INDEX (idx)
+) PARTITION BY HASH(pk) (
+    PARTITION p1,
+    PARTITION p2    
+  );)",
+                   1);
+
+  session->execute("drop database index_recreation_test");
+}
+
 }  // namespace compatibility
 }  // namespace mysqlsh

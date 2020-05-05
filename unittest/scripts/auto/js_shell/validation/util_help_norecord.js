@@ -1008,6 +1008,9 @@ DESCRIPTION
         character set to be used for loading the dump. By default, the same
         character set used for dumping will be used (utf8mb4 if not set at
         dump).
+      - deferTableIndexes: bool (default: true) - Defer all but PRIMARY index
+        creation for table until data has already been loaded, which should
+        improve performance.
       - dryRun: bool (default: false) - Scans the dump and prints everything
         that would be performed, without actually doing so.
       - excludeSchemas: array of strings (default not set) - Skip loading

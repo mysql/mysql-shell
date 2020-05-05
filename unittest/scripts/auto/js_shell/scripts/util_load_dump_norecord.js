@@ -540,14 +540,8 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1, ignoreExistingObjects: true}
 
 EXPECT_OUTPUT_CONTAINS("NOTE: One or more objects in the dump already exist in the destination database but will be ignored because the 'ignoreExistingObjects' option was enabled.");
 
-//@<> no dryRun to get errors from mismatched definitions {VER(>=8.0.0)}
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {ignoreExistingObjects: true});}, "Util.loadDump: Failed to add the foreign key constraint. Missing column 'film_id' for constraint");
-
-testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
-wipe_instance(session);
-
-//@<> no dryRun to get errors from mismatched definitions {VER(<8.0.0)}
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {ignoreExistingObjects: true});}, "Util.loadDump: Cannot add foreign key constraint");
+//@<> no dryRun to get errors from mismatched definitions
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {ignoreExistingObjects: true});}, "Util.loadDump: Unknown column 'f.title' in 'field list'");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -904,8 +898,12 @@ session.runSql("ANALYZE TABLE sakila.payment UPDATE HISTOGRAM ON rental_id, cust
 util.dumpSchemas(["sakila"], __tmp_dir+"/ldtest/dump-sakila");
 wipe_instance(session);
 
-//@<> Load everything with no analyze
+//@<> Load everything with no analyze, indexes deferred
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "off"});
+EXPECT_OUTPUT_CONTAINS("(indexes removed for deferred creation)");
+EXPECT_OUTPUT_CONTAINS("Recreating indexes for `sakila`.`store`");
+EXPECT_OUTPUT_CONTAINS("Recreating indexes for `sakila`.`inventory`");
+EXPECT_OUTPUT_CONTAINS("Recreating FOREIGN KEY constraints for schema `sakila`");
 
 //@<> Analyze only
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "on", loadData: false, loadDdl: false});
@@ -930,9 +928,15 @@ if(__version_num>80000) {
   EXPECT_OUTPUT_CONTAINS("Updating histogram for table `sakila`.`film`");
 }
 
-//@<> Load everything and analyze only for histograms
+//@<> Load everything without deferring indexes and analyze only for histograms
 wipe_instance(session);
-util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "histogram"});
+testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "histogram", deferTableIndexes: false});
+
+EXPECT_OUTPUT_NOT_CONTAINS("NOTE: Indexes removed from table");
+EXPECT_OUTPUT_NOT_CONTAINS("Recreating indexes");
+EXPECT_OUTPUT_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
+
 if(__version_num>80000) {
   EXPECT_OUTPUT_CONTAINS("Updating histogram for table `sakila`.`film`");
   EXPECT_OUTPUT_CONTAINS("Updating histogram for table `sakila`.`rental`");

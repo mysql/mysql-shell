@@ -1,5 +1,5 @@
 /*
-   Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+   Copyright (c) 2020, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -36,7 +36,7 @@ namespace compatibility {
 namespace {
 using Offset = std::pair<std::size_t, std::size_t>;
 using Offsets = std::vector<Offset>;
-using SQL_iterator = mysqlshdk::utils::SQL_string_iterator;
+using SQL_iterator = mysqlshdk::utils::SQL_iterator;
 
 struct Comment_offset {
   Offset offset;
@@ -95,12 +95,12 @@ std::size_t eat_quoted_string(const std::string &s, std::size_t i) {
 }
 
 void skip_columns_definition(SQL_iterator *it) {
-  if (!shcore::str_caseeq(it->get_next_sql_token(), "CREATE") ||
-      !shcore::str_caseeq(it->get_next_sql_token(), "TABLE"))
+  if (!shcore::str_caseeq(it->get_next_token(), "CREATE") ||
+      !shcore::str_caseeq(it->get_next_token(), "TABLE"))
     throw std::runtime_error("Malformed create table statement");
-  while (it->valid() && it->get_next_sql_token() != "(") {
+  while (it->valid() && it->get_next_token() != "(") {
   }
-  while (it->valid() && it->get_next_sql_token() != ")") {
+  while (it->valid() && it->get_next_token() != ")") {
   }
   if (!it->valid())
     throw std::runtime_error(
@@ -113,7 +113,7 @@ bool comment_out_option_with_string(
   Coffsets offsets;
   SQL_iterator it(s, 12);
   std::size_t prev_pos = 0, end = 0;
-  std::string token = it.get_next_sql_token();
+  std::string token = it.get_next_token();
   bool prev_added = false;
   while (!token.empty()) {
     auto start = it.position() - token.size();
@@ -122,15 +122,15 @@ bool comment_out_option_with_string(
         (end = eat_string_val(s, it.position())) == std::string::npos) {
       prev_pos = it.position() - token.size();
       prev_added = false;
-      token = it.get_next_sql_token();
+      token = it.get_next_token();
       continue;
     }
     it.set_position(end);
-    token = it.get_next_sql_token();
+    token = it.get_next_token();
 
     if (token == ",") {
       end = it.position();
-      token = it.get_next_sql_token();
+      token = it.get_next_token();
     } else if (s[prev_pos] == ',') {
       start = prev_pos;
     }
@@ -157,20 +157,20 @@ std::vector<std::string> check_privileges(
   Offsets offsets;
 
   SQL_iterator it(grant);
-  if (!shcore::str_caseeq(it.get_next_sql_token(), "GRANT"))
+  if (!shcore::str_caseeq(it.get_next_token(), "GRANT"))
     throw std::runtime_error("Malformed grant statement: " + grant);
 
   int remaining_priv = 0;
   bool last_removed = false;
   while (it.valid()) {
     auto prev_pos = it.position() - 1;
-    auto token = it.get_next_sql_token();
+    auto token = it.get_next_token();
     auto after_pos = it.position();
-    auto next = it.get_next_sql_token();
+    auto next = it.get_next_token();
     while (!next.empty() && next != "," && next != "ON" && next != "TO") {
       token += " " + next;
       after_pos = it.position();
-      next = it.get_next_sql_token();
+      next = it.get_next_token();
     }
     auto pit = privileges.find(shcore::str_upper(token));
     if (pit == privileges.end()) {
@@ -231,7 +231,7 @@ bool check_create_table_for_data_index_dir_option(
         if (!shcore::str_caseeq(*token, "DATA") &&
             !shcore::str_caseeq(*token, "INDEX"))
           return true;
-        *token = it->get_next_sql_token();
+        *token = it->get_next_token();
         return !shcore::str_caseeq(*token, "DIRECTORY");
       });
 }
@@ -250,7 +250,7 @@ bool check_create_table_for_encryption_option(const std::string &create_table,
   return comment_out_option_with_string(
       create_table, rewritten, [](std::string *token, SQL_iterator *it) {
         if (shcore::str_caseeq(*token, "DEFAULT"))
-          *token = it->get_next_sql_token();
+          *token = it->get_next_token();
         return !shcore::str_caseeq(*token, "ENCRYPTION");
       });
 }
@@ -263,10 +263,10 @@ std::string check_create_table_for_engine_option(
   SQL_iterator it(create_table);
   skip_columns_definition(&it);
   std::string token;
-  while (!(token = it.get_next_sql_token()).empty()) {
+  while (!(token = it.get_next_token()).empty()) {
     if (!shcore::str_caseeq(token, "ENGINE")) continue;
-    auto name = it.get_next_sql_token();
-    if (name == "=") name = it.get_next_sql_token();
+    auto name = it.get_next_token();
+    if (name == "=") name = it.get_next_token();
     if (shcore::str_caseeq(name, target)) continue;
     offsets.emplace_back(it.position() - name.length(), it.position());
     res = name;
@@ -284,14 +284,14 @@ bool check_create_table_for_tablespace_option(
   skip_columns_definition(&it);
   std::size_t prev_pos = 0;
   std::string token;
-  while (!(token = it.get_next_sql_token()).empty()) {
+  while (!(token = it.get_next_token()).empty()) {
     if (!shcore::str_caseeq(token, "TABLESPACE")) {
       prev_pos = it.position() - token.size();
       continue;
     }
     auto start = it.position() - token.size();
-    auto name = it.get_next_sql_token();
-    if (name == "=") name = it.get_next_sql_token();
+    auto name = it.get_next_token();
+    if (name == "=") name = it.get_next_token();
 
     // Leave whitelisted tablespaces
     size_t iw = 0;
@@ -312,9 +312,9 @@ bool check_create_table_for_tablespace_option(
     }
 
     auto end = it.position();
-    if (shcore::str_caseeq("STORAGE", it.get_next_sql_token())) {
+    if (shcore::str_caseeq("STORAGE", it.get_next_token())) {
       // either DISK or MEMORY
-      it.get_next_sql_token();
+      it.get_next_token();
       end = it.position();
     }
     offsets.emplace_back(create_table[prev_pos] == ',' ? prev_pos : start, end);
@@ -330,11 +330,11 @@ std::vector<std::string> check_statement_for_charset_option(
     const std::vector<std::string> &whitelist) {
   Offsets offsets;
   SQL_iterator it(statement, 0, true);
-  it.get_next_sql_token();
+  it.get_next_token();
 
   // CHARSET keyword can be a column name but cannot be a column option
   std::size_t end_of_col_def = 0;
-  if (shcore::str_caseeq(it.get_next_sql_token(), "TABLE")) {
+  if (shcore::str_caseeq(it.get_next_token(), "TABLE")) {
     SQL_iterator itc(statement, 0);
     skip_columns_definition(&itc);
     end_of_col_def = itc.position();
@@ -342,11 +342,11 @@ std::vector<std::string> check_statement_for_charset_option(
 
   std::vector<std::string> res;
   std::string token;
-  while (!(token = it.get_next_sql_token()).empty()) {
+  while (!(token = it.get_next_token()).empty()) {
     std::size_t prev_pos = 0;
     if (shcore::str_caseeq(token.c_str(), "DEFAULT")) {
       prev_pos = it.position() - token.size();
-      token = it.get_next_sql_token();
+      token = it.get_next_token();
     }
     bool collate = false;
     if (shcore::str_caseeq(token, "COLLATE")) {
@@ -356,7 +356,7 @@ std::vector<std::string> check_statement_for_charset_option(
       collate = false;
     } else if (shcore::str_caseeq(token, "CHARACTER")) {
       if (prev_pos == 0) prev_pos = it.position() - token.size();
-      if (!shcore::str_caseeq(it.get_next_sql_token(), "SET")) continue;
+      if (!shcore::str_caseeq(it.get_next_token(), "SET")) continue;
       collate = false;
     } else {
       continue;
@@ -365,7 +365,7 @@ std::vector<std::string> check_statement_for_charset_option(
     if (prev_pos == 0) prev_pos = it.position() - token.size();
     bool hint = it.inside_hint();
 
-    while ((token = it.get_next_sql_token()) == "=") {
+    while ((token = it.get_next_token()) == "=") {
     }
     bool supported = false;
     if (collate) token = token.substr(0, token.find('_'));
@@ -396,10 +396,10 @@ std::string check_statement_for_definer_clause(const std::string &statement,
                                                std::string *rewritten) {
   std::string user;
   SQL_iterator it(statement, 0);
-  std::string token = it.get_next_sql_token();
+  std::string token = it.get_next_token();
   if (!shcore::str_caseeq(token, "CREATE")) return user;
 
-  while (!(token = it.get_next_sql_token()).empty()) {
+  while (!(token = it.get_next_token()).empty()) {
     if (shcore::str_caseeq(token, "VIEW") ||
         shcore::str_caseeq(token, "EVENT") ||
         shcore::str_caseeq(token, "FUNCTION") ||
@@ -439,11 +439,11 @@ std::string check_statement_for_definer_clause(const std::string &statement,
 bool check_statement_for_sqlsecurity_clause(const std::string &statement,
                                             std::string *rewritten) {
   SQL_iterator it(statement, 0);
-  std::string token = it.get_next_sql_token();
+  std::string token = it.get_next_token();
   if (!shcore::str_caseeq(token, "CREATE")) return false;
   bool func_or_proc = false;
 
-  while (!(token = it.get_next_sql_token()).empty()) {
+  while (!(token = it.get_next_token()).empty()) {
   loop_start:
     if (shcore::str_caseeq(token, "PROCEDURE") ||
         shcore::str_caseeq(token, "FUNCTION")) {
@@ -482,9 +482,9 @@ bool check_statement_for_sqlsecurity_clause(const std::string &statement,
       return true;
     }
     if (!shcore::str_caseeq(token, "SQL")) continue;
-    if (!shcore::str_caseeq((token = it.get_next_sql_token()), "SECURITY"))
+    if (!shcore::str_caseeq((token = it.get_next_token()), "SECURITY"))
       goto loop_start;
-    token = it.get_next_sql_token();
+    token = it.get_next_token();
     if (shcore::str_caseeq(token, "INVOKER")) return false;
     if (!shcore::str_caseeq(token, "DEFINER")) continue;
     if (rewritten)
@@ -493,6 +493,87 @@ bool check_statement_for_sqlsecurity_clause(const std::string &statement,
     return true;
   }
   return false;
+}
+
+std::vector<std::string> check_create_table_for_indexes(
+    const std::string &statement, std::string *rewritten,
+    bool return_alter_table) {
+  std::vector<std::string> ret;
+  Offsets offsets;
+  SQL_iterator it(statement, 0, false);
+
+  if (!shcore::str_caseeq(it.get_next_token(), "CREATE") ||
+      !shcore::str_caseeq(it.get_next_token(), "TABLE"))
+    throw std::runtime_error(
+        "Index check can be only performed on create table statements");
+
+  auto table_name = it.get_next_token();
+  if (shcore::str_caseeq(table_name, "IF")) {
+    while (it.valid())
+      if (shcore::str_caseeq(it.get_next_token(), "EXISTS")) break;
+    table_name = it.get_next_token();
+  }
+
+  while (it.valid() && it.get_next_token() != "(") {
+  }
+
+  int brace_count = 1;
+  while (it.valid() && brace_count > 0) {
+    bool index_declaration = false;
+    auto potential_coma = it.position() - 1;
+    auto token = it.get_next_token();
+    auto start = it.position() - token.length();
+
+    if (shcore::str_caseeq(token, "FULLTEXT") ||
+        shcore::str_caseeq(token, "UNIQUE") ||
+        shcore::str_caseeq(token, "KEY") ||
+        shcore::str_caseeq(token, "INDEX") ||
+        shcore::str_caseeq(token, "SPATIAL"))
+      index_declaration = true;
+
+    bool constraint = shcore::str_caseeq(token, "CONSTRAINT");
+    while (it.valid() && brace_count > 0) {
+      token = it.get_next_token();
+      if (token == "(")
+        ++brace_count;
+      else if (token == ")")
+        --brace_count;
+      else if (brace_count == 1 && token == ",")
+        break;
+      else if (constraint && (shcore::str_caseeq(token, "KEY") ||
+                              shcore::str_caseeq(token, "INDEX")))
+        index_declaration = true;
+    }
+
+    if (!it.valid())
+      throw std::runtime_error(
+          "Incomplete create_definition in create table statement of table " +
+          table_name);
+    if (!index_declaration) continue;
+
+    // previous token had to be either ',' or ')'
+    auto end = it.position() - token.length();
+    if (statement[potential_coma] == ',') {
+      if (!offsets.empty() && offsets.back().second == potential_coma)
+        offsets.back().second = end;
+      else
+        offsets.emplace_back(potential_coma, end);
+    } else if (statement[end] == ',') {
+      offsets.emplace_back(start, end + 1);
+    } else {
+      offsets.emplace_back(start, end);
+    }
+    const auto index_definition =
+        shcore::str_rstrip(statement.substr(start, end - start));
+    if (return_alter_table)
+      ret.emplace_back("ALTER TABLE " + table_name + " ADD " +
+                       index_definition + ";");
+    else
+      ret.emplace_back(index_definition);
+  }
+
+  if (rewritten) *rewritten = replace_at_offsets(statement, offsets, "");
+  return ret;
 }
 
 }  // namespace compatibility
