@@ -451,10 +451,7 @@ Value::Value(float f) : type(Float) {
   // direct typecast from float to double works by just appending 0s to the
   // binary IEEE representation, which will result in a different number
   // So we convert through decimal instead
-  char buffer[100];
-  my_gcvt(static_cast<double>(f), MY_GCVT_ARG_FLOAT, sizeof(buffer) - 1, buffer,
-          NULL);
-  value.d = std::stod(buffer);
+  value.d = std::stod(shcore::ftoa(f));
 }
 
 Value::Value(double d) : type(Float) { value.d = d; }
@@ -1188,14 +1185,9 @@ std::string &Value::append_descr(std::string &s_out, int indent,
     case UInteger:
       s_out += std::to_string(value.ui);
       break;
-    case Float: {
-      char buffer[32];
-      size_t len;
-      len = my_gcvt(value.d, MY_GCVT_ARG_DOUBLE, sizeof(buffer) - 1, buffer,
-                    NULL);
-      s_out.append(buffer, len);
+    case Float:
+      s_out += shcore::dtoa(value.d);
       break;
-    }
     case String:
       if (quote_strings) {
         s_out += quote_string(*value.s, quote_strings);

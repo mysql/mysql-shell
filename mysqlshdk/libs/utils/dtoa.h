@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,10 +25,17 @@
 #define MYSQLSHDK_LIBS_UTILS_DTOA_H_
 
 #include <cstdlib>
+#include <string>
 
+namespace shcore {
 typedef enum { MY_GCVT_ARG_FLOAT, MY_GCVT_ARG_DOUBLE } my_gcvt_arg_type;
 
 size_t my_gcvt(double x, my_gcvt_arg_type type, int width, char *to,
                bool *error);
+
+std::string dtoa(double x);
+std::string ftoa(float x);
+
+}  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_DTOA_H_

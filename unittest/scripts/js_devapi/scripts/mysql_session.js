@@ -96,5 +96,8 @@ classicSession.query('select ?, ?', [1]);
 //@<OUT> ClassicSession: query placeholders
 classicSession.query("select ?, ?", ['hello', 1234]);
 
+//@<OUT> ClassicSession: runSql with various parameter types
+classicSession.runSql('select ?,?,?,?,?', [null, 1234, -0.12345, 3.14159265359, 'hellooooo']).fetchOne();
+
 // Cleanup
 classicSession.close();

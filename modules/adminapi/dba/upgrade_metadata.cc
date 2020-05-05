@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -377,7 +377,7 @@ void Upgrade_metadata::print_router_list(const shcore::Array_t &routers) {
   shcore::Array_as_result result(print_list);
 
   mysqlsh::Resultset_dumper dumper(
-      &result, mysqlsh::current_shell_options()->get().wrap_json, "table", true,
+      &result, mysqlsh::current_shell_options()->get().wrap_json, "table",
       false, false);
   dumper.dump("", true, false);
 }

@@ -2136,8 +2136,7 @@ int Shell::dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
     throw std::invalid_argument("Invalid format " + format);
 
   Resultset_dumper dumper(resultset->get_result(), "off",
-                          format.empty() ? "table" : format, false, false,
-                          false);
+                          format.empty() ? "table" : format, false, false);
   return dumper.dump("row", false, false);
 }
 

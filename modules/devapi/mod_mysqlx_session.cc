@@ -1128,6 +1128,7 @@ static ::xcl::Argument_value convert(const shcore::Value &value) {
     case shcore::Array:
       return xcl::Argument_value(convert_array(value.as_array()));
     case shcore::Null:
+      return xcl::Argument_value();
     case shcore::Object:
     case shcore::MapRef:
     case shcore::Function:

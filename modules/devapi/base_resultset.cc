@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,7 +56,11 @@ bool ShellBaseResult::operator==(const Object_bridge &other) const {
 }
 
 void ShellBaseResult::dump(const shcore::Dictionary_t & /* options */) {
-  Resultset_dumper dumper(get_result(), true);
+  auto result = get_result();
+
+  result->buffer();
+
+  Resultset_dumper dumper(result);
 
   bool is_result = class_name() == "Result";
   bool is_doc_result = class_name() == "DocResult";
@@ -67,6 +71,8 @@ void ShellBaseResult::dump(const shcore::Dictionary_t & /* options */) {
       is_doc_result ? "document" : is_result ? "item" : "row";
 
   dumper.dump(item_label, is_query, is_doc_result);
+
+  result->rewind();
 }
 
 std::unique_ptr<mysqlsh::Row> ShellBaseResult::fetch_one_row() const {

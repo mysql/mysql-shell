@@ -60,3 +60,11 @@ WARNING: 'query' is deprecated, use ClassicSession.runSql instead.
 | hello | 1234 |
 +-------+------+
 
+//@<OUT> ClassicSession: runSql with various parameter types
+[
+    null,
+    1234,
+    "-0.12345",
+    "3.14159265359",
+    "hellooooo"
+]

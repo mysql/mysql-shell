@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -40,6 +40,10 @@ TEST(utils_sqlstring, escape_wildcards) {
   EXPECT_EQ(R"(\%\_\%\_)", escape_wildcards("%_%_"));
   EXPECT_EQ(R"(\_al\%phab\_et\%)", escape_wildcards("_al%phab_et%"));
   EXPECT_EQ(R"(\%al\%phab\_et\_)", escape_wildcards("%al%phab_et_"));
+}
+
+TEST(utils_sqlstring, double_values) {
+  EXPECT_EQ("3.14567890123456", (sqlstring("?", 0) << 3.14567890123456).str());
 }
 
 }  // namespace shcore

@@ -21,9 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "utils/utils_sqlstring.h"
-#include "utils/utils_lexing.h"
-#include "utils/utils_string.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
+#include "mysqlshdk/libs/utils/dtoa.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 // updated as of 5.7
 static const char *reserved_keywords[] = {"ACCESSIBLE",
@@ -495,7 +496,7 @@ sqlstring &sqlstring::operator<<(const double v) {
     throw std::invalid_argument(
         "Error formatting SQL query: invalid escape for numeric argument");
 
-  append(std::to_string(v));
+  append(shcore::dtoa(v));
   append(consume_until_next_escape());
 
   return *this;

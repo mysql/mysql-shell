@@ -42,6 +42,9 @@ session.sql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?').exec
 //@ WL12766 SQL Test With Error (missing placeholder) [USE:WL12813 SQL Test With Error (missing placeholder)]
 session.runSql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?')
 
+//@ runSql with various parameter types
+// NOTE: xplugin has a bug where double values lose precision
+session.runSql('select ?,?,?,?,?', [null, 1234, -0.12345, 3.14159265359, 'hellooooo']).fetchOne();
 
 //@<> Finalizing
 session.dropSchema('session_sql');

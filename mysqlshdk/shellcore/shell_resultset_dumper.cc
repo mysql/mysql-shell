@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include "mysqlshdk/include/shellcore/base_shell.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/column.h"
+#include "mysqlshdk/libs/db/row_copy.h"
 #include "mysqlshdk/libs/utils/dtoa.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
@@ -40,6 +41,10 @@
 #include "utils/utils_string.h"
 
 #define MAX_DISPLAY_LENGTH 1024
+
+// max # of rows to pre-fetch when dumping resultsets with table formatting,
+// in order to calculate column widths
+static constexpr const int k_pre_fetch_result_rows = 1000;
 
 namespace mysqlsh {
 
@@ -221,8 +226,7 @@ enum class ResultFormat { VERTICAL, TABBED, TABLE };
 class Field_formatter {
  public:
   Field_formatter(ResultFormat format, const mysqlshdk::db::Column &column)
-      : m_buffer(nullptr),
-        m_max_display_length(0),
+      : m_max_display_length(0),
         m_max_buffer_length(0),
         m_max_mb_holes(0),
         m_format(format),
@@ -257,34 +261,6 @@ class Field_formatter {
     }
   }
 
-  Field_formatter(Field_formatter &&other) {
-    this->operator=(std::move(other));
-  }
-
-  void operator=(Field_formatter &&other) {
-    m_allocated = other.m_allocated;
-    m_zerofill = other.m_zerofill;
-    m_align_right = other.m_align_right;
-    m_buffer = std::move(other.m_buffer);
-
-    other.m_buffer = nullptr;
-    other.m_allocated = 0;
-
-    m_max_display_length = other.m_max_display_length;
-    m_max_buffer_length = other.m_max_buffer_length;
-    m_max_mb_holes = other.m_max_mb_holes;
-
-    // Length cache for each data to be printed with this formatter
-    m_display_lengths = std::move(other.m_display_lengths);
-    m_buffer_lengths = std::move(other.m_buffer_lengths);
-
-    m_format = other.m_format;
-    m_flags = other.m_flags;
-    m_type = other.m_type;
-
-    m_is_numeric = other.m_is_numeric;
-  }
-
   void process(const mysqlshdk::db::IRow *row, size_t index) {
     // This function is meant to be called only for tables
     assert(m_format == ResultFormat::TABLE);
@@ -295,6 +271,10 @@ class Field_formatter {
       dlength = blength = 4;
     } else if (m_is_numeric) {
       auto str = get_number_string(row, index);
+      dlength = blength = str.length();
+    } else if (m_type == mysqlshdk::db::Type::Bit) {
+      auto value = row->get_bit(index);
+      auto str = shcore::lexical_cast<std::string>(value);
       dlength = blength = str.length();
     } else if (m_type == mysqlshdk::db::Type::Bytes) {
       auto data = row->get_string_data(index);
@@ -309,82 +289,84 @@ class Field_formatter {
     }
 
     m_max_mb_holes = std::max<size_t>(m_max_mb_holes, blength - dlength);
-
     m_max_display_length = std::max<size_t>(m_max_display_length, dlength);
-
     m_max_buffer_length = std::max<size_t>(m_max_buffer_length, blength);
-
-    m_display_lengths.push_back(dlength);
-    m_buffer_lengths.push_back(blength);
   }
 
   ~Field_formatter() {}
 
   std::string get_number_string(const mysqlshdk::db::IRow *row, size_t index) {
-    std::string tmp;
     if (m_type == mysqlshdk::db::Type::Float) {
-      auto value = row->get_float(index);
-      char buffer[32];
-      size_t len;
-      len = my_gcvt(static_cast<double>(value), MY_GCVT_ARG_FLOAT,
-                    sizeof(buffer) - 1, buffer, NULL);
-      tmp.assign(buffer, len);
+      return shcore::ftoa(row->get_float(index));
     } else if (m_type == mysqlshdk::db::Type::Integer) {
       return std::to_string(row->get_int(index));
     } else if (m_type == mysqlshdk::db::Type::UInteger) {
       return std::to_string(row->get_uint(index));
     } else if (m_type == mysqlshdk::db::Type::Double) {
-      auto value = row->get_double(index);
-      char buffer[32];
-      size_t len;
-      len =
-          my_gcvt(value, MY_GCVT_ARG_DOUBLE, sizeof(buffer) - 1, buffer, NULL);
-      tmp.assign(buffer, len);
+      return shcore::dtoa(row->get_double(index));
     } else {
       return row->get_as_string(index);
     }
-
-    return tmp;
   }
 
   bool put(const mysqlshdk::db::IRow *row, size_t index) {
     reset();
 
+    std::string tmp;
+    const char *data;
+    size_t length;
+
+    size_t display_size;
+    size_t buffer_size;
+
     if (row->is_null(index)) {
-      append("NULL", 4);
+      data = "NULL";
+      display_size = buffer_size = length = 4;
     } else if (m_is_numeric) {
-      std::string tmp = get_number_string(row, index);
+      tmp = get_number_string(row, index);
 
       if (m_zerofill > tmp.length()) {
         tmp = std::string(m_zerofill - tmp.length(), '0').append(tmp);
-
-        // Updates the display length with the new size
-        if (m_format == ResultFormat::TABLE) {
-          m_display_lengths[0] = m_buffer_lengths[0] = tmp.length();
-        }
       }
-      append(tmp.data(), tmp.length());
-    } else if (m_type == mysqlshdk::db::Type::Bytes) {
-      auto data = row->get_string_data(index);
-      return append(data.first, data.second);
+      data = tmp.data();
+      display_size = buffer_size = length = tmp.length();
     } else if (m_type == mysqlshdk::db::Type::Bit) {
       auto value = row->get_bit(index);
-      auto tmp = shcore::lexical_cast<std::string>(value);
-      return append(tmp.data(), tmp.length());
+      tmp = shcore::lexical_cast<std::string>(value);
+      data = tmp.data();
+      display_size = buffer_size = length = tmp.length();
+    } else if (m_type == mysqlshdk::db::Type::Bytes) {
+      std::tie(data, length) = row->get_string_data(index);
+
+      std::tie(display_size, buffer_size) =
+          get_utf8_sizes(data, length, m_flags);
     } else {
-      auto data = row->get_as_string(index);
-      return append(data.c_str(), data.size());
+      tmp = row->get_as_string(index);
+      data = tmp.data();
+      length = tmp.length();
+
+      std::tie(display_size, buffer_size) =
+          get_utf8_sizes(data, length, m_flags);
     }
 
+    if (!append(data, length, display_size, buffer_size)) {
+      if (m_is_numeric || m_type == mysqlshdk::db::Type::Bit) {
+        // if a number is larger than expected (e.g. floating pt with lots of
+        // decimals)
+        m_buffer.assign(data, length);
+      } else {
+        return false;
+      }
+    }
     return true;
   }
 
-  const char *c_str() const { return m_buffer.get(); }
+  const std::string &str() const { return m_buffer; }
   size_t get_max_display_length() const { return m_max_display_length; }
   size_t get_max_buffer_length() const { return m_max_buffer_length; }
 
  private:
-  std::unique_ptr<char[]> m_buffer;
+  std::string m_buffer;
   size_t m_allocated;
   size_t m_zerofill;
   bool m_align_right;
@@ -393,10 +375,6 @@ class Field_formatter {
   size_t m_max_buffer_length;
   size_t m_max_mb_holes;
 
-  // Length cache for each data to be printed with this formatter
-  std::deque<size_t> m_display_lengths;
-  std::deque<size_t> m_buffer_lengths;
-
   ResultFormat m_format;
   Print_flags m_flags;
   mysqlshdk::db::Type m_type;
@@ -404,38 +382,24 @@ class Field_formatter {
 
   void reset() {
     // sets the buffer only once
-    if (!m_buffer) {
+    if (m_buffer.empty()) {
       if (m_format == ResultFormat::TABLE) {
         m_allocated = std::max<size_t>(m_max_display_length,
-                                       m_max_buffer_length + m_max_mb_holes) +
-                      1;
+                                       m_max_buffer_length + m_max_mb_holes);
 
         if (m_allocated > MAX_DISPLAY_LENGTH) m_allocated = MAX_DISPLAY_LENGTH;
       } else {
         m_allocated = MAX_DISPLAY_LENGTH;
       }
-
-      m_buffer.reset(new char[m_allocated]);
     }
+    m_buffer.resize(m_allocated);
 
-    memset(m_buffer.get(), ' ', m_allocated);
+    memset(&m_buffer[0], ' ', m_buffer.size());
   }
 
-  bool append(const char *text, size_t length) {
-    size_t display_size;
-    size_t buffer_size;
-    if (m_format == ResultFormat::TABLE) {
-      display_size = m_display_lengths.front();
-      buffer_size = m_buffer_lengths.front();
-      m_display_lengths.pop_front();
-      m_buffer_lengths.pop_front();
-    } else {
-      auto fsizes = get_utf8_sizes(text, length, m_flags);
-      display_size = std::get<0>(fsizes);
-      buffer_size = std::get<1>(fsizes);
-    }
-
-    if (buffer_size + 1 > m_allocated) return false;
+  bool append(const char *text, size_t length, size_t display_size,
+              size_t buffer_size) {
+    if (buffer_size > m_allocated) return false;
 
     size_t next_index = 0;
     if (m_format == ResultFormat::TABLE) {
@@ -444,7 +408,7 @@ class Field_formatter {
       }
     }
 
-    auto buffer = m_buffer.get();
+    auto buffer = &m_buffer[0];
     for (size_t index = 0; index < length; index++) {
       if (m_flags.is_set(Print_flag::PRINT_0_AS_ESC) && text[index] == '\0') {
         buffer[next_index++] = '\\';
@@ -472,10 +436,10 @@ class Field_formatter {
     if (m_format == ResultFormat::TABLE) {
       // If some multibyte characters were found, we need to truncate the buffer
       // adding the 'lost' characters
-      buffer[std::min(m_allocated - 1,
+      buffer[std::min(m_allocated,
                       m_max_display_length + (buffer_size - display_size))] = 0;
     } else {
-      buffer[next_index] = 0;
+      m_buffer.resize(next_index);
     }
 
     return true;
@@ -531,23 +495,21 @@ Resultset_dumper_base::Resultset_dumper_base(
   if (m_format == "ndjson") m_format = "json/raw";
 }
 
-Resultset_dumper::Resultset_dumper(mysqlshdk::db::IResult *target,
-                                   bool buffer_data)
-    : Resultset_dumper(
-          target, mysqlsh::current_shell_options()->get().wrap_json,
-          mysqlsh::current_shell_options()->get().result_format, buffer_data,
-          mysqlsh::current_shell_options()->get().show_warnings,
-          mysqlsh::current_shell_options()->get().interactive) {}
+Resultset_dumper::Resultset_dumper(mysqlshdk::db::IResult *target)
+    : Resultset_dumper(target,
+                       mysqlsh::current_shell_options()->get().wrap_json,
+                       mysqlsh::current_shell_options()->get().result_format,
+                       mysqlsh::current_shell_options()->get().show_warnings,
+                       mysqlsh::current_shell_options()->get().interactive) {}
 
 Resultset_dumper::Resultset_dumper(mysqlshdk::db::IResult *target,
                                    const std::string &wrap_json,
-                                   const std::string &format, bool buffer_data,
+                                   const std::string &format,
                                    bool show_warnings, bool show_stats)
     : Resultset_dumper_base(target, std::make_unique<Console_printer>(),
                             wrap_json, format),
       m_show_warnings(show_warnings),
-      m_show_stats(show_stats),
-      m_buffer_data(buffer_data) {}
+      m_show_stats(show_stats) {}
 
 size_t Resultset_dumper::dump(const std::string &item_label, bool is_query,
                               bool is_doc_result) {
@@ -572,10 +534,6 @@ size_t Resultset_dumper::dump(const std::string &item_label, bool is_query,
       }
 
       if (m_result->has_resultset()) {
-        // Data requires to be buffered on table format because it will be
-        // traversed once for proper formatting and once for printing it
-        if (m_buffer_data || m_format == "table") m_result->buffer();
-
         if (is_doc_result || m_format.find("json") != std::string::npos)
           count = dump_documents(is_doc_result);
         else if (m_format == "vertical")
@@ -623,9 +581,6 @@ size_t Resultset_dumper::dump(const std::string &item_label, bool is_query,
   if (m_cancelled)
     m_printer->println(
         "Result printing interrupted, rows may be missing from the output.");
-
-  // Restores data
-  if (m_buffer_data) m_result->rewind();
 
   return total_count;
 }
@@ -739,7 +694,7 @@ size_t Resultset_dumper_base::dump_tabbed() {
     for (size_t field_index = 0; field_index < field_count; field_index++) {
       auto column = metadata[field_index];
       if (fmt[field_index].put(row, field_index)) {
-        m_printer->print(fmt[field_index].c_str());
+        m_printer->print(fmt[field_index].str());
       } else {
         mysqlshdk::db::is_string_type(column.get_type());
         m_printer->print(row->get_string(field_index));
@@ -776,7 +731,7 @@ size_t Resultset_dumper_base::format_vertical(bool has_header, bool align_right,
 
   auto row = m_result->fetch_one();
   size_t row_index = 0;
-  while (row) {
+  while (row && !m_cancelled) {
     if (has_header) {
       std::string row_header = star_separator + " " +
                                std::to_string(row_index + 1) + ". row " +
@@ -799,7 +754,7 @@ size_t Resultset_dumper_base::format_vertical(bool has_header, bool align_right,
 
       m_printer->print(label);
       if (fmt[col_index].put(row, col_index)) {
-        m_printer->print(fmt[col_index].c_str());
+        m_printer->print(fmt[col_index].str());
       } else {
         assert(mysqlshdk::db::is_string_type(column.get_type()));
         m_printer->print(row->get_string(col_index));
@@ -809,8 +764,6 @@ size_t Resultset_dumper_base::format_vertical(bool has_header, bool align_right,
 
     row = m_result->fetch_one();
     row_index++;
-
-    if (m_cancelled) return row_index;
   }
   return row_index;
 }
@@ -910,6 +863,8 @@ size_t Resultset_dumper_base::dump_json(const std::string &item_label,
 size_t Resultset_dumper_base::dump_table() {
   const auto &metadata = m_result->get_metadata();
   std::vector<Field_formatter> fmt;
+  std::vector<mysqlshdk::db::Row_copy> pre_fetched_rows;
+  size_t num_records = 0;
   const size_t field_count = metadata.size();
   if (field_count == 0) return 0;
 
@@ -920,19 +875,22 @@ size_t Resultset_dumper_base::dump_table() {
     fmt.emplace_back(ResultFormat::TABLE, column);
   }
 
-  std::vector<const mysqlshdk::db::IRow *> records;
-  auto row = m_result->fetch_one();
-  while (row && !m_cancelled) {
-    records.push_back(row);
-    for (size_t field_index = 0; field_index < field_count; field_index++) {
-      fmt[field_index].process(row, field_index);
+  pre_fetched_rows.reserve(k_pre_fetch_result_rows);
+  {
+    auto row = m_result->fetch_one();
+    while (row && !m_cancelled) {
+      pre_fetched_rows.emplace_back(*row);
+
+      for (size_t field_index = 0; field_index < field_count; field_index++) {
+        fmt[field_index].process(row, field_index);
+      }
+
+      if (pre_fetched_rows.size() >= k_pre_fetch_result_rows) break;
+
+      row = m_result->fetch_one();
     }
-    row = m_result->fetch_one();
   }
-
-  m_result->rewind();
-
-  if (m_cancelled || records.empty()) return 0;
+  if (m_cancelled || pre_fetched_rows.empty()) return 0;
 
   //-----------
 
@@ -959,29 +917,48 @@ size_t Resultset_dumper_base::dump_table() {
   }
   m_printer->print(separator);
 
-  // Now prints the records
-  row = m_result->fetch_one();
-  while (row && !m_cancelled) {
+  // Print pre-fetched records
+  for (const auto &row : pre_fetched_rows) {
+    ++num_records;
     m_printer->print("| ");
 
     for (size_t field_index = 0; field_index < field_count; field_index++) {
-      if (fmt[field_index].put(row, field_index)) {
-        m_printer->print(fmt[field_index].c_str());
+      if (fmt[field_index].put(&row, field_index)) {
+        m_printer->print(fmt[field_index].str());
       } else {
         assert(mysqlshdk::db::is_string_type(metadata[field_index].get_type()));
-        m_printer->print(row->get_as_string(field_index));
+        m_printer->print(row.get_as_string(field_index));
       }
       if (field_index < field_count - 1) m_printer->print(" | ");
     }
     m_printer->print(" |\n");
-    row = m_result->fetch_one();
+
+    if (m_cancelled) break;
   }
+  // Now prints the remaining records
+  if (!m_cancelled) {
+    auto row = m_result->fetch_one();
+    while (row && !m_cancelled) {
+      ++num_records;
+      m_printer->print("| ");
 
-  m_result->rewind();
+      for (size_t field_index = 0; field_index < field_count; field_index++) {
+        if (fmt[field_index].put(row, field_index)) {
+          m_printer->print(fmt[field_index].str());
+        } else {
+          assert(
+              mysqlshdk::db::is_string_type(metadata[field_index].get_type()));
+          m_printer->print(row->get_as_string(field_index));
+        }
+        if (field_index < field_count - 1) m_printer->print(" | ");
+      }
+      m_printer->print(" |\n");
+      row = m_result->fetch_one();
+    }
+  }
+  m_printer->print(separator);
 
-  m_printer->print(separator.c_str());
-
-  return records.size();
+  return num_records;
 }
 
 std::string Resultset_dumper::get_affected_stats(
@@ -1056,11 +1033,7 @@ Resultset_writer::Resultset_writer(mysqlshdk::db::IResult *target)
           mysqlsh::current_shell_options()->get().result_format) {}
 
 std::string Resultset_writer::write_table() {
-  return write([this]() {
-    // dump_table() iterates over rows twice, data needs to be buffered
-    m_result->buffer();
-    dump_table();
-  });
+  return write([this]() { dump_table(); });
 }
 
 std::string Resultset_writer::write_vertical() {
