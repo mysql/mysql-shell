@@ -156,7 +156,8 @@ Connection_options Import_table_options::connection_options() const {
   connection_options.set(mysqlshdk::db::kLocalInfile, "true");
 
   // Set long timeouts by default
-  std::string timeout = "86400";  // 1 day in seconds
+  const std::string timeout =
+      std::to_string(24 * 3600 * 1000);  // 1 day in milliseconds
   if (!connection_options.has(mysqlshdk::db::kNetReadTimeout)) {
     connection_options.set(mysqlshdk::db::kNetReadTimeout, timeout);
   }
