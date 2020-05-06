@@ -72,3 +72,15 @@ dba.checkInstanceConfiguration(__sandbox_uri1);
 
 //@<> Cleanup IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
 testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@<> dba.checkInstanceConfiguration does not error if using a single clusterAdmin account with netmask BUG#31018091
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+shell.connect(__sandbox_uri1);
+var ip_mask = hostname_ip.split(".").splice(0,3).join(".") + ".0";
+dba.configureInstance(__sandbox_uri1, {clusterAdmin: "'admin'@'"+ ip_mask + "/255.255.255.0'", clusterAdminPassword: "pwd"});
+var cluster_admin_uri= "mysql://admin:pwd@" + hostname_ip + ":" + __mysql_sandbox_port1;
+shell.connect(cluster_admin_uri);
+c = dba.checkInstanceConfiguration();
+EXPECT_STDERR_EMPTY();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);

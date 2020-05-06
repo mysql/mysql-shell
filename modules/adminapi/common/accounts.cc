@@ -26,6 +26,7 @@
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/clone.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -33,13 +34,13 @@ namespace dba {
 /** Count how many accounts there are with the given username, excluding
   localhost
 
-  This allows us to know whether there's a wildcarded account that the user may
-  have created previously which we can use for management or whether the user
-  has created multiple accounts, which would mean that they must know what
-  they're doing and also that we can't tell which of these accounts should be
-  validated.
+  This allows us to know whether there's a wildcarded account or an account with
+  netmask that the user may have created previously which we can use for
+  management or whether the user has created multiple accounts, which would mean
+  that they must know what they're doing and also that we can't tell which of
+  these accounts should be validated.
 
-  @return # of wildcarded accounts, # of other accounts
+  @return # of wildcarded accounts + netmask accounts,  # of other accounts
   */
 std::pair<int, int> find_cluster_admin_accounts(
     const mysqlshdk::mysql::IInstance &instance, const std::string &admin_user,
@@ -73,13 +74,21 @@ std::pair<int, int> find_cluster_admin_accounts(
         if (host.find('%') != std::string::npos) {
           w++;
         } else {
-          nw++;
+          // If we find the '/' check if the thing to the left
+          // is an ipv4, if it is, we assume we are using a netmask
+          auto pos = host.find('/');
+          if (pos != std::string::npos &&
+              mysqlshdk::utils::Net::is_ipv4(host.substr(0, pos))) {
+            w++;
+          } else {
+            nw++;
+          }
         }
       }
       row = result->fetch_one();
     }
   }
-  log_info("%s user has %i accounts with wildcard and %i without",
+  log_info("%s user has %i accounts with wildcard or netmask and %i without",
            admin_user.c_str(), w, nw + local);
 
   return std::make_pair(w, nw);
@@ -428,7 +437,7 @@ bool check_admin_account_access_restrictions(
           std::find_if(hosts.begin(), hosts.end(), [](const std::string &a) {
             return a.find('%') != std::string::npos;
           });
-      // there is only one account with a wildcard, so validate it
+      // there is only one account with a wildcard or netmask, so validate it
       if (n_wildcard_accounts == 1 && hiter != hosts.end()) {
         std::string whost = *hiter;
         // don't need to check privs if this is the account in use, since

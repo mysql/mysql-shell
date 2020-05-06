@@ -263,10 +263,6 @@ bool is_option_supported(
 void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
                                   Cluster_type cluster_type);
 
-std::pair<int, int> find_cluster_admin_accounts(
-    const mysqlshdk::mysql::IInstance &instance, const std::string &admin_user,
-    std::vector<std::string> *out_hosts);
-
 std::string SHCORE_PUBLIC
 resolve_cluster_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
                          const std::string &member_ssl_mode);
