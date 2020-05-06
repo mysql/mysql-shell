@@ -895,10 +895,12 @@ void Process::start_reader_threads() {
     // not read, pipe's buffer will become full and child process will hang.
     m_reader_thread = std::make_unique<std::thread>([this]() {
       try {
-        char c;
-        while (do_read(&c, 1) > 0) {
+        static constexpr size_t k_buffer_size = 512;
+        char buffer[k_buffer_size];
+        int n = 0;
+        while ((n = do_read(buffer, k_buffer_size)) > 0) {
           std::lock_guard<std::mutex> lock(m_read_buffer_mutex);
-          m_read_buffer.push_back(c);
+          m_read_buffer.insert(m_read_buffer.end(), buffer, buffer + n);
         }
       } catch (...) {
       }
