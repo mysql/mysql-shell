@@ -35,6 +35,7 @@
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
+#include "modules/adminapi/dba_utils.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/mysql/clone.h"
@@ -192,6 +193,18 @@ void Create_cluster::prepare() {
 
   // Validate create cluster options (combinations).
   validate_create_cluster_options();
+
+  // If adopting, set the target_instance to the primary member of the group:.
+  //
+  // Adopting a cluster can be performed using any member of the group
+  // regardless if it's a primary or a secondary. However, all the operations
+  // performed during the adoption must be done in the primary member of the
+  // group. We should not bypass GR's mechanism to avoid writes on the secondary
+  // by disabling super_read_only. Apart from possible GTID inconsistencies, a
+  // secondary will end up having super_read_only disabled.
+  if (m_adopt_from_gr) {
+    m_target_instance = get_primary_member_from_group(m_target_instance);
+  }
 
   // Disable super_read_only mode if it is enabled.
   bool super_read_only =

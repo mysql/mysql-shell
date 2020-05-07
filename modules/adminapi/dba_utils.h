@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -44,7 +44,20 @@ std::string find_secondary_member_uri(const std::shared_ptr<Instance> &instance,
                                       bool *out_single_primary = nullptr,
                                       Cluster_type *out_type = nullptr);
 
+/**
+ * Get the primary member of a GR group.
+ *
+ * @param instance session object of a member of the GR group.
+ *
+ * @throw shcore::Exception if the Group has no quorum.
+ * @throw std::logic_error if a primary cannot be found.
+ *
+ * @return A instance session object to the primary member of the GR group.
+ */
+std::shared_ptr<mysqlsh::dba::Instance> get_primary_member_from_group(
+    const std::shared_ptr<Instance> &instance);
+
 }  // namespace dba
 }  // namespace mysqlsh
 
-#endif
+#endif  // MODULES_ADMINAPI_DBA_UTILS_H_
