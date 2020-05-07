@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -225,11 +225,16 @@ class Shell_console : public IConsole {
   void delegate(const char *msg,
                 shcore::Interpreter_print_handler::Print print) const;
 
+  void on_set_verbose() override;
+
+  void detach_log_hook();
+
   shcore::Interpreter_delegate *m_ideleg;
   std::weak_ptr<IPager> m_current_pager;
   std::shared_ptr<IPager> m_global_pager;
   std::list<shcore::Interpreter_print_handler *> m_print_handlers;
   bool m_use_colors = false;
+  bool m_hook_registered = false;
 };
 
 }  // namespace mysqlsh

@@ -160,12 +160,14 @@ std::string Logger::format(const char *formats, va_list args) {
 }
 
 void Logger::log(LOG_LEVEL level, const char *formats, ...) {
-  va_list args;
-  va_start(args, formats);
-  const auto msg = format(formats, args);
-  va_end(args);
+  if (current_logger()->will_log(level)) {
+    va_list args;
+    va_start(args, formats);
+    const auto msg = format(formats, args);
+    va_end(args);
 
-  do_log({current_logger()->context(), msg.c_str(), level});
+    do_log({current_logger()->context(), msg.c_str(), level});
+  }
 }
 
 void Logger::do_log(const Log_entry &entry) {
@@ -182,6 +184,20 @@ void Logger::do_log(const Log_entry &entry) {
     if (std::get<2>(f) || entry.level <= current_logger()->m_log_level)
       std::get<0>(f)(entry, std::get<1>(f));
   }
+}
+
+bool Logger::will_log(LOG_LEVEL level) const {
+  if (level <= m_log_level) {
+    return true;
+  }
+
+  for (const auto &hook : m_hook_list) {
+    if (std::get<2>(hook)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 void Logger::out_to_stderr(const Log_entry &entry, void *) {

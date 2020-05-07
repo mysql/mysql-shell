@@ -1737,9 +1737,11 @@ shell.registerReport('invalid_return_type_string_report', 'list', function(){ret
 
 // -----------------------------------------------------------------------------
 // WL11263_TSF15_2 - Validate that if a plugin report is type of 'list', if the number of elements in a row are less that the column names they are considered as null values.
+// NOTE: this requirement is not good, lists should be expected to have a uniform # of fields.
+// supporting this behaviour causes inconsistencies with resultset handling, where row.is_null(invalid_field) is an error instead of true
 
 //@ WL11263_TSF15_2 - register a report
-shell.registerReport('list_report_with_missing_and_extra_values', 'list', function(){return {'report' : [['left', 'right'], ['one', 'two'], ['three'], ['four', 'five', 'six'], ['seven', 'eight']]};})
+shell.registerReport('list_report_with_missing_and_extra_values', 'list', function(){return {'report' : [['left', 'right'], ['one', 'two'], ['three', null], ['four', 'five', 'six'], ['seven', 'eight']]};})
 
 //@ WL11263_TSF15_2 - call the report
 \show list_report_with_missing_and_extra_values

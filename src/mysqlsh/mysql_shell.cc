@@ -1736,7 +1736,7 @@ void Mysql_shell::process_sql_result(
       mysqlsh::current_shell_options()->set_result_format(old_format);
     });
 
-    Resultset_dumper dumper(result.get(), false);
+    Resultset_dumper dumper(result.get());
     dumper.dump("row", false, false);
 
     auto cresult = dynamic_cast<mysqlshdk::db::mysql::Result *>(result.get());

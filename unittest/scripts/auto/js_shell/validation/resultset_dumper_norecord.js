@@ -151,6 +151,8 @@ ab\ncd
 | 🚀🚑 🚙🚬🚻🛀                   |
 | 🇯🇵🈳🆕🆒                     |
 | ®7⃣⏰☕♒♣ ⛽🌄🌠🎨🐍🐾             |
+| ascii text                |
+| látin1 text               |
 +---------------------------+
 
 //@<OUT> table in table format {__os_type == "windows"}
@@ -214,6 +216,16 @@ data: ®7⃣⏰☕♒♣ ⛽🌄🌠🎨🐍🐾
     "year": 2004
 }
 {
+    "_id": "11",
+    "name": "pure ascii text",
+    "year": 2014
+}
+{
+    "_id": "12",
+    "name": "látiñ text row",
+    "year": 2016
+}
+{
     "_id": "2",
     "name": "辛德勒的名单",
     "year": 1993
@@ -256,36 +268,40 @@ data: ®7⃣⏰☕♒♣ ⛽🌄🌠🎨🐍🐾
 
 
 //@<OUT> pulling as table in table format {__os_type != "windows" && VER(< 8.0.19)}
-+-----------------------------------------------------+-----+
-| doc                                                 | _id |
-+-----------------------------------------------------+-----+
-| {"_id": "1", "name": "生活是美好的", "year": 1997}  | 1   |
-| {"_id": "10", "name": "®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾", "year": 2004} | 10  |
-| {"_id": "2", "name": "辛德勒的名单", "year": 1993}  | 2   |
-| {"_id": "3", "name": "指環王", "year": 2001}        | 3   |
-| {"_id": "4", "name": "尋找尼莫", "year": 2003}      | 4   |
-| {"_id": "5", "name": "الجنة الآن", "year": 2003}    | 5   |
-| {"_id": "6", "name": "😁😍😠😭🙅🙉", "year": 2004}        | 6   |
-| {"_id": "7", "name": "✅✨✋✈❄❔➗", "year": 2004}       | 7   |
-| {"_id": "8", "name": "🚀🚑🚙🚬🚻🛀", "year": 2004}        | 8   |
-| {"_id": "9", "name": "🇯🇵🈳🆕🆒", "year": 2004}         | 9   |
-+-----------------------------------------------------+-----+
++--------------------------------------------------------+-----+
+| doc                                                    | _id |
++--------------------------------------------------------+-----+
+| {"_id": "1", "name": "生活是美好的", "year": 1997}     | 1   |
+| {"_id": "10", "name": "®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾", "year": 2004}    | 10  |
+| {"_id": "11", "name": "pure ascii text", "year": 2014} | 11  |
+| {"_id": "12", "name": "látiñ text row", "year": 2016}  | 12  |
+| {"_id": "2", "name": "辛德勒的名单", "year": 1993}     | 2   |
+| {"_id": "3", "name": "指環王", "year": 2001}           | 3   |
+| {"_id": "4", "name": "尋找尼莫", "year": 2003}         | 4   |
+| {"_id": "5", "name": "الجنة الآن", "year": 2003}       | 5   |
+| {"_id": "6", "name": "😁😍😠😭🙅🙉", "year": 2004}           | 6   |
+| {"_id": "7", "name": "✅✨✋✈❄❔➗", "year": 2004}          | 7   |
+| {"_id": "8", "name": "🚀🚑🚙🚬🚻🛀", "year": 2004}           | 8   |
+| {"_id": "9", "name": "🇯🇵🈳🆕🆒", "year": 2004}            | 9   |
++--------------------------------------------------------+-----+
 
 //@<OUT> pulling as table in table format {__os_type != "windows" && VER(>= 8.0.19)}
-+-----------------------------------------------------+-----+--------------------+
-| doc                                                 | _id | _json_schema       |
-+-----------------------------------------------------+-----+--------------------+
-| {"_id": "1", "name": "生活是美好的", "year": 1997}  | 1   | {"type": "object"} |
-| {"_id": "10", "name": "®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾", "year": 2004} | 10  | {"type": "object"} |
-| {"_id": "2", "name": "辛德勒的名单", "year": 1993}  | 2   | {"type": "object"} |
-| {"_id": "3", "name": "指環王", "year": 2001}        | 3   | {"type": "object"} |
-| {"_id": "4", "name": "尋找尼莫", "year": 2003}      | 4   | {"type": "object"} |
-| {"_id": "5", "name": "الجنة الآن", "year": 2003}    | 5   | {"type": "object"} |
-| {"_id": "6", "name": "😁😍😠😭🙅🙉", "year": 2004}        | 6   | {"type": "object"} |
-| {"_id": "7", "name": "✅✨✋✈❄❔➗", "year": 2004}       | 7   | {"type": "object"} |
-| {"_id": "8", "name": "🚀🚑🚙🚬🚻🛀", "year": 2004}        | 8   | {"type": "object"} |
-| {"_id": "9", "name": "🇯🇵🈳🆕🆒", "year": 2004}         | 9   | {"type": "object"} |
-+-----------------------------------------------------+-----+--------------------+
++--------------------------------------------------------+-----+--------------------+
+| doc                                                    | _id | _json_schema       |
++--------------------------------------------------------+-----+--------------------+
+| {"_id": "1", "name": "生活是美好的", "year": 1997}     | 1   | {"type": "object"} |
+| {"_id": "10", "name": "®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾", "year": 2004}    | 10  | {"type": "object"} |
+| {"_id": "11", "name": "pure ascii text", "year": 2014} | 11  | {"type": "object"} |
+| {"_id": "12", "name": "látiñ text row", "year": 2016}  | 12  | {"type": "object"} |
+| {"_id": "2", "name": "辛德勒的名单", "year": 1993}     | 2   | {"type": "object"} |
+| {"_id": "3", "name": "指環王", "year": 2001}           | 3   | {"type": "object"} |
+| {"_id": "4", "name": "尋找尼莫", "year": 2003}         | 4   | {"type": "object"} |
+| {"_id": "5", "name": "الجنة الآن", "year": 2003}       | 5   | {"type": "object"} |
+| {"_id": "6", "name": "😁😍😠😭🙅🙉", "year": 2004}           | 6   | {"type": "object"} |
+| {"_id": "7", "name": "✅✨✋✈❄❔➗", "year": 2004}          | 7   | {"type": "object"} |
+| {"_id": "8", "name": "🚀🚑🚙🚬🚻🛀", "year": 2004}           | 8   | {"type": "object"} |
+| {"_id": "9", "name": "🇯🇵🈳🆕🆒", "year": 2004}            | 9   | {"type": "object"} |
++--------------------------------------------------------+-----+--------------------+
 
 //@<OUT> pulling as table in table format {__os_type == "windows" && VER(< 8.0.19)}
 +----------------------------------------------------------+-----+
@@ -293,6 +309,8 @@ data: ®7⃣⏰☕♒♣ ⛽🌄🌠🎨🐍🐾
 +----------------------------------------------------------+-----+
 | {"_id": "1", "name": "生活是美好的", "year": 1997}       | 1   |
 | {"_id": "10", "name": "®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾", "year": 2004} | 10  |
+| {"_id": "11", "name": "pure ascii text", "year": 2014} | 11  | {"type": "object"} |
+| {"_id": "12", "name": "látiñ text row", "year": 2016}  | 12  | {"type": "object"} |
 | {"_id": "2", "name": "辛德勒的名单", "year": 1993}       | 2   |
 | {"_id": "3", "name": "指環王", "year": 2001}             | 3   |
 | {"_id": "4", "name": "尋找尼莫", "year": 2003}           | 4   |
@@ -309,6 +327,8 @@ data: ®7⃣⏰☕♒♣ ⛽🌄🌠🎨🐍🐾
 +----------------------------------------------------------+-----+--------------------+
 | {"_id": "1", "name": "生活是美好的", "year": 1997}       | 1   | {"type": "object"} |
 | {"_id": "10", "name": "®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾", "year": 2004} | 10  | {"type": "object"} |
+| {"_id": "11", "name": "pure ascii text", "year": 2014} | 11  | {"type": "object"} |
+| {"_id": "12", "name": "látiñ text row", "year": 2016}  | 12  | {"type": "object"} |
 | {"_id": "2", "name": "辛德勒的名单", "year": 1993}       | 2   | {"type": "object"} |
 | {"_id": "3", "name": "指環王", "year": 2001}             | 3   | {"type": "object"} |
 | {"_id": "4", "name": "尋找尼莫", "year": 2003}           | 4   | {"type": "object"} |
@@ -320,8 +340,11 @@ data: ®7⃣⏰☕♒♣ ⛽🌄🌠🎨🐍🐾
 +----------------------------------------------------------+-----+--------------------+
 
 //@<OUT> pulling as table in tabbed format {VER(< 8.0.19)}
+doc	_id
 {"_id": "1", "name": "生活是美好的", "year": 1997}	1
 {"_id": "10", "name": "®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾", "year": 2004}	10
+{"_id": "11", "name": "pure ascii text", "year": 2014}	11
+{"_id": "12", "name": "látiñ text row", "year": 2016}	12
 {"_id": "2", "name": "辛德勒的名单", "year": 1993}	2
 {"_id": "3", "name": "指環王", "year": 2001}	3
 {"_id": "4", "name": "尋找尼莫", "year": 2003}	4
@@ -332,8 +355,11 @@ data: ®7⃣⏰☕♒♣ ⛽🌄🌠🎨🐍🐾
 {"_id": "9", "name": "🇯🇵🈳🆕🆒", "year": 2004}	9
 
 //@<OUT> pulling as table in tabbed format {VER(>= 8.0.19)}
+doc	_id	_json_schema
 {"_id": "1", "name": "生活是美好的", "year": 1997}	1	{"type": "object"}
 {"_id": "10", "name": "®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾", "year": 2004}	10	{"type": "object"}
+{"_id": "11", "name": "pure ascii text", "year": 2014}	11	{"type": "object"}
+{"_id": "12", "name": "látiñ text row", "year": 2016}	12	{"type": "object"}
 {"_id": "2", "name": "辛德勒的名单", "year": 1993}	2	{"type": "object"}
 {"_id": "3", "name": "指環王", "year": 2001}	3	{"type": "object"}
 {"_id": "4", "name": "尋找尼莫", "year": 2003}	4	{"type": "object"}
@@ -351,27 +377,33 @@ _id: 1
 doc: {"_id": "10", "name": "®7⃣⏰☕♒♣⛽🌄🌠🎨🐍🐾", "year": 2004}
 _id: 10
 *************************** 3. row ***************************
+doc: {"_id": "11", "name": "pure ascii text", "year": 2014}
+_id: 11
+*************************** 4. row ***************************
+doc: {"_id": "12", "name": "látiñ text row", "year": 2016}
+_id: 12
+*************************** 5. row ***************************
 doc: {"_id": "2", "name": "辛德勒的名单", "year": 1993}
 _id: 2
-*************************** 4. row ***************************
+*************************** 6. row ***************************
 doc: {"_id": "3", "name": "指環王", "year": 2001}
 _id: 3
-*************************** 5. row ***************************
+*************************** 7. row ***************************
 doc: {"_id": "4", "name": "尋找尼莫", "year": 2003}
 _id: 4
-*************************** 6. row ***************************
+*************************** 8. row ***************************
 doc: {"_id": "5", "name": "الجنة الآن", "year": 2003}
 _id: 5
-*************************** 7. row ***************************
+*************************** 9. row ***************************
 doc: {"_id": "6", "name": "😁😍😠😭🙅🙉", "year": 2004}
 _id: 6
-*************************** 8. row ***************************
+*************************** 10. row ***************************
 doc: {"_id": "7", "name": "✅✨✋✈❄❔➗", "year": 2004}
 _id: 7
-*************************** 9. row ***************************
+*************************** 11. row ***************************
 doc: {"_id": "8", "name": "🚀🚑🚙🚬🚻🛀", "year": 2004}
 _id: 8
-*************************** 10. row ***************************
+*************************** 12. row ***************************
 doc: {"_id": "9", "name": "🇯🇵🈳🆕🆒", "year": 2004}
 _id: 9
 
@@ -385,34 +417,148 @@ _json_schema: {"type": "object"}
          _id: 10
 _json_schema: {"type": "object"}
 *************************** 3. row ***************************
+         doc: {"_id": "11", "name": "pure ascii text", "year": 2014}
+         _id: 11
+_json_schema: {"type": "object"}
+*************************** 4. row ***************************
+         doc: {"_id": "12", "name": "látiñ text row", "year": 2016}
+         _id: 12
+_json_schema: {"type": "object"}
+*************************** 5. row ***************************
          doc: {"_id": "2", "name": "辛德勒的名单", "year": 1993}
          _id: 2
 _json_schema: {"type": "object"}
-*************************** 4. row ***************************
+*************************** 6. row ***************************
          doc: {"_id": "3", "name": "指環王", "year": 2001}
          _id: 3
 _json_schema: {"type": "object"}
-*************************** 5. row ***************************
+*************************** 7. row ***************************
          doc: {"_id": "4", "name": "尋找尼莫", "year": 2003}
          _id: 4
 _json_schema: {"type": "object"}
-*************************** 6. row ***************************
+*************************** 8. row ***************************
          doc: {"_id": "5", "name": "الجنة الآن", "year": 2003}
          _id: 5
 _json_schema: {"type": "object"}
-*************************** 7. row ***************************
+*************************** 9. row ***************************
          doc: {"_id": "6", "name": "😁😍😠😭🙅🙉", "year": 2004}
          _id: 6
 _json_schema: {"type": "object"}
-*************************** 8. row ***************************
+*************************** 10. row ***************************
          doc: {"_id": "7", "name": "✅✨✋✈❄❔➗", "year": 2004}
          _id: 7
 _json_schema: {"type": "object"}
-*************************** 9. row ***************************
+*************************** 11. row ***************************
          doc: {"_id": "8", "name": "🚀🚑🚙🚬🚻🛀", "year": 2004}
          _id: 8
 _json_schema: {"type": "object"}
-*************************** 10. row ***************************
+*************************** 12. row ***************************
          doc: {"_id": "9", "name": "🇯🇵🈳🆕🆒", "year": 2004}
          _id: 9
 _json_schema: {"type": "object"}
+
+
+//@<OUT> dump a few rows to get a table with narrow values only
++-------+----------+------+--------------------+
+| col1  | col2     | col3 | col4               |
++-------+----------+------+--------------------+
+| hello | 0.809643 | 0    | bla bla            |
+| world |     NULL | 1    | bla blabla blaaaaa |
+| NULL  |        1 | 1    | NULL               |
+| hello | 0.809643 | NULL | bla bla            |
+| world |     NULL | 0    | bla blabla blaaaaa |
+| NULL  |        1 | 1    | NULL               |
+| hello | 0.809643 | 1    | bla bla            |
+| world |     NULL | NULL | bla blabla blaaaaa |
+| NULL  |        1 | 0    | NULL               |
+| hello | 0.809643 | 1    | bla bla            |
++-------+----------+------+--------------------+
+
+//@<OUT> dump a few rows to get a table with slightly wider values
++-----------------------------+------------------+------+-----------------------------------------------------------------+
+| col1                        | col2             | col3 | col4                                                            |
++-----------------------------+------------------+------+-----------------------------------------------------------------+
+| hello                       |         0.809643 | 0    | bla bla                                                         |
+| world                       |             NULL | 1    | bla blabla blaaaaa                                              |
+| NULL                        |                1 | 1    | NULL                                                            |
+| hello                       |         0.809643 | NULL | bla bla                                                         |
+| world                       |             NULL | 0    | bla blabla blaaaaa                                              |
+| NULL                        |                1 | 1    | NULL                                                            |
+| hello                       |         0.809643 | 1    | bla bla                                                         |
+| world                       |             NULL | NULL | bla blabla blaaaaa                                              |
+| NULL                        |                1 | 0    | NULL                                                            |
+| hello                       |         0.809643 | 1    | bla bla                                                         |
+| world                       | 0.39888085877797 | 1    | bla bla                                                         |
+| foo bar                     |      0.972853873 | 85   | bla blabla blaaaaa                                              |
+| fóo                         |                1 | 0    | blablablablablab lablablablablabla blablablabl ablablablablabla |
+| foo–bar                     | 0.70964040738497 | 1    | bla bla                                                         |
+| foo-bar                     | 0.39888085877797 | 85   | bla blabla blaaaaa                                              |
+| many values                 |      0.972853873 | 0    | blablablablablab lablablablablabla blablablabl ablablablablabla |
+| Park_Güell                  |                1 | 1    | bla bla                                                         |
+| Ashmore_and_Cartier_Islands | 0.70964040738497 | 85   | bla blabla blaaaaa                                              |
+| hello                       | 0.39888085877797 | 0    | blablablablablab lablablablablabla blablablabl ablablablablabla |
+| world                       |      0.972853873 | 1    | bla bla                                                         |
++-----------------------------+------------------+------+-----------------------------------------------------------------+
+
+//@# dump everything
+@+-----------------------------+------------------+------+-----------------------------------------------------------------+@
+@| col1                        | col2             | col3 | col4                                                            |@
+@+-----------------------------+------------------+------+-----------------------------------------------------------------+@
+@| hello                       |         0.809643 | 0    | bla bla                                                         |@
+@| world                       |             NULL | 1    | bla blabla blaaaaa                                              |@
+@| NULL                        |                1 | 1    | NULL                                                            |@
+@| hello                       |         0.809643 | NULL | bla bla                                                         |@
+@| world                       |             NULL | 0    | bla blabla blaaaaa                                              |@
+@| NULL                        |                1 | 1    | NULL                                                            |@
+@| hello                       |         0.809643 | 1    | bla bla                                                         |@
+@| world                       |             NULL | NULL | bla blabla blaaaaa                                              |@
+@| NULL                        |                1 | 0    | NULL                                                            |@
+@| hello                       |         0.809643 | 1    | bla bla                                                         |@
+@| world                       | 0.39888085877797 | 1    | bla bla                                                         |@
+@| foo bar                     |      0.972853873 | 85   | bla blabla blaaaaa                                              |@
+@| fóo                         |                1 | 0    | blablablablablab lablablablablabla blablablabl ablablablablabla |@
+@| foo–bar                     | 0.70964040738497 | 1    | bla bla                                                         |@
+@| foo-bar                     | 0.39888085877797 | 85   | bla blabla blaaaaa                                              |@
+@| many values                 |      0.972853873 | 0    | blablablablablab lablablablablabla blablablabl ablablablablabla |@
+@| Park_Güell                  |                1 | 1    | bla bla                                                         |@
+@| Alfonso_Aráu                |      0.398880858 | 1    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@blablablabla blablablabla blablablabla@
+@blablablabla bla! |@
+@| André-Marie_Ampère          |        0.9733873 | 707460108 | bla bla                                                         |@
+@| Very long text but not that long really, but at least longer than before | 0.1180964040738497 | 0    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@blablablabla blablablabla blablablabla@
+@blablablabla bla! |@
+@| hello world                 |      0.398880858 | 1    | bla bla                                                         |@
+@| Alfonso_Aráu                |        0.9733873 | 707460108 | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@blablablabla blablablabla blablablabla@
+@blablablabla bla! |@
+@| André-Marie_Ampère          | 0.1180964040738497 | 0    | bla bla                                                         |@
+@| Very long text but not that long really, but at least longer than before |      0.398880858 | 1    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@blablablabla blablablabla blablablabla@
+@blablablabla bla! |@
+@| hello world                 |        0.9733873 | 707460108 | bla bla                                                         |@
+@| Alfonso_Aráu                | 0.1180964040738497 | 0    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@blablablabla blablablabla blablablabla@
+@blablablabla bla! |@
+@| André-Marie_Ampère          |      0.398880858 | 1    | bla bla                                                         |@
+@| Very long text but not that long really, but at least longer than before |        0.9733873 | 707460108 | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@blablablabla blablablabla blablablabla@
+@blablablabla bla! |@
+@| hello world                 | 0.1180964040738497 | 0    | bla bla                                                         |@
+@| Alfonso_Aráu                |      0.398880858 | 1    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@blablablabla blablablabla blablablabla@
+@blablablabla bla! |@
+@| André-Marie_Ampère          |        0.9733873 | 707460108 | bla bla                                                         |@
+@| Very long text but not that long really, but at least longer than before | 0.1180964040738497 | 0    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@blablablabla blablablabla blablablabla@
+@blablablabla bla! |@
+@| hello world                 |      0.398880858 | 1    | bla bla                                                         |@
+@| Alfonso_Aráu                |        0.9733873 | 707460108 | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@blablablabla blablablabla blablablabla@
+@blablablabla bla! |@
+@| André-Marie_Ampère          | 0.1180964040738497 | 0    | bla bla                                                         |@
+@| Very long text but not that long really, but at least longer than before |      0.398880858 | 1    | blablablabla blablablabla blablablabla blablablabla blablablabla@
+@blablablabla blablablabla blablablabla@
+@blablablabla bla! |@
+@+-----------------------------+------------------+------+-----------------------------------------------------------------+@
+

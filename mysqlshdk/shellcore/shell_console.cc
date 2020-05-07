@@ -205,8 +205,6 @@ void log_hook(const shcore::Logger::Log_entry &log, void *data) {
 Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
     : m_ideleg(deleg) {
   m_print_handlers.emplace_back(deleg);
-  // Capture logging output and if verbose is enabled, show them in the console
-  shcore::current_logger()->attach_log_hook(log_hook, this, true);
 #ifndef _WIN32
   if (isatty(2)) {
     m_use_colors = true;
@@ -214,9 +212,7 @@ Shell_console::Shell_console(shcore::Interpreter_delegate *deleg)
 #endif
 }
 
-Shell_console::~Shell_console() {
-  shcore::current_logger()->detach_log_hook(log_hook);
-}
+Shell_console::~Shell_console() { detach_log_hook(); }
 
 void Shell_console::dump_json(const char *tag, const std::string &s) const {
   delegate_print(json_obj(tag, s).c_str());
@@ -705,6 +701,26 @@ void Shell_console::delegate(
     if ((*it->*func)(msg)) {
       return;
     }
+  }
+}
+
+void Shell_console::on_set_verbose() {
+  if (get_verbose() > 0) {
+    if (!m_hook_registered) {
+      // if verbose is enabled, capture logging output and show them in the
+      // console
+      shcore::current_logger()->attach_log_hook(log_hook, this, true);
+      m_hook_registered = true;
+    }
+  } else {
+    detach_log_hook();
+  }
+}
+
+void Shell_console::detach_log_hook() {
+  if (m_hook_registered) {
+    shcore::current_logger()->detach_log_hook(log_hook);
+    m_hook_registered = false;
   }
 }
 

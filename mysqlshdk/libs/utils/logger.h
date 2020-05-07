@@ -135,6 +135,8 @@ class SHCORE_PUBLIC Logger final {
 
   static void do_log(const Log_entry &entry);
 
+  bool will_log(LOG_LEVEL level) const;
+
   static std::unique_ptr<Logger> s_instance;
   static std::string s_output_format;
 

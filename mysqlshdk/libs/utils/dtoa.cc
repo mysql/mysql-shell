@@ -1,4 +1,4 @@
-/* Copyright (c) 2007, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2007, 2020, Oracle and/or its affiliates. All rights reserved.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Library General Public
@@ -62,6 +62,8 @@
 #include <string.h>
 #include <algorithm>
 #include <cstdint>
+
+namespace shcore {
 
 #define TRUE 1
 #define FALSE 0
@@ -2470,3 +2472,19 @@ ret1:
   if (rve) *rve = s;
   return s0;
 }
+
+std::string dtoa(double x) {
+  char buffer[32];
+  size_t len;
+  len = my_gcvt(x, MY_GCVT_ARG_DOUBLE, sizeof(buffer) - 1, buffer, NULL);
+  return std::string(buffer, len);
+}
+
+std::string ftoa(float x) {
+  char buffer[32];
+  size_t len;
+  len = my_gcvt(double(x), MY_GCVT_ARG_FLOAT, sizeof(buffer) - 1, buffer, NULL);
+  return std::string(buffer, len);
+}
+
+}  // namespace shcore

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -136,9 +136,9 @@ class Resultset_dumper_base {
 class Resultset_dumper : public Resultset_dumper_base {
  public:
   Resultset_dumper(mysqlshdk::db::IResult *target, const std::string &wrap_json,
-                   const std::string &format, bool buffer_data,
-                   bool show_warnings, bool show_stats);
-  Resultset_dumper(mysqlshdk::db::IResult *target, bool buffer_data);
+                   const std::string &format, bool show_warnings,
+                   bool show_stats);
+  explicit Resultset_dumper(mysqlshdk::db::IResult *target);
 
   ~Resultset_dumper() override = default;
 
@@ -151,7 +151,6 @@ class Resultset_dumper : public Resultset_dumper_base {
 
   bool m_show_warnings;
   bool m_show_stats;
-  bool m_buffer_data;
 };
 
 /**

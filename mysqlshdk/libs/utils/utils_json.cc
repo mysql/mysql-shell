@@ -22,8 +22,8 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_json.h"
-#include "m_string.h"  // my_gcvt()
 #include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/utils/dtoa.h"
 
 namespace shcore {
 
