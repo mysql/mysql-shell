@@ -310,6 +310,7 @@ class Dump_loader {
 
   std::unique_ptr<Dump_reader> m_dump;
   std::unique_ptr<Load_progress_log> m_load_log;
+  bool m_resuming = false;
 
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   mysqlshdk::utils::Version m_target_server_version;

@@ -1077,7 +1077,10 @@ void Dump_loader::show_summary() {
                                 end_time - m_begin_time)
                                 .count()));
   if (m_num_rows_loaded == 0) {
-    console->print_info("No data loaded");
+    if (m_resuming)
+      console->print_info("There was no remaining data left to be loaded.");
+    else
+      console->print_info("No data loaded.");
   } else {
     console->print_info(shcore::str_format(
         "%zi chunks (%s, %s) for %zi tables in %zi schemas were "
@@ -1428,10 +1431,9 @@ void Dump_loader::execute_tasks() {
 
   m_session = create_session(false);
 
-  bool is_resuming = false;
-  setup_progress(&is_resuming);
+  setup_progress(&m_resuming);
 
-  if (!is_resuming && m_options.load_ddl()) check_existing_objects();
+  if (!m_resuming && m_options.load_ddl()) check_existing_objects();
 
   size_t num_idle_workers = 0;
 

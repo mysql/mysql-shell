@@ -1,4 +1,4 @@
-
+//@{__version_num > 80018 || __version_num < 80000}
 
 function EXPECT_FILE_NOT_EXISTS(path) {
   try {
