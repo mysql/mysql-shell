@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -180,6 +180,64 @@ std::string find_secondary_member_uri(const std::shared_ptr<Instance> &instance,
                                       Cluster_type *out_type) {
   return find_member_uri_of_role(instance, true, xproto, out_single_primary,
                                  out_type);
+}
+
+std::shared_ptr<mysqlsh::dba::Instance> get_primary_member_from_group(
+    const std::shared_ptr<Instance> &instance) {
+  std::shared_ptr<mysqlsh::dba::Instance> primary;
+
+  mysqlshdk::gr::Member primary_member;
+
+  bool has_quorum = false;
+
+  // Get all members of the group
+  const auto members =
+      mysqlshdk::gr::get_members(*instance, nullptr, &has_quorum);
+
+  if (!has_quorum) {
+    throw shcore::Exception("Group has no quorum",
+                            SHERR_DBA_GROUP_HAS_NO_QUORUM);
+  }
+
+  const auto &instance_uuid = instance->get_uuid();
+
+  // Find the primary of the group
+  for (const auto &member : members) {
+    if (mysqlshdk::gr::Member_role::PRIMARY == member.role &&
+        (mysqlshdk::gr::Member_state::ONLINE == member.state ||
+         mysqlshdk::gr::Member_state::RECOVERING == member.state)) {
+      primary_member = member;
+      break;
+    }
+  }
+
+  if (instance_uuid == primary_member.uuid) {
+    // The instance passed as argument is the primary.
+    return instance;
+  }
+
+  // Shouldn't happen, a Group must have a primary
+  if (primary_member.uuid.empty()) {
+    throw std::logic_error("No PRIMARY member found");
+  } else if (primary_member.uuid !=
+             instance->get_connection_options().uri_endpoint()) {
+    mysqlshdk::db::Connection_options coptions;
+
+    // Set connection options for the primary found
+    coptions.set_host(primary_member.host);
+    coptions.set_port(primary_member.port);
+
+    // Use the credentials from the instance from which the group is being
+    // queried (cluster credentials)
+    coptions.set_login_options_from(instance->get_connection_options());
+
+    log_info("Opening session to primary of GR Group at %s...",
+             coptions.as_uri().c_str());
+
+    primary = Instance::connect(coptions);
+  }
+
+  return primary;
 }
 
 }  // namespace dba

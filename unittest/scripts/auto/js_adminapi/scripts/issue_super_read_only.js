@@ -39,7 +39,7 @@ session2 = mysql.getSession(__sandbox_uri2);
 
 // cluster is down, so everyone has to be sro, including the former primary
 
-// right after 
+// right after
 EXPECT_EQ(1, session1.runSql("SELECT @@global.super_read_only").fetchOne()[0], "sro at old primary");
 EXPECT_EQ(1, session2.runSql("SELECT @@global.super_read_only").fetchOne()[0], "sro at old secondary");
 
@@ -122,6 +122,25 @@ session2.runSql("stop group_replication");
 
 EXPECT_EQ(1, session1.runSql("SELECT @@global.super_read_only").fetchOne()[0], "sro at primary");
 EXPECT_EQ(1, session2.runSql("SELECT @@global.super_read_only").fetchOne()[0], "sro at secondary");
+
+//@<> prepare for adopt test (BUG#31238233)
+shell.connect(__sandbox_uri2);
+c = dba.rebootClusterFromCompleteOutage("newcluster", {rejoinInstances: ["localhost:"+__mysql_sandbox_port1]});
+
+shell.dumpRows(session.runSql("SELECT * FROM performance_schema.replication_group_members"));
+
+session.runSql("SET GLOBAL super_read_only=0");
+session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
+
+// Wait for the changes to be applied on the secondary
+testutil.waitMemberTransactions(__mysql_sandbox_port1);
+
+//@<> adopt using a secondary and verify that SRO is kept (BUG#31238233)
+shell.connect(__sandbox_uri1);
+c = dba.createCluster("newcluster", {adoptFromGR:1});
+
+EXPECT_EQ(0, session2.runSql("SELECT @@global.super_read_only").fetchOne()[0], "sro disabled at primary");
+EXPECT_EQ(1, session1.runSql("SELECT @@global.super_read_only").fetchOne()[0], "sro enabled at secondary");
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
