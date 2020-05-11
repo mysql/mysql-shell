@@ -51,6 +51,27 @@ using off64_t = off_t;
 
 namespace mysqlsh {
 namespace import_table {
+namespace {
+int local_infile_init_nop(void ** /* buffer */, const char *filename,
+                          void * /* userdata */) {
+  mysqlsh::current_console()->print_error(
+      "Premature request for \"" + std::string(filename) +
+      "\" local infile transfer. Rogue server?");
+  return 1;
+}
+
+int local_infile_read_nop(void * /* userdata */, char * /* buffer */,
+                          unsigned int /* length */) {
+  return -1;
+}
+
+void local_infile_end_nop(void * /* userdata */) {}
+
+int local_infile_error_nop(void * /* userdata */, char * /* error_msg */,
+                           unsigned int /* error_msg_len */) {
+  return CR_LOAD_DATA_LOCAL_INFILE_REJECTED;
+}
+}  // namespace
 
 int local_infile_init(void **buffer, const char * /* filename */,
                       void *userdata) {
@@ -162,6 +183,15 @@ void Load_data_worker::operator()() {
   mysqlsh::Mysql_thread t;
 
   auto session = mysqlshdk::db::mysql::Session::create();
+
+  // Prevent local infile rogue server attack. Safe local infile callbacks must
+  // be set before connecting to the MySQL Server. Otherwise, rogue MySQL Server
+  // can ask for arbitrary file from client.
+  session->set_local_infile_userdata(nullptr);
+  session->set_local_infile_init(local_infile_init_nop);
+  session->set_local_infile_read(local_infile_read_nop);
+  session->set_local_infile_end(local_infile_end_nop);
+  session->set_local_infile_error(local_infile_error_nop);
 
   try {
     auto const conn_opts = m_opt.connection_options();
