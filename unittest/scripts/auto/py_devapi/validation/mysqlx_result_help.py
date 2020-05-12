@@ -17,7 +17,6 @@ DESCRIPTION
       class:
 
       - Transaction handling functions
-      - Transaction handling functions
 
 PROPERTIES
       affected_item_count
@@ -136,11 +135,11 @@ RETURNS
       the number of affected items.
 
 DESCRIPTION
-      This is the value of the C API mysql_affected_rows(), see
-      https://dev.mysql.com/doc/refman/en/mysql-affected-rows.html
-
       ATTENTION: This function will be removed in a future release, use the
                  get_affected_items_count function instead.
+
+      This is the value of the C API mysql_affected_rows(), see
+      https://dev.mysql.com/doc/refman/en/mysql-affected-rows.html
 
 #@<OUT> result.get_affected_items_count
 NAME
@@ -154,7 +153,7 @@ RETURNS
       the number of affected items.
 
 DESCRIPTION
-      Returns the number of records affected by the executed operation
+      Returns the number of records affected by the executed operation.
 
 #@<OUT> result.get_auto_increment_value
 NAME
@@ -217,13 +216,13 @@ RETURNS
       the number of warnings.
 
 DESCRIPTION
+      ATTENTION: This function will be removed in a future release, use the
+                 get_warnings_count function instead.
+
       This is the same value than C API mysql_warning_count, see
       https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
 
       See get_warnings() for more details.
-
-      ATTENTION: This function will be removed in a future release, use the
-                 get_warnings_count function instead.
 
 #@<OUT> result.get_warnings
 NAME
@@ -296,3 +295,4 @@ NAME
 
 SYNTAX
       <Result>.warnings_count
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -89,7 +89,7 @@ class Collection : public DatabaseObject,
   shcore::Value drop_index_(const shcore::Argument_list &args);
   shcore::Value replace_one_(const shcore::Argument_list &args);
   shcore::Value add_or_replace_one(const shcore::Argument_list &args);
-  shcore::Value get_one(const shcore::Argument_list &args);
+  shcore::Dictionary_t get_one(const std::string &id);
   shcore::Value remove_one(const shcore::Argument_list &args);
 
  private:

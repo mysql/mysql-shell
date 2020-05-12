@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -103,15 +103,7 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
  * \ingroup XDevAPI
  * $(RESULT_BRIEF)
  *
- * $(RESULT_DETAIL)
- *
- * $(RESULT_DETAIL1)
- * $(RESULT_DETAIL2)
- *
- * $(RESULT_DETAIL3)
- *
- * $(RESULT_DETAIL4)
- * $(RESULT_DETAIL5)
+ * $(RESULT)
  */
 class SHCORE_PUBLIC Result : public BaseResult {
  public:
@@ -164,8 +156,8 @@ class SHCORE_PUBLIC DocResult : public BaseResult {
  public:
   explicit DocResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
 
-  shcore::Value fetch_one(const shcore::Argument_list &args) const;
-  shcore::Value fetch_all(const shcore::Argument_list &args) const;
+  shcore::Dictionary_t fetch_one() const;
+  shcore::Array_t fetch_all() const;
 
   virtual std::string class_name() const { return "DocResult"; }
   virtual void append_json(shcore::JSON_dumper &dumper) const;
@@ -192,8 +184,8 @@ class SHCORE_PUBLIC RowResult : public BaseResult {
  public:
   explicit RowResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
 
-  shcore::Value fetch_one(const shcore::Argument_list &args) const;
-  shcore::Value fetch_all(const shcore::Argument_list &args) const;
+  std::shared_ptr<mysqlsh::Row> fetch_one() const;
+  shcore::Array_t fetch_all() const;
   shcore::Dictionary_t _fetch_one_object();
   virtual shcore::Value get_member(const std::string &prop) const;
 
@@ -250,9 +242,9 @@ class SHCORE_PUBLIC SqlResult : public RowResult {
   virtual std::string class_name() const { return "SqlResult"; }
   virtual shcore::Value get_member(const std::string &prop) const;
 
-  shcore::Value has_data(const shcore::Argument_list &args) const;
-  shcore::Value next_data_set(const shcore::Argument_list &args);
-  shcore::Value next_result(const shcore::Argument_list &args);
+  bool has_data() const;
+  bool next_data_set();
+  bool next_result();
   virtual void append_json(shcore::JSON_dumper &dumper) const;
 
   // C++ Interface

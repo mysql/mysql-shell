@@ -139,7 +139,7 @@ RETURNS
       the number of affected items.
 
 DESCRIPTION
-      Returns the number of records affected by the executed operation
+      Returns the number of records affected by the executed operation.
 
 //@<OUT> Help on getExecutionTime
 NAME
@@ -161,13 +161,13 @@ RETURNS
       the number of warnings.
 
 DESCRIPTION
+      ATTENTION: This function will be removed in a future release, use the
+                 getWarningsCount function instead.
+
       This is the same value than C API mysql_warning_count, see
       https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
 
       See getWarnings() for more details.
-
-      ATTENTION: This function will be removed in a future release, use the
-                 getWarningsCount function instead.
 
 //@<OUT> Help on getWarnings
 NAME

@@ -23,7 +23,7 @@ PROPERTIES
 
       auto_increment_value
             Returns the last insert id auto generated (from an insert
-            operation)
+            operation).
 
       column_count
             Retrieves the number of columns on the current result.
@@ -76,7 +76,7 @@ FUNCTIONS
 
       get_auto_increment_value()
             Returns the last insert id auto generated (from an insert
-            operation)
+            operation).
 
       get_column_count()
             Retrieves the number of columns on the current result.
@@ -145,7 +145,7 @@ DESCRIPTION
 #@<OUT> classicresult.auto_increment_value
 NAME
       auto_increment_value - Returns the last insert id auto generated (from an
-                             insert operation)
+                             insert operation).
 
 SYNTAX
       <ClassicResult>.auto_increment_value
@@ -239,9 +239,6 @@ SYNTAX
 RETURNS
       the number of affected items.
 
-DESCRIPTION
-      Returns the number of records affected by the executed operation
-
 #@<OUT> classicresult.get_affected_row_count
 NAME
       get_affected_row_count - The number of affected rows for the last
@@ -254,22 +251,22 @@ RETURNS
       the number of affected rows.
 
 DESCRIPTION
-      This is the value of the C API mysql_affected_rows(), see
-      https://dev.mysql.com/doc/refman/en/mysql-affected-rows.html
-
       ATTENTION: This function will be removed in a future release, use the
                  get_affected_items_count function instead.
+
+      This is the value of the C API mysql_affected_rows(), see
+      https://dev.mysql.com/doc/refman/en/mysql-affected-rows.html
 
 #@<OUT> classicresult.get_auto_increment_value
 NAME
       get_auto_increment_value - Returns the last insert id auto generated
-                                 (from an insert operation)
+                                 (from an insert operation).
 
 SYNTAX
       <ClassicResult>.get_auto_increment_value()
 
 RETURNS
-      the integer representing the last insert id
+      the integer representing the last insert id.
 
 #@<OUT> classicresult.get_column_count
 NAME
@@ -320,7 +317,7 @@ SYNTAX
       <ClassicResult>.get_info()
 
 RETURNS
-      a string with the execution information
+      a string with the execution information.
 
 #@<OUT> classicresult.get_warning_count
 NAME
@@ -334,13 +331,13 @@ RETURNS
       the number of warnings.
 
 DESCRIPTION
+      ATTENTION: This function will be removed in a future release, use the
+                 get_warnings_count function instead.
+
       This is the same value than C API mysql_warning_count, see
       https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
 
       See get_warnings() for more details.
-
-      ATTENTION: This function will be removed in a future release, use the
-                 get_warnings_count function instead.
 
 #@<OUT> classicresult.get_warnings_count
 NAME
@@ -425,7 +422,7 @@ SYNTAX
       <ClassicResult>.next_result()
 
 RETURNS
-      A boolean value indicating whether there is another result or not.
+      A boolean value indicating whether there is another esult or not.
 
 #@<OUT> classicresult.warning_count
 NAME
@@ -451,3 +448,4 @@ NAME
 
 SYNTAX
       <ClassicResult>.warnings
+

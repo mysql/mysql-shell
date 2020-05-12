@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -82,8 +82,7 @@ void Collection::init() {
   add_method("addOrReplaceOne",
              std::bind(&Collection::add_or_replace_one, this, _1), "id",
              shcore::String, "doc", shcore::Map);
-  add_method("getOne", std::bind(&Collection::get_one, this, _1), "id",
-             shcore::String);
+  expose("getOne", &Collection::get_one, "id");
   add_method("removeOne", std::bind(&Collection::remove_one, this, _1), "id",
              shcore::String);
   expose("count", &Collection::count);
@@ -1164,18 +1163,13 @@ Document Collection::getOne(String id) {}
 #elif DOXYGEN_PY
 document Collection::get_one(str id) {}
 #endif
-shcore::Value Collection::get_one(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("getOne").c_str());
-  shcore::Value ret_val = shcore::Value::Null();
-  try {
-    auto id = args.string_at(0);
+shcore::Dictionary_t Collection::get_one(const std::string &id) {
+  shcore::Dictionary_t ret_val;
 
-    CollectionFind find_op(shared_from_this());
-    find_op.set_filter("_id = :id").bind("id", args[0]);
-    auto result = find_op.execute();
-    if (result) ret_val = result->fetch_one({});
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getOne"));
+  CollectionFind find_op(shared_from_this());
+  find_op.set_filter("_id = :id").bind("id", shcore::Value(id));
+  auto result = find_op.execute();
+  if (result) ret_val = result->fetch_one();
 
   return ret_val;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/charset.h"
@@ -42,15 +43,13 @@ using namespace mysqlsh::mysql;
 
 // Documentation of the ClassicResult class
 REGISTER_HELP_CLASS(ClassicResult, mysql);
-REGISTER_HELP(CLASSICRESULT_BRIEF,
-              "Allows browsing through the result information "
-              "after performing an operation on the database through the MySQL "
-              "Protocol.");
-REGISTER_HELP(
-    CLASSICRESULT_DETAIL,
-    "This class allows access to the result set from "
-    "the classic MySQL data model to be retrieved from Dev API queries.");
+REGISTER_HELP_CLASS_TEXT(CLASSICRESULT, R"*(
+Allows browsing through the result information after performing an operation
+on the database through the MySQL Protocol.
 
+This class allows access to the result set from the classic MySQL data model
+to be retrieved from Dev API queries.
+)*");
 ClassicResult::ClassicResult(
     std::shared_ptr<mysqlshdk::db::mysql::Result> result)
     : _result(result) {
@@ -68,13 +67,10 @@ ClassicResult::ClassicResult(
 
   expose("fetchOne", &ClassicResult::fetch_one);
   expose("fetchOneObject", &ClassicResult::_fetch_one_object);
-  add_method("fetchAll", std::bind((shcore::Value(ClassicResult::*)(
-                                       const shcore::Argument_list &) const) &
-                                       ClassicResult::fetch_all,
-                                   this, _1));
-  add_method("nextDataSet", std::bind(&ClassicResult::next_data_set, this, _1));
-  add_method("nextResult", std::bind(&ClassicResult::next_result, this, _1));
-  add_method("hasData", std::bind(&ClassicResult::has_data, this, _1));
+  expose("fetchAll", &ClassicResult::fetch_all);
+  expose("nextDataSet", &ClassicResult::next_data_set);
+  expose("nextResult", &ClassicResult::next_result);
+  expose("hasData", &ClassicResult::has_data);
 
   _column_names.reset(new std::vector<std::string>());
   for (auto &cmd : _result->get_metadata())
@@ -86,7 +82,6 @@ REGISTER_HELP_FUNCTION(hasData, ClassicResult);
 REGISTER_HELP(CLASSICRESULT_HASDATA_BRIEF,
               "Returns true if the last statement execution "
               "has a result set.");
-
 /**
  * $(CLASSICRESULT_HASDATA_BRIEF)
  */
@@ -95,24 +90,19 @@ Bool ClassicResult::hasData() {}
 #elif DOXYGEN_PY
 bool ClassicResult::has_data() {}
 #endif
-shcore::Value ClassicResult::has_data(const shcore::Argument_list &args) const {
-  args.ensure_count(0, get_function_name("hasData").c_str());
-
-  return Value(_result->has_resultset());
-}
+bool ClassicResult::has_data() const { return _result->has_resultset(); }
 
 // Documentation of the fetchOne function
 REGISTER_HELP_FUNCTION(fetchOne, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_FETCHONE_BRIEF,
-              "Retrieves the next Row on the ClassicResult.");
-REGISTER_HELP(
-    CLASSICRESULT_FETCHONE_RETURNS,
-    "@returns A Row object representing the next record in the result.");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_FETCHONE, R"*(
+Retrieves the next Row on the ClassicResult.
 
+@returns A Row object representing the next record in the result.
+)*");
 /**
  * $(CLASSICRESULT_FETCHONE_BRIEF)
  *
- * $(CLASSICRESULT_FETCHONE_RETURNS)
+ * $(CLASSICRESULT_FETCHONE)
  */
 #if DOXYGEN_JS
 Row ClassicResult::fetchOne() {}
@@ -124,16 +114,24 @@ std::shared_ptr<mysqlsh::Row> ClassicResult::fetch_one() const {
 }
 
 REGISTER_HELP_FUNCTION(fetchOneObject, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_FETCHONEOBJECT_BRIEF,
-              "${BASERESULT_FETCHONEOBJECT_BRIEF}");
-REGISTER_HELP(CLASSICRESULT_FETCHONEOBJECT_RETURNS,
-              "${BASERESULT_FETCHONEOBJECT_RETURNS}");
-REGISTER_HELP(CLASSICRESULT_FETCHONEOBJECT_DETAIL,
-              "${BASERESULT_FETCHONEOBJECT_DETAIL}");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_FETCHONEOBJECT, R"*(
+Retrieves the next Row on the result and returns it as an object.
+
+@returns A dictionary containing the row information.
+
+The column names will be used as keys in the returned dictionary and the column
+data will be used as the key values.
+
+If a column is a valid identifier it will be accessible as an object attribute
+as @<dict@>.@<column@>.
+
+If a column is not a valid identifier, it will be accessible as a dictionary
+key as @<dict@>[@<column@>].
+)*");
 /**
- * $(BASERESULT_FETCHONEOBJECT_BRIEF)
+ * $(CLASSICRESULT_FETCHONEOBJECT_BRIEF)
  *
- * $(BASERESULT_FETCHONEOBJECT)
+ * $(CLASSICRESULT_FETCHONEOBJECT)
  */
 #if DOXYGEN_JS
 Dictionary ClassicResult::fetchOneObject() {}
@@ -146,115 +144,85 @@ shcore::Dictionary_t ClassicResult::_fetch_one_object() {
 
 // Documentation of nextDataSet function
 REGISTER_HELP_FUNCTION(nextDataSet, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_NEXTDATASET_BRIEF,
-              "Prepares the SqlResult to start reading data from the next "
-              "Result (if many results were returned).");
-REGISTER_HELP(CLASSICRESULT_NEXTDATASET_DETAIL,
-              "${CLASSICRESULT_NEXTDATASET_DEPRECATED}");
-REGISTER_HELP(CLASSICRESULT_NEXTDATASET_DEPRECATED,
-              "@attention This function will be removed in a future release, "
-              "use the <b><<<nextResult>>></b> function instead.");
-REGISTER_HELP(CLASSICRESULT_NEXTDATASET_RETURNS,
-              "@returns A boolean value indicating whether there is another "
-              "result or not.");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_NEXTDATASET, R"*(
+Prepares the SqlResult to start reading data from the next Result (if many
+results were returned).
 
+@returns A boolean value indicating whether there is another result or not.
+
+@attention This function will be removed in a future release, use the
+<b><<<nextResult>>></b> function instead.
+)*");
 /**
  * $(CLASSICRESULT_NEXTDATASET_BRIEF)
  *
- * $(CLASSICRESULT_NEXTDATASET_RETURNS)
+ * $(CLASSICRESULT_NEXTDATASET)
  */
-#if DOXYGEN_JS
-/**
- * @attention This function will be removed in a future release, use the
- * &nbsp;<b>nextResult</b> function instead.
- */
-#elif DOXYGEN_PY
-/**
- * @attention This function will be removed in a future release, use the
- * &nbsp;<b>next_result</b> function instead.
- */
-#endif
-
 #if DOXYGEN_JS
 Bool ClassicResult::nextDataSet() {}
 #elif DOXYGEN_PY
 bool ClassicResult::next_data_set() {}
 #endif
-shcore::Value ClassicResult::next_data_set(const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("nextDataSet").c_str());
-
+bool ClassicResult::next_data_set() {
   log_warning("'%s' is deprecated, use '%s' instead.",
               get_function_name("nextDataSet").c_str(),
               get_function_name("nextResult").c_str());
 
-  return shcore::Value(_result->next_resultset());
+  return _result->next_resultset();
 }
 
 // Documentation of nextResult function
 REGISTER_HELP_FUNCTION(nextResult, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_NEXTRESULT_BRIEF,
-              "Prepares the SqlResult to start reading data from the next "
-              "Result (if many results were returned).");
-REGISTER_HELP(CLASSICRESULT_NEXTRESULT_RETURNS,
-              "@returns A boolean value indicating whether there is another "
-              "result or not.");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_NEXTRESULT, R"*(
+Prepares the SqlResult to start reading data from the next Result (if many
+results were returned).
 
+@returns A boolean value indicating whether there is another esult or not.
+)*");
 /**
  * $(CLASSICRESULT_NEXTRESULT_BRIEF)
  *
- * $(CLASSICRESULT_NEXTRESULT_RETURNS)
+ * $(CLASSICRESULT_NEXTRESULT)
  */
 #if DOXYGEN_JS
 Bool ClassicResult::nextResult() {}
 #elif DOXYGEN_PY
 bool ClassicResult::next_result() {}
 #endif
-shcore::Value ClassicResult::next_result(const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("nextResult").c_str());
-
-  return shcore::Value(_result->next_resultset());
-}
+bool ClassicResult::next_result() { return _result->next_resultset(); }
 
 // Documentation of the fetchAll function
 REGISTER_HELP_FUNCTION(fetchAll, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_FETCHALL_BRIEF,
-              "Returns a list of Row objects which contains an element for "
-              "every record left on the result.");
-REGISTER_HELP(CLASSICRESULT_FETCHALL_RETURNS,
-              "@returns A List of Row objects.");
-REGISTER_HELP(CLASSICRESULT_FETCHALL_DETAIL,
-              "If this function is called right after executing a query, "
-              "it will return a Row for every record on the resultset.");
-REGISTER_HELP(CLASSICRESULT_FETCHALL_DETAIL1,
-              "If fetchOne is called before this function, when this function "
-              "is called it will return a Row for each of the remaining "
-              "records on the resultset.");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_FETCHALL, R"*(
+Returns a list of Row objects which contains an element for every record left
+on the result.
 
+@returns A List of Row objects.
+
+If this function is called right after executing a query, it will return a Row
+for every record on the resultset.
+
+If fetchOne is called before this function, when this function is called it
+will return a Row for each of the remaining records on the resultset.
+)*");
 /**
  * $(CLASSICRESULT_FETCHALL_BRIEF)
  *
- * $(CLASSICRESULT_FETCHALL_RETURNS)
- *
- * $(CLASSICRESULT_FETCHALL_DETAIL)
- *
- * $(CLASSICRESULT_FETCHALL_DETAIL1)
+ * $(CLASSICRESULT_FETCHALL)
  */
 #if DOXYGEN_JS
 List ClassicResult::fetchAll() {}
 #elif DOXYGEN_PY
 list ClassicResult::fetch_all() {}
 #endif
-shcore::Value ClassicResult::fetch_all(
-    const shcore::Argument_list &args) const {
-  args.ensure_count(0, get_function_name("fetchAll").c_str());
-
+shcore::Array_t ClassicResult::fetch_all() const {
   auto array = shcore::make_array();
 
   while (const auto record = fetch_one()) {
     array->push_back(shcore::Value(record));
   }
 
-  return shcore::Value(array);
+  return array;
 }
 
 // Documentation of getAffectedRowCount function
@@ -268,39 +236,22 @@ REGISTER_HELP(CLASSICRESULT_AFFECTEDROWCOUNT_DEPRECATED,
               "use the <b><<<affectedItemsCount>>></b> property instead.");
 
 REGISTER_HELP_FUNCTION(getAffectedRowCount, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_BRIEF,
-              "The number of affected rows for the last operation.");
-REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_RETURNS,
-              "@returns the number of affected rows.");
-REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_DETAIL,
-              "This is the value of the C API mysql_affected_rows(), see "
-              "https://dev.mysql.com/doc/refman/en/"
-              "mysql-affected-rows.html");
-REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_DETAIL1,
-              "${CLASSICRESULT_GETAFFECTEDROWCOUNT_DEPRECATED}");
-REGISTER_HELP(CLASSICRESULT_GETAFFECTEDROWCOUNT_DEPRECATED,
-              "@attention This function will be removed in a future release, "
-              "use the <b><<<getAffectedItemsCount>>></b> function instead.");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETAFFECTEDROWCOUNT, R"*(
+The number of affected rows for the last operation.
 
+@returns the number of affected rows.
+
+@attention This function will be removed in a future release, use the
+<b><<<getAffectedItemsCount>>></b> function instead.
+
+This is the value of the C API mysql_affected_rows(), see
+https://dev.mysql.com/doc/refman/en/mysql-affected-rows.html
+)*");
 /**
  * $(CLASSICRESULT_GETAFFECTEDROWCOUNT_BRIEF)
  *
- * $(CLASSICRESULT_GETAFFECTEDROWCOUNT_RETURNS)
- *
- * $(CLASSICRESULT_GETAFFECTEDROWCOUNT_DETAIL)
- *
+ * $(CLASSICRESULT_GETAFFECTEDROWCOUNT)
  */
-#if DOXYGEN_JS
-/**
- * @attention This function will be removed in a future release, use the
- * &nbsp;<b>getAffectedItemsCount</b> function instead.
- */
-#elif DOXYGEN_PY
-/**
- * @attention This function will be removed in a future release, use the
- * &nbsp;<b>get_affected_items_count</b> function instead.
- */
-#endif
 #if DOXYGEN_JS
 Integer ClassicResult::getAffectedRowCount() {}
 #elif DOXYGEN_PY
@@ -313,21 +264,15 @@ REGISTER_HELP(CLASSICRESULT_AFFECTEDITEMSCOUNT_BRIEF,
               "Same as <<<getAffectedItemsCount>>>");
 
 REGISTER_HELP_FUNCTION(getAffectedItemsCount, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_GETAFFECTEDITEMSCOUNT_BRIEF,
-              "The the number of affected items for the last operation.");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETAFFECTEDITEMSCOUNT, R"*(
+The the number of affected items for the last operation.
 
-REGISTER_HELP(CLASSICRESULT_GETAFFECTEDITEMSCOUNT_RETURNS,
-              "@returns the number of affected items.");
-REGISTER_HELP(CLASSICRESULT_GETAFFECTEDITEMSCOUNT_DETAIL,
-              "Returns the number of records affected by the executed "
-              "operation");
-
+@returns the number of affected items.
+)*");
 /**
  * $(CLASSICRESULT_GETAFFECTEDITEMSCOUNT_BRIEF)
  *
- * $(CLASSICRESULT_GETAFFECTEDITEMSCOUNT_RETURNS)
- *
- * $(CLASSICRESULT_GETAFFECTEDITEMSCOUNT_DETAIL)
+ * $(CLASSICRESULT_GETAFFECTEDITEMSCOUNT)
  */
 #if DOXYGEN_JS
 Integer ClassicResult::getAffectedItemsCount() {}
@@ -337,18 +282,18 @@ int ClassicResult::get_affected_items_count() {}
 
 // Documentation of the getColumnCount function
 REGISTER_HELP_FUNCTION(getColumnCount, ClassicResult);
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETCOLUMNCOUNT, R"*(
+Retrieves the number of columns on the current result.
+
+@returns the number of columns on the current result.
+)*");
 REGISTER_HELP_PROPERTY(columnCount, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_GETCOLUMNCOUNT_BRIEF,
-              "Retrieves the number of columns on the current result.");
 REGISTER_HELP(CLASSICRESULT_COLUMNCOUNT_BRIEF,
               "${CLASSICRESULT_GETCOLUMNCOUNT_BRIEF}");
-REGISTER_HELP(CLASSICRESULT_GETCOLUMNCOUNT_RETURNS,
-              "@returns the number of columns on the current result.");
-
 /**
  * $(CLASSICRESULT_GETCOLUMNCOUNT_BRIEF)
  *
- * $(CLASSICRESULT_GETCOLUMNCOUNT_RETURNS)
+ * $(CLASSICRESULT_GETCOLUMNCOUNT)
  */
 #if DOXYGEN_JS
 Integer ClassicResult::getColumnCount() {}
@@ -358,19 +303,20 @@ int ClassicResult::get_column_count() {}
 
 // Documentation of the getColumnCount function
 REGISTER_HELP_FUNCTION(getColumnNames, ClassicResult);
+
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETCOLUMNNAMES, R"*(
+Gets the columns on the current result.
+
+@returns A list with the names of the columns returned on the active result.
+)*");
 REGISTER_HELP_PROPERTY(columnNames, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_GETCOLUMNNAMES_BRIEF,
-              "Gets the columns on the current result.");
 REGISTER_HELP(CLASSICRESULT_COLUMNNAMES_BRIEF,
               "${CLASSICRESULT_GETCOLUMNNAMES_BRIEF}");
-REGISTER_HELP(CLASSICRESULT_GETCOLUMNNAMES_RETURNS,
-              "@returns A list with the names of the columns returned on the "
-              "active result.");
 
 /**
  * $(CLASSICRESULT_GETCOLUMNNAMES_BRIEF)
  *
- * $(CLASSICRESULT_GETCOLUMNNAMES_RETURNS)
+ * $(CLASSICRESULT_GETCOLUMNNAMES)
  */
 #if DOXYGEN_JS
 List ClassicResult::getColumnNames() {}
@@ -380,19 +326,19 @@ list ClassicResult::get_column_names() {}
 
 // Documentation of the getColumns function
 REGISTER_HELP_FUNCTION(getColumns, ClassicResult);
-REGISTER_HELP_PROPERTY(columns, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_GETCOLUMNS_BRIEF,
-              "Gets the column metadata for the columns on the active result.");
-REGISTER_HELP(CLASSICRESULT_COLUMNS_BRIEF, "${CLASSICRESULT_GETCOLUMNS_BRIEF}");
-REGISTER_HELP(
-    CLASSICRESULT_GETCOLUMNS_RETURNS,
-    "@returns a list of column metadata objects "
-    "containing information about the columns included on the active result.");
 
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETCOLUMNS, R"*(
+Gets the column metadata for the columns on the active result.
+
+@returns a list of column metadata objects containing information about the
+columns included on the active result.
+)*");
+REGISTER_HELP_PROPERTY(columns, ClassicResult);
+REGISTER_HELP(CLASSICRESULT_COLUMNS_BRIEF, "${CLASSICRESULT_GETCOLUMNS_BRIEF}");
 /**
  * $(CLASSICRESULT_GETCOLUMNS_BRIEF)
  *
- * $(CLASSICRESULT_GETCOLUMNS_RETURNS)
+ * $(CLASSICRESULT_GETCOLUMNS)
  */
 #if DOXYGEN_JS
 List ClassicResult::getColumns() {}
@@ -420,18 +366,18 @@ str ClassicResult::get_execution_time() {}
 
 // Documentation of the getInfo function
 REGISTER_HELP_FUNCTION(getInfo, ClassicResult);
-REGISTER_HELP_PROPERTY(info, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_GETINFO_BRIEF,
-              "Retrieves a string providing information about the most "
-              "recently executed statement.");
-REGISTER_HELP(CLASSICRESULT_INFO_BRIEF, "${CLASSICRESULT_GETINFO_BRIEF}");
-REGISTER_HELP(CLASSICRESULT_GETINFO_RETURNS,
-              "@returns a string with the execution information");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETINFO, R"*(
+Retrieves a string providing information about the most recently executed
+statement.
 
+@returns a string with the execution information.
+)*");
+REGISTER_HELP_PROPERTY(info, ClassicResult);
+REGISTER_HELP(CLASSICRESULT_INFO_BRIEF, "${CLASSICRESULT_GETINFO_BRIEF}");
 /**
  * $(CLASSICRESULT_GETINFO_BRIEF)
  *
- * $(CLASSICRESULT_GETINFO_RETURNS)
+ * $(CLASSICRESULT_GETINFO)
  *
  * For more details, see:
  * https://dev.mysql.com/doc/refman/en/mysql-info.html
@@ -443,21 +389,19 @@ str ClassicResult::get_info() {}
 #endif
 
 // Documentation of the getAutoIncrementValue function
-REGISTER_HELP_FUNCTION(getAutoIncrementValue, ClassicResult);
 REGISTER_HELP_PROPERTY(autoIncrementValue, ClassicResult);
-REGISTER_HELP(
-    CLASSICRESULT_GETAUTOINCREMENTVALUE_BRIEF,
-    "Returns the last insert id auto generated (from an insert operation)");
 REGISTER_HELP(CLASSICRESULT_AUTOINCREMENTVALUE_BRIEF,
               "${CLASSICRESULT_GETAUTOINCREMENTVALUE_BRIEF}");
-REGISTER_HELP(CLASSICRESULT_GETAUTOINCREMENTVALUE_RETURNS,
-              "@returns the integer "
-              "representing the last insert id");
+REGISTER_HELP_FUNCTION(getAutoIncrementValue, ClassicResult);
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETAUTOINCREMENTVALUE, R"*(
+Returns the last insert id auto generated (from an insert operation).
 
+@returns the integer representing the last insert id.
+)*");
 /**
  * $(CLASSICRESULT_GETAUTOINCREMENTVALUE_BRIEF)
  *
- * $(CLASSICRESULT_GETAUTOINCREMENTVALUE_RETURNS)
+ * $(CLASSICRESULT_GETAUTOINCREMENTVALUE)
  *
  * For more details, see
  * https://dev.mysql.com/doc/refman/en/information-functions.html#function_last-insert-id
@@ -479,43 +423,24 @@ REGISTER_HELP(CLASSICRESULT_WARNINGCOUNT_DEPRECATED,
               "use the <b><<<warningsCount>>></b> property instead.");
 
 REGISTER_HELP_FUNCTION(getWarningCount, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_BRIEF,
-              "The number of warnings produced by the last "
-              "statement execution.");
-REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_RETURNS,
-              "@returns the number of warnings.");
-REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_DETAIL,
-              "This is the same value than C API mysql_warning_count, see "
-              "https://dev.mysql.com/doc/refman/en/"
-              "mysql-warning-count.html");
-REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_DETAIL1,
-              "See <<<getWarnings>>>() for more details.");
-REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_DETAIL2,
-              "${CLASSICRESULT_GETWARNINGCOUNT_DEPRECATED}");
-REGISTER_HELP(CLASSICRESULT_GETWARNINGCOUNT_DEPRECATED,
-              "@attention This function will be removed in a future release, "
-              "use the <b><<<getWarningsCount>>></b> function instead.");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETWARNINGCOUNT, R"*(
+The number of warnings produced by the last statement execution.
 
+@returns the number of warnings.
+
+@attention This function will be removed in a future release, use the
+<b><<<getWarningsCount>>></b> function instead.
+
+This is the same value than C API mysql_warning_count, see
+https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+See <<<getWarnings>>>() for more details.
+)*");
 /**
  * $(CLASSICRESULT_GETWARNINGCOUNT_BRIEF)
  *
- * $(CLASSICRESULT_GETWARNINGCOUNT_RETURNS)
+ * $(CLASSICRESULT_GETWARNINGCOUNT)
  *
- * $(CLASSICRESULT_GETWARNINGCOUNT_DETAIL)
- *
- */
-#if DOXYGEN_JS
-/**
- * @attention This function will be removed in a future release, use the&nbsp;
- * <b>getWarningsCount</b> function instead.
- */
-#elif DOXYGEN_PY
-/**
- * @attention This function will be removed in a future release, use the&nbsp;
- * <b>get_warnings_count</b> function instead.
- */
-#endif
-/**
  * \sa warnings
  */
 #if DOXYGEN_JS
@@ -530,24 +455,20 @@ REGISTER_HELP(CLASSICRESULT_WARNINGSCOUNT_BRIEF,
               "Same as <<<getWarningsCount>>>");
 
 REGISTER_HELP_FUNCTION(getWarningsCount, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_GETWARNINGSCOUNT_BRIEF,
-              "The number of warnings produced by the last statement "
-              "execution.");
-REGISTER_HELP(CLASSICRESULT_GETWARNINGSCOUNT_RETURNS,
-              "@returns the number of warnings.");
-REGISTER_HELP(CLASSICRESULT_GETWARNINGSCOUNT_DETAIL,
-              "This is the same value than C API mysql_warning_count, see "
-              "https://dev.mysql.com/doc/refman/en/"
-              "mysql-warning-count.html");
-REGISTER_HELP(CLASSICRESULT_GETWARNINGSCOUNT_DETAIL1,
-              "See <<<getWarnings>>>() for more details.");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETWARNINGSCOUNT, R"*(
+The number of warnings produced by the last statement execution.
 
+@returns the number of warnings.
+
+This is the same value than C API mysql_warning_count, see
+https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+
+See <<<getWarnings>>>() for more details.
+)*");
 /**
  * $(CLASSICRESULT_GETWARNINGSCOUNT_BRIEF)
  *
- * $(CLASSICRESULT_GETWARNINGSCOUNT_RETURNS)
- *
- * $(CLASSICRESULT_GETWARNINGSCOUNT_DETAIL)
+ * $(CLASSICRESULT_GETWARNINGSCOUNT)
  *
  * \sa warnings
  */
@@ -559,122 +480,32 @@ int ClassicResult::get_warnings_count() {}
 
 // Documentation of the getWarnings function
 REGISTER_HELP_FUNCTION(getWarnings, ClassicResult);
+REGISTER_HELP_FUNCTION_TEXT(CLASSICRESULT_GETWARNINGS, R"*(
+Retrieves the warnings generated by the executed operation.
+
+@returns a list containing a warning object for each generated warning.
+
+Each warning object contains a key/value pair describing the information
+related to a specific warning.
+
+This information includes: level, code and message.
+)*");
 REGISTER_HELP_PROPERTY(warnings, ClassicResult);
-REGISTER_HELP(CLASSICRESULT_GETWARNINGS_BRIEF,
-              "Retrieves the warnings generated by the executed operation.");
 REGISTER_HELP(CLASSICRESULT_WARNINGS_BRIEF,
               "${CLASSICRESULT_GETWARNINGS_BRIEF}");
-REGISTER_HELP(CLASSICRESULT_GETWARNINGS_RETURNS,
-              "@returns a list containing a warning object "
-              "for each generated warning.");
-REGISTER_HELP(
-    CLASSICRESULT_GETWARNINGS_DETAIL,
-    "Each warning object contains a "
-    "key/value pair describing the information related to a specific warning.");
-REGISTER_HELP(CLASSICRESULT_GETWARNINGS_DETAIL1,
-              "This information includes: "
-              "level, code and message.");
-
 /**
  * $(CLASSICRESULT_GETWARNINGS_BRIEF)
  *
- * $(CLASSICRESULT_GETWARNINGS_RETURNS)
+ * $(CLASSICRESULT_GETWARNINGS)
  *
  * This is the same value than C API mysql_warning_count, see
  * https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
- *
- * $(CLASSICRESULT_GETWARNINGS_DETAIL)
- * $(CLASSICRESULT_GETWARNINGS_DETAIL1)
  */
 #if DOXYGEN_JS
 List ClassicResult::getWarnings() {}
 #elif DOXYGEN_PY
 list ClassicResult::get_warnings() {}
 #endif
-
-/*static shcore::Value get_field_type(Field &meta) {
-  std::string type_name;
-  switch (meta.type()) {
-    case MYSQL_TYPE_NULL:
-      type_name = "NULL";
-      break;
-    case MYSQL_TYPE_NEWDECIMAL:
-    case MYSQL_TYPE_DECIMAL:
-      type_name = "DECIMAL";
-      break;
-    case MYSQL_TYPE_DATE:
-    case MYSQL_TYPE_NEWDATE:
-      type_name = "DATE";
-      break;
-    case MYSQL_TYPE_TIME2:
-    case MYSQL_TYPE_TIME:
-      type_name = "TIME";
-      break;
-    case MYSQL_TYPE_STRING:
-    case MYSQL_TYPE_VARCHAR:
-    case MYSQL_TYPE_VAR_STRING:
-      if (meta.flags() & ENUM_FLAG)
-        type_name = "ENUM";
-      else if (meta.flags() & SET_FLAG)
-        type_name = "SET";
-      else
-        type_name = "STRING";
-      break;
-    case MYSQL_TYPE_TINY_BLOB:
-    case MYSQL_TYPE_MEDIUM_BLOB:
-    case MYSQL_TYPE_LONG_BLOB:
-    case MYSQL_TYPE_BLOB:
-      type_name = "BYTES";
-      break;
-    case MYSQL_TYPE_GEOMETRY:
-      type_name = "GEOMETRY";
-      break;
-    case MYSQL_TYPE_JSON:
-      type_name = "JSON";
-      break;
-    case MYSQL_TYPE_YEAR:
-    case MYSQL_TYPE_TINY:
-    case MYSQL_TYPE_SHORT:
-    case MYSQL_TYPE_INT24:
-    case MYSQL_TYPE_LONG:
-      type_name = "INT";
-      break;
-    case MYSQL_TYPE_LONGLONG:
-      type_name = "BIGINT";
-      break;
-    case MYSQL_TYPE_FLOAT:
-      type_name = "FLOAT";
-      break;
-    case MYSQL_TYPE_DOUBLE:
-      type_name = "DOUBLE";
-      break;
-    case MYSQL_TYPE_DATETIME:
-    case MYSQL_TYPE_TIMESTAMP:
-    case MYSQL_TYPE_DATETIME2:
-    case MYSQL_TYPE_TIMESTAMP2:
-      // The difference between TIMESTAMP and DATETIME is entirely in terms
-      // of internal representation at the server side. At the client side,
-      // there is no difference.
-      // TIMESTAMP is the number of seconds since epoch, so it cannot store
-      // dates before 1970. DATETIME is an arbitrary date and time value,
-      // so it does not have that limitation.
-      type_name = "DATETIME";
-      break;
-    case MYSQL_TYPE_BIT:
-      type_name = "BIT";
-      break;
-    case MYSQL_TYPE_ENUM:
-      type_name = "ENUM";
-      break;
-    case MYSQL_TYPE_SET:
-      type_name = "SET";
-      break;
-  }
-
-  assert(!type_name.empty());
-  return mysqlsh::Constant::get_constant("mysqlx", "Type", type_name,
-                                         shcore::Argument_list());
-}*/
 
 shcore::Value ClassicResult::get_member(const std::string &prop) const {
   if (prop == "affectedRowCount" || prop == "affectedItemsCount") {
@@ -723,11 +554,6 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
     }
 
     return shcore::Value(array);
-
-    /*    auto inner_warnings = _result->query_warnings().release();
-        std::shared_ptr<ClassicResult> warnings(
-            new ClassicResult(std::shared_ptr<Result>(inner_warnings)));
-        return warnings->fetch_all(shcore::Argument_list());*/
   }
 
   if (prop == "executionTime")
@@ -752,49 +578,10 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
       array->push_back(shcore::Value(cmd.get_column_label()));
 
     return shcore::Value(array);
-
-    /*std::vector<Field> metadata(_result->get_metadata());
-
-    std::shared_ptr<shcore::Value::Array_type> array(
-        new shcore::Value::Array_type);
-
-    int num_fields = metadata.size();
-
-    for (int i = 0; i < num_fields; i++)
-      array->push_back(shcore::Value(metadata[i].name()));
-
-    return shcore::Value(array);*/
   }
 
   if (prop == "columns") {
     return shcore::Value(get_columns());
-    /*std::vector<Field> metadata(_result->get_metadata());
-
-    std::shared_ptr<shcore::Value::Array_type> array(
-        new shcore::Value::Array_type);
-
-    int num_fields = metadata.size();
-
-    for (int i = 0; i < num_fields; i++) {
-      bool numeric = IS_NUM(metadata[i].type());
-
-      std::shared_ptr<mysqlsh::Column> column(new mysqlsh::Column(
-          metadata[i].db(), metadata[i].org_table(), metadata[i].table(),
-          metadata[i].org_name(), metadata[i].name(),
-          get_field_type(metadata[i]),  // type
-          metadata[i].length(), metadata[i].decimals(),
-          (metadata[i].flags() & UNSIGNED_FLAG) == 0,  // signed
-          mysqlshdk::db::charset::collation_name_from_collation_id(
-              metadata[i].charset()),
-          mysqlshdk::db::charset::charset_name_from_collation_id(
-              metadata[i].charset()),
-          numeric ? metadata[i].flags() & ZEROFILL_FLAG : false));  // zerofill
-
-      array->push_back(
-          shcore::Value(std::static_pointer_cast<Object_bridge>(column)));
-    }
-
-    return shcore::Value(array);*/
   }
 
   return ShellBaseResult::get_member(prop);
@@ -895,7 +682,7 @@ void ClassicResult::append_json(shcore::JSON_dumper &dumper) const {
   dumper.append_value("executionTime", get_member("executionTime"));
 
   dumper.append_value("info", get_member("info"));
-  dumper.append_value("rows", fetch_all(shcore::Argument_list()));
+  dumper.append_value("rows", shcore::Value(fetch_all()));
 
   if (mysqlsh::current_shell_options()->get().show_warnings) {
     dumper.append_value("warningCount", get_member("warningsCount"));
@@ -903,7 +690,7 @@ void ClassicResult::append_json(shcore::JSON_dumper &dumper) const {
     dumper.append_value("warnings", get_member("warnings"));
   }
 
-  dumper.append_value("hasData", has_data(shcore::Argument_list()));
+  dumper.append_value("hasData", shcore::Value(has_data()));
   dumper.append_value("affectedRowCount", get_member("affectedItemsCount"));
   dumper.append_value("affectedItemsCount", get_member("affectedItemsCount"));
   dumper.append_value("autoIncrementValue", get_member("autoIncrementValue"));

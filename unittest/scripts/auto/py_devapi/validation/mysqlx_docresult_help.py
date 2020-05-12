@@ -114,7 +114,7 @@ RETURNS
       the number of affected items.
 
 DESCRIPTION
-      Returns the number of records affected by the executed operation
+      Returns the number of records affected by the executed operation.
 
 #@<OUT> docresult.get_execution_time
 NAME
@@ -136,13 +136,13 @@ RETURNS
       the number of warnings.
 
 DESCRIPTION
+      ATTENTION: This function will be removed in a future release, use the
+                 get_warnings_count function instead.
+
       This is the same value than C API mysql_warning_count, see
       https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
 
       See get_warnings() for more details.
-
-      ATTENTION: This function will be removed in a future release, use the
-                 get_warnings_count function instead.
 
 #@<OUT> docresult.get_warnings
 NAME
@@ -215,3 +215,4 @@ NAME
 
 SYNTAX
       <DocResult>.warnings_count
+
