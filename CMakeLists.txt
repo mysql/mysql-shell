@@ -260,9 +260,6 @@ IF(WIN32)
 
 	# Sets the windows versions that should be supported
 	ADD_DEFINITIONS(-DNTDDI_VERSION=0x06000100 -D_WIN32_WINNT=0x0600)
-ELSE()
-  # Non windows builds should build dev packages by default
-  SET(WITH_DEV "1")
 ENDIF()
 
 IF(V8_INCLUDE_DIR AND V8_LIB_DIR)

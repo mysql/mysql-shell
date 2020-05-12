@@ -1,4 +1,4 @@
-# Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2019, 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -38,6 +38,9 @@ function(add_shell_executable)
   if(NOT ARGV2)
     message(STATUS "Marking executable ${ARGV0} as a run-time component")
     install(TARGETS "${ARGV0}" RUNTIME COMPONENT main DESTINATION "${INSTALL_BINDIR}")
+  else()
+    message(STATUS "Marking executable ${ARGV0} as a testing component")
+    install(TARGETS "${ARGV0}" RUNTIME COMPONENT testing DESTINATION "${INSTALL_BINDIR}")
   endif()
 
   if(APPLE)

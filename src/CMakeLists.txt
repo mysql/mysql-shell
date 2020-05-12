@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -185,14 +185,6 @@ if(BUNDLED_OPENSSL)
   ENDIF()
 endif()
 
-
-### Bundling of V8 if needed
-if(WITH_DEV)
-    if(HAVE_V8 AND WIN32)
-       install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
-    endif()
-endif()
-
 ### Bundling of Python runtime if needed
 IF(HAVE_PYTHON)
   if(WIN32)
@@ -209,10 +201,6 @@ IF(HAVE_PYTHON)
     get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
     get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
     install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin COMPONENT main)
-
-    IF(WITH_DEV)
-      install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION lib COMPONENT dev)
-    ENDIF()
 
     # Copies the dll to the binary location to enable debugging
     add_custom_command(TARGET mysqlsh PRE_BUILD

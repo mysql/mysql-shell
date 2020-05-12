@@ -1,4 +1,4 @@
-# Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2018, 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,5 @@ set(exec_src
   sample_pager.cc
 )
 
-add_executable("${exec_name}" ${exec_src})
+add_shell_executable("${exec_name}" ${exec_src} TRUE)
 set_target_properties("${exec_name}" PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${INSTALL_BINDIR}")
-fix_target_output_directory("${exec_name}" "${INSTALL_BINDIR}")
