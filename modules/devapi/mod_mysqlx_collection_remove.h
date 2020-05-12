@@ -86,19 +86,15 @@ class CollectionRemove : public Collection_crud_definition,
   Mysqlx::Crud::Delete message_;
 
   struct F {
-    static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;
-    static constexpr Allowed_function_mask remove = 1 << 1;
-    static constexpr Allowed_function_mask sort = 1 << 2;
-    static constexpr Allowed_function_mask limit = 1 << 3;
-    static constexpr Allowed_function_mask bind = 1 << 4;
-    static constexpr Allowed_function_mask execute = 1 << 5;
+    static constexpr Allowed_function_mask remove = 1 << 0;
+    static constexpr Allowed_function_mask sort = 1 << 1;
+    static constexpr Allowed_function_mask limit = 1 << 2;
+    static constexpr Allowed_function_mask bind = 1 << 3;
+    static constexpr Allowed_function_mask execute = 1 << 4;
   };
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("__shell_hook__" == s) {
-      return F::__shell_hook__;
-    }
     if ("remove" == s) {
       return F::remove;
     }

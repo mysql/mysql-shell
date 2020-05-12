@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -300,8 +300,19 @@ TEST_F(mod_shell_test, dump_rows) {
   mysqlsh::ShellBaseSession *bsession = nullptr;
 
   auto query = [&bsession](const std::string &sql) {
-    return std::dynamic_pointer_cast<mysqlsh::ShellBaseResult>(
-        bsession->raw_execute_sql(sql));
+    auto iresult = bsession->execute_sql(sql);
+    std::shared_ptr<mysqlsh::ShellBaseResult> result;
+    auto mysql_result =
+        std::dynamic_pointer_cast<mysqlshdk::db::mysql::Result>(iresult);
+    if (mysql_result) {
+      result = std::make_shared<mysqlsh::mysql::ClassicResult>(mysql_result);
+    } else {
+      auto mysqlx_result =
+          std::dynamic_pointer_cast<mysqlshdk::db::mysqlx::Result>(iresult);
+      result = std::make_shared<mysqlsh::mysqlx::SqlResult>(mysqlx_result);
+    }
+
+    return result;
   };
 
   for (int i = 0; i < 2; i++) {

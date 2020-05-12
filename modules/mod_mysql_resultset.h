@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -135,17 +135,12 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
 
   explicit ClassicResult(std::shared_ptr<mysqlshdk::db::mysql::Result> result);
 
-  // TODO(rennox): This function should be removed, the callers of this function
-  // should either use the low level implementation (ISession) or the high level
-  // implementation ClassicResult as exposed to the user API.
-  const mysqlshdk::db::IRow *fetch_one() const;
-
   virtual std::string class_name() const { return "ClassicResult"; }
   virtual shcore::Value get_member(const std::string &prop) const;
   virtual void append_json(shcore::JSON_dumper &dumper) const;
 
   shcore::Value has_data(const shcore::Argument_list &args) const;
-  virtual shcore::Value fetch_one(const shcore::Argument_list &args) const;
+  std::shared_ptr<Row> fetch_one() const;
   shcore::Dictionary_t _fetch_one_object();
   virtual shcore::Value fetch_all(const shcore::Argument_list &args) const;
   virtual shcore::Value next_data_set(const shcore::Argument_list &args);

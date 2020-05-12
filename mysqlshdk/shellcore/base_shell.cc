@@ -48,6 +48,18 @@
 namespace mysqlsh {
 
 namespace {
+const std::map<std::string, std::string> k_shell_hooks = {
+    {"ClassicResult", "dump"},       {"Result", "dump"},
+    {"DocResult", "dump"},           {"RowResult", "dump"},
+    {"SqlResult", "dump"},           {"CollectionAdd", "execute"},
+    {"CollectionFind", "execute"},   {"CollectionModify", "execute"},
+    {"CollectionRemove", "execute"}, {"TableDelete", "execute"},
+    {"TableInsert", "execute"},      {"TableSelect", "execute"},
+    {"TableUpdate", "execute"},      {"SqlExecute", "execute"},
+};
+}
+
+namespace {
 void print_diag(const std::string &s) { current_console()->print_diag(s); }
 
 void println(const std::string &s) { current_console()->println(s); }
@@ -73,6 +85,12 @@ Base_shell::Base_shell(const std::shared_ptr<Shell_options> &cmdline_options)
 }
 
 Base_shell::~Base_shell() {}
+
+std::string Base_shell::get_shell_hook(const std::string &class_name) {
+  auto item = k_shell_hooks.find(class_name);
+
+  return item == k_shell_hooks.end() ? "" : item->second;
+}
 
 void Base_shell::finish_init() {
   current_console()->set_verbose(options().verbose_level);
@@ -468,33 +486,29 @@ void Base_shell::process_sql_result(
 
 void Base_shell::print_result(const shcore::Value &result) {
   if (result) {
-    shcore::Value shell_hook;
-    std::shared_ptr<shcore::Object_bridge> object;
     if (result.type == shcore::Object) {
-      object = result.as_object();
-      if (object && object->has_member("__shell_hook__"))
-        shell_hook = object->get_member("__shell_hook__");
+      auto object = result.as_object();
+      auto shell_hook = get_shell_hook(object->class_name());
+      if (!shell_hook.empty()) {
+        if (object->has_member(shell_hook)) {
+          shcore::Value hook_result = object->call(shell_hook, {});
 
-      if (shell_hook) {
-        shcore::Argument_list args;
-        shcore::Value hook_result = object->call("__shell_hook__", args);
+          // Recursive call to continue processing shell hooks if any
+          process_result(hook_result, false);
 
-        // Recursive call to continue processing shell hooks if any
-        process_result(hook_result, false);
+          return;
+        }
       }
     }
 
-    // If the function is not found the values still needs to be printed
-    if (!shell_hook) {
-      // In JSON mode: the json representation is used for Object, Array and
-      // Map For anything else a map is printed with the "value" key
-      std::string tag;
-      if (result.type != shcore::Object && result.type != shcore::Array &&
-          result.type != shcore::Map)
-        tag = "value";
+    // In JSON mode: the json representation is used for Object, Array and
+    // Map For anything else a map is printed with the "value" key
+    std::string tag;
+    if (result.type != shcore::Object && result.type != shcore::Array &&
+        result.type != shcore::Map)
+      tag = "value";
 
-      print_value(result, tag);
-    }
+    print_value(result, tag);
   }
 }
 

@@ -110,8 +110,9 @@ RETURNS
       A boolean value indicating if the session is still open.
 
 DESCRIPTION
-      Returns true if the session is still open and false otherwise. Note: may
-      return true if connection is lost.
+      Returns true if the session is still open and false otherwise.
+      
+      NOTE: This function may return true if connection is lost.
 
 //@<OUT> Help on query
 NAME
@@ -122,7 +123,7 @@ SYNTAX
       <ClassicSession>.query(query[, args])
 
 WHERE
-      query: the SQL query string to execute, with optional ? placeholders
+      query: the SQL query string to execute, with optional ? placeholders.
       args: List of literals to use when replacing ? placeholders in the query
             string.
 
@@ -189,7 +190,7 @@ DESCRIPTION
       only when commit() is called.
 
       All the operations executed after calling this function, will be
-      discarded is rollback() is called.
+      discarded if rollback() is called.
 
       When commit() or rollback() are called, the server autocommit mode will
       return back to it's state before calling startTransaction().

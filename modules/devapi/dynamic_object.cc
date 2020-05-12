@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,7 +43,7 @@ std::vector<std::string> Dynamic_object::get_members() const {
   size_t last = 0;
   for (size_t i = 0, c = members.size(); i < c; i++) {
     // filter out disabled functions
-    if (is_enabled(members[i]) && members[i] != "__shell_hook__") {
+    if (is_enabled(members[i])) {
       members[last++] = members[i];
     }
   }
@@ -135,7 +135,6 @@ void Dynamic_object::update_functions(Allowed_function_mask f) {
 }
 
 bool Dynamic_object::is_enabled(const std::string &name) const {
-  // help should be always enabled
   auto func = lookup_function(name);
   if (func) {
     // filter out disabled functions

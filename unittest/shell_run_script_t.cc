@@ -794,7 +794,7 @@ mysql-js []> session.sql('select 1').execute();
 1 row in set)";
   static constexpr auto second_execution =
       R"(mysql-js []> session.sql('select 1').execute();
-MySQL server has gone away (MySQL Error 2006)
+SqlExecute.execute: MySQL server has gone away (MySQL Error 2006)
 The global session got disconnected..
 Attempting to reconnect to 'mysqlx://)";
   static constexpr auto third_execution =
@@ -866,7 +866,7 @@ mysql-py []> session.sql('select 1').execute();
 +---+
 1 row in set)";
   static constexpr auto second_execution =
-      R"(mysqlsh.DBError: MySQL Error (2006): MySQL server has gone away
+      R"(mysqlsh.DBError: MySQL Error (2006): SqlExecute.execute: MySQL server has gone away
 The global session got disconnected..
 Attempting to reconnect to 'mysqlx://)";
   static constexpr auto third_execution =

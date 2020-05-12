@@ -47,15 +47,27 @@ REGISTER_HELP_CLASS(Column, shellapi);
 REGISTER_HELP(COLUMN_BRIEF,
               "Represents the metadata for a column in a result.");
 
-ShellBaseResult::ShellBaseResult() {
-  expose("__shell_hook__", &ShellBaseResult::dump, "?options");
-}
+ShellBaseResult::ShellBaseResult() { expose("dump", &ShellBaseResult::dump); }
 
 bool ShellBaseResult::operator==(const Object_bridge &other) const {
   return this == &other;
 }
 
-void ShellBaseResult::dump(const shcore::Dictionary_t & /* options */) {
+std::vector<std::string> ShellBaseResult::get_members() const {
+  std::vector<std::string> members = Cpp_object_bridge::get_members();
+
+  // The dump function is used as a shell_hook but is not officially part of
+  // the Result classes in DevAPI, for this reason it is exposed to make it
+  // usable as a hook, but removed in get_members so it is not part of the
+  // Result classes
+  auto pos = std::find(members.begin(), members.end(), "dump");
+
+  members.erase(pos);
+
+  return members;
+}
+
+void ShellBaseResult::dump() {
   auto result = get_result();
 
   result->buffer();

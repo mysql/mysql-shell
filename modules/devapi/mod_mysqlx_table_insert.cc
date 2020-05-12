@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,11 +66,10 @@ TableInsert::TableInsert(std::shared_ptr<Table> owner)
                             F::insertFields | F::insertFieldsAndValues);
   register_dynamic_function(F::insertFields, F::values,
                             F::insert | F::insertFieldsAndValues);
-  register_dynamic_function(F::insertFieldsAndValues,
-                            F::execute | F::__shell_hook__,
+  register_dynamic_function(F::insertFieldsAndValues, F::execute,
                             F::insert | F::insertFields);
-  register_dynamic_function(F::values, F::execute | F::__shell_hook__,
-                            K_DISABLE_NONE, K_ALLOW_REUSE);
+  register_dynamic_function(F::values, F::execute, K_DISABLE_NONE,
+                            K_ALLOW_REUSE);
 
   // Initial function update
   enable_function(F::insert);

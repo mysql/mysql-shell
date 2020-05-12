@@ -26,6 +26,7 @@
 
 #include "modules/adminapi/common/common.h"
 #include "modules/devapi/base_database_object.h"
+#include "modules/devapi/mod_mysqlx_schema.h"
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_utils.h"

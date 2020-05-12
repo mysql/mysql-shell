@@ -11,12 +11,9 @@ DESCRIPTION
       Session instance.
 
 FUNCTIONS
-      bind(value, values)
-            Registers a parameter to be bound on the execution of the SQL
-            statement.
-
-            Registers a list of parameter to be bound on the execution of the
-            SQL statement.
+      bind(data)
+            Registers a value or a list of values to be bound on the execution
+            of the SQL statement.
 
       execute()
             Executes the sql statement.
@@ -29,36 +26,30 @@ FUNCTIONS
 
 #@<OUT> sqlexecute.bind
 NAME
-      bind - Registers a parameter to be bound on the execution of the SQL
-             statement.
-
-             Registers a list of parameter to be bound on the execution of the
-             SQL statement.
+      bind - Registers a value or a list of values to be bound on the execution
+             of the SQL statement.
 
 SYNTAX
-      <SqlExecute>.bind(value, values)
+      <SqlExecute>.bind(data)
 
 WHERE
-      value: the value to be bound.
-      values: the value list to be bound.
+      data: the value or list of values to be bound.
 
 RETURNS
       This SqlExecute object.
 
 DESCRIPTION
       This method can be invoked any number of times, each time the received
-      parameter will be added to an internal binding list.
+      parameters will be added to an internal binding list.
 
       This function can be invoked after:
 
       - sql(String statement)
-      - bind(Value value)
-      - bind(List values)
+      - bind(Value data)
 
       After this function invocation, the following functions can be invoked:
 
-      - bind(Value value)
-      - bind(List values)
+      - bind(Value data)
       - execute().
 
 #@<OUT> sqlexecute.execute
@@ -75,8 +66,7 @@ DESCRIPTION
       This function can be invoked after:
 
       - sql(String statement)
-      - bind(Value value)
-      - bind(List values)
+      - bind(Value data)
 
 #@<OUT> sqlexecute.help
 NAME
@@ -114,6 +104,6 @@ DESCRIPTION
 
       After this function invocation, the following functions can be invoked:
 
-      - bind(Value value)
-      - bind(List values)
+      - bind(Value data)
       - execute().
+

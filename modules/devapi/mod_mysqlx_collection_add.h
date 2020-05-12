@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,16 +78,12 @@ class CollectionAdd : public Collection_crud_definition,
   Mysqlx::Crud::Insert message_;
 
   struct F {
-    static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;
-    static constexpr Allowed_function_mask add = 1 << 1;
-    static constexpr Allowed_function_mask execute = 1 << 2;
+    static constexpr Allowed_function_mask add = 1 << 0;
+    static constexpr Allowed_function_mask execute = 1 << 1;
   };
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("__shell_hook__" == s) {
-      return F::__shell_hook__;
-    }
     if ("add" == s) {
       return F::add;
     }

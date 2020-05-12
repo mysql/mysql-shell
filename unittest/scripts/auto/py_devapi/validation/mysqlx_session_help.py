@@ -33,7 +33,7 @@ FUNCTIONS
 
       commit()
             Commits all the operations executed after a call to
-            startTransaction().
+            start_transaction().
 
       create_schema(name)
             Creates a schema on the database and returns the corresponding
@@ -72,7 +72,7 @@ FUNCTIONS
 
       rollback()
             Discards all the operations executed after a call to
-            startTransaction().
+            start_transaction().
 
       rollback_to(name)
             Rolls back the transaction to the named savepoint without
@@ -107,12 +107,13 @@ SYNTAX
 
 DESCRIPTION
       After closing the session it is still possible to make read only
-      operations to gather metadata info, like getTable(name) or getSchemas().
+      operations to gather metadata info, like get_table(name) or
+      get_schemas().
 
 #@<OUT> session.commit
 NAME
       commit - Commits all the operations executed after a call to
-               startTransaction().
+               start_transaction().
 
 SYNTAX
       <Session>.commit()
@@ -121,11 +122,11 @@ RETURNS
       A SqlResult object.
 
 DESCRIPTION
-      All the operations executed after calling startTransaction() will take
+      All the operations executed after calling start_transaction() will take
       place when this function is called.
 
       The server autocommit mode will return back to it's state before calling
-      startTransaction().
+      start_transaction().
 
 #@<OUT> session.create_schema
 NAME
@@ -140,6 +141,9 @@ WHERE
 
 RETURNS
       The created schema object.
+
+EXCEPTIONS
+      A MySQL error is thrown if fails creating the schema.
 
 #@<OUT> session.current_schema
 NAME
@@ -204,6 +208,9 @@ WHERE
 RETURNS
       The Schema object with the given name.
 
+EXCEPTIONS
+      RuntimeError If the given name is not a valid schema.
+
 #@<OUT> session.get_schemas
 NAME
       get_schemas - Retrieves the Schemas available on the session.
@@ -245,8 +252,9 @@ RETURNS
       A boolean value indicating if the session is still open.
 
 DESCRIPTION
-      Returns true if the session is still open and false otherwise. Note: may
-      return true if connection is lost.
+      Returns true if the session is still open and false otherwise.
+
+      NOTE: This function may return true if connection is lost.
 
 #@<OUT> session.quote_name
 NAME
@@ -281,7 +289,7 @@ DESCRIPTION
 #@<OUT> session.rollback
 NAME
       rollback - Discards all the operations executed after a call to
-                 startTransaction().
+                 start_transaction().
 
 SYNTAX
       <Session>.rollback()
@@ -290,11 +298,11 @@ RETURNS
       A SqlResult object.
 
 DESCRIPTION
-      All the operations executed after calling startTransaction() will be
+      All the operations executed after calling start_transaction() will be
       discarded when this function is called.
 
       The server autocommit mode will return back to it's state before calling
-      startTransaction().
+      start_transaction().
 
 #@<OUT> session.rollback_to
 NAME
@@ -414,7 +422,7 @@ NAME
 
 SYNTAX
       Session.sql(statement)
-             [.bind(value, values)]
+             [.bind(data)]
              [.execute()]
 
 DESCRIPTION
@@ -442,33 +450,29 @@ DESCRIPTION
             After this function invocation, the following functions can be
             invoked:
 
-            - bind(Value value)
-            - bind(List values)
+            - bind(Value data)
             - execute().
 
-      bind(value, values)
+      bind(data)
             This method can be invoked any number of times, each time the
-            received parameter will be added to an internal binding list.
+            received parameters will be added to an internal binding list.
 
             This function can be invoked after:
 
             - sql(String statement)
-            - bind(Value value)
-            - bind(List values)
+            - bind(Value data)
 
             After this function invocation, the following functions can be
             invoked:
 
-            - bind(Value value)
-            - bind(List values)
+            - bind(Value data)
             - execute().
 
       execute()
             This function can be invoked after:
 
             - sql(String statement)
-            - bind(Value value)
-            - bind(List values)
+            - bind(Value data)
 
 #@<OUT> session.start_transaction
 NAME
@@ -487,10 +491,10 @@ DESCRIPTION
       only when commit() is called.
 
       All the operations executed after calling this function, will be
-      discarded is rollback() is called.
+      discarded if rollback() is called.
 
       When commit() or rollback() are called, the server autocommit mode will
-      return back to it's state before calling startTransaction().
+      return back to it's state before calling start_transaction().
 
 #@<OUT> session.uri
 NAME
@@ -498,3 +502,4 @@ NAME
 
 SYNTAX
       <Session>.uri
+

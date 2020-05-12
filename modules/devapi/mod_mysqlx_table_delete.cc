@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,8 +55,8 @@ TableDelete::TableDelete(std::shared_ptr<Table> owner)
   add_method("bind", std::bind(&TableDelete::bind_, this, _1, bind_id), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function(F::delete_, F::where | F::orderBy | F::limit |
-                                            F::execute | F::__shell_hook__);
+  register_dynamic_function(F::delete_,
+                            F::where | F::orderBy | F::limit | F::execute);
   register_dynamic_function(F::where, F::bind);
   register_dynamic_function(F::orderBy, F::bind, F::where);
   register_dynamic_function(F::limit, F::bind, F::where | F::orderBy);

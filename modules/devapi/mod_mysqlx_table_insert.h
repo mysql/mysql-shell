@@ -70,19 +70,15 @@ class TableInsert : public Table_crud_definition,
   bool allow_prepared_statements() override { return false; }
 
   struct F {
-    static constexpr Allowed_function_mask __shell_hook__ = 1 << 0;
-    static constexpr Allowed_function_mask insert = 1 << 1;
-    static constexpr Allowed_function_mask values = 1 << 2;
-    static constexpr Allowed_function_mask execute = 1 << 3;
-    static constexpr Allowed_function_mask insertFields = 1 << 4;
-    static constexpr Allowed_function_mask insertFieldsAndValues = 1 << 5;
+    static constexpr Allowed_function_mask insert = 1 << 0;
+    static constexpr Allowed_function_mask values = 1 << 1;
+    static constexpr Allowed_function_mask execute = 1 << 2;
+    static constexpr Allowed_function_mask insertFields = 1 << 3;
+    static constexpr Allowed_function_mask insertFieldsAndValues = 1 << 4;
   };
 
   Allowed_function_mask function_name_to_bitmask(
       const std::string &s) const override {
-    if ("__shell_hook__" == s) {
-      return F::__shell_hook__;
-    }
     if ("insert" == s) {
       return F::insert;
     }

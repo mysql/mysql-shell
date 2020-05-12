@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,10 +66,7 @@ ClassicResult::ClassicResult(
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("info", "getInfo");
 
-  add_method("fetchOne", std::bind((shcore::Value(ClassicResult::*)(
-                                       const shcore::Argument_list &) const) &
-                                       ClassicResult::fetch_one,
-                                   this, _1));
+  expose("fetchOne", &ClassicResult::fetch_one);
   expose("fetchOneObject", &ClassicResult::_fetch_one_object);
   add_method("fetchAll", std::bind((shcore::Value(ClassicResult::*)(
                                        const shcore::Argument_list &) const) &
@@ -122,26 +119,8 @@ Row ClassicResult::fetchOne() {}
 #elif DOXYGEN_PY
 Row ClassicResult::fetch_one() {}
 #endif
-shcore::Value ClassicResult::fetch_one(
-    const shcore::Argument_list &args) const {
-  shcore::Value ret_val = shcore::Value::Null();
-
-  args.ensure_count(0, get_function_name("fetchOne").c_str());
-
-  try {
-    auto row = fetch_one_row();
-
-    if (row) {
-      ret_val = shcore::Value::wrap(row.release());
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("fetchOne"));
-
-  return ret_val;
-}
-
-const mysqlshdk::db::IRow *ClassicResult::fetch_one() const {
-  return _result->fetch_one();
+std::shared_ptr<mysqlsh::Row> ClassicResult::fetch_one() const {
+  return fetch_one_row();
 }
 
 REGISTER_HELP_FUNCTION(fetchOneObject, ClassicResult);
@@ -269,14 +248,10 @@ shcore::Value ClassicResult::fetch_all(
     const shcore::Argument_list &args) const {
   args.ensure_count(0, get_function_name("fetchAll").c_str());
 
-  std::shared_ptr<shcore::Value::Array_type> array(
-      new shcore::Value::Array_type);
+  auto array = shcore::make_array();
 
-  shcore::Value record = fetch_one(args);
-
-  while (record) {
-    array->push_back(record);
-    record = fetch_one(args);
+  while (const auto record = fetch_one()) {
+    array->push_back(shcore::Value(record));
   }
 
   return shcore::Value(array);
