@@ -1076,7 +1076,7 @@ names.
 that matches specific data file format. Can be used as base dialect and
 customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
 fieldsEscapedBy and linesTerminatedBy options. Must be one of the following
-values: csv, tsv, json or csv-unix.
+values: default, csv, tsv, json or csv-unix.
 @li <b>decodeColumns</b>: map (default: not set) - a map between columns names
 to decode methods (UNHEX or FROM_BASE64) to be applied on the loaded data.
 Requires 'columns' to be set.
@@ -1214,7 +1214,7 @@ Each parallel connection sets the following session variables:
  * options that matches specific data file format. Can be used as base dialect
  * and customized with fieldsTerminatedBy, fieldsEnclosedBy,
  * fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy options. Must
- * be one of the following values: csv, tsv, json or csv-unix.
+ * be one of the following values: default, csv, tsv, json or csv-unix.
  * @li <b>decodeColumns</b>: map (default: not set) - a map between columns
  * names to decode methods (UNHEX or FROM_BASE64) to be applied on the loaded
  * data. Requires 'columns' to be set.
@@ -1422,7 +1422,7 @@ specified tables from the dump. Strings are in format schema.table or
 @li <b>loadDdl</b>: bool (default: true) - Executes DDL/SQL scripts in the
 dump.
 @li <b>loadUsers</b>: bool (default: false) - Executes SQL scripts for user
-accounts, roles and grants contained in the dump. Note: statements for the 
+accounts, roles and grants contained in the dump. Note: statements for the
 current user will be skipped.
 @li <b>progressFile</b>: path (default: @<server_uuid@>.progress) - Stores
 load progress information in the given local file path.
@@ -1527,7 +1527,7 @@ events and triggers. The MySQL Database Service requires special privileges to
 create these objects with a definer other than the user loading the schema.
 By stripping the DEFINER clause, these objects will be created with that default
 definer. Views and Routines will additionally have their SQL SECURITY clause
-changed from DEFINER to INVOKER. This ensures that the access permissions 
+changed from DEFINER to INVOKER. This ensures that the access permissions
 of the account querying or calling these are applied, instead of the user that
 created them. This should be sufficient for most users, but if your database
 security model requires that views and routines have more privileges than their
@@ -1541,7 +1541,7 @@ fail, so this option allows dumped GRANT statements to be stripped of these
 privileges.
 
 <b>strip_role_admin</b> - ROLE_ADMIN privilege can be restricted in the MySQL
-Database Service, so attempting to create users granting it would fail. 
+Database Service, so attempting to create users granting it would fail.
 This option allows dumped GRANT statements to be stripped of this privilege.
 
 <b>strip_tablespaces</b> - Tablespaces have some restrictions in the MySQL

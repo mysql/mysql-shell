@@ -864,8 +864,8 @@ DESCRIPTION
         that matches specific data file format. Can be used as base dialect and
         customized with fieldsTerminatedBy, fieldsEnclosedBy,
         fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy
-        options. Must be one of the following values: csv, tsv, json or
-        csv-unix.
+        options. Must be one of the following values: default, csv, tsv, json
+        or csv-unix.
       - decodeColumns: map (default: not set) - a map between columns names to
         decode methods (UNHEX or FROM_BASE64) to be applied on the loaded data.
         Requires 'columns' to be set.
