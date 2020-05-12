@@ -437,6 +437,14 @@ std::wstring utf8_to_wide(const std::string &utf8);
 std::wstring utf8_to_wide(const char *utf8, const size_t utf8_length);
 
 /**
+ * Convert UTF-8 string to UTF-16/UTF-32 (platform dependent) string.
+ *
+ * @param utf8 Pointer to UTF-8 encoded string.
+ * @return std::wstring UTF-16/UTF-32 (platform dependent) string.
+ */
+std::wstring utf8_to_wide(const char *utf8);
+
+/**
  * Convert UTF-16/UTF-32 (platform dependent) string to UTF-8 string.
  *
  * @param wide UTF-16/UTF-32 (platform dependent) encoded string.
@@ -452,6 +460,14 @@ std::string wide_to_utf8(const std::wstring &wide);
  * @return std::string UTF-8 encoded string.
  */
 std::string wide_to_utf8(const wchar_t *wide, const size_t wide_length);
+
+/**
+ * Convert UTF-16/UTF-32 (platform dependent) string to UTF-8 string.
+ *
+ * @param wide Pointer to UTF-16/UTF-32 (platform dependent) encoded string.
+ * @return std::string UTF-8 encoded string.
+ */
+std::string wide_to_utf8(const wchar_t *wide);
 
 /**
  * Truncates the given string to max_length code points.

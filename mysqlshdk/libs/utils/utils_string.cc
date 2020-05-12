@@ -346,8 +346,16 @@ std::wstring utf8_to_wide(const std::string &utf8) {
   return utf8_to_wide(&utf8[0], utf8.size());
 }
 
+std::wstring utf8_to_wide(const char *utf8) {
+  return utf8_to_wide(utf8, strlen(utf8));
+}
+
 std::string wide_to_utf8(const std::wstring &wide) {
   return wide_to_utf8(&wide[0], wide.size());
+}
+
+std::string wide_to_utf8(const wchar_t *wide) {
+  return wide_to_utf8(wide, wcslen(wide));
 }
 
 #ifdef _WIN32

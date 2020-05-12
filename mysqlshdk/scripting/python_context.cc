@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,6 +21,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "scripting/python_context.h"
+
+#include <cwchar>
 
 #include <signal.h>
 #include <exception>
@@ -57,16 +59,27 @@ namespace {
 
 #ifdef IS_PY3K
 
-using PY_CHAR_T = wchar_t;
+using py_char_t = wchar_t;
 #define PY_CHAR_T_LITERAL(x) L##x
-#define COPY_PY_CHAR_T(dst, src, n) mbstowcs(dst, src, n)
+
+void copy_py_char_t(const char *src, size_t src_len, py_char_t *dst,
+                    size_t dst_len, const char *error) {
+  const auto converted = utf8_to_wide(src, src_len);
+  const auto converted_length = converted.length();
+
+  if (converted_length >= dst_len) {
+    throw std::runtime_error(error);
+  }
+
+  wmemcpy(dst, converted.c_str(), converted_length);
+  dst[converted_length] = PY_CHAR_T_LITERAL('\0');
+}
 
 std::vector<std::wstring> to_py_char_t(const std::vector<std::string> &in) {
   std::vector<std::wstring> out;
 
   for (const auto &s : in) {
-    out.emplace_back(s.length(), PY_CHAR_T_LITERAL('#'));
-    COPY_PY_CHAR_T(&out.back()[0], s.c_str(), out.back().length());
+    out.emplace_back(utf8_to_wide(s));
   }
 
   return out;
@@ -74,9 +87,18 @@ std::vector<std::wstring> to_py_char_t(const std::vector<std::string> &in) {
 
 #else  // !IS_PY3K
 
-using PY_CHAR_T = char;
+using py_char_t = char;
 #define PY_CHAR_T_LITERAL(x) x
-#define COPY_PY_CHAR_T(dst, src, n) strncpy(dst, src, n)
+
+void copy_py_char_t(const char *src, size_t src_len, py_char_t *dst,
+                    size_t dst_len, const char *error) {
+  if (src_len >= dst_len) {
+    throw std::runtime_error(error);
+  }
+
+  strncpy(dst, src, src_len);
+  dst[src_len] = PY_CHAR_T_LITERAL('\0');
+}
 
 const std::vector<std::string> &to_py_char_t(
     const std::vector<std::string> &in) {
@@ -87,20 +109,17 @@ const std::vector<std::string> &to_py_char_t(
 
 void set_python_home(const std::string &home) {
   if (!home.empty()) {
-    static PY_CHAR_T path[1000];
-
-    if (home.length() > array_size(path) - 1) {
-      throw std::runtime_error("Python home path too long");
-    }
-
-    COPY_PY_CHAR_T(path, home.c_str(), array_size(path) - 1);
+    static py_char_t path[1000];
+    copy_py_char_t(home.c_str(), home.length(), path, array_size(path),
+                   "Python home path too long");
     Py_SetPythonHome(path);
   }
 }
 
 void set_program_name() {
-  static PY_CHAR_T name[1000];
-  COPY_PY_CHAR_T(name, g_mysqlsh_path, array_size(name) - 1);
+  static py_char_t name[1000];
+  copy_py_char_t(g_mysqlsh_path, strlen(g_mysqlsh_path), name, array_size(name),
+                 "Python program name too long");
   Py_SetProgramName(name);
 }
 
@@ -362,7 +381,7 @@ class Python_init_singleton final {
         signal(SIGINT, prev_signal);
       }
 
-      PY_CHAR_T *argv[] = {(PY_CHAR_T *)PY_CHAR_T_LITERAL("")};
+      py_char_t *argv[] = {const_cast<py_char_t *>(PY_CHAR_T_LITERAL(""))};
       PySys_SetArgvEx(1, argv, 0);
 
       m_local_initialization = true;
@@ -563,13 +582,13 @@ PyObject *Python_context::get_shell_python_support_module() {
 void Python_context::set_argv(const std::vector<std::string> &argv) {
   if (!argv.empty()) {
     const auto &input = to_py_char_t(argv);
-    std::vector<const PY_CHAR_T *> argvv;
+    std::vector<const py_char_t *> argvv;
 
     for (const auto &s : input) argvv.push_back(s.c_str());
 
     argvv.push_back(nullptr);
 
-    PySys_SetArgv(argv.size(), const_cast<PY_CHAR_T **>(argvv.data()));
+    PySys_SetArgv(argv.size(), const_cast<py_char_t **>(argvv.data()));
   }
 }
 
