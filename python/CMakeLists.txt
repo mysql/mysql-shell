@@ -50,7 +50,13 @@ add_custom_target(mysqlprovision ALL DEPENDS mysqlprovision_zip)
 
 IF(MSVC)
   install(PROGRAMS ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh/mysqlprovision.zip COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
+  IF (WITH_DEV)
+    install(PROGRAMS ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh/mysqlprovision.zip COMPONENT dev DESTINATION ${INSTALL_SHAREDIR})
+  ENDIF()
 ELSE()
   install(PROGRAMS ${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
+  IF (WITH_DEV)
+    install(PROGRAMS ${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip COMPONENT dev DESTINATION ${INSTALL_SHAREDIR})
+  ENDIF()
 ENDIF()
 

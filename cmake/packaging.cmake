@@ -58,9 +58,7 @@ set(CPACK_STRIP_FILES                 "bin/mysqlsh")
 
 if(WIN32)
   set(CPACK_PACKAGE_INSTALL_DIRECTORY "MySQL/MySQL Shell ${MYSH_BASE_VERSION}")
-  # When WITH_TEST is used, the WIX generator is not used as there's no WIX for
-  # the testing component
-  IF(WITH_TESTS)
+  IF(WITH_DEV)
     SET(CPACK_GENERATOR                 "ZIP")
   ELSE()
     set(CPACK_GENERATOR                 "ZIP;WIX")
@@ -130,32 +128,59 @@ if(WIN32)
 
 # install(FILES ChangeLog     DESTINATION . RENAME ChangeLog.txt)
   install(FILES README        DESTINATION . RENAME README.txt COMPONENT main)
+  install(FILES README        DESTINATION . RENAME README.txt COMPONENT dev)
 # install(FILES INSTALL       DESTINATION . RENAME INSTALL.txt)
   install(FILES LICENSE       DESTINATION . RENAME LICENSE.txt COMPONENT main)
+  install(FILES LICENSE       DESTINATION . RENAME LICENSE.txt COMPONENT dev)
+
+  # Install all .pdb files to enable debugging. Note that what build
+  # type and what sub directory the binaries ends up in, like
+  # "Release" and "Debug", is not determined until we run "devenv" or
+  # similar. So when running "cmake" we don't know the location. We
+  # can't test for the location here, a if(EXISTS ...) is run at
+  # "cmake" invocation time, not when we are to install. So we do a
+  # bit of a hack here until finding a better solution.
+  install(DIRECTORY
+    ${PROJECT_BINARY_DIR}/bin/RelWithDebInfo/
+    ${PROJECT_BINARY_DIR}/bin/Debug/
+    DESTINATION bin
+    COMPONENT dev
+    FILES_MATCHING
+    PATTERN *.pdb
+  )
+  install(DIRECTORY
+    ${PROJECT_BINARY_DIR}/lib/RelWithDebInfo/
+    ${PROJECT_BINARY_DIR}/lib/Debug/
+    DESTINATION lib
+    COMPONENT dev
+    FILES_MATCHING
+    PATTERN *.pdb
+  )
+
 
 else()
 
 # install(FILES ChangeLog    DESTINATION .)
   install(FILES README       DESTINATION share/mysqlsh/ COMPONENT main)
+  install(FILES README       DESTINATION share/mysqlsh/ COMPONENT dev)
 # install(FILES INSTALL      DESTINATION .)
   install(FILES LICENSE      DESTINATION share/mysqlsh/ COMPONENT main)
-
-  # unittests tarball
-  install(DIRECTORY unittest/data unittest/scripts unittest/traces COMPONENT testing DESTINATION .)
+  install(FILES LICENSE      DESTINATION share/mysqlsh/ COMPONENT dev)
 
 endif()
 
 # Variable defined when the packages are generated (i.e. not in source builds)
-SET(COMPONENT_LIST main)
-IF(WITH_TESTS)
-  LIST(APPEND COMPONENT_LIST "testing")
+IF(MYSH_PLATFORM)
+  IF(WITH_DEV)
+      SET(CPACK_COMPONENTS_ALL main dev)
+  ELSE()
+    SET(CPACK_COMPONENTS_ALL main)
+  ENDIF()
+
+  set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
+  set(CPACK_DEB_COMPONENT_INSTALL ON)
+  set(CPACK_RPM_COMPONENT_INSTALL ON)
+  set(CPACK_WIX_COMPONENT_INSTALL ON)
 ENDIF()
-
-SET(CPACK_COMPONENTS_ALL ${COMPONENT_LIST})
-
-set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
-set(CPACK_DEB_COMPONENT_INSTALL ON)
-set(CPACK_RPM_COMPONENT_INSTALL ON)
-set(CPACK_WIX_COMPONENT_INSTALL ON)
 
 include(CPack)

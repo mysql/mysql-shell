@@ -25,5 +25,6 @@ set(exec_src
   sample_pager.cc
 )
 
-add_shell_executable("${exec_name}" ${exec_src} TRUE)
+add_executable("${exec_name}" ${exec_src})
 set_target_properties("${exec_name}" PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${INSTALL_BINDIR}")
+fix_target_output_directory("${exec_name}" "${INSTALL_BINDIR}")
