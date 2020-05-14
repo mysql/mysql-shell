@@ -171,6 +171,13 @@ void Dump_loader::Worker::Load_chunk_task::load(
     Dump_loader *loader) {
   m_options->set("showProgress", shcore::Value::True());
 
+  // import table option for set character set is characterSet. Therefore, we
+  // need to rename defaultCharacterSet option to characterSet.
+  if (m_options->has_key("defaultCharacterSet")) {
+    m_options->set("characterSet", (*m_options)["defaultCharacterSet"]);
+    m_options->erase("defaultCharacterSet");
+  }
+
   import_table::Import_table_options import_options(m_options);
 
   // replace duplicate rows by default

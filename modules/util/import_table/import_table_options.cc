@@ -203,7 +203,7 @@ void Import_table_options::unpack(const shcore::Dictionary_t &options) {
       .optional("showProgress", &m_show_progress)
       .optional("skipRows", &m_skip_rows_count)
       .optional("decodeColumns", &decode_columns)
-      .optional("defaultCharacterSet", &m_character_set);
+      .optional("characterSet", &m_character_set);
 
   unpack_options.end();
 

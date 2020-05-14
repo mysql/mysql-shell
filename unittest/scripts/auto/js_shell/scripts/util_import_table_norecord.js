@@ -291,6 +291,18 @@ util.importTable(__import_data_path + '/xtest.t_lob.tsv', {
 //@<OUT> dump blob data
 shell.dumpRows(session.runSql("SELECT md5(c1), md5(c2), md5(c3), md5(c4), md5(c5), md5(c6), md5(c7), md5(c8), md5(c9), md5(c10), md5(c11), md5(c12) FROM "+target_schema+".t_lob"), "tabbed");
 
+//@<> Create latin2 charset table
+session.runSql("create table cities_latin2(id integer primary key, name text) CHARACTER SET = latin2")
+
+//@<OUT> Import to table with utf8 character set
+util.importTable(__import_data_path + '/cities_pl_utf8.dump', {table:'cities_latin2', characterSet: 'utf8mb4'})
+shell.dumpRows(session.runSql('select hex(id), hex(name) from cities_latin2'), "tabbed")
+session.runSql("truncate table cities_latin2")
+
+//@<OUT> Import to table with latin2 character set
+util.importTable(__import_data_path + '/cities_pl_latin2.dump', {table:'cities_latin2', characterSet: 'latin2'})
+shell.dumpRows(session.runSql('select hex(id), hex(name) from cities_latin2'), "tabbed")
+
 //@<> Teardown
 session.runSql("DROP SCHEMA IF EXISTS " + target_schema);
 session.close();

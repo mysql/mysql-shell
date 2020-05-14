@@ -869,6 +869,11 @@ DESCRIPTION
       - decodeColumns: map (default: not set) - a map between columns names to
         decode methods (UNHEX or FROM_BASE64) to be applied on the loaded data.
         Requires 'columns' to be set.
+      - characterSet: string (default: not set) - Interpret the information in
+        the input file using this character set encoding. characterSet set to
+        "binary" specifies "no conversion". If not set, the server will use the
+        character set indicated by the character_set_database system variable
+        to interpret the information in the file.
       - ociConfigFile: string (default: not set) - Override oci.configFile
         shell option. Available only if oci+os:// transport protocol is in use.
       - ociProfile: string (default: not set) - Override oci.profile shell
