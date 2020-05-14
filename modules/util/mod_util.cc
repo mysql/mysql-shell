@@ -1148,7 +1148,10 @@ Each parallel connection sets the following session variables:
 @li SET foreign_key_checks = 0
 @li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 )*");
+// clang-format off
 /**
+ * \ingroup util
+ *
  * Import table dump stored in filename to target table using LOAD DATA LOCAL
  * INFILE calls in parallel connections.
  *
@@ -1265,10 +1268,8 @@ Each parallel connection sets the following session variables:
  * @endcode
  * @li json:
  * @code{.unparsed}
- * {"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is my
- * bar?\""}<LF>
- * {"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is my
- * \u000b char?\""}<LF>
+ * {"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is my bar?\""}<LF>
+ * {"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is my \u000b char?\""}<LF>
  * @endcode
  * @li csv-unix:
  * @code{.unparsed}
@@ -1293,6 +1294,7 @@ Each parallel connection sets the following session variables:
  * @li SET foreign_key_checks = 0
  * @li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
  */
+// clang-format on
 #if DOXYGEN_JS
 Undefined Util::importTable(String filename, Dictionary options);
 #elif DOXYGEN_PY
