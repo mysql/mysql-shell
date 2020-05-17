@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -499,6 +499,28 @@ void Add_instance::prepare() {
 
     // Resolve the SSL Mode to use to configure the instance.
     resolve_ssl_mode();
+
+    // Validate the lower_case_table_names and default_table_encryption
+    // variables. Their values must be the same on the target instance as they
+    // are on the cluster.
+
+    // The lower_case_table_names can only be set the first time the server
+    // boots, as such there is no need to validate it other than the first time
+    // the instance is added to the cluster.
+    m_replicaset.validate_variable_compatibility(*m_target_instance,
+                                                 "lower_case_table_names");
+
+    // The default_table_encryption is a dynamic variable, so we validate it on
+    // the add_instance and on the rejoin operation. The reboot operation does a
+    // rejoin in the background, so running the check on the rejoin will cover
+    // both operations.
+    if (m_replicaset.get_cluster()->get_lowest_instance_version() >=
+            mysqlshdk::utils::Version(8, 0, 16) &&
+        m_target_instance->get_version() >=
+            mysqlshdk::utils::Version(8, 0, 16)) {
+      m_replicaset.validate_variable_compatibility(*m_target_instance,
+                                                   "default_table_encryption");
+    }
   }
 
   // Make sure the target instance does not already belong to a cluster.
@@ -796,11 +818,19 @@ shcore::Value Add_instance::execute() {
   //       Disable read-only temporarily to install the plugin if needed.
   mysqlshdk::gr::install_group_replication_plugin(*m_target_instance, nullptr);
 
-  // Handle GR protocol version.
   // TODO(pjesus): remove the 'if (!m_rebooting)' for refactor of reboot
   //               cluster (WL#11561), i.e. always execute code inside, not
   //               supposed to use Add_instance operation anymore.
+
   if (!m_rebooting) {
+    // Validate group_replication_gtid_assignment_block_size. Its value must be
+    // the same on the instance as it is on the cluster but can only be checked
+    // after the GR plugin is installed. This check is also done on the rejoin
+    // operation which covers the rejoin and rebootCluster operations.
+    m_replicaset.validate_variable_compatibility(
+        *m_target_instance, "group_replication_gtid_assignment_block_size");
+
+    // Handle GR protocol version.
     handle_gr_protocol_version();
   }
 

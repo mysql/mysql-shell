@@ -980,3 +980,52 @@ function EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(context, f, classic, ...args) {
     EXPECT_STDOUT_CONTAINS(`Unable to connect to the target instance '${endpoint}'. Please verify the connection settings, make sure the instance is available and try again.`);
   }
 }
+
+function wait(timeout, wait_interval, condition){
+  waiting = 0;
+  res = condition();
+  while(!res && waiting < timeout) {
+    os.sleep(wait_interval);
+    waiting = waiting + 1;
+    res = condition();
+  }
+  return res;
+}
+
+function cleanup_sandbox(port) {
+    println ('Stopping the sandbox at ' + port + ' to delete it...');
+    try {
+      stop_options = {}
+      stop_options['password'] = 'root';
+      if (__sandbox_dir != '')
+        stop_options['sandboxDir'] = __sandbox_dir;
+
+      dba.stopSandboxInstance(port, stop_options);
+    } catch (err) {
+      println(err.message);
+    }
+
+    options = {}
+    if (__sandbox_dir != '')
+      options['sandboxDir'] = __sandbox_dir;
+
+    var deleted = false;
+
+    print('Try deleting sandbox at: ' + port);
+    deleted = wait(10, 1, function() {
+      try {
+        dba.deleteSandboxInstance(port, options);
+
+        println(' succeeded');
+        return true;
+      } catch (err) {
+        println(' failed: ' + err.message);
+        return false;
+      }
+    });
+    if (deleted) {
+      println('Delete succeeded at: ' + port);
+    } else {
+      println('Delete failed at: ' + port);
+    }
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -201,6 +201,18 @@ class GRReplicaSet {
 
   void validate_server_id(
       const mysqlshdk::mysql::IInstance &target_instance) const;
+
+  /**
+   * Validate the value of var_name variable on the target instance to see if it
+   * is compatible with the value used on the cluster. An exception is thrown in
+   * case the values are different.
+   *
+   * @param target_instance Target instance rejoining the cluster
+   * @param var_name name of the variable to check
+   */
+  void validate_variable_compatibility(
+      const mysqlshdk::mysql::IInstance &target_instance,
+      const std::string &var_name) const;
 
   std::string get_cluster_group_seeds(
       const std::shared_ptr<Instance> &target_instance = nullptr) const;
