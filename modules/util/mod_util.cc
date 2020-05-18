@@ -413,11 +413,12 @@ void check_upgrade(const Connection_options &connection_options,
     shcore::split_account(row->get_string(0), &user, &host, true);
     if (user != "skip-grants user" && host != "skip-grants host") {
       mysqlshdk::mysql::Instance instance(session);
-      auto res = instance.get_user_privileges(user, host)->validate({"all"});
+      auto res = instance.get_user_privileges(user, host)
+                     ->validate({"PROCESS", "RELOAD", "SELECT"});
       if (res.has_missing_privileges())
         throw std::invalid_argument(
-            "The upgrade check needs to be performed by user with ALL "
-            "privileges.");
+            "The upgrade check needs to be performed by user with RELOAD, "
+            "PROCESS, and SELECT privileges.");
     }
   } catch (const std::runtime_error &e) {
     log_error("Unable to check permissions: %s", e.what());

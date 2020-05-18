@@ -959,7 +959,7 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   EXPECT_NO_THROW(util.check_for_server_upgrade(args));
   args.clear();
 
-  // new user with all privileges sans grant option and '%' in host
+  // new user with required privileges sans grant option and '%' in host
   EXPECT_NO_THROW(session->execute(
       "create user if not exists 'percent'@'%' identified by 'percent';"));
   std::string percent_uri = _mysql_uri;
@@ -969,11 +969,12 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
 
   // Still not enough privileges
-  EXPECT_NO_THROW(session->execute("grant SUPER on *.* to 'percent'@'%';"));
+  EXPECT_NO_THROW(session->execute("grant SELECT on *.* to 'percent'@'%';"));
   EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
 
   // Privileges check out we should succeed
-  EXPECT_NO_THROW(session->execute("grant ALL on *.* to 'percent'@'%';"));
+  EXPECT_NO_THROW(
+      session->execute("grant RELOAD, PROCESS on *.* to 'percent'@'%';"));
   EXPECT_NO_THROW(util.check_for_server_upgrade(args));
 
   EXPECT_NO_THROW(session->execute("drop user 'percent'@'%';"));
