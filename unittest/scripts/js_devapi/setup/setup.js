@@ -341,6 +341,14 @@ function check_server_version(major, minor, patch) {
             (srv_minor > minor || (srv_minor == minor && srv_patch >= patch))));
 }
 
+// Check if the instance exists in the Metadata schema
+function exist_in_metadata_schema() {
+  var result = session.runSql(
+      'SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances where CAST(mysql_server_uuid AS char ascii) = CAST(@@server_uuid AS char ascii);');
+  var row = result.fetchOne();
+  return row[0] != 0;
+}
+
 // -------- Test Expectations
 
 function EXPECT_EQ(expected, actual, note) {

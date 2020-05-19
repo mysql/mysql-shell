@@ -140,13 +140,19 @@ std::string get_instance_query(const mysqlshdk::utils::Version &md_version) {
     return k_base_instance_query;
 }
 
+// In Metadata schema versions higher than 1.0.1
+// instances.mysql_server_uuid uses the collation ascii_general_ci which
+// then when doing comparisons with the sysvar @@server_uuid will results
+// in an illegal mix of collations. For that reason, we must do the right
+// cast of @@server_uuid to ascii_general_ci
 constexpr const char *k_all_online_check_query =
     "SELECT (SELECT COUNT(*) "
     "FROM !.instances "
     "WHERE cluster_id = (SELECT cluster_id "
     "FROM !.instances "
-    "WHERE mysql_server_uuid=@@server_uuid)) = (SELECT count(*) "
-    "FROM performance_schema.replication_group_members "
+    "WHERE CAST(mysql_server_uuid AS char ascii) = "
+    "CAST(@@server_uuid AS char ascii))) "
+    "= (SELECT count(*) FROM performance_schema.replication_group_members "
     "WHERE member_state = 'ONLINE') as all_online";
 
 constexpr const char *k_all_online_check_query_1_0_1 =

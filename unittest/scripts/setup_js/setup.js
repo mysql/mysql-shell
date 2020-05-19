@@ -346,6 +346,14 @@ function wait_member_state_from(session, member_port, state) {
   testutil.fail("Timeout while waiting for "+member_port+" to become "+state+" when queried from "+session.runSql("select @@port").fetchOne()[0]);
 }
 
+// Check if the instance exists in the Metadata schema
+function exist_in_metadata_schema() {
+  var result = session.runSql(
+      'SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances where CAST(mysql_server_uuid AS char ascii) = CAST(@@server_uuid AS char ascii);');
+  var row = result.fetchOne();
+  return row[0] != 0;
+}
+
 var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3];
 var SANDBOX_LOCAL_URIS = [__sandbox_uri1, __sandbox_uri2, __sandbox_uri3];
 var SANDBOX_URIS = [__hostname_uri1, __hostname_uri2, __hostname_uri3];

@@ -13,12 +13,6 @@ function print_instances_count_for_gr() {
     print(row[0] + "\n");
 }
 
-function exist_in_metadata_schema() {
-    var result = session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE mysql_server_uuid = @@server_uuid;");
-    var row = result.fetchOne();
-    return row[0] != 0;
-}
-
 function host_exist_in_metadata_schema(port) {
     var result = session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE instance_name = '" + hostname + ":" + port + "';");
     var row = result.fetchOne();

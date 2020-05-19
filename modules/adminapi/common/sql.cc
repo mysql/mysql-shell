@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,9 +81,18 @@ GRInstanceType::Type get_gr_instance_type(
   // The server is part of a Replication Group
   // Let's see if it is registered in the Metadata Store
   if (ret_val == GRInstanceType::GroupReplication) {
+    // In Metadata schema versions higher than 1.0.1
+    // instances.mysql_server_uuid uses the collation ascii_general_ci which
+    // then when doing comparisons with the sysvar @@server_uuid will results
+    // in an illegal mix of collations. For that reason, we must do the right
+    // cast of @@server_uuid to ascii_general_ci.
+    // To work with all versions of the Metadata schema, we simply cast
+    // mysql_server_uuid too.
     query =
-        "select count(*) from mysql_innodb_cluster_metadata.instances "
-        "where mysql_server_uuid = @@server_uuid";
+        "SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE "
+        "CAST(mysql_server_uuid AS char ascii) = CAST(@@server_uuid AS char "
+        "ascii)";
+
     try {
       auto result = instance.query(query);
       auto row = result->fetch_one();
@@ -122,9 +131,17 @@ GRInstanceType::Type get_gr_instance_type(
                 instance.descr().c_str());
       ret_val = GRInstanceType::StandaloneWithMetadata;
 
+      // In Metadata schema versions higher than 1.0.1
+      // instances.mysql_server_uuid uses the collation ascii_general_ci which
+      // then when doing comparisons with the sysvar @@server_uuid will results
+      // in an illegal mix of collations. For that reason, we must do the right
+      // cast of @@server_uuid to ascii_general_ci.
+      // To work with all versions of the Metadata schema, we simply cast
+      // mysql_server_uuid too.
       query =
-          "select count(*) from mysql_innodb_cluster_metadata.instances "
-          "where mysql_server_uuid = @@server_uuid";
+          "SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE "
+          "CAST(mysql_server_uuid AS char ascii) = CAST(@@server_uuid AS char "
+          "ascii)";
 
       result = instance.query(query);
       row = result->fetch_one();
