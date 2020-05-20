@@ -17,7 +17,7 @@ def wait_for_server(uri):
         except Exception as error:
             print(error)
 
-#<>@ Throw if session is empty
+#@<> Throw if session is empty
 EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "table": 'cities' }),
     "A classic protocol session is required to perform this operation.")
 
@@ -243,5 +243,5 @@ shell.dump_rows(session.run_sql('select hex(id), hex(name) from cities_latin2'),
 session.run_sql("DROP SCHEMA IF EXISTS " + target_schema)
 session.close()
 
-#<>@ Throw if session is closed
+#@<> Throw if session is closed
 EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "table": 'cities' }), "A classic protocol session is required to perform this operation.");

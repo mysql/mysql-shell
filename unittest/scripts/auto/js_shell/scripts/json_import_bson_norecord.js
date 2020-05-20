@@ -44,7 +44,7 @@ var delete_doc = function() {
 }
 
 // ============== BSON Option Validation Tests ================
-//<>@ Invalid options when convertBsonTypes is not enabled
+//@<> Invalid options when convertBsonTypes is not enabled
 var invalids = ["extractOidTime", "ignoreDate", "ignoreTimestamp", "ignoreBinary", "ignoreRegex", "ignoreRegexOptions", "decimalAsDouble"];
 
 for(index in invalids) {
@@ -52,12 +52,12 @@ for(index in invalids) {
   EXPECT_STDOUT_CONTAINS("ERROR: Util.importJson: Invalid options: " + invalids[index]);
 }
 
-//<>@ extractOidTime is Invalid options when convertBsonOid is OFF
-import_docs(["--convertBsonTypes --convertBsonOid=false", "--extractOidTime "]);
+//@<> extractOidTime is Invalid options when convertBsonOid is OFF
+import_docs(["--convertBsonTypes", "--convertBsonOid=false", "--extractOidTime"]);
 EXPECT_STDOUT_CONTAINS("ERROR: Util.importJson: Invalid options: extractOidTime");
 
-//<>@ ignoreRegexOptions is Invalid options when ignoreRegex is ON
-import_docs(["--convertBsonTypes --ignoreRegex", "--ignoreRegexOptions"]);
+//@<> ignoreRegexOptions is Invalid options when ignoreRegex is ON
+import_docs(["--convertBsonTypes", "--ignoreRegex", "--ignoreRegexOptions"]);
 EXPECT_STDOUT_CONTAINS("ERROR: Util.importJson: Invalid options: ignoreRegexOptions");
 
 // ============== BSON Option Tests ================
