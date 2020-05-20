@@ -70,9 +70,8 @@ struct Cluster_metadata {
   // GR specific
   std::string group_name;
 
-  mysqlshdk::gr::Topology_mode cluster_topology_type;
-
-  std::string topology_type;
+  mysqlshdk::gr::Topology_mode cluster_topology_type =
+      mysqlshdk::gr::Topology_mode::NONE;
 
   // AR specific
   Global_topology_type async_topology_type = Global_topology_type::NONE;

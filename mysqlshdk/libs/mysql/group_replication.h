@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,7 +68,7 @@ enum class Member_state {
 
 enum class Member_role { PRIMARY, SECONDARY };
 
-enum class Topology_mode { SINGLE_PRIMARY, MULTI_PRIMARY };
+enum class Topology_mode { SINGLE_PRIMARY, MULTI_PRIMARY, NONE };
 
 std::string to_string(const Member_state state);
 Member_state to_member_state(const std::string &state);

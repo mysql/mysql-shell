@@ -1,7 +1,7 @@
 //@<> INCLUDE metadata_schema_utils.inc
 
 //@<> Initialization and supporting code
-metadata_1_0_1_file = get_1_0_1_snapshot_file();
+metadata_1_0_1_file = "metadata_1_0_1.sql";
 metadata_current_file = "current_metadata.sql"
 
 var debug = true;
@@ -65,6 +65,9 @@ function format_messages(installed, current) {
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
+// Prepare metadata schema 1.0.1
+var server_uuid1 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
+prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, "", [server_uuid1]);
 
 var cluster = dba.createCluster("sample");
 backup_metadata(__sandbox_uri1, metadata_current_file);
@@ -254,10 +257,10 @@ for (index in tests) {
         cluster = dba.getCluster();
         set_metadata_version(M,m,p);
     } else {
-        load_metadata_version(M, m, p, false, gr_group_name);  
+        load_metadata_version(M, m, p, false, gr_group_name);
         cluster = dba.getCluster();
     }
-    
+
     testutil.wipeAllOutput();
 
     var other_session;

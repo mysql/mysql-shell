@@ -442,30 +442,38 @@ Cluster_metadata MetadataStorage::unserialize_cluster_metadata(
     const mysqlshdk::db::Row_ref_by_name &row,
     const mysqlshdk::utils::Version &version) {
   Cluster_metadata rs;
+  std::string topology_type_md;
 
   if (version.get_major() == 1) {
     rs.cluster_id = std::to_string(row.get_uint("cluster_id"));
-    rs.topology_type = row.get_string("topology_type", "");
+    topology_type_md = row.get_string("topology_type", "");
     rs.type = Cluster_type::GROUP_REPLICATION;
   } else {
     rs.cluster_id = row.get_string("cluster_id");
-    rs.topology_type = row.get_string("primary_mode", "");
+    topology_type_md = row.get_string("primary_mode", "");
 
     if (row.get_string("cluster_type") == "ar") {
       rs.type = Cluster_type::ASYNC_REPLICATION;
     } else {
       rs.type = Cluster_type::GROUP_REPLICATION;
-
-      if (rs.topology_type == "pm") {
-        rs.cluster_topology_type = mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY;
-      } else if (rs.topology_type == "mm") {
-        rs.cluster_topology_type = mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
-      }
     }
 
-    if (!row.is_null("async_topology_type"))
+    if (!row.is_null("async_topology_type")) {
       rs.async_topology_type =
           to_topology_type(row.get_string("async_topology_type"));
+    }
+  }
+
+  // Set cluster_topology_type
+  if (!topology_type_md.empty()) {
+    if (topology_type_md == "pm") {
+      rs.cluster_topology_type = mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY;
+    } else if (topology_type_md == "mm") {
+      rs.cluster_topology_type = mysqlshdk::gr::Topology_mode::MULTI_PRIMARY;
+    } else {
+      throw shcore::Exception::metadata_error(
+          "Unexpected topology mode found in Metadata: " + topology_type_md);
+    }
   }
 
   rs.cluster_name = row.get_string("cluster_name");

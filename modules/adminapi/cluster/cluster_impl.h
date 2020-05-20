@@ -368,7 +368,8 @@ class Cluster_impl : public Base_cluster_impl {
   void validate_rejoin_gtid_consistency(
       const mysqlshdk::mysql::IInstance &target_instance);
 
-  mysqlshdk::gr::Topology_mode m_topology_type;
+  mysqlshdk::gr::Topology_mode m_topology_type =
+      mysqlshdk::gr::Topology_mode::NONE;
 };
 
 }  // namespace dba
