@@ -521,3 +521,15 @@ cluster.addInstance(__sandbox_uri2, {groupSeeds:group_seeds});
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+
+//@<> cluster.addInstance does not error if using instance with binlog_checksum enabled BUG#31329024 {VER(>= 8.0.21)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, binlog_checksum: "NONE"});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, binlog_checksum: "CRC32"});
+
+shell.connect(__sandbox_uri1);
+cluster = dba.createCluster("sample", {gtidSetIsComplete: true});
+cluster.addInstance(__sandbox_uri2);
+EXPECT_STDERR_EMPTY();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);

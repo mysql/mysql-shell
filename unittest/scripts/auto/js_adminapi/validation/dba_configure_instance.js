@@ -39,7 +39,7 @@ Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
-?{VER(>=8.0.11)}
+?{VER(>=8.0.11) && VER(<8.0.21)}
 +----------------------------------+---------------+----------------+------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                           |
 +----------------------------------+---------------+----------------+------------------------------------------------+
@@ -57,6 +57,28 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: 
+Cluster admin user 'repl_admin'@'%' created.
+Configuring instance...
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
+?{}
+?{VER(>=8.0.21)}
++----------------------------------+---------------+----------------+-----------------------------------------------+
+| Variable                         | Current Value | Required Value | Note                                          |
++----------------------------------+---------------+----------------+-----------------------------------------------+
+| binlog_format                    | <not set>     | ROW            | Update the config file                        |
+| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server |
+| gtid_mode                        | OFF           | ON             | Update the config file and restart the server |
+| log_slave_updates                | <not set>     | ON             | Update the config file                        |
+| master_info_repository           | <not set>     | TABLE          | Update the config file                        |
+| relay_log_info_repository        | <not set>     | TABLE          | Update the config file                        |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
+| server_id                        | 1             | <unique ID>    | Update the config file and restart the server |
+| transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file                        |
++----------------------------------+---------------+----------------+-----------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
 Cluster admin user 'repl_admin'@'%' created.
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -582,6 +582,13 @@ def create_sandbox(**kwargs):
     # protocol if SSL is disabled.
     if mysqld_ver == (8, 0, 4):
         opt_dict["mysqld"]["mysqlx_cache_cleaner"] = "ON"
+
+    # Starting on mysql 8.0.21, group replication supports binlog_checksum
+    # so we can remove the NONE requirement from opt dict an use the
+    # server default (CRC32)
+    if mysqld_ver >= (8, 0, 21):
+        del opt_dict["mysqld"]["binlog_checksum"]
+
     # MySQLx plugin is automatically loaded starting from versions 8.0.11.
     if mysqld_ver < (8, 0, 11):
         opt_dict["mysqld"]["plugin_load"] = \

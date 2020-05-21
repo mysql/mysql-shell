@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -80,6 +80,7 @@ struct Invalid_config {
 /**
  * Checks if several of the required MySQL variables for Replication are valid.
  *
+ * @param instance Instance object that points to the server to be checked.
  * @param config Config object to obtain the settings to check. It can hold
  *        more than one configuration handler, for example for the server and
  *        option file (e.g., my.cnf).
@@ -89,6 +90,7 @@ struct Invalid_config {
  *        of the invalid settings.
  */
 void check_server_variables_compatibility(
+    const mysqlshdk::mysql::IInstance &instance,
     const mysqlshdk::config::Config &config, bool group_replication,
     std::vector<Invalid_config> *out_invalid_vec);
 

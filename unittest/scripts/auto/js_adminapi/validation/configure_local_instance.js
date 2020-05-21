@@ -4,41 +4,14 @@
 //@ ConfigureLocalInstance should fail if there's no session nor parameters provided
 ||An open session is required to perform this operation.
 
-//@<OUT> Interactive_dba_configure_local_instance read_only_no_prompts {VER(>=8.0.3)}
+//@<OUT> Interactive_dba_configure_local_instance read_only_no_prompts
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'root'@'%' for root
 
 NOTE: Some configuration options need to be fixed:
-+----------------------------------+---------------+----------------+------------------------------------------------+
-| Variable                         | Current Value | Required Value | Note                                           |
-+----------------------------------+---------------+----------------+------------------------------------------------+
-| binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file |
-| binlog_format                    | <not set>     | ROW            | Update the config file                         |
-| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server  |
-| gtid_mode                        | OFF           | ON             | Update the config file and restart the server  |
-| log_slave_updates                | <not set>     | ON             | Update the config file                         |
-| master_info_repository           | <not set>     | TABLE          | Update the config file                         |
-| relay_log_info_repository        | <not set>     | TABLE          | Update the config file                         |
-| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                         |
-| server_id                        | 1             | <unique ID>    | Update the config file and restart the server  |
-| transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file                         |
-+----------------------------------+---------------+----------------+------------------------------------------------+
-
-Some variables need to be changed, but cannot be done dynamically on the server.
-Cluster admin user 'root'@'%' created.
-Configuring instance...
-The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
-NOTE: MySQL server needs to be restarted for configuration changes to take effect.
-
-//@<OUT> Interactive_dba_configure_local_instance read_only_no_prompts {VER(<8.0.3)}
-Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
-
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
-Assuming full account name 'root'@'%' for root
-
-NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.3)}
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                             |
 +----------------------------------+---------------+----------------+--------------------------------------------------+
@@ -61,6 +34,50 @@ Cluster admin user 'root'@'%' created.
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
+?{}
+?{VER(>=8.0.3) && VER(<8.0.21)}
++----------------------------------+---------------+----------------+------------------------------------------------+
+| Variable                         | Current Value | Required Value | Note                                           |
++----------------------------------+---------------+----------------+------------------------------------------------+
+| binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file |
+| binlog_format                    | <not set>     | ROW            | Update the config file                         |
+| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server  |
+| gtid_mode                        | OFF           | ON             | Update the config file and restart the server  |
+| log_slave_updates                | <not set>     | ON             | Update the config file                         |
+| master_info_repository           | <not set>     | TABLE          | Update the config file                         |
+| relay_log_info_repository        | <not set>     | TABLE          | Update the config file                         |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                         |
+| server_id                        | 1             | <unique ID>    | Update the config file and restart the server  |
+| transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file                         |
++----------------------------------+---------------+----------------+------------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+Cluster admin user 'root'@'%' created.
+Configuring instance...
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
+?{}
+?{VER(>=8.0.3) && VER(<8.0.21)}
++----------------------------------+---------------+----------------+-----------------------------------------------+
+| Variable                         | Current Value | Required Value | Note                                          |
++----------------------------------+---------------+----------------+-----------------------------------------------+
+| binlog_format                    | <not set>     | ROW            | Update the config file                        |
+| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server |
+| gtid_mode                        | OFF           | ON             | Update the config file and restart the server |
+| log_slave_updates                | <not set>     | ON             | Update the config file                        |
+| master_info_repository           | <not set>     | TABLE          | Update the config file                        |
+| relay_log_info_repository        | <not set>     | TABLE          | Update the config file                        |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
+| server_id                        | 1             | <unique ID>    | Update the config file and restart the server |
+| transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file                        |
++----------------------------------+---------------+----------------+-----------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+Cluster admin user 'root'@'%' created.
+Configuring instance...
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
+?{}
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 8.0 {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -223,11 +240,11 @@ ERROR: User 'root' can only connect from 'localhost'. New account(s) with proper
 Please select an option [1]: Please provide a source address filter for the account (e.g: 192.168.% or % etc) or leave empty and press Enter to cancel.
 Account Host:
 NOTE: Some configuration options need to be fixed:
-+-----------------+---------------+----------------+------------------------+
-| Variable        | Current Value | Required Value | Note                   |
-+-----------------+---------------+----------------+------------------------+
-| binlog_checksum | CRC32         | NONE           | Update the config file |
-+-----------------+---------------+----------------+------------------------+
++---------------+---------------+----------------+------------------------+
+| Variable      | Current Value | Required Value | Note                   |
++---------------+---------------+----------------+------------------------+
+| binlog_format | STATEMENT     | ROW            | Update the config file |
++---------------+---------------+----------------+------------------------+
 
 Sandbox MySQL configuration file at: <<<mycnf_path>>>
 WARNING: mycnfPath is not writable: <<<mycnf_path>>>: Permission denied
@@ -243,7 +260,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be u
 //@ Deploy raw sandbox BUG#29725222 {VER(>= 8.0.17)}
 ||
 
-//@<OUT> Run configure and restart instance BUG#29725222 {VER(>= 8.0.17)}
+//@<OUT> Run configure and restart instance BUG#29725222 {VER(>= 8.0.17) && VER(< 8.0.21)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
@@ -253,6 +270,26 @@ NOTE: Some configuration options need to be fixed:
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | binlog_checksum          | CRC32         | NONE           | Update the server variable                       |
+| enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
+| server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
++--------------------------+---------------+----------------+--------------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Configuring instance...
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
+Restarting MySQL...
+NOTE: MySQL server at <<<hostname>>>:<<<__mysql_sandbox_port1>>> was restarted.
+
+//@<OUT> Run configure and restart instance BUG#29725222 {VER(>= 8.0.21)}
+Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
+
+This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
+
+NOTE: Some configuration options need to be fixed:
++--------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                 | Current Value | Required Value | Note                                             |
++--------------------------+---------------+----------------+--------------------------------------------------+
 | enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -155,6 +155,7 @@ void log_invalid_config(const Invalid_config &change) {
 }
 
 void check_server_variables_compatibility(
+    const mysqlshdk::mysql::IInstance &instance,
     const mysqlshdk::config::Config &config, bool group_replication,
     std::vector<Invalid_config> *out_invalid_vec) {
   // create a vector for all the variables required values. Each entry is
@@ -182,8 +183,11 @@ void check_server_variables_compatibility(
 
   // Option checks specific to GR
   if (group_replication) {
-    requirements.push_back(std::make_tuple(
-        "binlog_checksum", std::vector<std::string>{"NONE"}, false));
+    // Starting with 8.0.21 GR no longer requires binlog_checksum to be NONE
+    if (instance.get_version() < utils::Version(8, 0, 21)) {
+      requirements.push_back(std::make_tuple(
+          "binlog_checksum", std::vector<std::string>{"NONE"}, false));
+    }
     requirements.push_back(std::make_tuple(
         "transaction_write_set_extraction",
         std::vector<std::string>{"XXHASH64", "2", "MURMUR32", "1"}, true));

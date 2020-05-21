@@ -9,3 +9,11 @@ c = dba.createCluster("sample");
 EXPECT_STDERR_EMPTY();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@<> dba.createCluster does not error if using instance with binlog_checksum enabled BUG#31329024 {VER(>= 8.0.21)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, binlog_checksum: "CRC32"});
+shell.connect(__sandbox_uri1);
+c = dba.createCluster("sample");
+EXPECT_STDERR_EMPTY();
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);

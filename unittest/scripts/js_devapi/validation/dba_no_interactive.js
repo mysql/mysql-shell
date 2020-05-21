@@ -65,8 +65,7 @@ Configuration file mybad.cnf will also be checked.
 NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 | Variable                         | Current Value | Required Value | Note                   |
-+----------------------------------+---------------+----------------+------------------------+
-| binlog_checksum                  | <not set>     | NONE           | Update the config file |
++----------------------------------+---------------+----------------+------------------------+<<<(__version_num<80021) ?  "\n| binlog_checksum                  | <not set>     | NONE           | Update the config file |\n":"">>>
 | binlog_format                    | <not set>     | ROW            | Update the config file |
 | enforce_gtid_consistency         | <not set>     | ON             | Update the config file |
 | gtid_mode                        | OFF           | ON             | Update the config file |
@@ -135,8 +134,7 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2
 NOTE: Some configuration options need to be fixed:
 +----------------------------------+---------------+----------------+------------------------+
 | Variable                         | Current Value | Required Value | Note                   |
-+----------------------------------+---------------+----------------+------------------------+
-| binlog_checksum                  | <not set>     | NONE           | Update the config file |
++----------------------------------+---------------+----------------+------------------------+<<<(__version_num<80021) ?  "\n| binlog_checksum                  | <not set>     | NONE           | Update the config file |\n":"">>>
 | binlog_format                    | <not set>     | ROW            | Update the config file |
 | enforce_gtid_consistency         | <not set>     | ON             | Update the config file |
 | gtid_mode                        | OFF           | ON             | Update the config file |
