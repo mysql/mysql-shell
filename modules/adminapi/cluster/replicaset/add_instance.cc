@@ -394,7 +394,24 @@ void Add_instance::handle_clone_plugin_state(bool enable_clone) {
   m_replicaset.get_cluster()->setup_clone_plugin(enable_clone);
 }
 
+void Add_instance::check_cluster_members_limit() const {
+  const auto cluster = m_replicaset.get_cluster();
+  const std::vector<Instance_metadata> all_instances =
+      cluster->get_metadata_storage()->get_all_instances(cluster->get_id());
+
+  if (all_instances.size() >= mysqlsh::dba::k_group_replication_members_limit) {
+    auto console = mysqlsh::current_console();
+    console->print_error("Cannot join instance '" + m_instance_address +
+                         "' to cluster: InnoDB Cluster maximum limit of 9 "
+                         "members has been reached.");
+    throw shcore::Exception::runtime_error(
+        "InnoDB Cluster already has the maximum number of 9 members.");
+  }
+}
+
 void Add_instance::prepare() {
+  check_cluster_members_limit();
+
   // Connect to the target instance (if needed).
   if (!m_reuse_session_for_target_instance) {
     // Get instance user information from the cluster session if missing.

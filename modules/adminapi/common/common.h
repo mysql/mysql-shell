@@ -103,6 +103,8 @@ constexpr const char kDisableClone[] = "disableClone";
 constexpr const char kTags[] = "tags";
 constexpr const char kGtidSetIsComplete[] = "gtidSetIsComplete";
 
+constexpr const int k_group_replication_members_limit = 9;
+
 // Group Replication configuration option availability regarding MySQL Server
 // version
 struct Option_availability {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -160,6 +160,7 @@ class Add_instance : public Command_interface {
   void ensure_unique_server_id() const;
   void handle_recovery_account() const;
   void update_change_master() const;
+  void check_cluster_members_limit() const;
 
   void refresh_target_connections();
 
