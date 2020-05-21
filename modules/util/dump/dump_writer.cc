@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -94,16 +94,19 @@ void Dump_writer::Buffer::resize(std::size_t requested_capacity) {
 Dump_writer::Dump_writer(std::unique_ptr<IFile> out)
     : m_output(std::move(out)), m_buffer(std::make_unique<Buffer>()) {}
 
-Dump_writer::~Dump_writer() {
-  if (output()->is_open()) {
-    output()->close();
-  }
-}
-
 void Dump_writer::open() {
   if (!output()->is_open()) {
     output()->open(Mode::WRITE);
   }
+}
+
+void Dump_writer::close() {
+  if (output()->is_open()) {
+    output()->close();
+  }
+
+  // Once closed, the writer handle is released
+  m_output.reset();
 }
 
 Dump_write_result Dump_writer::write_preamble(
