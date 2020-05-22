@@ -17,7 +17,7 @@ def wait_for_server(uri):
         except Exception as error:
             print(error)
 
-#<>@ Throw if session is empty
+#@<> Throw if session is empty
 EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "table": 'cities' }),
     "A classic protocol session is required to perform this operation.")
 
@@ -227,10 +227,21 @@ shell.options.resultFormat = 'tabbed'
 session.run_sql('select * from ' + target_schema + '.employee order by boss asc');
 shell.options.resultFormat = original_output_format
 
+#@<> Create latin2 charset table
+session.run_sql("create table cities_latin2(id integer primary key, name text) CHARACTER SET = latin2")
+
+#@<OUT> Import to table with utf8 character set
+util.import_table(__import_data_path + '/cities_pl_utf8.dump', {'table':'cities_latin2', 'characterSet': 'utf8mb4'})
+shell.dump_rows(session.run_sql('select hex(id), hex(name) from cities_latin2'), "tabbed")
+session.run_sql("truncate table cities_latin2")
+
+#@<OUT> Import to table with latin2 character set
+util.import_table(__import_data_path + '/cities_pl_latin2.dump', {'table':'cities_latin2', 'characterSet': 'latin2'})
+shell.dump_rows(session.run_sql('select hex(id), hex(name) from cities_latin2'), "tabbed")
 
 #@<> Teardown
 session.run_sql("DROP SCHEMA IF EXISTS " + target_schema)
 session.close()
 
-#<>@ Throw if session is closed
+#@<> Throw if session is closed
 EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "table": 'cities' }), "A classic protocol session is required to perform this operation.");

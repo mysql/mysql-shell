@@ -4094,3 +4094,15 @@ id	boss
 2	5
 6	6
 7 rows in set ([[*]])
+
+#@<OUT> Import to table with utf8 character set
+hex(id)	hex(name)
+1	4B72616BF377
+2	A3F364BC
+2
+
+#@<OUT> Import to table with latin2 character set
+hex(id)	hex(name)
+1	4B72616BF377
+2	A3F364BC
+2

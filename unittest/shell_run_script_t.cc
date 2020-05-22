@@ -148,7 +148,7 @@ class ShellExeRunScript : public tests::Command_line_test {
                         "select 'end';\n");
 
     shcore::create_file("error_test.sql",
-                        R"*(/* 
+                        R"*(/*
 foo*/
 -- bla
 select 'hello
@@ -228,6 +228,19 @@ select error;)*");
                         "shell.register_global('ext', ext)\n"
                         "shell.add_extension_object_member(ext, 'l', lambda: "
                         "print('lambda'))\n");
+    shcore::create_file("bug31083617.py",
+                        R"*(
+# setup
+session.run_sql("SET NAMES 'utf8mb4'")
+session.run_sql("CREATE SCHEMA IF NOT EXISTS `test-ó`")
+session.run_sql("SET NAMES 'latin1'")
+# bug
+x = session.run_sql("SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME LIKE 'test-%'").fetch_one()
+x.get_field("SCHEMA_NAME")
+# cleanup
+session.run_sql("SET NAMES 'utf8mb4'")
+session.run_sql("DROP SCHEMA `test-ó`")
+)*");
     // disable prompt theme, so we can check output along with prompt
     shcore::setenv("MYSQLSH_PROMPT_THEME", "invalid");
   }
@@ -249,6 +262,7 @@ select error;)*");
     shcore::delete_file("reconnect_mysqlx.py");
     shcore::delete_file("prompt_new_line");
     shcore::delete_file("bug30156304.py");
+    shcore::delete_file("bug31083617.py");
     shcore::unsetenv("MYSQLSH_PROMPT_THEME");
   }
 };
@@ -933,6 +947,16 @@ TEST_F(ShellExeRunScript, bug30156304) {
   // registering a Python lambda as an extension object member should not cause
   // Shell to crash on exit
   EXPECT_EQ(0, execute({_mysqlsh, "--py", "-f", "bug30156304.py", nullptr}));
+}
+
+TEST_F(ShellExeRunScript, bug31083617) {
+  // error in conversion should not cause Shell to crash
+  EXPECT_EQ(0, execute({_mysqlsh, _mysql_uri.c_str(), "--py",
+                        "--interactive=full", nullptr},
+                       nullptr, "bug31083617.py"));
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xf3 in position 5: "
+      "unexpected end of data");
 }
 
 }  // namespace shellcore

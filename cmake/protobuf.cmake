@@ -85,6 +85,14 @@ IF(WITH_PROTOBUF)
   ENDIF()
 ELSE()
   IF (MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
+
+    FIND_PROGRAM(PROTOBUF_PROTOC_EXECUTABLE
+      NAMES protoc
+      DOC "The Google Protocol Buffers Compiler"
+      PATHS ${MYSQL_BUILD_DIR}/bin
+      NO_DEFAULT_PATH
+    )
+
     SET(PROTOBUF_INCLUDE_DIR "${MYSQL_SOURCE_DIR}/extra/protobuf/protobuf-${PROTOBUF_VERSION}/src")
     IF (WIN32)
       IF(CMAKE_BUILD_TYPE STREQUAL Debug)

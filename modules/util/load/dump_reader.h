@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -89,6 +89,8 @@ class Dump_reader {
 
   void schema_table_triggers(const std::string &schema,
                              std::list<Name_and_file> *out_table_triggers);
+  const std::vector<std::string> &deferred_schema_fks(
+      const std::string &schema) const;
 
   bool next_table_chunk(
       const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
@@ -102,6 +104,9 @@ class Dump_reader {
     size_t buckets;
   };
 
+  bool next_deferred_index(std::string *out_schema, std::string *out_table,
+                           std::vector<std::string> **out_indexes);
+
   bool next_table_analyze(std::string *out_schema, std::string *out_table,
                           std::vector<Histogram> *out_histograms);
 
@@ -113,6 +118,9 @@ class Dump_reader {
   size_t total_data_size() const { return m_contents.data_size; }
 
   void rescan();
+
+  void add_deferred_indexes(const std::string &schema, const std::string &table,
+                            std::vector<std::string> &&indexes);
 
   enum class Status {
     INVALID,  // No dump or not enough data to start loading yet
@@ -157,6 +165,8 @@ class Dump_reader {
     bool sql_seen = false;
 
     shcore::Dictionary_t options = nullptr;
+    std::vector<std::string> indexes;
+    bool indexes_done = true;
     std::vector<Histogram> histograms;
     bool analyze_done = false;
 
@@ -190,7 +200,7 @@ class Dump_reader {
     }
 
     bool data_done() const {
-      return last_chunk_seen && chunks_consumed == num_chunks;
+      return !has_data || (last_chunk_seen && chunks_consumed == num_chunks);
     }
 
     bool ready() const;
@@ -211,6 +221,7 @@ class Dump_reader {
     std::vector<std::string> function_names;
     std::vector<std::string> procedure_names;
     std::vector<std::string> event_names;
+    std::vector<std::string> fk_queries;
 
     bool md_loaded = false;
     bool md_done = false;

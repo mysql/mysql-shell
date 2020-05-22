@@ -92,7 +92,7 @@ EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zstd: Records: ")
 compare_servers(session1, session2)
 wipeout_server(session2)
 
-#<> Load dump with a local progress file
+#@<> Load dump with a local progress file
 testutil.rmfile("progress.txt")
 util.load_dump("mydump", {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPACE,  "ociConfigFile":oci_config_file, "progressFile":"progress.txt"})
 open("progress.txt").read()

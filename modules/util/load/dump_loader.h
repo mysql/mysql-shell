@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -133,6 +133,20 @@ class Dump_loader {
       std::vector<Dump_reader::Histogram> m_histograms;
     };
 
+    class Index_recreation_task : public Task {
+     public:
+      Index_recreation_task(size_t id, const std::string &schema,
+                            const std::string &table,
+                            const std::vector<std::string> &queries)
+          : Task(id, schema, table), m_queries(queries) {}
+
+      bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
+                   Worker *, Dump_loader *) override;
+
+     private:
+      const std::vector<std::string> &m_queries;
+    };
+
     Worker(size_t id, Dump_loader *owner);
     size_t id() const { return m_id; }
 
@@ -141,6 +155,8 @@ class Dump_loader {
                          ssize_t chunk_index, size_t chunk_size,
                          const shcore::Dictionary_t &options, bool resuming);
 
+    void recreate_indexes(const std::string &schema, const std::string &table,
+                          const std::vector<std::string> &indexes);
     void analyze_table(const std::string &schema, const std::string &table,
                        const std::vector<Dump_reader::Histogram> &histograms);
 
@@ -173,6 +189,8 @@ class Dump_loader {
       FATAL_ERROR,
       LOAD_START,
       LOAD_END,
+      INDEX_START,
+      INDEX_END,
       ANALYZE_START,
       ANALYZE_END,
       EXIT
@@ -204,9 +222,12 @@ class Dump_loader {
 
   void handle_schema(const std::string &schema,
                      const std::list<Name_and_file> &tables,
-                     const std::list<Name_and_file> &views, bool resuming);
+                     const std::list<Name_and_file> &views);
+  bool handle_indexes(const std::string &schema, const std::string &table,
+                      std::string *script, bool check_recreated);
   void handle_table(const std::string &schema, const std::string &table,
-                    const std::string &script, bool resuming);
+                    const std::string &script, bool resuming,
+                    bool indexes_deferred = false);
   bool schedule_table_chunk(const std::string &schema, const std::string &table,
                             ssize_t chunk_index, Worker *worker,
                             std::unique_ptr<mysqlshdk::storage::IFile> file,
@@ -289,6 +310,7 @@ class Dump_loader {
 
   std::unique_ptr<Dump_reader> m_dump;
   std::unique_ptr<Load_progress_log> m_load_log;
+  bool m_resuming = false;
 
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   mysqlshdk::utils::Version m_target_server_version;

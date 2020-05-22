@@ -596,7 +596,26 @@ static void finalize_shell(mysqlsh::Command_line_shell *shell) {
   mysqlsh::global_end();
 }
 
+#ifdef _WIN32
+int wmain(int argc, wchar_t **wargv) {
+  std::vector<std::string> sargv;
+  std::vector<char *> cargv;
+
+  sargv.reserve(argc);
+  cargv.reserve(argc + 1);
+
+  for (int i = 0; i < argc; ++i) {
+    sargv.emplace_back(shcore::wide_to_utf8(wargv[i]));
+    cargv.emplace_back(&sargv.back()[0]);
+  }
+
+  cargv.emplace_back(nullptr);
+
+  char **argv = &cargv[0];
+
+#else
 int main(int argc, char **argv) {
+#endif
   std::string mysqlsh_path = shcore::get_binary_path();
   g_mysqlsh_path = mysqlsh_path.c_str();
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -413,11 +413,12 @@ void check_upgrade(const Connection_options &connection_options,
     shcore::split_account(row->get_string(0), &user, &host, true);
     if (user != "skip-grants user" && host != "skip-grants host") {
       mysqlshdk::mysql::Instance instance(session);
-      auto res = instance.get_user_privileges(user, host)->validate({"all"});
+      auto res = instance.get_user_privileges(user, host)
+                     ->validate({"PROCESS", "RELOAD", "SELECT"});
       if (res.has_missing_privileges())
         throw std::invalid_argument(
-            "The upgrade check needs to be performed by user with ALL "
-            "privileges.");
+            "The upgrade check needs to be performed by user with RELOAD, "
+            "PROCESS, and SELECT privileges.");
     }
   } catch (const std::runtime_error &e) {
     log_error("Unable to check permissions: %s", e.what());
@@ -1075,10 +1076,15 @@ names.
 that matches specific data file format. Can be used as base dialect and
 customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
 fieldsEscapedBy and linesTerminatedBy options. Must be one of the following
-values: csv, tsv, json or csv-unix.
+values: default, csv, tsv, json or csv-unix.
 @li <b>decodeColumns</b>: map (default: not set) - a map between columns names
 to decode methods (UNHEX or FROM_BASE64) to be applied on the loaded data.
 Requires 'columns' to be set.
+@li <b>characterSet</b>: string (default: not set) -
+Interpret the information in the input file using this character set
+encoding. characterSet set to "binary" specifies "no conversion". If not set,
+the server will use the character set indicated by the character_set_database
+system variable to interpret the information in the file.
 @li <b>ociConfigFile</b>: string (default: not set) - Override oci.configFile
 shell option. Available only if oci+os:// transport protocol is in use.
 @li <b>ociProfile</b>: string (default: not set) - Override oci.profile shell
@@ -1142,7 +1148,10 @@ Each parallel connection sets the following session variables:
 @li SET foreign_key_checks = 0
 @li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 )*");
+// clang-format off
 /**
+ * \ingroup util
+ *
  * Import table dump stored in filename to target table using LOAD DATA LOCAL
  * INFILE calls in parallel connections.
  *
@@ -1213,10 +1222,15 @@ Each parallel connection sets the following session variables:
  * options that matches specific data file format. Can be used as base dialect
  * and customized with fieldsTerminatedBy, fieldsEnclosedBy,
  * fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy options. Must
- * be one of the following values: csv, tsv, json or csv-unix.
+ * be one of the following values: default, csv, tsv, json or csv-unix.
  * @li <b>decodeColumns</b>: map (default: not set) - a map between columns
  * names to decode methods (UNHEX or FROM_BASE64) to be applied on the loaded
  * data. Requires 'columns' to be set.
+ * @li <b>characterSet</b>: string (default: not set) -
+ * Interpret the information in the input file using this character set
+ * encoding. characterSet set to "binary" specifies "no conversion". If not set,
+ * the server will use the character set indicated by the character_set_database
+ * system variable to interpret the information in the file.
  * @li <b>ociConfigFile</b>: string (default: not set) - Override oci.configFile
  * shell option. Available only if oci+os:// transport protocol is in use.
  * @li <b>ociProfile</b>: string (default: not set) - Override oci.profile shell
@@ -1254,10 +1268,8 @@ Each parallel connection sets the following session variables:
  * @endcode
  * @li json:
  * @code{.unparsed}
- * {"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is my
- * bar?\""}<LF>
- * {"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is my
- * \u000b char?\""}<LF>
+ * {"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is my bar?\""}<LF>
+ * {"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is my \u000b char?\""}<LF>
  * @endcode
  * @li csv-unix:
  * @code{.unparsed}
@@ -1282,6 +1294,7 @@ Each parallel connection sets the following session variables:
  * @li SET foreign_key_checks = 0
  * @li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
  */
+// clang-format on
 #if DOXYGEN_JS
 Undefined Util::importTable(String filename, Dictionary options);
 #elif DOXYGEN_PY
@@ -1397,6 +1410,9 @@ option can be used even if all 'load' options are disabled.
 @li <b>defaultCharacterSet</b>: string (default taken from dump) - Specifies
 the character set to be used for loading the dump. By default, the same
 character set used for dumping will be used (utf8mb4 if not set at dump).
+@li <b>deferTableIndexes</b>: bool (default: true) - Defer all but PRIMARY index
+creation for table until data has already been loaded, which should improve
+performance.
 @li <b>dryRun</b>: bool (default: false) - Scans the dump and prints everything
 that would be performed, without actually doing so.
 @li <b>excludeSchemas</b>: array of strings (default not set) - Skip loading
@@ -1418,7 +1434,7 @@ specified tables from the dump. Strings are in format schema.table or
 @li <b>loadDdl</b>: bool (default: true) - Executes DDL/SQL scripts in the
 dump.
 @li <b>loadUsers</b>: bool (default: false) - Executes SQL scripts for user
-accounts, roles and grants contained in the dump. Note: statements for the 
+accounts, roles and grants contained in the dump. Note: statements for the
 current user will be skipped.
 @li <b>progressFile</b>: path (default: @<server_uuid@>.progress) - Stores
 load progress information in the given local file path.
@@ -1523,7 +1539,7 @@ events and triggers. The MySQL Database Service requires special privileges to
 create these objects with a definer other than the user loading the schema.
 By stripping the DEFINER clause, these objects will be created with that default
 definer. Views and Routines will additionally have their SQL SECURITY clause
-changed from DEFINER to INVOKER. This ensures that the access permissions 
+changed from DEFINER to INVOKER. This ensures that the access permissions
 of the account querying or calling these are applied, instead of the user that
 created them. This should be sufficient for most users, but if your database
 security model requires that views and routines have more privileges than their
@@ -1537,7 +1553,7 @@ fail, so this option allows dumped GRANT statements to be stripped of these
 privileges.
 
 <b>strip_role_admin</b> - ROLE_ADMIN privilege can be restricted in the MySQL
-Database Service, so attempting to create users granting it would fail. 
+Database Service, so attempting to create users granting it would fail.
 This option allows dumped GRANT statements to be stripped of this privilege.
 
 <b>strip_tablespaces</b> - Tablespaces have some restrictions in the MySQL

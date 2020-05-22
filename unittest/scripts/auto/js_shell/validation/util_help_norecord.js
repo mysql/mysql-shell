@@ -862,11 +862,16 @@ DESCRIPTION
         that matches specific data file format. Can be used as base dialect and
         customized with fieldsTerminatedBy, fieldsEnclosedBy,
         fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy
-        options. Must be one of the following values: csv, tsv, json or
-        csv-unix.
+        options. Must be one of the following values: default, csv, tsv, json
+        or csv-unix.
       - decodeColumns: map (default: not set) - a map between columns names to
         decode methods (UNHEX or FROM_BASE64) to be applied on the loaded data.
         Requires 'columns' to be set.
+      - characterSet: string (default: not set) - Interpret the information in
+        the input file using this character set encoding. characterSet set to
+        "binary" specifies "no conversion". If not set, the server will use the
+        character set indicated by the character_set_database system variable
+        to interpret the information in the file.
       - ociConfigFile: string (default: not set) - Override oci.configFile
         shell option. Available only if oci+os:// transport protocol is in use.
       - ociProfile: string (default: not set) - Override oci.profile shell
@@ -1008,6 +1013,9 @@ DESCRIPTION
         character set to be used for loading the dump. By default, the same
         character set used for dumping will be used (utf8mb4 if not set at
         dump).
+      - deferTableIndexes: bool (default: true) - Defer all but PRIMARY index
+        creation for table until data has already been loaded, which should
+        improve performance.
       - dryRun: bool (default: false) - Scans the dump and prints everything
         that would be performed, without actually doing so.
       - excludeSchemas: array of strings (default not set) - Skip loading

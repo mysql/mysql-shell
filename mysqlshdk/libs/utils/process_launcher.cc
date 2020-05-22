@@ -66,6 +66,7 @@
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace {
 
@@ -357,32 +358,32 @@ void Process::do_start() {
   }
 
   // Create Process
-  std::string cmd = make_windows_cmdline(argv);
-  LPTSTR lp_cmd = const_cast<char *>(cmd.c_str());
-  DWORD creation_flags = 0;
+  auto cmd = utf8_to_wide(make_windows_cmdline(argv));
+  // lpEnvironment uses Unicode characters
+  DWORD creation_flags = CREATE_UNICODE_ENVIRONMENT;
   BOOL bSuccess = FALSE;
 
   if (create_process_group) creation_flags |= CREATE_NEW_PROCESS_GROUP;
 
   ZeroMemory(&pi, sizeof(PROCESS_INFORMATION));
 
-  ZeroMemory(&si, sizeof(STARTUPINFO));
-  si.cb = sizeof(STARTUPINFO);
+  ZeroMemory(&si, sizeof(STARTUPINFOW));
+  si.cb = sizeof(STARTUPINFOW);
   if (redirect_stderr) si.hStdError = child_out_wr;
   si.hStdOutput = child_out_wr;
   si.hStdInput = child_in_rd;
   si.dwFlags |= STARTF_USESTDHANDLES;
 
-  bSuccess = CreateProcess(NULL,            // lpApplicationName
-                           lp_cmd,          // lpCommandLine
-                           NULL,            // lpProcessAttributes
-                           NULL,            // lpThreadAttributes
-                           TRUE,            // bInheritHandles
-                           creation_flags,  // dwCreationFlags
-                           (LPVOID)new_environment.get(),  // lpEnvironment
-                           NULL,                           // lpCurrentDirectory
-                           &si,                            // lpStartupInfo
-                           &pi);  // lpProcessInformation
+  bSuccess = CreateProcessW(NULL,            // lpApplicationName
+                            &cmd[0],         // lpCommandLine
+                            NULL,            // lpProcessAttributes
+                            NULL,            // lpThreadAttributes
+                            TRUE,            // bInheritHandles
+                            creation_flags,  // dwCreationFlags
+                            (LPVOID)new_environment.get(),  // lpEnvironment
+                            NULL,  // lpCurrentDirectory
+                            &si,   // lpStartupInfo
+                            &pi);  // lpProcessInformation
   if (!bSuccess) {
     report_error(NULL);
   }
@@ -512,52 +513,69 @@ std::string Process::read_from_terminal() {
 
 void Process::set_environment(const std::vector<std::string> &env) {
   if (env.empty()) return;
-  std::vector<std::string> vars_to_set;
+
+  std::vector<std::wstring> wenv;
+  std::vector<std::wstring> vars_to_set;
   std::size_t nsize = 0;
+
   for (const auto &var : env) {
-    nsize += var.length() + 1;
-    std::string::size_type eq = var.find('=');
+    auto wvar = utf8_to_wide(var);
+    const auto eq = wvar.find(L'=');
+
     assert(eq != std::string::npos);
-    vars_to_set.emplace_back(var.substr(0, eq));
+
+    // include equals sign to ensure that exact match is found
+    vars_to_set.emplace_back(wvar.substr(0, eq + 1));
+    nsize += wvar.length() + 1;
+    wenv.emplace_back(std::move(wvar));
   }
 
-  LPTCH eblock = GetEnvironmentStrings();
+  const auto eblock = GetEnvironmentStringsW();
   std::size_t env_size = 0;
   std::vector<std::pair<std::size_t, std::size_t>> offsets;
   std::size_t offset = 0;
+
   if (eblock != nullptr) {
-    LPTCH bIt = eblock;
+    auto bIt = eblock;
+
     while (*bIt != 0) {
       bool found = false;
-      std::size_t len = strlen(bIt);
+      std::size_t len = wcslen(bIt);
+
       for (const auto &var : vars_to_set) {
-        if (strncmp(var.c_str(), bIt, var.length()) == 0) {
+        // names of environment variables are case insensitive on Windows
+        if (_wcsnicmp(var.c_str(), bIt, var.length()) == 0) {
           found = true;
           offsets.emplace_back(offset, bIt - eblock);
           offset = bIt - eblock + len + 1;
           break;
         }
       }
+
       if (!found) env_size += len + 1;
       bIt += len + 1;
     }
+
     if (offset != bIt - eblock) offsets.emplace_back(offset, bIt - eblock);
     env_size++;
   }
-  new_environment.reset(new char[env_size + nsize]);
+
+  new_environment.reset(new wchar_t[env_size + nsize]);
 
   offset = 0;
+
   if (eblock != nullptr) {
     for (const auto &op : offsets) {
-      memcpy(new_environment.get() + offset, eblock + op.first,
-             op.second - op.first);
+      wmemcpy(new_environment.get() + offset, eblock + op.first,
+              op.second - op.first);
       offset += op.second - op.first;
     }
-    FreeEnvironmentStrings(eblock);
+
+    FreeEnvironmentStringsW(eblock);
   }
 
-  for (const auto &e : env) {
-    strncpy(new_environment.get() + offset, e.c_str(), e.length());
+  for (const auto &e : wenv) {
+    wmemcpy(new_environment.get() + offset, e.c_str(), e.length());
     new_environment[offset + e.length()] = 0;
     offset += e.length() + 1;
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -487,8 +487,12 @@ Command_line_shell::~Command_line_shell() {
 
 void Command_line_shell::load_prompt_theme(const std::string &path) {
   if (!path.empty()) {
-    std::ifstream f;
-    f.open(path);
+#ifdef _WIN32
+    std::ifstream f(shcore::utf8_to_wide(path));
+#else
+    std::ifstream f(path);
+#endif
+
     if (f.good()) {
       std::stringstream buffer;
       buffer << f.rdbuf();

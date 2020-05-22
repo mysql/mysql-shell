@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2020, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -235,9 +235,9 @@ class Process {
   HANDLE child_out_rd = nullptr;
   HANDLE child_out_wr = nullptr;
   PROCESS_INFORMATION pi;
-  STARTUPINFO si;
+  STARTUPINFOW si;
   bool create_process_group = false;
-  std::unique_ptr<char[]> new_environment;
+  std::unique_ptr<wchar_t[]> new_environment;
 #else
   pid_t childpid;
   int fd_in[2] = {-1, -1};

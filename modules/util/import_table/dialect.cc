@@ -150,7 +150,7 @@ Dialect Dialect::unpack(shcore::Option_unpacker *unpacker) {
     dialect = csv_unix();
   } else {
     throw shcore::Exception::argument_error(
-        "dialect value must be csv, tsv, json or csv-unix.");
+        "dialect value must be default, csv, tsv, json or csv-unix.");
   }
 
   unpacker->optional("fieldsTerminatedBy", &dialect.fields_terminated_by)

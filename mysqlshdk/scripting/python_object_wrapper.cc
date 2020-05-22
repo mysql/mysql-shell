@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -100,10 +100,13 @@ static PyObject *call_object_method(std::shared_ptr<Cpp_object_bridge> object,
   auto keyword_args = ctx->pyobj_to_shcore_value(kwargs);
 
   try {
-    WillLeavePython lock;
-    shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
-    return ctx->shcore_value_to_pyobj(
-        object->call_advanced(method, arglist, keyword_args.as_map()));
+    Value result;
+    {
+      WillLeavePython lock;
+      shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
+      result = object->call_advanced(method, arglist, keyword_args.as_map());
+    }
+    return ctx->shcore_value_to_pyobj(result);
   } catch (...) {
     translate_python_exception();
     return NULL;

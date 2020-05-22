@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -187,15 +187,15 @@ bool Shell_sql::process_sql(const char *query_str, size_t query_len,
   // comment e.g.: /*...*/ set sql_mode...
   if (ret_val && query_len > 12 &&
       (query_str[2] == 't' || query_str[2] == 'T' || query_str[1] == '*')) {
-    mysqlshdk::utils::SQL_string_iterator it(_last_handled);
-    auto next = shcore::str_upper(it.get_next_sql_token());
+    mysqlshdk::utils::SQL_iterator it(_last_handled);
+    auto next = shcore::str_upper(it.get_next_token());
     if (next.compare("SET") == 0) {
       constexpr std::array<const char *, 4> mods = {"GLOBAL", "PERSIST",
                                                     "SESSION", "LOCAL"};
-      next = shcore::str_upper(it.get_next_sql_token());
+      next = shcore::str_upper(it.get_next_token());
       for (const char *mod : mods)
         if (next.compare(mod) == 0) {
-          next = shcore::str_upper(it.get_next_sql_token());
+          next = shcore::str_upper(it.get_next_token());
           break;
         }
 
