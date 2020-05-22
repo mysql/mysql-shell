@@ -310,7 +310,7 @@ TEST_F(Schema_dumper_test, dump_schema) {
   Schema_dumper sd(session);
   sd.opt_mysqlaas = true;
   EXPECT_NO_THROW(sd.write_header(file.get()));
-  EXPECT_EQ(1, sd.dump_schema_ddl(file.get(), db_name).size());
+  EXPECT_GE(1, sd.dump_schema_ddl(file.get(), db_name).size());
   EXPECT_NO_THROW(sd.write_footer(file.get()));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
@@ -839,23 +839,17 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
   // Engines
   EXPECT_TABLE("myisam_tbl1",
                {"Table 'mysqlaas_compat'.'myisam_tbl1' uses unsupported "
-                "charset: latin1",
-                "Table 'mysqlaas_compat'.'myisam_tbl1' uses unsupported "
                 "storage engine MyISAM"});
 
   EXPECT_TABLE(
       "blackhole_tbl1",
       {"Table 'mysqlaas_compat'.'blackhole_tbl1' does not have primary or "
        "unique non null key defined",
-       "Table 'mysqlaas_compat'.'blackhole_tbl1' uses unsupported charset: "
-       "latin1",
        "Table 'mysqlaas_compat'.'blackhole_tbl1' uses unsupported storage "
        "engine BLACKHOLE"});
 
   EXPECT_TABLE("myisam_tbl2",
                {"Table 'mysqlaas_compat'.'myisam_tbl2' uses unsupported "
-                "charset: utf8",
-                "Table 'mysqlaas_compat'.'myisam_tbl2' uses unsupported "
                 "storage engine MyISAM"});
 
   // TABLESPACE
@@ -1018,9 +1012,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
   // Engines
   EXPECT_TABLE(
       "myisam_tbl1",
-      {"Table 'mysqlaas_compat'.'myisam_tbl1' uses unsupported "
-       "charset: latin1",
-       "Table 'mysqlaas_compat'.'myisam_tbl1' had unsupported engine MyISAM "
+      {"Table 'mysqlaas_compat'.'myisam_tbl1' had unsupported engine MyISAM "
        "changed to InnoDB"},
       "CREATE TABLE IF NOT EXISTS `myisam_tbl1` (\n"
       "  `id` int(11) NOT NULL AUTO_INCREMENT,\n"
@@ -1029,9 +1021,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
 
   EXPECT_TABLE(
       "blackhole_tbl1",
-      {"Table 'mysqlaas_compat'.'blackhole_tbl1' uses unsupported charset: "
-       "latin1",
-       "Table 'mysqlaas_compat'.'blackhole_tbl1' had unsupported engine "
+      {"Table 'mysqlaas_compat'.'blackhole_tbl1' had unsupported engine "
        "BLACKHOLE changed to InnoDB"},
       "CREATE TABLE IF NOT EXISTS `blackhole_tbl1` (\n"
       "  `id` int(11) DEFAULT NULL,\n"
@@ -1040,9 +1030,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
 
   EXPECT_TABLE(
       "myisam_tbl2",
-      {"Table 'mysqlaas_compat'.'myisam_tbl2' uses unsupported "
-       "charset: utf8",
-       "Table 'mysqlaas_compat'.'myisam_tbl2' had unsupported engine MyISAM "
+      {"Table 'mysqlaas_compat'.'myisam_tbl2' had unsupported engine MyISAM "
        "changed to InnoDB"},
       "CREATE TABLE IF NOT EXISTS `myisam_tbl2` (\n"
       "  `id` int(11) NOT NULL AUTO_INCREMENT,\n"
@@ -1071,9 +1059,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
   // DATA/INDEX DIRECTORY
   if (run_directory_tests) {
     EXPECT_TABLE("path_tbl1",
-                 {"Table 'mysqlaas_compat'.'path_tbl1' uses unsupported "
-                  "charset: latin1",
-                  "Table 'mysqlaas_compat'.'path_tbl1' had {DATA|INDEX} "
+                 {"Table 'mysqlaas_compat'.'path_tbl1' had {DATA|INDEX} "
                   "DIRECTORY table option commented out"},
                  "CREATE TABLE IF NOT EXISTS `path_tbl1` (\n"
                  "  `pk` int(11) NOT NULL,\n"
@@ -1083,9 +1069,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
                      shcore::path::tmpdir() + "/'*/ ;");
 
     EXPECT_TABLE("path_tbl2",
-                 {"Table 'mysqlaas_compat'.'path_tbl2' uses unsupported "
-                  "charset: latin1",
-                  "Table 'mysqlaas_compat'.'path_tbl2' had {DATA|INDEX} "
+                 {"Table 'mysqlaas_compat'.'path_tbl2' had {DATA|INDEX} "
                   "DIRECTORY table option commented out",
                   "Table 'mysqlaas_compat'.'path_tbl2' had unsupported engine "
                   "MyISAM changed to InnoDB"},
@@ -1098,9 +1082,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
                      shcore::path::tmpdir() + "/'*/ ;");
 
     EXPECT_TABLE("path_tbl3",
-                 {"Table 'mysqlaas_compat'.'path_tbl3' uses unsupported "
-                  "charset: latin1",
-                  "Table 'mysqlaas_compat'.'path_tbl3' had {DATA|INDEX} "
+                 {"Table 'mysqlaas_compat'.'path_tbl3' had {DATA|INDEX} "
                   "DIRECTORY table option commented out",
                   "Table 'mysqlaas_compat'.'path_tbl3' had unsupported engine "
                   "MyISAM changed to InnoDB"},
@@ -1111,9 +1093,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
                      shcore::path::tmpdir() + "/'*/ ;");
 
     EXPECT_TABLE("part_tbl2",
-                 {"Table 'mysqlaas_compat'.'part_tbl2' uses unsupported "
-                  "charset: latin1",
-                  "Table 'mysqlaas_compat'.'part_tbl2' had {DATA|INDEX} "
+                 {"Table 'mysqlaas_compat'.'part_tbl2' had {DATA|INDEX} "
                   "DIRECTORY table option commented out"},
                  "CREATE TABLE IF NOT EXISTS `part_tbl2` (\n"
                  "  `pk` int(11) NOT NULL,\n"
@@ -1130,9 +1110,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
                      " ENGINE = InnoDB) */;");
 
     EXPECT_TABLE("part_tbl3",
-                 {"Table 'mysqlaas_compat'.'part_tbl3' uses unsupported "
-                  "charset: latin1",
-                  "Table 'mysqlaas_compat'.'part_tbl3' had {DATA|INDEX} "
+                 {"Table 'mysqlaas_compat'.'part_tbl3' had {DATA|INDEX} "
                   "DIRECTORY table option commented out"},
                  "CREATE TABLE IF NOT EXISTS `part_tbl3` (\n"
                  "  `pk` int(11) NOT NULL,\n"

@@ -703,8 +703,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
 
             auto client_cs = row->get_string(4);
             auto connection_col = row->get_string(5);
-            check_objects_charsets(db, "Event", event_name, client_cs,
-                                   connection_col, &res);
             switch_cs_variables(
                 sql_file, delimiter,
                 client_cs.c_str(),       /* character_set_client */
@@ -858,8 +856,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
 
             auto client_cs = row->get_string(3);
             auto connection_col = row->get_string(4);
-            check_objects_charsets(db, routine_type, routine_name, client_cs,
-                                   connection_col, &res, body);
             switch_cs_variables(
                 sql_file, ";", client_cs.c_str(), /* character_set_client */
                 client_cs.c_str(),                /* character_set_results */
@@ -958,15 +954,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
   }
 
   if (opt_mysqlaas) {
-    auto cs = compatibility::check_statement_for_charset_option(
-        *create_table, nullptr, m_mysqlaas_supported_charsets);
-    if (!cs.empty())
-      res.emplace_back(prefix +
-                           (cs.size() > 1 ? "uses unsupported charsets: "
-                                          : "uses unsupported charset: ") +
-                           shcore::str_join(cs.begin(), cs.end(), ", "),
-                       false);
-
     if (compatibility::check_create_table_for_data_index_dir_option(
             *create_table, create_table))
       res.emplace_back(
@@ -1040,33 +1027,6 @@ void Schema_dumper::check_object_for_definer(const std::string &db,
                 "SET_USER_ID or SUPER privileges",
             false);
       }
-    }
-  }
-}
-
-void Schema_dumper::check_objects_charsets(
-    const std::string &db, const std::string &object, const std::string &name,
-    const std::string &client_charset, const std::string &conn_collation,
-    std::vector<Issue> *issues, const std::string &ddl) {
-  if (opt_mysqlaas) {
-    const auto prefix = get_object_err_prefix(db, object, name);
-    if (!is_charset_supported(client_charset))
-      issues->emplace_back(
-          prefix + "has unsupported client character set: " + client_charset,
-          false);
-    if (!is_charset_supported(conn_collation))
-      issues->emplace_back(
-          prefix + "has unsupported connection collation: " + conn_collation,
-          false);
-
-    if (!ddl.empty()) {
-      auto cs = compatibility::check_statement_for_charset_option(
-          ddl, nullptr, m_mysqlaas_supported_charsets);
-      if (!cs.empty())
-        issues->emplace_back(
-            prefix + "- definition contains unsupported character set: " +
-                cs.front(),
-            false);
     }
   }
 }
@@ -1441,8 +1401,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_trigger(
 
     auto client_cs = row->get_string(3);
     auto connection_col = row->get_string(4);
-    check_objects_charsets(db_name, "Trigger", trigger_name, client_cs,
-                           connection_col, &res);
     switch_cs_variables(sql_file, ";",
                         client_cs.c_str(),       /* character_set_client */
                         client_cs.c_str(),       /* character_set_results */
@@ -2228,7 +2186,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
 
     auto client_cs = row->get_string(3);
     auto connection_col = row->get_string(4);
-    check_objects_charsets(db, "View", table, client_cs, connection_col, &res);
     check_object_for_definer(db, "View", table, &ds_view, &res);
 
     /* Dump view structure to file */
@@ -2313,13 +2270,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
         auto createdb = row->get_string(1);
 
         if (opt_mysqlaas) {
-          auto cs = compatibility::check_statement_for_charset_option(
-              createdb, nullptr, m_mysqlaas_supported_charsets);
-          if (!cs.empty())
-            res.emplace_back("Database " + qdatabase +
-                                 " uses unsupported character set " + cs[0],
-                             false);
-
           if (compatibility::check_create_table_for_encryption_option(
                   createdb, &createdb))
             res.emplace_back(

@@ -1093,23 +1093,16 @@ if __version_num < 80000:
 
 EXPECT_STDOUT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, "FILE"))
 
-EXPECT_STDOUT_CONTAINS("ERROR: Database {0} uses unsupported character set latin1".format(incompatible_schema))
-
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported charset: latin1".format(incompatible_schema, incompatible_table_data_directory))
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_data_directory))
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported charset: latin1".format(incompatible_schema, incompatible_table_encryption))
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had ENCRYPTION table option commented out".format(incompatible_schema, incompatible_table_encryption))
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported charset: latin1".format(incompatible_schema, incompatible_table_index_directory))
 if __version_num < 80000 and __os_type != "windows":
     EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_index_directory))
 EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM".format(incompatible_schema, incompatible_table_index_directory))
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported charset: latin1".format(incompatible_schema, incompatible_table_tablespace))
 EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported tablespace option".format(incompatible_schema, incompatible_table_tablespace))
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported charset: latin1".format(incompatible_schema, incompatible_table_wrong_engine))
 EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM".format(incompatible_schema, incompatible_table_wrong_engine))
 
 EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version))
