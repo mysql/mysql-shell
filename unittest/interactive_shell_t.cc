@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2020, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 
 extern mysqlshdk::utils::Version g_target_server_version;
 extern bool g_test_parallel_execution;
+extern "C" const char *g_test_home;
 
 namespace mysqlsh {
 class Interactive_shell_test : public Shell_core_test_wrapper {
@@ -2996,6 +2997,14 @@ TEST_F(Interactive_shell_test, sql_source_cmd) {
 
   shcore::delete_file(file_name);
   shcore::delete_file(file_source);
+
+  execute(
+      "source " +
+      shcore::path::join_path(g_test_home, "data", "sql", "sakila-schema.sql") +
+      ";");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  EXPECT_NO_THROW(execute("drop database sakila"));
+  wipe_all();
 }
 
 TEST_F(Interactive_shell_test, tls_ciphersuites) {

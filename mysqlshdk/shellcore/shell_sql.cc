@@ -65,38 +65,33 @@ const std::initializer_list<const char *> keyword_commands = {"source", "use"};
 // How many bytes at a time to process when executing large SQL scripts
 static constexpr auto k_sql_chunk_size = 64 * 1024;
 
-Shell_sql::Context::Context(Shell_sql *parent)
-    : splitter(
-          [parent](const char *s, size_t len, bool bol, size_t /*lnum*/) {
-            return parent->handle_command(s, len, bol);
+Shell_sql::Context::Context(Shell_sql *parent_)
+    : parent(parent_),
+      splitter(
+          [parent_](const char *s, size_t len, bool bol, size_t /*lnum*/) {
+            return parent_->handle_command(s, len, bol);
           },
           [](const std::string &err) {
             mysqlsh::current_console()->print_error(err);
           },
-          keyword_commands) {
+          keyword_commands),
+      old_buffer(parent->m_buffer),
+      old_splitter(parent->m_splitter) {
   parent->m_buffer = &buffer;
   parent->m_splitter = &splitter;
+  last_handled.swap(parent->_last_handled);
 }
 
-Shell_sql::Context_switcher::Context_switcher(Shell_sql *parent,
-                                              const Input_state &state)
-    : m_parent(parent), m_state(state) {
-  if (m_state != Input_state::ContinuedSingle)
-    parent->m_context_stack.emplace(parent);
+Shell_sql::Context::~Context() {
+  parent->m_buffer = old_buffer;
+  parent->m_splitter = old_splitter;
+  last_handled.swap(parent->_last_handled);
 }
 
-Shell_sql::Context_switcher::~Context_switcher() {
-  if (m_state != Input_state::ContinuedSingle &&
-      m_parent->m_context_stack.size() > 1) {
-    m_parent->m_context_stack.pop();
-    auto &new_context = m_parent->m_context_stack.top();
-    m_parent->m_buffer = &new_context.buffer;
-    m_parent->m_splitter = &new_context.splitter;
-  }
-}
-
-Shell_sql::Shell_sql(IShell_core *owner) : Shell_language(owner) {
-  m_context_stack.emplace(this);
+Shell_sql::Shell_sql(IShell_core *owner)
+    : Shell_language(owner), m_base_context(this) {
+  assert(m_splitter != nullptr);
+  assert(m_buffer != nullptr);
   // Inject help for statement commands. Actual handling of these
   // commands is done in a way different from other commands
   SET_CUSTOM_SHELL_COMMAND("\\G", "CMD_G_UC", Shell_command_function(), true,
@@ -251,8 +246,6 @@ bool Shell_sql::handle_input_stream(std::istream *istream) {
 }
 
 void Shell_sql::handle_input(std::string &code, Input_state &state) {
-  std::unique_ptr<Context_switcher> context_switcher;
-
   // TODO(kolesink) this is a temporary solution and should be removed when
   // splitter is adjusted to be able to restart parsing from previous state
   if (state == Input_state::ContinuedSingle) {
@@ -260,7 +253,6 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
     for (const auto s : {m_splitter->delimiter().c_str(), "\\G", "\\g"})
       if (code.find(s) != std::string::npos) {
         statement_complete = true;
-        context_switcher = std::make_unique<Context_switcher>(this, state);
         break;
       }
     // no need to re-parse code until statement is complete
@@ -269,8 +261,6 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
       code.clear();
       return;
     }
-  } else if (!m_buffer->empty()) {
-    context_switcher = std::make_unique<Context_switcher>(this, state);
   }
 
   state = Input_state::Ok;
@@ -353,11 +343,12 @@ std::pair<size_t, bool> Shell_sql::handle_command(const char *p, size_t len,
   std::string cmd(p, len);
   const auto handle_sql_style_command =
       [&](const std::string &kwd) -> std::pair<size_t, bool> {
-    std::string lh = std::move(_last_handled);
-    bool ret =
-        _owner->handle_shell_command("\\" + kwd + cmd.substr(kwd.length()));
-    _last_handled = std::move(lh);
-    if (!ret) return std::make_pair(0, false);
+    {
+      std::unique_ptr<Context> ctx;
+      if (kwd == "source") ctx = std::make_unique<Context>(this);
+      if (!_owner->handle_shell_command("\\" + kwd + cmd.substr(kwd.length())))
+        return std::make_pair(0, false);
+    }
     _last_handled.append(cmd);
     if (strncmp(p + len, m_splitter->delimiter().c_str(),
                 m_splitter->delimiter().length()) == 0)
@@ -371,6 +362,10 @@ std::pair<size_t, bool> Shell_sql::handle_command(const char *p, size_t len,
 
   if (bol && memchr(p, '\n', len)) {
     // handle as full-line command
+    std::unique_ptr<Context> ctx;
+    if (shcore::str_ibeginswith(cmd, "\\source") ||
+        shcore::str_beginswith(cmd, "\\."))
+      ctx = std::make_unique<Context>(this);
     if (_owner->handle_shell_command(cmd)) return std::make_pair(len, false);
   }
 

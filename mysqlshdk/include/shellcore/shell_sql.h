@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -83,31 +83,20 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
 
  private:
   struct Context {
-    explicit Context(Shell_sql *parent);
+    explicit Context(Shell_sql *parent_);
+    ~Context();
 
+    Shell_sql *parent;
     std::string buffer;
+    std::string last_handled;
     mysqlshdk::utils::Sql_splitter splitter;
+    std::string *old_buffer;
+    mysqlshdk::utils::Sql_splitter *old_splitter;
   };
 
-  class Context_switcher {
-   public:
-    explicit Context_switcher(Shell_sql *parent, const Input_state &state);
-    ~Context_switcher();
-
-   private:
-    Context_switcher(const Context_switcher &) = delete;
-    Context_switcher(const Context_switcher &&) = delete;
-    Context_switcher &operator=(Context_switcher const &) = delete;
-    Context_switcher &operator=(Context_switcher const &&) = delete;
-
-    Shell_sql *m_parent;
-    const Input_state &m_state;
-  };
-
-  std::stack<Context> m_context_stack;
   std::string *m_buffer = nullptr;
   mysqlshdk::utils::Sql_splitter *m_splitter = nullptr;
-
+  Context m_base_context;
   std::function<void(std::shared_ptr<mysqlshdk::db::IResult>,
                      const Sql_result_info &)>
       _result_processor;
