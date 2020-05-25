@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,7 +57,9 @@ namespace rest {
 class Retry_strategy {
  public:
   explicit Retry_strategy(uint32_t base_sleep_time)
-      : m_base_sleep_time(std::chrono::seconds(base_sleep_time)){};
+      : m_base_sleep_time(std::chrono::seconds(base_sleep_time)),
+        m_next_sleep_time(std::chrono::seconds(0)),
+        m_ellapsed_time(std::chrono::seconds(0)){};
 
   void set_max_attempts(uint32_t value) { m_max_attempts = value; }
   void set_max_ellapsed_time(uint32_t seconds) {

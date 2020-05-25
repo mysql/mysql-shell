@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,32 +40,32 @@ void Retry_strategy::init() {
 
   m_start_time = std::chrono::system_clock::now();
   m_retry_count = 0;
+  m_ellapsed_time = std::chrono::seconds(0);
+  m_next_sleep_time = std::chrono::seconds(0);
 }
 
 bool Retry_strategy::should_retry(
     const mysqlshdk::utils::nullable<Response::Status_code>
         &response_status_code) {
-  // The next sleep time may vary depending on the retry strategy, so it has to
-  // be calculated here
-  m_next_sleep_time = next_sleep_time(response_status_code);
-
   // If max attempts criteria is set, validates we are still on the allowed
   // number of attempts
   if (!m_max_attempts.is_null() && m_retry_count >= *m_max_attempts) {
     return false;
   }
 
+  // The next sleep time may vary depending on the retry strategy, so it has to
+  // be calculated here
+  m_next_sleep_time = next_sleep_time(response_status_code);
+
   // If max ellapsed time critera is set, validates the next call is still on
   // the expected time frame
   if (!m_max_ellapsed_time.is_null()) {
-    auto duration = std::chrono::duration_cast<std::chrono::seconds>(
+    m_ellapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
         std::chrono::system_clock::now() - m_start_time);
 
-    // Considering the next sleep time on the criteria
-    duration += m_base_sleep_time;
-
     // Only allow if the next retry is still on the max time frame
-    if (duration >= *m_max_ellapsed_time) return false;
+    if ((m_ellapsed_time + m_next_sleep_time) >= *m_max_ellapsed_time)
+      return false;
   }
 
   // Validation for status codes return FALSE if:
