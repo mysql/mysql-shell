@@ -53,6 +53,7 @@ expected_pids2 = get_open_sessions(session2);
 expected_pids3 = get_open_sessions(session3);
 
 //@ configureReplicaSetInstance + create admin user
+EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureReplicaSetInstance", dba.configureReplicaSetInstance, __sandbox_uri1, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
 
 dba.configureReplicaSetInstance(__sandbox_uri1, {clusterAdmin:"admin", clusterAdminPassword:"bla"});
 
@@ -106,6 +107,8 @@ check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
 //@ addInstance (incremental)
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.addInstance", rs.addInstance, __sandbox_uri3, {recoveryMethod:'incremental'});
+
 rs.addInstance(__sandbox_uri3, {recoveryMethod:'incremental'});
 
 check_open_sessions(session1, expected_pids1);
@@ -130,6 +133,8 @@ check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
 //@ removeInstance
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.removeInstance", rs.removeInstance, __sandbox_uri2);
+
 rs.removeInstance(__sandbox_uri2);
 
 check_open_sessions(session1, expected_pids1);
@@ -139,6 +144,8 @@ check_open_sessions(session3, expected_pids3);
 rs.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
 
 //@ setPrimaryInstance
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.setPrimaryInstance", rs.setPrimaryInstance, __sandbox_uri3);
+
 rs.setPrimaryInstance(__sandbox_uri3);
 
 check_open_sessions(session1, expected_pids1);
@@ -152,6 +159,8 @@ rs = dba.getReplicaSet();
 rs.status();
 
 //@ forcePrimaryInstance
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.forcePrimaryInstance", rs.forcePrimaryInstance, __sandbox_uri1);
+
 rs.forcePrimaryInstance(__sandbox_uri1);
 
 check_open_sessions(session1, expected_pids1);
@@ -163,6 +172,8 @@ testutil.waitSandboxAlive(__mysql_sandbox_port3);
 
 session3 = mysql.getSession(__sandbox_uri3);
 expected_pids3 = get_open_sessions(session3);
+
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.rejoinInstance", rs.rejoinInstance, __sandbox_uri3);
 
 rs.rejoinInstance(__sandbox_uri3);
 

@@ -12,19 +12,40 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 
 shell.options.useWizards = false;
 
+function socket_uri(session, uri = undefined) {
+  if (undefined === uri) {
+    uri = session.uri;
+  }
+  const path = get_socket_path(session, uri);
+  return shell.parseUri(uri).scheme + "://root:root@(" + path + ")";
+}
+
 session1 = mysql.getSession(__sandbox_uri1);
-sockpath1 = get_socket_path(session1);
 session2 = mysql.getSession(__sandbox_uri2);
-sockpath2 = get_socket_path(session2);
 session3 = mysql.getSession(__sandbox_uri3);
-sockpath3 = get_socket_path(session3);
 
-sockuri1 = "mysql://root:root@("+sockpath1+")";
-sockuri2 = "mysql://root:root@("+sockpath2+")";
-sockuri3 = "mysql://root:root@("+sockpath3+")";
+sockuri1 = socket_uri(session1);
+sockuri2 = socket_uri(session2);
+sockuri3 = socket_uri(session3);
 
+xsockuri1 = socket_uri(session1, get_mysqlx_uris(__sandbox_uri1)[0]);
+xsockuri2 = socket_uri(session2, get_mysqlx_uris(__sandbox_uri2)[0]);
+xsockuri3 = socket_uri(session3, get_mysqlx_uris(__sandbox_uri3)[0]);
+
+// redefine the functions to handle sockets
+function get_mysqlx_uris(uri) {
+  const u = sockuri1 === uri ? xsockuri1 : sockuri2 === uri ? xsockuri2 : xsockuri3;
+  return [u, u.substring("mysqlx://".length)];
+}
+
+function get_mysqlx_endpoint(uri) {
+  const u = shell.parseUri(sockuri1 === uri ? xsockuri1 : sockuri2 === uri ? xsockuri2 : xsockuri3);
+  return shell.unparseUri({ 'socket': u.socket });
+}
 
 //@ configureReplicaSetInstance + create admin user
+EXPECT_DBA_THROWS_PROTOCOL_ERROR("Dba.configureReplicaSetInstance", dba.configureReplicaSetInstance, sockuri1, {clusterAdmin:"admin", clusterAdminPassword:"bla", restart:1});
+
 dba.configureReplicaSetInstance(sockuri1, {clusterAdmin:"admin", clusterAdminPassword:"bla", restart:1});
 
 //@ configureReplicaSetInstance
@@ -49,6 +70,8 @@ rs.disconnect();
 rs = dba.getReplicaSet();
 
 //@ addInstance (incremental)
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.addInstance", rs.addInstance, sockuri2, {recoveryMethod:'incremental'});
+
 rs.addInstance(sockuri2, {recoveryMethod:'incremental'});
 
 //@ addInstance (clone) {VER(>=8.0.17)}
@@ -58,11 +81,15 @@ rs.addInstance(sockuri3, {recoveryMethod:'clone'});
 rs.addInstance(sockuri3, {recoveryMethod:'incremental'});
 
 //@ removeInstance
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.removeInstance", rs.removeInstance, sockuri2);
+
 rs.removeInstance(sockuri2);
 
 rs.addInstance(sockuri2, {recoveryMethod:'incremental'});
 
 //@ setPrimaryInstance
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.setPrimaryInstance", rs.setPrimaryInstance, sockuri3);
+
 rs.setPrimaryInstance(sockuri3);
 
 //@ forcePrimaryInstance (prepare)
@@ -72,10 +99,14 @@ rs = dba.getReplicaSet();
 rs.status();
 
 //@ forcePrimaryInstance
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.forcePrimaryInstance", rs.forcePrimaryInstance, sockuri1);
+
 rs.forcePrimaryInstance(sockuri1);
 
 //@ rejoinInstance
 testutil.startSandbox(__mysql_sandbox_port3);
+
+EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.rejoinInstance", rs.rejoinInstance, sockuri3);
 
 rs.rejoinInstance(sockuri3);
 

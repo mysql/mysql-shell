@@ -12,7 +12,7 @@
 ||ReplicaSet.rejoinInstance: Invalid URI: empty. (ArgumentError)
 ||ReplicaSet.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
 ||ReplicaSet.rejoinInstance: Invalid options: badOption (ArgumentError)
-||ReplicaSet.rejoinInstance: localhost:<<<__mysql_sandbox_port3>>>: Can't connect to MySQL server on 'localhost' ([[*]]) (MySQL Error 2003)
+||ReplicaSet.rejoinInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on 'localhost' ([[*]]) (MySQL Error 2003)
 ||ReplicaSet.rejoinInstance: Invalid value for option recoveryMethod: bogus (ArgumentError)
 ||ReplicaSet.rejoinInstance: Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3]. (ArgumentError)
 ||ReplicaSet.rejoinInstance: Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3]. (ArgumentError)

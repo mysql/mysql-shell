@@ -670,22 +670,8 @@ std::shared_ptr<Instance> Dba::connect_to_target_member() const {
   auto active_shell_session = get_active_shell_session();
 
   if (active_shell_session) {
-    auto coptions = active_shell_session->get_connection_options();
-    if (coptions.get_scheme() == "mysqlx") {
-      // Find the classic port
-      auto result = active_shell_session->query("select @@port");
-      auto row = result->fetch_one();
-      if (!row)
-        throw std::logic_error(
-            "Unable to determine classic MySQL port from active shell "
-            "connection");
-      coptions.clear_port();
-      coptions.clear_scheme();
-      coptions.set_port(row->get_int(0));
-      coptions.set_scheme("mysql");
-    }
-
-    return Instance::connect(coptions, false);
+    return Instance::connect(
+        get_classic_connection_options(active_shell_session), false);
   }
 
   return {};

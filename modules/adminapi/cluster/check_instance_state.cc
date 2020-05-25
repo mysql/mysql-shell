@@ -23,6 +23,7 @@
 
 #include "modules/adminapi/cluster/check_instance_state.h"
 
+#include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
@@ -56,21 +57,14 @@ Check_instance_state::~Check_instance_state() {}
 void Check_instance_state::ensure_target_instance_reachable() {
   log_debug("Connecting to instance '%s'", m_target_instance_address.c_str());
 
-  auto console = mysqlsh::current_console();
-
   try {
     m_target_instance = Instance::connect(m_instance_cnx_opts);
 
     // Set the metadata address to use if instance is reachable.
     m_address_in_metadata = m_target_instance->get_canonical_address();
     log_debug("Successfully connected to instance");
-  } catch (const std::exception &err) {
-    console->print_error("Failed to connect to instance: " +
-                         std::string(err.what()));
-
-    throw shcore::Exception::runtime_error(
-        "The instance '" + m_target_instance_address + "' is not reachable.");
   }
+  CATCH_REPORT_AND_THROW_CONNECTION_ERROR(m_target_instance_address)
 }
 
 /**

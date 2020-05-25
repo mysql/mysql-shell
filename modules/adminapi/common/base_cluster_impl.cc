@@ -33,6 +33,7 @@
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/setup_account.h"
@@ -182,8 +183,18 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
     opts.clear_user();
   if (opts.has_password() && opts.get_password() == main_opts.get_password())
     opts.clear_password();
-  if (opts.has_scheme() && opts.get_scheme() == main_opts.get_scheme())
-    opts.clear_scheme();
+  if (opts.has_scheme()) {
+    if (opts.get_scheme() == main_opts.get_scheme()) {
+      opts.clear_scheme();
+    } else {
+      // different scheme means it's an X protocol URI
+      const auto error = make_unsupported_protocol_error();
+      const auto endpoint = Connection_options(instance_def).uri_endpoint();
+      detail::report_connection_error(error, endpoint);
+      throw shcore::Exception::runtime_error(
+          detail::connection_error_msg(error, endpoint));
+    }
+  }
 
   if (opts.has_data()) throw bad_target();
 
@@ -197,11 +208,9 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
 
   try {
     return ipool->connect_unchecked(opts);
-  } catch (const shcore::Exception &e) {
-    log_warning("Could not connect to target instance %s: %s",
-                instance_def.c_str(), e.format().c_str());
-    throw;
   }
+  CATCH_REPORT_AND_THROW_CONNECTION_ERROR(
+      Connection_options(instance_def).uri_endpoint())
 }
 
 shcore::Value Base_cluster_impl::list_routers(bool only_upgrade_required) {
@@ -306,23 +315,12 @@ void Base_cluster_impl::set_instance_tag(const std::string &instance_def,
                                          const shcore::Value &value) {
   // Connect to the target Instance and check if it belongs to the
   // cluster/replicaSet
-  Scoped_instance target_instance;
-  std::string target_uuid;
-  bool is_instance_on_md;
-  try {
-    target_instance = Scoped_instance(connect_target_instance(instance_def));
-    target_uuid = target_instance->get_uuid();
-    is_instance_on_md = get_metadata_storage()->is_instance_on_cluster(
-        get_id(), target_instance->get_canonical_address());
-  } catch (const shcore::Exception &e) {
-    log_debug("Failed to connect to instance: %s", e.what());
-    current_console()->print_error(shcore::str_format(
-        k_error_connecting_to_instance,
-        Connection_options(instance_def).uri_endpoint().c_str()));
-    throw shcore::Exception::runtime_error(
-        "The instance '" + Connection_options(instance_def).uri_endpoint() +
-        "' is not reachable.");
-  }
+  const auto target_instance =
+      Scoped_instance(connect_target_instance(instance_def));
+  const auto target_uuid = target_instance->get_uuid();
+  const auto is_instance_on_md = get_metadata_storage()->is_instance_on_cluster(
+      get_id(), target_instance->get_canonical_address());
+
   if (!is_instance_on_md) {
     std::string err_msg =
         "The instance '" + Connection_options(instance_def).uri_endpoint() +

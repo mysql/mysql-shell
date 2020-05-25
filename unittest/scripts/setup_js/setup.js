@@ -13,8 +13,12 @@ function create_root_from_anywhere(session, clear_super_read_only) {
   session.runSql("SET SQL_LOG_BIN=1");
 }
 
-function get_socket_path(session) {
-  var row = session.runSql("SELECT @@socket, @@datadir").fetchOne();
+function get_socket_path(session, uri = undefined) {
+  if (undefined === uri) {
+    uri = session.uri;
+  }
+
+  var row = session.runSql(`SELECT @@${"mysql" === shell.parseUri(uri).scheme ? "socket" : "mysqlx_socket"}, @@datadir`).fetchOne();
 
   if (row[0][0] == '/')
     p = row[0];
@@ -945,4 +949,42 @@ function validate_crud_functions(crud, expected) {
 
 function WARNING_SKIPPED_TEST(reason) {
   return false;
+}
+
+function get_mysqlx_uris(uri) {
+  var u = shell.parseUri(uri);
+  delete u.scheme;
+  u.port *= 10;
+  u = shell.unparseUri(u);
+  return ["mysqlx://" + u, u];
+}
+
+function get_mysqlx_endpoint(uri) {
+  const u = shell.parseUri(uri);
+  return shell.unparseUri({ 'host': u.host, 'port': u.port * 10 });
+}
+
+var protocol_error_msg = "The provided URI uses the X protocol, which is not supported by this command.";
+
+function EXPECT_THROWS_ERROR(msg, f, ...args) {
+  EXPECT_THROWS(function () { f(...args); }, msg);
+}
+
+function CHECK_MYSQLX_EXPECT_THROWS_ERROR(msg, f, classic, ...args) {
+  for (const uri of get_mysqlx_uris(classic)) {
+    EXPECT_THROWS_ERROR(msg, f, uri, ...args);
+  }
+}
+
+function EXPECT_DBA_THROWS_PROTOCOL_ERROR(context, f, classic, ...args) {
+  CHECK_MYSQLX_EXPECT_THROWS_ERROR(`${context}: ${protocol_error_msg}`, f, classic, ...args);
+}
+
+function EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(context, f, classic, ...args) {
+  for (const uri of get_mysqlx_uris(classic)) {
+    const endpoint = get_mysqlx_endpoint(classic);
+    WIPE_OUTPUT();
+    EXPECT_THROWS_ERROR(`${context}: Could not open connection to '${endpoint}': ${protocol_error_msg}`, f, uri, ...args);
+    EXPECT_STDOUT_CONTAINS(`Unable to connect to the target instance '${endpoint}'. Please verify the connection settings, make sure the instance is available and try again.`);
+  }
 }

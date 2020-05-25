@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -181,19 +181,22 @@ bool Nullable_options::operator==(const Nullable_options &other) const {
   // Tests for different number of options
   if (size() != other.size()) return false;
 
-  for (auto o : _options) {
+  for (const auto &o : _options) {
     // Tests for options being contained on both
     if (!other.has(o.first)) {
       return false;
     } else {
-      bool _has_value = has_value(o.first);
-      // tests for options havin or not value on both
-      if (_has_value != other.has_value(o.first))
+      bool has_a_value = has_value(o.first);
+      // tests for options having or not value on both
+      if (has_a_value != other.has_value(o.first)) {
         return false;
-      else if (_has_value)
+      } else if (has_a_value) {
         // tests for options having the same value on both
         // NOTE(rennox): Value comparison is Case Sensitive in all cases
-        return *o.second == other.get_value(o.first);
+        if (*o.second != other.get_value(o.first)) {
+          return false;
+        }
+      }
     }
   }
 

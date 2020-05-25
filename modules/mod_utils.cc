@@ -36,6 +36,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 
@@ -522,6 +523,52 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_mysql_session(
   copy.set_scheme("mysql");
 
   return establish_session(copy, prompt_for_password, prompt_in_loop);
+}
+
+Connection_options get_classic_connection_options(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  // copy the connection options
+  auto co = session->get_connection_options();
+
+  // switch from X protocol to classic
+  if (SessionType::Classic != co.get_session_type()) {
+    co.clear_scheme();
+    co.set_scheme("mysql");
+
+    if (co.has_port()) {
+      const auto result = session->query("SELECT @@GLOBAL.port");
+      const auto row = result->fetch_one();
+
+      if (!row) {
+        throw std::logic_error(
+            "Unable to determine classic MySQL port from the given shell "
+            "connection");
+      }
+
+      co.clear_port();
+      co.set_port(row->get_int(0));
+    } else {
+      // if we're here then socket was used
+      const auto result =
+          session->query("SELECT @@GLOBAL.socket, @@GLOBAL.datadir");
+      const auto row = result->fetch_one();
+
+      if (!row) {
+        throw std::logic_error(
+            "Unable to determine classic MySQL socket from the given shell "
+            "connection");
+      }
+
+      const auto socket = row->get_string(0);
+
+      co.clear_socket();
+      co.set_socket(shcore::path::is_absolute(socket)
+                        ? socket
+                        : shcore::path::join_path(row->get_string(1), socket));
+    }
+  }
+
+  return co;
 }
 
 void unpack_json_import_flags(shcore::Option_unpacker *unpacker,

@@ -29,8 +29,8 @@
 ||ReplicaSet.forcePrimaryInstance: Target instance localhost:<<<__mysql_sandbox_port3>>> is not a managed instance. (MYSQLSH 51300)
 
 //@# promoted doesn't exist (should fail)
-|ERROR: Unable to connect to the target instance localhost:<<<__mysql_sandbox_port3>>>1. Please verify the connection settings, make sure the instance is available and try again.|
-||ReplicaSet.forcePrimaryInstance: localhost:<<<__mysql_sandbox_port3>>>1: Can't connect to MySQL server on 'localhost'
+|ERROR: Unable to connect to the target instance 'localhost:<<<__mysql_sandbox_port3>>>1'. Please verify the connection settings, make sure the instance is available and try again.|
+||ReplicaSet.forcePrimaryInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>1': Can't connect to MySQL server on 'localhost'
 
 //@# check state of instances after switch
 |Failover finished successfully.|
@@ -46,7 +46,7 @@
 |        "topology": {|
 |            "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>": {|
 |                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>", |
-|                "connectError": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Can't connect to MySQL server on '<<<hostname_ip>>>'|
+|                "connectError": "Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<hostname_ip>>>'|
 |                "fenced": null,|
 |                "instanceRole": null, |
 |                "mode": null, |

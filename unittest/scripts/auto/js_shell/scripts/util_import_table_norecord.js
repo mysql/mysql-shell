@@ -5,28 +5,13 @@ const target_schema = 'wl12193';
 const uri = "mysql://" + __mysqluripwd;
 const xuri = "mysqlx://" + __uripwd;
 
-function wait_for_server(uri) {
-    var max_retries = 60 * 5;
-    const sleep_time = 1;  // second
-    while (max_retries-- > 0) {
-        try {
-            if (shell.connect(uri)) {
-                return true;
-            }
-            os.sleep(sleep_time);
-        } catch (error) {
-            println(error);
-        }
-    }
-}
-
 //@<> Throw if session is empty
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/world_x_cities.dump', { table: 'cities' });
 }, "A classic protocol session is required to perform this operation.");
 
 
-wait_for_server(xuri);
+testutil.waitSandboxAlive(xuri);
 
 //@<> LOAD DATA is supported only by Classic Protocol
 shell.connect(xuri)

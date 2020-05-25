@@ -155,7 +155,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 127.0.0.1:<<<__mysql_sandbox_port3>>> was promoted to PRIMARY.
 
 //@<OUT> forcePrimaryInstance (prepare)
-ERROR: Unable to connect to the PRIMARY of the replicaset myrs: MySQL Error 2003: 127.0.0.1:<<<__mysql_sandbox_port3>>>: Can't connect to MySQL server on '127.0.0.1' ([[*]])
+ERROR: Unable to connect to the PRIMARY of the replicaset myrs: MySQL Error 2003: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '127.0.0.1' ([[*]])
 Cluster change operations will not be possible unless the PRIMARY can be reached.
 If the PRIMARY is unavailable, you must either repair it or perform a forced failover.
 See \help forcePrimaryInstance for more information.
@@ -170,7 +170,7 @@ WARNING: MYSQLSH 51118: PRIMARY instance is unavailable
 //@<OUT> forcePrimaryInstance (prepare)
             "127.0.0.1:<<<__mysql_sandbox_port3>>>": {
                 "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>", 
-                "connectError": "127.0.0.1:<<<__mysql_sandbox_port3>>>: Can't connect to MySQL server on '127.0.0.1' ([[*]])", 
+                "connectError": "Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '127.0.0.1' ([[*]])", 
                 "fenced": null, 
                 "instanceRole": "PRIMARY", 
                 "mode": null, 

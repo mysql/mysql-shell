@@ -95,18 +95,6 @@ else:
         long_path_prefix = r"\\?" "\\"
         return long_path_prefix + path
 
-def wait_for_server(uri):
-    max_retries = 60 * 5
-    sleep_time = 1;  # second
-    while max_retries > 0:
-        max_retries -= 1
-        try:
-            if shell.connect(uri):
-                return True
-            os.sleep(sleep_time)
-        except Exception as error:
-            print(error)
-
 def setup_session(u = uri):
     shell.connect(u)
     session.run_sql("SET NAMES 'utf8mb4';")
@@ -322,7 +310,8 @@ testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root", {
 })
 
 #@<> wait for server
-wait_for_server(uri)
+testutil.wait_sandbox_alive(uri)
+shell.connect(uri)
 
 #@<> WL13807-FR2.4 - an exception must be thrown if there is no open global session
 session.close()

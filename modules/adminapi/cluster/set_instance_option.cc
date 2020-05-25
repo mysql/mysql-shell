@@ -23,6 +23,7 @@
 
 #include "modules/adminapi/cluster/set_instance_option.h"
 #include "modules/adminapi/cluster/cluster_impl.h"
+#include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -118,12 +119,8 @@ void Set_instance_option::ensure_target_member_reachable() {
     // Set the metadata address to use if instance is reachable.
     m_address_in_metadata = m_target_instance->get_canonical_address();
     log_debug("Successfully connected to instance");
-  } catch (const std::exception &err) {
-    log_debug("Failed to connect to instance: %s", err.what());
-
-    throw shcore::Exception::runtime_error(
-        "The instance '" + m_target_instance_address + "' is not reachable.");
   }
+  CATCH_REPORT_AND_THROW_CONNECTION_ERROR(m_target_instance_address)
 }
 
 void Set_instance_option::ensure_option_supported_target_member() {

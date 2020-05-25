@@ -5,24 +5,12 @@ target_schema = 'wl12193'
 uri = "mysql://" + __mysqluripwd
 xuri = "mysqlx://" + __uripwd
 
-def wait_for_server(uri):
-    max_retries = 60 * 5
-    sleep_time = 1;  # second
-    while max_retries > 0:
-        max_retries -= 1
-        try:
-            if shell.connect(uri):
-                return True
-            os.sleep(sleep_time)
-        except Exception as error:
-            print(error)
-
 #@<> Throw if session is empty
 EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "table": 'cities' }),
     "A classic protocol session is required to perform this operation.")
 
 
-wait_for_server(xuri)
+testutil.wait_sandbox_alive(xuri)
 
 #@<> LOAD DATA is supported only by Classic Protocol
 shell.connect(xuri)

@@ -23,10 +23,12 @@
 
 #include "modules/adminapi/common/instance_pool.h"
 
+#include <errmsg.h>
 #include <mysql.h>
 #include <stack>
 
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/global_topology.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/mod_utils.h"
@@ -43,6 +45,28 @@ namespace {
 // Constants with the names used to lock instances.
 static constexpr char k_lock[] = "AdminAPI_lock";
 static constexpr char k_lock_name_instance[] = "AdminAPI_instance";
+
+std::shared_ptr<mysqlshdk::db::ISession> connect_session(
+    const mysqlshdk::db::Connection_options &opts, bool interactive) {
+  if (SessionType::X == opts.get_session_type()) {
+    throw make_unsupported_protocol_error();
+  }
+
+  try {
+    return establish_mysql_session(opts, interactive);
+  } catch (const shcore::Exception &e) {
+    if (CR_VERSION_ERROR == e.code() ||
+        (CR_SERVER_LOST == e.code() &&
+         0 == strcmp("Lost connection to MySQL server at 'waiting for initial "
+                     "communication packet', system error: 110",
+                     e.what()))) {
+      throw make_unsupported_protocol_error();
+    } else {
+      throw;
+    }
+  }
+}
+
 }  // namespace
 
 // default SQL_MODE as of 8.0.19
@@ -52,13 +76,12 @@ static constexpr const char *k_default_sql_mode =
 
 std::shared_ptr<Instance> Instance::connect_raw(
     const mysqlshdk::db::Connection_options &opts, bool interactive) {
-  return std::make_shared<Instance>(establish_mysql_session(opts, interactive));
+  return std::make_shared<Instance>(connect_session(opts, interactive));
 }
 
 std::shared_ptr<Instance> Instance::connect(
     const mysqlshdk::db::Connection_options &opts, bool interactive) {
-  auto instance =
-      std::make_shared<Instance>(establish_mysql_session(opts, interactive));
+  const auto instance = connect_raw(opts, interactive);
 
   instance->prepare_session();
 
@@ -525,21 +548,11 @@ std::shared_ptr<Instance> Instance_pool::connect_unchecked(
     }
   }
 
-  try {
-    auto session = establish_mysql_session(opts, m_allow_password_prompt);
-    auto instance =
-        add_leased_instance(std::make_shared<Instance>(this, session));
-    instance->prepare_session();
-    return instance;
-  } catch (const shcore::Exception &e) {
-    // Include the uri endpoint in the error message if another
-    // shcore::Exception is issued (e.g., ER_ACCESS_DENIED_ERROR).
-    throw shcore::Exception::mysql_error_with_code(
-        opts.uri_endpoint() + ": " + e.what(), e.code());
-  } catch (const shcore::Error &e) {
-    throw shcore::Exception::mysql_error_with_code(
-        opts.uri_endpoint() + ": " + e.what(), e.code());
-  }
+  auto session = connect_session(opts, m_allow_password_prompt);
+  auto instance =
+      add_leased_instance(std::make_shared<Instance>(this, session));
+  instance->prepare_session();
+  return instance;
 }
 
 std::shared_ptr<Instance> Instance_pool::connect_unchecked_endpoint(
@@ -562,7 +575,11 @@ std::shared_ptr<Instance> Instance_pool::connect_unchecked_endpoint(
           "Target instance must be specified as host:port");
     m_default_auth_opts.set(&opts);
   }
-  return connect_unchecked(opts);
+
+  try {
+    return connect_unchecked(opts);
+  }
+  CATCH_AND_THROW_CONNECTION_ERROR(endpoint)
 }
 
 std::shared_ptr<Instance> Instance_pool::connect_unchecked_uuid(
@@ -590,7 +607,10 @@ std::shared_ptr<Instance> Instance_pool::connect_unchecked_uuid(
       mysqlshdk::db::Connection_options opts(inst.endpoint);
       set_auth_opts(auth, &opts);
 
-      return connect_unchecked(opts);
+      try {
+        return connect_unchecked(opts);
+      }
+      CATCH_AND_THROW_CONNECTION_ERROR(inst.endpoint)
     }
   }
   throw shcore::Exception("Unable to find metadata for instance " + uuid,
