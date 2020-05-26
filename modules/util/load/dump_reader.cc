@@ -479,7 +479,7 @@ bool Dump_reader::Table_info::ready() const {
 
 void Dump_reader::Table_info::rescan(
     mysqlshdk::storage::IDirectory *dir,
-    const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
+    const std::unordered_map<std::string, size_t> &files, Dump_reader *) {
   // MD not included for tables if data is not dumped
   if (!md_seen) {
     // schema@table.json
@@ -522,7 +522,11 @@ void Dump_reader::Table_info::rescan(
       has_triggers = true;
     }
   }
+}
 
+void Dump_reader::Table_info::rescan_data(
+    mysqlshdk::storage::IDirectory *,
+    const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
   // check for data files
   if (!last_chunk_seen && has_data) {
     bool found_data = false;
@@ -566,7 +570,6 @@ void Dump_reader::Table_info::rescan(
       }
     }
     if (found_data) reader->m_tables_with_data.insert(this);
-    has_data = found_data;
   }
 }
 
@@ -703,6 +706,16 @@ void Dump_reader::Schema_info::rescan(
   assert(reader->m_dump_status != Status::COMPLETE || ready());
 }
 
+void Dump_reader::Schema_info::rescan_data(
+    mysqlshdk::storage::IDirectory *dir,
+    const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
+  for (auto &t : tables) {
+    if (!t.second->data_done()) {
+      t.second->rescan_data(dir, files, reader);
+    }
+  }
+}
+
 bool Dump_reader::Schema_info::data_done() const {
   for (const auto &t : tables) {
     if (!t.second->data_done()) return false;
@@ -734,10 +747,17 @@ void Dump_reader::Dump_info::rescan(
 
       if (!s.second->ready()) {
         s.second->rescan(dir, files, reader);
+        if (s.second->ready()) s.second->rescan_data(dir, files, reader);
       }
       if (!s.second->ready()) md_done = false;
     }
     if (md_done) log_debug("All metadata for dump was scanned");
+  } else {
+    for (auto &s : schemas) {
+      log_debug("Scanning data of schema '%s'", s.second->schema.c_str());
+
+      s.second->rescan_data(dir, files, reader);
+    }
   }
 }
 

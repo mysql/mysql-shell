@@ -208,6 +208,10 @@ class Dump_reader {
     void rescan(mysqlshdk::storage::IDirectory *dir,
                 const std::unordered_map<std::string, size_t> &files,
                 Dump_reader *reader);
+
+    void rescan_data(mysqlshdk::storage::IDirectory *dir,
+                     const std::unordered_map<std::string, size_t> &files,
+                     Dump_reader *reader);
   };
 
   struct Schema_info {
@@ -241,6 +245,10 @@ class Dump_reader {
     void rescan(mysqlshdk::storage::IDirectory *dir,
                 const std::unordered_map<std::string, size_t> &files,
                 Dump_reader *reader);
+
+    void rescan_data(mysqlshdk::storage::IDirectory *dir,
+                     const std::unordered_map<std::string, size_t> &files,
+                     Dump_reader *reader);
   };
 
   struct Dump_info {

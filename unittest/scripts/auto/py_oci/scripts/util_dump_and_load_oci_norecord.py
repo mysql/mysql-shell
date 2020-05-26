@@ -74,21 +74,21 @@ wipeout_server(session2)
 
 #@<> Cause a partial load
 shell.connect(__sandbox_uri2)
-testutil.create_file("sakila@film_text@@0.tsv.zstd", "badfile")
-testutil.anycopy({"osBucketName":k_bucket_name, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"mydump/sakila@film_text@@0.tsv.zstd"}, "backup")
-testutil.anycopy("sakila@film_text@@0.tsv.zstd", {"osBucketName":k_bucket_name, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"mydump/sakila@film_text@@0.tsv.zstd"})
+testutil.create_file("sakila@film_text@@0.tsv.zst", "badfile")
+testutil.anycopy({"osBucketName":k_bucket_name, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"mydump/sakila@film_text@@0.tsv.zst"}, "backup")
+testutil.anycopy("sakila@film_text@@0.tsv.zst", {"osBucketName":k_bucket_name, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"mydump/sakila@film_text@@0.tsv.zst"})
 
 EXPECT_THROWS(lambda: util.load_dump("mydump", {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file}), "Error loading dump")
 
-EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zstd: zstd.read: Unknown frame descriptor")
+EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zst: zstd.read: Unknown frame descriptor")
 
-testutil.anycopy("backup", {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"mydump/sakila@film_text@@0.tsv.zstd"})
+testutil.anycopy("backup", {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"mydump/sakila@film_text@@0.tsv.zst"})
 
 #@<> Resume partial load
 util.load_dump("mydump", {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file})
 
 EXPECT_STDOUT_NOT_CONTAINS("Executing DDL script for ")
-EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zstd: Records: ")
+EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zst: Records: ")
 compare_servers(session1, session2)
 wipeout_server(session2)
 
@@ -98,7 +98,7 @@ util.load_dump("mydump", {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPA
 open("progress.txt").read()
 
 EXPECT_STDOUT_CONTAINS("Executing DDL script for ")
-EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zstd: Records: ")
+EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zst: Records: ")
 
 #@<> Cleanup
 testutil.rmfile("progress.txt")
