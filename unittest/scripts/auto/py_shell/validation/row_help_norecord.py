@@ -13,7 +13,7 @@ DESCRIPTION
       - Its name must be different from names of the members of this object.
 
       In the case a field does not met these conditions, it must be retrieved
-      through <Row>.get_field(<fieldName>).
+      through the this function.
 
 PROPERTIES
       length
@@ -62,3 +62,4 @@ NAME
 
 SYNTAX
       <Row>.length
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -252,37 +252,20 @@ class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge {
 
 /**
  * \ingroup ShellAPI
- *
- * Represents the a Row in a Result.
- *
- * $(ROW_DETAIL)
- * $(ROW_DETAIL1)
- * $(ROW_DETAIL2)
- *
- * In the case a field does not met these conditions, it must be retrieved
- * through the&nbsp;
+ * $(ROW)
  */
-#if DOXYGEN_JS
-//! getField(String name)
-#else
-//! get_field(str name)
-#endif
-/**
- * function.
- */
-
 class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge {
  public:
 #if DOXYGEN_JS
   length;  //!< Same as getLength()
 
   Integer getLength();
-  Value getField(String fieldName);
+  Value getField(String name);
 #elif DOXYGEN_PY
   length;  //!< Same as get_length()
 
   int get_length();
-  Value get_field(str fieldName);
+  Value get_field(str name);
 #endif
 
   Row();
@@ -299,8 +282,7 @@ class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge {
   virtual std::string &append_repr(std::string &s_out) const;
   virtual void append_json(shcore::JSON_dumper &dumper) const;
 
-  shcore::Value get_field(const shcore::Argument_list &args);
-  shcore::Value get_field_(const std::string &field) const;
+  shcore::Value get_field(const std::string &field) const;
 
   virtual bool operator==(const Object_bridge &other) const;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -102,20 +102,6 @@ std::unique_ptr<mysqlsh::Row> ShellBaseResult::fetch_one_row() const {
   return ret_val;
 }
 
-REGISTER_HELP_FUNCTION_TEXT(BASERESULT_FETCHONEOBJECT, R"*(
-Retrieves the next Row on the result and returns it as an object.
-
-@returns A dictionary containing the row information.
-
-The column names will be used as keys in the returned dictionary and the column
-data will be used as the key values.
-
-If a column is a valid identifier it will be accessible as an object attribute
-as @<dict@>.@<column@>.
-
-If a column is not a valid identifier, it will be accessible as a dictionary
-key as @<dict@>[@<column@>].
-)*");
 shcore::Dictionary_t ShellBaseResult::fetch_one_object() const {
   shcore::Dictionary_t ret_val;
 
@@ -238,25 +224,22 @@ shcore::Value Column::get_member(const std::string &prop) const {
 }
 
 REGISTER_HELP_CLASS(Row, shellapi);
-REGISTER_HELP(ROW_BRIEF, "Represents the a Row in a Result.");
-REGISTER_HELP(ROW_DETAIL,
-              "When a row object is created, its fields are exposed as "
-              "properties of the Row object if two conditions are met:");
-REGISTER_HELP(
-    ROW_DETAIL1,
-    "@li Its name must be a valid identifier: [_a-zA-Z][_a-zA-Z0-9]*");
-REGISTER_HELP(
-    ROW_DETAIL2,
-    "@li Its name must be different from names of the members of this object.");
-REGISTER_HELP(ROW_DETAIL3,
-              "In the case a field does not met these conditions, it must be "
-              "retrieved through "
-              "<b>@<Row@>.<<<getField>>>(@<fieldName@>)</b>.");
+REGISTER_HELP_CLASS_TEXT(ROW, R"*(
+Represents the a Row in a Result.
 
+When a row object is created, its fields are exposed as properties of the Row
+object if two conditions are met:
+
+@li Its name must be a valid identifier: [_a-zA-Z][_a-zA-Z0-9]*
+@li Its name must be different from names of the members of this object.
+
+
+In the case a field does not met these conditions, it must be retrieved through
+the this function.
+)*");
 Row::Row() {
   add_property("length", "getLength");
-  add_method("getField", std::bind(&Row::get_field, this, _1), "field",
-             shcore::String);
+  expose("getField", &Row::get_field, "fieldName");
   names.reset(new std::vector<std::string>());
 }
 
@@ -264,8 +247,7 @@ Row::Row(std::shared_ptr<std::vector<std::string>> names_,
          const mysqlshdk::db::IRow &row)
     : names(names_) {
   add_property("length", "getLength");
-  add_method("getField", std::bind(&Row::get_field, this, _1), "field",
-             shcore::String);
+  expose("getField", &Row::get_field, "fieldName");
 
   for (uint32_t i = 0, c = row.num_fields(); i < c; i++) {
     const std::string &key = (*names_)[i];
@@ -328,37 +310,27 @@ std::string &Row::append_repr(std::string &s_out) const {
 bool Row::operator==(const Object_bridge &UNUSED(other)) const { return false; }
 
 REGISTER_HELP_FUNCTION(getField, Row);
-REGISTER_HELP(ROW_GETFIELD_BRIEF,
-              "Returns the value of the field named <b>name</b>.");
-REGISTER_HELP(ROW_GETFIELD_PARAM,
-              "@param name The name of the field to be retrieved.");
+REGISTER_HELP_FUNCTION_TEXT(ROW_GETFIELD, R"*(
+Returns the value of the field named <b>name</b>.
+
+@param name The name of the field to be retrieved.
+)*");
 /**
  * $(ROW_GETFIELD_BRIEF)
  *
- * $(ROW_GETFIELD_PARAM)
+ * $(ROW_GETFIELD)
  */
 #if DOXYGEN_JS
 Object Row::getField(String name) {}
 #elif DOXYGEN_PY
 object Row::get_field(str name) {}
 #endif
-shcore::Value Row::get_field(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-  args.ensure_count(1, "Row.getField");
-
-  if (args[0].type != shcore::String)
-    throw shcore::Exception::argument_error(
-        "Row.getField: Argument #1 is expected to be a string");
-
-  return get_field_(args[0].get_string());
-}
-
-shcore::Value Row::get_field_(const std::string &field) const {
-  auto iter = std::find(names->begin(), names->end(), field);
+shcore::Value Row::get_field(const std::string &name) const {
+  auto iter = std::find(names->begin(), names->end(), name);
   if (iter != names->end())
     return value_array[iter - names->begin()];
   else
-    throw shcore::Exception::argument_error("Row.getField: Field " + field +
+    throw shcore::Exception::argument_error("Field " + name +
                                             " does not exist");
 }
 

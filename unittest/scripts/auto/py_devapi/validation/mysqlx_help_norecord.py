@@ -721,7 +721,6 @@ DESCRIPTION
       class:
 
       - Transaction handling functions
-      - Transaction handling functions
 
 PROPERTIES
       affected_item_count

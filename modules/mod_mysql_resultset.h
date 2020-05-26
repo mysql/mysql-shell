@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,7 +43,7 @@ namespace mysql {
  * \ingroup ShellAPI
  * $(CLASSICRESULT_BRIEF)
  *
- * $(CLASSICRESULT_DETAIL)
+ * $(CLASSICRESULT)
  */
 class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
  public:
@@ -139,12 +139,12 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
   virtual shcore::Value get_member(const std::string &prop) const;
   virtual void append_json(shcore::JSON_dumper &dumper) const;
 
-  shcore::Value has_data(const shcore::Argument_list &args) const;
+  bool has_data() const;
   std::shared_ptr<Row> fetch_one() const;
   shcore::Dictionary_t _fetch_one_object();
-  virtual shcore::Value fetch_all(const shcore::Argument_list &args) const;
-  virtual shcore::Value next_data_set(const shcore::Argument_list &args);
-  virtual shcore::Value next_result(const shcore::Argument_list &args);
+  shcore::Array_t fetch_all() const;
+  bool next_data_set();
+  bool next_result();
 
   shcore::Value::Array_type_ref get_columns() const;
 

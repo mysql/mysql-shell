@@ -20,7 +20,7 @@ PROPERTIES
 
       autoIncrementValue
             Returns the last insert id auto generated (from an insert
-            operation)
+            operation).
 
       columnCount
             Retrieves the number of columns on the current result.
@@ -73,7 +73,7 @@ FUNCTIONS
 
       getAutoIncrementValue()
             Returns the last insert id auto generated (from an insert
-            operation)
+            operation).
 
       getColumnCount()
             Retrieves the number of columns on the current result.
@@ -142,7 +142,7 @@ DESCRIPTION
 //@<OUT> Help on autoIncrementValue
 NAME
       autoIncrementValue - Returns the last insert id auto generated (from an
-                           insert operation)
+                           insert operation).
 
 SYNTAX
       <ClassicResult>.autoIncrementValue
@@ -269,9 +269,6 @@ SYNTAX
 RETURNS
       the number of affected items.
 
-DESCRIPTION
-      Returns the number of records affected by the executed operation
-
 //@<OUT> Help on getAffectedRowCount
 NAME
       getAffectedRowCount - The number of affected rows for the last operation.
@@ -283,22 +280,22 @@ RETURNS
       the number of affected rows.
 
 DESCRIPTION
-      This is the value of the C API mysql_affected_rows(), see
-      https://dev.mysql.com/doc/refman/en/mysql-affected-rows.html
-
       ATTENTION: This function will be removed in a future release, use the
                  getAffectedItemsCount function instead.
+
+      This is the value of the C API mysql_affected_rows(), see
+      https://dev.mysql.com/doc/refman/en/mysql-affected-rows.html
 
 //@<OUT> Help on getAutoIncrementValue
 NAME
       getAutoIncrementValue - Returns the last insert id auto generated (from
-                              an insert operation)
+                              an insert operation).
 
 SYNTAX
       <ClassicResult>.getAutoIncrementValue()
 
 RETURNS
-      the integer representing the last insert id
+      the integer representing the last insert id.
 
 //@<OUT> Help on getColumnCount
 NAME
@@ -349,7 +346,7 @@ SYNTAX
       <ClassicResult>.getInfo()
 
 RETURNS
-      a string with the execution information
+      a string with the execution information.
 
 //@<OUT> Help on getWarningCount
 NAME
@@ -363,13 +360,13 @@ RETURNS
       the number of warnings.
 
 DESCRIPTION
+      ATTENTION: This function will be removed in a future release, use the
+                 getWarningsCount function instead.
+
       This is the same value than C API mysql_warning_count, see
       https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
 
       See getWarnings() for more details.
-
-      ATTENTION: This function will be removed in a future release, use the
-                 getWarningsCount function instead.
 
 //@<OUT> Help on getWarningsCount
 NAME
@@ -445,4 +442,5 @@ SYNTAX
       <ClassicResult>.nextResult()
 
 RETURNS
-      A boolean value indicating whether there is another result or not.
+      A boolean value indicating whether there is another esult or not.
+

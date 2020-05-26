@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -304,7 +304,7 @@ void Help_registry::add_split_help(const std::string &prefix,
   std::string para;
   if (auto_brief) add_help(token("BRIEF"), get_para(&eos));
 
-  // params and return
+  // params, return and deprecation warning
   para = get_para(&eos);
   while (!eos && !para.empty()) {
     if (shcore::str_beginswith(para, "@param")) {

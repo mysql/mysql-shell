@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -641,7 +641,7 @@ class Help_manager {
   REGISTER_HELP_PROPERTY_MODE(name, parent, SCRIPTING)
 
 #define REGISTER_HELP_CLASS_TEXT(x, y) \
-  shcore::Help_register_topic_text x(#x, y, false)
+  shcore::Help_register_topic_text x(#x, y, true)
 
 #define REGISTER_HELP_TOPIC_TEXT(x, y) \
   shcore::Help_register_topic_text x(#x, y, false)
