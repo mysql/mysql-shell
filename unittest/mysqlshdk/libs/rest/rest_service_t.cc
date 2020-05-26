@@ -661,9 +661,22 @@ TEST_F(Rest_service_test, retry_strategy_max_ellapsed_time) {
                                 nullptr, nullptr, &retry_strategy);
   EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
 
-  EXPECT_TRUE(retry_strategy.get_ellapsed_time() +
-                  retry_strategy.get_next_sleep_time() >
-              retry_strategy.get_max_ellapsed_time());
+  {
+    auto ellapsed_time = static_cast<unsigned long long int>(
+        retry_strategy.get_ellapsed_time().count());
+    auto next_sleep_time = static_cast<unsigned long long int>(
+        retry_strategy.get_next_sleep_time().count());
+    auto max_ellapsed_time = static_cast<unsigned long long int>(
+        retry_strategy.get_max_ellapsed_time().count());
+    SCOPED_TRACE(shcore::str_format("Ellapsed Time: %llu", ellapsed_time));
+    SCOPED_TRACE(shcore::str_format("Next Sleep Time: %llu", next_sleep_time));
+    SCOPED_TRACE(
+        shcore::str_format("Max Ellapsed Time: %llu", max_ellapsed_time));
+
+    EXPECT_TRUE(retry_strategy.get_ellapsed_time() +
+                    retry_strategy.get_next_sleep_time() >=
+                retry_strategy.get_max_ellapsed_time());
+  }
 
   // Considering each attempt consumes at least 1 (sleep time) the 5th
   // attempt would not take place
