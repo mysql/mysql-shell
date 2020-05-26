@@ -58,8 +58,9 @@ class Retry_strategy {
  public:
   explicit Retry_strategy(uint32_t base_sleep_time)
       : m_base_sleep_time(std::chrono::seconds(base_sleep_time)),
+        m_retry_count(0),
         m_next_sleep_time(std::chrono::seconds(0)),
-        m_ellapsed_time(std::chrono::seconds(0)){};
+        m_ellapsed_time(std::chrono::seconds(0)) {}
 
   void set_max_attempts(uint32_t value) { m_max_attempts = value; }
   void set_max_ellapsed_time(uint32_t seconds) {
@@ -70,7 +71,7 @@ class Retry_strategy {
   }
   void set_retry_on_server_errors(bool value) {
     m_retry_on_server_errors = value;
-  };
+  }
 
   bool should_retry(const mysqlshdk::utils::nullable<Response::Status_code>
                         &response_status_code = {});

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,7 +31,9 @@
 using namespace shcore;
 
 Shell_javascript::Shell_javascript(Shell_core *shcore)
-    : Shell_language(shcore), _js(new JScript_context(shcore->registry())) {}
+    : Shell_language(shcore),
+      _js(new JScript_context(shcore->registry())),
+      m_last_input_state(Input_state::Ok) {}
 
 void Shell_javascript::set_result_processor(
     std::function<void(shcore::Value, bool)> result_processor) {

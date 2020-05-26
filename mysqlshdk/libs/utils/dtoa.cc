@@ -1064,7 +1064,7 @@ static Bigint *d2b(U *d, int *e, int *bits, Stack_alloc *alloc) {
       z >>= k;
     } else
       x[0] = y;
-    i = b->wds = (x[1] = z) ? 2 : 1;
+    i = b->wds = ((x[1] = z)) ? 2 : 1;
   } else {
     k = lo0bits(&z);
     x[0] = z;
@@ -2236,7 +2236,7 @@ static char *dtoa(double dd, int mode, int ndigits, int *decpt, int *sign,
         }
 #endif
         dval(&u) += dval(&u);
-        if (dval(&u) > ds || (dval(&u) == ds && L & 1)) {
+        if (dval(&u) > ds || (dval(&u) == ds && (L & 1))) {
         bump_up:
           while (*--s == '9')
             if (s == s0) {
@@ -2291,7 +2291,7 @@ static char *dtoa(double dd, int mode, int ndigits, int *decpt, int *sign,
 #endif
   ) {
     if (!word1(&u) && !(word0(&u) & Bndry_mask) &&
-        word0(&u) & (Exp_mask & ~Exp_msk1)) {
+        (word0(&u) & (Exp_mask & ~Exp_msk1))) {
       /* The special case */
       b2 += Log2P;
       s2 += Log2P;
@@ -2389,7 +2389,8 @@ static char *dtoa(double dd, int mode, int ndigits, int *decpt, int *sign,
         if (j1 > 0) {
           b = lshift(b, 1, &alloc);
           j1 = cmp(b, S);
-          if ((j1 > 0 || (j1 == 0 && dig & 1)) && dig++ == '9') goto round_9_up;
+          if ((j1 > 0 || (j1 == 0 && (dig & 1))) && dig++ == '9')
+            goto round_9_up;
         }
       accept_dig:
         *s++ = dig;
@@ -2442,7 +2443,7 @@ static char *dtoa(double dd, int mode, int ndigits, int *decpt, int *sign,
 #endif
   b = lshift(b, 1, &alloc);
   j = cmp(b, S);
-  if (j > 0 || (j == 0 && dig & 1)) {
+  if (j > 0 || (j == 0 && (dig & 1))) {
   roundoff:
     while (*--s == '9')
       if (s == s0) {

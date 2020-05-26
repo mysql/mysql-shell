@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,8 +49,8 @@ Configure_local_instance::Configure_local_instance(
     mysqlshdk::utils::nullable<bool> restart)
     : Configure_instance(instance_cnx_opts, mycnf_path, output_mycnf_path,
                          cluster_admin, cluster_admin_password, clear_read_only,
-                         interactive, restart,
-                         Cluster_type::GROUP_REPLICATION) {}
+                         interactive, restart, Cluster_type::GROUP_REPLICATION),
+      m_instance_type(GRInstanceType::Unknown) {}
 
 Configure_local_instance::~Configure_local_instance() {}
 

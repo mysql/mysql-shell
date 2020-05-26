@@ -239,7 +239,7 @@ class Process {
   bool create_process_group = false;
   std::unique_ptr<wchar_t[]> new_environment;
 #else
-  pid_t childpid;
+  pid_t childpid = -1;
   int fd_in[2] = {-1, -1};
   int fd_out[2] = {-1, -1};
   int m_master_device = -1;

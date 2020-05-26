@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -950,8 +950,9 @@ int prompt_menu(const std::vector<std::string> &options, int defopt) {
     std::stringstream ss(result);
     ss >> i;
     if (i <= 0 || i > static_cast<int>(options.size())) continue;
-    return i;
+    break;
   }
+  return i;
 }
 
 /*

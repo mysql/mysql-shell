@@ -67,8 +67,6 @@ class Dump_loader {
  private:
   class Worker {
    public:
-    enum Task_type { CHUNK, ANALYZE };
-
     class Task {
      public:
       Task(size_t aid, const std::string &schema, const std::string &table)
@@ -160,7 +158,6 @@ class Dump_loader {
     void analyze_table(const std::string &schema, const std::string &table,
                        const std::vector<Dump_reader::Histogram> &histograms);
 
-    Task_type current_task_type() const { return m_task_type; }
     Task *current_task() const { return m_task.get(); }
 
     void run();
@@ -177,7 +174,6 @@ class Dump_loader {
     std::shared_ptr<mysqlshdk::db::mysql::Session> m_session;
     uint64_t m_connection_id;
 
-    Task_type m_task_type;
     std::unique_ptr<Task> m_task;
 
     shcore::Synchronized_queue<bool> m_work_ready;

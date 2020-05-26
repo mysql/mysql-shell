@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,7 +63,7 @@ class Recorder_mysql : public mysql::Session {
 
  private:
   std::unique_ptr<Trace_writer> _trace;
-  int _port;
+  int _port = 0;
   bool _closed = false;
 };
 
@@ -108,7 +108,7 @@ class Recorder_mysqlx : public mysqlx::Session {
 
  private:
   std::unique_ptr<Trace_writer> _trace;
-  int _port;
+  int _port = 0;
   bool _closed = false;
 };
 

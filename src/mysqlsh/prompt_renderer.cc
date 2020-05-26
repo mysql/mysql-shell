@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -137,7 +137,9 @@ class Prompt_segment {
 
   typedef Prompt_renderer::Shrinker_type Shrinker_type;
 
-  Prompt_segment() : type_(Break) { hidden_ = true; }
+  Prompt_segment() : type_(Break), shrinker_type_(Shrinker_type::No_shrink) {
+    hidden_ = true;
+  }
 
   Prompt_segment(const std::string &text, const mysqlshdk::textui::Style &style,
                  int prio, int min_width, int padding, Shrinker_type stype,

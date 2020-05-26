@@ -73,7 +73,7 @@ class ProvisioningInterface {
   ProvisioningInterface() {}
 
  private:
-  int _verbose;
+  int _verbose = 0;
   const std::string _local_mysqlprovision_path;
 
   int execute_mysqlprovision(const std::string &cmd,

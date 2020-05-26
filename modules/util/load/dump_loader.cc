@@ -352,7 +352,7 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
 }
 
 Dump_loader::Worker::Worker(size_t id, Dump_loader *owner)
-    : m_id(id), m_owner(owner), m_connection_id(0), m_task_type(ANALYZE) {}
+    : m_id(id), m_owner(owner), m_connection_id(0) {}
 
 void Dump_loader::Worker::run() {
   auto console = current_console();

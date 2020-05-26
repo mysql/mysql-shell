@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -323,7 +323,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void record_async_primary_forced_switch(
       Instance_id new_primary_id, const std::list<Instance_id> &invalidated);
 
-  mysqlsh::dba::metadata::State get_state() { return m_md_state; };
+  mysqlsh::dba::metadata::State get_state() { return m_md_state; }
 
   void invalidate_cached() {
     m_md_state = mysqlsh::dba::metadata::State::NONEXISTING;
@@ -397,7 +397,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   friend class Transaction;
 
   std::shared_ptr<Instance> m_md_server;
-  bool m_owns_md_server;
+  bool m_owns_md_server = false;
   mutable mysqlshdk::utils::Version m_md_version;
   mutable mysqlshdk::utils::Version m_real_md_version;
   mutable std::string m_md_version_schema;

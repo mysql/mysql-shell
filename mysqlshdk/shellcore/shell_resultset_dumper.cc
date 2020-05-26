@@ -226,7 +226,8 @@ enum class ResultFormat { VERTICAL, TABBED, TABLE };
 class Field_formatter {
  public:
   Field_formatter(ResultFormat format, const mysqlshdk::db::Column &column)
-      : m_max_display_length(0),
+      : m_allocated(0),
+        m_max_display_length(0),
         m_max_buffer_length(0),
         m_max_mb_holes(0),
         m_format(format),

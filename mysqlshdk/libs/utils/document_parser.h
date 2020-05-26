@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -166,7 +166,7 @@ class Json_document_parser : public Document_parser {
   };
 
  private:
-  std::string *m_document;
+  std::string *m_document = nullptr;
   size_t m_document_start_offset = 0;
 
   // Helper variables, identify the position in m_document
