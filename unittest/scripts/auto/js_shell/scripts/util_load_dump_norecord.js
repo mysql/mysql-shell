@@ -634,15 +634,15 @@ session.runSql("set global max_connections=1000");
 //@<> check abort when a worker has a fatal error during load
 
 // corrupt one of the data files to force the load to fail
-testutil.cpfile(__tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zstd", __tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zstd.bak");
-testutil.createFile(__tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zstd", "badfile");
+testutil.cpfile(__tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zst", __tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zst.bak");
+testutil.createFile(__tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zst", "badfile");
 
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nochunk");}, "Util.loadDump: Error loading dump");
 
-EXPECT_OUTPUT_CONTAINS("xtest@t_json.tsv.zstd: zstd.read: Unknown frame descriptor");
+EXPECT_OUTPUT_CONTAINS("xtest@t_json.tsv.zst: zstd.read: Unknown frame descriptor");
 EXPECT_OUTPUT_CONTAINS("ERROR: Aborting load...");
 
-testutil.rename(__tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zstd.bak", __tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zstd");
+testutil.rename(__tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zst.bak", __tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zst");
 testutil.rmfile(__tmp_dir+"/ldtest/dump-nochunk/load-progress*");
 wipe_instance(session);
 
@@ -779,7 +779,7 @@ wipe_instance(session);
 var corrupted_file;
 
 for (let idx = 130; idx >= 0; --idx) {
-  corrupted_file = __tmp_dir + `/ldtest/dump-big/test@primer-dataset-id@${idx}.tsv.zstd`;
+  corrupted_file = __tmp_dir + `/ldtest/dump-big/test@primer-dataset-id@${idx}.tsv.zst`;
 
   if (os.path.isfile(corrupted_file)) {
     break;
@@ -823,7 +823,7 @@ util.loadDump(__tmp_dir+"/ldtest/dump-big");
 //@<> try loading an already loaded dump after resetting progress (will fail because of duplicate objects)
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-big", {resetProgress: 1});}, "Util.loadDump: Duplicate objects found in destination database");
 
-EXPECT_OUTPUT_NOT_CONTAINS("test@primer-dataset-id@1.tsv.zstd: Records:");
+EXPECT_OUTPUT_NOT_CONTAINS("test@primer-dataset-id@1.tsv.zst: Records:");
 EXPECT_OUTPUT_CONTAINS("ERROR: Schema `sakila` already contains a view named ");
 
 //@<> try again after wiping out the server
@@ -831,7 +831,7 @@ wipe_instance(session);
 
 util.loadDump(__tmp_dir+"/ldtest/dump-big", {resetProgress: 1});
 
-EXPECT_OUTPUT_CONTAINS("test@primer-dataset-id@1.tsv.zstd: Records:");
+EXPECT_OUTPUT_CONTAINS("test@primer-dataset-id@1.tsv.zst: Records:");
 EXPECT_OUTPUT_CONTAINS("Executing DDL script for ");
 
 // cleanup

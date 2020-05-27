@@ -11,9 +11,7 @@ dba.configureLocalInstance("root:root@localhost:" + __mysql_sandbox_port1, {clus
 
 session.close();
 
-testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum", "CRC32");
-// TODO(.) - changing the binlog_format will cause the createCluster to fail because of bug #27112727
-// testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format", "MIXED");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format", "MIXED");
 
 testutil.restartSandbox(__mysql_sandbox_port1);
 
@@ -79,8 +77,8 @@ session.close();
 // switch back to cluster admin
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'ca', password: 'ca'});
 
-testutil.removeFromSandboxConf(__mysql_sandbox_port1, "binlog_checksum");
-session.runSql("SET GLOBAL binlog_checksum='NONE'");
+testutil.removeFromSandboxConf(__mysql_sandbox_port1, "binlog_format");
+session.runSql("SET GLOBAL binlog_format='ROW'");
 
 //@ Create cluster succeeds (no incompatible table)
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION

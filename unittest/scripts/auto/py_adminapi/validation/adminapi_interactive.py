@@ -64,6 +64,7 @@ Checking instance configuration...
 Configuration file <<<__sandbox1_cnf_path>>> will also be checked.
 
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.21)}
 +-----------------+---------------+----------------+------------------------------------------------+
 | Variable        | Current Value | Required Value | Note                                           |
 +-----------------+---------------+----------------+------------------------------------------------+
@@ -98,6 +99,36 @@ NOTE: Please use the dba.configure_instance() command to repair these issues.
     ],
     "status": "error"
 }
+?{}
+?{VER(>=8.0.21)}
++-----------+---------------+----------------+-----------------------------------------------+
+| Variable  | Current Value | Required Value | Note                                          |
++-----------+---------------+----------------+-----------------------------------------------+
+| gtid_mode | OFF           | ON             | Update the config file and restart the server |
+| server_id | 0             | <unique ID>    | Update the config file and restart the server |
++-----------+---------------+----------------+-----------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+NOTE: Please use the dba.configure_instance() command to repair these issues.
+
+{
+    "config_errors": [
+        {
+            "action": "config_update+restart",
+            "current": "OFF",
+            "option": "gtid_mode",
+            "required": "ON"
+        },
+        {
+            "action": "config_update+restart",
+            "current": "0",
+            "option": "server_id",
+            "required": "<unique ID>"
+        }
+    ],
+    "status": "error"
+}
+?{}
 
 #@<OUT> check_instance_configuration() - instance valid for cluster usage 2 {VER(<8.0.11)}
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
@@ -188,6 +219,7 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 Assuming full account name 'myAdmin'@'%' for myAdmin
 
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.21)}
 +-----------------+---------------+----------------+------------------------------------------------+
 | Variable        | Current Value | Required Value | Note                                           |
 +-----------------+---------------+----------------+------------------------------------------------+
@@ -202,6 +234,22 @@ Cluster admin user 'myAdmin'@'%' created.
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
+?{}
+?{VER(>=8.0.21)}
++-----------+---------------+----------------+-----------------------------------------------+
+| Variable  | Current Value | Required Value | Note                                          |
++-----------+---------------+----------------+-----------------------------------------------+
+| gtid_mode | OFF           | ON             | Update the config file and restart the server |
+| server_id | 0             | <unique ID>    | Update the config file and restart the server |
++-----------+---------------+----------------+-----------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
+Cluster admin user 'myAdmin'@'%' created.
+Configuring instance...
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
+?{}
 
 #@<OUT> configure_instance() - instance not valid for cluster usage {VER(<8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...

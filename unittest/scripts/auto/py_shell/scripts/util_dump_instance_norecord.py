@@ -501,8 +501,8 @@ EXPECT_SUCCESS([test_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: Could not select a column to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_non_unique))
 EXPECT_STDOUT_CONTAINS("WARNING: Could not select a column to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_no_index))
 
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".tsv.zstd")))
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".tsv.zstd")))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".tsv.zst")))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".tsv.zst")))
 
 # WL13807: WL13804-FR5.2.2 - If the `chunking` option is set to `true` and the `indexColumn` option is not set to an empty string or the index column can be selected automatically as described in 5.1.1, the data must to written to multiple dump files. The data is partitioned into chunks using values from index column.
 # WL13807-TSFR_3_522_1
@@ -657,12 +657,12 @@ EXPECT_FAIL("ArgumentError", "The option 'compression' cannot be set to an empty
 EXPECT_FAIL("ArgumentError", "Unknown compression type: dummy", test_output_relative, { "compression": "dummy" })
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "compression": "zstd", "chunking": False, "showProgress": False })
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.zstd")))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.zst")))
 
 #@<> WL13807: WL13804-FR5.7.2 - If the `compression` option is not given, a default value of `"gzip"` must be used instead.
 # WL13807-TSFR_3_572_1
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "chunking": False, "showProgress": False })
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.zstd")))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.zst")))
 
 #@<> WL13807: WL13804-FR5.8 - The `options` dictionary may contain a `osBucketName` key with a string value, which specifies the OCI bucket name where the data dump files are going to be stored.
 # WL13807-TSFR_3_58
@@ -783,13 +783,13 @@ TEST_BOOL_OPTION("ddlOnly")
 # WL13807-FR4.7.1 - If the `ddlOnly` option is set to `true`, only the DDL files must be written.
 # WL13807-TSFR4_20
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
-EXPECT_EQ(0, count_files_with_extension(test_output_absolute, ".zstd"))
+EXPECT_EQ(0, count_files_with_extension(test_output_absolute, ".zst"))
 EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".sql"))
 
 #@<> WL13807-FR4.7.2 - If the `ddlOnly` option is not given, a default value of `false` must be used instead.
 # WL13807-TSFR4_19
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "showProgress": False })
-EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".zstd"))
+EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".zst"))
 EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".sql"))
 
 #@<> WL13807-FR4.8 - The `options` dictionary may contain a `dataOnly` key with a Boolean value, which specifies whether the DDL files should be written.
@@ -799,7 +799,7 @@ TEST_BOOL_OPTION("dataOnly")
 # WL13807-FR4.8.1 - If the `dataOnly` option is set to `true`, only the data dump files must be written.
 # WL13807-TSFR4_23
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "dataOnly": True, "showProgress": False })
-EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".zstd"))
+EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".zst"))
 # WL13807-TSFR9_2
 # WL13807-TSFR10_2
 # WL13807-TSFR11_2
@@ -812,7 +812,7 @@ EXPECT_FAIL("ArgumentError", "The 'ddlOnly' and 'dataOnly' options cannot be bot
 #@<> WL13807-FR4.8.3 - If the `dataOnly` option is not given, a default value of `false` must be used instead.
 # WL13807-TSFR4_22
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "showProgress": False })
-EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".zstd"))
+EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".zst"))
 EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".sql"))
 
 #@<> WL13807-FR4.9 - The `options` dictionary may contain a `dryRun` key with a Boolean value, which specifies whether a dry run should be performed.
@@ -1093,23 +1093,16 @@ if __version_num < 80000:
 
 EXPECT_STDOUT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, "FILE"))
 
-EXPECT_STDOUT_CONTAINS("ERROR: Database {0} uses unsupported character set latin1".format(incompatible_schema))
-
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported charset: latin1".format(incompatible_schema, incompatible_table_data_directory))
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_data_directory))
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported charset: latin1".format(incompatible_schema, incompatible_table_encryption))
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had ENCRYPTION table option commented out".format(incompatible_schema, incompatible_table_encryption))
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported charset: latin1".format(incompatible_schema, incompatible_table_index_directory))
 if __version_num < 80000 and __os_type != "windows":
     EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_index_directory))
 EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM".format(incompatible_schema, incompatible_table_index_directory))
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported charset: latin1".format(incompatible_schema, incompatible_table_tablespace))
 EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported tablespace option".format(incompatible_schema, incompatible_table_tablespace))
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported charset: latin1".format(incompatible_schema, incompatible_table_wrong_engine))
 EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM".format(incompatible_schema, incompatible_table_wrong_engine))
 
 EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version))

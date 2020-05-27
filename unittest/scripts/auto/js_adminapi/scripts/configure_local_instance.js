@@ -112,8 +112,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //@ deploy sandbox, change dynamic variable values on the configuration and make it read-only (BUG#27702439)
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname}, {createRemoteRoot:false});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_checksum",
-    "CRC32");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format", "STATEMENT");
 var mycnf_path = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 testutil.makeFileReadOnly(mycnf_path);
 

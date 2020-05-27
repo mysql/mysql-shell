@@ -15,8 +15,8 @@ var check_instance_sql = [
 var configure_instance_sql = [
     "select @@port, @@datadir",
     "SELECT DISTINCT grantee FROM information_schema.user_privileges WHERE grantee like",
-    "show GLOBAL variables where `variable_name` in ('binlog_checksum')",
-    "SET * `binlog_checksum` = 'NONE'"
+    "show GLOBAL variables where `variable_name` in ('binlog_format')",
+    "SET * `binlog_format` = 'ROW'"
 ];
 
 var create_cluster_sql = [
@@ -152,7 +152,7 @@ shell.connect(__sandbox_uri1);
 
 //@<> WL#13294: set some configuration incorrectly (that can be fixed without restart) (dba.logSql = 0).
 session.runSql("SET sql_log_bin=0");
-session.runSql("SET GLOBAL binlog_checksum = CRC32");
+session.runSql("SET GLOBAL binlog_format = STATEMENT");
 session.runSql("SET sql_log_bin=1");
 
 //@<> WL#13294: check instance (dba.logSql = 0).
@@ -375,7 +375,7 @@ shell.connect(__sandbox_uri1);
 
 //@<> WL#13294: set some configuration incorrectly (that can be fixed without restart) (dba.logSql = 1).
 session.runSql("SET sql_log_bin=0");
-session.runSql("SET GLOBAL binlog_checksum = CRC32");
+session.runSql("SET GLOBAL binlog_format = STATEMENT");
 session.runSql("SET sql_log_bin=1");
 
 //@<> WL#13294: check instance (dba.logSql = 1).
@@ -599,7 +599,7 @@ shell.connect(__sandbox_uri1);
 
 //@<> WL#13294: set some configuration incorrectly (that can be fixed without restart) (dba.logSql = 2).
 session.runSql("SET sql_log_bin=0");
-session.runSql("SET GLOBAL binlog_checksum = CRC32");
+session.runSql("SET GLOBAL binlog_format = STATEMENT");
 session.runSql("SET sql_log_bin=1");
 
 //@<> WL#13294: check instance (dba.logSql = 2).

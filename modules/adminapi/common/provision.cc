@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -252,7 +252,7 @@ std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
                                                 &invalid_cfgs_vec);
   // validate rest of server variables required for gr
   mysqlshdk::mysql::check_server_variables_compatibility(
-      config, cluster_type == Cluster_type::GROUP_REPLICATION,
+      instance, config, cluster_type == Cluster_type::GROUP_REPLICATION,
       &invalid_cfgs_vec);
 
   // NOTE: The order in the invalid_cfgs_vec is important since this vector

@@ -17,8 +17,7 @@ Checking instance configuration...
 NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
-+--------------------------+---------------+----------------+--------------------------------------------------+
-| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |
++--------------------------+---------------+----------------+--------------------------------------------------+<<<(__version_num<80021) ?  "\n| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |\n":"">>>
 | enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
@@ -29,12 +28,14 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 {
     "config_errors": [
+?{VER(<8.0.21)}
         {
             "action": "server_update",
             "current": "CRC32",
             "option": "binlog_checksum",
             "required": "NONE"
         },
+?{}
         {
             "action": "server_update+restart",
             "current": "OFF",
@@ -63,8 +64,7 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
-+--------------------------+---------------+----------------+--------------------------------------------------+
-| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |
++--------------------------+---------------+----------------+--------------------------------------------------+<<<(__version_num<80021) ?  "\n| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |\n":"">>>
 | enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
@@ -121,6 +121,7 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.21)}
 +----------------------------------+---------------+----------------+------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                           |
 +----------------------------------+---------------+----------------+------------------------------------------------+
@@ -142,6 +143,29 @@ Remote configuration of the instance is not possible because options changed wit
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
+?{}
+?{VER(>=8.0.21)}
++----------------------------------+---------------+----------------+-----------------------------------------------+
+| Variable                         | Current Value | Required Value | Note                                          |
++----------------------------------+---------------+----------------+-----------------------------------------------+
+| binlog_format                    | <not set>     | ROW            | Update the config file                        |
+| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server |
+| gtid_mode                        | OFF           | ON             | Update the config file and restart the server |
+| log_slave_updates                | <not set>     | ON             | Update the config file                        |
+| master_info_repository           | <not set>     | TABLE          | Update the config file                        |
+| relay_log_info_repository        | <not set>     | TABLE          | Update the config file                        |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
+| server_id                        | 1             | <unique ID>    | Update the config file and restart the server |
+| transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file                        |
++----------------------------------+---------------+----------------+-----------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server: set persist support is disabled. Enable it or provide an option file.
+NOTE: persisted_globals_load option is OFF
+Remote configuration of the instance is not possible because options changed with SET PERSIST will not be loaded, unless 'persisted_globals_load' is set to ON.
+Configuring instance...
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
+?{}
 
 //@ FR2_2 TEARDOWN {VER(>=8.0.11)}
 ||
@@ -253,8 +277,7 @@ Please select an option [1]:
 NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
-+--------------------------+---------------+----------------+--------------------------------------------------+
-| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |
++--------------------------+---------------+----------------+--------------------------------------------------+<<<(__version_num<80021) ?  "\n| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |\n":"">>>
 | enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
@@ -298,8 +321,7 @@ Password for new account: Confirm password:
 NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
-+--------------------------+---------------+----------------+--------------------------------------------------+
-| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |
++--------------------------+---------------+----------------+--------------------------------------------------+<<<(__version_num<80021) ?  "\n| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |\n":"">>>
 | enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |

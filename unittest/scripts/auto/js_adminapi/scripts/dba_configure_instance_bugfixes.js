@@ -100,3 +100,12 @@ c = dba.configureInstance();
 EXPECT_STDERR_EMPTY();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@<> dba.configureInstance does not require binlog_checksum to be NONE BUG#31329024 {VER(>= 8.0.21)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, binlog_checksum: "CRC32"});
+shell.connect(__sandbox_uri1);
+c = dba.configureInstance(__sandbox_uri1);
+// does not contain output about binlog_checksum on the configuration table
+EXPECT_STDOUT_NOT_CONTAINS("| binlog_checksum | CRC32         | NONE           | Update the server variable and the config file |");
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);

@@ -219,12 +219,6 @@ class Schema_dumper {
                                 const std::string &object,
                                 const std::string &name, std::string *ddl,
                                 std::vector<Issue> *issues);
-  void check_objects_charsets(const std::string &db, const std::string &object,
-                              const std::string &name,
-                              const std::string &client_charset,
-                              const std::string &conn_collation,
-                              std::vector<Issue> *issues,
-                              const std::string &ddl = "");
 
   std::vector<Issue> get_table_structure(
       IFile *sql_file, const std::string &table, const std::string &db,

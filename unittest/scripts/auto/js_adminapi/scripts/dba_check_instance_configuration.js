@@ -81,6 +81,14 @@ dba.configureInstance(__sandbox_uri1, {clusterAdmin: "'admin'@'"+ ip_mask + "/25
 var cluster_admin_uri= "mysql://admin:pwd@" + hostname_ip + ":" + __mysql_sandbox_port1;
 shell.connect(cluster_admin_uri);
 c = dba.checkInstanceConfiguration();
-EXPECT_STDERR_EMPTY();
+EXPECT_STDOUT_CONTAINS("Instance configuration is compatible with InnoDB cluster");
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+
+//@<> dba.checkInstanceConfiguration does not complain if server uses binlog_checksum BUG#31329024 {VER(>= 8.0.21)}
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, binlog_checksum: "CRC32"});
+shell.connect(__sandbox_uri1);
+c = dba.checkInstanceConfiguration();
+EXPECT_STDOUT_CONTAINS("Instance configuration is compatible with InnoDB cluster");
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

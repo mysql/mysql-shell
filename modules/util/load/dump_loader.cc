@@ -1450,8 +1450,8 @@ void Dump_loader::execute_tasks() {
 
       if (m_dump->status() == Dump_reader::Status::COMPLETE) {
         m_progress->total(m_dump->total_data_size());
-        update_progress();
       }
+      update_progress();
     }
 
     if (!m_init_done) {
@@ -1528,6 +1528,7 @@ bool Dump_loader::wait_for_more_data() {
 
       if (!waited) {
         console->print_status("Waiting for more data to become available...");
+        update_progress();
       }
       waited = true;
       // wait for at most 5s and try again
