@@ -1071,7 +1071,8 @@ EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first. You can check for potential upgrade issues using util.check_for_server_upgrade().")
 
-EXPECT_STDOUT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, test_privilege))
+# BUG#31403104: 'user' is false by default for dump_schemas(), so information about the user accounts should not be included
+EXPECT_STDOUT_NOT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, test_privilege))
 
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_data_directory))
 
@@ -1086,6 +1087,13 @@ EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported tablespace opt
 EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM".format(incompatible_schema, incompatible_table_wrong_engine))
 
 EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version))
+
+#@<> BUG#31403104: test combination of various options
+EXPECT_FAIL("RuntimeError", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "users": True })
+EXPECT_STDOUT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, test_privilege))
+
+# compatibility checks are enabled, but SQL is not dumped, this should succeed
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ocimds": True, "dataOnly": True, "showProgress": False })
 
 #@<> WL13807-FR16.1.2 - If the `ocimds` option is not given, a default value of `false` must be used instead.
 # WL13807-TSFR16_2
