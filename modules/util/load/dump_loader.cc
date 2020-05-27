@@ -1215,6 +1215,38 @@ void Dump_loader::check_server_version() {
                            " does not support it.");
 }
 
+void Dump_loader::check_tables_without_primary_key() {
+  if (!m_options.load_ddl() ||
+      m_target_server_version < mysqlshdk::utils::Version(8, 0, 13))
+    return;
+  if (m_session->query("show variables like 'sql_require_primary_key';")
+          ->fetch_one()
+          ->get_string(1) != "ON")
+    return;
+
+  std::string tbs;
+  for (const auto &s : m_dump->tables_without_pk())
+    tbs += "schema " + shcore::quote_identifier(s.first) + ": " +
+           shcore::str_join(s.second, ", ") + "\n";
+
+  if (!tbs.empty()) {
+    const auto error_msg = shcore::str_format(
+        "The sql_require_primary_key option is enabled at the destination "
+        "server and one or more tables without a Primary Key were found in "
+        "the dump:\n%s\n"
+        "You must do one of the following to be able to load this dump:\n"
+        "- Add a Primary Key to the tables where it's missing\n"
+        "- Use the \"excludeTables\" option to load the dump without those "
+        "tables\n"
+        "- Disable the sql_require_primary_key sysvar at the server (note "
+        "that the underlying reason for the option to be enabled may still "
+        "prevent your database from functioning properly)",
+        tbs.c_str());
+    current_console()->print_error(error_msg);
+    throw shcore::Exception::runtime_error(error_msg);
+  }
+}
+
 namespace {
 std::vector<std::string> fetch_names(mysqlshdk::db::IResult *result) {
   std::vector<std::string> names;
@@ -1440,6 +1472,8 @@ void Dump_loader::execute_tasks() {
   setup_progress(&m_resuming);
 
   if (!m_resuming && m_options.load_ddl()) check_existing_objects();
+
+  check_tables_without_primary_key();
 
   size_t num_idle_workers = 0;
 

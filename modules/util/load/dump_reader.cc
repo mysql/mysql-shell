@@ -222,6 +222,22 @@ const std::vector<std::string> &Dump_reader::deferred_schema_fks(
   return s->fk_queries;
 }
 
+const std::map<std::string, std::vector<std::string>>
+Dump_reader::tables_without_pk() const {
+  std::map<std::string, std::vector<std::string>> res;
+  for (const auto &s : m_contents.schemas) {
+    std::vector<std::string> tables;
+    for (const auto &t : s.second->tables)
+      if (t.second->primary_index.empty())
+        tables.emplace_back(shcore::quote_identifier(t.first));
+    if (!tables.empty()) {
+      std::sort(tables.begin(), tables.end());
+      res.emplace(s.first, tables);
+    }
+  }
+  return res;
+}
+
 std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
   std::string script;
 
@@ -496,6 +512,10 @@ void Dump_reader::Table_info::rescan(
       if (options) {
         // Not used by chunk importer
         options->erase("compression");
+        if (options->has_key("primaryIndex")) {
+          primary_index = options->get_string("primaryIndex");
+          options->erase("primaryIndex");
+        }
 
         // chunk importer uses characterSet instead of defaultCharacterSet
         if (options->has_key("defaultCharacterSet")) {
@@ -685,6 +705,21 @@ void Dump_reader::Schema_info::rescan(
         }
         log_debug("%s has %zi views", schema.c_str(), views.size());
       }
+
+      const auto to_vector_of_strings = [](const shcore::Array_t &arr) {
+        std::vector<std::string> res;
+        for (const auto &s : *arr) res.emplace_back(s.as_string());
+        return res;
+      };
+
+      if (md->has_key("functions"))
+        function_names = to_vector_of_strings(md->get_array("functions"));
+
+      if (md->has_key("procedures"))
+        procedure_names = to_vector_of_strings(md->get_array("procedures"));
+
+      if (md->has_key("events"))
+        event_names = to_vector_of_strings(md->get_array("events"));
     }
   }
 
