@@ -1,55 +1,5 @@
 //@ {!real_host_is_loopback}
 
-//@<> Auxiliary Functions from devapi setup.js
-function wait(timeout, wait_interval, condition){
-  waiting = 0;
-  res = condition();
-  while(!res && waiting < timeout) {
-    os.sleep(wait_interval);
-    waiting = waiting + 1;
-    res = condition();
-  }
-  return res;
-}
-
-function cleanup_sandbox(port) {
-    println ('Stopping the sandbox at ' + port + ' to delete it...');
-    try {
-      stop_options = {}
-      stop_options['password'] = 'root';
-      if (__sandbox_dir != '')
-        stop_options['sandboxDir'] = __sandbox_dir;
-
-      dba.stopSandboxInstance(port, stop_options);
-    } catch (err) {
-      println(err.message);
-    }
-
-    options = {}
-    if (__sandbox_dir != '')
-      options['sandboxDir'] = __sandbox_dir;
-
-    var deleted = false;
-
-    print('Try deleting sandbox at: ' + port);
-    deleted = wait(10, 1, function() {
-      try {
-        dba.deleteSandboxInstance(port, options);
-
-        println(' succeeded');
-        return true;
-      } catch (err) {
-        println(' failed: ' + err.message);
-        return false;
-      }
-    });
-    if (deleted) {
-      println('Delete succeeded at: ' + port);
-    } else {
-      println('Delete failed at: ' + port);
-    }
-}
-
 // -------------------------------------------------------------------------------------
 // BUG#27329079 - CREATE CLUSTER NOT POSSIBLE IF SERVER STARTED WITH INNODB_PAGE_SIZE=4K
 // -------------------------------------------------------------------------------------

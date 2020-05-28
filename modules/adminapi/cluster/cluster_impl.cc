@@ -336,6 +336,34 @@ mysqlshdk::db::Connection_options Cluster_impl::pick_seed_instance() const {
   }
 }
 
+void Cluster_impl::validate_variable_compatibility(
+    const mysqlshdk::mysql::IInstance &target_instance,
+    const std::string &var_name) const {
+  auto cluster_inst = get_target_server();
+  auto instance_val = target_instance.get_sysvar_string(var_name).get_safe();
+  auto cluster_val = cluster_inst->get_sysvar_string(var_name).get_safe();
+  std::string instance_address =
+      target_instance.get_connection_options().as_uri(
+          mysqlshdk::db::uri::formats::only_transport());
+  log_info(
+      "Validating if '%s' variable has the same value on target instance '%s' "
+      "as it does on the cluster.",
+      var_name.c_str(), instance_address.c_str());
+  // If values are different between cluster and target instance throw an
+  // exception.
+  if (instance_val != cluster_val) {
+    auto console = mysqlsh::current_console();
+    console->print_error(shcore::str_format(
+        "Cannot join instance '%s' to cluster: incompatible '%s' value.",
+        instance_address.c_str(), var_name.c_str()));
+    throw shcore::Exception::runtime_error(
+        shcore::str_format("The '%s' value '%s' of the instance '%s' is "
+                           "different from the value of the cluster '%s'.",
+                           var_name.c_str(), instance_val.c_str(),
+                           instance_address.c_str(), cluster_val.c_str()));
+  }
+}
+
 /**
  * Get an up-to-date group seeds value based on the current list of active
  * members.
@@ -1032,6 +1060,20 @@ void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
   // cluster BUG#29953812: ADD_INSTANCE() PICKY ABOUT GTID_EXECUTED,
   // REJOIN_INSTANCE() NOT: DATA NOT COPIED
   validate_rejoin_gtid_consistency(*instance);
+
+  // Validate that the default_table_encryption and
+  // group_replication_gtid_assignment_block_size variables have the same value
+  // on the target_instance as they have on the cluster.
+
+  // The default_table_encryption is a dynamic variable, so we validate it on
+  // the add_instance and on the rejoin operation.
+  if (get_lowest_instance_version() >= mysqlshdk::utils::Version(8, 0, 16) &&
+      instance->get_version() >= mysqlshdk::utils::Version(8, 0, 16)) {
+    validate_variable_compatibility(*instance, "default_table_encryption");
+  }
+
+  validate_variable_compatibility(
+      *instance, "group_replication_gtid_assignment_block_size");
 
   // In order to be able to rejoin the instance to the cluster we need the seed
   // instance.

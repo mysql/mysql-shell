@@ -158,6 +158,7 @@ class Add_instance : public Command_interface {
   void ensure_unique_server_id() const;
   void handle_recovery_account() const;
   void update_change_master() const;
+  void check_cluster_members_limit() const;
 
   void refresh_target_connections();
 

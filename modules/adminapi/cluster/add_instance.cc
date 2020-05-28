@@ -373,7 +373,23 @@ void Add_instance::handle_clone_plugin_state(bool enable_clone) {
   m_cluster->setup_clone_plugin(enable_clone);
 }
 
+void Add_instance::check_cluster_members_limit() const {
+  const std::vector<Instance_metadata> all_instances =
+      m_cluster->get_metadata_storage()->get_all_instances(m_cluster->get_id());
+
+  if (all_instances.size() >= mysqlsh::dba::k_group_replication_members_limit) {
+    auto console = mysqlsh::current_console();
+    console->print_error("Cannot join instance '" + m_instance_address +
+                         "' to cluster: InnoDB Cluster maximum limit of 9 "
+                         "members has been reached.");
+    throw shcore::Exception::runtime_error(
+        "InnoDB Cluster already has the maximum number of 9 members.");
+  }
+}
+
 void Add_instance::prepare() {
+  check_cluster_members_limit();
+
   // Connect to the target instance (if needed).
   if (!m_reuse_session_for_target_instance) {
     // Get instance user information from the cluster session if missing.
@@ -458,6 +474,28 @@ void Add_instance::prepare() {
 
     // Resolve the SSL Mode to use to configure the instance.
     resolve_ssl_mode();
+
+    // Validate the lower_case_table_names and default_table_encryption
+    // variables. Their values must be the same on the target instance as they
+    // are on the cluster.
+
+    // The lower_case_table_names can only be set the first time the server
+    // boots, as such there is no need to validate it other than the first time
+    // the instance is added to the cluster.
+    m_cluster->validate_variable_compatibility(*m_target_instance,
+                                               "lower_case_table_names");
+
+    // The default_table_encryption is a dynamic variable, so we validate it on
+    // the add_instance and on the rejoin operation. The reboot operation does a
+    // rejoin in the background, so running the check on the rejoin will cover
+    // both operations.
+    if (m_cluster->get_lowest_instance_version() >=
+            mysqlshdk::utils::Version(8, 0, 16) &&
+        m_target_instance->get_version() >=
+            mysqlshdk::utils::Version(8, 0, 16)) {
+      m_cluster->validate_variable_compatibility(*m_target_instance,
+                                                 "default_table_encryption");
+    }
   }
 
   // Make sure the target instance does not already belong to a cluster.
@@ -753,11 +791,18 @@ shcore::Value Add_instance::execute() {
   //       Disable read-only temporarily to install the plugin if needed.
   mysqlshdk::gr::install_group_replication_plugin(*m_target_instance, nullptr);
 
-  // Handle GR protocol version.
   // TODO(pjesus): remove the 'if (!m_rebooting)' for refactor of reboot
   //               cluster (WL#11561), i.e. always execute code inside, not
   //               supposed to use Add_instance operation anymore.
   if (!m_rebooting) {
+    // Validate group_replication_gtid_assignment_block_size. Its value must be
+    // the same on the instance as it is on the cluster but can only be checked
+    // after the GR plugin is installed. This check is also done on the rejoin
+    // operation which covers the rejoin and rebootCluster operations.
+    m_cluster->validate_variable_compatibility(
+        *m_target_instance, "group_replication_gtid_assignment_block_size");
+
+    // Handle GR protocol version.
     handle_gr_protocol_version();
   }
 

@@ -262,6 +262,18 @@ class Cluster_impl : public Base_cluster_impl {
    */
   mysqlshdk::db::Connection_options pick_seed_instance() const;
 
+  /**
+   * Validate the value of var_name variable on the target instance to see if it
+   * is compatible with the value used on the cluster. An exception is thrown in
+   * case the values are different.
+   *
+   * @param target_instance Target instance rejoining the cluster
+   * @param var_name name of the variable to check
+   */
+  void validate_variable_compatibility(
+      const mysqlshdk::mysql::IInstance &target_instance,
+      const std::string &var_name) const;
+
   std::string get_cluster_group_seeds(
       const std::shared_ptr<Instance> &target_instance = nullptr) const;
 
