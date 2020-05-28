@@ -1105,7 +1105,7 @@ void Dumper::lock_instance() const {
 }
 
 void Dumper::validate_mds() const {
-  if (mds_compatibility()) {
+  if (mds_compatibility() && should_dump_ddl()) {
     const auto console = current_console();
     const auto version = mds_compatibility()->get_base();
 
@@ -1139,7 +1139,9 @@ void Dumper::validate_mds() const {
 
     const auto dumper = schema_dumper(session());
 
-    issues(dump_users(dumper.get()));
+    if (dump_users()) {
+      issues(dump_users(dumper.get()));
+    }
 
     for (const auto &schema : m_schema_tasks) {
       issues(dump_schema(dumper.get(), schema.name));
