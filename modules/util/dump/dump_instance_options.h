@@ -49,12 +49,15 @@ class Dump_instance_options : public Dump_schemas_options {
     return m_excluded_schemas;
   }
 
+  bool dump_users() const { return m_dump_users; }
+
  private:
   void unpack_options(shcore::Option_unpacker *unpacker) override;
 
   void validate_options() const override;
 
   std::unordered_set<std::string> m_excluded_schemas;
+  bool m_dump_users = true;
 };
 
 }  // namespace dump

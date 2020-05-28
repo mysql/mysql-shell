@@ -32,13 +32,14 @@ namespace mysqlsh {
 namespace dump {
 
 Dump_instance_options::Dump_instance_options(const std::string &output_dir)
-    : Dump_schemas_options(output_dir, true) {}
+    : Dump_schemas_options(output_dir) {}
 
 void Dump_instance_options::unpack_options(shcore::Option_unpacker *unpacker) {
   Dump_schemas_options::unpack_options(unpacker);
 
   std::vector<std::string> schemas;
-  unpacker->optional("excludeSchemas", &schemas);
+  unpacker->optional("excludeSchemas", &schemas)
+      .optional("users", &m_dump_users);
 
   for (auto &schema : schemas) {
     m_excluded_schemas.emplace(std::move(schema));

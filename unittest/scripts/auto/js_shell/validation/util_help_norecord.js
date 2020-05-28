@@ -413,8 +413,6 @@ DESCRIPTION
 
       - excludeTables: list of strings (default: empty) - List of tables to be
         excluded from the dump in the format of schema.table.
-      - users: bool (default: false) - Include users, roles and grants in the
-        dump file.
       - events: bool (default: true) - Include events from each dumped schema.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.

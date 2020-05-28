@@ -57,7 +57,7 @@ class Dump_schemas_options : public Ddl_dumper_options {
   }
 
  protected:
-  Dump_schemas_options(const std::string &output_dir, bool users);
+  explicit Dump_schemas_options(const std::string &output_dir);
 
   void unpack_options(shcore::Option_unpacker *unpacker) override;
 

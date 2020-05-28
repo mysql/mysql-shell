@@ -32,12 +32,11 @@ namespace dump {
 
 Dump_schemas_options::Dump_schemas_options(
     const std::vector<std::string> &schemas, const std::string &output_dir)
-    : Ddl_dumper_options(output_dir, false),
+    : Ddl_dumper_options(output_dir),
       m_schemas(schemas.begin(), schemas.end()) {}
 
-Dump_schemas_options::Dump_schemas_options(const std::string &output_dir,
-                                           bool users)
-    : Ddl_dumper_options(output_dir, users) {}
+Dump_schemas_options::Dump_schemas_options(const std::string &output_dir)
+    : Ddl_dumper_options(output_dir) {}
 
 void Dump_schemas_options::unpack_options(shcore::Option_unpacker *unpacker) {
   Ddl_dumper_options::unpack_options(unpacker);

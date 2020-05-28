@@ -1739,8 +1739,6 @@ ${TOPIC_UTIL_DUMP_COMMON_PARAMETERS_DESCRIPTION}
 
 <b>The following options are supported:</b>
 ${TOPIC_UTIL_DUMP_COMMON_OPTIONS}
-@li <b>users</b>: bool (default: false) - Include users, roles and grants in the
-dump file.
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}

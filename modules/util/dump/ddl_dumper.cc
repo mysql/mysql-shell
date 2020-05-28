@@ -45,8 +45,6 @@ bool Ddl_dumper::dump_routines() const { return m_options.dump_routines(); }
 
 bool Ddl_dumper::dump_triggers() const { return m_options.dump_triggers(); }
 
-bool Ddl_dumper::dump_users() const { return m_options.dump_users(); }
-
 const mysqlshdk::utils::nullable<mysqlshdk::utils::Version>
     &Ddl_dumper::mds_compatibility() const {
   return m_options.mds_compatibility();
