@@ -718,7 +718,27 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   session->execute(
       "GRANT INSERT,SUPER,FILE,LOCK TABLES , reload, "
       "SELECT ON * . * TO 'abr@dab'@'localhost';");
-  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 0)) {
+  std::string partial_revoke = "ON";
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
+    partial_revoke = session->query("show variables like 'partial_revokes';")
+                         ->fetch_one()
+                         ->get_string(1);
+    if (partial_revoke != "ON")
+      session->execute("set global partial_revokes = 'ON';");
+    session->execute("CREATE USER IF NOT EXISTS `dave`@`%`");
+    session->execute(
+        "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, PROCESS, "
+        "REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, "
+        "LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE "
+        "VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, "
+        "TRIGGER, CREATE ROLE, DROP ROLE ON *.* TO `dave`@`%`");
+    session->execute(
+        "REVOKE SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, PROCESS, "
+        "REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, "
+        "LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE "
+        "VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, "
+        "TRIGGER, CREATE ROLE, DROP ROLE ON `mysql`.* FROM `dave`@`%`");
+
     session->execute("CREATE ROLE IF NOT EXISTS da_dumper");
     session->execute(
         "GRANT INSERT, BINLOG_ADMIN, UPDATE, ROLE_ADMIN, DELETE ON * . * TO "
@@ -737,7 +757,7 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   file->close();
   auto out = testutil->cat_file(file_path);
 
-  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 0)) {
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
     EXPECT_NE(
         std::string::npos,
         out.find(
@@ -757,6 +777,14 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
         out.find("GRANT INSERT, UPDATE, DELETE ON *.* TO `da_dumper`@`%`;"));
     EXPECT_NE(std::string::npos,
               out.find("GRANT `da_dumper`@`%` TO `dumptestuser`@`localhost`;"));
+    EXPECT_NE(
+        std::string::npos,
+        out.find(
+            "REVOKE SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, PROCESS, "
+            "REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY "
+            "TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION "
+            "CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, "
+            "CREATE USER, EVENT, TRIGGER ON `mysql`.* FROM `dave`@`%`;"));
   }
 
   EXPECT_NE(std::string::npos,
@@ -764,7 +792,7 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   EXPECT_NE(std::string::npos, out.find("-- begin user abr@dab@localhost"));
   EXPECT_NE(std::string::npos,
             out.find("ALTER USER 'dumptestuser'@'localhost'"));
-  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 0)) {
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
     EXPECT_NE(std::string::npos,
               out.find("GRANT SELECT ON *.* TO `dumptestuser`@`localhost`"));
     EXPECT_NE(
@@ -806,8 +834,12 @@ GRANT SELECT, INSERT, LOCK TABLES ON *.* TO 'abr@dab'@'localhost';
   session->execute("drop user 'superonly'@'localhost';");
   session->execute("drop user 'dumptestuser'@'localhost';");
   session->execute("drop user 'abr@dab'@'localhost';");
-  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 0))
+  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
     session->execute("DROP ROLE da_dumper");
+    session->execute("DROP USER `dave`@`%`");
+    if (partial_revoke != "ON")
+      session->execute("set global partial_revokes = 'OFF';");
+  }
 }
 
 TEST_F(Schema_dumper_test, opt_mysqlaas) {

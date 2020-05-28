@@ -1350,9 +1350,8 @@ void Dump_loader::check_existing_objects() {
     } else {
       console->print_error(
           "One or more objects in the dump already exist in the destination "
-          "database. You must either DROP these objects, exclude them from "
-          "the load or enable the 'ignoreExistingObjects' option to ignore "
-          "these duplicates and load anyway.");
+          "database. You must either DROP these objects or exclude them from "
+          "the load.");
       throw std::runtime_error(
           "Duplicate objects found in destination database");
     }
