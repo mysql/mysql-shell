@@ -355,7 +355,7 @@ wipe_instance(session);
 //@<> Plain load of uncompressed dump
 // TSFR2_3 also use file:// 
 // also check progressFile option
-// also check that the defaultCharacterSet is taken from the dump file - TSFR14_4
+// also check that the characterSet is taken from the dump file - TSFR14_4
 session.runSql("set global character_set_server = 'sjis'");
 session.runSql("set global character_set_connection = 'sjis'");
 session.runSql("set global character_set_client = 'sjis'");
@@ -597,18 +597,18 @@ EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
 
-//@<> defaultCharacterSet:binary
+//@<> characterSet:latin1
 // TSFR14_1, TSFR14_3
-util.loadDump(__tmp_dir+"/ldtest/dump", {defaultCharacterSet: "binary"});
+util.loadDump(__tmp_dir+"/ldtest/dump", {characterSet: "latin1"});
 
 EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
 
-//@<> defaultCharacterSet:invalid (should fail)
+//@<> characterSet:invalid (should fail)
 // TSFR14_5
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {defaultCharacterSet: "bog\"`'us"})}, "Util.loadDump: Unknown character set: 'bog\"`'us'");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {characterSet: "bog\"`'us"})}, "Util.loadDump: Unknown character set: 'bog\"`'us'");
 EXPECT_OUTPUT_CONTAINS("ERROR: [Worker001] Error opening connection to MySQL: MySQL Error 1115 (42000): Unknown character set: 'bog\"`'us'");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");

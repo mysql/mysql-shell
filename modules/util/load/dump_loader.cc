@@ -169,15 +169,6 @@ bool Dump_loader::Worker::Load_chunk_task::execute(
 void Dump_loader::Worker::Load_chunk_task::load(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Dump_loader *loader) {
-  m_options->set("showProgress", shcore::Value::True());
-
-  // import table option for set character set is characterSet. Therefore, we
-  // need to rename defaultCharacterSet option to characterSet.
-  if (m_options->has_key("defaultCharacterSet")) {
-    m_options->set("characterSet", (*m_options)["defaultCharacterSet"]);
-    m_options->erase("defaultCharacterSet");
-  }
-
   import_table::Import_table_options import_options(m_options);
 
   // replace duplicate rows by default
@@ -830,6 +821,15 @@ bool Dump_loader::handle_table_data(Worker *worker) {
     }
     if (m_dump->next_table_chunk(tables_being_loaded, &schema, &table, &chunked,
                                  &index, &total, &data_file, &size, &options)) {
+      options->set("showProgress", m_options.show_progress()
+                                       ? shcore::Value::True()
+                                       : shcore::Value::False());
+
+      // Override characterSet if given in options
+      if (!m_options.character_set().empty()) {
+        options->set("characterSet", shcore::Value(m_options.character_set()));
+      }
+
       auto status =
           m_load_log->table_chunk_status(schema, table, chunked ? index : -1);
 
@@ -1429,7 +1429,7 @@ void Dump_loader::execute_tasks() {
     console->print_info("dryRun enabled, no changes will be made.");
 
   // Pick charset
-  m_character_set = m_options.default_character_set();
+  m_character_set = m_options.character_set();
   if (m_character_set.empty()) {
     m_character_set = m_dump->default_character_set();
   }

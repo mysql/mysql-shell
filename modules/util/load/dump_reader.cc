@@ -479,7 +479,7 @@ bool Dump_reader::Table_info::ready() const {
 
 void Dump_reader::Table_info::rescan(
     mysqlshdk::storage::IDirectory *dir,
-    const std::unordered_map<std::string, size_t> &files, Dump_reader *) {
+    const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
   // MD not included for tables if data is not dumped
   if (!md_seen) {
     // schema@table.json
@@ -493,7 +493,20 @@ void Dump_reader::Table_info::rescan(
 
       options = md->get_map("options");
 
-      if (options) options->erase("compression");
+      if (options) {
+        // Not used by chunk importer
+        options->erase("compression");
+
+        // chunk importer uses characterSet instead of defaultCharacterSet
+        if (options->has_key("defaultCharacterSet")) {
+          options->set("characterSet", options->at("defaultCharacterSet"));
+          options->erase("defaultCharacterSet");
+        } else {
+          // By default, we use the character set from the source DB
+          options->set("characterSet",
+                       shcore::Value(reader->default_character_set()));
+        }
+      }
 
       extension = md->get_string("extension", "tsv");
       chunked = md->get_bool("chunking", false);
