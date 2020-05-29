@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -231,6 +231,9 @@ IF(HAVE_PYTHON)
               PATTERN "lib/python${PYTHONLIBS_MAJOR_MINOR}/test" EXCLUDE)
     INSTALL(FILES "${BUNDLED_PYTHON_DIR}/include/${PYTHON_INCLUDE_DIR_NAME}/pyconfig.h"
             DESTINATION "${INSTALL_LIBDIR}/include/${PYTHON_INCLUDE_DIR_NAME}" COMPONENT main)
+
+    FILE(GLOB PYTHON_OPEN_SSL_LIBRARIES ${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/lib-dynload/_ssl*.so)
+    SET_BUNDLED_OPEN_SSL(${PYTHON_OPEN_SSL_LIBRARIES})
 
     # Copy to build dir to allow testing
     add_custom_command(TARGET mysqlsh POST_BUILD
