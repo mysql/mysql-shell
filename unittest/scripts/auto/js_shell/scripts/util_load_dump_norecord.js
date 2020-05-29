@@ -376,6 +376,12 @@ EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
 // TSFR10_2
 EXPECT_OUTPUT_CONTAINS("using 4 threads");
 
+// ensure all 4 threads did something
+EXPECT_OUTPUT_CONTAINS("[Worker000] ")
+EXPECT_OUTPUT_CONTAINS("[Worker001] ")
+EXPECT_OUTPUT_CONTAINS("[Worker002] ")
+EXPECT_OUTPUT_CONTAINS("[Worker003] ")
+
 testutil.rmfile(__tmp_dir+"/ldtest/dump-nogz/load-progress*");
 wipe_instance(session);
 

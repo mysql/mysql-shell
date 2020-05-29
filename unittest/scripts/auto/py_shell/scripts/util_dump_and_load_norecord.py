@@ -152,11 +152,11 @@ testutil.import_data(__sandbox_uri1, __data_path+"/sql/double_encoded_utf8mb4_wi
 
 # query as latin1 = OK
 session1.run_sql("SET NAMES latin1")
-shell.dump_rows(session1.run_sql("SELECT * FROM dblenc.client_latin1_table_utf8mb4"))
+shell.dump_rows(session1.run_sql("SELECT * FROM dblenc.client_latin1_table_utf8mb4"), "tabbed")
 
 # query as utf8mb4 = bakemoji
 session1.run_sql("SET NAMES utf8mb4")
-shell.dump_rows(session1.run_sql("SELECT * FROM dblenc.client_latin1_table_utf8mb4"))
+shell.dump_rows(session1.run_sql("SELECT * FROM dblenc.client_latin1_table_utf8mb4"), "tabbed")
 
 #@ Preserve double-encoding as latin1
 # Dump and load with defaults should leave the data double-encoded in the same way, so select output should be identical as long as client charsets is latin1 in both
@@ -167,7 +167,7 @@ util.load_dump(outdir+"/dblenc-defaults")
 
 # query as latin1 should be OK
 session2.run_sql("SET NAMES latin1")
-shell.dump_rows(session2.run_sql("SELECT * FROM dblenc.client_latin1_table_utf8mb4"))
+shell.dump_rows(session2.run_sql("SELECT * FROM dblenc.client_latin1_table_utf8mb4"), "tabbed")
 
 session2.run_sql("drop schema dblenc")
 
@@ -181,7 +181,7 @@ util.load_dump(outdir+"/dblenc-latin1", {"characterSet": "utf8mb4"})
 
 # query as utf8mb4 should be OK
 session2.run_sql("SET NAMES utf8mb4")
-shell.dump_rows(session2.run_sql("SELECT * FROM dblenc.client_latin1_table_utf8mb4"))
+shell.dump_rows(session2.run_sql("SELECT * FROM dblenc.client_latin1_table_utf8mb4"), "tabbed")
 
 
 #@<> Big blob in source, check max_allowed_packet in server and client

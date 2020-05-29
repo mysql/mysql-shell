@@ -313,7 +313,7 @@ schedule_chunk_proportionally(
   // pick a chunk from the table that has the biggest difference between both
   double best_diff = 0;
   std::unordered_set<Dump_reader::Table_info *>::iterator best =
-      tables_with_data->end();
+      tables_with_data->begin();
 
   for (const auto &cand : candidate_weights) {
     std::string key =
