@@ -1069,7 +1069,9 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
   log_debug("Connecting to target instance.");
   Scoped_instance target_server;
   try {
-    target_server = Scoped_instance(connect_target_instance(instance_def_));
+    // Do not print the ERROR message here (in connect_target_instance())
+    target_server =
+        Scoped_instance(connect_target_instance(instance_def_, false));
   } catch (const shcore::Exception &) {
     // Check if instance belongs to the replicaset (to send a more user-friendly
     // message to users)

@@ -159,7 +159,7 @@ void Base_cluster_impl::set_target_server(
 }
 
 std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
-    const std::string &instance_def) {
+    const std::string &instance_def, bool print_error) {
   assert(m_target_server);
 
   auto bad_target = []() {
@@ -211,8 +211,8 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
   try {
     return ipool->connect_unchecked(opts);
   }
-  CATCH_REPORT_AND_THROW_CONNECTION_ERROR(
-      Connection_options(instance_def).uri_endpoint())
+  CATCH_REPORT_AND_THROW_CONNECTION_ERROR_PRINT(
+      Connection_options(instance_def).uri_endpoint(), print_error)
 }
 
 shcore::Value Base_cluster_impl::list_routers(bool only_upgrade_required) {

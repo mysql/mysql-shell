@@ -75,23 +75,32 @@ inline void report_connection_error(const std::exception &e,
         mysqlsh::dba::detail::connection_error_msg(e, address));           \
   }
 
-#define CATCH_REPORT_AND_THROW_CONNECTION_ERROR(address)                   \
-  catch (const shcore::Exception &e) {                                     \
-    mysqlsh::dba::detail::report_connection_error(e, address);             \
-    throw shcore::Exception::error_with_code(                              \
-        e.type(), mysqlsh::dba::detail::connection_error_msg(e, address),  \
-        e.code());                                                         \
-  }                                                                        \
-  catch (const shcore::Error &e) {                                         \
-    mysqlsh::dba::detail::report_connection_error(e, address);             \
-    throw shcore::Exception::mysql_error_with_code(                        \
-        mysqlsh::dba::detail::connection_error_msg(e, address), e.code()); \
-  }                                                                        \
-  catch (const std::exception &e) {                                        \
-    mysqlsh::dba::detail::report_connection_error(e, address);             \
-    throw shcore::Exception::runtime_error(                                \
-        mysqlsh::dba::detail::connection_error_msg(e, address));           \
+#define CATCH_REPORT_AND_THROW_CONNECTION_ERROR_PRINT(address, print_error) \
+  catch (const shcore::Exception &e) {                                      \
+    if (print_error) {                                                      \
+      mysqlsh::dba::detail::report_connection_error(e, address);            \
+    }                                                                       \
+    throw shcore::Exception::error_with_code(                               \
+        e.type(), mysqlsh::dba::detail::connection_error_msg(e, address),   \
+        e.code());                                                          \
+  }                                                                         \
+  catch (const shcore::Error &e) {                                          \
+    if (print_error) {                                                      \
+      mysqlsh::dba::detail::report_connection_error(e, address);            \
+    }                                                                       \
+    throw shcore::Exception::mysql_error_with_code(                         \
+        mysqlsh::dba::detail::connection_error_msg(e, address), e.code());  \
+  }                                                                         \
+  catch (const std::exception &e) {                                         \
+    if (print_error) {                                                      \
+      mysqlsh::dba::detail::report_connection_error(e, address);            \
+    }                                                                       \
+    throw shcore::Exception::runtime_error(                                 \
+        mysqlsh::dba::detail::connection_error_msg(e, address));            \
   }
+
+#define CATCH_REPORT_AND_THROW_CONNECTION_ERROR(address) \
+  CATCH_REPORT_AND_THROW_CONNECTION_ERROR_PRINT(address, true)
 
 }  // namespace dba
 }  // namespace mysqlsh

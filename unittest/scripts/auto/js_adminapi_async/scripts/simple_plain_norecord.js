@@ -133,8 +133,6 @@ check_open_sessions(session2, expected_pids2);
 check_open_sessions(session3, expected_pids3);
 
 //@ removeInstance
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.removeInstance", rs.removeInstance, __sandbox_uri2);
-
 rs.removeInstance(__sandbox_uri2);
 
 check_open_sessions(session1, expected_pids1);
