@@ -25,6 +25,7 @@
 #define MODULES_UTIL_LOAD_DUMP_READER_H_
 
 #include <list>
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
@@ -91,6 +92,8 @@ class Dump_reader {
                              std::list<Name_and_file> *out_table_triggers);
   const std::vector<std::string> &deferred_schema_fks(
       const std::string &schema) const;
+  const std::map<std::string, std::vector<std::string>> tables_without_pk()
+      const;
 
   bool next_table_chunk(
       const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
@@ -156,6 +159,8 @@ class Dump_reader {
     std::string table;
 
     std::string basename;
+
+    std::string primary_index;
 
     bool has_sql = true;
     bool has_data = true;

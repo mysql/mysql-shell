@@ -63,7 +63,7 @@ function validateMembers(obj, expected)
             actual.splice(pos, 1);
         }
     }
-  
+
     var errors = []
 
     if(missing.length) {
@@ -74,20 +74,19 @@ function validateMembers(obj, expected)
     if (actual.length > 1  || (actual.length == 1 && actual[0] != 'help')) {
       errors.push("Extra Members: " + actual.join(", "));
     }
-  
+
     if (errors.length) {
       testutil.fail(errors.join("\n"))
     }
 }
 
 function ensure_schema_does_not_exist(session, name){
-	try{
-		var schema = session.getSchema(name);
-		session.dropSchema(name);
-	}
-	catch(err){
-		// Nothing happens, it means the schema did not exist
-	}
+  try {
+    var schema = session.getSchema(name);
+    session.dropSchema(name);
+  } catch(err) {
+    // Nothing happens, it means the schema did not exist
+  }
 }
 
 function getSchemaFromList(schemas, name){
@@ -371,4 +370,138 @@ function EXPECT_STDOUT_CONTAINS(text) {
 
 function WARNING_SKIPPED_TEST(reason) {
   return false;
+}
+
+function __split_trim_join(text) {
+  const needle = '\n';
+  const s = text.split(needle);
+  s.forEach(function (item, index) { this[index] = item.trimEnd(); }, s);
+  return {'str': s.join(needle), 'array': s};
+}
+function __check_wildcard_match(expected, actual) {
+  if (0 === expected.length) {
+    return expected == actual;
+  }
+  const needle = '[[*]]';
+  const strings = expected.split(needle);
+  var start = 0;
+  for (const str of strings) {
+    const idx = actual.indexOf(str, start);
+    if (idx < 0) {
+      return false;
+    }
+    start = idx + str.length;
+  }
+  if (strings[strings.length - 1] === '') {
+    // expected ends with wildcard
+    start = actual.length;
+  }
+  return start === actual.length;
+}
+function __multi_value_compare(expected, actual) {
+  const start = expected.indexOf('{{');
+  if (start < 0) {
+    return __check_wildcard_match(expected, actual);
+  } else {
+     const end = expected.indexOf('}}');
+     const pre = expected.substring(0, start);
+     const post = expected.substring(end + 2);
+     const opts = expected.substring(start + 2, end);
+     for (const item of opts.split('|')) {
+       if (__check_wildcard_match(pre + item + post, actual)) {
+         return true;
+       }
+     }
+     return false;
+  }
+}
+function __find_line_matching(expected, actual_lines, start_at = 0) {
+  var actual_index = start_at;
+  while (actual_index < actual_lines.length) {
+    if (__multi_value_compare(expected, actual_lines[actual_index])) {
+      break;
+    } else {
+      ++actual_index;
+    }
+  }
+  return actual_index;
+}
+function __diff_with_error(arr, error, idx) {
+  const needle = '\n';
+  const copy = [...arr];
+  copy[idx] += error;
+  return copy.join(needle);
+}
+function __check_multiline_expect(expected_lines, actual_lines) {
+  var diff = '';
+  var matches = true;
+  const needle = '\n';
+  while ('' === expected_lines[0] || '[[*]]' === expected_lines[0]) {
+    expected_lines.shift();
+  }
+  var actual_index = __find_line_matching(expected_lines[0], actual_lines);
+  if (actual_index < actual_lines.length) {
+    for (var expected_index = 0; expected_index < expected_lines.length; ++expected_index) {
+      if ('[[*]]' === expected_lines[expected_index]) {
+        if (expected_index == expected_lines.length - 1) {
+          continue;  // Ignores [[*]] if at the end of the expectation
+        } else {
+          ++expected_index;
+          actual_index = __find_line_matching(expected_lines[expected_index], actual_lines, actual_index + expected_index - 1);
+          if (actual_index < actual_lines.length) {
+            actual_index -= expected_index;
+          } else {
+            matches = false;
+            diff = __diff_with_error(expected_lines, '<yellow><------ INCONSISTENCY</yellow>', expected_index);
+            break;
+          }
+        }
+      }
+      if ((actual_index + expected_index) >= actual_lines.length) {
+        matches = false;
+        diff = __diff_with_error(expected_lines, '<yellow><------ MISSING</yellow>', expected_index);
+        break;
+      }
+      if (!__multi_value_compare(expected_lines[expected_index], actual_lines[actual_index + expected_index])) {
+        matches = false;
+        diff = __diff_with_error(expected_lines, '<yellow><------ INCONSISTENCY</yellow>', expected_index);
+        break;
+      }
+    }
+  } else {
+    matches = false;
+    diff = __diff_with_error(expected_lines, '<yellow><------ INCONSISTENCY</yellow>', 0);
+  }
+  return {'matches': matches, 'diff': diff};
+}
+function EXPECT_OUTPUT_CONTAINS_MULTILINE(t) {
+  const out = __split_trim_join(testutil.fetchCapturedStdout(false));
+  const err = __split_trim_join(testutil.fetchCapturedStderr(false));
+  const text = __split_trim_join(t);
+  const out_result = __check_multiline_expect(text.array, out.array);
+  const err_result = __check_multiline_expect(text.array, err.array);
+  if (!out_result.matches && !err_result.matches) {
+    const context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text.str + "\n<yellow>Actual stdout:</yellow> " + out.str + "\n<yellow>Actual stderr:</yellow> " + err.str + "\n<yellow>Diff with stdout:</yellow>\n" + out_result.diff + "\n<yellow>Diff with stderr:</yellow>\n" + err_result.diff;
+    testutil.fail(context);
+  }
+}
+function EXPECT_STDOUT_CONTAINS_MULTILINE(t) {
+  const out = __split_trim_join(testutil.fetchCapturedStdout(false));
+  const err = __split_trim_join(testutil.fetchCapturedStderr(false));
+  const text = __split_trim_join(t);
+  const out_result = __check_multiline_expect(text.array, out.array);
+  if (!out_result.matches) {
+    const context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text.str + "\n<yellow>Actual stdout:</yellow> " + out.str + "\n<yellow>Actual stderr:</yellow> " + err.str + "\n<yellow>Diff with stdout:</yellow>\n" + out_result.diff;
+    testutil.fail(context);
+  }
+}
+function EXPECT_STDERR_CONTAINS_MULTILINE(t) {
+  const out = __split_trim_join(testutil.fetchCapturedStdout(false));
+  const err = __split_trim_join(testutil.fetchCapturedStderr(false));
+  const text = __split_trim_join(t);
+  const err_result = __check_multiline_expect(text.array, err.array);
+  if (!err_result.matches) {
+    const context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text.str + "\n<yellow>Actual stdout:</yellow> " + out.str + "\n<yellow>Actual stderr:</yellow> " + err.str + "\n<yellow>Diff with stderr:</yellow>\n" + err_result.diff;
+    testutil.fail(context);
+  }
 }

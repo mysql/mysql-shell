@@ -57,6 +57,8 @@ class Dump_schemas : public Ddl_dumper {
  private:
   const char *name() const override { return "dumpSchemas"; }
 
+  bool dump_users() const override { return false; }
+
   std::vector<Table_info> get_tables(const std::string &schema);
 
   std::vector<Table_info> get_views(const std::string &schema);

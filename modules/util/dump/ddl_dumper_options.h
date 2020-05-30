@@ -62,8 +62,6 @@ class Ddl_dumper_options : public Dump_options {
 
   bool consistent_dump() const { return m_consistent_dump; }
 
-  bool dump_users() const { return m_dump_users; }
-
   // MySQL Database Service
   const mysqlshdk::utils::nullable<mysqlshdk::utils::Version>
       &mds_compatibility() const {
@@ -75,7 +73,7 @@ class Ddl_dumper_options : public Dump_options {
   }
 
  protected:
-  Ddl_dumper_options(const std::string &output_dir, bool users);
+  explicit Ddl_dumper_options(const std::string &output_dir);
 
   void unpack_options(shcore::Option_unpacker *unpacker) override;
 
@@ -90,7 +88,6 @@ class Ddl_dumper_options : public Dump_options {
   bool m_data_only = false;
   bool m_dry_run = false;
   bool m_consistent_dump = true;
-  bool m_dump_users;
   mysqlshdk::utils::nullable<mysqlshdk::utils::Version> m_mds;
   Compatibility_options m_compatibility_options;
 };

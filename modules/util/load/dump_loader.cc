@@ -169,15 +169,6 @@ bool Dump_loader::Worker::Load_chunk_task::execute(
 void Dump_loader::Worker::Load_chunk_task::load(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Dump_loader *loader) {
-  m_options->set("showProgress", shcore::Value::True());
-
-  // import table option for set character set is characterSet. Therefore, we
-  // need to rename defaultCharacterSet option to characterSet.
-  if (m_options->has_key("defaultCharacterSet")) {
-    m_options->set("characterSet", (*m_options)["defaultCharacterSet"]);
-    m_options->erase("defaultCharacterSet");
-  }
-
   import_table::Import_table_options import_options(m_options);
 
   // replace duplicate rows by default
@@ -830,6 +821,15 @@ bool Dump_loader::handle_table_data(Worker *worker) {
     }
     if (m_dump->next_table_chunk(tables_being_loaded, &schema, &table, &chunked,
                                  &index, &total, &data_file, &size, &options)) {
+      options->set("showProgress", m_options.show_progress()
+                                       ? shcore::Value::True()
+                                       : shcore::Value::False());
+
+      // Override characterSet if given in options
+      if (!m_options.character_set().empty()) {
+        options->set("characterSet", shcore::Value(m_options.character_set()));
+      }
+
       auto status =
           m_load_log->table_chunk_status(schema, table, chunked ? index : -1);
 
@@ -1215,6 +1215,38 @@ void Dump_loader::check_server_version() {
                            " does not support it.");
 }
 
+void Dump_loader::check_tables_without_primary_key() {
+  if (!m_options.load_ddl() ||
+      m_target_server_version < mysqlshdk::utils::Version(8, 0, 13))
+    return;
+  if (m_session->query("show variables like 'sql_require_primary_key';")
+          ->fetch_one()
+          ->get_string(1) != "ON")
+    return;
+
+  std::string tbs;
+  for (const auto &s : m_dump->tables_without_pk())
+    tbs += "schema " + shcore::quote_identifier(s.first) + ": " +
+           shcore::str_join(s.second, ", ") + "\n";
+
+  if (!tbs.empty()) {
+    const auto error_msg = shcore::str_format(
+        "The sql_require_primary_key option is enabled at the destination "
+        "server and one or more tables without a Primary Key were found in "
+        "the dump:\n%s\n"
+        "You must do one of the following to be able to load this dump:\n"
+        "- Add a Primary Key to the tables where it's missing\n"
+        "- Use the \"excludeTables\" option to load the dump without those "
+        "tables\n"
+        "- Disable the sql_require_primary_key sysvar at the server (note "
+        "that the underlying reason for the option to be enabled may still "
+        "prevent your database from functioning properly)",
+        tbs.c_str());
+    current_console()->print_error(error_msg);
+    throw shcore::Exception::runtime_error(error_msg);
+  }
+}
+
 namespace {
 std::vector<std::string> fetch_names(mysqlshdk::db::IResult *result) {
   std::vector<std::string> names;
@@ -1350,9 +1382,8 @@ void Dump_loader::check_existing_objects() {
     } else {
       console->print_error(
           "One or more objects in the dump already exist in the destination "
-          "database. You must either DROP these objects, exclude them from "
-          "the load or enable the 'ignoreExistingObjects' option to ignore "
-          "these duplicates and load anyway.");
+          "database. You must either DROP these objects or exclude them from "
+          "the load.");
       throw std::runtime_error(
           "Duplicate objects found in destination database");
     }
@@ -1429,7 +1460,7 @@ void Dump_loader::execute_tasks() {
     console->print_info("dryRun enabled, no changes will be made.");
 
   // Pick charset
-  m_character_set = m_options.default_character_set();
+  m_character_set = m_options.character_set();
   if (m_character_set.empty()) {
     m_character_set = m_dump->default_character_set();
   }
@@ -1441,6 +1472,8 @@ void Dump_loader::execute_tasks() {
   setup_progress(&m_resuming);
 
   if (!m_resuming && m_options.load_ddl()) check_existing_objects();
+
+  check_tables_without_primary_key();
 
   size_t num_idle_workers = 0;
 

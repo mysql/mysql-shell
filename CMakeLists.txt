@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -432,6 +432,29 @@ MACRO(MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
   SET(CMAKE_REQUIRED_FLAGS "${SAVE_CMAKE_REQUIRED_FLAGS}")
 ENDMACRO()
 
+MACRO(SET_BUNDLED_OPEN_SSL TARGET_FILES)
+    FOREACH(OPEN_SSL_LIB_DEPENDENT ${TARGET_FILES})
+      EXECUTE_PROCESS(COMMAND install_name_tool -change
+              "${CRYPTO_VERSION}" "@executable_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
+              ${OPEN_SSL_LIB_DEPENDENT} RESULT_VARIABLE COMMAND_RESULT)
+
+      IF("${COMMAND_RESULT}" STREQUAL "1")
+        MESSAGE(FATAL_ERROR "Failed resetting dynamic library ${CRYPTO_VERSION} to bundled one on ${OPEN_SSL_LIB_DEPENDENT}.")
+      ENDIF()
+
+      EXECUTE_PROCESS(COMMAND install_name_tool -change
+              "${OPENSSL_VERSION}" "@executable_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
+              ${OPEN_SSL_LIB_DEPENDENT} RESULT_VARIABLE COMMAND_RESULT)
+
+      IF("${COMMAND_RESULT}" STREQUAL "1")
+        MESSAGE(FATAL_ERROR "Failed resetting dynamic library ${OPENSSL_VERSION} to bundled one on ${OPEN_SSL_LIB_DEPENDENT}.")
+      ENDIF()
+
+      EXECUTE_PROCESS(COMMAND otool -L ${OPEN_SSL_LIB_DEPENDENT})
+    ENDFOREACH()
+ENDMACRO()
+
+
 # By default the shell uses Multi-threaded Dynamic RunTime
 # Only sets Static if needed
 IF(WIN32)
@@ -547,14 +570,8 @@ IF(WITH_OCI)
   ADD_DEFINITIONS(-DWITH_OCI)
 
   IF(BUNDLED_OPENSSL_DIR AND APPLE)
-    FILE(GLOB_RECURSE OCI_OPEN_SSL_LIB ${OCI_SDK}/cryptography*.egg/cryptography/hazmat/bindings/_openssl*.so)
-    EXECUTE_PROCESS(COMMAND install_name_tool -change
-            "${CRYPTO_VERSION}" "@executable_path/../${INSTALL_LIBDIR}/${CRYPTO_VERSION}"
-            ${OCI_OPEN_SSL_LIB})
-    EXECUTE_PROCESS(COMMAND install_name_tool -change
-            "${OPENSSL_VERSION}" "@executable_path/../${INSTALL_LIBDIR}/${OPENSSL_VERSION}"
-            ${OCI_OPEN_SSL_LIB})
-    EXECUTE_PROCESS(COMMAND otool -L ${OCI_OPEN_SSL_LIB})
+    FILE(GLOB_RECURSE OCI_OPEN_SSL_LIBRARIES ${OCI_SDK}/cryptography*.egg/cryptography/hazmat/bindings/_openssl*.so)
+    SET_BUNDLED_OPEN_SSL("${OCI_OPEN_SSL_LIBRARIES}")
   ENDIF()
 ENDIF()
 

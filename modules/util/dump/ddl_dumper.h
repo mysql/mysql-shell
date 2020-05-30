@@ -66,8 +66,6 @@ class Ddl_dumper : public Dumper {
 
   bool dump_triggers() const override;
 
-  bool dump_users() const override;
-
   const mysqlshdk::utils::nullable<mysqlshdk::utils::Version>
       &mds_compatibility() const override;
 

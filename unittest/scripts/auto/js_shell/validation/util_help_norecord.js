@@ -413,8 +413,6 @@ DESCRIPTION
 
       - excludeTables: list of strings (default: empty) - List of tables to be
         excluded from the dump in the format of schema.table.
-      - users: bool (default: false) - Include users, roles and grants in the
-        dump file.
       - events: bool (default: true) - Include events from each dumped schema.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
@@ -1009,9 +1007,9 @@ DESCRIPTION
         'histogram', only tables that have histogram information stored in the
         dump will be analyzed. This option can be used even if all 'load'
         options are disabled.
-      - defaultCharacterSet: string (default taken from dump) - Specifies the
-        character set to be used for loading the dump. By default, the same
-        character set used for dumping will be used (utf8mb4 if not set at
+      - characterSet: string (default taken from dump) - Overrides the
+        character set to be used for loading dump data. By default, the same
+        character set used for dumping will be used (utf8mb4 if not set on
         dump).
       - deferTableIndexes: bool (default: true) - Defer all but PRIMARY index
         creation for table until data has already been loaded, which should

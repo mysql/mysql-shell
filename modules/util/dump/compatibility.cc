@@ -157,14 +157,16 @@ std::vector<std::string> check_privileges(
   Offsets offsets;
 
   SQL_iterator it(grant);
-  if (!shcore::str_caseeq(it.get_next_token(), "GRANT"))
+  auto token = it.get_next_token();
+  if (!shcore::str_caseeq_mv(token, "GRANT", "REVOKE"))
     throw std::runtime_error("Malformed grant statement: " + grant);
+  const auto first_token_size = token.size();
 
   int remaining_priv = 0;
   bool last_removed = false;
   while (it.valid()) {
     auto prev_pos = it.position() - 1;
-    auto token = it.get_next_token();
+    token = it.get_next_token();
     auto after_pos = it.position();
     auto next = it.get_next_token();
     while (!next.empty() && next != "," && next != "ON" && next != "TO") {
@@ -182,8 +184,9 @@ std::vector<std::string> check_privileges(
         if (grant[prev_pos] == ',')
           offsets.emplace_back(prev_pos, after_pos);
         else if (next == ",")
-          offsets.emplace_back(
-              6, std::isspace(*it) ? (++it).position() : it.position());
+          offsets.emplace_back(first_token_size + 1, std::isspace(*it)
+                                                         ? (++it).position()
+                                                         : it.position());
         else
           break;
 
@@ -194,7 +197,7 @@ std::vector<std::string> check_privileges(
         last_removed = true;
       }
     }
-    if (next.empty() || next == "ON" || next == "TO") break;
+    if (next.empty() || shcore::str_caseeq_mv(next, "ON", "TO", "FROM")) break;
   }
 
   if (rewritten_grant) {
@@ -228,9 +231,7 @@ bool check_create_table_for_data_index_dir_option(
 
   return comment_out_option_with_string(
       create_table, rewritten, [](std::string *token, SQL_iterator *it) {
-        if (!shcore::str_caseeq(*token, "DATA") &&
-            !shcore::str_caseeq(*token, "INDEX"))
-          return true;
+        if (!shcore::str_caseeq_mv(*token, "DATA", "INDEX")) return true;
         *token = it->get_next_token();
         return !shcore::str_caseeq(*token, "DIRECTORY");
       });
@@ -400,11 +401,8 @@ std::string check_statement_for_definer_clause(const std::string &statement,
   if (!shcore::str_caseeq(token, "CREATE")) return user;
 
   while (!(token = it.get_next_token()).empty()) {
-    if (shcore::str_caseeq(token, "VIEW") ||
-        shcore::str_caseeq(token, "EVENT") ||
-        shcore::str_caseeq(token, "FUNCTION") ||
-        shcore::str_caseeq(token, "PROCEDURE") ||
-        shcore::str_caseeq(token, "TRIGGER"))
+    if (shcore::str_caseeq_mv(token, "VIEW", "EVENT", "FUNCTION", "PROCEDURE",
+                              "TRIGGER"))
       break;
     if (!shcore::str_caseeq(token, "DEFINER")) continue;
     // definer is in the form of DEFINER = user@host
@@ -445,35 +443,17 @@ bool check_statement_for_sqlsecurity_clause(const std::string &statement,
 
   while (!(token = it.get_next_token()).empty()) {
   loop_start:
-    if (shcore::str_caseeq(token, "PROCEDURE") ||
-        shcore::str_caseeq(token, "FUNCTION")) {
+    if (shcore::str_caseeq_mv(token, "PROCEDURE", "FUNCTION")) {
       func_or_proc = true;
       continue;
     }
-    if (func_or_proc && (shcore::str_caseeq(token, "BEGIN") ||
-                         shcore::str_caseeq(token, "RETURN") ||
-                         shcore::str_caseeq(token, "SELECT") ||
-                         shcore::str_caseeq(token, "UPDATE") ||
-                         shcore::str_caseeq(token, "DELETE") ||
-                         shcore::str_caseeq(token, "INSERT") ||
-                         shcore::str_caseeq(token, "REPLACE") ||
-                         shcore::str_caseeq(token, "CREATE") ||
-                         shcore::str_caseeq(token, "ALTER") ||
-                         shcore::str_caseeq(token, "DROP") ||
-                         shcore::str_caseeq(token, "RENAME") ||
-                         shcore::str_caseeq(token, "TRUNCATE") ||
-                         shcore::str_caseeq(token, "CALL") ||
-                         shcore::str_caseeq(token, "PREPARE") ||
-                         shcore::str_caseeq(token, "EXECUTE") ||
-                         shcore::str_caseeq(token, "REPEAT") ||
-                         shcore::str_caseeq(token, "DO") ||
-                         shcore::str_caseeq(token, "WHILE") ||
-                         shcore::str_caseeq(token, "LOOP") ||
-                         shcore::str_caseeq(token, "IMPORT") ||
-                         shcore::str_caseeq(token, "LOAD") ||
-                         shcore::str_caseeq(token, "TABLE") ||
-                         shcore::str_caseeq(token, "WITH") ||
-                         shcore::str_iendswith(token, ":"))) {
+    if (func_or_proc &&
+        (shcore::str_caseeq_mv(token, "BEGIN", "RETURN", "SELECT", "UPDATE",
+                               "DELETE", "INSERT", "REPLACE", "CREATE", "ALTER",
+                               "DROP", "RENAME", "TRUNCATE", "CALL", "PREPARE",
+                               "EXECUTE", "REPEAT", "DO", "WHILE", "LOOP",
+                               "IMPORT", "LOAD", "TABLE", "WITH") ||
+         shcore::str_iendswith(token, ":"))) {
       if (rewritten) {
         const auto pos = it.position() - token.size();
         *rewritten = statement.substr(0, pos) + "SQL SECURITY INVOKER\n" +
@@ -524,11 +504,8 @@ std::vector<std::string> check_create_table_for_indexes(
     auto token = it.get_next_token();
     auto start = it.position() - token.length();
 
-    if (shcore::str_caseeq(token, "FULLTEXT") ||
-        shcore::str_caseeq(token, "UNIQUE") ||
-        shcore::str_caseeq(token, "KEY") ||
-        shcore::str_caseeq(token, "INDEX") ||
-        shcore::str_caseeq(token, "SPATIAL"))
+    if (shcore::str_caseeq_mv(token, "FULLTEXT", "UNIQUE", "KEY", "INDEX",
+                              "SPATIAL"))
       index_declaration = true;
 
     bool constraint = shcore::str_caseeq(token, "CONSTRAINT");
@@ -540,8 +517,7 @@ std::vector<std::string> check_create_table_for_indexes(
         --brace_count;
       else if (brace_count == 1 && token == ",")
         break;
-      else if (constraint && (shcore::str_caseeq(token, "KEY") ||
-                              shcore::str_caseeq(token, "INDEX")))
+      else if (constraint && (shcore::str_caseeq_mv(token, "KEY", "INDEX")))
         index_declaration = true;
     }
 

@@ -1407,9 +1407,9 @@ Options dictionary:
 executes ANALYZE TABLE for all tables, once loaded. If set to 'histogram', only
 tables that have histogram information stored in the dump will be analyzed. This
 option can be used even if all 'load' options are disabled.
-@li <b>defaultCharacterSet</b>: string (default taken from dump) - Specifies
-the character set to be used for loading the dump. By default, the same
-character set used for dumping will be used (utf8mb4 if not set at dump).
+@li <b>characterSet</b>: string (default taken from dump) - Overrides
+the character set to be used for loading dump data. By default, the same
+character set used for dumping will be used (utf8mb4 if not set on dump).
 @li <b>deferTableIndexes</b>: bool (default: true) - Defer all but PRIMARY index
 creation for table until data has already been loaded, which should improve
 performance.
@@ -1739,8 +1739,6 @@ ${TOPIC_UTIL_DUMP_COMMON_PARAMETERS_DESCRIPTION}
 
 <b>The following options are supported:</b>
 ${TOPIC_UTIL_DUMP_COMMON_OPTIONS}
-@li <b>users</b>: bool (default: false) - Include users, roles and grants in the
-dump file.
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}

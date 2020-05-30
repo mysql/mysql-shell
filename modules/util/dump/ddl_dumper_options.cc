@@ -28,9 +28,8 @@
 namespace mysqlsh {
 namespace dump {
 
-Ddl_dumper_options::Ddl_dumper_options(const std::string &output_dir,
-                                       bool users)
-    : Dump_options(output_dir), m_dump_users(users) {}
+Ddl_dumper_options::Ddl_dumper_options(const std::string &output_dir)
+    : Dump_options(output_dir) {}
 
 void Ddl_dumper_options::unpack_options(shcore::Option_unpacker *unpacker) {
   std::vector<std::string> compatibility_options;
@@ -44,7 +43,6 @@ void Ddl_dumper_options::unpack_options(shcore::Option_unpacker *unpacker) {
       .optional("dataOnly", &m_data_only)
       .optional("dryRun", &m_dry_run)
       .optional("consistent", &m_consistent_dump)
-      .optional("users", &m_dump_users)
       .optional("ocimds", &mds)
       .optional("compatibility", &compatibility_options);
 

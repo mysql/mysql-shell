@@ -296,6 +296,15 @@ EXPECT_OUTPUT_CONTAINS("ERROR: The 'local_infile' global system variable must be
 //@<> Enable local-infile for the remaining tests
 session.runSql("SET GLOBAL local_infile=1");
 
+//@<> Try to load the dump with sql_require_primary_key enabled (should fail)
+if(__version_num>80013) {
+  session.runSql("set @@global.sql_require_primary_key=ON;");
+  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: The sql_require_primary_key option is enabled");
+  EXPECT_OUTPUT_CONTAINS("ERROR: The sql_require_primary_key option is enabled at the destination server and one or more tables without a Primary Key were found in the dump");
+  EXPECT_OUTPUT_CONTAINS("schema `xtest`: `t_bigint`, `t_bit`, `t_char`, `t_date`, `t_decimal1`, `t_decimal2`, `t_decimal3`, `t_double`, `t_enum`, `t_float`, `t_geom_all`, `t_geom`, `t_int`, `t_integer`, `t_json`, `t_lchar`, `t_lob`, `t_mediumint`, `t_numeric1`, `t_numeric2`, `t_real`, `t_set`, `t_smallint`, `t_tinyint`");
+  session.runSql("set @@global.sql_require_primary_key=OFF;");
+}
+
 //@ Bad Options (should fail)
 util.loadDump(null);
 util.loadDump(123);
@@ -355,7 +364,7 @@ wipe_instance(session);
 //@<> Plain load of uncompressed dump
 // TSFR2_3 also use file:// 
 // also check progressFile option
-// also check that the defaultCharacterSet is taken from the dump file - TSFR14_4
+// also check that the characterSet is taken from the dump file - TSFR14_4
 session.runSql("set global character_set_server = 'sjis'");
 session.runSql("set global character_set_connection = 'sjis'");
 session.runSql("set global character_set_client = 'sjis'");
@@ -366,6 +375,12 @@ EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
 
 // TSFR10_2
 EXPECT_OUTPUT_CONTAINS("using 4 threads");
+
+// ensure all 4 threads did something
+EXPECT_OUTPUT_CONTAINS("[Worker000] ")
+EXPECT_OUTPUT_CONTAINS("[Worker001] ")
+EXPECT_OUTPUT_CONTAINS("[Worker002] ")
+EXPECT_OUTPUT_CONTAINS("[Worker003] ")
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump-nogz/load-progress*");
 wipe_instance(session);
@@ -597,18 +612,18 @@ EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
 
-//@<> defaultCharacterSet:binary
+//@<> characterSet:latin1
 // TSFR14_1, TSFR14_3
-util.loadDump(__tmp_dir+"/ldtest/dump", {defaultCharacterSet: "binary"});
+util.loadDump(__tmp_dir+"/ldtest/dump", {characterSet: "latin1"});
 
 EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
 
-//@<> defaultCharacterSet:invalid (should fail)
+//@<> characterSet:invalid (should fail)
 // TSFR14_5
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {defaultCharacterSet: "bog\"`'us"})}, "Util.loadDump: Unknown character set: 'bog\"`'us'");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {characterSet: "bog\"`'us"})}, "Util.loadDump: Unknown character set: 'bog\"`'us'");
 EXPECT_OUTPUT_CONTAINS("ERROR: [Worker001] Error opening connection to MySQL: MySQL Error 1115 (42000): Unknown character set: 'bog\"`'us'");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");

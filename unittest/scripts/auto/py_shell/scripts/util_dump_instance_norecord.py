@@ -1107,6 +1107,13 @@ EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine
 
 EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version))
 
+#@<> BUG#31403104: if users is false, error about the users should not be included
+EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "users": False })
+EXPECT_STDOUT_NOT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, "FILE"))
+
+#@<> BUG#31403104: compatibility checks are enabled, but SQL is not dumped, this should succeed
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ocimds": True, "dataOnly": True, "showProgress": False })
+
 #@<> WL13807-FR16.1.2 - If the `ocimds` option is not given, a default value of `false` must be used instead.
 # WL13807-TSFR16_2
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })

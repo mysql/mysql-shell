@@ -232,6 +232,9 @@ IF(HAVE_PYTHON)
     INSTALL(FILES "${BUNDLED_PYTHON_DIR}/include/${PYTHON_INCLUDE_DIR_NAME}/pyconfig.h"
             DESTINATION "${INSTALL_LIBDIR}/include/${PYTHON_INCLUDE_DIR_NAME}" COMPONENT main)
 
+    FILE(GLOB PYTHON_OPEN_SSL_LIBRARIES ${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/lib-dynload/_ssl*.so)
+    SET_BUNDLED_OPEN_SSL("${PYTHON_OPEN_SSL_LIBRARIES}")
+
     # Copy to build dir to allow testing
     add_custom_command(TARGET mysqlsh POST_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy_directory

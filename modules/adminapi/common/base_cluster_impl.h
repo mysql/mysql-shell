@@ -218,11 +218,14 @@ class Base_cluster_impl {
    * syntax.
    *
    * @param instance_def the instance to connect to, as a host:port string.
+   * @param print_error boolean value to indicate whether an error shall be
+   * printed or not
+   *
    * A URL is allowed, if it matches that of m_target_server.
    * @return instance object owned by ipool
    */
   std::shared_ptr<Instance> connect_target_instance(
-      const std::string &instance_def);
+      const std::string &instance_def, bool print_error = true);
 };
 
 }  // namespace dba

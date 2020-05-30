@@ -154,7 +154,7 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
       .optional("includeTables", &tables)
       .optional("excludeSchemas", &exclude_schemas)
       .optional("excludeTables", &exclude_tables)
-      .optional("defaultCharacterSet", &m_default_character_set)
+      .optional("characterSet", &m_character_set)
       .optional("skipBinlog", &m_skip_binlog)
       .optional("ignoreExistingObjects", &m_ignore_existing_objects)
       .optional("ignoreVersion", &m_ignore_version)

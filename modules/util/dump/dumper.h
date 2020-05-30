@@ -71,6 +71,7 @@ class Dumper {
   struct Table_info {
     std::string name;
     std::string index;
+    bool primary_index = false;
     std::string basename;
     uint64_t row_count = 0;
   };
@@ -229,10 +230,9 @@ class Dumper {
 
   void create_table_tasks();
 
-  void create_table_task(const Schema_task &schema, const Table_info &table);
+  void create_table_task(const Schema_task &schema, Table_info *table);
 
-  std::string choose_index(const Schema_task &schema,
-                           const Table_info &table) const;
+  std::string choose_index(const Schema_task &schema, Table_info *table) const;
 
   Dump_writer *get_table_data_writer(const std::string &filename);
 
@@ -250,7 +250,7 @@ class Dumper {
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
       const std::string &schema, const std::string &table,
       const std::vector<Column_info> &columns, bool chunked,
-      const std::string &basename) const;
+      const std::string &basename, const std::string &primary_index) const;
 
   void summarize() const;
 

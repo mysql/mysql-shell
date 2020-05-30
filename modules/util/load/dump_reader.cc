@@ -222,6 +222,22 @@ const std::vector<std::string> &Dump_reader::deferred_schema_fks(
   return s->fk_queries;
 }
 
+const std::map<std::string, std::vector<std::string>>
+Dump_reader::tables_without_pk() const {
+  std::map<std::string, std::vector<std::string>> res;
+  for (const auto &s : m_contents.schemas) {
+    std::vector<std::string> tables;
+    for (const auto &t : s.second->tables)
+      if (t.second->primary_index.empty())
+        tables.emplace_back(shcore::quote_identifier(t.first));
+    if (!tables.empty()) {
+      std::sort(tables.begin(), tables.end());
+      res.emplace(s.first, tables);
+    }
+  }
+  return res;
+}
+
 std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
   std::string script;
 
@@ -297,7 +313,7 @@ schedule_chunk_proportionally(
   // pick a chunk from the table that has the biggest difference between both
   double best_diff = 0;
   std::unordered_set<Dump_reader::Table_info *>::iterator best =
-      tables_with_data->end();
+      tables_with_data->begin();
 
   for (const auto &cand : candidate_weights) {
     std::string key =
@@ -479,7 +495,7 @@ bool Dump_reader::Table_info::ready() const {
 
 void Dump_reader::Table_info::rescan(
     mysqlshdk::storage::IDirectory *dir,
-    const std::unordered_map<std::string, size_t> &files, Dump_reader *) {
+    const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
   // MD not included for tables if data is not dumped
   if (!md_seen) {
     // schema@table.json
@@ -493,7 +509,24 @@ void Dump_reader::Table_info::rescan(
 
       options = md->get_map("options");
 
-      if (options) options->erase("compression");
+      if (options) {
+        // Not used by chunk importer
+        options->erase("compression");
+        if (options->has_key("primaryIndex")) {
+          primary_index = options->get_string("primaryIndex");
+          options->erase("primaryIndex");
+        }
+
+        // chunk importer uses characterSet instead of defaultCharacterSet
+        if (options->has_key("defaultCharacterSet")) {
+          options->set("characterSet", options->at("defaultCharacterSet"));
+          options->erase("defaultCharacterSet");
+        } else {
+          // By default, we use the character set from the source DB
+          options->set("characterSet",
+                       shcore::Value(reader->default_character_set()));
+        }
+      }
 
       extension = md->get_string("extension", "tsv");
       chunked = md->get_bool("chunking", false);
@@ -672,6 +705,21 @@ void Dump_reader::Schema_info::rescan(
         }
         log_debug("%s has %zi views", schema.c_str(), views.size());
       }
+
+      const auto to_vector_of_strings = [](const shcore::Array_t &arr) {
+        std::vector<std::string> res;
+        for (const auto &s : *arr) res.emplace_back(s.as_string());
+        return res;
+      };
+
+      if (md->has_key("functions"))
+        function_names = to_vector_of_strings(md->get_array("functions"));
+
+      if (md->has_key("procedures"))
+        procedure_names = to_vector_of_strings(md->get_array("procedures"));
+
+      if (md->has_key("events"))
+        event_names = to_vector_of_strings(md->get_array("events"));
     }
   }
 

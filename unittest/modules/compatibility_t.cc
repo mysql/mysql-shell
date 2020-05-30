@@ -147,6 +147,27 @@ TEST_F(Compatibility_test, check_privileges) {
       "GRANT INSERT     ,`app_delete`@`%`, LOCK TABLES , UPDATE, SELECT ON *.* "
       "TO 'empty'@'localhost';",
       rewritten);
+
+  EXPECT_EQ(0,
+            check_privileges(
+                "REVOKE CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE "
+                "TEMPORARY TABLES, LOCK TABLES, CREATE VIEW, CREATE ROUTINE, "
+                "ALTER ROUTINE, EVENT, TRIGGER ON `sys`.* FROM `root`@`%`")
+                .size());
+
+  EXPECT_EQ(3,
+            check_privileges(
+                "REVOKE SUPER, DROP, REFERENCES, INDEX, FILE, CREATE "
+                "TEMPORARY TABLES, LOCK TABLES, BINLOG_ADMIN, CREATE ROUTINE, "
+                "ALTER ROUTINE, EVENT, TRIGGER ON `sys`.* FROM `root`@`%`",
+                &rewritten)
+                .size());
+
+  EXPECT_EQ(
+      "REVOKE DROP, REFERENCES, INDEX, CREATE TEMPORARY TABLES, LOCK TABLES, "
+      "CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `sys`.* FROM "
+      "`root`@`%`",
+      rewritten);
 }
 
 TEST_F(Compatibility_test, data_index_dir_option) {

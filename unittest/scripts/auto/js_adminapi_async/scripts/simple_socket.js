@@ -81,8 +81,6 @@ rs.addInstance(sockuri3, {recoveryMethod:'clone'});
 rs.addInstance(sockuri3, {recoveryMethod:'incremental'});
 
 //@ removeInstance
-EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("ReplicaSet.removeInstance", rs.removeInstance, sockuri2);
-
 rs.removeInstance(sockuri2);
 
 rs.addInstance(sockuri2, {recoveryMethod:'incremental'});

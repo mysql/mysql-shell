@@ -54,6 +54,8 @@ class Dump_instance : public Dump_schemas {
  private:
   const char *name() const override { return "dumpInstance"; }
 
+  bool dump_users() const override;
+
   const Dump_instance_options &m_options;
 };
 

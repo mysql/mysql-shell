@@ -74,6 +74,7 @@ struct Table_task {
   std::string schema;
   std::string table;
   std::string index;
+  bool primary_index = false;
   std::string basename;
   uint64_t row_count = 0;
 };
@@ -401,7 +402,8 @@ class Dumper::Table_worker final {
     auto columns = get_columns(task);
 
     m_dumper->write_table_metadata(m_session, task.schema, task.table, columns,
-                                   is_chunked(task), task.basename);
+                                   is_chunked(task), task.basename,
+                                   task.primary_index ? task.index : "");
 
     auto ranges = create_ranged_tasks(task, columns);
 
@@ -1450,22 +1452,21 @@ void Dumper::create_table_tasks() {
 
   m_main_thread_finished_producing_chunking_tasks = false;
 
-  for (const auto &schema : m_schema_tasks) {
-    for (const auto &table : schema.tables) {
-      create_table_task(schema, table);
+  for (auto &schema : m_schema_tasks) {
+    for (auto &table : schema.tables) {
+      create_table_task(schema, &table);
     }
   }
 
   m_main_thread_finished_producing_chunking_tasks = true;
 }
 
-void Dumper::create_table_task(const Schema_task &schema,
-                               const Table_info &table) {
-  const auto quoted_name = quote(schema, table);
+void Dumper::create_table_task(const Schema_task &schema, Table_info *table) {
+  const auto quoted_name = quote(schema, *table);
 
   if (schema.name == "mysql" &&
-      (table.name == "apply_status" || table.name == "general_log" ||
-       table.name == "schema" || table.name == "slow_log")) {
+      (table->name == "apply_status" || table->name == "general_log" ||
+       table->name == "schema" || table->name == "slow_log")) {
     current_console()->print_warning("Skipping data dump for table " +
                                      quoted_name);
     return;
@@ -1502,8 +1503,8 @@ void Dumper::create_table_task(const Schema_task &schema,
 
   ++m_chunking_tasks;
 
-  Table_task task{schema.name, table.name, index, table.basename,
-                  table.row_count};
+  Table_task task{schema.name,          table->name,     index,
+                  table->primary_index, table->basename, table->row_count};
   m_worker_tasks.push([task = std::move(task)](Table_worker *worker) {
     ++worker->m_dumper->m_num_threads_chunking;
 
@@ -1514,32 +1515,29 @@ void Dumper::create_table_task(const Schema_task &schema,
 }
 
 std::string Dumper::choose_index(const Schema_task &schema,
-                                 const Table_info &table) const {
-  if (!table.index.empty()) {
-    // index already selected
-    return table.index;
-  }
+                                 Table_info *table) const {
+  if (table->index.empty()) {
+    // check if there's a primary key or a unique index, use first column in
+    // index
+    const auto result = session()->queryf(
+        "SELECT INDEX_NAME, COLUMN_NAME FROM information_schema.statistics "
+        "WHERE "
+        "NON_UNIQUE = 0 AND SEQ_IN_INDEX = 1 AND TABLE_SCHEMA = ? AND "
+        "TABLE_NAME "
+        "= ?",
+        schema.name, table->name);
 
-  // check if there's a primary key or a unique index, use first column in index
-  const auto result = session()->queryf(
-      "SELECT INDEX_NAME, COLUMN_NAME FROM information_schema.statistics WHERE "
-      "NON_UNIQUE = 0 AND SEQ_IN_INDEX = 1 AND TABLE_SCHEMA = ? AND TABLE_NAME "
-      "= ?",
-      schema.name, table.name);
-
-  std::string primary;
-  std::string index;
-
-  while (const auto row = result->fetch_one()) {
-    if ("PRIMARY" == row->get_string(0)) {
-      primary = row->get_string(1);
-      break;
-    } else if (index.empty()) {
-      index = row->get_string(1);
+    while (const auto row = result->fetch_one()) {
+      if ("PRIMARY" == row->get_string(0)) {
+        table->index = row->get_string(1);
+        table->primary_index = true;
+        break;
+      } else if (table->index.empty()) {
+        table->index = row->get_string(1);
+      }
     }
   }
-
-  return !primary.empty() ? primary : index;
+  return table->index;
 }
 
 Dump_writer *Dumper::get_table_data_writer(const std::string &filename) {
@@ -1774,7 +1772,7 @@ void Dumper::write_table_metadata(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
     const std::string &schema, const std::string &table,
     const std::vector<Column_info> &columns, bool chunked,
-    const std::string &basename) const {
+    const std::string &basename, const std::string &primary_index) const {
   using rapidjson::Document;
   using rapidjson::StringRef;
   using rapidjson::Type;
@@ -1808,6 +1806,8 @@ void Dumper::write_table_metadata(
     if (!decode.ObjectEmpty()) {
       options.AddMember(StringRef("decodeColumns"), std::move(decode), a);
     }
+
+    options.AddMember(StringRef("primaryIndex"), ref(primary_index), a);
 
     options.AddMember(
         StringRef("compression"),

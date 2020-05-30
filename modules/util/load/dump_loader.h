@@ -267,6 +267,7 @@ class Dump_loader {
   void update_progress();
 
   void check_server_version();
+  void check_tables_without_primary_key();
 
   void execute_script(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,

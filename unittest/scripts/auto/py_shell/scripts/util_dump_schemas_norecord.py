@@ -29,7 +29,6 @@ test_schema_procedure = "sample_procedure"
 test_schema_function = "sample_function"
 test_schema_event = "sample_event"
 test_view = "sample_view"
-test_role = "sample_role"
 test_user = "sample_user"
 test_user_pwd = "p4$$"
 test_privilege = "FILE"
@@ -403,10 +402,6 @@ for table in session.run_sql("SELECT TABLE_NAME, TABLE_TYPE FROM information_sch
     else:
         types_schema_views.append(table[0])
 
-#@<> Create roles {VER(>=8.0.0)}
-session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])
-session.run_sql("CREATE ROLE ?;", [ test_role ])
-
 #@<> Analyze the table {VER(>=8.0.0)}
 session.run_sql("ANALYZE TABLE !.! UPDATE HISTOGRAM ON `id`;", [ test_schema, test_table_no_index ])
 
@@ -729,6 +724,7 @@ EXPECT_FAIL("ArgumentError", "Invalid options: indexColumn", [types_schema], tes
 
 #@<> WL13807-TSFR_3_2 - options param being a dictionary that contains an unknown key
 EXPECT_FAIL("ArgumentError", "Invalid options: dummy", [types_schema], test_output_relative, { "dummy": "fails" })
+EXPECT_FAIL("ArgumentError", "Invalid options: users", [types_schema], test_output_relative, { "users": "fails" })
 
 # WL13807-FR4 - Both new functions must accept a set of additional options:
 
@@ -845,22 +841,6 @@ EXPECT_STDOUT_NOT_CONTAINS("Schemas dumped: 1")
 # WL13807-TSFR4_26
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807-FR4.10 - The `options` dictionary may contain a `users` key with a Boolean value, which specifies whether to include users, roles and grants in the DDL file.
-# WL13807-TSFR4_31
-TEST_BOOL_OPTION("users")
-
-# WL13807-TSFR4_30
-# WL13807-TSFR12_2
-EXPECT_SUCCESS([test_schema], test_output_absolute, { "users": True, "ddlOnly": True, "showProgress": False })
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, "@.users.sql")))
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, "@.sql")))
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, "@.post.sql")))
-
-#@<> WL13807-FR4.10.1 - If the `users` option is not given, a default value of `true` must be used in case of `util.dumpInstance()` and false in case of `util.dumpSchemas()`.
-# WL13807-TSFR4_29
-EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
-EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, "@.users.sql")))
-
 #@<> WL13807-FR4.11 - The `options` dictionary may contain an `excludeTables` key with a list of strings, which specifies the names of tables to be excluded from the dump.
 # WL13807-TSFR4_38
 TEST_ARRAY_OF_STRINGS_OPTION("excludeTables")
@@ -920,7 +900,7 @@ EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basen
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename("mysql", "user") + ".tsv.zst")))
 
 #@<> run dump for all SQL-related tests below
-EXPECT_SUCCESS([types_schema, test_schema], test_output_absolute, { "users": True, "ddlOnly": True, "showProgress": False })
+EXPECT_SUCCESS([types_schema, test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 
 #@<> WL13807-FR9 - For each schema dumped, a DDL file with the base name as specified in FR8 and `.sql` extension must be created in the output directory.
 # * The schema DDL file must contain all objects being dumped, including routines and events if enabled by options.
@@ -967,16 +947,6 @@ for view in [test_view]:
 for f in [ "@.sql", "@.post.sql" ]:
     EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, f)))
 
-#@<> WL13807-FR12.1 - If the `users` option was set to `true`, a file with the name `@.users.sql` must be created in the output directory:
-# * The dump file must contain SQL statements to create users, roles and grant privileges.
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, "@.users.sql")))
-EXPECT_FILE_CONTAINS("CREATE USER IF NOT EXISTS", os.path.join(test_output_absolute, "@.users.sql"))
-EXPECT_FILE_CONTAINS("GRANT ", os.path.join(test_output_absolute, "@.users.sql"))
-
-#@<> Check for roles {VER(>=8.0.0)}
-EXPECT_FILE_CONTAINS("CREATE USER IF NOT EXISTS '{0}'@'%' IDENTIFIED WITH 'caching_sha2_password'".format(test_role), os.path.join(test_output_absolute, "@.users.sql"))
-EXPECT_FILE_CONTAINS("GRANT USAGE ON *.* TO `{0}`@`%`;".format(test_role), os.path.join(test_output_absolute, "@.users.sql"))
-
 #@<> WL13807-FR13 - Once the dump is complete, in addition to the summary described in WL#13804, the following information must be presented to the user:
 # * The number of schemas dumped.
 # * The number of tables dumped.
@@ -1013,12 +983,11 @@ EXPECT_STDOUT_CONTAINS("Average throughput: 0.00 B/s")
 # * Existing views with the same names as the ones being dumped may be deleted.
 # * Existing functions, stored procedures and events with the same names as the ones being dumped must be deleted.
 # * If the `triggers` option was set to `true`, existing triggers with the same names as the ones being dumped must be deleted.
-EXPECT_SUCCESS([test_schema], test_output_absolute, { "users": True, "ddlOnly": True, "showProgress": False })
+EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 
 all_sql_files = []
 # order is important
 all_sql_files.append("@.sql")
-all_sql_files.append("@.users.sql")
 all_sql_files.append(encode_schema_basename(test_schema) + ".sql")
 
 for table in [test_table_primary, test_table_unique, test_table_non_unique, test_table_no_index]:
@@ -1071,9 +1040,6 @@ EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first. You can check for potential upgrade issues using util.check_for_server_upgrade().")
 
-# BUG#31403104: 'user' is false by default for dump_schemas(), so information about the user accounts should not be included
-EXPECT_STDOUT_NOT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, test_privilege))
-
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_data_directory))
 
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had ENCRYPTION table option commented out".format(incompatible_schema, incompatible_table_encryption))
@@ -1087,13 +1053,6 @@ EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported tablespace opt
 EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM".format(incompatible_schema, incompatible_table_wrong_engine))
 
 EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version))
-
-#@<> BUG#31403104: test combination of various options
-EXPECT_FAIL("RuntimeError", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "users": True })
-EXPECT_STDOUT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, test_privilege))
-
-# compatibility checks are enabled, but SQL is not dumped, this should succeed
-EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ocimds": True, "dataOnly": True, "showProgress": False })
 
 #@<> WL13807-FR16.1.2 - If the `ocimds` option is not given, a default value of `false` must be used instead.
 # WL13807-TSFR16_2
@@ -1123,11 +1082,6 @@ EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM ch
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_definers" ] , "ddlOnly": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQL SECURITY characteristic set to INVOKER".format(incompatible_schema, incompatible_view))
 
-#@<> WL13807-FR16.2.1 - strip_restricted_grants
-# WL13807-TSFR16_5
-EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_restricted_grants" ] , "users": True, "ddlOnly": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS("NOTE: User {0}@localhost had restricted privilege ({1}) removed".format(test_user, test_privilege))
-
 #@<> WL13807-FR16.2.1 - strip_tablespaces
 # WL13807-TSFR16_4
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False })
@@ -1135,11 +1089,10 @@ EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported tablespace optio
 
 #@<> WL13807-FR16.2.2 - If the `compatibility` option is not given, a default value of `[]` must be used instead.
 # WL13807-TSFR16_6
-EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "users": True, "ddlOnly": True, "showProgress": False })
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_index_directory))
 EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_wrong_engine))
 EXPECT_STDOUT_NOT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQL SECURITY characteristic set to INVOKER".format(incompatible_schema, incompatible_view))
-EXPECT_STDOUT_NOT_CONTAINS("NOTE: User {0}@localhost had restricted privilege ({1}) removed".format(test_user, test_privilege))
 EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported tablespace option removed".format(incompatible_schema, incompatible_table_tablespace))
 
 # FR7 - The data dump files must be created as described in the WL#13804.
@@ -1195,9 +1148,6 @@ EXPECT_FAIL("RuntimeError", "Failed to get object list", [test_schema], '', {"os
 
 #@<> An error should occur when dumping using oci+os:// but no osBucketName is specified
 EXPECT_FAIL("ArgumentError", "The osBucketName option is missing.", [test_schema], 'oci+os://sakila')
-
-#@<> Drop roles {VER(>=8.0.0)}
-session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])
 
 #@<> Cleanup
 drop_all_schemas()

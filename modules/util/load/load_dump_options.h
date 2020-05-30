@@ -95,9 +95,7 @@ class Load_dump_options final {
 
   uint64_t dump_wait_timeout() const { return m_wait_dump_timeout; }
 
-  const std::string &default_character_set() const {
-    return m_default_character_set;
-  }
+  const std::string &character_set() const { return m_character_set; }
 
   bool load_data() const { return m_load_data; }
   bool load_ddl() const { return m_load_ddl; }
@@ -142,7 +140,7 @@ class Load_dump_options final {
   bool m_reset_progress = false;
   mysqlshdk::null_string m_progress_file;
   std::string m_default_progress_file;
-  std::string m_default_character_set;
+  std::string m_character_set;
   bool m_load_data = true;
   bool m_load_ddl = true;
   bool m_load_users = false;
