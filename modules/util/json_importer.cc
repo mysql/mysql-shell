@@ -273,6 +273,7 @@ void Json_importer::load_from(shcore::Buffered_input *input,
   });
 
   shcore::Json_reader reader(input, options);
+  reader.parse_bom();
 
   while (!reader.eof() && !cancel) {
     std::string jd = reader.next();

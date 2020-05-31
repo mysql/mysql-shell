@@ -8,11 +8,10 @@ Mandatory
 - cmake 2.8.12 (note: if you're using a very recent version of cmake and it
   doesn't work, try downgrading)
 - gcc 5/VisualStudio 2015/clang 8
-- MySQL 8.0.11 client libraries built from sources
+- MySQL client libraries built from sources
   (libmysqlclient, libmysqlxclient)
-- protobuf (same version used for MySQL 8)
 - zip (gnuwin32 in windows)
-- python 2.7+
+- python 3.7+
 
 Optional
 - gtest and gmock 1.8 (can be automatically downloaded)
@@ -27,23 +26,16 @@ dependencies.
 Preparation
 -----------
 
-Protobuf
-........
-
-To build the MySQL server with X protocol support, you will need to
-have protobuf 2.6 or newer installed or compiled.
-
 MySQL
 .....
 
-As of MySQL Shell 8.0.11, the MySQL server sources are required to compile
-with the X protocol client library.
+The MySQL server sources are required to compile with the X protocol client library.
 
-1) Download and unpack MySQL 8.0.11 (or newer) source code
+1) Download and unpack MySQL (8.0.11 or newer) source code
 2) Configure MySQL server:
 
-  mkdir mysql-8.0.11/bld
-  cd mysql-8.0.11/bld
+  mkdir mysql-server/bld
+  cd mysql-server/bld
   cmake .. -DWITH_BOOST=<path to boost> -DWITH_SSL=system
 
   If boost is not available use the next options to let cmake download the
@@ -68,12 +60,11 @@ Building the Shell
 1) Download and unpack MySQL Shell source code
 2) Configure and Build
 Linux/OSX
-       mkdir mysql-shell-8.0.11/bld
+       mkdir mysql-shell/bld
        cd bld
        cmake .. \
-            -DMYSQL_SOURCE_DIR=../../mysql-8.0.11\
-            -DMYSQL_BUILD_DIR=../../mysql-8.0.11/bld\
-            -DWITH_PROTOBUF=<path_to_protobuf>\
+            -DMYSQL_SOURCE_DIR=../../mysql-server\
+            -DMYSQL_BUILD_DIR=../../mysql-server/bld\
             -DHAVE_PYTHON=1\
             <other options>
        make -j4
@@ -81,10 +72,9 @@ Linux/OSX
 Windows
      mkdir bld
      cd bld
-     cmake .. -G "Visual Studio 15 Win64" \
-          -DMYSQL_SOURCE_DIR=../../mysql-8.0.11\
-          -DMYSQL_BUILD_DIR=../../mysql-8.0.11/bld\
-          -DWITH_PROTOBUF=<path_to_protobuf> \
+     cmake .. -G "Visual Studio 16" \
+          -DMYSQL_SOURCE_DIR=../../mysql-server\
+          -DMYSQL_BUILD_DIR=../../mysql-server/bld\
           -DWITH_STATIC_LINKING=1 \
           -DHAVE_PYTHON=1\
           -DPYTHON_LIBRARY=<path_to_python_library> \
