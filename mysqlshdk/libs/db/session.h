@@ -164,12 +164,19 @@ class SHCORE_PUBLIC ISession {
   void refresh_sql_mode() {
     assert(is_open());
     try {
-      const auto sql_mode = shcore::str_upper(
-          query("select @@sql_mode;")->fetch_one()->get_string(0));
-      m_sql_mode.reset(new std::string(sql_mode));
-      m_ansi_quotes_enabled = sql_mode.find("ANSI_QUOTES") != std::string::npos;
+      auto result = query("select @@sql_mode;");
+      auto row = result->fetch_one();
+
+      if (row && !row->is_null(0)) {
+        const auto sql_mode = shcore::str_upper(row->get_string(0));
+        m_sql_mode = std::make_unique<std::string>(sql_mode);
+        m_ansi_quotes_enabled =
+            sql_mode.find("ANSI_QUOTES") != std::string::npos;
+      } else {
+        throw std::runtime_error("Missing sql_mode");
+      }
     } catch (...) {
-      m_sql_mode.reset(new std::string());
+      m_sql_mode = std::make_unique<std::string>("");
       m_ansi_quotes_enabled = false;
     }
   }
