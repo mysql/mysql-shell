@@ -254,7 +254,6 @@ std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
   return script;
 }
 
-namespace {
 // Proportional chunk scheduling
 //
 // Multiple sessions writing to the same table mean they will be competing for
@@ -271,9 +270,8 @@ namespace {
 // Thus, smaller tables must get fewer threads allocated so they take longer
 // to load, while bigger threads get more, with the hope that the total time
 // to load all tables is minimized.
-
 std::unordered_set<Dump_reader::Table_info *>::iterator
-schedule_chunk_proportionally(
+Dump_reader::schedule_chunk_proportionally(
     const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
     std::unordered_set<Dump_reader::Table_info *> *tables_with_data) {
   std::unordered_map<std::string, double> worker_weights;
@@ -315,6 +313,10 @@ schedule_chunk_proportionally(
   std::unordered_set<Dump_reader::Table_info *>::iterator best =
       tables_with_data->begin();
 
+  double best_unique_diff = 0;
+  std::unordered_set<Dump_reader::Table_info *>::iterator best_unique =
+      tables_with_data->end();
+
   for (const auto &cand : candidate_weights) {
     std::string key =
         schema_table_key((*cand.first)->schema, (*cand.first)->table);
@@ -330,13 +332,17 @@ schedule_chunk_proportionally(
         best_diff = cand.second;
         best = cand.first;
       }
+      if (cand.second > best_unique_diff) {
+        best_unique_diff = cand.second;
+        best_unique = cand.first;
+      }
     }
   }
 
+  if (best_unique != tables_with_data->end()) return best_unique;
+
   return best;
 }
-
-}  // namespace
 
 bool Dump_reader::next_table_chunk(
     const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
