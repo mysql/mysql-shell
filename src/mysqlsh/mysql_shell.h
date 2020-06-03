@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,6 +57,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
   bool cmd_start_multiline(const std::vector<std::string> &args);
   bool cmd_connect(const std::vector<std::string> &args);
   bool cmd_reconnect(const std::vector<std::string> &args);
+  bool cmd_disconnect(const std::vector<std::string> &args);
   bool cmd_quit(const std::vector<std::string> &args);
   bool cmd_warnings(const std::vector<std::string> &args);
   bool cmd_nowarnings(const std::vector<std::string> &args);

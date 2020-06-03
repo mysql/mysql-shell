@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -378,6 +378,9 @@ REGISTER_HELP(CMD_QUIT_SYNTAX, "<b>\\quit</b>");
 REGISTER_HELP(CMD_RECONNECT_BRIEF, "Reconnects the global session.");
 REGISTER_HELP(CMD_RECONNECT_SYNTAX, "<b>\\reconnect</b>");
 
+REGISTER_HELP(CMD_DISCONNECT_BRIEF, "Disconnects the global session.");
+REGISTER_HELP(CMD_DISCONNECT_SYNTAX, "<b>\\disconnect</b>");
+
 REGISTER_HELP(CMD_STATUS_BRIEF,
               "Print information about the current global session.");
 REGISTER_HELP(CMD_STATUS_SYNTAX, "<b>\\status</b>");
@@ -602,6 +605,8 @@ Mysql_shell::Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
   SET_SHELL_COMMAND("\\exit", "CMD_EXIT", Mysql_shell::cmd_quit);
   SET_SHELL_COMMAND("\\connect|\\c", "CMD_CONNECT", Mysql_shell::cmd_connect);
   SET_SHELL_COMMAND("\\reconnect", "CMD_RECONNECT", Mysql_shell::cmd_reconnect);
+  SET_SHELL_COMMAND("\\disconnect", "CMD_DISCONNECT",
+                    Mysql_shell::cmd_disconnect);
   SET_SHELL_COMMAND("\\option", "CMD_OPTION", Mysql_shell::cmd_option);
   SET_CUSTOM_SHELL_COMMAND("\\warnings|\\W", "CMD_WARNINGS",
                            std::bind(&Mysql_shell::cmd_warnings, this, _1),
@@ -1238,6 +1243,22 @@ bool Mysql_shell::cmd_reconnect(const std::vector<std::string> &args) {
     print_diag("There had to be a connection first to enable reconnection.");
   else
     reconnect_if_needed(true);
+
+  return true;
+}
+
+bool Mysql_shell::cmd_disconnect(const std::vector<std::string> &args) {
+  if (args.size() > 1) {
+    print_diag("\\disconnect command does not accept any arguments.");
+  } else if (!_shell->get_dev_session()) {
+    print_diag("Already disconnected.");
+  } else {
+    std::shared_ptr<mysqlsh::ShellBaseSession> null_session;
+    _shell->get_dev_session()->close();
+    _shell->set_dev_session(null_session);
+    _global_shell->set_session_global(null_session);
+    request_prompt_variables_update();
+  }
 
   return true;
 }

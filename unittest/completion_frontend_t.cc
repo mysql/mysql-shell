@@ -1,6 +1,6 @@
 
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -510,12 +510,12 @@ TEST_F(Completer_frontend, builtin_others) {
   EXPECT_AFTER_TAB("\\hi", "\\history");
   EXPECT_AFTER_TAB("\\he", "\\help");
 
-  auto expect =
-      strv({"\\",        "\\connect",  "\\edit",    "\\exit",       "\\help",
-            "\\history", "\\js",       "\\nopager", "\\nowarnings", "\\option",
-            "\\pager",   "\\py",       "\\quit",    "\\reconnect",  "\\rehash",
-            "\\show",    "\\source",   "\\sql",     "\\status",     "\\system",
-            "\\use",     "\\warnings", "\\watch"});
+  auto expect = strv({"\\",        "\\connect",    "\\disconnect", "\\edit",
+                      "\\exit",    "\\help",       "\\history",    "\\js",
+                      "\\nopager", "\\nowarnings", "\\option",     "\\pager",
+                      "\\py",      "\\quit",       "\\reconnect",  "\\rehash",
+                      "\\show",    "\\source",     "\\sql",        "\\status",
+                      "\\system",  "\\use",        "\\warnings",   "\\watch"});
 
 #ifndef HAVE_V8
   expect.erase(std::find(expect.begin(), expect.end(), "\\js"));

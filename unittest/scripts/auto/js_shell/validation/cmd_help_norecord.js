@@ -44,6 +44,7 @@ The following shell commands are available:
  - \                   Start multi-line input when in SQL mode.
  - \connect    (\c)    Connects the shell to a MySQL server and assigns the
                        global session.
+ - \disconnect         Disconnects the global session.
  - \edit       (\e)    Launch a system editor to edit a command to be executed.
  - \exit               Exits the MySQL Shell, same as \quit.
  - \help       (\?,\h) Prints help information about a specific topic.
@@ -161,6 +162,7 @@ The following shell commands are available:
  - \                   Start multi-line input when in SQL mode.
  - \connect    (\c)    Connects the shell to a MySQL server and assigns the
                        global session.
+ - \disconnect         Disconnects the global session.
  - \edit       (\e)    Launch a system editor to edit a command to be executed.
  - \exit               Exits the MySQL Shell, same as \quit.
  - \G                  Send command to mysql server, display result vertically.
@@ -309,6 +311,7 @@ The following shell commands are available:
  - \                   Start multi-line input when in SQL mode.
  - \connect    (\c)    Connects the shell to a MySQL server and assigns the
                        global session.
+ - \disconnect         Disconnects the global session.
  - \edit       (\e)    Launch a system editor to edit a command to be executed.
  - \exit               Exits the MySQL Shell, same as \quit.
  - \help       (\?,\h) Prints help information about a specific topic.

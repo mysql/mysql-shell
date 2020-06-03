@@ -1930,6 +1930,30 @@ TEST_F(Interactive_shell_test, reconnect_command) {
   wipe_all();
 }
 
+TEST_F(Interactive_shell_test, disconnect_command) {
+  execute("\\disconnect");
+  MY_EXPECT_STDERR_CONTAINS("Already disconnected.");
+  wipe_all();
+
+  execute("\\disconnect dummy_arg");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\disconnect command does not accept any arguments.");
+  wipe_all();
+
+  execute("\\connect " + _mysql_uri);
+  execute("\\use mysql");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  EXPECT_EQ("mysql", _interactive_shell->prompt_variables()->at("schema"));
+  wipe_all();
+
+  execute("\\disconnect");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  EXPECT_EQ("", _interactive_shell->prompt_variables()->at("schema"));
+  execute("\\status");
+  MY_EXPECT_STDERR_CONTAINS("Not Connected");
+  wipe_all();
+}
+
 TEST_F(Interactive_shell_test, mod_shell_options) {
   execute("\\py");
   ASSERT_TRUE(_options->wizards);
