@@ -296,6 +296,15 @@ class Dump_reader {
 
   // Tables that are ready to be loaded
   std::unordered_set<Table_info *> m_tables_with_data;
+
+  static std::unordered_set<Dump_reader::Table_info *>::iterator
+  schedule_chunk_proportionally(
+      const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
+      std::unordered_set<Dump_reader::Table_info *> *tables_with_data);
+
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Dump_scheduler, load_scheduler);
+#endif
 };
 
 }  // namespace mysqlsh
