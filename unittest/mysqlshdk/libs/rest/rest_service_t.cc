@@ -55,54 +55,69 @@ class Test_server {
     const auto script =
         shcore::path::join_path(g_test_home, "data", "rest", "test-server.py");
     const auto port_number = std::to_string(m_port);
-    std::vector<const char *> args{"python", script.c_str(),
-                                   port_number.c_str(), nullptr};
 
-    m_server = std::make_unique<shcore::Process_launcher>(&args[0]);
-    m_server->enable_reader_thread();
-#ifdef _WIN32
-    m_server->set_create_process_group();
-#endif  // _WIN32
-    m_server->start();
+    std::string python_cmd = "python";
 
-    m_address = "https://127.0.0.1:" + port_number;
-
-    static constexpr uint32_t sleep_time = 100;   // 100ms
-    static constexpr uint32_t wait_time = 10000;  // 10s
-    uint32_t current_time = 0;
     bool server_ready = false;
-    Rest_service rest{m_address, false};
-    const auto debug = getenv("TEST_DEBUG") != nullptr;
 
-    while (!server_ready && current_time < wait_time) {
-      shcore::sleep_ms(sleep_time);
-      current_time += sleep_time;
+    while (!server_ready) {
+      std::vector<const char *> args{python_cmd.c_str(), script.c_str(),
+                                     port_number.c_str(), nullptr};
 
-      if (m_server->check()) {
-        // process is not running, exit immediately
-        break;
-      }
+      m_server = std::make_unique<shcore::Process_launcher>(&args[0]);
+      m_server->enable_reader_thread();
+#ifdef _WIN32
+      m_server->set_create_process_group();
+#endif  // _WIN32
+      m_server->start();
 
-      try {
-        const auto response = rest.head("/ping");
+      m_address = "https://127.0.0.1:" + port_number;
 
-        if (debug) {
-          std::cerr << "HTTPS server replied with: "
-                    << Response::status_code(response.status)
-                    << ", waiting time: " << current_time << "ms" << std::endl;
+      static constexpr uint32_t sleep_time = 100;   // 100ms
+      static constexpr uint32_t wait_time = 10000;  // 10s
+      uint32_t current_time = 0;
+      Rest_service rest{m_address, false};
+      const auto debug = getenv("TEST_DEBUG") != nullptr;
+
+      while (!server_ready && current_time < wait_time) {
+        shcore::sleep_ms(sleep_time);
+        current_time += sleep_time;
+
+        if (m_server->check()) {
+          // process is not running, stop testing
+          if (python_cmd == "python") {
+            // Some platforms don't have python command but python3 in that case
+            // the server will not be running but er need to try with python3
+            // command
+            python_cmd = "python3";
+            break;
+          } else {
+            return false;
+          }
         }
 
-        server_ready = response.status == Response::Status_code::OK;
-      } catch (const std::exception &e) {
-        std::cerr << "HTTPS server not ready after " << current_time << "ms";
+        try {
+          const auto response = rest.head("/ping");
 
-        if (debug) {
-          std::cerr << ": " << e.what() << std::endl;
-          std::cerr << "Output so far:" << std::endl;
-          std::cerr << m_server->read_all();
+          if (debug) {
+            std::cerr << "HTTPS server replied with: "
+                      << Response::status_code(response.status)
+                      << ", waiting time: " << current_time << "ms"
+                      << std::endl;
+          }
+
+          server_ready = response.status == Response::Status_code::OK;
+        } catch (const std::exception &e) {
+          std::cerr << "HTTPS server not ready after " << current_time << "ms";
+
+          if (debug) {
+            std::cerr << ": " << e.what() << std::endl;
+            std::cerr << "Output so far:" << std::endl;
+            std::cerr << m_server->read_all();
+          }
+
+          std::cerr << std::endl;
         }
-
-        std::cerr << std::endl;
       }
     }
 
@@ -166,8 +181,14 @@ class Rest_service_test : public ::testing::Test {
     }
   }
 
+  void SetUp() override {
+    if (!s_test_server->is_alive()) {
+      s_test_server->start_server(s_test_server->get_port(), true);
+    }
+  }
+
   static void TearDownTestCase() {
-    if (s_test_server) {
+    if (s_test_server && s_test_server->is_alive()) {
       s_test_server->stop_server();
     }
   }
@@ -574,39 +595,34 @@ TEST_F(Rest_service_test, timeout) {
 TEST_F(Rest_service_test, retry_strategy_generic_errors) {
   FAIL_IF_NO_SERVER
 
-  Test_server local_server;
-  if (local_server.start_server(s_test_server->get_port(), false)) {
-    // Once the rest service is initialized, we close the server
-    Rest_service local_service(local_server.get_address(), false);
+  // Once the rest service is initialized, we close the server
+  Rest_service local_service(s_test_server->get_address(), false);
 
-    local_server.stop_server();
+  s_test_server->stop_server();
 
-    // With no retries a generic error would throw an exception
-    EXPECT_THROW_MSG_CONTAINS(local_service.execute(Type::GET, "/get"),
-                              Connection_error,
-                              "Connection refused|couldn't connect to host");
+  // With no retries a generic error would throw an exception
+  EXPECT_THROW_MSG_CONTAINS(local_service.execute(Type::GET, "/get"),
+                            Connection_error,
+                            "Connection refused|couldn't connect to host");
 
-    // One second retry strategy
-    Retry_strategy retry_strategy(1);
+  // One second retry strategy
+  Retry_strategy retry_strategy(1);
 
-    // Some stop criteria must be defined otherwise we have infinite retries
-    EXPECT_THROW_MSG(
-        local_service.execute(Type::GET, "/get", nullptr, 0L, {}, nullptr,
-                              nullptr, &retry_strategy),
-        std::logic_error,
-        "A stop criteria must be defined to avoid infinite retries.");
+  // Some stop criteria must be defined otherwise we have infinite retries
+  EXPECT_THROW_MSG(
+      local_service.execute(Type::GET, "/get", nullptr, 0L, {}, nullptr,
+                            nullptr, &retry_strategy),
+      std::logic_error,
+      "A stop criteria must be defined to avoid infinite retries.");
 
-    retry_strategy.set_max_attempts(2);
+  retry_strategy.set_max_attempts(2);
 
-    // Even with retry logic the same error is generated at the end
-    EXPECT_THROW_MSG_CONTAINS(
-        local_service.execute(Type::GET, "/get", nullptr, 0L, {}, nullptr,
-                              nullptr, &retry_strategy),
-        Connection_error, "Connection refused|couldn't connect to host");
-    EXPECT_EQ(2, retry_strategy.get_retry_count());
-  } else {
-    SKIP_TEST("Unable to launch local HTTP server.");
-  }
+  // Even with retry logic the same error is generated at the end
+  EXPECT_THROW_MSG_CONTAINS(
+      local_service.execute(Type::GET, "/get", nullptr, 0L, {}, nullptr,
+                            nullptr, &retry_strategy),
+      Connection_error, "Connection refused|couldn't connect to host");
+  EXPECT_EQ(2, retry_strategy.get_retry_count());
 }
 
 TEST_F(Rest_service_test, retry_strategy_server_errors) {
