@@ -19,6 +19,9 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+# Disable "reproducible builds"
+%global source_date_epoch_from_changelog 0
+
 %{?with_static: %global static 1}
 
 %global commercial  @COMMERCIAL_VER@

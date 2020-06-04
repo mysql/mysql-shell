@@ -1,5 +1,6 @@
 mysql-shell@PRODUCT_SUFFIX@ (@VERSION@@ID_RELEASE@) @CODENAME@; urgency=low
 
-  * Updating the packaging source for mysql-shell.
+  * New Release. For release notes, please refer to
+    https://dev.mysql.com/doc/relnotes/mysql-shell/8.0/en/news-@MYSH_NO_DASH_VERSION@.html
 
- -- Kent Boortz <kent.boortz@oracle.com>  Tue, 15 Mar 2016 10:41:51 +0100
+ -- MySQL Release Engineering <mysql-build@oss.oracle.com>  @DEB_CHANGELOG_TIMESTAMP@

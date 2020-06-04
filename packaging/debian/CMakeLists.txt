@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -34,11 +34,39 @@ project(mysh_deb_init NONE)
 set(ROOT_PROJECT_DIR "${CMAKE_SOURCE_DIR}/../..")
 include(../../version.cmake)
 
+#
+# Timestamp for use in debian/changelog
+#
+# Note: Debian tools use the timestamp of the last entry in the changelog
+# as the value of SOURCE_DATE_EPOCH env. variable which fixes build time
+# at that point. This will, for example, fix the build date reported in
+# in INFO_BIN file. Here we determine the value of the timestamp of the
+# last changelog entry generated from changelog.in below.
+#
+
+IF (NOT DEFINED DEB_CHANGELOG_TIMESTAMP)
+  execute_process(
+    COMMAND date --rfc-2822
+    OUTPUT_VARIABLE DEB_CHANGELOG_TIMESTAMP
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  SET (DEB_CHANGELOG_TIMESTAMP ${DEB_CHANGELOG_TIMESTAMP} CACHE STRING "")
+ENDIF()
+
+# A string(TIMESTAMP YEAR "%Y") would do but as using "date" above, use the same
+IF (NOT DEFINED DEB_COPYRIGHT_YEAR)
+  execute_process(
+    COMMAND date +%Y
+    OUTPUT_VARIABLE DEB_COPYRIGHT_YEAR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  SET (DEB_COPYRIGHT_YEAR ${DEB_COPYRIGHT_YEAR} CACHE STRING "")
+ENDIF()
+
 # We make sure it loads only the protobuf version
 set(ONLY_PROTOBUF_VERSION 1)
 include(../../cmake/protobuf.cmake)
 
-set(YEAR      2019)  # FIXME automate somehow
 set(PRODUCT   "MySQL Shell (part of MySQL Server) ${MYSH_BASE_VERSION}")
 
 if(NOT DEBIAN_REVISION)
