@@ -322,6 +322,7 @@ class Dump_loader {
   std::mutex m_tables_being_loaded_mutex;
   std::unordered_multimap<std::string, size_t> m_tables_being_loaded;
   std::atomic<size_t> m_num_threads_loading;
+  std::atomic<size_t> m_num_threads_recreating_indexes;
 
   Sql_transform m_default_sql_transforms;
 

@@ -442,10 +442,9 @@ shell.connect(__sandbox_uri1);
 
 //@<> Load DDL and Users only
 // TSFR4_3, TSFR5_1, TSFR6_1
-util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: true, loadDdl: true, loadData: false});
+util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: true, loadDdl: true, loadData: false, deferTableIndexes: false});
 
 EXPECT_JSON_EQ(strip_snapshot_data(reference), strip_snapshot_data(snapshot_instance(session)));
-testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 
 //@<> Load Data only for sakila.country and sakila.city (schema already exists)
 // no users
@@ -577,6 +576,7 @@ wipe_instance(session);
 testutil.callMysqlsh([__sandbox_uri1, "--", "util", "load-dump", __tmp_dir+"/ldtest/dump", "--showProgress=true"]);
 
 EXPECT_STDOUT_CONTAINS("thds loading");
+EXPECT_STDOUT_CONTAINS("thds indexing");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -586,6 +586,7 @@ wipe_instance(session);
 testutil.callMysqlsh([__sandbox_uri1, "--", "util", "load-dump", __tmp_dir+"/ldtest/dump", "--showProgress=false"]);
 
 EXPECT_STDOUT_NOT_CONTAINS("thds loading");
+EXPECT_STDOUT_NOT_CONTAINS("thds indexing");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -948,7 +949,7 @@ wipe_instance(session);
 testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "histogram", deferTableIndexes: false});
 
-EXPECT_OUTPUT_NOT_CONTAINS("NOTE: Indexes removed from table");
+EXPECT_OUTPUT_NOT_CONTAINS("indexes removed for deferred creation");
 EXPECT_OUTPUT_NOT_CONTAINS("Recreating indexes");
 EXPECT_OUTPUT_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
 
@@ -959,6 +960,31 @@ if(__version_num>80000) {
 } else {
   EXPECT_OUTPUT_CONTAINS("WARNING: Histogram creation enabled but MySQL Server "+__version+" does not support it.");
 }
+
+//@<> Load DDL first (indexes recreated), then data
+wipe_instance(session);
+testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadData: false, deferTableIndexes: true, loadIndexes: true});
+EXPECT_OUTPUT_CONTAINS("indexes removed for deferred creation");
+EXPECT_OUTPUT_CONTAINS("Recreating indexes");
+EXPECT_OUTPUT_CONTAINS("Recreating FOREIGN KEY constraints");
+
+testutil.wipeAllOutput();
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadDdl: false, deferTableIndexes: true, loadIndexes: true});
+EXPECT_OUTPUT_NOT_CONTAINS("Recreating indexes");
+EXPECT_OUTPUT_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
+
+//@<> Load DDL first then data with indexes recreation
+wipe_instance(session);
+testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadData: false, deferTableIndexes: true, loadIndexes: false});
+EXPECT_OUTPUT_CONTAINS("indexes removed for deferred creation");
+EXPECT_OUTPUT_NOT_CONTAINS("Recreating indexes");
+EXPECT_OUTPUT_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
+
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadDdl: false, deferTableIndexes: true, loadIndexes: true});
+EXPECT_OUTPUT_CONTAINS("Recreating indexes");
+EXPECT_OUTPUT_CONTAINS("Recreating FOREIGN KEY constraints");
 
 //@<> Ensure tables with no PK are truncated before reloading during a resume
 session.runSql("set global local_infile=1");

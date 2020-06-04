@@ -118,6 +118,8 @@ class Load_dump_options final {
 
   bool defer_table_indexes() const { return m_defer_table_indexes; }
 
+  bool load_indexes() const { return m_load_indexes; }
+
   Analyze_table_mode analyze_tables() const { return m_analyze_tables; }
 
   static std::vector<std::string> get_excluded_users(bool is_mds);
@@ -151,6 +153,7 @@ class Load_dump_options final {
   bool m_ignore_existing_objects = false;
   bool m_ignore_version = false;
   bool m_defer_table_indexes = true;
+  bool m_load_indexes = true;
 };
 
 }  // namespace mysqlsh

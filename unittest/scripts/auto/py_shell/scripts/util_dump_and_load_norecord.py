@@ -49,7 +49,8 @@ util.dump_instance(outdir+"/ddlonly", {"ddlOnly": True})
 shell.connect(__sandbox_uri2)
 
 #@<> load data which is not in the dump (fail)
-util.load_dump(outdir+"/ddlonly", {"loadData": True, "loadDdl": False})
+EXPECT_THROWS(lambda: util.load_dump(outdir+"/ddlonly", 
+                                     {"loadData": True, "loadDdl": False}), "MySQL Error (1049): Util.load_dump: Unknown database 'world'")
 
 #@<> load ddl normally
 util.load_dump(outdir+"/ddlonly")
