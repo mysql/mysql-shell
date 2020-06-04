@@ -296,6 +296,11 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
 
   // do work
   if (!loader->m_options.dry_run()) {
+    loader->m_num_threads_recreating_indexes++;
+    loader->update_progress();
+    shcore::on_leave_scope cleanup(
+        [loader]() { loader->m_num_threads_recreating_indexes--; });
+
     try {
       int retries = 0;
       session->execute("SET unique_checks = 0");
@@ -422,6 +427,7 @@ void Dump_loader::Worker::analyze_table(
 Dump_loader::Dump_loader(const Load_dump_options &options)
     : m_options(options),
       m_num_threads_loading(0),
+      m_num_threads_recreating_indexes(0),
       m_console(std::make_shared<dump::Console_with_progress>(m_progress,
                                                               &m_output_mutex)),
       m_num_rows_loaded(0),
@@ -534,20 +540,22 @@ void Dump_loader::on_dump_end() {
 }
 
 void Dump_loader::on_schema_end(const std::string &schema) {
-  const auto &fks = m_dump->deferred_schema_fks(schema);
-  if (!fks.empty()) {
-    current_console()->print_status(
-        "Recreating FOREIGN KEY constraints for schema " +
-        shcore::quote_identifier(schema));
-    if (!m_options.dry_run()) {
-      for (const auto &q : fks) {
-        try {
-          m_session->execute(q);
-        } catch (const std::exception &e) {
-          current_console()->print_error(
-              "Error while restoring FOREIGN KEY constraint in schema `" +
-              schema + "` with query: " + q);
-          throw;
+  if (m_options.load_indexes() && m_options.defer_table_indexes()) {
+    const auto &fks = m_dump->deferred_schema_fks(schema);
+    if (!fks.empty()) {
+      current_console()->print_status(
+          "Recreating FOREIGN KEY constraints for schema " +
+          shcore::quote_identifier(schema));
+      if (!m_options.dry_run()) {
+        for (const auto &q : fks) {
+          try {
+            m_session->execute(q);
+          } catch (const std::exception &e) {
+            current_console()->print_error(
+                "Error while restoring FOREIGN KEY constraint in schema `" +
+                schema + "` with query: " + q);
+            throw;
+          }
         }
       }
     }
@@ -597,7 +605,7 @@ void Dump_loader::handle_schema_scripts() {
     log_debug("Schema DDL for '%s' (%s) = %i", schema.c_str(),
               to_string(status).c_str(), has_ddl ? 1 : 0);
 
-    if (m_options.load_ddl() && has_ddl) {
+    if (has_ddl && (m_options.load_ddl() || m_options.defer_table_indexes())) {
       m_load_log->start_schema_ddl(schema);
       handle_schema(schema, tables, views);
       m_load_log->end_schema_ddl(schema);
@@ -610,7 +618,7 @@ void Dump_loader::handle_schema(
     const std::list<Dump_reader::Name_and_file> &tables,
     const std::list<Dump_reader::Name_and_file> &views) {
   auto status = m_load_log->schema_ddl_status(schema);
-  if (status != Load_progress_log::DONE) {
+  if (status != Load_progress_log::DONE && m_options.load_ddl()) {
     auto resuming = status == mysqlsh::Load_progress_log::INTERRUPTED;
     log_debug("Executing schema DDL for %s", schema.c_str());
 
@@ -640,9 +648,12 @@ void Dump_loader::handle_schema(
       m_session->executef("use !", schema.c_str());
     } catch (const std::exception &e) {
       current_console()->print_error(shcore::str_format(
-          "Unable to use schema `%s` that according to load status was "
-          "already created, consider reseting progress, error message: %s",
-          schema.c_str(), e.what()));
+          "Unable to use schema `%s`%s, error message: %s", schema.c_str(),
+          status == Load_progress_log::DONE
+              ? " that according to load status was already created, consider "
+                "reseting progress"
+              : "",
+          e.what()));
       if (!m_options.force()) throw;
       m_skip_schemas.insert(schema);
       return;
@@ -658,8 +669,7 @@ void Dump_loader::handle_schema(
     log_debug("Table DDL for '%s'.'%s' (%s)", schema.c_str(), table.c_str(),
               to_string(status).c_str());
 
-    if (m_options.load_ddl()) {
-      m_load_log->start_table_ddl(schema, table);
+    if (m_options.load_ddl() || m_options.defer_table_indexes()) {
       it.second->open(mysqlshdk::storage::Mode::READ);
       auto script = mysqlshdk::storage::read_file(it.second.get());
 
@@ -668,13 +678,13 @@ void Dump_loader::handle_schema(
         indexes_deferred = handle_indexes(schema, table, &script,
                                           status == Load_progress_log::DONE);
 
-      if (status != Load_progress_log::DONE) {
+      if (status != Load_progress_log::DONE && m_options.load_ddl()) {
+        m_load_log->start_table_ddl(schema, table);
         handle_table(schema, table, script,
                      status == Load_progress_log::INTERRUPTED,
                      indexes_deferred);
+        m_load_log->end_table_ddl(schema, table);
       }
-
-      m_load_log->end_table_ddl(schema, table);
     }
   }
 
@@ -990,12 +1000,19 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
   if (!handle_table_data(worker)) {
     std::string schema;
     std::string table;
-    std::vector<std::string> *indexes = nullptr;
-    if (m_options.defer_table_indexes() &&
-        m_dump->next_deferred_index(&schema, &table, &indexes)) {
-      assert(indexes != nullptr);
-      worker->recreate_indexes(schema, table, *indexes);
-      return true;
+    if (m_options.load_indexes() && m_options.defer_table_indexes()) {
+      const auto load_finished = [this](const std::string &key) {
+        std::lock_guard<std::mutex> lock(m_tables_being_loaded_mutex);
+        return m_tables_being_loaded.find(key) == m_tables_being_loaded.end();
+      };
+      std::vector<std::string> *indexes = nullptr;
+      if (m_options.defer_table_indexes() &&
+          m_dump->next_deferred_index(&schema, &table, &indexes,
+                                      load_finished)) {
+        assert(indexes != nullptr);
+        worker->recreate_indexes(schema, table, *indexes);
+        return true;
+      }
     }
 
     std::vector<Dump_reader::Histogram> histograms;
@@ -1114,15 +1131,18 @@ void Dump_loader::show_summary() {
 void Dump_loader::update_progress() {
   std::unique_lock<std::mutex> lock(m_output_mutex, std::try_to_lock);
   if (lock.owns_lock()) {
+    std::string label;
     if (m_dump->status() != Dump_reader::Status::COMPLETE)
-      m_progress->set_left_label(
-          "Dump still in progress, " +
-          mysqlshdk::utils::format_bytes(m_dump->dump_size()) + " ready - " +
-          std::to_string(m_num_threads_loading.load()) + " thds loading - ");
-    else
-      m_progress->set_left_label(std::to_string(m_num_threads_loading.load()) +
-                                 " thds loading - ");
-
+      label += "Dump still in progress, " +
+               mysqlshdk::utils::format_bytes(m_dump->dump_size()) +
+               " ready - ";
+    if (m_num_threads_loading.load())
+      label +=
+          std::to_string(m_num_threads_loading.load()) + " thds loading - ";
+    if (m_num_threads_recreating_indexes.load())
+      label += std::to_string(m_num_threads_recreating_indexes.load()) +
+               " thds indexing - ";
+    m_progress->set_left_label(label);
     m_progress->show_status(true);
   }
 }
