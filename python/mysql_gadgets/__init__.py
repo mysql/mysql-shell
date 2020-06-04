@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -35,12 +35,13 @@ VERSION = (2, 1, 0, '', 0)
 
 VERSION_STRING = "%s.%s.%s" % VERSION[0:3]
 
-COPYRIGHT_YEAR = "2016, 2019, "
+COPYRIGHT_YEAR = "2016, 2020, "
 
 COPYRIGHT_FULL = (
-    "Copyright (c) %s Oracle and/or its affiliates. All rights reserved.\n\n"
+    "Copyright (c) %s Oracle and/or its affiliates.\n"
     "Oracle is a registered trademark of Oracle Corporation and/or its "
-    "affiliates. Other names may be trademarks of their respective owners."
+    "affiliates.\n"
+    "Other names may be trademarks of their respective owners."
     % COPYRIGHT_YEAR)
 
 LICENSE = "GPLv2"

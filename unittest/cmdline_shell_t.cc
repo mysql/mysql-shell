@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -193,12 +193,14 @@ TEST(Cmdline_shell, help) {
   capture.clear();
   shell.print_banner();
   std::string expected =
-      "MySQL Shell " MYSH_FULL_VERSION "\n\nCopyright (c) 2016, " PACKAGE_YEAR
-      ", Oracle and/or its "
-      "affiliates. All rights reserved.\nOracle is a registered trademark of "
-      "Oracle Corporation and/or its affiliates.\nOther names may be "
-      "trademarks of their respective owners.\n\n\n\nType '\\help' or '\\?' "
-      "for help; '\\quit' to exit.\n\n";
+      "MySQL Shell " MYSH_FULL_VERSION
+      "\n\n"
+      "Copyright (c) 2016, " PACKAGE_YEAR
+      ", Oracle and/or its affiliates.\n"
+      "Oracle is a registered trademark of Oracle Corporation and/or its "
+      "affiliates.\n"
+      "Other names may be trademarks of their respective owners.\n\n\n\n"
+      "Type '\\help' or '\\?' for help; '\\quit' to exit.\n\n";
   EXPECT_EQ(expected, capture);
 
   current_console()->remove_print_handler(&handler);
