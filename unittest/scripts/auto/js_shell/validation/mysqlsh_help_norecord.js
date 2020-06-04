@@ -1,11 +1,9 @@
 //@<OUT> Shell Help
 MySQL Shell <<<__mysh_full_version>>>
 
-Copyright (c) 2016, <<<__package_year>>>, Oracle and/or its affiliates. All rights reserved.
-
-Oracle is a registered trademark of Oracle Corporation and/or its
-affiliates. Other names may be trademarks of their respective
-owners.
+Copyright (c) 2016, <<<__package_year>>>, Oracle and/or its affiliates.
+Oracle is a registered trademark of Oracle Corporation and/or its affiliates.
+Other names may be trademarks of their respective owners.
 
 Usage: mysqlsh [OPTIONS] [URI]
        mysqlsh [OPTIONS] [URI] -f <path> [<script-args>...]

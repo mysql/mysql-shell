@@ -1008,13 +1008,11 @@ void Command_line_shell::print_banner() {
   std::string welcome_msg("MySQL Shell ");
   welcome_msg += MYSH_FULL_VERSION;
   welcome_msg += "\n\n";
-  welcome_msg +=
-      "Copyright (c) 2016, " PACKAGE_YEAR
-      ", Oracle and/or its affiliates. All rights "
-      "reserved.\n"
-      "Oracle is a registered trademark of Oracle Corporation and/or its "
-      "affiliates.\nOther names may be trademarks of their respective "
-      "owners.";
+  welcome_msg += "Copyright (c) 2016, " PACKAGE_YEAR
+                 ", Oracle and/or its affiliates.\n"
+                 "Oracle is a registered trademark of Oracle Corporation "
+                 "and/or its affiliates.\n"
+                 "Other names may be trademarks of their respective owners.";
   println(welcome_msg);
   println();
   println("Type '\\help' or '\\?' for help; '\\quit' to exit.");
@@ -1028,11 +1026,9 @@ void Command_line_shell::print_cmd_line_helper() {
   println("");
   // Splitting line in two so the git hook does not complain
   println("Copyright (c) 2016, " PACKAGE_YEAR ", "
-          "Oracle and/or its affiliates. All rights reserved.");
-  println("");
-  println("Oracle is a registered trademark of Oracle Corporation and/or its");
-  println("affiliates. Other names may be trademarks of their respective");
-  println("owners.");
+          "Oracle and/or its affiliates.");
+  println("Oracle is a registered trademark of Oracle Corporation and/or its affiliates.");
+  println("Other names may be trademarks of their respective owners.");
   println("");
   println("Usage: mysqlsh [OPTIONS] [URI]");
   println("       mysqlsh [OPTIONS] [URI] -f <path> [<script-args>...]");
