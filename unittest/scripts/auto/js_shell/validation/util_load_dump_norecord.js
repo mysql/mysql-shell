@@ -18,6 +18,9 @@ Util.loadDump: Option 'waitDumpTimeout' UInteger expected, but value is String (
 Util.loadDump: Option 'analyzeTables' is expected to be of type String, but is Bool (TypeError)
 Util.loadDump: Invalid value '' for analyzeTables option (RuntimeError)
 Util.loadDump: Invalid value 'xxx' for analyzeTables option (RuntimeError)
+Util.loadDump: Invalid value 'xxx' for deferTableIndexes option (RuntimeError)
+Util.loadDump: Invalid value '' for deferTableIndexes option (RuntimeError)
+Util.loadDump: Option 'deferTableIndexes' is expected to be of type String, but is Bool (TypeError)
 
 //@<ERR> Bad Bucket Name Option {!hasOciEnvironment('OS')}
 Util.loadDump: Cannot open file: [[*]]<<<filename_for_output("/.oci/config")>>>. (RuntimeError)

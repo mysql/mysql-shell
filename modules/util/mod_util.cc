@@ -1410,9 +1410,10 @@ option can be used even if all 'load' options are disabled.
 @li <b>characterSet</b>: string (default taken from dump) - Overrides
 the character set to be used for loading dump data. By default, the same
 character set used for dumping will be used (utf8mb4 if not set on dump).
-@li <b>deferTableIndexes</b>: bool (default: true) - Defer all but PRIMARY index
-creation for table until data has already been loaded, which should improve
-performance.
+@li <b>deferTableIndexes</b>: "off", "fulltext", "all" (default: fulltext) - 
+If "all", creation of "all" indexes except PRIMARY is deferred until after
+table data is loaded, which in many cases can reduce load times. If "fulltext",
+only full-text indexes will be deferred.
 @li <b>dryRun</b>: bool (default: false) - Scans the dump and prints everything
 that would be performed, without actually doing so.
 @li <b>excludeSchemas</b>: array of strings (default not set) - Skip loading

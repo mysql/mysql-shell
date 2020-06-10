@@ -540,7 +540,9 @@ void Dump_loader::on_dump_end() {
 }
 
 void Dump_loader::on_schema_end(const std::string &schema) {
-  if (m_options.load_indexes() && m_options.defer_table_indexes()) {
+  if (m_options.load_indexes() &&
+      m_options.defer_table_indexes() !=
+          Load_dump_options::Defer_index_mode::OFF) {
     const auto &fks = m_dump->deferred_schema_fks(schema);
     if (!fks.empty()) {
       current_console()->print_status(
@@ -605,7 +607,9 @@ void Dump_loader::handle_schema_scripts() {
     log_debug("Schema DDL for '%s' (%s) = %i", schema.c_str(),
               to_string(status).c_str(), has_ddl ? 1 : 0);
 
-    if (has_ddl && (m_options.load_ddl() || m_options.defer_table_indexes())) {
+    if (has_ddl && (m_options.load_ddl() ||
+                    m_options.defer_table_indexes() !=
+                        Load_dump_options::Defer_index_mode::OFF)) {
       m_load_log->start_schema_ddl(schema);
       handle_schema(schema, tables, views);
       m_load_log->end_schema_ddl(schema);
@@ -669,14 +673,19 @@ void Dump_loader::handle_schema(
     log_debug("Table DDL for '%s'.'%s' (%s)", schema.c_str(), table.c_str(),
               to_string(status).c_str());
 
-    if (m_options.load_ddl() || m_options.defer_table_indexes()) {
+    if (m_options.load_ddl() || m_options.defer_table_indexes() !=
+                                    Load_dump_options::Defer_index_mode::OFF) {
       it.second->open(mysqlshdk::storage::Mode::READ);
       auto script = mysqlshdk::storage::read_file(it.second.get());
 
       bool indexes_deferred = false;
-      if (m_options.defer_table_indexes())
-        indexes_deferred = handle_indexes(schema, table, &script,
-                                          status == Load_progress_log::DONE);
+      if (m_options.defer_table_indexes() !=
+          Load_dump_options::Defer_index_mode::OFF)
+        indexes_deferred =
+            handle_indexes(schema, table, &script,
+                           m_options.defer_table_indexes() ==
+                               Load_dump_options::Defer_index_mode::FULLTEXT,
+                           status == Load_progress_log::DONE);
 
       if (status != Load_progress_log::DONE && m_options.load_ddl()) {
         m_load_log->start_table_ddl(schema, table);
@@ -715,7 +724,7 @@ void Dump_loader::handle_schema(
 
 namespace {
 std::vector<std::string> preprocess_table_script_for_indexes(
-    std::string *script, const std::string &key) {
+    std::string *script, const std::string &key, bool fulltext_only) {
   std::vector<std::string> indexes;
   auto script_length = script->length();
   std::istringstream stream(*script);
@@ -728,7 +737,8 @@ std::vector<std::string> preprocess_table_script_for_indexes(
         if (shcore::str_caseeq(sit.get_next_token(), "CREATE") &&
             shcore::str_caseeq(sit.get_next_token(), "TABLE")) {
           assert(indexes.empty());
-          indexes = compatibility::check_create_table_for_indexes(sql, &sql);
+          indexes = compatibility::check_create_table_for_indexes(
+              sql, fulltext_only, &sql);
         }
         script->append(sql);
         return true;
@@ -743,17 +753,19 @@ std::vector<std::string> preprocess_table_script_for_indexes(
 
 bool Dump_loader::handle_indexes(const std::string &schema,
                                  const std::string &table, std::string *script,
-                                 bool check_recreated) {
+                                 bool fulltext_only, bool check_recreated) {
   auto key =
       shcore::quote_identifier(schema) + "." + shcore::quote_identifier(table);
-  auto indexes = preprocess_table_script_for_indexes(script, key);
+  auto indexes =
+      preprocess_table_script_for_indexes(script, key, fulltext_only);
 
   if (check_recreated && !indexes.empty()) {
     try {
       auto ct = m_session->query("show create table " + key)
                     ->fetch_one()
                     ->get_string(1);
-      auto recreated = compatibility::check_create_table_for_indexes(ct);
+      auto recreated =
+          compatibility::check_create_table_for_indexes(ct, fulltext_only);
       indexes.erase(std::remove_if(indexes.begin(), indexes.end(),
                                    [&recreated](const std::string &i) {
                                      return std::find(recreated.begin(),
@@ -1000,14 +1012,15 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
   if (!handle_table_data(worker)) {
     std::string schema;
     std::string table;
-    if (m_options.load_indexes() && m_options.defer_table_indexes()) {
+    if (m_options.load_indexes() &&
+        m_options.defer_table_indexes() !=
+            Load_dump_options::Defer_index_mode::OFF) {
       const auto load_finished = [this](const std::string &key) {
         std::lock_guard<std::mutex> lock(m_tables_being_loaded_mutex);
         return m_tables_being_loaded.find(key) == m_tables_being_loaded.end();
       };
       std::vector<std::string> *indexes = nullptr;
-      if (m_options.defer_table_indexes() &&
-          m_dump->next_deferred_index(&schema, &table, &indexes,
+      if (m_dump->next_deferred_index(&schema, &table, &indexes,
                                       load_finished)) {
         assert(indexes != nullptr);
         worker->recreate_indexes(schema, table, *indexes);

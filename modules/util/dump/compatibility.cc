@@ -476,7 +476,7 @@ bool check_statement_for_sqlsecurity_clause(const std::string &statement,
 }
 
 std::vector<std::string> check_create_table_for_indexes(
-    const std::string &statement, std::string *rewritten,
+    const std::string &statement, bool fulltext_only, std::string *rewritten,
     bool return_alter_table) {
   std::vector<std::string> ret;
   Offsets offsets;
@@ -504,10 +504,16 @@ std::vector<std::string> check_create_table_for_indexes(
     auto token = it.get_next_token();
     auto start = it.position() - token.length();
 
-    if (shcore::str_caseeq_mv(token, "FULLTEXT", "UNIQUE", "KEY", "INDEX",
-                              "SPATIAL"))
-      index_declaration = true;
+    if (fulltext_only) {
+      if (shcore::str_caseeq(token, "FULLTEXT")) index_declaration = true;
+    } else {
+      if (shcore::str_caseeq_mv(token, "FULLTEXT", "UNIQUE", "KEY", "INDEX",
+                                "SPATIAL"))
+        index_declaration = true;
+    }
 
+    // Note: FKs on FULLTEXT indexes are not supported, so if we're doing
+    // FULLTEXT only we can ignore FKs
     bool constraint = shcore::str_caseeq(token, "CONSTRAINT");
     while (it.valid() && brace_count > 0) {
       token = it.get_next_token();
@@ -517,7 +523,8 @@ std::vector<std::string> check_create_table_for_indexes(
         --brace_count;
       else if (brace_count == 1 && token == ",")
         break;
-      else if (constraint && (shcore::str_caseeq_mv(token, "KEY", "INDEX")))
+      else if (constraint && (shcore::str_caseeq_mv(token, "KEY", "INDEX")) &&
+               !fulltext_only)
         index_declaration = true;
     }
 
