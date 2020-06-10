@@ -107,8 +107,10 @@ class Dump_reader {
     size_t buckets;
   };
 
-  bool next_deferred_index(std::string *out_schema, std::string *out_table,
-                           std::vector<std::string> **out_indexes);
+  bool next_deferred_index(
+      std::string *out_schema, std::string *out_table,
+      std::vector<std::string> **out_indexes,
+      const std::function<bool(const std::string &)> &load_finished);
 
   bool next_table_analyze(std::string *out_schema, std::string *out_table,
                           std::vector<Histogram> *out_histograms);

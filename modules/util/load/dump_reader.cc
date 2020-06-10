@@ -389,12 +389,14 @@ bool Dump_reader::next_table_chunk(
   return false;
 }
 
-bool Dump_reader::next_deferred_index(std::string *out_schema,
-                                      std::string *out_table,
-                                      std::vector<std::string> **out_indexes) {
+bool Dump_reader::next_deferred_index(
+    std::string *out_schema, std::string *out_table,
+    std::vector<std::string> **out_indexes,
+    const std::function<bool(const std::string &)> &load_finished) {
   for (auto &schema : m_contents.schemas) {
     for (auto &table : schema.second->tables) {
-      if (!table.second->indexes_done && table.second->data_done()) {
+      if (!table.second->indexes_done && table.second->data_done() &&
+          load_finished(schema_table_key(schema.first, table.first))) {
         table.second->indexes_done = true;
         *out_schema = schema.second->schema;
         *out_table = table.second->table;

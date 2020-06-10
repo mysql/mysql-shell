@@ -1033,6 +1033,10 @@ DESCRIPTION
         `schema`.`table`. By default, all tables from all schemas are included.
       - loadData: bool (default: true) - Loads table data from the dump.
       - loadDdl: bool (default: true) - Executes DDL/SQL scripts in the dump.
+      - loadIndexes: bool (default: true) - use together with
+        ‘deferTableIndexes’ to control whether secondary indexes should be
+        recreated at the end of the load. Useful when loading DDL and data
+        separately.
       - loadUsers: bool (default: false) - Executes SQL scripts for user
         accounts, roles and grants contained in the dump. Note: statements for
         the current user will be skipped.

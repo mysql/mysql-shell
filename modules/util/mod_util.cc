@@ -1433,6 +1433,9 @@ specified tables from the dump. Strings are in format schema.table or
 @li <b>loadData</b>: bool (default: true) - Loads table data from the dump.
 @li <b>loadDdl</b>: bool (default: true) - Executes DDL/SQL scripts in the
 dump.
+@li <b>loadIndexes</b>: bool (default: true) - use together with 
+‘deferTableIndexes’ to control whether secondary indexes should be recreated
+at the end of the load. Useful when loading DDL and data separately.
 @li <b>loadUsers</b>: bool (default: false) - Executes SQL scripts for user
 accounts, roles and grants contained in the dump. Note: statements for the
 current user will be skipped.
