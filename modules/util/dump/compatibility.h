@@ -63,8 +63,8 @@ bool check_statement_for_sqlsecurity_clause(const std::string &statement,
                                             std::string *rewritten = nullptr);
 
 std::vector<std::string> check_create_table_for_indexes(
-    const std::string &statement, std::string *rewritten = nullptr,
-    bool return_alter_table = false);
+    const std::string &statement, bool fulltext_only,
+    std::string *rewritten = nullptr, bool return_alter_table = false);
 
 }  // namespace compatibility
 }  // namespace mysqlsh

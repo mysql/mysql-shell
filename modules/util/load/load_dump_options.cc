@@ -138,6 +138,7 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
   std::vector<std::string> exclude_tables;
   std::vector<std::string> exclude_schemas;
   std::string analyze_tables = "off";
+  std::string defer_table_indexes = "fulltext";
 
   Unpack_options unpacker(options);
 
@@ -159,7 +160,7 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
       .optional("ignoreExistingObjects", &m_ignore_existing_objects)
       .optional("ignoreVersion", &m_ignore_version)
       .optional("analyzeTables", &analyze_tables)
-      .optional("deferTableIndexes", &m_defer_table_indexes)
+      .optional("deferTableIndexes", &defer_table_indexes)
       .optional("loadIndexes", &m_load_indexes);
 
   unpacker.unpack(&m_oci_options);
@@ -219,7 +220,18 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
   parse_tables(tables, &m_include_tables, true);
   parse_tables(exclude_tables, &m_exclude_tables, false);
 
-  if (!m_load_indexes && !m_defer_table_indexes)
+  if (defer_table_indexes == "off") {
+    m_defer_table_indexes = Defer_index_mode::OFF;
+  } else if (defer_table_indexes == "all") {
+    m_defer_table_indexes = Defer_index_mode::ALL;
+  } else if (defer_table_indexes == "fulltext") {
+    m_defer_table_indexes = Defer_index_mode::FULLTEXT;
+  } else {
+    throw std::runtime_error("Invalid value '" + defer_table_indexes +
+                             "' for deferTableIndexes option");
+  }
+
+  if (!m_load_indexes && m_defer_table_indexes == Defer_index_mode::OFF)
     throw std::invalid_argument(
         "'deferTableIndexes' option needs to be enabled when "
         "'loadIndexes' option is disabled");
