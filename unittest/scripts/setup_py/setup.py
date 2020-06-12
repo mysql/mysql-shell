@@ -1,5 +1,6 @@
 from __future__ import print_function
 import difflib
+import sys
 
 def get_members(object):
   all_exports = dir(object)

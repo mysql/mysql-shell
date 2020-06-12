@@ -228,7 +228,8 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
     m_defer_table_indexes = Defer_index_mode::FULLTEXT;
   } else {
     throw std::runtime_error("Invalid value '" + defer_table_indexes +
-                             "' for deferTableIndexes option");
+                             "' for deferTableIndexes option, allowed values: "
+                             "'all', 'fulltext', and 'off'.");
   }
 
   if (!m_load_indexes && m_defer_table_indexes == Defer_index_mode::OFF)
@@ -244,7 +245,8 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
     m_analyze_tables = Analyze_table_mode::OFF;
   } else {
     throw std::runtime_error("Invalid value '" + analyze_tables +
-                             "' for analyzeTables option");
+                             "' for analyzeTables option, allowed values: "
+                             "'off', 'on', and 'histogram'.");
   }
 }
 

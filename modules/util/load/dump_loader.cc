@@ -202,7 +202,15 @@ void Dump_loader::Worker::Load_chunk_task::load(
 
   shcore::on_leave_scope cleanup([this, loader]() {
     std::lock_guard<std::mutex> lock(loader->m_tables_being_loaded_mutex);
-    loader->m_tables_being_loaded.erase(schema_table_key(schema(), table()));
+    auto key = schema_table_key(schema(), table());
+    auto it = loader->m_tables_being_loaded.find(key);
+    while (it != loader->m_tables_being_loaded.end() && it->first == key) {
+      if (it->second == raw_bytes_loaded) {
+        loader->m_tables_being_loaded.erase(it);
+        break;
+      }
+      ++it;
+    }
 
     loader->m_num_threads_loading--;
   });
@@ -471,7 +479,12 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session(
 
   // Disable binlog if requested by user or if target is -cloud
   if (m_options.skip_binlog() && !is_mds(m_target_server_version)) {
-    session->execute("SET sql_log_bin=0");
+    try {
+      session->execute("SET sql_log_bin=0");
+    } catch (const mysqlshdk::db::Error &e) {
+      throw shcore::Exception::runtime_error(
+          "'SET sql_log_bin=0' failed with error - " + e.format());
+    }
   }
 
   if (!data_loader) {
@@ -936,7 +949,7 @@ size_t Dump_loader::handle_worker_events() {
     for (;;) {
       update_progress();
 
-      event = m_worker_events.try_pop(10 * 1000);
+      event = m_worker_events.try_pop(1000);
       if (event.worker) break;
     }
 
@@ -1142,21 +1155,43 @@ void Dump_loader::show_summary() {
 }
 
 void Dump_loader::update_progress() {
+  static const char k_progress_spin[] = "-\\|/";
+
   std::unique_lock<std::mutex> lock(m_output_mutex, std::try_to_lock);
   if (lock.owns_lock()) {
-    std::string label;
-    if (m_dump->status() != Dump_reader::Status::COMPLETE)
-      label += "Dump still in progress, " +
-               mysqlshdk::utils::format_bytes(m_dump->dump_size()) +
-               " ready - ";
-    if (m_num_threads_loading.load())
-      label +=
-          std::to_string(m_num_threads_loading.load()) + " thds loading - ";
-    if (m_num_threads_recreating_indexes.load())
-      label += std::to_string(m_num_threads_recreating_indexes.load()) +
-               " thds indexing - ";
-    m_progress->set_left_label(label);
-    m_progress->show_status(true);
+    if (m_dump->status() == Dump_reader::Status::COMPLETE &&
+        m_num_threads_loading.load() == 0 &&
+        m_num_threads_recreating_indexes.load() > 0 &&
+        m_options.show_progress() &&
+        (mysqlsh::current_shell_options()->get().wrap_json == "off")) {
+      printf("\r%s thds indexing %c",
+             std::to_string(m_num_threads_recreating_indexes.load()).c_str(),
+             k_progress_spin[m_progress_spin]);
+      fflush(stdout);
+      m_progress->show_status(false);
+    } else {
+      std::string label;
+      if (m_dump->status() != Dump_reader::Status::COMPLETE)
+        label += "Dump still in progress, " +
+                 mysqlshdk::utils::format_bytes(m_dump->dump_size()) +
+                 " ready - ";
+      if (m_num_threads_loading.load())
+        label +=
+            std::to_string(m_num_threads_loading.load()) + " thds loading - ";
+      if (m_num_threads_recreating_indexes.load())
+        label += std::to_string(m_num_threads_recreating_indexes.load()) +
+                 " thds indexing - ";
+
+      if (label.length() > 2)
+        label[label.length() - 2] = k_progress_spin[m_progress_spin];
+
+      m_progress->set_left_label(label);
+      m_progress->show_status(true);
+    }
+
+    m_progress_spin++;
+    if (m_progress_spin >= static_cast<int>(sizeof(k_progress_spin)) - 1)
+      m_progress_spin = 0;
   }
 }
 
@@ -1276,7 +1311,8 @@ void Dump_loader::check_tables_without_primary_key() {
         "prevent your database from functioning properly)",
         tbs.c_str());
     current_console()->print_error(error_msg);
-    throw shcore::Exception::runtime_error(error_msg);
+    throw shcore::Exception::runtime_error(
+        "sql_require_primary_key enabled at destination server");
   }
 }
 

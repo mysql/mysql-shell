@@ -713,7 +713,6 @@ void Dump_reader::Schema_info::rescan(
               info->basename = basenames->get_string(info->table);
             else
               info->basename = basename + "@" + info->table;
-
             tables.emplace(info->table, info);
           }
         }

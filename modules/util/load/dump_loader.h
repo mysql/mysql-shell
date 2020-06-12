@@ -354,6 +354,8 @@ class Dump_loader {
   std::atomic<size_t> m_num_chunks_loaded;
   std::atomic<size_t> m_num_warnings;
   std::atomic<size_t> m_num_errors;
+
+  int m_progress_spin = 0;
 };
 
 namespace loader {
