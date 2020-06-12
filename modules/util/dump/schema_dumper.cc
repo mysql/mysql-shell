@@ -2160,11 +2160,11 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
           opt_quoted_table.c_str());
 
   if (query_with_binary_charset(
-          "SELECT CHECK_OPTION, DEFINER, SECURITY_TYPE, "
-          "       CHARACTER_SET_CLIENT, COLLATION_CONNECTION "
-          "FROM information_schema.views "
-          "WHERE table_name=\"" +
-              table + "\" AND table_schema=\"" + db + "\"",
+          shcore::sqlformat("SELECT CHECK_OPTION, DEFINER, SECURITY_TYPE, "
+                            "CHARACTER_SET_CLIENT, COLLATION_CONNECTION "
+                            "FROM information_schema.views "
+                            "WHERE table_name=? AND table_schema=?",
+                            table, db),
           &infoschema_res)) {
     /*
       Use the raw output from SHOW CREATE TABLE if

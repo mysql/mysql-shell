@@ -16,10 +16,10 @@ Util.loadDump: At least one of loadData, loadDdl or loadUsers options must be en
 Util.loadDump: At least one of loadData, loadDdl or loadUsers options must be enabled (RuntimeError)
 Util.loadDump: Option 'waitDumpTimeout' UInteger expected, but value is String (TypeError)
 Util.loadDump: Option 'analyzeTables' is expected to be of type String, but is Bool (TypeError)
-Util.loadDump: Invalid value '' for analyzeTables option (RuntimeError)
-Util.loadDump: Invalid value 'xxx' for analyzeTables option (RuntimeError)
-Util.loadDump: Invalid value 'xxx' for deferTableIndexes option (RuntimeError)
-Util.loadDump: Invalid value '' for deferTableIndexes option (RuntimeError)
+Util.loadDump: Invalid value '' for analyzeTables option, allowed values: 'off', 'on', and 'histogram'. (RuntimeError)
+Util.loadDump: Invalid value 'xxx' for analyzeTables option, allowed values: 'off', 'on', and 'histogram'. (RuntimeError)
+Util.loadDump: Invalid value 'xxx' for deferTableIndexes option, allowed values: 'all', 'fulltext', and 'off'. (RuntimeError)
+Util.loadDump: Invalid value '' for deferTableIndexes option, allowed values: 'all', 'fulltext', and 'off'. (RuntimeError)
 Util.loadDump: Option 'deferTableIndexes' is expected to be of type String, but is Bool (TypeError)
 
 //@<ERR> Bad Bucket Name Option {!hasOciEnvironment('OS')}
