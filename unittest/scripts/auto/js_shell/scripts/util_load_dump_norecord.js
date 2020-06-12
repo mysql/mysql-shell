@@ -325,6 +325,9 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {waitDumpTimeout: "???"});
 util.loadDump(__tmp_dir+"/ldtest/dump", {analyzeTables: true});
 util.loadDump(__tmp_dir+"/ldtest/dump", {analyzeTables: ""});
 util.loadDump(__tmp_dir+"/ldtest/dump", {analyzeTables: "xxx"});
+util.loadDump(__tmp_dir+"/ldtest/dump", {deferTableIndexes: "xxx"});
+util.loadDump(__tmp_dir+"/ldtest/dump", {deferTableIndexes: ""});
+util.loadDump(__tmp_dir+"/ldtest/dump", {deferTableIndexes: true});
 
 //@ Bad Bucket Name Option
 util.loadDump(__tmp_dir+"/ldtest/dump", {osBucketName: "bukkit"});
@@ -442,7 +445,7 @@ shell.connect(__sandbox_uri1);
 
 //@<> Load DDL and Users only
 // TSFR4_3, TSFR5_1, TSFR6_1
-util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: true, loadDdl: true, loadData: false, deferTableIndexes: false});
+util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: true, loadDdl: true, loadData: false, deferTableIndexes: "off"});
 
 EXPECT_JSON_EQ(strip_snapshot_data(reference), strip_snapshot_data(snapshot_instance(session)));
 
@@ -554,8 +557,8 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1, ignoreExistingObjects: true}
 
 EXPECT_OUTPUT_CONTAINS("NOTE: One or more objects in the dump already exist in the destination database but will be ignored because the 'ignoreExistingObjects' option was enabled.");
 
-//@<> no dryRun to get errors from mismatched definitions
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {ignoreExistingObjects: true});}, "Util.loadDump: Unknown column 'f.title' in 'field list'");
+//@<> no dryRun to get errors from mismatched definitions of tables that already exist
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {ignoreExistingObjects: true, deferTableIndexes:"all"});}, "Util.loadDump: Unknown column 'f.title' in 'field list'");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -573,7 +576,7 @@ wipe_instance(session);
 
 //@<> showProgress:true
 // TSFR11_1
-testutil.callMysqlsh([__sandbox_uri1, "--", "util", "load-dump", __tmp_dir+"/ldtest/dump", "--showProgress=true"]);
+testutil.callMysqlsh([__sandbox_uri1, "--", "util", "load-dump", __tmp_dir+"/ldtest/dump", "--showProgress=true", "--deferTableIndexes=all"]);
 
 EXPECT_STDOUT_CONTAINS("thds loading");
 EXPECT_STDOUT_CONTAINS("thds indexing");
@@ -583,7 +586,7 @@ wipe_instance(session);
 
 //@<> showProgress:false
 // TSFR11_2
-testutil.callMysqlsh([__sandbox_uri1, "--", "util", "load-dump", __tmp_dir+"/ldtest/dump", "--showProgress=false"]);
+testutil.callMysqlsh([__sandbox_uri1, "--", "util", "load-dump", __tmp_dir+"/ldtest/dump", "--showProgress=false", "--deferTableIndexes=all"]);
 
 EXPECT_STDOUT_NOT_CONTAINS("thds loading");
 EXPECT_STDOUT_NOT_CONTAINS("thds indexing");
@@ -915,14 +918,14 @@ util.dumpSchemas(["sakila"], __tmp_dir+"/ldtest/dump-sakila");
 wipe_instance(session);
 
 //@<> Load everything with no analyze, indexes deferred
-util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "off"});
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "off", deferTableIndexes:"all"});
 EXPECT_OUTPUT_CONTAINS("(indexes removed for deferred creation)");
 EXPECT_OUTPUT_CONTAINS("Recreating indexes for `sakila`.`store`");
 EXPECT_OUTPUT_CONTAINS("Recreating indexes for `sakila`.`inventory`");
 EXPECT_OUTPUT_CONTAINS("Recreating FOREIGN KEY constraints for schema `sakila`");
 
 //@<> Analyze only
-util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "on", loadData: false, loadDdl: false});
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "on", deferTableIndexes:"off", loadData: false, loadDdl: false});
 
 EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`store`");
 EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`staff`");
@@ -947,7 +950,7 @@ if(__version_num>80000) {
 //@<> Load everything without deferring indexes and analyze only for histograms
 wipe_instance(session);
 testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
-util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "histogram", deferTableIndexes: false});
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "histogram", deferTableIndexes: "off"});
 
 EXPECT_OUTPUT_NOT_CONTAINS("indexes removed for deferred creation");
 EXPECT_OUTPUT_NOT_CONTAINS("Recreating indexes");
@@ -961,28 +964,39 @@ if(__version_num>80000) {
   EXPECT_OUTPUT_CONTAINS("WARNING: Histogram creation enabled but MySQL Server "+__version+" does not support it.");
 }
 
+//@<> Load everything with fulltext index deferment (the default)
+wipe_instance(session);
+testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila");
+
+EXPECT_OUTPUT_CONTAINS("Executing DDL script for `sakila`.`film_text` (indexes removed for deferred creation)")
+EXPECT_OUTPUT_CONTAINS("Recreating indexes for `sakila`.`film_text`");
+EXPECT_OUTPUT_CONTAINS("Executing DDL script for `sakila`.`city`");
+EXPECT_OUTPUT_NOT_CONTAINS("Executing DDL script for `sakila`.`city` (indexes removed for deferred creation)");
+EXPECT_OUTPUT_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
+
 //@<> Load DDL first (indexes recreated), then data
 wipe_instance(session);
 testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
-util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadData: false, deferTableIndexes: true, loadIndexes: true});
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadData: false, deferTableIndexes: "all", loadIndexes: true});
 EXPECT_OUTPUT_CONTAINS("indexes removed for deferred creation");
 EXPECT_OUTPUT_CONTAINS("Recreating indexes");
 EXPECT_OUTPUT_CONTAINS("Recreating FOREIGN KEY constraints");
 
 testutil.wipeAllOutput();
-util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadDdl: false, deferTableIndexes: true, loadIndexes: true});
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadDdl: false, deferTableIndexes: "all", loadIndexes: true});
 EXPECT_OUTPUT_NOT_CONTAINS("Recreating indexes");
 EXPECT_OUTPUT_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
 
 //@<> Load DDL first then data with indexes recreation
 wipe_instance(session);
 testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
-util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadData: false, deferTableIndexes: true, loadIndexes: false});
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadData: false, deferTableIndexes: "all", loadIndexes: false});
 EXPECT_OUTPUT_CONTAINS("indexes removed for deferred creation");
 EXPECT_OUTPUT_NOT_CONTAINS("Recreating indexes");
 EXPECT_OUTPUT_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
 
-util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadDdl: false, deferTableIndexes: true, loadIndexes: true});
+util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadDdl: false, deferTableIndexes: "all", loadIndexes: true});
 EXPECT_OUTPUT_CONTAINS("Recreating indexes");
 EXPECT_OUTPUT_CONTAINS("Recreating FOREIGN KEY constraints");
 

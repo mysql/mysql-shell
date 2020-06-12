@@ -224,7 +224,8 @@ class Dump_loader {
                      const std::list<Name_and_file> &tables,
                      const std::list<Name_and_file> &views);
   bool handle_indexes(const std::string &schema, const std::string &table,
-                      std::string *script, bool check_recreated);
+                      std::string *script, bool fulltext_only,
+                      bool check_recreated);
   void handle_table(const std::string &schema, const std::string &table,
                     const std::string &script, bool resuming,
                     bool indexes_deferred = false);

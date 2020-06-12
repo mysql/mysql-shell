@@ -52,6 +52,8 @@ class Load_dump_options final {
 
   enum class Analyze_table_mode { OFF, HISTOGRAM, ON };
 
+  enum class Defer_index_mode { OFF, FULLTEXT, ALL };
+
   Load_dump_options() = default;
 
   explicit Load_dump_options(const std::string &url);
@@ -116,7 +118,7 @@ class Load_dump_options final {
 
   bool ignore_version() const { return m_ignore_version; }
 
-  bool defer_table_indexes() const { return m_defer_table_indexes; }
+  Defer_index_mode defer_table_indexes() const { return m_defer_table_indexes; }
 
   bool load_indexes() const { return m_load_indexes; }
 
@@ -152,7 +154,7 @@ class Load_dump_options final {
   bool m_skip_binlog = false;
   bool m_ignore_existing_objects = false;
   bool m_ignore_version = false;
-  bool m_defer_table_indexes = true;
+  Defer_index_mode m_defer_table_indexes = Defer_index_mode::FULLTEXT;
   bool m_load_indexes = true;
 };
 

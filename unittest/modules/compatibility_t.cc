@@ -676,7 +676,7 @@ TEST_F(Compatibility_test, indexes) {
   `age` int DEFAULT NULL,
   FULLTEXT KEY `author` (`author`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
-                      &rewritten));
+                      false, &rewritten));
   ASSERT_EQ(1, idxs.size());
   EXPECT_EQ("FULLTEXT KEY `author` (`author`)", idxs[0]);
   EXPECT_EQ(rewritten, R"(CREATE TABLE `author` (
@@ -693,7 +693,34 @@ TEST_F(Compatibility_test, indexes) {
   FULLTEXT INDEX `idx` (`opening_line`),
   FULLTEXT key `idx2` (`author`,`title`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
-                      &rewritten, true));
+                      false, &rewritten, true));
+
+  ASSERT_EQ(2, idxs.size());
+  EXPECT_EQ(
+      "ALTER TABLE `opening_lines` ADD FULLTEXT INDEX `idx` (`opening_line`);",
+      idxs[0]);
+  EXPECT_EQ(
+      "ALTER TABLE `opening_lines` ADD FULLTEXT key `idx2` "
+      "(`author`,`title`);",
+      idxs[1]);
+  EXPECT_EQ(rewritten, R"(CREATE TABLE `opening_lines` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `opening_line` text,
+  `author` varchar(200) DEFAULT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)");
+
+  EXPECT_NO_THROW(idxs = compatibility::check_create_table_for_indexes(
+                      R"(CREATE TABLE `opening_lines` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `opening_line` text,
+  `author` varchar(200) DEFAULT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  FULLTEXT INDEX `idx` (`opening_line`),
+  FULLTEXT key `idx2` (`author`,`title`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
+                      true, &rewritten, true));
 
   ASSERT_EQ(2, idxs.size());
   EXPECT_EQ(
@@ -722,7 +749,7 @@ TEST_F(Compatibility_test, indexes) {
   FULLTEXT KEY (`opening_line`),
   CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
-                      &rewritten, true));
+                      false, &rewritten, true));
   ASSERT_EQ(3, idxs.size());
   EXPECT_EQ("ALTER TABLE `films` ADD KEY `oli` (`oli`);", idxs[0]);
   EXPECT_EQ("ALTER TABLE `films` ADD FULLTEXT KEY (`opening_line`);", idxs[1]);
@@ -739,6 +766,32 @@ TEST_F(Compatibility_test, indexes) {
   PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)");
 
   EXPECT_NO_THROW(idxs = compatibility::check_create_table_for_indexes(
+                      R"(CREATE TABLE IF NOT EXISTS `films` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `opening_line` text,
+  `author` varchar(200) DEFAULT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  `oli` int unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `oli` (`oli`),
+  FULLTEXT KEY (`opening_line`),
+  CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
+                      true, &rewritten, true));
+  ASSERT_EQ(1, idxs.size());
+  EXPECT_EQ("ALTER TABLE `films` ADD FULLTEXT KEY (`opening_line`);", idxs[0]);
+  EXPECT_EQ(rewritten, R"(CREATE TABLE IF NOT EXISTS `films` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `opening_line` text,
+  `author` varchar(200) DEFAULT NULL,
+  `title` varchar(200) DEFAULT NULL,
+  `oli` int unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `oli` (`oli`),
+  CONSTRAINT `films_ibfk_1` FOREIGN KEY (`oli`) REFERENCES `opening_lines` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)");
+
+  EXPECT_NO_THROW(idxs = compatibility::check_create_table_for_indexes(
                       R"(CREATE TABLE part_tbl2 (
   pk INT PRIMARY KEY,
   xx INT GENERATED ALWAYS AS (pk+2)
@@ -747,7 +800,8 @@ TEST_F(Compatibility_test, indexes) {
     DATA DIRECTORY = '${TMPDIR}/test datadir',
     PARTITION p2
     DATA DIRECTORY = '${TMPDIR}/test datadir2'
-  );)"));
+  );)",
+                      false));
   EXPECT_TRUE(idxs.empty());
 }
 
@@ -758,8 +812,11 @@ TEST_F(Compatibility_test, indexes_recreation) {
   session->execute("create database index_recreation_test");
   session->execute("use index_recreation_test");
 
-  const auto check_recreation = [&](const std::string &table_name,
-                                    const char *ddl, int index_count) {
+  const auto check_recreation_one = [&](const std::string &table_name,
+                                        const char *ddl, int index_count,
+                                        bool fulltext_only) {
+    SCOPED_TRACE(table_name);
+
     ASSERT_NO_THROW(session->execute(ddl));
     auto create_table = session->query("show create table " + table_name)
                             ->fetch_one()
@@ -767,7 +824,7 @@ TEST_F(Compatibility_test, indexes_recreation) {
     std::string rewritten;
     std::vector<std::string> idxs;
     EXPECT_NO_THROW(idxs = compatibility::check_create_table_for_indexes(
-                        create_table, &rewritten, true));
+                        create_table, fulltext_only, &rewritten, true));
     EXPECT_EQ(index_count, idxs.size());
     if (idxs.size() == 0) return;
     ASSERT_NO_THROW(session->execute("drop table " + table_name));
@@ -780,20 +837,49 @@ TEST_F(Compatibility_test, indexes_recreation) {
                                 ->get_string(1));
   };
 
-  check_recreation("t1", "create table t1 (i int primary key, j int unique)",
-                   1);
+  const auto check_recreation = [&](const std::string &table_name,
+                                    const char *ddl, int index_count,
+                                    int ft_index_count) {
+    check_recreation_one(table_name, ddl, index_count, false);
+    ASSERT_NO_THROW(session->execute("drop table " + table_name));
+    check_recreation_one(table_name, ddl, ft_index_count, true);
+    ASSERT_NO_THROW(session->execute("drop table " + table_name));
+  };
+
+  check_recreation("t1", "create table t1 (i int primary key, j int unique)", 1,
+                   0);
   check_recreation(
       "t2",
       "create table t2 (i int, j int, t text, fulltext (t), primary key (i,j))",
-      1);
+      1, 1);
 
-  check_recreation("parent", R"(CREATE TABLE parent (
+  check_recreation("t3", R"(CREATE TABLE t3 (
+    id INT NOT NULL,
+    `SPATIAL` TEXT,
+    `FULLTEXT` LONGTEXT,
+    FULLTEXT `UNIQUE` (`SPATIAL`),
+    FULLTEXT `SPATIAL` (`SPATIAL`, `FULLTEXT`),
+    PRIMARY KEY (id)
+) ENGINE=INNODB;)",
+                   2, 2);
+
+  check_recreation("t4", R"(CREATE TABLE t4 (
+    id INT NOT NULL,
+    t1 TEXT,
+    `fulltext` VARCHAR(32),
+    FULLTEXT KEY `fulltext` (t1),
+    UNIQUE (`fulltext`),
+    PRIMARY KEY (id)
+) ENGINE=INNODB;)",
+                   2, 1);
+
+  check_recreation_one("parent", R"(CREATE TABLE parent (
     id INT NOT NULL,
     PRIMARY KEY (id)
 ) ENGINE=INNODB;)",
-                   0);
+                       0, false);
 
-  check_recreation("child", R"(CREATE TABLE child (
+  check_recreation_one("child", R"(CREATE TABLE child (
     id INT,
     category INT NOT NULL,
     parent_id INT CHECK (parent_id <> 666),
@@ -805,7 +891,27 @@ TEST_F(Compatibility_test, indexes_recreation) {
         REFERENCES parent(id)
         ON DELETE CASCADE
 ) ENGINE=INNODB;)",
-                   3);
+                       3, false);
+
+  check_recreation_one("parentf", R"(CREATE TABLE parentf (
+    id INT NOT NULL,
+    PRIMARY KEY (id)
+) ENGINE=INNODB;)",
+                       0, true);
+
+  check_recreation_one("childf", R"(CREATE TABLE childf (
+    id INT,
+    category INT NOT NULL,
+    parent_id INT CHECK (parent_id <> 666),
+    first_words TEXT,
+    PRIMARY KEY(category, id),
+    INDEX par_ind (parent_id),
+    FULLTEXT(first_words),
+    FOREIGN KEY (parent_id)
+        REFERENCES parentf(id)
+        ON DELETE CASCADE
+) ENGINE=INNODB;)",
+                       1, true);
 
   check_recreation("pair", R"(CREATE TABLE pair (
     no INT NOT NULL AUTO_INCREMENT,
@@ -826,7 +932,7 @@ TEST_F(Compatibility_test, indexes_recreation) {
     FOREIGN KEY (customer_id)
       REFERENCES parent(id)
 )   ENGINE=INNODB;)",
-                   5);
+                   5, 0);
 
   check_recreation("jemp", R"(CREATE TABLE jemp (
     c JSON,
@@ -835,7 +941,7 @@ TEST_F(Compatibility_test, indexes_recreation) {
     SPATIAL INDEX(geo),
     INDEX i (g)
     );)",
-                   2);
+                   2, 0);
 
   check_recreation("part_tbl2", R"(CREATE TABLE part_tbl2 (
   pk INT PRIMARY KEY,
@@ -846,7 +952,7 @@ TEST_F(Compatibility_test, indexes_recreation) {
     PARTITION p1,
     PARTITION p2    
   );)",
-                   1);
+                   1, 0);
 
   session->execute("drop database index_recreation_test");
 }
