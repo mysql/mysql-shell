@@ -261,7 +261,7 @@ class Dumper::Table_worker final {
 
   void dump_table_data(const Table_data_task &table) {
     Dump_write_result bytes_written_per_file;
-    Dump_write_result bytes_written_per_update;
+    Dump_write_result bytes_written_per_update{table.schema, table.name};
     uint64_t rows_written_per_update = 0;
     const uint64_t update_every = 2000;
     uint64_t rows_written_per_idx = 0;
@@ -315,7 +315,7 @@ class Dumper::Table_worker final {
         }
 
         rows_written_per_update = 0;
-        bytes_written_per_update = Dump_write_result{};
+        bytes_written_per_update.reset();
       }
     }
 
@@ -1662,12 +1662,29 @@ void Dumper::write_dump_finished_metadata() const {
   using rapidjson::Document;
   using rapidjson::StringRef;
   using rapidjson::Type;
+  using rapidjson::Value;
 
   Document doc{Type::kObjectType};
   auto &a = doc.GetAllocator();
 
   doc.AddMember(StringRef("end"), ref(m_dump_info->end()), a);
   doc.AddMember(StringRef("dataBytes"), m_data_bytes.load(), a);
+
+  {
+    Value schemas{Type::kObjectType};
+
+    for (const auto &schema : m_table_data_bytes) {
+      Value tables{Type::kObjectType};
+
+      for (const auto &table : schema.second) {
+        tables.AddMember(ref(table.first), table.second, a);
+      }
+
+      schemas.AddMember(ref(schema.first), std::move(tables), a);
+    }
+
+    doc.AddMember(StringRef("tableDataBytes"), std::move(schemas), a);
+  }
 
   write_json(make_file("@.done.json"), &doc);
 }
@@ -1963,6 +1980,7 @@ void Dumper::initialize_progress() {
   m_rows_written = 0;
   m_bytes_written = 0;
   m_data_bytes = 0;
+  m_table_data_bytes.clear();
 
   m_data_throughput = std::make_unique<mysqlshdk::textui::Throughput>();
   m_bytes_throughput = std::make_unique<mysqlshdk::textui::Throughput>();
@@ -1988,10 +2006,17 @@ void Dumper::initialize_progress() {
   m_dump_info = std::make_unique<Dump_info>(session());
 }
 
-void Dumper::update_progress(uint64_t new_rows, Dump_write_result new_bytes) {
+void Dumper::update_progress(uint64_t new_rows,
+                             const Dump_write_result &new_bytes) {
   m_rows_written += new_rows;
   m_bytes_written += new_bytes.bytes_written();
   m_data_bytes += new_bytes.data_bytes();
+
+  {
+    std::lock_guard<std::mutex> lock(m_table_data_bytes_mutex);
+    m_table_data_bytes[new_bytes.schema()][new_bytes.table()] +=
+        new_bytes.data_bytes();
+  }
 
   {
     std::unique_lock<std::mutex> lock(m_progress_mutex, std::try_to_lock);

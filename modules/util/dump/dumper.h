@@ -270,7 +270,7 @@ class Dumper {
 
   void initialize_progress();
 
-  void update_progress(uint64_t new_rows, Dump_write_result new_bytes);
+  void update_progress(uint64_t new_rows, const Dump_write_result &new_bytes);
 
   void shutdown_progress();
 
@@ -327,6 +327,10 @@ class Dumper {
   std::unique_ptr<mysqlshdk::textui::Throughput> m_bytes_throughput;
   std::atomic<uint64_t> m_num_threads_chunking;
   std::atomic<uint64_t> m_num_threads_dumping;
+  std::mutex m_table_data_bytes_mutex;
+  // schema -> table -> data bytes
+  std::unordered_map<std::string, std::unordered_map<std::string, uint64_t>>
+      m_table_data_bytes;
 
   // threads
   std::vector<std::thread> m_workers;

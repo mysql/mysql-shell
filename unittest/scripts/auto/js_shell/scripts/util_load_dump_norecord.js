@@ -365,7 +365,7 @@ wipe_instance(session);
 // TODO TSFR2_4, TSFR2_5, TSFR2_6, TSFR2_7, TSFR2_8, FR13
 
 //@<> Plain load of uncompressed dump
-// TSFR2_3 also use file:// 
+// TSFR2_3 also use file://
 // also check progressFile option
 // also check that the characterSet is taken from the dump file - TSFR14_4
 session.runSql("set global character_set_server = 'sjis'");
@@ -580,6 +580,17 @@ testutil.callMysqlsh([__sandbox_uri1, "--", "util", "load-dump", __tmp_dir+"/ldt
 
 EXPECT_STDOUT_CONTAINS("thds loading");
 EXPECT_STDOUT_CONTAINS("thds indexing");
+
+testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
+wipe_instance(session);
+
+//@<> showProgress:true + excludeTables
+// Bug #31482289  SHELL DUMP/LOAD: LOAD PROGRESS BAR HAS WRONG TOTAL GB WHEN USING EXCLUDETABLES
+testutil.callMysqlsh([__sandbox_uri1, "--js", "-e", "util.loadDump('"+__tmp_dir+"/ldtest/dump', {showProgress:1, deferTableIndexes:'off', excludeTables:['sakila.rental', 'sakila.sales_by_film_category', 'sakila.sales_by_store'],  excludeSchemas:['xtest', 'mysqlaas_compat', 'world', 'all_features']})"]);
+
+EXPECT_STDOUT_CONTAINS("thds loading");
+// 3.24 MB is the total size of the dump, since we're excluding a lot of things it should be much less in reality
+EXPECT_STDOUT_NOT_CONTAINS("3.24 MB");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -1054,7 +1065,7 @@ r = shell.dumpRows(session.runSql("select * from test.ukn"));
 EXPECT_EQ(task_status.STARTED === ukn_status ? 2 : 3, r);
 
 //@<> Check work distribution across threads
-// Tables should finish loading at about the same time regardless of the 
+// Tables should finish loading at about the same time regardless of the
 // # of chunks
 
 // fill test data
