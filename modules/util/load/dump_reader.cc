@@ -439,6 +439,30 @@ bool Dump_reader::work_available() const {
   return false;
 }
 
+size_t Dump_reader::filtered_data_size() const {
+  if (m_dump_status == Status::COMPLETE) {
+    size_t size = 0;
+
+    for (const auto &schema : m_contents.schemas) {
+      for (const auto &table : schema.second->tables) {
+        const auto s = m_contents.table_data_size.find(table.second->schema);
+
+        if (s != m_contents.table_data_size.end()) {
+          const auto t = s->second.find(table.second->table);
+
+          if (t != s->second.end()) {
+            size += t->second;
+          }
+        }
+      }
+    }
+
+    return size;
+  } else {
+    return total_data_size();
+  }
+}
+
 // Scan directory for new files and adds them to the pending file list
 void Dump_reader::rescan() {
   using mysqlshdk::storage::IDirectory;
@@ -822,12 +846,28 @@ void Dump_reader::Dump_info::parse_done_metadata(
   shcore::Dictionary_t metadata = fetch_metadata(dir, "@.done.json");
   log_info("Dump %s is complete", dir->full_path().c_str());
 
-  if (metadata && metadata->has_key("dataBytes")) {
-    data_size = metadata->get_uint("dataBytes");
+  if (metadata) {
+    if (metadata->has_key("dataBytes")) {
+      data_size = metadata->get_uint("dataBytes");
+    } else {
+      log_warning(
+          "Dump metadata file @.done.json does not contain dataBytes "
+          "information");
+    }
+
+    if (metadata->has_key("tableDataBytes")) {
+      for (const auto &schema : *metadata->get_map("tableDataBytes")) {
+        for (const auto &table : *schema.second.as_map()) {
+          table_data_size[schema.first][table.first] = table.second.as_uint();
+        }
+      }
+    } else {
+      log_warning(
+          "Dump metadata file @.done.json does not contain tableDataBytes "
+          "information");
+    }
   } else {
-    log_warning(
-        "Dump metadata file @.done.json does not contain dataBytes "
-        "information");
+    log_warning("Dump metadata file @.done.json is invalid");
   }
 }
 

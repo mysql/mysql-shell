@@ -1481,7 +1481,7 @@ void Dump_loader::setup_progress(bool *out_is_resuming) {
   // - when the dump completes during load, we switch to displaying progress
   // relative to the total size
 
-  m_progress->total(m_dump->total_data_size(), initial);
+  m_progress->total(m_dump->filtered_data_size(), initial);
 
   update_progress();
 }
@@ -1515,7 +1515,7 @@ void Dump_loader::execute_tasks() {
       wait_for_more_data();
 
       if (m_dump->status() == Dump_reader::Status::COMPLETE) {
-        m_progress->total(m_dump->total_data_size());
+        m_progress->total(m_dump->filtered_data_size());
       }
       update_progress();
     }

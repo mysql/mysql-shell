@@ -121,6 +121,7 @@ class Dump_reader {
 
   size_t dump_size() const { return m_contents.dump_size; }
   size_t total_data_size() const { return m_contents.data_size; }
+  size_t filtered_data_size() const;
 
   void rescan();
 
@@ -276,6 +277,9 @@ class Dump_reader {
 
     // total uncompressed bytes of table data the dump contains
     size_t data_size = 0;
+    // uncompressed bytes per table
+    std::unordered_map<std::string, std::unordered_map<std::string, size_t>>
+        table_data_size;
     // total file sizes available in the dump location
     size_t dump_size = 0;
 

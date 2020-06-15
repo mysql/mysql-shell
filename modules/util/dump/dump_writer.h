@@ -39,7 +39,10 @@ namespace dump {
 
 class Dump_write_result final {
  public:
-  Dump_write_result() = default;
+  Dump_write_result() : Dump_write_result("unknown", "unknown") {}
+
+  Dump_write_result(const std::string &schema, const std::string &table)
+      : m_schema(schema), m_table(table) {}
 
   Dump_write_result(const Dump_write_result &) = default;
   Dump_write_result(Dump_write_result &&) = default;
@@ -51,6 +54,12 @@ class Dump_write_result final {
 
   Dump_write_result &operator+=(const Dump_write_result &rhs);
 
+  void reset() noexcept { m_data_bytes = m_bytes_written = 0; }
+
+  const std::string &schema() const noexcept { return m_schema; }
+
+  const std::string &table() const noexcept { return m_table; }
+
   uint64_t data_bytes() const noexcept { return m_data_bytes; }
 
   uint64_t bytes_written() const noexcept { return m_bytes_written; }
@@ -58,6 +67,8 @@ class Dump_write_result final {
  private:
   friend class Dump_writer;
 
+  std::string m_schema;
+  std::string m_table;
   uint64_t m_data_bytes = 0;
   uint64_t m_bytes_written = 0;
 };
