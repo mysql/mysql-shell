@@ -46,6 +46,38 @@
 using namespace std::placeholders;
 namespace shcore {
 
+namespace {
+std::tuple<bool, std::vector<std::string>> process_keyword_args(
+    const shcore::Cpp_function::Raw_signature &cand,
+    const shcore::Dictionary_t &kwds) {
+  std::set<std::string> kwd_names;
+  std::set<std::string> params;
+
+  // First of all, we ensure all the provided keywords are valid parameters
+  for (const auto &param : cand) {
+    params.insert(param->name);
+  }
+
+  for (const auto &kwd : *kwds) {
+    kwd_names.insert(kwd.first);
+  }
+
+  std::vector<std::string> diff;
+  std::set_difference(kwd_names.begin(), kwd_names.end(), params.begin(),
+                      params.end(), std::inserter(diff, diff.begin()));
+
+  // There are keywords that are NOT parameter names.
+  // If the last parameter is a map, and there's no keyword param for it these
+  // options will be wrapped into a dictionary; otherwise they are considered
+  // invalid named parameters.
+  bool remaining_as_kwargs = !diff.empty() && !cand.empty() &&
+                             cand.back()->type() == shcore::Value_type::Map &&
+                             !kwds->has_key(cand.back()->name);
+
+  return {remaining_as_kwargs, diff};
+}
+}  // namespace
+
 Cpp_function::Raw_signature Cpp_function::gen_signature(
     const std::vector<std::pair<std::string, Value_type>> &args) {
   Raw_signature sig;
@@ -73,27 +105,16 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
   // If keyword parameters are provided, function matching evaluation is done
   // reviewing parameter by parameter from the function signature
   if (kwds && !kwds->empty()) {
-    std::set<std::string> kwd_names;
-    std::set<std::string> params;
+    std::vector<std::string> real_kwargs;
+    bool support_kwargs = false;
 
-    // First of all, we ensure all the provided keywords are valid parameters
-    for (const auto &param : cand) {
-      params.insert(param->name);
-    }
+    std::tie(support_kwargs, real_kwargs) = process_keyword_args(cand, kwds);
 
-    for (const auto &kwd : *kwds) {
-      kwd_names.insert(kwd.first);
-    }
-
-    std::vector<std::string> diff;
-    std::set_difference(kwd_names.begin(), kwd_names.end(), params.begin(),
-                        params.end(), std::inserter(diff, diff.begin()));
-
-    if (!diff.empty()) {
+    if (!real_kwargs.empty() && !support_kwargs) {
       match = false;
       error = shcore::str_format(
-          "Invalid keyword argument%s: %s", diff.size() == 1 ? "" : "s",
-          shcore::str_join(diff, ", ", [](const std::string &item) {
+          "Invalid keyword argument%s: %s", real_kwargs.size() == 1 ? "" : "s",
+          shcore::str_join(real_kwargs, ", ", [](const std::string &item) {
             return "'" + item + "'";
           }).c_str());
     } else {
@@ -140,6 +161,10 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
                                        param->name.c_str(),
                                        type_description(param->type()).c_str());
           }
+          // This is the last parameter, it's a map and there are dangling named
+          // arguments, they will be used to construct the options dictionary
+        } else if (param == cand.back() && support_kwargs) {
+          exact_matches++;
         } else if (param->flag != Param_flag::Optional) {
           match = false;
           error = shcore::str_format("Missing value for argument '%s'",
@@ -593,10 +618,24 @@ Value Cpp_object_bridge::call_advanced(const std::string &name,
         new_args.push_back(arg);
       }
 
+      bool support_kwargs = false;
+      std::vector<std::string> final_kwargs;
+
+      if (kwargs && !kwargs->empty()) {
+        std::tie(support_kwargs, final_kwargs) =
+            process_keyword_args(signature, kwargs);
+      }
+
       std::vector<size_t> skipped_optionals;
       for (size_t index = new_args.size(); index < signature.size(); index++) {
         if (kwargs && kwargs->has_key(signature.at(index)->name)) {
           new_args.push_back(kwargs->at(signature.at(index)->name));
+        } else if (index == signature.size() - 1 && support_kwargs) {
+          auto kwargs_dict = shcore::make_dict();
+          for (const auto &key : final_kwargs) {
+            kwargs_dict->set(key, kwargs->at(key));
+          }
+          new_args.push_back(shcore::Value(kwargs_dict));
         } else if (signature.at(index)->flag == Param_flag::Optional) {
           // An undefined Value is used as a trigger to use the defined
           // default for optional paraeters the parameter when the function is

@@ -1032,9 +1032,9 @@ Bye!
   delete_user_plugin("plugin");
 }
 
-TEST_F(Mysqlsh_plugin_test, py_kwargs_plugin) {
+TEST_F(Mysqlsh_plugin_test, py_plugin_use_with_named_args) {
   // create fourth-py plugin - which defines a new global object
-  write_user_plugin("kwargs-py",
+  write_user_plugin("named-args-py",
                     R"(def describe(one, two, three, four, five):
   print(one, two, three, four, five)
 
@@ -1126,7 +1126,500 @@ shell.register_global('pyObject', obj);
   for (const auto &output : get_expected_output()) {
     MY_EXPECT_CMD_OUTPUT_CONTAINS(output);
   }
-  delete_user_plugin("kwargs-py");
+  delete_user_plugin("named-args-py");
+}
+
+TEST_F(Mysqlsh_plugin_test, py_kwargs_from_python_correct_registration) {
+  write_user_plugin("kwargs-py-py-correct",
+                    R"(obj = shell.create_extension_object()
+
+def print_args(name, lname, **kwargs):
+  data = []
+  data.append(name)
+  data.append(lname)
+  for key, val in kwargs.items():
+    data.append("{} = {}".format(key, val))
+  print(", ".join(data))
+
+shell.add_extension_object_member(obj, "printArgs", print_args, {
+    "brief":"Testing usage of kwargs",
+    "parameters": [
+       {
+         "name": "name",
+         "type": "string",
+       },
+       {
+         "name": "lname",
+         "type": "string",
+       },
+       {
+         "name": "kwargs",
+         "type": "dictionary",
+         "required": False,
+       }
+    ]});
+
+shell.register_global('kwtest', obj)
+
+)",
+                    ".py");
+
+  add_py_test("\\py");
+
+  // TEST: Not passing kwargs
+  add_py_test("kwtest.print_args('John', 'Doe')", "John, Doe");
+
+  // TEST: Using named parameters without kwargs
+  add_py_test("kwtest.print_args(name='Jane', lname='Doe')", "Jane, Doe");
+
+  // TEST: Passing kwargs in a dictionary
+  add_py_test("kwtest.print_args('Jack', 'Doe', {'option':'value'})",
+              "Jack, Doe, option = value");
+
+  // TEST: Passing kwargs
+  add_py_test("kwtest.print_args(name='Jack', lname='Sparrow', uses='sword')",
+              "Jack, Sparrow, uses = sword");
+
+  // TEST: Passing named argument for parameter already defined
+  add_py_test("kwtest.print_args('Black', 'Pearl', name='dissappears')",
+              "ArgumentError: kwtest.print_args: Got multiple values for "
+              "argument 'name'");
+
+  // TEST: Passing named argument for parameter already defined but in a
+  // dictionary (See BUG#31500843 For More Details)
+  add_py_test("kwtest.print_args('Black', 'Pearl', {'name': 'allowed'})",
+              "SystemError: ScriptingError: kwtest.print_args: User-defined "
+              "function threw an exception: print_args() got multiple values "
+              "for argument 'name'");
+
+  // run the test
+  run({"--log-level=debug"});
+
+  // check the output
+  for (const auto &output : get_expected_output()) {
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(output);
+  }
+  delete_user_plugin("kwargs-py-py-correct");
+}
+
+TEST_F(Mysqlsh_plugin_test, py_kwargs_from_javascript_correct_registration) {
+  write_user_plugin("kwargs-py-js-correct",
+                    R"(obj = shell.create_extension_object()
+
+def print_args(name, lname, **kwargs):
+  data = []
+  data.append(name)
+  data.append(lname)
+  for key, val in kwargs.items():
+    data.append("{} = {}".format(key, val))
+  print(", ".join(data))
+
+shell.add_extension_object_member(obj, "printArgs", print_args, {
+    "brief":"Testing usage of kwargs",
+    "parameters": [
+       {
+         "name": "name",
+         "type": "string",
+       },
+       {
+         "name": "lname",
+         "type": "string",
+       },
+       {
+         "name": "kwargs",
+         "type": "dictionary",
+         "required": False,
+       }
+    ]});
+
+shell.register_global('kwtest', obj)
+
+)",
+                    ".py");
+
+  add_py_test("\\js");
+
+  // TEST: Not passing kwargs
+  add_py_test("kwtest.printArgs('John', 'Doe')", "John, Doe");
+
+  // TEST: Passing kwargs in a dictionary
+  add_py_test("kwtest.printArgs('Jack', 'Doe', {'option':'value'})",
+              "Jack, Doe, option = value");
+
+  // TEST: Passing named argument for parameter already defined but in a
+  // dictionary (See BUG#31500843 For More Details)
+  add_py_test(
+      "kwtest.printArgs('Black', 'Pearl', {name: 'allowed'})",
+      "kwtest.printArgs: User-defined function threw an exception: "
+      "print_args() got multiple values for argument 'name' (ScriptingError)");
+
+  // run the test
+  run({"--log-level=debug"});
+
+  // check the output
+  for (const auto &output : get_expected_output()) {
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(output);
+  }
+  delete_user_plugin("kwargs-py-js-correct");
+}
+
+TEST_F(Mysqlsh_plugin_test, py_kwargs_from_python_mismatched_registration) {
+  write_user_plugin("kwargs-py-py-mistmatched",
+                    R"(obj = shell.create_extension_object()
+
+def print_args(name, lname, **kwargs):
+  data = []
+  data.append(name)
+  data.append(lname)
+  for key, val in kwargs.items():
+    data.append("{} = {}".format(key, val))
+  print(", ".join(data))
+
+shell.add_extension_object_member(obj, "printArgs", print_args, {
+    "brief":"Testing usage of kwargs",
+    "parameters": [
+       {
+         "name": "first",
+         "type": "string",
+       },
+       {
+         "name": "second",
+         "type": "string",
+       },
+       {
+         "name": "kwargs",
+         "type": "dictionary",
+         "required": False,
+       }
+    ]});
+
+shell.register_global('kwtest', obj)
+
+)",
+                    ".py");
+
+  add_py_test("\\py");
+
+  // TEST: Not passing kwargs
+  add_py_test("kwtest.print_args('John', 'Doe')", "John, Doe");
+
+  // TEST: Using named parameters without kwargs
+  add_py_test("kwtest.print_args(first='Jane', second='Doe')", "Jane, Doe");
+
+  // TEST: Passing kwargs in a dictionary
+  add_py_test("kwtest.print_args('Jack', 'Doe', {'option':'value'})",
+              "Jack, Doe, option = value");
+
+  // TEST: Passing kwargs
+  add_py_test("kwtest.print_args(first='Jack', second='Sparrow', uses='sword')",
+              "Jack, Sparrow, uses = sword");
+
+  // TEST: Passing named argument for parameter already defined
+  add_py_test("kwtest.print_args('Black', 'Pearl', first='dissappears')",
+              "ArgumentError: kwtest.print_args: Got multiple values for "
+              "argument 'first'");
+
+  // TEST: Passing named argument for parameter already defined but in a
+  // dictionary (See BUG#31500843 For More Details)
+  add_py_test("kwtest.print_args('Black', 'Pearl', {'first': 'allowed'})",
+              "Black, Pearl, first = allowed");
+
+  // run the test
+  run({"--log-level=debug"});
+
+  // check the output
+  for (const auto &output : get_expected_output()) {
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(output);
+  }
+  delete_user_plugin("kwargs-py-py-mistmatched");
+}
+
+TEST_F(Mysqlsh_plugin_test,
+       py_kwargs_from_javascript_mistmatched_registration) {
+  write_user_plugin("kwargs-py-js-mismatched",
+                    R"(obj = shell.create_extension_object()
+
+def print_args(name, lname, **kwargs):
+  data = []
+  data.append(name)
+  data.append(lname)
+  for key, val in kwargs.items():
+    data.append("{} = {}".format(key, val))
+  print(", ".join(data))
+
+shell.add_extension_object_member(obj, "printArgs", print_args, {
+    "brief":"Testing usage of kwargs",
+    "parameters": [
+       {
+         "name": "first",
+         "type": "string",
+       },
+       {
+         "name": "second",
+         "type": "string",
+       },
+       {
+         "name": "kwargs",
+         "type": "dictionary",
+         "required": False,
+       }
+    ]});
+
+shell.register_global('kwtest', obj)
+
+)",
+                    ".py");
+
+  add_js_test("\\js");
+
+  // TEST: Not passing kwargs
+  add_js_test("kwtest.printArgs('John', 'Doe')", "John, Doe");
+
+  // TEST: Passing kwargs in a dictionary
+  add_js_test("kwtest.printArgs('Jack', 'Doe', {'option':'value'})",
+              "Jack, Doe, option = value");
+
+  // TEST: Passing named argument for parameter already defined but in a
+  // dictionary (See BUG#31500843 For More Details)
+  add_js_test("kwtest.printArgs('Black', 'Pearl', {'first': 'allowed'})",
+              "Black, Pearl, first = allowed");
+
+  // run the test
+  run({"--log-level=debug"});
+
+  // check the output
+  for (const auto &output : get_expected_output()) {
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(output);
+  }
+  delete_user_plugin("kwargs-py-js-mismatched");
+}
+
+TEST_F(Mysqlsh_plugin_test, py_not_kwargs_from_python_correct_registration) {
+  write_user_plugin("kwargs-py-py-correct",
+                    R"(obj = shell.create_extension_object()
+
+def print_args(name, lname, kwargs):
+  data = []
+  data.append(name)
+  data.append(lname)
+  if (kwargs):
+    for key, val in kwargs.items():
+      data.append("{} = {}".format(key, val))
+  print(", ".join(data))
+
+shell.add_extension_object_member(obj, "printArgs", print_args, {
+    "brief":"Testing usage of kwargs",
+    "parameters": [
+       {
+         "name": "name",
+         "type": "string",
+       },
+       {
+         "name": "lname",
+         "type": "string",
+       },
+       {
+         "name": "kwargs",
+         "type": "dictionary",
+         "required": False,
+       }
+    ]});
+
+shell.register_global('kwtest', obj)
+
+)",
+                    ".py");
+
+  add_py_test("\\py");
+
+  // TEST: Not passing kwargs
+  add_py_test("kwtest.print_args('John', 'Doe')", "John, Doe");
+
+  // TEST: Using named parameters without kwargs
+  add_py_test("kwtest.print_args(name='Jane', lname='Doe')", "Jane, Doe");
+
+  // TEST: Passing kwargs in a dictionary
+  add_py_test("kwtest.print_args('Jack', 'Doe', {'option':'value'})",
+              "Jack, Doe, option = value");
+
+  // TEST: Passing kwargs
+  add_py_test("kwtest.print_args(name='Jack', lname='Sparrow', uses='sword')",
+              "Jack, Sparrow, uses = sword");
+
+  // TEST: Passing named argument for parameter already defined
+  add_py_test("kwtest.print_args('Black', 'Pearl', name='dissappears')",
+              "ArgumentError: kwtest.print_args: Got multiple values for "
+              "argument 'name'");
+
+  // TEST: Passing option named as parameter, it's handled as option
+  add_py_test("kwtest.print_args('Black', 'Pearl', {'name': 'allowed'})",
+              "Black, Pearl, name = allowed");
+
+  // run the test
+  run({"--log-level=debug"});
+
+  // check the output
+  for (const auto &output : get_expected_output()) {
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(output);
+  }
+  delete_user_plugin("kwargs-py-py-correct");
+}
+
+TEST_F(Mysqlsh_plugin_test, py_no_kwargs_from_javascript_correct_registration) {
+  write_user_plugin("kwargs-py-js-correct",
+                    R"(obj = shell.create_extension_object()
+
+def print_args(name, lname, kwargs=None):
+  data = []
+  data.append(name)
+  data.append(lname)
+  if kwargs:
+    for key, val in kwargs.items():
+      data.append("{} = {}".format(key, val))
+  print(", ".join(data))
+
+shell.add_extension_object_member(obj, "printArgs", print_args, {
+    "brief":"Testing usage of kwargs",
+    "parameters": [
+       {
+         "name": "name",
+         "type": "string",
+       },
+       {
+         "name": "lname",
+         "type": "string",
+       },
+       {
+         "name": "kwargs",
+         "type": "dictionary",
+         "required": False,
+       }
+    ]});
+
+shell.register_global('kwtest', obj)
+
+)",
+                    ".py");
+
+  add_py_test("\\js");
+
+  // TEST: Not passing kwargs
+  add_py_test("kwtest.printArgs('John', 'Doe')", "John, Doe");
+
+  // TEST: Passing kwargs in a dictionary
+  add_py_test("kwtest.printArgs('Jack', 'Doe', {'option':'value'})",
+              "Jack, Doe, option = value");
+
+  // TEST: Passing option named as argument, it's processed as option
+  add_py_test("kwtest.printArgs('Black', 'Pearl', {name: 'allowed'})",
+              "Black, Pearl, name = allowed");
+
+  // run the test
+  run({"--log-level=debug"});
+
+  // check the output
+  for (const auto &output : get_expected_output()) {
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(output);
+  }
+  delete_user_plugin("kwargs-py-js-correct");
+}
+
+TEST_F(Mysqlsh_plugin_test, py_kwargs_additional_tests) {
+  write_user_plugin("kwargs-py-py-correct",
+                    R"(obj = shell.create_extension_object()
+
+def print_args(name, options, **kwargs):
+  data = []
+  data.append(name)
+
+  if options:
+    for key, val in options.items():
+      data.append("Option {} = {}".format(key, val))
+
+  for key, val in kwargs.items():
+    data.append("Arg {} = {}".format(key, val))
+  print(", ".join(data))
+
+shell.add_extension_object_member(obj, "printArgs", print_args, {
+    "brief":"Testing usage of kwargs",
+    "parameters": [
+       {
+         "name": "name",
+         "type": "string",
+       },
+       {
+         "name": "options",
+         "type": "dictionary",
+       },
+       {
+         "name": "kwargs",
+         "type": "dictionary",
+         "required": False,
+       }
+    ]});
+
+# Same as before but options is optional
+shell.add_extension_object_member(obj, "printArgs2", print_args, {
+    "brief":"Testing usage of kwargs",
+    "parameters": [
+       {
+         "name": "name",
+         "type": "string",
+       },
+       {
+         "name": "options",
+         "type": "dictionary",
+         "required": False,
+       },
+       {
+         "name": "kwargs",
+         "type": "dictionary",
+         "required": False,
+       }
+    ]});
+
+shell.register_global('kwtest', obj)
+
+)",
+                    ".py");
+
+  add_py_test("\\py");
+
+  // TEST: Not passing kwargs
+  add_py_test(
+      "kwtest.print_args(name='John', options={'first':'val'}, "
+      "{'name':'Mike'})",
+      "SyntaxError: positional argument follows keyword argument");
+
+  add_py_test(
+      "kwtest.print_args('John', {'host':'localhost', 'port': 3306}, "
+      "host='127.0.0.1', port=3307)",
+      "John, Option host = localhost, Option port = 3306, Arg host = "
+      "127.0.0.1, Arg port = 3307");
+
+  add_py_test(
+      "kwtest.print_args(name='John', options={'host':'localhost', 'port': "
+      "3308}, host='127.0.0.1', port=3309)",
+      "John, Option host = localhost, Option port = 3308, Arg host = "
+      "127.0.0.1, Arg port = 3309");
+
+  // No option is defined and options is mandatory
+  add_py_test("kwtest.print_args(name='John', host='127.0.0.1', port=3307)",
+              "SystemError: ArgumentError: kwtest.print_args: Missing value "
+              "for argument 'options'");
+
+  // No option is defined and options is optional
+  add_py_test("kwtest.print_args2(name='John', host='127.0.0.1', port=3307)",
+              "John, Arg host = 127.0.0.1, Arg port = 3307");
+
+  // run the test
+  run({"--log-level=debug"});
+
+  // check the output
+  for (const auto &output : get_expected_output()) {
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(output);
+  }
+  delete_user_plugin("kwargs-py-py-correct");
 }
 
 }  // namespace tests
