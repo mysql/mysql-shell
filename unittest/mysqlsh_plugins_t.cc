@@ -1533,11 +1533,12 @@ def print_args(name, options, **kwargs):
   data.append(name)
 
   if options:
-    for key, val in options.items():
-      data.append("Option {} = {}".format(key, val))
+    for key in sorted(options.keys()):
+      data.append("Option {} = {}".format(key, options[key]))
 
-  for key, val in kwargs.items():
-    data.append("Arg {} = {}".format(key, val))
+  for key in sorted(kwargs.keys()):
+    data.append("Arg {} = {}".format(key, kwargs[key]))
+
   print(", ".join(data))
 
 shell.add_extension_object_member(obj, "printArgs", print_args, {

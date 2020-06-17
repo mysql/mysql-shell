@@ -74,7 +74,7 @@ std::tuple<bool, std::vector<std::string>> process_keyword_args(
                              cand.back()->type() == shcore::Value_type::Map &&
                              !kwds->has_key(cand.back()->name);
 
-  return {remaining_as_kwargs, diff};
+  return std::make_tuple(remaining_as_kwargs, std::move(diff));
 }
 }  // namespace
 
