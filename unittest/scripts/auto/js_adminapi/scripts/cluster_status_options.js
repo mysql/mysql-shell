@@ -220,20 +220,20 @@ const extended_2_status_templ_80 = {
                 "status": "",
                 "transactions": {
                     "appliedCount": 0,
-                    "checkedCount": 0, 
-                    "committedAllMembers": "", 
-                    "conflictsDetectedCount": 0, 
-                    "inApplierQueueCount": 0, 
-                    "inQueueCount": 0, 
-                    "lastConflictFree": "", 
-                    "proposedCount": 0, 
+                    "checkedCount": 0,
+                    "committedAllMembers": "",
+                    "conflictsDetectedCount": 0,
+                    "inApplierQueueCount": 0,
+                    "inQueueCount": 0,
+                    "lastConflictFree": "",
+                    "proposedCount": 0,
                     "rollbackCount": 0
                 },
                 "version": __version
             }
         },
         "topologyMode": "Single-Primary"
-    }, 
+    },
     "groupInformationSourceMember": "",
     "metadataVersion": ""
 };
@@ -242,12 +242,12 @@ const extended_2_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
-        "name": "", 
+        "name": "",
         "groupName": "",
         "primary": "",
-        "ssl": "", 
-        "status": "", 
-        "statusText": "", 
+        "ssl": "",
+        "status": "",
+        "statusText": "",
         "topology": {
             "": {
                 "address": "",
@@ -255,21 +255,21 @@ const extended_2_status_templ_57 = {
                 "memberId": "",
                 "memberRole": "",
                 "memberState": "",
-                "mode": "", 
+                "mode": "",
                 "readReplicas": {},
-                "role": "", 
-                "status": "", 
+                "role": "",
+                "status": "",
                 "transactions": {
-                    "checkedCount": 0, 
-                    "committedAllMembers": "", 
-                    "conflictsDetectedCount": 0, 
+                    "checkedCount": 0,
+                    "committedAllMembers": "",
+                    "conflictsDetectedCount": 0,
                     "inQueueCount": 0,
                     "lastConflictFree" : ""
                 }
             }
         },
         "topologyMode": "Single-Primary"
-    }, 
+    },
     "groupInformationSourceMember": "",
     "metadataVersion": ""
 };
@@ -278,12 +278,12 @@ const full_status_templ_80 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
-        "name": "", 
+        "name": "",
         "groupName": "",
         "primary": "",
-        "ssl": "", 
-        "status": "", 
-        "statusText": "", 
+        "ssl": "",
+        "status": "",
+        "statusText": "",
         "topology": {
             "": {
                 "address": "",
@@ -291,49 +291,49 @@ const full_status_templ_80 = {
                 "memberId": "",
                 "memberRole": "",
                 "memberState": "",
-                "mode": "", 
+                "mode": "",
                 "readReplicas": {},
-                "role": "", 
-                "status": "", 
+                "role": "",
+                "status": "",
                 "version": __version,
                 "transactions": {
-                    "appliedCount": 0, 
-                    "checkedCount": 0, 
-                    "committedAllMembers": "", 
-                    "conflictsDetectedCount": 0, 
+                    "appliedCount": 0,
+                    "checkedCount": 0,
+                    "committedAllMembers": "",
+                    "conflictsDetectedCount": 0,
                     "connection": {
-                        "lastHeartbeatTimestamp": "", 
+                        "lastHeartbeatTimestamp": "",
                         "lastQueued": {
-                            "endTimestamp": "", 
-                            "immediateCommitTimestamp": "", 
-                            "immediateCommitToEndTime": 0.0, 
-                            "originalCommitTimestamp": "", 
-                            "originalCommitToEndTime": 0.0, 
-                            "queueTime": 0.1, 
-                            "startTimestamp": "", 
+                            "endTimestamp": "",
+                            "immediateCommitTimestamp": "",
+                            "immediateCommitToEndTime": 0.0,
+                            "originalCommitTimestamp": "",
+                            "originalCommitToEndTime": 0.0,
+                            "queueTime": 0.1,
+                            "startTimestamp": "",
                             "transaction": ""
-                        }, 
-                        "receivedHeartbeats": 0, 
+                        },
+                        "receivedHeartbeats": 0,
                         "receivedTransactionSet": "",
                         "threadId": 0
-                    }, 
-                    "inApplierQueueCount": 0, 
-                    "inQueueCount": 0, 
-                    "lastConflictFree": "", 
-                    "proposedCount": 0, 
-                    "rollbackCount": 0, 
+                    },
+                    "inApplierQueueCount": 0,
+                    "inQueueCount": 0,
+                    "lastConflictFree": "",
+                    "proposedCount": 0,
+                    "rollbackCount": 0,
                     "workers": [
                         {
                             "lastApplied": {
-                                "applyTime": 0.0, 
-                                "endTimestamp": "", 
-                                "immediateCommitTimestamp": "", 
-                                "immediateCommitToEndTime": 0.0, 
-                                "originalCommitTimestamp": "", 
-                                "originalCommitToEndTime": 0.0, 
-                                "startTimestamp": "", 
+                                "applyTime": 0.0,
+                                "endTimestamp": "",
+                                "immediateCommitTimestamp": "",
+                                "immediateCommitToEndTime": 0.0,
+                                "originalCommitTimestamp": "",
+                                "originalCommitToEndTime": 0.0,
+                                "startTimestamp": "",
                                 "transaction": ""
-                            }, 
+                            },
                             "threadId": 0
                         }
                     ]
@@ -341,7 +341,7 @@ const full_status_templ_80 = {
             }
         },
         "topologyMode": "Single-Primary"
-    }, 
+    },
     "groupInformationSourceMember": "",
     "metadataVersion": ""
 };
@@ -350,12 +350,12 @@ const full_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
         "GRProtocolVersion": "",
-        "name": "", 
+        "name": "",
         "groupName": "",
         "primary": "",
-        "ssl": "", 
-        "status": "", 
-        "statusText": "", 
+        "ssl": "",
+        "status": "",
+        "statusText": "",
         "topology": {
             "": {
                 "address": "",
@@ -363,23 +363,23 @@ const full_status_templ_57 = {
                 "memberId": "",
                 "memberRole": "",
                 "memberState": "",
-                "mode": "", 
+                "mode": "",
                 "readReplicas": {},
-                "role": "", 
-                "status": "", 
+                "role": "",
+                "status": "",
                 "version": __version,
                 "transactions": {
-                    "checkedCount": 0, 
-                    "committedAllMembers": "", 
-                    "conflictsDetectedCount": 0, 
+                    "checkedCount": 0,
+                    "committedAllMembers": "",
+                    "conflictsDetectedCount": 0,
                     "connection": {
-                        "lastHeartbeatTimestamp": "", 
-                        "receivedHeartbeats": 0, 
+                        "lastHeartbeatTimestamp": "",
+                        "receivedHeartbeats": 0,
                         "receivedTransactionSet": "",
                         "threadId": 0
                     },
-                    "inQueueCount": 0, 
-                    "lastConflictFree": "", 
+                    "inQueueCount": 0,
+                    "lastConflictFree": "",
                     "workers": [
                         {
                             "lastSeen": "",
@@ -390,57 +390,57 @@ const full_status_templ_57 = {
             }
         },
         "topologyMode": "Single-Primary"
-    }, 
+    },
     "groupInformationSourceMember": "",
     "metadataVersion": ""
 };
 
 const transaction_status_templ = {
-    "appliedCount": 0, 
-    "checkedCount": 0, 
-    "committedAllMembers": "", 
-    "conflictsDetectedCount": 0, 
+    "appliedCount": 0,
+    "checkedCount": 0,
+    "committedAllMembers": "",
+    "conflictsDetectedCount": 0,
     "connection": {
         "currentlyQueueing": {
-            "immediateCommitTimestamp": "", 
-            "immediateCommitToNowTime": 0.0, 
-            "originalCommitTimestamp": "", 
-            "originalCommitToNowTime": 0.0, 
-            "startTimestamp": "", 
+            "immediateCommitTimestamp": "",
+            "immediateCommitToNowTime": 0.0,
+            "originalCommitTimestamp": "",
+            "originalCommitToNowTime": 0.0,
+            "startTimestamp": "",
             "transaction": ""
-        }, 
-        "lastHeartbeatTimestamp": "", 
+        },
+        "lastHeartbeatTimestamp": "",
         "lastQueued": {
-            "endTimestamp": "", 
-            "immediateCommitTimestamp": "", 
-            "immediateCommitToEndTime": 0.0, 
-            "originalCommitTimestamp": "", 
-            "originalCommitToEndTime": 0.0, 
-            "queueTime": 0.1, 
-            "startTimestamp": "", 
+            "endTimestamp": "",
+            "immediateCommitTimestamp": "",
+            "immediateCommitToEndTime": 0.0,
+            "originalCommitTimestamp": "",
+            "originalCommitToEndTime": 0.0,
+            "queueTime": 0.1,
+            "startTimestamp": "",
             "transaction": ""
-        }, 
-        "receivedHeartbeats": 0, 
+        },
+        "receivedHeartbeats": 0,
         "receivedTransactionSet": "",
         "threadId": 0
-    }, 
-    "inApplierQueueCount": 0, 
-    "inQueueCount": 0, 
-    "lastConflictFree": "", 
-    "proposedCount": 0, 
-    "rollbackCount": 0, 
+    },
+    "inApplierQueueCount": 0,
+    "inQueueCount": 0,
+    "lastConflictFree": "",
+    "proposedCount": 0,
+    "rollbackCount": 0,
     "workers": [
         {
             "lastApplied": {
-                "applyTime": 0.0, 
-                "endTimestamp": "", 
-                "immediateCommitTimestamp": "", 
-                "immediateCommitToEndTime": 0.0, 
-                "originalCommitTimestamp": "", 
-                "originalCommitToEndTime": 0.0, 
-                "startTimestamp": "", 
+                "applyTime": 0.0,
+                "endTimestamp": "",
+                "immediateCommitTimestamp": "",
+                "immediateCommitToEndTime": 0.0,
+                "originalCommitTimestamp": "",
+                "originalCommitToEndTime": 0.0,
+                "startTimestamp": "",
                 "transaction": ""
-            }, 
+            },
             "threadId": 0
         }
     ]
@@ -448,15 +448,15 @@ const transaction_status_templ = {
 
 const coordinator_status_templ_80 = {
     "lastProcessed": {
-        "bufferTime": 0.0, 
-        "endTimestamp": "", 
-        "immediateCommitTimestamp": "", 
-        "immediateCommitToEndTime": null, 
-        "originalCommitTimestamp": "", 
-        "originalCommitToEndTime": 0, 
-        "startTimestamp": "", 
+        "bufferTime": 0.0,
+        "endTimestamp": "",
+        "immediateCommitTimestamp": "",
+        "immediateCommitToEndTime": null,
+        "originalCommitTimestamp": "",
+        "originalCommitToEndTime": 0,
+        "startTimestamp": "",
         "transaction": ""
-    }, 
+    },
     "threadId": 0
 };
 
@@ -672,11 +672,22 @@ for (i = 0; i < NUM_DATA_ROWS; i++) {
     session.runSql("insert into test.data values (default, repeat('x', 4*1024*1024))");
 }
 
+session2 = mysql.getSession(__sandbox_uri2);
+
 // the recovery should fail because it can't connect to the primary
 cluster.addInstance(__sandbox_uri2, {waitRecovery: 0, recoveryMethod:'clone'});
 
-var stat = cluster.status({ extended: 3 })
+var stat = cluster.status({ extended: 3 });
 var recovery = json_find_key(stat, "recovery");
+
+// When the check for clone progress is executed right after clone has
+// started there's a tiny gap of time on which P_S.clone_progress hasn't
+// been populated yet. In that scenario, "currentStage" is undefined.
+while (recovery["currentStage"] == undefined) {
+    stat = cluster.status({ extended: 3 });
+    recovery = json_find_key(stat, "recovery");
+}
+
 var allowed_missing = ["currentStageProgress"];
 json_check(recovery, clone_recovery_status_templ, allowed_missing);
 

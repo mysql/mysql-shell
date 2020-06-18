@@ -678,13 +678,24 @@ shcore::Value clone_progress(const mysqlshdk::mysql::IInstance &instance,
   if (status.error_n) dict->set("errorNumber", shcore::Value(status.error_n));
   if (!status.error.empty()) dict->set("error", shcore::Value(status.error));
 
-  auto stage = status.stages[status.current_stage()];
-  dict->set("currentStage", shcore::Value(stage.stage));
-  dict->set("currentStageState", shcore::Value(stage.state));
-  if (stage.work_estimated > 0) {
-    dict->set(
-        "currentStageProgress",
-        shcore::Value(stage.work_completed * 100.0 / stage.work_estimated));
+  if (!status.stages.empty()) {
+    auto stage = status.stages[status.current_stage()];
+    dict->set("currentStage", shcore::Value(stage.stage));
+    dict->set("currentStageState", shcore::Value(stage.state));
+
+    if (stage.work_estimated > 0) {
+      dict->set(
+          "currentStageProgress",
+          shcore::Value(stage.work_completed * 100.0 / stage.work_estimated));
+    }
+  } else {
+    // When the check for clone progress is executed right after clone has
+    // started there's a tiny gap of time on which P_S.clone_progress hasn't
+    // been populated yet. If we ran into that scenario, we must manually
+    // populate the dictionary fields with undefined values to avoid a segfault.
+    dict->set("currentStage", shcore::Value());
+    dict->set("currentStageState", shcore::Value());
+    dict->set("currentStageProgress", shcore::Value());
   }
 
   return shcore::Value(dict);

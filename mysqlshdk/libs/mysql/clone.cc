@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -136,10 +136,18 @@ Clone_status check_clone_status(const mysqlshdk::mysql::IInstance &instance,
     status.error_n = row.get_int("ERROR_NO");
     status.error = row.get_string("ERROR_MESSAGE");
 
-    result = instance.queryf(
-        "SELECT *, end_time-begin_time as elapsed"
-        " FROM performance_schema.clone_progress WHERE id = ?",
-        id);
+    if (!start_time.empty()) {
+      result = instance.queryf(
+          "SELECT *, end_time-begin_time as elapsed"
+          " FROM performance_schema.clone_progress WHERE id = ? AND begin_time "
+          ">= ?",
+          id, start_time);
+    } else {
+      result = instance.queryf(
+          "SELECT *, end_time-begin_time as elapsed"
+          " FROM performance_schema.clone_progress WHERE id = ?",
+          id);
+    }
 
     while (auto prow = result->fetch_one_named()) {
       Clone_status::Stage_info stage;
