@@ -530,9 +530,10 @@ bool UNUSED_VARIABLE(register_maxdb) = Upgrade_check::register_check(
 
 std::unique_ptr<Sql_upgrade_check>
 Sql_upgrade_check::get_obsolete_sql_mode_flags_check() {
-  const std::array<const char *, 9> modes = {
-      {"DB2", "MSSQL", "MYSQL323", "MYSQL40", "NO_FIELD_OPTIONS",
-       "NO_KEY_OPTIONS", "NO_TABLE_OPTIONS", "ORACLE", "POSTGRESQL"}};
+  const std::array<const char *, 10> modes = {
+      {"DB2", "MSSQL", "MYSQL323", "MYSQL40", "NO_AUTO_CREATE_USER",
+       "NO_FIELD_OPTIONS", "NO_KEY_OPTIONS", "NO_TABLE_OPTIONS", "ORACLE",
+       "POSTGRESQL"}};
   std::vector<std::string> queries;
   for (const char *mode : modes) {
     queries.emplace_back(shcore::str_format(

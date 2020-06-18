@@ -73,9 +73,26 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
     ASSERT_NO_THROW(session->execute("use " + db));
   }
 
+  void EXPECT_ISSUES(Upgrade_check *check, const int no = -1) {
+    try {
+      issues = check->run(session, opts);
+    } catch (const std::exception &e) {
+      puts("Exception runing check:");
+      puts(e.what());
+      ASSERT_TRUE(false);
+    }
+    if (no >= 0 && no != static_cast<int>(issues.size())) {
+      for (const auto &issue : issues) puts(to_string(issue).c_str());
+      ASSERT_EQ(no, issues.size());
+    }
+  }
+
+  void EXPECT_NO_ISSUES(Upgrade_check *check) { EXPECT_ISSUES(check, 0); }
+
   Upgrade_check_options opts;
   std::shared_ptr<mysqlshdk::db::ISession> session;
   std::string db;
+  std::vector<mysqlsh::Upgrade_issue> issues;
 };
 
 TEST_F(MySQL_upgrade_check_test, checklist_generation) {
@@ -122,9 +139,7 @@ TEST_F(MySQL_upgrade_check_test, old_temporal) {
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_old_temporal_check();
   EXPECT_NE(nullptr, check->get_doc_link());
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(check.get());
   // No way to create test data in 5.7
 }
 
@@ -135,10 +150,7 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_reserved_keywords_check(opts);
   EXPECT_NE(nullptr, check->get_doc_link());
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  for (auto &warning : issues) puts(to_string(warning).c_str());
-  EXPECT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(check.get());
 
   PrepareTestDatabase("grouping");
   ASSERT_NO_THROW(
@@ -159,8 +171,7 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
       "CREATE EVENT LEAD ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 "
       "HOUR DO UPDATE System SET JSON_TABLE = JSON_TABLE + 1;"));
 
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  ASSERT_EQ(12, issues.size());
+  EXPECT_ISSUES(check.get(), 12);
   EXPECT_EQ("grouping", issues[0].schema);
   EXPECT_EQ(Upgrade_issue::WARNING, issues[0].level);
   EXPECT_STRCASEEQ("system", issues[1].table.c_str());
@@ -190,13 +201,12 @@ TEST_F(MySQL_upgrade_check_test, utf8mb3) {
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_utf8mb3_check();
   EXPECT_NE(nullptr, check->get_doc_link());
-  std::vector<Upgrade_issue> issues;
 
   session->execute(
       "create table utf83 (s3 varchar(64) charset 'utf8mb3', s4 varchar(64) "
       "charset 'utf8mb4');");
 
-  ASSERT_NO_THROW(issues = check->run(session, opts));
+  EXPECT_ISSUES(check.get());
   ASSERT_GE(issues.size(), 2);
   EXPECT_EQ("aaaaaaaaaaaaaaaa_utf8mb3", issues[0].schema);
   EXPECT_EQ("s3", issues[1].column);
@@ -209,16 +219,13 @@ TEST_F(MySQL_upgrade_check_test, mysql_schema) {
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_mysql_schema_check();
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
+  EXPECT_NO_ISSUES(check.get());
   EXPECT_NE(nullptr, check->get_doc_link());
-  EXPECT_TRUE(issues.empty());
 
   ASSERT_NO_THROW(session->execute("use mysql;"));
   EXPECT_NO_THROW(session->execute("create table Role_edges (i integer);"));
   EXPECT_NO_THROW(session->execute("create table triggers (i integer);"));
-  EXPECT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_EQ(2, issues.size());
+  EXPECT_ISSUES(check.get(), 2);
 #ifdef _MSC_VER
   EXPECT_EQ("role_edges", issues[0].table);
 #else
@@ -237,15 +244,12 @@ TEST_F(MySQL_upgrade_check_test, innodb_rowformat) {
   PrepareTestDatabase("test_innodb_rowformat");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_innodb_rowformat_check();
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_TRUE(issues.empty());
-  for (auto &warning : issues) puts(to_string(warning).c_str());
+  EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(session->execute(
       "create table compact (i integer) row_format=compact engine=innodb;"));
-  EXPECT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_TRUE(issues.size() == 1 && issues[0].table == "compact");
+  EXPECT_ISSUES(check.get(), 1);
+  EXPECT_EQ("compact", issues[0].table);
   EXPECT_EQ(Upgrade_issue::WARNING, issues[0].level);
 }
 
@@ -256,11 +260,9 @@ TEST_F(MySQL_upgrade_check_test, zerofill) {
   PrepareTestDatabase("aaa_test_zerofill_nondefaultwidth");
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_zerofill_check();
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
+  EXPECT_ISSUES(check.get());
   // some tables in mysql schema use () syntax
   size_t old_count = issues.size();
-  issues.clear();
 
   ASSERT_NO_THROW(session->execute(
       "create table zero_fill (zf INT zerofill, ti TINYINT(3), tu tinyint(2) "
@@ -268,10 +270,7 @@ TEST_F(MySQL_upgrade_check_test, zerofill) {
       "mediumint(5) unsigned, ii INT(4), iu INT(4) unsigned, bi bigint(10), bu "
       "bigint(12) unsigned);"));
 
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  //  for (auto& warning : issues)
-  //    puts(to_string(warning).c_str());
-  ASSERT_EQ(11 + old_count, issues.size());
+  EXPECT_ISSUES(check.get(), 11 + old_count);
   EXPECT_EQ(Upgrade_issue::NOTICE, issues[0].level);
   EXPECT_EQ("zf", issues[0].column);
   EXPECT_EQ("ti", issues[1].column);
@@ -293,9 +292,7 @@ TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_foreign_key_length_check();
   EXPECT_NE(nullptr, check->get_doc_link());
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(check.get());
   // No way to prepare test data in 5.7
 }
 
@@ -307,14 +304,12 @@ TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_maxdb_sql_mode_flags_check();
   EXPECT_NE(nullptr, check->get_doc_link());
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  ASSERT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(
       session->execute("create table Clone(COMPONENT integer, cube int);"));
 
-  std::size_t issues_count = issues.size();
+  auto issues_count = issues.size();
   ASSERT_NO_THROW(session->execute("SET SESSION sql_mode = 'MAXDB';"));
   ASSERT_NO_THROW(session->execute(
       "CREATE FUNCTION TEST_MAXDB (s CHAR(20)) RETURNS CHAR(50) "
@@ -343,54 +338,45 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
       _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   PrepareTestDatabase("aaa_test_obsolete_sql_modes");
+  ASSERT_NO_THROW(
+      session->execute("create table Clone(COMPONENT integer, cube int);"));
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_obsolete_sql_mode_flags_check();
   EXPECT_NE(nullptr, check->get_doc_link());
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  ASSERT_TRUE(issues.empty());
+  // NO_AUTO_CREATE_USER is in default sql_mode in 5.7 so its expected that we
+  // would get a lot of issues here
+  EXPECT_ISSUES(check.get());
 
   std::vector<std::string> modes = {"DB2",
                                     "MSSQL",
                                     "MYSQL323",
                                     "MYSQL40",
+                                    "NO_AUTO_CREATE_USER",
                                     "NO_FIELD_OPTIONS",
                                     "NO_KEY_OPTIONS",
                                     "NO_TABLE_OPTIONS",
                                     "ORACLE",
                                     "POSTGRESQL"};
 
-  ASSERT_NO_THROW(
-      session->execute("create table Clone(COMPONENT integer, cube int);"));
-
   for (const std::string &mode : modes) {
-    std::size_t issues_count = issues.size();
-    issues.clear();
+    const auto issues_count = issues.size();
     ASSERT_NO_THROW(session->execute(
         shcore::str_format("SET SESSION sql_mode = '%s';", mode.c_str())));
     ASSERT_NO_THROW(session->execute(shcore::str_format(
         "CREATE FUNCTION TEST_%s (s CHAR(20)) RETURNS CHAR(50) "
         "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');",
         mode.c_str())));
-    ASSERT_NO_THROW(issues = check->run(session, opts));
-    ASSERT_GT(issues.size(), issues_count);
-    issues_count = issues.size();
-    issues.clear();
     ASSERT_NO_THROW(session->execute(
         shcore::str_format("create trigger TR_%s AFTER INSERT on Clone FOR "
                            "EACH ROW delete from Clone where COMPONENT<0;",
                            mode.c_str())));
-    ASSERT_NO_THROW(issues = check->run(session, opts));
-    ASSERT_GT(issues.size(), issues_count);
-    issues_count = issues.size();
-    issues.clear();
     ASSERT_NO_THROW(session->execute(
         shcore::str_format("CREATE EVENT EV_%s ON SCHEDULE AT "
                            "CURRENT_TIMESTAMP + INTERVAL 1 HOUR "
                            "DO UPDATE Clone SET COMPONENT = COMPONENT + 1;",
                            mode.c_str())));
     ASSERT_NO_THROW(issues = check->run(session, opts));
-    ASSERT_GT(issues.size(), issues_count);
+    ASSERT_GE(issues.size(), issues_count + 3);
   }
 }
 
@@ -406,7 +392,6 @@ TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
       strcmp(
           "https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html",
           check->get_doc_link()));
-  std::vector<Upgrade_issue> issues;
   ASSERT_NO_THROW(issues = check->run(session, opts));
   std::size_t original = issues.size();
 
@@ -439,8 +424,7 @@ TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
       "vvvvvvvvvv', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'b', 'c'));"));
 
-  EXPECT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_EQ(original + 2, issues.size());
+  EXPECT_ISSUES(check.get(), original + 2);
   EXPECT_EQ(issues[0].table, "large_enum");
   EXPECT_EQ(issues[1].table, "large_set");
 }
@@ -453,12 +437,10 @@ TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_partitioned_tables_in_shared_tablespaces_check(
           opts);
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
+  EXPECT_NO_ISSUES(check.get());
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
                       "mysql-nutshell.html#mysql-nutshell-removals",
                       check->get_doc_link()));
-  ASSERT_TRUE(issues.empty());
 
   EXPECT_NO_THROW(session->execute(
       "CREATE TABLESPACE tpists ADD DATAFILE 'tpists.ibd' ENGINE=INNODB;"));
@@ -466,8 +448,7 @@ TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
       "create table part(i integer) TABLESPACE tpists partition "
       "by range(i) (partition p0 values less than (1000), "
       "partition p1 values less than MAXVALUE);"));
-  EXPECT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_EQ(2, issues.size());
+  EXPECT_ISSUES(check.get(), 2);
   EXPECT_NO_THROW(session->execute("drop table part"));
   EXPECT_NO_THROW(session->execute("drop tablespace tpists"));
 }
@@ -484,15 +465,12 @@ TEST_F(MySQL_upgrade_check_test, circular_directory_reference) {
             strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
                    "upgrading-from-previous-series.html#upgrade-innodb-changes",
                    check->get_doc_link()));
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  ASSERT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(check.get());
 
   EXPECT_NO_THROW(
       session->execute("CREATE TABLESPACE circular ADD DATAFILE "
                        "'mysql/../circular.ibd' ENGINE=INNODB;"));
-  EXPECT_NO_THROW(issues = check->run(session, opts));
-  ASSERT_EQ(1, issues.size());
+  EXPECT_ISSUES(check.get(), 1);
   EXPECT_EQ("circular", issues[0].schema);
   EXPECT_NO_THROW(session->execute("drop tablespace circular"));
 }
@@ -505,9 +483,7 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
   std::unique_ptr<Sql_upgrade_check> check =
       Sql_upgrade_check::get_removed_functions_check();
   EXPECT_NE(nullptr, check->get_doc_link());
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  ASSERT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(session->execute(
       "create table geotab1 (col1 int ,col2 geometry,col3 geometry, col4 int "
@@ -542,8 +518,7 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
                        "DO select contains(col2,col3) from geotab1;"));
   // Unable to test generated columns and views as at least in 5.7.26 they are
   // automatically converted to supported functions
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  ASSERT_EQ(5, issues.size());
+  EXPECT_ISSUES(check.get(), 5);
   EXPECT_NE(std::string::npos, issues[0].description.find("CONTAINS"));
   EXPECT_NE(std::string::npos,
             issues[0].description.find("consider using MBRCONTAINS"));
@@ -576,9 +551,7 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
                       "news-8-0-13.html#mysqld-8-0-13-sql-syntax",
                       check->get_doc_link()));
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  ASSERT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(
       session->execute("create table movies (title varchar(100), genre "
@@ -625,8 +598,7 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
       "create event mov_sec ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 HOUR "
       "DO select * from movies group by genre desc;"));
 
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  ASSERT_EQ(6, issues.size());
+  EXPECT_ISSUES(check.get(), 6);
   EXPECT_EQ("genre_desc", issues[0].table);
   EXPECT_TRUE(shcore::str_beginswith(issues[0].description, "VIEW"));
   EXPECT_EQ("list_genres_asc", issues[1].table);
@@ -652,7 +624,6 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_log_vars) {
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
                       "news-8-0-13.html#mysqld-8-0-13-logging",
                       check->get_doc_link()));
-  std::vector<Upgrade_issue> issues;
 
   if (_target_server_version < Version(8, 0, 0)) {
     EXPECT_THROW_LIKE(
@@ -660,8 +631,7 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_log_vars) {
         "To run this check requires full path to MySQL server configuration "
         "file to be specified at 'configPath' key of options dictionary");
   } else {
-    ASSERT_NO_THROW(issues = check->run(session, opts));
-    EXPECT_TRUE(issues.empty());
+    EXPECT_NO_ISSUES(check.get());
   }
 }
 
@@ -675,15 +645,12 @@ TEST_F(MySQL_upgrade_check_test, configuration_check) {
                         {"again_not_there", "personalized msg"}},
                        Config_check::Mode::FLAG_DEFINED, Upgrade_issue::NOTICE,
                        "problem");
-  std::vector<Upgrade_issue> issues;
-  ASSERT_THROW(issues = defined.run(session, opts),
+  ASSERT_THROW(defined.run(session, opts),
                Upgrade_check::Check_configuration_error);
 
   opts.config_path.assign(
       shcore::path::join_path(g_test_home, "data", "config", "my.cnf"));
-  ASSERT_NO_THROW(issues = defined.run(session, opts));
-
-  ASSERT_EQ(2, issues.size());
+  EXPECT_ISSUES(&defined, 2);
   EXPECT_EQ("option_to_drop_with_no_value", issues[0].schema);
   EXPECT_EQ(Upgrade_issue::NOTICE, issues[0].level);
   EXPECT_EQ("problem", issues[0].description);
@@ -697,9 +664,7 @@ TEST_F(MySQL_upgrade_check_test, configuration_check) {
                           {"again_not_there", "personalized msg"}},
                          Config_check::Mode::FLAG_UNDEFINED,
                          Upgrade_issue::WARNING, "undefined");
-  ASSERT_NO_THROW(issues = undefined.run(session, opts));
-
-  ASSERT_EQ(2, issues.size());
+  EXPECT_ISSUES(&undefined, 2);
   EXPECT_EQ("again_not_there", issues[0].schema);
   EXPECT_NE(std::string::npos, issues[0].description.find("personalized msg"));
   EXPECT_EQ("not_existing_var", issues[1].schema);
@@ -720,7 +685,6 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
   EXPECT_EQ(0, strcmp("https://dev.mysql.com/doc/refman/8.0/en/"
                       "added-deprecated-removed.html#optvars-removed",
                       check->get_doc_link()));
-  std::vector<Upgrade_issue> issues;
 
   if (_target_server_version < Version(8, 0, 0)) {
     EXPECT_THROW_LIKE(
@@ -729,14 +693,12 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
         "file to be specified at 'configPath' key of options dictionary");
     opts.config_path.assign(
         shcore::path::join_path(g_test_home, "data", "config", "uc.cnf"));
-    EXPECT_NO_THROW(issues = check->run(session, opts));
+    EXPECT_ISSUES(check.get(), 2);
     opts.config_path.clear();
-    EXPECT_EQ(2, issues.size());
     EXPECT_EQ("max_tmp_tables", issues[0].schema);
     EXPECT_EQ("query-cache-type", issues[1].schema);
   } else {
-    ASSERT_NO_THROW(issues = check->run(session, opts));
-    EXPECT_TRUE(issues.empty());
+    EXPECT_NO_ISSUES(check.get());
   }
 }
 
@@ -749,7 +711,6 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults) {
       Sql_upgrade_check::get_sys_vars_new_defaults_check();
   EXPECT_EQ(0, strcmp("https://mysqlserverteam.com/new-defaults-in-mysql-8-0/",
                       check->get_doc_link()));
-  std::vector<Upgrade_issue> issues;
 
   EXPECT_THROW_LIKE(
       check->run(session, opts), Upgrade_check::Check_configuration_error,
@@ -757,8 +718,7 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults) {
       "file to be specified at 'configPath' key of options dictionary");
   opts.config_path.assign(
       shcore::path::join_path(g_test_home, "data", "config", "my.cnf"));
-  EXPECT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_EQ(25, issues.size());
+  EXPECT_ISSUES(check.get(), 25);
   EXPECT_EQ("back_log", issues[0].schema);
   EXPECT_EQ("transaction_write_set_extraction", issues.back().schema);
   opts.config_path.clear();
@@ -785,9 +745,7 @@ TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
       "values less than ('2019-02-22 10:17:03'), partition p2 values less than "
       "(maxvalue));"));
 
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  ASSERT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(check.get());
 }
 
 TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {
@@ -800,16 +758,14 @@ TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {
                       "upgrading-from-previous-series.html#upgrade-"
                       "configuration-changes",
                       check->get_doc_link()));
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(
       session->execute("create table part(i integer) engine=myisam partition "
                        "by range(i) (partition p0 values less than (1000), "
                        "partition p1 values less than MAXVALUE);"));
-  EXPECT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_TRUE(issues.size() == 1 && issues[0].table == "part");
+  EXPECT_ISSUES(check.get(), 1);
+  EXPECT_EQ("part", issues[0].table);
 }
 
 TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
@@ -827,9 +783,7 @@ TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
   auto check =
       Sql_upgrade_check::get_fts_in_tablename_check(Upgrade_check_options{
           Version(5, 7, 25), Version(8, 0, 17), compile_os.c_str(), ""});
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(session->execute(
       "CREATE TABLE `DP01_FTS_REGULATION_ACTION_HIST` ( `HJID` bigint(20) NOT "
@@ -839,10 +793,8 @@ TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
       "create table `DP01_FtS_REGULATION_ACTION_HIST` (i integer);"));
 #endif
 
-  EXPECT_NO_THROW(issues = check->run(session, opts));
-
-  EXPECT_TRUE(issues.size() == 1 &&
-              issues[0].table == "DP01_FTS_REGULATION_ACTION_HIST");
+  EXPECT_ISSUES(check.get(), 1);
+  EXPECT_EQ("DP01_FTS_REGULATION_ACTION_HIST", issues[0].table);
 #endif
 }
 
@@ -852,16 +804,13 @@ TEST_F(MySQL_upgrade_check_test, check_table_command) {
     SKIP_TEST("This test requires running against MySQL server version 5.7");
   PrepareTestDatabase("mysql_check_table_test");
   Check_table_command check;
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check.run(session, opts));
-  EXPECT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(&check);
 
   ASSERT_NO_THROW(
       session->execute("create table part(i integer) engine=myisam partition "
                        "by range(i) (partition p0 values less than (1000), "
                        "partition p1 values less than MAXVALUE);"));
-  EXPECT_NO_THROW(issues = check.run(session, opts));
-  EXPECT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(&check);
 }
 
 TEST_F(MySQL_upgrade_check_test, zero_dates_check) {
@@ -872,9 +821,7 @@ TEST_F(MySQL_upgrade_check_test, zero_dates_check) {
   auto check = Sql_upgrade_check::get_zero_dates_check();
   EXPECT_EQ(0, strcmp("https://lefred.be/content/mysql-8-0-and-wrong-dates/",
                       check->get_doc_link()));
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(
       session->execute("set @@session.sql_mode = "
@@ -883,8 +830,7 @@ TEST_F(MySQL_upgrade_check_test, zero_dates_check) {
   ASSERT_NO_THROW(session->execute(
       "create table dt (i integer, dt datetime default '0000-00-00', ts "
       "timestamp default '0000-00-00', d date default '0000-00-00');"));
-  EXPECT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_EQ(4, issues.size());
+  EXPECT_ISSUES(check.get(), 4);
   EXPECT_NE(std::string::npos,
             issues[0].description.find("1 session(s) does not contain either"));
   EXPECT_EQ("dt", issues[1].column);
@@ -899,9 +845,7 @@ TEST_F(MySQL_upgrade_check_test, engine_mixup_check) {
   auto check = Sql_upgrade_check::get_engine_mixup_check();
   EXPECT_NE(nullptr, strstr(check->get_description(),
                             "Rename the MyISAM table to a temporary name"));
-  std::vector<Upgrade_issue> issues;
-  ASSERT_NO_THROW(issues = check->run(session, opts));
-  EXPECT_TRUE(issues.empty());
+  EXPECT_NO_ISSUES(check.get());
 
   // positive test cases performed manually as it requires manual changes to the
   // datadir files
@@ -1054,17 +998,17 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
       if (strcmp(checks[i]["status"].GetString(), "OK") == 0) {
         ASSERT_TRUE(checks[i].HasMember("detectedProblems"));
         ASSERT_TRUE(checks[i]["detectedProblems"].IsArray());
-        auto issues = checks[i]["detectedProblems"].GetArray();
-        if (issues.Size() == 0) {
+        auto problems = checks[i]["detectedProblems"].GetArray();
+        if (problems.Size() == 0) {
           EXPECT_FALSE(checks[i].HasMember("documentationLink"));
           EXPECT_FALSE(checks[i].HasMember("description"));
         }
-        for (rapidjson::SizeType j = 0; j < issues.Size(); j++) {
-          ASSERT_TRUE(issues[j].IsObject());
-          ASSERT_TRUE(issues[j].HasMember("level"));
-          ASSERT_TRUE(issues[j]["level"].IsString());
-          ASSERT_TRUE(issues[j].HasMember("dbObject"));
-          ASSERT_TRUE(issues[j]["dbObject"].IsString());
+        for (rapidjson::SizeType j = 0; j < problems.Size(); j++) {
+          ASSERT_TRUE(problems[j].IsObject());
+          ASSERT_TRUE(problems[j].HasMember("level"));
+          ASSERT_TRUE(problems[j]["level"].IsString());
+          ASSERT_TRUE(problems[j].HasMember("dbObject"));
+          ASSERT_TRUE(problems[j]["dbObject"].IsString());
         }
       } else {
         ASSERT_TRUE(checks[i].HasMember("description"));
