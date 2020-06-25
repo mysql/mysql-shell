@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,10 +59,12 @@ using Scoped_interrupt = Global_scoped_object<shcore::Interrupts>;
 using Scoped_logger = Global_scoped_object<shcore::Logger>;
 
 namespace detail {
+
 template <class T>
 std::decay_t<T> decay_copy(T &&v) {
   return std::forward<T>(v);
 }
+
 template <class Function, class... Args>
 std::thread spawn_scoped_thread(Function &&f, Args &&... args) {
   auto thd_current_logger = shcore::current_logger(true);
@@ -81,12 +83,15 @@ std::thread spawn_scoped_thread(Function &&f, Args &&... args) {
       },
       std::forward<Args>(args)...);
 }
+
 }  // namespace detail
+
 template <class Function, class... Args>
 std::thread spawn_scoped_thread(Function &&f, Args &&... args) {
   return detail::spawn_scoped_thread(std::forward<Function>(f),
                                      std::forward<Args>(args)...);
 }
+
 template <
     class Function, class C, class... Args,
     std::enable_if_t<std::is_member_pointer<std::decay_t<Function>>{}, int> = 0>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 
 #include <stack>
+#include <thread>
 
 namespace mysqlsh {
 
@@ -50,6 +51,8 @@ class Scoped_storage {
     return m_objects.top();
   }
 
+  bool empty() const { return m_objects.empty(); }
+
  private:
   std::stack<std::shared_ptr<T>> m_objects;
 };
@@ -61,6 +64,8 @@ class Multi_storage : public Scoped_storage<mysqlsh::IConsole>,
 
 thread_local Multi_storage mstorage;
 
+Multi_storage *g_main_mstorage = nullptr;
+
 }  // namespace
 
 template <typename T>
@@ -69,6 +74,11 @@ Global_scoped_object<T>::Global_scoped_object(
     const std::function<void(const std::shared_ptr<T> &)> &deleter)
     : m_deleter(deleter), m_scoped_value(scoped_value) {
   if (scoped_value) mstorage.Scoped_storage<T>::push(scoped_value);
+
+  // assumes the first scoped object is created in the main thread
+  if (!g_main_mstorage) {
+    g_main_mstorage = &mstorage;
+  }
 }
 
 template <typename T>
@@ -81,6 +91,7 @@ Global_scoped_object<T>::~Global_scoped_object() {
     mstorage.Scoped_storage<T>::pop(m_scoped_value);
   }
 }
+
 template <typename T>
 std::shared_ptr<T> Global_scoped_object<T>::get() const {
   return m_scoped_value;
@@ -91,23 +102,30 @@ template class Global_scoped_object<mysqlsh::IConsole>;
 template class Global_scoped_object<mysqlsh::Shell_options>;
 template class Global_scoped_object<shcore::Logger>;
 
+namespace detail {
+template <typename T>
+std::shared_ptr<T> current_scoped_value(bool allow_empty) {
+  auto storage = mstorage.Scoped_storage<T>::empty() && g_main_mstorage
+                     ? g_main_mstorage
+                     : &mstorage;
+  return storage->Scoped_storage<T>::get(allow_empty);
+}
+}  // namespace detail
+
 std::shared_ptr<IConsole> current_console(bool allow_empty) {
-  return mstorage.Scoped_storage<mysqlsh::IConsole>::get(allow_empty);
+  return detail::current_scoped_value<IConsole>(allow_empty);
 }
 
 std::shared_ptr<Shell_options> current_shell_options(bool allow_empty) {
-  return mstorage.Scoped_storage<mysqlsh::Shell_options>::get(allow_empty);
+  return detail::current_scoped_value<Shell_options>(allow_empty);
 }
-
 }  // namespace mysqlsh
 
 std::shared_ptr<shcore::Interrupts> shcore::current_interrupt(
     bool allow_empty) {
-  return mysqlsh::mstorage.mysqlsh::Scoped_storage<shcore::Interrupts>::get(
-      allow_empty);
+  return mysqlsh::detail::current_scoped_value<shcore::Interrupts>(allow_empty);
 }
 
 std::shared_ptr<shcore::Logger> shcore::current_logger(bool allow_empty) {
-  return mysqlsh::mstorage.mysqlsh::Scoped_storage<shcore::Logger>::get(
-      allow_empty);
+  return mysqlsh::detail::current_scoped_value<shcore::Logger>(allow_empty);
 }
