@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -103,6 +103,24 @@ TEST_F(Shell_python, bug30138755) {
   execute("x = 1");
   EXPECT_EQ("", output_handler.std_out);
   EXPECT_EQ("", output_handler.std_err);
+}
+
+TEST_F(Shell_python, crash_with_threads) {
+  // Checks that print/console handling works from a Python thread
+  execute(R"*(
+import threading
+
+def testf():
+    print("PRINT")
+    import sys
+    sys.stdout.write("STDOUT\n")
+    sys.stderr.write("STDERR\n")
+    raise Exception("exception")
+
+t = threading.Thread(target=testf)
+t.start()
+t.join()
+)*");
 }
 
 }  // namespace mysqlsh
