@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -269,7 +269,12 @@ Value Schema::get_member(const std::string &prop) const {
     if (!ret_val) ret_val = find_in_cache(prop, _views);
   }
 
-  if (!ret_val) ret_val = DatabaseObject::get_member(prop);
+  if (!ret_val) {
+    if (prop == "schema")
+      ret_val = Value(std::const_pointer_cast<Schema>(shared_from_this()));
+    else
+      ret_val = DatabaseObject::get_member(prop);
+  }
 
   return ret_val;
 }

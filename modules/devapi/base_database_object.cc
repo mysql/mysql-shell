@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -181,27 +181,17 @@ object DatabaseObject::get_schema() {}
 #endif
 
 Value DatabaseObject::get_member(const std::string &prop) const {
-  Value ret_val;
+  Value ret_val = Value::Null();
 
   if (prop == "name") {
     ret_val = Value(_name);
   } else if (prop == "session") {
-    if (_session.expired())
-      ret_val = Value::Null();
-    else {
-      auto session = _session.lock();
-      if (session)
-        ret_val = Value(std::static_pointer_cast<Object_bridge>(session));
+    if (!_session.expired()) {
+      if (auto session = _session.lock()) ret_val = Value(session);
     }
   } else if (prop == "schema") {
-    if (_schema.expired())
-      ret_val = Value::Null();
-    else {
-      auto schema = _schema.lock();
-
-      if (schema)
-        ret_val =
-            Value(std::static_pointer_cast<Object_bridge>(_schema.lock()));
+    if (!_schema.expired()) {
+      if (auto schema = _schema.lock()) ret_val = Value(schema);
     }
   } else {
     ret_val = Cpp_object_bridge::get_member(prop);

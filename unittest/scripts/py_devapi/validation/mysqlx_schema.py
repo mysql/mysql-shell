@@ -9,8 +9,8 @@
 |session: <Session:|
 
 #@ Testing schema schema retrieving
-|get_schema(): None|
-|schema: None|
+|get_schema(): <Schema:js_shell_test>|
+|schema: <Schema:js_shell_test>|
 
 #@ Testing tables, views and collection retrieval
 |get_tables(): <Table:|

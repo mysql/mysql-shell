@@ -3276,4 +3276,20 @@ TEST_F(Interactive_shell_test, file_operations) {
 }
 #endif
 
+#if defined(HAVE_V8)
+TEST_F(Interactive_shell_test, Bug30296825) {
+  execute("\\js");
+  execute("\\connect " + _uri);
+  execute("shell.setCurrentSchema(\"mysql\");");
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+  execute("db.schema;");
+  MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
+  wipe_all();
+  execute("db.getSchema();");
+  MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
+  wipe_all();
+}
+#endif
+
 }  // namespace mysqlsh

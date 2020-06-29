@@ -10,8 +10,8 @@
 |session: <Session:|
 
 //@ Testing schema schema retrieving
-|getSchema(): null|
-|schema: null|
+|getSchema(): <Schema:js_shell_test>|
+|schema: <Schema:js_shell_test>|
 
 //@ Testing tables, views and collection retrieval
 |getTables(): <Table:table1>|
