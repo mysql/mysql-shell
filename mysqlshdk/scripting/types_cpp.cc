@@ -38,6 +38,7 @@
 #ifdef max
 #undef max
 #endif
+using ssize_t = __int64;
 #endif
 
 // TODO(alfredo) - remove all the linear lookups on the member names
@@ -180,35 +181,15 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
     size_t m = wanted.size();
     size_t c = cand.size();
 
-    // more than 7 params not supported atm...
-    // extend when more expose() variations added
-    switch (static_cast<int>(cand.size()) - m) {
-      case 7:  // 7 params extra, if the rest is optional, it's a match
-        match = match && (cand[c - 7]->flag == Param_flag::Optional);
-        // fallthrough
-      case 6:  // 6 params extra, if the rest is optional, it's a match
-        match = match && (cand[c - 6]->flag == Param_flag::Optional);
-        // fallthrough
-      case 5:  // 5 params extra, if the rest is optional, it's a match
-        match = match && (cand[c - 5]->flag == Param_flag::Optional);
-        // fallthrough
-      case 4:  // 4 params extra, if the rest is optional, it's a match
-        match = match && (cand[c - 4]->flag == Param_flag::Optional);
-        // fallthrough
-      case 3:  // 3 params extra, if the rest is optional, it's a match
-        match = match && (cand[c - 3]->flag == Param_flag::Optional);
-        // fallthrough
-      case 2:  // 2 params extra, if the rest is optional, it's a match
-        match = match && (cand[c - 2]->flag == Param_flag::Optional);
-        // fallthrough
-      case 1:  // 1 param extra, if the rest is optional, it's a match
-        match = match && (cand[c - 1]->flag == Param_flag::Optional);
-        // fallthrough
-      case 0:  // # of params match
-        break;
-      default:
-        match = false;
-        break;
+    if (m <= c) {
+      for (size_t index = m; index < c; index++) {
+        if (cand[index]->flag != Param_flag::Optional) {
+          match = false;
+          break;
+        }
+      }
+    } else {
+      match = false;
     }
 
     // In case of parameter count mistmatch, creates the appropiate error
@@ -233,81 +214,17 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
             max, m);
     } else {
       exact_matches = m;
-      // check if all provided params are implicitly convertible to the ones
-      // from the candidate
-      switch (m) {
-        case 7:  // 7 params to be considered
-          if (!cand[6]->valid_type(wanted[6])) {
-            match = false;
-            error =
-                shcore::str_format("Argument #7 is expected to be %s",
-                                   type_description(cand[6]->type()).c_str());
-          }
-          exact_matches -= (wanted[6] != cand[6]->type());
-          have_object_params = have_object_params || (wanted[6] == Object);
-          // fallthrough
-        case 6:  // 6 params to be considered
-          if (!cand[5]->valid_type(wanted[5])) {
-            match = false;
-            error =
-                shcore::str_format("Argument #6 is expected to be %s",
-                                   type_description(cand[5]->type()).c_str());
-          }
-          exact_matches -= (wanted[5] != cand[5]->type());
-          have_object_params = have_object_params || (wanted[5] == Object);
-          // fallthrough
-        case 5:  // 5 params to be considered
-          if (!cand[4]->valid_type(wanted[4])) {
-            match = false;
-            error =
-                shcore::str_format("Argument #5 is expected to be %s",
-                                   type_description(cand[4]->type()).c_str());
-          }
-          exact_matches -= (wanted[4] != cand[4]->type());
-          have_object_params = have_object_params || (wanted[4] == Object);
-          // fallthrough
-        case 4:  // 4 params to be considered
-          if (!cand[3]->valid_type(wanted[3])) {
-            match = false;
-            error =
-                shcore::str_format("Argument #4 is expected to be %s",
-                                   type_description(cand[3]->type()).c_str());
-          }
-          exact_matches -= (wanted[3] != cand[3]->type());
-          have_object_params = have_object_params || (wanted[3] == Object);
-          // fallthrough
-        case 3:  // 3 params to be considered
-          if (!cand[2]->valid_type(wanted[2])) {
-            match = false;
-            error =
-                shcore::str_format("Argument #3 is expected to be %s",
-                                   type_description(cand[2]->type()).c_str());
-          }
-          exact_matches -= (wanted[2] != cand[2]->type());
-          have_object_params = have_object_params || (wanted[2] == Object);
-          // fallthrough
-        case 2:  // 2 params to be considered
-          if (!cand[1]->valid_type(wanted[1])) {
-            match = false;
-            error =
-                shcore::str_format("Argument #2 is expected to be %s",
-                                   type_description(cand[1]->type()).c_str());
-          }
-          exact_matches -= (wanted[1] != cand[1]->type());
-          have_object_params = have_object_params || (wanted[1] == Object);
-          // fallthrough
-        case 1:  // 1 param to be considered
-          if (!cand[0]->valid_type(wanted[0])) {
-            match = false;
-            error =
-                shcore::str_format("Argument #1 is expected to be %s",
-                                   type_description(cand[0]->type()).c_str());
-          }
-          exact_matches -= (wanted[0] != cand[0]->type());
-          have_object_params = have_object_params || (wanted[0] == Object);
-          // fallthrough
-        case 0:  // 0 params to be considered = nothing to check
-          break;
+
+      // NOTE: m is 1 based (not 0 based)
+      for (ssize_t index = m - 1; index >= 0; index--) {
+        if (!cand[index]->valid_type(wanted[index])) {
+          match = false;
+          error = shcore::str_format(
+              "Argument #%zu is expected to be %s", index + 1,
+              type_description(cand[index]->type()).c_str());
+        }
+        exact_matches -= (wanted[index] != cand[index]->type());
+        have_object_params = have_object_params || (wanted[index] == Object);
       }
     }
   }

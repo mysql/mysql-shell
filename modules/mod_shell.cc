@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -171,26 +171,18 @@ void Shell::init() {
 
   expose("parseUri", &Shell::parse_uri, "uri");
   expose("unparseUri", &Shell::unparse_uri, "options");
-
   expose("prompt", &Shell::prompt, "message", "?options");
-  add_method("setCurrentSchema",
-             std::bind(&Shell::_set_current_schema, this, _1), "name",
-             shcore::String);
-  add_method("setSession", std::bind(&Shell::set_session, this, _1), "session",
-             shcore::Object);
-  add_method("getSession", std::bind(&Shell::get_session, this, _1));
-  add_method("reconnect", std::bind(&Shell::reconnect, this, _1));
-  add_method("log", std::bind(&Shell::log, this, _1));
-  add_method("status", std::bind(&Shell::status, this, _1));
-  add_method("listCredentialHelpers",
-             std::bind(&Shell::list_credential_helpers, this, _1));
-  add_method("storeCredential", std::bind(&Shell::store_credential, this, _1),
-             "url", shcore::String, "password", shcore::String);
-  add_method("deleteCredential", std::bind(&Shell::delete_credential, this, _1),
-             "url", shcore::String);
-  add_method("deleteAllCredentials",
-             std::bind(&Shell::delete_all_credentials, this, _1));
-  add_method("listCredentials", std::bind(&Shell::list_credentials, this, _1));
+  expose("setCurrentSchema", &Shell::set_current_schema, "name");
+  expose("setSession", &Shell::set_session, "session");
+  expose("getSession", &Shell::get_session);
+  expose("reconnect", &Shell::reconnect);
+  expose("log", &Shell::log, "level", "message");
+  expose("status", &Shell::status);
+  expose("listCredentialHelpers", &Shell::list_credential_helpers);
+  expose("storeCredential", &Shell::store_credential, "url", "?password");
+  expose("deleteCredential", &Shell::delete_credential, "url");
+  expose("deleteAllCredentials", &Shell::delete_all_credentials);
+  expose("listCredentials", &Shell::list_credentials);
   expose("enablePager", &Shell::enable_pager);
   expose("disablePager", &Shell::disable_pager);
   expose("registerReport", &Shell::register_report, "name", "type", "report",
@@ -389,7 +381,8 @@ std::string Shell::prompt(const std::string &message,
     if (type) {
       if (*type != "password")
         throw shcore::Exception::runtime_error(
-            "Unsupported value for parameter 'type', allowed values: password");
+            "Unsupported value for parameter 'type', allowed values: "
+            "password");
       else
         password = true;
     }
@@ -981,28 +974,6 @@ std::shared_ptr<ShellBaseSession> Shell::open_session(
   return _shell->connect(connection_options, false, false);
 }
 
-void Shell::set_current_schema(const std::string &name) {
-  auto session = _shell_core->get_dev_session();
-
-  if (!(session && session->is_open())) {
-    throw shcore::Exception::runtime_error(
-        "An open session is required to perform this operation.");
-  }
-
-  shcore::Value new_schema = shcore::Value::Null();
-
-  if (!name.empty()) {
-    session->set_current_schema(name);
-
-    auto x_session =
-        std::dynamic_pointer_cast<mysqlsh::mysqlx::Session>(session);
-    if (x_session) new_schema = shcore::Value(x_session->get_schema(name));
-  }
-
-  _shell_core->set_global("db", new_schema,
-                          shcore::IShell_core::all_scripting_modes());
-}
-
 REGISTER_HELP_FUNCTION(setCurrentSchema, shell);
 REGISTER_HELP(SHELL_SETCURRENTSCHEMA_BRIEF,
               "Sets the active schema on the global session.");
@@ -1023,18 +994,26 @@ Undefined Shell::setCurrentSchema(String name) {}
 #elif DOXYGEN_PY
 None Shell::set_current_schema(str name) {}
 #endif
+void Shell::set_current_schema(const std::string &name) {
+  auto session = _shell_core->get_dev_session();
 
-shcore::Value Shell::_set_current_schema(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("setCurrentSchema").c_str());
-
-  shcore::Value new_schema;
-
-  try {
-    set_current_schema(args.string_at(0));
+  if (!(session && session->is_open())) {
+    throw shcore::Exception::runtime_error(
+        "An open session is required to perform this operation.");
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("setCurrentSchema"));
 
-  return new_schema;
+  shcore::Value new_schema = shcore::Value::Null();
+
+  if (!name.empty()) {
+    session->set_current_schema(name);
+
+    auto x_session =
+        std::dynamic_pointer_cast<mysqlsh::mysqlx::Session>(session);
+    if (x_session) new_schema = shcore::Value(x_session->get_schema(name));
+  }
+
+  _shell_core->set_global("db", new_schema,
+                          shcore::IShell_core::all_scripting_modes());
 }
 
 /*
@@ -1094,23 +1073,10 @@ Undefined Shell::setSession(Session session) {}
 #elif DOXYGEN_PY
 None Shell::set_session(Session session) {}
 #endif
-shcore::Value Shell::set_session(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("setSession").c_str());
-  shcore::Value ret_val;
-
-  try {
-    auto object = args.object_at<mysqlsh::ShellBaseSession>(0);
-
-    if (object) {
-      _shell_core->set_dev_session(object);
-      set_session_global(object);
-    } else {
-      throw shcore::Exception::runtime_error("Invalid session object");
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("setSession"));
-
-  return args[0];
+void Shell::set_session(
+    const std::shared_ptr<mysqlsh::ShellBaseSession> &session) {
+  _shell_core->set_dev_session(session);
+  set_session_global(session);
 }
 
 REGISTER_HELP_FUNCTION(getSession, shell);
@@ -1127,11 +1093,8 @@ Session Shell::getSession() {}
 #elif DOXYGEN_PY
 Session Shell::get_session() {}
 #endif
-shcore::Value Shell::get_session(const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("getSession").c_str());
-
-  return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(
-      _shell_core->get_dev_session()));
+std::shared_ptr<ShellBaseSession> Shell::get_session() {
+  return _shell_core->get_dev_session();
 }
 
 REGISTER_HELP_FUNCTION(reconnect, shell);
@@ -1144,9 +1107,7 @@ Undefined Shell::reconnect() {}
 #elif DOXYGEN_PY
 None Shell::reconnect() {}
 #endif
-shcore::Value Shell::reconnect(const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("reconnect").c_str());
-
+bool Shell::reconnect() {
   bool ret_val = false;
 
   try {
@@ -1156,7 +1117,7 @@ shcore::Value Shell::reconnect(const shcore::Argument_list &args) {
     ret_val = false;
   }
 
-  return shcore::Value(ret_val);
+  return ret_val;
 }
 
 REGISTER_HELP_FUNCTION(log, shell);
@@ -1183,22 +1144,15 @@ Undefined Shell::log(String level, String message) {}
 #elif DOXYGEN_PY
 None Shell::log(str level, str message) {}
 #endif
-shcore::Value Shell::log(const shcore::Argument_list &args) {
-  args.ensure_count(2, get_function_name("log").c_str());
-
+void Shell::log(const std::string &str_level, const std::string &message) {
+  shcore::Logger::LOG_LEVEL level;
   try {
-    shcore::Logger::LOG_LEVEL level;
-    try {
-      level = shcore::Logger::parse_log_level(args.string_at(0));
-    } catch (...) {
-      throw shcore::Exception::argument_error("Invalid log level '" +
-                                              args[0].descr() + "'");
-    }
-    shcore::Logger::log(level, "%s", args.string_at(1).c_str());
+    level = shcore::Logger::parse_log_level(str_level);
+  } catch (...) {
+    throw shcore::Exception::argument_error("Invalid log level '" + str_level +
+                                            "'");
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("log"));
-
-  return shcore::Value();
+  shcore::Logger::log(level, "%s", message.c_str());
 }
 
 REGISTER_HELP_FUNCTION(status, shell);
@@ -1217,16 +1171,7 @@ Undefined Shell::status() {}
 #elif DOXYGEN_PY
 None Shell::status() {}
 #endif
-shcore::Value Shell::status(const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("status").c_str());
-
-  try {
-    _shell->cmd_status({});
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("status"));
-
-  return shcore::Value();
-}
+void Shell::status() { _shell->cmd_status({}); }
 
 REGISTER_HELP_FUNCTION(listCredentialHelpers, shell);
 REGISTER_HELP(SHELL_LISTCREDENTIALHELPERS_BRIEF,
@@ -1256,25 +1201,13 @@ List Shell::listCredentialHelpers() {}
 #elif DOXYGEN_PY
 list Shell::list_credential_helpers() {}
 #endif
-shcore::Value Shell::list_credential_helpers(
-    const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("listCredentialHelpers").c_str());
+shcore::Array_t Shell::list_credential_helpers() {
+  shcore::Array_t ret_val = shcore::make_array();
 
-  shcore::Value ret_val;
-
-  try {
-    shcore::Value::Array_type_ref values =
-        std::make_shared<shcore::Value::Array_type>();
-
-    for (const auto &helper :
-         shcore::Credential_manager::get().list_credential_helpers()) {
-      values->emplace_back(helper);
-    }
-
-    ret_val = shcore::Value(values);
+  for (const auto &helper :
+       shcore::Credential_manager::get().list_credential_helpers()) {
+    ret_val->emplace_back(helper);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("listCredentialHelpers"));
 
   return ret_val;
 }
@@ -1323,29 +1256,23 @@ Undefined Shell::storeCredential(String url, String password) {}
 #elif DOXYGEN_PY
 None Shell::store_credential(str url, str password) {}
 #endif
-shcore::Value Shell::store_credential(const shcore::Argument_list &args) {
-  args.ensure_count(1, 2, get_function_name("storeCredential").c_str());
-
-  try {
-    auto url = args.string_at(0);
-    std::string password;
-
-    if (args.size() == 1) {
-      const std::string prompt =
-          "Please provide the password for '" + url + "': ";
-      const auto result = current_console()->prompt_password(prompt, &password);
-      if (result != shcore::Prompt_result::Ok) {
-        throw shcore::cancelled("Cancelled");
-      }
-    } else {
-      password = args.string_at(1);
+void Shell::store_credential(
+    const std::string &url,
+    const mysqlshdk::utils::nullable<std::string> &password) {
+  std::string pwd_to_store;
+  if (password.is_null()) {
+    const std::string prompt =
+        "Please provide the password for '" + url + "': ";
+    const auto result =
+        current_console()->prompt_password(prompt, &pwd_to_store);
+    if (result != shcore::Prompt_result::Ok) {
+      throw shcore::cancelled("Cancelled");
     }
-
-    shcore::Credential_manager::get().store_credential(url, password);
+  } else {
+    pwd_to_store = *password;
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("storeCredential"));
 
-  return shcore::Value();
+  shcore::Credential_manager::get().store_credential(url, pwd_to_store);
 }
 
 REGISTER_HELP_FUNCTION(deleteCredential, shell);
@@ -1384,15 +1311,8 @@ Undefined Shell::deleteCredential(String url) {}
 #elif DOXYGEN_PY
 None Shell::delete_credential(str url) {}
 #endif
-shcore::Value Shell::delete_credential(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("deleteCredential").c_str());
-
-  try {
-    shcore::Credential_manager::get().delete_credential(args.string_at(0));
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deleteCredential"));
-
-  return shcore::Value();
+void Shell::delete_credential(const std::string &url) {
+  shcore::Credential_manager::get().delete_credential(url);
 }
 
 REGISTER_HELP_FUNCTION(deleteAllCredentials, shell);
@@ -1417,16 +1337,8 @@ Undefined Shell::deleteAllCredentials() {}
 #elif DOXYGEN_PY
 None Shell::delete_all_credentials() {}
 #endif
-shcore::Value Shell::delete_all_credentials(const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("deleteAllCredentials").c_str());
-
-  try {
-    shcore::Credential_manager::get().delete_all_credentials();
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("deleteAllCredentials"));
-
-  return shcore::Value();
+void Shell::delete_all_credentials() {
+  shcore::Credential_manager::get().delete_all_credentials();
 }
 
 REGISTER_HELP_FUNCTION(listCredentials, shell);
@@ -1455,23 +1367,13 @@ List Shell::listCredentials() {}
 #elif DOXYGEN_PY
 list Shell::list_credentials() {}
 #endif
-shcore::Value Shell::list_credentials(const shcore::Argument_list &args) {
-  args.ensure_count(0, get_function_name("listCredentials").c_str());
+shcore::Array_t Shell::list_credentials() {
+  shcore::Array_t ret_val = shcore::make_array();
 
-  shcore::Value ret_val;
-
-  try {
-    shcore::Value::Array_type_ref values =
-        std::make_shared<shcore::Value::Array_type>();
-
-    for (const auto &credential :
-         shcore::Credential_manager::get().list_credentials()) {
-      values->emplace_back(credential);
-    }
-
-    ret_val = shcore::Value(values);
+  for (const auto &credential :
+       shcore::Credential_manager::get().list_credentials()) {
+    ret_val->emplace_back(credential);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("listCredentials"));
 
   return ret_val;
 }
@@ -1612,9 +1514,9 @@ REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL7, "${REPORTS_DETAIL8}");
 REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL8,
               "The <b>description</b> dictionary may contain the following "
               "optional keys:");
-REGISTER_HELP(
-    SHELL_REGISTERREPORT_DETAIL9,
-    "@li brief - A string value providing a brief description of the report.");
+REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL9,
+              "@li brief - A string value providing a brief description of "
+              "the report.");
 REGISTER_HELP(SHELL_REGISTERREPORT_DETAIL10,
               "@li details - A list of strings providing a detailed "
               "description of the report.");
