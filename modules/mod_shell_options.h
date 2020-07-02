@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -102,10 +102,10 @@ class SHCORE_PUBLIC Options : public shcore::Cpp_object_bridge {
   None unset_persist(str optionName);
 #endif
 
-  shcore::Value set(const shcore::Argument_list &args);
-  shcore::Value set_persist(const shcore::Argument_list &args);
-  shcore::Value unset(const shcore::Argument_list &args);
-  shcore::Value unset_persist(const shcore::Argument_list &args);
+  void set(const std::string &option_name, const shcore::Value &value);
+  void set_persist(const std::string &option_name, const shcore::Value &value);
+  void unset(const std::string &option_name);
+  void unset_persist(const std::string &option_name);
 
  private:
   std::shared_ptr<mysqlsh::Shell_options> shell_options;
