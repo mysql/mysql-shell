@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,8 @@
 
 #include "modules/mod_shell_options.h"
 #include "modules/mysqlxtest_utils.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
@@ -167,12 +169,10 @@ Options::Options(std::shared_ptr<mysqlsh::Shell_options> options)
   for (const auto &opt : options->get_named_options())
     add_property(opt + "|" + opt);
 
-  add_method("set", std::bind(&Options::set, this, std::placeholders::_1));
-  add_method("setPersist",
-             std::bind(&Options::set_persist, this, std::placeholders::_1));
-  add_method("unset", std::bind(&Options::unset, this, std::placeholders::_1));
-  add_method("unsetPersist",
-             std::bind(&Options::unset_persist, this, std::placeholders::_1));
+  expose("set", &Options::set, "option_name", "value");
+  expose("setPersist", &Options::set_persist, "option_name", "value");
+  expose("unset", &Options::unset, "option_name");
+  expose("unsetPersist", &Options::unset_persist, "option_name");
 }
 
 REGISTER_HELP_FUNCTION(set, options);
@@ -192,14 +192,8 @@ Undefined Options::set(String optionName, Value value);
 None Options::set(str optionName, value value);
 #endif
 
-shcore::Value Options::set(const shcore::Argument_list &args) {
-  args.ensure_count(2, get_function_name("set").c_str());
-
-  try {
-    shell_options->set_and_notify(args.string_at(0), args.at(1), false);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("set"));
-  return Value();
+void Options::set(const std::string &option_name, const Value &value) {
+  shell_options->set_and_notify(option_name, value, false);
 }
 
 REGISTER_HELP_FUNCTION(setPersist, options);
@@ -222,14 +216,8 @@ Undefined Options::setPersist(String optionName, Value value);
 None Options::set_persist(str optionName, value value);
 #endif
 
-shcore::Value Options::set_persist(const shcore::Argument_list &args) {
-  args.ensure_count(2, get_function_name("setPersist").c_str());
-
-  try {
-    shell_options->set_and_notify(args.string_at(0), args.at(1), true);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("setPersist"));
-  return Value();
+void Options::set_persist(const std::string &option_name, const Value &value) {
+  shell_options->set_and_notify(option_name, value, true);
 }
 
 REGISTER_HELP_FUNCTION(unset, options);
@@ -248,14 +236,8 @@ Undefined Options::unset(String optionName);
 None Options::unset(str optionName);
 #endif
 
-shcore::Value Options::unset(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("unset").c_str());
-
-  try {
-    shell_options->unset(args.string_at(0), false);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("unset"));
-  return Value();
+void Options::unset(const std::string &option_name) {
+  shell_options->unset(option_name, false);
 }
 
 REGISTER_HELP_FUNCTION(unsetPersist, options);
@@ -276,14 +258,8 @@ Undefined Options::unsetPersist(String optionName);
 None Options::unset_persist(str optionName);
 #endif
 
-shcore::Value Options::unset_persist(const shcore::Argument_list &args) {
-  args.ensure_count(1, get_function_name("unsetPersist").c_str());
-
-  try {
-    shell_options->unset(args.string_at(0), true);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("unsetPersist"));
-  return Value();
+void Options::unset_persist(const std::string &option_name) {
+  shell_options->unset(option_name, true);
 }
 
 }  // namespace mysqlsh
