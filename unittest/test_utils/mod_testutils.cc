@@ -1832,7 +1832,7 @@ void Testutils::remove_from_sandbox_conf(int port, const std::string &option,
     // Remove option from all groups (sections) if the section is not specified
     // (empty).
     std::vector<std::string> groups = cfg.groups();
-    for (auto const group : groups) {
+    for (auto const &group : groups) {
       cfg.remove_option(group, option);
     }
   } else {
@@ -1891,7 +1891,7 @@ void Testutils::change_sandbox_conf(int port, const std::string &option,
   if (section == "*") {
     // Change all groups (sections) if * is used for the group.
     std::vector<std::string> groups = cfg.groups();
-    for (auto const group : groups) {
+    for (auto const &group : groups) {
       cfg.set(group, option, mysqlshdk::utils::nullable<std::string>(value));
     }
   } else {

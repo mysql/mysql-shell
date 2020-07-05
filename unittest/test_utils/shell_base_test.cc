@@ -182,7 +182,7 @@ bool Shell_base_test::check_wildcard_match(const std::string &expected,
 
       strings.erase(strings.begin());
 
-      for (const auto str : strings) {
+      for (const auto &str : strings) {
         size_t tmp = actual.find(str, all_end);
         if (tmp != std::string::npos) {
           all_end = tmp + str.length();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -430,7 +430,7 @@ std::set<std::string> User_privileges::get_mandatory_roles(
   std::vector<std::string> roles =
       shcore::str_split(shcore::str_strip(str_roles), ",", -1);
 
-  for (const std::string role : roles) {
+  for (const std::string &role : roles) {
     // Split each role account to handle backticks and the optional host part.
     std::string user, host;
     shcore::split_account(role, &user, &host);
@@ -543,7 +543,7 @@ void User_privileges::read_user_roles(
   // role list.
   // NOTE: Role dependencies ("sub-roles") are automatically active (behaviour
   // confirmed with the server team).
-  for (const std::string active_role : active_roles) {
+  for (const std::string &active_role : active_roles) {
     get_child_roles(all_roles, &m_roles, active_role);
   }
 
