@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,10 +54,10 @@ using mysqlshdk::oci::Oci_rest_service;
 using mysqlshdk::oci::Oci_service;
 using mysqlshdk::oci::Response_error;
 
-const size_t MAX_FILE_NAME_SIZE = 1024;
-
 Directory::Directory(const Oci_options &options, const std::string &name)
-    : m_name(utils::strip_scheme(name, "oci+os")),
+    : m_name(utils::scheme_matches(utils::get_scheme(name), "oci+os")
+                 ? utils::strip_scheme(name, "oci+os")
+                 : name),
       m_bucket(std::make_unique<Bucket>(options)),
       m_created(false) {}
 
@@ -140,13 +140,6 @@ std::string Directory::join_path(const std::string &a,
 std::unique_ptr<IFile> Directory::file(const std::string &name) const {
   std::string file_name = join_path(m_name, name);
 
-  if (file_name.size() > MAX_FILE_NAME_SIZE) {
-    throw std::runtime_error(
-        shcore::str_format("Unable to create file '%s', it exceeds the "
-                           "allowed name length: 1024",
-                           file_name.c_str()));
-  }
-
   return std::make_unique<Object>(m_bucket->get_options(), name,
                                   m_name.empty() ? "" : m_name + "/");
 }
@@ -220,7 +213,7 @@ void Object::close() {
 }
 
 size_t Object::file_size() const {
-  if (!m_open_mode.is_null() && *m_open_mode == Mode::APPEND) {
+  if (!m_open_mode.is_null() && *m_open_mode != Mode::READ) {
     return m_writer->size();
   } else {
     return m_bucket->head_object(full_path());
@@ -305,7 +298,7 @@ void Object::rename(const std::string &new_name) {
 void Object::remove() { m_bucket->delete_object(full_path()); }
 
 Object::Writer::Writer(Object *owner, Multipart_object *object)
-    : File_handler(owner), m_size(0), m_is_multipart(false) {
+    : File_handler(owner), m_is_multipart(false) {
   // This is the writer for an already started multipart object
   if (object) {
     m_multipart = *object;
@@ -463,9 +456,12 @@ void Object::Writer::close() {
   }
 }
 
-Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
+Object::Reader::Reader(Object *owner)
+    : File_handler(owner), m_offset(0), m_done(false) {
   try {
-    m_size = m_object->m_bucket->head_object(m_object->full_path());
+    // This empty read will validate if the file exists
+    mysqlshdk::rest::String_buffer buffer;
+    m_object->m_bucket->get_object(m_object->full_path(), &buffer, 0, 0);
   } catch (const Response_error &error) {
     if (error.code() == Response::Status_code::NOT_FOUND) {
       // For Not Found generates a custom message as the one for the get()
@@ -480,8 +476,7 @@ Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
 }
 
 off64_t Object::Reader::seek(off64_t offset) {
-  const off64_t fsize = m_size;
-  m_offset = std::min(offset, fsize);
+  m_offset = offset;
   return m_offset;
 }
 
@@ -490,13 +485,7 @@ off64_t Object::Reader::tell() const {
 }
 
 ssize_t Object::Reader::read(void *buffer, size_t length) {
-  const size_t first = m_offset;
-  const size_t last_unbounded = m_offset + length - 1;
-
-  const off64_t fsize = m_size;
-  if (m_offset >= fsize) return 0;
-
-  const size_t last = std::min(m_size - 1, last_unbounded);
+  if (m_done) return 0;
 
   // Creates a response buffer that writes data directly to buffer
   mysqlshdk::rest::Static_char_ref_buffer rbuffer(
@@ -505,12 +494,15 @@ ssize_t Object::Reader::read(void *buffer, size_t length) {
   size_t read = 0;
   try {
     read = m_object->m_bucket->get_object(m_object->full_path(), &rbuffer,
-                                          first, last);
+                                          m_offset, m_offset + length - 1);
   } catch (const Response_error &error) {
     throw shcore::Exception::runtime_error(error.format());
   }
 
   m_offset += read;
+  m_size += read;
+
+  if (read < length) m_done = true;
 
   return read;
 }

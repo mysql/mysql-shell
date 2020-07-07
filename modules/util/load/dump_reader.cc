@@ -901,7 +901,7 @@ bool Dump_reader::Schema_info::data_done() const {
 }
 
 bool Dump_reader::Dump_info::ready() const {
-  return sql && post_sql && has_users == !!users_sql;
+  return sql && post_sql && has_users == !!users_sql && md_done;
 }
 
 void Dump_reader::Dump_info::rescan(
@@ -965,6 +965,15 @@ void Dump_reader::Dump_info::parse_done_metadata(
     }
   } else {
     log_warning("Dump metadata file @.done.json is invalid");
+  }
+}
+
+std::unique_ptr<mysqlshdk::storage::IFile>
+Dump_reader::create_progress_file_handle() const {
+  if (m_options.use_par() && m_options.use_par_progress()) {
+    return m_dir->file(*m_options.progress_file());
+  } else {
+    return m_options.create_progress_file_handle();
   }
 }
 

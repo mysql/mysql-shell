@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -88,6 +88,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/common/metadata_management_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/devapi/mod_mysqlx_collection_find_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/devapi/mod_mysqlx_table_select_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/util/dump/dump_manifest_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_cmdline_regressions_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/shell_cli_operation_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_main.cc"

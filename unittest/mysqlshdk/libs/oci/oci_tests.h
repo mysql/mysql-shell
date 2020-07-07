@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2020, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -101,7 +101,8 @@ class Oci_os_tests : public Shell_core_test_wrapper {
     return options;
   }
 
-  void clean_bucket(Bucket &bucket, bool clean_uploads = true) {
+  void clean_bucket(Bucket &bucket, bool clean_uploads = true,
+                    bool clean_pars = true) {
     auto objects = bucket.list_objects();
 
     if (!objects.empty()) {
@@ -122,6 +123,18 @@ class Oci_os_tests : public Shell_core_test_wrapper {
 
         uploads = bucket.list_multipart_uploads();
         EXPECT_TRUE(uploads.empty());
+      }
+    }
+
+    if (clean_pars) {
+      auto pars = bucket.list_preauthenticated_requests();
+      if (!pars.empty()) {
+        for (const auto &par : pars) {
+          bucket.delete_pre_authenticated_request(par.id);
+        }
+
+        pars = bucket.list_preauthenticated_requests();
+        EXPECT_TRUE(pars.empty());
       }
     }
   }

@@ -152,8 +152,6 @@ std::unique_ptr<Schema_dumper> Dump_schemas::schema_dumper(
       options.is_set(Compatibility_option::STRIP_DEFINERS);
   dumper->opt_strip_restricted_grants =
       options.is_set(Compatibility_option::STRIP_RESTRICTED_GRANTS);
-  dumper->opt_strip_role_admin =
-      options.is_set(Compatibility_option::STRIP_ROLE_ADMIN);
   dumper->opt_strip_tablespaces =
       options.is_set(Compatibility_option::STRIP_TABLESPACES);
 

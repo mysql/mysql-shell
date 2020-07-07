@@ -75,6 +75,10 @@ class Dump_schemas_options : public Ddl_dumper_options {
   void validate_options() const override;
 
  private:
+  mysqlshdk::oci::Oci_options::Unpack_target oci_target() const override {
+    return mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE;
+  }
+
   std::unordered_set<std::string> m_schemas;
   std::unordered_map<std::string, std::set<std::string>> m_excluded_tables;
 

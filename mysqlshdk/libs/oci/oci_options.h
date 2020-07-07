@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,11 @@ constexpr const char kOsNamespace[] = "osNamespace";
 constexpr const char kOsBucketName[] = "osBucketName";
 constexpr const char kOciConfigFile[] = "ociConfigFile";
 constexpr const char kOciProfile[] = "ociProfile";
+constexpr const char kOciParManifest[] = "ociParManifest";
+constexpr const char kOciParExpireTime[] = "ociParExpireTime";
+// Internal Options, not exposed to the user
+constexpr const char kOsPar[] = "osPar";
+constexpr const char kOciRegion[] = "ociRegion";
 
 enum class Oci_uri_type { FILE, DIRECTORY };
 
@@ -46,9 +51,13 @@ struct Oci_options {
   Oci_options &operator=(const Oci_options &) = default;
   Oci_options &operator=(Oci_options &&) = default;
 
-  enum Unpack_target { OBJECT_STORAGE };
+  enum Unpack_target {
+    OBJECT_STORAGE,
+    OBJECT_STORAGE_NO_PAR_OPTIONS,
+    OBJECT_STORAGE_NO_PAR_SUPPORT
+  };
 
-  Oci_options() : target(OBJECT_STORAGE) {}
+  Oci_options() : Oci_options(OBJECT_STORAGE) {}
 
   explicit Oci_options(Unpack_target t) : target(t) {}
 
@@ -58,8 +67,11 @@ struct Oci_options {
     return *options;
   }
 
-  explicit operator bool() const { return !os_bucket_name.get_safe().empty(); }
+  explicit operator bool() const {
+    return !os_bucket_name.get_safe().empty() || !os_par.get_safe().empty();
+  }
 
+  void check_bucket_name_dependent_options();
   void check_option_values();
 
   Unpack_target target;
@@ -69,6 +81,12 @@ struct Oci_options {
   mysqlshdk::utils::nullable<std::string> config_path;
   mysqlshdk::utils::nullable<std::string> config_profile;
   mysqlshdk::utils::nullable<size_t> part_size;
+  mysqlshdk::utils::nullable<bool> oci_par_manifest;
+  mysqlshdk::utils::nullable<std::string> oci_par_expire_time;
+
+  // Internal use options
+  mysqlshdk::utils::nullable<std::string> os_par;
+  mysqlshdk::utils::nullable<std::string> oci_region;
 
  private:
   void do_unpack(shcore::Option_unpacker *unpacker);
@@ -84,7 +102,7 @@ struct Oci_options {
    *
    * @param instance target Instance object to read the GR options.
    */
-  void load_defaults();
+  void load_defaults(const std::vector<std::string> &par_data);
 };
 
 bool parse_oci_options(

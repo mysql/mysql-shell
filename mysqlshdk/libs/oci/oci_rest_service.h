@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,7 +54,8 @@ class Oci_rest_service {
   Response::Status_code get(const std::string &path,
                             const Headers &headers = {},
                             Base_response_buffer *buffer = nullptr,
-                            Headers *response_headers = nullptr);
+                            Headers *response_headers = nullptr,
+                            bool sign_request = true);
 
   Response::Status_code head(const std::string &path,
                              const Headers &headers = {},
@@ -69,7 +70,8 @@ class Oci_rest_service {
   Response::Status_code put(const std::string &path, const char *body,
                             size_t size, const Headers &headers = {},
                             Base_response_buffer *buffer = nullptr,
-                            Headers *response_headers = nullptr);
+                            Headers *response_headers = nullptr,
+                            bool sign_request = true);
 
   Response::Status_code delete_(const std::string &path, const char *body,
                                 size_t size, const Headers &headers = {});
@@ -78,7 +80,8 @@ class Oci_rest_service {
                                 const char *body = nullptr, size_t size = 0,
                                 const Headers &request_headers = {},
                                 Base_response_buffer *buffer = nullptr,
-                                Headers *response_headers = nullptr);
+                                Headers *response_headers = nullptr,
+                                bool sign_request = true);
 
   // TODO(rennox): These configuration properties/functions exists here because
   // the configuration was loaded on the constructor of the REST service,
@@ -92,6 +95,8 @@ class Oci_rest_service {
    * be used
    */
   void set_service(Oci_service service);
+
+  std::string end_point() const { return "https://" + m_host; }
 
  private:
   Oci_service m_service;

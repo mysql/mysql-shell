@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,9 +25,14 @@
 #define MYSQLSHDK_LIBS_UTILS_PROFILING_H_
 
 #include <chrono>
+#include <map>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
+
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlshdk {
 namespace utils {
@@ -73,9 +78,6 @@ class Profile_timer {
     return total_nanoseconds_elapsed() / 1000000000.0;
   }
 
-  static Profile_timer *activate();
-  static void deactivate();
-
  public:
   struct Trace_point {
     char note[33];
@@ -97,17 +99,101 @@ class Profile_timer {
   int _depth = 0;
 };
 
-extern Profile_timer *g_active_timer;
+/**
+ * This class keeps track execution time on specifics blocks of code
+ * during a complete session. A session is defined by the time when the
+ * global profiler is enabled and the time is finished.
+ *
+ * The execution time is recorded by thread/stage groups.
+ *
+ * This class is NOT intended to be used (instantiated) within the shell
+ * functionality, but to be used as a global profiler which will record
+ * execution time associated to specific IDs and then print accumulated
+ * statistics.
+ *
+ * Use it throught the following functions in the profiling namespace:
+ *
+ * - activate
+ * - deactivate
+ * - stage_begin
+ * - stage_end
+ */
+class Global_profiler {
+ public:
+  ~Global_profiler() { print_stats(); }
+  void stage_begin(const std::string &id) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_time_profilers[std::this_thread::get_id()][id].stage_begin(id.c_str());
+  }
+
+  void stage_end(const std::string &id) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_time_profilers.at(std::this_thread::get_id()).at(id).stage_end();
+  }
+
+  void print_stats();
+
+  using Time_profilers = std::map<std::string, Profile_timer>;
+
+ private:
+  std::mutex m_mutex;
+  std::map<std::thread::id, Time_profilers> m_time_profilers;
+};
 
 }  // namespace utils
 
-inline void stage_begin(const char *note) {
-  if (utils::g_active_timer) utils::g_active_timer->stage_begin(note);
+/**
+ * This namespace provides the functions required to perform profiling
+ * of specific sections of code.
+ *
+ * TO ACTIVATE THE PROFILER
+ * ------------------------
+ * Call the following functions to activate/deactivate it as needed:
+ * - mysqlshdk::profiling::activate();
+ * - mysqlshdk::profiling::deactivate();
+ *
+ * Or do as follows to ensure it is active within a specific context:
+ *
+ *  mysqlshdk::profiling::activate();
+ *  auto finally =
+ *      shcore::on_leave_scope([]() { mysqlshdk::profiling::deactivate(); });
+ *
+ * TO ADD A MEASURING POINT WITHIN A THREAD
+ * ----------------------------------------
+ *  Call the following functions to measure the time spent between them:
+ *
+ * - mysqlshdk::profiling::stage_begin("<MEASURE ID>");
+ * - mysqlshdk::profiling::stage_end("<MEASURE ID>");
+ *
+ * <MEASURE ID>: Text to identify the context being measured.
+ *
+ * Make sure the measure ID passed to both functions is the same. It will
+ * record a the number of milliseconds spend between both calls for each time
+ * the code is hit while the profiling is active.
+ *
+ * To measure the time within a specific scope you can also use:
+ *
+ *  mysqlshdk::profiling::stage_begin("<MEASURE ID>");
+ *  shcore::on_leave_scope end_stage(
+ *      []() { mysqlshdk::profiling::stage_end("<MEASURE ID>"); });
+ *
+ * You can add as many measure points as needed.
+ */
+namespace profiling {
+extern mysqlshdk::utils::Global_profiler *g_active_profiler;
+
+void activate();
+void deactivate();
+
+inline void stage_begin(const std::string &id) {
+  if (g_active_profiler) g_active_profiler->stage_begin(id);
 }
 
-inline void stage_end() {
-  if (utils::g_active_timer) utils::g_active_timer->stage_end();
+inline void stage_end(const std::string &id) {
+  if (g_active_profiler) g_active_profiler->stage_end(id);
 }
+
+}  // namespace profiling
 
 }  // namespace mysqlshdk
 

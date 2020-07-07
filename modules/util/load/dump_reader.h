@@ -148,6 +148,9 @@ class Dump_reader {
 
   Status open();
 
+  std::unique_ptr<mysqlshdk::storage::IFile> create_progress_file_handle()
+      const;
+
   struct View_info {
     std::string schema;
     std::string table;

@@ -694,6 +694,24 @@ TEST_STRING_OPTION("ociProfile")
 #@<> WL13807: WL13804-FR5.7.2 - If the value of `ociProfile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
 EXPECT_FAIL("ArgumentError", "The option 'ociProfile' cannot be used when the value of 'osBucketName' option is not set", test_output_relative, { "ociProfile": "profile" })
 
+#@<> WL14154: WL14154-TSFR1_2 - Validate that the option ociParManifest only take boolean values as valid values.
+TEST_BOOL_OPTION("ociParManifest")
+
+#@<> WL14154: WL14154-TSFR1_3 - Validate that the option ociParManifest is valid only when doing a dump to OCI.
+EXPECT_FAIL("ArgumentError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "ociParManifest": True })
+EXPECT_FAIL("ArgumentError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "ociParManifest": False })
+
+#@<> WL14154: WL14154-TSFR2_12 - Doing a dump to file system with ociParManifest set to True and ociParExpireTime set to a valid value. Validate that dump fails because ociParManifest is not valid if osBucketName is not specified.
+EXPECT_FAIL("ArgumentError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "ociParManifest": True, "ociParExpireTime": "2021-01-01" })
+
+#@<> WL14154: WL14154-TSFR2_2 - Validate that the option ociParExpireTime only take string values
+TEST_STRING_OPTION("ociParExpireTime")
+
+#@<> WL14154: WL14154-TSFR2_6 - Doing a dump to OCI ociParManifest not set or set to False and ociParExpireTime set to a valid value. Validate that the dump fail because ociParExpireTime it's valid only when ociParManifest is set to True.
+EXPECT_FAIL("ArgumentError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", test_output_relative, { "ociParExpireTime": "2021-01-01" })
+EXPECT_FAIL("ArgumentError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", test_output_relative, { "osBucketName": "bucket", "ociParExpireTime": "2021-01-01" })
+EXPECT_FAIL("ArgumentError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", test_output_relative, { "osBucketName": "bucket", "ociParManifest": False, "ociParExpireTime": "2021-01-01" })
+
 #@<> WL13807: WL13804-FR5.8 - The `options` dictionary may contain a `defaultCharacterSet` key with a string value, which specifies the character set to be used during the dump. The session variables `character_set_client`, `character_set_connection`, and `character_set_results` must be set to this value for each opened connection.
 # WL13807-TSFR4_43
 TEST_STRING_OPTION("defaultCharacterSet")
@@ -1103,7 +1121,10 @@ EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first. You can check for potential upgrade issues using util.check_for_server_upgrade().")
 
-EXPECT_STDOUT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, "FILE"))
+if __version_num < 80000:
+    EXPECT_STDOUT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, test_privilege))
+else:
+    EXPECT_STDOUT_CONTAINS("ERROR: User {0}@localhost is granted restricted privileges: {1}".format(test_user, test_privilege))
 
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_data_directory))
 
@@ -1141,8 +1162,7 @@ EXPECT_FAIL("ArgumentError", "Unknown compatibility option: ", test_output_relat
 # * `strip_restricted_grants` - remove disallowed grants.
 # * `strip_tablespaces` - remove unsupported tablespace syntax.
 # * `strip_definers` - remove DEFINER clause from views, triggers, events and routines and change SQL SECURITY property to INVOKER for views and routines.
-# * `strip_role_admin` - remove ROLE_ADMIN privilege.
-EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "force_innodb", "strip_definers", "strip_restricted_grants", "strip_role_admin", "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False })
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "force_innodb", "strip_definers", "strip_restricted_grants", "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False })
 
 #@<> WL13807-FR16.2.1 - force_innodb
 # WL13807-TSFR16_3
@@ -1156,7 +1176,7 @@ EXPECT_STDOUT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQL SE
 
 #@<> WL13807-FR16.2.1 - strip_restricted_grants
 # WL13807-TSFR16_5
-EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_restricted_grants", "strip_role_admin" ] , "ddlOnly": True, "showProgress": False })
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_restricted_grants" ] , "ddlOnly": True, "showProgress": False })
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: User {0}@localhost had restricted privilege ({1}) removed".format(test_user, test_privilege))
 else:

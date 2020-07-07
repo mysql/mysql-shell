@@ -22,15 +22,17 @@
  */
 
 #include "modules/util/load/load_dump_options.h"
+#include "modules/util/dump/dump_manifest.h"
 
 #include "modules/mod_utils.h"
 
 namespace mysqlsh {
+using mysqlsh::dump::Dump_manifest;
 
 Load_dump_options::Load_dump_options(const std::string &url)
     : m_url(url),
-      m_oci_options(
-          mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE) {}
+      m_oci_options(mysqlshdk::oci::Oci_options::Unpack_target::
+                        OBJECT_STORAGE_NO_PAR_OPTIONS) {}
 
 void Load_dump_options::set_session(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
@@ -61,6 +63,18 @@ void Load_dump_options::validate() {
     throw shcore::Exception::runtime_error(
         "At least one of loadData, loadDdl or loadUsers options must be "
         "enabled");
+
+  if (m_use_par) {
+    if (m_progress_file.is_null()) {
+      throw shcore::Exception::runtime_error(
+          "When using a PAR to a dump manifest, the progressFile option must "
+          "be defined.");
+    } else {
+      dump::Par_structure progress_par_data;
+      m_use_par_progress =
+          dump::parse_full_object_par(*m_progress_file, &progress_par_data);
+    }
+  }
 
   {
     auto result =
@@ -95,8 +109,12 @@ std::string Load_dump_options::target_import_info() const {
 
   std::string where;
   if (m_oci_options) {
-    where = "OCI ObjectStorage bucket=" + *m_oci_options.os_bucket_name +
-            ", prefix='" + m_url + "'";
+    if (m_use_par) {
+      where = "OCI PAR=" + m_url + ", prefix='" + m_prefix + "'";
+    } else {
+      where = "OCI ObjectStorage bucket=" + *m_oci_options.os_bucket_name +
+              ", prefix='" + m_url + "'";
+    }
   } else {
     where = "'" + m_url + "'";
   }
@@ -168,6 +186,14 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
 
   unpacker.unpack(&m_oci_options);
   unpacker.end();
+
+  dump::Par_structure url_par_data;
+  m_use_par = dump::parse_full_object_par(m_url, &url_par_data);
+
+  if (m_use_par) {
+    m_oci_options.os_par = m_url;
+    m_prefix = url_par_data.object_prefix;
+  }
 
   m_oci_options.check_option_values();
 
@@ -255,10 +281,14 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
 
 std::unique_ptr<mysqlshdk::storage::IDirectory>
 Load_dump_options::create_dump_handle() const {
-  if (!m_oci_options.os_bucket_name.get_safe().empty())
+  if (m_use_par) {
+    return std::make_unique<Dump_manifest>(Dump_manifest::Mode::READ,
+                                           m_oci_options, m_url);
+  } else if (!m_oci_options.os_bucket_name.get_safe().empty()) {
     return mysqlshdk::storage::make_directory(m_url, m_oci_options);
-  else
+  } else {
     return mysqlshdk::storage::make_directory(m_url);
+  }
 }
 
 std::unique_ptr<mysqlshdk::storage::IFile>

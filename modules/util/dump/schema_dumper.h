@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "modules/util/dump/compatibility.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 
@@ -52,8 +53,8 @@ class Schema_dumper {
   explicit Schema_dumper(
       const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
       const std::vector<std::string> &mysqlaas_supported_charsets = {"utf8mb4"},
-      const std::set<std::string> &mysqlaas_restricted_priveleges = {
-          "SUPER", "FILE", "RELOAD", "BINLOG_ADMIN", "SET_USER_ID"});
+      const std::set<std::string> &mysqlaas_allowed_privileges =
+          mysqlsh::compatibility::k_mysqlaas_allowed_privileges);
 
   static std::string normalize_user(const std::string &user,
                                     const std::string &host);
@@ -130,7 +131,6 @@ class Schema_dumper {
   bool opt_force_innodb = false;
   bool opt_strip_directory = false;
   bool opt_strip_restricted_grants = false;
-  bool opt_strip_role_admin = false;
   bool opt_strip_tablespaces = false;
   bool opt_strip_definer = false;
   std::string opt_character_set_results = "utf8mb4";
@@ -145,7 +145,7 @@ class Schema_dumper {
  private:
   std::shared_ptr<mysqlshdk::db::ISession> m_mysql;
   const std::vector<std::string> m_mysqlaas_supported_charsets;
-  const std::set<std::string> m_mysqlaas_restricted_priveleges;
+  const std::set<std::string> m_mysqlaas_allowed_priveleges;
 
   bool stats_tables_included = false;
 

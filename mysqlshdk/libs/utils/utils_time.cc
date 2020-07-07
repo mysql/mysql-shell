@@ -21,32 +21,22 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_DUMP_COMPATIBILITY_OPTION_H_
-#define MODULES_UTIL_DUMP_COMPATIBILITY_OPTION_H_
+#include "mysqlshdk/libs/utils/utils_time.h"
 
-#include <string>
+#include "mysqlshdk/libs/utils/strformat.h"
 
-#include "mysqlshdk/libs/utils/enumset.h"
+namespace shcore {
 
-namespace mysqlsh {
-namespace dump {
+std::string current_time_rfc3339() {
+  return future_time_rfc3339(std::chrono::hours(0));
+}
 
-enum class Compatibility_option {
-  FORCE_INNODB,
-  STRIP_DEFINERS,
-  STRIP_RESTRICTED_GRANTS,
-  STRIP_TABLESPACES
-};
+std::string future_time_rfc3339(const std::chrono::hours &h) {
+  const auto current_time = std::chrono::system_clock::to_time_t(
+      std::chrono::system_clock::now() + h);
 
-Compatibility_option to_compatibility_option(const std::string &c);
+  return mysqlshdk::utils::fmttime("%FT%TZ", mysqlshdk::utils::Time_type::GMT,
+                                   &current_time);
+}
 
-std::string to_string(Compatibility_option c);
-
-using Compatibility_options =
-    mysqlshdk::utils::Enum_set<Compatibility_option,
-                               Compatibility_option::STRIP_TABLESPACES>;
-
-}  // namespace dump
-}  // namespace mysqlsh
-
-#endif  // MODULES_UTIL_DUMP_COMPATIBILITY_OPTION_H_
+}  // namespace shcore

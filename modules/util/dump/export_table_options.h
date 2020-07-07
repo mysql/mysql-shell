@@ -88,6 +88,11 @@ class Export_table_options : public Dump_options {
 
   void validate_options() const override;
 
+  mysqlshdk::oci::Oci_options::Unpack_target oci_target() const override {
+    return mysqlshdk::oci::Oci_options::Unpack_target::
+        OBJECT_STORAGE_NO_PAR_SUPPORT;
+  }
+
   std::string m_schema;
   std::string m_table;
 };

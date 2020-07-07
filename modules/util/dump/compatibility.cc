@@ -32,6 +32,32 @@
 namespace mysqlsh {
 namespace compatibility {
 
+const std::set<std::string> k_mysqlaas_allowed_privileges = {
+    "ALTER",
+    "ALTER ROUTINE",
+    "CREATE",
+    "CREATE ROLE",
+    "CREATE ROUTINE",
+    "CREATE TEMPORARY TABLES",
+    "CREATE USER",
+    "CREATE VIEW",
+    "DELETE",
+    "DROP",
+    "DROP ROLE",
+    "EVENT",
+    "EXECUTE",
+    "INDEX",
+    "INSERT",
+    "LOCK TABLES",
+    "PROCESS",
+    "REFERENCES",
+    "REPLICATION CLIENT",
+    "REPLICATION SLAVE",
+    "SELECT",
+    "SHOW DATABASES",
+    "SHOW VIEW",
+    "TRIGGER",
+    "UPDATE"};
 namespace {
 using Offset = std::pair<std::size_t, std::size_t>;
 using Offsets = std::vector<Offset>;
@@ -168,32 +194,41 @@ std::vector<std::string> check_privileges(
     token = it.get_next_token();
     auto after_pos = it.position();
     auto next = it.get_next_token();
+    // @ is reported as token for roles, it is skipped as this function only
+    // searches for individual grants
+    while (token == "@" && next == ",") {
+      token = it.get_next_token();
+      after_pos = it.position();
+      next = it.get_next_token();
+    }
     while (!next.empty() && next != "," && next != "ON" && next != "TO") {
       token += " " + next;
       after_pos = it.position();
       next = it.get_next_token();
     }
-    auto pit = privileges.find(shcore::str_upper(token));
-    if (pit == privileges.end()) {
-      ++remaining_priv;
-      last_removed = false;
-    } else {
-      res.emplace_back(*pit);
-      if (rewritten_grant) {
-        if (grant[prev_pos] == ',')
-          offsets.emplace_back(prev_pos, after_pos);
-        else if (next == ",")
-          offsets.emplace_back(first_token_size + 1, std::isspace(*it)
-                                                         ? (++it).position()
-                                                         : it.position());
-        else
-          break;
+    if (token != "@") {
+      auto pit = privileges.find(shcore::str_upper(token));
+      if (pit != privileges.end()) {
+        ++remaining_priv;
+        last_removed = false;
+      } else {
+        res.emplace_back(token);
+        if (rewritten_grant) {
+          if (grant[prev_pos] == ',')
+            offsets.emplace_back(prev_pos, after_pos);
+          else if (next == ",")
+            offsets.emplace_back(first_token_size + 1, std::isspace(*it)
+                                                           ? (++it).position()
+                                                           : it.position());
+          else
+            break;
 
-        if (last_removed) {
-          offsets[offsets.size() - 2].second = offsets.back().second;
-          offsets.pop_back();
+          if (last_removed) {
+            offsets[offsets.size() - 2].second = offsets.back().second;
+            offsets.pop_back();
+          }
+          last_removed = true;
         }
-        last_removed = true;
       }
     }
     if (next.empty() || shcore::str_caseeq_mv(next, "ON", "TO", "FROM")) break;

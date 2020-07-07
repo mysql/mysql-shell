@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -243,8 +243,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("getOciConfig", &Testutils::get_oci_config);
   expose("uploadOciObject", &Testutils::upload_oci_object, "bucket", "object",
          "filePath");
-  expose("downloadOciObject", &Testutils::download_oci_object, "bucket",
-         "object", "filePath");
+  expose("downloadOciObject", &Testutils::download_oci_object, "namespace",
+         "bucket", "object", "filePath");
   expose("createOciObject", &Testutils::create_oci_object, "bucket", "name",
          "content");
   expose("deleteOciObject", &Testutils::delete_oci_object, "bucket", "name");
@@ -3956,7 +3956,8 @@ void Testutils::upload_oci_object(const std::string &bucket,
   ifile.close();
 }
 
-void Testutils::download_oci_object(const std::string &bucket,
+void Testutils::download_oci_object(const std::string &ns,
+                                    const std::string &bucket,
                                     const std::string &name,
                                     const std::string &path) {
   if (!validate_oci_config())
@@ -3971,6 +3972,7 @@ void Testutils::download_oci_object(const std::string &bucket,
   }
 
   mysqlshdk::oci::Oci_options options;
+  options.os_namespace = ns;
   options.os_bucket_name = bucket;
   options.check_option_values();
   mysqlshdk::storage::backend::oci::Object object(options, name);
