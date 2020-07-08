@@ -68,7 +68,7 @@ EXPECT_EQ(0, count_users_like(session2, "default_hostname", "%"));
 c.setupRouterAccount("default_hostname", {password: "foo"});
 EXPECT_EQ(1, count_users_like(session1, "default_hostname", "%"));
 // account was replicated across the cluster
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 EXPECT_EQ(1, count_users_like(session2, "default_hostname", "%"));
 
 //@<OUT> WL#13536 TSFR3_8 check global privileges of created user
@@ -86,7 +86,7 @@ EXPECT_EQ(0, count_users_like(session2, "specific_host", "198.51.100.0/255.255.2
 c.setupRouterAccount("specific_host@198.51.100.0/255.255.255.0", {password: "foo"});
 EXPECT_EQ(1, count_users_like(session1, "specific_host", "198.51.100.0/255.255.255.0"));
 // account was replicated across the cluster
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 EXPECT_EQ(1, count_users_like(session2, "specific_host", "198.51.100.0/255.255.255.0"));
 
 //@ WL#13536 TSFR3_10 An error is thrown if user exists but update option is false
@@ -103,7 +103,7 @@ session1.runSql("REVOKE SELECT on mysql_innodb_cluster_metadata.* FROM 'specific
 EXPECT_EQ(admin_schema_privs_num - 1, count_schema_privs(session1, "specific_host", "198.51.100.0/255.255.255.0"));
 
 // privilege was also dropped on secondary
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 EXPECT_EQ(admin_schema_privs_num - 1, count_schema_privs(session2, "specific_host", "198.51.100.0/255.255.255.0"));
 
 // The operation should add missing privileges to existing accounts if update option is used
@@ -111,7 +111,7 @@ c.setupRouterAccount("specific_host@198.51.100.0/255.255.255.0", {update:true});
 EXPECT_EQ(admin_schema_privs_num, count_schema_privs(session1, "specific_host", "198.51.100.0/255.255.255.0"));
 
 // privilege was also restored on secondary
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 EXPECT_EQ(admin_schema_privs_num, count_schema_privs(session2, "specific_host", "198.51.100.0/255.255.255.0"));
 
 // password was not changed
@@ -127,7 +127,7 @@ session1.runSql("REVOKE SELECT on mysql_innodb_cluster_metadata.* FROM 'specific
 EXPECT_EQ(router_schema_privs_num - 1, count_schema_privs(session1, "specific_host", "198.51.100.0/255.255.255.0"));
 
 // privilege was also dropped on secondary
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 EXPECT_EQ(router_schema_privs_num - 1, count_schema_privs(session2, "specific_host", "198.51.100.0/255.255.255.0"));
 
 // The operation should add missing privileges to existing accounts if update option is used
@@ -135,12 +135,12 @@ c.setupRouterAccount("specific_host@198.51.100.0/255.255.255.0", {password: "foo
 EXPECT_EQ(router_schema_privs_num, count_schema_privs(session1, "specific_host", "198.51.100.0/255.255.255.0"));
 
 // privilege was also restored on secondary
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 EXPECT_EQ(router_schema_privs_num, count_schema_privs(session2, "specific_host", "198.51.100.0/255.255.255.0"));
 
 // password was updated on the whole cluster
 EXPECT_NE(old_auth_string, get_user_auth_string(session1, "specific_host", "198.51.100.0/255.255.255.0"));
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 EXPECT_EQ(
     get_user_auth_string(session1, "specific_host", "198.51.100.0/255.255.255.0"),
     get_user_auth_string(session2, "specific_host", "198.51.100.0/255.255.255.0"));
