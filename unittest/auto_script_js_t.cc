@@ -260,27 +260,27 @@ std::vector<std::string> find_js_tests(const std::string &subdir,
 }
 
 // General test cases
-INSTANTIATE_TEST_CASE_P(Admin_api, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_adminapi", ".js")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Admin_api, Auto_script_js,
+                         testing::ValuesIn(find_js_tests("js_adminapi", ".js")),
+                         fmt_param);
 
-INSTANTIATE_TEST_CASE_P(Admin_api_async, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_adminapi_async",
-                                                        ".js")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Admin_api_async, Auto_script_js,
+                         testing::ValuesIn(find_js_tests("js_adminapi_async",
+                                                         ".js")),
+                         fmt_param);
 
-INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_shell", ".js")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Shell_scripted, Auto_script_js,
+                         testing::ValuesIn(find_js_tests("js_shell", ".js")),
+                         fmt_param);
 
-INSTANTIATE_TEST_CASE_P(Dev_api_scripted, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_devapi", ".js")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Dev_api_scripted, Auto_script_js,
+                         testing::ValuesIn(find_js_tests("js_devapi", ".js")),
+                         fmt_param);
 
-INSTANTIATE_TEST_CASE_P(Mixed_versions, Auto_script_js,
-                        testing::ValuesIn(find_js_tests("js_mixed_versions",
-                                                        ".js")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Mixed_versions, Auto_script_js,
+                         testing::ValuesIn(find_js_tests("js_mixed_versions",
+                                                         ".js")),
+                         fmt_param);
 
 namespace {
 
@@ -407,10 +407,10 @@ TEST_P(Credential_store_test, run_and_check) {
   run_and_check();
 }
 
-INSTANTIATE_TEST_CASE_P(Credential_store_scripted, Credential_store_test,
-                        testing::ValuesIn(find_js_tests("js_credential",
-                                                        ".js")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Credential_store_scripted, Credential_store_test,
+                         testing::ValuesIn(find_js_tests("js_credential",
+                                                         ".js")),
+                         fmt_param);
 
 class Pager_test : public Auto_script_js {
  public:
@@ -458,8 +458,8 @@ TEST_P(Pager_test, run_and_check) {
   run_and_check();
 }
 
-INSTANTIATE_TEST_CASE_P(Pager_scripted, Pager_test,
-                        testing::ValuesIn(find_js_tests("js_pager", ".js")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Pager_scripted, Pager_test,
+                         testing::ValuesIn(find_js_tests("js_pager", ".js")),
+                         fmt_param);
 
 }  // namespace tests

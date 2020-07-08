@@ -237,29 +237,29 @@ std::vector<std::string> find_py_tests(const std::string &subdir,
 }
 
 // General test cases
-INSTANTIATE_TEST_CASE_P(Admin_api, Auto_script_py,
-                        testing::ValuesIn(find_py_tests("py_adminapi", ".py")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Admin_api, Auto_script_py,
+                         testing::ValuesIn(find_py_tests("py_adminapi", ".py")),
+                         fmt_param);
 
-INSTANTIATE_TEST_CASE_P(Admin_api_async, Auto_script_py,
-                        testing::ValuesIn(find_py_tests("py_adminapi_async",
-                                                        ".py")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Admin_api_async, Auto_script_py,
+                         testing::ValuesIn(find_py_tests("py_adminapi_async",
+                                                         ".py")),
+                         fmt_param);
 
-INSTANTIATE_TEST_CASE_P(Shell_scripted, Auto_script_py,
-                        testing::ValuesIn(find_py_tests("py_shell", ".py")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Shell_scripted, Auto_script_py,
+                         testing::ValuesIn(find_py_tests("py_shell", ".py")),
+                         fmt_param);
 
-INSTANTIATE_TEST_CASE_P(Oci_scripted, Auto_script_py,
-                        testing::ValuesIn(find_py_tests("py_oci", ".py")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Oci_scripted, Auto_script_py,
+                         testing::ValuesIn(find_py_tests("py_oci", ".py")),
+                         fmt_param);
 
-INSTANTIATE_TEST_CASE_P(Dev_api_scripted, Auto_script_py,
-                        testing::ValuesIn(find_py_tests("py_devapi", ".py")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Dev_api_scripted, Auto_script_py,
+                         testing::ValuesIn(find_py_tests("py_devapi", ".py")),
+                         fmt_param);
 
-INSTANTIATE_TEST_CASE_P(Mixed_versions, Auto_script_py,
-                        testing::ValuesIn(find_py_tests("py_mixed_versions",
-                                                        ".py")),
-                        fmt_param);
+INSTANTIATE_TEST_SUITE_P(Mixed_versions, Auto_script_py,
+                         testing::ValuesIn(find_py_tests("py_mixed_versions",
+                                                         ".py")),
+                         fmt_param);
 }  // namespace tests

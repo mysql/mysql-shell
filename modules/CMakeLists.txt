@@ -147,6 +147,13 @@ file(GLOB api_module_SOURCES
       "reports/utils.cc"
 )
 
+IF(CMAKE_COMPILER_IS_GNUCXX)
+    SET_SOURCE_FILES_PROPERTIES(
+        "mod_shell.cc"
+        PROPERTIES COMPILE_FLAGS "-fno-var-tracking-assignments"
+    )
+ENDIF()
+
 add_convenience_library(api_modules ${api_module_SOURCES})
 target_link_libraries(api_modules utils)
 

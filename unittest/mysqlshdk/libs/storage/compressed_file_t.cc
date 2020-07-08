@@ -385,7 +385,7 @@ inline std::string fmt_compr(
               : ("_mmap_" + std::get<1>(info.param)));
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
     StorageCompression, Compression,
     ::testing::Values(
         std::make_tuple(mysqlshdk::storage::Compression::GZIP, ""),
