@@ -264,10 +264,17 @@ void Help_registry::add_split_help(const std::string &prefix,
   // then register them one by one.
 
   std::vector<std::string> lines = shcore::str_split(data, "\n");
-  std::vector<std::string>::const_iterator line_iter = lines.begin();
 
-  auto get_line = [&lines, &line_iter](bool *eos, bool strip) {
-    if (line_iter == lines.end()) {
+  // make sure the last line is an empty line
+  if ("" != lines.back()) {
+    lines.emplace_back("");
+  }
+
+  auto line_iter = lines.cbegin();
+  const auto lines_end = lines.cend();
+
+  auto get_line = [&lines_end, &line_iter](bool *eos, bool strip) {
+    if (line_iter == lines_end) {
       *eos = true;
       return std::string();
     } else {
@@ -279,7 +286,7 @@ void Help_registry::add_split_help(const std::string &prefix,
   };
 
   auto unget_line = [&lines, &line_iter]() {
-    if (line_iter > lines.begin()) --line_iter;
+    if (line_iter > lines.cbegin()) --line_iter;
   };
 
   auto get_para = [&get_line, &unget_line](bool *eos) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,46 +21,58 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_DUMP_DUMP_INSTANCE_OPTIONS_H_
-#define MODULES_UTIL_DUMP_DUMP_INSTANCE_OPTIONS_H_
+#ifndef MODULES_UTIL_DUMP_DUMP_TABLES_OPTIONS_H_
+#define MODULES_UTIL_DUMP_DUMP_TABLES_OPTIONS_H_
 
 #include <string>
 #include <unordered_set>
+#include <vector>
 
-#include "modules/util/dump/dump_schemas_options.h"
+#include "modules/util/dump/ddl_dumper_options.h"
 
 namespace mysqlsh {
 namespace dump {
 
-class Dump_instance_options : public Dump_schemas_options {
+class Dump_tables_options : public Ddl_dumper_options {
  public:
-  Dump_instance_options() = delete;
-  explicit Dump_instance_options(const std::string &output_url);
+  Dump_tables_options() = delete;
+  Dump_tables_options(const std::string &schema,
+                      const std::vector<std::string> &tables,
+                      const std::string &output_url);
 
-  Dump_instance_options(const Dump_instance_options &) = default;
-  Dump_instance_options(Dump_instance_options &&) = default;
+  Dump_tables_options(const Dump_tables_options &) = default;
+  Dump_tables_options(Dump_tables_options &&) = default;
 
-  Dump_instance_options &operator=(const Dump_instance_options &) = default;
-  Dump_instance_options &operator=(Dump_instance_options &&) = default;
+  Dump_tables_options &operator=(const Dump_tables_options &) = default;
+  Dump_tables_options &operator=(Dump_tables_options &&) = default;
 
-  virtual ~Dump_instance_options() = default;
+  virtual ~Dump_tables_options() = default;
 
-  const std::unordered_set<std::string> &excluded_schemas() const {
-    return m_excluded_schemas;
-  }
+  const std::string &schema() const { return m_schema; }
 
-  bool dump_users() const override { return m_dump_users; }
+  const std::unordered_set<std::string> &tables() const { return m_tables; }
+
+  bool dump_all() const { return m_dump_all; }
+
+  bool table_only() const override { return true; }
+
+  bool dump_events() const override { return false; }
+
+  bool dump_routines() const override { return false; }
+
+  bool dump_users() const override { return false; }
 
  private:
   void unpack_options(shcore::Option_unpacker *unpacker) override;
 
   void validate_options() const override;
 
-  std::unordered_set<std::string> m_excluded_schemas;
-  bool m_dump_users = true;
+  std::string m_schema;
+  std::unordered_set<std::string> m_tables;
+  bool m_dump_all = false;
 };
 
 }  // namespace dump
 }  // namespace mysqlsh
 
-#endif  // MODULES_UTIL_DUMP_DUMP_INSTANCE_OPTIONS_H_
+#endif  // MODULES_UTIL_DUMP_DUMP_TABLES_OPTIONS_H_

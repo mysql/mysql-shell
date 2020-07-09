@@ -33,11 +33,13 @@
 #include "modules/util/dump/console_with_progress.h"
 #include "modules/util/import_table/load_data.h"
 #include "modules/util/load/load_progress_log.h"
+#include "mysqlshdk/include/scripting/naming_style.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/mysql/script.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 #include "mysqlshdk/libs/utils/version.h"
@@ -611,126 +613,123 @@ void Dump_loader::handle_schema_scripts() {
   std::string schema;
   std::list<Dump_reader::Name_and_file> tables;
   std::list<Dump_reader::Name_and_file> views;
-  bool has_ddl;
 
   // create all available schemas
-  while (m_dump->next_schema(&schema, &tables, &views, &has_ddl)) {
+  while (m_dump->next_schema(&schema, &tables, &views)) {
     auto status = m_load_log->schema_ddl_status(schema);
 
-    log_debug("Schema DDL for '%s' (%s) = %i", schema.c_str(),
-              to_string(status).c_str(), has_ddl ? 1 : 0);
+    log_debug("Schema DDL for '%s' (%s)", schema.c_str(),
+              to_string(status).c_str());
 
-    if (has_ddl && (m_options.load_ddl() ||
-                    m_options.defer_table_indexes() !=
-                        Load_dump_options::Defer_index_mode::OFF)) {
+    if (m_options.load_ddl() || m_options.defer_table_indexes() !=
+                                    Load_dump_options::Defer_index_mode::OFF) {
       m_load_log->start_schema_ddl(schema);
-      handle_schema(schema, tables, views);
+
+      if (status != Load_progress_log::DONE && m_options.load_ddl()) {
+        handle_schema(schema,
+                      status == mysqlsh::Load_progress_log::INTERRUPTED);
+      }
+
+      // make sure the correct schema is used
+      switch_schema(schema, Load_progress_log::DONE == status);
+
+      // Process tables of the schema
+      handle_tables(schema, tables, false);
+
+      // Process views after all tables have been created
+      handle_tables(schema, views, true);
+
       m_load_log->end_schema_ddl(schema);
     }
   }
 }
 
-void Dump_loader::handle_schema(
-    const std::string &schema,
-    const std::list<Dump_reader::Name_and_file> &tables,
-    const std::list<Dump_reader::Name_and_file> &views) {
-  auto status = m_load_log->schema_ddl_status(schema);
-  if (status != Load_progress_log::DONE && m_options.load_ddl()) {
-    auto resuming = status == mysqlsh::Load_progress_log::INTERRUPTED;
-    log_debug("Executing schema DDL for %s", schema.c_str());
+void Dump_loader::handle_schema(const std::string &schema, bool resuming) {
+  log_debug("Fetching schema DDL for %s", schema.c_str());
+  const auto script = m_dump->fetch_schema_script(schema);
 
-    std::string script = m_dump->fetch_schema_script(schema);
+  if (script.empty()) {
+    // no schema SQL or view pre SQL
+    return;
+  }
 
-    try {
-      current_console()->print_info(
-          (resuming ? "Re-executing DDL script for schema `"
-                    : "Executing DDL script for schema `") +
-          schema + "`");
-      if (!m_options.dry_run()) {
-        // execute sql
-        execute_script(
-            m_session, script,
-            shcore::str_format("While processing schema `%s`", schema.c_str()));
-      }
-    } catch (const std::exception &e) {
-      current_console()->print_error(shcore::str_format(
-          "Error processing schema `%s`: %s", schema.c_str(), e.what()));
+  log_debug("Executing schema DDL for %s", schema.c_str());
 
-      if (!m_options.force()) throw;
-
-      m_skip_schemas.insert(schema);
+  try {
+    current_console()->print_info((resuming
+                                       ? "Re-executing DDL script for schema `"
+                                       : "Executing DDL script for schema `") +
+                                  schema + "`");
+    if (!m_options.dry_run()) {
+      // execute sql
+      execute_script(
+          m_session, script,
+          shcore::str_format("While processing schema `%s`", schema.c_str()));
     }
-  } else if (!m_options.dry_run()) {
+  } catch (const std::exception &e) {
+    current_console()->print_error(shcore::str_format(
+        "Error processing schema `%s`: %s", schema.c_str(), e.what()));
+
+    if (!m_options.force()) throw;
+
+    m_skip_schemas.insert(schema);
+  }
+}
+
+void Dump_loader::switch_schema(const std::string &schema, bool load_done) {
+  if (!m_options.dry_run()) {
     try {
       m_session->executef("use !", schema.c_str());
     } catch (const std::exception &e) {
       current_console()->print_error(shcore::str_format(
           "Unable to use schema `%s`%s, error message: %s", schema.c_str(),
-          status == Load_progress_log::DONE
+          load_done
               ? " that according to load status was already created, consider "
-                "reseting progress"
+                "resetting progress"
               : "",
           e.what()));
       if (!m_options.force()) throw;
       m_skip_schemas.insert(schema);
-      return;
     }
   }
+}
 
-  // Process tables of the schema
+void Dump_loader::handle_tables(const std::string &schema,
+                                const std::list<Name_and_file> &tables,
+                                bool is_view) {
   for (const auto &it : tables) {
     const std::string &table = it.first;
 
-    status = m_load_log->table_ddl_status(schema, table);
+    const auto status = m_load_log->table_ddl_status(schema, table);
 
-    log_debug("Table DDL for '%s'.'%s' (%s)", schema.c_str(), table.c_str(),
-              to_string(status).c_str());
+    log_debug("%s DDL for '%s'.'%s' (%s)", is_view ? "View" : "Table",
+              schema.c_str(), table.c_str(), to_string(status).c_str());
 
-    if (m_options.load_ddl() || m_options.defer_table_indexes() !=
-                                    Load_dump_options::Defer_index_mode::OFF) {
+    if ((m_options.load_ddl() ||
+         m_options.defer_table_indexes() !=
+             Load_dump_options::Defer_index_mode::OFF) &&
+        m_dump->has_ddl(schema, table)) {
       it.second->open(mysqlshdk::storage::Mode::READ);
       auto script = mysqlshdk::storage::read_file(it.second.get());
 
       bool indexes_deferred = false;
-      if (m_options.defer_table_indexes() !=
-          Load_dump_options::Defer_index_mode::OFF)
+      if (!is_view && m_options.defer_table_indexes() !=
+                          Load_dump_options::Defer_index_mode::OFF) {
         indexes_deferred =
             handle_indexes(schema, table, &script,
                            m_options.defer_table_indexes() ==
                                Load_dump_options::Defer_index_mode::FULLTEXT,
                            status == Load_progress_log::DONE);
+      }
 
       if (status != Load_progress_log::DONE && m_options.load_ddl()) {
         m_load_log->start_table_ddl(schema, table);
+
         handle_table(schema, table, script,
                      status == Load_progress_log::INTERRUPTED,
                      indexes_deferred);
         m_load_log->end_table_ddl(schema, table);
       }
-    }
-  }
-
-  // Process views after all tables have been created
-  for (const auto &it : views) {
-    const std::string &view = it.first;
-
-    status = m_load_log->table_ddl_status(schema, view);
-
-    log_debug("View DDL for '%s'.'%s' (%s)", schema.c_str(), view.c_str(),
-              to_string(status).c_str());
-
-    if (m_options.load_ddl()) {
-      m_load_log->start_table_ddl(schema, view);
-
-      if (status != Load_progress_log::DONE) {
-        it.second->open(mysqlshdk::storage::Mode::READ);
-        auto script = mysqlshdk::storage::read_file(it.second.get());
-
-        handle_table(schema, view, script,
-                     status == Load_progress_log::INTERRUPTED);
-      }
-
-      m_load_log->end_table_ddl(schema, view);
     }
   }
 }
@@ -1225,6 +1224,10 @@ void Dump_loader::open_dump() {
       throw std::runtime_error("Incomplete dump");
     }
   }
+
+  m_dump->validate_options();
+
+  handle_table_only_dump();
 }
 
 void Dump_loader::check_server_version() {
@@ -1761,6 +1764,14 @@ void Dump_loader::execute_script(
         return true;
       },
       [console](const std::string &err) { console->print_error(err); });
+}
+
+void Dump_loader::handle_table_only_dump() {
+  if (m_dump->table_only()) {
+    m_dump->replace_target_schema(m_options.target_schema().empty()
+                                      ? m_options.current_schema()
+                                      : m_options.target_schema());
+  }
 }
 
 }  // namespace mysqlsh

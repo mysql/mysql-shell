@@ -30,6 +30,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/ddl_dumper_options.h"
 
 namespace mysqlsh {
@@ -39,7 +40,7 @@ class Dump_schemas_options : public Ddl_dumper_options {
  public:
   Dump_schemas_options() = delete;
   Dump_schemas_options(const std::vector<std::string> &schemas,
-                       const std::string &output_dir);
+                       const std::string &output_url);
 
   Dump_schemas_options(const Dump_schemas_options &) = default;
   Dump_schemas_options(Dump_schemas_options &&) = default;
@@ -56,8 +57,18 @@ class Dump_schemas_options : public Ddl_dumper_options {
     return m_excluded_tables;
   }
 
+  bool dump_events() const override { return m_dump_events; }
+
+  bool dump_routines() const override { return m_dump_routines; }
+
+  bool dump_users() const override { return false; }
+
+  const Compatibility_options &compatibility_options() const {
+    return m_compatibility_options;
+  }
+
  protected:
-  explicit Dump_schemas_options(const std::string &output_dir);
+  explicit Dump_schemas_options(const std::string &output_url);
 
   void unpack_options(shcore::Option_unpacker *unpacker) override;
 
@@ -66,6 +77,10 @@ class Dump_schemas_options : public Ddl_dumper_options {
  private:
   std::unordered_set<std::string> m_schemas;
   std::unordered_map<std::string, std::set<std::string>> m_excluded_tables;
+
+  bool m_dump_events = true;
+  bool m_dump_routines = true;
+  Compatibility_options m_compatibility_options;
 };
 
 }  // namespace dump

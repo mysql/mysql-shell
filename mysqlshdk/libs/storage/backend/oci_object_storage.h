@@ -197,6 +197,8 @@ class Object : public mysqlshdk::storage::IFile {
    */
   bool exists() const override;
 
+  std::unique_ptr<IDirectory> parent() const override;
+
   /**
    * Sets an internal offset to the indicated position.
    *

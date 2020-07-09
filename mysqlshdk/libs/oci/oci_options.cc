@@ -63,19 +63,23 @@ void Oci_options::do_unpack(shcore::Option_unpacker *unpacker) {
 }
 
 void Oci_options::load_defaults() {
-  if (os_bucket_name.is_null()) {
+  if (!operator bool()) {
     throw std::invalid_argument("The osBucketName option is missing.");
   }
 
-  if (config_path.is_null()) {
+  if (config_path.get_safe().empty()) {
     config_path = mysqlsh::current_shell_options()->get().oci_config_file;
   }
 
-  if (config_profile.is_null()) {
+  if (config_profile.get_safe().empty()) {
     config_profile = mysqlsh::current_shell_options()->get().oci_profile;
   }
 
-  if (os_namespace.is_null()) {
+  if (!config_profile.get_safe().empty()) {
+    validate_config_profile(*config_path, *config_profile);
+  }
+
+  if (os_namespace.get_safe().empty()) {
     Oci_rest_service identity(Oci_service::IDENTITY, *this);
     std::lock_guard<std::mutex> lock(s_tenancy_name_mutex);
     if (s_tenancy_names.find(identity.get_tenancy_id()) ==
@@ -129,12 +133,8 @@ void Oci_options::check_option_values() {
       break;
   }
 
-  if (!os_bucket_name.is_null()) {
+  if (!os_bucket_name.get_safe().empty()) {
     load_defaults();
-  }
-
-  if (!config_profile.is_null()) {
-    validate_config_profile(*config_path, *config_profile);
   }
 }
 

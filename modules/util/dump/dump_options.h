@@ -31,6 +31,8 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/oci/oci_options.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
+#include "mysqlshdk/libs/utils/nullable.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 #include "modules/util/import_table/dialect.h"
 
@@ -40,7 +42,7 @@ namespace dump {
 class Dump_options {
  public:
   Dump_options() = delete;
-  explicit Dump_options(const std::string &output_dir);
+  explicit Dump_options(const std::string &output_url);
 
   Dump_options(const Dump_options &) = default;
   Dump_options(Dump_options &&) = default;
@@ -58,15 +60,11 @@ class Dump_options {
   void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
   // getters
-  const std::string &output_directory() const { return m_output_directory; }
+  const std::string &output_url() const { return m_output_url; }
+
+  const shcore::Dictionary_t &original_options() const { return m_options; }
 
   bool use_base64() const { return m_use_base64; }
-
-  bool split() const { return m_split; }
-
-  uint64_t bytes_per_chunk() const { return m_bytes_per_chunk; }
-
-  std::size_t threads() const { return m_threads; }
 
   int64_t max_rate() const { return m_max_rate; }
 
@@ -86,27 +84,90 @@ class Dump_options {
 
   const std::string &character_set() const { return m_character_set; }
 
+  const mysqlshdk::utils::nullable<mysqlshdk::utils::Version>
+      &mds_compatibility() const {
+    return m_mds;
+  }
+
+  bool dump_schema_ddl() const { return dump_ddl() && !table_only(); }
+
+  virtual bool split() const = 0;
+
+  virtual uint64_t bytes_per_chunk() const = 0;
+
+  virtual std::size_t threads() const = 0;
+
+  virtual bool is_export_only() const = 0;
+
+  virtual bool use_single_file() const = 0;
+
+  virtual bool dump_ddl() const = 0;
+
+  virtual bool table_only() const = 0;
+
+  virtual bool dump_data() const = 0;
+
+  virtual bool is_dry_run() const = 0;
+
+  virtual bool consistent_dump() const = 0;
+
+  virtual bool dump_events() const = 0;
+
+  virtual bool dump_routines() const = 0;
+
+  virtual bool dump_triggers() const = 0;
+
+  virtual bool dump_users() const = 0;
+
+  virtual bool use_timezone_utc() const = 0;
+
+ protected:
+  void set_compression(mysqlshdk::storage::Compression compression) {
+    m_compression = compression;
+  }
+
+  void set_dialect(const import_table::Dialect &dialect) {
+    m_dialect = dialect;
+  }
+
+  void set_mds_compatibility(
+      const mysqlshdk::utils::nullable<mysqlshdk::utils::Version> &mds) {
+    m_mds = mds;
+  }
+
  private:
   virtual void unpack_options(shcore::Option_unpacker *unpacker) = 0;
 
   virtual void on_set_session(
-      const std::shared_ptr<mysqlshdk::db::ISession> &) {}
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) = 0;
 
-  virtual void validate_options() const {}
+  virtual void validate_options() const = 0;
 
-  std::string m_output_directory;
+  // global session
+  std::shared_ptr<mysqlshdk::db::ISession> m_session;
+
+  // input arguments
+  std::string m_output_url;
+  shcore::Dictionary_t m_options;
+
+  // not configurable
   bool m_use_base64 = true;
-  bool m_split = true;
-  uint64_t m_bytes_per_chunk;
-  std::size_t m_threads = 4;
+
+  // common options
   int64_t m_max_rate = 0;
   bool m_show_progress;
   mysqlshdk::storage::Compression m_compression =
       mysqlshdk::storage::Compression::ZSTD;
-  std::shared_ptr<mysqlshdk::db::ISession> m_session;
-  import_table::Dialect m_dialect;
   mysqlshdk::oci::Oci_options m_oci_options;
   std::string m_character_set = "utf8mb4";
+
+  // these options are unpacked elsewhere, but are here 'cause we're returning
+  // a reference
+  // currently used by exportTable()
+  import_table::Dialect m_dialect;
+
+  // currently used by dumpSchemas() and dumpInstance()
+  mysqlshdk::utils::nullable<mysqlshdk::utils::Version> m_mds;
 };
 
 }  // namespace dump

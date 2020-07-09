@@ -33,7 +33,5 @@ const std::unordered_set<std::string> &Dump_instance::excluded_schemas() const {
   return m_options.excluded_schemas();
 }
 
-bool Dump_instance::dump_users() const { return m_options.dump_users(); }
-
 }  // namespace dump
 }  // namespace mysqlsh

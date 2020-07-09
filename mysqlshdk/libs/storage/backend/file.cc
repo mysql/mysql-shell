@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <utility>
 
+#include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -47,9 +48,11 @@ namespace mysqlshdk {
 namespace storage {
 namespace backend {
 
-File::File(const std::string &filename)
-    : m_filepath(
-          shcore::path::expand_user(utils::strip_scheme(filename, "file"))) {}
+File::File(const std::string &filename) {
+  const auto expanded =
+      shcore::path::expand_user(utils::strip_scheme(filename, "file"));
+  m_filepath = shcore::get_absolute_path(expanded);
+}
 
 File::~File() { do_close(); }
 
@@ -277,6 +280,10 @@ bool File::flush() {
 }
 
 bool File::exists() const { return shcore::is_file(full_path()); }
+
+std::unique_ptr<IDirectory> File::parent() const {
+  return make_directory(shcore::path::dirname(full_path()));
+}
 
 void File::rename(const std::string &new_name) {
   assert(!is_open());

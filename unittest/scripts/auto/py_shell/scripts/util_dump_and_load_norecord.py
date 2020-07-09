@@ -49,8 +49,8 @@ util.dump_instance(outdir+"/ddlonly", {"ddlOnly": True})
 shell.connect(__sandbox_uri2)
 
 #@<> load data which is not in the dump (fail)
-EXPECT_THROWS(lambda: util.load_dump(outdir+"/ddlonly", 
-                                     {"loadData": True, "loadDdl": False}), "MySQL Error (1049): Util.load_dump: Unknown database 'world'")
+EXPECT_THROWS(lambda: util.load_dump(outdir+"/ddlonly",
+                                     {"loadData": True, "loadDdl": False}), "RuntimeError: Util.load_dump: Unknown database 'world'")
 
 #@<> load ddl normally
 util.load_dump(outdir+"/ddlonly")
@@ -79,7 +79,7 @@ compare_servers(session1, session2)
 wipeout_server(session2)
 
 #@<> load ddl which is not in the dump (fail)
-util.load_dump(outdir+"/dataonly", {"loadData": False, "loadDdl": True})
+EXPECT_THROWS(lambda: util.load_dump(outdir+"/dataonly", {"loadData": False, "loadDdl": True}), "RuntimeError: Util.load_dump: Unknown database 'world'")
 
 
 #@<> load while dump is still running (prepare)

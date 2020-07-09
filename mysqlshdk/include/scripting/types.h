@@ -26,17 +26,18 @@
 
 #include "types_common.h"
 
+#include <cassert>
 #include <map>
 #include <memory>
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "mysqlshdk/include/mysqlshdk_export.h"
 #include "mysqlshdk/libs/utils/error.h"
 #include "mysqlshdk/libs/utils/nullable.h"
-#include "mysqlshdk/libs/utils/utils_json.h"
-#include "mysqlshdk_export.h"
 
 // For error codes used by the shell
 #define SHERR_FIRST 50000
@@ -366,21 +367,16 @@ struct SHCORE_PUBLIC Value {
 typedef Value::Map_type_ref Dictionary_t;
 typedef Value::Array_type_ref Array_t;
 
-inline Dictionary_t make_dict() {
-  return Value::Map_type_ref(new Value::Map_type());
-}
+inline Dictionary_t make_dict() { return std::make_shared<Value::Map_type>(); }
 
-template <typename... Arg>
-inline Dictionary_t make_dict(const std::string &key,
-                              const shcore::Value &value, Arg... args) {
-  Dictionary_t dict = make_dict(args...);
-  dict->set(key, value);
+template <typename K, typename V, typename... Arg>
+inline Dictionary_t make_dict(K &&key, V &&value, Arg &&... args) {
+  Dictionary_t dict = make_dict(std::forward<Arg>(args)...);
+  dict->emplace(std::forward<K>(key), std::forward<V>(value));
   return dict;
 }
 
-inline Array_t make_array() {
-  return Value::Array_type_ref(new Value::Array_type());
-}
+inline Array_t make_array() { return std::make_shared<Value::Array_type>(); }
 
 class SHCORE_PUBLIC Exception : public shcore::Error {
   std::shared_ptr<Value::Map_type> _error;

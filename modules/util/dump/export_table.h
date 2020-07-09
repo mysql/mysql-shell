@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,43 +21,43 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_UTIL_DUMP_DUMP_INSTANCE_H_
-#define MODULES_UTIL_DUMP_DUMP_INSTANCE_H_
+#ifndef MODULES_UTIL_DUMP_EXPORT_TABLE_H_
+#define MODULES_UTIL_DUMP_EXPORT_TABLE_H_
 
-#include <string>
-#include <unordered_set>
-
-#include "modules/util/dump/dump_instance_options.h"
-#include "modules/util/dump/dump_schemas.h"
+#include "modules/util/dump/dumper.h"
+#include "modules/util/dump/export_table_options.h"
 
 namespace mysqlsh {
 namespace dump {
 
-class Dump_instance : public Dump_schemas {
+class Export_table : public Dumper {
  public:
-  Dump_instance() = delete;
-  explicit Dump_instance(const Dump_instance_options &options);
+  Export_table() = delete;
+  explicit Export_table(const Export_table_options &options);
 
-  Dump_instance(const Dump_instance &) = delete;
-  Dump_instance(Dump_instance &&) = delete;
+  Export_table(const Export_table &) = delete;
+  Export_table(Export_table &&) = delete;
 
-  Dump_instance &operator=(const Dump_instance &) = delete;
-  Dump_instance &operator=(Dump_instance &&) = delete;
+  Export_table &operator=(const Export_table &) = delete;
+  Export_table &operator=(Export_table &&) = delete;
 
-  virtual ~Dump_instance() = default;
-
- protected:
-  bool dump_all_schemas() const override { return true; }
-
-  const std::unordered_set<std::string> &excluded_schemas() const override;
+  virtual ~Export_table() = default;
 
  private:
-  const char *name() const override { return "dumpInstance"; }
+  void create_schema_tasks() override;
 
-  const Dump_instance_options &m_options;
+  const char *name() const override { return "exportTable"; }
+
+  void summary() const override;
+
+  void on_create_table_task(const Table_task &task) override;
+
+  const Export_table_options &m_options;
+
+  Table_task m_task;
 };
 
 }  // namespace dump
 }  // namespace mysqlsh
 
-#endif  // MODULES_UTIL_DUMP_DUMP_INSTANCE_H_
+#endif  // MODULES_UTIL_DUMP_EXPORT_TABLE_H_

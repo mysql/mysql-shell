@@ -91,6 +91,25 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
   void load_dump(const std::string &url, const shcore::Dictionary_t &options);
 
 #if DOXYGEN_JS
+  Undefined exportTable(String table, String outputUrl, Dictionary options);
+#elif DOXYGEN_PY
+  None export_table(str table, str outputUrl, dict options);
+#endif
+  void export_table(const std::string &table, const std::string &file,
+                    const shcore::Dictionary_t &options);
+
+#if DOXYGEN_JS
+  Undefined dumpTables(String schema, List tables, String outputUrl,
+                       Dictionary options);
+#elif DOXYGEN_PY
+  None dump_tables(str schema, list tables, str outputUrl, dict options);
+#endif
+  void dump_tables(const std::string &schema,
+                   const std::vector<std::string> &tables,
+                   const std::string &directory,
+                   const shcore::Dictionary_t &options);
+
+#if DOXYGEN_JS
   Undefined dumpSchemas(List schemas, String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
   None dump_schemas(list schemas, str outputUrl, dict options);

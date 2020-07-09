@@ -22,9 +22,12 @@
  */
 
 #include "mysqlshdk/libs/oci/oci_bucket.h"
+
 #include <algorithm>
 #include <vector>
+
 #include "mysqlshdk/libs/db/uri_encoder.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 
 namespace mysqlshdk {
 namespace oci {
@@ -40,6 +43,31 @@ std::string encode_path(const std::string &data) {
 std::string encode_query(const std::string &data) {
   mysqlshdk::db::uri::Uri_encoder encoder;
   return encoder.encode_query(data);
+}
+
+namespace detail {
+
+template <typename K, typename V>
+void encode_json_helper(shcore::JSON_dumper *json, K &&key, V &&value) {
+  json->append(std::forward<K>(key), std::forward<V>(value));
+}
+
+template <typename K, typename V, typename... Args>
+void encode_json_helper(shcore::JSON_dumper *json, K &&key, V &&value,
+                        Args &&... args) {
+  encode_json_helper(json, std::forward<K>(key), std::forward<V>(value));
+  encode_json_helper(json, std::forward<Args>(args)...);
+}
+
+}  // namespace detail
+
+template <typename... Args>
+std::string encode_json(Args &&... args) {
+  shcore::JSON_dumper json;
+  json.start_object();
+  detail::encode_json_helper(&json, std::forward<Args>(args)...);
+  json.end_object();
+  return json.str();
 }
 
 }  // namespace
@@ -350,15 +378,8 @@ void Bucket::rename_object(const std::string &sourceName,
   // Ensures the REST connection is established
   ensure_connection();
 
-  std::string fmt =
-      "{"
-      "\"sourceName\":\"%s\","
-      "\"newName\":\"%s\""
-      "}";
-
   // Rename Object Details
-  std::string rod =
-      shcore::str_format(fmt.c_str(), sourceName.c_str(), newName.c_str());
+  std::string rod = encode_json("sourceName", sourceName, "newName", newName);
 
   try {
     m_rest_service->post(kRenameObjectPath, rod.data(), rod.size());
@@ -456,8 +477,8 @@ Multipart_object Bucket::create_multipart_upload(
   // Ensures the REST connection is established
   ensure_connection();
 
+  std::string body = encode_json("object", objectName);
   std::string upload_id;
-  std::string body{"{\"object\":\"" + objectName + "\"}"};
 
   mysqlshdk::rest::String_buffer data;
   std::string msg("Failed to create a multipart upload for object '" +
@@ -515,17 +536,18 @@ void Bucket::commit_multipart_upload(
   // Ensures the REST connection is established
   ensure_connection();
 
-  std::vector<std::string> etags;
+  shcore::Array_t etags = shcore::make_array();
+
   for (const auto &part : parts) {
-    etags.push_back("{\"partNum\":" + std::to_string(part.part_num) +
-                    ",\"etag\":\"" + part.etag + "\"}");
+    etags->emplace_back(shcore::make_dict(
+        "partNum", static_cast<uint64_t>(part.part_num), "etag", part.etag));
   }
 
-  std::string body =
-      "{\"partsToCommit\":[" + shcore::str_join(etags, ",") + "]}";
+  std::string body = encode_json("partsToCommit", std::move(etags));
 
   auto path = shcore::str_format(kMultipartActionFormat.c_str(),
-                                 object.name.c_str(), object.upload_id.c_str());
+                                 encode_path(object.name).c_str(),
+                                 object.upload_id.c_str());
 
   try {
     m_rest_service->post(path, body.c_str(), body.size());

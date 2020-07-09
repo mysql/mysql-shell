@@ -21,6 +21,13 @@ FUNCTIONS
       dumpSchemas(schemas, outputUrl[, options])
             Dumps the specified schemas to the files in the output directory.
 
+      dumpTables(schema, tables, outputUrl[, options])
+            Dumps the specified tables or views from the given schema to the
+            files in the target directory.
+
+      exportTable(table, outputUrl[, options])
+            Exports the specified table to the data dump file.
+
       help([member])
             Provides help about this object and it's members
 
@@ -154,11 +161,10 @@ DESCRIPTION
       prefixed with file:// scheme. If a relative path is given, the absolute
       path is computed as relative to the current working directory. If the
       output directory does not exist but its parent does, it is created. If
-      the output directory exists, it must be empty. All directories created
-      during the dump will have the following access rights (on operating
-      systems which support them): rwxr-x---. All files created during the dump
-      will have the following access rights (on operating systems which support
-      them): rw-r-----.
+      the output directory exists, it must be empty. All directories are
+      created with the following access rights (on operating systems which
+      support them): rwxr-x---. All files are created with the following access
+      rights (on operating systems which support them): rw-r-----.
 
       The following options are supported:
 
@@ -166,14 +172,20 @@ DESCRIPTION
         be excluded from the dump.
       - excludeTables: list of strings (default: empty) - List of tables to be
         excluded from the dump in the format of schema.table.
-      - users: bool (default: true) - Include users, roles and grants in the
-        dump file.
+      - ocimds: bool (default: false) - Enable checks for compatibility with
+        MySQL Database Service (MDS)
+      - compatibility: list of strings (default: empty) - Apply MySQL Database
+        Service compatibility modifications when writing dump files. Supported
+        values: "force_innodb", "strip_definers", "strip_restricted_grants",
+        "strip_role_admin", "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
+      - users: bool (default: true) - Include users, roles and grants in the
+        dump file.
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
-      - tzUtc: bool (default: true) - Convert TMESTAMP data to UTC.
+      - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         dumps.
       - ddlOnly: bool (default: false) - Only dump Data Definition Language
@@ -181,12 +193,6 @@ DESCRIPTION
       - dataOnly: bool (default: false) - Only dump data from the database.
       - dryRun: bool (default: false) - Print information about what would be
         dumped, but do not dump anything.
-      - ocimds: bool (default: false) - Enable checks for compatibility with
-        MySQL Database Service (MDS)
-      - compatibility: list of strings (default: empty) - Apply MySQL Database
-        Service compatibility modifications when writing dump files. Supported
-        values: "force_innodb", "strip_definers", "strip_restricted_grants",
-        "strip_role_admin", "strip_tablespaces".
       - chunking: bool (default: true) - Enable chunking of the tables.
       - bytesPerChunk: string (default: "32M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
@@ -197,10 +203,10 @@ DESCRIPTION
         no limit.
       - showProgress: bool (default: true if stdout is a TTY device, false
         otherwise) - Enable or disable dump progress information.
-      - compression: string (default: "zstd") - Compression used when writing
-        the data dump files, one of: "none", "gzip", "zstd".
       - defaultCharacterSet: string (default: "utf8mb4") - Character set used
         for the dump.
+      - compression: string (default: "zstd") - Compression used when writing
+        the data dump files, one of: "none", "gzip", "zstd".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
       - osNamespace: string (default: not set) - Specify the OCI namespace
@@ -213,10 +219,10 @@ DESCRIPTION
       Requirements
 
       - MySQL Server 5.7 or newer is required.
+      - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
       - Schema object names must use latin1 or utf8 character set.
       - Only tables which use the InnoDB storage engine are guaranteed to be
         dumped with consistent data.
-      - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
 
       Details
 
@@ -285,11 +291,11 @@ DESCRIPTION
 
       Both the bytesPerChunk and maxRate options support unit suffixes:
 
-      - k - for Kilobytes (n * 1'000 bytes),
-      - M - for Megabytes (n * 1'000'000 bytes),
-      - G - for Gigabytes (n * 1'000'000'000 bytes),
+      - k - for kilobytes,
+      - M - for Megabytes,
+      - G - for Gigabytes,
 
-      i.e. maxRate="2k" - limit throughput to 2 kilobytes per second.
+      i.e. maxRate="2k" - limit throughput to 2000 bytes per second.
 
       The value of the bytesPerChunk option cannot be smaller than "128k".
 
@@ -403,22 +409,27 @@ DESCRIPTION
       prefixed with file:// scheme. If a relative path is given, the absolute
       path is computed as relative to the current working directory. If the
       output directory does not exist but its parent does, it is created. If
-      the output directory exists, it must be empty. All directories created
-      during the dump will have the following access rights (on operating
-      systems which support them): rwxr-x---. All files created during the dump
-      will have the following access rights (on operating systems which support
-      them): rw-r-----.
+      the output directory exists, it must be empty. All directories are
+      created with the following access rights (on operating systems which
+      support them): rwxr-x---. All files are created with the following access
+      rights (on operating systems which support them): rw-r-----.
 
       The following options are supported:
 
       - excludeTables: list of strings (default: empty) - List of tables to be
         excluded from the dump in the format of schema.table.
+      - ocimds: bool (default: false) - Enable checks for compatibility with
+        MySQL Database Service (MDS)
+      - compatibility: list of strings (default: empty) - Apply MySQL Database
+        Service compatibility modifications when writing dump files. Supported
+        values: "force_innodb", "strip_definers", "strip_restricted_grants",
+        "strip_role_admin", "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
-      - tzUtc: bool (default: true) - Convert TMESTAMP data to UTC.
+      - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
         dumps.
       - ddlOnly: bool (default: false) - Only dump Data Definition Language
@@ -426,12 +437,6 @@ DESCRIPTION
       - dataOnly: bool (default: false) - Only dump data from the database.
       - dryRun: bool (default: false) - Print information about what would be
         dumped, but do not dump anything.
-      - ocimds: bool (default: false) - Enable checks for compatibility with
-        MySQL Database Service (MDS)
-      - compatibility: list of strings (default: empty) - Apply MySQL Database
-        Service compatibility modifications when writing dump files. Supported
-        values: "force_innodb", "strip_definers", "strip_restricted_grants",
-        "strip_role_admin", "strip_tablespaces".
       - chunking: bool (default: true) - Enable chunking of the tables.
       - bytesPerChunk: string (default: "32M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
@@ -442,10 +447,10 @@ DESCRIPTION
         no limit.
       - showProgress: bool (default: true if stdout is a TTY device, false
         otherwise) - Enable or disable dump progress information.
-      - compression: string (default: "zstd") - Compression used when writing
-        the data dump files, one of: "none", "gzip", "zstd".
       - defaultCharacterSet: string (default: "utf8mb4") - Character set used
         for the dump.
+      - compression: string (default: "zstd") - Compression used when writing
+        the data dump files, one of: "none", "gzip", "zstd".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
       - osNamespace: string (default: not set) - Specify the OCI namespace
@@ -458,10 +463,10 @@ DESCRIPTION
       Requirements
 
       - MySQL Server 5.7 or newer is required.
+      - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
       - Schema object names must use latin1 or utf8 character set.
       - Only tables which use the InnoDB storage engine are guaranteed to be
         dumped with consistent data.
-      - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
 
       Details
 
@@ -519,11 +524,11 @@ DESCRIPTION
 
       Both the bytesPerChunk and maxRate options support unit suffixes:
 
-      - k - for Kilobytes (n * 1'000 bytes),
-      - M - for Megabytes (n * 1'000'000 bytes),
-      - G - for Gigabytes (n * 1'000'000'000 bytes),
+      - k - for kilobytes,
+      - M - for Megabytes,
+      - G - for Gigabytes,
 
-      i.e. maxRate="2k" - limit throughput to 2 kilobytes per second.
+      i.e. maxRate="2k" - limit throughput to 2000 bytes per second.
 
       The value of the bytesPerChunk option cannot be smaller than "128k".
 
@@ -613,6 +618,283 @@ EXCEPTIONS
 
       - If there is no open global session.
       - If creating the output directory fails.
+      - If creating or writing to the output file fails.
+
+//@<OUT> util dumpTables help
+NAME
+      dumpTables - Dumps the specified tables or views from the given schema to
+                   the files in the target directory.
+
+SYNTAX
+      util.dumpTables(schema, tables, outputUrl[, options])
+
+WHERE
+      schema: Name of the schema that contains tables/views to be dumped.
+      tables: List of tables/views to be dumped.
+      outputUrl: Target directory to store the dump files.
+      options: Dictionary with the dump options.
+
+DESCRIPTION
+      The tables parameter cannot be an empty list.
+
+      The outputUrl specifies where the dump is going to be stored.
+
+      By default, a local directory is used, and in this case outputUrl can be
+      prefixed with file:// scheme. If a relative path is given, the absolute
+      path is computed as relative to the current working directory. If the
+      output directory does not exist but its parent does, it is created. If
+      the output directory exists, it must be empty. All directories are
+      created with the following access rights (on operating systems which
+      support them): rwxr-x---. All files are created with the following access
+      rights (on operating systems which support them): rw-r-----.
+
+      The following options are supported:
+
+      - all: bool (default: false) - Dump all views and tables from the
+        specified schema.
+      - triggers: bool (default: true) - Include triggers for each dumped
+        table.
+      - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
+      - consistent: bool (default: true) - Enable or disable consistent data
+        dumps.
+      - ddlOnly: bool (default: false) - Only dump Data Definition Language
+        (DDL) from the database.
+      - dataOnly: bool (default: false) - Only dump data from the database.
+      - dryRun: bool (default: false) - Print information about what would be
+        dumped, but do not dump anything.
+      - chunking: bool (default: true) - Enable chunking of the tables.
+      - bytesPerChunk: string (default: "32M") - Sets average estimated number
+        of bytes to be written to each chunk file, enables chunking.
+      - threads: int (default: 4) - Use N threads to dump data chunks from the
+        server.
+      - maxRate: string (default: "0") - Limit data read throughput to maximum
+        rate, measured in bytes per second per thread. Use maxRate="0" to set
+        no limit.
+      - showProgress: bool (default: true if stdout is a TTY device, false
+        otherwise) - Enable or disable dump progress information.
+      - defaultCharacterSet: string (default: "utf8mb4") - Character set used
+        for the dump.
+      - compression: string (default: "zstd") - Compression used when writing
+        the data dump files, one of: "none", "gzip", "zstd".
+      - osBucketName: string (default: not set) - Use specified OCI bucket for
+        the location of the dump.
+      - osNamespace: string (default: not set) - Specify the OCI namespace
+        (tenancy name) where the OCI bucket is located.
+      - ociConfigFile: string (default: not set) - Use the specified OCI
+        configuration file instead of the one in the default location.
+      - ociProfile: string (default: not set) - Use the specified OCI profile
+        instead of the default one.
+
+      Requirements
+
+      - MySQL Server 5.7 or newer is required.
+      - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+      - Schema object names must use latin1 or utf8 character set.
+      - Only tables which use the InnoDB storage engine are guaranteed to be
+        dumped with consistent data.
+      - Views and triggers to be dumped must not use qualified names to
+        reference other views or tables.
+
+      Details
+
+      This operation writes SQL files per each table and view dumped, along
+      with some global SQL files. The information about the source schema is
+      not saved, meaning that the dump must be loaded into an existing target
+      schema. When using the util.loadDump() function to load the dump, the
+      current schema of the global shell session is automatically used as the
+      target schema. Alternatively, it can be specified explicitly using the
+      schema option.
+
+      Table data dumps are written to TSV files, optionally splitting them into
+      multiple chunk files.
+
+      Requires an open, global Shell session, and uses its connection options,
+      such as compression, ssl-mode, etc., to establish additional connections.
+
+      Options
+
+      If the all option is set to true and the tables parameter is set to an
+      empty array, all views and tables from the specified schema are going to
+      be dumped. If the tables parameter is not set to an empty array, an
+      exception is thrown.
+
+      The tzUtc option allows dumping TIMESTAMP data when a server has data in
+      different time zones or data is being moved between servers with
+      different time zones.
+
+      If the consistent option is set to true, a global read lock is set using
+      the FLUSH TABLES WITH READ LOCK statement, all threads establish
+      connections with the server and start transactions using:
+
+      - SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ
+      - START TRANSACTION WITH CONSISTENT SNAPSHOT
+
+      Once all the threads start transactions, the instance is locked for
+      backup and the global read lock is released.
+
+      The ddlOnly and dataOnly options cannot both be set to true at the same
+      time.
+
+      The chunking option causes the the data from each table to be split and
+      written to multiple chunk files. If this option is set to false, table
+      data is written to a single file.
+
+      If the chunking option is set to true, but a table to be dumped cannot be
+      chunked (for example if it does not contain a primary key or a unique
+      index), a warning is displayed and chunking is disabled for this table.
+
+      The value of the threads option must be a positive number.
+
+      Both the bytesPerChunk and maxRate options support unit suffixes:
+
+      - k - for kilobytes,
+      - M - for Megabytes,
+      - G - for Gigabytes,
+
+      i.e. maxRate="2k" - limit throughput to 2000 bytes per second.
+
+      The value of the bytesPerChunk option cannot be smaller than "128k".
+
+      Dumping to a Bucket in the OCI Object Storage
+
+      If the osBucketName option is used, the dump is stored in the specified
+      OCI bucket, connection is established using the local OCI profile. The
+      directory structure is simulated within the object name.
+
+      The osNamespace, ociConfigFile and ociProfile options cannot be used if
+      option osBucketName is set to an empty string.
+
+      The osNamespace option overrides the OCI namespace obtained based on the
+      tenancy ID from the local OCI profile.
+
+EXCEPTIONS
+      ArgumentError in the following scenarios:
+
+      - If any of the input arguments contains an invalid value.
+
+      RuntimeError in the following scenarios:
+
+      - If there is no open global session.
+      - If creating the output directory fails.
+      - If creating or writing to the output file fails.
+
+//@<OUT> util exportTable help
+NAME
+      exportTable - Exports the specified table to the data dump file.
+
+SYNTAX
+      util.exportTable(table, outputUrl[, options])
+
+WHERE
+      table: Name of the table to be exported.
+      outputUrl: Target file to store the data.
+      options: Dictionary with the export options.
+
+DESCRIPTION
+      The value of table parameter should be in form of table or schema.table,
+      quoted using backtick characters when required. If schema is omitted, an
+      active schema on the global Shell session is used. If there is none, an
+      exception is raised.
+
+      The outputUrl specifies where the dump is going to be stored.
+
+      By default, a local file is used, and in this case outputUrl can be
+      prefixed with file:// scheme. If a relative path is given, the absolute
+      path is computed as relative to the current working directory. The parent
+      directory of the output file must exist. If the output file exists, it is
+      going to be overwritten. The output file is created with the following
+      access rights (on operating systems which support them): rw-r-----.
+
+      The following options are supported:
+
+      - fieldsTerminatedBy: string (default: "\t"), fieldsEnclosedBy: char
+        (default: ''), fieldsEscapedBy: char (default: '\'), linesTerminatedBy:
+        string (default: "\n") - These options have the same meaning as the
+        corresponding clauses for SELECT ... INTO OUTFILE. For more information
+        use \? SQL Syntax/SELECT, (a session is required).
+      - fieldsOptionallyEnclosed: bool (default: false) - Set to true if the
+        input values are not necessarily enclosed within quotation marks
+        specified by fieldsEnclosedBy option. Set to false if all fields are
+        quoted by character specified by fieldsEnclosedBy option.
+      - dialect: enum (default: "default") - Setup fields and lines options
+        that matches specific data file format. Can be used as base dialect and
+        customized with fieldsTerminatedBy, fieldsEnclosedBy,
+        fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy
+        options. Must be one of the following values: default, csv, tsv or
+        csv-unix.
+      - maxRate: string (default: "0") - Limit data read throughput to maximum
+        rate, measured in bytes per second per thread. Use maxRate="0" to set
+        no limit.
+      - showProgress: bool (default: true if stdout is a TTY device, false
+        otherwise) - Enable or disable dump progress information.
+      - defaultCharacterSet: string (default: "utf8mb4") - Character set used
+        for the dump.
+      - compression: string (default: "none") - Compression used when writing
+        the data dump files, one of: "none", "gzip", "zstd".
+      - osBucketName: string (default: not set) - Use specified OCI bucket for
+        the location of the dump.
+      - osNamespace: string (default: not set) - Specify the OCI namespace
+        (tenancy name) where the OCI bucket is located.
+      - ociConfigFile: string (default: not set) - Use the specified OCI
+        configuration file instead of the one in the default location.
+      - ociProfile: string (default: not set) - Use the specified OCI profile
+        instead of the default one.
+
+      Requirements
+
+      - MySQL Server 5.7 or newer is required.
+      - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+
+      Details
+
+      This operation writes table data dump to the specified by the user files.
+
+      Requires an open, global Shell session, and uses its connection options,
+      such as compression, ssl-mode, etc., to establish additional connections.
+
+      Options
+
+      The dialect option predefines the set of options fieldsTerminatedBy (FT),
+      fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy
+      (FESC) and linesTerminatedBy (LT) in the following manner:
+
+      - default: no quoting, tab-separated, LF line endings. (LT=<LF>,
+        FESC='\', FT=<TAB>, FE=<empty>, FOE=false)
+      - csv: optionally quoted, comma-separated, CRLF line endings.
+        (LT=<CR><LF>, FESC='\', FT=",", FE='"', FOE=true)
+      - tsv: optionally quoted, tab-separated, CRLF line endings. (LT=<CR><LF>,
+        FESC='\', FT=<TAB>, FE='"', FOE=true)
+      - csv-unix: fully quoted, comma-separated, LF line endings. (LT=<LF>,
+        FESC='\', FT=",", FE='"', FOE=false)
+
+      The maxRate option supports unit suffixes:
+
+      - k - for kilobytes,
+      - M - for Megabytes,
+      - G - for Gigabytes,
+
+      i.e. maxRate="2k" - limit throughput to 2000 bytes per second.
+
+      Dumping to a Bucket in the OCI Object Storage
+
+      If the osBucketName option is used, the dump is stored in the specified
+      OCI bucket, connection is established using the local OCI profile. The
+      directory structure is simulated within the object name.
+
+      The osNamespace, ociConfigFile and ociProfile options cannot be used if
+      option osBucketName is set to an empty string.
+
+      The osNamespace option overrides the OCI namespace obtained based on the
+      tenancy ID from the local OCI profile.
+
+EXCEPTIONS
+      ArgumentError in the following scenarios:
+
+      - If any of the input arguments contains an invalid value.
+
+      RuntimeError in the following scenarios:
+
+      - If there is no open global session.
       - If creating or writing to the output file fails.
 
 //@<OUT> util importJson help
@@ -952,6 +1234,10 @@ DESCRIPTION
       plain path in that OCI (Oracle Cloud Infrastructure) Object Storage
       bucket.
 
+      The OCI configuration profile is located through the oci.profile and
+      oci.configFile global shell options and can be overriden with ociProfile
+      and ociConfigFile, respectively.
+
       loadDump() will load a dump from the specified path. It transparently
       handles compressed files and directly streams data when loading from
       remote storage (currently HTTP and OCI Object Storage). If the
@@ -1046,6 +1332,9 @@ DESCRIPTION
       - resetProgress: bool (default: false) - Discards progress information of
         previous load attempts to the destination server and loads the whole
         dump again.
+      - schema: string (default not set) - Load the dump into the given schema.
+        This option can only be used when loading dumps created by the
+        util.dumpTables() function.
       - showProgress: bool (default: true if stdout is a tty, false otherwise)
         - Enable or disable import progress information.
       - skipBinlog: bool (default: false) - Disables the binary log for the

@@ -35,30 +35,18 @@
 namespace mysqlsh {
 namespace dump {
 
-using mysqlshdk::utils::expand_to_bytes;
-
-namespace {
-
-constexpr auto k_minimum_chunk_size = "128k";
-constexpr auto k_default_chunk_size = "32M";
-
-}  // namespace
-
-Dump_options::Dump_options(const std::string &output_dir)
-    : m_output_directory(output_dir),
-      m_bytes_per_chunk(expand_to_bytes(k_default_chunk_size)),
+Dump_options::Dump_options(const std::string &output_url)
+    : m_output_url(output_url),
       m_show_progress(isatty(fileno(stdout)) ? true : false) {}
 
 void Dump_options::set_options(const shcore::Dictionary_t &options) {
+  m_options = options;
+
   shcore::Option_unpacker unpacker{options};
-  mysqlshdk::db::nullable<std::string> bytes_per_chunk;
   std::string rate;
   mysqlshdk::db::nullable<std::string> compression;
 
-  unpacker.optional("chunking", &m_split)
-      .optional("bytesPerChunk", &bytes_per_chunk)
-      .optional("threads", &m_threads)
-      .optional("maxRate", &rate)
+  unpacker.optional("maxRate", &rate)
       .optional("showProgress", &m_show_progress)
       .optional("compression", &compression)
       .optional("defaultCharacterSet", &m_character_set);
@@ -69,23 +57,8 @@ void Dump_options::set_options(const shcore::Dictionary_t &options) {
 
   unpacker.end();
 
-  if (bytes_per_chunk) {
-    if (bytes_per_chunk->empty()) {
-      throw std::invalid_argument(
-          "The option 'bytesPerChunk' cannot be set to an empty string.");
-    }
-
-    if (!m_split) {
-      throw std::invalid_argument(
-          "The option 'bytesPerChunk' cannot be used if the 'chunking' option "
-          "is set to false.");
-    }
-
-    m_bytes_per_chunk = expand_to_bytes(*bytes_per_chunk);
-  }
-
   if (!rate.empty()) {
-    m_max_rate = expand_to_bytes(rate);
+    m_max_rate = mysqlshdk::utils::expand_to_bytes(rate);
   }
 
   if (compression) {
@@ -109,17 +82,6 @@ void Dump_options::set_session(
 
 void Dump_options::validate() const {
   m_dialect.validate();
-
-  if (m_bytes_per_chunk < expand_to_bytes(k_minimum_chunk_size)) {
-    throw std::invalid_argument(
-        "The value of 'bytesPerChunk' option must be greater or equal to " +
-        std::string{k_minimum_chunk_size} + ".");
-  }
-
-  if (0 == m_threads) {
-    throw std::invalid_argument(
-        "The value of 'threads' option must be greater than 0.");
-  }
 
   validate_options();
 }

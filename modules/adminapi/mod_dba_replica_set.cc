@@ -30,6 +30,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 
 DEBUG_OBJ_ENABLE(ReplicaSet);
 

@@ -36,10 +36,16 @@ using off64_t = off_t;
 #endif
 
 namespace mysqlshdk {
+
 namespace oci {
+
 struct Oci_options;
-}
+
+}  // namespace oci
+
 namespace storage {
+
+class IDirectory;
 
 enum class Mode { READ, WRITE, APPEND };
 
@@ -63,6 +69,7 @@ class IFile {
   virtual std::string full_path() const = 0;
   virtual std::string filename() const = 0;
   virtual bool exists() const = 0;
+  virtual std::unique_ptr<IDirectory> parent() const = 0;
 
   virtual off64_t seek(off64_t offset) = 0;
   virtual off64_t tell() const = 0;

@@ -145,7 +145,7 @@ def truncate_basename(basename):
 def encode_schema_basename(schema):
     return truncate_basename(urlencode(schema))
 
-# WL13807: WL13804-FR6 - The base name of any file created during the dump must be in the format `schema@table`, where:
+# WL13807-FR7.1 - The base name of any file created during the dump must be in the format `schema@table`, where:
 # * `schema` - percent-encoded name of the schema which contains the table to be exported,
 # * `table` - percent-encoded name of the table to be exported.
 # Only code points up to and including `U+007F` which are not Unreserved Characters (as specified in RFC3986) must be encoded, all remaining code points must not be encoded. If the length of base name exceeds `225` characters, it must be truncated to `225` characters and an ordinal number must be appended.
@@ -335,11 +335,7 @@ create_all_schemas()
 create_user()
 
 session.run_sql("CREATE TABLE !.! (`ID` int(11) NOT NULL AUTO_INCREMENT, `Name` char(64) NOT NULL DEFAULT '', `CountryCode` char(3) NOT NULL DEFAULT '', `District` char(64) NOT NULL DEFAULT '', `Info` json DEFAULT NULL, PRIMARY KEY (`ID`)) ENGINE=InnoDB AUTO_INCREMENT=4080 DEFAULT CHARSET=utf8mb4;", [ world_x_schema, world_x_table ])
-# It's currently not possible to set character set used by import_table, set it manually
-session.run_sql("SET @saved_cs_database = @@character_set_database;")
-session.run_sql("SET character_set_database = 'utf8mb4';")
-util.import_table(os.path.join(__import_data_path, "world_x_cities.dump"), { "schema": world_x_schema, "table": world_x_table, "showProgress": False })
-session.run_sql("SET character_set_database = @saved_cs_database;")
+util.import_table(os.path.join(__import_data_path, "world_x_cities.dump"), { "schema": world_x_schema, "table": world_x_table, "characterSet": "utf8mb4", "showProgress": False })
 
 rc = testutil.call_mysqlsh([uri, "--sql", "--file", os.path.join(__data_path, "sql", "fieldtypes_all.sql")])
 EXPECT_EQ(0, rc)
@@ -431,27 +427,25 @@ EXPECT_FAIL("ArgumentError", "Argument #2 is expected to be a map", test_output_
 EXPECT_FAIL("ArgumentError", "Argument #2 is expected to be a map", test_output_relative, "string")
 EXPECT_FAIL("ArgumentError", "Argument #2 is expected to be a map", test_output_relative, [])
 
-# WL13807-FR1.1 - The `outputUrl` parameter must be handled the same as specified in WL#13804, FR4, FR4.1 - FR4.6.
-
-#@<> WL13807: WL13804-FR4 - The `outputUrl` parameter must be a string value which specifies the output directory, where the dump data is going to be stored.
+#@<> WL13807-FR1.1 - The `outputUrl` parameter must be a string value which specifies the output directory, where the dump data is going to be stored.
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR4.1 - If the dump is going to be stored on the local filesystem, the `outputUrl` parameter may be optionally prefixed with `file://` scheme.
+#@<> WL13807-FR1.1.1 - If the dump is going to be stored on the local filesystem, the `outputUrl` parameter may be optionally prefixed with `file://` scheme.
 EXPECT_SUCCESS([types_schema], "file://" + test_output_absolute, { "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR4.2 - If the dump is going to be stored on the local filesystem and the `outputUrl` parameter holds a relative path, its absolute value is computed as relative to the current working directory.
+#@<> WL13807-FR1.1.2 - If the dump is going to be stored on the local filesystem and the `outputUrl` parameter holds a relative path, its absolute value is computed as relative to the current working directory.
 EXPECT_SUCCESS([types_schema], test_output_relative, { "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR4.2 - relative with .
+#@<> WL13807-FR1.1.2 - relative with .
 EXPECT_SUCCESS([types_schema], "./" + test_output_relative, { "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR4.2 - relative with ..
+#@<> WL13807-FR1.1.2 - relative with ..
 EXPECT_SUCCESS([types_schema], "dummy/../" + test_output_relative, { "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR4.1 + FR4.2
+#@<> WL13807-FR1.1.1 + WL13807-FR1.1.2
 EXPECT_SUCCESS([types_schema], "file://" + test_output_relative, { "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR4.3 - If the output directory does not exist, it must be created if its parent directory exists. If it is not possible or parent directory does not exist, an exception must be thrown.
+#@<> WL13807-FR1.1.3 - If the output directory does not exist, it must be created if its parent directory exists. If it is not possible or parent directory does not exist, an exception must be thrown.
 # parent directory does not exist
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
@@ -466,12 +460,12 @@ EXPECT_FAIL("RuntimeError", "Could not create directory ", test_output_absolute,
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
 os.remove(test_output_relative)
 
-#@<> WL13807: WL13804-FR4.4 - If a local directory is used and the output directory must be created, `rwxr-x---` permissions should be used on the created directory. The owner of the directory is the user running the Shell. {__os_type != "windows"}
+#@<> WL13807-FR1.1.4 - If a local directory is used and the output directory must be created, `rwxr-x---` permissions should be used on the created directory. The owner of the directory is the user running the Shell. {__os_type != "windows"}
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 EXPECT_EQ(0o750, stat.S_IMODE(os.stat(test_output_absolute).st_mode))
 EXPECT_EQ(os.getuid(), os.stat(test_output_absolute).st_uid)
 
-#@<> WL13807: WL13804-FR4.5 - If the output directory exists and is not empty, an exception must be thrown.
+#@<> WL13807-FR1.1.5 - If the output directory exists and is not empty, an exception must be thrown.
 # dump into empty directory
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
@@ -480,11 +474,19 @@ util.dump_instance(test_output_absolute, { "excludeSchemas": exclude_all_but_typ
 EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
 
 #@<> dump once again to the same directory, should fail
-EXPECT_THROWS(lambda: util.dump_instance(test_output_relative, { "showProgress": False }), "ArgumentError: Util.dump_instance: Cannot proceed with the dump, '{0}' already exists at the target location {1}.".format(test_output_relative, absolute_path_for_output(test_output_absolute)))
+EXPECT_THROWS(lambda: util.dump_instance(test_output_relative, { "showProgress": False }), "ArgumentError: Util.dump_instance: Cannot proceed with the dump, the specified directory '{0}' already exists at the target location {1} and is not empty.".format(test_output_relative, absolute_path_for_output(test_output_absolute)))
 
-# WL13807-FR3 - Both new functions must accept the same options as specified in WL#13804, except for the `indexColumn` option.
+# WL13807-FR3 - Both new functions must accept the following options specified in WL#13804, FR5:
+# * The `maxRate` option specified in WL#13804, FR5.1.
+# * The `showProgress` option specified in WL#13804, FR5.2.
+# * The `compression` option specified in WL#13804, FR5.3, with the modification of FR5.3.2, the default value must be`"zstd"`.
+# * The `osBucketName` option specified in WL#13804, FR5.4.
+# * The `osNamespace` option specified in WL#13804, FR5.5.
+# * The `ociConfigFile` option specified in WL#13804, FR5.6.
+# * The `ociProfile` option specified in WL#13804, FR5.7.
+# * The `defaultCharacterSet` option specified in WL#13804, FR5.8.
 
-#@<> WL13807: WL13804-FR5.2 - The `options` dictionary may contain a `chunking` key with a Boolean value, which specifies whether to split the dump data into multiple files.
+#@<> WL13807-FR4.12 - The `options` dictionary may contain a `chunking` key with a Boolean value, which specifies whether to split the dump data into multiple files.
 # WL13807-TSFR_3_52
 TEST_BOOL_OPTION("chunking")
 
@@ -492,11 +494,11 @@ EXPECT_SUCCESS([test_schema], test_output_absolute, { "chunking": False, "showPr
 EXPECT_FALSE(has_file_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_primary) + "@"))
 EXPECT_FALSE(has_file_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_unique) + "@"))
 
-#@<> WL13807: WL13804-FR5.2.3 - If the `chunking` option is not given, a default value of `true` must be used instead.
+#@<> WL13807-FR4.12.3 - If the `chunking` option is not given, a default value of `true` must be used instead.
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "showProgress": False })
 
-# WL13807: WL13804-FR5.2.1 - If the `chunking` option is set to `true` and the `indexColumn` option is set to an empty string and the index column cannot be selected automatically as described in 5.1.1, the data must to written to a single dump file. A warning should be displayed to the user.
-# WL13807-FR3.1 - For each table dumped, its index column must be selected automatically, as specified in WL#13804, FR5.1.1. If index column cannot be selected automatically and `chunking` option is set to `true`, the data must be written to a single dump file and a warning should be displayed to the user.
+# WL13807-FR4.12.1 - If the `chunking` option is set to `true` and the index column cannot be selected automatically as described in FR3.1, the data must to written to a single dump file. A warning should be displayed to the user.
+# WL13807-FR3.1 - For each table dumped, its index column (name of the column used to order the data and perform the chunking) must be selected automatically as the first column used in the primary key, or if there is no primary key, as the first column used in the first unique index. If the table to be dumped does not contain a primary key and does not contain an unique index, the index column will not be defined.
 # WL13807-TSFR_3_521_1
 EXPECT_STDOUT_CONTAINS("WARNING: Could not select a column to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_non_unique))
 EXPECT_STDOUT_CONTAINS("WARNING: Could not select a column to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_no_index))
@@ -504,28 +506,28 @@ EXPECT_STDOUT_CONTAINS("WARNING: Could not select a column to be used as an inde
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".tsv.zst")))
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".tsv.zst")))
 
-# WL13807: WL13804-FR5.2.2 - If the `chunking` option is set to `true` and the `indexColumn` option is not set to an empty string or the index column can be selected automatically as described in 5.1.1, the data must to written to multiple dump files. The data is partitioned into chunks using values from index column.
+# WL13807-FR4.12.2 - If the `chunking` option is set to `true` and the index column can be selected automatically as described in FR3.1, the data must to written to multiple dump files. The data is partitioned into chunks using values from the index column.
 # WL13807-TSFR_3_522_1
 EXPECT_TRUE(has_file_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_primary) + "@"))
 # WL13807-TSFR_3_522_3
 EXPECT_TRUE(has_file_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_unique) + "@"))
 number_of_dump_files = count_files_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_primary) + "@")
 
-#@<> WL13807: WL13804-FR5.3 - The `options` dictionary may contain a `bytesPerChunk` key with a string value, which specifies the average estimated number of bytes to be written per each data dump file.
+#@<> WL13807-FR4.13 - The `options` dictionary may contain a `bytesPerChunk` key with a string value, which specifies the average estimated number of bytes to be written per each data dump file.
 TEST_STRING_OPTION("bytesPerChunk")
 
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "bytesPerChunk": "128k", "showProgress": False })
 
-# WL13807: WL13804-FR5.3.1 - If the `bytesPerChunk` option is given, it must implicitly set the `chunking` option to `true`.
+# WL13807-FR4.13.1 - If the `bytesPerChunk` option is given, it must implicitly set the `chunking` option to `true`.
 # WL13807-TSFR_3_531_1
 EXPECT_TRUE(has_file_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_primary) + "@"))
 EXPECT_TRUE(has_file_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_unique) + "@"))
 
-# WL13807: WL13804-FR5.3.4 - If the `bytesPerChunk` option is not given and the `chunking` option is set to `true`, a default value of `32M` must be used instead.
+# WL13807-FR4.13.4 - If the `bytesPerChunk` option is not given and the `chunking` option is set to `true`, a default value of `32M` must be used instead.
 # this dump used smaller chunk size, number of files should be greater
 EXPECT_TRUE(count_files_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_primary) + "@") > number_of_dump_files)
 
-#@<> WL13807: WL13804-FR5.3.2 - The value of the `bytesPerChunk` option must use the same format as specified in WL#12193.
+#@<> WL13807-FR4.13.2 - The value of the `bytesPerChunk` option must use the same format as specified in WL#12193.
 EXPECT_FAIL("ArgumentError", 'Wrong input number "xyz"', test_output_absolute, { "bytesPerChunk": "xyz" })
 EXPECT_FAIL("ArgumentError", 'Wrong input number "1xyz"', test_output_absolute, { "bytesPerChunk": "1xyz" })
 EXPECT_FAIL("ArgumentError", 'Wrong input number "2Mhz"', test_output_absolute, { "bytesPerChunk": "2Mhz" })
@@ -543,7 +545,7 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "bytesPerChunk": "1M", "d
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "bytesPerChunk": "1G", "ddlOnly": True, "showProgress": False })
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "bytesPerChunk": "128000", "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR5.3.3 - If the value of the `bytesPerChunk` option is smaller than `128k`, an exception must be thrown.
+#@<> WL13807-FR4.13.3 - If the value of the `bytesPerChunk` option is smaller than `128k`, an exception must be thrown.
 # WL13807-TSFR_3_533_1
 EXPECT_FAIL("ArgumentError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", test_output_relative, { "bytesPerChunk": "127k" })
 EXPECT_FAIL("ArgumentError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", test_output_relative, { "bytesPerChunk": "127999" })
@@ -551,7 +553,7 @@ EXPECT_FAIL("ArgumentError", "The value of 'bytesPerChunk' option must be greate
 EXPECT_FAIL("ArgumentError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", test_output_relative, { "bytesPerChunk": "0" })
 EXPECT_FAIL("ArgumentError", 'Input number "-1" cannot be negative', test_output_relative, { "bytesPerChunk": "-1" })
 
-#@<> WL13807: WL13804-FR5.4 - The `options` dictionary may contain a `threads` key with an unsigned integer value, which specifies the number of threads to be used to perform the dump.
+#@<> WL13807-FR4.14 - The `options` dictionary may contain a `threads` key with an unsigned integer value, which specifies the number of threads to be used to perform the dump.
 # WL13807-TSFR_3_54
 TEST_UINT_OPTION("threads")
 
@@ -559,16 +561,16 @@ TEST_UINT_OPTION("threads")
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "threads": 2, "ddlOnly": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("Running data dump using 2 threads.")
 
-#@<> WL13807: WL13804-FR5.4.1 - If the value of the `threads` option is set to `0`, an exception must be thrown.
+#@<> WL13807-FR4.14.1 - If the value of the `threads` option is set to `0`, an exception must be thrown.
 # WL13807-TSFR_3_54
 EXPECT_FAIL("ArgumentError", "The value of 'threads' option must be greater than 0.", test_output_relative, { "threads": 0 })
 
-#@<> WL13807: WL13804-FR5.4.2 - If the `threads` option is not given, a default value of `4` must be used instead.
+#@<> WL13807-FR4.14.2 - If the `threads` option is not given, a default value of `4` must be used instead.
 # WL13807-TSFR_3_542
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("Running data dump using 4 threads.")
 
-#@<> WL13807: WL13804-FR5.5 - The `options` dictionary may contain a `maxRate` key with a string value, which specifies the limit of data read throughput in bytes per second per thread.
+#@<> WL13807: WL13804-FR5.1 - The `options` dictionary may contain a `maxRate` key with a string value, which specifies the limit of data read throughput in bytes per second per thread.
 TEST_STRING_OPTION("maxRate")
 
 # WL13807-TSFR_3_551_1
@@ -578,7 +580,7 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "maxRate": "1000K", "ddlO
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "maxRate": "1M", "ddlOnly": True, "showProgress": False })
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "maxRate": "1G", "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR5.5.1 - The value of the `maxRate` option must use the same format as specified in WL#12193.
+#@<> WL13807: WL13804-FR5.1.1 - The value of the `maxRate` option must use the same format as specified in WL#12193.
 EXPECT_FAIL("ArgumentError", 'Wrong input number "xyz"', test_output_absolute, { "maxRate": "xyz" })
 EXPECT_FAIL("ArgumentError", 'Wrong input number "1xyz"', test_output_absolute, { "maxRate": "1xyz" })
 EXPECT_FAIL("ArgumentError", 'Wrong input number "2Mhz"', test_output_absolute, { "maxRate": "2Mhz" })
@@ -592,30 +594,30 @@ EXPECT_FAIL("ArgumentError", 'Wrong input number "4g"', test_output_absolute, { 
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "maxRate": "1000000", "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR5.5.1 - kilo.
+#@<> WL13807: WL13804-FR5.1.1 - kilo.
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "maxRate": "1000k", "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR5.5.1 - giga.
+#@<> WL13807: WL13804-FR5.1.1 - giga.
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "maxRate": "1G", "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR5.5.2 - If the `maxRate` option is set to `"0"` or to an empty string, the read throughput must not be limited.
+#@<> WL13807: WL13804-FR5.1.2 - If the `maxRate` option is set to `"0"` or to an empty string, the read throughput must not be limited.
 # WL13807-TSFR_3_552
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "maxRate": "0", "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR5.5.2 - empty string.
+#@<> WL13807: WL13804-FR5.1.2 - empty string.
 # WL13807-TSFR_3_552
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "maxRate": "", "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR5.5.2 - missing.
+#@<> WL13807: WL13804-FR5.1.2 - missing.
 # WL13807-TSFR_3_552
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 
-#@<> WL13807: WL13804-FR5.6 - The `options` dictionary may contain a `showProgress` key with a Boolean value, which specifies whether to display the progress of dump process.
+#@<> WL13807: WL13804-FR5.2 - The `options` dictionary may contain a `showProgress` key with a Boolean value, which specifies whether to display the progress of dump process.
 TEST_BOOL_OPTION("showProgress")
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": True, "ddlOnly": True })
 
-#@<> WL13807: WL13804-FR5.6.1 - The information about the progress must include:
+#@<> WL13807: WL13804-FR5.2.1 - The information about the progress must include:
 # * The estimated total number of rows to be dumped.
 # * The number of rows dumped so far.
 # * The current progress as a percentage.
@@ -628,7 +630,7 @@ EXPECT_EQ(0, rc)
 EXPECT_TRUE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_MATCHES(re.compile(r'\d+ thds dumping - \d+% \(\d+\.?\d*[TGMK]? rows / ~\d+\.?\d*[TGMK]? rows\), \d+\.?\d*[TGMK]? rows?/s, \d+\.?\d* [TGMK]?B/s', re.MULTILINE))
 
-#@<> WL13807: WL13804-FR5.6.2 - If the `showProgress` option is not given, a default value of `true` must be used instead if shell is used interactively. Otherwise, it is set to `false`.
+#@<> WL13807: WL13804-FR5.2.2 - If the `showProgress` option is not given, a default value of `true` must be used instead if shell is used interactively. Otherwise, it is set to `false`.
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
 rc = testutil.call_mysqlsh([uri, "--py", "-e", 'util.dump_instance("' + test_output_relative + '")'])
@@ -636,7 +638,7 @@ EXPECT_EQ(0, rc)
 EXPECT_TRUE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_NOT_CONTAINS("rows/s")
 
-#@<> WL13807: WL13804-FR5.7 - The `options` dictionary may contain a `compression` key with a string value, which specifies the compression type used when writing the data dump files.
+#@<> WL13807: WL13804-FR5.3 - The `options` dictionary may contain a `compression` key with a string value, which specifies the compression type used when writing the data dump files.
 # WL13807-TSFR_3_57
 # WL13807-TSFR_3_571_1
 TEST_STRING_OPTION("compression")
@@ -645,7 +647,7 @@ TEST_STRING_OPTION("compression")
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "compression": "none", "chunking": False, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv")))
 
-#@<> WL13807: WL13804-FR5.7.1 - The allowed values for the `compression` option are:
+#@<> WL13807: WL13804-FR5.3.1 - The allowed values for the `compression` option are:
 # * `"none"` - no compression is used,
 # * `"gzip"` - gzip compression is used.
 # * `"zstd"` - zstd compression is used.
@@ -659,38 +661,40 @@ EXPECT_FAIL("ArgumentError", "Unknown compression type: dummy", test_output_rela
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "compression": "zstd", "chunking": False, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.zst")))
 
-#@<> WL13807: WL13804-FR5.7.2 - If the `compression` option is not given, a default value of `"gzip"` must be used instead.
+#@<> WL13807: WL13804-FR5.3.2 - If the `compression` option is not given, a default value of `"none"` must be used instead.
+# WL13807-FR3 - Both new functions must accept the following options specified in WL#13804, FR5:
+# * The `compression` option specified in WL#13804, FR5.3, with the modification of FR5.3.2, the default value must be`"zstd"`.
 # WL13807-TSFR_3_572_1
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "chunking": False, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.zst")))
 
-#@<> WL13807: WL13804-FR5.8 - The `options` dictionary may contain a `osBucketName` key with a string value, which specifies the OCI bucket name where the data dump files are going to be stored.
+#@<> WL13807: WL13804-FR5.4 - The `options` dictionary may contain a `osBucketName` key with a string value, which specifies the OCI bucket name where the data dump files are going to be stored.
 # WL13807-TSFR_3_58
 TEST_STRING_OPTION("osBucketName")
 
-#@<> WL13807: WL13804-FR5.9 - The `options` dictionary may contain a `osNamespace` key with a string value, which specifies the OCI namespace (tenancy name) where the OCI bucket is located.
+#@<> WL13807: WL13804-FR5.5 - The `options` dictionary may contain a `osNamespace` key with a string value, which specifies the OCI namespace (tenancy name) where the OCI bucket is located.
 # WL13807-TSFR_3_59
 TEST_STRING_OPTION("osNamespace")
 
-#@<> WL13807: WL13804-FR5.9.2 - If the value of `osNamespace` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
+#@<> WL13807: WL13804-FR5.5.2 - If the value of `osNamespace` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
 # WL13807-TSFR_3_592_1
 EXPECT_FAIL("ArgumentError", "The option 'osNamespace' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "osNamespace": "namespace" })
 
-#@<> WL13807: WL13804-FR5.10 - The `options` dictionary may contain a `ociConfigFile` key with a string value, which specifies the path to the OCI configuration file.
+#@<> WL13807: WL13804-FR5.6 - The `options` dictionary may contain a `ociConfigFile` key with a string value, which specifies the path to the OCI configuration file.
 # WL13807-TSFR_3_510_1
 TEST_STRING_OPTION("ociConfigFile")
 
-#@<> WL13807: WL13804-FR5.10.2 - If the value of `ociConfigFile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
+#@<> WL13807: WL13804-FR5.6.2 - If the value of `ociConfigFile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
 # WL13807-TSFR_3_5102
 EXPECT_FAIL("ArgumentError", "The option 'ociConfigFile' cannot be used when the value of 'osBucketName' option is not set.", test_output_relative, { "ociConfigFile": "config" })
 
-#@<> WL13807: WL13804-FR5.11 - The `options` dictionary may contain a `ociProfile` key with a string value, which specifies the name of the OCI profile to use.
+#@<> WL13807: WL13804-FR5.7 - The `options` dictionary may contain a `ociProfile` key with a string value, which specifies the name of the OCI profile to use.
 TEST_STRING_OPTION("ociProfile")
 
-#@<> WL13807: WL13804-FR5.11.2 - If the value of `ociProfile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
+#@<> WL13807: WL13804-FR5.7.2 - If the value of `ociProfile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
 EXPECT_FAIL("ArgumentError", "The option 'ociProfile' cannot be used when the value of 'osBucketName' option is not set", test_output_relative, { "ociProfile": "profile" })
 
-#@<> WL13807: WL13804-FR5.12 - The `options` dictionary may contain a `defaultCharacterSet` key with a string value, which specifies the character set to be used during the dump. The session variables `character_set_client`, `character_set_connection`, and `character_set_results` must be set to this value for each opened connection.
+#@<> WL13807: WL13804-FR5.8 - The `options` dictionary may contain a `defaultCharacterSet` key with a string value, which specifies the character set to be used during the dump. The session variables `character_set_client`, `character_set_connection`, and `character_set_results` must be set to this value for each opened connection.
 # WL13807-TSFR4_43
 TEST_STRING_OPTION("defaultCharacterSet")
 
@@ -699,22 +703,26 @@ EXPECT_SUCCESS([test_schema], test_output_absolute, { "defaultCharacterSet": "ut
 # name should be correctly encoded using UTF-8
 EXPECT_FILE_CONTAINS("CREATE TABLE IF NOT EXISTS `{0}`".format(test_table_non_unique), os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".sql"))
 
-#@<> WL13807: WL13804-FR5.12.1 - If the value of the `defaultCharacterSet` option is not a character set supported by the MySQL server, an exception must be thrown.
+#@<> WL13807: WL13804-FR5.8.1 - If the value of the `defaultCharacterSet` option is not a character set supported by the MySQL server, an exception must be thrown.
 # WL13807-TSFR4_41
 EXPECT_FAIL("RuntimeError", "Unknown character set: ''", test_output_relative, { "defaultCharacterSet": "" })
 EXPECT_FAIL("RuntimeError", "Unknown character set: 'dummy'", test_output_relative, { "defaultCharacterSet": "dummy" })
 
-#@<> WL13807: WL13804-FR5.12.2 - If the `defaultCharacterSet` option is not given, a default value of `"utf8mb4"` must be used instead.
+#@<> WL13807: WL13804-FR5.8.2 - If the `defaultCharacterSet` option is not given, a default value of `"utf8mb4"` must be used instead.
 # WL13807-TSFR4_39
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 # name should be correctly encoded using UTF-8
 EXPECT_FILE_CONTAINS("CREATE TABLE IF NOT EXISTS `{0}`".format(test_table_non_unique), os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".sql"))
 
-#@<> WL13807-FR3 - the `indexColumn` option must not be supported
-EXPECT_FAIL("ArgumentError", "Invalid options: indexColumn", test_output_relative, { "indexColumn": "dummy" })
-
 #@<> WL13807-TSFR_3_2 - options param being a dictionary that contains an unknown key
 EXPECT_FAIL("ArgumentError", "Invalid options: dummy", test_output_relative, { "dummy": "fails" })
+EXPECT_FAIL("ArgumentError", "Invalid options: indexColumn", test_output_relative, { "indexColumn": "dummy" })
+EXPECT_FAIL("ArgumentError", "Invalid options: fieldsTerminatedBy", test_output_relative, { "fieldsTerminatedBy": "dummy" })
+EXPECT_FAIL("ArgumentError", "Invalid options: fieldsEnclosedBy", test_output_relative, { "fieldsEnclosedBy": "dummy" })
+EXPECT_FAIL("ArgumentError", "Invalid options: fieldsEscapedBy", test_output_relative, { "fieldsEscapedBy": "dummy" })
+EXPECT_FAIL("ArgumentError", "Invalid options: fieldsOptionallyEnclosed", test_output_relative, { "fieldsOptionallyEnclosed": "dummy" })
+EXPECT_FAIL("ArgumentError", "Invalid options: linesTerminatedBy", test_output_relative, { "linesTerminatedBy": "dummy" })
+EXPECT_FAIL("ArgumentError", "Invalid options: dialect", test_output_relative, { "dialect": "dummy" })
 
 # WL13807-FR4 - Both new functions must accept a set of additional options:
 
@@ -948,7 +956,7 @@ EXPECT_SUCCESS([types_schema, test_schema], test_output_absolute, { "ddlOnly": T
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(types_schema) + ".sql")))
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql")))
 
-#@<> WL13807-FR10 - For each table dumped, a DDL file must be created with a base name as specified in WL#13804, FR6, and `.sql` extension.
+#@<> WL13807-FR10 - For each table dumped, a DDL file must be created with a base name as specified in FR7.1, and `.sql` extension.
 # * The table DDL file must contain all objects being dumped.
 # WL13807-TSFR10_1
 for table in types_schema_tables:
@@ -957,14 +965,14 @@ for table in types_schema_tables:
 for table in [test_table_primary, test_table_unique, test_table_non_unique, test_table_no_index]:
     EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, table) + ".sql")))
 
-#@<> WL13807-FR10.1 - If the `triggers` option was set to `true` and the dumped table has triggers, a DDL file must be created with a base name as specified in WL#13804, FR6, and `.triggers.sql` extension. File must contain all triggers for that table.
+#@<> WL13807-FR10.1 - If the `triggers` option was set to `true` and the dumped table has triggers, a DDL file must be created with a base name as specified in FR7.1, and `.triggers.sql` extension. File must contain all triggers for that table.
 # WL13807-TSFR10_4
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".triggers.sql")))
 
 for table in [test_table_primary, test_table_unique, test_table_non_unique]:
     EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, table) + ".triggers.sql")))
 
-#@<> WL13807-FR11 - For each view dumped, a DDL file must be created with a base name as specified in WL#13804, FR6, and `.sql` extension.
+#@<> WL13807-FR11 - For each view dumped, a DDL file must be created with a base name as specified in FR7.1, and `.sql` extension.
 # WL13807-TSFR11_1
 for view in types_schema_views:
     EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, view) + ".sql")))
@@ -972,7 +980,7 @@ for view in types_schema_views:
 for view in [test_view]:
     EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, view) + ".sql")))
 
-#@<> WL13807-FR11.1 - For each view dumped, a DDL file must be created with a base name as specified in WL#13804, FR6, and `.pre.sql` extension. This file must contain SQL statements which create a table with the same structure as the dumped view.
+#@<> WL13807-FR11.1 - For each view dumped, a DDL file must be created with a base name as specified in FR7.1, and `.pre.sql` extension. This file must contain SQL statements which create a table with the same structure as the dumped view.
 # WL13807-TSFR11_3
 for view in types_schema_views:
     EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, view) + ".pre.sql")))
@@ -997,10 +1005,10 @@ EXPECT_FILE_CONTAINS("GRANT ", os.path.join(test_output_absolute, "@.users.sql")
 EXPECT_FILE_CONTAINS("CREATE USER IF NOT EXISTS '{0}'@'%' IDENTIFIED WITH 'caching_sha2_password'".format(test_role), os.path.join(test_output_absolute, "@.users.sql"))
 EXPECT_FILE_CONTAINS("GRANT USAGE ON *.* TO `{0}`@`%`;".format(test_role), os.path.join(test_output_absolute, "@.users.sql"))
 
-#@<> WL13807-FR13 - Once the dump is complete, in addition to the summary described in WL#13804, the following information must be presented to the user:
+#@<> WL13807-FR13 - Once the dump is complete, in addition to the summary described in WL#13804, FR15, the following information must be presented to the user:
 # * The number of schemas dumped.
 # * The number of tables dumped.
-# WL13807: WL13804-FR9 - Once the dump is complete, the summary of the export process must be presented to the user. It must contain:
+# WL13807: WL13804-FR15 - Once the dump is complete, the summary of the export process must be presented to the user. It must contain:
 # * The number of rows written.
 # * The number of bytes actually written to the data dump files.
 # * The number of data bytes written to the data dump files. (only if `compression` option is not set to `none`)
@@ -1074,16 +1082,20 @@ for f in os.listdir(test_output_absolute):
 TEST_BOOL_OPTION("ocimds")
 
 #@<> WL13807-FR16.1.1 - If the `ocimds` option is set to `true`, the following must be done:
+# * General
+#   * Add the `mysql` schema to the schema exclusion list
 # * GRANT
 #   * Check whether users or roles are granted the following privileges and error out if so.
 #     * SUPER,
 #     * FILE,
 #     * RELOAD,
-#     * BINLOG_ADMIN.
+#     * BINLOG_ADMIN,
+#     * SET_USER_ID.
 # * CREATE TABLE
 #   * If ENGINE is not `InnoDB`, an exception must be raised.
 #   * DATA|INDEX DIRECTORY and ENCRYPTION options must be commented out.
 #   * Same restrictions for partitions.
+# * CHARSETS - checks whether db objects use any other character set than supported utf8mb4.
 # WL13807-TSFR16_1
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True })
 EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {0}".format(__mysh_version))
@@ -1164,7 +1176,11 @@ EXPECT_STDOUT_NOT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQ
 EXPECT_STDOUT_NOT_CONTAINS("NOTE: User {0}@localhost had restricted privilege ({1}) removed".format(test_user, test_privilege))
 EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported tablespace option removed".format(incompatible_schema, incompatible_table_tablespace))
 
-# FR7 - The data dump files must be created as described in the WL#13804.
+# WL13807-FR7 - The table data dump must be written in the output directory, to a file with a base name as specified in FR7.1, and a `.tsv` extension.
+# For WL13807-FR7.1 please see above.
+# WL13807-FR7.2 - If multiple table data dump files are to be created (the `chunking` option is set to `true`), the base name of each file must consist of a base name, as specified in FR6, followed by `@N` (or `@@N` in case of the last file), where `N` is the zero-based ordinal number of the file.
+# WL13807-FR7.3 - The format of an output file must be the same as the default format used by the `util.importTable()` function, as specified in WL#12193.
+# WL13807-FR7.4 - While the data is being written to an output file, the data dump file must be suffixed with a `.dumping` extension. Once writing is finished, the file must be renamed to its original name.
 # Data consistency tests.
 
 #@<> test a single table with no chunking

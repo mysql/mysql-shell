@@ -55,6 +55,7 @@ class Compressed_file : public IFile {
   std::string full_path() const override;
   std::string filename() const override;
   bool exists() const override;
+  std::unique_ptr<IDirectory> parent() const override;
 
   bool flush() override;
 

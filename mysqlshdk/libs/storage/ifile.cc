@@ -38,23 +38,27 @@ namespace storage {
 std::unique_ptr<IFile> make_file(
     const std::string &filepath,
     const std::unordered_map<std::string, std::string> &options) {
-  mysqlshdk::oci::Oci_options oci_options;
-  std::string os_path;
-  bool is_oci = mysqlshdk::oci::parse_oci_options(
-      mysqlshdk::oci::Oci_uri_type::FILE, filepath, options, &oci_options,
-      &os_path);
+  if (!options.empty()) {
+    mysqlshdk::oci::Oci_options oci_options;
+    std::string os_path;
+    bool is_oci = mysqlshdk::oci::parse_oci_options(
+        mysqlshdk::oci::Oci_uri_type::FILE, filepath, options, &oci_options,
+        &os_path);
 
-  if (is_oci) {
-    return std::make_unique<backend::oci::Object>(oci_options, os_path);
+    if (is_oci) {
+      return make_file(os_path, oci_options);
+    }
   }
 
   const auto scheme = utils::get_scheme(filepath);
-  if (scheme.empty() || utils::scheme_matches(scheme, "file"))
+  if (scheme.empty() || utils::scheme_matches(scheme, "file")) {
     return std::make_unique<backend::File>(filepath);
-
-  if (utils::scheme_matches(scheme, "http") ||
-      utils::scheme_matches(scheme, "https"))
+  } else if (utils::scheme_matches(scheme, "http") ||
+             utils::scheme_matches(scheme, "https")) {
     return std::make_unique<backend::Http_get>(filepath);
+  } else if (utils::scheme_matches(scheme, "oci+os")) {
+    throw std::invalid_argument("The osBucketName option is missing.");
+  }
 
   throw std::invalid_argument("File handling for " + scheme +
                               " protocol is not supported.");
@@ -62,7 +66,11 @@ std::unique_ptr<IFile> make_file(
 
 std::unique_ptr<IFile> make_file(const std::string &filepath,
                                  const mysqlshdk::oci::Oci_options &options) {
-  return std::make_unique<backend::oci::Object>(options, filepath);
+  if (options) {
+    return std::make_unique<backend::oci::Object>(options, filepath);
+  } else {
+    return make_file(filepath);
+  }
 }
 
 int fprintf(IFile *file, const char *format, ...) {

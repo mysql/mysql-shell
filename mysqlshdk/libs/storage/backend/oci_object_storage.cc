@@ -27,6 +27,7 @@
 #include <openssl/pem.h>
 
 #include <algorithm>
+#include <memory>
 #include <vector>
 
 #include "mysqlshdk/include/shellcore/console.h"
@@ -62,8 +63,13 @@ Directory::Directory(const Oci_options &options, const std::string &name)
 
 bool Directory::exists() const {
   if (m_name.empty() || m_created) {
-    // An empty name represents the root directory, since the bucket was created
-    // OK then it exists. If it has been "created" it exists as well.
+    // An empty name represents the root directory
+    // check if connection can be established
+    try {
+      m_bucket->list_objects("", "", "", 1, false);
+    } catch (const Response_error &error) {
+      throw shcore::Exception::runtime_error(error.format());
+    }
     return true;
   } else {
     // If it has a name then we need to make sure it is a directory, it will be
@@ -235,6 +241,16 @@ bool Object::exists() const {
   }
 
   return ret_val;
+}
+
+std::unique_ptr<IDirectory> Object::parent() const {
+  const auto path = full_path();
+  const auto pos = path.find_last_of('/');
+
+  // if the full path does not contain a backslash then the parent directory is
+  // the root directory
+  return make_directory(std::string::npos == pos ? "" : path.substr(0, pos),
+                        m_bucket->get_options());
 }
 
 off64_t Object::seek(off64_t offset) {

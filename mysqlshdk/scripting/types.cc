@@ -32,10 +32,11 @@
 #include <locale>
 #include <sstream>
 #include <stdexcept>
+#include "mysqlshdk/libs/utils/dtoa.h"
 #include "mysqlshdk/libs/utils/logger.h"
-#include "utils/dtoa.h"
-#include "utils/utils_general.h"
-#include "utils/utils_string.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 #ifdef WIN32
 #ifdef max

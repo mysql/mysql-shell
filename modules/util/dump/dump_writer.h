@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -84,11 +84,9 @@ class Dump_writer {
   Dump_writer &operator=(const Dump_writer &) = delete;
   Dump_writer &operator=(Dump_writer &&) = default;
 
-  virtual ~Dump_writer() = default;
+  virtual ~Dump_writer();
 
   void open();
-
-  void close();
 
   mysqlshdk::storage::IFile *output() const { return m_output.get(); }
 

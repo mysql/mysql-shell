@@ -708,7 +708,7 @@ wipe_instance(session);
 
 //@<> invalid path for progress file
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {progressFile: "/bad/path"});}, "Util.loadDump: Cannot open file '/bad/path': No such file or directory");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {progressFile: "/bad/path"});}, `Util.loadDump: Cannot open file '${__os_type == "windows" ? "\\\\?\\bad\\path" : "/bad/path"}': No such file or directory`);
 
 
 //@<> skipBinlog:true

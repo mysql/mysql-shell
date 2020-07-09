@@ -54,6 +54,7 @@ class File : public IFile {
   std::string full_path() const override;
   std::string filename() const override;
   bool exists() const override;
+  std::unique_ptr<IDirectory> parent() const override;
 
   off64_t seek(off64_t offset) override;
   off64_t tell() const override;
