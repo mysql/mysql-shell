@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -88,6 +88,8 @@ class Directory : public mysqlshdk::storage::IDirectory {
    */
   void create() override;
 
+  void close() override {}
+
   /**
    * Returns the full path to the directory.
    */
@@ -109,7 +111,7 @@ class Directory : public mysqlshdk::storage::IDirectory {
    */
   std::unique_ptr<IFile> file(const std::string &name) const override;
 
- private:
+ protected:
   std::string m_name;
   std::unique_ptr<Bucket> m_bucket;
 
@@ -258,7 +260,7 @@ class Object : public mysqlshdk::storage::IFile {
    */
   void set_max_part_size(size_t new_size);
 
- private:
+ protected:
   std::string m_name;
   std::string m_prefix;
   std::unique_ptr<Bucket> m_bucket;
@@ -294,7 +296,6 @@ class Object : public mysqlshdk::storage::IFile {
 
    private:
     std::string m_buffer;
-    size_t m_size;
 
     bool m_is_multipart;
     Multipart_object m_multipart;
@@ -316,6 +317,7 @@ class Object : public mysqlshdk::storage::IFile {
 
    private:
     off64_t m_offset;
+    bool m_done;
   };
 
   std::unique_ptr<Writer> m_writer;

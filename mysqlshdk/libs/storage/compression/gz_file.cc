@@ -176,10 +176,12 @@ void Gz_file::do_close() {
     case Mode::APPEND:
       break;
   }
+
+  m_open_mode.reset();
+
   if (file()->is_open()) {
     file()->close();
   }
-  m_open_mode.reset();
 }
 
 }  // namespace compression

@@ -88,6 +88,10 @@ class Load_dump_options final {
     return m_progress_file;
   }
 
+  const std::string &default_progress_file() const {
+    return m_default_progress_file;
+  }
+
   const mysqlshdk::oci::Oci_options &oci_options() const {
     return m_oci_options;
   }
@@ -131,8 +135,15 @@ class Load_dump_options final {
 
   const std::string &current_schema() const { return m_current_schema; }
 
+  bool use_par() const { return m_use_par; }
+
+  bool use_par_progress() const { return m_use_par_progress; }
+
  private:
   std::string m_url;
+  std::string m_prefix;
+  bool m_use_par = false;
+  bool m_use_par_progress = false;
   int64_t m_threads_count = 4;
   bool m_show_progress = isatty(fileno(stdout)) ? true : false;
 

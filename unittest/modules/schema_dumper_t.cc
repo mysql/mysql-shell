@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -659,9 +659,8 @@ TEST_F(Schema_dumper_test, dump_grants) {
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
   std::string out;
-  expect_output_contains(
-      {"CREATE USER IF NOT EXISTS", "ALTER USER", "GRANT", "FLUSH PRIVILEGES;"},
-      &out);
+  expect_output_contains({"CREATE USER IF NOT EXISTS", "ALTER USER", "GRANT"},
+                         &out);
 
   // Test filtering users during load
   auto filter = Load_dump_options::get_excluded_users(false);
@@ -749,7 +748,6 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   Schema_dumper sd(session);
   sd.opt_mysqlaas = true;
   sd.opt_strip_restricted_grants = true;
-  sd.opt_strip_role_admin = true;
   EXPECT_GE(sd.dump_grants(file.get(), {"mysql%", "root"}).size(), 3);
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
@@ -821,7 +819,6 @@ GRANT SELECT, INSERT, LOCK TABLES ON *.* TO 'abr@dab'@'localhost';
   }
   EXPECT_EQ(std::string::npos, out.find("SUPER"));
 
-  EXPECT_NE(std::string::npos, out.find("FLUSH PRIVILEGES;"));
   EXPECT_EQ(std::string::npos, out.find("'root'"));
   EXPECT_EQ(std::string::npos, out.find("EXISTS 'mysql"));
 

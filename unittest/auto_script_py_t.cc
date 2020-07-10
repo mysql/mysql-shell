@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -218,7 +218,11 @@ std::vector<std::string> find_py_tests(const std::string &subdir,
                                              subdir, "scripts");
   if (!shcore::is_folder(path)) return {};
 
-  if (!getenv("OCI_CONFIG_HOME") && subdir == "py_oci") return {};
+  std::cout << subdir << std::endl;
+  if (!getenv("OCI_CONFIG_HOME") && subdir == "py_oci") {
+    std::cout << "Skipping OCI Tests" << std::endl;
+    return {};
+  }
 
   auto tests = shcore::listdir(path);
   std::sort(tests.begin(), tests.end());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -65,6 +65,24 @@ struct Object_details {
   std::string etag;
   std::string md5;
   std::string time_created;
+};
+
+enum class PAR_access_type {
+  OBJECT_READ,
+  OBJECT_WRITE,
+  OBJECT_READ_WRITE,
+  ANY_OBJECT_WRITE
+};
+
+struct PAR {
+  std::string id;
+  std::string name;
+  std::string access_uri;
+  std::string access_type;
+  std::string object_name;
+  std::string time_created;
+  std::string time_expires;
+  size_t size;
 };
 
 class Object;
@@ -255,6 +273,17 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
    */
   void abort_multipart_upload(const Multipart_object &object);
 
+  PAR create_pre_authenticated_request(PAR_access_type access_type,
+                                       const std::string &expiration_time,
+                                       const std::string &par_name,
+                                       const std::string &object_name = "");
+
+  void delete_pre_authenticated_request(const std::string &id);
+
+  std::vector<PAR> list_preauthenticated_requests(
+      const std::string &prefix = "", size_t limit = 0,
+      const std::string &page = "");
+
   std::shared_ptr<Oci_rest_service> get_rest_service() {
     return m_rest_service;
   }
@@ -272,6 +301,7 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
   const std::string kMultipartActionPath;
   const std::string kUploadPartFormat;
   const std::string kMultipartActionFormat;
+  const std::string kParActionPath;
 
   void ensure_connection();
 };

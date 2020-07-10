@@ -81,6 +81,7 @@ class Ddl_dumper_options : public Dump_options {
   bool m_split = true;
   uint64_t m_bytes_per_chunk;
   std::size_t m_threads = 4;
+
   bool m_dump_triggers = true;
   bool m_timezone_utc = true;
   bool m_ddl_only = false;

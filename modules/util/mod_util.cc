@@ -1417,7 +1417,7 @@ option can be used even if all 'load' options are disabled.
 @li <b>characterSet</b>: string (default taken from dump) - Overrides
 the character set to be used for loading dump data. By default, the same
 character set used for dumping will be used (utf8mb4 if not set on dump).
-@li <b>deferTableIndexes</b>: "off", "fulltext", "all" (default: fulltext) - 
+@li <b>deferTableIndexes</b>: "off", "fulltext", "all" (default: fulltext) -
 If "all", creation of "all" indexes except PRIMARY is deferred until after
 table data is loaded, which in many cases can reduce load times. If "fulltext",
 only full-text indexes will be deferred.
@@ -1441,7 +1441,7 @@ specified tables from the dump. Strings are in format schema.table or
 @li <b>loadData</b>: bool (default: true) - Loads table data from the dump.
 @li <b>loadDdl</b>: bool (default: true) - Executes DDL/SQL scripts in the
 dump.
-@li <b>loadIndexes</b>: bool (default: true) - use together with 
+@li <b>loadIndexes</b>: bool (default: true) - use together with
 ‘deferTableIndexes’ to control whether secondary indexes should be recreated
 at the end of the load. Useful when loading DDL and data separately.
 @li <b>loadUsers</b>: bool (default: false) - Executes SQL scripts for user
@@ -1469,6 +1469,28 @@ ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 
 Connection options set in the global session, such as compression, ssl-mode, etc.
 are inherited by load sessions.
+
+<b>Loading a dump using Preauthenticated Requests (PAR)</b>
+
+When dumping to an Object Storage Bucket, the dump functions can be enabled
+to generate a dump that can be loaded using a PAR. When this is enabled, a
+manifest file "@.manifest.json" will be generated, it is the entry point
+to load the dump using a PAR.
+
+To do it, create an ObjectRead PAR for this file and use it on the url
+argument of this function.
+
+When using a PAR to load a dump, the progressFile option is mandatory, and it
+is possible to store the load progress either on the local file system, or on
+the dump location.
+
+To store the progress file locally, specify a path to a file on the local
+system in the progressFile option.
+
+To store the progress on dump location, create an ObjectReadWrite PAR to the
+desired progress file (it does not need to exist), it should be located on
+the same location of the "@.manifest.json" file. Finally specify the PAR URL
+on the progressFile option.
 
 Examples:
 
@@ -1563,10 +1585,6 @@ Database Service. Attempting to create users granting these privileges would
 fail, so this option allows dumped GRANT statements to be stripped of these
 privileges.
 
-<b>strip_role_admin</b> - ROLE_ADMIN privilege can be restricted in the MySQL
-Database Service, so attempting to create users granting it would fail.
-This option allows dumped GRANT statements to be stripped of this privilege.
-
 <b>strip_tablespaces</b> - Tablespaces have some restrictions in the MySQL
 Database Service. If you'd like to have tables created in their default
 tablespaces, this option will strip the TABLESPACE= option from CREATE TABLE
@@ -1615,6 +1633,13 @@ configuration file instead of the one in the default location.
 instead of the default one.
 )*");
 
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS, R"*(
+@li <b>ociParManifest</b>: bool (default: not set) - Enables the generation of
+the PAR manifest while the dump operation is being executed.
+@li <b>ociParExpireTime</b>: string (default: not set) - Allows defining the
+expiration time for the PARs generated when ociParManifest is enabled.
+)*");
+
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS, R"*(
 @li <b>triggers</b>: bool (default: true) - Include triggers for each dumped
 table.
@@ -1649,7 +1674,7 @@ MySQL Database Service (MDS)
 @li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
 Database Service compatibility modifications when writing dump files. Supported
 values: "force_innodb", "strip_definers", "strip_restricted_grants",
-"strip_role_admin", "strip_tablespaces".
+"strip_tablespaces".
 @li <b>events</b>: bool (default: true) - Include events from each dumped
 schema.
 @li <b>routines</b>: bool (default: true) - Include functions and stored
@@ -1745,10 +1770,37 @@ OCI bucket, connection is established using the local OCI profile. The directory
 structure is simulated within the object name.
 
 The <b>osNamespace</b>, <b>ociConfigFile</b> and <b>ociProfile</b> options
-cannot be used if option <b>osBucketName</b> is set to an empty string.
+cannot be used if the <b>osBucketName</b> option is set to an empty string.
 
 The <b>osNamespace</b> option overrides the OCI namespace obtained based on the
 tenancy ID from the local OCI profile.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS, R"*(
+<b>Enabling dump loading using preauthenticated requests</b>
+
+To enable loading a dump without requiring an OCI Profile, the dump operations
+can automatically generate a preauthenticated request (PAR) for every file
+generated on the dump operation, this is done by enabling the ociParManifest
+option.
+
+When the ociParManifest option is enabled, a file named "@.manifest.json" is
+generated, it contains the PAR for each file generated on the dump. The
+manifest is updated as the dump operation progresses.
+
+The <b>ociParManifest</b> option cannot be used if <b>osBucketName</b> is not
+set. The default value of this option depends on the dump settings: if
+<b>ocimds</b> is enabled and <b>osBucketName</b> is specified then it will be
+enabled, otherwise it will be disabled. In any case, if the option is explicitly
+set to a value, the user provided value will be used.
+
+When creating PARs, an expiration time is required, it can be defined through
+the <b>ociParExpireTime</b> option. If the option is not used, a predefined
+expiration time will be used equivalent to a week afer the dump operation
+started. The values assigned to this option should be conformant to RFC3339.
+
+The <b>ociParExpireTime</b> option cannot be used if the <b>ociParManifest</b>
+option is not enabled.
 )*");
 
 REGISTER_HELP_FUNCTION(exportTable, util);
@@ -1977,6 +2029,7 @@ ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_DDL_COMPRESSION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
+${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 
 ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_DETAILS}
 
@@ -1986,6 +2039,7 @@ ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
+${TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS}
 
 @throws ArgumentError in the following scenarios:
 @li If any of the input arguments contains an invalid value.
@@ -2047,6 +2101,7 @@ ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_DDL_COMPRESSION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
+${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 
 ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_DETAILS}
 
@@ -2066,6 +2121,7 @@ ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
+${TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS}
 
 @throws ArgumentError in the following scenarios:
 @li If any of the input arguments contains an invalid value.

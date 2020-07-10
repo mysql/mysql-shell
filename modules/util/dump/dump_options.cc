@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,6 +51,7 @@ void Dump_options::set_options(const shcore::Dictionary_t &options) {
       .optional("compression", &compression)
       .optional("defaultCharacterSet", &m_character_set);
 
+  m_oci_options.target = oci_target();
   m_oci_options.unpack(&unpacker);
 
   unpack_options(&unpacker);

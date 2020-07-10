@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -52,6 +52,7 @@ file(GLOB api_module_SOURCES
       "util/dump/export_table.cc"
       "util/dump/export_table_options.cc"
       "util/dump/schema_dumper.cc"
+      "util/dump/dump_manifest.cc"
       "util/dump/text_dump_writer.cc"
       "util/load/load_dump_options.cc"
       "util/load/dump_loader.cc"

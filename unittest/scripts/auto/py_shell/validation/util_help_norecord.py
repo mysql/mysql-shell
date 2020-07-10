@@ -178,7 +178,7 @@ DESCRIPTION
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
         values: "force_innodb", "strip_definers", "strip_restricted_grants",
-        "strip_role_admin", "strip_tablespaces".
+        "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
@@ -216,6 +216,10 @@ DESCRIPTION
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
+      - ociParManifest: bool (default: not set) - Enables the generation of the
+        PAR manifest while the dump operation is being executed.
+      - ociParExpireTime: string (default: not set) - Allows defining the
+        expiration time for the PARs generated when ociParManifest is enabled.
 
       Requirements
 
@@ -346,11 +350,6 @@ DESCRIPTION
       would fail, so this option allows dumped GRANT statements to be stripped
       of these privileges.
 
-      strip_role_admin - ROLE_ADMIN privilege can be restricted in the MySQL
-      Database Service, so attempting to create users granting it would fail.
-      This option allows dumped GRANT statements to be stripped of this
-      privilege.
-
       strip_tablespaces - Tablespaces have some restrictions in the MySQL
       Database Service. If you'd like to have tables created in their default
       tablespaces, this option will strip the TABLESPACE= option from CREATE
@@ -372,10 +371,36 @@ DESCRIPTION
       directory structure is simulated within the object name.
 
       The osNamespace, ociConfigFile and ociProfile options cannot be used if
-      option osBucketName is set to an empty string.
+      the osBucketName option is set to an empty string.
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
+
+      Enabling dump loading using preauthenticated requests
+
+      To enable loading a dump without requiring an OCI Profile, the dump
+      operations can automatically generate a preauthenticated request (PAR)
+      for every file generated on the dump operation, this is done by enabling
+      the ociParManifest option.
+
+      When the ociParManifest option is enabled, a file named "@.manifest.json"
+      is generated, it contains the PAR for each file generated on the dump.
+      The manifest is updated as the dump operation progresses.
+
+      The ociParManifest option cannot be used if osBucketName is not set. The
+      default value of this option depends on the dump settings: if ocimds is
+      enabled and osBucketName is specified then it will be enabled, otherwise
+      it will be disabled. In any case, if the option is explicitly set to a
+      value, the user provided value will be used.
+
+      When creating PARs, an expiration time is required, it can be defined
+      through the ociParExpireTime option. If the option is not used, a
+      predefined expiration time will be used equivalent to a week afer the
+      dump operation started. The values assigned to this option should be
+      conformant to RFC3339.
+
+      The ociParExpireTime option cannot be used if the ociParManifest option
+      is not enabled.
 
 EXCEPTIONS
       ArgumentError in the following scenarios:
@@ -424,7 +449,7 @@ DESCRIPTION
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
         values: "force_innodb", "strip_definers", "strip_restricted_grants",
-        "strip_role_admin", "strip_tablespaces".
+        "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
@@ -460,6 +485,10 @@ DESCRIPTION
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
+      - ociParManifest: bool (default: not set) - Enables the generation of the
+        PAR manifest while the dump operation is being executed.
+      - ociParExpireTime: string (default: not set) - Allows defining the
+        expiration time for the PARs generated when ociParManifest is enabled.
 
       Requirements
 
@@ -579,11 +608,6 @@ DESCRIPTION
       would fail, so this option allows dumped GRANT statements to be stripped
       of these privileges.
 
-      strip_role_admin - ROLE_ADMIN privilege can be restricted in the MySQL
-      Database Service, so attempting to create users granting it would fail.
-      This option allows dumped GRANT statements to be stripped of this
-      privilege.
-
       strip_tablespaces - Tablespaces have some restrictions in the MySQL
       Database Service. If you'd like to have tables created in their default
       tablespaces, this option will strip the TABLESPACE= option from CREATE
@@ -605,10 +629,36 @@ DESCRIPTION
       directory structure is simulated within the object name.
 
       The osNamespace, ociConfigFile and ociProfile options cannot be used if
-      option osBucketName is set to an empty string.
+      the osBucketName option is set to an empty string.
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
+
+      Enabling dump loading using preauthenticated requests
+
+      To enable loading a dump without requiring an OCI Profile, the dump
+      operations can automatically generate a preauthenticated request (PAR)
+      for every file generated on the dump operation, this is done by enabling
+      the ociParManifest option.
+
+      When the ociParManifest option is enabled, a file named "@.manifest.json"
+      is generated, it contains the PAR for each file generated on the dump.
+      The manifest is updated as the dump operation progresses.
+
+      The ociParManifest option cannot be used if osBucketName is not set. The
+      default value of this option depends on the dump settings: if ocimds is
+      enabled and osBucketName is specified then it will be enabled, otherwise
+      it will be disabled. In any case, if the option is explicitly set to a
+      value, the user provided value will be used.
+
+      When creating PARs, an expiration time is required, it can be defined
+      through the ociParExpireTime option. If the option is not used, a
+      predefined expiration time will be used equivalent to a week afer the
+      dump operation started. The values assigned to this option should be
+      conformant to RFC3339.
+
+      The ociParExpireTime option cannot be used if the ociParManifest option
+      is not enabled.
 
 EXCEPTIONS
       ArgumentError in the following scenarios:
@@ -763,7 +813,7 @@ DESCRIPTION
       directory structure is simulated within the object name.
 
       The osNamespace, ociConfigFile and ociProfile options cannot be used if
-      option osBucketName is set to an empty string.
+      the osBucketName option is set to an empty string.
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
@@ -883,7 +933,7 @@ DESCRIPTION
       directory structure is simulated within the object name.
 
       The osNamespace, ociConfigFile and ociProfile options cannot be used if
-      option osBucketName is set to an empty string.
+      the osBucketName option is set to an empty string.
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
@@ -897,7 +947,6 @@ EXCEPTIONS
 
       - If there is no open global session.
       - If creating or writing to the output file fails.
-
 #@<OUT> util import_json help
 NAME
       import_json - Import JSON documents from file to collection or table in
@@ -1358,6 +1407,28 @@ DESCRIPTION
       Connection options set in the global session, such as compression,
       ssl-mode, etc. are inherited by load sessions.
 
+      Loading a dump using Preauthenticated Requests (PAR)
+
+      When dumping to an Object Storage Bucket, the dump functions can be
+      enabled to generate a dump that can be loaded using a PAR. When this is
+      enabled, a manifest file "@.manifest.json" will be generated, it is the
+      entry point to load the dump using a PAR.
+
+      To do it, create an ObjectRead PAR for this file and use it on the url
+      argument of this function.
+
+      When using a PAR to load a dump, the progressFile option is mandatory,
+      and it is possible to store the load progress either on the local file
+      system, or on the dump location.
+
+      To store the progress file locally, specify a path to a file on the local
+      system in the progressFile option.
+
+      To store the progress on dump location, create an ObjectReadWrite PAR to
+      the desired progress file (it does not need to exist), it should be
+      located on the same location of the "@.manifest.json" file. Finally
+      specify the PAR URL on the progressFile option.
+
       Examples:
       util.load_dump("sakila_dump")
 
@@ -1365,3 +1436,4 @@ DESCRIPTION
           "osBucketName": "mybucket",    // OCI Object Storage bucket
           "waitDumpTimeout": 1800        // wait for new data for up to 30mins
       })
+

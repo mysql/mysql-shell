@@ -1470,7 +1470,7 @@ void Dump_loader::setup_progress(bool *out_is_resuming) {
 
   if (m_options.progress_file().is_null() ||
       !m_options.progress_file()->empty()) {
-    auto progress_file = m_options.create_progress_file_handle();
+    auto progress_file = m_dump->create_progress_file_handle();
     std::string path = progress_file->full_path();
     bool rewrite_on_flush = m_options.oci_options() ? true : false;
 

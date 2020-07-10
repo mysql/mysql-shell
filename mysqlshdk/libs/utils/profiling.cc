@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,22 +23,72 @@
 
 #include "mysqlshdk/libs/utils/profiling.h"
 #include <cassert>
+#include <iostream>
 
 namespace mysqlshdk {
+
 namespace utils {
+void Global_profiler::print_stats() {
+  std::map<std::string, double> global_time;
+  std::map<std::string, double> global_hits;
 
-Profile_timer *g_active_timer = nullptr;
+  std::lock_guard<std::mutex> lock(m_mutex);
+  std::cout << "THREAD PROFILE DATA" << std::endl;
+  std::cout << "===================" << std::endl;
+  for (const auto &thread_profile : m_time_profilers) {
+    std::cout << "THREAD " << thread_profile.first << std::endl;
+    std::cout << "-------------------" << std::endl;
 
-Profile_timer *Profile_timer::activate() {
-  assert(g_active_timer == nullptr);
+    for (const auto &profile : thread_profile.second) {
+      auto time = profile.second.total_milliseconds_elapsed();
+      auto hits = profile.second.trace_points().size();
+      global_time[profile.first] += time;
+      global_hits[profile.first] += hits;
 
-  return g_active_timer = new utils::Profile_timer();
-}
+      auto msec = static_cast<unsigned long long int>(time);
+      std::string duration =
+          shcore::str_format("%02llu:%02llu:%02llu.%03llus", msec / 3600000ull,
+                             (msec % 3600000ull) / 60000ull,
+                             (msec % 60000ull) / 1000, msec % 1000ull);
 
-void Profile_timer::deactivate() {
-  delete g_active_timer;
-  g_active_timer = nullptr;
+      std::cout << profile.first << " Hits : " << hits
+                << " Total Time: " << duration << std::endl;
+    }
+  }
+
+  std::cout << "GLOBAL PROFILE DATA" << std::endl;
+  std::cout << "===================" << std::endl;
+  for (const auto &global : global_hits) {
+    auto msec = static_cast<unsigned long long int>(global_time[global.first]);
+    std::string duration =
+        shcore::str_format("%02llu:%02llu:%02llu.%03llus", msec / 3600000ull,
+                           (msec % 3600000ull) / 60000ull,
+                           (msec % 60000ull) / 1000, msec % 1000ull);
+
+    std::cout << global.first << " Hits: " << global.second
+              << " Total Time: " << duration << std::endl;
+  }
+  std::cout << "===================" << std::endl;
 }
 
 }  // namespace utils
+namespace profiling {
+
+mysqlshdk::utils::Global_profiler *g_active_profiler = nullptr;
+
+void activate() {
+  assert(g_active_profiler == nullptr);
+
+  g_active_profiler = new mysqlshdk::utils::Global_profiler();
+
+  stage_begin("Total");
+}
+
+void deactivate() {
+  stage_end("Total");
+  delete g_active_profiler;
+  g_active_profiler = nullptr;
+}
+
+}  // namespace profiling
 }  // namespace mysqlshdk

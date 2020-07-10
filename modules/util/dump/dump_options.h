@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -142,6 +142,8 @@ class Dump_options {
       const std::shared_ptr<mysqlshdk::db::ISession> &session) = 0;
 
   virtual void validate_options() const = 0;
+
+  virtual mysqlshdk::oci::Oci_options::Unpack_target oci_target() const = 0;
 
   // global session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;

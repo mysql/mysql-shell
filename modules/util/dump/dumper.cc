@@ -59,13 +59,13 @@
 #include "modules/mod_utils.h"
 #include "modules/util/dump/console_with_progress.h"
 #include "modules/util/dump/dialect_dump_writer.h"
+#include "modules/util/dump/dump_manifest.h"
 #include "modules/util/dump/dump_utils.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/dump/text_dump_writer.h"
 
 namespace mysqlsh {
 namespace dump {
-
 using mysqlshdk::storage::Mode;
 using mysqlshdk::storage::backend::Memory_file;
 
@@ -856,8 +856,14 @@ Dumper::Dumper(const Dump_options &options)
     }
   } else {
     using mysqlshdk::storage::make_directory;
-    m_output_dir =
-        make_directory(m_options.output_url(), m_options.oci_options());
+    if (m_options.oci_options().oci_par_manifest.get_safe()) {
+      m_output_dir = std::make_unique<Dump_manifest>(Dump_manifest::Mode::WRITE,
+                                                     m_options.oci_options(),
+                                                     m_options.output_url());
+    } else {
+      m_output_dir =
+          make_directory(m_options.output_url(), m_options.oci_options());
+    }
 
     if (m_output_dir->exists()) {
       auto files = m_output_dir->list_files(true);

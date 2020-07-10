@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2020, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -20,6 +20,8 @@
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include "unittest/mysqlshdk/libs/oci/oci_tests.h"
+
+#include "mysqlshdk/libs/utils/utils_time.h"
 
 namespace testing {
 
@@ -353,4 +355,25 @@ TEST_F(Oci_os_tests, bucket_error_conditions) {
                     "Failed to commit multipart upload for object "
                     "'Sample.txt': There are no parts to commit");
 }
+
+TEST_F(Oci_os_tests, bucket_par) {
+  SKIP_IF_NO_OCI_CONFIGURATION
+
+  // Ensures the bucket is empty
+  Bucket bucket(get_options(PRIVATE_BUCKET));
+
+  // Adds an object
+  bucket.put_object("sample.txt", "Sample Content", 14);
+
+  auto time = shcore::future_time_rfc3339(std::chrono::hours(24));
+
+  auto par = bucket.create_pre_authenticated_request(
+      mysqlshdk::oci::PAR_access_type::OBJECT_READ, time.c_str(), "sample-par",
+      "sample.txt");
+
+  bucket.delete_pre_authenticated_request(par.id);
+
+  bucket.delete_object("sample.txt");
+}
+
 }  // namespace testing

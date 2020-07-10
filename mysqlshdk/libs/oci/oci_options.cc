@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,12 +23,14 @@
 #include "mysqlshdk/libs/oci/oci_options.h"
 
 #include <map>
+#include <regex>
 
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/oci/oci_rest_service.h"
 #include "mysqlshdk/libs/oci/oci_setup.h"
 #include "mysqlshdk/libs/storage/utils.h"
+#include "mysqlshdk/libs/utils/utils_time.h"
 
 namespace mysqlshdk {
 namespace oci {
@@ -46,6 +48,27 @@ void validate_config_profile(const std::string &config_path,
     throw std::runtime_error("The indicated OCI Profile does not exist.");
   }
 }
+
+bool parse_par(const std::string &par, std::vector<std::string> *data_ptr) {
+  std::smatch results;
+  if (std::regex_match(
+          par, results,
+          std::regex("^https:\\/\\/objectstorage\\.(.+)\\.oraclecloud\\.com\\/"
+                     "p\\/.+\\/n\\/(.+)\\/b\\/"
+                     "(.+)\\/o\\/.*$"))) {
+    // Region
+    data_ptr->push_back(results[1]);
+
+    // Namespace
+    data_ptr->push_back(results[2]);
+
+    // Bucket
+    data_ptr->push_back(results[3]);
+
+    return true;
+  }
+  return false;
+}
 }  // namespace
 
 std::mutex Oci_options::s_tenancy_name_mutex;
@@ -57,50 +80,75 @@ void Oci_options::do_unpack(shcore::Option_unpacker *unpacker) {
       unpacker->optional(kOsNamespace, &os_namespace)
           .optional(kOsBucketName, &os_bucket_name)
           .optional(kOciConfigFile, &config_path)
+          .optional(kOciProfile, &config_profile)
+          .optional(kOciParManifest, &oci_par_manifest)
+          .optional(kOciParExpireTime, &oci_par_expire_time);
+
+      if (!os_bucket_name.get_safe().empty() && oci_par_manifest.is_null()) {
+        unpacker->optional("ocimds", &oci_par_manifest);
+      }
+      break;
+    case OBJECT_STORAGE_NO_PAR_OPTIONS:
+    case OBJECT_STORAGE_NO_PAR_SUPPORT:
+      unpacker->optional(kOsNamespace, &os_namespace)
+          .optional(kOsBucketName, &os_bucket_name)
+          .optional(kOciConfigFile, &config_path)
           .optional(kOciProfile, &config_profile);
       break;
   }
 }
 
-void Oci_options::load_defaults() {
-  if (!operator bool()) {
-    throw std::invalid_argument("The osBucketName option is missing.");
-  }
-
-  if (config_path.get_safe().empty()) {
-    config_path = mysqlsh::current_shell_options()->get().oci_config_file;
-  }
-
-  if (config_profile.get_safe().empty()) {
-    config_profile = mysqlsh::current_shell_options()->get().oci_profile;
-  }
-
-  if (!config_profile.get_safe().empty()) {
-    validate_config_profile(*config_path, *config_profile);
-  }
-
-  if (os_namespace.get_safe().empty()) {
-    Oci_rest_service identity(Oci_service::IDENTITY, *this);
-    std::lock_guard<std::mutex> lock(s_tenancy_name_mutex);
-    if (s_tenancy_names.find(identity.get_tenancy_id()) ==
-        s_tenancy_names.end()) {
-      mysqlshdk::rest::String_buffer raw_data;
-      identity.get("/20160918/tenancies/" + identity.get_tenancy_id(), {},
-                   &raw_data);
-
-      shcore::Dictionary_t data;
-      try {
-        data = shcore::Value::parse(raw_data.data(), raw_data.size()).as_map();
-      } catch (const shcore::Exception &error) {
-        log_debug2("%s\n%.*s", error.what(), static_cast<int>(raw_data.size()),
-                   raw_data.data());
-        throw;
-      }
-
-      s_tenancy_names[identity.get_tenancy_id()] = data->get_string("name");
+void Oci_options::load_defaults(const std::vector<std::string> &par_data) {
+  if (!par_data.empty()) {
+    oci_region = par_data[0];
+    os_namespace = par_data[1];
+    os_bucket_name = par_data[2];
+  } else {
+    if (!operator bool()) {
+      throw std::invalid_argument("The osBucketName option is missing.");
     }
 
-    os_namespace = s_tenancy_names.at(identity.get_tenancy_id());
+    if (config_path.get_safe().empty()) {
+      config_path = mysqlsh::current_shell_options()->get().oci_config_file;
+    }
+
+    if (config_profile.get_safe().empty()) {
+      config_profile = mysqlsh::current_shell_options()->get().oci_profile;
+    }
+
+    if (!config_profile.get_safe().empty()) {
+      validate_config_profile(*config_path, *config_profile);
+    }
+
+    if (os_namespace.get_safe().empty()) {
+      Oci_rest_service object_storage(Oci_service::OBJECT_STORAGE, *this);
+      std::lock_guard<std::mutex> lock(s_tenancy_name_mutex);
+      if (s_tenancy_names.find(object_storage.get_tenancy_id()) ==
+          s_tenancy_names.end()) {
+        mysqlshdk::rest::String_buffer raw_data;
+        object_storage.get("/n/", {}, &raw_data);
+
+        try {
+          s_tenancy_names[object_storage.get_tenancy_id()] =
+              shcore::Value::parse(raw_data.data(), raw_data.size())
+                  .as_string();
+        } catch (const shcore::Exception &error) {
+          log_debug2("%s\n%.*s", error.what(),
+                     static_cast<int>(raw_data.size()), raw_data.data());
+          throw;
+        }
+      }
+
+      os_namespace = s_tenancy_names.at(object_storage.get_tenancy_id());
+    }
+  }
+
+  if (target == OBJECT_STORAGE) {
+    if (oci_par_expire_time.is_null()) {
+      // If not specified sets the expiration time to NOW + 1 Week
+      oci_par_expire_time =
+          shcore::future_time_rfc3339(std::chrono::hours(24 * 7));
+    }
   }
 
   if (part_size.is_null()) {
@@ -108,33 +156,70 @@ void Oci_options::load_defaults() {
   }
 }
 
+void Oci_options::check_bucket_name_dependent_options() {
+  if (os_bucket_name.get_safe().empty()) {
+    if (!os_namespace.get_safe().empty()) {
+      throw std::invalid_argument(
+          "The option 'osNamespace' cannot be used when the value of "
+          "'osBucketName' option is not set.");
+    }
+
+    if (!config_path.get_safe().empty()) {
+      throw std::invalid_argument(
+          "The option 'ociConfigFile' cannot be used when the value of "
+          "'osBucketName' option is not set.");
+    }
+
+    if (!config_profile.get_safe().empty()) {
+      throw std::invalid_argument(
+          "The option 'ociProfile' cannot be used when the value of "
+          "'osBucketName' option is not set.");
+    }
+
+    if (target == OBJECT_STORAGE && !oci_par_manifest.is_null()) {
+      throw std::invalid_argument(
+          "The option 'ociParManifest' cannot be used when the value of "
+          "'osBucketName' option is not set.");
+    }
+  }
+}
+
 void Oci_options::check_option_values() {
+  std::vector<std::string> par_data;
   switch (target) {
     case OBJECT_STORAGE:
-      if (os_bucket_name.get_safe().empty()) {
-        if (!os_namespace.get_safe().empty()) {
-          throw std::invalid_argument(
-              "The option 'osNamespace' cannot be used when the value of "
-              "'osBucketName' option is not set.");
+    case OBJECT_STORAGE_NO_PAR_OPTIONS:
+      if (!os_par.get_safe().empty()) {
+        if (parse_par(*os_par, &par_data)) {
+          if (!os_namespace.is_null() && *os_namespace != par_data[1]) {
+            throw std::invalid_argument(
+                "The option 'osNamespace' doesn't match the namespace of the "
+                "provided preauthenticated request.");
+          }
+          if (!os_bucket_name.is_null() && *os_bucket_name != par_data[2]) {
+            throw std::invalid_argument(
+                "The option 'osBucketName' doesn't match the bucket name of "
+                "the provided preauthenticated request.");
+          }
         }
+      } else {
+        check_bucket_name_dependent_options();
 
-        if (!config_path.get_safe().empty()) {
+        if (!oci_par_manifest.get_safe() &&
+            !oci_par_expire_time.get_safe().empty()) {
           throw std::invalid_argument(
-              "The option 'ociConfigFile' cannot be used when the value of "
-              "'osBucketName' option is not set.");
-        }
-
-        if (!config_profile.get_safe().empty()) {
-          throw std::invalid_argument(
-              "The option 'ociProfile' cannot be used when the value of "
-              "'osBucketName' option is not set.");
+              "The option 'ociParExpireTime' cannot be used when the value "
+              "of 'ociParManifest' option is not True.");
         }
       }
       break;
+    case OBJECT_STORAGE_NO_PAR_SUPPORT:
+      check_bucket_name_dependent_options();
+      break;
   }
 
-  if (!os_bucket_name.get_safe().empty()) {
-    load_defaults();
+  if (!os_bucket_name.get_safe().empty() || !par_data.empty()) {
+    load_defaults(par_data);
   }
 }
 

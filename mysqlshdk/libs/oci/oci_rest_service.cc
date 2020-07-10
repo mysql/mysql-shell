@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -142,41 +142,45 @@ Oci_rest_service::Oci_rest_service(Oci_service service,
                                    const Oci_options &options) {
   // NOTE: At this point we assume the options are valid, this is, the
   // configured profile exists on the indicated configuration file
-  auto oci_profile = *options.config_profile;
-  mysqlshdk::oci::Oci_setup oci_setup(*options.config_path);
-  const auto config = oci_setup.get_cfg();
-
-  auto key_file = *config.get(oci_profile, "key_file");
-  m_tenancy_id = *config.get(oci_profile, "tenancy");
-  auto user_id = *config.get(oci_profile, "user");
-  auto fingerprint = *config.get(oci_profile, "fingerprint");
-  m_region = *config.get(oci_profile, "region");
-
-  auto passphrase = config.has_option(oci_profile, "pass_phrase")
-                        ? *config.get(oci_profile, "pass_phrase")
-                        : std::string{};
-
-  auto k = shcore::Private_key_storage::get().contains(key_file);
-  if (!k.second) {
-    oci_setup.load_profile(oci_profile);
-    // Check if load_profile opened successfully private key and put it into
-    // private key storage.
-    auto pkey = shcore::Private_key_storage::get().contains(key_file);
-    if (!pkey.second) {
-      throw std::runtime_error("Cannot load \"" + key_file +
-                               "\" private key associated with OCI "
-                               "configuration profile named \"" +
-                               oci_profile + "\".");
-    } else {
-      m_private_key = pkey.first->second;
-    }
+  if (!options.os_par.is_null()) {
+    m_region = *options.oci_region;
   } else {
-    m_private_key = k.first->second;
+    auto oci_profile = *options.config_profile;
+    mysqlshdk::oci::Oci_setup oci_setup(*options.config_path);
+    const auto config = oci_setup.get_cfg();
+
+    auto key_file = *config.get(oci_profile, "key_file");
+    m_tenancy_id = *config.get(oci_profile, "tenancy");
+    auto user_id = *config.get(oci_profile, "user");
+    auto fingerprint = *config.get(oci_profile, "fingerprint");
+    m_region = *config.get(oci_profile, "region");
+
+    auto passphrase = config.has_option(oci_profile, "pass_phrase")
+                          ? *config.get(oci_profile, "pass_phrase")
+                          : std::string{};
+
+    auto k = shcore::Private_key_storage::get().contains(key_file);
+    if (!k.second) {
+      oci_setup.load_profile(oci_profile);
+      // Check if load_profile opened successfully private key and put it into
+      // private key storage.
+      auto pkey = shcore::Private_key_storage::get().contains(key_file);
+      if (!pkey.second) {
+        throw std::runtime_error("Cannot load \"" + key_file +
+                                 "\" private key associated with OCI "
+                                 "configuration profile named \"" +
+                                 oci_profile + "\".");
+      } else {
+        m_private_key = pkey.first->second;
+      }
+    } else {
+      m_private_key = k.first->second;
+    }
+
+    shcore::clear_buffer(&passphrase);
+
+    m_auth_keyId = m_tenancy_id + "/" + user_id + "/" + fingerprint;
   }
-
-  shcore::clear_buffer(&passphrase);
-
-  m_auth_keyId = m_tenancy_id + "/" + user_id + "/" + fingerprint;
 
   m_service = service;
 }
@@ -202,9 +206,10 @@ void Oci_rest_service::set_service(Oci_service service) {
 Response::Status_code Oci_rest_service::get(const std::string &path,
                                             const Headers &headers,
                                             Base_response_buffer *buffer,
-                                            Headers *response_headers) {
+                                            Headers *response_headers,
+                                            bool sign_request) {
   return execute(Type::GET, path, nullptr, 0L, headers, buffer,
-                 response_headers);
+                 response_headers, sign_request);
 }
 
 Response::Status_code Oci_rest_service::head(const std::string &path,
@@ -228,9 +233,10 @@ Response::Status_code Oci_rest_service::put(const std::string &path,
                                             const char *body, size_t size,
                                             const Headers &headers,
                                             Base_response_buffer *buffer,
-                                            Headers *response_headers) {
-  return execute(Type::PUT, path, body, size, headers, buffer,
-                 response_headers);
+                                            Headers *response_headers,
+                                            bool sign_request) {
+  return execute(Type::PUT, path, body, size, headers, buffer, response_headers,
+                 sign_request);
 }
 
 Response::Status_code Oci_rest_service::delete_(const std::string &path,
@@ -314,12 +320,10 @@ Headers Oci_rest_service::make_header(Type method, const std::string &path,
   return final_headers;
 }
 
-Response::Status_code Oci_rest_service::execute(Type type,
-                                                const std::string &path,
-                                                const char *body, size_t size,
-                                                const Headers &request_headers,
-                                                Base_response_buffer *buffer,
-                                                Headers *response_headers) {
+Response::Status_code Oci_rest_service::execute(
+    Type type, const std::string &path, const char *body, size_t size,
+    const Headers &request_headers, Base_response_buffer *buffer,
+    Headers *response_headers, bool sign_request) {
   Headers rheaders;
 
   if (!m_rest) set_service(m_service);
@@ -357,10 +361,11 @@ Response::Status_code Oci_rest_service::execute(Type type,
   Base_response_buffer *response_buffer_ptr = buffer;
   if (!response_buffer_ptr) response_buffer_ptr = &response_data;
 
-  auto code =
-      m_rest->execute(type, path, body, size,
-                      make_header(type, path, body, size, request_headers),
-                      response_buffer_ptr, response_headers, &retry_strategy);
+  auto code = m_rest->execute(
+      type, path, body, size,
+      sign_request ? make_header(type, path, body, size, request_headers)
+                   : request_headers,
+      response_buffer_ptr, response_headers, &retry_strategy);
 
   check_and_throw(code, *response_headers, response_buffer_ptr);
 

@@ -219,11 +219,13 @@ void Zstd_file::do_close() {
     case Mode::APPEND:
       break;
   }
+
+  m_open_mode.reset();
+  m_buffer.resize(0);
+
   if (file()->is_open()) {
     file()->close();
   }
-  m_open_mode.reset();
-  m_buffer.resize(0);
 }
 
 }  // namespace compression

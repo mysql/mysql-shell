@@ -32,11 +32,12 @@
 namespace mysqlsh {
 namespace compatibility {
 
+extern const std::set<std::string> k_mysqlaas_allowed_privileges;
+
 /// Checks grant statement for presence of privileges, returns found ones.
 std::vector<std::string> check_privileges(
     const std::string grant, std::string *rewritten_grant = nullptr,
-    const std::set<std::string> &privileges = {"SUPER", "FILE", "RELOAD",
-                                               "BINLOG_ADMIN"});
+    const std::set<std::string> &privileges = k_mysqlaas_allowed_privileges);
 
 bool check_create_table_for_data_index_dir_option(
     const std::string &create_table, std::string *rewritten = nullptr);

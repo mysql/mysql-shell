@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #include "mysqlshdk/libs/oci/oci_bucket.h"
 
 #include <algorithm>
+#include <regex>
 #include <vector>
 
 #include "mysqlshdk/libs/db/uri_encoder.h"
@@ -43,6 +44,14 @@ std::string encode_path(const std::string &data) {
 std::string encode_query(const std::string &data) {
   mysqlshdk::db::uri::Uri_encoder encoder;
   return encoder.encode_query(data);
+}
+
+/**
+ * Returns true if the given url is a pre-authenticated request
+ */
+const std::regex k_par_regex("^\\/p\\/.+\\/n\\/.+\\/b\\/.+\\/o\\/.+$");
+bool is_par(const std::string &url) {
+  return std::regex_match(url, k_par_regex);
 }
 
 namespace detail {
@@ -82,7 +91,8 @@ Bucket::Bucket(const Oci_options &options)
       kRenameObjectPath{kBucketPath + "/actions/renameObject"},
       kMultipartActionPath{kBucketPath + "/u"},
       kUploadPartFormat{kBucketPath + "/u/%s?uploadId=%s&uploadPartNum=%zi"},
-      kMultipartActionFormat{kBucketPath + "/u/%s?uploadId=%s"} {}
+      kMultipartActionFormat{kBucketPath + "/u/%s?uploadId=%s"},
+      kParActionPath{kBucketPath + "/p/"} {}
 
 void Bucket::ensure_connection() {
   if (!m_rest_service) {
@@ -247,9 +257,14 @@ void Bucket::put_object(const std::string &objectName, const char *body,
   }
 
   try {
-    m_rest_service->put(shcore::str_format(kObjectActionFormat.c_str(),
-                                           encode_path(objectName).c_str()),
-                        body, size, headers);
+    if (is_par(objectName)) {
+      m_rest_service->put(objectName, body, size, headers, nullptr, nullptr,
+                          false);
+    } else {
+      m_rest_service->put(shcore::str_format(kObjectActionFormat.c_str(),
+                                             encode_path(objectName).c_str()),
+                          body, size, headers);
+    }
   } catch (const Response_error &error) {
     throw Response_error(error.code(), "Failed to put object '" + objectName +
                                            "': " + error.what());
@@ -303,9 +318,13 @@ size_t Bucket::get_object(const std::string &objectName,
   }
 
   try {
-    m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
-                                           encode_path(objectName).c_str()),
-                        headers, buffer);
+    if (is_par(objectName)) {
+      m_rest_service->get(objectName, headers, buffer, nullptr, false);
+    } else {
+      m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
+                                             encode_path(objectName).c_str()),
+                          headers, buffer);
+    }
   } catch (const Response_error &error) {
     throw Response_error(error.code(), "Failed to get object '" + objectName +
                                            "' [" + headers["range"] +
@@ -325,9 +344,13 @@ size_t Bucket::get_object(const std::string &objectName,
                                 std::to_string(to_byte) + ""}};
 
   try {
-    m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
-                                           encode_path(objectName).c_str()),
-                        headers, buffer);
+    if (is_par(objectName)) {
+      m_rest_service->get(objectName, headers, buffer, nullptr, false);
+    } else {
+      m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
+                                             encode_path(objectName).c_str()),
+                          headers, buffer);
+    }
   } catch (const Response_error &error) {
     throw Response_error(error.code(), "Failed to get object '" + objectName +
                                            "' [" + headers["range"] +
@@ -363,9 +386,13 @@ size_t Bucket::get_object(const std::string &objectName,
   ensure_connection();
 
   try {
-    m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
-                                           encode_path(objectName).c_str()),
-                        {}, buffer);
+    if (is_par(objectName)) {
+      m_rest_service->get(objectName, {}, buffer, nullptr, false);
+    } else {
+      m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
+                                             encode_path(objectName).c_str()),
+                          {}, buffer);
+    }
   } catch (const Response_error &error) {
     throw Response_error(error.code(), "Failed to get object '" + objectName +
                                            "': " + error.what());
@@ -573,5 +600,162 @@ void Bucket::abort_multipart_upload(const Multipart_object &object) {
                              object.name + "': " + error.what());
   }
 }
+
+PAR Bucket::create_pre_authenticated_request(PAR_access_type access_type,
+                                             const std::string &expiration_time,
+                                             const std::string &par_name,
+                                             const std::string &object_name) {
+  // Ensures the REST connection is established
+  ensure_connection();
+
+  std::string access_type_str;
+  switch (access_type) {
+    case PAR_access_type::OBJECT_READ:
+      access_type_str = "ObjectRead";
+      break;
+    case PAR_access_type::OBJECT_WRITE:
+      access_type_str = "ObjectWrite";
+      break;
+    case PAR_access_type::OBJECT_READ_WRITE:
+      access_type_str = "ObjectReadWrite";
+      break;
+    case PAR_access_type::ANY_OBJECT_WRITE:
+      access_type_str = "AnyObjectWrite";
+      break;
+  }
+
+  // TODO(rennox): Formatting of the request bodies on all the functions should
+  // be updated to use the shcore::Json_dumper
+  std::string body = "{\"accessType\":\"" + access_type_str +
+                     "\", \"name\":\"" + par_name + "\"";
+
+  if (access_type != PAR_access_type::ANY_OBJECT_WRITE) {
+    body.append(", \"objectName\":\"" + object_name + "\"");
+  }
+
+  body.append(", \"timeExpires\":\"" + expiration_time + "\"}");
+
+  mysqlshdk::rest::String_buffer data;
+
+  std::string target;
+  if (object_name.empty()) {
+    target = "for bucket " + get_name();
+  } else {
+    target = "for object " + object_name;
+  }
+
+  std::string error_msg = shcore::str_format(
+      "Failed to create %s PAR %s: ", access_type_str.c_str(), target.c_str());
+  try {
+    m_rest_service->post(kParActionPath, body.data(), body.size(), {}, &data);
+  } catch (const Response_error &error) {
+    throw Response_error(error.code(), error_msg + error.what());
+  }
+
+  shcore::Dictionary_t map;
+  try {
+    map = shcore::Value::parse(data.data(), data.size()).as_map();
+  } catch (const shcore::Exception &error) {
+    error_msg += error.what();
+
+    log_debug2("%s\n%.*s", error_msg.c_str(), static_cast<int>(data.size()),
+               data.data());
+
+    throw shcore::Exception::runtime_error(error_msg);
+  }
+
+  return {map->get_string("id"),
+          map->get_string("name"),
+          map->get_string("accessUri"),
+          map->get_string("accessType"),
+          access_type != PAR_access_type::ANY_OBJECT_WRITE
+              ? map->get_string("objectName")
+              : "",
+          map->get_string("timeCreated"),
+          map->get_string("timeExpires"),
+          0};
+}
+
+void Bucket::delete_pre_authenticated_request(const std::string &id) {
+  // Ensures the REST connection is established
+  ensure_connection();
+
+  try {
+    m_rest_service->delete_(kParActionPath + id, nullptr, 0L);
+  } catch (const Response_error &error) {
+    throw Response_error(
+        error.code(),
+        shcore::str_format("Failed to delete PAR: %s", error.what()));
+  }
+}
+
+std::vector<PAR> Bucket::list_preauthenticated_requests(
+    const std::string &prefix, size_t limit, const std::string &page) {
+  // Ensures the REST connection is established
+  ensure_connection();
+
+  std::vector<std::string> parameters;
+
+  if (!prefix.empty())
+    parameters.emplace_back("prefix=" + encode_query(prefix));
+
+  // Only sets the limit when the request will be satisfied in one call,
+  // otherwise the limit will be set after the necessary calls to fulfill the
+  // limit request
+  if (limit && limit <= MAX_LIST_OBJECTS_LIMIT) {
+    parameters.emplace_back("limit=" + std::to_string(limit));
+  }
+
+  if (!page.empty()) parameters.emplace_back("page=" + encode_query(page));
+
+  auto path = kParActionPath;
+  if (!parameters.empty()) {
+    path.append("?" + shcore::str_join(parameters, "&"));
+  }
+
+  std::vector<PAR> list;
+
+  std::string msg("Failed to get preauthenticated request list");
+  if (!prefix.empty()) msg.append(" using prefix '" + prefix + "'");
+
+  // TODO(rennox): Pagiing loop?
+  //  while (!done) {
+  mysqlshdk::rest::String_buffer raw_data;
+  try {
+    m_rest_service->get(path, {}, &raw_data);
+  } catch (const Response_error &error) {
+    throw Response_error(error.code(), msg + ": " + error.what());
+  }
+
+  shcore::Array_t data;
+  try {
+    data = shcore::Value::parse(raw_data.data(), raw_data.size()).as_array();
+  } catch (const shcore::Exception &error) {
+    msg.append(": ").append(error.what());
+
+    log_debug2("%s\n%.*s", msg.c_str(), static_cast<int>(raw_data.size()),
+               raw_data.data());
+
+    throw shcore::Exception::runtime_error(msg);
+  }
+
+  for (auto &value : *data) {
+    PAR details;
+    auto object = value.as_map();
+
+    details.access_type = object->get_string("accessType");
+    details.id = object->get_string("id");
+    details.name = object->get_string("name");
+    if (!object->is_null("objectName"))
+      details.object_name = object->get_string("objectName");
+    details.time_created = object->get_string("timeCreated");
+    details.time_expires = object->get_string("timeExpires");
+
+    list.push_back(details);
+  }
+
+  return list;
+}
+
 }  // namespace oci
 }  // namespace mysqlshdk

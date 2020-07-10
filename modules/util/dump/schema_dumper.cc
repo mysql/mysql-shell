@@ -1,5 +1,5 @@
 /*
-   Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
+   Copyright (c) 2000, 2020, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -46,7 +46,6 @@
 #include "my_sys.h"
 #include "mysqld_error.h"
 
-#include "modules/util/dump/compatibility.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -2213,10 +2212,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
 Schema_dumper::Schema_dumper(
     const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
     const std::vector<std::string> &mysqlaas_supported_charsets,
-    const std::set<std::string> &mysqlaas_restricted_priveleges)
+    const std::set<std::string> &mysqlaas_allowed_privileges)
     : m_mysql(mysql),
       m_mysqlaas_supported_charsets(mysqlaas_supported_charsets),
-      m_mysqlaas_restricted_priveleges(mysqlaas_restricted_priveleges),
+      m_mysqlaas_allowed_priveleges(mysqlaas_allowed_privileges),
       default_charset(MYSQL_UNIVERSAL_CLIENT_CHARSET) {
   std::time_t t = std::time(nullptr);
   m_dump_info = ", server " +
@@ -2426,12 +2425,11 @@ std::string Schema_dumper::normalize_user(const std::string &user,
 std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
     IFile *file, const std::vector<std::string> &filter) {
   std::vector<Issue> problems;
-  std::set<std::string> restricted_privs =
+  std::set<std::string> allowed_privs =
       opt_mysqlaas || opt_strip_restricted_grants
-          ? m_mysqlaas_restricted_priveleges
+          ? m_mysqlaas_allowed_priveleges
           : std::set<std::string>();
-  if (opt_strip_role_admin) restricted_privs.insert("ROLE_ADMIN");
-  bool compatibility = opt_strip_restricted_grants || opt_strip_role_admin;
+  bool compatibility = opt_strip_restricted_grants;
   log_debug("Dumping grants for server");
 
   fputs("--\n-- Dumping user accounts\n--\n\n", file);
@@ -2466,7 +2464,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
       if (opt_mysqlaas || compatibility) {
         std::string rewritten;
         const auto privs = compatibility::check_privileges(
-            grant, compatibility ? &rewritten : nullptr, restricted_privs);
+            grant, compatibility ? &rewritten : nullptr, allowed_privs);
         if (!privs.empty()) {
           restricted.insert(restricted.end(), privs.begin(), privs.end());
           if (compatibility) grant = rewritten;
@@ -2496,7 +2494,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
       fputs("-- end grants " + u.first + "\n\n", file);
     }
   }
-  fputs("FLUSH PRIVILEGES;\n", file);
   fputs("-- End of dumping user accounts\n\n", file);
   return problems;
 }
