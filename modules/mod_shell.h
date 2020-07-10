@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,14 +77,12 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
 
 #if !defined(DOXYGEN_PY)
   void set_current_schema(const std::string &name);
+  void set_session(const std::shared_ptr<ShellBaseSession> &session);
 #endif
-
-  shcore::Value _set_current_schema(const shcore::Argument_list &args);
-  shcore::Value set_session(const shcore::Argument_list &args);
-  shcore::Value get_session(const shcore::Argument_list &args);
-  shcore::Value reconnect(const shcore::Argument_list &args);
-  shcore::Value log(const shcore::Argument_list &args);
-  shcore::Value status(const shcore::Argument_list &args);
+  std::shared_ptr<ShellBaseSession> get_session();
+  bool reconnect();
+  void log(const std::string &level, const std::string &message);
+  void status();
 
 #if DOXYGEN_JS
   Options options;
@@ -99,7 +97,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Undefined setSession(Session session);
   Undefined setCurrentSchema(String name);
   Undefined log(String level, String message);
-  Undefined reconnect();
+  Bool reconnect();
   Undefined status();
   List listCredentialHelpers();
   Undefined storeCredential(String url, String password);
@@ -128,7 +126,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   None set_session(Session session);
   None set_current_schema(str name);
   None log(str level, str message);
-  None reconnect();
+  bool reconnect();
   None status();
   list list_credential_helpers();
   None store_credential(str url, str password);
@@ -145,11 +143,13 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   int dump_rows(ShellBaseResult result, str format);
 #endif
 
-  shcore::Value list_credential_helpers(const shcore::Argument_list &args);
-  shcore::Value store_credential(const shcore::Argument_list &args);
-  shcore::Value delete_credential(const shcore::Argument_list &args);
-  shcore::Value delete_all_credentials(const shcore::Argument_list &args);
-  shcore::Value list_credentials(const shcore::Argument_list &args);
+  shcore::Array_t list_credential_helpers();
+  void store_credential(
+      const std::string &url,
+      const mysqlshdk::utils::nullable<std::string> &password);
+  void delete_credential(const std::string &url);
+  void delete_all_credentials();
+  shcore::Array_t list_credentials();
 
   std::shared_ptr<mysqlsh::ShellBaseSession> set_session_global(
       const std::shared_ptr<mysqlsh::ShellBaseSession> &session);

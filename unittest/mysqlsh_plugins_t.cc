@@ -1624,4 +1624,125 @@ shell.register_global('kwtest', obj)
   delete_user_plugin("kwargs-py-py-correct");
 }
 
+TEST_F(Mysqlsh_plugin_test, py_lots_of_params_plugin) {
+  // create fourth-py plugin - which defines a new global object
+  write_user_plugin(
+      "lot-params",
+      R"(def describe(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12):
+  print(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12)
+
+obj = shell.create_extension_object()
+shell.add_extension_object_member(obj, "selfDescribe", describe,{
+        "brief": "Creates a function to test KW arg passing.",
+        "parameters": [
+            {
+                "name": "one",
+                "type": "integer",
+            },
+            {
+                "name": "two",
+                "type": "integer",
+            },
+            {
+                "name": "three",
+                "type": "integer",
+            },
+            {
+                "name": "four",
+                "type": "integer",
+            },
+            {
+                "name": "five",
+                "type": "integer",
+            },
+            {
+                "name": "six",
+                "type": "string",
+            },
+            {
+                "name": "seven",
+                "type": "string",
+            },
+            {
+                "name": "eight",
+                "type": "string",
+            },
+            {
+                "name": "nine",
+                "type": "string",
+            },
+            {
+                "name": "ten",
+                "type": "string",
+            },
+            {
+                "name": "eleven",
+                "type": "integer",
+                "required": False,
+                "default": 3
+            },
+            {
+                "name": "twelve",
+                "type": "string",
+                "required": False,
+                "default": "some value"
+            }
+        ]
+    });
+
+shell.register_global('pyObject', obj);
+)",
+      ".py");
+
+  // check if jsObject.test_function was properly registered in PY
+  add_py_test("\\py");
+  // TEST: Missing required parameters
+  add_py_test(
+      "pyObject.self_describe()",
+      "pyObject.self_describe: Invalid number of arguments, expected 10 "
+      "to 12 but got 0");
+  add_py_test(
+      "pyObject.self_describe(1)",
+      "pyObject.self_describe: Invalid number of arguments, expected 10 "
+      "to 12 but got 1");
+  add_py_test("pyObject.self_describe(1, five=10)",
+              "pyObject.self_describe: Missing value for argument 'two'");
+
+  // TEST: Passing keyword parameter skipping optional parameters
+  // The missed parameter (11) takes its default value of 3
+  add_py_test(
+      "pyObject.self_describe(1,2,3,4,5,'six', 'seven', 'eight', 'nine', "
+      "'ten',twelve='other')",
+      "1 2 3 4 5 six seven eight nine ten 3 other");
+
+  // TEST: Passing all parameters as positional
+  add_py_test(
+      "pyObject.self_describe(2,4,6,8,10,'6A','7B','8C', '9D', '10E', 11, "
+      "'12G')",
+      "2 4 6 8 10 6A 7B 8C 9D 10E 11 12G");
+
+  // TEST: Passing all parameters as keyword parameters
+  add_py_test(
+      "pyObject.self_describe(one=3, two=6, three=9, four=12, five=15, "
+      "six='6th', seven='7th', eight='8th', nine='9th', ten='10th', "
+      "eleven=11, twelve='12th')",
+      "3 6 9 12 15 6th 7th 8th 9th 10th 11 12th");
+
+  // TEST: Passing all parameters as keyword parameters scrambled
+  add_py_test(
+      "pyObject.self_describe(twelve='12th', nine='9th', six='6th', one=1, "
+      "two=6, three=9, four=12, five=15, seven='7th', eight='8th', ten='10th', "
+      "eleven=11)",
+      "1 6 9 12 15 6th 7th 8th 9th 10th 11 12th");
+
+  // run the test
+  run({"--log-level=debug"});
+
+  // check the output
+  for (const auto &output : get_expected_output()) {
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(output);
+  }
+  delete_user_plugin("lot-params");
+}
+
 }  // namespace tests
