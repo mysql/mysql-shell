@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -65,12 +65,14 @@ std::unique_ptr<mysqlshdk::db::Warning> Fake_result::fetch_one_warning() {
  * Each element should be a valid representation of the type at the
  * same position.
  */
-void Fake_result::add_row(const std::vector<std::string> &data) {
+Fake_result &Fake_result::add_row(const std::vector<std::string> &data) {
   auto row = std::make_unique<NiceMock<Mock_row>>();
 
   row->init(_names, _types, data);
 
   _records.push_back(std::move(row));
+
+  return *this;
 }
 
 void Fake_result::add_warning(const mysqlshdk::db::Warning &warning) {
@@ -128,6 +130,15 @@ void Mock_result::add_result(
   for (auto row : rows) result->add_row(row);
 
   _results.push_back(std::move(result));
+}
+
+Fake_result &Mock_result::add_result(
+    const std::vector<std::string> &names,
+    const std::vector<mysqlshdk::db::Type> &types) {
+  auto result = std::make_unique<Fake_result>(names, types);
+  _results.push_back(std::move(result));
+
+  return *_results.back();
 }
 
 void Mock_result::set_data(const std::vector<Fake_result_data> &data) {

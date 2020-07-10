@@ -29,15 +29,30 @@
 
 namespace testing {
 
-Mock_session &Mock_session::expect_query(const std::string &query) {
+void Mock_session_common::do_expect_query(const std::string &query) {
   _last_query = _queries.size();
   _queries.push_back(query);
   _throws.push_back(false);
-
-  return *this;
 }
 
-void Mock_session::then_return(const std::vector<Fake_result_data> &data) {
+std::string Mock_session::escape_string(const std::string &s) const {
+  std::string res;
+  res.resize(s.length() * 2 + 1);
+  size_t l = mysql_escape_string(&res[0], s.data(), s.length());
+  res.resize(l);
+  return res;
+}
+
+std::string Mock_session::escape_string(const char *buffer, size_t len) const {
+  std::string res;
+  res.resize(len * 2 + 1);
+  size_t l = mysql_escape_string(&res[0], buffer, len);
+  res.resize(l);
+  return res;
+}
+
+void Mock_session_common::then_return(
+    const std::vector<Fake_result_data> &data) {
   if (_last_query < _queries.size()) {
     auto result = std::shared_ptr<Mock_result>(new Mock_result());
 
@@ -49,16 +64,42 @@ void Mock_session::then_return(const std::vector<Fake_result_data> &data) {
   }
 }
 
-void Mock_session::then_throw() {
+Fake_result &Mock_session_common::then(
+    const std::vector<std::string> &names,
+    const std::vector<mysqlshdk::db::Type> &types) {
+  if (_last_query < _queries.size()) {
+    auto result = std::shared_ptr<Mock_result>(new Mock_result());
+
+    _results[_queries[_last_query++]] = result;
+
+    if (types.empty()) {
+      return result->add_result(
+          names, std::vector<mysqlshdk::db::Type>(names.size(),
+                                                  mysqlshdk::db::Type::String));
+    } else {
+      return result->add_result(names, types);
+    }
+  } else {
+    throw std::logic_error("Attempted to set result with no query.");
+  }
+}
+
+void Mock_session_common::then_throw() {
   if (_last_query < _queries.size())
     _throws[_last_query++] = true;
   else
     throw std::logic_error("Attempted to set throw condition with no query.");
 }
 
-std::shared_ptr<mysqlshdk::db::IResult> Mock_session::querys(
+std::shared_ptr<mysqlshdk::db::IResult> Mock_session_common::do_querys(
     const char *sql, size_t length, bool /*buffered*/) {
   std::string s(sql, length);
+
+  if (m_query_handler) {
+    auto res = m_query_handler(s);
+    if (res) return res;
+  }
+
   if (_queries.empty()) throw std::logic_error("Unexpected query: " + s);
 
   // Ensures the expected query got received
@@ -77,19 +118,4 @@ std::shared_ptr<mysqlshdk::db::IResult> Mock_session::querys(
   return _results[s];
 }
 
-std::string Mock_session::escape_string(const std::string &s) const {
-  std::string res;
-  res.resize(s.length() * 2 + 1);
-  size_t l = mysql_escape_string(&res[0], s.data(), s.length());
-  res.resize(l);
-  return res;
-}
-
-std::string Mock_session::escape_string(const char *buffer, size_t len) const {
-  std::string res;
-  res.resize(len * 2 + 1);
-  size_t l = mysql_escape_string(&res[0], buffer, len);
-  res.resize(l);
-  return res;
-}
 }  // namespace testing

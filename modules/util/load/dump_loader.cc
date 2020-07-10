@@ -178,9 +178,6 @@ void Dump_loader::Worker::Load_chunk_task::load(
 
   import_options.base_session(session);
 
-  // options.set_options(m_options);
-  import_options.validate();
-
   import_table::Stats stats;
   if (m_resume) {
     // Truncate the table if its not chunked, but if it's chunked leave it
@@ -890,8 +887,9 @@ bool Dump_loader::schedule_table_chunk(
     const std::string &schema, const std::string &table, ssize_t chunk_index,
     Worker *worker, std::unique_ptr<mysqlshdk::storage::IFile> file,
     size_t size, shcore::Dictionary_t options, bool resuming) {
-  if (m_skip_schemas.count(schema) > 0 ||
-      m_skip_tables.count(schema_table_key(schema, table)) > 0 ||
+  if (m_skip_schemas.find(schema) != m_skip_schemas.end() ||
+      m_skip_tables.find(schema_table_key(schema, table)) !=
+          m_skip_tables.end() ||
       !m_options.include_table(schema, table))
     return false;
 
@@ -1194,10 +1192,12 @@ void Dump_loader::update_progress() {
   }
 }
 
-void Dump_loader::open_dump() {
+void Dump_loader::open_dump() { open_dump(m_options.create_dump_handle()); }
+
+void Dump_loader::open_dump(
+    std::unique_ptr<mysqlshdk::storage::IDirectory> dumpdir) {
   auto console = current_console();
-  m_dump =
-      std::make_unique<Dump_reader>(m_options.create_dump_handle(), m_options);
+  m_dump = std::make_unique<Dump_reader>(std::move(dumpdir), m_options);
 
   auto status = m_dump->open();
 

@@ -302,37 +302,62 @@ std::unordered_set<Dump_reader::Table_info *>::iterator
 Dump_reader::schedule_chunk_proportionally(
     const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
     std::unordered_set<Dump_reader::Table_info *> *tables_with_data) {
+  if (tables_with_data->empty()) return tables_with_data->end();
+
+  // first check if there's any table that's not being loaded
+  {
+    auto best = tables_with_data->end();
+
+    for (auto it = tables_with_data->begin(); it != tables_with_data->end();
+         ++it) {
+      std::string key = schema_table_key((*it)->schema, (*it)->table);
+      if (tables_being_loaded.find(key) == tables_being_loaded.end()) {
+        if (best == tables_with_data->end() ||
+            (*it)->bytes_available() > (*best)->bytes_available())
+          best = it;
+      }
+    }
+    if (best != tables_with_data->end()) {
+      return best;
+    }
+  }
+
+  // if all available tables are already loaded, then schedule proportionally
   std::unordered_map<std::string, double> worker_weights;
   std::vector<std::pair<std::unordered_set<Dump_reader::Table_info *>::iterator,
                         double>>
       candidate_weights;
-
   // calc ratio of data being loaded per table / total data being loaded
   double total_bytes_loading = std::accumulate(
-      tables_being_loaded.begin(), tables_being_loaded.end(), 0,
-      [](size_t size, const std::pair<std::string, size_t> &table_size) {
+      tables_being_loaded.begin(), tables_being_loaded.end(),
+      static_cast<size_t>(0),
+      [&worker_weights](size_t size,
+                        const std::pair<std::string, size_t> &table_size) {
+        worker_weights[table_size.first] += table_size.second;
         return size + table_size.second;
       });
 
   if (total_bytes_loading > 0) {
-    for (const auto &table : tables_being_loaded) {
-      worker_weights.emplace(table.first, table.second / total_bytes_loading);
+    for (auto &it : worker_weights) {
+      it.second = it.second / total_bytes_loading;
     }
   }
 
   // calc ratio of data available per table / total data available
-  double total_bytes_available =
-      std::accumulate(tables_with_data->begin(), tables_with_data->end(), 0,
-                      [](size_t size, Dump_reader::Table_info *table) {
-                        return size + table->bytes_available();
-                      });
+  double total_bytes_available = std::accumulate(
+      tables_with_data->begin(), tables_with_data->end(),
+      static_cast<size_t>(0), [](size_t size, Dump_reader::Table_info *table) {
+        return size + table->bytes_available();
+      });
   if (total_bytes_available > 0) {
     for (auto it = tables_with_data->begin(); it != tables_with_data->end();
          ++it) {
       candidate_weights.emplace_back(
-          it, (*it)->bytes_available() / total_bytes_available);
+          it, static_cast<double>((*it)->bytes_available()) /
+                  total_bytes_available);
     }
   } else {
+    assert(0);
     return tables_with_data->begin();
   }
 
@@ -340,10 +365,6 @@ Dump_reader::schedule_chunk_proportionally(
   double best_diff = 0;
   std::unordered_set<Dump_reader::Table_info *>::iterator best =
       tables_with_data->begin();
-
-  double best_unique_diff = 0;
-  std::unordered_set<Dump_reader::Table_info *>::iterator best_unique =
-      tables_with_data->end();
 
   for (const auto &cand : candidate_weights) {
     std::string key =
@@ -360,14 +381,8 @@ Dump_reader::schedule_chunk_proportionally(
         best_diff = cand.second;
         best = cand.first;
       }
-      if (cand.second > best_unique_diff) {
-        best_unique_diff = cand.second;
-        best_unique = cand.first;
-      }
     }
   }
-
-  if (best_unique != tables_with_data->end()) return best_unique;
 
   return best;
 }
@@ -503,7 +518,7 @@ void Dump_reader::rescan() {
 
   m_contents.rescan(m_dir.get(), file_by_name, this);
 
-  if (file_by_name.count("@.done.json") > 0 &&
+  if (file_by_name.find("@.done.json") != file_by_name.end() &&
       m_dump_status != Status::COMPLETE) {
     m_dump_status = Status::COMPLETE;
     m_contents.parse_done_metadata(m_dir.get());
@@ -628,7 +643,7 @@ void Dump_reader::Table_info::rescan(
   if (!md_seen) {
     // schema@table.json
     std::string mdpath = dump::get_table_data_filename(basename, "json");
-    if (files.count(mdpath) > 0) {
+    if (files.find(mdpath) != files.end()) {
       md_seen = true;
       auto md = fetch_metadata(dir, mdpath);
 
@@ -674,12 +689,12 @@ void Dump_reader::Table_info::rescan(
 
   // check for the sql file for the schema
   if (!sql_seen) {
-    if (files.count(script_name()) > 0) {
+    if (files.find(script_name()) != files.end()) {
       sql_seen = true;
     }
   }
   if (!has_triggers) {
-    if (files.count(triggers_script_name()) > 0) {
+    if (files.find(triggers_script_name()) != files.end()) {
       has_triggers = true;
     }
   }
@@ -747,13 +762,13 @@ void Dump_reader::View_info::rescan(
     const std::unordered_map<std::string, size_t> &files, Dump_reader *) {
   // check for the sql file for the schema
   if (!sql_seen) {
-    if (files.count(script_name()) > 0) {
+    if (files.find(script_name()) != files.end()) {
       sql_seen = true;
     }
   }
 
   if (!sql_pre_seen) {
-    if (files.count(pre_script_name()) > 0) {
+    if (files.find(pre_script_name()) != files.end()) {
       sql_pre_seen = true;
     }
   }
@@ -784,7 +799,7 @@ void Dump_reader::Schema_info::rescan(
   if (!md_loaded) {
     // schema.json
     std::string mdpath = dump::get_schema_filename(basename, "json");
-    if (files.count(mdpath) > 0) {
+    if (files.find(mdpath) != files.end()) {
       md_loaded = true;
       auto md = fetch_metadata(dir, mdpath);
 
@@ -875,7 +890,7 @@ void Dump_reader::Schema_info::rescan(
 
   // check for the sql file for the schema
   if (!sql_seen) {
-    if (files.count(script_name()) > 0) {
+    if (files.find(script_name()) != files.end()) {
       sql_seen = true;
     }
   }
@@ -907,13 +922,13 @@ bool Dump_reader::Dump_info::ready() const {
 void Dump_reader::Dump_info::rescan(
     mysqlshdk::storage::IDirectory *dir,
     const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
-  if (!sql && files.count("@.sql") > 0) {
+  if (!sql && files.find("@.sql") != files.end()) {
     sql = std::make_unique<std::string>(fetch_file(dir, "@.sql"));
   }
-  if (!post_sql && files.count("@.post.sql") > 0) {
+  if (!post_sql && files.find("@.post.sql") != files.end()) {
     post_sql = std::make_unique<std::string>(fetch_file(dir, "@.post.sql"));
   }
-  if (has_users && !users_sql && files.count("@.users.sql") > 0) {
+  if (has_users && !users_sql && files.find("@.users.sql") != files.end()) {
     users_sql = std::make_unique<std::string>(fetch_file(dir, "@.users.sql"));
   }
 

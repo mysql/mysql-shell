@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,7 +48,7 @@ class Fake_result {
               const std::vector<mysqlshdk::db::Type> &types);
   const mysqlshdk::db::IRow *fetch_one();
   std::unique_ptr<mysqlshdk::db::Warning> fetch_one_warning();
-  void add_row(const std::vector<std::string> &data);
+  Fake_result &add_row(const std::vector<std::string> &data);
   void add_warning(const mysqlshdk::db::Warning &warning);
   std::shared_ptr<mysqlshdk::db::Field_names> field_names() const {
     return m_field_names;
@@ -121,6 +121,9 @@ class Mock_result : public mysqlshdk::db::IResult {
   void add_result(const std::vector<std::string> &names,
                   const std::vector<mysqlshdk::db::Type> &types,
                   const std::vector<std::vector<std::string>> &rows);
+
+  Fake_result &add_result(const std::vector<std::string> &names,
+                          const std::vector<mysqlshdk::db::Type> &types);
 
   void set_data(const std::vector<Fake_result_data> &data);
 

@@ -240,6 +240,7 @@ class Dump_loader {
                          mysqlshdk::db::IResult *result);
 
   void open_dump();
+  void open_dump(std::unique_ptr<mysqlshdk::storage::IDirectory> dumpdir);
   void setup_progress(bool *out_is_resuming);
   void spawn_workers();
   void join_workers();
@@ -278,6 +279,8 @@ class Dump_loader {
  private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);
+  FRIEND_TEST(Load_dump_mocked, chunk_scheduling_more_threads);
+  FRIEND_TEST(Load_dump_mocked, chunk_scheduling_more_tables);
 #endif
 
   class Sql_transform {

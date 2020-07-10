@@ -845,8 +845,9 @@ Help_topic *Help_registry::get_topic(const Help_registry *registry,
                                      const std::string &id,
                                      bool allow_unexisting,
                                      const Topic_mask &type) const {
-  try {
-    auto &topics = registry->m_keywords.at(id);
+  auto it = registry->m_keywords.find(id);
+  if (it != registry->m_keywords.end()) {
+    auto &topics = it->second;
     if (type == Topic_mask::any()) {
       if (topics.size() > 1)
         throw std::logic_error("Non unique topic found as '" + id + "'");
@@ -864,7 +865,7 @@ Help_topic *Help_registry::get_topic(const Help_registry *registry,
       }
       return found_topic;
     }
-  } catch (const std::out_of_range &) {
+  } else {
     if (!allow_unexisting)
       throw std::logic_error("Unable to find topic '" + id + "'");
   }
