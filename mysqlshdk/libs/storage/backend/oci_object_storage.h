@@ -317,7 +317,6 @@ class Object : public mysqlshdk::storage::IFile {
 
    private:
     off64_t m_offset;
-    bool m_done;
   };
 
   std::unique_ptr<Writer> m_writer;

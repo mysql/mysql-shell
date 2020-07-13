@@ -134,6 +134,63 @@ os.remove("@.manifest.json")
 os.remove("@.manifest.json.partial")
 delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
 
+#@<> BUG#31606223 - read only, progress file does not exist
+progress_par=create_par(OS_NAMESPACE, k_bucket_name, "ObjectRead", "manifest-par", today_plus_days(1, RFC3339), "shell-test/par-load-progress.json")
+EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), "RuntimeError: Util.load_dump: Failed to put object '{0}': Either the bucket named 'testbkt' does not exist in the namespace 'mysql2' or you are not authorized to access it (404)".format(progress_par[progress_par.find("/p/"):]))
+
+#@<> BUG#31606223 - read only, empty progress file
+progress_par=create_par(OS_NAMESPACE, k_bucket_name, "ObjectRead", "manifest-par", today_plus_days(1, RFC3339), "shell-test/par-load-progress.json")
+open("par-load-progress.json", "w").close()
+testutil.anycopy("par-load-progress.json", {"osBucketName":k_bucket_name, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"shell-test/par-load-progress.json"})
+EXPECT_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), "RuntimeError: Util.load_dump: Failed to put object '{0}': Either the bucket named 'testbkt' does not exist in the namespace 'mysql2' or you are not authorized to access it (404)".format(progress_par[progress_par.find("/p/"):]))
+os.remove("par-load-progress.json")
+
+#@<> BUG#31606223 - write only, progress file does not exist
+# this is a success, because reading from write-only PAR results in 404, code assumes that the file does not exist and continues with the load process
+progress_par=create_par(OS_NAMESPACE, k_bucket_name, "ObjectWrite", "manifest-par", today_plus_days(1, RFC3339), "shell-test/par-load-progress.json")
+EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), "load_dump() using PAR progress file")
+EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
+validate_load_progress("par-load-progress.json")
+session.run_sql("drop schema sample")
+os.remove("par-load-progress.json")
+delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
+
+#@<> BUG#31606223 - write only, empty progress file
+# this is a success, because reading from write-only PAR results in 404, code assumes that the file does not exist and continues with the load process
+progress_par=create_par(OS_NAMESPACE, k_bucket_name, "ObjectWrite", "manifest-par", today_plus_days(1, RFC3339), "shell-test/par-load-progress.json")
+open("par-load-progress.json", "w").close()
+testutil.anycopy("par-load-progress.json", {"osBucketName":k_bucket_name, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"shell-test/par-load-progress.json"})
+EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), "load_dump() using PAR progress file")
+EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
+validate_load_progress("par-load-progress.json")
+session.run_sql("drop schema sample")
+os.remove("par-load-progress.json")
+delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
+
+#@<> BUG#31606223 - read-write, progress file does not exist
+progress_par=create_par(OS_NAMESPACE, k_bucket_name, "ObjectReadWrite", "manifest-par", today_plus_days(1, RFC3339), "shell-test/par-load-progress.json")
+EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), "load_dump() using PAR progress file")
+EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
+validate_load_progress("par-load-progress.json")
+session.run_sql("drop schema sample")
+os.remove("par-load-progress.json")
+delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
+
+#@<> BUG#31606223 - read-write, empty progress file
+progress_par=create_par(OS_NAMESPACE, k_bucket_name, "ObjectReadWrite", "manifest-par", today_plus_days(1, RFC3339), "shell-test/par-load-progress.json")
+open("par-load-progress.json", "w").close()
+testutil.anycopy("par-load-progress.json", {"osBucketName":k_bucket_name, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"shell-test/par-load-progress.json"})
+EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), "load_dump() using PAR progress file")
+EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
+validate_load_progress("par-load-progress.json")
+session.run_sql("drop schema sample")
+os.remove("par-load-progress.json")
+delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
