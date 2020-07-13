@@ -120,11 +120,9 @@ class Load_progress_log final {
         throw std::runtime_error("Error loading load progress file '" +
                                  existing_file->full_path() + "': " + e.what());
       }
-
-      status = Status::INTERRUPTED;
-    } else {
-      status = Status::PENDING;
     }
+
+    status = m_last_state.empty() ? Status::PENDING : Status::INTERRUPTED;
 
     if (dry_run) {
       m_file.reset();

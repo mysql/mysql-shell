@@ -215,9 +215,10 @@ Response::Status_code Oci_rest_service::get(const std::string &path,
 Response::Status_code Oci_rest_service::head(const std::string &path,
                                              const Headers &headers,
                                              Base_response_buffer *buffer,
-                                             Headers *response_headers) {
+                                             Headers *response_headers,
+                                             bool sign_request) {
   return execute(Type::HEAD, path, nullptr, 0, headers, buffer,
-                 response_headers);
+                 response_headers, sign_request);
 }
 
 Response::Status_code Oci_rest_service::post(const std::string &path,

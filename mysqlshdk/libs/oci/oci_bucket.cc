@@ -276,9 +276,18 @@ void Bucket::delete_object(const std::string &objectName) {
   ensure_connection();
 
   try {
-    m_rest_service->delete_(shcore::str_format(kObjectActionFormat.c_str(),
-                                               encode_path(objectName).c_str()),
-                            nullptr, 0L, {{"accept", "*/*"}});
+    if (is_par(objectName)) {
+      // truncate the file, a PAR URL does not support DELETE
+      Headers headers{{"content-type", "application/octet-stream"}};
+      char body = 0;
+      m_rest_service->put(objectName, &body, 0, headers, nullptr, nullptr,
+                          false);
+    } else {
+      m_rest_service->delete_(
+          shcore::str_format(kObjectActionFormat.c_str(),
+                             encode_path(objectName).c_str()),
+          nullptr, 0L, {{"accept", "*/*"}});
+    }
   } catch (const Response_error &error) {
     throw Response_error(error.code(), "Failed to delete object '" +
                                            objectName + "': " + error.what());
@@ -291,9 +300,13 @@ size_t Bucket::head_object(const std::string &objectName) {
 
   Headers response_headers;
   try {
-    m_rest_service->head(shcore::str_format(kObjectActionFormat.c_str(),
-                                            encode_path(objectName).c_str()),
-                         {}, nullptr, &response_headers);
+    if (is_par(objectName)) {
+      m_rest_service->head(objectName, {}, nullptr, &response_headers, false);
+    } else {
+      m_rest_service->head(shcore::str_format(kObjectActionFormat.c_str(),
+                                              encode_path(objectName).c_str()),
+                           {}, nullptr, &response_headers);
+    }
   } catch (const Response_error &error) {
     throw Response_error(error.code(), "Failed to get summary for object '" +
                                            objectName + "': " + error.what());

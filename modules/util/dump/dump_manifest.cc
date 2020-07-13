@@ -291,8 +291,7 @@ bool Dump_manifest::file_exists(const std::string &name) const {
   if (created_object != m_created_objects.end()) {
     if (created_object->second.size == k_unknown_existence) {
       try {
-        mysqlshdk::rest::String_buffer buffer;
-        m_bucket->get_object(m_created_objects.at(name).name, &buffer, 0, 0);
+        m_bucket->head_object(m_created_objects.at(name).name);
         m_created_objects.at(name).size = k_existing_object;
       } catch (const mysqlshdk::rest::Response_error &error) {
         if (error.code() == mysqlshdk::rest::Response::Status_code::NOT_FOUND) {

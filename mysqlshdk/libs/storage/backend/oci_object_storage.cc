@@ -456,12 +456,9 @@ void Object::Writer::close() {
   }
 }
 
-Object::Reader::Reader(Object *owner)
-    : File_handler(owner), m_offset(0), m_done(false) {
+Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
   try {
-    // This empty read will validate if the file exists
-    mysqlshdk::rest::String_buffer buffer;
-    m_object->m_bucket->get_object(m_object->full_path(), &buffer, 0, 0);
+    m_size = m_object->m_bucket->head_object(m_object->full_path());
   } catch (const Response_error &error) {
     if (error.code() == Response::Status_code::NOT_FOUND) {
       // For Not Found generates a custom message as the one for the get()
@@ -476,7 +473,8 @@ Object::Reader::Reader(Object *owner)
 }
 
 off64_t Object::Reader::seek(off64_t offset) {
-  m_offset = offset;
+  const off64_t fsize = m_size;
+  m_offset = std::min(offset, fsize);
   return m_offset;
 }
 
@@ -485,7 +483,13 @@ off64_t Object::Reader::tell() const {
 }
 
 ssize_t Object::Reader::read(void *buffer, size_t length) {
-  if (m_done) return 0;
+  const size_t first = m_offset;
+  const size_t last_unbounded = m_offset + length - 1;
+  const off64_t fsize = m_size;
+
+  if (m_offset >= fsize) return 0;
+
+  const size_t last = std::min(m_size - 1, last_unbounded);
 
   // Creates a response buffer that writes data directly to buffer
   mysqlshdk::rest::Static_char_ref_buffer rbuffer(
@@ -494,15 +498,12 @@ ssize_t Object::Reader::read(void *buffer, size_t length) {
   size_t read = 0;
   try {
     read = m_object->m_bucket->get_object(m_object->full_path(), &rbuffer,
-                                          m_offset, m_offset + length - 1);
+                                          first, last);
   } catch (const Response_error &error) {
     throw shcore::Exception::runtime_error(error.format());
   }
 
   m_offset += read;
-  m_size += read;
-
-  if (read < length) m_done = true;
 
   return read;
 }

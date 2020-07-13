@@ -60,7 +60,8 @@ class Oci_rest_service {
   Response::Status_code head(const std::string &path,
                              const Headers &headers = {},
                              Base_response_buffer *buffer = nullptr,
-                             Headers *response_headers = nullptr);
+                             Headers *response_headers = nullptr,
+                             bool sign_request = true);
 
   Response ::Status_code post(const std::string &path, const char *body,
                               size_t size, const Headers &headers = {},
