@@ -276,9 +276,18 @@ void Bucket::delete_object(const std::string &objectName) {
   ensure_connection();
 
   try {
-    m_rest_service->delete_(shcore::str_format(kObjectActionFormat.c_str(),
-                                               encode_path(objectName).c_str()),
-                            nullptr, 0L, {{"accept", "*/*"}});
+    if (is_par(objectName)) {
+      // truncate the file, a PAR URL does not support DELETE
+      Headers headers{{"content-type", "application/octet-stream"}};
+      char body = 0;
+      m_rest_service->put(objectName, &body, 0, headers, nullptr, nullptr,
+                          false);
+    } else {
+      m_rest_service->delete_(
+          shcore::str_format(kObjectActionFormat.c_str(),
+                             encode_path(objectName).c_str()),
+          nullptr, 0L, {{"accept", "*/*"}});
+    }
   } catch (const Response_error &error) {
     throw Response_error(error.code(), "Failed to delete object '" +
                                            objectName + "': " + error.what());

@@ -456,8 +456,7 @@ void Object::Writer::close() {
   }
 }
 
-Object::Reader::Reader(Object *owner)
-    : File_handler(owner), m_offset(0) {
+Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
   try {
     m_size = m_object->m_bucket->head_object(m_object->full_path());
   } catch (const Response_error &error) {

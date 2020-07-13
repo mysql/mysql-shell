@@ -191,6 +191,29 @@ session.run_sql("drop schema sample")
 os.remove("par-load-progress.json")
 delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
 
+#@<> BUG#31605353 - PAR + resetProgress
+progress_par=create_par(OS_NAMESPACE, k_bucket_name, "ObjectReadWrite", "progress-par", today_plus_days(1, RFC3339), "shell-test/par-load-progress.json")
+# load the dump
+EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par}), "load_dump() using PAR progress file")
+# validate the status
+EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
+testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
+validate_load_progress("par-load-progress.json")
+# clean the local stuff
+session.run_sql("drop schema sample")
+os.remove("par-load-progress.json")
+# load once again, reset the progress
+EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par, "resetProgress": True}), "load_dump() using PAR progress file + resetProgress")
+# validate the status
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected for the instance but 'resetProgress' option was enabled. Load progress will be discarded and the whole dump will be reloaded.")
+testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
+validate_load_progress("par-load-progress.json")
+# clean the local stuff
+session.run_sql("drop schema sample")
+os.remove("par-load-progress.json")
+# delete the remove progress file
+delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
