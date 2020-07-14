@@ -19,25 +19,44 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-IF(UNIX)
-  # CMake 3.4.0 is needed for Solaris due to CMake bug 15673.
-  # Cannot use CMAKE_SYSTEM_NAME until after PROJECT(), use uname directly.
-  FIND_PROGRAM(MY_UNAME uname /bin /usr/bin /usr/local/bin /sbin)
-  IF(MY_UNAME)
-    EXEC_PROGRAM(uname ARGS -s OUTPUT_VARIABLE MY_HOST_SYSTEM_NAME)
-    IF(MY_HOST_SYSTEM_NAME MATCHES "SunOS")
-      CMAKE_MINIMUM_REQUIRED(VERSION 3.4.0)
-    ENDIF()
-  ENDIF()
-ENDIF()
-# 2.8.12 as minimum unless higher is checked above.
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
-
 # On Linux el6/el7 the default gcc is too old, see if devtoolset is installed.
 # Same with SLES 12, look for gcc 7 there.
 # We need to look for gcc before calling PROJECT below.
 OPTION(FORCE_UNSUPPORTED_COMPILER "Disable compiler version checks" OFF)
 MARK_AS_ADVANCED(FORCE_UNSUPPORTED_COMPILER)
+
+# Use 'uname -r' and 'rpm -qf /' to figure out host system.
+# For Docker images we cannot trust uname, so use rpm instead.
+IF(UNIX)
+  FIND_PROGRAM(MY_UNAME uname /bin /usr/bin /usr/local/bin /sbin)
+  IF(MY_UNAME)
+    EXECUTE_PROCESS(COMMAND ${MY_UNAME} -s
+      OUTPUT_VARIABLE MY_HOST_SYSTEM_NAME
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      RESULT_VARIABLE MY_UNAME_RESULT
+    )
+    EXEC_PROGRAM(${MY_UNAME} ARGS -r OUTPUT_VARIABLE MY_HOST_SYSTEM_VERSION)
+
+    # CMake 3.4.0 is needed for Solaris due to CMake bug 15673.
+    # Cannot use CMAKE_SYSTEM_NAME until after PROJECT(), use uname directly.
+    IF(MY_HOST_SYSTEM_NAME MATCHES "SunOS")
+      CMAKE_MINIMUM_REQUIRED(VERSION 3.4.0)
+    ENDIF()
+  ENDIF()
+
+  FIND_PROGRAM(MY_RPM rpm /bin /usr/bin)
+  IF(MY_RPM)
+    EXECUTE_PROCESS(COMMAND ${MY_RPM} -qf /
+      OUTPUT_VARIABLE MY_HOST_FILESYSTEM_NAME
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      RESULT_VARIABLE MY_RPM_RESULT
+      )
+  ENDIF()
+ENDIF()
+
+# 2.8.12 as minimum unless higher is checked above.
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
+
 
 IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
     AND NOT CMAKE_C_COMPILER AND NOT CMAKE_CXX_COMPILER)
@@ -46,22 +65,33 @@ IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
   SET (ENV_CXX "$ENV{CXX}")
   IF (ENV_CC STREQUAL "" AND ENV_CXX STREQUAL "")
     IF(MY_UNAME)
-      EXEC_PROGRAM(uname ARGS -r OUTPUT_VARIABLE MY_HOST_SYSTEM_VERSION)
       IF(MY_HOST_SYSTEM_NAME MATCHES "Linux" AND
-          MY_HOST_SYSTEM_VERSION MATCHES "\\.el[67](uek)?\\.")
+          (MY_HOST_SYSTEM_VERSION MATCHES "\\.el[678](uek)?\\.")
+          OR
+          (MY_HOST_FILESYSTEM_NAME MATCHES "\\.el[678]\\."))
         MESSAGE(STATUS
-          "This is ${MY_HOST_SYSTEM_NAME} version ${MY_HOST_SYSTEM_VERSION}")
+          "This is el6, el7 or el8 as found from 'uname -r' or 'rpm -qf /'")
         MESSAGE(STATUS "We probably need some devtoolset compiler")
+        # el6 /opt/rh/devtoolset-8/root/usr/bin/gcc
+        # el7 /opt/rh/devtoolset-9/root/usr/bin/gcc
+        # el8 /opt/rh/gcc-toolset-9/root/usr/bin/gcc
+        SET(ALTERNATIVE_PATHS
+          "/opt/rh/devtoolset-9"
+          "/opt/rh/gcc-toolset-9"
+          "/opt/rh/devtoolset-8"
+          )
+        FOREACH(OPT_PATH ${ALTERNATIVE_PATHS})
+          FIND_PROGRAM(ALTERNATIVE_GCC gcc
+            NO_DEFAULT_PATH
+            PATHS "${OPT_PATH}/root/usr/bin")
+          FIND_PROGRAM(ALTERNATIVE_GPP g++
+            NO_DEFAULT_PATH
+            PATHS "${OPT_PATH}/root/usr/bin")
+          FIND_PROGRAM(ALTERNATIVE_ENABLE enable
+            NO_DEFAULT_PATH
+            PATHS "${OPT_PATH}")
+        ENDFOREACH()
 
-        FIND_PROGRAM(ALTERNATIVE_GCC gcc
-          NO_DEFAULT_PATH
-          PATHS "/opt/rh/devtoolset-7/root/usr/bin")
-        FIND_PROGRAM(ALTERNATIVE_GPP g++
-          NO_DEFAULT_PATH
-          PATHS "/opt/rh/devtoolset-7/root/usr/bin")
-        FIND_PROGRAM(ALTERNATIVE_ENABLE enable
-          NO_DEFAULT_PATH
-          PATHS "/opt/rh/devtoolset-7/")
         IF(ALTERNATIVE_GCC AND ALTERNATIVE_GPP)
           SET(CMAKE_C_COMPILER ${ALTERNATIVE_GCC})
           SET(CMAKE_CXX_COMPILER ${ALTERNATIVE_GPP})
@@ -92,13 +122,12 @@ IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
             ADD_DEFINITIONS(-D_GLIBCXX_USE_CXX11_ABI=1)
           ELSE()
             MESSAGE(WARNING "Could not find newer gcc")
-	  ENDIF()
-	ENDIF()
+          ENDIF()
+        ENDIF()
       ENDIF()
     ENDIF()
   ENDIF()
 ENDIF()
-
 
 project(mysqlsh)
 
