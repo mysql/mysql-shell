@@ -44,8 +44,8 @@ void Dump_tables::create_schema_tasks() {
                                 "' was not found in the database.");
   }
 
-  const auto add = [&schema](auto &&table, const std::string &type) {
-    Table_info info{std::forward<decltype(table)>(table), ""};
+  const auto add = [&schema](auto &&table_name, const std::string &type) {
+    Table_info info{std::forward<decltype(table_name)>(table_name), ""};
 
     if ("BASE TABLE" == type) {
       schema.tables.emplace_back(std::move(info));
