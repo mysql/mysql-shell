@@ -8,6 +8,8 @@
 #@<> Setup
 
 import oci
+import os
+import shutil
 
 k_bucket_name="testbkt"
 oci_config_file=os.path.join(OCI_CONFIG_HOME, "config")
@@ -74,15 +76,25 @@ wipeout_server(session2)
 
 #@<> Cause a partial load
 shell.connect(__sandbox_uri2)
+
+backup_file = "backup"
+if os.path.isfile(backup_file):
+    os.remove(backup_file)
+else:
+    shutil.rmtree(backup_file, ignore_errors=True)
+
 testutil.create_file("sakila@film_text@@0.tsv.zst", "badfile")
-testutil.anycopy({"osBucketName":k_bucket_name, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"mydump/sakila@film_text@@0.tsv.zst"}, "backup")
+testutil.anycopy({"osBucketName":k_bucket_name, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"mydump/sakila@film_text@@0.tsv.zst"}, backup_file)
 testutil.anycopy("sakila@film_text@@0.tsv.zst", {"osBucketName":k_bucket_name, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"mydump/sakila@film_text@@0.tsv.zst"})
 
 EXPECT_THROWS(lambda: util.load_dump("mydump", {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file}), "Error loading dump")
 
 EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zst: zstd.read: Unknown frame descriptor")
 
-testutil.anycopy("backup", {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"mydump/sakila@film_text@@0.tsv.zst"})
+testutil.anycopy(backup_file, {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"mydump/sakila@film_text@@0.tsv.zst"})
+
+os.remove(backup_file)
+os.remove("sakila@film_text@@0.tsv.zst")
 
 #@<> Resume partial load
 util.load_dump("mydump", {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file})
