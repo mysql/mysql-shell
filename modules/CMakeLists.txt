@@ -39,6 +39,7 @@ file(GLOB api_module_SOURCES
       "util/dump/compatibility_option.cc"
       "util/dump/console_with_progress.cc"
       "util/dump/ddl_dumper_options.cc"
+      "util/dump/dialect_dump_writer.cc"
       "util/dump/dump_instance.cc"
       "util/dump/dump_instance_options.cc"
       "util/dump/dump_options.cc"
