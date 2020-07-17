@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -139,7 +139,7 @@ cmake .. \
     -DV8_LIB_DIR=%{v8_libdir} \
 %else
     -DMYSQLCLIENT_STATIC_LINKING=ON \
-    -DHAVE_V8=0FF
+    -DHAVE_V8=OFF
 %endif
 %if 0%{?with_protobuf:1}
     -DWITH_PROTOBUF=%{with_protobuf} \
@@ -147,6 +147,10 @@ cmake .. \
 %if 0%{?with_gmock:1}
     -DWITH_TESTS=ON \
     -DWITH_GMOCK=%{with_gmock} \
+%endif
+%if 0%{!?with_gmock:1} && 0%{?with_tests:1}
+    -DENABLE_DOWNLOADS=1 \
+    -DWITH_TESTS=ON \
 %endif
 %if 0%{?with_oci:1}
     -DWITH_OCI=%{with_oci} \
