@@ -127,25 +127,25 @@ def check_super_read_only_done(connection):
 
 
 recov_cluster = None
-recov_master_uri = None
-recov_slave_uri = None
+recov_main_uri = None
+recov_subordinate_uri = None
 recov_state_list = None
 
 
-def _check_slave_state():
+def _check_subordinate_state():
     global recov_cluster
-    global recov_slave_uri
+    global recov_subordinate_uri
     global recov_state_list
 
     full_status = recov_cluster.status()
-    slave_status = full_status.defaultReplicaSet.topology[
-        recov_slave_uri].status
+    subordinate_status = full_status.defaultReplicaSet.topology[
+        recov_subordinate_uri].status
 
-    print("--->%s: %s" % (recov_slave_uri, slave_status))
+    print("--->%s: %s" % (recov_subordinate_uri, subordinate_status))
 
     ret_val = False
     for state in recov_state_list:
-        if state == slave_status:
+        if state == subordinate_status:
             ret_val = True
             print("Done!")
             break
@@ -153,23 +153,23 @@ def _check_slave_state():
     return ret_val
 
 
-def wait_slave_state(cluster, slave_uri, states):
+def wait_subordinate_state(cluster, subordinate_uri, states):
     global recov_cluster
-    global recov_slave_uri
+    global recov_subordinate_uri
     global recov_state_list
 
     recov_cluster = cluster
-    recov_slave_uri = slave_uri
+    recov_subordinate_uri = subordinate_uri
 
     if type(states) is list:
         recov_state_list = states
     else:
         recov_state_list = [states]
 
-    print("WAITING for %s to be in one of these states: %s" % (slave_uri,
+    print("WAITING for %s to be in one of these states: %s" % (subordinate_uri,
                                                                states))
 
-    wait(60, 1, _check_slave_state)
+    wait(60, 1, _check_subordinate_state)
 
     recov_cluster = None
 

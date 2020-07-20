@@ -181,7 +181,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 |                "mode": "R/O", |
 |                "replication": {|
 |                    "applierStatus": "APPLIED_ALL", |
-|                    "applierThreadState": "Slave has read all relay log; waiting for more updates", |
+|                    "applierThreadState": "Subordinate has read all relay log; waiting for more updates", |
 |                    "receiverStatus": "ERROR", |
 |                    "receiverThreadState": "", |
 |                    "replicationLag": null|
@@ -194,7 +194,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 |                "mode": "R/O", |
 |                "replication": {|
 |                    "applierStatus": "APPLIED_ALL", |
-|                    "applierThreadState": "Slave has read all relay log; waiting for more updates", |
+|                    "applierThreadState": "Subordinate has read all relay log; waiting for more updates", |
 |                    "receiverStatus": "ERROR", |
 |                    "receiverThreadState": "", |
 |                    "replicationLag": null|
@@ -338,9 +338,9 @@ Use rs.add_instance() to add more asynchronously replicated instances to this re
                 "mode": "R/O", 
                 "replication": {
                     "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates", 
+                    "applierThreadState": "Subordinate has read all relay log; waiting for more updates", 
                     "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
+                    "receiverThreadState": "Waiting for main to send event", 
                     "replicationLag": null
                 }, 
                 "status": "ONLINE"

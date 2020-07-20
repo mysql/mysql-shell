@@ -472,7 +472,7 @@ DESCRIPTION
         instance will attempt to rejoin the cluster after being expelled.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled. Deprecated.
-      - multiMaster: boolean value used to define an InnoDB cluster with
+      - multiMain: boolean value used to define an InnoDB cluster with
         multiple writable instances. Deprecated.
 
       An InnoDB cluster may be setup in two ways:
@@ -664,7 +664,7 @@ DESCRIPTION
 
       ATTENTION: The clearReadOnly option will be removed in a future release.
 
-      ATTENTION: The multiMaster option will be removed in a future release.
+      ATTENTION: The multiMain option will be removed in a future release.
                  Please use the multiPrimary option instead.
 
       ATTENTION: The failoverConsistency option will be removed in a future
@@ -711,7 +711,7 @@ RETURNS
       The created replicaset object.
 
 DESCRIPTION
-      This function will create a managed replicaset using MySQL master/slave
+      This function will create a managed replicaset using MySQL main/subordinate
       replication, as opposed to Group Replication. The MySQL instance the
       shell is connected to will be the initial PRIMARY of the replica set.
 

@@ -415,7 +415,7 @@ class Server(object):
                            object. Supported key values:
             conn_info      a dictionary containing connection information
                            (user, passwd, host, port, socket)
-            role           Name or role of server (e.g., server, master)
+            role           Name or role of server (e.g., server, main)
             verbose        print extra data during operations (optional)
                            default value = False
             charset        Default character set for the connection.
