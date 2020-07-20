@@ -1405,6 +1405,9 @@ DESCRIPTION
         MySQL sessions used by the loader (set sql_log_bin=0).
       - threads: int (default: 4) - Number of threads to use to import table
         data.
+      - updateGtidSet: "off", "replace", "append" (default: off) - if set to a
+        value other than 'off' updates GTID_PURGED by either replacing its
+        contents or appending to it the gtid set present in the dump.
       - waitDumpTimeout: int (default: 0) - Loads a dump while it's still being
         created. Once all available tables are processed the command will
         either wait for more data, the dump is marked as completed or the given

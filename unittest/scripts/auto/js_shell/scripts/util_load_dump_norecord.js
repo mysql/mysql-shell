@@ -329,6 +329,9 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {analyzeTables: "xxx"});
 util.loadDump(__tmp_dir+"/ldtest/dump", {deferTableIndexes: "xxx"});
 util.loadDump(__tmp_dir+"/ldtest/dump", {deferTableIndexes: ""});
 util.loadDump(__tmp_dir+"/ldtest/dump", {deferTableIndexes: true});
+util.loadDump(__tmp_dir+"/ldtest/dump", {updateGtidSet: "xxx"});
+util.loadDump(__tmp_dir+"/ldtest/dump", {updateGtidSet: ""});
+util.loadDump(__tmp_dir+"/ldtest/dump", {updateGtidSet: true});
 
 //@ Bad Bucket Name Option
 util.loadDump(__tmp_dir+"/ldtest/dump", {osBucketName: "bukkit"});
@@ -358,6 +361,28 @@ util.loadDump(__tmp_dir+"/ldtest/dump");
 EXPECT_OUTPUT_NOT_CONTAINS("Executing DDL script");
 EXPECT_OUTPUT_NOT_CONTAINS("[Worker");
 EXPECT_OUTPUT_NOT_CONTAINS("Executing triggers");
+
+//@<> GTID update
+
+// default is no gtid update
+EXPECT_OUTPUT_NOT_CONTAINS("GTID_PURGED");
+
+if(__version_num>80000) {
+  util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, loadIndexes: false, updateGtidSet: "append"})
+  EXPECT_OUTPUT_CONTAINS("Appending dumped gtid set to GTID_PURGED");
+} else {
+  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, updateGtidSet: "append"});}, "Util.loadDump: Target MySQL server does not support updateGtidSet:'append'.");
+  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, updateGtidSet: "replace"});}, "Util.loadDump: updateGtidSet option on MySQL 5.7 target server can only be used if skipBinlog option is enabled.");
+  wipe_instance(session);
+}
+
+testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
+util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, loadIndexes: false, skipBinlog: true, updateGtidSet: "replace"})
+EXPECT_OUTPUT_CONTAINS("Resetting GTID_PURGED to dumped gtid set");
+
+wipe_instance(session);
+util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: false, loadDdl: false, loadData: false, loadIndexes: false, skipBinlog: true, updateGtidSet: "replace"})
+EXPECT_OUTPUT_CONTAINS("GTID_PURGED already updated");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);

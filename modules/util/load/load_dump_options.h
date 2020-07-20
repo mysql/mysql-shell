@@ -56,6 +56,8 @@ class Load_dump_options final {
 
   enum class Defer_index_mode { OFF, FULLTEXT, ALL };
 
+  enum class Update_gtid_set { OFF, REPLACE, APPEND };
+
   Load_dump_options() = default;
 
   explicit Load_dump_options(const std::string &url);
@@ -75,7 +77,9 @@ class Load_dump_options final {
   void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session,
                    const std::string &current_schema);
 
-  mysqlshdk::db::ISession *base_session() const { return m_base_session.get(); }
+  std::shared_ptr<mysqlshdk::db::ISession> base_session() const {
+    return m_base_session;
+  }
 
   const Connection_options &connection_options() const { return m_target; }
 
@@ -127,11 +131,15 @@ class Load_dump_options final {
 
   Defer_index_mode defer_table_indexes() const { return m_defer_table_indexes; }
 
-  bool load_indexes() const { return m_load_indexes; }
+  bool load_deferred_indexes() const {
+    return m_load_indexes && m_defer_table_indexes != Defer_index_mode::OFF;
+  }
 
   Analyze_table_mode analyze_tables() const { return m_analyze_tables; }
 
   bool include_user(const shcore::Account &account) const;
+
+  Update_gtid_set update_gtid_set() const { return m_update_gtid_set; }
 
   const std::string &target_schema() const { return m_target_schema; }
 
@@ -183,6 +191,7 @@ class Load_dump_options final {
   bool m_ignore_version = false;
   Defer_index_mode m_defer_table_indexes = Defer_index_mode::FULLTEXT;
   bool m_load_indexes = true;
+  Update_gtid_set m_update_gtid_set = Update_gtid_set::OFF;
   std::string m_target_schema;
   std::string m_current_schema;
 

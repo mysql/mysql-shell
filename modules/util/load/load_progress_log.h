@@ -192,6 +192,12 @@ class Load_progress_log final {
     return it->second;
   }
 
+  Status gtid_update_status() const {
+    auto it = m_last_state.find("GTID-UPDATE");
+    if (it == m_last_state.end()) return Status::PENDING;
+    return it->second;
+  }
+
   // schema DDL includes the schema script and views
   void start_schema_ddl(const std::string &schema) {
     if (schema_ddl_status(schema) != Status::DONE)
@@ -235,6 +241,14 @@ class Load_progress_log final {
     if (table_chunk_status(schema, table, index) != Status::DONE)
       log(true, "TABLE-DATA", schema, table, index, bytes_loaded,
           raw_bytes_loaded);
+  }
+
+  void start_gtid_update() {
+    if (gtid_update_status() != Status::DONE) log(false, "GTID-UPDATE", "", "");
+  }
+
+  void end_gtid_update() {
+    if (gtid_update_status() != Status::DONE) log(true, "GTID-UPDATE", "", "");
   }
 
  private:
