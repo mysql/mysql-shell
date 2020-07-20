@@ -295,7 +295,12 @@ std::shared_ptr<Logger> Logger::create_instance(const char *filename,
 }
 
 void Logger::log_to_stderr() {
-  current_logger()->attach_log_hook(&Logger::out_to_stderr);
+  const auto logger = current_logger();
+
+  // attach hook only if not already logging to stderr
+  if (!logger->use_stderr()) {
+    logger->attach_log_hook(&Logger::out_to_stderr);
+  }
 }
 
 Logger::Logger(const char *filename, bool use_stderr) : m_dont_log(0) {
