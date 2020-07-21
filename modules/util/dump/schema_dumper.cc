@@ -2423,7 +2423,8 @@ std::string Schema_dumper::normalize_user(const std::string &user,
 }
 
 std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
-    IFile *file, const std::vector<std::string> &filter) {
+    IFile *file, const std::vector<shcore::Account> &included,
+    const std::vector<shcore::Account> &excluded) {
   std::vector<Issue> problems;
   std::set<std::string> allowed_privs =
       opt_mysqlaas || opt_strip_restricted_grants
@@ -2433,7 +2434,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
   log_debug("Dumping grants for server");
 
   fputs("--\n-- Dumping user accounts\n--\n\n", file);
-  const auto users = get_users(filter);
+  const auto users = get_users(included, excluded);
   for (const auto &u : users) {
     auto res = query_log_and_throw("SHOW CREATE USER " + u.second);
     auto row = res->fetch_one();
@@ -2499,22 +2500,61 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
 }
 
 std::vector<std::pair<std::string, std::string>> Schema_dumper::get_users(
-    const std::vector<std::string> &filter) {
-  std::string where_filter =
-      filter.empty() ? std::string("") : " where Users.User not like ?";
-  for (std::size_t i = 1; i < filter.size(); i++)
-    where_filter += " AND Users.User not like ?";
+    const std::vector<shcore::Account> &included,
+    const std::vector<shcore::Account> &excluded) {
+  std::string where_filter;
 
-  shcore::sqlstring users_query(
-      "select * from (select distinct grantee, substr(grantee, 2, "
-      "length(grantee)-locate('@', reverse(grantee))-2) as User, "
-      "substr(grantee, length(grantee)-locate('@', reverse(grantee))+3, "
-      "locate('@', reverse(grantee))-3) as host from "
-      "information_schema.user_privileges order by user, host) as Users" +
-          where_filter + ";",
-      0);
-  for (const auto &f : filter) users_query << f;
-  auto users_res = query_log_and_throw(users_query.str());
+  {
+    const auto filter = [](const std::vector<shcore::Account> &accounts) {
+      std::vector<std::string> result;
+
+      for (const auto &account : accounts) {
+        if (account.host.empty()) {
+          result.emplace_back(shcore::sqlstring("(users.user=?)", 0)
+                              << account.user);
+        } else {
+          result.emplace_back(
+              shcore::sqlstring("(users.user=? AND users.host=?)", 0)
+              << account.user << account.host);
+        }
+      }
+
+      return result;
+    };
+    const auto include = filter(included);
+    const auto exclude = filter(excluded);
+
+    if (!include.empty()) {
+      where_filter += "(" + shcore::str_join(include, "OR") + ")";
+    }
+
+    if (!exclude.empty()) {
+      constexpr auto condition = "AND NOT";
+
+      if (!include.empty()) {
+        where_filter += condition;
+      } else {
+        where_filter += "NOT";
+      }
+
+      where_filter += shcore::str_join(exclude, condition);
+    }
+
+    if (!where_filter.empty()) {
+      where_filter = " WHERE " + where_filter;
+    }
+  }
+
+  constexpr auto users_query =
+      "SELECT * FROM (SELECT DISTINCT "
+      "grantee, "
+      "SUBSTR(grantee, 2, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))-2)"
+      "  AS user, "
+      "SUBSTR(grantee, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))+3,"
+      "  LOCATE('@', REVERSE(grantee))-3) AS host "
+      "FROM information_schema.user_privileges ORDER BY user, host) AS users";
+
+  auto users_res = query_log_and_throw(users_query + where_filter);
   std::vector<std::pair<std::string, std::string>> users;
   for (auto u = users_res->fetch_one(); u; u = users_res->fetch_one()) {
     const auto user = u->get_string(1);
@@ -2525,5 +2565,52 @@ std::vector<std::pair<std::string, std::string>> Schema_dumper::get_users(
 }
 
 const char *Schema_dumper::version() { return DUMP_VERSION; }
+
+std::string Schema_dumper::preprocess_users_script(
+    const std::string &script,
+    const std::function<bool(const std::string &)> &include_user) {
+  std::string out;
+  bool skip = false;
+
+  static constexpr const char *k_create_user_cmt = "-- begin user ";
+  static constexpr const char *k_grant_cmt = "-- begin grants ";
+  static constexpr const char *k_end_cmt = "-- end ";
+
+  // Skip create and grant statements for the excluded users
+  for (const auto &line : shcore::str_split(script, "\n")) {
+    std::string user;
+    bool grant_statement = false;
+
+    if (shcore::str_beginswith(line, k_create_user_cmt)) {
+      user = line.substr(strlen(k_create_user_cmt));
+    } else if (shcore::str_beginswith(line, k_grant_cmt)) {
+      user = line.substr(strlen(k_grant_cmt));
+      grant_statement = true;
+    }
+
+    if (!user.empty()) {
+      if (!include_user(user)) {
+        skip = true;
+        if (grant_statement) {
+          current_console()->print_note("Skipping GRANT statements for user " +
+                                        user);
+        } else {
+          current_console()->print_note(
+              "Skipping CREATE/ALTER USER statements for user " + user);
+        }
+      }
+    }
+
+    if (skip) {
+      log_info("Skipping %s", line.c_str());
+    } else {
+      out.append(line + "\n");
+    }
+
+    if (shcore::str_beginswith(line, k_end_cmt)) skip = false;
+  }
+
+  return out;
+}
 
 }  // namespace mysqlsh

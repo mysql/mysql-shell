@@ -22,6 +22,9 @@
 
 #include <stdio.h>
 
+#include <algorithm>
+#include <set>
+
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/load/dump_loader.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -42,6 +45,12 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
     if (initialized) {
       auto session = connect_session();
       session->execute(std::string("drop database ") + db_name);
+      session->execute("DROP USER IF EXISTS testusr1@localhost;");
+      session->execute("DROP USER IF EXISTS testusr2@localhost;");
+      session->execute("DROP USER IF EXISTS testusr3@localhost;");
+      session->execute("DROP USER IF EXISTS testusr4@localhost;");
+      session->execute("DROP USER IF EXISTS testusr5@localhost;");
+      session->execute("DROP USER IF EXISTS testusr6@localhost;");
     }
   }
 
@@ -654,42 +663,42 @@ TEST_F(Schema_dumper_test, dump_tablespaces) {
 }
 
 TEST_F(Schema_dumper_test, dump_grants) {
+  // setup
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'first'@'localhost' IDENTIFIED BY 'pwd';");
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'first'@'10.11.12.13' IDENTIFIED BY 'pwd';");
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'firstfirst'@'localhost' IDENTIFIED BY "
+      "'pwd';");
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'second'@'localhost' IDENTIFIED BY 'pwd';");
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'second'@'10.11.12.14' IDENTIFIED BY 'pwd';");
+
   Schema_dumper sd(session);
-  EXPECT_NO_THROW(sd.dump_grants(file.get(), {}));
+  EXPECT_NO_THROW(sd.dump_grants(file.get(), {}, {}));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
   std::string out;
   expect_output_contains({"CREATE USER IF NOT EXISTS", "ALTER USER", "GRANT"},
                          &out);
 
-  // Test filtering users during load
-  auto filter = Load_dump_options::get_excluded_users(false);
-  for (const auto &f : filter) {
-    EXPECT_TRUE(shcore::str_beginswith(f, "mysql"));
-  }
+  EXPECT_NE(std::string::npos, out.find("second"));
 
-  auto oci_filter = Load_dump_options::get_excluded_users(true);
-  EXPECT_TRUE(oci_filter.size() >= filter.size() + 4);
-  for (const auto &f : filter) {
-    if (!shcore::str_beginswith(f, "mysql")) {
-      EXPECT_TRUE(shcore::str_beginswith(f, "oci") || f == "administrator");
-    }
-  }
+  auto filtered =
+      Schema_dumper::preprocess_users_script(out, [](const std::string &user) {
+        return !shcore::str_beginswith(user, "second");
+      });
 
-  // mysql and current users should be present in unfiltered dump
-  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 0))
-    filter.erase(std::find(filter.begin(), filter.end(), "mysql.infoschema"));
-  filter.emplace_back(
-      session->query("SELECT current_user()")->fetch_one()->get_string(0));
-  for (const auto &f : filter) {
-    EXPECT_NE(std::string::npos,
-              out.find(f.find("@") == std::string::npos ? f + "@" : f));
-  }
-  auto filtered = loader::preprocess_users_script(out, filter);
-  for (const auto &f : filter) {
-    EXPECT_EQ(std::string::npos,
-              filtered.find(f.find("@") == std::string::npos ? f + "@" : f));
-  }
+  EXPECT_EQ(std::string::npos, filtered.find("second"));
+
+  // cleanup
+  session->execute("DROP USER 'first'@'localhost';");
+  session->execute("DROP USER 'first'@'10.11.12.13';");
+  session->execute("DROP USER 'firstfirst'@'localhost';");
+  session->execute("DROP USER 'second'@'localhost';");
+  session->execute("DROP USER 'second'@'10.11.12.14';");
 }
 
 TEST_F(Schema_dumper_test, dump_filtered_grants) {
@@ -748,7 +757,13 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   Schema_dumper sd(session);
   sd.opt_mysqlaas = true;
   sd.opt_strip_restricted_grants = true;
-  EXPECT_GE(sd.dump_grants(file.get(), {"mysql%", "root"}).size(), 3);
+  EXPECT_GE(sd.dump_grants(file.get(), {},
+                           {{"mysql.infoschema", ""},
+                            {"mysql.session", ""},
+                            {"mysql.sys", ""},
+                            {"root", ""}})
+                .size(),
+            3);
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
   file->flush();
@@ -964,7 +979,8 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
       iss.front().description);
 
   // Users
-  EXPECT_NO_THROW(iss = sd.dump_grants(file.get(), {"mysql%", "root"}));
+  EXPECT_NO_THROW(
+      iss = sd.dump_grants(file.get(), {}, {{"mysql", ""}, {"root", ""}}));
 
   auto expected_issues =
       _target_server_version < mysqlshdk::utils::Version(8, 0, 0) ?
@@ -1311,6 +1327,146 @@ TEST_F(Schema_dumper_test, dump_and_load) {
           tables.end());
     EXPECT_TRUE(tables.empty());
   }
+}
+
+TEST_F(Schema_dumper_test, get_users) {
+  // setup
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'first'@'localhost' IDENTIFIED BY 'pwd';");
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'first'@'10.11.12.13' IDENTIFIED BY 'pwd';");
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'firstfirst'@'localhost' IDENTIFIED BY "
+      "'pwd';");
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'second'@'localhost' IDENTIFIED BY 'pwd';");
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'second'@'10.11.12.14' IDENTIFIED BY 'pwd';");
+
+  const auto contains =
+      [](const std::vector<std::pair<std::string, std::string>> &result,
+         const std::string &account) {
+        const auto it = std::find_if(
+            result.begin(), result.end(),
+            [&account](const auto &e) { return e.first == account; });
+
+        std::set<std::string> accounts;
+
+        for (const auto &e : result) {
+          accounts.emplace(e.first);
+        }
+
+        if (result.end() != it) {
+          return ::testing::AssertionSuccess()
+                 << "account found: " << account
+                 << ", contents: " << shcore::str_join(accounts, ", ");
+        } else {
+          return ::testing::AssertionFailure()
+                 << "account not found: " << account
+                 << ", contents: " << shcore::str_join(accounts, ", ");
+        }
+      };
+
+  Schema_dumper sd(session);
+
+  // no filtering
+  auto result = sd.get_users({}, {});
+  EXPECT_TRUE(contains(result, "first@localhost"));
+  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+  EXPECT_TRUE(contains(result, "firstfirst@localhost"));
+  EXPECT_TRUE(contains(result, "second@localhost"));
+  EXPECT_TRUE(contains(result, "second@10.11.12.14"));
+
+  // include non-existent user
+  result = sd.get_users({{"third", ""}}, {});
+  EXPECT_EQ(0, result.size());
+
+  // exclude non-existent user
+  result = sd.get_users({}, {{"third", ""}});
+  EXPECT_TRUE(contains(result, "first@localhost"));
+  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+  EXPECT_TRUE(contains(result, "firstfirst@localhost"));
+  EXPECT_TRUE(contains(result, "second@localhost"));
+  EXPECT_TRUE(contains(result, "second@10.11.12.14"));
+
+  // include all accounts for the user first
+  result = sd.get_users({{"first", ""}}, {});
+  EXPECT_EQ(2, result.size());
+  EXPECT_TRUE(contains(result, "first@localhost"));
+  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+
+  // include only first@localhost
+  result = sd.get_users({{"first", "localhost"}}, {});
+  EXPECT_EQ(1, result.size());
+  EXPECT_TRUE(contains(result, "first@localhost"));
+
+  // include all accounts for the user first, exclude second
+  result = sd.get_users({{"first", ""}}, {{"second", ""}});
+  EXPECT_EQ(2, result.size());
+  EXPECT_TRUE(contains(result, "first@localhost"));
+  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+
+  // include all accounts for the user first, exclude first@10.11.12.13
+  result = sd.get_users({{"first", ""}}, {{"first", "10.11.12.13"}});
+  EXPECT_EQ(1, result.size());
+  EXPECT_TRUE(contains(result, "first@localhost"));
+
+  // include all accounts for the user first, exclude first -> cancels out
+  result = sd.get_users({{"first", ""}}, {{"first", ""}});
+  EXPECT_EQ(0, result.size());
+
+  // include all accounts for the user first and second
+  result = sd.get_users({{"first", ""}, {"second", ""}}, {});
+  EXPECT_EQ(4, result.size());
+  EXPECT_TRUE(contains(result, "first@localhost"));
+  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+  EXPECT_TRUE(contains(result, "second@localhost"));
+  EXPECT_TRUE(contains(result, "second@10.11.12.14"));
+
+  // include all accounts for the user first and second, exclude second
+  result = sd.get_users({{"first", ""}, {"second", ""}}, {{"second", ""}});
+  EXPECT_EQ(2, result.size());
+  EXPECT_TRUE(contains(result, "first@localhost"));
+  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+
+  // include all accounts for the user first and second, exclude
+  // second@10.11.12.14
+  result = sd.get_users({{"first", ""}, {"second", ""}},
+                        {{"second", "10.11.12.14"}});
+  EXPECT_EQ(3, result.size());
+  EXPECT_TRUE(contains(result, "first@localhost"));
+  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+  EXPECT_TRUE(contains(result, "second@localhost"));
+
+  // include all accounts for the user first, include and exclude
+  // second@10.11.12.14
+  result = sd.get_users({{"first", ""}, {"second", "10.11.12.14"}},
+                        {{"second", "10.11.12.14"}});
+  EXPECT_EQ(2, result.size());
+  EXPECT_TRUE(contains(result, "first@localhost"));
+  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+
+  // include all accounts for the user first and second@10.11.12.14, exclude all
+  // accounts for second
+  result = sd.get_users({{"first", ""}, {"second", "10.11.12.14"}},
+                        {{"second", ""}});
+  EXPECT_EQ(2, result.size());
+  EXPECT_TRUE(contains(result, "first@localhost"));
+  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+
+  // include all accounts for the user first and non-existent third, exclude
+  // non-existent fourth
+  result = sd.get_users({{"first", ""}, {"third", ""}}, {{"fourth", ""}});
+  EXPECT_EQ(2, result.size());
+  EXPECT_TRUE(contains(result, "first@localhost"));
+  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+
+  // cleanup
+  session->execute("DROP USER 'first'@'localhost';");
+  session->execute("DROP USER 'first'@'10.11.12.13';");
+  session->execute("DROP USER 'firstfirst'@'localhost';");
+  session->execute("DROP USER 'second'@'localhost';");
+  session->execute("DROP USER 'second'@'10.11.12.14';");
 }
 
 }  // namespace mysqlsh

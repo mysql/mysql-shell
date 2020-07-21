@@ -31,25 +31,53 @@
 namespace mysqlsh {
 namespace dump {
 
+namespace {
+
+const char *k_excluded_users[] = {"mysql.infoschema", "mysql.session",
+                                  "mysql.sys"};
+
+}  // namespace
+
 Dump_instance_options::Dump_instance_options(const std::string &output_url)
     : Dump_schemas_options(output_url) {}
 
 void Dump_instance_options::unpack_options(shcore::Option_unpacker *unpacker) {
   Dump_schemas_options::unpack_options(unpacker);
 
-  std::vector<std::string> schemas;
-  unpacker->optional("excludeSchemas", &schemas)
-      .optional("users", &m_dump_users);
+  std::unordered_set<std::string> excluded_users;
+  std::unordered_set<std::string> included_users;
 
-  for (auto &schema : schemas) {
-    m_excluded_schemas.emplace(std::move(schema));
-  }
+  unpacker->optional("excludeSchemas", &m_excluded_schemas)
+      .optional("users", &m_dump_users)
+      .optional("excludeUsers", &excluded_users)
+      .optional("includeUsers", &included_users);
+
+  // some users are always excluded
+  excluded_users.insert(std::begin(k_excluded_users),
+                        std::end(k_excluded_users));
+
+  set_excluded_users(excluded_users);
+  set_included_users(included_users);
 }
 
 void Dump_instance_options::validate_options() const {
   // call method up the chain, Dump_schemas_options has an empty list of schemas
   // and would throw
   Ddl_dumper_options::validate_options();
+
+  if (!m_dump_users) {
+    if (excluded_users().size() > shcore::array_size(k_excluded_users)) {
+      throw std::invalid_argument(
+          "The 'excludeUsers' option cannot be used if the 'users' option is "
+          "set to false.");
+    }
+
+    if (!included_users().empty()) {
+      throw std::invalid_argument(
+          "The 'includeUsers' option cannot be used if the 'users' option is "
+          "set to false.");
+    }
+  }
 }
 
 }  // namespace dump

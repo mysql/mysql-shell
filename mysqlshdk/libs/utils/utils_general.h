@@ -154,11 +154,31 @@ std::string SHCORE_PUBLIC from_camel_case_to_dashes(const std::string &name);
 
 std::string SHCORE_PUBLIC errno_to_string(int err);
 
+struct Account {
+  std::string user;
+  std::string host;
+};
+
 void SHCORE_PUBLIC split_account(const std::string &account,
                                  std::string *out_user, std::string *out_host,
                                  bool auto_quote_hosts = false);
+Account SHCORE_PUBLIC split_account(const std::string &account,
+                                    bool auto_quote_hosts = false);
+
+template <typename C>
+std::vector<Account> to_accounts(const C &c, bool auto_quote_hosts = false) {
+  std::vector<Account> result;
+
+  for (const auto &i : c) {
+    result.emplace_back(split_account(i, auto_quote_hosts));
+  }
+
+  return result;
+}
+
 std::string SHCORE_PUBLIC make_account(const std::string &user,
                                        const std::string &host);
+std::string SHCORE_PUBLIC make_account(const Account &account);
 
 std::string SHCORE_PUBLIC get_member_name(const std::string &name,
                                           shcore::NamingStyle style);

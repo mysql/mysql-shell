@@ -873,6 +873,120 @@ EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, "@.post.sql")))
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, "@.users.sql")))
 
+#@<> test invalid values of the `includeUsers` option
+TEST_ARRAY_OF_STRINGS_OPTION("includeUsers")
+
+#@<> test invalid values of the `excludeUsers` option
+TEST_ARRAY_OF_STRINGS_OPTION("excludeUsers")
+
+#@<> the `includeUsers` and `excludeUsers` options cannot be used when `users` is false
+EXPECT_FAIL("ArgumentError", "The 'includeUsers' option cannot be used if the 'users' option is set to false.", test_output_relative, { "users": False, "includeUsers": ["third"] })
+EXPECT_FAIL("ArgumentError", "The 'excludeUsers' option cannot be used if the 'users' option is set to false.", test_output_relative, { "users": False, "excludeUsers": ["third"] })
+
+#@<> test invalid user names
+EXPECT_FAIL("ArgumentError", "User name must not be empty.", test_output_relative, { "includeUsers": [""] })
+EXPECT_FAIL("ArgumentError", "User name must not be empty.", test_output_relative, { "excludeUsers": [""] })
+
+EXPECT_FAIL("ArgumentError", "User name must not be empty.", test_output_relative, { "includeUsers": ["@"] })
+EXPECT_FAIL("ArgumentError", "User name must not be empty.", test_output_relative, { "excludeUsers": ["@"] })
+
+EXPECT_FAIL("ArgumentError", "Invalid user name: @", test_output_relative, { "includeUsers": ["@@"] })
+EXPECT_FAIL("ArgumentError", "Invalid user name: @", test_output_relative, { "excludeUsers": ["@@"] })
+
+EXPECT_FAIL("ArgumentError", "Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes", test_output_relative, { "includeUsers": ["foo@''nope"] })
+EXPECT_FAIL("ArgumentError", "Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes", test_output_relative, { "excludeUsers": ["foo@''nope"] })
+
+#@<> create some test users
+session.run_sql("CREATE USER IF NOT EXISTS 'first'@'localhost' IDENTIFIED BY 'pwd';")
+session.run_sql("CREATE USER IF NOT EXISTS 'first'@'10.11.12.13' IDENTIFIED BY 'pwd';")
+session.run_sql("CREATE USER IF NOT EXISTS 'firstfirst'@'localhost' IDENTIFIED BY 'pwd';")
+session.run_sql("CREATE USER IF NOT EXISTS 'second'@'localhost' IDENTIFIED BY 'pwd';")
+session.run_sql("CREATE USER IF NOT EXISTS 'second'@'10.11.12.14' IDENTIFIED BY 'pwd';")
+
+# helper function
+def EXPECT_INCLUDE_EXCLUDE(options, included, excluded):
+    opts = { "ddlOnly": True, "showProgress": False }
+    opts.update(options)
+    EXPECT_SUCCESS([test_schema], test_output_absolute, opts)
+    for i in included:
+        EXPECT_FILE_CONTAINS("CREATE USER IF NOT EXISTS {0}".format(i), os.path.join(test_output_absolute, "@.users.sql"))
+    for e in excluded:
+        EXPECT_FILE_NOT_CONTAINS("CREATE USER IF NOT EXISTS {0}".format(e), os.path.join(test_output_absolute, "@.users.sql"))
+
+#@<> don't include or exclude any users, all accounts are dumped
+# some accounts are always excluded
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": [], "excludeUsers": [] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"], ["'mysql.infoschema'", "'mysql.session'", "'mysql.sys'"])
+
+#@<> include non-existent user, no accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["third"] }, [], ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> exclude non-existent user, all accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "excludeUsers": ["third"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"], [])
+
+#@<> include an existing user, one account is dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first@localhost"] }, ["'first'@'localhost'"], ["'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include an existing user, one account is dumped - single quotes
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["'first'@'localhost'"] }, ["'first'@'localhost'"], ["'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include an existing user, one account is dumped - double quotes
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ['"first"@"localhost"'] }, ["'first'@'localhost'"], ["'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include an existing user, one account is dumped - backticks
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["`first`@`localhost`"] }, ["'first'@'localhost'"], ["'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include using just the username, two accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include using just the same username twice, two accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "first"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include using just the username, exclude different accounts using just the username, two accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first"], "excludeUsers": ["second"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include and exclude the same username, no accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first"], "excludeUsers": ["first"] }, [], ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include using just the username, exclude one of the accounts, one account is dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first"], "excludeUsers": ["first@10.11.12.13"] }, ["'first'@'localhost'"], ["'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include using just the username, exclude one of the accounts, one account is dumped - single quotes
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first"], "excludeUsers": ["'first'@'10.11.12.13'"] }, ["'first'@'localhost'"], ["'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include using just the username, exclude one of the accounts, one account is dumped - double quotes
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first"], "excludeUsers": ['"first"@"10.11.12.13"'] }, ["'first'@'localhost'"], ["'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include using just the username, exclude one of the accounts, one account is dumped - backticks
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first"], "excludeUsers": ["`first`@`10.11.12.13`"] }, ["'first'@'localhost'"], ["'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include using two usernames, four accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'second'@'localhost'", "'second'@'10.11.12.14'"], ["'firstfirst'@'localhost'"])
+
+#@<> include using two usernames, exclude one of them, two accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second"], "excludeUsers": ["second"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include using two usernames, exclude one of the accounts, three accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second"], "excludeUsers": ["second@localhost"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'second'@'10.11.12.14'"], ["'firstfirst'@'localhost'", "'second'@'localhost'"])
+
+#@<> include using an username and an account, three accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second@localhost"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'second'@'localhost'"], ["'firstfirst'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include using an username and an account, exclude using username, two accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second@localhost"], "excludeUsers": ["second"]  }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include using an username and an account, exclude using an account, two accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second@localhost"], "excludeUsers": ["second@localhost"]  }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> include using an username and non-existing username, exclude using a non-existing username, two accounts are dumped
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "third"], "excludeUsers": ["fourth"]  }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
+
+#@<> drop test users
+session.run_sql("DROP USER 'first'@'localhost';")
+session.run_sql("DROP USER 'first'@'10.11.12.13';")
+session.run_sql("DROP USER 'firstfirst'@'localhost';")
+session.run_sql("DROP USER 'second'@'localhost';")
+session.run_sql("DROP USER 'second'@'10.11.12.14';")
+
 #@<> WL13807-FR4.11 - The `options` dictionary may contain an `excludeTables` key with a list of strings, which specifies the names of tables to be excluded from the dump.
 # WL13807-TSFR4_38
 TEST_ARRAY_OF_STRINGS_OPTION("excludeTables")

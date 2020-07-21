@@ -317,7 +317,6 @@ class Dump_loader {
   bool m_resuming = false;
 
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
-  mysqlshdk::utils::Version m_target_server_version;
 
   std::vector<std::thread> m_worker_threads;
   std::list<Worker> m_workers;
@@ -359,11 +358,6 @@ class Dump_loader {
 
   int m_progress_spin = 0;
 };
-
-namespace loader {
-std::string preprocess_users_script(const std::string &script,
-                                    const std::vector<std::string> &excluded);
-}
 
 }  // namespace mysqlsh
 

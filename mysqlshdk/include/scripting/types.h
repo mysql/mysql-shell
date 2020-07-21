@@ -27,11 +27,13 @@
 #include "types_common.h"
 
 #include <cassert>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -617,6 +619,28 @@ struct value_type_for_native<std::vector<std::string>> {
 
   static std::vector<std::string> extract(const Value &value) {
     return value.to_string_vector();
+  }
+};
+
+template <>
+struct value_type_for_native<std::set<std::string>> {
+  static const Value_type type = Array;
+
+  static std::set<std::string> extract(const Value &value) {
+    auto v = value.to_string_vector();
+    return {std::make_move_iterator(v.begin()),
+            std::make_move_iterator(v.end())};
+  }
+};
+
+template <>
+struct value_type_for_native<std::unordered_set<std::string>> {
+  static const Value_type type = Array;
+
+  static std::unordered_set<std::string> extract(const Value &value) {
+    auto v = value.to_string_vector();
+    return {std::make_move_iterator(v.begin()),
+            std::make_move_iterator(v.end())};
   }
 };
 

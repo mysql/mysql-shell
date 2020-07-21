@@ -32,6 +32,7 @@
 #include "mysqlshdk/libs/oci/oci_options.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/utils/nullable.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 #include "modules/util/import_table/dialect.h"
@@ -89,6 +90,14 @@ class Dump_options {
     return m_mds;
   }
 
+  const std::vector<shcore::Account> &excluded_users() const {
+    return m_excluded_users;
+  }
+
+  const std::vector<shcore::Account> &included_users() const {
+    return m_included_users;
+  }
+
   bool dump_schema_ddl() const { return dump_ddl() && !table_only(); }
 
   virtual bool split() const = 0;
@@ -135,6 +144,24 @@ class Dump_options {
     m_mds = mds;
   }
 
+  template <typename C>
+  void set_excluded_users(const C &excluded_users) {
+    try {
+      m_excluded_users = shcore::to_accounts(excluded_users);
+    } catch (const std::runtime_error &e) {
+      throw std::invalid_argument(e.what());
+    }
+  }
+
+  template <typename C>
+  void set_included_users(const C &included_users) {
+    try {
+      m_included_users = shcore::to_accounts(included_users);
+    } catch (const std::runtime_error &e) {
+      throw std::invalid_argument(e.what());
+    }
+  }
+
  private:
   virtual void unpack_options(shcore::Option_unpacker *unpacker) = 0;
 
@@ -170,6 +197,10 @@ class Dump_options {
 
   // currently used by dumpSchemas() and dumpInstance()
   mysqlshdk::utils::nullable<mysqlshdk::utils::Version> m_mds;
+
+  // currently used by dumpInstance()
+  std::vector<shcore::Account> m_excluded_users;
+  std::vector<shcore::Account> m_included_users;
 };
 
 }  // namespace dump

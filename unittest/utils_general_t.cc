@@ -164,6 +164,7 @@ TEST(utils_general, split_account) {
       "@foo@@localhost",
       "foo@@'stuf'",
       "@\"\'\'\"foo@localhost",
+      "",
   };
   for (auto &t : bad_cases) {
     SCOPED_TRACE(t);

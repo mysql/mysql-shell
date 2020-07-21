@@ -868,7 +868,10 @@ void split_account(const std::string &account, std::string *out_user,
       }
       if (out_user != nullptr) out_user->assign(account, 0, pos);
     }
+  } else {
+    throw std::runtime_error("User name must not be empty.");
   }
+
   if (std::string::npos != pos && account[pos] == '@' &&
       ++pos < account.length()) {
     if (account.compare(pos, std::string::npos, "skip-grants host") == 0) {
@@ -884,11 +887,21 @@ void split_account(const std::string &account, std::string *out_user,
                              "'");
 }
 
+Account split_account(const std::string &account, bool auto_quote_hosts) {
+  Account result;
+  split_account(account, &result.user, &result.host, auto_quote_hosts);
+  return result;
+}
+
 /** Join MySQL account components into a string suitable for use with GRANT
  *  and similar
  */
 std::string make_account(const std::string &user, const std::string &host) {
   return shcore::sqlstring("?@?", 0) << user << host;
+}
+
+std::string make_account(const Account &account) {
+  return make_account(account.user, account.host);
 }
 
 void split_schema_and_table(const std::string &str, std::string *out_schema,

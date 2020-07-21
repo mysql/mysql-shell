@@ -22,11 +22,27 @@
  */
 
 #include "modules/util/load/load_dump_options.h"
-#include "modules/util/dump/dump_manifest.h"
+
+#include <algorithm>
 
 #include "modules/mod_utils.h"
+#include "modules/util/dump/dump_manifest.h"
 
 namespace mysqlsh {
+
+namespace {
+
+const char *k_excluded_users[] = {"mysql.infoschema", "mysql.session",
+                                  "mysql.sys"};
+const char *k_oci_excluded_users[] = {"administrator", "ociadmin", "ocimonitor",
+                                      "ocirpl"};
+
+bool is_mds(const mysqlshdk::utils::Version &version) {
+  return version.get_extra() == "cloud";
+}
+
+}  // namespace
+
 using mysqlsh::dump::Dump_manifest;
 
 Load_dump_options::Load_dump_options(const std::string &url)
@@ -55,6 +71,11 @@ void Load_dump_options::set_session(
   if (!m_target.has(mysqlshdk::db::kNetWriteTimeout)) {
     m_target.set(mysqlshdk::db::kNetWriteTimeout, timeout);
   }
+
+  m_target_server_version = mysqlshdk::utils::Version(
+      m_base_session->query("SELECT @@version")->fetch_one()->get_string(0));
+
+  m_is_mds = ::mysqlsh::is_mds(m_target_server_version);
 }
 
 void Load_dump_options::validate() {
@@ -159,6 +180,8 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
   std::vector<std::string> exclude_schemas;
   std::string analyze_tables = "off";
   std::string defer_table_indexes = "fulltext";
+  std::unordered_set<std::string> excluded_users;
+  std::unordered_set<std::string> included_users;
 
   Unpack_options unpacker(options);
 
@@ -182,7 +205,9 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
       .optional("analyzeTables", &analyze_tables)
       .optional("deferTableIndexes", &defer_table_indexes)
       .optional("loadIndexes", &m_load_indexes)
-      .optional("schema", &m_target_schema);
+      .optional("schema", &m_target_schema)
+      .optional("excludeUsers", &excluded_users)
+      .optional("includeUsers", &included_users);
 
   unpacker.unpack(&m_oci_options);
   unpacker.end();
@@ -277,6 +302,40 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
                              "' for analyzeTables option, allowed values: "
                              "'off', 'on', and 'histogram'.");
   }
+
+  if (!m_load_users) {
+    if (!excluded_users.empty()) {
+      throw std::invalid_argument(
+          "The 'excludeUsers' option cannot be used if the 'loadUsers' option "
+          "is set to false.");
+    }
+
+    if (!included_users.empty()) {
+      throw std::invalid_argument(
+          "The 'includeUsers' option cannot be used if the 'loadUsers' option "
+          "is set to false.");
+    }
+  } else {
+    try {
+      // some users are always excluded
+      excluded_users.emplace(m_base_session->query("SELECT current_user()")
+                                 ->fetch_one()
+                                 ->get_string(0));
+
+      excluded_users.insert(std::begin(k_excluded_users),
+                            std::end(k_excluded_users));
+
+      if (is_mds()) {
+        excluded_users.insert(std::begin(k_oci_excluded_users),
+                              std::end(k_oci_excluded_users));
+      }
+
+      m_excluded_users = shcore::to_accounts(excluded_users);
+      m_included_users = shcore::to_accounts(included_users);
+    } catch (const std::runtime_error &e) {
+      throw std::invalid_argument(e.what());
+    }
+  }
 }
 
 std::unique_ptr<mysqlshdk::storage::IDirectory>
@@ -330,13 +389,25 @@ bool Load_dump_options::include_table(const std::string &schema,
   return false;
 }
 
-std::vector<std::string> Load_dump_options::get_excluded_users(bool is_mds) {
-  std::vector<std::string> ret = {"mysql.sys", "mysql.session",
-                                  "mysql.infoschema"};
-  if (is_mds)
-    ret.insert(ret.end(),
-               {"ociadmin", "ocirpl", "ocimonitor", "administrator"});
-  return ret;
+bool Load_dump_options::include_user(const shcore::Account &account) const {
+  const auto predicate = [&account](const shcore::Account &a) {
+    return a.user == account.user &&
+           (a.host.empty() ? true : a.host == account.host);
+  };
+
+  if (m_excluded_users.end() != std::find_if(m_excluded_users.begin(),
+                                             m_excluded_users.end(),
+                                             predicate)) {
+    return false;
+  }
+
+  if (m_included_users.empty()) {
+    return true;
+  }
+
+  return m_included_users.end() != std::find_if(m_included_users.begin(),
+                                                m_included_users.end(),
+                                                predicate);
 }
 
 }  // namespace mysqlsh
