@@ -111,6 +111,8 @@ class Directory : public mysqlshdk::storage::IDirectory {
    */
   std::unique_ptr<IFile> file(const std::string &name) const override;
 
+  bool is_local() const override { return false; }
+
  protected:
   std::string m_name;
   std::unique_ptr<Bucket> m_bucket;

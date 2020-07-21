@@ -192,6 +192,7 @@ class Load_progress_log final {
     return it->second;
   }
 
+  // schema DDL includes the schema script and views
   void start_schema_ddl(const std::string &schema) {
     if (schema_ddl_status(schema) != Status::DONE)
       log(false, "SCHEMA-DDL", schema, "");

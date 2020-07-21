@@ -87,6 +87,8 @@ class Dump_manifest : public mysqlshdk::storage::backend::oci::Directory {
 
   Mode mode() const { return m_mode; }
 
+  bool is_local() const override { return false; }
+
  private:
   friend class Dump_manifest_object;
 

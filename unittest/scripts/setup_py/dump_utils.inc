@@ -1,6 +1,7 @@
 
 
 def wipeout_server(session):
+    session.run_sql("set global foreign_key_checks=0")
     schemas = session.run_sql("show schemas").fetch_all()
     for schema, in schemas:
         if schema in ("mysql", "sys", "performance_schema", "information_schema"):
@@ -10,6 +11,7 @@ def wipeout_server(session):
         if user not in ["root", "mysql.infoschema", "mysql.sys", "mysql.session"]:
             session.run_sql("drop user ?@?", [user,host])
     session.run_sql("reset master")
+    session.run_sql("set global foreign_key_checks=1")
 
 def truncate_all_tables(session):
     session.run_sql("set foreign_key_checks=0")

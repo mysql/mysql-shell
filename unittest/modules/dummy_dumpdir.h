@@ -116,6 +116,8 @@ class Dummy_dump_directory : public mysqlshdk::storage::IDirectory {
     }
   }
 
+  bool is_local() const { return false; }
+
   std::string join_path(const std::string &a, const std::string &b) const {
     return shcore::path::join_path(a, b);
   }

@@ -210,6 +210,7 @@ function strip_snapshot_data(snapshot) {
 }
 
 function wipe_instance(session) {
+    session.runSql("set foreign_key_checks=0");
     var r=session.runSql("SHOW SCHEMAS");
     var rows=r.fetchAll();
     for(var i in rows) {
@@ -230,4 +231,5 @@ function wipe_instance(session) {
     }
     session.runSql("RESET MASTER");
     session.runSql("RESET SLAVE ALL");
+    session.runSql("set foreign_key_checks=1");
 }

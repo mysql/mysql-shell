@@ -78,6 +78,8 @@ class IDirectory {
    */
   virtual std::unique_ptr<IFile> file(const std::string &name) const;
 
+  virtual bool is_local() const = 0;
+
   virtual std::string join_path(const std::string &a,
                                 const std::string &b) const = 0;
 };

@@ -37,6 +37,7 @@
 #include <vector>
 #include "modules/util/load/dump_reader.h"
 #include "modules/util/load/load_dump_options.h"
+#include "modules/util/load/load_progress_log.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
@@ -44,8 +45,6 @@
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
 namespace mysqlsh {
-
-class Load_progress_log;
 
 class Dump_loader {
  public:
@@ -82,9 +81,82 @@ class Dump_loader {
       const std::string &table() const { return m_table; }
 
      protected:
+      void handle_current_exception(Worker *worker, Dump_loader *loader,
+                                    const std::string &error);
+
+     protected:
       size_t m_id;
       std::string m_schema;
       std::string m_table;
+    };
+
+    class Table_ddl_task : public Task {
+     public:
+      Table_ddl_task(size_t id, const std::string &schema,
+                     const std::string &table,
+                     std::unique_ptr<mysqlshdk::storage::IFile> file,
+                     bool placeholder, Load_progress_log::Status status)
+          : Task(id, schema, table),
+            m_file(std::move(file)),
+            m_placeholder(placeholder),
+            m_status(status) {}
+
+      bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
+                   Worker *, Dump_loader *) override;
+
+      std::unique_ptr<std::vector<std::string>> steal_deferred_indexes() {
+        return std::move(m_deferred_indexes);
+      }
+
+      bool placeholder() const { return m_placeholder; }
+
+     private:
+      void process(
+          const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+          std::string *out_script, Dump_loader *loader);
+
+      void load_ddl(
+          const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+          const std::string &script, Dump_loader *loader);
+
+      void extract_pending_indexes(
+          const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+          std::string *script, bool fulltext_only, bool check_recreated,
+          Dump_loader *loader);
+
+     private:
+      std::unique_ptr<mysqlshdk::storage::IFile> m_file;
+      bool m_placeholder = false;
+      Load_progress_log::Status m_status;
+
+      std::unique_ptr<std::vector<std::string>> m_deferred_indexes;
+    };
+
+    class Ddl_fetch_task : public Task {
+     public:
+      Ddl_fetch_task(size_t id, const std::string &schema,
+                     const std::string &object,
+                     std::unique_ptr<mysqlshdk::storage::IFile> file,
+                     const std::function<void(std::string &&)> &fn)
+          : Task(id, schema, object),
+            m_file(std::move(file)),
+            m_process_fn(fn) {}
+
+      bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
+                   Worker *, Dump_loader *) override;
+
+      std::unique_ptr<std::string> steal_script() {
+        return std::move(m_script);
+      }
+
+      const std::function<void(std::string &&)> &process_fn() const {
+        return m_process_fn;
+      }
+
+     private:
+      std::unique_ptr<mysqlshdk::storage::IFile> m_file;
+      std::function<void(std::string &&)> m_process_fn;
+      std::unique_ptr<std::string> m_script;
     };
 
     class Load_chunk_task : public Task {
@@ -148,6 +220,15 @@ class Dump_loader {
     Worker(size_t id, Dump_loader *owner);
     size_t id() const { return m_id; }
 
+    void fetch_object_ddl(const std::string &schema, const std::string &object,
+                          std::unique_ptr<mysqlshdk::storage::IFile> file,
+                          const std::function<void(std::string &&)> &fn);
+
+    void process_table_ddl(const std::string &schema, const std::string &table,
+                           std::unique_ptr<mysqlshdk::storage::IFile> file,
+                           bool is_placeholder,
+                           Load_progress_log::Status status);
+
     void load_chunk_file(const std::string &schema, const std::string &table,
                          std::unique_ptr<mysqlshdk::storage::IFile> file,
                          ssize_t chunk_index, size_t chunk_size,
@@ -183,6 +264,10 @@ class Dump_loader {
     enum Event {
       READY,
       FATAL_ERROR,
+      TABLE_DDL_START,
+      TABLE_DDL_END,
+      FETCH_DDL_START,
+      FETCH_DDL_END,
       LOAD_START,
       LOAD_END,
       INDEX_START,
@@ -201,31 +286,24 @@ class Dump_loader {
   mysqlshdk::db::ISession *session() const { return m_options.base_session(); }
 
   void execute_tasks();
+  void execute_table_ddl_tasks();
+  void execute_view_ddl_tasks();
 
   bool wait_for_more_data();
 
-  std::shared_ptr<mysqlshdk::db::mysql::Session> create_session(
-      bool data_loader);
+  std::shared_ptr<mysqlshdk::db::mysql::Session> create_session();
 
   void show_summary();
 
   void on_dump_begin();
   void on_dump_end();
 
-  void handle_schema_scripts();
   bool handle_table_data(Worker *worker);
   void handle_schema_post_scripts();
 
   void handle_schema(const std::string &schema, bool resuming);
   void switch_schema(const std::string &schema, bool load_done);
-  void handle_tables(const std::string &schema,
-                     const std::list<Name_and_file> &tables, bool is_view);
-  bool handle_indexes(const std::string &schema, const std::string &table,
-                      std::string *script, bool fulltext_only,
-                      bool check_recreated);
-  void handle_table(const std::string &schema, const std::string &table,
-                    const std::string &script, bool resuming,
-                    bool indexes_deferred);
+
   bool schedule_table_chunk(const std::string &schema, const std::string &table,
                             ssize_t chunk_index, Worker *worker,
                             std::unique_ptr<mysqlshdk::storage::IFile> file,
@@ -233,7 +311,10 @@ class Dump_loader {
                             bool resuming);
 
   bool schedule_next_task(Worker *worker);
-  size_t handle_worker_events();
+  size_t handle_worker_events(
+      const std::function<bool(Worker *)> &schedule_next);
+
+  void execute_threaded(const std::function<bool(Worker *)> &schedule_next);
 
   void check_existing_objects();
   bool report_duplicates(const std::string &what, const std::string &schema,
@@ -251,6 +332,18 @@ class Dump_loader {
 
   void on_schema_end(const std::string &schema);
 
+  void on_table_ddl_start(const std::string &schema, const std::string &table,
+                          bool placeholder);
+  void on_table_ddl_end(
+      const std::string &schema, const std::string &table,
+      std::unique_ptr<std::vector<std::string>> deferred_indexes,
+      bool placeholder);
+
+  void on_fetch_ddl_start(const std::string &schema, const std::string &object);
+  void on_fetch_ddl_end(const std::string &schema, const std::string &object,
+                        std::unique_ptr<std::string> script,
+                        const std::function<void(std::string &&)> &fn);
+
   void on_chunk_load_start(const std::string &schema, const std::string &table,
                            ssize_t index);
   void on_chunk_load_end(const std::string &schema, const std::string &table,
@@ -258,6 +351,7 @@ class Dump_loader {
                          size_t raw_bytes_loaded);
 
   friend class Worker;
+  friend class Worker::Table_ddl_task;
   friend class Worker::Load_chunk_task;
 
   const std::string &pre_data_script() const;
@@ -267,12 +361,6 @@ class Dump_loader {
 
   void check_server_version();
   void check_tables_without_primary_key();
-
-  void execute_script(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const std::string &script, const std::string &error_prefix,
-      const std::function<bool(const char *, size_t, std::string *)>
-          &process_stmt = {});
 
   void handle_table_only_dump();
 

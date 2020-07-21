@@ -73,7 +73,8 @@ namespace {
 
 static constexpr auto k_dump_in_progress_ext = ".dumping";
 
-static constexpr const int k_mysql_server_net_write_timeout = 5 * 60;
+static constexpr const int k_mysql_server_net_write_timeout = 30 * 60;
+static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
 
 std::string quote_value(const std::string &value, mysqlshdk::db::Type type) {
   if (is_string_type(type)) {
@@ -1027,6 +1028,10 @@ void Dumper::on_init_thread_session(
   // like resultsets. Result reading can be delayed by slow uploads.
   session->executef("SET SESSION net_write_timeout = ?",
                     k_mysql_server_net_write_timeout);
+
+  // Amount of time before server disconnects idle clients.
+  session->executef("SET SESSION wait_timeout = ?",
+                    k_mysql_server_wait_timeout);
 
   if (m_options.use_timezone_utc()) {
     session->execute("SET TIME_ZONE = '+00:00';");

@@ -1442,7 +1442,11 @@ void Testutils::start_sandbox(int port, const shcore::Dictionary_t &opts) {
     } catch (const std::runtime_error &error) {
       // print the error log contents
       std::string error_log_path = get_sandbox_log_path(port);
-      dprint(cat_file(error_log_path));
+      try {
+        dprint(cat_file(error_log_path));
+      } catch (const std::exception &e) {
+        dprint(error_log_path + ": " + e.what());
+      }
       throw;
     }
   }

@@ -1,4 +1,6 @@
 
+SET foreign_key_checks=0;
+
 DROP SCHEMA IF EXISTS all_features;
 CREATE SCHEMA all_features;
 USE all_features;
@@ -58,6 +60,68 @@ CREATE TABLE gctable1 (
 -- Constraints
 
 -- Foreign Keys
+
+-- Tables and views with circular FK references
+-- This is to ensure that the schema can be loaded without FK dependency
+-- related errors.
+
+DROP SCHEMA IF EXISTS all_features2;
+CREATE SCHEMA all_features2;
+
+
+CREATE TABLE all_features.tbl1 (
+  a int primary key,
+  b int,
+  CONSTRAINT FOREIGN KEY (b) REFERENCES all_features2.tbl2(a)
+);
+
+CREATE TABLE all_features.tbl2 (
+  a int primary key,
+  b int,
+  CONSTRAINT FOREIGN KEY (b) REFERENCES all_features.tbl1(a)
+);
+
+CREATE TABLE all_features.v1 (
+  a int primary key
+);
+
+CREATE TABLE all_features.v2 (
+  a int primary key
+);
+
+CREATE TABLE all_features2.tbl1 (
+  a int primary key,
+  b int,
+  CONSTRAINT FOREIGN KEY (b) REFERENCES all_features.tbl1(a)
+);
+
+CREATE TABLE all_features2.tbl2 (
+  a int primary key,
+  b int,
+  CONSTRAINT FOREIGN KEY (b) REFERENCES all_features2.tbl1(a)
+);
+
+CREATE TABLE all_features2.v1 (
+  a int primary key
+);
+
+CREATE TABLE all_features2.v2 (
+  a int primary key
+);
+
+
+DROP TABLE IF EXISTS all_features.v1;
+CREATE VIEW all_features.v1 AS SELECT * FROM all_features.v2;
+
+DROP TABLE IF EXISTS all_features.v2;
+CREATE VIEW all_features.v2 AS SELECT * FROM all_features2.v1;
+
+DROP TABLE IF EXISTS all_features2.v1;
+CREATE VIEW all_features2.v1 AS SELECT * FROM all_features2.v2;
+
+DROP TABLE IF EXISTS all_features2.v2;
+CREATE VIEW all_features2.v2 AS SELECT * FROM all_features.tbl2;
+
 
 -- Attributes (auto_increment)
 

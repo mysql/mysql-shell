@@ -76,13 +76,11 @@ class Dump_reader {
 
   bool ready() const { return m_contents.ready(); }
 
-  bool next_schema(std::string *out_schema,
-                   std::list<Name_and_file> *out_tables,
-                   std::list<Name_and_file> *out_views);
-
-  bool has_ddl(const std::string &schema) const;
-
-  bool has_ddl(const std::string &schema, const std::string &table) const;
+  bool next_schema_and_tables(std::string *out_schema,
+                              std::list<Name_and_file> *out_tables,
+                              std::list<Name_and_file> *out_view_placeholders);
+  bool next_schema_and_views(std::string *out_schema,
+                             std::list<Name_and_file> *out_views);
 
   std::vector<std::string> schemas() const;
 
@@ -256,7 +254,8 @@ class Dump_reader {
     bool has_data = true;
 
     bool sql_seen = false;
-    bool sql_done = false;
+    bool table_sql_done = false;
+    bool view_sql_done = false;
 
     bool ready() const;
 
