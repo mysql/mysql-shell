@@ -62,11 +62,7 @@
 
 
 #@A parameter definition requires name
-||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter #1: name, type
-
-
-#@A parameter definition requires type
-||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter 'sample': type
+||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter #1: name
 
 
 #@A parameter definition requires string on name
@@ -211,11 +207,7 @@ ArgumentError: Shell.add_extension_object_member: Invalid options at boolean par
 
 
 #@Parameter option definition requires type and name, missing both
-||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter 'sample', option #1: name, type
-
-
-#@Parameter option definition requires type and name, missing type
-||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter 'sample', option 'myOption': type
+||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter 'sample', option #1: name
 
 
 #@Parameter option definition 'required' must be boolean

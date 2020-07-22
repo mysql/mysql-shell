@@ -363,7 +363,7 @@ DESCRIPTION
 
 
 #@ Registration errors, parameters
-||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter #1: name, type
+||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter #1: name
 ||SystemError: TypeError: Shell.add_extension_object_member: Option 'type' is expected to be of type String, but is Integer
 
 #@ Registration errors, integer parameters
@@ -376,7 +376,6 @@ DESCRIPTION
 #@ Registration errors, bool parameters
 ||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at bool parameter 'sample': class, classes, options, values
 
-
 #@ Registration errors, string parameters
 ||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at string parameter 'sample': class, classes, options
 ||SystemError: TypeError: Shell.add_extension_object_member: Option 'values' is expected to be of type Array, but is Integer
@@ -386,8 +385,7 @@ DESCRIPTION
 #@ Registration errors, dictionary parameters
 ||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': class, classes, values
 ||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid definition at parameter 'sample', option #1
-||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter 'sample', option #1: name, type
-
+||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter 'sample', option #1: name
 
 #@ Registration errors, invalid identifiers
 ||SystemError: ArgumentError: Shell.add_extension_object_member: The function name 'my function' is not a valid identifier.

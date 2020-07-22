@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2020, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -1649,6 +1649,9 @@ void Shell_script_tester::set_defaults() {
     def_var("__default_gr_expel_timeout", "0");
     def_var("__default_gr_auto_rejoin_tries", "0");
   }
+
+  def_var("__user_config_path",
+          shcore::quote_string(shcore::get_user_config_path(), '\''));
 
 #ifdef WITH_OCI
   def_var("__with_oci", "1");
