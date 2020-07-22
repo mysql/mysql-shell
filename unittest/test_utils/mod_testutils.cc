@@ -249,13 +249,6 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          "content");
   expose("deleteOciObject", &Testutils::delete_oci_object, "bucket", "name");
   expose("anycopy", &Testutils::anycopy, "from", "to");
-
-  std::string local_mp_path =
-      mysqlsh::current_shell_options()->get().gadgets_path;
-
-  if (local_mp_path.empty()) local_mp_path = shcore::get_mp_path();
-
-  _mp.reset(new mysqlsh::dba::ProvisioningInterface(local_mp_path));
 }
 
 //!<  @name Testing Utilities
@@ -1381,7 +1374,7 @@ void Testutils::destroy_sandbox(int port, bool quiet_kill) {
 #endif
   if (!_skip_server_interaction) {
     shcore::Value::Array_type_ref errors;
-    _mp->delete_sandbox(port, _sandbox_dir, true, &errors);
+    _mp.delete_sandbox(port, _sandbox_dir, true, &errors);
     if (errors && !errors->empty())
       std::cerr << "During delete of " << port << ": "
                 << shcore::Value(errors).descr() << "\n";
@@ -1432,7 +1425,7 @@ void Testutils::start_sandbox(int port, const shcore::Dictionary_t &opts) {
       wait_sandbox_dead(port);
 
       shcore::Value::Array_type_ref errors;
-      _mp->start_sandbox(port, _sandbox_dir, &errors, timeout);
+      _mp.start_sandbox(port, _sandbox_dir, &errors, timeout);
       if (errors && !errors->empty()) {
         for (auto err : *errors) {
           if ((*err.as_map())["type"].get_string() == "ERROR") {
@@ -1545,7 +1538,7 @@ None Testutils::kill_sandbox(int port);
 void Testutils::kill_sandbox(int port, bool quiet) {
   if (!_skip_server_interaction) {
     shcore::Value::Array_type_ref errors;
-    _mp->kill_sandbox(port, _sandbox_dir, &errors);
+    _mp.kill_sandbox(port, _sandbox_dir, &errors);
     // Only output errors to stderr if quiet mode is disabled (default).
     if (!quiet && errors && !errors->empty())
       std::cerr << "During kill of " << port << ": "
@@ -3114,8 +3107,8 @@ void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
   mycnf_options.as_array()->push_back(
       shcore::Value("innodb_data_file_path=ibdata1:10M:autoextend"));
 
-  _mp->create_sandbox(port, port * 10, _sandbox_dir, rootpass, mycnf_options,
-                      true, true, 60, mysqld_path, &errors);
+  _mp.create_sandbox(port, port * 10, _sandbox_dir, rootpass, mycnf_options,
+                     true, true, 60, mysqld_path, &errors);
   if (errors && !errors->empty()) {
     std::cerr << "Error deploying sandbox:\n";
     for (auto &v : *errors) std::cerr << v.descr() << "\n";

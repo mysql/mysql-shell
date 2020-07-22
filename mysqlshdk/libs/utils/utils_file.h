@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,7 +37,7 @@ std::string SHCORE_PUBLIC get_mysqlx_home_path();
 std::string SHCORE_PUBLIC get_binary_path();
 std::string SHCORE_PUBLIC get_binary_folder();
 std::string SHCORE_PUBLIC get_share_folder();
-std::string SHCORE_PUBLIC get_mp_path();
+std::string SHCORE_PUBLIC get_library_folder();
 
 /**
  * Tells if path is a regular file.

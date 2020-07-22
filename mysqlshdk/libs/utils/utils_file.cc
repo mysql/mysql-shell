@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -285,14 +285,12 @@ std::string get_share_folder() {
   return path;
 }
 
-std::string SHCORE_PUBLIC get_mp_path() {
-  // Determine provisioning path
-  std::string path;
-  path = shcore::path::join_path(get_mysqlx_home_path(), "share", "mysqlsh",
-                                 "mysqlprovision.zip");
-  if (!shcore::is_file(path))
+std::string get_library_folder() {
+  std::string path =
+      shcore::path::join_path(get_mysqlx_home_path(), "lib", "mysqlsh");
+  if (!shcore::path::exists(path))
     throw std::runtime_error(
-        path + ": mysqlprovision not found, shell installation likely invalid");
+        path + ": lib folder not found, shell installation likely invalid");
 
   return path;
 }

@@ -309,7 +309,7 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
     bool error_handled = false;
     try {
       member = cobj->get_member_advanced(attrname);
-    } catch (Exception &exc) {
+    } catch (const Exception &exc) {
       if (!exc.is_attribute()) {
         Python_context::set_python_error(exc, "");
         error_handled = true;
@@ -327,7 +327,7 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
       return object;
     } else if (!error_handled) {
       std::string err = std::string("unknown attribute: ") + attrname;
-      Python_context::set_python_error(PyExc_IndexError, err.c_str());
+      Python_context::set_python_error(PyExc_AttributeError, err.c_str());
     }
   }
   return NULL;
@@ -570,11 +570,7 @@ static PyTypeObject PyShObjObjectType = {
     0,                           // printfunc tp_print;
     0,                           // getattrfunc tp_getattr;
     0,                           // setattrfunc tp_setattr;
-#ifdef IS_PY3K
     0,  //  PyAsyncMethods *tp_as_async; // void *tp_reserved;
-#else
-    (cmpfunc)object_compare,  //  cmpfunc tp_compare;
-#endif
     0,  // (reprfunc)dict_repr, // reprfunc tp_repr;
 
     /* Method suites for standard classes */
@@ -666,11 +662,7 @@ static PyTypeObject PyShObjIndexedObjectType = {
     0,                           // printfunc tp_print;
     0,                           // getattrfunc tp_getattr;
     0,                           // setattrfunc tp_setattr;
-#ifdef IS_PY3K
     0,  //  PyAsyncMethods *tp_as_async; // void *tp_reserved;
-#else
-    (cmpfunc)object_compare,  //  cmpfunc tp_compare;
-#endif
     0,  // (reprfunc)dict_repr, // reprfunc tp_repr;
 
     /* Method suites for standard classes */

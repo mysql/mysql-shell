@@ -499,7 +499,7 @@ Bye!
 class Mysqlsh_plugin_test : public Mysqlsh_extension_test {
  public:
   std::string get_plugin_folder() const {
-    return join_path(shcore::get_share_folder(), get_plugin_folder_name());
+    return join_path(shcore::get_library_folder(), get_plugin_folder_name());
   }
 
   std::string get_user_plugin_folder() const {

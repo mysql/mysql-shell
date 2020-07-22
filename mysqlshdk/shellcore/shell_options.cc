@@ -296,6 +296,8 @@ Shell_options::Shell_options(int argc, char **argv,
         }
 #endif
     )
+    (cmdline("--pym <module>"),
+       "Run Python library module as a script. Remaining args are forwarded to it.")
     (&storage.wrap_json, "off", cmdline("--json[=<format>]"),
         "Produce output in JSON format. Allowed values: raw, pretty, and off. "
         "If no format is specified pretty format is produced.",
@@ -738,6 +740,23 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
     storage.script_argv.push_back(file);
     const auto cmdline = iterator->iterator();
     while (cmdline->valid()) storage.script_argv.push_back(cmdline->get());
+  } else if ("--pym" == option) {
+#ifndef HAVE_PYTHON
+    throw std::invalid_argument("Python is not supported.");
+#endif
+    handle_missing_value(iterator);
+
+    const std::string module = iterator->value();
+    iterator->next();
+
+    storage.run_module = module;
+    storage.initial_mode = shcore::IShell_core::Mode::Python;
+
+    // the rest of the cmdline options, starting from here are all passed
+    // through to the script
+    storage.script_argv.push_back(module);
+    const auto cmdline = iterator->iterator();
+    while (cmdline->valid()) storage.script_argv.push_back(cmdline->get());
   } else if ("--uri" == option || '-' != option[0]) {
     handle_missing_value(iterator);
 
@@ -1122,7 +1141,13 @@ void Shell_options::check_file_execute_conflicts() {
     throw std::runtime_error(
         "Conflicting options: --execute and --file cannot be used at the same "
         "time.");
+  } else if (!storage.run_module.empty() &&
+             !storage.execute_statement.empty()) {
+    throw std::runtime_error(
+        "Conflicting options: --execute and --pym cannot be used at the same "
+        "time.");
   }
+  // note: --file and --pym are impossible because both consume remaining args
 }
 
 void Shell_options::check_result_format() {

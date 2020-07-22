@@ -240,16 +240,17 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
   // options First set the options on _options
   void reset_options(int argc = 0, const char **argv = nullptr,
                      bool remove_config = true) {
-    extern char *g_mppath;
     extern int g_test_default_verbosity;
     std::string options_file = get_options_file_name();
     if (remove_config) std::remove(options_file.c_str());
     _opts.reset(new mysqlsh::Shell_options(argc, const_cast<char **>(argv),
                                            options_file));
     _options = const_cast<mysqlsh::Shell_options::Storage *>(&_opts->get());
-    _options->gadgets_path = g_mppath;
     if (!argv) _options->verbose_level = g_test_default_verbosity;
     _options->db_name_cache = false;
+
+    // don't load any plugins except in plugin specific tests
+    _options->plugins_path = "";
 
     // Allows derived classes configuring specific options
     set_options();
@@ -287,7 +288,6 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
                   std::unique_ptr<shcore::Interpreter_delegate>{
                       new shcore::Interpreter_delegate(output_handler.deleg)});
 
-    _interactive_shell->finish_init();
     set_defaults();
     enable_testutil();
   }

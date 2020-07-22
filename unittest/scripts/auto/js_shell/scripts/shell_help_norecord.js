@@ -175,9 +175,6 @@ session.close()
 //@ Help on connection attributes
 \? connection attributes
 
-//@ Help on plugins
-\? plugins
-
 //@ Help on extension objects
 \? extension objects
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,8 +47,8 @@ class Shell_python : public Shell_language {
   std::string preprocess_input_line(const std::string &s) override;
   void handle_input(std::string &code, Input_state &state) override;
 
-  bool is_module(const std::string &file_name) override;
-  void execute_module(const std::string &file_name) override;
+  void execute_module(const std::string &module_name,
+                      const std::vector<std::string> &args) override;
   bool load_plugin(const Plugin_definition &plugin) override;
 
   std::shared_ptr<Python_context> python_context() { return _py; }

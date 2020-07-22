@@ -69,6 +69,7 @@ class Shell_options : public shcore::Options {
   struct Storage {
     shcore::IShell_core::Mode initial_mode = shcore::IShell_core::Mode::None;
     std::string run_file;
+    std::string run_module;
 
     // Individual connection parameters
     std::string user;
@@ -118,7 +119,6 @@ class Shell_options : public shcore::Options {
     int dba_gtid_wait_timeout;
     int dba_restart_wait_timeout;
     int dba_log_sql;
-    std::string gadgets_path;
     shcore::Logger::LOG_LEVEL log_level = shcore::Logger::LOG_INFO;
     int verbose_level = 0;
     bool wizards = true;
@@ -145,6 +145,9 @@ class Shell_options : public shcore::Options {
     bool show_column_type_info = false;
     bool default_compress = false;
     std::string dbug_options;
+
+    // override default plugin search path ; separated in windows, : elsewhere
+    mysqlshdk::null_string plugins_path;
 
     int exit_code = 0;
 

@@ -92,6 +92,8 @@ Usage: mysqlsh [OPTIONS] [URI]
   --sqlx                          Start in SQL mode using an X protocol session.
   --js, --javascript              Start in JavaScript mode.
   --py, --python                  Start in Python mode.
+  --pym <module>                  Run Python library module as a script.
+                                  Remaining args are forwarded to it.
   --json[=<format>]               Produce output in JSON format. Allowed
                                   values: raw, pretty, and off. If no format is
                                   specified pretty format is produced.

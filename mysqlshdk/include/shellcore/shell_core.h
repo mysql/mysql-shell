@@ -117,9 +117,9 @@ class SHCORE_PUBLIC Shell_language {
   virtual void clear_input() {}
   virtual std::string get_continued_input_context() = 0;
 
-  virtual bool is_module(const std::string &UNUSED(file_name)) { return false; }
   virtual void execute_module(
-      const std::string &UNUSED(file_name)) { /* Does Nothing by default */
+      const std::string &UNUSED(file_name),
+      const std::vector<std::string> &) { /* Does Nothing by default */
   }
 
   /**
@@ -190,10 +190,8 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   std::string get_handled_input() override;
   int process_stream(std::istream &stream, const std::string &source,
                      const std::vector<std::string> &argv) override;
-  virtual bool is_module(const std::string &file_name) {
-    return _langs[_mode]->is_module(file_name);
-  }
-  virtual void execute_module(const std::string &file_name,
+
+  virtual void execute_module(const std::string &module_name,
                               const std::vector<std::string> &argv);
 
   /**

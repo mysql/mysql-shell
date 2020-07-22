@@ -58,8 +58,6 @@ namespace shcore {
 
 namespace {
 
-#ifdef IS_PY3K
-
 using py_char_t = wchar_t;
 #define PY_CHAR_T_LITERAL(x) L##x
 
@@ -86,28 +84,6 @@ std::vector<std::wstring> to_py_char_t(const std::vector<std::string> &in) {
   return out;
 }
 
-#else  // !IS_PY3K
-
-using py_char_t = char;
-#define PY_CHAR_T_LITERAL(x) x
-
-void copy_py_char_t(const char *src, size_t src_len, py_char_t *dst,
-                    size_t dst_len, const char *error) {
-  if (src_len >= dst_len) {
-    throw std::runtime_error(error);
-  }
-
-  strncpy(dst, src, src_len);
-  dst[src_len] = PY_CHAR_T_LITERAL('\0');
-}
-
-const std::vector<std::string> &to_py_char_t(
-    const std::vector<std::string> &in) {
-  return in;
-}
-
-#endif  // !IS_PY3K
-
 void set_python_home(const std::string &home) {
   if (!home.empty()) {
     static py_char_t path[1000];
@@ -125,7 +101,6 @@ void set_program_name() {
 }
 
 PyObject *py_register_module(const std::string &name, PyMethodDef *members) {
-#ifdef IS_PY3K
   PyModuleDef *moduledef = new PyModuleDef{
       PyModuleDef_HEAD_INIT,
       nullptr,
@@ -137,8 +112,6 @@ PyObject *py_register_module(const std::string &name, PyMethodDef *members) {
       nullptr,
       [](void *module) {
         auto definition = PyModule_GetDef(static_cast<PyObject *>(module));
-
-        PyDict_DelItemString(PyImport_GetModuleDict(), definition->m_name);
         delete[] definition->m_name;
         delete definition;
       }};
@@ -178,9 +151,11 @@ PyObject *py_register_module(const std::string &name, PyMethodDef *members) {
   // module needs to be added to the sys.modules
   PyDict_SetItemString(PyImport_GetModuleDict(), moduledef->m_name, module);
   return module;
-#else   // !IS_PY3K
-  return Py_InitModule(name.c_str(), members);
-#endif  // !IS_PY3K
+}
+
+void py_unregister_module(const std::string &name) {
+  // remove from sys.modules to decrement its refcount
+  PyDict_DelItemString(PyImport_GetModuleDict(), name.c_str());
 }
 
 PyObject *py_run_string_interactive(const char *str, PyObject *globals,
@@ -386,20 +361,43 @@ Python_context::Python_context(bool redirect_stdio) : _types(this) {
 
   Python_init_singleton::init_python();
 
-  _global_namespace = PyImport_AddModule("__main__");
-  _globals = PyModule_GetDict(_global_namespace);
-
-  _locals = _globals;
-
-  if (!_global_namespace || !_globals) {
+  PyObject *global_namespace = PyImport_AddModule("__main__");
+  if (!global_namespace || !(_globals = PyModule_GetDict(global_namespace))) {
     throw Exception::runtime_error("Error initializing python context.");
   }
 
+  _locals = _globals;
+
+  // add our bundled packages to sys.path
+  {
+    PyObject *sys_path = PySys_GetObject("path");
+    auto add_path = [sys_path](const std::string &path) {
+      PyObject *tmp = PyString_FromString(path.c_str());
+      PyList_Append(sys_path, tmp);
+      Py_DECREF(tmp);
+    };
+
+    auto python_packages_path = shcore::path::join_path(
+        shcore::get_library_folder(), "python-packages");
+
+    add_path(python_packages_path);
+
+    // also add any .zip modules
+    for (const auto &path : shcore::listdir(python_packages_path)) {
+      if (shcore::str_endswith(path, ".zip")) {
+        add_path(shcore::path::join_path(python_packages_path, path));
+      }
+    }
+  }
+
   // register shell module
+
   register_shell_stderr_module();
   register_shell_stdout_module();
-  register_shell_python_support_module();
+
   register_mysqlsh_module();
+  register_shell_python_support_module();
+  register_mysqlsh_builtins();
 
   PySys_SetObject(const_cast<char *>("real_stdout"),
                   PySys_GetObject(const_cast<char *>("stdout")));
@@ -487,22 +485,22 @@ Python_context::~Python_context() {
   {
     WillEnterPython lock;
 
+    PySys_SetObject(const_cast<char *>("stdout"),
+                    PySys_GetObject(const_cast<char *>("real_stdout")));
+    PySys_SetObject(const_cast<char *>("stderr"),
+                    PySys_GetObject(const_cast<char *>("real_stderr")));
+
     m_stored_objects.clear();
 
-    // Release all internal module references
-    const auto py_mysqlsh_dict = PyModule_GetDict(_shell_mysqlsh_module);
-    const auto keys = PyDict_Keys(py_mysqlsh_dict);
+    Py_XDECREF(_shell_stderr_module);
+    Py_XDECREF(_shell_stdout_module);
+    Py_XDECREF(_shell_stdin_module);
+    Py_XDECREF(_shell_python_support_module);
 
-    for (Py_ssize_t i = 0, c = PyList_GET_SIZE(keys); i < c; ++i) {
-      const auto module_name = PyList_GetItem(keys, i);
-      const auto module = PyDict_GetItem(py_mysqlsh_dict, module_name);
+    py_unregister_module("mysqlsh");
+    Py_XDECREF(_mysqlsh_module);
 
-      if (PyModule_Check(module) && _modules.find(module) != _modules.end()) {
-        PyDict_DelItem(py_mysqlsh_dict, module_name);
-      }
-    }
-
-    Py_XDECREF(keys);
+    PyGC_Collect();
   }
 
   PyEval_RestoreThread(_main_thread_state);
@@ -517,8 +515,7 @@ Python_context *Python_context::get() {
   PyObject *module;
   PyObject *dict;
 
-  module =
-      PyDict_GetItemString(PyImport_GetModuleDict(), "shell_python_support");
+  module = PyImport_AddModule("mysqlsh.__shell_python_support__");
   if (!module)
     throw std::runtime_error("SHELL module not found in Python runtime");
 
@@ -530,11 +527,7 @@ Python_context *Python_context::get() {
   if (!ctx)
     throw std::runtime_error("SHELL context not found in Python runtime");
 
-#ifdef IS_PY3K
   return static_cast<Python_context *>(PyCapsule_GetPointer(ctx, nullptr));
-#else
-  return static_cast<Python_context *>(PyCObject_AsVoidPtr(ctx));
-#endif
 }
 
 Python_context *Python_context::get_and_check() {
@@ -768,21 +761,10 @@ void Python_context::set_global(const std::string &name, const Value &value) {
   assert(p != nullptr);
   // incs ref
   PyDict_SetItemString(_globals, name.c_str(), p);
+
+  PyObject_SetAttrString(_mysqlsh_globals, name.c_str(), p);
+
   Py_XDECREF(p);
-}
-
-void Python_context::set_global_item(const std::string &global_name,
-                                     const std::string &item_name,
-                                     const Value &value) {
-  PyObject *py_global;
-
-  py_global = PyDict_GetItemString(_globals, global_name.c_str());
-  if (!py_global)
-    throw shcore::Exception::logic_error(
-        "Python_context: Error setting global item on " + global_name + ".");
-  else  // steals the ref
-    PyModule_AddObject(py_global, item_name.c_str(),
-                       _types.shcore_value_to_pyobj(value));
 }
 
 Value Python_context::pyobj_to_shcore_value(PyObject *value) {
@@ -863,18 +845,10 @@ bool Python_context::pystring_to_string(PyObject *strobject,
     return false;
   }
 
-#ifdef IS_PY3K
   if (PyBytes_Check(strobject)) {
-#else   // !IS_PY3K
-  if (PyString_Check(strobject)) {
-#endif  // !IS_PY3K
     char *s;
     Py_ssize_t len;
-#ifdef IS_PY3K
     PyBytes_AsStringAndSize(strobject, &s, &len);
-#else   // !IS_PY3K
-    PyString_AsStringAndSize(strobject, &s, &len);
-#endif  // !IS_PY3K
     if (s)
       *result = std::string(s, len);
     else
@@ -994,8 +968,20 @@ PyObject *Python_context::shell_stdout(PyObject *self, PyObject *args) {
   return shell_print(self, args, "out");
 }
 
+PyObject *Python_context::shell_stdout_isatty(PyObject *, PyObject *) {
+  PyObject *r = Py_False;
+  Py_INCREF(r);
+  return r;
+}
+
 PyObject *Python_context::shell_stderr(PyObject *self, PyObject *args) {
   return shell_print(self, args, "error");
+}
+
+PyObject *Python_context::shell_stderr_isatty(PyObject *, PyObject *) {
+  PyObject *r = Py_False;
+  Py_INCREF(r);
+  return r;
 }
 
 PyObject *Python_context::shell_flush_stderr(PyObject *, PyObject *) {
@@ -1094,6 +1080,7 @@ PyMethodDef Python_context::ShellStdErrMethods[] = {
     {"write", &Python_context::shell_stderr, METH_VARARGS,
      "Write an error string in the SHELL shell."},
     {"flush", &Python_context::shell_flush_stderr, METH_NOARGS, ""},
+    {"isatty", &Python_context::shell_stderr_isatty, METH_NOARGS, ""},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
@@ -1101,6 +1088,7 @@ PyMethodDef Python_context::ShellStdOutMethods[] = {
     {"write", &Python_context::shell_stdout, METH_VARARGS,
      "Write a string in the SHELL shell."},
     {"flush", &Python_context::shell_flush, METH_NOARGS, ""},
+    {"isatty", &Python_context::shell_stdout_isatty, METH_NOARGS, ""},
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
@@ -1125,21 +1113,10 @@ PyMethodDef Python_context::ShellPythonSupportMethods[] = {
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
-void Python_context::register_mysqlsh_module() {
+void Python_context::register_mysqlsh_builtins() {
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
-  // Registers the mysqlsh module/package, at least for now this exists
-  // only on the python side of things, this module encloses the inner
-  // modules: mysql and mysqlx to prevent class names i.e. using connector/py
-  _shell_mysqlsh_module = py_register_module("mysqlsh", nullptr);
-
-  if (_shell_mysqlsh_module == NULL)
-    throw std::runtime_error(
-        "Error initializing the 'mysqlsh' module in Python support");
-
-  PyObject *py_mysqlsh_dict = PyModule_GetDict(_shell_mysqlsh_module);
-
-  // Now registers each available module as part of the mysqlsh package
+  // Now add built-in shell modules/objects in the mysqlsh module
   auto modules = Object_factory::package_contents("__modules__");
 
   shcore::Scoped_naming_style lower(NamingStyle::LowerCaseUnderscores);
@@ -1151,9 +1128,7 @@ void Python_context::register_mysqlsh_module() {
     const auto module =
         std::dynamic_pointer_cast<shcore::Module_base>(module_obj);
 
-    // The modules will be registered in python as __<name>__
-    // But exposed in the mysqlsh module as the original name
-    std::string module_name = "__" + name + "__";
+    std::string module_name = "mysqlsh." + name;
 
     PyObject *py_module_ref = py_register_module(module_name, nullptr);
 
@@ -1161,7 +1136,12 @@ void Python_context::register_mysqlsh_module() {
       throw std::runtime_error("Error initializing the '" + name +
                                "' module in Python support");
 
-    _modules[py_module_ref] = module;
+    // add to the mysqlsh module namespace so that
+    // import mysqlsh; mysqlsh.mysql.whatever() still works for backwards
+    // compatibility
+    if (name == "mysql" || name == "mysqlx")
+      PyDict_SetItemString(PyModule_GetDict(_mysqlsh_module), name.c_str(),
+                           py_module_ref);
 
     // Now inserts every element on the module
     PyObject *py_dict = PyModule_GetDict(py_module_ref);
@@ -1178,38 +1158,39 @@ void Python_context::register_mysqlsh_module() {
       }
     }
 
-    // Now makes the module available through the mysqlsh module, using the
-    // original name
-    PyDict_SetItemString(py_mysqlsh_dict, name.c_str(), py_module_ref);
+    Py_DECREF(py_module_ref);
   }
+}
 
-  PyObject *r = Py_CompileString(
-      "class DBError(Exception):\n"
-      "  def __init__(self, code, msg, sqlstate=None):\n"
-      "    self.code = code\n"
-      "    self.msg = msg\n"
-      "    self.args = (code, msg)\n"
-      "\n"
-      "  def __str__(self):\n"
-      "    return 'MySQL Error (%s): %s' % (self.code, self.msg)\n"
-      "\n",
-      "", Py_file_input);
+void Python_context::register_mysqlsh_module() {
+  shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
-  if (!r) {
+  // Registers the mysqlsh module/package, at least for now this exists
+  // only on the python side of things, this module encloses the inner
+  // modules: mysql and mysqlx to prevent class names i.e. using connector/py
+  // It also exposes other mysqlsh internal machinery.
+  // Actual code for this module is in python/packages/mysqlsh
+  _mysqlsh_module = PyImport_ImportModule("mysqlsh");
+  if (_mysqlsh_module == nullptr) {
     PyErr_Print();
-  } else {
-    PyImport_ExecCodeModule(const_cast<char *>("mysqlsh"), r);
-    Py_DECREF(r);
+
+    throw std::runtime_error(
+        "Error initializing the 'mysqlsh' module in Python support");
   }
+
+  PyObject *py_mysqlsh_dict = PyModule_GetDict(_mysqlsh_module);
+
   _db_error = PyDict_GetItemString(py_mysqlsh_dict, "DBError");
   if (!_db_error) PyErr_Print();
+  assert(_db_error);
 
-  // Finally inserts the globals
-  PyDict_SetItemString(py_mysqlsh_dict, "globals", _global_namespace);
+  _mysqlsh_globals = PyDict_GetItemString(py_mysqlsh_dict, "globals");
+  assert(_mysqlsh_globals);
 }
 
 void Python_context::register_shell_stderr_module() {
-  PyObject *module = py_register_module("shell_stderr", ShellStdErrMethods);
+  PyObject *module =
+      py_register_module("mysqlsh.shell_stderr", ShellStdErrMethods);
   if (module == NULL)
     throw std::runtime_error(
         "Error initializing SHELL module in Python support");
@@ -1218,7 +1199,8 @@ void Python_context::register_shell_stderr_module() {
 }
 
 void Python_context::register_shell_stdout_module() {
-  PyObject *module = py_register_module("shell_stdout", ShellStdOutMethods);
+  PyObject *module =
+      py_register_module("mysqlsh.shell_stdout", ShellStdOutMethods);
   if (module == NULL)
     throw std::runtime_error(
         "Error initializing SHELL module in Python support");
@@ -1227,7 +1209,8 @@ void Python_context::register_shell_stdout_module() {
 }
 
 void Python_context::register_shell_stdin_module() {
-  PyObject *module = py_register_module("shell_stdin", ShellStdInMethods);
+  PyObject *module =
+      py_register_module("mysqlsh.shell_stdin", ShellStdInMethods);
   if (module == NULL)
     throw std::runtime_error(
         "Error initializing SHELL module in Python support");
@@ -1236,8 +1219,8 @@ void Python_context::register_shell_stdin_module() {
 }
 
 void Python_context::register_shell_python_support_module() {
-  PyObject *module =
-      py_register_module("shell_python_support", ShellPythonSupportMethods);
+  PyObject *module = py_register_module("mysqlsh.__shell_python_support__",
+                                        ShellPythonSupportMethods);
   if (module == NULL)
     throw std::runtime_error(
         "Error initializing SHELL module in Python support");
@@ -1246,16 +1229,11 @@ void Python_context::register_shell_python_support_module() {
 
   // add the context ptr
   PyObject *context_object;
-#ifdef IS_PY3K
   context_object = PyCapsule_New(this, nullptr, nullptr);
   PyCapsule_SetContext(context_object, &SHELLTypeSignature);
-#else
-  context_object =
-      PyCObject_FromVoidPtrAndDesc(this, &SHELLTypeSignature, NULL);
-#endif
 
   if (context_object != NULL)
-    PyModule_AddObject(module, "__SHELL__", context_object);
+    PyModule_AddObject(module, "__SHELL__", context_object);  // steals ref
 
   PyModule_AddStringConstant(module, "INT", shcore::type_name(Integer).c_str());
   PyModule_AddStringConstant(module, "DOUBLE",
@@ -1275,117 +1253,48 @@ void Python_context::register_shell_python_support_module() {
   init_shell_function_type();
 }
 
-bool Python_context::is_module(const std::string &file_name) {
-  bool ret_val = false;
-
-  PyObject *argv0 = PyString_FromString(file_name.c_str());
-  PyObject *importer = PyImport_GetImporter(argv0);
-
-  if (importer && (importer != Py_None)) {
-#ifdef IS_PY3K
-    // Importers are returned for any existing directory, even if it's not
-    // a module. Call method on an importer to double check if it really is
-    // module.
-    static constexpr auto s_find_spec = "find_spec";
-    PyObject *find_spec = nullptr;
-
-    if (PyObject_HasAttrString(importer, s_find_spec)) {
-      find_spec = PyObject_GetAttrString(importer, s_find_spec);
-    } else {
-      // old style importers don't have find_spec() method
-      find_spec = PyObject_GetAttrString(importer, "find_module");
-    }
-
-    // use the same name as in execute_module() method (__main__)
-    PyObject *runargs = Py_BuildValue("(s)", "__main__");
-    PyObject *result = PyObject_Call(find_spec, runargs, nullptr);
-
-    ret_val = result && (result != Py_None);
-
-    Py_XDECREF(result);
-    Py_XDECREF(runargs);
-    Py_XDECREF(find_spec);
-
-#else   // !IS_PY3K
-    ret_val = Py_TYPE(importer) != &PyNullImporter_Type;
-#endif  // !IS_PY3K
-  }
-
-  Py_XDECREF(argv0);
-  Py_XDECREF(importer);
-
-  if (PyErr_Occurred()) {
-    PyErr_Print();
-  }
-
-  return ret_val;
-}
-
-Value Python_context::execute_module(const std::string &file_name,
+Value Python_context::execute_module(const std::string &module_name,
                                      const std::vector<std::string> &argv) {
   shcore::Value ret_val;
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
-  PyObject *argv0 = PyString_FromString(file_name.c_str());
-  PyObject *sys_path = PySys_GetObject(const_cast<char *>("path"));
+  AutoPyObject modname = PyString_FromString(module_name.c_str());
 
   set_argv(argv);
 
-  // Register the module name as an input source
-  if (sys_path) {
-    if (!PyList_Insert(sys_path, 0, argv0)) {
-      Py_INCREF(argv0);
-      sys_path = NULL;
+  AutoPyObject runpy = PyImport_ImportModule("runpy");
+  if (!runpy) {
+    PyErr_Print();
+    throw shcore::Exception::runtime_error("Could not import runpy module");
+  }
 
-      // Now executes the __main__ module
-      PyObject *runpy, *runmodule, *runargs, *py_result;
-      runpy = PyImport_ImportModule("runpy");
-      if (runpy == NULL) {
-        PyErr_Print();
-        throw shcore::Exception::runtime_error("Could not import runpy module");
-      }
-
-      runmodule = PyObject_GetAttrString(runpy, "_run_module_as_main");
-      if (runmodule == NULL) {
-        Py_DECREF(runpy);
-        throw shcore::Exception::runtime_error(
-            "Could not access runpy._run_module_as_main");
-      }
-
-      runargs = Py_BuildValue("(si)", "__main__", 0);
-      if (runargs == NULL) {
-        Py_DECREF(runpy);
-        Py_DECREF(runmodule);
-        throw shcore::Exception::runtime_error(
-            "Could not create arguments for runpy._run_module_as_main");
-      }
-
-      module_processing = true;
-      py_result = PyObject_Call(runmodule, runargs, NULL);
-      module_processing = false;
-
-      if (!py_result) {
-        if (PyErr_ExceptionMatches(PyExc_SystemExit)) exit_error = true;
-
-        PyErr_Print();
-      }
-
-      Py_DECREF(runpy);
-      Py_DECREF(runmodule);
-      Py_DECREF(runargs);
-      Py_XDECREF(argv0);
-
-      if (py_result) {
-        ret_val = _types.pyobj_to_shcore_value(py_result);
-        Py_XDECREF(py_result);
-      }
-    } else {
-      throw shcore::Exception::runtime_error(
-          "Unable register the module on the system path");
-    }
-  } else {
+  AutoPyObject runmodule = PyObject_GetAttrString(runpy, "_run_module_as_main");
+  if (!runmodule) {
+    PyErr_Print();
     throw shcore::Exception::runtime_error(
-        "Unable to retrieve the system path to register the module");
+        "Could not access runpy._run_module_as_main");
+  }
+
+  AutoPyObject runargs =
+      PyTuple_Pack(2, static_cast<PyObject *>(modname), Py_False);
+  if (!runargs) {
+    PyErr_Print();
+    throw shcore::Exception::runtime_error(
+        "Could not create arguments for runpy._run_module_as_main");
+  }
+
+  module_processing = true;
+  AutoPyObject py_result = PyObject_Call(runmodule, runargs, NULL);
+  module_processing = false;
+
+  if (!py_result) {
+    if (PyErr_ExceptionMatches(PyExc_SystemExit)) exit_error = true;
+
+    PyErr_Print();
+  }
+
+  if (py_result) {
+    ret_val = _types.pyobj_to_shcore_value(py_result);
   }
 
   return ret_val;

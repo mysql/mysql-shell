@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -204,7 +204,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   void init();
 
  private:
-  std::shared_ptr<ProvisioningInterface> _provisioning_interface;
+  ProvisioningInterface _provisioning_interface;
 
   shcore::Value exec_instance_op(const std::string &function,
                                  const shcore::Argument_list &args,

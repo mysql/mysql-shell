@@ -1147,7 +1147,7 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
   output_handler.wipe_all();
 
   execute("mysqlx");
-  MY_EXPECT_STDOUT_CONTAINS("<module '__mysqlx__' (built-in)>");
+  MY_EXPECT_STDOUT_CONTAINS("<module 'mysqlsh.mysqlx' (built-in)>");
   output_handler.wipe_all();
 
   execute("the_variable");
@@ -3135,7 +3135,7 @@ four
   wipe_all();
 }
 
-#if defined(HAVE_V8) && (defined(HAVE_PYTHON) && defined(IS_PY3K))
+#if defined(HAVE_V8) && (defined(HAVE_PYTHON))
 TEST_F(Interactive_shell_test, file_operations) {
   // BUG#30538516 METHODS WHICH DEAL WITH FILESYSTEM DO NOT PROPERLY HANDLE
   // NON-ASCII CHARACTERS

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2020, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -212,13 +212,7 @@ TEST_F(Python, basic) {
   // handled as String representation
   py->execute_interactive("a = 18446744073709551615999", cont);
   result = py->execute_interactive("a", cont);
-#ifdef IS_PY3K
-#define VALUE_SUFFIX ""
-#else
-#define VALUE_SUFFIX "L"
-#endif
-  ASSERT_EQ(result.repr(), "\"18446744073709551615999" VALUE_SUFFIX "\"");
-#undef VALUE_SUFFIX
+  ASSERT_EQ(result.repr(), "\"18446744073709551615999\"");
   ASSERT_EQ(result.type, shcore::Value_type::String);
 
   py->execute_interactive("a = -1", cont);

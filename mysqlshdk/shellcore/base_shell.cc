@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -527,8 +527,6 @@ int Base_shell::process_file(const std::string &path,
 
   if (path.empty()) {
     print_diag("Invalid filename");
-  } else if (_shell->is_module(path)) {
-    _shell->execute_module(path, argv);
   } else {
     std::string file = shcore::path::expand_user(path);
     if (shcore::is_folder(file)) {
@@ -562,6 +560,18 @@ int Base_shell::process_file(const std::string &path,
   }
 
   return ret_val;
+}
+
+int Base_shell::run_module(const std::string &module,
+                           const std::vector<std::string> &argv) {
+  if (module.empty()) {
+    print_diag("Invalid module name");
+    return 1;
+  }
+
+  _shell->execute_module(module, argv);
+
+  return 0;
 }
 
 int Base_shell::process_stream(std::istream &stream, const std::string &source,

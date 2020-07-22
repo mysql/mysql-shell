@@ -51,6 +51,9 @@ class SHCORE_PUBLIC Base_shell {
   int process_file(const std::string &path,
                    const std::vector<std::string> &argv);
 
+  int run_module(const std::string &module,
+                 const std::vector<std::string> &argv);
+
   /** Finalize initialization steps after basic init of the shell is already
      done Does things like loading init scripts.
    */

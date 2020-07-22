@@ -36,42 +36,6 @@
 
 namespace mysqlsh {
 
-REGISTER_HELP_TOPIC(Plugins, TOPIC, SHELL_PLUGINS, Contents, SCRIPTING);
-REGISTER_HELP_TOPIC_TEXT(SHELL_PLUGINS, R"*(
-The MySQL Shell allows extending its base functionality through the creation of
-plugins.
-
-An plugin is a folder containing the code that provides the functionality to be
-made available on the MySQL Shell.
-
-User defined plugins should be located at plugins folder at the following paths:
-
-@li Windows: %AppData%\\MySQL\\mysqlsh\\plugins
-@li Others: ~/.mysqlsh/plugins
-
-A plugin must contain an init file which is the entry point to load the
-extension:
-
-@li init.js for plugins written in JavaScript.
-@li init.py for plugins written in Python.
-
-On startup, the shell traverses the folders inside of the *plugins* folder
-searching for the plugin init file. The init file will be loaded on the
-corresponding context (JavaScript or Python).
-
-<b>Use Cases</b>
-
-The main use cases for MySQL Shell plugins include:
-
-@li Definition of shell reports to be used with the \show and \watch Shell
-Commands.
-@li Definition of new Global Objects with user defined functionality.
-
-For additional information on shell reports execute: \? reports
-
-For additional information on extension objects execute: \? extension objects
-)*");
-
 REGISTER_HELP_TOPIC(Extension Objects, TOPIC, EXTENSION_OBJECTS, Contents,
                     SCRIPTING);
 REGISTER_HELP_TOPIC_TEXT(EXTENSION_OBJECTS, R"*(

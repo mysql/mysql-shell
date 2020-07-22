@@ -300,11 +300,9 @@ std::string Shell_core::get_main_delimiter() const {
   return dynamic_cast<Shell_sql *>(it->second)->get_main_delimiter();
 }
 
-void Shell_core::execute_module(const std::string &file_name,
+void Shell_core::execute_module(const std::string &module_name,
                                 const std::vector<std::string> &argv) {
-  _input_args = argv;
-
-  _langs[_mode]->execute_module(file_name);
+  _langs[_mode]->execute_module(module_name, argv);
 }
 
 bool Shell_core::load_plugin(Mode mode, const Plugin_definition &plugin) {

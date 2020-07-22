@@ -79,8 +79,7 @@ shcore::Value value_from_argmap(const shcore::Argument_map &argmap) {
 
 }  // namespace
 
-ProvisioningInterface::ProvisioningInterface(const std::string &provision_path)
-    : _verbose(0), _local_mysqlprovision_path(provision_path) {}
+ProvisioningInterface::ProvisioningInterface() : _verbose(0) {}
 
 ProvisioningInterface::~ProvisioningInterface() {}
 
@@ -108,10 +107,9 @@ int ProvisioningInterface::execute_mysqlprovision(
 
   args_script.push_back(g_mysqlsh_path);
   args_script.push_back(log_level.c_str());
-  args_script.push_back("--py");
-  args_script.push_back("-f");
+  args_script.push_back("--pym");
 
-  args_script.push_back(_local_mysqlprovision_path.c_str());
+  args_script.push_back("mysql_gadgets");
   args_script.push_back(cmd.c_str());
   args_script.push_back(NULL);
 

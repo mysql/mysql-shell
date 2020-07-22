@@ -19,44 +19,29 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-file(GLOB MYSQLPROVISION_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/mysql_gadgets/*py
-    ${CMAKE_CURRENT_SOURCE_DIR}/mysql_gadgets/*/*py
-    ${CMAKE_CURRENT_SOURCE_DIR}/front_end/mysqlprovision.py)
-
 IF(MSVC)
-add_custom_command(OUTPUT mysqlprovision_zip
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/mysql_gadgets mysql_gadgets
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/front_end/mysqlprovision.py __main__.py
-    COMMAND zip -qr ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh/mysqlprovision.zip *py mysql_gadgets
-    DEPENDS ${MYSQLPROVISION_SOURCES}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/python
-    COMMENT "Creating mysqlprovision.zip"
+add_custom_command(OUTPUT copy_python_extensions
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/mysqlsh
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/packages ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/mysqlsh/python-packages
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/plugins ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/mysqlsh/plugins
+    COMMENT "Copying Python extensions"
 )
 ELSE()
-add_custom_command(OUTPUT mysqlprovision_zip
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/share/mysqlsh
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/mysql_gadgets mysql_gadgets
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/front_end/mysqlprovision.py __main__.py
-    COMMAND zip -qr ${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip *py mysql_gadgets
-    DEPENDS ${MYSQLPROVISION_SOURCES}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/python
-    COMMENT "Creating mysqlprovision.zip"
+add_custom_command(OUTPUT copy_python_extensions
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/lib/mysqlsh
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/packages ${CMAKE_BINARY_DIR}/lib/mysqlsh/python-packages
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/plugins ${CMAKE_BINARY_DIR}/lib/mysqlsh/plugins
+    COMMENT "Copying Python extensions"
 )
 ENDIF()
 
-add_custom_target(mysqlprovision ALL DEPENDS mysqlprovision_zip)
+add_custom_target(python_extensions ALL DEPENDS copy_python_extensions)
 
 IF(MSVC)
-  install(PROGRAMS ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh/mysqlprovision.zip COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
-  IF (WITH_DEV)
-    install(PROGRAMS ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh/mysqlprovision.zip COMPONENT dev DESTINATION ${INSTALL_SHAREDIR})
-  ENDIF()
+  install(DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/mysqlsh/python-packages COMPONENT main DESTINATION ${INSTALL_LIBDIR})
+  install(DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/mysqlsh/plugins COMPONENT main DESTINATION ${INSTALL_LIBDIR})
 ELSE()
-  install(PROGRAMS ${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
-  IF (WITH_DEV)
-    install(PROGRAMS ${CMAKE_BINARY_DIR}/share/mysqlsh/mysqlprovision.zip COMPONENT dev DESTINATION ${INSTALL_SHAREDIR})
-  ENDIF()
+  install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/mysqlsh/python-packages COMPONENT main DESTINATION ${INSTALL_LIBDIR})
+  install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/mysqlsh/plugins COMPONENT main DESTINATION ${INSTALL_LIBDIR})
 ENDIF()
 

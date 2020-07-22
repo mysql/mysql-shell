@@ -44,7 +44,7 @@ namespace dba {
 #endif
 class ProvisioningInterface {
  public:
-  explicit ProvisioningInterface(const std::string &provision_path);
+  ProvisioningInterface();
   ~ProvisioningInterface();
 
   int create_sandbox(int port, int portx, const std::string &sandbox_dir,
@@ -68,13 +68,8 @@ class ProvisioningInterface {
   void set_verbose(int verbose) { _verbose = verbose; }
   int get_verbose() const { return _verbose; }
 
-  // Added for basic mock support
- protected:
-  ProvisioningInterface() {}
-
  private:
   int _verbose = 0;
-  const std::string _local_mysqlprovision_path;
 
   int execute_mysqlprovision(const std::string &cmd,
                              const shcore::Argument_list &args,
