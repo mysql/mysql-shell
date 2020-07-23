@@ -594,6 +594,8 @@ void Dump_loader::on_schema_end(const std::string &schema) {
 
         it.second->open(mysqlshdk::storage::Mode::READ);
         std::string script = mysqlshdk::storage::read_file(it.second.get());
+        it.second->close();
+
         if (!m_options.dry_run()) {
           m_session->executef("USE !", schema);
 
@@ -708,6 +710,7 @@ void Dump_loader::handle_tables(const std::string &schema,
         m_dump->has_ddl(schema, table)) {
       it.second->open(mysqlshdk::storage::Mode::READ);
       auto script = mysqlshdk::storage::read_file(it.second.get());
+      it.second->close();
 
       bool indexes_deferred = false;
       if (!is_view && m_options.defer_table_indexes() !=

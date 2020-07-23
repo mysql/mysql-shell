@@ -227,10 +227,13 @@ std::vector<std::string> find_py_tests(const std::string &subdir,
   auto tests = shcore::listdir(path);
   std::sort(tests.begin(), tests.end());
 
-  for (auto &s : tests) {
-    if (shcore::str_endswith(s, ext)) s = subdir + "/" + s;
+  std::vector<std::string> filtered;
+
+  for (const auto &s : tests) {
+    if (shcore::str_endswith(s, ext)) filtered.emplace_back(subdir + "/" + s);
   }
-  return tests;
+
+  return filtered;
 }
 
 // General test cases

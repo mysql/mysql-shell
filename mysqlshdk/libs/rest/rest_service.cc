@@ -274,8 +274,10 @@ class Rest_service::Impl {
     curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA, &buffer);
 
     // execute the request
-    if (curl_easy_perform(m_handle.get()) != CURLE_OK) {
-      log_error("%s-%d: %s", m_id.c_str(), m_request_sequence, m_error_buffer);
+    CURLcode err;
+    if ((err = curl_easy_perform(m_handle.get())) != CURLE_OK) {
+      log_error("%s-%d: %s (CURLcode = %i)", m_id.c_str(), m_request_sequence,
+                m_error_buffer, err);
       throw Connection_error{m_error_buffer};
     }
 
@@ -311,7 +313,8 @@ class Rest_service::Impl {
     // execute the request
     auto ret_val = curl_easy_perform(m_handle.get());
     if (ret_val != CURLE_OK) {
-      log_error("%s-%d: %s", m_id.c_str(), m_request_sequence, m_error_buffer);
+      log_error("%s-%d: %s (CURLcode = %i)", m_id.c_str(), m_request_sequence,
+                m_error_buffer, ret_val);
       throw Connection_error{m_error_buffer};
     }
 

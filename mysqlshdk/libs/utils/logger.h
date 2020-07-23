@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_LOGGER_H_
 #define MYSQLSHDK_LIBS_UTILS_LOGGER_H_
 
+#include <atomic>
 #include <cstdarg>
 #include <fstream>
 #include <list>
@@ -150,7 +151,7 @@ class SHCORE_PUBLIC Logger final {
 
   std::recursive_mutex m_mutex;
 
-  int m_dont_log;
+  std::atomic<int> m_dont_log;
 
   friend class Log_reentrant_protector;
 };

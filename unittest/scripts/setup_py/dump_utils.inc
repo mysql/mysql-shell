@@ -6,10 +6,9 @@ def wipeout_server(session):
         if schema in ("mysql", "sys", "performance_schema", "information_schema"):
             continue
         session.run_sql("drop schema "+schema)
-    
     for user,host in session.run_sql("select user,host from mysql.user").fetch_all():
-      if user not in ["root", "mysql.infoschema", "mysql.sys", "mysql.session"]:
-        session.run_sql("drop user ?@?", [user,host])
+        if user not in ["root", "mysql.infoschema", "mysql.sys", "mysql.session"]:
+            session.run_sql("drop user ?@?", [user,host])
     session.run_sql("reset master")
 
 def truncate_all_tables(session):
@@ -29,7 +28,7 @@ def compare_query_results(session1, session2, query, args=[]):
     r2=session2.run_sql(query, args).fetch_all()
     EXPECT_EQ(len(r1), len(r2), query)
     for i in range(len(r1)):
-      EXPECT_EQ(str(r1[i]), str(r2[i]))
+        EXPECT_EQ(str(r1[i]), str(r2[i]))
     return r1
 
 def compare_schema(session1, session2, schema, check_rows=True):
@@ -37,7 +36,8 @@ def compare_schema(session1, session2, schema, check_rows=True):
     for table, in tables:
         compare_query_results(session1, session2, "show create table "+schema+"."+table)
         if check_rows:
-            compare_query_results(session1, session2, "select * from "+schema+"."+table+" use index (primary)")
+            columns = [c[0] for c in session1.run_sql("SELECT COLUMN_NAME FROM information_schema.columns WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION;", [schema, table]).fetch_all()]
+            compare_query_results(session1, session2, "select {0} from !.! use index (primary)".format(("MD5(!)," * len(columns))[:-1]), columns + [schema, table])
     views = compare_query_results(session1, session2, "select table_name from information_schema.tables where table_schema=? and table_type='VIEW' order by table_name", [schema])
     for view, in views:
         compare_query_results(session1, session2, "show create view "+schema+"."+view)
