@@ -184,6 +184,13 @@ DESCRIPTION
         procedures for each dumped schema.
       - users: bool (default: true) - Include users, roles and grants in the
         dump file.
+      - excludeUsers: array of strings (default not set) - Skip dumping the
+        specified users. Strings are in format user_name (equivalent to
+        'user_name'@'%') or 'user_name'@'host'.
+      - includeUsers: array of strings (default not set) - Dump only the
+        specified users. Strings are in format user_name (equivalent to
+        'user_name'@'%') or 'user_name'@'host'. By default, all users are
+        included.
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
@@ -1358,6 +1365,9 @@ DESCRIPTION
       - excludeTables: array of strings (default not set) - Skip loading
         specified tables from the dump. Strings are in format schema.table or
         `schema`.`table`.
+      - excludeUsers: array of strings (default not set) - Skip loading
+        specified users from the dump. Strings are in format user_name
+        (equivalent to 'user_name'@'%') or 'user_name'@'host'.
       - ignoreExistingObjects: bool (default false) - Load the dump even if it
         contains objects that already exist in the target database.
       - ignoreVersion: bool (default false) - Load the dump even if the major
@@ -1368,6 +1378,10 @@ DESCRIPTION
       - includeTables: array of strings (default not set) - Loads only the
         specified tables from the dump. Strings are in format schema.table or
         `schema`.`table`. By default, all tables from all schemas are included.
+      - includeUsers: array of strings (default not set) - Load only the
+        specified users from the dump. Strings are in format user_name
+        (equivalent to 'user_name'@'%') or 'user_name'@'host'. By default, all
+        users are included.
       - loadData: bool (default: true) - Loads table data from the dump.
       - loadDdl: bool (default: true) - Executes DDL/SQL scripts in the dump.
       - loadIndexes: bool (default: true) - use together with

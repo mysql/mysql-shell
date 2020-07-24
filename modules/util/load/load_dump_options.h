@@ -36,7 +36,9 @@
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
 
@@ -129,7 +131,7 @@ class Load_dump_options final {
 
   Analyze_table_mode analyze_tables() const { return m_analyze_tables; }
 
-  static std::vector<std::string> get_excluded_users(bool is_mds);
+  bool include_user(const shcore::Account &account) const;
 
   const std::string &target_schema() const { return m_target_schema; }
 
@@ -138,6 +140,12 @@ class Load_dump_options final {
   bool use_par() const { return m_use_par; }
 
   bool use_par_progress() const { return m_use_par_progress; }
+
+  const mysqlshdk::utils::Version &target_server_version() const {
+    return m_target_server_version;
+  }
+
+  bool is_mds() const { return m_is_mds; }
 
  private:
   std::string m_url;
@@ -155,6 +163,9 @@ class Load_dump_options final {
   std::unordered_set<std::string> m_include_tables;   // only load these tables
   std::unordered_set<std::string> m_exclude_schemas;  // skip these schemas
   std::unordered_set<std::string> m_exclude_tables;   // skip these tables
+
+  std::vector<shcore::Account> m_included_users;  // only load these users
+  std::vector<shcore::Account> m_excluded_users;  // skip these users
 
   uint64_t m_wait_dump_timeout = 0;
   bool m_reset_progress = false;
@@ -174,6 +185,9 @@ class Load_dump_options final {
   bool m_load_indexes = true;
   std::string m_target_schema;
   std::string m_current_schema;
+
+  mysqlshdk::utils::Version m_target_server_version;
+  bool m_is_mds = false;
 };
 
 }  // namespace mysqlsh

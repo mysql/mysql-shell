@@ -746,6 +746,8 @@ EXPECT_FILE_CONTAINS("CREATE TABLE IF NOT EXISTS `{0}`".format(test_table_non_un
 #@<> WL13807-TSFR_3_2 - options param being a dictionary that contains an unknown key
 EXPECT_FAIL("ArgumentError", "Invalid options: dummy", [types_schema], test_output_relative, { "dummy": "fails" })
 EXPECT_FAIL("ArgumentError", "Invalid options: users", [types_schema], test_output_relative, { "users": "fails" })
+EXPECT_FAIL("ArgumentError", "Invalid options: excludeUsers", [types_schema], test_output_relative, { "excludeUsers": "fails" })
+EXPECT_FAIL("ArgumentError", "Invalid options: includeUsers", [types_schema], test_output_relative, { "includeUsers": "fails" })
 EXPECT_FAIL("ArgumentError", "Invalid options: indexColumn", [types_schema], test_output_relative, { "indexColumn": "dummy" })
 EXPECT_FAIL("ArgumentError", "Invalid options: fieldsTerminatedBy", [types_schema], test_output_relative, { "fieldsTerminatedBy": "dummy" })
 EXPECT_FAIL("ArgumentError", "Invalid options: fieldsEnclosedBy", [types_schema], test_output_relative, { "fieldsEnclosedBy": "dummy" })

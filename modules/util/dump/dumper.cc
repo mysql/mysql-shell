@@ -75,8 +75,6 @@ static constexpr auto k_dump_in_progress_ext = ".dumping";
 
 static constexpr const int k_mysql_server_net_write_timeout = 5 * 60;
 
-const auto k_ignored_users = {"mysql.infoschema", "mysql.session", "mysql.sys"};
-
 std::string quote_value(const std::string &value, mysqlshdk::db::Type type) {
   if (is_string_type(type)) {
     return shcore::quote_sql_string(value);
@@ -1425,11 +1423,10 @@ std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_view(
 
 std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_users(
     Schema_dumper *dumper) const {
-  return dump_ddl(dumper, [](Memory_dumper *m) {
+  return dump_ddl(dumper, [this](Memory_dumper *m) {
     m->dump(&Schema_dumper::write_comment, std::string{}, std::string{});
-    m->dump(&Schema_dumper::dump_grants,
-            std::vector<std::string>{std::begin(k_ignored_users),
-                                     std::end(k_ignored_users)});
+    m->dump(&Schema_dumper::dump_grants, m_options.included_users(),
+            m_options.excluded_users());
   });
 }
 
@@ -1709,8 +1706,8 @@ void Dumper::write_dump_started_metadata() const {
     // list of users
     Value users{Type::kArrayType};
 
-    for (const auto &user : dumper->get_users(
-             {std::begin(k_ignored_users), std::end(k_ignored_users)})) {
+    for (const auto &user : dumper->get_users(m_options.included_users(),
+                                              m_options.excluded_users())) {
       users.PushBack({user.second.c_str(), a}, a);
     }
 

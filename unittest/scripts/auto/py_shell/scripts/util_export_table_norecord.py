@@ -681,6 +681,8 @@ EXPECT_FAIL("ArgumentError", "Invalid options: triggers", quote(types_schema, ty
 EXPECT_FAIL("ArgumentError", "Invalid options: events", quote(types_schema, types_schema_tables[0]), test_output_relative, { "events": "dummy" })
 EXPECT_FAIL("ArgumentError", "Invalid options: routines", quote(types_schema, types_schema_tables[0]), test_output_relative, { "routines": "dummy" })
 EXPECT_FAIL("ArgumentError", "Invalid options: users", quote(types_schema, types_schema_tables[0]), test_output_relative, { "users": "dummy" })
+EXPECT_FAIL("ArgumentError", "Invalid options: excludeUsers", quote(types_schema, types_schema_tables[0]), test_output_relative, { "excludeUsers": "dummy" })
+EXPECT_FAIL("ArgumentError", "Invalid options: includeUsers", quote(types_schema, types_schema_tables[0]), test_output_relative, { "includeUsers": "dummy" })
 EXPECT_FAIL("ArgumentError", "Invalid options: tzUtc", quote(types_schema, types_schema_tables[0]), test_output_relative, { "tzUtc": "dummy" })
 EXPECT_FAIL("ArgumentError", "Invalid options: ddlOnly", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ddlOnly": "dummy" })
 EXPECT_FAIL("ArgumentError", "Invalid options: dataOnly", quote(types_schema, types_schema_tables[0]), test_output_relative, { "dataOnly": "dummy" })

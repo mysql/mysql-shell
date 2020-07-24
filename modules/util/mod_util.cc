@@ -1428,6 +1428,9 @@ specified schemas from the dump.
 @li <b>excludeTables</b>: array of strings (default not set) - Skip loading
 specified tables from the dump. Strings are in format schema.table or
 `schema`.`table`.
+@li <b>excludeUsers</b>: array of strings (default not set) - Skip loading
+specified users from the dump. Strings are in format user_name (equivalent to
+'user_name'@'@%') or 'user_name'@'host'.
 @li <b>ignoreExistingObjects</b>: bool (default false) - Load the dump even if
 it contains objects that already exist in the target database.
 @li <b>ignoreVersion</b>: bool (default false) - Load the dump even if the
@@ -1438,6 +1441,9 @@ specified schemas from the dump. By default, all schemas are included.
 @li <b>includeTables</b>: array of strings (default not set) - Loads only the
 specified tables from the dump. Strings are in format schema.table or
 `schema`.`table`. By default, all tables from all schemas are included.
+@li <b>includeUsers</b>: array of strings (default not set) - Load only the
+specified users from the dump. Strings are in format user_name (equivalent to
+'user_name'@'@%') or 'user_name'@'host'. By default, all users are included.
 @li <b>loadData</b>: bool (default: true) - Loads table data from the dump.
 @li <b>loadDdl</b>: bool (default: true) - Executes DDL/SQL scripts in the
 dump.
@@ -2097,6 +2103,12 @@ be excluded from the dump.
 ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS}
 @li <b>users</b>: bool (default: true) - Include users, roles and grants in the
 dump file.
+@li <b>excludeUsers</b>: array of strings (default not set) - Skip dumping the
+specified users. Strings are in format user_name (equivalent to
+'user_name'@'@%') or 'user_name'@'host'.
+@li <b>includeUsers</b>: array of strings (default not set) - Dump only the
+specified users. Strings are in format user_name (equivalent to
+'user_name'@'@%') or 'user_name'@'host'. By default, all users are included.
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_DDL_COMPRESSION}

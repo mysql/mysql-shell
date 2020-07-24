@@ -31,6 +31,7 @@
 #include "modules/mod_utils.h"
 #include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/console_with_progress.h"
+#include "modules/util/dump/schema_dumper.h"
 #include "modules/util/import_table/load_data.h"
 #include "modules/util/load/load_progress_log.h"
 #include "mysqlshdk/include/scripting/naming_style.h"
@@ -62,10 +63,6 @@ class dump_wait_timeout : public std::runtime_error {
 
 namespace {
 
-bool is_mds(const mysqlshdk::utils::Version &version) {
-  return version.get_extra() == "cloud";
-}
-
 bool histograms_supported(const mysqlshdk::utils::Version &version) {
   return version > mysqlshdk::utils::Version(8, 0, 0);
 }
@@ -81,58 +78,6 @@ bool has_pke(mysqlshdk::db::ISession *session, const std::string &schema,
   return false;
 }
 }  // namespace
-
-namespace loader {
-std::string preprocess_users_script(const std::string &script,
-                                    const std::vector<std::string> &excluded) {
-  std::string out;
-  bool skip = false;
-
-  static constexpr const char *k_create_user_cmt = "-- begin user ";
-  static constexpr const char *k_grant_cmt = "-- begin grants ";
-  static constexpr const char *k_end_cmt = "-- end ";
-
-  auto lines = shcore::str_split(script, "\n");
-  // Skip create and grant statements for the excluded users
-  for (const std::string &line : lines) {
-    std::string user;
-    bool grant_statement = false;
-    if (shcore::str_beginswith(line, k_create_user_cmt)) {
-      user = line.substr(strlen(k_create_user_cmt));
-    } else if (shcore::str_beginswith(line, k_grant_cmt)) {
-      user = line.substr(strlen(k_grant_cmt));
-      grant_statement = true;
-    }
-
-    if (!user.empty()) {
-      for (const auto &f : excluded) {
-        if (f.find("@") != std::string::npos) {
-          if (user != f) continue;
-        } else if (!shcore::str_beginswith(user, f + "@")) {
-          continue;
-        }
-        if (grant_statement)
-          current_console()->print_note("Skipping GRANT statements for user " +
-                                        user);
-        else
-          current_console()->print_note(
-              "Skipping CREATE/ALTER USER statements for user " + user);
-        skip = true;
-        break;
-      }
-    }
-
-    if (skip)
-      log_info("Skipping %s", line.c_str());
-    else
-      out.append(line + "\n");
-
-    if (shcore::str_beginswith(line, k_end_cmt)) skip = false;
-  }
-
-  return out;
-}
-}  // namespace loader
 
 bool Dump_loader::Worker::Load_chunk_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
@@ -241,7 +186,7 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
   auto console = current_console();
 
   if (m_histograms.empty() ||
-      !histograms_supported(loader->m_target_server_version))
+      !histograms_supported(loader->m_options.target_server_version()))
     console->print_status(shcore::str_format(
         "Analyzing table `%s`.`%s`", schema().c_str(), table().c_str()));
   else
@@ -256,7 +201,7 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
   try {
     if (!loader->m_options.dry_run()) {
       if (m_histograms.empty() ||
-          !histograms_supported(loader->m_target_server_version)) {
+          !histograms_supported(loader->m_options.target_server_version())) {
         session->executef("ANALYZE TABLE !.!", schema(), table());
       } else {
         for (const auto &h : m_histograms) {
@@ -477,7 +422,7 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session(
                     k_mysql_server_net_read_timeout);
 
   // Disable binlog if requested by user or if target is -cloud
-  if (m_options.skip_binlog() && !is_mds(m_target_server_version)) {
+  if (m_options.skip_binlog() && !m_options.is_mds()) {
     try {
       session->execute("SET sql_log_bin=0");
     } catch (const mysqlshdk::db::Error &e) {
@@ -508,11 +453,10 @@ void Dump_loader::on_dump_begin() {
 
     current_console()->print_status("Executing user accounts SQL...");
 
-    std::string current_user =
-        m_session->query("SELECT current_user()")->fetch_one()->get_string(0);
-    auto filter = m_options.get_excluded_users(is_mds(m_target_server_version));
-    filter.emplace_back(current_user);
-    script = loader::preprocess_users_script(script, filter);
+    script = Schema_dumper::preprocess_users_script(
+        script, [this](const std::string &account) {
+          return m_options.include_user(shcore::split_account(account));
+        });
 
     if (!m_options.dry_run())
       execute_script(m_session, script, "While executing user accounts SQL");
@@ -1234,17 +1178,11 @@ void Dump_loader::open_dump(
 }
 
 void Dump_loader::check_server_version() {
-  auto console = current_console();
+  const auto console = current_console();
+  const auto &target_server = m_options.target_server_version();
+  const auto mds = m_options.is_mds();
 
-  m_target_server_version =
-      mysqlshdk::utils::Version(m_options.base_session()
-                                    ->query("SELECT @@version")
-                                    ->fetch_one()
-                                    ->get_string(0));
-  std::string msg;
-  bool mds = is_mds(m_target_server_version);
-
-  msg = "Target is MySQL " + m_target_server_version.get_full();
+  std::string msg = "Target is MySQL " + target_server.get_full();
   if (mds) msg += " (MySQL Database Service)";
   msg +=
       ". Dump was produced from MySQL " + m_dump->server_version().get_full();
@@ -1257,10 +1195,9 @@ void Dump_loader::check_server_version() {
         "produced without the compatibility option. Please enable the "
         "'ocimds' option when dumping your database.");
     throw std::runtime_error("Dump is not MDS compatible");
-  } else if (m_target_server_version.get_major() !=
+  } else if (target_server.get_major() !=
              m_dump->server_version().get_major()) {
-    if (m_target_server_version.get_major() <
-        m_dump->server_version().get_major())
+    if (target_server.get_major() < m_dump->server_version().get_major())
       msg =
           "Destination MySQL version is older than the one where the dump "
           "was created.";
@@ -1283,15 +1220,14 @@ void Dump_loader::check_server_version() {
 
   if (m_options.analyze_tables() ==
           Load_dump_options::Analyze_table_mode::HISTOGRAM &&
-      !histograms_supported(m_target_server_version))
+      !histograms_supported(target_server))
     console->print_warning("Histogram creation enabled but MySQL Server " +
-                           m_target_server_version.get_base() +
-                           " does not support it.");
+                           target_server.get_base() + " does not support it.");
 }
 
 void Dump_loader::check_tables_without_primary_key() {
   if (!m_options.load_ddl() ||
-      m_target_server_version < mysqlshdk::utils::Version(8, 0, 13))
+      m_options.target_server_version() < mysqlshdk::utils::Version(8, 0, 13))
     return;
   if (m_session->query("show variables like 'sql_require_primary_key';")
           ->fetch_one()

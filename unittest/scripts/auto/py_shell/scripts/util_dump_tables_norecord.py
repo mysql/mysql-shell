@@ -891,6 +891,8 @@ EXPECT_FAIL("ArgumentError", "Invalid options: dialect", types_schema, types_sch
 EXPECT_FAIL("ArgumentError", "Invalid options: events", types_schema, types_schema_tables, test_output_relative, { "events": "dummy" })
 EXPECT_FAIL("ArgumentError", "Invalid options: routines", types_schema, types_schema_tables, test_output_relative, { "routines": "dummy" })
 EXPECT_FAIL("ArgumentError", "Invalid options: users", types_schema, types_schema_tables, test_output_relative, { "users": "dummy" })
+EXPECT_FAIL("ArgumentError", "Invalid options: excludeUsers", types_schema, types_schema_tables, test_output_relative, { "excludeUsers": "dummy" })
+EXPECT_FAIL("ArgumentError", "Invalid options: includeUsers", types_schema, types_schema_tables, test_output_relative, { "includeUsers": "dummy" })
 EXPECT_FAIL("ArgumentError", "Invalid options: excludeTables", types_schema, types_schema_tables, test_output_relative, { "excludeTables": "dummy" })
 EXPECT_FAIL("ArgumentError", "Invalid options: excludeSchemas", types_schema, types_schema_tables, test_output_relative, { "excludeSchemas": "dummy" })
 EXPECT_FAIL("ArgumentError", "Invalid options: ocimds", types_schema, types_schema_tables, test_output_relative, { "ocimds": "dummy" })

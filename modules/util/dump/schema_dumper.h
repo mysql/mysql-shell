@@ -24,14 +24,17 @@
 #ifndef MODULES_UTIL_DUMP_SCHEMA_DUMPER_H_
 #define MODULES_UTIL_DUMP_SCHEMA_DUMPER_H_
 
+#include <functional>
 #include <memory>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "modules/util/dump/compatibility.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
 
@@ -58,6 +61,10 @@ class Schema_dumper {
 
   static std::string normalize_user(const std::string &user,
                                     const std::string &host);
+
+  static std::string preprocess_users_script(
+      const std::string &script,
+      const std::function<bool(const std::string &)> &include_user);
 
   static const char *version();
 
@@ -89,9 +96,11 @@ class Schema_dumper {
                                         const std::string &type);
 
   std::vector<Issue> dump_grants(IFile *file,
-                                 const std::vector<std::string> &filter);
+                                 const std::vector<shcore::Account> &included,
+                                 const std::vector<shcore::Account> &excluded);
   std::vector<std::pair<std::string, std::string>> get_users(
-      const std::vector<std::string> &filter);
+      const std::vector<shcore::Account> &included,
+      const std::vector<shcore::Account> &excluded);
 
   std::vector<Histogram> get_histograms(const std::string &db_name,
                                         const std::string &table_name);
