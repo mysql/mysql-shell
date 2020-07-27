@@ -24,14 +24,20 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_SYNCHRONIZED_QUEUE_H_
 #define MYSQLSHDK_LIBS_UTILS_SYNCHRONIZED_QUEUE_H_
 
+#include <array>
 #include <chrono>
 #include <condition_variable>
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 namespace shcore {
+
+enum class Queue_priority { LOW = 1, MEDIUM, HIGH };
+
 /**
  * Multiple producer, multiple consumer synchronized FIFO queue.
  */
@@ -47,37 +53,26 @@ class Synchronized_queue final {
 
   ~Synchronized_queue() = default;
 
-  void push(const T &r) {
+  template <class U = T>
+  void push(U &&r, Queue_priority p = Queue_priority::MEDIUM) {
     {
       std::lock_guard<std::mutex> lock(m_queue_mutex);
-      m_queue.push_back(r);
-    }
-    m_task_ready.notify_one();
-  }
-
-  void push(T &&r) {
-    {
-      std::lock_guard<std::mutex> lock(m_queue_mutex);
-      m_queue.emplace_back(std::move(r));
+      unsynchronized_push(std::forward<U>(r), map_priority(p));
     }
     m_task_ready.notify_one();
   }
 
   T pop() {
     std::unique_lock<std::mutex> lock(m_queue_mutex);
-    m_task_ready.wait(lock, [this]() { return !m_queue.empty(); });
-    auto r = std::move(m_queue.front());
-    m_queue.pop_front();
-    return r;
+    m_task_ready.wait(lock, [this]() { return !unsynchronized_empty(); });
+    return unsynchronized_pop();
   }
 
   T try_pop(int timeout_msec) {
     std::unique_lock<std::mutex> lock(m_queue_mutex);
     if (m_task_ready.wait_for(lock, std::chrono::milliseconds(timeout_msec),
-                              [this]() { return !m_queue.empty(); })) {
-      auto r = std::move(m_queue.front());
-      m_queue.pop_front();
-      return r;
+                              [this]() { return !unsynchronized_empty(); })) {
+      return unsynchronized_pop();
     }
     return T();
   }
@@ -92,21 +87,53 @@ class Synchronized_queue final {
     {
       std::lock_guard<std::mutex> lock(m_queue_mutex);
       for (int64_t i = 0; i < n; i++) {
-        m_queue.emplace_back(T());
+        unsynchronized_push(T(), k_shutdown_priority);
       }
     }
     m_task_ready.notify_all();
   }
 
-  size_t size() {
-    std::unique_lock<std::mutex> lock(m_queue_mutex);
-    return m_queue.size();
+  size_t size() const {
+    std::lock_guard<std::mutex> lock(m_queue_mutex);
+    return m_size;
   }
 
  private:
-  std::mutex m_queue_mutex;
+  using Priority_t = std::underlying_type_t<Queue_priority>;
+
+  static constexpr Priority_t map_priority(Queue_priority p) {
+    return static_cast<Priority_t>(p);
+  }
+
+  template <class U>
+  inline void unsynchronized_push(U &&u, Priority_t p) {
+    m_queues[k_max_priority - p].emplace_back(std::forward<U>(u));
+    ++m_size;
+  }
+
+  inline T unsynchronized_pop() {
+    for (auto &queue : m_queues) {
+      if (!queue.empty()) {
+        auto r = std::move(queue.front());
+        queue.pop_front();
+        --m_size;
+        return r;
+      }
+    }
+
+    throw std::logic_error("Trying to pop from an empty queue.");
+  }
+
+  inline bool unsynchronized_empty() const { return 0 == m_size; }
+
+  static constexpr Priority_t k_shutdown_priority = 0;
+  static constexpr Priority_t k_max_priority =
+      map_priority(Queue_priority::HIGH);
+
+  mutable std::mutex m_queue_mutex;
   std::condition_variable m_task_ready;
-  std::deque<T> m_queue;
+  std::array<std::deque<T>, 4> m_queues;
+  std::size_t m_size = 0;
 };
 }  // namespace shcore
 
