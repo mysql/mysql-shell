@@ -22,9 +22,11 @@
  */
 
 #include <algorithm>
+#include <string>
 
 #include "modules/adminapi/common/clone_progress.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/utils/logger.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -80,6 +82,8 @@ void Clone_progress::update(const mysqlshdk::mysql::Clone_status &status) {
       // data transfer
       update_transfer(status);
     } else {
+      // Stage 4 is FILE SYNC which is not data transfer anymore so we don't
+      // need to update the transfer status
       if (m_current_stage < 4) {
         update_transfer(status);  // flush end of data transfer part
       }
@@ -125,9 +129,10 @@ void Clone_progress::update_stage(const mysqlshdk::mysql::Clone_status &status,
       for (int i = m_current_stage + 1;
            i < std::min(last_stage + 1, current_stage); i++) {
         if (status.stages[i].state == mysqlshdk::mysql::k_CLONE_STATE_SUCCESS ||
-            status.stages[i].state == mysqlshdk::mysql::k_CLONE_STATE_FAILED)
+            status.stages[i].state == mysqlshdk::mysql::k_CLONE_STATE_FAILED) {
           console->print_info("** Stage " + status.stages[i].stage + ": " +
                               status.stages[i].state);
+        }
       }
 
       if (current_stage <= last_stage && current_stage >= first_stage) {
@@ -184,8 +189,18 @@ void Clone_progress::update_transfer(
       m_progress->start();
     }
 
-    // bool success = true;
-    for (int i = 1; i <= 3; i++) {
+    // Update the 3 status bars:
+    //  - FILE COPY
+    //  - PAGE COPY
+    //  - REDO COPY
+    //
+    // It's not guaranteed that P_S will have the information for the 4 stages
+    // we want to monitor. If the dataset is very small it's possible that
+    // only 1 or 2 stages are displayed in P_S.
+    // For that reason, we must only update the progress if we have the
+    // information available from P_S otherwise we get a segmentation fault
+    // (BUG#31545728)
+    for (size_t i = 1; i <= 3 && i < status.stages.size(); i++) {
       const auto &stage = status.stages[i];
 
       if (stage.state == mysqlshdk::mysql::k_CLONE_STATE_SUCCESS) {
@@ -197,12 +212,10 @@ void Clone_progress::update_transfer(
       }
 
       m_progress->set_secondary_right_label(i - 1, stage.state);
-
-      // if (stage.state != mysqlshdk::mysql::k_CLONE_STATE_SUCCESS)
-      //  success = false;
     }
 
     m_progress->update();
+    // If the current_stage is > REDO COPY, we're done
     if (current_stage > 3) {
       m_progress->end();
       m_progress.reset();

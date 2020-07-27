@@ -19,7 +19,7 @@ Configuring instance...
 The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB ReplicaSet.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 
-#@<OUT> configure_replica_set_instance 
+#@<OUT> configure_replica_set_instance
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB ReplicaSet...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -48,18 +48,18 @@ Use rs.add_instance() to add more asynchronously replicated instances to this re
 #@<OUT> status
 {
     "replicaSet": {
-        "name": "myrs", 
-        "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
-        "status": "AVAILABLE", 
-        "statusText": "All instances available.", 
+        "name": "myrs",
+        "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>",
+        "status": "AVAILABLE",
+        "statusText": "All instances available.",
         "topology": {
             "127.0.0.1:<<<__mysql_sandbox_port1>>>": {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
-                "instanceRole": "PRIMARY", 
-                "mode": "R/W", 
+                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>",
+                "instanceRole": "PRIMARY",
+                "mode": "R/W",
                 "status": "ONLINE"
             }
-        }, 
+        },
         "type": "ASYNC"
     }
 }
@@ -70,7 +70,11 @@ Use rs.add_instance() to add more asynchronously replicated instances to this re
 #@<OUT> get_replica_set
 You are connected to a member of replicaset 'myrs'.
 
-#@<OUT> add_instance
+#@<> add_instance using clone recovery {VER(>=8.0.17)}
+|Clone based recovery selected through the recoveryMethod option|
+|The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.|
+
+#@<OUT> add_instance using incremental recovery {VER(<8.0.17)}
 Adding instance to the replicaset...
 
 * Performing validation checks
@@ -92,26 +96,8 @@ Incremental state recovery selected through the recoveryMethod option
 
 The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 
-Adding instance to the replicaset...
-
-* Performing validation checks
-
-This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port3>>>
-127.0.0.1:<<<__mysql_sandbox_port3>>>: Instance configuration is suitable.
-
-* Checking async replication topology...
-
-* Checking transaction state of the instance...
-
-NOTE: The target instance '127.0.0.1:<<<__mysql_sandbox_port3>>>' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.
-
-Incremental state recovery selected through the recoveryMethod option
-
-* Updating topology
-** Configuring 127.0.0.1:<<<__mysql_sandbox_port3>>> to replicate from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-** Waiting for new instance to synchronize with PRIMARY...
-
-The instance '127.0.0.1:<<<__mysql_sandbox_port3>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.
+#@<> add_instance 3
+||
 
 #@<OUT> remove_instance
 The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was removed from the replicaset.
@@ -244,26 +230,26 @@ Failover finished successfully.
 
 #@<OUT> list_routers
 {
-    "replicaSetName": "myrs", 
+    "replicaSetName": "myrs",
     "routers": {
         "routerhost1::system": {
-            "hostname": "routerhost1", 
-            "lastCheckIn": "2019-01-01 11:22:33", 
-            "roPort": null, 
-            "roXPort": null, 
-            "rwPort": null, 
-            "rwXPort": null, 
-            "upgradeRequired": true, 
+            "hostname": "routerhost1",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
             "version": "8.0.18"
-        }, 
+        },
         "routerhost2::system": {
-            "hostname": "routerhost2", 
-            "lastCheckIn": "2019-01-01 11:22:33", 
-            "roPort": null, 
-            "roXPort": null, 
-            "rwPort": null, 
-            "rwXPort": null, 
-            "upgradeRequired": true, 
+            "hostname": "routerhost2",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
             "version": "8.0.18"
         }
     }
@@ -271,16 +257,16 @@ Failover finished successfully.
 
 #@<OUT> remove_router_metadata
 {
-    "replicaSetName": "myrs", 
+    "replicaSetName": "myrs",
     "routers": {
         "routerhost2::system": {
-            "hostname": "routerhost2", 
-            "lastCheckIn": "2019-01-01 11:22:33", 
-            "roPort": null, 
-            "roXPort": null, 
-            "rwPort": null, 
-            "rwXPort": null, 
-            "upgradeRequired": true, 
+            "hostname": "routerhost2",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
             "version": "8.0.18"
         }
     }
@@ -321,31 +307,31 @@ Use rs.add_instance() to add more asynchronously replicated instances to this re
 
 {
     "replicaSet": {
-        "name": "adopted", 
-        "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
-        "status": "AVAILABLE", 
-        "statusText": "All instances available.", 
+        "name": "adopted",
+        "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>",
+        "status": "AVAILABLE",
+        "statusText": "All instances available.",
         "topology": {
             "127.0.0.1:<<<__mysql_sandbox_port1>>>": {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
-                "instanceRole": "PRIMARY", 
-                "mode": "R/W", 
+                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>",
+                "instanceRole": "PRIMARY",
+                "mode": "R/W",
                 "status": "ONLINE"
-            }, 
+            },
             "127.0.0.1:<<<__mysql_sandbox_port2>>>": {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>", 
-                "instanceRole": "SECONDARY", 
-                "mode": "R/O", 
+                "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>",
+                "instanceRole": "SECONDARY",
+                "mode": "R/O",
                 "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates", 
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
+                    "applierStatus": "APPLIED_ALL",
+                    "applierThreadState": "Slave has read all relay log; waiting for more updates",
+                    "receiverStatus": "ON",
+                    "receiverThreadState": "Waiting for master to send event",
                     "replicationLag": null
-                }, 
+                },
                 "status": "ONLINE"
             }
-        }, 
+        },
         "type": "ASYNC"
     }
 }

@@ -102,9 +102,19 @@ check_open_sessions(session2, expected_pids2);
 //@<> getCluster
 cluster = dba.getCluster();
 
-//@<> addInstance
+//@<> addInstance unsupported X-protocol error
 EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.addInstance", cluster.addInstance, __sandbox_uri2, {recoveryMethod:'incremental'});
 
+//@<> addInstance using clone recovery {VER(>=8.0.17)}
+cluster.addInstance(__sandbox_uri2, {recoveryMethod:'clone'});
+
+session2 = mysql.getSession(__sandbox_uri2);
+expected_pids2 = get_open_sessions(session2);
+
+check_open_sessions(session1, expected_pids1);
+check_open_sessions(session2, expected_pids2);
+
+//@<> addInstance using incremental recovery {VER(<8.0.17)}
 cluster.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
 
 check_open_sessions(session1, expected_pids1);

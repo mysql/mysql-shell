@@ -36,16 +36,16 @@
 
 //@<OUT> describe
 {
-    "clusterName": "mycluster", 
+    "clusterName": "mycluster",
     "defaultReplicaSet": {
-        "name": "default", 
+        "name": "default",
         "topology": [
             {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
-                "label": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
+                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>",
+                "label": "127.0.0.1:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             }
-        ], 
+        ],
         "topologyMode": "Single-Primary"
     }
 }
@@ -56,9 +56,12 @@
 //@ getCluster
 ||
 
-//@ addInstance
-||
+//@ addInstance using clone recovery {VER(>=8.0.17)}
+|Clone based recovery selected through the recoveryMethod option|
+|The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.|
 
+//@ addInstance using incremental recovery {VER(<8.0.17)}
+|The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.|
 
 //@ removeInstance
 ||
@@ -114,26 +117,26 @@
 
 //@<OUT> listRouters
 {
-    "clusterName": "clooster", 
+    "clusterName": "clooster",
     "routers": {
         "routerhost1::system": {
-            "hostname": "routerhost1", 
-            "lastCheckIn": "2019-01-01 11:22:33", 
-            "roPort": null, 
-            "roXPort": null, 
-            "rwPort": null, 
-            "rwXPort": null, 
-            "upgradeRequired": true, 
+            "hostname": "routerhost1",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
             "version": "8.0.18"
-        }, 
+        },
         "routerhost2::system": {
-            "hostname": "routerhost2", 
-            "lastCheckIn": "2019-01-01 11:22:33", 
-            "roPort": null, 
-            "roXPort": null, 
-            "rwPort": null, 
-            "rwXPort": null, 
-            "upgradeRequired": true, 
+            "hostname": "routerhost2",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
             "version": "8.0.18"
         }
     }
@@ -141,16 +144,16 @@
 
 //@<OUT> removeRouterMetadata
 {
-    "clusterName": "clooster", 
+    "clusterName": "clooster",
     "routers": {
         "routerhost2::system": {
-            "hostname": "routerhost2", 
-            "lastCheckIn": "2019-01-01 11:22:33", 
-            "roPort": null, 
-            "roXPort": null, 
-            "rwPort": null, 
-            "rwXPort": null, 
-            "upgradeRequired": true, 
+            "hostname": "routerhost2",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
             "version": "8.0.18"
         }
     }

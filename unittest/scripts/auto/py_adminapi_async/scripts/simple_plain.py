@@ -35,9 +35,13 @@ rs.disconnect()
 #@ get_replica_set
 rs = dba.get_replica_set()
 
-#@ add_instance
+#@<> add_instance using clone recovery {VER(>=8.0.17)}
+rs.add_instance(instanceDef=__sandbox_uri2, options={"recoveryMethod":'clone'})
+
+#@<> add_instance using incremental recovery {VER(<8.0.17)}
 rs.add_instance(instanceDef=__sandbox_uri2, options={"recoveryMethod":'incremental'})
 
+#@<> add_instance 3
 rs.add_instance(instanceDef=__sandbox_uri3, options={"recoveryMethod":'incremental'})
 
 #@ remove_instance
