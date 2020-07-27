@@ -31,7 +31,6 @@
 #include <vector>
 
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -55,9 +54,7 @@ using mysqlshdk::oci::Oci_service;
 using mysqlshdk::oci::Response_error;
 
 Directory::Directory(const Oci_options &options, const std::string &name)
-    : m_name(utils::scheme_matches(utils::get_scheme(name), "oci+os")
-                 ? utils::strip_scheme(name, "oci+os")
-                 : name),
+    : m_name(name),
       m_bucket(std::make_unique<Bucket>(options)),
       m_created(false) {}
 

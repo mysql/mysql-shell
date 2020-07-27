@@ -836,8 +836,7 @@ Dumper::Dumper(const Dump_options &options)
 
       const auto scheme = get_scheme(m_options.output_url());
 
-      if (!scheme.empty() && !scheme_matches(scheme, "file") &&
-          !scheme_matches(scheme, "oci+os")) {
+      if (!scheme.empty() && !scheme_matches(scheme, "file")) {
         throw std::invalid_argument("File handling for " + scheme +
                                     " protocol is not supported.");
       }

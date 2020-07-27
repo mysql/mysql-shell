@@ -985,7 +985,6 @@ void Util::configure_oci(const std::string &profile) {
 }
 
 REGISTER_HELP_DETAIL_TEXT(IMPORT_EXPORT_URL_DETAIL, R"*(
-<b>url</b> can be one of:
 @li <b>/path/to/file</b> - Path to a locally or remotely (e.g. in OCI Object
 Storage) accessible file or directory
 @li <b>file:///path/to/file</b> - Path to a locally accessible file or directory
@@ -996,7 +995,7 @@ If the <b>osBucketName</b> option is given, the path argument must specify a
 plain path in that OCI (Oracle Cloud Infrastructure) Object Storage bucket.
 
 The OCI configuration profile is located through the oci.profile and
-oci.configFile global shell options and can be overriden with ociProfile and
+oci.configFile global shell options and can be overridden with ociProfile and
 ociConfigFile, respectively.)*");
 
 REGISTER_HELP_DETAIL_TEXT(IMPORT_EXPORT_OCI_OPTIONS_DETAIL, R"*(
@@ -1022,21 +1021,12 @@ INFILE calls in parallel connections.
 @param options Optional dictionary with import options
 
 Scheme part of <b>filename</b> contains infomation about the transport backend.
-Supported transport backends are: file://, http://, https://, oci+os://.
+Supported transport backends are: file://, http://, https://.
 If scheme part of <b>filename</b> is omitted, then file:// transport
 backend will be chosen.
 
 Supported filename formats:
-@li <b>[file://]/path/to/file</b> - Read import data from local file
-@li <b>http[s]://host.domain[:port]/path/to/file</b> - Read import data from
-file provided in URL
-@li <b>oci+os://region/namespace/bucket/object</b> - Read import data from
-object stored in OCI (Oracle Cloud Infrastructure) Object Storage. Variables
-needed to sign requests will be obtained from profile configured in OCI
-configuration file. Profile name and configuration file path are specified
-in oci.profile and oci.configFile shell options.
-ociProfile and ociConfigFile options will override, respectively,
-oci.profile and oci.configFile shell options.
+${IMPORT_EXPORT_URL_DETAIL}
 
 Options dictionary:
 @li <b>schema</b>: string (default: current shell active schema) - Name of
@@ -1093,10 +1083,8 @@ Interpret the information in the input file using this character set
 encoding. characterSet set to "binary" specifies "no conversion". If not set,
 the server will use the character set indicated by the character_set_database
 system variable to interpret the information in the file.
-@li <b>ociConfigFile</b>: string (default: not set) - Override oci.configFile
-shell option. Available only if oci+os:// transport protocol is in use.
-@li <b>ociProfile</b>: string (default: not set) - Override oci.profile shell
-option. Available only if oci+os:// transport protocol is in use.
+
+${IMPORT_EXPORT_OCI_OPTIONS_DETAIL}
 
 <b>dialect</b> predefines following set of options fieldsTerminatedBy (FT),
 fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)
@@ -1167,21 +1155,12 @@ Each parallel connection sets the following session variables:
  * @param options Optional dictionary with import options
  *
  * Scheme part of <b>filename</b> contains infomation about the transport
- * backend. Supported transport backends are: file://, http://, https://,
- * oci+os://. If scheme part of <b>filename</b> is omitted, then file://
- * transport backend will be chosen.
+ * backend. Supported transport backends are: file://, http://, https://.
+ * If scheme part of <b>filename</b> is omitted, then file:// transport backend
+ * will be chosen.
  *
  * Supported filename formats:
- * @li <b>[file://]/path/to/file</b> - Read import data from local file
- * @li <b>http[s]://host.domain[:port]/path/to/file</b> - Read import data from
- * file provided in URL
- * @li <b>oci+os://region/namespace/bucket/object</b> - Read import data from
- * object stored in OCI (Oracle Cloud Infrastructure) Object Storage. Variables
- * needed to sign requests will be obtained from profile configured in OCI
- * configuration file. Profile name and configuration file path are specified
- * in oci.profile and oci.configFile shell options.
- * ociProfile and ociConfigFile options will override, respectively,
- * oci.profile and oci.configFile shell options.
+ * $(IMPORT_EXPORT_URL_DETAIL)
  *
  * Options dictionary:
  * @li <b>schema</b>: string (default: current shell active schema) - Name of
@@ -1239,10 +1218,8 @@ Each parallel connection sets the following session variables:
  * encoding. characterSet set to "binary" specifies "no conversion". If not set,
  * the server will use the character set indicated by the character_set_database
  * system variable to interpret the information in the file.
- * @li <b>ociConfigFile</b>: string (default: not set) - Override oci.configFile
- * shell option. Available only if oci+os:// transport protocol is in use.
- * @li <b>ociProfile</b>: string (default: not set) - Override oci.profile shell
- * option. Available only if oci+os:// transport protocol is in use.
+ *
+ * $(IMPORT_EXPORT_OCI_OPTIONS_DETAIL)
  *
  * <b>dialect</b> predefines following set of options fieldsTerminatedBy (FT),
  * fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)
@@ -1363,6 +1340,7 @@ Loads database dumps created by MySQL Shell.
 @param url URL or path to the dump directory
 @param options Optional dictionary with load options
 
+<b>url</b> can be one of:
 ${IMPORT_EXPORT_URL_DETAIL}
 
 <<<loadDump>>>() will load a dump from the specified path. It transparently

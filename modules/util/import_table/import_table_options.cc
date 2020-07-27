@@ -90,9 +90,8 @@ void Import_table_options::validate() {
   }
 
   if (!m_filename.empty() || m_oci_options) {
-    mysqlshdk::oci::parse_oci_options(mysqlshdk::oci::Oci_uri_type::FILE,
-                                      m_filename, {}, &m_oci_options,
-                                      &m_filename);
+    // this call is here to verify if filename does not have a scheme
+    mysqlshdk::oci::parse_oci_options(m_filename, {}, &m_oci_options);
 
     m_oci_options.check_option_values();
 

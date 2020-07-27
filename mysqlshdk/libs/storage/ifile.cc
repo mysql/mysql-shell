@@ -40,13 +40,11 @@ std::unique_ptr<IFile> make_file(
     const std::unordered_map<std::string, std::string> &options) {
   if (!options.empty()) {
     mysqlshdk::oci::Oci_options oci_options;
-    std::string os_path;
-    bool is_oci = mysqlshdk::oci::parse_oci_options(
-        mysqlshdk::oci::Oci_uri_type::FILE, filepath, options, &oci_options,
-        &os_path);
+    bool is_oci =
+        mysqlshdk::oci::parse_oci_options(filepath, options, &oci_options);
 
     if (is_oci) {
-      return make_file(os_path, oci_options);
+      return make_file(filepath, oci_options);
     }
   }
 
@@ -56,8 +54,6 @@ std::unique_ptr<IFile> make_file(
   } else if (utils::scheme_matches(scheme, "http") ||
              utils::scheme_matches(scheme, "https")) {
     return std::make_unique<backend::Http_get>(filepath);
-  } else if (utils::scheme_matches(scheme, "oci+os")) {
-    throw std::invalid_argument("The osBucketName option is missing.");
   }
 
   throw std::invalid_argument("File handling for " + scheme +

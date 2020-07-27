@@ -1133,22 +1133,25 @@ WHERE
 
 DESCRIPTION
       Scheme part of filename contains infomation about the transport backend.
-      Supported transport backends are: file://, http://, https://, oci+os://.
-      If scheme part of filename is omitted, then file:// transport backend
-      will be chosen.
+      Supported transport backends are: file://, http://, https://. If scheme
+      part of filename is omitted, then file:// transport backend will be
+      chosen.
 
       Supported filename formats:
 
-      - [file://]/path/to/file - Read import data from local file
-      - http[s]://host.domain[:port]/path/to/file - Read import data from file
-        provided in URL
-      - oci+os://region/namespace/bucket/object - Read import data from object
-        stored in OCI (Oracle Cloud Infrastructure) Object Storage. Variables
-        needed to sign requests will be obtained from profile configured in OCI
-        configuration file. Profile name and configuration file path are
-        specified in oci.profile and oci.configFile shell options. ociProfile
-        and ociConfigFile options will override, respectively, oci.profile and
-        oci.configFile shell options.
+      - /path/to/file - Path to a locally or remotely (e.g. in OCI Object
+        Storage) accessible file or directory
+      - file:///path/to/file - Path to a locally accessible file or directory
+      - http[s]://host.domain[:port]/path/to/file - Location of a remote file
+        accessible through HTTP(s) (importTable() only)
+
+      If the osBucketName option is given, the path argument must specify a
+      plain path in that OCI (Oracle Cloud Infrastructure) Object Storage
+      bucket.
+
+      The OCI configuration profile is located through the oci.profile and
+      oci.configFile global shell options and can be overridden with ociProfile
+      and ociConfigFile, respectively.
 
       Options dictionary:
 
@@ -1209,10 +1212,18 @@ DESCRIPTION
         "binary" specifies "no conversion". If not set, the server will use the
         character set indicated by the character_set_database system variable
         to interpret the information in the file.
+
+      OCI Object Storage Options
+
+      - osBucketName: string (default: not set) - Name of the Object Storage
+        bucket to use. The bucket must already exist.
+      - osNamespace: string (default: not set) - Specifies the namespace
+        (tenancy name) where the bucket is located, if not given it will be
+        obtained using the tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Override oci.configFile
-        shell option. Available only if oci+os:// transport protocol is in use.
+        shell option, to specify the path to the OCI configuration file.
       - ociProfile: string (default: not set) - Override oci.profile shell
-        option. Available only if oci+os:// transport protocol is in use.
+        option, to specify the name of the OCI profile to use.
 
       dialect predefines following set of options fieldsTerminatedBy (FT),
       fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy
@@ -1292,7 +1303,7 @@ DESCRIPTION
       bucket.
 
       The OCI configuration profile is located through the oci.profile and
-      oci.configFile global shell options and can be overriden with ociProfile
+      oci.configFile global shell options and can be overridden with ociProfile
       and ociConfigFile, respectively.
 
       loadDump() will load a dump from the specified path. It transparently

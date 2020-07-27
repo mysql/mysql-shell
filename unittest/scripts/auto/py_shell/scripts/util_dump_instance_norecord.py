@@ -1369,8 +1369,8 @@ create_user()
 # This error now confirms the reported issue is fixed
 EXPECT_FAIL("RuntimeError", "Failed to get object list", '', {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"})
 
-#@<> An error should occur when dumping using oci+os:// but no osBucketName is specified
-EXPECT_FAIL("ArgumentError", "The osBucketName option is missing.", 'oci+os://sakila')
+#@<> An error should occur when dumping using oci+os://
+EXPECT_FAIL("ArgumentError", "Directory handling for oci+os protocol is not supported.", 'oci+os://sakila')
 
 #@<> Drop roles {VER(>=8.0.0)}
 session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])
