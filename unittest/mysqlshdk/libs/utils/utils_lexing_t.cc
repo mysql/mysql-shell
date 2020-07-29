@@ -269,9 +269,11 @@ TEST(Utils_lexing, SQL_string_iterator_get_next_sql_token) {
   EXPECT_EQ(")", cit.get_next_token());
   EXPECT_EQ("ENCRYPTION", cit.get_next_token());
   EXPECT_EQ("=", cit.get_next_token());
+  EXPECT_EQ("'N'", cit.get_next_token());
   EXPECT_EQ("DATA", cit.get_next_token());
   EXPECT_EQ("DIRECTORY", cit.get_next_token());
   EXPECT_EQ("=", cit.get_next_token());
+  EXPECT_EQ("'\tmp'", cit.get_next_token());
   EXPECT_EQ(",", cit.get_next_token());
   EXPECT_EQ("TABLESPACE", cit.get_next_token());
   EXPECT_EQ("`t s 1`", cit.get_next_token());
@@ -332,6 +334,7 @@ END//)";
   EXPECT_EQ("SET", pit.get_next_token());
   EXPECT_EQ("str", pit.get_next_token());
   EXPECT_EQ("=", pit.get_next_token());
+  EXPECT_EQ("''", pit.get_next_token());
   EXPECT_EQ(";", pit.get_next_token());
   EXPECT_EQ("loop_label:", pit.get_next_token());
   EXPECT_EQ("LOOP", pit.get_next_token());
@@ -355,6 +358,7 @@ END//)";
   EXPECT_EQ(",", pit.get_next_token());
   EXPECT_EQ("x", pit.get_next_token());
   EXPECT_EQ(",", pit.get_next_token());
+  EXPECT_EQ("','", pit.get_next_token());
   EXPECT_EQ(")", pit.get_next_token());
   EXPECT_EQ(";", pit.get_next_token());
   EXPECT_EQ("SET", pit.get_next_token());
@@ -376,6 +380,36 @@ END//)";
   EXPECT_EQ("END//", pit.get_next_token());
   EXPECT_TRUE(pit.get_next_sql_function().empty());
   EXPECT_FALSE(pit.valid());
+
+  std::string select =
+      "select'abra', * from information_schema.columns where data_type in "
+      "(\"enum\",\"set\") and table_schema not in (\"information_schema\");";
+
+  SQL_iterator sit(select, 0, false);
+  EXPECT_EQ("select", sit.get_next_token());
+  EXPECT_EQ("'abra'", sit.get_next_token());
+  EXPECT_EQ(",", sit.get_next_token());
+  EXPECT_EQ("*", sit.get_next_token());
+  EXPECT_EQ("from", sit.get_next_token());
+  EXPECT_EQ("information_schema.columns", sit.get_next_token());
+  EXPECT_EQ("where", sit.get_next_token());
+  EXPECT_EQ("data_type", sit.get_next_token());
+  EXPECT_EQ("in", sit.get_next_token());
+  EXPECT_EQ("(", sit.get_next_token());
+  EXPECT_EQ("\"enum\"", sit.get_next_token());
+  EXPECT_EQ(",", sit.get_next_token());
+  EXPECT_EQ("\"set\"", sit.get_next_token());
+  EXPECT_EQ(")", sit.get_next_token());
+  EXPECT_EQ("and", sit.get_next_token());
+  EXPECT_EQ("table_schema", sit.get_next_token());
+  EXPECT_EQ("not", sit.get_next_token());
+  EXPECT_EQ("in", sit.get_next_token());
+  EXPECT_EQ("(", sit.get_next_token());
+  EXPECT_EQ("\"information_schema\"", sit.get_next_token());
+  EXPECT_EQ(")", sit.get_next_token());
+  EXPECT_EQ(";", sit.get_next_token());
+  EXPECT_TRUE(sit.get_next_sql_function().empty());
+  EXPECT_FALSE(sit.valid());
 }
 
 TEST(Utils_lexing, SQL_string_iterator_get_next_sql_function) {
