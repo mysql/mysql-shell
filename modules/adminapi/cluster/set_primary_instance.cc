@@ -85,10 +85,6 @@ void Set_primary_instance::prepare() {
   // Verify if the cluster is in single-primary mode
   ensure_single_primary_mode();
 
-  // - Validate the connection options;
-  log_debug("Verifying connection options.");
-  validate_connection_options(m_instance_cnx_opts);
-
   m_instance_cnx_opts.set_login_options_from(
       m_cluster->get_target_server()->get_connection_options());
 

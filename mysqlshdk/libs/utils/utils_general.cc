@@ -73,6 +73,7 @@ Scoped_callback::~Scoped_callback() {
   try {
     call();
   } catch (const std::exception &e) {
+    exception_ptr = std::current_exception();
     log_error("Unexpected exception: %s", e.what());
   }
 }

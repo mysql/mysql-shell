@@ -1651,7 +1651,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = mysqlshdk::utils::nullable<std::string>();
     port = 3306;
     EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
-        local_address, raw_report_host, port));
+        local_address, raw_report_host, port, true));
   }
 
   // Valid port, local_address empty
@@ -1659,7 +1659,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = std::string("");
     port = 3306;
     EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
-        local_address, raw_report_host, port));
+        local_address, raw_report_host, port, true));
   }
 
   // Invalid port, local_address null
@@ -1669,7 +1669,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
 
     EXPECT_THROW_LIKE(
         mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port),
+                                               port, true),
         shcore::Exception,
         "Automatically generated port for localAddress falls out of valid "
         "range. The port must be an integer between 1 and 65535. Please use "
@@ -1683,7 +1683,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
 
     EXPECT_THROW_LIKE(
         mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port),
+                                               port, true),
         shcore::Exception,
         "Automatically generated port for localAddress falls out of valid "
         "range. The port must be an integer between 1 and 65535. Please use "
@@ -1698,7 +1698,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     port = _mysql_sandbox_ports[0];
     try {
       mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                             port);
+                                             port, true);
       testutil->destroy_sandbox(_mysql_sandbox_ports[0] * 10 + 1);
       SCOPED_TRACE("Unexpected success calling resolve_gr_local_address");
       ADD_FAILURE();
@@ -1721,7 +1721,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = std::string("127.0.0.1");
     port = 3306;
     EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
-        local_address, raw_report_host, port));
+        local_address, raw_report_host, port, true));
   }
 
   // Invalid port, complete local_address
@@ -1730,7 +1730,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
 
     EXPECT_THROW_LIKE(
         mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port),
+                                               port, true),
         shcore::Exception,
         "Invalid port '130400' for localAddress option. The port must be an "
         "integer between 1 and 65535.");
@@ -1742,7 +1742,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
 
     EXPECT_THROW_LIKE(
         mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port),
+                                               port, true),
         shcore::Exception,
         "Invalid port 'a' for localAddress option. The port must be an "
         "integer between 1 and 65535.");
@@ -1755,7 +1755,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
 
     EXPECT_THROW_LIKE(
         mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port),
+                                               port, true),
         shcore::Exception,
         "Automatically generated port for localAddress falls out of valid "
         "range. The port must be an integer between 1 and 65535. Please use "
@@ -1769,7 +1769,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
 
     EXPECT_THROW_LIKE(
         mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port),
+                                               port, true),
         shcore::Exception,
         "Automatically generated port for localAddress falls out of valid "
         "range. The port must be an integer between 1 and 65535. Please use "
@@ -1782,7 +1782,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
     local_address = std::to_string(unused_port);
 
     EXPECT_NO_THROW(mysqlsh::dba::resolve_gr_local_address(
-        local_address, raw_report_host, port));
+        local_address, raw_report_host, port, true));
   }
 
   // Invalid port, local_address without separator ':', assumed to be the port
@@ -1791,7 +1791,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
 
     EXPECT_THROW_LIKE(
         mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                               port),
+                                               port, true),
         shcore::Exception,
         "Invalid port '130401' for localAddress option. The port must be an "
         "integer between 1 and 65535.");
@@ -1804,7 +1804,7 @@ TEST_F(Dba_common_test, resolve_gr_local_address) {
 
     try {
       mysqlsh::dba::resolve_gr_local_address(local_address, raw_report_host,
-                                             port);
+                                             port, true);
       testutil->destroy_sandbox(_mysql_sandbox_ports[0] * 10 + 1);
       SCOPED_TRACE("Unexpected success calling resolve_gr_local_address");
       ADD_FAILURE();

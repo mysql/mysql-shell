@@ -283,8 +283,6 @@ class Dump_loader {
   using Name_and_file =
       std::pair<std::string, std::unique_ptr<mysqlshdk::storage::IFile>>;
 
-  mysqlshdk::db::ISession *session() const { return m_options.base_session(); }
-
   void execute_tasks();
   void execute_table_ddl_tasks();
   void execute_view_ddl_tasks();
@@ -434,6 +432,7 @@ class Dump_loader {
   Scoped_console m_console;
 
   std::unordered_set<std::string> m_unique_tables_loaded;
+  size_t m_total_tables_with_data = 0;
 
   std::chrono::system_clock::time_point m_begin_time;
   size_t m_num_bytes_previously_loaded = 0;

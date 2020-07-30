@@ -532,23 +532,30 @@ std::vector<std::string> check_create_table_for_indexes(
   }
 
   int brace_count = 1;
+  std::string auto_increment_column;
+
   while (it.valid() && brace_count > 0) {
     bool index_declaration = false;
+    bool constraint = false;
+    std::string column_name;
     auto potential_coma = it.position() - 1;
     auto token = it.get_next_token();
     auto start = it.position() - token.length();
 
-    if (fulltext_only) {
+    if (token[0] == '`') {
+      column_name = token;
+    } else if (fulltext_only) {
       if (shcore::str_caseeq(token, "FULLTEXT")) index_declaration = true;
     } else {
       if (shcore::str_caseeq_mv(token, "FULLTEXT", "UNIQUE", "KEY", "INDEX",
                                 "SPATIAL"))
         index_declaration = true;
+      else
+        // Note: FKs on FULLTEXT indexes are not supported, so if we're doing
+        // FULLTEXT only we can ignore FKs
+        constraint = shcore::str_caseeq(token, "CONSTRAINT");
     }
 
-    // Note: FKs on FULLTEXT indexes are not supported, so if we're doing
-    // FULLTEXT only we can ignore FKs
-    bool constraint = shcore::str_caseeq(token, "CONSTRAINT");
     while (it.valid() && brace_count > 0) {
       token = it.get_next_token();
       if (token == "(")
@@ -557,9 +564,11 @@ std::vector<std::string> check_create_table_for_indexes(
         --brace_count;
       else if (brace_count == 1 && token == ",")
         break;
-      else if (constraint && (shcore::str_caseeq_mv(token, "KEY", "INDEX")) &&
-               !fulltext_only)
+      else if (constraint && (shcore::str_caseeq_mv(token, "KEY", "INDEX")))
         index_declaration = true;
+      else if (!fulltext_only && !column_name.empty() &&
+               shcore::str_caseeq(token, "AUTO_INCREMENT"))
+        auto_increment_column = "(" + column_name + ")";
     }
 
     if (!it.valid())
@@ -582,6 +591,14 @@ std::vector<std::string> check_create_table_for_indexes(
     }
     const auto index_definition =
         shcore::str_rstrip(statement.substr(start, end - start));
+
+    // auto_increment columns cannot be foreign keys
+    if (!auto_increment_column.empty() && !constraint &&
+        index_definition.find(auto_increment_column) != std::string::npos) {
+      offsets.pop_back();
+      continue;
+    }
+
     if (return_alter_table)
       ret.emplace_back("ALTER TABLE " + table_name + " ADD " +
                        index_definition + ";");

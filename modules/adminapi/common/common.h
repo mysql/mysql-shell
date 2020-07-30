@@ -114,7 +114,7 @@ struct Option_availability {
 };
 
 /**
- * Map of the global ReplicaSet configuration options of the AdminAPI
+ * Map of the global Cluster configuration options of the AdminAPI
  * <sysvar, name>
  */
 const std::map<std::string, std::string> k_global_options{
@@ -298,23 +298,6 @@ void print_validation_results(const shcore::Value::Map_type_ref &result,
                               bool print_note = false);
 
 /**
- * Validates the connection options.
- *
- * Checks if the given connection options are valid for use with AdminAPI.
- *
- * @param options Connection options to validate.
- * @param factory Factory function used to create the exception,
- *                shcore::Exception::argument_error by default.
- *
- * @throws shcore::Exception created by the 'factory' function if connection
- *                           options are not valid.
- */
-void validate_connection_options(
-    const Connection_options &options,
-    std::function<shcore::Exception(const std::string &)> factory =
-        shcore::Exception::argument_error);
-
-/**
  * Auxiliary function to get the reported host address (used in the Metadata).
  *
  * This function tries to connect to the instance to get the reported host
@@ -374,13 +357,15 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
  * @param report_host String with the report host value of the instance (host
  *                    used by GR and the Metadata).
  * @param port integer with port used to connect to the instance.
+ * @param check_if_busy if true, checks whether there's already something
+ * binding the port.
  *
  * @throw std::runtime_error if the port specified by the user is invalid or
  * if it is already being used.
  */
 std::string resolve_gr_local_address(
     const mysqlshdk::utils::nullable<std::string> &local_address,
-    const std::string &report_host, int port);
+    const std::string &report_host, int port, bool check_if_busy);
 
 struct Instance_gtid_info {
   std::string server;

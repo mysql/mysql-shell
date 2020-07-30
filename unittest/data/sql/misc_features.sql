@@ -59,6 +59,15 @@ CREATE TABLE gctable1 (
 
 -- Constraints
 
+CREATE TABLE `aik` (
+  `id` int NOT NULL,
+  `uai` int NOT NULL AUTO_INCREMENT,
+  `data` text,
+  PRIMARY KEY (`id`),
+  KEY `uai` (`uai`)
+);
+insert into aik values (1, 0, "text");
+
 -- Foreign Keys
 
 -- Tables and views with circular FK references

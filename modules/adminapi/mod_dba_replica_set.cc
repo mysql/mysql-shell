@@ -354,9 +354,8 @@ void ReplicaSet::add_instance(const std::string &instance_def,
     throw shcore::Exception::argument_error("timeout option must be >= 0");
   }
 
-  // Validate the connection options (in order to issue user friendly errors).
-  validate_connection_options(
-      get_connection_options(shcore::Value(instance_def)));
+  // this validates the instance_def
+  (void)get_connection_options(shcore::Value(instance_def));
 
   // Init progress_style
   Recovery_progress_style progress_style;
@@ -507,9 +506,8 @@ void ReplicaSet::rejoin_instance(const std::string &instance_def,
     throw shcore::Exception::argument_error("timeout option must be >= 0");
   }
 
-  // Validate the connection options (in order to issue user friendly errors).
-  validate_connection_options(
-      get_connection_options(shcore::Value(instance_def)));
+  // this validates the instance_def
+  (void)get_connection_options(shcore::Value(instance_def));
 
   // Init progress_style
   Recovery_progress_style progress_style;
@@ -592,6 +590,9 @@ void ReplicaSet::remove_instance(const std::string &instance_def,
       .optional("force", &force)
       .optional("timeout", &timeout)
       .end();
+
+  // this validates the instance_def
+  (void)get_connection_options(shcore::Value(instance_def));
 
   execute_with_pool(
       [&]() {

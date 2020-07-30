@@ -258,7 +258,7 @@ class SQL_iterator {
    */
   explicit SQL_iterator(const std::string &str,
                         std::string::size_type offset = 0,
-                        bool skip_quoted_sql_ids = true);
+                        bool skip_quoted = true);
 
   SQL_iterator &operator++();
 
@@ -301,7 +301,7 @@ class SQL_iterator {
  private:
   const std::string &m_s;
   std::string::size_type m_offset;
-  bool m_skip_quoted_ids;
+  bool m_skip_quoted;
   bool m_comment_hint = false;
 };
 

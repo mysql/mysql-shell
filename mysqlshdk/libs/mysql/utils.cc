@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include <tuple>
 #include <vector>
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -598,5 +599,53 @@ void copy_data(const mysql::IInstance &instance, const std::string &name,
   }
 }
 
+/**
+ * Creates an indicator/marker at the target instance with the given name.
+ *
+ * @param instance - where to create the tag
+ * @param name - unique name for the tag (<= 64 chars)
+ *
+ * This marker has the following properties:
+ * - persists server restarts
+ * - can be executed while super_read_only=1
+ * - doesn't generate a transaction
+ * - creation is atomic
+ * - only requires REPLICATION_SLAVE_ADMIN to be executed
+ * - local to the instance only
+ */
+void create_indicator_tag(const mysql::IInstance &instance,
+                          const std::string &name) {
+  assert(name.length() <= 64);
+
+  // The reason this hack is done this way:
+  // - any method based on a DB object, requires the user to have privs
+  //   to create and drop that DB object
+  // - if the DB object is inside a schema the user owns, then that wouldn't
+  //   be atomic, since we'd have to create the schema and then the object
+  // - doesn't require additional plugins/UDFs
+  instance.executef("CHANGE MASTER TO master_user=/*(*/ ? /*)*/ FOR CHANNEL ?",
+                    mysqlshdk::utils::isotime(), name);
+}
+
+void drop_indicator_tag(const mysql::IInstance &instance,
+                        const std::string &name) {
+  try {
+    instance.executef("RESET SLAVE ALL FOR CHANNEL ?", name);
+  } catch (const shcore::Error &e) {
+    if (e.code() != ER_SLAVE_CHANNEL_DOES_NOT_EXIST) throw;
+  }
+}
+
+bool check_indicator_tag(const mysql::IInstance &instance,
+                         const std::string &name) {
+  if (instance
+          .queryf("SELECT * FROM mysql.slave_master_info"
+                  " WHERE channel_name = ?",
+                  name)
+          ->fetch_one())
+    return true;
+  else
+    return false;
+}
 }  // namespace mysql
 }  // namespace mysqlshdk

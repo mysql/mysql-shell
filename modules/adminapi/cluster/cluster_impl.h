@@ -325,7 +325,7 @@ class Cluster_impl : public Base_cluster_impl {
   get_instances_with_state() const;
 
   std::unique_ptr<mysqlshdk::config::Config> create_config_object(
-      std::vector<std::string> ignored_instances = {},
+      const std::vector<std::string> &ignored_instances = {},
       bool skip_invalid_state = false, bool persist_only = false) const;
 
   void query_group_wide_option_values(
@@ -342,11 +342,9 @@ class Cluster_impl : public Base_cluster_impl {
    * other members through a primary instance.
    *
    * @param local_gr_address string with the local GR address (XCom) to remove.
-   * @param instance target instance that was removed from the cluster.
    */
   void update_group_members_for_removed_member(
-      const std::string &local_gr_address,
-      const mysqlsh::dba::Instance &instance);
+      const std::string &local_gr_address);
 
   void adopt_from_gr();
 

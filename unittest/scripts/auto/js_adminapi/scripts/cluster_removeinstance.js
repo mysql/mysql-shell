@@ -26,6 +26,41 @@ var all_users_instance1 = get_all_users();
 c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
+//@<> Remove instance should always update group_replication_group_seeds
+// Bug #31531704	REMOVING UNREACHABLE MEMBER DOESN'T UPDATE GROUP_REPLICATION_GROUP_SEEDS
+
+s2 = mysql.getSession(__sandbox_uri2);
+if (__version_num >= 80017)
+  s2.runSql("set persist group_replication_start_on_boot = 0");
+
+testutil.stopSandbox(__mysql_sandbox_port2);
+
+EXPECT_EQ(hostname+":"+__mysql_sandbox_port2+"1", session.runSql("SELECT @@group_replication_group_seeds").fetchOne()[0]);
+
+c.removeInstance(hostname+":"+__mysql_sandbox_port2, {force:1});
+EXPECT_EQ("", session.runSql("SELECT @@group_replication_group_seeds").fetchOne()[0]);
+
+testutil.startSandbox(__mysql_sandbox_port2);
+
+c.addInstance(__sandbox_uri2);
+
+//@<> Remove instance with an unresolvable hostname
+// Bug #31632606	REMOVEINSTANCE() WITH FORCE DOESN'T WORK IF ADDRESS IS NO LONGER RESOLVABLE
+
+// hack the metadata adding an invalid hostname to simulate an instance that was added
+// but is no longer resolvable at the time it's removed
+var cluster_id = session.runSql("select cluster_id from mysql_innodb_cluster_metadata.clusters limit 1").fetchOne()[0];
+session.runSql("insert into mysql_innodb_cluster_metadata.instances (cluster_id, mysql_server_uuid, address, instance_name, addresses, attributes) values (?, 'aaaaaaaa-aaaa-aaaa-aaaa-569f1ba7f3cf', 'badhost.baddomain:1234', 'badhost.baddomain:1234', json_object('mysqlClassic', 'badhost.baddomain:1234', 'mysqlX', 'badhost.baddomain:12340', 'grLocal', 'badhost.baddomain:12341'), '{}')", [cluster_id]);
+
+EXPECT_EQ(3, session.runSql("select * from mysql_innodb_cluster_metadata.instances").fetchAll().length);
+
+c.removeInstance("badhost.baddomain:1234", {force:true});
+
+EXPECT_OUTPUT_CONTAINS("NOTE: The instance 'badhost.baddomain:1234' is not reachable and it will only be removed from the metadata. Please take any necessary actions to ensure the instance will not rejoin the cluster if brought back online.");
+EXPECT_OUTPUT_CONTAINS("The instance 'badhost.baddomain:1234' was successfully removed from the cluster.");
+
+EXPECT_EQ(2, session.runSql("select * from mysql_innodb_cluster_metadata.instances").fetchAll().length);
+
 //@<> After being removed, the instance has no information regarding the group_replication_applier channel BUG#30878446
 var session2 = mysql.getSession(__sandbox_uri2);
 EXPECT_NE(0, session2.runSql("select COUNT(*) from performance_schema.replication_applier_status").fetchOne()[0]);

@@ -38,6 +38,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/script.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -220,8 +221,7 @@ void Dump_loader::Worker::Table_ddl_task::process(
       m_file->close();
     }
   } else if (loader->m_options.load_ddl() ||
-             loader->m_options.defer_table_indexes() !=
-                 Load_dump_options::Defer_index_mode::OFF) {
+             loader->m_options.load_deferred_indexes()) {
     m_file->open(mysqlshdk::storage::Mode::READ);
     *out_script = mysqlshdk::storage::read_file(m_file.get());
     m_file->close();
@@ -773,22 +773,46 @@ void Dump_loader::on_dump_end() {
     execute_script(m_session, post_script, "While executing postamble SQL",
                    m_default_sql_transforms);
 
-  // Don't do anything gtid related yet
-  // if (!m_dump->gtid_executed().empty()) {
-  //   print_status("Updating GTID_PURGED");
-  //   log_info("Setting GTID_PURGED to %s", m_dump->gtid_executed().c_str());
-  //   m_session->executef("SET GLOBAL GTID_PURGED=/*!80000 '+'*/ ?",
-  //                       m_dump->gtid_executed());
-  // } else {
-  //   log_info("gtid_executed not set in dump, skipping handling of
-  //   GTID_PURGED");
-  // }
+  // Update GTID_PURGED only when requested by the user
+  if (m_options.update_gtid_set() != Load_dump_options::Update_gtid_set::OFF) {
+    auto status = m_load_log->gtid_update_status();
+    if (status == Load_progress_log::Status::DONE) {
+      current_console()->print_status("GTID_PURGED already updated");
+      log_info("GTID_PURGED already updated");
+    } else if (!m_dump->gtid_executed().empty()) {
+      try {
+        m_load_log->start_gtid_update();
+        if (m_options.update_gtid_set() ==
+            Load_dump_options::Update_gtid_set::REPLACE) {
+          current_console()->print_status(
+              "Resetting GTID_PURGED to dumped gtid set");
+          log_info("Setting GTID_PURGED to %s",
+                   m_dump->gtid_executed().c_str());
+          m_session->executef("SET GLOBAL GTID_PURGED=?",
+                              m_dump->gtid_executed());
+        } else {
+          current_console()->print_status(
+              "Appending dumped gtid set to GTID_PURGED");
+          log_info("Appending %s to GTID_PURGED",
+                   m_dump->gtid_executed().c_str());
+          m_session->executef("SET GLOBAL GTID_PURGED=?",
+                              "+" + m_dump->gtid_executed());
+        }
+        m_load_log->end_gtid_update();
+      } catch (const std::exception &e) {
+        current_console()->print_error(
+            std::string("Error while updating GTID_PURGED: ") + e.what());
+        throw;
+      }
+    } else {
+      current_console()->print_warning(
+          "gtid update requested but, gtid_executed not set in dump");
+    }
+  }
 }
 
 void Dump_loader::on_schema_end(const std::string &schema) {
-  if (m_options.load_indexes() &&
-      m_options.defer_table_indexes() !=
-          Load_dump_options::Defer_index_mode::OFF) {
+  if (m_options.load_deferred_indexes()) {
     const auto &fks = m_dump->deferred_schema_fks(schema);
     if (!fks.empty()) {
       current_console()->print_status(
@@ -1131,9 +1155,7 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
   if (!handle_table_data(worker)) {
     std::string schema;
     std::string table;
-    if (m_options.load_indexes() &&
-        m_options.defer_table_indexes() !=
-            Load_dump_options::Defer_index_mode::OFF) {
+    if (m_options.load_deferred_indexes()) {
       const auto load_finished = [this](const std::string &key) {
         std::lock_guard<std::mutex> lock(m_tables_being_loaded_mutex);
         return m_tables_being_loaded.find(key) == m_tables_being_loaded.end();
@@ -1264,6 +1286,9 @@ void Dump_loader::update_progress() {
   static const char k_progress_spin[] = "-\\|/";
 
   std::unique_lock<std::mutex> lock(m_output_mutex, std::try_to_lock);
+  const auto tables_progress =
+      shcore::str_format(", %zu / %zu tables", m_unique_tables_loaded.size(),
+                         m_total_tables_with_data);
   if (lock.owns_lock()) {
     if (m_dump->status() == Dump_reader::Status::COMPLETE &&
         m_num_threads_loading.load() == 0 &&
@@ -1274,7 +1299,7 @@ void Dump_loader::update_progress() {
              std::to_string(m_num_threads_recreating_indexes.load()).c_str(),
              k_progress_spin[m_progress_spin]);
       fflush(stdout);
-      m_progress->show_status(false);
+      m_progress->show_status(false, tables_progress);
     } else {
       std::string label;
       if (m_dump->status() != Dump_reader::Status::COMPLETE)
@@ -1292,7 +1317,7 @@ void Dump_loader::update_progress() {
         label[label.length() - 2] = k_progress_spin[m_progress_spin];
 
       m_progress->set_left_label(label);
-      m_progress->show_status(true);
+      m_progress->show_status(true, tables_progress);
     }
 
     m_progress_spin++;
@@ -1344,6 +1369,7 @@ void Dump_loader::check_server_version() {
   const auto console = current_console();
   const auto &target_server = m_options.target_server_version();
   const auto mds = m_options.is_mds();
+  mysqlshdk::mysql::Instance session(m_options.base_session());
 
   std::string msg = "Target is MySQL " + target_server.get_full();
   if (mds) msg += " (MySQL Database Service)";
@@ -1386,6 +1412,69 @@ void Dump_loader::check_server_version() {
       !histograms_supported(target_server))
     console->print_warning("Histogram creation enabled but MySQL Server " +
                            target_server.get_base() + " does not support it.");
+  if (m_options.update_gtid_set() != Load_dump_options::Update_gtid_set::OFF) {
+    // Check if group replication is running
+    bool group_replication_running = false;
+    try {
+      group_replication_running = session.queryf_one_int(
+          0, 0,
+          "select count(*) from performance_schema.replication_group_members "
+          "where MEMBER_ID = @@server_uuid AND MEMBER_STATE IS NOT NULL AND "
+          "MEMBER_STATE <> 'OFFLINE';");
+    } catch (...) {
+    }
+    if (group_replication_running)
+      throw std::runtime_error(
+          "updateGtidSet option cannot be used on server with group "
+          "replication running");
+
+    if (target_server < mysqlshdk::utils::Version(8, 0, 0)) {
+      if (m_options.update_gtid_set() ==
+          Load_dump_options::Update_gtid_set::APPEND)
+        throw std::runtime_error(
+            "Target MySQL server does not support updateGtidSet:'append'.");
+
+      if (!m_options.skip_binlog())
+        throw std::runtime_error(
+            "updateGtidSet option on MySQL 5.7 target server can only be used "
+            "if skipBinlog option is enabled.");
+
+      if (!session.queryf_one_int(0, 0,
+                                  "select @@global.gtid_executed = '' and "
+                                  "@@global.gtid_purged = ''"))
+        throw std::runtime_error(
+            "updateGtidSet:'replace' on target server version can only be used "
+            "if GTID_PURGED and GTID_EXECUTED are empty, but they’re not.");
+    } else {
+      const char *g = m_dump->gtid_executed().c_str();
+      if (m_options.update_gtid_set() ==
+          Load_dump_options::Update_gtid_set::REPLACE) {
+        if (!session.queryf_one_int(
+                0, 0,
+                "select GTID_SUBTRACT(?, GTID_SUBTRACT(@@global.gtid_executed, "
+                "@@global.gtid_purged)) = gtid_subtract(?, '')",
+                g, g))
+          throw std::runtime_error(
+              "updateGtidSet:'replace' can only be used if "
+              "gtid_subtract(gtid_executed,gtid_purged) "
+              "on target server does not intersects with dumped gtid set.");
+        if (!session.queryf_one_int(
+                0, 0, "select GTID_SUBSET(@@global.gtid_purged, ?);", g))
+          throw std::runtime_error(
+              "updateGtidSet:'replace' can only be used if dumped gtid set is "
+              "a superset of the current value of gtid_purged on target "
+              "server");
+      } else if (!session.queryf_one_int(
+                     0, 0,
+                     "select GTID_SUBTRACT(@@global.gtid_executed, ?) = "
+                     "@@global.gtid_executed",
+                     g)) {
+        throw std::runtime_error(
+            "updateGtidSet:'append' can only be used if gtid_executed on "
+            "target server does not intersects with dumped gtid set.");
+      }
+    }
+  }
 }
 
 void Dump_loader::check_tables_without_primary_key() {
@@ -1837,17 +1926,22 @@ void Dump_loader::execute_tasks() {
 
       // NOTE: this assumes that all DDL files are already present
 
-      // exec DDL for all tables in parallel (fetching DDL for
-      // thousands of tables from remote storage can be slow)
-      if (!m_worker_interrupt) execute_table_ddl_tasks();
+      if (m_options.load_ddl() || m_options.load_deferred_indexes()) {
+        // exec DDL for all tables in parallel (fetching DDL for
+        // thousands of tables from remote storage can be slow)
+        if (!m_worker_interrupt) execute_table_ddl_tasks();
 
-      // exec DDL for all views after all tables are created
-      if (!m_worker_interrupt) execute_view_ddl_tasks();
+        // exec DDL for all views after all tables are created
+        if (!m_worker_interrupt && m_options.load_ddl())
+          execute_view_ddl_tasks();
+      }
 
       m_init_done = true;
 
       m_progress->hide(false);
     }
+
+    m_total_tables_with_data = m_dump->tables_with_data();
 
     // handle events from workers and schedule more chunks when a worker
     // becomes available

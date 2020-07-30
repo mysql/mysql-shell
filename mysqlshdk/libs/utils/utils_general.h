@@ -72,15 +72,28 @@ class Scoped_callback {
 
   void cancel() { cancelled = true; }
 
+  const std::exception_ptr &exception() const { return exception_ptr; }
+
+  void check() {
+    if (exception_ptr) std::rethrow_exception(exception_ptr);
+  }
+
  private:
   std::function<void()> callback;
+  std::exception_ptr exception_ptr;
   bool cancelled = false;
   bool called = false;
 };
 
 class Scoped_callback_list {
  public:
-  ~Scoped_callback_list() { call(); }
+  ~Scoped_callback_list() {
+    try {
+      call();
+    } catch (...) {
+      exception_ptr = std::current_exception();
+    }
+  }
 
   void push_back(const std::function<void()> &c) { callbacks.push_back(c); }
 
@@ -88,17 +101,24 @@ class Scoped_callback_list {
 
   void call() {
     if (!cancelled && !called) {
+      called = true;
       for (const auto &cb : callbacks) {
         cb();
       }
-      called = true;
     }
   }
 
   void cancel() { cancelled = true; }
 
+  const std::exception_ptr &exception() const { return exception_ptr; }
+
+  void check() {
+    if (exception_ptr) std::rethrow_exception(exception_ptr);
+  }
+
  private:
   std::list<std::function<void()>> callbacks;
+  std::exception_ptr exception_ptr;
   bool cancelled = false;
   bool called = false;
 };

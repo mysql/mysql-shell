@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "adminapi/common/cluster_types.h"
+#include "adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
@@ -93,7 +94,7 @@ void Create_cluster::validate_create_cluster_options() {
         m_adopt_from_gr = true;
       }
     }
-    if (!m_adopt_from_gr)
+    if (!m_adopt_from_gr && !m_retrying)
       throw shcore::Exception::argument_error(
           "Creating a cluster on an unmanaged replication group requires "
           "adoptFromGR option to be true");
@@ -192,6 +193,14 @@ void Create_cluster::prepare() {
   // Validate the Clone options.
   m_clone_opts.check_option_values(m_target_instance->get_version());
 
+  // Check if we're retrying a previously failed create attempt
+  if (mysqlshdk::mysql::check_indicator_tag(
+          *m_target_instance, metadata::kClusterSetupIndicatorTag)) {
+    log_info(
+        "createCluster() detected a previously failed attempt, retrying...");
+    m_retrying = true;
+  }
+
   // Validate create cluster options (combinations).
   validate_create_cluster_options();
 
@@ -253,8 +262,9 @@ void Create_cluster::prepare() {
       resolve_ssl_mode();
 
       // Make sure the target instance does not already belong to a cluster.
-      mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-          *m_target_instance, m_target_instance);
+      if (!m_retrying)
+        mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
+            *m_target_instance, m_target_instance);
 
       // Get the address used by GR for the added instance (used in MD).
       m_address_in_metadata = m_target_instance->get_canonical_address();
@@ -264,7 +274,7 @@ void Create_cluster::prepare() {
       // for the metadata;
       m_gr_opts.local_address = mysqlsh::dba::resolve_gr_local_address(
           m_gr_opts.local_address, m_target_instance->get_canonical_hostname(),
-          m_target_instance->get_canonical_port());
+          m_target_instance->get_canonical_port(), !m_retrying);
 
       // Validate that the group_replication_local_address is valid for the
       // version we are using
@@ -372,10 +382,11 @@ void Create_cluster::prepare_metadata_schema() {
   // If the metadata schema already exists:
   // - clear it of old data
   // - ensure it has the right version
+  // If we're retrying from a previous createCluster attempt, drop and recreate
   // We ensure both by always dropping the old schema and re-creating it from
   // scratch.
 
-  mysqlsh::dba::prepare_metadata_schema(m_target_instance, false);
+  mysqlsh::dba::prepare_metadata_schema(m_target_instance, m_retrying, false);
 }
 
 void Create_cluster::setup_recovery(Cluster_impl *cluster,
@@ -513,11 +524,51 @@ shcore::Value Create_cluster::execute() {
         "group-replication-limitations.html");
   }
 
+  shcore::Scoped_callback_list undo_list;
+
   shcore::Value ret_val;
-  {
+  try {
     console->print_info("Adding Seed Instance...");
 
     if (!m_adopt_from_gr) {
+      if (m_retrying) {
+        // If we're retrying, make sure GR is stopped
+        console->print_note("Stopping GR started by a previous failed attempt");
+        mysqlshdk::gr::stop_group_replication(*m_target_instance);
+        // stop GR will leave the server in SRO mode
+        m_target_instance->set_sysvar("super_read_only", false);
+      }
+
+      // Set a guard to indicate that a createCluster() has started.
+      // This has to happen before start GR, otherwise we can't tell whether
+      // a running GR was started by us or the user.
+      // This hack is used as an indicator that createCluster is running in an
+      // instance If the instance already has master_user set to this value when
+      // we enter createCluster(), it means a previous attempt failed.
+      // Note: this shouldn't be set if we're adopting
+      assert(!m_adopt_from_gr);
+      mysqlshdk::mysql::create_indicator_tag(
+          *m_target_instance, metadata::kClusterSetupIndicatorTag);
+
+      // GR has to be stopped if this fails
+      undo_list.push_front([this, console]() {
+        log_info("revert: Stopping group_replication");
+        try {
+          mysqlshdk::gr::stop_group_replication(*m_target_instance);
+        } catch (const shcore::Error &e) {
+          console->print_warning(
+              "Could not stop group_replication while aborting changes: " +
+              std::string(e.what()));
+        }
+        log_info("revert: Clearing super_read_only");
+        try {
+          m_target_instance->set_sysvar("super_read_only", false);
+        } catch (const shcore::Error &e) {
+          console->print_warning(
+              "Could not clear super_read_only while aborting changes: " +
+              std::string(e.what()));
+        }
+      });
       // Start GR before creating the recovery user and metadata, so that
       // all transactions executed by us have the same GTID prefix
       mysqlsh::dba::start_cluster(*m_target_instance, m_gr_opts,
@@ -525,6 +576,8 @@ shcore::Value Create_cluster::execute() {
     }
 
     std::string group_name = m_target_instance->get_group_name();
+
+    undo_list.push_front([this]() { metadata::uninstall(m_target_instance); });
 
     // Create the Metadata Schema.
     prepare_metadata_schema();
@@ -551,6 +604,9 @@ shcore::Value Create_cluster::execute() {
     cluster_impl->set_description("Default Cluster");
 
     // Insert Cluster (and ReplicaSet) on the Metadata Schema.
+    MetadataStorage::Transaction trx(metadata);
+    undo_list.push_front([&trx]() { trx.rollback(); });
+
     metadata->create_cluster_record(cluster_impl.get(), m_adopt_from_gr);
 
     metadata->update_cluster_attribute(
@@ -625,12 +681,32 @@ shcore::Value Create_cluster::execute() {
       }
     }
 
+    // Everything after this should not affect the result of the createCluster()
+    // even if an exception is thrown.
+    trx.commit();
+    undo_list.cancel();
+
     // If it reaches here, it means there are no exceptions
     std::shared_ptr<Cluster> cluster = std::make_shared<Cluster>(cluster_impl);
 
     ret_val =
         shcore::Value(std::static_pointer_cast<shcore::Object_bridge>(cluster));
+  } catch (...) {
+    try {
+      log_info("createCluster() failed: Trying to revert changes...");
+
+      undo_list.call();
+
+      mysqlshdk::mysql::drop_indicator_tag(*m_target_instance,
+                                           metadata::kClusterSetupIndicatorTag);
+    } catch (const std::exception &e) {
+      console->print_error("Error aborting changes: " + std::string(e.what()));
+    }
+    throw;
   }
+
+  mysqlshdk::mysql::drop_indicator_tag(*m_target_instance,
+                                       metadata::kClusterSetupIndicatorTag);
 
   std::string message =
       m_adopt_from_gr ? "Cluster successfully created based on existing "
@@ -641,7 +717,7 @@ shcore::Value Create_cluster::execute() {
                         "able to withstand up to\n"
                         "one server failure.";
   console->print_info(message);
-  console->println();
+  console->print_info();
 
   return ret_val;
 }

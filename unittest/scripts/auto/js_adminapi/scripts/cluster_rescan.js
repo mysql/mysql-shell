@@ -161,9 +161,6 @@ session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instan
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [hostname+":"+__mysql_sandbox_port3]);
 cluster.status();
 
-//@ addInstance should fail and suggest a rescan.
-cluster.addInstance(__hostname_uri2);
-
 //@<> WL10644 - TSF2_1: Rescan with addInstances:[complete_valid_list].
 var member_address2 = hostname + ":" + __mysql_sandbox_port2;
 var member_address3 = hostname + ":" + __mysql_sandbox_port3;

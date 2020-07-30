@@ -65,14 +65,12 @@ The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
+<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
 
 //@<OUT> BUG28056944 Error adding instance already in group but not in Metadata.
-ERROR: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is part of the Group Replication group but is not in the metadata. Please use <Cluster>.rescan() to update the metadata.
-
-//@<ERR> BUG28056944 Error adding instance already in group but not in Metadata.
-Cluster.addInstance: Metadata inconsistent (RuntimeError)
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@ BUG28056944 clean-up.
 ||

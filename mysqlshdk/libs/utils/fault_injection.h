@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -140,18 +140,23 @@ class FI {
     /** Parses and adds a condition represented as a string:
      *
      * opt == str
+     * opt != str
      * opt regex pattern
+     * opt !regex pattern
      * opt > int
      *
      * Special options:
      * ++match_counter == int
+     * ++match_counter != int
      * ++match_counter > int
      */
     Conditions &add(const std::string &str);
 
-    Conditions &add_regex(const std::string &key, const std::string &value);
+    Conditions &add_regex(const std::string &key, const std::string &value,
+                          bool invert);
 
-    Conditions &add_eq(const std::string &key, const std::string &value);
+    Conditions &add_eq(const std::string &key, const std::string &value,
+                       bool invert);
 
     Conditions &add_gt(const std::string &key, int value);
 

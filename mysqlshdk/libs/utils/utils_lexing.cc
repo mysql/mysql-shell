@@ -30,7 +30,7 @@ namespace utils {
 SQL_iterator::SQL_iterator(const std::string &str,
                            std::string::size_type offset,
                            bool skip_quoted_sql_ids)
-    : m_s(str), m_offset(offset - 1), m_skip_quoted_ids(skip_quoted_sql_ids) {
+    : m_s(str), m_offset(offset - 1), m_skip_quoted(skip_quoted_sql_ids) {
   // Let's make sure we start from valid SQL
   ++(*this);
 }
@@ -43,13 +43,19 @@ SQL_iterator &SQL_iterator::operator++() {
   do {
     switch (m_s[m_offset]) {
       case '\'':
-        m_offset = span_quoted_string_sq(m_s, m_offset);
+        if (m_skip_quoted)
+          m_offset = span_quoted_string_sq(m_s, m_offset);
+        else
+          incremented = true;
         break;
       case '"':
-        m_offset = span_quoted_string_dq(m_s, m_offset);
+        if (m_skip_quoted)
+          m_offset = span_quoted_string_dq(m_s, m_offset);
+        else
+          incremented = true;
         break;
       case '`':
-        if (m_skip_quoted_ids)
+        if (m_skip_quoted)
           m_offset = span_quoted_sql_identifier_bt(m_s, m_offset);
         else
           incremented = true;
@@ -101,16 +107,42 @@ std::string SQL_iterator::get_next_token() {
   auto previous = m_offset;
   const auto start = previous;
 
-  if (!m_skip_quoted_ids && get_char() == '`') {
-    m_offset = span_quoted_sql_identifier_bt(m_s, m_offset);
-    return m_s.substr(start, m_offset - start);
+  if (!m_skip_quoted) {
+    switch (get_char()) {
+      case '`':
+        m_offset = span_quoted_sql_identifier_bt(m_s, m_offset);
+        return m_s.substr(start, m_offset - start);
+      case '\'':
+        m_offset = span_quoted_string_sq(m_s, m_offset);
+        return m_s.substr(start, m_offset - start);
+      case '"':
+        m_offset = span_quoted_string_dq(m_s, m_offset);
+        return m_s.substr(start, m_offset - start);
+    }
   }
 
   do {
     const auto c = get_char();
-    if (std::isspace(c) || c == ',' || c == ';' || c == '(' || c == ')' ||
-        c == '=' || (!m_skip_quoted_ids && c == '`') || m_offset - previous > 1)
-      break;
+    bool break_time = false;
+    switch (c) {
+      case ',':
+      case ';':
+      case '(':
+      case ')':
+      case '=':
+        break_time = true;
+        break;
+      case '\'':
+      case '"':
+      case '`':
+        break_time = !m_skip_quoted;
+        break;
+      default:
+        if (std::isspace(c) || m_offset - previous > 1) break_time = true;
+        break;
+    }
+    if (break_time) break;
+
     previous = m_offset;
     if (c == ':') {
       ++(*this);

@@ -61,8 +61,9 @@ Remove_instance::Remove_instance(
 Remove_instance::~Remove_instance() {}
 
 void Remove_instance::validate_metadata_for_address(
-    const std::string &address) {
-  m_cluster->get_metadata_storage()->get_instance_by_address(address);
+    const std::string &address, Instance_metadata *out_metadata) {
+  *out_metadata =
+      m_cluster->get_metadata_storage()->get_instance_by_address(address);
 }
 
 Instance_metadata Remove_instance::lookup_metadata_for_uuid(
@@ -86,7 +87,7 @@ void Remove_instance::ensure_not_last_instance_in_cluster() {
 
     std::string err_msg = "The instance '" + m_instance_address +
                           "' is the last member of the cluster";
-    throw shcore::Exception::logic_error(err_msg);
+    throw shcore::Exception::runtime_error(err_msg);
   }
 }
 
@@ -182,10 +183,6 @@ bool Remove_instance::is_protocol_upgrade_required() {
 
 void Remove_instance::prepare() {
   auto console = mysqlsh::current_console();
-
-  // Validate connection options.
-  log_debug("Verifying connection options");
-  validate_connection_options(m_instance_cnx_opts);
 
   // Use default port if not provided in the connection options.
   if (!m_instance_cnx_opts.has_port()) {
@@ -284,7 +281,9 @@ void Remove_instance::prepare() {
       console->print_warning(err.format());
 
     try {
-      validate_metadata_for_address(m_instance_address);
+      Instance_metadata md;
+      validate_metadata_for_address(m_instance_address, &md);
+      m_instance_gr_local_address = md.grendpoint;
       m_address_in_metadata = m_instance_address;
     } catch (const std::exception &e) {
       log_warning("Couldn't get metadata for %s: %s",
@@ -331,7 +330,9 @@ void Remove_instance::prepare() {
   if (m_target_instance) {
     // First check the address given by the user.
     try {
-      validate_metadata_for_address(m_instance_address);
+      Instance_metadata md;
+      validate_metadata_for_address(m_instance_address, &md);
+      m_instance_gr_local_address = md.grendpoint;
       m_address_in_metadata = m_instance_address;
     } catch (const shcore::Exception &e) {
       if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
@@ -346,7 +347,9 @@ void Remove_instance::prepare() {
       // they gave as a param to the command, not necessarily whatever the UUID
       // of the server maps to in the metadata.
       try {
-        m_address_in_metadata = lookup_metadata_for_uuid(uuid).address;
+        auto md = lookup_metadata_for_uuid(uuid);
+        m_instance_gr_local_address = md.grendpoint;
+        m_address_in_metadata = md.address;
 
         log_debug(
             "Given instance address '%s' was not in metadata, but found a "
@@ -423,6 +426,7 @@ void Remove_instance::prepare() {
 
 shcore::Value Remove_instance::execute() {
   auto console = mysqlsh::current_console();
+
   console->print_para(
       "The instance will be removed from the InnoDB cluster. Depending on the "
       "instance being the Seed or not, the Metadata session might become "
@@ -508,36 +512,48 @@ shcore::Value Remove_instance::execute() {
     // ignore any error if force is used (even if the instance is not
     // reachable, since it is already expected to fail).
     try {
-      // Get the group_replication_local address value of the instance we will
-      // remove from the cluster (to update remaining members after).
-      std::string local_gr_address = *m_target_instance->get_sysvar_string(
-          "group_replication_local_address",
-          mysqlshdk::mysql::Var_qualifier::GLOBAL);
-
       // Stop Group Replication and reset (persist) GR variables.
       mysqlsh::dba::leave_cluster(*m_target_instance);
 
-      // FIXME: begin
-      // TODO(alfredo) - when the instance being removed is the PRIMARY and
-      // we're connected to it, the create_config_object() is effectively a
-      // no-op, because it will see all other members are MISSING. This should
-      // be fixed. This check will accomplish the same
-      // thing as before and will avoid the new exception that would be thrown
-      // in create_config_object() when it tries to query members from an
-      // instance that's not in the group anymore.
-      if (m_target_instance->get_uuid() !=
-          m_cluster->get_target_server()->get_uuid()) {
-        // FIXME: end
-        // Update the cluster members (group_seed variable) and remove the
-        // replication user from the instance being removed from the primary
-        // instance.
-        m_cluster->update_group_members_for_removed_member(local_gr_address,
-                                                           *m_target_instance);
-      }
       log_info("Instance '%s' has left the group.", m_instance_address.c_str());
     } catch (const std::exception &err) {
-      log_error("Instance '%s' failed to leave the cluster: %s",
-                m_instance_address.c_str(), err.what());
+      console->print_error(
+          shcore::str_format("Instance '%s' failed to leave the cluster: %s",
+                             m_instance_address.c_str(), err.what()));
+      // Only add the metadata back if the force option was not used.
+      if (m_force.is_null() || *m_force == false) {
+        // REVERT JOB: Remove instance from the MD (metadata).
+        // If the removal of the instance from the cluster failed
+        // We must add it back to the MD if force is not used
+        undo_remove_instance_metadata(instance_def);
+        throw;
+      }
+      // If force is used do not add the instance back to the metadata,
+      // and ignore any leave-cluster error.
+    }
+  }
+
+  // Perform remaining tasks even if the removed instance can't be reached
+
+  // TODO(alfredo) - when the instance being removed is the PRIMARY and
+  // we're connected to it, the create_config_object() is effectively a
+  // no-op, because it will see all other members are MISSING. This has to be
+  // be fixed. This check will accomplish the same
+  // thing as before and will avoid the new exception that would be thrown
+  // in create_config_object() when it tries to query members from an
+  // instance that's not in the group anymore.
+  if (!m_target_instance || m_target_instance->get_uuid() !=
+                                m_cluster->get_target_server()->get_uuid()) {
+    try {
+      // Update the cluster members (group_seed variable) and remove the
+      // replication user from the instance being removed from the primary
+      // instance.
+      m_cluster->update_group_members_for_removed_member(
+          m_instance_gr_local_address);
+    } catch (const std::exception &err) {
+      console->print_error(shcore::str_format(
+          "Could not update remaining cluster members after removing '%s': %s",
+          m_instance_address.c_str(), err.what()));
       // Only add the metadata back if the force option was not used.
       if (m_force.is_null() || *m_force == false) {
         // REVERT JOB: Remove instance from the MD (metadata).
@@ -550,7 +566,8 @@ shcore::Value Remove_instance::execute() {
       // and ignore any leave-cluster error.
     }
 
-    // Upgrade the prococol version if necessary
+    // Upgrade the protocol version if necessary
+    // Don't need to revert if this fails
     if (m_upgrade_gr_protocol_version) {
       mysqlshdk::gr::set_group_protocol_version(
           *m_target_instance_protocol_upgrade,

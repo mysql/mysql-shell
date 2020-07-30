@@ -402,7 +402,7 @@ void Replica_set_impl::create(const std::string &instance_label, bool dry_run) {
 
   try {
     // First we need to create the Metadata Schema (if it doesn't already exist)
-    prepare_metadata_schema(m_target_server, dry_run);
+    prepare_metadata_schema(m_target_server, false, dry_run);
 
     // Update metadata
     log_info("Creating replicaset metadata...");
@@ -473,7 +473,7 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
 
   try {
     // First we need to create the Metadata Schema
-    prepare_metadata_schema(primary_instance, dry_run);
+    prepare_metadata_schema(primary_instance, false, dry_run);
 
     // Update metadata
     log_info("Creating replicaset metadata...");

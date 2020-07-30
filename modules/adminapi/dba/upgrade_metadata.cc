@@ -135,6 +135,11 @@ void Upgrade_metadata::prepare() {
           },
           "<<<", ">>>"));
       break;
+    case MDState::FAILED_SETUP:
+      throw std::runtime_error(
+          "Metadata setup is not finished. Incomplete metadata schema must be"
+          " dropped.");
+
     case MDState::FAILED_UPGRADE:
       // Nothing to do, prepare succeeds and lets the logic go right to
       // execute()

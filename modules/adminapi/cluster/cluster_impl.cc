@@ -610,7 +610,7 @@ Cluster_impl::get_instances_with_state() const {
 }
 
 std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
-    std::vector<std::string> ignored_instances, bool skip_invalid_state,
+    const std::vector<std::string> &ignored_instances, bool skip_invalid_state,
     bool persist_only) const {
   auto cfg = std::make_unique<mysqlshdk::config::Config>();
 
@@ -868,8 +868,7 @@ void Cluster_impl::query_group_wide_option_values(
 }
 
 void Cluster_impl::update_group_members_for_removed_member(
-    const std::string &local_gr_address,
-    const mysqlsh::dba::Instance & /* instance */) {
+    const std::string &local_gr_address) {
   // Get the Cluster Config Object
   auto cfg = create_config_object({}, true);
 
@@ -979,6 +978,15 @@ void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
       console->print_warning(k_warning_deprecate_ssl_mode);
       console->println();
     }
+  }
+
+  // Get instance user information from the cluster session if missing.
+  if (!instance_def_.has_user()) {
+    Connection_options cluster_cnx_opt =
+        get_target_server()->get_connection_options();
+
+    if (!instance_def_.has_user() && cluster_cnx_opt.has_user())
+      instance_def_.set_login_options_from(cluster_cnx_opt);
   }
 
   if (!instance_def_.has_port() && !instance_def_.has_socket()) {
@@ -1238,7 +1246,7 @@ void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
     int port = instance->get_canonical_port();
     std::string hostname = instance->get_canonical_hostname();
     gr_options.local_address = mysqlsh::dba::resolve_gr_local_address(
-        gr_options.local_address, hostname, port);
+        gr_options.local_address, hostname, port, true);
 
     // Set a Config object for the target instance (required to configure GR).
     std::unique_ptr<mysqlshdk::config::Config> cfg = create_server_config(

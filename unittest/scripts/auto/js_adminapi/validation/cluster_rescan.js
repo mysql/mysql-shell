@@ -177,12 +177,6 @@ WARNING: The following instances were not removed from the metadata because they
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@<OUT> addInstance should fail and suggest a rescan.
-ERROR: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is part of the Group Replication group but is not in the metadata. Please use <Cluster>.rescan() to update the metadata.
-
-//@<ERR> addInstance should fail and suggest a rescan.
-Cluster.addInstance: Metadata inconsistent (RuntimeError)
-
 //@<OUT> WL10644 - TSF2_1: Rescan with addInstances:[complete_valid_list].
 Rescanning the cluster...
 

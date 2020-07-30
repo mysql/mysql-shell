@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -172,7 +172,9 @@ const std::map<std::string, FunctionAvailability>
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR},
-           {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
+           {metadata::kCompatibleLower, MDS_actions::NOTE},
+           {metadata::States(metadata::State::FAILED_SETUP),
+            MDS_actions::NONE}}}},
         {"Dba.getCluster",
          {k_min_gr_version,
           GRInstanceType::InnoDBCluster,
@@ -498,10 +500,6 @@ void validate_session(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
         "The session was closed. An open session is required to perform "
         "this operation");
   }
-
-  validate_connection_options(
-      session->get_connection_options(),
-      [](const std::string &s) { return shcore::Exception::runtime_error(s); });
 
   // Validate if the server version is supported by the AdminAPI
   mysqlshdk::utils::Version server_version = session->get_server_version();
@@ -898,8 +896,8 @@ void check_preconditions(const std::string &function_name,
  * Every function requiring specific action handling should have it registered
  * on the AdminAPI_function_availability.
  */
-void check_metadata_preconditions(const std::string &function_name,
-                                  const MetadataStorage &metadata) {
+MDS check_metadata_preconditions(const std::string &function_name,
+                                 const MetadataStorage &metadata) {
   // It is assumed that if metadata is Compatible, there should be no
   // restrictions on any function
   assert(AdminAPI_function_availability.find(function_name) !=
@@ -942,7 +940,9 @@ void check_metadata_preconditions(const std::string &function_name,
         }
       }
     }
+    return compatibility;
   }
+  return MDS::EQUAL;
 }
 
 Cluster_check_info check_function_preconditions(
@@ -959,11 +959,13 @@ Cluster_check_info check_function_preconditions(
   MetadataStorage metadata(group_server);
 
   // Performs metadata state validations before anything else
-  check_metadata_preconditions(function_name, metadata);
+  MDS mds = check_metadata_preconditions(function_name, metadata);
 
   Cluster_check_info info = get_cluster_check_info(metadata);
 
-  check_preconditions(function_name, info, custom_func_avail);
+  // bypass the checks if MD setup failed and it's allowed (we're recovering)
+  if (mds != MDS::FAILED_SETUP)
+    check_preconditions(function_name, info, custom_func_avail);
 
   return info;
 }
@@ -975,11 +977,13 @@ Cluster_check_info check_function_preconditions(
   assert(function_name.find('.') != std::string::npos);
 
   // Performs metadata state validations before anything else
-  check_metadata_preconditions(function_name, *metadata.get());
+  MDS mds = check_metadata_preconditions(function_name, *metadata.get());
 
   Cluster_check_info info = get_cluster_check_info(*metadata.get());
 
-  check_preconditions(function_name, info, custom_func_avail);
+  // bypass the checks if MD setup failed and it's allowed (we're recovering)
+  if (mds != MDS::FAILED_SETUP)
+    check_preconditions(function_name, info, custom_func_avail);
 
   return info;
 }

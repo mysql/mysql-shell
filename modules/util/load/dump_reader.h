@@ -136,6 +136,8 @@ class Dump_reader {
 
   void validate_options();
 
+  size_t tables_with_data() const { return m_tables_with_data.size(); }
+
   enum class Status {
     INVALID,  // No dump or not enough data to start loading yet
     DUMPING,  // Dump is not done yet

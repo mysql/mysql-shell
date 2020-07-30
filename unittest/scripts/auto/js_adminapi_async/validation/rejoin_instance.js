@@ -8,7 +8,6 @@
 ||ReplicaSet.rejoinInstance: Argument #1 is expected to be a string (ArgumentError)
 ||ReplicaSet.rejoinInstance: Argument #1 is expected to be a string (ArgumentError)
 ||ReplicaSet.rejoinInstance: Invalid URI: empty. (ArgumentError)
-||ReplicaSet.rejoinInstance: Connection 'invalid_uri' is not valid: unable to resolve the address as either an IPv4 or IPv6 host. (ArgumentError)
 ||ReplicaSet.rejoinInstance: Invalid URI: empty. (ArgumentError)
 ||ReplicaSet.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
 ||ReplicaSet.rejoinInstance: Invalid options: badOption (ArgumentError)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,6 +64,8 @@ enum class Time_type { LOCAL, GMT };
 
 std::string fmttime(const char *fmt, Time_type type = Time_type::LOCAL,
                     const time_t *time_ptr = nullptr);
+
+std::string isotime(const time_t *time_ptr = nullptr);
 
 size_t expand_to_bytes(const std::string &number);
 

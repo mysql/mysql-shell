@@ -80,7 +80,8 @@ void Load_dump_options::set_session(
 
 void Load_dump_options::validate() {
   if (!m_load_data && !m_load_ddl && !m_load_users &&
-      m_analyze_tables == Analyze_table_mode::OFF)
+      m_analyze_tables == Analyze_table_mode::OFF &&
+      m_update_gtid_set == Update_gtid_set::OFF)
     throw shcore::Exception::runtime_error(
         "At least one of loadData, loadDdl or loadUsers options must be "
         "enabled");
@@ -141,7 +142,8 @@ std::string Load_dump_options::target_import_info() const {
   }
 
   // this is validated earlier on
-  assert(!what_to_load.empty() || m_analyze_tables != Analyze_table_mode::OFF);
+  assert(!what_to_load.empty() || m_analyze_tables != Analyze_table_mode::OFF ||
+         m_update_gtid_set != Update_gtid_set::OFF);
 
   if (what_to_load.size() == 3) {
     action = shcore::str_format(
@@ -155,11 +157,16 @@ std::string Load_dump_options::target_import_info() const {
     action = shcore::str_format("Loading %s only from %s",
                                 what_to_load[0].c_str(), where.c_str());
   } else {
-    assert(m_analyze_tables != Analyze_table_mode::OFF);
     if (m_analyze_tables == Analyze_table_mode::HISTOGRAM)
       action = "Updating table histograms";
-    else
+    else if (m_analyze_tables == Analyze_table_mode::ON)
       action = "Updating table histograms and key distribution statistics";
+    if (m_update_gtid_set != Update_gtid_set::OFF) {
+      if (!action.empty())
+        action += ", and updating GTID_PURGED";
+      else
+        action = "Updating GTID_PURGED";
+    }
   }
 
   std::string detail;
@@ -182,6 +189,7 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
   std::string defer_table_indexes = "fulltext";
   std::unordered_set<std::string> excluded_users;
   std::unordered_set<std::string> included_users;
+  std::string update_gtid_set = "off";
 
   Unpack_options unpacker(options);
 
@@ -207,7 +215,8 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
       .optional("loadIndexes", &m_load_indexes)
       .optional("schema", &m_target_schema)
       .optional("excludeUsers", &excluded_users)
-      .optional("includeUsers", &included_users);
+      .optional("includeUsers", &included_users)
+      .optional("updateGtidSet", &update_gtid_set);
 
   unpacker.unpack(&m_oci_options);
   unpacker.end();
@@ -285,6 +294,16 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
                              "' for deferTableIndexes option, allowed values: "
                              "'all', 'fulltext', and 'off'.");
   }
+
+  update_gtid_set = shcore::str_lower(update_gtid_set);
+  if (update_gtid_set == "append")
+    m_update_gtid_set = Update_gtid_set::APPEND;
+  else if (update_gtid_set == "replace")
+    m_update_gtid_set = Update_gtid_set::REPLACE;
+  else if (update_gtid_set != "off")
+    throw std::runtime_error("Invalid value '" + update_gtid_set +
+                             "' for updateGtidSet option, allowed values: "
+                             "'off', 'replace', and 'append'.");
 
   if (!m_load_indexes && m_defer_table_indexes == Defer_index_mode::OFF)
     throw std::invalid_argument(

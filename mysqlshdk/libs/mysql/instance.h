@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -201,9 +201,16 @@ struct Suppress_binary_log {
     m_instance->suppress_binary_log(true);
   }
 
-  ~Suppress_binary_log() { m_instance->suppress_binary_log(false); }
+  ~Suppress_binary_log() {
+    try {
+      m_instance->suppress_binary_log(false);
+    } catch (...) {
+      exception = std::current_exception();
+    }
+  }
 
   IInstance *m_instance;
+  std::exception_ptr exception;
 };
 
 /**

@@ -469,8 +469,11 @@ void validate_performance_schema_enabled(
 
 void ensure_instance_not_belong_to_cluster(
     const mysqlshdk::mysql::IInstance &instance,
-    const std::shared_ptr<Instance> &cluster_instance) {
+    const std::shared_ptr<Instance> &cluster_instance,
+    bool *out_already_member) {
   GRInstanceType::Type type = mysqlsh::dba::get_gr_instance_type(instance);
+
+  if (out_already_member) *out_already_member = false;
 
   if (type != GRInstanceType::Standalone &&
       type != GRInstanceType::StandaloneWithMetadata &&
@@ -493,11 +496,20 @@ void ensure_instance_not_belong_to_cluster(
             "The instance '" + instance.descr() +
             "' is already part of this InnoDB cluster");
       } else {
-        current_console()->print_error(
-            "Instance '" + instance.descr() +
-            "' is part of the Group Replication group but is not in the "
-            "metadata. Please use <Cluster>.rescan() to update the metadata.");
-        throw shcore::Exception::runtime_error("Metadata inconsistent");
+        if (out_already_member) {
+          // don't throw exception if out_already_member is given
+          *out_already_member = true;
+        } else {
+          current_console()->print_error(
+              "Instance '" + instance.descr() +
+              "' is part of the Group Replication group but is not in the "
+              "metadata. Please use <Cluster>.rescan() to update the "
+              "metadata.");
+          throw shcore::Exception(
+              "Metadata inconsistent: " + instance.descr() +
+                  " is a group member but is not in the metadata.",
+              SHERR_DBA_ASYNC_MEMBER_INCONSISTENT);
+        }
       }
     } else {
       if (type == GRInstanceType::InnoDBCluster) {

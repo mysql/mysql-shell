@@ -803,6 +803,48 @@ TEST_F(Compatibility_test, indexes) {
   );)",
                       false));
   EXPECT_TRUE(idxs.empty());
+
+  // auto_increment key should not be extracted
+  EXPECT_NO_THROW(idxs = compatibility::check_create_table_for_indexes(
+                      R"(CREATE TABLE `aik` (
+  `id` int NOT NULL,
+  `uai` int NOT NULL AUTO_INCREMENT,
+  `data` text,
+  PRIMARY KEY (`id`),
+  KEY `uai` (`uai`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci)",
+                      false, &rewritten, true));
+  EXPECT_TRUE(idxs.empty());
+
+  EXPECT_NO_THROW(idxs = compatibility::check_create_table_for_indexes(
+                      R"(CREATE TABLE IF NOT EXISTS `page_restrictions` (
+  `pr_page` int NOT NULL DEFAULT '0',
+  `pr_type` varbinary(255) NOT NULL DEFAULT '',
+  `pr_level` varbinary(255) NOT NULL DEFAULT '',
+  `pr_cascade` tinyint NOT NULL DEFAULT '0',
+  `pr_user` int unsigned DEFAULT NULL,
+  `pr_expiry` varbinary(14) DEFAULT NULL,
+  `pr_id` int unsigned NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`pr_page`,`pr_type`),
+  UNIQUE KEY `pr_id` (`pr_id`),
+  KEY `pr_page` (`pr_page`),
+  KEY `pr_typelevel` (`pr_type`,`pr_level`),
+  KEY `pr_level` (`pr_level`),
+  KEY `pr_cascade` (`pr_cascade`)
+) ENGINE=InnoDB AUTO_INCREMENT=854046 DEFAULT CHARSET=binary;)",
+                      false, &rewritten, true));
+  ASSERT_EQ(4, idxs.size());
+  EXPECT_EQ("ALTER TABLE `page_restrictions` ADD KEY `pr_page` (`pr_page`);",
+            idxs[0]);
+  EXPECT_EQ(
+      "ALTER TABLE `page_restrictions` ADD KEY `pr_typelevel` "
+      "(`pr_type`,`pr_level`);",
+      idxs[1]);
+  EXPECT_EQ("ALTER TABLE `page_restrictions` ADD KEY `pr_level` (`pr_level`);",
+            idxs[2]);
+  EXPECT_EQ(
+      "ALTER TABLE `page_restrictions` ADD KEY `pr_cascade` (`pr_cascade`);",
+      idxs[3]);
 }
 
 TEST_F(Compatibility_test, indexes_recreation) {
