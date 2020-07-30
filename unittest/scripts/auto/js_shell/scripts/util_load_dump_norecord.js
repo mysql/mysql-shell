@@ -189,7 +189,7 @@ testutil.importData(old_sandbox_uri1, __data_path+"/sql/fieldtypes_all.sql", "",
 testutil.importData(old_sandbox_uri1, __data_path+"/sql/sakila-schema.sql"); // sakila
 testutil.importData(old_sandbox_uri1, __data_path+"/sql/sakila-data.sql", "sakila"); // sakila
 testutil.importData(old_sandbox_uri1, __data_path+"/sql/world.sql", "world");
-testutil.importData(old_sandbox_uri1, __data_path+"/sql/misc_features.sql"); // misc_features
+testutil.importData(old_sandbox_uri1, __data_path+"/sql/misc_features.sql"); // all_features, all_features2
 testutil.preprocessFile(__data_path+"/sql/mysqlaas_compat.sql",
   ["TMPDIR="+filename_for_file(__tmp_dir+"/ldtest/datadirs")], __tmp_dir+"/ldtest/mysqlaas_compat.sql",
   ['-- Tablespace dumping not supported in v1']);
@@ -381,10 +381,32 @@ EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
 EXPECT_OUTPUT_CONTAINS("using 4 threads");
 
 // ensure all 4 threads did something
-EXPECT_OUTPUT_CONTAINS("[Worker000] ")
-EXPECT_OUTPUT_CONTAINS("[Worker001] ")
-EXPECT_OUTPUT_CONTAINS("[Worker002] ")
-EXPECT_OUTPUT_CONTAINS("[Worker003] ")
+EXPECT_OUTPUT_CONTAINS("[Worker000] Executing DDL script for `")
+EXPECT_OUTPUT_CONTAINS("[Worker001] Executing DDL script for `")
+EXPECT_OUTPUT_CONTAINS("[Worker002] Executing DDL script for `")
+EXPECT_OUTPUT_CONTAINS("[Worker003] Executing DDL script for `")
+
+EXPECT_OUTPUT_CONTAINS("[Worker000] sakila@")
+EXPECT_OUTPUT_CONTAINS("[Worker001] sakila@")
+EXPECT_OUTPUT_CONTAINS("[Worker002] sakila@")
+EXPECT_OUTPUT_CONTAINS("[Worker003] sakila@")
+
+// schema and view DDL should not be executed in workers
+EXPECT_OUTPUT_NOT_CONTAINS("] Executing DDL script for schema")
+EXPECT_OUTPUT_NOT_CONTAINS("] Executing DDL script for view")
+
+// ensure views got created through placeholders
+EXPECT_OUTPUT_CONTAINS("Executing DDL script for `sakila`.`actor_info` (placeholder for view)");
+EXPECT_OUTPUT_CONTAINS("Executing DDL script for `all_features`.`v1` (placeholder for view)");
+EXPECT_OUTPUT_CONTAINS("Executing DDL script for `all_features`.`v2` (placeholder for view)");
+EXPECT_OUTPUT_CONTAINS("Executing DDL script for `all_features2`.`v1` (placeholder for view)");
+EXPECT_OUTPUT_CONTAINS("Executing DDL script for `all_features2`.`v2` (placeholder for view)");
+EXPECT_OUTPUT_CONTAINS("Executing DDL script for view `all_features`.`v1`");
+EXPECT_OUTPUT_CONTAINS("Executing DDL script for view `all_features`.`v2`");
+EXPECT_OUTPUT_CONTAINS("Executing DDL script for view `all_features2`.`v1`");
+EXPECT_OUTPUT_CONTAINS("Executing DDL script for view `all_features2`.`v2`");
+EXPECT_OUTPUT_CONTAINS("Executing DDL script for view `sakila`.`actor_info`");
+
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump-nogz/load-progress*");
 wipe_instance(session);
@@ -502,7 +524,7 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {excludeSchemas: ["xtest", "bogus", "wor
 
 var snap=snapshot_instance(session);
 
-EXPECT_EQ(["all_features", "mysqlaas_compat", "sakila"], Object.keys(snap["schemas"]).sort());
+EXPECT_EQ(["all_features", "all_features2", "mysqlaas_compat", "sakila"], Object.keys(snap["schemas"]).sort());
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -559,7 +581,7 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1, ignoreExistingObjects: true}
 EXPECT_OUTPUT_CONTAINS("NOTE: One or more objects in the dump already exist in the destination database but will be ignored because the 'ignoreExistingObjects' option was enabled.");
 
 //@<> no dryRun to get errors from mismatched definitions of tables that already exist
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {ignoreExistingObjects: true, deferTableIndexes:"all"});}, "Util.loadDump: Unknown column 'f.title' in 'field list'");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {ignoreExistingObjects: true, deferTableIndexes:"all"});}, "Util.loadDump: Unknown column ");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -587,7 +609,7 @@ wipe_instance(session);
 
 //@<> showProgress:true + excludeTables
 // Bug #31482289  SHELL DUMP/LOAD: LOAD PROGRESS BAR HAS WRONG TOTAL GB WHEN USING EXCLUDETABLES
-testutil.callMysqlsh([__sandbox_uri1, "--js", "-e", "util.loadDump('" + filename_for_file(__tmp_dir) + "/ldtest/dump', {showProgress:1, deferTableIndexes:'off', excludeTables:['sakila.rental', 'sakila.sales_by_film_category', 'sakila.sales_by_store'],  excludeSchemas:['xtest', 'mysqlaas_compat', 'world', 'all_features']})"]);
+testutil.callMysqlsh([__sandbox_uri1, "--js", "-e", "util.loadDump('" + filename_for_file(__tmp_dir) + "/ldtest/dump', {showProgress:1, deferTableIndexes:'off', excludeTables:['sakila.rental', 'sakila.sales_by_film_category', 'sakila.sales_by_store'],  excludeSchemas:['xtest', 'mysqlaas_compat', 'world', 'all_features', 'all_features2']})"]);
 
 EXPECT_STDOUT_CONTAINS("thds loading");
 // 3.24 MB is the total size of the dump, since we're excluding a lot of things it should be much less in reality
@@ -686,7 +708,7 @@ session.runSql("grant create,insert on mysqlaas_compat.* to user@localhost with 
 
 shell.connect("mysql://user@localhost:"+__mysql_sandbox_port1);
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nochunk");}, "Util.loadDump: Access denied for user 'user'@'localhost' to database");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nochunk");}, "Util.loadDump: Access denied");
 
 shell.connect(__sandbox_uri1);
 testutil.rmfile(__tmp_dir+"/ldtest/dump-nochunk/load-progress*");
@@ -763,7 +785,9 @@ EXPECT_NO_CHANGES(session, before);
 testutil.cpfile(__tmp_dir+"/ldtest/dump/xtest@t_json.sql", __tmp_dir+"/ldtest/dump/xtest@t_json.sql.bak");
 testutil.createFile(__tmp_dir+"/ldtest/dump/xtest@t_json.sql", "call invalid()\n");
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: PROCEDURE xtest.invalid does not exist");
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: Error loading dump");
+
+EXPECT_STDOUT_CONTAINS("Error processing table `xtest`.`t_json`: MySQL Error 1305 (42000): PROCEDURE xtest.invalid does not exist: call invalid()");
 
 // Get list of tables that were already loaded
 var entries=load_progress(__tmp_dir+"/ldtest/dump/load-progress."+uuid+".json");
@@ -780,7 +804,8 @@ for(t in done_tables) {
   table=done_tables[t];
   EXPECT_OUTPUT_CONTAINS("Executing DDL script for "+table);
 }
-EXPECT_OUTPUT_NOT_CONTAINS("[Worker");
+// data shouldn't have started loading yet
+EXPECT_OUTPUT_NOT_CONTAINS("] sakila@");
 
 // restore corrupted file
 testutil.cpfile(__tmp_dir+"/ldtest/dump/xtest@t_json.sql.bak", __tmp_dir+"/ldtest/dump/xtest@t_json.sql");

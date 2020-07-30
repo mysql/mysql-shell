@@ -43,7 +43,7 @@ namespace mysqlsh {
 
 using mysqlshdk::utils::Version;
 
-std::string to_string(const Upgrade_issue &problem) {
+std::string upgrade_issue_to_string(const Upgrade_issue &problem) {
   std::stringstream ss;
   ss << problem.get_db_object();
   if (!problem.description.empty()) ss << " - " << problem.description;

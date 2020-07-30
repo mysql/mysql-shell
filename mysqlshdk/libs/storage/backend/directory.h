@@ -58,6 +58,8 @@ class Directory : public IDirectory {
   std::vector<IDirectory::File_info> list_files(
       bool hidden_files = false) const override;
 
+  bool is_local() const override { return true; }
+
  protected:
   std::string join_path(const std::string &a,
                         const std::string &b) const override;

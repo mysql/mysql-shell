@@ -82,7 +82,8 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
       ASSERT_TRUE(false);
     }
     if (no >= 0 && no != static_cast<int>(issues.size())) {
-      for (const auto &issue : issues) puts(to_string(issue).c_str());
+      for (const auto &issue : issues)
+        puts(upgrade_issue_to_string(issue).c_str());
       ASSERT_EQ(no, issues.size());
     }
   }

@@ -52,6 +52,11 @@ namespace mysqlsh {
 // (download + decompression)
 static constexpr const int k_mysql_server_net_read_timeout = 30 * 60;
 
+// number of seconds before server disconnects idle clients
+// load can take a long time and some of the connections will be idle meanwhile
+// so this needs to be high
+static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
+
 // the version of the dump we support in this code
 static constexpr const int k_supported_dump_version_major = 1;
 static constexpr const int k_supported_dump_version_minor = 0;
@@ -79,6 +84,258 @@ bool has_pke(mysqlshdk::db::ISession *session, const std::string &schema,
 }
 }  // namespace
 
+namespace {
+
+std::vector<std::string> preprocess_table_script_for_indexes(
+    std::string *script, const std::string &key, bool fulltext_only) {
+  std::vector<std::string> indexes;
+  auto script_length = script->length();
+  std::istringstream stream(*script);
+  script->clear();
+  mysqlshdk::utils::iterate_sql_stream(
+      &stream, script_length,
+      [&](const char *s, size_t len, const std::string &delim, size_t) {
+        auto sql = std::string(s, len) + delim + "\n";
+        mysqlshdk::utils::SQL_iterator sit(sql);
+        if (shcore::str_caseeq(sit.get_next_token(), "CREATE") &&
+            shcore::str_caseeq(sit.get_next_token(), "TABLE")) {
+          assert(indexes.empty());
+          indexes = compatibility::check_create_table_for_indexes(
+              sql, fulltext_only, &sql);
+        }
+        script->append(sql);
+        return true;
+      },
+      [&key](const std::string &err) {
+        throw std::runtime_error("Error splitting DDL script for table " + key +
+                                 ": " + err);
+      });
+  return indexes;
+}
+
+void execute_script(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                    const std::string &script, const std::string &error_prefix,
+                    const std::function<bool(const char *, size_t,
+                                             std::string *)> &process_stmt) {
+  auto console = mysqlsh::current_console();
+
+  std::stringstream stream(script);
+  size_t count = 0;
+  mysqlshdk::utils::iterate_sql_stream(
+      &stream, 1024 * 64,
+      [error_prefix, &session, &count, process_stmt](
+          const char *s, size_t len, const std::string &, size_t) {
+        std::string new_stmt;
+
+        if (process_stmt && process_stmt(s, len, &new_stmt)) {
+          s = new_stmt.data();
+          len = new_stmt.length();
+        }
+
+        if (len > 0) {
+          int retries = 0;
+          for (;;) {
+            try {
+              session->executes(s, len);
+              break;
+            } catch (const mysqlshdk::db::Error &e) {
+              log_info("Error executing SQL: %s:\t\n%.*s", e.format().c_str(),
+                       static_cast<int>(len), s);
+
+              if (e.code() == ER_LOCK_DEADLOCK && retries < 20) {
+                current_console()->print_note(
+                    error_prefix + ", will retry after delay: " + e.format());
+                shcore::sleep_ms(200);
+                ++retries;
+                continue;
+              }
+
+              if (!error_prefix.empty())
+                current_console()->print_error(error_prefix + ": " +
+                                               e.format() + ": " +
+                                               std::string(s, len));
+
+              throw;
+            }
+          }
+        }
+        ++count;
+        return true;
+      },
+      [console](const std::string &err) { console->print_error(err); });
+}
+}  // namespace
+
+void Dump_loader::Worker::Task::handle_current_exception(
+    Worker *worker, Dump_loader *loader, const std::string &error) {
+  if (!loader->m_thread_exceptions[id()]) {
+    current_console()->print_error(
+        shcore::str_format("[Worker%03zu] %s", id(), error.c_str()));
+    loader->m_thread_exceptions[id()] = std::current_exception();
+  }
+  loader->m_num_errors += 1;
+  loader->post_worker_event(worker, Worker_event::FATAL_ERROR);
+}
+
+bool Dump_loader::Worker::Table_ddl_task::execute(
+    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+    Worker *worker, Dump_loader *loader) {
+  std::string path = m_file->full_path();
+
+  log_debug("worker%zu will load DDL file %s for table `%s`.`%s`", id(),
+            path.c_str(), schema().c_str(), table().c_str());
+
+  loader->post_worker_event(worker, Worker_event::TABLE_DDL_START);
+
+  try {
+    std::string script;
+    process(session, &script, loader);
+
+    if (!loader->m_options.dry_run()) {
+      session->executef("use !", m_schema.c_str());
+    }
+
+    load_ddl(session, script, loader);
+  } catch (const std::exception &e) {
+    handle_current_exception(
+        worker, loader,
+        shcore::str_format("While executing DDL script %s: %s", path.c_str(),
+                           e.what()));
+    return false;
+  }
+
+  log_debug("worker%zu done", id());
+  loader->post_worker_event(worker, Worker_event::TABLE_DDL_END);
+
+  return true;
+}
+
+void Dump_loader::Worker::Table_ddl_task::process(
+    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+    std::string *out_script, Dump_loader *loader) {
+  if (m_placeholder) {
+    if (loader->m_options.load_ddl()) {
+      m_file->open(mysqlshdk::storage::Mode::READ);
+      *out_script = mysqlshdk::storage::read_file(m_file.get());
+      m_file->close();
+    }
+  } else if (loader->m_options.load_ddl() ||
+             loader->m_options.defer_table_indexes() !=
+                 Load_dump_options::Defer_index_mode::OFF) {
+    m_file->open(mysqlshdk::storage::Mode::READ);
+    *out_script = mysqlshdk::storage::read_file(m_file.get());
+    m_file->close();
+
+    if (loader->m_options.defer_table_indexes() !=
+        Load_dump_options::Defer_index_mode::OFF) {
+      extract_pending_indexes(session, out_script,
+                              loader->m_options.defer_table_indexes() ==
+                                  Load_dump_options::Defer_index_mode::FULLTEXT,
+                              m_status == Load_progress_log::DONE, loader);
+    }
+  }
+}
+
+void Dump_loader::Worker::Table_ddl_task::extract_pending_indexes(
+    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+    std::string *script, bool fulltext_only, bool check_recreated,
+    Dump_loader *loader) {
+  auto key = schema_table_key(m_schema, m_table);
+  m_deferred_indexes = std::make_unique<std::vector<std::string>>(
+      preprocess_table_script_for_indexes(script, key, fulltext_only));
+
+  if (check_recreated && !m_deferred_indexes->empty()) {
+    // this handles the case where the table was already created in a previous
+    // run and some indexes may already have been re-created
+    try {
+      auto ct = session->query("show create table " + key)
+                    ->fetch_one()
+                    ->get_string(1);
+      auto recreated =
+          compatibility::check_create_table_for_indexes(ct, fulltext_only);
+      m_deferred_indexes->erase(
+          std::remove_if(m_deferred_indexes->begin(), m_deferred_indexes->end(),
+                         [&recreated](const std::string &i) {
+                           return std::find(recreated.begin(), recreated.end(),
+                                            i) != recreated.end();
+                         }),
+          m_deferred_indexes->end());
+    } catch (const shcore::Error &e) {
+      current_console()->print_error(
+          shcore::str_format("Unable to get status of table %s that "
+                             "according to load status "
+                             "was already created, consider resetting "
+                             "progress, error message: %s",
+                             key.c_str(), e.what()));
+      if (!loader->m_options.force()) throw;
+    }
+  }
+
+  const auto prefix = "ALTER TABLE " + key + " ADD ";
+  for (size_t i = 0; i < m_deferred_indexes->size(); ++i)
+    (*m_deferred_indexes)[i] = prefix + (*m_deferred_indexes)[i] + ";";
+}
+
+void Dump_loader::Worker::Table_ddl_task::load_ddl(
+    const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
+    const std::string &script, Dump_loader *loader) {
+  if (m_status != Load_progress_log::DONE && loader->m_options.load_ddl()) {
+    std::string key = schema_table_key(m_schema, m_table);
+    log_debug("worker%zu: Executing %stable DDL for %s", id(),
+              m_placeholder ? "placeholder " : "", key.c_str());
+
+    try {
+      current_console()->print_status(shcore::str_format(
+          "[Worker%03zu] %s DDL script for %s%s", id(),
+          (m_status == Load_progress_log::INTERRUPTED ? "Re-executing"
+                                                      : "Executing"),
+          key.c_str(),
+          (m_placeholder ? " (placeholder for view)"
+                         : (m_deferred_indexes && !m_deferred_indexes->empty()
+                                ? " (indexes removed for deferred creation)"
+                                : ""))));
+      if (!loader->m_options.dry_run()) {
+        // execute sql
+        execute_script(
+            session, script,
+            shcore::str_format("[Worker%03zu] Error processing table %s", id(),
+                               key.c_str()),
+            loader->m_default_sql_transforms);
+      }
+    } catch (const std::exception &e) {
+      if (!loader->m_options.force()) throw;
+    }
+  }
+}
+
+bool Dump_loader::Worker::Ddl_fetch_task::execute(
+    const std::shared_ptr<mysqlshdk::db::mysql::Session> &, Worker *worker,
+    Dump_loader *loader) {
+  std::string path = m_file->full_path();
+
+  log_info("worker%zu will fetch DDL file %s", id(), path.c_str());
+
+  loader->post_worker_event(worker, Worker_event::FETCH_DDL_START);
+
+  try {
+    m_file->open(mysqlshdk::storage::Mode::READ);
+    m_script = std::make_unique<std::string>(
+        mysqlshdk::storage::read_file(m_file.get()));
+    m_file->close();
+  } catch (const std::exception &e) {
+    handle_current_exception(
+        worker, loader,
+        shcore::str_format("While fetching view DDL script %s: %s",
+                           path.c_str(), e.what()));
+    return false;
+  }
+
+  log_debug("worker%zu done", id());
+  loader->post_worker_event(worker, Worker_event::FETCH_DDL_END);
+
+  return true;
+}
+
 bool Dump_loader::Worker::Load_chunk_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Worker *worker, Dump_loader *loader) {
@@ -97,12 +354,9 @@ bool Dump_loader::Worker::Load_chunk_task::execute(
       load(session, loader);
     }
   } catch (const std::exception &e) {
-    if (!loader->m_thread_exceptions[id()]) {
-      current_console()->print_error(shcore::str_format(
-          "[Worker%03zu] While loading %s: %s", id(), path.c_str(), e.what()));
-      loader->m_thread_exceptions[id()] = std::current_exception();
-    }
-    loader->post_worker_event(worker, Worker_event::FATAL_ERROR);
+    handle_current_exception(
+        worker, loader,
+        shcore::str_format("While loading %s: %s", path.c_str(), e.what()));
     return false;
   }
 
@@ -159,15 +413,10 @@ void Dump_loader::Worker::Load_chunk_task::load(
     loader->m_num_threads_loading--;
   });
 
-  try {
-    op.execute(session, std::move(m_file));
+  op.execute(session, std::move(m_file));
 
-    if (loader->m_thread_exceptions[id()])
-      std::rethrow_exception(loader->m_thread_exceptions[id()]);
-  } catch (...) {
-    loader->m_num_errors += 1;
-    throw;
-  }
+  if (loader->m_thread_exceptions[id()])
+    std::rethrow_exception(loader->m_thread_exceptions[id()]);
 
   bytes_loaded = stats.total_bytes;
   loader->m_num_raw_bytes_loaded += raw_bytes_loaded;
@@ -216,12 +465,10 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
       }
     }
   } catch (const std::exception &e) {
-    console->print_error(
-        shcore::str_format("[Worker%03zu] While analyzing table `%s`.`%s`: %s",
-                           id(), schema().c_str(), table().c_str(), e.what()));
-    loader->m_thread_exceptions[id()] = std::current_exception();
-
-    loader->post_worker_event(worker, Worker_event::FATAL_ERROR);
+    handle_current_exception(
+        worker, loader,
+        shcore::str_format("While analyzing table `%s`.`%s`: %s",
+                           schema().c_str(), table().c_str(), e.what()));
     return false;
   }
 
@@ -241,8 +488,9 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
   auto console = current_console();
 
   if (!m_queries.empty())
-    console->print_status(shcore::str_format(
-        "Recreating indexes for `%s`.`%s`", schema().c_str(), table().c_str()));
+    console->print_status(
+        shcore::str_format("[Worker%03zu] Recreating indexes for `%s`.`%s`",
+                           id(), schema().c_str(), table().c_str()));
 
   loader->post_worker_event(worker, Worker_event::INDEX_START);
 
@@ -254,9 +502,8 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
         [loader]() { loader->m_num_threads_recreating_indexes--; });
 
     try {
-      int retries = 0;
-      session->execute("SET unique_checks = 0");
       for (size_t i = 0; i < m_queries.size(); i++) {
+        int retries = 0;
         try {
           session->execute(m_queries[i]);
         } catch (const shcore::Error &e) {
@@ -278,12 +525,10 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
         }
       }
     } catch (const std::exception &e) {
-      console->print_error(shcore::str_format(
-          "[Worker%03zu] While recreating indexes for table `%s`.`%s`: %s",
-          id(), schema().c_str(), table().c_str(), e.what()));
-      loader->m_thread_exceptions[id()] = std::current_exception();
-
-      loader->post_worker_event(worker, Worker_event::FATAL_ERROR);
+      handle_current_exception(
+          worker, loader,
+          shcore::str_format("While recreating indexes for table `%s`.`%s`: %s",
+                             schema().c_str(), table().c_str(), e.what()));
       return false;
     }
   }
@@ -309,6 +554,7 @@ void Dump_loader::Worker::run() {
         e.format().c_str()));
 
     m_owner->m_thread_exceptions[m_id] = std::current_exception();
+    m_owner->m_num_errors += 1;
     m_owner->post_worker_event(this, Worker_event::FATAL_ERROR);
     return;
   }
@@ -330,8 +576,40 @@ void Dump_loader::Worker::run() {
 void Dump_loader::Worker::stop() { m_work_ready.push(false); }
 
 void Dump_loader::Worker::connect() {
-  m_session = m_owner->create_session(true);
+  m_session = m_owner->create_session();
   m_connection_id = m_session->get_connection_id();
+}
+
+void Dump_loader::Worker::process_table_ddl(
+    const std::string &schema, const std::string &table,
+    std::unique_ptr<mysqlshdk::storage::IFile> file, bool is_placeholder,
+    Load_progress_log::Status status) {
+  log_debug("Processing table DDL for `%s`.`%s` (placeholder=%i)",
+            schema.c_str(), table.c_str(), is_placeholder ? 1 : 0);
+  assert(!schema.empty());
+  assert(!table.empty());
+  assert(file);
+
+  m_task = std::make_unique<Table_ddl_task>(
+      m_id, schema, table, std::move(file), is_placeholder, status);
+
+  m_work_ready.push(true);
+}
+
+void Dump_loader::Worker::fetch_object_ddl(
+    const std::string &schema, const std::string &object,
+    std::unique_ptr<mysqlshdk::storage::IFile> file,
+    const std::function<void(std::string &&)> &process_fn) {
+  log_debug("Scheduling fetch of DDL for `%s`.`%s`", schema.c_str(),
+            object.c_str());
+  assert(!schema.empty());
+  assert(!object.empty());
+  assert(file);
+
+  m_task = std::make_unique<Ddl_fetch_task>(m_id, schema, object,
+                                            std::move(file), process_fn);
+
+  m_work_ready.push(true);
 }
 
 void Dump_loader::Worker::load_chunk_file(
@@ -342,6 +620,13 @@ void Dump_loader::Worker::load_chunk_file(
             table.c_str(), chunk_index);
   assert(!schema.empty());
   assert(!table.empty());
+  assert(file);
+
+  // The reason why sending work to worker threads isn't done through a
+  // regular queue is because a regular queue would create a static schedule
+  // for the chunk loading order. But we need to be able to dynamically schedule
+  // chunks based on the current conditions at the time each new chunk needs
+  // to be scheduled.
 
   m_task = std::make_unique<Load_chunk_task>(
       m_id, schema, table, chunk_index, std::move(file), options, resuming);
@@ -409,8 +694,7 @@ Dump_loader::Dump_loader(const Load_dump_options &options)
 
 Dump_loader::~Dump_loader() {}
 
-std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session(
-    bool data_loader) {
+std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
   auto session = mysqlshdk::db::mysql::Session::create();
 
   session->connect(m_options.connection_options());
@@ -420,6 +704,11 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session(
   // doing MySQL work.
   session->executef("SET SESSION net_read_timeout = ?",
                     k_mysql_server_net_read_timeout);
+
+  // This is the time until the server kicks out idle connections. Our
+  // connections should last for as long as the dump lasts even if they're idle.
+  session->executef("SET SESSION wait_timeout = ?",
+                    k_mysql_server_wait_timeout);
 
   // Disable binlog if requested by user or if target is -cloud
   if (m_options.skip_binlog() && !m_options.is_mds()) {
@@ -431,10 +720,8 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session(
     }
   }
 
-  if (!data_loader) {
-    session->execute("SET foreign_key_checks = 0");
-    session->execute("SET unique_checks = 0");
-  }
+  session->execute("SET foreign_key_checks = 0");
+  session->execute("SET unique_checks = 0");
 
   // Make sure we don't get affected by user customizations of sql_mode
   session->execute("SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO'");
@@ -459,7 +746,8 @@ void Dump_loader::on_dump_begin() {
         });
 
     if (!m_options.dry_run())
-      execute_script(m_session, script, "While executing user accounts SQL");
+      execute_script(m_session, script, "While executing user accounts SQL",
+                     m_default_sql_transforms);
   }
 
   std::string pre_script = m_dump->begin_script();
@@ -467,7 +755,8 @@ void Dump_loader::on_dump_begin() {
   current_console()->print_status("Executing common preamble SQL");
 
   if (!m_options.dry_run())
-    execute_script(m_session, pre_script, "While executing preamble SQL");
+    execute_script(m_session, pre_script, "While executing preamble SQL",
+                   m_default_sql_transforms);
 }
 
 void Dump_loader::on_dump_end() {
@@ -481,7 +770,8 @@ void Dump_loader::on_dump_end() {
   current_console()->print_status("Executing common postamble SQL");
 
   if (!m_options.dry_run())
-    execute_script(m_session, post_script, "While executing postamble SQL");
+    execute_script(m_session, post_script, "While executing postamble SQL",
+                   m_default_sql_transforms);
 
   // Don't do anything gtid related yet
   // if (!m_dump->gtid_executed().empty()) {
@@ -543,46 +833,12 @@ void Dump_loader::on_schema_end(const std::string &schema) {
         if (!m_options.dry_run()) {
           m_session->executef("USE !", schema);
 
-          execute_script(m_session, script, "While executing triggers SQL");
+          execute_script(m_session, script, "While executing triggers SQL",
+                         m_default_sql_transforms);
         }
       }
 
       m_load_log->end_triggers_ddl(schema, it.first);
-    }
-  }
-}
-
-void Dump_loader::handle_schema_scripts() {
-  std::string schema;
-  std::list<Dump_reader::Name_and_file> tables;
-  std::list<Dump_reader::Name_and_file> views;
-
-  // create all available schemas
-  while (m_dump->next_schema(&schema, &tables, &views)) {
-    auto status = m_load_log->schema_ddl_status(schema);
-
-    log_debug("Schema DDL for '%s' (%s)", schema.c_str(),
-              to_string(status).c_str());
-
-    if (m_options.load_ddl() || m_options.defer_table_indexes() !=
-                                    Load_dump_options::Defer_index_mode::OFF) {
-      m_load_log->start_schema_ddl(schema);
-
-      if (status != Load_progress_log::DONE && m_options.load_ddl()) {
-        handle_schema(schema,
-                      status == mysqlsh::Load_progress_log::INTERRUPTED);
-      }
-
-      // make sure the correct schema is used
-      switch_schema(schema, Load_progress_log::DONE == status);
-
-      // Process tables of the schema
-      handle_tables(schema, tables, false);
-
-      // Process views after all tables have been created
-      handle_tables(schema, views, true);
-
-      m_load_log->end_schema_ddl(schema);
     }
   }
 }
@@ -607,7 +863,8 @@ void Dump_loader::handle_schema(const std::string &schema, bool resuming) {
       // execute sql
       execute_script(
           m_session, script,
-          shcore::str_format("While processing schema `%s`", schema.c_str()));
+          shcore::str_format("While processing schema `%s`", schema.c_str()),
+          m_default_sql_transforms);
     }
   } catch (const std::exception &e) {
     current_console()->print_error(shcore::str_format(
@@ -634,146 +891,6 @@ void Dump_loader::switch_schema(const std::string &schema, bool load_done) {
       if (!m_options.force()) throw;
       m_skip_schemas.insert(schema);
     }
-  }
-}
-
-void Dump_loader::handle_tables(const std::string &schema,
-                                const std::list<Name_and_file> &tables,
-                                bool is_view) {
-  for (const auto &it : tables) {
-    const std::string &table = it.first;
-
-    const auto status = m_load_log->table_ddl_status(schema, table);
-
-    log_debug("%s DDL for '%s'.'%s' (%s)", is_view ? "View" : "Table",
-              schema.c_str(), table.c_str(), to_string(status).c_str());
-
-    if ((m_options.load_ddl() ||
-         m_options.defer_table_indexes() !=
-             Load_dump_options::Defer_index_mode::OFF) &&
-        m_dump->has_ddl(schema, table)) {
-      it.second->open(mysqlshdk::storage::Mode::READ);
-      auto script = mysqlshdk::storage::read_file(it.second.get());
-      it.second->close();
-
-      bool indexes_deferred = false;
-      if (!is_view && m_options.defer_table_indexes() !=
-                          Load_dump_options::Defer_index_mode::OFF) {
-        indexes_deferred =
-            handle_indexes(schema, table, &script,
-                           m_options.defer_table_indexes() ==
-                               Load_dump_options::Defer_index_mode::FULLTEXT,
-                           status == Load_progress_log::DONE);
-      }
-
-      if (status != Load_progress_log::DONE && m_options.load_ddl()) {
-        m_load_log->start_table_ddl(schema, table);
-
-        handle_table(schema, table, script,
-                     status == Load_progress_log::INTERRUPTED,
-                     indexes_deferred);
-        m_load_log->end_table_ddl(schema, table);
-      }
-    }
-  }
-}
-
-namespace {
-std::vector<std::string> preprocess_table_script_for_indexes(
-    std::string *script, const std::string &key, bool fulltext_only) {
-  std::vector<std::string> indexes;
-  auto script_length = script->length();
-  std::istringstream stream(*script);
-  script->clear();
-  mysqlshdk::utils::iterate_sql_stream(
-      &stream, script_length,
-      [&](const char *s, size_t len, const std::string &delim, size_t) {
-        auto sql = std::string(s, len) + delim + "\n";
-        mysqlshdk::utils::SQL_iterator sit(sql);
-        if (shcore::str_caseeq(sit.get_next_token(), "CREATE") &&
-            shcore::str_caseeq(sit.get_next_token(), "TABLE")) {
-          assert(indexes.empty());
-          indexes = compatibility::check_create_table_for_indexes(
-              sql, fulltext_only, &sql);
-        }
-        script->append(sql);
-        return true;
-      },
-      [&key](const std::string &err) {
-        throw std::runtime_error("Error splitting DDL script for table " + key +
-                                 ": " + err);
-      });
-  return indexes;
-}
-}  // namespace
-
-bool Dump_loader::handle_indexes(const std::string &schema,
-                                 const std::string &table, std::string *script,
-                                 bool fulltext_only, bool check_recreated) {
-  auto key =
-      shcore::quote_identifier(schema) + "." + shcore::quote_identifier(table);
-  auto indexes =
-      preprocess_table_script_for_indexes(script, key, fulltext_only);
-
-  if (check_recreated && !indexes.empty()) {
-    try {
-      auto ct = m_session->query("show create table " + key)
-                    ->fetch_one()
-                    ->get_string(1);
-      auto recreated =
-          compatibility::check_create_table_for_indexes(ct, fulltext_only);
-      indexes.erase(std::remove_if(indexes.begin(), indexes.end(),
-                                   [&recreated](const std::string &i) {
-                                     return std::find(recreated.begin(),
-                                                      recreated.end(),
-                                                      i) != recreated.end();
-                                   }),
-                    indexes.end());
-    } catch (const std::exception &e) {
-      current_console()->print_error(
-          shcore::str_format("Unable to get status of table %s that "
-                             "according to load status "
-                             "was already created, consider reseting "
-                             "progress, error message: %s",
-                             key.c_str(), e.what()));
-      if (!m_options.force()) throw;
-    }
-  }
-
-  if (indexes.empty()) return false;
-  const auto prefix = "ALTER TABLE " + key + " ADD ";
-  for (size_t i = 0; i < indexes.size(); ++i)
-    indexes[i] = prefix + indexes[i] + ";";
-  m_dump->add_deferred_indexes(schema, table, std::move(indexes));
-  return true;
-}
-
-void Dump_loader::handle_table(const std::string &schema,
-                               const std::string &table,
-                               const std::string &script, bool resuming,
-                               bool indexes_deferred) {
-  std::string key = schema_table_key(schema, table);
-
-  log_debug("Executing table DDL for %s", key.c_str());
-
-  try {
-    current_console()->print_info(
-        (resuming ? "Re-executing DDL script for "
-                  : "Executing DDL script for ") +
-        key +
-        (indexes_deferred ? " (indexes removed for deferred creation)" : ""));
-    if (!m_options.dry_run()) {
-      // execute sql
-      execute_script(m_session, script,
-                     shcore::str_format("Error processing table `%s`.`%s`",
-                                        schema.c_str(), table.c_str()));
-    }
-  } catch (const std::exception &e) {
-    current_console()->print_error(
-        shcore::str_format("Error processing table `%s`.`%s`: %s",
-                           schema.c_str(), table.c_str(), e.what()));
-
-    if (!m_options.force()) throw;
   }
 }
 
@@ -855,7 +972,8 @@ bool Dump_loader::schedule_table_chunk(
   return true;
 }
 
-size_t Dump_loader::handle_worker_events() {
+size_t Dump_loader::handle_worker_events(
+    const std::function<bool(Worker *)> &schedule_next) {
   auto console = current_console();
 
   auto to_string = [](Worker_event::Event event) {
@@ -864,6 +982,14 @@ size_t Dump_loader::handle_worker_events() {
         return "READY";
       case Worker_event::Event::FATAL_ERROR:
         return "FATAL_ERROR";
+      case Worker_event::Event::TABLE_DDL_START:
+        return "TABLE_DDL_START";
+      case Worker_event::Event::TABLE_DDL_END:
+        return "TABLE_DDL_END";
+      case Worker_event::Event::FETCH_DDL_START:
+        return "FETCH_DDL_START";
+      case Worker_event::Event::FETCH_DDL_END:
+        return "FETCH_DDL_END";
       case Worker_event::Event::LOAD_START:
         return "LOAD_START";
       case Worker_event::Event::LOAD_END:
@@ -882,10 +1008,8 @@ size_t Dump_loader::handle_worker_events() {
     return "";
   };
 
-  bool done = false;
   std::list<Worker *> idle_workers;
-
-  while (!done && idle_workers.size() < m_workers.size()) {
+  while (idle_workers.size() < m_workers.size()) {
     Worker_event event;
 
     // Wait for events from workers, but update progress and check for ^C
@@ -915,6 +1039,44 @@ size_t Dump_loader::handle_worker_events() {
 
         on_chunk_load_end(task->schema(), task->table(), task->chunk_index(),
                           task->bytes_loaded, task->raw_bytes_loaded);
+
+        event.event = Worker_event::READY;
+        break;
+      }
+
+      case Worker_event::TABLE_DDL_START: {
+        auto task =
+            static_cast<Worker::Table_ddl_task *>(event.worker->current_task());
+
+        on_table_ddl_start(task->schema(), task->table(), task->placeholder());
+        break;
+      }
+
+      case Worker_event::TABLE_DDL_END: {
+        auto task =
+            static_cast<Worker::Table_ddl_task *>(event.worker->current_task());
+
+        on_table_ddl_end(task->schema(), task->table(),
+                         task->steal_deferred_indexes(), task->placeholder());
+
+        event.event = Worker_event::READY;
+        break;
+      }
+
+      case Worker_event::FETCH_DDL_START: {
+        auto task =
+            static_cast<Worker::Ddl_fetch_task *>(event.worker->current_task());
+
+        on_fetch_ddl_start(task->schema(), task->table());
+        break;
+      }
+
+      case Worker_event::FETCH_DDL_END: {
+        auto task =
+            static_cast<Worker::Ddl_fetch_task *>(event.worker->current_task());
+
+        on_fetch_ddl_end(task->schema(), task->table(), task->steal_script(),
+                         task->process_fn());
 
         event.event = Worker_event::READY;
         break;
@@ -950,7 +1112,7 @@ size_t Dump_loader::handle_worker_events() {
     // schedule more work if the worker became free
     if (event.event == Worker_event::READY) {
       // no more work to do
-      if (m_worker_interrupt || !schedule_next_task(event.worker)) {
+      if (m_worker_interrupt || !schedule_next(event.worker)) {
         idle_workers.push_back(event.worker);
       }
     }
@@ -1118,7 +1280,7 @@ void Dump_loader::update_progress() {
       if (m_dump->status() != Dump_reader::Status::COMPLETE)
         label += "Dump still in progress, " +
                  mysqlshdk::utils::format_bytes(m_dump->dump_size()) +
-                 " ready - ";
+                 " ready (compr.) - ";
       if (m_num_threads_loading.load())
         label +=
             std::to_string(m_num_threads_loading.load()) + " thds loading - ";
@@ -1146,6 +1308,7 @@ void Dump_loader::open_dump(
   auto console = current_console();
   m_dump = std::make_unique<Dump_reader>(std::move(dumpdir), m_options);
 
+  console->print_status("Opening dump...");
   auto status = m_dump->open();
 
   if (m_dump->dump_version().get_major() > k_supported_dump_version_major ||
@@ -1464,6 +1627,176 @@ void Dump_loader::setup_progress(bool *out_is_resuming) {
   update_progress();
 }
 
+void Dump_loader::execute_threaded(
+    const std::function<bool(Worker *)> &schedule_next) {
+  do {
+    // handle events from workers and schedule more chunks when a worker
+    // becomes available
+    size_t num_idle_workers = handle_worker_events(schedule_next);
+
+    if (num_idle_workers == m_workers.size()) {
+      // make sure that there's really no more work. schedule_work() is supposed
+      // to just return false without doing anything. If it does something
+      // (and returns true), then we have a bug.
+      assert(!schedule_next(&m_workers.front()) || m_worker_interrupt);
+      break;
+    }
+  } while (!m_worker_interrupt);
+}
+
+void Dump_loader::execute_table_ddl_tasks() {
+  // Create all schemas, all tables and all view placeholders.
+  // Views and other objects must only be created after all
+  // tables/placeholders from all schemas are created, because there may be
+  // cross-schema references.
+
+  Load_progress_log::Status schema_load_status;
+  std::string schema;
+  std::list<Dump_reader::Name_and_file> tables;
+  std::list<Dump_reader::Name_and_file> view_placeholders;
+
+  auto schedule_next_table = [&](Worker *worker) {
+    for (;;) {
+      // if there are still tables from the previous iteration, return them
+      if (!tables.empty()) {
+        auto &t = tables.front();
+        shcore::on_leave_scope pop([&]() { tables.pop_front(); });
+
+        if (t.second) {
+          auto status = m_load_log->table_ddl_status(schema, t.first);
+
+          worker->process_table_ddl(schema, t.first, std::move(t.second), false,
+                                    status);
+        } else {
+          continue;
+        }
+        return true;
+      }
+
+      if (!view_placeholders.empty()) {
+        auto &t = view_placeholders.front();
+        shcore::on_leave_scope pop([&]() { view_placeholders.pop_front(); });
+
+        if (t.second) {
+          worker->process_table_ddl(schema, t.first, std::move(t.second), true,
+                                    schema_load_status);
+
+        } else {
+          continue;
+        }
+        return true;
+      }
+
+      // fetch next schema and process it
+      if (!m_dump->next_schema_and_tables(&schema, &tables,
+                                          &view_placeholders)) {
+        return false;
+      }
+
+      schema_load_status = m_load_log->schema_ddl_status(schema);
+
+      log_debug("Schema DDL for '%s' (%s)", schema.c_str(),
+                to_string(schema_load_status).c_str());
+
+      if (schema_load_status == Load_progress_log::DONE ||
+          !m_options.load_ddl()) {
+        // we track views together with the schema DDL, so no need to
+        // load placeholders if schemas was already loaded
+        view_placeholders.clear();
+      }
+
+      if (m_options.load_ddl()) {
+        m_load_log->start_schema_ddl(schema);
+
+        if (schema_load_status != Load_progress_log::DONE) {
+          handle_schema(schema, schema_load_status ==
+                                    mysqlsh::Load_progress_log::INTERRUPTED);
+        }
+      }
+    }
+  };
+
+  log_debug("Begin loading table DDL");
+
+  execute_threaded(schedule_next_table);
+
+  log_debug("End loading table DDL");
+}
+
+void Dump_loader::execute_view_ddl_tasks() {
+  Load_progress_log::Status schema_load_status;
+  std::string schema;
+  std::list<Dump_reader::Name_and_file> views;
+  std::vector<std::string> done_schemas;
+
+  auto schedule_next_view = [&](Worker *worker) {
+    for (;;) {
+      if (!views.empty()) {
+        auto &t = views.front();
+        bool resuming = schema_load_status == Load_progress_log::INTERRUPTED;
+        std::string view = t.first;
+
+        worker->fetch_object_ddl(
+            schema, view, std::move(t.second),
+            [this, schema, view, resuming](std::string &&script) {
+              if (!m_options.dry_run()) {
+                m_session->executef("use !", schema.c_str());
+
+                current_console()->print_status(shcore::str_format(
+                    "%s DDL script for view `%s`.`%s`",
+                    (resuming ? "Re-executing" : "Executing"), schema.c_str(),
+                    view.c_str()));
+
+                // execute sql
+                execute_script(
+                    m_session, script,
+                    shcore::str_format(
+                        "Error executing DDL script for view `%s`.`%s`",
+                        schema.c_str(), view.c_str()),
+                    m_default_sql_transforms);
+              }
+            });
+        views.pop_front();
+
+        return true;
+      }
+
+      if (!schema.empty()) {
+        // queue the schema to be marked as done after we're done with
+        // everything (can't mark it now because workers may not be done
+        // executing yet)
+        done_schemas.push_back(schema);
+        schema.clear();
+      }
+
+      if (!m_dump->next_schema_and_views(&schema, &views)) {
+        return false;
+      }
+
+      schema_load_status = m_load_log->schema_ddl_status(schema);
+
+      if (schema_load_status == Load_progress_log::DONE) {
+        m_load_log->end_schema_ddl(schema);
+        views.clear();
+        schema.clear();
+      }
+    }
+  };
+
+  if (m_options.load_ddl()) {
+    log_debug("Begin loading view DDL");
+
+    execute_threaded(schedule_next_view);
+
+    for (const auto &s : done_schemas) {
+      // mark schema DDL as done after views are done
+      m_load_log->end_schema_ddl(s);
+    }
+
+    log_debug("End loading view DDL");
+  }
+}
+
 void Dump_loader::execute_tasks() {
   auto console = current_console();
 
@@ -1478,7 +1811,7 @@ void Dump_loader::execute_tasks() {
 
   check_server_version();
 
-  m_session = create_session(false);
+  m_session = create_session();
 
   setup_progress(&m_resuming);
 
@@ -1502,7 +1835,15 @@ void Dump_loader::execute_tasks() {
       // process dump metadata first
       on_dump_begin();
 
-      handle_schema_scripts();
+      // NOTE: this assumes that all DDL files are already present
+
+      // exec DDL for all tables in parallel (fetching DDL for
+      // thousands of tables from remote storage can be slow)
+      if (!m_worker_interrupt) execute_table_ddl_tasks();
+
+      // exec DDL for all views after all tables are created
+      if (!m_worker_interrupt) execute_view_ddl_tasks();
+
       m_init_done = true;
 
       m_progress->hide(false);
@@ -1510,7 +1851,8 @@ void Dump_loader::execute_tasks() {
 
     // handle events from workers and schedule more chunks when a worker
     // becomes available
-    num_idle_workers = handle_worker_events();
+    num_idle_workers = handle_worker_events(
+        [this](Worker *worker) { return schedule_next_task(worker); });
 
     // If the whole dump is already available and there's no more data to be
     // loaded and all workers are idle (done loading), then we're done
@@ -1623,6 +1965,34 @@ void Dump_loader::post_worker_event(Worker *worker, Worker_event::Event event) {
   m_worker_events.push(Worker_event{event, worker});
 }
 
+void Dump_loader::on_table_ddl_start(const std::string &schema,
+                                     const std::string &table,
+                                     bool placeholder) {
+  if (!placeholder) m_load_log->start_table_ddl(schema, table);
+}
+
+void Dump_loader::on_table_ddl_end(
+    const std::string &schema, const std::string &table,
+    std::unique_ptr<std::vector<std::string>> deferred_indexes,
+    bool placeholder) {
+  if (!placeholder) {
+    m_load_log->end_table_ddl(schema, table);
+
+    if (deferred_indexes && !deferred_indexes->empty())
+      m_dump->add_deferred_indexes(schema, table, std::move(*deferred_indexes));
+  }
+}
+
+void Dump_loader::on_fetch_ddl_start(const std::string &, const std::string &) {
+}
+
+void Dump_loader::on_fetch_ddl_end(
+    const std::string &, const std::string &,
+    std::unique_ptr<std::string> script,
+    const std::function<void(std::string &&)> &process_fn) {
+  process_fn(std::move(*script));
+}
+
 void Dump_loader::on_chunk_load_start(const std::string &schema,
                                       const std::string &table, ssize_t index) {
   m_load_log->start_table_chunk(schema, table, index);
@@ -1665,44 +2035,6 @@ void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
       *out_new_sql = sql;
     }
   });
-}
-
-void Dump_loader::execute_script(
-    const std::shared_ptr<mysqlshdk::db::ISession> &session,
-    const std::string &script, const std::string &error_prefix,
-    const std::function<bool(const char *, size_t, std::string *)>
-        &process_stmt) {
-  auto console = mysqlsh::current_console();
-
-  std::stringstream stream(script);
-  size_t count = 0;
-  mysqlshdk::utils::iterate_sql_stream(
-      &stream, 1024 * 64,
-      [this, error_prefix, &session, &count, process_stmt](
-          const char *s, size_t len, const std::string &, size_t) {
-        try {
-          std::string new_stmt;
-          if (process_stmt && process_stmt(s, len, &new_stmt)) {
-            if (!new_stmt.empty()) session->execute(new_stmt);
-          } else if (!process_stmt &&
-                     m_default_sql_transforms(s, len, &new_stmt)) {
-            if (!new_stmt.empty()) session->execute(new_stmt);
-          } else {
-            session->executes(s, len);
-          }
-        } catch (const mysqlshdk::db::Error &e) {
-          if (error_prefix.empty())
-            log_info("Error executing SQL: %s:\t\n%.*s", e.format().c_str(),
-                     static_cast<int>(len), s);
-          else
-            current_console()->print_error(error_prefix + ": " + e.format() +
-                                           ": " + std::string(s, len));
-          throw;
-        }
-        ++count;
-        return true;
-      },
-      [console](const std::string &err) { console->print_error(err); });
 }
 
 void Dump_loader::handle_table_only_dump() {

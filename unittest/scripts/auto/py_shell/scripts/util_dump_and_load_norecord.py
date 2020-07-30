@@ -51,7 +51,10 @@ shell.connect(__sandbox_uri2)
 
 #@<> load data which is not in the dump (fail)
 EXPECT_THROWS(lambda: util.load_dump(outdir+"/ddlonly",
-                                     {"loadData": True, "loadDdl": False}), "RuntimeError: Util.load_dump: Unknown database 'world'")
+                                     {"loadData": True, "loadDdl": False}), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_CONTAINS(".sql: Unknown database 'world'")
+
+testutil.rmfile(outdir+"/ddlonly/load-progress*.json")
 
 #@<> load ddl normally
 util.load_dump(outdir+"/ddlonly")
@@ -79,8 +82,8 @@ compare_servers(session1, session2)
 
 wipeout_server(session2)
 
-#@<> load ddl which is not in the dump (fail)
-EXPECT_THROWS(lambda: util.load_dump(outdir+"/dataonly", {"loadData": False, "loadDdl": True}), "RuntimeError: Util.load_dump: Unknown database 'world'")
+#@<> load ddl which is not in the dump (fail/no-op)
+util.load_dump(outdir+"/dataonly", {"loadData": False, "loadDdl": True})
 
 
 #@<> load while dump is still running (prepare)

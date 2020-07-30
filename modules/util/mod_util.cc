@@ -149,7 +149,8 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
                      const std::vector<Upgrade_issue> &results) override {
     print_title(check.get_title());
 
-    std::function<std::string(const Upgrade_issue &)> issue_formater(to_string);
+    std::function<std::string(const Upgrade_issue &)> issue_formater(
+        upgrade_issue_to_string);
     if (results.empty()) {
       print_paragraph("No issues found");
     } else if (check.get_description() != nullptr) {

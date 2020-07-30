@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,7 +63,7 @@ struct Upgrade_check_options {
   std::string config_path;
 };
 
-std::string to_string(const Upgrade_issue &problem);
+std::string upgrade_issue_to_string(const Upgrade_issue &problem);
 
 class Upgrade_check {
  public:

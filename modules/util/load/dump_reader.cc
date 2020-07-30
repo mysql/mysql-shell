@@ -141,27 +141,32 @@ std::string Dump_reader::users_script() const {
   return m_contents.users_sql ? *m_contents.users_sql : "";
 }
 
-bool Dump_reader::next_schema(std::string *out_schema,
-                              std::list<Name_and_file> *out_tables,
-                              std::list<Name_and_file> *out_views) {
+bool Dump_reader::next_schema_and_tables(
+    std::string *out_schema, std::list<Name_and_file> *out_tables,
+    std::list<Name_and_file> *out_view_placeholders) {
   out_tables->clear();
-  out_views->clear();
+  out_view_placeholders->clear();
 
   // find the first schema that is ready
   for (auto &it : m_contents.schemas) {
     auto &s = it.second;
-    if (!s->sql_done && s->ready()) {
+    if (!s->table_sql_done && s->ready()) {
       *out_schema = s->schema;
 
       for (const auto &t : s->tables) {
-        out_tables->emplace_back(t.first, m_dir->file(t.second->script_name()));
+        out_tables->emplace_back(
+            t.first,
+            t.second->has_sql ? m_dir->file(t.second->script_name()) : nullptr);
       }
 
-      for (const auto &v : s->views) {
-        out_views->emplace_back(v.table, m_dir->file(v.script_name()));
+      if (s->has_view_sql) {
+        for (const auto &v : s->views) {
+          out_view_placeholders->emplace_back(v.table,
+                                              m_dir->file(v.pre_script_name()));
+        }
       }
 
-      s->sql_done = true;
+      s->table_sql_done = true;
 
       return true;
     }
@@ -170,21 +175,29 @@ bool Dump_reader::next_schema(std::string *out_schema,
   return false;
 }
 
-bool Dump_reader::has_ddl(const std::string &schema) const {
-  return m_contents.schemas.at(schema)->has_sql;
-}
+bool Dump_reader::next_schema_and_views(std::string *out_schema,
+                                        std::list<Name_and_file> *out_views) {
+  out_views->clear();
 
-bool Dump_reader::has_ddl(const std::string &schema,
-                          const std::string &table) const {
-  const auto &s = m_contents.schemas.at(schema);
-  const auto t = s->tables.find(table);
+  // find the first schema that is ready
+  for (auto &it : m_contents.schemas) {
+    auto &s = it.second;
 
-  if (s->tables.end() != t) {
-    return t->second->has_sql;
-  } else {
-    // if table was not found we assume it is a view
-    return s->has_view_sql;
+    // always return true for every schema, even if there are no views
+    if (!s->view_sql_done && s->ready()) {
+      *out_schema = s->schema;
+
+      for (const auto &v : s->views) {
+        out_views->emplace_back(v.table, m_dir->file(v.script_name()));
+      }
+
+      s->view_sql_done = true;
+
+      return true;
+    }
   }
+
+  return false;
 }
 
 std::vector<std::string> Dump_reader::schemas() const {
@@ -266,17 +279,6 @@ std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
   if (s->has_sql) {
     // Get the base script for the schema
     script = fetch_file(m_dir.get(), s->script_name());
-  }
-
-  if (s->has_view_sql) {
-    if (script.empty()) {
-      script = shcore::sqlstring("USE !;", 0) << schema;
-    }
-
-    // Get the pre-scripts for views and append them to the script
-    for (const auto &v : s->views) {
-      script += "\n" + fetch_file(m_dir.get(), v.pre_script_name());
-    }
   }
 
   return script;
@@ -509,6 +511,11 @@ size_t Dump_reader::filtered_data_size() const {
 // Scan directory for new files and adds them to the pending file list
 void Dump_reader::rescan() {
   using mysqlshdk::storage::IDirectory;
+  auto console = mysqlsh::current_console();
+
+  if (!m_dir->is_local()) {
+    console->print_status("Fetching dump data from remote location...");
+  }
 
   std::vector<IDirectory::File_info> files = m_dir->list_files();
   std::unordered_map<std::string, size_t> file_by_name;
@@ -864,6 +871,12 @@ void Dump_reader::Schema_info::rescan(
 
       if (md->has_key("events"))
         event_names = to_vector_of_strings(md->get_array("events"));
+
+      if (!dir->is_local()) {
+        current_console()->print_status(shcore::str_format(
+            "Fetching %zu table metadata files for schema `%s`...",
+            tables.size(), schema.c_str()));
+      }
     }
   }
 
@@ -934,7 +947,7 @@ void Dump_reader::Dump_info::rescan(
 
   if (!md_done) {
     md_done = true;
-    for (auto &s : schemas) {
+    for (const auto &s : schemas) {
       log_debug("Scanning contents of schema '%s'", s.second->schema.c_str());
 
       if (!s.second->ready()) {
@@ -945,7 +958,7 @@ void Dump_reader::Dump_info::rescan(
     }
     if (md_done) log_debug("All metadata for dump was scanned");
   } else {
-    for (auto &s : schemas) {
+    for (const auto &s : schemas) {
       log_debug("Scanning data of schema '%s'", s.second->schema.c_str());
 
       s.second->rescan_data(dir, files, reader);

@@ -104,21 +104,16 @@ int fputs(const std::string &s, IFile *file) {
 }
 
 std::string read_file(IFile *file) {
-  constexpr const size_t read_len = 4098;
   std::string buffer;
-  ssize_t c;
-  size_t data_read = 0;
+  size_t size = file->file_size();
 
-  do {
-    buffer.resize(data_read + read_len);
+  buffer.resize(size);
 
-    c = file->read(&buffer[data_read], read_len);
-    if (c < 0) {
-      throw std::runtime_error("Error reading " + file->full_path() + ": " +
-                               shcore::errno_to_string(file->error()));
-    }
-    data_read += c;
-  } while (c > 0);
+  auto data_read = file->read(&buffer[0], size);
+  if (data_read < 0) {
+    throw std::runtime_error("Error reading " + file->full_path() + ": " +
+                             shcore::errno_to_string(file->error()));
+  }
 
   buffer.resize(data_read);
 
