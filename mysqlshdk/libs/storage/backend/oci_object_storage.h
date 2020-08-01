@@ -108,8 +108,10 @@ class Directory : public mysqlshdk::storage::IDirectory {
    * Creates a new file handle for for a file contained on this directory.
    *
    * @param name: The name of the file.
+   * @param options File backend specific options.
    */
-  std::unique_ptr<IFile> file(const std::string &name) const override;
+  std::unique_ptr<IFile> file(const std::string &name,
+                              const File_options &options = {}) const override;
 
   bool is_local() const override { return false; }
 

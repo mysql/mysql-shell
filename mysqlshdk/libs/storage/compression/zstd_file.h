@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -102,7 +102,15 @@ class Zstd_file : public Compressed_file {
   void write_finish();
 
   void do_close();
+
   ssize_t do_write(ZSTD_inBuffer *ibuf, ZSTD_EndDirective op);
+  ssize_t do_write_mmap(ZSTD_inBuffer *ibuf, ZSTD_EndDirective op);
+
+  ssize_t do_read(ZSTD_outBuffer *obuf);
+  ssize_t do_read_mmap(ZSTD_outBuffer *obuf);
+
+  ssize_t (Zstd_file::*m_write_f)(ZSTD_inBuffer *, ZSTD_EndDirective) = nullptr;
+  ssize_t (Zstd_file::*m_read_f)(ZSTD_outBuffer *) = nullptr;
 
   size_t m_offset = 0;
 

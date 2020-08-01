@@ -284,7 +284,7 @@ class Dumper {
   mysqlshdk::storage::IDirectory *directory() const;
 
   std::unique_ptr<mysqlshdk::storage::IFile> make_file(
-      const std::string &filename) const;
+      const std::string &filename, bool use_mmap = false) const;
 
   uint64_t get_row_count(const Schema_task &schema,
                          const Table_info &table) const;

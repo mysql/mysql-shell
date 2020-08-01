@@ -160,7 +160,7 @@ Dump_manifest::Dump_manifest(Mode mode,
 }
 
 std::unique_ptr<mysqlshdk::storage::IFile> Dump_manifest::file(
-    const std::string &name) const {
+    const std::string &name, const mysqlshdk::storage::File_options &) const {
   std::string object_name(name);
 
   std::string prefix;

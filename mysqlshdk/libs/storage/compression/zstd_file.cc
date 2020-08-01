@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #include <limits>
 #include <utility>
 
+#include "mysqlshdk/libs/storage/backend/file.h"
 #include "mysqlshdk/libs/utils/logger.h"
 
 namespace mysqlshdk {
@@ -67,7 +68,11 @@ ssize_t Zstd_file::read(void *buffer, size_t length) {
   obuf.size = length;
   obuf.pos = 0;
 
-  while (obuf.pos < obuf.size) {
+  return (*this.*m_read_f)(&obuf);
+}
+
+ssize_t Zstd_file::do_read(ZSTD_outBuffer *obuf) {
+  while (obuf->pos < obuf->size) {
     const auto input_buf = peek(m_decompress_read_size);
     if (input_buf.length == 0) {
       break;
@@ -78,7 +83,7 @@ ssize_t Zstd_file::read(void *buffer, size_t length) {
     ibuf.src = input_buf.ptr;
     ibuf.pos = 0;
 
-    size_t status = ZSTD_decompressStream(m_dctx, &obuf, &ibuf);
+    size_t status = ZSTD_decompressStream(m_dctx, obuf, &ibuf);
 
     if (ZSTD_isError(status))
       throw std::runtime_error(std::string("zstd.read: ") +
@@ -88,10 +93,36 @@ ssize_t Zstd_file::read(void *buffer, size_t length) {
     }
   }
 
-  m_offset += obuf.pos;
+  m_offset += obuf->pos;
 
   // number of bytes being returned
-  return obuf.pos;
+  return obuf->pos;
+}
+
+ssize_t Zstd_file::do_read_mmap(ZSTD_outBuffer *obuf) {
+  while (obuf->pos < obuf->size) {
+    auto *mfile = dynamic_cast<backend::File *>(file());
+
+    ZSTD_inBuffer ibuf;
+    ibuf.src = mfile->mmap_will_read(&ibuf.size);
+    ibuf.pos = 0;
+
+    if (ibuf.size == 0) break;
+
+    size_t status = ZSTD_decompressStream(m_dctx, obuf, &ibuf);
+
+    if (ZSTD_isError(status))
+      throw std::runtime_error(std::string("zstd.read: ") +
+                               ZSTD_getErrorName(status));
+    if (ibuf.pos > 0) {
+      mfile->mmap_did_read(ibuf.pos);
+    }
+  }
+
+  m_offset += obuf->pos;
+
+  // number of bytes being returned
+  return obuf->pos;
 }
 
 ssize_t Zstd_file::write(const void *buffer, size_t length) {
@@ -102,7 +133,7 @@ ssize_t Zstd_file::write(const void *buffer, size_t length) {
 
   m_offset += length;
 
-  return do_write(&ibuf, ZSTD_e_continue);
+  return (*this.*m_write_f)(&ibuf, ZSTD_e_continue);
 }
 
 bool Zstd_file::flush() {
@@ -111,7 +142,7 @@ bool Zstd_file::flush() {
   ibuf.pos = 0;
   ibuf.src = nullptr;
 
-  do_write(&ibuf, ZSTD_e_flush);
+  (*this.*m_write_f)(&ibuf, ZSTD_e_flush);
 
   return file()->flush();
 }
@@ -122,11 +153,12 @@ void Zstd_file::write_finish() {
   ibuf.pos = 0;
   ibuf.src = nullptr;
 
-  do_write(&ibuf, ZSTD_e_end);
+  (*this.*m_write_f)(&ibuf, ZSTD_e_end);
 }
 
 ssize_t Zstd_file::do_write(ZSTD_inBuffer *ibuf, ZSTD_EndDirective op) {
   ZSTD_outBuffer obuf;
+
   obuf.dst = &m_buffer[0];
   obuf.size = m_buffer.size();
   obuf.pos = 0;
@@ -155,6 +187,37 @@ ssize_t Zstd_file::do_write(ZSTD_inBuffer *ibuf, ZSTD_EndDirective op) {
   return ibuf->size;
 }
 
+ssize_t Zstd_file::do_write_mmap(ZSTD_inBuffer *ibuf, ZSTD_EndDirective op) {
+  ZSTD_outBuffer obuf;
+  auto *mfile = static_cast<backend::File *>(file());
+
+  obuf.dst =
+      mfile->mmap_will_write(ibuf->size + ZSTD_CStreamOutSize(), &obuf.size);
+  if (!obuf.dst) {
+    throw std::runtime_error(
+        std::string("Error reserving space on mmapped file"));
+  }
+  obuf.pos = 0;
+
+  bool done;
+
+  size_t status;
+  do {
+    status = ZSTD_compressStream2(m_cctx, &obuf, ibuf, op);
+    if (ZSTD_isError(status)) {
+      throw std::runtime_error(std::string("zstd.write: ") +
+                               ZSTD_getErrorName(status));
+    } else {
+      obuf.dst = mfile->mmap_did_write(obuf.pos, &obuf.size);
+      obuf.pos = 0;
+    }
+    // make sure the whole input buffer is consumed
+    done = (op == ZSTD_e_end) ? (status == 0) : ibuf->pos == ibuf->size;
+  } while (!done);
+
+  return ibuf->size;
+}
+
 void Zstd_file::init_write() {
   if (!m_cctx) {
     m_cctx = ZSTD_createCStream();
@@ -163,7 +226,16 @@ void Zstd_file::init_write() {
     }
     ZSTD_initCStream(m_cctx, m_clevel);
 
-    m_buffer.resize(ZSTD_CStreamOutSize());
+    auto *mfile = dynamic_cast<backend::File *>(file());
+
+    // try to enable mmap if available
+    if (mfile && mfile->mmap_will_write(0, nullptr)) {
+      log_debug("mmap() enabled for file %s", mfile->full_path().c_str());
+      m_write_f = &Zstd_file::do_write_mmap;
+    } else {
+      m_write_f = &Zstd_file::do_write;
+      m_buffer.resize(ZSTD_CStreamOutSize());
+    }
   }
 }
 
@@ -174,6 +246,15 @@ void Zstd_file::init_read() {
       throw std::runtime_error("zstd decompression context init failed");
     }
     m_decompress_read_size = ZSTD_initDStream(m_dctx);
+
+    auto *mfile = dynamic_cast<backend::File *>(file());
+    // try to enable mmap if available
+    if (mfile && mfile->mmap_will_read(nullptr)) {
+      log_debug("mmap() enabled for file %s", mfile->full_path().c_str());
+      m_read_f = &Zstd_file::do_read_mmap;
+    } else {
+      m_read_f = &Zstd_file::do_read;
+    }
   }
 }
 
@@ -208,12 +289,14 @@ void Zstd_file::do_close() {
     case Mode::READ:
       if (m_dctx) ZSTD_freeDStream(m_dctx);
       m_dctx = nullptr;
+      m_read_f = nullptr;
       break;
 
     case Mode::WRITE:
       write_finish();
       if (m_cctx) ZSTD_freeCStream(m_cctx);
       m_cctx = nullptr;
+      m_write_f = nullptr;
       break;
 
     case Mode::APPEND:

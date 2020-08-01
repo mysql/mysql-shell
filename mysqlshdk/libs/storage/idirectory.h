@@ -73,10 +73,12 @@ class IDirectory {
    * Provides handle to the file with the specified name in this directory.
    *
    * @param name Name of the file.
+   * @param options File backend specific options.
    *
    * @returns Handle to the file.
    */
-  virtual std::unique_ptr<IFile> file(const std::string &name) const;
+  virtual std::unique_ptr<IFile> file(const std::string &name,
+                                      const File_options &options = {}) const;
 
   virtual bool is_local() const = 0;
 

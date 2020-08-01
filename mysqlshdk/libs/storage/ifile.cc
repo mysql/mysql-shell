@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,9 +35,8 @@
 namespace mysqlshdk {
 namespace storage {
 
-std::unique_ptr<IFile> make_file(
-    const std::string &filepath,
-    const std::unordered_map<std::string, std::string> &options) {
+std::unique_ptr<IFile> make_file(const std::string &filepath,
+                                 const File_options &options) {
   if (!options.empty()) {
     mysqlshdk::oci::Oci_options oci_options;
     bool is_oci =
@@ -50,7 +49,18 @@ std::unique_ptr<IFile> make_file(
 
   const auto scheme = utils::get_scheme(filepath);
   if (scheme.empty() || utils::scheme_matches(scheme, "file")) {
-    return std::make_unique<backend::File>(filepath);
+    backend::File::Options file_options;
+
+    auto it = options.find("file.mmap");
+    if (it != options.end()) {
+      try {
+        file_options.mmap = backend::to_mmap_preference(it->second);
+      } catch (...) {
+        throw std::invalid_argument("Invalid value '" + it->second +
+                                    "' for option file.mmap");
+      }
+    }
+    return std::make_unique<backend::File>(filepath, file_options);
   } else if (utils::scheme_matches(scheme, "http") ||
              utils::scheme_matches(scheme, "https")) {
     return std::make_unique<backend::Http_get>(filepath);

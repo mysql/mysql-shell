@@ -100,10 +100,11 @@ class Dummy_dump_directory : public mysqlshdk::storage::IDirectory {
   std::vector<File_info> list_files(bool) const { return m_file_list; }
 
   std::unique_ptr<mysqlshdk::storage::IFile> file(
-      const std::string &name) const {
+      const std::string &name,
+      const mysqlshdk::storage::File_options &options = {}) const {
     if (shcore::str_endswith(name, ".sql") ||
         shcore::str_endswith(name, ".json")) {
-      return mysqlshdk::storage::make_file(join_path(m_dumpdir, name));
+      return mysqlshdk::storage::make_file(join_path(m_dumpdir, name), options);
     } else if (shcore::str_endswith(name, ".zst")) {
       for (const auto &f : m_file_list) {
         if (f.name == name) {

@@ -76,7 +76,8 @@ class Dump_manifest : public mysqlshdk::storage::backend::oci::Directory {
    * external file using a PAR as name.
    */
   std::unique_ptr<mysqlshdk::storage::IFile> file(
-      const std::string &name) const override;
+      const std::string &name,
+      const mysqlshdk::storage::File_options &options = {}) const override;
 
   void close() override;
 
