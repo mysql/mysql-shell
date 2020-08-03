@@ -252,6 +252,7 @@ void detect_interactive(mysqlsh::Shell_options *options, bool *stdin_is_tty,
     is_interactive = false;
   else
     is_interactive = options->get().run_file.empty() &&
+                     options->get().run_module.empty() &&
                      options->get().execute_statement.empty() &&
                      options->get().execute_dba_statement.empty() &&
                      options->get().import_args.empty() &&
@@ -721,6 +722,8 @@ int main(int argc, char **argv) {
         }
       } else if (!options.run_file.empty()) {
         ret_val = shell->process_file(options.run_file, options.script_argv);
+      } else if (!options.run_module.empty()) {
+        ret_val = shell->run_module(options.run_module, options.script_argv);
       } else if (!options.import_args.empty()) {
         ret_val = execute_import_command(shell.get(), options.import_args,
                                          options.import_opts);

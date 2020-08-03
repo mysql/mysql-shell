@@ -65,6 +65,7 @@ const char pathlist_separator = ';';
 const char path_separator = '/';
 const char pathlist_separator = ':';
 #endif
+const char pathlist_separator_s[] = {pathlist_separator, '\0'};
 
 extern const char *k_valid_path_separators;
 

@@ -51,12 +51,16 @@ shcore::Dictionary_t fetch_metadata(mysqlshdk::storage::IDirectory *dir,
                                     const std::string &fn) {
   std::string data = fetch_file(dir, fn);
 
-  auto metadata = shcore::Value::parse(data);
-  if (metadata.type != shcore::Map) {
-    throw std::runtime_error("Invalid metadata file " + fn);
+  try {
+    auto metadata = shcore::Value::parse(data);
+    if (metadata.type != shcore::Map) {
+      throw std::runtime_error("Invalid metadata file " + fn);
+    }
+    return metadata.as_map();
+  } catch (const shcore::Exception &e) {
+    throw shcore::Exception::runtime_error("Could not parse metadata file " +
+                                           fn + ": " + e.format());
   }
-
-  return metadata.as_map();
 }
 
 }  // namespace

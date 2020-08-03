@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -75,10 +75,10 @@ TEST_F(Mysqlsh_misc, load_builtin_modules) {
 
   wipe_out();
   execute({_mysqlsh, "--py", "-e", "print(mysqlx)", nullptr});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("<module '__mysqlx__' (built-in)>");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("<module 'mysqlsh.mysqlx' (built-in)>");
   wipe_out();
   execute({_mysqlsh, "--py", "-e", "print(mysql)", nullptr});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("<module '__mysql__' (built-in)>");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("<module 'mysqlsh.mysql' (built-in)>");
 }
 
 #ifdef HAVE_V8
@@ -286,4 +286,12 @@ TEST_F(Mysqlsh_misc, autodetect_script_type) {
   shcore::delete_file("bla.js");
   shcore::delete_file("bla.py");
   shcore::delete_file("bla.sql");
+}
+
+TEST_F(Mysqlsh_misc, run_python_module) {
+  execute({_mysqlsh, "--pym", "unittest", "-h", nullptr});
+
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("run tests from test_module");
+
+  wipe_out();
 }

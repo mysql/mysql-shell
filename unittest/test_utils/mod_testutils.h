@@ -418,7 +418,7 @@ class Testutils : public mysqlsh::Extensible_object {
 
   std::weak_ptr<mysqlsh::Command_line_shell> _shell;
   std::string _mysqlsh_path;
-  std::unique_ptr<mysqlsh::dba::ProvisioningInterface> _mp;
+  mysqlsh::dba::ProvisioningInterface _mp;
   std::map<int, std::string> _passwords;
   std::map<int, std::unique_ptr<Slower_thread>> _slower_threads;
   std::string _sandbox_dir;

@@ -85,7 +85,6 @@ const char *g_test_home = nullptr;
 }
 const char *g_mysqlsh_path;
 const char *g_mysqld_path_variables;
-char *g_mppath = nullptr;
 int g_profile_test_scripts = 0;
 
 std::vector<std::pair<std::string, std::string>> g_skipped_tests;
@@ -905,13 +904,6 @@ int main(int argc, char **argv) {
     ::testing::GTEST_FLAG(filter) = new_filter.c_str();
   }
 
-  // This will consider the MYSQLSH_HOME environment variable if set,
-  // otherwise it assumes parent dir of the current executable
-  std::string mppath = shcore::get_mysqlx_home_path();
-  mppath =
-      shcore::path::join_path(mppath, "share", "mysqlsh", "mysqlprovision.zip");
-  g_mppath = strdup(mppath.c_str());
-
   std::string mysqlsh_path;
   // mysqlshrec is supposed to be in the same dir as run_unit_tests
   mysqlsh_path =
@@ -928,7 +920,6 @@ int main(int argc, char **argv) {
     std::cout << "Testing: Shell Package." << std::endl;
   std::cout << "Shell Binary: " << g_mysqlsh_path << std::endl;
   std::cout << "Shell Home: " << shcore::get_mysqlx_home_path() << std::endl;
-  std::cout << "MySQL Provision: " << g_mppath << std::endl;
   std::cout << "Test Data Home: " << g_test_home << std::endl;
   if (!listing_tests) {
     std::cout << "Effective Hostname (external address of this host): "

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,7 +35,6 @@
 #include "unittest/test_utils/shell_test_env.h"
 #include "unittest/test_utils/test_net_utilities.h"
 
-extern char *g_mppath;
 extern mysqlshdk::db::replay::Mode g_test_recording_mode;
 extern mysqlshdk::utils::Version g_target_server_version;
 
@@ -96,7 +95,6 @@ Shell_test_wrapper::Shell_test_wrapper(bool disable_dummy_sandboxes) {
 void Shell_test_wrapper::reset_options() {
   _opts.reset(new mysqlsh::Shell_options());
   _options = const_cast<mysqlsh::Shell_options::Storage *>(&_opts->get());
-  _options->gadgets_path = g_mppath;
   _options->db_name_cache = false;
 
   // Allows derived classes configuring specific options

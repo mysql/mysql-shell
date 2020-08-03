@@ -117,8 +117,7 @@ class TYPES_COMMON_PUBLIC Python_context {
   static void get_members_of(
       PyObject *object, std::vector<std::pair<bool, std::string>> *out_keys);
 
-  bool is_module(const std::string &file_name);
-  Value execute_module(const std::string &file_name,
+  Value execute_module(const std::string &module,
                        const std::vector<std::string> &argv);
   bool load_plugin(const Plugin_definition &plugin);
 
@@ -127,8 +126,6 @@ class TYPES_COMMON_PUBLIC Python_context {
 
   Value get_global(const std::string &value);
   void set_global(const std::string &name, const Value &value);
-  void set_global_item(const std::string &global_name,
-                       const std::string &item_name, const Value &value);
 
   PyObject *get_global_py(const std::string &value);
 
@@ -163,7 +160,9 @@ class TYPES_COMMON_PUBLIC Python_context {
   static PyObject *shell_flush(PyObject *self, PyObject *args);
   static PyObject *shell_flush_stderr(PyObject *self, PyObject *args);
   static PyObject *shell_stdout(PyObject *self, PyObject *args);
+  static PyObject *shell_stdout_isatty(PyObject *self, PyObject *args);
   static PyObject *shell_stderr(PyObject *self, PyObject *args);
+  static PyObject *shell_stderr_isatty(PyObject *self, PyObject *args);
   static PyObject *shell_raw_input(PyObject *self, PyObject *args);
   static PyObject *shell_stdin_read(PyObject *self, PyObject *args);
   static PyObject *shell_stdin_readline(PyObject *self, PyObject *args);
@@ -180,7 +179,6 @@ class TYPES_COMMON_PUBLIC Python_context {
   static PyMethodDef ShellPythonSupportMethods[];
 
  private:
-  PyObject *_global_namespace;
   PyObject *_globals;
   PyObject *_locals;
   PyThreadState *_main_thread_state;
@@ -190,19 +188,19 @@ class TYPES_COMMON_PUBLIC Python_context {
 
   Python_type_bridger _types;
 
-  PyObject *_shell_mysqlsh_module;
+  PyObject *_mysqlsh_module = nullptr;
+  PyObject *_mysqlsh_globals = nullptr;
 
-  PyObject *_shell_stderr_module;
-  PyObject *_shell_stdout_module;
-  PyObject *_shell_stdin_module;
-  PyObject *_shell_python_support_module;
+  PyObject *_shell_stderr_module = nullptr;
+  PyObject *_shell_stdout_module = nullptr;
+  PyObject *_shell_stdin_module = nullptr;
+  PyObject *_shell_python_support_module = nullptr;
 
   // compiler flags are needed to detect imports from __future__, so they are
   // available for subsequent executions
   PyCompilerFlags m_compiler_flags;
 
-  std::map<PyObject *, std::shared_ptr<shcore::Object_bridge>> _modules;
-
+  void register_mysqlsh_builtins();
   void register_mysqlsh_module();
 
   bool raw_execute_helper(const std::string &statement, std::string *error);

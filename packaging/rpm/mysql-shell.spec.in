@@ -199,7 +199,6 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %doc README
 %{_bindir}/mysqlsh
 %{_bindir}/mysql-secret-store-login-path
-%{_datadir}/mysqlsh/mysqlprovision.zip
 %{_datadir}/mysqlsh/prompt/*
 %if 0%{?with_oci:1}
 %{_datadir}/mysqlsh/oci_sdk/*
@@ -218,6 +217,7 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_prefix}/lib/mysqlsh/libpython*
 %endif
 %endif
+%{_prefix}/lib/mysqlsh/python-packages/*
 
 %changelog
 * Thu May 16 2019 Balasubramanian Kandasamy <balasubramanian.kandasamy@oracle.com> - 8.0.17-1

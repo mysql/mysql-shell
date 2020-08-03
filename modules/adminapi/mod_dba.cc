@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -597,20 +597,13 @@ void Dba::init() {
          "?instanceDef", "?options");
   expose("createReplicaSet", &Dba::create_replica_set, "name", "?options");
   expose("getReplicaSet", &Dba::get_replica_set);
-
-  std::string local_mp_path =
-      mysqlsh::current_shell_options()->get().gadgets_path;
-
-  if (local_mp_path.empty()) local_mp_path = shcore::get_mp_path();
-
-  _provisioning_interface.reset(new ProvisioningInterface(local_mp_path));
 }
 
 void Dba::set_member(const std::string &prop, shcore::Value value) {
   if (prop == "verbose") {
     try {
       int verbosity = value.as_int();
-      _provisioning_interface->set_verbose(verbosity);
+      _provisioning_interface.set_verbose(verbosity);
     } catch (const shcore::Exception &e) {
       throw shcore::Exception::value_error(
           "Invalid value for property 'verbose', use either boolean or integer "
@@ -651,7 +644,7 @@ shcore::Value Dba::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
   if (prop == "verbose") {
-    ret_val = shcore::Value(_provisioning_interface->get_verbose());
+    ret_val = shcore::Value(_provisioning_interface.get_verbose());
   } else {
     ret_val = Cpp_object_bridge::get_member(prop);
   }
@@ -1762,19 +1755,19 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
   int rc = 0;
   if (function == "deploy") {
     // First we need to create the instance
-    rc = _provisioning_interface->create_sandbox(
+    rc = _provisioning_interface.create_sandbox(
         port, portx, sandbox_dir, password, mycnf_options, true,
         ignore_ssl_error, 0, "", &errors);
   } else if (function == "delete") {
-    rc = _provisioning_interface->delete_sandbox(port, sandbox_dir, false,
-                                                 &errors);
+    rc = _provisioning_interface.delete_sandbox(port, sandbox_dir, false,
+                                                &errors);
   } else if (function == "kill") {
-    rc = _provisioning_interface->kill_sandbox(port, sandbox_dir, &errors);
+    rc = _provisioning_interface.kill_sandbox(port, sandbox_dir, &errors);
   } else if (function == "stop") {
-    rc = _provisioning_interface->stop_sandbox(port, sandbox_dir, password,
-                                               &errors);
+    rc = _provisioning_interface.stop_sandbox(port, sandbox_dir, password,
+                                              &errors);
   } else if (function == "start") {
-    rc = _provisioning_interface->start_sandbox(port, sandbox_dir, &errors);
+    rc = _provisioning_interface.start_sandbox(port, sandbox_dir, &errors);
   }
 
   if (rc != 0) {

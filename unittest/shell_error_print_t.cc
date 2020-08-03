@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,17 +59,11 @@ TEST_F(Shell_error_printing, python_stack) {
 
   wipe_all();
   execute("1/0");
-#ifdef IS_PY3K
-#define ERROR_MSG "division by zero"
-#else
-#define ERROR_MSG "integer division or modulo by zero"
-#endif
   EXPECT_EQ(
       "Traceback (most recent call last):\n"
       "  File \"<string>\", line 1, in <module>\n"
-      "ZeroDivisionError: " ERROR_MSG "\n",
+      "ZeroDivisionError: division by zero\n",
       output_handler.std_err);
-#undef ERROR_MSG
 
   wipe_all();
   execute("raise KeyboardInterrupt()");

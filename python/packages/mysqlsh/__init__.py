@@ -1,5 +1,4 @@
-#
-# Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2020, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -19,4 +18,32 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
-#
+
+class DBError(Exception):
+    def __init__(self, code, msg, sqlstate=None):
+        self.code = code
+        self.msg = msg
+        self.args = (code, msg)
+
+    def __str__(self):
+        return 'MySQL Error (%s): %s' % (self.code, self.msg)
+
+class ShellGlobals(object):
+    def __setattr__(self, name, value):
+        self.__dict__[name] = value
+
+    def __delattr__(self, name):
+        del self.__dict__[name]
+
+    def __getattr__(self, name):
+        # backwards comaptibility
+        if name == "mysql":
+            return mysql
+        elif name == "mysqlx":
+            return mysqlx
+        return self.__dict__[name]
+
+globals = ShellGlobals()
+
+del ShellGlobals
+

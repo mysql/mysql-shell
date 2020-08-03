@@ -1708,12 +1708,6 @@ void Shell_py_script_tester::set_defaults() {
 #else
   exec_and_out_equals("__have_javascript = False");
 #endif
-
-#ifdef IS_PY3K
-  exec_and_out_equals("__is_python_3 = True");
-#else
-  exec_and_out_equals("__is_python_3 = False");
-#endif
 }
 
 std::string Shell_script_tester::get_current_mode_command() {

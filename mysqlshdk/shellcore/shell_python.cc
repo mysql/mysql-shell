@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,7 +31,7 @@
 
 #include "pythread.h"
 
-#if defined(_WIN32) && defined(IS_PY3K)
+#if defined(_WIN32)
 #include <windows.h>
 #endif
 
@@ -114,32 +114,15 @@ void Shell_python::abort() noexcept {
   // signal which is going to be picked up by PyErr_CheckSignals().
   PyErr_SetInterrupt();
 
-#if defined(_WIN32) && defined(IS_PY3K)
+#if defined(_WIN32)
   // Python's signal handler is not installed, we need to manually trigger the
   // event to make sure that time.sleep() is interrupted
   SetEvent(_PyOS_SigintEvent());
 #endif
 }
 
-bool Shell_python::is_module(const std::string &file_name) {
-  bool ret_val = false;
-
-  try {
-    WillEnterPython lock;
-
-    ret_val = _py->is_module(file_name);
-  } catch (const std::exception &exc) {
-    mysqlsh::current_console()->print_diag(
-        std::string("Exception while loading ")
-            .append(file_name)
-            .append(": ")
-            .append(exc.what()));
-  }
-
-  return ret_val;
-}
-
-void Shell_python::execute_module(const std::string &file_name) {
+void Shell_python::execute_module(const std::string &module_name,
+                                  const std::vector<std::string> &args) {
   shcore::Interrupt_handler inth([this]() {
     abort();
     return true;
@@ -149,13 +132,13 @@ void Shell_python::execute_module(const std::string &file_name) {
   try {
     WillEnterPython lock;
 
-    ret_val = _py->execute_module(file_name, _owner->get_input_args());
+    ret_val = _py->execute_module(module_name, args);
 
     _result_processor(ret_val, ret_val.type == shcore::Undefined);
   } catch (const std::exception &exc) {
     mysqlsh::current_console()->print_diag(
         std::string("Exception while loading ")
-            .append(file_name)
+            .append(module_name)
             .append(": ")
             .append(exc.what()));
     // Should shcore::Exceptions bubble up??

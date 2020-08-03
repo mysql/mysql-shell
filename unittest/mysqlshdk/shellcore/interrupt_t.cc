@@ -1090,12 +1090,9 @@ TEST_F(Interrupt_mysql, python) {
   // Test case for FR4 Py
   execute("\\py");
   execute("import time");
-#ifdef IS_PY3K
-  execute("xrange = range");
-#endif
   execute(
       "def sleep():\n"
-      "  for i in xrange(1000000000): time.sleep(0.1)");
+      "  for i in range(1000000000): time.sleep(0.1)");
   std::thread thd = mysqlsh::spawn_scoped_thread([this]() {
     output_wait("READY", 3);
     shcore::current_interrupt()->interrupt();

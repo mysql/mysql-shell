@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -101,17 +101,10 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
     } else {
       retval = Value(value);
     }
-#if PY_VERSION_HEX >= 0x2060000
   } else if (PyByteArray_Check(py)) {
     return Value(PyByteArray_AsString(py), PyByteArray_Size(py));
-#endif  // PY_VERSION_HEX >= 0x2060000
-#ifdef IS_PY3K
   } else if (PyBytes_Check(py)) {
     return Value(PyBytes_AsString(py), PyBytes_Size(py));
-#else   // !IS_PY3K
-  } else if (PyString_Check(py)) {
-    return Value(PyString_AsString(py), PyString_Size(py));
-#endif  // !IS_PY3K
   } else if (PyUnicode_Check(py)) {
     // TODO: In case of error calls ourself using NULL, either handle here
     // before calling recursively or always allow NULL

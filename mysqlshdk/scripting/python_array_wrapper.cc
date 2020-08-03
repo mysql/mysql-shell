@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,13 +49,8 @@ static int list_init(PyShListObject *self, PyObject *args, PyObject *kwds) {
 
   if (valueptr) {
     try {
-#ifdef IS_PY3K
       self->array->reset(static_cast<Value::Array_type *>(
           PyCapsule_GetPointer(valueptr, NULL)));
-#else
-      self->array->reset(
-          static_cast<Value::Array_type *>(PyCObject_AsVoidPtr(valueptr)));
-#endif
     } catch (const std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;

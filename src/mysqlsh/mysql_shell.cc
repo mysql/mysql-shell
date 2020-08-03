@@ -706,6 +706,7 @@ void Mysql_shell::get_startup_scripts(File_list *file_list) {
     });
   }
 }
+
 /**
  * Search for initialization files at the given dir, adding them to file_list
  * whenever the file type is supported.
@@ -792,9 +793,16 @@ bool Mysql_shell::get_plugins(File_list *file_list, const std::string &dir,
 
 void Mysql_shell::get_plugins(File_list *file_list) {
   const auto initial_mode = _shell->interactive_mode();
-  const std::string plugin_directories[] = {
-      shcore::path::join_path(shcore::get_share_folder(), "plugins"),
-      shcore::path::join_path(shcore::get_user_config_path(), "plugins")};
+  std::vector<std::string> plugin_directories;
+
+  if (!options().plugins_path.is_null()) {
+    plugin_directories = shcore::split_string(
+        *options().plugins_path, shcore::path::pathlist_separator_s);
+  } else {
+    plugin_directories = {
+        shcore::path::join_path(shcore::get_library_folder(), "plugins"),
+        shcore::path::join_path(shcore::get_user_config_path(), "plugins")};
+  }
 
   // A plugin is contained in a folder inside of the pre-defined "plugin"
   // directories, and it contains strictly one of the initialization files.

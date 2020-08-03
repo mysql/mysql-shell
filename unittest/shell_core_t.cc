@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2020, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -232,11 +232,7 @@ TEST_F(Shell_core_test, python_dictionary_key_handling) {
 
   // Tests an object key retrieves it's string representation
   _interactive_shell->process_line("{type:'sample'}");
-#ifdef IS_PY3K
 #define CLASS_KEYWORD "class"
-#else
-#define CLASS_KEYWORD "type"
-#endif
   MY_EXPECT_STDOUT_CONTAINS("\"<" CLASS_KEYWORD " 'type'>\": \"sample\"");
 #undef CLASS_KEYWORD
   wipe_all();
