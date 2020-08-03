@@ -67,6 +67,8 @@ bool is_fifo(const std::string &path);
  *
  * @param path Path to file.
  * @return Size of file under the path, in bytes.
+ *
+ * throws std::runtime_error if retrieving the size fails
  */
 size_t file_size(const char *path);
 size_t file_size(const std::string &path);

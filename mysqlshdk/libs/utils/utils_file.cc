@@ -384,24 +384,22 @@ bool is_fifo(const std::string &path) { return is_fifo(path.c_str()); }
 size_t file_size(const char *path) {
 #if defined(_WIN32)
   struct _stat64 file_stat = {};
-  if (_stat64(path, &file_stat) != 0) {
-    return 0;
-  }
-  const __int64 filesize = file_stat.st_size;
+  const auto ret = _wstat64(utf8_to_wide(path).c_str(), &file_stat);
 #elif defined(__APPLE__) || defined(__SUNPRO_CC)
   struct stat file_stat = {};
-  if (::stat(path, &file_stat) != 0) {
-    return 0;
-  }
-  const off_t filesize = file_stat.st_size;
+  const auto ret = ::stat(path, &file_stat);
 #else
   struct stat64 file_stat = {};
-  if (stat64(path, &file_stat) != 0) {
-    return 0;
-  }
-  const off64_t filesize = file_stat.st_size;
+  const auto ret = stat64(path, &file_stat);
 #endif
-  return filesize;
+
+  if (0 != ret) {
+    throw std::runtime_error(
+        str_format("Failed to get the file size of '%s': %s", path,
+                   errno_to_string(errno).c_str()));
+  }
+
+  return file_stat.st_size;
 }
 
 size_t file_size(const std::string &path) { return file_size(path.c_str()); }
