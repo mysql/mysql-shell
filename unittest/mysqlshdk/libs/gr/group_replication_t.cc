@@ -185,7 +185,7 @@ TEST_F(Group_replication_test, create_recovery_user) {
       mysqlshdk::gr::check_replication_user(*m_instance, "test_gr_user", "%");
   EXPECT_FALSE(res.user_exists());
   EXPECT_EQ(std::set<std::string>{"REPLICATION SLAVE"},
-            res.get_missing_privileges());
+            res.missing_privileges());
   EXPECT_TRUE(res.has_missing_privileges());
   EXPECT_FALSE(res.has_grant_option());
 
@@ -197,7 +197,7 @@ TEST_F(Group_replication_test, create_recovery_user) {
   res = mysqlshdk::gr::check_replication_user(*m_instance, "test_gr_user", "%");
 
   EXPECT_TRUE(res.user_exists());
-  EXPECT_EQ(std::set<std::string>{}, res.get_missing_privileges());
+  EXPECT_EQ(std::set<std::string>{}, res.missing_privileges());
   EXPECT_FALSE(res.has_missing_privileges());
   EXPECT_FALSE(res.has_grant_option());
   EXPECT_EQ(creds.user, "test_gr_user");
@@ -215,7 +215,7 @@ TEST_F(Group_replication_test, create_recovery_user) {
   res = mysqlshdk::gr::check_replication_user(*m_instance, "test_gr_user", "%");
 
   EXPECT_TRUE(res.user_exists());
-  EXPECT_EQ(std::set<std::string>{}, res.get_missing_privileges());
+  EXPECT_EQ(std::set<std::string>{}, res.missing_privileges());
   EXPECT_FALSE(res.has_missing_privileges());
   EXPECT_FALSE(res.has_grant_option());
   EXPECT_EQ(creds.user, "test_gr_user");

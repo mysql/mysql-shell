@@ -23,17 +23,20 @@
 
 #include "modules/util/dump/dump_schemas_options.h"
 
+#include <set>
 #include <utility>
 
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
 namespace dump {
 
 Dump_schemas_options::Dump_schemas_options(
     const std::vector<std::string> &schemas, const std::string &output_url)
-    : Ddl_dumper_options(output_url),
-      m_schemas(schemas.begin(), schemas.end()) {}
+    : Ddl_dumper_options(output_url) {
+  m_included_schemas.insert(schemas.begin(), schemas.end());
+}
 
 Dump_schemas_options::Dump_schemas_options(const std::string &output_url)
     : Ddl_dumper_options(output_url) {}
@@ -74,6 +77,8 @@ void Dump_schemas_options::unpack_options(shcore::Option_unpacker *unpacker) {
 
   if (mds) {
     set_mds_compatibility(mysqlshdk::utils::Version(MYSH_VERSION));
+    // if MDS compatibility option is set, mysql schema should not be dumped
+    m_excluded_schemas.emplace("mysql");
   }
 
   for (const auto &option : compatibility_options) {
@@ -84,9 +89,18 @@ void Dump_schemas_options::unpack_options(shcore::Option_unpacker *unpacker) {
 void Dump_schemas_options::validate_options() const {
   Ddl_dumper_options::validate_options();
 
-  if (m_schemas.empty()) {
+  if (m_included_schemas.empty()) {
     throw std::invalid_argument(
         "The 'schemas' parameter cannot be an empty list.");
+  }
+
+  const auto missing = find_missing(m_included_schemas);
+
+  if (!missing.empty()) {
+    throw std::invalid_argument(
+        "Following schemas were not found in the database: " +
+        shcore::str_join(missing, ", ",
+                         [](const std::string &s) { return "'" + s + "'"; }));
   }
 }
 

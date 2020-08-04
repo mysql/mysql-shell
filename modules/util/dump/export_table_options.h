@@ -93,6 +93,8 @@ class Export_table_options : public Dump_options {
         OBJECT_STORAGE_NO_PAR_SUPPORT;
   }
 
+  void set_includes();
+
   std::string m_schema;
   std::string m_table;
 };

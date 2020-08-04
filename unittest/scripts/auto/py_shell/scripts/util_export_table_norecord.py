@@ -770,6 +770,10 @@ for i in range(1, 5):
 # identifier may not end with a space character
 tested_schema = tested_schema + "a"
 
+if __os_type == "windows":
+    # dumper is using case-sensitive comparison, ensure schema name is lowercase
+    tested_schema = tested_schema.lower()
+
 tested_name = tested_schema
 
 session.run_sql("CREATE SCHEMA !;", [tested_schema])
@@ -792,6 +796,10 @@ for i in range(1, 21):
 
 # identifier may not end with a space character
 new_tested_name = new_tested_name + "a"
+
+if __os_type == "windows":
+    # dumper is using case-sensitive comparison, ensure table name is lowercase
+    new_tested_name = new_tested_name.lower()
 
 session.run_sql("ALTER TABLE !.! CHANGE ! ! INT, RENAME TO !.!;", [ tested_schema, tested_name, tested_name, new_tested_name, tested_schema, new_tested_name ])
 

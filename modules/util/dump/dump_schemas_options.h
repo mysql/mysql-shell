@@ -50,13 +50,6 @@ class Dump_schemas_options : public Ddl_dumper_options {
 
   virtual ~Dump_schemas_options() = default;
 
-  const std::unordered_set<std::string> &schemas() const { return m_schemas; }
-
-  const std::unordered_map<std::string, std::set<std::string>>
-      &excluded_tables() const {
-    return m_excluded_tables;
-  }
-
   bool dump_events() const override { return m_dump_events; }
 
   bool dump_routines() const override { return m_dump_routines; }
@@ -78,9 +71,6 @@ class Dump_schemas_options : public Ddl_dumper_options {
   mysqlshdk::oci::Oci_options::Unpack_target oci_target() const override {
     return mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE;
   }
-
-  std::unordered_set<std::string> m_schemas;
-  std::unordered_map<std::string, std::set<std::string>> m_excluded_tables;
 
   bool m_dump_events = true;
   bool m_dump_routines = true;

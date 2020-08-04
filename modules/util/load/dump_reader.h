@@ -64,6 +64,10 @@ class Dump_reader {
 
   const std::string &gtid_executed() const { return m_contents.gtid_executed; }
 
+  bool gtid_executed_inconsistent() const {
+    return m_contents.gtid_executed_inconsistent;
+  }
+
   bool tz_utc() const { return m_contents.tz_utc; }
 
   bool table_only() const { return m_contents.table_only; }
@@ -303,6 +307,7 @@ class Dump_reader {
 
     std::string default_charset;
     std::string gtid_executed;
+    bool gtid_executed_inconsistent = false;
     bool tz_utc = true;
     bool mds_compatibility = false;
     bool table_only = false;

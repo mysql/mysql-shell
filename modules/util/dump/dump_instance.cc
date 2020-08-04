@@ -27,11 +27,7 @@ namespace mysqlsh {
 namespace dump {
 
 Dump_instance::Dump_instance(const Dump_instance_options &options)
-    : Dump_schemas(options), m_options(options) {}
-
-const std::unordered_set<std::string> &Dump_instance::excluded_schemas() const {
-  return m_options.excluded_schemas();
-}
+    : Dump_schemas(options) {}
 
 }  // namespace dump
 }  // namespace mysqlsh

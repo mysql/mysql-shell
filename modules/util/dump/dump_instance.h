@@ -46,15 +46,8 @@ class Dump_instance : public Dump_schemas {
 
   virtual ~Dump_instance() = default;
 
- protected:
-  bool dump_all_schemas() const override { return true; }
-
-  const std::unordered_set<std::string> &excluded_schemas() const override;
-
  private:
   const char *name() const override { return "dumpInstance"; }
-
-  const Dump_instance_options &m_options;
 };
 
 }  // namespace dump

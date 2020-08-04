@@ -684,7 +684,8 @@ bool User_privileges_result::has_missing_privileges() const {
   }
 }
 
-std::set<std::string> User_privileges_result::get_missing_privileges() const {
+const std::set<std::string> &User_privileges_result::missing_privileges()
+    const {
   return m_missing_privileges;
 }
 

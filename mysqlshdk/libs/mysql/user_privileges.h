@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -296,7 +296,7 @@ class User_privileges_result {
    * @return A set of privileges which user lacks. This set is empty if user has
    *         all the required privileges.
    */
-  std::set<std::string> get_missing_privileges() const;
+  const std::set<std::string> &missing_privileges() const;
 
  private:
   bool m_user_exists = false;

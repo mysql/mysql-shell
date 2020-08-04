@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_TEXTUI_PROGRESS_H__
 #define MYSQLSHDK_LIBS_TEXTUI_PROGRESS_H__
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -107,12 +108,35 @@ class Progress_vt100 : public Progress {
 class Spinny_stick {
  public:
   explicit Spinny_stick(const std::string &label) : m_label(label) {}
+  virtual ~Spinny_stick() = default;
+
   void update();
   void done(const std::string &text);
 
  private:
   std::string m_label;
   int m_step = 0;
+};
+
+class Threaded_spinny_stick : Spinny_stick {
+ public:
+  explicit Threaded_spinny_stick(const std::string &label,
+                                 const std::string &done = "",
+                                 uint32_t update_every_ms = 250);
+
+  Threaded_spinny_stick(const Threaded_spinny_stick &) = delete;
+  Threaded_spinny_stick(Threaded_spinny_stick &&) = delete;
+
+  Threaded_spinny_stick &operator=(const Threaded_spinny_stick &) = delete;
+  Threaded_spinny_stick &operator=(Threaded_spinny_stick &&) = delete;
+
+  ~Threaded_spinny_stick() override;
+
+  void start();
+
+ private:
+  class Impl;
+  std::unique_ptr<Impl> m_impl;
 };
 
 }  // namespace textui

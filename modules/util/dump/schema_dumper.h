@@ -60,11 +60,6 @@ class Schema_dumper {
     Status status;
   };
 
-  struct Histogram {
-    std::string column;
-    std::size_t buckets;
-  };
-
   explicit Schema_dumper(const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
                          const std::vector<std::string>
                              &mysqlaas_supported_charsets = {"utf8mb4"});
@@ -111,8 +106,8 @@ class Schema_dumper {
       const std::vector<shcore::Account> &included,
       const std::vector<shcore::Account> &excluded);
 
-  std::vector<Histogram> get_histograms(const std::string &db_name,
-                                        const std::string &table_name);
+  std::vector<Instance_cache::Histogram> get_histograms(
+      const std::string &db_name, const std::string &table_name);
 
   // Must be called for each file
   void write_header(IFile *sql_file);
@@ -288,7 +283,8 @@ class Schema_dumper {
 
   int start_transaction();
 
-  char check_if_ignore_table(const std::string &table_name,
+  char check_if_ignore_table(const std::string &db,
+                             const std::string &table_name,
                              std::string *out_table_type);
 
   bool is_binlog_disabled = false;

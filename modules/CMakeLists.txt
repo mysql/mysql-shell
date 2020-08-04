@@ -45,7 +45,6 @@ file(GLOB api_module_SOURCES
       "util/dump/dump_options.cc"
       "util/dump/dump_schemas.cc"
       "util/dump/dump_schemas_options.cc"
-      "util/dump/dump_tables.cc"
       "util/dump/dump_tables_options.cc"
       "util/dump/dump_utils.cc"
       "util/dump/dump_writer.cc"

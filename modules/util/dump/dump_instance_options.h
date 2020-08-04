@@ -26,7 +26,6 @@
 
 #include <memory>
 #include <string>
-#include <unordered_set>
 
 #include "modules/util/dump/dump_schemas_options.h"
 
@@ -46,10 +45,6 @@ class Dump_instance_options : public Dump_schemas_options {
 
   virtual ~Dump_instance_options() = default;
 
-  const std::unordered_set<std::string> &excluded_schemas() const {
-    return m_excluded_schemas;
-  }
-
   bool dump_users() const override { return m_dump_users; }
 
  private:
@@ -60,7 +55,6 @@ class Dump_instance_options : public Dump_schemas_options {
 
   void validate_options() const override;
 
-  std::unordered_set<std::string> m_excluded_schemas;
   bool m_dump_users = true;
 };
 

@@ -1012,6 +1012,12 @@ void Dump_loader::on_dump_end() {
       current_console()->print_status("GTID_PURGED already updated");
       log_info("GTID_PURGED already updated");
     } else if (!m_dump->gtid_executed().empty()) {
+      if (m_dump->gtid_executed_inconsistent()) {
+        current_console()->print_warning(
+            "The gtid update requested, but gtid_executed was not guaranteed "
+            "to be consistent during the dump");
+      }
+
       try {
         m_load_log->start_gtid_update();
 

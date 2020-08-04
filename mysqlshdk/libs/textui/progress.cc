@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,12 @@
  */
 
 #include "mysqlshdk/libs/textui/progress.h"
+
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+
 #include "mysqlshdk/libs/textui/term_vt100.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -173,6 +179,72 @@ void Spinny_stick::update() {
 void Spinny_stick::done(const std::string &text) {
   printf("%s %s\n", m_label.c_str(), text.c_str());
 }
+
+class Threaded_spinny_stick::Impl {
+ public:
+  Impl(Threaded_spinny_stick *parent, const std::string &done,
+       uint32_t update_every_ms)
+      : m_parent(parent), m_done(done), m_update_every_ms(update_every_ms) {}
+
+  ~Impl() {
+    if (m_started) {
+      terminate();
+
+      m_thread.join();
+    }
+  }
+
+  void start() {
+    m_thread = std::thread([this]() {
+      while (!m_finished) {
+        m_parent->update();
+        wait();
+      }
+
+      m_parent->done(m_done);
+    });
+
+    m_started = true;
+  }
+
+ private:
+  void wait() {
+    std::unique_lock<std::mutex> lock(m_mutex);
+
+    m_condition.wait_for(lock, std::chrono::milliseconds(m_update_every_ms),
+                         [this]() { return m_finished; });
+  }
+
+  void terminate() {
+    {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      m_finished = true;
+    }
+
+    m_condition.notify_one();
+  }
+
+  Threaded_spinny_stick *m_parent;
+
+  const std::string m_done;
+  const uint32_t m_update_every_ms;
+
+  std::thread m_thread;
+  std::mutex m_mutex;
+  std::condition_variable m_condition;
+  bool m_started = false;
+  volatile bool m_finished = false;
+};
+
+Threaded_spinny_stick::Threaded_spinny_stick(const std::string &label,
+                                             const std::string &done,
+                                             uint32_t update_every_ms)
+    : Spinny_stick(label),
+      m_impl(std::make_unique<Impl>(this, done, update_every_ms)) {}
+
+Threaded_spinny_stick::~Threaded_spinny_stick() = default;
+
+void Threaded_spinny_stick::start() { m_impl->start(); }
 
 }  // namespace textui
 }  // namespace mysqlshdk

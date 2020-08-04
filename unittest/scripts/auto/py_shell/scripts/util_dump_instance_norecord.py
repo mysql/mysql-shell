@@ -1354,7 +1354,7 @@ for table in types_schema_tables:
 
 #@<> test privileges required to dump an instance
 class PrivilegeError:
-    def __init__(self, exception_message, error_message="", exception_type="RuntimeError", output_dir_created=True):
+    def __init__(self, exception_message, error_message="", exception_type="RuntimeError", output_dir_created=False):
         self.exception_message = exception_message
         self.error_message = error_message
         self.exception_type = exception_type
@@ -1362,41 +1362,39 @@ class PrivilegeError:
 
 # if this list ever changes, online docs need to be updated
 required_privileges = {
-    "EVENT": PrivilegeError(
-        "Could not execute 'show events': MySQL Error 1044 (42000): Access denied for user '{0}'@'{1}'".format(test_user, __host)
+    "EVENT": PrivilegeError(  # database-level privilege
+        re.compile(r"User '{0}'@'{1}' is missing the following privilege\(s\) for schema `.+`: EVENT.".format(test_user, __host))
     ),
-    "RELOAD": PrivilegeError(
+    "RELOAD": PrivilegeError(  # global privilege
         "Unable to lock tables: MySQL Error 1044 (42000): Access denied for user '{0}'@'{1}'".format(test_user, __host),
-        "ERROR: Unable to acquire global read lock neither table read locks.",
-        output_dir_created=False
+        "ERROR: Unable to acquire global read lock neither table read locks."
     ),
-    "SELECT": PrivilegeError(
+    "SELECT": PrivilegeError(  # table-level privilege
         "Fatal error during dump",
-        "MySQL Error 1142 (42000): SELECT command denied to user '{0}'@'{1}' for table '".format(test_user, __host)
+        "MySQL Error 1142 (42000): SELECT command denied to user '{0}'@'{1}' for table '".format(test_user, __host),
+        output_dir_created=True
     ),
-    "SHOW VIEW": PrivilegeError(
+    "SHOW VIEW": PrivilegeError(  # table-level privilege
         "Fatal error during dump",
         "MySQL Error 1142 (42000): SHOW VIEW command denied to user '{0}'@'{1}'".format(test_user, __host),
+        output_dir_created=True
     ),
-    "TRIGGER": PrivilegeError(
-        re.compile(r"It is not possible to check if table `.+`\.`.+` has any triggers, user is missing the TRIGGER privilege."),
-        output_dir_created=False
+    "TRIGGER": PrivilegeError(  # table-level privilege
+        re.compile(r"User '{0}'@'{1}' is missing the following privilege\(s\) for table `.+`\.`.+`: TRIGGER.".format(test_user, __host))
     ),
 }
 
 if __version_num >= 80000:
     # when running a consistent dump on 8.0, LOCK INSTANCE FOR BACKUP is executed, which requires BACKUP_ADMIN privilege
-    required_privileges["BACKUP_ADMIN"] = PrivilegeError(
+    required_privileges["BACKUP_ADMIN"] = PrivilegeError(  # global privilege
         "Access denied; you need (at least one of) the BACKUP_ADMIN privilege(s) for this operation",
         "ERROR: Could not acquire backup lock: MySQL Error 1227 (42000): Access denied; you need (at least one of) the BACKUP_ADMIN privilege(s) for this operation",
-        "DBError: MySQL Error (1227)",
-        False
+        "DBError: MySQL Error (1227)"
     )
     # 8.0 has roles which are checked prior to running the dump, if user is missing the SELECT privilege, error will be reported at this stage
-    required_privileges["SELECT"] = PrivilegeError(
+    required_privileges["SELECT"] = PrivilegeError(  # table-level privilege
         "Unable to get roles information.",
-        "ERROR: Unable to check privileges for user '{0}'@'{1}'. User requires SELECT privilege on mysql.* to obtain information about all roles.".format(test_user, __host),
-        output_dir_created=False
+        "ERROR: Unable to check privileges for user '{0}'@'{1}'. User requires SELECT privilege on mysql.* to obtain information about all roles.".format(test_user, __host)
     )
 
 # setup the user, grant only required privileges
@@ -1413,6 +1411,14 @@ root_session = mysql.get_session(uri)
 
 # user has all the required privileges, this should succeed
 EXPECT_SUCCESS(all_schemas, test_output_absolute, { "showProgress": False })
+# check if events are here
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` EVENT IF NOT EXISTS `{2}`".format(__user, __host, test_schema_event), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+# check if routines are here
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` PROCEDURE `{2}`".format(__user, __host, test_schema_procedure), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` FUNCTION `{2}`".format(__user, __host, test_schema_function), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+# check is users are here
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, "@.users.sql")))
+# check if triggers are here
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".triggers.sql")))
 
 # check if revoking one of the privileges results in a failure

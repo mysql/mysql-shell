@@ -108,6 +108,11 @@ Dump_reader::Status Dump_reader::open() {
   if (md->has_key("gtidExecuted"))
     m_contents.gtid_executed = md->get_string("gtidExecuted");
 
+  if (md->has_key("gtidExecutedInconsistent")) {
+    m_contents.gtid_executed_inconsistent =
+        md->get_bool("gtidExecutedInconsistent");
+  }
+
   if (md->has_key("tzUtc")) m_contents.tz_utc = md->get_bool("tzUtc");
 
   if (md->has_key("mdsCompatibility"))

@@ -49,12 +49,6 @@ class Dump_schemas : public Dumper {
   virtual ~Dump_schemas() = default;
 
  protected:
-  void create_schema_tasks() override;
-
-  virtual bool dump_all_schemas() const { return false; }
-
-  virtual const std::unordered_set<std::string> &excluded_schemas() const;
-
   std::unique_ptr<Schema_dumper> schema_dumper(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const override;
 
@@ -63,14 +57,8 @@ class Dump_schemas : public Dumper {
 
   void summary() const override {}
 
-  void on_create_table_task(const Table_task &) override {}
-
-  std::vector<Table_info> get_tables(const std::string &schema);
-
-  std::vector<Table_info> get_views(const std::string &schema);
-
-  std::vector<Table_info> get_tables(const std::string &schema,
-                                     const std::string &type);
+  void on_create_table_task(const std::string &, const std::string &,
+                            const Instance_cache::Table *) override {}
 
   const Dump_schemas_options &m_options;
 };

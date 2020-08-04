@@ -82,6 +82,7 @@ session2.run_sql("create user testuser@'%'")
 session2.run_sql("grant select, delete on *.* to testuser@'%'")
 session2.run_sql("create user myuser@'%'")
 session2.run_sql("grant all on mysql.* to myuser@'%'")
+session2.run_sql("CREATE SCHEMA test_schema")
 
 shell.connect(__sandbox_uri2)
 

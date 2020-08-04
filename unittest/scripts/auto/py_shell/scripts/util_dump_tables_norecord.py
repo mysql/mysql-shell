@@ -1153,7 +1153,7 @@ EXPECT_FAIL("ValueError", "Directory handling for oci+os protocol is not support
 
 #@<> WL13804-TSFR_9_1_2
 tested_schema = test_schema
-tested_table = "TSFR_9_1_2"
+tested_table = "tsfr_9_1_2"
 
 session.run_sql("""CREATE TABLE !.! (
     ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -1194,7 +1194,7 @@ session.run_sql("DROP TABLE !.!;", [ tested_schema, tested_table ])
 
 #@<> WL13804-TSFR_9_1_3
 tested_schema = test_schema
-tested_table = "TSFR_9_1_3"
+tested_table = "tsfr_9_1_3"
 
 session.run_sql("""CREATE TABLE !.! (
     ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -1222,7 +1222,7 @@ session.run_sql("DROP TABLE !.!;", [ tested_schema, tested_table ])
 
 #@<> WL13804-TSFR_9_1_4
 tested_schema = test_schema
-tested_table = "TSFR_9_1_4"
+tested_table = "tsfr_9_1_4"
 
 session.run_sql("""CREATE TABLE !.! (
     ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -1267,7 +1267,7 @@ session.run_sql("DROP TABLE !.!;", [ tested_schema, tested_table ])
 
 #@<> WL13804-TSFR_9_1_5
 tested_schema = test_schema
-tested_table = "TSFR_9_1_5"
+tested_table = "tsfr_9_1_5"
 
 session.run_sql("""CREATE TABLE !.! (
     ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -1302,7 +1302,7 @@ session.run_sql("DROP TABLE !.!;", [ tested_schema, tested_table ])
 
 #@<> WL13804-TSFR_9_1_6
 tested_schema = test_schema
-tested_table = "TEMP_TSFR_9_1_6"
+tested_table = "temp_tsfr_9_1_6"
 
 session.run_sql("""CREATE TEMPORARY TABLE !.! (
     ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -1326,7 +1326,7 @@ session.run_sql("DROP TABLE !.!;", [ tested_schema, tested_table ])
 
 #@<> WL13804-TSFR_9_1_7
 tested_schema = test_schema
-tested_table = "TSFR_9_1_7"
+tested_table = "tsfr_9_1_7"
 
 session.run_sql("""CREATE TABLE !.! (
     firstname VARCHAR(25) NOT NULL,
@@ -1354,7 +1354,7 @@ session.run_sql("DROP TABLE !.!;", [ tested_schema, tested_table ])
 
 #@<> WL13804-TSFR_9_1_8
 tested_schema = test_schema
-tested_view = "TSFR_9_1_8_VIEW"
+tested_view = "tsfr_9_1_8_view"
 
 session.run_sql("""CREATE TABLE !.TSFR_9_1_8 (
     firstname VARCHAR(25) NOT NULL,
