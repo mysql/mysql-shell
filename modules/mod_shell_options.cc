@@ -190,11 +190,11 @@ REGISTER_HELP(OPTIONS_SET_PARAM1, "@param value new value for the option.");
 Undefined Options::set(String optionName, Value value);
 #elif DOXYGEN_PY
 None Options::set(str optionName, value value);
-#endif
-
+#else
 void Options::set(const std::string &option_name, const Value &value) {
   shell_options->set_and_notify(option_name, value, false);
 }
+#endif
 
 REGISTER_HELP_FUNCTION(setPersist, options);
 REGISTER_HELP(
@@ -214,11 +214,11 @@ REGISTER_HELP(OPTIONS_SETPERSIST_PARAM1,
 Undefined Options::setPersist(String optionName, Value value);
 #elif DOXYGEN_PY
 None Options::set_persist(str optionName, value value);
-#endif
-
+#else
 void Options::set_persist(const std::string &option_name, const Value &value) {
   shell_options->set_and_notify(option_name, value, true);
 }
+#endif
 
 REGISTER_HELP_FUNCTION(unset, options);
 REGISTER_HELP(OPTIONS_UNSET_BRIEF, "Resets value of an option to default.");
