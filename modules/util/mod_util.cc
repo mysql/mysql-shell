@@ -1033,9 +1033,12 @@ Options dictionary:
 target schema
 @li <b>table</b>: string (default: filename without extension) - Name of target
 table
-@li <b>columns</b>: string array (default: empty array) - This option takes a
-array of column names as its value. The order of the column names indicates how
-to match data file columns with table columns.
+@li <b>columns</b>: array of strings and/or integers (default: empty array) -
+This option takes an array of column names as its value. The order of the column
+names indicates how to match data file columns with table columns.
+Use non-negative integer `i` to capture column value into user variable @i.
+With user variables, the decodeColumns option enables you to perform preprocessing
+transformations on their values before assigning the result to columns.
 @li <b>fieldsTerminatedBy</b>: string (default: "\t"), <b>fieldsEnclosedBy</b>:
 char (default: ''), <b>fieldsEscapedBy</b>: char (default: '\\') - These options
 have the same meaning as the corresponding clauses for LOAD DATA INFILE. For
@@ -1076,8 +1079,9 @@ customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
 fieldsEscapedBy and linesTerminatedBy options. Must be one of the following
 values: default, csv, tsv, json or csv-unix.
 @li <b>decodeColumns</b>: map (default: not set) - a map between columns names
-to decode methods (UNHEX or FROM_BASE64) to be applied on the loaded data.
-Requires 'columns' to be set.
+and SQL expressions to be applied on the loaded
+data. Column value captured in 'columns' by integer is available as user
+variable '@i', where `i` is that integer.
 @li <b>characterSet</b>: string (default: not set) -
 Interpret the information in the input file using this character set
 encoding. characterSet set to "binary" specifies "no conversion". If not set,
@@ -1127,6 +1131,61 @@ Example input data for dialects:
 "2","-12.5000","baz said: \"Where is my <TAB> char?\""<LF>
 @endcode
 
+Examples of <b>decodeColumns</b> usage:
+@li Preprocess column2:
+@code
+    util.importTable('file.txt', {
+      table: 't1',
+      columns: ['column1', 1],
+      decodeColumns: {'column2': '@1 / 100'}
+    });
+@endcode
+is equivalent to:
+@code
+    LOAD DATA LOCAL INFILE 'file.txt'
+    INTO TABLE `t1` (column1, @var1)
+    SET `column2` = @var/100;
+@endcode
+
+@li Skip columns:
+@code
+    util.importTable('file.txt', {
+      table: 't1',
+      columns: ['column1', 1, 'column2', 2, 'column3']
+    });
+@endcode
+is equivalent to:
+@code
+    LOAD DATA LOCAL INFILE 'file.txt'
+    INTO TABLE `t1` (column1, @1, column2, @2, column3);
+@endcode
+
+@li Generate values for columns:
+@code
+    util.importTable('file.txt', {
+      table: 't1',
+      columns: [1, 2],
+      decodeColumns: {
+        'a': '@1',
+        'b': '@2',
+        'sum': '@1 + @2',
+        'mul': '@1 * @2',
+        'pow': 'POW(@1, @2)'
+      }
+    });
+@endcode
+is equivalent to:
+@code
+    LOAD DATA LOCAL INFILE 'file.txt'
+    INTO TABLE `t1` (@1, @2)
+    SET
+      `a` = @1,
+      `b` = @2,
+      `sum` = @1 + @2,
+      `mul` = @1 * @2,
+      `pow` = POW(@1, @2);
+@endcode
+
 If the <b>schema</b> is not provided, an active schema on the global session, if
 set, will be used.
 
@@ -1167,9 +1226,12 @@ Each parallel connection sets the following session variables:
  * target schema
  * @li <b>table</b>: string (default: filename without extension) - Name of
  * target table
- * @li <b>columns</b>: string array (default: empty array) - This option takes a
- * array of column names as its value. The order of the column names indicates
- * how to match data file columns with table columns.
+ * @li <b>columns</b>: array of strings and/or integers (default: empty array) -
+ * This option takes an array of column names as its value. The order of the column
+ * names indicates how to match data file columns with table columns.
+ * Use non-negative integer `i` to capture column value into user variable @@i.
+ * With user variables, the decodeColumns option enables you to perform preprocessing
+ * transformations on their values before assigning the result to columns.
  * @li <b>fieldsTerminatedBy</b>: string (default: "\t"),
  * <b>fieldsEnclosedBy</b>: char (default: ''), <b>fieldsEscapedBy</b>: char
  * (default: '\\') - These options have the same meaning as the corresponding
@@ -1210,9 +1272,10 @@ Each parallel connection sets the following session variables:
  * and customized with fieldsTerminatedBy, fieldsEnclosedBy,
  * fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy options. Must
  * be one of the following values: default, csv, tsv, json or csv-unix.
- * @li <b>decodeColumns</b>: map (default: not set) - a map between columns
- * names to decode methods (UNHEX or FROM_BASE64) to be applied on the loaded
- * data. Requires 'columns' to be set.
+ * @li <b>decodeColumns</b>: map (default: not set) - a map between columns names
+ * and SQL expressions to be applied on the loaded
+ * data. Column value captured in 'columns' by integer is available as user
+ * variable '@@i', where `i` is that integer.
  * @li <b>characterSet</b>: string (default: not set) -
  * Interpret the information in the input file using this character set
  * encoding. characterSet set to "binary" specifies "no conversion". If not set,
@@ -1260,6 +1323,61 @@ Each parallel connection sets the following session variables:
  * @code{.unparsed}
  * "1","20.1000","foo said: \"Where is my bar?\""<LF>
  * "2","-12.5000","baz said: \"Where is my <TAB> char?\""<LF>
+ * @endcode
+ *
+ * Examples of <b>decodeColumns</b> usage:
+ * @li Preprocess column2:
+ * @code
+ *     util.importTable('file.txt', {
+ *       table: 't1',
+ *       columns: ['column1', 1],
+ *       decodeColumns: {'column2': '@1 / 100'}
+ *     });
+ * @endcode
+ * is equivalent to:
+ * @code
+ *     LOAD DATA LOCAL INFILE 'file.txt'
+ *     INTO TABLE `t1` (column1, @var1)
+ *     SET `column2` = @var/100;
+ * @endcode
+ *
+ * @li Skip columns:
+ * @code
+ *     util.importTable('file.txt', {
+ *       table: 't1',
+ *       columns: ['column1', 1, 'column2', 2, 'column3']
+ *     });
+ * @endcode
+ * is equivalent to:
+ * @code
+ *     LOAD DATA LOCAL INFILE 'file.txt'
+ *     INTO TABLE `t1` (column1, @1, column2, @2, column3);
+ * @endcode
+ *
+ * @li Generate values for columns:
+ * @code
+ *     util.importTable('file.txt', {
+ *       table: 't1',
+ *       columns: [1, 2],
+ *       decodeColumns: {
+ *         'a': '@1',
+ *         'b': '@2',
+ *         'sum': '@1 + @2',
+ *         'mul': '@1 * @2',
+ *         'pow': 'POW(@1, @2)'
+ *       }
+ *     });
+ * @endcode
+ * is equivalent to:
+ * @code
+ *     LOAD DATA LOCAL INFILE 'file.txt'
+ *     INTO TABLE `t1` (@1, @2)
+ *     SET
+ *       `a` = @1,
+ *       `b` = @2,
+ *       `sum` = @1 + @2,
+ *       `mul` = @1 * @2,
+ *       `pow` = POW(@1, @2);
  * @endcode
  *
  * If the <b>schema</b> is not provided, an active schema on the global session,
