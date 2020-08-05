@@ -1004,7 +1004,7 @@ REGISTER_HELP_DETAIL_TEXT(IMPORT_EXPORT_OCI_OPTIONS_DETAIL, R"*(
 @li <b>osBucketName</b>: string (default: not set) - Name of the Object Storage
 bucket to use. The bucket must already exist.
 @li <b>osNamespace</b>: string (default: not set) - Specifies the namespace
-(tenancy name) where the bucket is located, if not given it will be obtained
+where the bucket is located, if not given it will be obtained
 using the tenancy id on the OCI configuration.
 @li <b>ociConfigFile</b>: string (default: not set) - Override oci.configFile
 shell option, to specify the path to the OCI configuration file.
@@ -1432,8 +1432,8 @@ at the end of the load. Useful when loading DDL and data separately.
 @li <b>loadUsers</b>: bool (default: false) - Executes SQL scripts for user
 accounts, roles and grants contained in the dump. Note: statements for the
 current user will be skipped.
-@li <b>progressFile</b>: path (default: @<server_uuid@>.progress) - Stores
-load progress information in the given local file path.
+@li <b>progressFile</b>: path (default: load-progress.@<server_uuid@>.progress)
+- Stores load progress information in the given local file path.
 @li <b>resetProgress</b>: bool (default: false) - Discards progress information
 of previous load attempts to the destination server and loads the whole dump
 again.
@@ -1450,7 +1450,7 @@ data.
 a value other than 'off' updates GTID_PURGED by either replacing its contents
 or appending to it the gtid set present in the dump.
 @li <b>waitDumpTimeout</b>: int (default: 0) - Loads a dump while it's still
-being created. Once all available tables are processed the command will either
+being created. Once all uploaded tables are processed the command will either
 wait for more data, the dump is marked as completed or the given timeout passes.
 <= 0 disables waiting.
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
@@ -1613,8 +1613,9 @@ for the dump.)*");
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS, R"*(
 @li <b>osBucketName</b>: string (default: not set) - Use specified OCI bucket
 for the location of the dump.
-@li <b>osNamespace</b>: string (default: not set) - Specify the OCI namespace
-(tenancy name) where the OCI bucket is located.
+@li <b>osNamespace</b>: string (default: not set) - Specifies the namespace
+where the bucket is located, if not given it will be obtained
+using the tenancy id on the OCI configuration.
 @li <b>ociConfigFile</b>: string (default: not set) - Use the specified OCI
 configuration file instead of the one in the default location.
 @li <b>ociProfile</b>: string (default: not set) - Use the specified OCI profile

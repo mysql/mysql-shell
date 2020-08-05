@@ -14,7 +14,7 @@ Util.loadDump: Invalid options: bogus (ArgumentError)
 Util.loadDump: Option 'includeSchemas' is expected to be of type Array, but is String (TypeError)
 Util.loadDump: At least one of loadData, loadDdl or loadUsers options must be enabled (RuntimeError)
 Util.loadDump: At least one of loadData, loadDdl or loadUsers options must be enabled (RuntimeError)
-Util.loadDump: Option 'waitDumpTimeout' UInteger expected, but value is String (TypeError)
+Util.loadDump: Option 'waitDumpTimeout' Float expected, but value is String (TypeError)
 Util.loadDump: Option 'analyzeTables' is expected to be of type String, but is Bool (TypeError)
 Util.loadDump: Invalid value '' for analyzeTables option, allowed values: 'off', 'on', and 'histogram'. (RuntimeError)
 Util.loadDump: Invalid value 'xxx' for analyzeTables option, allowed values: 'off', 'on', and 'histogram'. (RuntimeError)
@@ -27,6 +27,13 @@ Util.loadDump: Cannot open file: [[*]]<<<filename_for_output("/.oci/config")>>>.
 
 //@<ERR> Bad Bucket Name Option {hasOciEnvironment('OS')}
 Util.loadDump: Failed opening object '@.json' in READ mode: Not Found (404) (RuntimeError)
+
+//@# progressFile errors should be reported before opening the dump
+|Loading DDL and Data from '<<<__tmp_dir>>>/ldtest/dump' using 4 threads.|
+|Opening dump...|
+|Target is MySQL |
+||
+||Util.loadDump: Cannot open file '<<<__os_type=="windows"?'\\\\?\\invalid\\unwritable':'/invalid/unwritable'>>>': No such file or directory
 
 //@# Plain load of plain dump (compressed and chunked)
 |Loading DDL and Data from '[[*]]ldtest/dump' using 4 threads.|

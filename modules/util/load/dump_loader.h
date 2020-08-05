@@ -187,6 +187,8 @@ class Dump_loader {
       std::unique_ptr<mysqlshdk::storage::IFile> m_file;
       shcore::Dictionary_t m_options;
       bool m_resume = false;
+
+      std::string query_comment() const;
     };
 
     class Analyze_table_task : public Task {

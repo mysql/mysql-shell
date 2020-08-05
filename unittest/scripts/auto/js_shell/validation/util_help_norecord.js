@@ -216,8 +216,9 @@ DESCRIPTION
         the data dump files, one of: "none", "gzip", "zstd".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
-      - osNamespace: string (default: not set) - Specify the OCI namespace
-        (tenancy name) where the OCI bucket is located.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -485,8 +486,9 @@ DESCRIPTION
         the data dump files, one of: "none", "gzip", "zstd".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
-      - osNamespace: string (default: not set) - Specify the OCI namespace
-        (tenancy name) where the OCI bucket is located.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -735,8 +737,9 @@ DESCRIPTION
         the data dump files, one of: "none", "gzip", "zstd".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
-      - osNamespace: string (default: not set) - Specify the OCI namespace
-        (tenancy name) where the OCI bucket is located.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -890,8 +893,9 @@ DESCRIPTION
         the data dump files, one of: "none", "gzip", "zstd".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
-      - osNamespace: string (default: not set) - Specify the OCI namespace
-        (tenancy name) where the OCI bucket is located.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -1217,9 +1221,9 @@ DESCRIPTION
 
       - osBucketName: string (default: not set) - Name of the Object Storage
         bucket to use. The bucket must already exist.
-      - osNamespace: string (default: not set) - Specifies the namespace
-        (tenancy name) where the bucket is located, if not given it will be
-        obtained using the tenancy id on the OCI configuration.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Override oci.configFile
         shell option, to specify the path to the OCI configuration file.
       - ociProfile: string (default: not set) - Override oci.profile shell
@@ -1402,8 +1406,8 @@ DESCRIPTION
       - loadUsers: bool (default: false) - Executes SQL scripts for user
         accounts, roles and grants contained in the dump. Note: statements for
         the current user will be skipped.
-      - progressFile: path (default: <server_uuid>.progress) - Stores load
-        progress information in the given local file path.
+      - progressFile: path (default: load-progress.<server_uuid>.progress) - 
+        Stores load progress information in the given local file path.
       - resetProgress: bool (default: false) - Discards progress information of
         previous load attempts to the destination server and loads the whole
         dump again.
@@ -1420,13 +1424,14 @@ DESCRIPTION
         value other than 'off' updates GTID_PURGED by either replacing its
         contents or appending to it the gtid set present in the dump.
       - waitDumpTimeout: int (default: 0) - Loads a dump while it's still being
-        created. Once all available tables are processed the command will
-        either wait for more data, the dump is marked as completed or the given
+        created. Once all uploaded tables are processed the command will either
+        wait for more data, the dump is marked as completed or the given
         timeout passes. <= 0 disables waiting.
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
-      - osNamespace: string (default: not set) - Specify the OCI namespace
-        (tenancy name) where the OCI bucket is located.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile

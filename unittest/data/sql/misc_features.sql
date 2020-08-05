@@ -50,6 +50,32 @@ CREATE TABLE table2 (
 );
 INSERT INTO table2 VALUES ('one','one'), ('one','two'), ('two','one'), ('three','one'), ('three','two'), ('three','three'), ('two','two'), ('two','three');
 */
+
+/* test case for when the table name is included in a comment */
+CREATE TABLE `*/` (
+  a int primary key
+);
+
+-- Functional Indexes
+
+CREATE TABLE `findextable` (
+  `data` json DEFAULT NULL
+/*!80000 , UNIQUE KEY `findextable_idx` ((cast(json_extract(`data`,_utf8mb4'$._id') as unsigned array))) */
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `findextable2` (
+  pk int primary key,
+  `data` json DEFAULT NULL
+/*!80000 , UNIQUE KEY `findextable_idx` ((cast(json_extract(`data`,_utf8mb4'$._id') as unsigned array))) */
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `findextable3` (
+  `data` json DEFAULT NULL,
+  num int default 42  /*!80000 ,
+  ts int default ((now())),
+  KEY `findextable_idx` ((num+1)) */
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Generated Columns
 
 CREATE TABLE gctable1 (

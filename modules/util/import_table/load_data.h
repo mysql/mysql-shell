@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -83,7 +83,7 @@ class Load_data_worker final {
                    volatile bool *interrupt,
                    shcore::Synchronized_queue<Range> *range_queue,
                    std::vector<std::exception_ptr> *thread_exception,
-                   Stats *stats);
+                   Stats *stats, const std::string &query_comment = "");
   Load_data_worker(const Load_data_worker &other) = default;
   Load_data_worker(Load_data_worker &&other) = default;
 
@@ -106,6 +106,7 @@ class Load_data_worker final {
   shcore::Synchronized_queue<Range> *m_range_queue;
   std::vector<std::exception_ptr> &m_thread_exception;
   Stats &m_stats;
+  std::string m_query_comment;
 };
 
 }  // namespace import_table

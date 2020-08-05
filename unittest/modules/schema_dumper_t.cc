@@ -681,17 +681,16 @@ TEST_F(Schema_dumper_test, dump_grants) {
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
   std::string out;
-  expect_output_contains({"CREATE USER IF NOT EXISTS", "ALTER USER", "GRANT"},
-                         &out);
+  expect_output_contains({"CREATE USER IF NOT EXISTS", "GRANT"}, &out);
 
-  EXPECT_NE(std::string::npos, out.find("second"));
+  EXPECT_NE(std::string::npos, out.find("'second'"));
 
   auto filtered =
       Schema_dumper::preprocess_users_script(out, [](const std::string &user) {
-        return !shcore::str_beginswith(user, "second");
+        return !shcore::str_beginswith(user, "'second'");
       });
 
-  EXPECT_EQ(std::string::npos, filtered.find("second"));
+  EXPECT_EQ(std::string::npos, filtered.find("'second'"));
 
   // cleanup
   session->execute("DROP USER 'first'@'localhost';");
@@ -778,13 +777,7 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
             "'caching_sha2_password' REQUIRE NONE PASSWORD EXPIRE ACCOUNT "
             "LOCK PASSWORD HISTORY DEFAULT PASSWORD REUSE INTERVAL DEFAULT "
             "PASSWORD REQUIRE CURRENT DEFAULT;"));
-    EXPECT_NE(std::string::npos,
-              out.find("ALTER USER 'da_dumper'@'%' IDENTIFIED WITH "
-                       "'caching_sha2_password' "
-                       "REQUIRE NONE PASSWORD EXPIRE ACCOUNT LOCK PASSWORD "
-                       "HISTORY DEFAULT "
-                       "PASSWORD REUSE INTERVAL DEFAULT PASSWORD REQUIRE "
-                       "CURRENT DEFAULT;"));
+
     EXPECT_NE(
         std::string::npos,
         out.find("GRANT INSERT, UPDATE, DELETE ON *.* TO `da_dumper`@`%`;"));
@@ -802,9 +795,8 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
 
   EXPECT_NE(std::string::npos,
             out.find("CREATE USER IF NOT EXISTS 'dumptestuser'@'localhost'"));
-  EXPECT_NE(std::string::npos, out.find("-- begin user abr@dab@localhost"));
-  EXPECT_NE(std::string::npos,
-            out.find("ALTER USER 'dumptestuser'@'localhost'"));
+  EXPECT_NE(std::string::npos, out.find("-- begin user 'abr@dab'@'localhost'"));
+
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
     EXPECT_NE(std::string::npos,
               out.find("GRANT SELECT ON *.* TO `dumptestuser`@`localhost`"));
@@ -815,9 +807,10 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
         std::string::npos,
         out.find("GRANT INSERT, UPDATE ON *.* TO `superafter`@`localhost`;"));
     EXPECT_EQ(std::string::npos, out.find("TO `superonly`@`localhost`;"));
-    EXPECT_NE(std::string::npos, out.find(R"(-- begin grants abr@dab@localhost
+    EXPECT_NE(std::string::npos, out.find(
+                                     R"(-- begin grants 'abr@dab'@'localhost'
 GRANT SELECT, INSERT, LOCK TABLES ON *.* TO `abr@dab`@`localhost`;
--- end grants abr@dab@localhost)"));
+-- end grants 'abr@dab'@'localhost')"));
   } else {
     EXPECT_NE(std::string::npos,
               out.find("GRANT SELECT ON *.* TO 'dumptestuser'@'localhost';"));
@@ -828,9 +821,10 @@ GRANT SELECT, INSERT, LOCK TABLES ON *.* TO `abr@dab`@`localhost`;
         std::string::npos,
         out.find("GRANT INSERT, UPDATE ON *.* TO 'superafter'@'localhost';"));
     EXPECT_EQ(std::string::npos, out.find("TO 'superonly'@'localhost';"));
-    EXPECT_NE(std::string::npos, out.find(R"(-- begin grants abr@dab@localhost
+    EXPECT_NE(std::string::npos,
+              out.find(R"(-- begin grants 'abr@dab'@'localhost'
 GRANT SELECT, INSERT, LOCK TABLES ON *.* TO 'abr@dab'@'localhost';
--- end grants abr@dab@localhost)"));
+-- end grants 'abr@dab'@'localhost')"));
   }
   EXPECT_EQ(std::string::npos, out.find("SUPER"));
 
@@ -985,22 +979,23 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
   auto expected_issues =
       _target_server_version < mysqlshdk::utils::Version(8, 0, 0) ?
       std::set<std::string>{
-      "User testusr1@localhost is granted restricted privileges: RELOAD, FILE, "
-      "SUPER",
-      "User testusr2@localhost is granted restricted privilege: SUPER",
-      "User testusr3@localhost is granted restricted privileges: RELOAD, FILE",
-      "User testusr4@localhost is granted restricted privilege: SUPER",
-      "User testusr5@localhost is granted restricted privilege: FILE",
-      "User testusr6@localhost is granted restricted privilege: FILE"} :
+      "User 'testusr1'@'localhost' is granted restricted privileges: RELOAD, "
+      "FILE, SUPER",
+      "User 'testusr2'@'localhost' is granted restricted privilege: SUPER",
+      "User 'testusr3'@'localhost' is granted restricted privileges: RELOAD, "
+      "FILE",
+      "User 'testusr4'@'localhost' is granted restricted privilege: SUPER",
+      "User 'testusr5'@'localhost' is granted restricted privilege: FILE",
+      "User 'testusr6'@'localhost' is granted restricted privilege: FILE"} :
       std::set<std::string>{
-        "User testusr1@localhost is granted restricted privileges: RELOAD, "
+        "User 'testusr1'@'localhost' is granted restricted privileges: RELOAD, "
         "FILE, SUPER, BINLOG_ADMIN",
-        "User testusr2@localhost is granted restricted privilege: SUPER",
-        "User testusr3@localhost is granted restricted privileges: RELOAD, "
+        "User 'testusr2'@'localhost' is granted restricted privilege: SUPER",
+        "User 'testusr3'@'localhost' is granted restricted privileges: RELOAD, "
         "FILE, BINLOG_ADMIN",
-        "User testusr4@localhost is granted restricted privilege: SUPER",
-        "User testusr5@localhost is granted restricted privilege: FILE",
-        "User testusr6@localhost is granted restricted privilege: FILE"};
+        "User 'testusr4'@'localhost' is granted restricted privilege: SUPER",
+        "User 'testusr5'@'localhost' is granted restricted privilege: FILE",
+        "User 'testusr6'@'localhost' is granted restricted privilege: FILE"};
   for (const auto &i : iss) {
     const auto it = expected_issues.find(i.description);
     if (it != expected_issues.end()) expected_issues.erase(it);
@@ -1343,39 +1338,39 @@ TEST_F(Schema_dumper_test, get_users) {
   session->execute(
       "CREATE USER IF NOT EXISTS 'second'@'10.11.12.14' IDENTIFIED BY 'pwd';");
 
-  const auto contains =
-      [](const std::vector<std::pair<std::string, std::string>> &result,
-         const std::string &account) {
-        const auto it = std::find_if(
-            result.begin(), result.end(),
-            [&account](const auto &e) { return e.first == account; });
+  const auto contains = [](const std::vector<shcore::Account> &result,
+                           const std::string &account) {
+    const auto it =
+        std::find_if(result.begin(), result.end(), [&account](const auto &e) {
+          return shcore::make_account(e) == account;
+        });
 
-        std::set<std::string> accounts;
+    std::set<std::string> accounts;
 
-        for (const auto &e : result) {
-          accounts.emplace(e.first);
-        }
+    for (const auto &e : result) {
+      accounts.emplace(shcore::make_account(e));
+    }
 
-        if (result.end() != it) {
-          return ::testing::AssertionSuccess()
-                 << "account found: " << account
-                 << ", contents: " << shcore::str_join(accounts, ", ");
-        } else {
-          return ::testing::AssertionFailure()
-                 << "account not found: " << account
-                 << ", contents: " << shcore::str_join(accounts, ", ");
-        }
-      };
+    if (result.end() != it) {
+      return ::testing::AssertionSuccess()
+             << "account found: " << account
+             << ", contents: " << shcore::str_join(accounts, ", ");
+    } else {
+      return ::testing::AssertionFailure()
+             << "account not found: " << account
+             << ", contents: " << shcore::str_join(accounts, ", ");
+    }
+  };
 
   Schema_dumper sd(session);
 
   // no filtering
   auto result = sd.get_users({}, {});
-  EXPECT_TRUE(contains(result, "first@localhost"));
-  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
-  EXPECT_TRUE(contains(result, "firstfirst@localhost"));
-  EXPECT_TRUE(contains(result, "second@localhost"));
-  EXPECT_TRUE(contains(result, "second@10.11.12.14"));
+  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  EXPECT_TRUE(contains(result, "'firstfirst'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'second'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'second'@'10.11.12.14'"));
 
   // include non-existent user
   result = sd.get_users({{"third", ""}}, {});
@@ -1383,33 +1378,33 @@ TEST_F(Schema_dumper_test, get_users) {
 
   // exclude non-existent user
   result = sd.get_users({}, {{"third", ""}});
-  EXPECT_TRUE(contains(result, "first@localhost"));
-  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
-  EXPECT_TRUE(contains(result, "firstfirst@localhost"));
-  EXPECT_TRUE(contains(result, "second@localhost"));
-  EXPECT_TRUE(contains(result, "second@10.11.12.14"));
+  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  EXPECT_TRUE(contains(result, "'firstfirst'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'second'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'second'@'10.11.12.14'"));
 
   // include all accounts for the user first
   result = sd.get_users({{"first", ""}}, {});
   EXPECT_EQ(2, result.size());
-  EXPECT_TRUE(contains(result, "first@localhost"));
-  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
 
-  // include only first@localhost
+  // include only 'first'@'localhost'
   result = sd.get_users({{"first", "localhost"}}, {});
   EXPECT_EQ(1, result.size());
-  EXPECT_TRUE(contains(result, "first@localhost"));
+  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
 
   // include all accounts for the user first, exclude second
   result = sd.get_users({{"first", ""}}, {{"second", ""}});
   EXPECT_EQ(2, result.size());
-  EXPECT_TRUE(contains(result, "first@localhost"));
-  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
 
-  // include all accounts for the user first, exclude first@10.11.12.13
+  // include all accounts for the user first, exclude 'first'@'10.11.12.13'
   result = sd.get_users({{"first", ""}}, {{"first", "10.11.12.13"}});
   EXPECT_EQ(1, result.size());
-  EXPECT_TRUE(contains(result, "first@localhost"));
+  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
 
   // include all accounts for the user first, exclude first -> cancels out
   result = sd.get_users({{"first", ""}}, {{"first", ""}});
@@ -1418,48 +1413,48 @@ TEST_F(Schema_dumper_test, get_users) {
   // include all accounts for the user first and second
   result = sd.get_users({{"first", ""}, {"second", ""}}, {});
   EXPECT_EQ(4, result.size());
-  EXPECT_TRUE(contains(result, "first@localhost"));
-  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
-  EXPECT_TRUE(contains(result, "second@localhost"));
-  EXPECT_TRUE(contains(result, "second@10.11.12.14"));
+  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  EXPECT_TRUE(contains(result, "'second'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'second'@'10.11.12.14'"));
 
   // include all accounts for the user first and second, exclude second
   result = sd.get_users({{"first", ""}, {"second", ""}}, {{"second", ""}});
   EXPECT_EQ(2, result.size());
-  EXPECT_TRUE(contains(result, "first@localhost"));
-  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
 
   // include all accounts for the user first and second, exclude
-  // second@10.11.12.14
+  // 'second'@'10.11.12.14'
   result = sd.get_users({{"first", ""}, {"second", ""}},
                         {{"second", "10.11.12.14"}});
   EXPECT_EQ(3, result.size());
-  EXPECT_TRUE(contains(result, "first@localhost"));
-  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
-  EXPECT_TRUE(contains(result, "second@localhost"));
+  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
+  EXPECT_TRUE(contains(result, "'second'@'localhost'"));
 
   // include all accounts for the user first, include and exclude
-  // second@10.11.12.14
+  // 'second'@'10.11.12.14'
   result = sd.get_users({{"first", ""}, {"second", "10.11.12.14"}},
                         {{"second", "10.11.12.14"}});
   EXPECT_EQ(2, result.size());
-  EXPECT_TRUE(contains(result, "first@localhost"));
-  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
 
-  // include all accounts for the user first and second@10.11.12.14, exclude all
-  // accounts for second
+  // include all accounts for the user first and 'second'@'10.11.12.14', exclude
+  // all accounts for second
   result = sd.get_users({{"first", ""}, {"second", "10.11.12.14"}},
                         {{"second", ""}});
   EXPECT_EQ(2, result.size());
-  EXPECT_TRUE(contains(result, "first@localhost"));
-  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
 
   // include all accounts for the user first and non-existent third, exclude
   // non-existent fourth
   result = sd.get_users({{"first", ""}, {"third", ""}}, {{"fourth", ""}});
   EXPECT_EQ(2, result.size());
-  EXPECT_TRUE(contains(result, "first@localhost"));
-  EXPECT_TRUE(contains(result, "first@10.11.12.13"));
+  EXPECT_TRUE(contains(result, "'first'@'localhost'"));
+  EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
 
   // cleanup
   session->execute("DROP USER 'first'@'localhost';");

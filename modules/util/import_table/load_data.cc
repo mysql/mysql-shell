@@ -169,7 +169,8 @@ Load_data_worker::Load_data_worker(
     mysqlshdk::textui::IProgress *progress, std::mutex *output_mutex,
     std::atomic<size_t> *prog_sent_bytes, volatile bool *interrupt,
     shcore::Synchronized_queue<Range> *range_queue,
-    std::vector<std::exception_ptr> *thread_exception, Stats *stats)
+    std::vector<std::exception_ptr> *thread_exception, Stats *stats,
+    const std::string &query_comment)
     : m_opt(options),
       m_thread_id(thread_id),
       m_progress(progress),
@@ -178,7 +179,8 @@ Load_data_worker::Load_data_worker(
       m_interrupt(*interrupt),
       m_range_queue(range_queue),
       m_thread_exception(*thread_exception),
-      m_stats(*stats) {}
+      m_stats(*stats),
+      m_query_comment(query_comment) {}
 
 void Load_data_worker::operator()() {
   mysqlsh::Mysql_thread t;
@@ -326,7 +328,7 @@ void Load_data_worker::execute(
       std::shared_ptr<mysqlshdk::db::IResult> load_result = nullptr;
 
       try {
-        load_result = session->query(sql);
+        load_result = session->query(m_query_comment + sql.str());
 
         m_stats.total_bytes = fi.bytes;
       } catch (const mysqlshdk::db::Error &e) {

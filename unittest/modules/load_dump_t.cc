@@ -159,6 +159,12 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
                 .then({"", ""})
                 .add_row({"sql_require_primary_key", "1"});
 
+            mock->expect_query(
+                    "SELECT VARIABLE_VALUE = 'OFF' FROM "
+                    "performance_schema.global_status WHERE variable_name = "
+                    "'Innodb_redo_log_enabled'")
+                .then({""});
+
             mock->expect_query("SHOW GLOBAL VARIABLES LIKE 'local_infile'")
                 .then({"", ""})
                 .add_row({"local_infile", "1"});
@@ -167,7 +173,7 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
           mock->set_query_handler(
               [this](const std::string &sql)
                   -> std::shared_ptr<mysqlshdk::db::IResult> {
-                if (shcore::str_beginswith(sql, "LOAD DATA LOCAL INFILE ")) {
+                if (sql.find("LOAD DATA LOCAL INFILE ") != std::string::npos) {
                   size_t start = sql.find('\'') + 1;
                   size_t end = sql.find('\'', start);
 
@@ -196,6 +202,13 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
     mock_main_session->expect_query("SELECT @@version")
         .then({"version"})
         .add_row({"8.0.20"});
+
+    mock_main_session
+        ->expect_query(
+            "SELECT VARIABLE_VALUE = 'OFF' FROM "
+            "performance_schema.global_status WHERE variable_name = "
+            "'Innodb_redo_log_enabled'")
+        .then({""});
 
     mock_main_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'local_infile'")
         .then({"", ""})
@@ -399,6 +412,7 @@ TEST_F(Load_dump_mocked, chunk_scheduling_more_threads) {
 
   // open the mock dump
   loader.open_dump(std::move(dir));
+  loader.m_dump->rescan();
 
   // run the load
   loader.spawn_workers();
@@ -446,6 +460,7 @@ TEST_F(Load_dump_mocked, chunk_scheduling_more_tables) {
 
   // open the mock dump
   loader.open_dump(std::move(dir));
+  loader.m_dump->rescan();
 
   // run the load
   loader.spawn_workers();

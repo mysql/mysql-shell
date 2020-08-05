@@ -82,6 +82,8 @@ class Dump_reader {
   bool next_schema_and_views(std::string *out_schema,
                              std::list<Name_and_file> *out_views);
 
+  std::vector<shcore::Account> accounts() const;
+
   std::vector<std::string> schemas() const;
 
   bool schema_objects(const std::string &schema,

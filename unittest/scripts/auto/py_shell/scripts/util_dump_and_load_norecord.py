@@ -38,6 +38,7 @@ session1 = mysql.get_session(__sandbox_uri1)
 session1.run_sql("set names utf8mb4")
 session1.run_sql("create schema world")
 testutil.import_data(__sandbox_uri1, __data_path+"/sql/world.sql", "world")
+testutil.import_data(__sandbox_uri1, __data_path+"/sql/misc_features.sql")
 
 prepare(__mysql_sandbox_port2)
 session2 = mysql.get_session(__sandbox_uri2)
@@ -51,7 +52,7 @@ shell.connect(__sandbox_uri2)
 
 #@<> load data which is not in the dump (fail)
 EXPECT_THROWS(lambda: util.load_dump(outdir+"/ddlonly",
-                                     {"loadData": True, "loadDdl": False}), "RuntimeError: Util.load_dump: Error loading dump")
+                                     {"loadData": True, "loadDdl": False, "excludeSchemas":["all_features","all_features2"]}), "RuntimeError: Util.load_dump: Error loading dump")
 EXPECT_STDOUT_CONTAINS(".sql: Unknown database 'world'")
 
 testutil.rmfile(outdir+"/ddlonly/load-progress*.json")
@@ -60,7 +61,6 @@ testutil.rmfile(outdir+"/ddlonly/load-progress*.json")
 util.load_dump(outdir+"/ddlonly")
 
 compare_servers(session1, session2, check_rows=False)
-
 #@<> Dump dataOnly
 shell.connect(__sandbox_uri1)
 util.dump_instance(outdir+"/dataonly", {"dataOnly": True})
@@ -127,7 +127,7 @@ for f in datafiles[:n]:
     copy(f)
 
 def copy_rest():
-    time.sleep(5)
+    time.sleep(3)
     for f in datafiles[n:]:
         copy(f)
 
@@ -150,6 +150,50 @@ copy("@.done.json")
 util.load_dump(target, {"waitDumpTimeout": 10})
 
 compare_servers(session1, session2, check_rows=True)
+
+#@<> load incomplete dumps by retrying
+testutil.rmfile(target+"/*")
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+
+# order of files is:
+# @.*, schema.*, schema@table.*, schema@table@chunk*, @.done.json
+
+source_files = os.listdir(source)
+ordered = ["@.done.json", "@.json"]
+for f in source_files:
+    if f.startswith("@.") and f not in ordered:
+        ordered.append(f)
+for f in source_files:
+    if "@" not in f and f not in ordered:
+        ordered.append(f)
+for f in source_files:
+    if f.count("@") == 1 and "tsv" not in f and f not in ordered:
+        ordered.append(f)
+for f in source_files:
+    if f not in ordered:
+        ordered.append(f)
+del ordered[0]
+ordered.append("@.done.json")
+#print("\n".join(ordered))
+assert set(source_files) == set(ordered)
+
+shell.connect(__sandbox_uri2)
+
+# copy files and retry 1 by 1
+for f in ordered:
+    copy(f)
+    if f.endswith(".idx"):
+        # .idx files make no difference so add more to save some time
+        continue
+    #print(os.listdir(target))
+    if f == "@.done.json":
+        util.load_dump(target, {"waitDumpTimeout": 0.001})
+    else:
+        if not EXPECT_THROWS(lambda: util.load_dump(target, {"waitDumpTimeout": 0.001}), "Dump timeout"):
+            break
+
 
 #@ Source data is utf8mb4, but double-encoded in latin1 (preparation)
 session1.run_sql("create schema dblenc")
@@ -200,22 +244,25 @@ users_outdir = os.path.join(outdir, "users")
 util.dump_instance(users_outdir, { "users": True, "ddlOnly": True, "showProgress": False })
 
 # helper function
-def EXPECT_INCLUDE_EXCLUDE(options, included, excluded):
+def EXPECT_INCLUDE_EXCLUDE(options, included, excluded, expected_exception=None):
     opts = { "loadUsers": True, "showProgress": False, "resetProgress": True }
     opts.update(options)
     shell.connect(__sandbox_uri2)
     wipeout_server(session)
     WIPE_OUTPUT()
-    EXPECT_NO_THROWS(lambda: util.load_dump(users_outdir, opts), "Loading the dump should not fail")
+    if expected_exception:
+        EXPECT_THROWS(lambda: util.load_dump(users_outdir, opts), expected_exception)
+    else:
+        EXPECT_NO_THROWS(lambda: util.load_dump(users_outdir, opts), "Loading the dump should not fail")
     all_users = {c[0] for c in session.run_sql("SELECT GRANTEE FROM information_schema.user_privileges;").fetch_all()}
     for i in included:
         EXPECT_TRUE(i in all_users, "User {0} should exist".format(i))
-        EXPECT_STDOUT_NOT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user {0}".format(i.replace("'", "")))
-        EXPECT_STDOUT_NOT_CONTAINS("NOTE: Skipping GRANT statements for user {0}".format(i.replace("'", "")))
+        EXPECT_STDOUT_NOT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user {0}".format(i))
+        EXPECT_STDOUT_NOT_CONTAINS("NOTE: Skipping GRANT statements for user {0}".format(i))
     for e in excluded:
         EXPECT_TRUE(e not in all_users, "User {0} should not exist".format(e))
-        EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user {0}".format(e.replace("'", "")))
-        EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT statements for user {0}".format(e.replace("'", "")))
+        EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user {0}".format(e))
+        EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT statements for user {0}".format(e))
     for u in included + excluded:
         if u.find('mysql') != -1:
             session.run_sql("DROP USER IF EXISTS {0};".format(u))
@@ -237,14 +284,21 @@ EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "exclude
 EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": ["foo@''nope"] }), "ArgumentError: Util.load_dump: Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes")
 EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": ["foo@''nope"] }), "ArgumentError: Util.load_dump: Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes")
 
+#@<> don't include or exclude any users, all accounts are loaded (error from duplicates)
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": [], "excludeUsers": [] }, [], [], "Duplicate objects found in destination database")
+
+EXPECT_STDOUT_CONTAINS("ERROR: Account 'root'@'%' already exists")
+
 #@<> don't include or exclude any users, all accounts are loaded
-EXPECT_INCLUDE_EXCLUDE({ "includeUsers": [], "excludeUsers": [] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"], [])
+EXPECT_INCLUDE_EXCLUDE({ "ignoreExistingObjects":True, "includeUsers": [], "excludeUsers": [] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"], [])
+
+EXPECT_STDOUT_CONTAINS("NOTE: Account 'root'@'%' already exists")
 
 #@<> include non-existent user, no accounts are loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["third"] }, [], ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
 
-#@<> exclude non-existent user, all accounts are loaded
-EXPECT_INCLUDE_EXCLUDE({ "excludeUsers": ["third"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"], [])
+#@<> exclude non-existent user (and root@%), all accounts are loaded
+EXPECT_INCLUDE_EXCLUDE({ "excludeUsers": ["third", "'root'@'%'"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"], [])
 
 #@<> include an existing user, one account is loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first@localhost"] }, ["'first'@'localhost'"], ["'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])

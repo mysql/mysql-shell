@@ -106,7 +106,7 @@ class Load_dump_options final {
 
   int64_t threads_count() const { return m_threads_count; }
 
-  uint64_t dump_wait_timeout() const { return m_wait_dump_timeout; }
+  uint64_t dump_wait_timeout_ms() const { return m_wait_dump_timeout_ms; }
 
   const std::string &character_set() const { return m_character_set; }
 
@@ -175,7 +175,7 @@ class Load_dump_options final {
   std::vector<shcore::Account> m_included_users;  // only load these users
   std::vector<shcore::Account> m_excluded_users;  // skip these users
 
-  uint64_t m_wait_dump_timeout = 0;
+  uint64_t m_wait_dump_timeout_ms = 0;
   bool m_reset_progress = false;
   mysqlshdk::null_string m_progress_file;
   std::string m_default_progress_file;
