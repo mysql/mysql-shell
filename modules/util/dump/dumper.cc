@@ -340,13 +340,15 @@ class Dumper::Table_worker final {
     // can be move-captured by lambda
     std::shared_ptr<Table_data_task> t =
         std::make_shared<Table_data_task>(std::move(task));
-    m_dumper->m_worker_tasks.push([task = std::move(t)](Table_worker *worker) {
-      ++worker->m_dumper->m_num_threads_dumping;
+    m_dumper->m_worker_tasks.push(
+        [task = std::move(t)](Table_worker *worker) {
+          ++worker->m_dumper->m_num_threads_dumping;
 
-      worker->dump_table_data(*task);
+          worker->dump_table_data(*task);
 
-      --worker->m_dumper->m_num_threads_dumping;
-    });
+          --worker->m_dumper->m_num_threads_dumping;
+        },
+        shcore::Queue_priority::LOW);
   }
 
   void create_table_data_task(const Table_task &table) {
@@ -388,6 +390,10 @@ class Dumper::Table_worker final {
     data_task.id = id;
 
     push_table_data_task(std::move(data_task));
+  }
+
+  void write_table_metadata(const Table_task &table) {
+    m_dumper->write_table_metadata(table, m_session);
   }
 
   void create_table_data_tasks(const Table_task &table) {
@@ -1443,51 +1449,49 @@ void Dumper::create_schema_ddl_tasks() {
   for (const auto &schema : m_schema_tasks) {
     if (m_options.dump_schema_ddl()) {
       m_worker_tasks.push(
-          [&schema](Table_worker *worker) { worker->dump_schema_ddl(schema); });
+          [&schema](Table_worker *worker) { worker->dump_schema_ddl(schema); },
+          shcore::Queue_priority::HIGH);
     }
 
     for (const auto &view : schema.views) {
-      m_worker_tasks.push([&schema, &view](Table_worker *worker) {
-        worker->dump_view_ddl(schema, view);
-      });
+      m_worker_tasks.push(
+          [&schema, &view](Table_worker *worker) {
+            worker->dump_view_ddl(schema, view);
+          },
+          shcore::Queue_priority::HIGH);
     }
 
     for (auto &table : schema.tables) {
-      m_worker_tasks.push([&schema, &table](Table_worker *worker) {
-        worker->dump_table_ddl(schema, table);
-      });
+      m_worker_tasks.push(
+          [&schema, &table](Table_worker *worker) {
+            worker->dump_table_ddl(schema, table);
+          },
+          shcore::Queue_priority::HIGH);
     }
   }
 }
 
 void Dumper::create_table_tasks() {
   m_chunking_tasks = 0;
-  m_main_thread_finished_producing_chunking_tasks = true;
-
-  std::vector<Table_task> tasks;
-
-  for (const auto &schema : m_schema_tasks) {
-    for (const auto &table : schema.tables) {
-      tasks.emplace_back(create_table_task(schema, table));
-    }
-  }
-
-  if (!m_options.is_dry_run()) {
-    for (const auto &task : tasks) {
-      if (should_dump_data(task)) {
-        write_table_metadata(task);
-      }
-    }
-  }
-
-  if (!m_options.dump_data()) {
-    return;
-  }
 
   m_main_thread_finished_producing_chunking_tasks = false;
 
-  for (auto &task : tasks) {
-    push_table_task(std::move(task));
+  for (const auto &schema : m_schema_tasks) {
+    for (const auto &table : schema.tables) {
+      auto task = create_table_task(schema, table);
+
+      if (!m_options.is_dry_run() && should_dump_data(task)) {
+        m_worker_tasks.push(
+            [task](Table_worker *worker) {
+              worker->write_table_metadata(task);
+            },
+            shcore::Queue_priority::HIGH);
+      }
+
+      if (m_options.dump_data()) {
+        push_table_task(std::move(task));
+      }
+    }
   }
 
   m_main_thread_finished_producing_chunking_tasks = true;
@@ -1549,13 +1553,15 @@ void Dumper::push_table_task(Table_task &&task) {
 
   ++m_chunking_tasks;
 
-  m_worker_tasks.push([task = std::move(task)](Table_worker *worker) {
-    ++worker->m_dumper->m_num_threads_chunking;
+  m_worker_tasks.push(
+      [task = std::move(task)](Table_worker *worker) {
+        ++worker->m_dumper->m_num_threads_chunking;
 
-    worker->create_table_data_tasks(task);
+        worker->create_table_data_tasks(task);
 
-    --worker->m_dumper->m_num_threads_chunking;
-  });
+        --worker->m_dumper->m_num_threads_chunking;
+      },
+      shcore::Queue_priority::MEDIUM);
 }
 
 Dumper::Index_info Dumper::choose_index(const Schema_task &schema,
@@ -1875,7 +1881,9 @@ void Dumper::write_schema_metadata(const Schema_task &schema) const {
   write_json(make_file(get_schema_filename(schema.basename, "json")), &doc);
 }
 
-void Dumper::write_table_metadata(const Table_task &table) const {
+void Dumper::write_table_metadata(
+    const Table_task &table,
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
   if (m_options.is_export_only()) {
     return;
   }
@@ -1939,7 +1947,7 @@ void Dumper::write_table_metadata(const Table_task &table) const {
     doc.AddMember(StringRef("options"), std::move(options), a);
   }
 
-  const auto dumper = schema_dumper(session());
+  const auto dumper = schema_dumper(session);
 
   if (m_options.dump_triggers() && m_options.dump_ddl()) {
     // list of triggers

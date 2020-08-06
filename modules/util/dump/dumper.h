@@ -253,7 +253,9 @@ class Dumper {
 
   void write_schema_metadata(const Schema_task &schema) const;
 
-  void write_table_metadata(const Table_task &table) const;
+  void write_table_metadata(
+      const Table_task &table,
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
   void summarize() const;
 
