@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2020, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -44,9 +44,10 @@ class TestMySQLSplitter : public ::testing::Test {
   std::string context;
   std::string buffer;
   std::unique_ptr<Sql_splitter> splitter;
-  std::string multiline;
 
   void SetUp() override {
+    debug = g_test_trace_scripts;
+
     splitter.reset(new Sql_splitter(
         [this](const char *s, size_t len, bool bol,
                size_t lnum) -> std::pair<size_t, bool> {
@@ -110,12 +111,14 @@ class TestMySQLSplitter : public ::testing::Test {
         size_t osize = buffer.size();
         buffer.resize(osize + chunk_size);
         stream->read(&buffer[osize], chunk_size);
-        buffer.resize(osize + stream->gcount());
+        size_t gcount = stream->gcount();
+        buffer.resize(osize + gcount);
 
-        if (static_cast<size_t>(stream->gcount()) < chunk_size && !dont_flush) {
+        if (gcount < chunk_size && !dont_flush) {
+          // this is the last chunk
           splitter->feed(&buffer[0], buffer.size());
         } else {
-          if (stream->gcount() == 0) break;
+          if (gcount == 0) break;
           splitter->feed_chunk(&buffer[0], buffer.size());
         }
       }
@@ -139,6 +142,33 @@ TEST_F(TestMySQLSplitter, full_statement_misc_delimiter) {
   EXPECT_EQ("", context);
   EXPECT_EQ("\\G", std::get<1>(results[0]));
   EXPECT_EQ("show databases", std::get<0>(results[0]));
+}
+
+TEST_F(TestMySQLSplitter, quoted) {
+  send_sql("'a';'b';");
+  EXPECT_EQ(2U, results.size());
+  EXPECT_EQ("'a'", std::get<0>(results[0]));
+  EXPECT_EQ("'b'", std::get<0>(results[1]));
+
+  send_sql("'\n';`\n`;");
+  EXPECT_EQ(2U, results.size());
+  EXPECT_EQ("'\n'", std::get<0>(results[0]));
+  EXPECT_EQ("`\n`", std::get<0>(results[1]));
+
+  send_sql("````;b;");
+  EXPECT_EQ(2U, results.size());
+  EXPECT_EQ("````", std::get<0>(results[0]));
+  EXPECT_EQ("b", std::get<0>(results[1]));
+
+  send_sql("`\n--`;b;");
+  EXPECT_EQ(2U, results.size());
+  EXPECT_EQ("`\n--`", std::get<0>(results[0]));
+  EXPECT_EQ("b", std::get<0>(results[1]));
+
+  send_sql("'\n--';b;");
+  EXPECT_EQ(2U, results.size());
+  EXPECT_EQ("'\n--'", std::get<0>(results[0]));
+  EXPECT_EQ("b", std::get<0>(results[1]));
 }
 
 TEST_F(TestMySQLSplitter, by_line_continued_statement) {
@@ -380,8 +410,8 @@ TEST_F(TestMySQLSplitter, multi_line_comments_in_batch) {
       "*/\n"
       "show databases;";
   send_sql(sql);
-  send_sql_incr("*/");
   ASSERT_EQ(1, results.size());
+  EXPECT_EQ(sql.substr(0, sql.size() - 1), std::get<0>(results[0]));
   // should continue until delimiter since we're not trimming comments
   // EXPECT_EQ("", context);  // Multiline comment flag is cleared
 
@@ -828,6 +858,84 @@ TEST_F(TestMySQLSplitter, multiline_comment_bug) {
   send_sql("/**/ select 1;");
   EXPECT_EQ(1, static_cast<int>(results.size()));
   EXPECT_EQ("/**/ select 1", std::get<0>(results[0]));
+
+  send_sql("select 1 /*\n-- */;");
+  EXPECT_EQ(1, static_cast<int>(results.size()));
+  EXPECT_EQ("select 1 /*\n-- */", std::get<0>(results[0]));
+
+  send_sql("/;");
+  EXPECT_EQ(1, static_cast<int>(results.size()));
+  EXPECT_EQ("/", std::get<0>(results[0]));
+
+  send_sql("select */;");
+  EXPECT_EQ(1, static_cast<int>(results.size()));
+  EXPECT_EQ("select */", std::get<0>(results[0]));
+
+  // single line comments and quotes are not supported inside /* */
+  send_sql("select 1 /*\n-- */;\n*/;");
+  EXPECT_EQ(2, static_cast<int>(results.size()));
+  EXPECT_EQ("select 1 /*\n-- */", std::get<0>(results[0]));
+  EXPECT_EQ("*/", std::get<0>(results[1]));
+
+  send_sql("select 1 /*+\n-- */;\n*/;");
+  EXPECT_EQ(2, static_cast<int>(results.size()));
+  EXPECT_EQ("select 1 /*+\n-- */", std::get<0>(results[0]));
+  EXPECT_EQ("*/", std::get<0>(results[1]));
+
+  send_sql("select 1 /* '*/;' */;'");
+  EXPECT_EQ(2, static_cast<int>(results.size()));
+  EXPECT_EQ("select 1 /* '*/", std::get<0>(results[0]));
+  EXPECT_EQ("' */;'", std::get<0>(results[1]));
+
+  send_sql("select 1 /*+ '*/;' */;'");
+  EXPECT_EQ(2, static_cast<int>(results.size()));
+  EXPECT_EQ("select 1 /*+ '*/", std::get<0>(results[0]));
+  EXPECT_EQ("' */;'", std::get<0>(results[1]));
+}
+
+TEST_F(TestMySQLSplitter, conditional_comments) {
+  send_sql("/*! select 1 */;");
+  EXPECT_EQ(1U, results.size());
+  EXPECT_EQ("/*! select 1 */", std::get<0>(results[0]));
+
+  send_sql("/*! select 1 /* */ */;");
+  EXPECT_EQ(1U, results.size());
+  EXPECT_EQ("/*! select 1 /* */ */", std::get<0>(results[0]));
+
+  send_sql("/*! select 1 /*+ */ */;");
+  EXPECT_EQ(1U, results.size());
+  EXPECT_EQ("/*! select 1 /*+ */ */", std::get<0>(results[0]));
+
+  // single line comments and quotes ARE supported inside /* */
+  send_sql("/*! select 1 /*! */ */;");
+  EXPECT_EQ(1U, results.size());
+  EXPECT_EQ("/*! select 1 /*! */ */", std::get<0>(results[0]));
+
+  send_sql("/*! select 1 \n-- */;\n/* */ */;");
+  EXPECT_EQ(1U, results.size());
+  EXPECT_EQ("/*! select 1 \n-- */;\n/* */ */", std::get<0>(results[0]));
+
+  send_sql("/*! select '*/;' */ select 1;");
+  EXPECT_EQ(1U, results.size());
+  EXPECT_EQ("/*! select '*/;' */ select 1", std::get<0>(results[0]));
+
+  send_sql("/*! select '*/;' */;");
+  EXPECT_EQ(1U, results.size());
+  EXPECT_EQ("/*! select '*/;' */", std::get<0>(results[0]));
+
+  send_sql("/*! select \n-- */;\n */;");
+  EXPECT_EQ(1U, results.size());
+  EXPECT_EQ("/*! select \n-- */;\n */", std::get<0>(results[0]));
+
+  send_sql("/*! select '\n-- */2,3'*/ xyz; select `;`;");
+  EXPECT_EQ(2U, results.size());
+  EXPECT_EQ("/*! select '\n-- */2,3'*/ xyz", std::get<0>(results[0]));
+  EXPECT_EQ("select `;`", std::get<0>(results[1]));
+
+  send_sql("/*! select '\n-- */2,3'*/; select `;`;");
+  EXPECT_EQ(2U, results.size());
+  EXPECT_EQ("/*! select '\n-- */2,3'*/", std::get<0>(results[0]));
+  EXPECT_EQ("select `;`", std::get<0>(results[1]));
 }
 
 #if 0

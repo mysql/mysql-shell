@@ -27,6 +27,70 @@
 namespace mysqlshdk {
 namespace utils {
 
+size_t span_cstyle_sql_comment(const std::string &s, size_t offset) {
+  assert(!s.empty());
+  assert(offset < s.size());
+  assert(s.size() - offset < 2 || (s[offset] == '/' && s[offset + 1] == '*'));
+
+  if (s.size() < 4) return std::string::npos;
+
+  // In general, we try to follow the server's lexing behaviour and not the
+  // classic client.
+
+  if (s[offset + 2] == '!') {
+    // Conditionals are parsed as follows:
+    // - /*! ... */ and /*!9999 ... */ are OK
+    // - Nested quoted strings are interpreted as such
+    // - Nested comments work in the mysql cli, but are deprecated in the server
+    // - Nested line comments (-- ...) are valid
+    //
+    // Also, the server and old mysql cli lexers have differences in behaviour.
+    // In these cases, we follow the server behaviour.
+
+    offset += 3;  // skip /*!
+    size_t size = s.size();
+
+    while (offset < size) {
+      switch (s[offset]) {
+        case '\'':
+          offset = span_quoted_string_sq(s, offset);
+          break;
+        case '"':
+          offset = span_quoted_string_dq(s, offset);
+          break;
+        case '`':
+          offset = span_quoted_sql_identifier_bt(s, offset);
+          break;
+        case '*':
+          // check for end of comment
+          ++offset;
+          if (offset + 1 <= size && s[offset] == '/') {
+            ++offset;
+            return offset;
+          }
+          break;
+        case '\n':
+          // check for nested line comments
+          ++offset;
+          if (offset + 3 <= size && s[offset] == '-' && s[offset + 1] == '-' &&
+              (s[offset + 2] == ' ' || s[offset + 2] == '\t')) {
+            offset = span_to_eol(s, offset + 3);
+          }
+          break;
+        default:
+          ++offset;
+          break;
+      }
+    }
+    return std::string::npos;
+  } else {
+    // optimizer hints (/*+ ... */) are just like plain comments. The old mysql
+    // cli used to understand single line -- comments inside hints, but that's
+    // a bug. The server treats those as regular text.
+    return span_cstyle_comment(s, offset);
+  }
+}
+
 SQL_iterator::SQL_iterator(const std::string &str,
                            std::string::size_type offset,
                            bool skip_quoted_sql_ids)
