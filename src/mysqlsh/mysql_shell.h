@@ -57,7 +57,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
   bool cmd_start_multiline(const std::vector<std::string> &args);
   bool cmd_connect(const std::vector<std::string> &args);
   bool cmd_reconnect(const std::vector<std::string> &args);
-  bool cmd_disconnect(const std::vector<std::string> &args);
+  virtual bool cmd_disconnect(const std::vector<std::string> &args);
   bool cmd_quit(const std::vector<std::string> &args);
   bool cmd_warnings(const std::vector<std::string> &args);
   bool cmd_nowarnings(const std::vector<std::string> &args);

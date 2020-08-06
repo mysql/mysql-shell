@@ -23,6 +23,7 @@
 #include "modules/mod_shell.h"
 
 #include <memory>
+#include <vector>
 
 #include "modules/adminapi/common/common.h"
 #include "modules/devapi/base_database_object.h"
@@ -176,6 +177,7 @@ void Shell::init() {
   expose("setCurrentSchema", &Shell::set_current_schema, "name");
   expose("setSession", &Shell::set_session, "session");
   expose("getSession", &Shell::get_session);
+  expose("disconnect", &Shell::disconnect);
   expose("reconnect", &Shell::reconnect);
   expose("log", &Shell::log, "level", "message");
   expose("status", &Shell::status);
@@ -1111,6 +1113,19 @@ Session Shell::get_session() {}
 std::shared_ptr<ShellBaseSession> Shell::get_session() {
   return _shell_core->get_dev_session();
 }
+
+REGISTER_HELP_FUNCTION(disconnect, shell);
+REGISTER_HELP(SHELL_DISCONNECT_BRIEF, "Disconnects the global session.");
+
+/**
+ * $(SHELL_DISCONNECT_BRIEF)
+ */
+#if DOXYGEN_JS
+Undefined Shell::disconnect() {}
+#elif DOXYGEN_PY
+None Shell::disconnect() {}
+#endif
+void Shell::disconnect() { _shell->cmd_disconnect({}); }
 
 REGISTER_HELP_FUNCTION(reconnect, shell);
 REGISTER_HELP(SHELL_RECONNECT_BRIEF, "Reconnect the global session.");

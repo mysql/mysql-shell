@@ -36,6 +36,9 @@ FUNCTIONS
       disable_pager()
             Disables pager for the current scripting mode.
 
+      disconnect()
+            Disconnects the global session.
+
       dump_rows(result, format)
             Formats and dumps the given resultset object to the console.
 
@@ -731,6 +734,13 @@ DESCRIPTION
       The type option supports the following values:
 
       - password: the user input will not be echoed on the screen.
+
+#@<OUT> shell.disconnect
+NAME
+      disconnect - Disconnects the global session.
+
+SYNTAX
+      shell.disconnect()
 
 #@<OUT> shell.reconnect
 NAME

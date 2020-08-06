@@ -151,6 +151,15 @@ shell.help('prompt')
 #@ global help for prompt[USE:shell.prompt]
 \help Shell.prompt
 
+#@ shell.disconnect
+shell.help('disconnect')
+
+#@ global ? for disconnect[USE:shell.disconnect]
+\? Shell.disconnect
+
+#@ global help for disconnect[USE:shell.disconnect]
+\help Shell.disconnect
+
 #@ shell.reconnect
 shell.help('reconnect')
 

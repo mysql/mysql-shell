@@ -80,6 +80,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   void set_session(const std::shared_ptr<ShellBaseSession> &session);
 #endif
   std::shared_ptr<ShellBaseSession> get_session();
+  void disconnect();
   bool reconnect();
   void log(const std::string &level, const std::string &message);
   void status();
@@ -98,6 +99,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Undefined setSession(Session session);
   Undefined setCurrentSchema(String name);
   Undefined log(String level, String message);
+  Undefined disconnect();
   Bool reconnect();
   Undefined status();
   List listCredentialHelpers();
@@ -128,6 +130,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   None set_session(Session session);
   None set_current_schema(str name);
   None log(str level, str message);
+  None disconnect();
   bool reconnect();
   None status();
   list list_credential_helpers();
