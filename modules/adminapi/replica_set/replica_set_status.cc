@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -261,7 +261,7 @@ void instance_diagnostics(shcore::Dictionary_t status,
         "ERROR: %s errant transaction(s) detected. Topology changes will not "
         "be possible until the instance is removed from the replicaset to "
         "have the inconsistency repaired.",
-        std::to_string(server.errant_transaction_count).c_str())));
+        std::to_string(server.errant_transaction_count.get_safe()).c_str())));
   }
 
   if (server.primary_master) {

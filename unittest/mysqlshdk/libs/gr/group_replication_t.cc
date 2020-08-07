@@ -203,7 +203,9 @@ TEST_F(Group_replication_test, create_recovery_user) {
   EXPECT_EQ(creds.user, "test_gr_user");
   // it is expected a random password is generated when using an empty password
   // as parameter.
-  EXPECT_NE(creds.password, password);
+  EXPECT_EQ(true, password.is_null());
+  EXPECT_EQ(false, creds.password.is_null());
+  EXPECT_NE(static_cast<bool>(creds.password), static_cast<bool>(password));
 
   // Drop user and recreate it with a given password
   password = mysqlshdk::utils::nullable<std::string>("password");
@@ -217,7 +219,8 @@ TEST_F(Group_replication_test, create_recovery_user) {
   EXPECT_FALSE(res.has_missing_privileges());
   EXPECT_FALSE(res.has_grant_option());
   EXPECT_EQ(creds.user, "test_gr_user");
-  EXPECT_EQ(creds.password, password);
+  EXPECT_EQ(static_cast<bool>(creds.password), static_cast<bool>(password));
+  EXPECT_EQ(*creds.password, *password);
 
   // Clean up (remove the create user at the end)
   m_instance->drop_user("test_gr_user", "%");

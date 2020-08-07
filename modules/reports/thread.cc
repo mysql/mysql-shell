@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -276,7 +276,8 @@ class Thread_report : public Native_report {
     // remaining sections was requested
     if (!o.general) {
       o.general = !(o.brief | o.client | o.innodb | o.locks | o.prep_stmts |
-                    o.status | o.vars | o.user_vars);
+                    static_cast<bool>(o.status) | static_cast<bool>(o.vars) |
+                    static_cast<bool>(o.user_vars));
     }
 
     if (o.brief) {

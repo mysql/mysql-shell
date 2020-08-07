@@ -1027,7 +1027,7 @@ std::unique_ptr<Schema_dumper> Dumper::schema_dumper(
   dumper->opt_drop_trigger = true;
   dumper->opt_reexecutable = true;
   dumper->opt_tz_utc = m_options.use_timezone_utc();
-  dumper->opt_mysqlaas = m_options.mds_compatibility();
+  dumper->opt_mysqlaas = static_cast<bool>(m_options.mds_compatibility());
   dumper->opt_character_set_results = m_options.character_set();
   dumper->opt_column_statistics = false;
 
@@ -1885,7 +1885,7 @@ void Dumper::write_dump_started_metadata() const {
   doc.AddMember(StringRef("consistent"), m_options.consistent_dump(), a);
 
   if (m_options.mds_compatibility()) {
-    bool compat = m_options.mds_compatibility();
+    bool compat = static_cast<bool>(m_options.mds_compatibility());
     doc.AddMember(StringRef("mdsCompatibility"), compat, a);
   }
 
