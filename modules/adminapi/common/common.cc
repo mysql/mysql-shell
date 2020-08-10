@@ -928,7 +928,7 @@ std::string prompt_cnf_path(const mysqlshdk::mysql::IInstance &instance) {
 
     while (!done && console->prompt("Please specify the path to the MySQL "
                                     "configuration file: ",
-                                    &tmpPath)) {
+                                    &tmpPath) == shcore::Prompt_result::Ok) {
       if (tmpPath.empty()) {
         done = true;
       } else {
@@ -965,13 +965,15 @@ int prompt_menu(const std::vector<std::string> &options, int defopt) {
     std::string result;
     if (defopt > 0) {
       console->println();
-      if (!console->prompt(
+      if (console->prompt(
               "Please select an option [" + std::to_string(defopt) + "]: ",
-              &result))
+              &result) != shcore::Prompt_result::Ok)
         return 0;
     } else {
       console->println();
-      if (!console->prompt("Please select an option: ", &result)) return 0;
+      if (console->prompt("Please select an option: ", &result) !=
+          shcore::Prompt_result::Ok)
+        return 0;
     }
     // Note that menu options start at 1, not 0 since that's what users will
     // input

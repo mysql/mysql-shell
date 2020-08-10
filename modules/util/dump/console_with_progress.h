@@ -75,8 +75,8 @@ class Console_with_progress final : public IConsole {
 
   void print_diag(const std::string &text) const override;
 
-  bool prompt(const std::string &prompt, std::string *out_val,
-              Validator validator = nullptr) const override;
+  shcore::Prompt_result prompt(const std::string &prompt, std::string *out_val,
+                               Validator validator = nullptr) const override;
 
   Prompt_answer confirm(const std::string &prompt,
                         Prompt_answer def = Prompt_answer::NO,

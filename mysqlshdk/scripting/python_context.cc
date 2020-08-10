@@ -1005,7 +1005,8 @@ std::pair<shcore::Prompt_result, std::string> Python_context::read_line(
     }
   }
   std::string ret;
-  if (!mysqlsh::current_console()->prompt(prompt, &ret)) {
+  if (mysqlsh::current_console()->prompt(prompt, &ret) !=
+      shcore::Prompt_result::Ok) {
     return {shcore::Prompt_result::Cancel, ""};
   }
   _stdin_buffer.append(ret).append("\n");

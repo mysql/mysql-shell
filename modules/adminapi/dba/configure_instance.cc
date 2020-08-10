@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -163,8 +163,8 @@ bool Configure_instance::check_config_path_for_update() {
         assert(m_interactive);
         // Prompt the user for an alternative filepath and suggest the user to
         // sudo cp into the right place
-        if (!console->prompt("Output path for updated configuration file: ",
-                             &m_output_mycnf_path))
+        if (console->prompt("Output path for updated configuration file: ",
+                            &m_output_mycnf_path) != shcore::Prompt_result::Ok)
           return false;
       }
 
@@ -193,7 +193,8 @@ bool prompt_full_account(std::string *out_account) {
   for (;;) {
     std::string create_user;
 
-    if (console->prompt("Account Name: ", &create_user) &&
+    if (console->prompt("Account Name: ", &create_user) ==
+            shcore::Prompt_result::Ok &&
         !create_user.empty()) {
       try {
         // normalize the account name
@@ -230,8 +231,8 @@ bool prompt_full_account(std::string *out_account) {
 }
 
 bool prompt_account_host(std::string *out_host) {
-  return !mysqlsh::current_console()->prompt("Account Host: ", out_host) ||
-         out_host->empty();
+  auto result = mysqlsh::current_console()->prompt("Account Host: ", out_host);
+  return result != shcore::Prompt_result::Ok || out_host->empty();
 }
 
 /*

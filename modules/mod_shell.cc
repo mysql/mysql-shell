@@ -408,12 +408,15 @@ std::string Shell::prompt(const std::string &message,
   // Performs the actual prompt
   const auto console = mysqlsh::current_console();
 
-  bool r;
+  shcore::Prompt_result result;
   if (password)
-    r = console->prompt_password(message, &ret_val) ==
-        shcore::Prompt_result::Ok;
+    result = console->prompt_password(message, &ret_val);
   else
-    r = console->prompt(message, &ret_val);
+    result = console->prompt(message, &ret_val);
+  if (result == shcore::Prompt_result::Cancel)
+    throw shcore::cancelled("Cancelled");
+
+  bool r = (result == shcore::Prompt_result::Ok);
 
   // Uses the default value if needed (but not if canceled)
   if (!default_value.empty() && (r && ret_val.empty())) ret_val = default_value;

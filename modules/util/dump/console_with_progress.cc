@@ -131,10 +131,10 @@ void Console_with_progress::print_diag(const std::string &text) const {
   m_console->print_diag(text);
 }
 
-bool Console_with_progress::prompt(const std::string &prompt,
-                                   std::string *out_val,
-                                   Validator validator) const {
-  Hide_progress hp(m_progress.get(), m_mutex);
+shcore::Prompt_result Console_with_progress::prompt(const std::string &prompt,
+                                                    std::string *out_val,
+                                                    Validator validator) const {
+  Hide_progress(m_progress.get(), m_mutex);
   return m_console->prompt(prompt, out_val, validator);
 }
 
