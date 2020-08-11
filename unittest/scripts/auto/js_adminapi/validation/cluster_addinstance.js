@@ -76,13 +76,13 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
 ||
 
 //@<OUT> AddInstance async replication error {VER(<8.0.22)}
-ERROR: Cannot add instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replica threads by executing the query: 'STOP SLAVE;'.
+ERROR: Cannot join instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replication threads by executing the query: 'STOP SLAVE;'
 
 //@<OUT> AddInstance async replication error {VER(>=8.0.22)}
-ERROR: Cannot add instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replica threads by executing the query: 'STOP REPLICA;'.
+ERROR: Cannot join instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replication threads by executing the query: 'STOP REPLICA;'
 
 //@<ERR> AddInstance async replication error
-Cluster.addInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is running asynchronous (source-replica) replication. (RuntimeError)
+Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is running asynchronous replication. (RuntimeError)
 
 //@ BUG#29305551: Finalization
 ||
@@ -97,7 +97,7 @@ Cluster.addInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' 
 ||
 
 //@<OUT> BUG#29809560: add instance fails because server_id is not unique.
-ERROR: Cannot add instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has the same server ID of a member of the cluster. Please change the server ID of the instance to add: all members must have a unique server ID.
+ERROR: Cannot join instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has the same server ID of a member of the cluster. Please change the server ID of the instance to add: all members must have a unique server ID.
 
 //@<ERR> BUG#29809560: add instance fails because server_id is not unique.
 Cluster.addInstance: The server_id '666' is already used by instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'. (RuntimeError)
@@ -161,7 +161,7 @@ Cluster.addInstance: Group Replication failed to start: [[*]]
 ||Cluster.addInstance: Unsupported IP address '::1'. IPv6 is only supported by Group Replication on MySQL version >= 8.0.14. (RuntimeError)
 
 //@ IPv6 local_address is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
-|ERROR: Cannot join instance 'localhost:<<<__mysql_sandbox_port2>>>' to cluster: unsupported localAddress value.|
+|ERROR: Cannot join instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' to cluster: unsupported localAddress value.|
 ||Cluster.addInstance: Cannot use value '[::1]:<<<__mysql_sandbox_gr_port1>>>' for option localAddress because it has an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)
 
 //@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}

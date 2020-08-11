@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,7 +23,9 @@
 
 #include <gtest/gtest.h>
 #include <tuple>
-#include "utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_process.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
 namespace path {
@@ -407,11 +409,11 @@ TEST(utils_path, search_stdpath) {
   EXPECT_STRCASEEQ("C:\\windows\\system32\\cmd.exe",
                    search_stdpath("cmd").c_str());
   EXPECT_EQ("", search_stdpath("bogus path"));
-#elif defined(__sun)
-  EXPECT_EQ("/usr/bin/bash", search_stdpath("bash"));
-  EXPECT_EQ("", search_stdpath("bogus path"));
 #else
-  EXPECT_EQ("/bin/bash", search_stdpath("bash"));
+  const char *argv[] = {"bash", "-c", "type bash | sed 's/bash is //'",
+                        nullptr};
+  EXPECT_EQ(shcore::str_strip(mysqlshdk::utils::run_and_catch_output(argv)),
+            search_stdpath("bash"));
   EXPECT_EQ("", search_stdpath("bogus path"));
 #endif
 }

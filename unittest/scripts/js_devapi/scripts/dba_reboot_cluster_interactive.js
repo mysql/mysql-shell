@@ -57,9 +57,9 @@ session.close();
 disable_auto_rejoin(__mysql_sandbox_port1);
 disable_auto_rejoin(__mysql_sandbox_port2);
 
-// Kill instance 2
+// Kill instance 2 (we don't need a real kill b/c there's still quorum anyway)
 shell.connect(__sandbox_uri1);
-testutil.killSandbox(__mysql_sandbox_port2);
+testutil.stopSandbox(__mysql_sandbox_port2);
 
 // Since the cluster has quorum, the instance will be kicked off the
 // Cluster going OFFLINE->UNREACHABLE->(MISSING)
@@ -145,36 +145,14 @@ disable_auto_rejoin(__mysql_sandbox_port2);
 disable_auto_rejoin(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);
 
-// Kill all the instances
+//@<> Kill GR in all instances
+session1 = mysql.getSession(__sandbox_uri1);
+session1.runSql("stop group_replication");
+session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("stop group_replication");
+session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("stop group_replication");
 
-//@<> Kill instance 2
-testutil.killSandbox(__mysql_sandbox_port2);
-
-// Since the cluster has quorum, the instance will be kicked off the
-// Cluster going OFFLINE->UNREACHABLE->(MISSING)
-testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
-
-//@<> Kill instance 3
-testutil.killSandbox(__mysql_sandbox_port3);
-
-// Waiting for the third added instance to become unreachable
-// Will remain unreachable since there's no quorum to kick it off
-testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
-session.close();
-
-//@<> Kill instance 1
-testutil.killSandbox(__mysql_sandbox_port1);
-
-// Re-start all the instances
-
-//@<> Start instance 2
-testutil.startSandbox(__mysql_sandbox_port2);
-
-//@<> Start instance 1
-testutil.startSandbox(__mysql_sandbox_port1);
-
-//@<> Start instance 3
-testutil.startSandbox(__mysql_sandbox_port3);
 
 //@<> Re-establish the connection to instance 1
 shell.connect(__sandbox_uri1);

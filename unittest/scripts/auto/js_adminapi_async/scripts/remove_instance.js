@@ -95,11 +95,11 @@ rs.removeInstance(__sandbox2);
 
 //@<> bad URI with a different user (should fail)
 EXPECT_THROWS(function () { rs.removeInstance("admin@"+__sandbox2); }, `ReplicaSet.removeInstance: Invalid target instance specification`);
-EXPECT_STDOUT_CONTAINS(`ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them.`);
+EXPECT_STDOUT_CONTAINS(`ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them`);
 
 //@<> bad URI with a different password (should fail)
 EXPECT_THROWS(function () { rs.removeInstance("root:bla@"+__sandbox2); }, `ReplicaSet.removeInstance: Invalid target instance specification`);
-EXPECT_STDOUT_CONTAINS(`ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them.`);
+EXPECT_STDOUT_CONTAINS(`ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them`);
 
 // Positive tests for specific issues
 //--------------------------------

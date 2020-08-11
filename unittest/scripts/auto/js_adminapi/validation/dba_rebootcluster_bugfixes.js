@@ -298,8 +298,6 @@ WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist Gr
 <<<hostname>>>:<<<__mysql_sandbox_port1>>> was restored.
 Rejoining '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-ONLINE
-ONLINE
 
 //@<OUT> BUG29265869 - Reboot cluster from complete outage and BUG30501978 no provision output shown. {VER(>=8.0.11)}
 ONLINE
@@ -573,11 +571,12 @@ ONLINE
     }
 }
 
-//@<OUT> BUG#29305551 - Reboot cluster from complete outage, rejoin fails {VER(<8.0.22)}
-ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replica threads by executing the query: 'STOP SLAVE;'.
+//@# Reboot cluster from complete outage, secondary runs async replication = should succeed, but rejoin fail
+|<<<hostname>>>:<<<__mysql_sandbox_port1>>> was restored.|
+|ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replication threads by executing the query: 'STOP <<<__version_num<=80021?"SLAVE":"REPLICA">>>;'|
 
-//@<OUT> BUG#29305551 - Reboot cluster from complete outage, rejoin fails {VER(>=8.0.22)}
-ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replica threads by executing the query: 'STOP REPLICA;'.
+//@# Reboot cluster from complete outage, seed runs async replication = should pass
+|<<<hostname>>>:<<<__mysql_sandbox_port2>>> was restored.|
 
 //@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying current session is not the most up to date
 ||Dba.rebootClusterFromCompleteOutage: The active session instance (<<<hostname>>>:<<<__mysql_sandbox_port1>>>) isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. (RuntimeError)

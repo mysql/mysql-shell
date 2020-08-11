@@ -499,7 +499,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root");
 shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
 
-//@ IPv6 addresses are supported on localAddress, groupSeeds and ipWhitelist WL#12758 {VER(>= 8.0.14)}
+//@<> IPv6 addresses are supported on localAddress, groupSeeds and ipWhitelist WL#12758 {VER(>= 8.0.14)}
 var local_address = "[::1]:" + __mysql_sandbox_gr_port2;
 var ip_white_list = "::1, 127.0.0.1";
 var group_seeds = "[::1]:" + __mysql_sandbox_gr_port1; + ", [::1]:" + __mysql_sandbox_gr_port2;

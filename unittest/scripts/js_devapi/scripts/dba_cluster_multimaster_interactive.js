@@ -101,12 +101,11 @@ testutil.startSandbox(__mysql_sandbox_port3);
 Cluster.rejoinInstance();
 Cluster.rejoinInstance(1,2,3);
 Cluster.rejoinInstance(1);
-Cluster.rejoinInstance({host: "localhost"});
 Cluster.rejoinInstance({host: "localhost", schema: "abs", "authMethod":56});
 Cluster.rejoinInstance("localhost:3306");
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
-Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: 'REQUIRED'});
+Cluster.rejoinInstance({user: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: 'REQUIRED'});
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

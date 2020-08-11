@@ -2,7 +2,7 @@
 ||
 
 //@# 1- Rejoin on a active member from different group
-||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
+||Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 //@# 1- Add on active member from a different group
 ||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another InnoDB cluster
@@ -14,7 +14,7 @@
 |Query OK|
 
 //@# 3- Rejoin on inactive member from different group
-||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
+||Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 ////@# 3- Add on inactive member from a different group
 
@@ -22,7 +22,7 @@
 |Query OK|
 
 //@# 4- Rejoin on non-cluster inactive member from different group
-||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
+||Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 ////@# 4- Add on non-cluster inactive member from a different group
 
@@ -30,7 +30,7 @@
 |Query OK|
 
 //@# 2- Rejoin on non-cluster active member from different group
-||Cluster.rejoinInstance: The instance 'localhost:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
+||Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 //@# 2- Add on non-cluster active member from a different group
 ||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another Replication Group

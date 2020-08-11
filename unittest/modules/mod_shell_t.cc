@@ -287,10 +287,10 @@ TEST_F(mod_shell_test, connect) {
 
   EXPECT_CALL(*_backend, connect(_, false, true));
 
-  _shell->connect({_mysql_uri});
+  _shell->connect(mysqlshdk::db::Connection_options{_mysql_uri});
 
   EXPECT_CALL(*_backend, connect(_, false, false));
-  _shell->open_session({_mysql_uri});
+  _shell->open_session(mysqlshdk::db::Connection_options{_mysql_uri});
 }
 
 TEST_F(mod_shell_test, dump_rows) {

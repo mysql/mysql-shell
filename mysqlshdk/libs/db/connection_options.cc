@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -89,28 +89,26 @@ void Connection_options::set_login_options_from(
   }
 
   m_ssl_options.clear_ca();
+  m_ssl_options.clear_capath();
   m_ssl_options.clear_cert();
+  m_ssl_options.clear_cipher();
   m_ssl_options.clear_key();
-  // SSL client certificate options are login options
+  m_ssl_options.clear_crl();
+  m_ssl_options.clear_crlpath();
+  m_ssl_options.clear_tls_version();
+  m_ssl_options.clear_tls_ciphersuites();
   const Ssl_options &ssl = options.get_ssl_options();
   if (ssl.has_ca()) m_ssl_options.set_ca(ssl.get_ca());
+  if (ssl.has_capath()) m_ssl_options.set_capath(ssl.get_capath());
   if (ssl.has_cert()) m_ssl_options.set_cert(ssl.get_cert());
+  if (ssl.has_cipher()) m_ssl_options.set_cipher(ssl.get_cipher());
   if (ssl.has_key()) m_ssl_options.set_key(ssl.get_key());
-}
-
-void Connection_options::set_ssl_connection_options_from(
-    const Ssl_options &options) {
-  Ssl_options orig(m_ssl_options);
-  // Copy all SSL options
-  m_ssl_options = options;
-  // Restore the client certificate options
-  m_ssl_options.clear_ca();
-  m_ssl_options.clear_cert();
-  m_ssl_options.clear_key();
-  // SSL client certificate options are login options
-  if (orig.has_ca()) m_ssl_options.set_ca(orig.get_ca());
-  if (orig.has_cert()) m_ssl_options.set_cert(orig.get_cert());
-  if (orig.has_key()) m_ssl_options.set_key(orig.get_key());
+  if (ssl.has_crl()) m_ssl_options.set_crl(ssl.get_crl());
+  if (ssl.has_crlpath()) m_ssl_options.set_crlpath(ssl.get_crlpath());
+  if (ssl.has_tls_version())
+    m_ssl_options.set_tls_version(ssl.get_tls_version());
+  if (ssl.has_tls_ciphersuites())
+    m_ssl_options.set_tls_ciphersuites(ssl.get_tls_ciphersuites());
 }
 
 void Connection_options::set_ssl_options(const Ssl_options &options) {

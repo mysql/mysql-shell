@@ -1044,7 +1044,7 @@ DESCRIPTION
       - password: The password used for the instances sessions required
         operations.
       - removeInstances: The list of instances to be removed from the cluster.
-      - rejoinInstances: The list of instances to be rejoined on the cluster.
+      - rejoinInstances: The list of instances to be rejoined to the cluster.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled
 

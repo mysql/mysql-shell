@@ -164,6 +164,27 @@ class Base_cluster_impl {
   void sync_transactions(const mysqlshdk::mysql::IInstance &target_instance,
                          const std::string &channel_name, int timeout) const;
 
+  /**
+   * Connect to the given instance specification given, while validating its
+   * syntax.
+   *
+   * @param instance_def the instance to connect to, as a host:port string.
+   * @param print_error boolean value to indicate whether an error shall be
+   * printed or not
+   * @param allow_account_override if true, allows the user to override the
+   * account, otherwise they must match the cluster session
+   *
+   * A URL is allowed, if it matches that of m_target_server.
+   * @return instance object owned by ipool
+   */
+  std::shared_ptr<Instance> connect_target_instance(
+      const std::string &instance_def, bool print_error = true,
+      bool allow_account_override = false);
+
+  std::shared_ptr<Instance> connect_target_instance(
+      const mysqlshdk::db::Connection_options &instance_def,
+      bool print_error = true, bool allow_account_override = false);
+
  protected:
   Cluster_id m_id;
   std::string m_cluster_name;
@@ -212,20 +233,6 @@ class Base_cluster_impl {
   std::tuple<std::string, std::string, shcore::Value>
   validate_set_option_namespace(const std::string &option,
                                 const shcore::Value &value) const;
-
-  /**
-   * Connect to the given instance specification given, while validating its
-   * syntax.
-   *
-   * @param instance_def the instance to connect to, as a host:port string.
-   * @param print_error boolean value to indicate whether an error shall be
-   * printed or not
-   *
-   * A URL is allowed, if it matches that of m_target_server.
-   * @return instance object owned by ipool
-   */
-  std::shared_ptr<Instance> connect_target_instance(
-      const std::string &instance_def, bool print_error = true);
 };
 
 }  // namespace dba

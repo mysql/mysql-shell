@@ -157,60 +157,130 @@ void Base_cluster_impl::set_target_server(
 }
 
 std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
-    const std::string &instance_def, bool print_error) {
+    const std::string &instance_def, bool print_error,
+    bool allow_account_override) {
+  return connect_target_instance(
+      mysqlshdk::db::Connection_options(instance_def), print_error,
+      allow_account_override);
+}
+
+std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
+    const mysqlshdk::db::Connection_options &instance_def, bool print_error,
+    bool allow_account_override) {
   assert(m_target_server);
 
-  auto bad_target = []() {
-    current_console()->print_error(
-        "Target instance must be given as host:port. Credentials will be taken"
-        " from the main session and, if given, must match them.");
-
-    return std::invalid_argument("Invalid target instance specification");
-  };
-
+  // Once an instance is part of the cluster, it must accept the same
+  // credentials used in the cluster object. But while it's being added, it can
+  // either accept the cluster credentials or have its own, with the assumption
+  // that once it joins, the common credentials will get replicated to it and
+  // all future operations will start using that account.
+  // So, the following scenarios are possible:
+  // * host:port  user/pwd taken from cluster session and must exist at target
+  // * icuser@host:port  pwd taken from cluster session and must exist at target
+  // * icuser:pwd@host:port  pwd MUST match the session one
+  // * user@host:port  pwd prompted, no extra checks
+  // * user:pwd@host:port  no extra checks
   auto ipool = current_ipool();
 
-  // check that the instance_def
-  mysqlshdk::db::Connection_options opts(instance_def);
-
-  // clear allowed values
-  opts.clear_host();
-  opts.clear_port();
-  opts.clear_socket();
-  // check if credentials given and if so, ensure they match the target session
   const auto &main_opts(m_target_server->get_connection_options());
-  if (opts.has_user() && opts.get_user() == main_opts.get_user())
-    opts.clear_user();
-  if (opts.has_password() && opts.get_password() == main_opts.get_password())
-    opts.clear_password();
-  if (opts.has_scheme()) {
-    if (opts.get_scheme() == main_opts.get_scheme()) {
-      opts.clear_scheme();
-    } else {
-      // different scheme means it's an X protocol URI
-      const auto error = make_unsupported_protocol_error();
-      const auto endpoint = Connection_options(instance_def).uri_endpoint();
-      detail::report_connection_error(error, endpoint);
-      throw shcore::Exception::runtime_error(
-          detail::connection_error_msg(error, endpoint));
+
+  // default to copying credentials and all other connection params from the
+  // main session
+  mysqlshdk::db::Connection_options connect_opts(main_opts);
+
+  // overwrite address related options
+  connect_opts.clear_scheme();
+  connect_opts.clear_host();
+  connect_opts.clear_port();
+  connect_opts.clear_socket();
+  connect_opts.set_scheme(main_opts.get_scheme());
+  if (instance_def.has_host()) connect_opts.set_host(instance_def.get_host());
+  if (instance_def.has_port()) connect_opts.set_port(instance_def.get_port());
+  if (instance_def.has_socket())
+    connect_opts.set_socket(instance_def.get_socket());
+
+  if (allow_account_override) {
+    if (instance_def.has_user()) {
+      if (instance_def.get_user() != connect_opts.get_user()) {
+        // override all credentials with what was given
+        connect_opts.set_login_options_from(instance_def);
+      } else {
+        // if username matches, then password must also be the same
+        if (instance_def.has_password() &&
+            (!connect_opts.has_password() ||
+             instance_def.get_password() != connect_opts.get_password())) {
+          current_console()->print_error(
+              "Password for user " + instance_def.get_user() + " at " +
+              instance_def.uri_endpoint() +
+              " must be the same as in the rest of the cluster.");
+          throw std::invalid_argument("Invalid target instance specification");
+        }
+      }
+    }
+  } else {
+    // if override is not allowed, then any credentials given must match the
+    // cluster session
+    if (instance_def.has_user()) {
+      bool mismatch = false;
+
+      if (instance_def.get_user() != connect_opts.get_user()) mismatch = true;
+
+      if (instance_def.has_password() &&
+          (!connect_opts.has_password() ||
+           instance_def.get_password() != connect_opts.get_password()))
+        mismatch = true;
+
+      if (mismatch) {
+        current_console()->print_error(
+            "Target instance must be given as host:port. Credentials will be "
+            "taken from the main session and, if given, must match them (" +
+            instance_def.uri_endpoint() + ")");
+        throw std::invalid_argument("Invalid target instance specification");
+      }
     }
   }
 
-  if (opts.has_data()) throw bad_target();
-
-  opts = mysqlshdk::db::Connection_options(instance_def);
-  opts.clear_user();
-  opts.set_user(main_opts.get_user());
-  opts.clear_password();
-  opts.set_password(main_opts.get_password());
-  opts.clear_scheme();
-  opts.set_scheme(main_opts.get_scheme());
+  if (instance_def.has_scheme() &&
+      instance_def.get_scheme() != main_opts.get_scheme()) {
+    // different scheme means it's an X protocol URI
+    const auto error = make_unsupported_protocol_error();
+    const auto endpoint = Connection_options(instance_def).uri_endpoint();
+    detail::report_connection_error(error, endpoint);
+    throw shcore::Exception::runtime_error(
+        detail::connection_error_msg(error, endpoint));
+  }
 
   try {
-    return ipool->connect_unchecked(opts);
+    try {
+      return ipool->connect_unchecked(connect_opts);
+    } catch (const shcore::Error &err) {
+      if (err.code() == ER_ACCESS_DENIED_ERROR) {
+        if (!allow_account_override) {
+          mysqlsh::current_console()->print_error(
+              "The administrative account credentials for " +
+              Connection_options(instance_def).uri_endpoint() +
+              " do not match the cluster's administrative account. The "
+              "cluster administrative account user name and password must be "
+              "the same on all instances that belong to it.");
+          print_error = false;
+        } else {
+          // if user overrode the account, then just bubble up the error
+          if (connect_opts.get_user() != main_opts.get_user()) {
+            // no-op
+          } else {
+            mysqlsh::current_console()->print_error(
+                err.format() + ": Credentials for user " +
+                connect_opts.get_user() + " at " + connect_opts.uri_endpoint() +
+                " must be the same as in the rest of the cluster.");
+            print_error = false;
+          }
+        }
+      }
+      throw;
+    }
   }
   CATCH_REPORT_AND_THROW_CONNECTION_ERROR_PRINT(
-      Connection_options(instance_def).uri_endpoint(), print_error)
+      Connection_options(instance_def).uri_endpoint(), print_error);
 }
 
 shcore::Value Base_cluster_impl::list_routers(bool only_upgrade_required) {
@@ -240,9 +310,9 @@ void Base_cluster_impl::setup_account_common(
     const Setup_account_type &type) {
   // NOTE: GR by design guarantees that the primary instance is always the one
   // with the lowest instance version. A similar (although not explicit)
-  // guarantee exists on Semi-sync replication, replication from newer master to
-  // older slaves might not be possible but is generally not supported. See:
-  // https://dev.mysql.com/doc/refman/en/replication-compatibility.html
+  // guarantee exists on Semi-sync replication, replication from newer master
+  // to older slaves might not be possible but is generally not supported.
+  // See: https://dev.mysql.com/doc/refman/en/replication-compatibility.html
   //
   // By using the primary instance to validate
   // the list of privileges / build the list of grants to be given to the
@@ -418,8 +488,8 @@ Base_cluster_impl::validate_set_option_namespace(
                                               "' is not a valid identifier.");
     }
     // option is of type namespace:option
-    // For now since we don't allow namespaces other than 'tag', throw an error
-    // if the namespace is not a tag
+    // For now since we don't allow namespaces other than 'tag', throw an
+    // error if the namespace is not a tag
     if (opt_namespace != "tag") {
       throw shcore::Exception::argument_error("Namespace '" + opt_namespace +
                                               "' not supported.");
@@ -438,8 +508,8 @@ Base_cluster_impl::validate_set_option_namespace(
           throw shcore::Exception::argument_error(
               "'" + opt + "' is not a valid built-in tag.");
         }
-        // If the type of the value is not Null, check that it can be converted
-        // to the expected type
+        // If the type of the value is not Null, check that it can be
+        // converted to the expected type
         if (value.type != shcore::Value_type::Null) {
           try {
             switch (c_it->second) {

@@ -1429,6 +1429,8 @@ void Testutils::start_sandbox(int port, const shcore::Dictionary_t &opts) {
       if (errors && !errors->empty()) {
         for (auto err : *errors) {
           if ((*err.as_map())["type"].get_string() == "ERROR") {
+            std::cerr << "During start of " << port << ": "
+                      << shcore::Value(errors).descr() << "\n";
             throw std::runtime_error("Could not start sandbox instance " +
                                      std::to_string(port));
           }

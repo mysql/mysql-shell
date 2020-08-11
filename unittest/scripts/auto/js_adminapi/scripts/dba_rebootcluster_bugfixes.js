@@ -118,15 +118,10 @@ disable_auto_rejoin(__mysql_sandbox_port2);
 
 //@<> BUG#29305551: Kill all cluster members.
 c.disconnect();
-shell.connect(__sandbox_uri1);
-testutil.killSandbox(__mysql_sandbox_port2);
-testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
-session.close();
-testutil.killSandbox(__mysql_sandbox_port1);
-
-//@<> BUG#29305551: Start the members again.
-testutil.startSandbox(__mysql_sandbox_port2);
-testutil.startSandbox(__mysql_sandbox_port1);
+session1 = mysql.getSession(__sandbox_uri1);
+session2 = mysql.getSession(__sandbox_uri2);
+session1.runSql("stop group_replication");
+session2.runSql("stop group_replication");
 
 //@<> BUG#29305551: Setup asynchronous replication
 shell.connect(__sandbox_uri1);
@@ -144,10 +139,7 @@ session.runSql("START SLAVE");
 
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
-session.close();
-shell.connect(__sandbox_uri1);
-
-//@ BUG#29305551 - Reboot cluster from complete outage, rejoin fails
+//@ Reboot cluster from complete outage, secondary runs async replication = should succeed, but rejoin fail
 shell.connect(__sandbox_uri1);
 var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
 c.status();
@@ -230,7 +222,16 @@ shell.connect(__sandbox_uri2);
 var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances:[__sandbox_uri3]});
 c.status();
 
-//@<> Intermediate Finalization
+session.runSql("stop group_replication"); // stop at sb1
+
+//@ Reboot cluster from complete outage, seed runs async replication = should pass
+session3 = mysql.getSession(__sandbox_uri3);
+session3.runSql("stop group_replication");
+
+shell.connect(__sandbox_uri2);
+var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: []});
+
+//@<> BUG#29305551: Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
@@ -260,20 +261,12 @@ disable_auto_rejoin(__mysql_sandbox_port1);
 disable_auto_rejoin(__mysql_sandbox_port2);
 
 // kill all cluster members
-shell.connect(__sandbox_uri1);
-testutil.killSandbox(__mysql_sandbox_port2);
-testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
-c.disconnect();
-session.close();
-testutil.killSandbox(__mysql_sandbox_port1);
-
-// start members again
-testutil.startSandbox(__mysql_sandbox_port2);
-testutil.startSandbox(__mysql_sandbox_port1);
+session1 = mysql.getSession(__sandbox_uri1);
+session2 = mysql.getSession(__sandbox_uri2);
+session1.runSql("stop group_replication");
+session2.runSql("stop group_replication");
 
 //@<> BUG30501978 - Insert errant transactions on instance 2
-var session1 = mysql.getSession(__sandbox_uri1);
-var session2 = mysql.getSession(__sandbox_uri2);
 EXPECT_EQ(session1.runSql("SELECT @@GLOBAL.gtid_executed"), session2.runSql("SELECT @@GLOBAL.gtid_executed"));
 
 // disable sro

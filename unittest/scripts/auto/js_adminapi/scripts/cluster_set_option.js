@@ -197,13 +197,13 @@ cluster.setOption("disableClone", true);
 cluster.setOption("disableClone", false);
 
 //@ WL#13208: TS_FR2_2 verify disableClone is false with options(). {VER(>=8.0.17)}
-cluster.options();
+normalize_cluster_options(cluster.options());
 
 //@ WL#13208: TS_FR2_1 verify disableClone can be set with setOption() to true. {VER(>=8.0.17)}
 cluster.setOption("disableClone", true);
 
 //@ WL#13208: TS_FR2_2 verify disableClone is true with options(). {VER(>=8.0.17)}
-cluster.options();
+normalize_cluster_options(cluster.options());
 
 //@<> WL#13788: Re-create the cluster
 scene.destroy();

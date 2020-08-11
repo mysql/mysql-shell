@@ -40,13 +40,16 @@ function print_metadata_instance_addresses(session) {
     print("\n");
 }
 
-// WL#12011: AdminAPI: Refactor dba.createCluster()
-//@ WL#12011: Initialization
+
+//@<> init
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 
 shell.connect(__sandbox_uri1);
 
+// WL#12011: AdminAPI: Refactor dba.createCluster()
 //@<> WL#12011: FR2-04 - invalid value for interactive option.
 var c = dba.createCluster('test', {interactive: "not a valid type"});
 
@@ -73,10 +76,29 @@ c = dba.createCluster("test", {manualStartOnBoot:true});
 var start_on_boot = session.runSql("select @@group_replication_start_on_boot").fetchOne()[0];
 EXPECT_EQ(0, start_on_boot);
 
+c.dissolve();
+
+//@<> check error log dumping on create if supported {VER(>=8.0.22)}
+
+// force GR start to fail by passing an invalid localAddress
+EXPECT_THROWS(function(){dba.createCluster("test", {localAddress:"0.0.0.0:1"})}, "Group Replication failed to start:");
+
+EXPECT_OUTPUT_CONTAINS("The MySQL error_log contains the following messages:");
+EXPECT_OUTPUT_CONTAINS("Plugin group_replication reported: '[GCS] There is no local IP address matching the one configured for the local node");
+
+//@<> check error log dumping on add if supported {VER(>=8.0.22)}
+var c = dba.createCluster("test");
+
+EXPECT_THROWS(function(){c.addInstance(__sandbox_uri2, {localAddress:"0.0.0.0:1", recoveryMethod:"incremental"})}, "Group Replication failed to start:");
+
+EXPECT_OUTPUT_CONTAINS("The MySQL error_log contains the following messages:");
+EXPECT_OUTPUT_CONTAINS("Plugin group_replication reported: '[GCS] There is no local IP address matching the one configured for the local node");
+
 //@ WL#12011: Finalization.
 c.disconnect();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
 
 // WL#12049 AdminAPI: option to shutdown server when dropping out of the
 // cluster
@@ -763,7 +785,7 @@ dba.createCluster('test', {disableClone: {}});
 var c = dba.createCluster('test');
 
 //@<> WL#13208: TS_FR1_3 verify disableClone is false.
-c.options();
+normalize_cluster_options(c.options());
 
 //@<> WL#13208: TS_FR1_3 dissolve cluster.
 c.dissolve();
@@ -772,7 +794,7 @@ c.dissolve();
 var c = dba.createCluster('test', {disableClone: true});
 
 //@ WL#13208: TS_FR1_1 verify disableClone match the value set (true). {VER(>=8.0.17)}
-c.options();
+normalize_cluster_options(c.options());
 
 //@<> WL#13208: TS_FR1_1 dissolve cluster. {VER(>=8.0.17)}
 c.dissolve();

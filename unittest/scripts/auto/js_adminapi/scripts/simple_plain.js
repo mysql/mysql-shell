@@ -248,6 +248,23 @@ check_open_sessions(session2, expected_pids2);
 
 cluster.listRouters();
 
+
+//@<> setupRouterAccount
+cluster.setupRouterAccount("router@'%'", {password:"boo"});
+
+session.runSql("show grants for router@'%'");
+
+check_open_sessions(session1, expected_pids1);
+check_open_sessions(session2, expected_pids2);
+
+//@<> setupAdminAccount
+cluster.setupAdminAccount("cadmin@'%'", {password:"boo"});
+
+session.runSql("show grants for cadmin@'%'");
+
+check_open_sessions(session1, expected_pids1);
+check_open_sessions(session2, expected_pids2);
+
 //@<> createCluster(adopt)
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
 cluster = dba.createCluster("adopted", {adoptFromGR:true});

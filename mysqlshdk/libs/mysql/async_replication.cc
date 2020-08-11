@@ -96,7 +96,8 @@ void reset_slave(mysqlshdk::mysql::IInstance *instance,
   log_debug("Resetting replica%s channel '%s' for %s...",
             reset_credentials ? " ALL" : "", channel_name.c_str(),
             instance->descr().c_str());
-  std::string replica_term = mysqlshdk::mysql::get_replica_keyword(*instance);
+  std::string replica_term =
+      mysqlshdk::mysql::get_replica_keyword(instance->get_version());
 
   if (reset_credentials) {
     instance->executef("RESET " + replica_term + " ALL FOR CHANNEL ?",
@@ -111,7 +112,8 @@ void start_replication(mysqlshdk::mysql::IInstance *instance,
                        const std::string &channel_name) {
   log_debug("Starting replica channel %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  std::string replica_term = mysqlshdk::mysql::get_replica_keyword(*instance);
+  std::string replica_term =
+      mysqlshdk::mysql::get_replica_keyword(instance->get_version());
 
   instance->executef("START " + replica_term + " FOR CHANNEL ?", channel_name);
 }
@@ -120,7 +122,8 @@ void stop_replication(mysqlshdk::mysql::IInstance *instance,
                       const std::string &channel_name) {
   log_debug("Stopping replica channel %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  std::string replica_term = mysqlshdk::mysql::get_replica_keyword(*instance);
+  std::string replica_term =
+      mysqlshdk::mysql::get_replica_keyword(instance->get_version());
 
   instance->executef("STOP " + replica_term + " FOR CHANNEL ?", channel_name);
 }
@@ -129,7 +132,8 @@ bool stop_replication_safe(mysqlshdk::mysql::IInstance *instance,
                            const std::string &channel_name, int timeout_sec) {
   log_debug("Stopping replica channel %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  std::string replica_term = mysqlshdk::mysql::get_replica_keyword(*instance);
+  std::string replica_term =
+      mysqlshdk::mysql::get_replica_keyword(instance->get_version());
 
   while (timeout_sec-- >= 0) {
     instance->executef("STOP " + replica_term + " FOR CHANNEL ?", channel_name);
@@ -157,40 +161,42 @@ void start_replication_receiver(mysqlshdk::mysql::IInstance *instance,
                                 const std::string &channel_name) {
   log_debug("Starting replica io_thread %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  instance->executef("START " +
-                         mysqlshdk::mysql::get_replica_keyword(*instance) +
-                         " IO_THREAD FOR CHANNEL ?",
-                     channel_name);
+  instance->executef(
+      "START " +
+          mysqlshdk::mysql::get_replica_keyword(instance->get_version()) +
+          " IO_THREAD FOR CHANNEL ?",
+      channel_name);
 }
 
 void stop_replication_receiver(mysqlshdk::mysql::IInstance *instance,
                                const std::string &channel_name) {
   log_debug("Stopping replica io_thread %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  instance->executef("STOP " +
-                         mysqlshdk::mysql::get_replica_keyword(*instance) +
-                         " IO_THREAD FOR CHANNEL ?",
-                     channel_name);
+  instance->executef(
+      "STOP " + mysqlshdk::mysql::get_replica_keyword(instance->get_version()) +
+          " IO_THREAD FOR CHANNEL ?",
+      channel_name);
 }
 
 void start_replication_applier(mysqlshdk::mysql::IInstance *instance,
                                const std::string &channel_name) {
   log_debug("Starting replica sql_thread %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  instance->executef("START " +
-                         mysqlshdk::mysql::get_replica_keyword(*instance) +
-                         " SQL_THREAD FOR CHANNEL ?",
-                     channel_name);
+  instance->executef(
+      "START " +
+          mysqlshdk::mysql::get_replica_keyword(instance->get_version()) +
+          " SQL_THREAD FOR CHANNEL ?",
+      channel_name);
 }
 
 void stop_replication_applier(mysqlshdk::mysql::IInstance *instance,
                               const std::string &channel_name) {
   log_debug("Stopping replica sql_thread %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  instance->executef("STOP " +
-                         mysqlshdk::mysql::get_replica_keyword(*instance) +
-                         " SQL_THREAD FOR CHANNEL ?",
-                     channel_name);
+  instance->executef(
+      "STOP " + mysqlshdk::mysql::get_replica_keyword(instance->get_version()) +
+          " SQL_THREAD FOR CHANNEL ?",
+      channel_name);
 }
 
 }  // namespace mysql

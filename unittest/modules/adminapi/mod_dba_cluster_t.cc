@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "modules/adminapi/cluster/add_instance.h"
+#include "modules/adminapi/cluster/cluster_join.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
@@ -107,7 +107,6 @@ class Dba_cluster_test : public Admin_api_test {
 // contains the following sequence of characters: '%s'.
 TEST_F(Dba_cluster_test, bug28219398) {
   std::string replication_user, replication_pwd;
-  mysqlshdk::db::Connection_options connection_options;
 
   replication_user = "mysql_innodb_cluster_r1711111111";
 
@@ -131,29 +130,33 @@ TEST_F(Dba_cluster_test, bug28219398) {
   md_session->query("GRANT REPLICATION SLAVE ON *.* to /*(*/ '" +
                     replication_user + "'@'%' /*)*/");
 
-  // Set the connection options for _mysql_sandbox_ports[2]
-  connection_options.set_host("localhost");
-  connection_options.set_port(_mysql_sandbox_ports[2]);
-  connection_options.set_user("root");
-  connection_options.set_password("root");
-
   try {
     {
-      // Create the add_instance command and execute it.
-      mysqlsh::dba::cluster::Add_instance op_add_instance(
-          connection_options, m_cluster->impl().get(), {}, {}, {}, false,
-          mysqlsh::dba::Recovery_progress_style::NOWAIT, replication_user,
-          replication_pwd);
+      mysqlsh::dba::Group_replication_options gr_opts;
 
-      // Always execute finish when leaving scope.
-      auto finally = shcore::on_leave_scope(
-          [&op_add_instance]() { op_add_instance.finish(); });
+      mysqlsh::dba::Instance_pool::Auth_options auth_opts;
+      auth_opts.get(md_session->get_connection_options());
+      mysqlsh::dba::Scoped_instance_pool ipool(false, auth_opts);
+
+      gr_opts.recovery_credentials = mysqlshdk::mysql::Auth_options();
+      gr_opts.recovery_credentials->user = replication_user;
+      gr_opts.recovery_credentials->password = replication_pwd;
+
+      auto target = std::make_unique<mysqlsh::dba::Instance>(
+          create_session(_mysql_sandbox_ports[0]));
+
+      // Create the add_instance command and execute it.
+      mysqlsh::dba::cluster::Cluster_join joiner(
+          m_cluster->impl().get(), target.get(),
+          std::make_shared<mysqlsh::dba::Instance>(
+              create_session(_mysql_sandbox_ports[2])),
+          gr_opts, {}, false);
 
       // Prepare the add_instance command execution (validations).
-      op_add_instance.prepare();
+      joiner.prepare_join({""});
 
       // Execute add_instance operations.
-      op_add_instance.execute();
+      joiner.join(mysqlsh::dba::Recovery_progress_style::NOWAIT);
     }
 
     // Set the Shell global session

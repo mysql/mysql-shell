@@ -351,10 +351,17 @@ function wait_member_state_from(session, member_port, state) {
 }
 
 function normalize_cluster_options(options) {
-    // normalize output of cluster.options(), to make order of tags to be always the same
-    options["defaultReplicaSet"]["tags"][".global"] = options["defaultReplicaSet"]["tags"]["global"];
-    delete options["defaultReplicaSet"]["tags"]["global"];
-    return options;
+  // normalize output of cluster.options(), to make order of tags to be always the same
+  options["defaultReplicaSet"]["tags"][".global"] = options["defaultReplicaSet"]["tags"]["global"];
+  delete options["defaultReplicaSet"]["tags"]["global"];
+  return options;
+}
+
+function normalize_rs_options(options) {
+  // normalize output of rs.options(), to make order of tags to be always the same
+  options["replicaSet"]["tags"][".global"] = options["replicaSet"]["tags"]["global"];
+  delete options["replicaSet"]["tags"]["global"];
+  return options;
 }
 
 // Check if the instance exists in the Metadata schema

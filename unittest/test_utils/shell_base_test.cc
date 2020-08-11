@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2020, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -328,8 +328,11 @@ bool Shell_base_test::check_multiline_expect(const std::string &context,
   // Removes empty lines at the beggining of the expectation
   // Multiline comparison should start from first non empty line
   // ${*} at the beggining is ignored as well
-  while (expected_lines.begin()->empty() || (*expected_lines.begin() == "${*}"))
+  while (!expected_lines.empty() && (expected_lines.begin()->empty() ||
+                                     (*expected_lines.begin() == "${*}")))
     expected_lines.erase(expected_lines.begin());
+
+  if (expected_lines.empty()) return true;
 
   std::string r_trimmed_expected;
   // Does expected line resolution using the pre-defined tokens

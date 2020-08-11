@@ -236,15 +236,6 @@ void Create_cluster::prepare() {
       // already configured
       ensure_gr_instance_configuration_valid(m_target_instance.get());
 
-      // Print warning if auto-rejoin is set (not 0).
-      if (!m_gr_opts.auto_rejoin_tries.is_null() &&
-          *(m_gr_opts.auto_rejoin_tries) != 0) {
-        console->print_warning(
-            "The member will only proceed according to its exitStateAction if "
-            "auto-rejoin fails (i.e. all retry attempts are exhausted).");
-        console->println();
-      }
-
       // BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC
       // - exitStateAction default value must be READ_ONLY
       // - exitStateAction default value should only be set if supported in
@@ -275,7 +266,7 @@ void Create_cluster::prepare() {
       // for the metadata;
       m_gr_opts.local_address = mysqlsh::dba::resolve_gr_local_address(
           m_gr_opts.local_address, m_target_instance->get_canonical_hostname(),
-          m_target_instance->get_canonical_port(), !m_retrying);
+          m_target_instance->get_canonical_port(), !m_retrying, false);
 
       // Validate that the group_replication_local_address is valid for the
       // version we are using

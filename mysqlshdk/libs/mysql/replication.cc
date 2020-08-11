@@ -868,8 +868,8 @@ bool is_async_replication_running(const mysqlshdk::mysql::IInstance &instance) {
   }
 }
 
-std::string get_replica_keyword(const mysqlshdk::mysql::IInstance &instance) {
-  if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 22)) {
+std::string get_replica_keyword(const mysqlshdk::utils::Version &version) {
+  if (version < mysqlshdk::utils::Version(8, 0, 22)) {
     return "SLAVE";
   } else {
     return "REPLICA";

@@ -61,15 +61,6 @@ The cluster successfully switched to Multi-Primary mode.
 //@<OUT> WL#12052: Verify the value of replicasets.topology_type {VER(>=8.0.13)}
 mm
 
-//@<OUT> WL#12052: Switch a multi-primary cluster to multi-primary is a no-op {VER(>=8.0.13)}
-Switching cluster 'cluster' to Multi-Primary mode...
-
-Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' remains PRIMARY.
-Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' remains PRIMARY.
-Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' remains PRIMARY.
-
-The cluster successfully switched to Multi-Primary mode.
-
 //@<OUT> WL#12052: Check cluster status after changing to multi-primary no-op {VER(>=8.0.13)}
 {
     "clusterName": "cluster",

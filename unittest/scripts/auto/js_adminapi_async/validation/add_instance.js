@@ -78,17 +78,17 @@
 ||ReplicaSet.addInstance: Could not open connection to 'localhost:1': Can't connect to MySQL server on 'localhost'
 
 //@# admin account has mismatched passwords (should fail)
-|ERROR: Unable to connect to the target instance 'localhost:<<<__mysql_sandbox_port2>>>'. Please verify the connection settings, make sure the instance is available and try again.|ReplicaSet.addInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@'localhost' (using password: YES) (MySQL Error 1045)
+|ERROR: The administrative account credentials for localhost:<<<__mysql_sandbox_port2>>> do not match the cluster's administrative account. The cluster administrative account user name and password must be the same on all instances that belong to it.|ReplicaSet.addInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@'localhost' (using password: YES) (MySQL Error 1045)
 
 //@# admin account doesn't allow connection from source host (should fail)
-|ERROR: Unable to connect to the target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. Please verify the connection settings, make sure the instance is available and try again.|ReplicaSet.addInstance: Could not open connection to '<<<hostname>>>:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@
+|ERROR: The administrative account credentials for <<<hostname>>>:<<<__mysql_sandbox_port2>>> do not match the cluster's administrative account. The cluster administrative account user name and password must be the same on all instances that belong to it.|ReplicaSet.addInstance: Could not open connection to '<<<hostname>>>:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@
 
 //@# bad URI with a different user (should fail)
-|ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them.|
+|ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them|
 ||ReplicaSet.addInstance: Invalid target instance specification (ArgumentError)
 
 //@# bad URI with a different password (should fail)
-|ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them.|
+|ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them|
 ||ReplicaSet.addInstance: Invalid target instance specification (ArgumentError)
 
 //@# instance running unmanaged GR (should fail)

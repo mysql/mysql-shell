@@ -427,6 +427,16 @@ void Group_replication_options::check_option_values(
   // level
   if (!exit_state_action.is_null()) {
     validate_exit_state_action_supported(version, *exit_state_action);
+  } else {
+    // BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC
+    // - exitStateAction default value must be READ_ONLY
+    // - exitStateAction default value should only be set if supported in
+    // the target instance
+    if (target == JOIN &&
+        is_option_supported(version, kExitStateAction,
+                            k_global_cluster_supported_options)) {
+      exit_state_action = "READ_ONLY";
+    }
   }
 
   // Validate if the memberWeight option is supported on the target
@@ -454,6 +464,17 @@ void Group_replication_options::check_option_values(
   if (!auto_rejoin_tries.is_null()) {
     // Validate if the auto_rejoin_tries option is supported on the target
     validate_auto_rejoin_tries_supported(version);
+
+    // Print warning if auto-rejoin is set (not 0).
+    if (*auto_rejoin_tries != 0) {
+      auto console = mysqlsh::current_console(true);
+      if (console) {
+        console->print_warning(
+            "The member will only proceed according to its exitStateAction if "
+            "auto-rejoin fails (i.e. all retry attempts are exhausted).");
+        console->print_info();
+      }
+    }
   }
 }
 

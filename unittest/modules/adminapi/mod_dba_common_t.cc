@@ -863,10 +863,10 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_01) {
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_instance));
 
   try {
-    bool is_rejoinable(validate_instance_rejoinable(
+    auto is_rejoinable(validate_instance_rejoinable(
         *instance, metadata, _cluster->impl()->get_id()));
 
-    EXPECT_TRUE(is_rejoinable);
+    EXPECT_EQ(is_rejoinable, mysqlsh::dba::Instance_rejoinability::REJOINABLE);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_01");
@@ -910,10 +910,10 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_02) {
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_instance));
 
   try {
-    bool is_rejoinable(validate_instance_rejoinable(
+    auto is_rejoinable(validate_instance_rejoinable(
         *instance, metadata, _cluster->impl()->get_id()));
 
-    EXPECT_FALSE(is_rejoinable);
+    EXPECT_EQ(is_rejoinable, mysqlsh::dba::Instance_rejoinability::NOT_MEMBER);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_02");
@@ -936,10 +936,10 @@ TEST_F(Dba_common_cluster_functions, validate_instance_rejoinable_03) {
   metadata.reset(new mysqlsh::dba::MetadataStorage(md_instance));
 
   try {
-    bool is_rejoinable(validate_instance_rejoinable(
+    auto is_rejoinable(validate_instance_rejoinable(
         *instance, metadata, _cluster->impl()->get_id()));
 
-    EXPECT_FALSE(is_rejoinable);
+    EXPECT_EQ(is_rejoinable, mysqlsh::dba::Instance_rejoinability::ONLINE);
   } catch (const shcore::Exception &e) {
     SCOPED_TRACE(e.what());
     SCOPED_TRACE("Unexpected failure at validate_instance_rejoinable_03");

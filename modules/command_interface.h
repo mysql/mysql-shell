@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,10 +43,10 @@ class Command_interface {
   virtual shcore::Value execute() = 0;
 
   // Applies the undo.
-  virtual void rollback() = 0;
+  virtual void rollback() {}
 
   // Does the final clean-up, if necessary.
-  virtual void finish() = 0;
+  virtual void finish() {}
 };
 
 }  // namespace mysqlsh

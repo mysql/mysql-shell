@@ -280,6 +280,26 @@ function disable_auto_rejoin(session, port) {
     session.close();
 }
 
+function disable_expel_timeout(session) {
+  // in 8.0.21, default expel_timeout was set to 5 seconds from 0
+  if (__version_num >= 80021) return;
+
+  var close_session = false;
+
+  // Check if the variable session is an int, if so it's the member_port and we need to establish a session
+  if (typeof session == "number") {
+    var port = session;
+    session = shell.connect("mysql://root:root@localhost:" + session);
+    close_session = true;
+  }
+
+  session.runSql("SET PERSIST group_replication_expel_timeout=0");
+
+  // Close the session if established in this function
+  if (close_session)
+    session.close();
+}
+
 function create_root_from_anywhere(session, clear_super_read_only) {
     var super_read_only = get_sysvar(session, "super_read_only");
     var super_read_only_enabled = super_read_only === "ON";

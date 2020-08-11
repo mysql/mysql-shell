@@ -3,7 +3,7 @@
     "replicaSet": {
         "name": "myrs",
         "tags": {
-            "global": [
+            ".global": [
                 {
                     "option": "global_custom",
                     "value": "global_tag"

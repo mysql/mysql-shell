@@ -113,8 +113,6 @@ void Rescan::ensure_unavailable_instances_not_auto_rejoining(
   while (it != unavailable_instances.end()) {
     auto instance_conn_opt = mysqlshdk::db::Connection_options(it->endpoint);
     instance_conn_opt.set_login_options_from(group_conn_opt);
-    instance_conn_opt.set_ssl_connection_options_from(
-        group_conn_opt.get_ssl_options());
     bool is_rejoining = false;
     try {
       auto instance = Instance::connect_raw(instance_conn_opt);

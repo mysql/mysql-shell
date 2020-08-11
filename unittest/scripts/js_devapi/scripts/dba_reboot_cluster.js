@@ -79,6 +79,7 @@ var vars2 = session2.runSql("show variables like 'group_replication%'").fetchAll
 session1.runSql("STOP group_replication");
 session1.runSql("set global super_read_only=0");
 session1.runSql("set sql_log_bin=0");
+session1.runSql("/*!80000 set persist group_replication_start_on_boot=0 */");
 session1.runSql("uninstall plugin group_replication");
 
 session2.runSql("STOP group_replication");
@@ -95,6 +96,7 @@ testutil.restartSandbox(__mysql_sandbox_port2);
 session2 = mysql.getSession(__sandbox_uri2);
 
 shell.connect(__sandbox_uri1);
+
 cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances:[__sandbox_uri2]});
 
 session2.runSql("/*!80000 set persist group_replication_start_on_boot=1 */");
@@ -146,8 +148,8 @@ disable_auto_rejoin(__mysql_sandbox_port3);
 // Connect to instance 1 to properly check status of other killed instances.
 shell.connect(__sandbox_uri1);
 
-// Kill instance 2
-testutil.killSandbox(__mysql_sandbox_port2);
+// Kill instance 2 (we don't need a real kill b/c there's still quorum anyway)
+testutil.stopSandbox(__mysql_sandbox_port2);
 
 // Since the cluster has quorum, the instance will be kicked off the
 // Cluster going OFFLINE->UNREACHABLE->(MISSING)

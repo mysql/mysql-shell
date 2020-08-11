@@ -739,10 +739,9 @@ bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
  * storage
  * @param cluster_id The Cluster id
  *
- * @return a boolean value which is true if the instance can be rejoined to the
- * Cluster and false otherwise.
+ * @return Indication whether instance can be rejoined and reason if not.
  */
-bool validate_instance_rejoinable(
+Instance_rejoinability validate_instance_rejoinable(
     const mysqlshdk::mysql::IInstance &instance,
     const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id) {
   std::string instance_uuid = instance.get_uuid();
@@ -754,14 +753,19 @@ bool validate_instance_rejoinable(
   try {
     imd = metadata->get_instance_by_uuid(instance.get_uuid());
   } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) return false;
+    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING)
+      return Instance_rejoinability::NOT_MEMBER;
     throw;
   }
-  if (imd.cluster_id != cluster_id) return false;
+  if (imd.cluster_id != cluster_id) return Instance_rejoinability::NOT_MEMBER;
 
   auto state = mysqlshdk::gr::get_member_state(instance);
-  return state != mysqlshdk::gr::Member_state::ONLINE &&
-         state != mysqlshdk::gr::Member_state::RECOVERING;
+  if (state == mysqlshdk::gr::Member_state::ONLINE)
+    return Instance_rejoinability::ONLINE;
+  else if (state == mysqlshdk::gr::Member_state::RECOVERING)
+    return Instance_rejoinability::RECOVERING;
+  else
+    return Instance_rejoinability::REJOINABLE;
 }
 
 /**
@@ -1339,7 +1343,8 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
 
 std::string resolve_gr_local_address(
     const mysqlshdk::utils::nullable<std::string> &local_address,
-    const std::string &raw_report_host, int port, bool check_if_busy) {
+    const std::string &raw_report_host, int port, bool check_if_busy,
+    bool quiet) {
   assert(!raw_report_host.empty());  // First we need to get the report host.
   bool generated = false;
 
@@ -1361,13 +1366,15 @@ std::string resolve_gr_local_address(
     local_port = port * 10 + 1;
     generated = true;
 
-    auto console = mysqlsh::current_console();
+    if (!quiet) {
+      auto console = mysqlsh::current_console();
 
-    console->print_note(
-        "Group Replication will communicate with other members using '" +
-        local_host + ":" + std::to_string(local_port) +
-        "'. Use the localAddress option to override.");
-    console->print_info();
+      console->print_note(
+          "Group Replication will communicate with other members using '" +
+          local_host + ":" + std::to_string(local_port) +
+          "'. Use the localAddress option to override.");
+      console->print_info();
+    }
   } else if (local_address->front() == '[' && local_address->back() == ']') {
     // It is an IPV6 address (no port specified), since it is surrounded by [].
     // NOTE: Must handle this situation first to avoid splitting IPv6 addresses

@@ -36,7 +36,7 @@
 ||ReplicaSet.rejoinInstance: The replicaset object is disconnected. Please use dba.getReplicaSet() to obtain a new object. (RuntimeError)
 
 //@ Try rejoin instance with a user different from the cluster admin user (fail).
-|ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them.|ReplicaSet.rejoinInstance: Invalid target instance specification (ArgumentError)
+|ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them|ReplicaSet.rejoinInstance: Invalid target instance specification (ArgumentError)
 
 //@<OUT> Rejoin instance with replication stopped (succeed).
 * Validating instance...

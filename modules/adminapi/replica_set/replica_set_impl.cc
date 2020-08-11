@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -200,7 +200,7 @@ void validate_instance_is_standalone(Instance *target_server,
         "adoptFromAR option.";
     if (add_op) {
       std::string replica_term =
-          mysqlshdk::mysql::get_replica_keyword(*target_server);
+          mysqlshdk::mysql::get_replica_keyword(target_server->get_version());
       info_msg.append(
           " If the <<<addInstance>>>() operation previously failed for the "
           "target instance and you are trying to add it again, then after "
@@ -2314,9 +2314,13 @@ void Replica_set_impl::handle_clone(
     });
 
     try {
+      auto post_clone_auth = recipient->get_connection_options();
+      post_clone_auth.set_login_options_from(
+          donor_instance->get_connection_options());
+
       monitor_standalone_clone_instance(
-          recipient->get_connection_options(), begin_time, progress_style,
-          k_clone_start_timeout,
+          recipient->get_connection_options(), post_clone_auth, begin_time,
+          progress_style, k_clone_start_timeout,
           current_shell_options()->get().dba_restart_wait_timeout);
 
       // When clone is used, the target instance will restart and all

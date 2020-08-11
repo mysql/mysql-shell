@@ -37,7 +37,7 @@
 #include <utility>
 #include <vector>
 
-#include "modules/adminapi/cluster/add_instance.h"
+#include "modules/adminapi/cluster/cluster_join.h"
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
@@ -747,8 +747,6 @@ void Dba::connect_to_target_group(
 
         coptions.set_login_options_from(
             target_member->get_connection_options());
-        coptions.set_ssl_connection_options_from(
-            target_member->get_connection_options().get_ssl_options());
 
         log_info("Opening session to primary of InnoDB cluster at %s...",
                  coptions.as_uri().c_str());
@@ -2670,18 +2668,6 @@ void Dba::configure_replica_set_instance(
       Cluster_type::ASYNC_REPLICATION);
 }
 
-namespace {
-void ensure_not_auto_rejoining(Instance *instance) {
-  if (mysqlshdk::gr::is_group_replication_delayed_starting(*instance) ||
-      mysqlshdk::gr::is_running_gr_auto_rejoin(*instance)) {
-    auto console = current_console();
-    console->print_note("Cancelling active GR auto-initialization at " +
-                        instance->descr());
-    mysqlshdk::gr::stop_group_replication(*instance);
-  }
-}
-}  // namespace
-
 REGISTER_HELP_FUNCTION(rebootClusterFromCompleteOutage, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_REBOOTCLUSTERFROMCOMPLETEOUTAGE, R"*(
 Brings a cluster back ONLINE when all members are OFFLINE.
@@ -2696,7 +2682,7 @@ The options dictionary can contain the next values:
 
 @li password: The password used for the instances sessions required operations.
 @li removeInstances: The list of instances to be removed from the cluster.
-@li rejoinInstances: The list of instances to be rejoined on the cluster.
+@li rejoinInstances: The list of instances to be rejoined to the cluster.
 @li clearReadOnly: boolean value used to confirm that super_read_only must be
 disabled
 
@@ -2790,6 +2776,10 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     }
   }
 
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(target_instance->get_connection_options());
+  Scoped_instance_pool ipool(false, auth_opts);
+
   auto state = metadata->get_state();
   mysqlshdk::utils::Version md_version;
   metadata->check_version(&md_version);
@@ -2852,8 +2842,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   if (rebooting_old_version) console->print_info();
 
   // Getting the cluster from the metadata already complies with:
-  // 1. Ensure that a Metadata Schema exists on the current session
-  // instance.
+  // 1. Ensure that a Metadata Schema exists on the current session instance.
   // 3. Ensure that the provided cluster identifier exists on the Metadata
   // Schema
   if (!cluster_name) {
@@ -2886,54 +2875,51 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     }
   }
 
-  // Verify the status of the instances
-  validate_instances_status_reboot_cluster(cluster, *target_instance, options);
+  if (!cluster) {
+    if (!cluster_name) {
+      throw shcore::Exception::logic_error("No default cluster is configured.");
+    } else {
+      throw shcore::Exception::logic_error(shcore::str_format(
+          "The cluster '%s' is not configured.", cluster_name->c_str()));
+    }
+  }
 
-  // Get the all the instances and their status
-  // TODO(rennox): This is called inside of
-  // validate_instances_status_reboot_cluster, review if both calls are needed
-  std::vector<std::pair<std::string, std::string>> instances_status =
-      get_replicaset_instances_status(cluster, options);
+  auto cluster_impl = cluster->impl();
 
-  if (cluster) {
+  // 4. Verify the status of all instances of the cluster:
+  // 4.1 None of the instances can belong to a GR Group
+  // 4.2 If any of the instances belongs to a GR group or is already managed
+  // by the InnoDB Cluster, so include that information on the error message
+  std::vector<std::pair<Instance_metadata, std::string>> instances =
+      validate_instances_status_reboot_cluster(cluster_impl.get(),
+                                               *target_instance);
+
+  {
     // Get get instance address in metadata.
     std::string group_md_address = target_instance->get_canonical_address();
 
     // 2. Ensure that the current session instance exists on the Metadata
     // Schema
-    if (!cluster->impl()->contains_instance_with_address(group_md_address))
+    if (!cluster_impl->contains_instance_with_address(group_md_address))
       throw shcore::Exception::runtime_error(
           "The current session instance does not belong to the cluster: '" +
-          cluster->impl()->get_name() + "'.");
+          cluster_impl->get_name() + "'.");
 
-    std::vector<std::string> non_reachable_rejoin_instances,
-        non_reachable_instances;
-
-    // get all non reachable instances
-    for (auto &instance : instances_status) {
-      if (!(instance.second.empty())) {
-        non_reachable_instances.push_back(instance.first);
-      }
-    }
     // get all the list of non-reachable instances that were specified on
-    // the rejoinInstances list. Sort non_reachable_instances vector because
-    // set_intersection works on sorted collections The
-    // rejoin_instances_list vector was already sorted above.
-    std::sort(non_reachable_instances.begin(), non_reachable_instances.end());
-
-    std::set_intersection(
-        non_reachable_instances.begin(), non_reachable_instances.end(),
-        rejoin_instances_list.begin(), rejoin_instances_list.end(),
-        std::back_inserter(non_reachable_rejoin_instances));
-
+    // the rejoinInstances list.
+    std::vector<std::string> non_reachable_rejoin_instances;
+    for (const auto &i : instances) {
+      if (!i.second.empty() &&
+          std::find(rejoin_instances_list.begin(), rejoin_instances_list.end(),
+                    i.first.endpoint) != rejoin_instances_list.end())
+        non_reachable_rejoin_instances.push_back(i.first.endpoint);
+    }
     if (!non_reachable_rejoin_instances.empty()) {
-      std::string list;
-
-      list = shcore::str_join(non_reachable_rejoin_instances, ", ");
-
-      throw std::runtime_error("The following instances: '" + list +
-                               "' were specified in the rejoinInstances list "
-                               "but are not reachable.");
+      throw std::runtime_error(
+          "The following instances: '" +
+          shcore::str_join(non_reachable_rejoin_instances, ", ") +
+          "' were specified in the rejoinInstances list "
+          "but are not reachable.");
     }
 
     // Ensure that all of the instances specified on the 'rejoinInstances'
@@ -2954,14 +2940,14 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
               "Invalid value '" + value + "' for 'rejoinInstances': " + error);
         }
 
-        if (!cluster->impl()->contains_instance_with_address(md_address))
+        if (!cluster_impl->contains_instance_with_address(md_address))
           throw shcore::Exception::runtime_error(
               "The instance '" + value + "' does not belong to the cluster: '" +
-              cluster->impl()->get_name() + "'.");
+              cluster_impl->get_name() + "'.");
       }
     } else if (interactive || rebooting_old_version) {
-      for (const auto &value : instances_status) {
-        std::string instance_address = value.first;
+      for (const auto &value : instances) {
+        std::string instance_address = value.first.endpoint;
         std::string instance_status = value.second;
 
         // if the status is not empty it means the connection failed
@@ -3020,15 +3006,15 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
               "Invalid value '" + value + "' for 'removeInstances': " + error);
         }
 
-        if (!cluster->impl()->contains_instance_with_address(md_address))
+        if (!cluster_impl->contains_instance_with_address(md_address))
           throw shcore::Exception::runtime_error(
               "The instance '" + value + "' does not belong to the cluster: '" +
-              cluster->impl()->get_name() + "'.");
+              cluster_impl->get_name() + "'.");
       }
       // When rebooting old version there's no option to remove instances
     } else if (interactive && !rebooting_old_version) {
-      for (const auto &value : instances_status) {
-        std::string instance_address = value.first;
+      for (const auto &value : instances) {
+        std::string instance_address = value.first.endpoint;
         std::string instance_status = value.second;
 
         // if the status is empty it means the connection succeeded
@@ -3056,20 +3042,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
         console->println();
       }
     }
-  } else {
-    if (!cluster_name) {
-      throw shcore::Exception::logic_error("No default cluster is configured.");
-    } else {
-      throw shcore::Exception::logic_error(shcore::str_format(
-          "The cluster '%s' is not configured.", cluster_name->c_str()));
-    }
   }
-
-  // 4. Verify the status of all instances of the cluster:
-  // 4.1 None of the instances can belong to a GR Group
-  // 4.2 If any of the instances belongs to a GR group or is already managed
-  // by the InnoDB Cluster, so include that information on the error message
-  validate_instances_status_reboot_cluster(cluster, *target_instance, options);
 
   // 5. Verify which of the online instances has the GTID superset.
   // 5.1 Skip the verification on the list of instances to be removed:
@@ -3078,87 +3051,51 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   // message the instance with the GTID superset
   validate_instances_gtid_reboot_cluster(cluster, options, *target_instance);
 
-  // Check if trying to auto-rejoin and if so, stop GR to abort the
-  // auto-rejoin
-  ensure_not_auto_rejoining(target_instance.get());
-
   // 6. Set the current session instance as the seed instance of the Cluster
   {
-    // Disable super_read_only mode if it is enabled.
-    bool super_read_only =
-        target_instance->get_sysvar_bool("super_read_only").get_safe();
-    if (super_read_only) {
-      console->print_info("Disabling super_read_only mode on instance '" +
-                          target_instance->descr() + "'.");
-      log_debug(
-          "Disabling super_read_only mode on instance '%s' to run "
-          "rebootClusterFromCompleteOutage.",
-          target_instance->descr().c_str());
-      target_instance->set_sysvar("super_read_only", false);
-    }
     Group_replication_options gr_options(Group_replication_options::NONE);
 
-    Clone_options clone_options(Clone_options::NONE);
+    cluster::Cluster_join joiner(cluster_impl.get(), nullptr, target_instance,
+                                 gr_options, {}, interactive);
 
-    // The current 'group_replication_group_name' must be kept otherwise
-    // if instances are rejoined later the operation may fail because
-    // a new group_name started being used.
-    // This must be done before rejoining the instances due to the fixes for
-    // BUG #26159339: SHELL: ADMINAPI DOES NOT TAKE GROUP_NAME INTO ACCOUNT
-    gr_options.group_name = cluster->impl()->get_group_name();
+    joiner.prepare_reboot();
 
-    // BUG#29265869: reboot cluster overrides some GR settings.
-    // Read actual GR configurations to preserve them in the seed instance.
-    gr_options.read_option_values(*target_instance);
+    joiner.reboot();
 
-    // BUG#27344040: REBOOT CLUSTER SHOULD NOT CREATE NEW USER
-    // No new replication user should be created when rebooting a cluster
-    // and existing recovery users should be reused. Therefore the boolean
-    // to skip replication users is set to true and the respective
-    // replication user credentials left empty.
-    try {
-      // Create the add_instance command and execute it.
-      cluster::Add_instance op_add_instance(
-          target_instance, cluster->impl().get(), gr_options, clone_options, {},
-          interactive, Recovery_progress_style::NOWAIT, "", "", true);
-
-      // Always execute finish when leaving scope.
-      auto finally = shcore::on_leave_scope(
-          [&op_add_instance]() { op_add_instance.finish(); });
-
-      // Prepare the add_instance command execution (validations).
-      op_add_instance.prepare();
-
-      // Execute add_instance operations.
-      op_add_instance.execute();
-
-      console->print_info(target_instance->descr() + " was restored.");
-    } catch (...) {
-      // catch any exception that is thrown, restore super read-only-mode if
-      // it was enabled and re-throw the caught exception.
-      if (super_read_only) {
-        log_debug(
-            "Restoring super_read_only mode on instance '%s' to 'ON' since it "
-            "was enabled before rebootClusterFromCompleteOutage operation "
-            "started.",
-            target_instance->descr().c_str());
-        console->print_info(
-            "Restoring super_read_only mode on instance '" +
-            target_instance->descr() +
-            "' since dba.<<<rebootClusterFromCompleteOutage>>>() operation "
-            "failed.");
-        target_instance->set_sysvar("super_read_only", true);
-      }
-      throw;
-    }
+    console->print_info(target_instance->descr() + " was restored.");
   }
 
   // 7. Update the Metadata Schema information
   // 7.1 Remove the list of instances of "removeInstances" from the Metadata
-  cluster->impl()->remove_instances(remove_instances_list);
+  for (const auto &instance : remove_instances_list) {
+    cluster_impl->remove_instance_metadata(
+        mysqlshdk::db::Connection_options(instance));
+  }
 
   // 8. Rejoin the list of instances of "rejoinInstances"
-  cluster->impl()->rejoin_instances(rejoin_instances_list, options);
+  for (const auto &instance : rejoin_instances_list) {
+    // If rejoinInstance fails we don't want to stop the execution of the
+    // function, but to log the error.
+    try {
+      auto connect_options = mysqlshdk::db::Connection_options(instance);
+
+      console->print_info("Rejoining '" + connect_options.uri_endpoint() +
+                          "' to the cluster.");
+      cluster_impl->rejoin_instance(connect_options, {}, false, true);
+    } catch (const shcore::Error &e) {
+      console->print_warning(instance + ": " + e.format());
+      // TODO(miguel) Once WL#13535 is implemented and rejoin supports
+      // clone, simplify the following note by telling the user to use
+      // rejoinInstance. E.g: “%s’ could not be automatically rejoined.
+      // Please use cluster.rejoinInstance() to manually re-add it.”
+      console->print_note(shcore::str_format(
+          "Unable to rejoin instance '%s' to the cluster but the "
+          "dba.<<<rebootClusterFromCompleteOutage>>>() operation will "
+          "continue.",
+          instance.c_str()));
+      console->print_info();
+    }
+  }
 
   // Handling of GR protocol version:
   // Verify if an upgrade of the protocol is required
@@ -3190,10 +3127,8 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     }
   }
 
-  if (interactive) {
-    console->println("The cluster was successfully rebooted.");
-    console->println();
-  }
+  console->print_info("The cluster was successfully rebooted.");
+  console->print_info();
 
   return cluster;
 }
@@ -3217,73 +3152,6 @@ Cluster_check_info Dba::check_preconditions(
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
   return Cluster_check_info{};
-}
-
-/*
- * get_replicaset_instances_status:
- *
- * Given a cluster, this function verifies the connectivity status of all the
- * instances of the default replicaSet of the cluster. It returns a list of
- * pairs <instance_id, status>, on which 'status' is empty if the instance is
- * reachable, or if not reachable contains the connection failure error
- * message
- */
-std::vector<std::pair<std::string, std::string>>
-Dba::get_replicaset_instances_status(
-    std::shared_ptr<Cluster> cluster,
-    const shcore::Value::Map_type_ref &options) {
-  std::vector<std::pair<std::string, std::string>> instances_status;
-  std::string instance_address, conn_status;
-
-  log_info("Checking instance status for cluster '%s'",
-           cluster->impl()->get_name().c_str());
-
-  std::vector<Instance_metadata> instances = cluster->impl()->get_instances();
-
-  auto current_session_options =
-      cluster->impl()->get_target_server()->get_connection_options();
-
-  // Get the current session instance reported host address
-  std::string active_session_md_address =
-      cluster->impl()->get_target_server()->get_canonical_address();
-
-  if (options) {
-    // Check if the password is specified on the options and if not prompt it
-    mysqlsh::set_user_from_map(&current_session_options, options);
-    mysqlsh::set_password_from_map(&current_session_options, options);
-  }
-
-  // Iterate on all instances from the metadata
-  for (const auto &it : instances) {
-    instance_address = it.endpoint;
-    conn_status.clear();
-
-    // Skip the current session instance
-    if (instance_address == active_session_md_address) {
-      continue;
-    }
-
-    auto connection_options =
-        shcore::get_connection_options(instance_address, false);
-
-    connection_options.set_login_options_from(current_session_options);
-
-    try {
-      log_info(
-          "Opening a new session to the instance to determine its status: %s",
-          instance_address.c_str());
-      Instance::connect_raw(connection_options);
-    } catch (const std::exception &e) {
-      conn_status = e.what();
-      log_warning("Could not open connection to %s: %s.",
-                  instance_address.c_str(), e.what());
-    }
-
-    // Add the <instance, connection_status> pair to the list
-    instances_status.emplace_back(instance_address, conn_status);
-  }
-
-  return instances_status;
 }
 
 static void validate_instance_belongs_to_cluster(
@@ -3343,61 +3211,42 @@ static void validate_instance_belongs_to_cluster(
  * already managed by the InnoDB Cluster.cluster_name If not, does the same
  * validation for the remaining reachable instances of the cluster.
  */
-void Dba::validate_instances_status_reboot_cluster(
-    std::shared_ptr<Cluster> cluster,
-    const mysqlshdk::mysql::IInstance &target_instance,
-    shcore::Value::Map_type_ref options) {
+std::vector<std::pair<Instance_metadata, std::string>>
+Dba::validate_instances_status_reboot_cluster(
+    Cluster_impl *cluster, const mysqlshdk::mysql::IInstance &target_instance) {
   // Validate the member we're connected to
   validate_instance_belongs_to_cluster(
       target_instance, "",
       get_member_name("forceQuorumUsingPartitionOf",
                       shcore::current_naming_style()));
 
-  mysqlshdk::db::Connection_options member_connection_options =
-      target_instance.get_connection_options();
-
-  // Get the current session instance address
-  if (options) {
-    mysqlsh::set_user_from_map(&member_connection_options, options);
-    mysqlsh::set_password_from_map(&member_connection_options, options);
-  }
-
   // Verify all the remaining online instances for their status
-  // TODO- this should just get a list of instances, the status check
-  // is redundant
-  std::vector<std::pair<std::string, std::string>> instances_status =
-      get_replicaset_instances_status(cluster, options);
+  std::vector<Instance_metadata> instances = cluster->get_instances();
+  std::vector<std::pair<Instance_metadata, std::string>> out_instances;
 
-  for (const auto &value : instances_status) {
-    std::string instance_address = value.first;
-    std::string instance_status = value.second;
+  for (const auto &i : instances) {
+    Scoped_instance instance;
 
-    // if the status is not empty it means the connection failed
-    // so we skip this instance
-    if (!instance_status.empty()) {
+    // skip the target
+    if (i.uuid == target_instance.get_uuid()) continue;
+
+    try {
+      log_info("Opening a new session to the instance: %s", i.endpoint.c_str());
+      instance = Scoped_instance(
+          cluster->connect_target_instance(i.endpoint, false, false));
+    } catch (const shcore::Error &e) {
+      out_instances.emplace_back(i, e.format());
       continue;
     }
 
-    mysqlshdk::db::Connection_options connection_options =
-        shcore::get_connection_options(instance_address, false);
-    connection_options.set_login_options_from(member_connection_options);
-
-    std::shared_ptr<Instance> instance;
-    try {
-      log_info("Opening a new session to the instance: %s",
-               instance_address.c_str());
-      instance = Instance::connect(connection_options);
-    } catch (const std::exception &e) {
-      throw shcore::Exception::runtime_error("Could not open connection to " +
-                                             instance_address + "");
-    }
-
-    log_info("Checking state of instance '%s'", instance_address.c_str());
+    log_info("Checking state of instance '%s'", i.endpoint.c_str());
     validate_instance_belongs_to_cluster(
         *instance, "",
         get_member_name("forceQuorumUsingPartitionOf",
                         shcore::current_naming_style()));
+    out_instances.emplace_back(i, "");
   }
+  return out_instances;
 }
 
 /*

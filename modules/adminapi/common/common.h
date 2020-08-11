@@ -278,9 +278,17 @@ bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
                               mysqlshdk::utils::nullable<bool> clear_read_only,
                               bool interactive);
 
-bool validate_instance_rejoinable(
+enum class Instance_rejoinability {
+  REJOINABLE,
+  NOT_MEMBER,
+  ONLINE,
+  RECOVERING
+};
+
+Instance_rejoinability validate_instance_rejoinable(
     const mysqlshdk::mysql::IInstance &instance,
     const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id);
+
 bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
                 std::string *cnfPath = nullptr);
 
@@ -359,13 +367,15 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
  * @param port integer with port used to connect to the instance.
  * @param check_if_busy if true, checks whether there's already something
  * binding the port.
+ * @param quiet if false, print verbose info about selected local_address
  *
  * @throw std::runtime_error if the port specified by the user is invalid or
  * if it is already being used.
  */
 std::string resolve_gr_local_address(
     const mysqlshdk::utils::nullable<std::string> &local_address,
-    const std::string &report_host, int port, bool check_if_busy);
+    const std::string &report_host, int port, bool check_if_busy,
+    bool quiet = false);
 
 struct Instance_gtid_info {
   std::string server;

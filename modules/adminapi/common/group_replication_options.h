@@ -68,6 +68,9 @@ struct Group_replication_options {
 
   Unpack_target target;
 
+  mysqlshdk::utils::nullable<mysqlshdk::mysql::Auth_options>
+      recovery_credentials;
+
   mysqlshdk::utils::nullable<std::string> group_name;
   mysqlshdk::utils::nullable<std::string> ssl_mode;
   mysqlshdk::utils::nullable<std::string> ip_allowlist;

@@ -231,7 +231,6 @@ strip_status(rs.status());
 // the promoted member is not the frozen one, so it's OK
 rs = dba.getReplicaSet();
 rs.forcePrimaryInstance(__sandbox3, {timeout: 1});
-
 strip_status(rs.status());
 
 session2.runSql("UNLOCK TABLES");

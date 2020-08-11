@@ -703,5 +703,50 @@ bool check_indicator_tag(const mysql::IInstance &instance,
   else
     return false;
 }
+
+bool query_server_errors(
+    const mysql::IInstance &instance, const std::string &start_time,
+    const std::string &end_time, const std::vector<std::string> &subsystems,
+    const std::function<void(const Error_log_entry &)> &f) {
+  assert(!start_time.empty());
+
+  try {
+    std::string query = "SELECT * FROM performance_schema.error_log WHERE";
+    query += " logged >= " + shcore::quote_sql_string(start_time);
+    if (!end_time.empty())
+      query += " and logged <= " + shcore::quote_sql_string(end_time);
+    if (!subsystems.empty()) {
+      query += " and subsystem in (" +
+               shcore::str_join(subsystems, ",",
+                                [](const std::string &s) {
+                                  return shcore::quote_sql_string(s);
+                                }) +
+               ")";
+    }
+    query += " ORDER BY logged";
+
+    auto res = instance.query(query);
+    for (auto row = res->fetch_one_named(); row; row = res->fetch_one_named()) {
+      Error_log_entry entry;
+
+      entry.logged = row.get_string("LOGGED");
+      entry.thread_id = row.get_uint("THREAD_ID");
+      entry.prio = row.get_string("PRIO");
+      entry.error_code = row.get_string("ERROR_CODE");
+      entry.subsystem = row.get_string("SUBSYSTEM");
+      entry.data = row.get_string("DATA");
+
+      f(entry);
+    }
+  } catch (const shcore::Error &e) {
+    // error_log table either not supported or pfs disabled or no access to it
+    if (e.code() == ER_NO_SUCH_TABLE || e.code() == ER_BAD_DB_ERROR ||
+        e.code() == ER_TABLEACCESS_DENIED_ERROR)
+      return false;
+    throw;
+  }
+
+  return true;
+}
 }  // namespace mysql
 }  // namespace mysqlshdk

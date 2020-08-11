@@ -50,9 +50,11 @@ struct Mysqld_ername {
   int dummy2;
 };
 
+#if !defined(DOXYGEN_JS) && !defined(DOXYGEN_PY)
 static const Mysqld_ername k_error_names[] = {
 #include "mysqld_ername.h"  // NOLINT
 };
+#endif
 
 struct Mysqlclient_ername {
   const char *name;

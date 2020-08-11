@@ -56,7 +56,7 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 // cluster and per instance configuration options.
 
 //@<OUT> WL#11465: Get the cluster options
-cluster.options();
+normalize_cluster_options(cluster.options());
 
 // F3.2 - The function shall have an optional parameter 'all':
 // F3.2.1 - The 'all' option shall be a boolean to indicate if the information
@@ -70,7 +70,7 @@ cluster.options({foo: true})
 cluster.options({all: "foo"})
 
 //@<OUT> WL#11465: Get the cluster options using 'all'
-cluster.options({all: true});
+normalize_cluster_options(cluster.options({all: true}));
 
 //@ Kill instances 2 and 3
 testutil.killSandbox(__mysql_sandbox_port3);
@@ -79,7 +79,7 @@ testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE");
 
 //@<OUT> WL#11465: Get the cluster options with 2 members down
-cluster.options();
+normalize_cluster_options(cluster.options());
 
 //@ WL#11465: Finalization
 cluster.disconnect();

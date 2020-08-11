@@ -572,9 +572,12 @@ DESCRIPTION
 
       The options dictionary may contain the following attributes:
 
-      - label: an identifier for the instance being added
       - password: the instance connection password
       - memberSslMode: SSL mode used on the instance
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
       - ipWhitelist: The list of hosts allowed to connect to the instance for
         group replication. Deprecated.
       - ipAllowlist: The list of hosts allowed to connect to the instance for

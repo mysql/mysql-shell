@@ -94,8 +94,8 @@ WARNING: Option 'memberSslMode' is deprecated for this operation and it will be 
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
-//@<ERR> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329
-Cluster.rejoinInstance: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster 'dev' since it is an active ({{ONLINE|RECOVERING}}) member of the cluster. (RuntimeError)
+//@<OUT> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329
+NOTE: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is already an active (ONLINE) member of cluster 'dev'.
 
 //@ Dissolve cluster
 ||

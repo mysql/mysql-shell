@@ -347,9 +347,9 @@ int Instance::get_lock(mysqlshdk::mysql::Lock_mode mode, unsigned int timeout,
                                timeout);
   } catch (const shcore::Error &err) {
     // Abort the operation in case the required lock cannot be acquired.
-    log_debug("Failed to get %s lock ('%s', '%s'): %s",
-              mysqlshdk::mysql::to_string(mode).c_str(), k_lock_name_instance,
-              k_lock, err.what());
+    log_info("Failed to get %s lock ('%s', '%s'): %s",
+             mysqlshdk::mysql::to_string(mode).c_str(), k_lock_name_instance,
+             k_lock, err.what());
     console->print_error(
         "The operation cannot be executed because it failed to acquire the "
         "lock on instance '" +

@@ -176,14 +176,10 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const mysqlshdk::utils::nullable<std::string> &cluster_name = {},
       const shcore::Dictionary_t &options = {});
 
-  virtual std::vector<std::pair<std::string, std::string>>
-  get_replicaset_instances_status(std::shared_ptr<Cluster> cluster,
-                                  const shcore::Value::Map_type_ref &options);
-
-  virtual void validate_instances_status_reboot_cluster(
-      std::shared_ptr<Cluster> cluster,
-      const mysqlshdk::mysql::IInstance &target_instance,
-      shcore::Value::Map_type_ref options);
+  std::vector<std::pair<Instance_metadata, std::string>>
+  validate_instances_status_reboot_cluster(
+      Cluster_impl *cluster,
+      const mysqlshdk::mysql::IInstance &target_instance);
   virtual void validate_instances_gtid_reboot_cluster(
       std::shared_ptr<Cluster> cluster,
       const shcore::Value::Map_type_ref &options,

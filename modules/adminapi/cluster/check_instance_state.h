@@ -37,9 +37,8 @@ namespace cluster {
 
 class Check_instance_state : public Command_interface {
  public:
-  Check_instance_state(
-      const Cluster_impl &cluster,
-      const mysqlshdk::db::Connection_options &instance_cnx_opts);
+  Check_instance_state(const Cluster_impl &cluster,
+                       const std::shared_ptr<mysqlsh::dba::Instance> &target);
 
   ~Check_instance_state() override;
 
@@ -64,27 +63,12 @@ class Check_instance_state : public Command_interface {
    */
   shcore::Value execute() override;
 
-  /**
-   * Rollback the command.
-   *
-   * NOTE: Not currently used.
-   */
-  void rollback() override;
-
-  /**
-   * Finalize the command execution.
-   */
-  void finish() override;
-
  private:
   const Cluster_impl &m_cluster;
-  mysqlshdk::db::Connection_options m_instance_cnx_opts;
-  std::string m_target_instance_address;
   std::string m_address_in_metadata;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   bool m_clone_available = false;
 
-  void ensure_target_instance_reachable();
   void ensure_instance_valid_gr_state();
   shcore::Dictionary_t collect_instance_state();
   void print_instance_state_info(shcore::Dictionary_t instance_state);

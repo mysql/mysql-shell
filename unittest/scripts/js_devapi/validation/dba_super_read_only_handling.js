@@ -50,13 +50,13 @@ Cluster admin user 'testUser'@'%' created.
 |Disabling super_read_only mode on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.|
 
 //@ Adds a read only instance
-|The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.|
 
 //@ Adds other instance
-|The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.|
 
 //@ Rejoins an instance
-|The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined on the cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully rejoined to the cluster.|
 
 //@ persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
 ||
@@ -71,7 +71,6 @@ Cluster admin user 'testUser'@'%' created.
 |Would you like to rejoin it to the cluster? [y/N]: |
 |The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was part of the cluster configuration.|
 |Would you like to rejoin it to the cluster? [y/N]: |
-|Disabling super_read_only mode on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.|
 |The cluster was successfully rebooted.|
 
 //@ Cleanup

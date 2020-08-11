@@ -43,7 +43,7 @@ rs.addInstance(__sandbox1, {badOption:123});
 rs.addInstance([__endpoint1]);
 rs.addInstance(__sandbox3);
 rs.addInstance(__sandbox2, {waitRecovery:0});
-rs.addInstance(__sandbox1, {recoveryMethod: "bogus"});
+rs.addInstance(__sandbox2, {recoveryMethod: "bogus"});
 rs.addInstance(__sandbox1, {recoveryMethod: "clone", waitRecovery:42});
 rs.addInstance(__sandbox1, {recoveryMethod: "incremental", waitRecovery:42});
 rs.addInstance(__sandbox1, {recoveryMethod: "incremental", cloneDonor:__sandbox1});

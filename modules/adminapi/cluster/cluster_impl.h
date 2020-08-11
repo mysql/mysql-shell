@@ -85,11 +85,9 @@ class Cluster_impl : public Base_cluster_impl {
                     Recovery_progress_style progress_style,
                     const bool interactive);
 
-  // TODO(miguel): refactor rejoin_instance to Command_interface and to not use
-  // shcore types: WL#13535
   void rejoin_instance(const Connection_options &instance_def,
-                       const Group_replication_options &options,
-                       bool reboot = false);
+                       const Group_replication_options &gr_options,
+                       bool interactive, bool skip_precondition_check);
 
   void remove_instance(const Connection_options &instance_def,
                        const mysqlshdk::null_bool &force,
@@ -126,10 +124,6 @@ class Cluster_impl : public Base_cluster_impl {
 
   void remove_instance_metadata(
       const mysqlshdk::db::Connection_options &instance_def);
-
-  void remove_instances(const std::vector<std::string> &remove_instances);
-  void rejoin_instances(const std::vector<std::string> &rejoin_instances,
-                        const shcore::Value::Map_type_ref &options);
 
   bool get_disable_clone_option() const;
   void set_disable_clone_option(const bool disable_clone);
@@ -349,21 +343,6 @@ class Cluster_impl : public Base_cluster_impl {
 
   void adopt_from_gr();
 
- protected:
-  std::string m_group_name;
-  void _set_option(const std::string &option,
-                   const shcore::Value &value) override;
-
-  void _set_instance_option(const std::string &instance_def,
-                            const std::string &option,
-                            const shcore::Value &value) override;
-
-  // Used shell options
-  void init();
-
- private:
-  void verify_topology_type_change() const;
-
   /**
    * Validate the GTID consistency in regard to the cluster for an instance
    * rejoining
@@ -379,6 +358,21 @@ class Cluster_impl : public Base_cluster_impl {
   void validate_rejoin_gtid_consistency(
       const mysqlshdk::mysql::IInstance &target_instance);
 
+ protected:
+  void _set_option(const std::string &option,
+                   const shcore::Value &value) override;
+
+  void _set_instance_option(const std::string &instance_def,
+                            const std::string &option,
+                            const shcore::Value &value) override;
+
+  // Used shell options
+  void init();
+
+ private:
+  void verify_topology_type_change() const;
+
+  std::string m_group_name;
   mysqlshdk::gr::Topology_mode m_topology_type =
       mysqlshdk::gr::Topology_mode::NONE;
 };

@@ -1,5 +1,3 @@
-//@ WL#12011: Initialization
-||
 
 //@<ERR> WL#12011: FR2-04 - invalid value for interactive option.
 Dba.createCluster: Option 'interactive' Bool expected, but value is String (TypeError)
@@ -434,7 +432,7 @@ one server failure.
             }
         ],
         "tags": {
-            "global": [],
+            ".global": [],
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": []
         },
         "topology": {
@@ -517,7 +515,7 @@ one server failure.
             }
         ],
         "tags": {
-            "global": [],
+            ".global": [],
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": []
         },
         "topology": {
@@ -596,7 +594,7 @@ one server failure.
             }
         ],
         "tags": {
-            "global": [],
+            ".global": [],
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": []
         },
         "topology": {

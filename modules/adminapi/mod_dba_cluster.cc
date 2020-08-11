@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -411,6 +411,10 @@ void Cluster::add_instance(const Connection_options &instance_def_,
         "3].");
   }
 
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  Scoped_instance_pool ipool(interactive, auth_opts);
+
   // Validate the label value.
   if (!label.is_null()) {
     mysqlsh::dba::validate_label(*label);
@@ -458,9 +462,9 @@ ${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following attributes:
 
-@li label: an identifier for the instance being added
 @li password: the instance connection password
 @li memberSslMode: SSL mode used on the instance
+${OPT_INTERACTIVE}
 ${CLUSTER_OPT_IP_WHITELIST}
 ${CLUSTER_OPT_IP_ALLOWLIST}
 
@@ -532,7 +536,10 @@ void Cluster::rejoin_instance(const Connection_options &instance_def_,
 
   // Retrieves the options
   if (options) {
-    Unpack_options(options).unpack(&gr_options).end();
+    Unpack_options(options)
+        .unpack(&gr_options)
+        .optional("interactive", &interactive)
+        .end();
 
     verify_add_rejoin_deprecations(options);
 
@@ -544,40 +551,12 @@ void Cluster::rejoin_instance(const Connection_options &instance_def_,
     }
   }
 
-  if (interactive) {
-    // TODO(rennox): This was done on the interactive call, wondering if
-    // either should be done only if interactive, or if it should be done at
-    // all
-    instance_def.set_default_connection_data();
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  Scoped_instance_pool ipool(interactive, auth_opts);
 
-    std::string message =
-        "Rejoining the instance to the InnoDB cluster. "
-        "Depending on the original\n"
-        "problem that made the instance unavailable, the rejoin operation "
-        "might not be\n"
-        "successful and further manual steps will be needed to fix the "
-        "underlying\n"
-        "problem.\n"
-        "\n"
-        "Please monitor the output of the rejoin operation and take "
-        "necessary "
-        "action if\n"
-        "the instance cannot rejoin.\n\n";
-
-    console->print(message);
-
-    console->println("Rejoining instance to the cluster ...");
-    console->println();
-  }
-
-  // rejoin the Instance to the Default ReplicaSet
-  m_impl->rejoin_instance(instance_def, gr_options);
-
-  if (interactive) {
-    console->println("The instance '" + instance_def.as_uri(only_transport()) +
-                     "' was successfully rejoined on the cluster.");
-    console->println();
-  }
+  // Rejoin the Instance to the Cluster
+  m_impl->rejoin_instance(instance_def, gr_options, interactive, false);
 }
 
 REGISTER_HELP_FUNCTION(removeInstance, Cluster);
@@ -657,6 +636,10 @@ void Cluster::remove_instance(const Connection_options &instance_def_,
         .optional("interactive", &interactive)
         .end();
   }
+
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  Scoped_instance_pool ipool(interactive, auth_opts);
 
   // Remove the Instance from the Cluster
   m_impl->remove_instance(instance_def, force, interactive);
@@ -912,6 +895,10 @@ void Cluster::dissolve(const shcore::Dictionary_t &options) {
         .end();
   }
 
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  Scoped_instance_pool ipool(interactive, auth_opts);
+
   m_impl->dissolve(force, interactive);
 
   // Set the flag, marking this cluster instance as invalid.
@@ -1149,6 +1136,10 @@ void Cluster::rescan(const shcore::Dictionary_t &options) {
     opts_unpack.end();
   }
 
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  Scoped_instance_pool ipool(false, auth_opts);
+
   m_impl->rescan(auto_add_instance, auto_remove_instance, add_instances_list,
                  remove_instances_list, interactive);
 }
@@ -1311,6 +1302,10 @@ None Cluster::check_instance_state(InstanceDef instance) {}
 shcore::Value Cluster::check_instance_state(
     const Connection_options &instance_def) {
   assert_valid("checkInstanceState");
+
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  Scoped_instance_pool ipool(false, auth_opts);
 
   return m_impl->check_instance_state(instance_def);
 }
@@ -1689,6 +1684,14 @@ void Cluster::remove_router_metadata(const std::string &router_def) {
   // Throw an error if the cluster has already been dissolved
   check_function_preconditions("Cluster.removeRouterMetadata",
                                m_impl->get_target_server());
+
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  Scoped_instance_pool ipool(false, auth_opts);
+
+  m_impl->acquire_primary();
+  auto finally_primary =
+      shcore::on_leave_scope([this]() { m_impl->release_primary(); });
 
   if (!m_impl->get_metadata_storage()->remove_router(router_def)) {
     throw shcore::Exception::argument_error("Invalid router instance '" +

@@ -27,7 +27,7 @@ rs.setOption("tag:global_custom", "global_tag");
 
 //@ WL#13788 Check the output of rs.options is as expected and that the function gets its information through the primary
 rs = dba.getReplicaSet();
-rs.options();
+normalize_rs_options(rs.options());
 
 //@<> Cleanup
 session.close();

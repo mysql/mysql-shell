@@ -99,7 +99,9 @@ void Check_instance::check_running_async_repl() {
         "asynchronous (source-replica) replication configured and running. "
         "To add to it a cluster please stop the replica threads by executing "
         "the query: 'STOP " +
-        mysqlshdk::mysql::get_replica_keyword(*m_target_instance) + ";'.");
+        mysqlshdk::mysql::get_replica_keyword(
+            m_target_instance->get_version()) +
+        ";'.");
   }
 }
 

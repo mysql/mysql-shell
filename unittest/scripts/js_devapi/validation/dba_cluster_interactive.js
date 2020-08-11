@@ -30,8 +30,6 @@ The incremental state recovery may be safely used if you are sure all updates ev
 
 Incremental state recovery was selected because it seems to be safely usable.
 
-NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.
-
 Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...
 NOTE: Instance detected as a sandbox.
 Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
@@ -39,6 +37,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 Instance configuration is suitable.
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.
+
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -50,7 +50,7 @@ Monitoring recovery process of the new cluster member. Press ^C to stop monitori
 {{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok {VER(>=8.0.11)}
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance with interaction, ok {VER(<8.0.11)}
 Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...
@@ -60,10 +60,12 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 Instance configuration is suitable.
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.
+
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 Adding instance to the cluster...
 
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
@@ -73,7 +75,7 @@ Monitoring recovery process of the new cluster member. Press ^C to stop monitori
 
 //@<OUT> Cluster: addInstance with interaction, ok {VER(<8.0.11)}
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok {VER(>=8.0.11)}
 Validating instance configuration at localhost:<<<__mysql_sandbox_port3>>>...
@@ -83,6 +85,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port3>>>
 
 Instance configuration is suitable.
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_port3>>>1'. Use the localAddress option to override.
+
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -94,7 +98,7 @@ Monitoring recovery process of the new cluster member. Press ^C to stop monitori
 {{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok {VER(>=8.0.11)}
-The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance 3 with interaction, ok {VER(<8.0.11)}
 Validating instance configuration at localhost:<<<__mysql_sandbox_port3>>>...
@@ -104,10 +108,12 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port3>>>
 
 Instance configuration is suitable.
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_port3>>>1'. Use the localAddress option to override.
+
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 Adding instance to the cluster...
 
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
@@ -118,7 +124,7 @@ Monitoring recovery process of the new cluster member. Press ^C to stop monitori
 //@<OUT> Cluster: addInstance 3 with interaction, ok {VER(<8.0.11)}
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: describe1
 {
@@ -291,6 +297,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 Instance configuration is suitable.
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_port2>>>1'. Use the localAddress option to override.
+
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -302,30 +310,17 @@ Monitoring recovery process of the new cluster member. Press ^C to stop monitori
 {{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok 3 {VER(>=8.0.11)}
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance with interaction, ok 3 {VER(<8.0.11)}
-Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...
-NOTE: Instance detected as a sandbox.
-Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.
-
-This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
-
-Instance configuration is suitable.
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-A new instance will be added to the InnoDB cluster. Depending on the amount of
-data on the cluster this might take from a few seconds to several hours.
-
-Adding instance to the cluster...
-
-Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance with interaction, ok 3 {VER(<8.0.11)}
 {{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok 3 {VER(<8.0.11)}
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance with interaction, ok 4 {VER(>=8.0.11)}
 Validating instance configuration at localhost:<<<__mysql_sandbox_port3>>>...
@@ -335,6 +330,8 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port3>>>
 
 Instance configuration is suitable.
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_port3>>>1'. Use the localAddress option to override.
+
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
@@ -346,7 +343,7 @@ Monitoring recovery process of the new cluster member. Press ^C to stop monitori
 {{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port3>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> Cluster: addInstance with interaction, ok 4 {VER(>=8.0.11)}
-The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance with interaction, ok 4 {VER(<8.0.11)}
 Validating instance configuration at localhost:<<<__mysql_sandbox_port3>>>...
@@ -356,10 +353,12 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port3>>>
 
 Instance configuration is suitable.
-WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
+NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_port3>>>1'. Use the localAddress option to override.
+
 A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
+WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist Group Replication configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 Adding instance to the cluster...
 
 Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.
@@ -370,7 +369,7 @@ Monitoring recovery process of the new cluster member. Press ^C to stop monitori
 //@<OUT> Cluster: addInstance with interaction, ok 4 {VER(<8.0.11)}
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: status: success
 {
@@ -421,28 +420,21 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
 ||Cluster.rejoinInstance: Argument #1: Invalid connection options, expected either a URI or a Dictionary.
 ||Cluster.rejoinInstance: Argument #1: Invalid values in connection options: ipWhitelist, memberSslMode
 ||Cluster.rejoinInstance: Argument #2 is expected to be a map
-||Cluster.rejoinInstance: Could not open connection to 'localhost:3306'
+||Cluster.rejoinInstance: Could not open connection to 'localhost'
 ||Cluster.rejoinInstance: Could not open connection to 'localhost:3306'
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for ipWhitelist: string value cannot be empty.
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
+WARNING: 'dbUser' connection option is deprecated, use 'user' option instead.
 WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
 
-Rejoining the instance to the InnoDB cluster. Depending on the original
-problem that made the instance unavailable, the rejoin operation might not be
-successful and further manual steps will be needed to fix the underlying
-problem.
-
-Please monitor the output of the rejoin operation and take necessary action if
-the instance cannot rejoin.
-
-Rejoining instance to the cluster ...
-
-<<<(__version_num<80011)?"NOTE: Group Replication will communicate with other members using '"+hostname+":"+__mysql_sandbox_gr_port3+"'. Use the localAddress option to override.\n\n":""\>>>
-<<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port3+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
-The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined on the cluster.
+<<<(__version_num>=80011) ? "NOTE: The instance 'localhost:"+__mysql_sandbox_port3+"' is running auto-rejoin process, which will be cancelled.\n\n":""\>>>
+<<<(__version_num<80000) ? "WARNING: Instance '"+hostname+":"+__mysql_sandbox_port3+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
+Rejoining instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to cluster 'devCluster'...
+<<<(__version_num>=80011) ? "NOTE: Cancelling active GR auto-initialization at "+hostname+":"+__mysql_sandbox_port3+"\n":""\>>>
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully rejoined to the cluster.
 
 //@<OUT> Cluster: status for rejoin: success
 {

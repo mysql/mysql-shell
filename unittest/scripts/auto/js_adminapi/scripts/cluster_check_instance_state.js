@@ -1,11 +1,7 @@
 function purgeLogs(sess) {
   sess.runSql("FLUSH BINARY LOGS");
-  var res = sess.runSql("SHOW MASTER STATUS");
-  var row = res.fetchOne();
-  var file = row[0];
-
   // Flush and purge the binary log
-  sess.runSql("PURGE BINARY LOGS TO '" + file + "'");
+  sess.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), interval 1 day)");
 }
 
 //@ Create single-primary cluster
@@ -90,6 +86,8 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 shell.connect(__sandbox_uri2);
 session.runSql("stop group_replication;")
 
+testutil.waitMemberState(__mysql_sandbox_port2, "OFFLINE");
+
 //@ Drop metadatata schema from instance 2 with binlog disabled
 session.runSql("set sql_log_bin=0");
 session.runSql("set global super_read_only = 0");
@@ -102,7 +100,7 @@ shell.connect(__sandbox_uri1);
 cluster.removeInstance(__sandbox_uri2, {force: true});
 
 // Insert data on instance 1
-for (i = 0; i < 20; i++) {
+for (i = 0; i < 10; i++) {
   session.runSql("insert into test.data values (default, repeat('x', 4*1024*1024))");
 }
 
@@ -110,9 +108,10 @@ for (i = 0; i < 20; i++) {
 cluster.checkInstanceState(__sandbox_uri2);
 
 // Flush the binary logs
-purgeLogs(session);
+// binlogs will sometimes be blocked from purging so keep repeating until it looks done
+wait(80, 1, function(){ purgeLogs(session); return session.runSql("show binary logs").fetchAll().length <= 1;});
+session.runSql("show binary logs");
 session.close();
-
 //@<OUT> checkInstanceState: state: error, reason: all_purged
 cluster.checkInstanceState(__sandbox_uri2);
 
@@ -120,7 +119,6 @@ cluster.checkInstanceState(__sandbox_uri2);
 testutil.destroySandbox(__mysql_sandbox_port2);
 cluster.disconnect();
 scene.destroy();
-
 
 //@<> WL#13208: Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});

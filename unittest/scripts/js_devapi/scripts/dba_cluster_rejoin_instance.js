@@ -75,7 +75,8 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 //@<OUT> Cluster status after rejoin
 cluster.status();
 
-//@<ERR> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329
+//@<OUT> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329
+// operation should succeed (no error), but not do anything
 cluster.rejoinInstance({dbUser: 'foo', host: 'localhost', port:__mysql_sandbox_port2}, {password: 'bar'});
 
 //@ Dissolve cluster

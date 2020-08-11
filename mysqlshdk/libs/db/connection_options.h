@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,13 +54,14 @@ constexpr int k_default_connect_timeout = 10000;
 
 class SHCORE_PUBLIC Connection_options {
  public:
+  Connection_options(const Connection_options &) = default;
   explicit Connection_options(
       Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
-  Connection_options(const std::string &uri,
-                     Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
+  explicit Connection_options(
+      const std::string &uri,
+      Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
 
   void set_login_options_from(const Connection_options &options);
-  void set_ssl_connection_options_from(const Ssl_options &options);
   void set_ssl_options(const Ssl_options &options);
 
   const std::string &get_scheme() const { return get_value(kScheme); }

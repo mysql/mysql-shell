@@ -121,8 +121,17 @@ print_metadata_replicasets_topology_type(session);
 // F2.2 - The function shall be idempotent:
 // F2.2.1 - Any change to a multi-primary cluster when already in multi-primary mode is a no-op.
 
-//@<OUT> WL#12052: Switch a multi-primary cluster to multi-primary is a no-op {VER(>=8.0.13)}
+//@<> WL#12052: Switch a multi-primary cluster to multi-primary is a no-op {VER(>=8.0.13)}
 cluster.switchToMultiPrimaryMode()
+
+EXPECT_OUTPUT_CONTAINS("Switching cluster 'cluster' to Multi-Primary mode...");
+
+EXPECT_OUTPUT_CONTAINS("Instance '"+hostname+":"+__mysql_sandbox_port1+"' remains PRIMARY.");
+EXPECT_OUTPUT_CONTAINS("Instance '"+hostname+":"+__mysql_sandbox_port2+"' remains PRIMARY.");
+EXPECT_OUTPUT_CONTAINS("Instance '"+hostname+":"+__mysql_sandbox_port3+"' remains PRIMARY.");
+
+EXPECT_OUTPUT_CONTAINS("The cluster successfully switched to Multi-Primary mode.");
+
 
 //@<OUT> WL#12052: Check cluster status after changing to multi-primary no-op {VER(>=8.0.13)}
 cluster.status()

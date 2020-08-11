@@ -302,8 +302,6 @@ group_replication_start_on_boot = ON
 ||
 
 //@# FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
-|NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.|
-||
 |Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...|
 |NOTE: Instance detected as a sandbox.|
 |Please note that sandbox instances are only suitable for deploying test clusters for use within the same host.|
@@ -311,10 +309,11 @@ group_replication_start_on_boot = ON
 |This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>|
 ||
 |Instance configuration is suitable.|
-|WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the dba.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.|
+|NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>'. Use the localAddress option to override.|
 |A new instance will be added to the InnoDB cluster. Depending on the amount of|
 |data on the cluster this might take from a few seconds to several hours.|
 ||
+|WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' will not load the persisted cluster configuration upon reboot since 'persisted-globals-load' is set to 'OFF'. Please use the dba.configureLocalInstance() command locally to persist the changes or set 'persisted-globals-load' to 'ON' on the configuration file.|
 |Adding instance to the cluster...|
 ||
 |Monitoring recovery process of the new cluster member. Press ^C to stop monitoring and let it continue in background.|
@@ -323,7 +322,7 @@ group_replication_start_on_boot = ON
 {{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 //@<OUT> FR2-TS-3 check that warning is displayed when adding instance with persisted-globals-load=OFF {VER(>=8.0.12)}
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 {
     "clusterName": "ClusterName",
@@ -467,7 +466,7 @@ WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Gr
 
 //@<OUT> FR2-TS-6 Warning is displayed on addInstance {VER(<8.0.12)}
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
-The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@ FR2-TS-6 TEARDOWN {VER(<8.0.12)}
 ||

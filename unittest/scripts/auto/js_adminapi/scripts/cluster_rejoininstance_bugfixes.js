@@ -14,6 +14,8 @@ testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 // Change replication_gtid_assignment_block_size before trying to rejoin instance to cluster
 testutil.changeSandboxConf(__mysql_sandbox_port2, 'loose_group_replication_gtid_assignment_block_size', '1000');
 testutil.startSandbox(__mysql_sandbox_port2);
+session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("stop group_replication");
 
 EXPECT_THROWS_TYPE(function(){cluster.rejoinInstance(__sandbox_uri2);}, "Cluster.rejoinInstance: The 'group_replication_gtid_assignment_block_size' value '1000' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster '2000'.", "RuntimeError");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Cannot join instance 'localhost:${__mysql_sandbox_port2}' to cluster: incompatible 'group_replication_gtid_assignment_block_size' value.`);

@@ -110,6 +110,22 @@ void drop_indicator_tag(const mysql::IInstance &instance,
                         const std::string &name);
 bool check_indicator_tag(const mysql::IInstance &instance,
                          const std::string &name);
+
+struct Error_log_entry {
+  std::string logged;
+  uint64_t thread_id;
+  std::string prio;
+  std::string error_code;
+  std::string subsystem;
+  std::string data;
+};
+
+bool query_server_errors(const mysql::IInstance &instance,
+                         const std::string &start_time,
+                         const std::string &end_time,
+                         const std::vector<std::string> &subsystems,
+                         const std::function<void(const Error_log_entry &)> &f);
+
 }  // namespace mysql
 }  // namespace mysqlshdk
 

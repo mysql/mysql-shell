@@ -33,12 +33,21 @@
 
 namespace mysqlsh {
 
+#if DOXYGEN_JS
+Dba connectDba(ConnectionData connectionData);
+#elif DOXYGEN_PY
+Dba connect_dba(ConnectionData connectionData);
+#endif
+
 DECLARE_MODULE(Mysqlsh, mysqlsh);
 
+// We need to hide this from doxygen to avoid warnings
+#if !defined(DOXYGEN_JS) && !defined(DOXYGEN_PY)
 shcore::Value get_member(const std::string &prop) const;
 
 std::shared_ptr<dba::Dba> connect_dba(
     const mysqlshdk::db::Connection_options &connection_options);
+#endif
 
 END_DECLARE_MODULE();
 

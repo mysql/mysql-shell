@@ -168,10 +168,6 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
  * @param instance target Instance object to join the cluster.
  * @param peer_instance Instance object of the member used as contact node
  *                      to join.
- * @param rpl_user string with the GR recovery user name. Note: If no user
- *                 is provided (empty string) then the set of the recovery
- *                 user (CHANGE MASTER) will be skipped.
- * @param rpl_user_pwd string with the GR recovery user password.
  * @param gr_opts Group_replication_options structure with the GR options
  *                to set for the instance (i.e., ssl_mode, local_address,
  *                group_seeds, ip_whitelist, member_weight, expel_timeout,
@@ -182,7 +178,6 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
  */
 void join_cluster(const mysqlshdk::mysql::IInstance &instance,
                   const mysqlshdk::mysql::IInstance &peer_instance,
-                  const std::string &rpl_user, const std::string &rpl_user_pwd,
                   const Group_replication_options &gr_opts,
                   const mysqlshdk::utils::nullable<uint64_t> &cluster_size,
                   mysqlshdk::config::Config *config);

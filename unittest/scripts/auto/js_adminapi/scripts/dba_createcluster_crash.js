@@ -108,4 +108,8 @@ for (iter = start; iter < 100; iter += skip) {
 }
 
 //@<> Cleanup
+
+testutil.clearTraps("mysql");
+testutil.resetTraps("mysql");
+
 testutil.destroySandbox(__mysql_sandbox_port1)

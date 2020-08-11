@@ -33,7 +33,10 @@ REGISTER_MODULE(Mysqlsh, mysqlsh) {
   expose("connectDba", &Mysqlsh::connect_dba, "connectionData");
 }
 
+// We need to hide this from doxygen to avoid warnings
+#if !defined(DOXYGEN_JS) && !defined(DOXYGEN_PY)
 shcore::Value Mysqlsh::get_member(const std::string &) const { return {}; }
+#endif
 
 REGISTER_HELP_FUNCTION(connectDba, Mysqlsh);
 REGISTER_HELP_FUNCTION_TEXT(MYSQLSH_CONNECTDBA, R"*(
@@ -53,12 +56,13 @@ Creates a new Dba object for the given target server.
 Dba Mysqlsh::connectDba(ConnectionData connectionData) {}
 #elif DOXYGEN_PY
 Dba Mysqlsh::connect_dba(ConnectionData connectionData) {}
-#endif
+#else
 std::shared_ptr<dba::Dba> Mysqlsh::connect_dba(
     const mysqlshdk::db::Connection_options &connection_options) {
   auto session = establish_session(connection_options, false);
 
   return std::make_shared<dba::Dba>(ShellBaseSession::wrap_session(session));
 }
+#endif
 
 }  // namespace mysqlsh

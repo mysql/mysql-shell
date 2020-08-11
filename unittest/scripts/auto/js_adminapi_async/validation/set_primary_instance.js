@@ -26,7 +26,7 @@ ReplicaSet.setPrimaryInstance: Target instance localhost:<<<__mysql_sandbox_port
 ||ReplicaSet.setPrimaryInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>1': Can't connect to MySQL server on 'localhost'
 
 //@# bad target with a different user (should fail)
-|ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them.|
+|ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them|
 ||ReplicaSet.setPrimaryInstance: Invalid target instance specification (ArgumentError)
 
 //@# bad target with a different password (should fail)

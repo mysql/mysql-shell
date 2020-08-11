@@ -128,6 +128,7 @@ testutil.stopSandbox(__mysql_sandbox_port1, {wait:1});
 
 shell.connect(__sandbox_uri2);
 rs = dba.getReplicaSet();
+testutil.waitForReplConnectionError(__mysql_sandbox_port2, "");
 rs.status();
 testutil.startSandbox(__mysql_sandbox_port1);
 

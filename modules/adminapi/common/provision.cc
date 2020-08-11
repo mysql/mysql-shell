@@ -32,6 +32,7 @@
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/repl_config.h"
 #include "mysqlshdk/libs/mysql/replication.h"
+#include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -167,6 +168,52 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
               mysqlshdk::utils::nullable<bool>(
                   !gr_opts.manual_start_on_boot.get_safe(false)));
 }
+
+void report_gr_start_error(const mysqlshdk::mysql::IInstance &instance,
+                           const std::string &before_time) {
+  auto console = mysqlsh::current_console();
+  bool first = true;
+
+  if (!mysqlshdk::mysql::query_server_errors(
+          instance, before_time, "", {"Repl"},
+          [&first, &instance,
+           console](const mysqlshdk::mysql::Error_log_entry &entry) {
+            if (first) {
+              console->print_error(
+                  "Unable to start Group Replication for instance '" +
+                  instance.descr() + "'.");
+              console->print_info(
+                  "The MySQL error_log contains the following messages:");
+              first = false;
+            }
+            console->print_info(shcore::str_format(
+                "  %s [%s] [%s] %s", entry.logged.c_str(), entry.prio.c_str(),
+                entry.error_code.c_str(), entry.data.c_str()));
+          })) {
+    console->print_error(
+        "Unable to start Group Replication for instance '" + instance.descr() +
+        "'. Please check the MySQL server error log for more information.");
+  }
+}
+
+void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
+                             bool bootstrap) {
+  // Start Group Replication (effectively start the cluster).
+  // NOTE: Creating and setting the recovery user must be performed after
+  //       bootstrapping the GR group for all transcations to use the group
+  //       UUID (see: BUG#28064729).
+  std::string before_time = instance.queryf_one_string(0, "", "SELECT NOW(6)");
+  try {
+    mysqlshdk::gr::start_group_replication(instance, bootstrap);
+  } catch (const shcore::Error &err) {
+    report_gr_start_error(instance, before_time);
+
+    std::string error_msg = "Group Replication failed to start: ";
+    error_msg.append(err.format());
+    throw shcore::Exception::runtime_error(error_msg);
+  }
+}
+
 }  // namespace
 
 namespace mysqlsh {
@@ -198,7 +245,8 @@ void leave_cluster(const mysqlsh::dba::Instance &instance) {
   }
 
   // Reset the replication channels used by Group Replication.
-  std::string replica_term = mysqlshdk::mysql::get_replica_keyword(instance);
+  std::string replica_term =
+      mysqlshdk::mysql::get_replica_keyword(instance.get_version());
 
   instance.executef("RESET " + replica_term + " ALL FOR CHANNEL ?",
                     "group_replication_applier");
@@ -562,29 +610,15 @@ void start_cluster(const mysqlshdk::mysql::IInstance &instance,
             instance.descr().c_str());
   config->apply();
 
-  // Start Group Replication (effectively start the cluster).
-  // NOTE: Creating and setting the recovery user must be performed after
-  //       bootstrapping the GR group for all transcations to use the group
-  //       UUID (see: BUG#28064729).
-  try {
-    log_debug("Starting Group Replication to bootstrap group...");
-    mysqlshdk::gr::start_group_replication(instance, true);
-  } catch (const shcore::Error &err) {
-    auto console = mysqlsh::current_console();
-    console->print_error(
-        "Unable to start Group Replication for instance '" + instance.descr() +
-        "'. Please check the MySQL server error log for more information.");
-    std::string error_msg = "Group Replication failed to start: ";
-    error_msg.append(err.format());
-    throw shcore::Exception::runtime_error(error_msg);
-  }
+  log_debug("Starting Group Replication to bootstrap group...");
+  start_group_replication(instance, true);
+
   log_debug("Instance '%s' successfully started the Group Replication group.",
             instance.descr().c_str());
 }
 
 void join_cluster(const mysqlshdk::mysql::IInstance &instance,
                   const mysqlshdk::mysql::IInstance &peer_instance,
-                  const std::string &rpl_user, const std::string &rpl_user_pwd,
                   const Group_replication_options &gr_opts,
                   const mysqlshdk::utils::nullable<uint64_t> &cluster_size,
                   mysqlshdk::config::Config *config) {
@@ -664,26 +698,18 @@ void join_cluster(const mysqlshdk::mysql::IInstance &instance,
   config->apply();
 
   // Set the GR replication (recovery) user if specified (not empty).
-  if (!rpl_user.empty()) {
+  if (gr_opts.recovery_credentials &&
+      !gr_opts.recovery_credentials->user.empty()) {
     log_debug("Setting Group Replication recovery user to '%s'.",
-              rpl_user.c_str());
-    mysqlshdk::gr::change_recovery_credentials(instance, rpl_user,
-                                               rpl_user_pwd);
+              gr_opts.recovery_credentials->user.c_str());
+    mysqlshdk::gr::change_recovery_credentials(
+        instance, gr_opts.recovery_credentials->user,
+        gr_opts.recovery_credentials->password.get_safe());
   }
 
-  // Start Group Replication (effectively join the cluster).
-  try {
-    log_debug("Starting Group Replication to join group...");
-    mysqlshdk::gr::start_group_replication(instance, false);
-  } catch (const shcore::Error &err) {
-    auto console = mysqlsh::current_console();
-    console->print_error(
-        "Unable to start Group Replication for instance '" + instance.descr() +
-        "'. Please check the MySQL server error log for more information.");
-    std::string error_msg = "Group Replication failed to start: ";
-    error_msg.append(err.format());
-    throw shcore::Exception::runtime_error(error_msg);
-  }
+  log_debug("Starting Group Replication to join group...");
+  start_group_replication(instance, false);
+
   log_debug("Instance '%s' successfully joined the Group Replication group.",
             instance.descr().c_str());
 }

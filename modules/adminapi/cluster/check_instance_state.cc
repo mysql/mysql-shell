@@ -39,34 +39,12 @@ namespace cluster {
 
 Check_instance_state::Check_instance_state(
     const Cluster_impl &cluster,
-    const mysqlshdk::db::Connection_options &instance_cnx_opts)
-    : m_cluster(cluster), m_instance_cnx_opts(instance_cnx_opts) {
-  m_target_instance_address =
-      m_instance_cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport());
-  m_address_in_metadata = m_target_instance_address;
+    const std::shared_ptr<mysqlsh::dba::Instance> &target)
+    : m_cluster(cluster), m_target_instance(target) {
+  m_address_in_metadata = m_target_instance->get_canonical_address();
 }
 
 Check_instance_state::~Check_instance_state() {}
-
-/**
- * Ensure target instance is reachable.
- *
- * If the instance is not reachable:
- *   - Prints an error message indicating the connection error
- *   - Throws a runtime error indicating the instance is not reachable
- */
-void Check_instance_state::ensure_target_instance_reachable() {
-  log_debug("Connecting to instance '%s'", m_target_instance_address.c_str());
-
-  try {
-    m_target_instance = Instance::connect(m_instance_cnx_opts);
-
-    // Set the metadata address to use if instance is reachable.
-    m_address_in_metadata = m_target_instance->get_canonical_address();
-    log_debug("Successfully connected to instance");
-  }
-  CATCH_REPORT_AND_THROW_CONNECTION_ERROR(m_target_instance_address)
-}
 
 /**
  * Ensure target instance has a valid GR state, being the only accepted state
@@ -79,7 +57,7 @@ void Check_instance_state::ensure_instance_valid_gr_state() {
   GRInstanceType::Type instance_type = get_gr_instance_type(*m_target_instance);
 
   if (instance_type != GRInstanceType::Standalone) {
-    std::string error = "The instance '" + m_target_instance_address;
+    std::string error = "The instance '" + m_target_instance->descr();
 
     // No need to verify if the state is GRInstanceType::InnoDBCluster because
     // that has been verified in ensure_instance_not_belong_to_cluster
@@ -211,7 +189,7 @@ void Check_instance_state::print_instance_state_info(
   auto console = mysqlsh::current_console();
 
   if (instance_state->get_string("state") == "ok") {
-    console->print_info("The instance '" + m_target_instance_address +
+    console->print_info("The instance '" + m_target_instance->descr() +
                         "' is valid for the cluster.");
 
     if (instance_state->get_string("reason") == "new") {
@@ -227,7 +205,7 @@ void Check_instance_state::print_instance_state_info(
             "the cluster. However, Clone is available and if desired can be "
             "used to overwrite the data and add the instance to a cluster.");
       } else {
-        console->print_info("The instance '" + m_target_instance_address +
+        console->print_info("The instance '" + m_target_instance->descr() +
                             "' is invalid for the cluster.");
         console->print_info(
             "The instance contains additional transactions in relation to "
@@ -250,7 +228,7 @@ void Check_instance_state::print_instance_state_info(
               "when adding it to a cluster.");
         }
       } else {
-        console->print_info("The instance '" + m_target_instance_address +
+        console->print_info("The instance '" + m_target_instance->descr() +
                             "' is invalid for the cluster.");
 
         if (instance_state->get_string("reason") == "lost_transactions") {
@@ -264,35 +242,10 @@ void Check_instance_state::print_instance_state_info(
       }
     }
   }
-  console->println();
+  console->print_info();
 }
 
 void Check_instance_state::prepare() {
-  // Use default port if not provided in the connection options.
-  if (!m_instance_cnx_opts.has_port() && !m_instance_cnx_opts.has_socket()) {
-    m_instance_cnx_opts.set_port(mysqlshdk::db::k_default_mysql_port);
-    m_target_instance_address = m_instance_cnx_opts.as_uri(
-        mysqlshdk::db::uri::formats::only_transport());
-  }
-
-  // Get instance login information from the cluster session if missing.
-  if (!m_instance_cnx_opts.has_user() || !m_instance_cnx_opts.has_password()) {
-    std::shared_ptr<Instance> cluster_instance = m_cluster.get_target_server();
-    Connection_options cluster_cnx_opt =
-        cluster_instance->get_connection_options();
-
-    if (!m_instance_cnx_opts.has_user() && cluster_cnx_opt.has_user()) {
-      m_instance_cnx_opts.set_user(cluster_cnx_opt.get_user());
-    }
-
-    if (!m_instance_cnx_opts.has_password() && cluster_cnx_opt.has_password()) {
-      m_instance_cnx_opts.set_password(cluster_cnx_opt.get_password());
-    }
-  }
-
-  // Verify if the target instance is reachable
-  ensure_target_instance_reachable();
-
   // Ensure the target instance does not belong to the metadata.
   mysqlsh::dba::checks::ensure_instance_not_belong_to_metadata(
       *m_target_instance, m_address_in_metadata, m_cluster);
@@ -304,22 +257,14 @@ void Check_instance_state::prepare() {
   m_clone_available =
       mysqlshdk::mysql::is_clone_available(*m_target_instance) &&
       !m_cluster.get_disable_clone_option();
-
-  // Check if target instance has the same credentials as seed instance.
-  auto seed = m_cluster.pick_seed_instance();
-  auto seed_session =
-      checks::ensure_matching_credentials_with_seed(&seed, m_instance_cnx_opts);
-  if (seed_session) {
-    seed_session->close_session();
-  }
 }
 
 shcore::Value Check_instance_state::execute() {
   auto console = mysqlsh::current_console();
 
-  console->print_info("Analyzing the instance '" + m_target_instance_address +
+  console->print_info("Analyzing the instance '" + m_target_instance->descr() +
                       "' replication state...");
-  console->println();
+  console->print_info();
 
   // Get the instance state
   shcore::Dictionary_t instance_state;
@@ -330,16 +275,6 @@ shcore::Value Check_instance_state::execute() {
   print_instance_state_info(instance_state);
 
   return shcore::Value(instance_state);
-}
-
-void Check_instance_state::rollback() {}
-
-void Check_instance_state::finish() {
-  // Close the session to the target instance
-  if (m_target_instance) m_target_instance->close_session();
-
-  // Reset all auxiliary (temporary) data used for the operation execution.
-  m_target_instance_address.clear();
 }
 
 }  // namespace cluster
