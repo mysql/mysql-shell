@@ -28,7 +28,7 @@ TEST_F(Oci_os_tests, directory_list_files) {
   Oci_options options{get_options(PRIVATE_BUCKET)};
   Bucket bucket(options);
   Directory root_directory(options);
-  Directory sakila(options, "oci+os://sakila");
+  Directory sakila(options, "sakila");
 
   // The root directory exists for sure
   EXPECT_TRUE(root_directory.exists());

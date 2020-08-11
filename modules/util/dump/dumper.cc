@@ -836,8 +836,7 @@ Dumper::Dumper(const Dump_options &options)
 
       const auto scheme = get_scheme(m_options.output_url());
 
-      if (!scheme.empty() && !scheme_matches(scheme, "file") &&
-          !scheme_matches(scheme, "oci+os")) {
+      if (!scheme.empty() && !scheme_matches(scheme, "file")) {
         throw std::invalid_argument("File handling for " + scheme +
                                     " protocol is not supported.");
       }
@@ -1572,7 +1571,7 @@ Dumper::Index_info Dumper::choose_index(const Schema_task &schema,
   const auto result = session()->queryf(
       "SELECT INDEX_NAME, COLUMN_NAME FROM information_schema.statistics WHERE "
       "NON_UNIQUE = 0 AND SEQ_IN_INDEX = 1 AND TABLE_SCHEMA = ? AND TABLE_NAME "
-      "= ?",
+      "= ? AND COLUMN_NAME IS NOT NULL",
       schema.name, table.name);
 
   while (const auto row = result->fetch_one()) {
@@ -1719,7 +1718,7 @@ void Dumper::write_dump_started_metadata() const {
 
     for (const auto &user : dumper->get_users(m_options.included_users(),
                                               m_options.excluded_users())) {
-      users.PushBack({user.second.c_str(), a}, a);
+      users.PushBack({shcore::make_account(user).c_str(), a}, a);
     }
 
     doc.AddMember(StringRef("users"), std::move(users), a);
@@ -2142,7 +2141,8 @@ void Dumper::update_progress(uint64_t new_rows,
         }
       }
 
-      m_progress->show_status(false, ", " + throughput());
+      m_progress->set_right_label(", " + throughput());
+      m_progress->show_status(false);
     }
   }
 }
@@ -2153,7 +2153,8 @@ void Dumper::shutdown_progress() {
   }
 
   m_progress->current(m_rows_written);
-  m_progress->show_status(true, ", " + throughput());
+  m_progress->set_right_label(", " + throughput());
+  m_progress->show_status(true);
   m_progress->shutdown();
 }
 
@@ -2274,7 +2275,11 @@ std::string Dumper::get_query_comment(const std::string &schema,
                                       const char *context) const {
   return "/* mysqlsh " +
          shcore::get_member_name(name(), shcore::current_naming_style()) +
-         ", " + context + " table " + quote(schema, table) +
+         ", " + context + " table " +
+         // sanitize schema/table names in case they contain a '*/'
+         // *\/ isn't really a valid escape, but it doesn't matter because we
+         // just want the lexer to not see */
+         shcore::str_replace(quote(schema, table), "*/", "*\\/") +
          ", chunk ID: " + id + " */";
 }
 

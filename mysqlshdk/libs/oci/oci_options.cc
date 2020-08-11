@@ -224,14 +224,12 @@ void Oci_options::check_option_values() {
 }
 
 bool parse_oci_options(
-    Oci_uri_type type, const std::string &in_path,
+    const std::string &path,
     const std::unordered_map<std::string, std::string> &in_options,
-    Oci_options *out_options, std::string *out_path) {
+    Oci_options *out_options) {
   assert(out_options);
-  assert(out_path);
 
-  bool ret_val = false;
-  const auto scheme = mysqlshdk::storage::utils::get_scheme(in_path);
+  const auto scheme = mysqlshdk::storage::utils::get_scheme(path);
 
   // The osBucketName only should be used when passing a raw path
   bool os_bucket_found = in_options.find(kOsBucketName) != in_options.end();
@@ -242,62 +240,31 @@ bool parse_oci_options(
         "scheme.'");
   }
 
-  if (mysqlshdk::storage::utils::scheme_matches(scheme, "oci+os") ||
-      os_bucket_found) {
-    std::string file;
+  if (os_bucket_found) {
+    out_options->os_bucket_name = in_options.at(mysqlshdk::oci::kOsBucketName);
 
-    size_t min_parts = type == Oci_uri_type::FILE ? 6 : 5;
+    auto it = in_options.find(mysqlshdk::oci::kOsNamespace);
 
-    // Parses the URI to get the required options
-    if (!scheme.empty()) {
-      const auto parts = shcore::str_split(in_path, "/", min_parts - 1);
-      if (parts.size() < min_parts) {
-        if (type == Oci_uri_type::FILE) {
-          throw std::runtime_error(
-              "Invalid URI. Use oci+os://region/namespace/bucket/file");
-        } else {
-          throw std::runtime_error(
-              "Invalid URI. Use oci+os://region/namespace/bucket[/directory]");
-        }
-      }
-
-      // The values from the URL are only taken if they were not set already
-      // i.e. out_optoins may already have them because they were passed as
-      // individual parameters, in such case we ignore the URI ones
-      if (out_options->os_namespace.is_null())
-        out_options->os_namespace = parts[3];
-
-      if (out_options->os_bucket_name.is_null())
-        out_options->os_bucket_name = parts[4];
-
-      // out_path will contain the file or directory name, in the case of
-      // directories it might be empty indicating it is the root directory of
-      // the bucket
-      if (parts.size() == 6)
-        *out_path = parts[5];
-      else
-        *out_path = "";
-    } else {
-      *out_path = in_path;
-      out_options->os_bucket_name =
-          in_options.at(mysqlshdk::oci::kOsBucketName);
+    if (it != in_options.end()) {
+      out_options->os_namespace = it->second;
     }
 
-    if (in_options.find(mysqlshdk::oci::kOsNamespace) != in_options.end())
-      out_options->os_namespace = in_options.at(mysqlshdk::oci::kOsNamespace);
+    it = in_options.find(mysqlshdk::oci::kOciConfigFile);
 
-    if (in_options.find(mysqlshdk::oci::kOciConfigFile) != in_options.end())
-      out_options->config_path = in_options.at(mysqlshdk::oci::kOciConfigFile);
+    if (it != in_options.end()) {
+      out_options->config_path = it->second;
+    }
 
-    if (in_options.find(mysqlshdk::oci::kOciProfile) != in_options.end())
-      out_options->config_profile = in_options.at(mysqlshdk::oci::kOciProfile);
+    it = in_options.find(mysqlshdk::oci::kOciProfile);
+
+    if (it != in_options.end()) {
+      out_options->config_profile = it->second;
+    }
 
     out_options->check_option_values();
-
-    ret_val = true;
   }
 
-  return ret_val;
+  return os_bucket_found;
 }
 
 }  // namespace oci

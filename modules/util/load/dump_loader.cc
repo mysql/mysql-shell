@@ -367,6 +367,17 @@ bool Dump_loader::Worker::Load_chunk_task::execute(
   return true;
 }
 
+std::string Dump_loader::Worker::Load_chunk_task::query_comment() const {
+  std::string query_comment =
+      "/* mysqlsh loadDump(), thread " + std::to_string(id()) + ", table " +
+      shcore::str_replace("`" + schema() + "`.`" + table() + "`", "*/", "*\\/");
+  if (chunk_index() >= 0) {
+    query_comment += ", chunk ID: " + std::to_string(chunk_index());
+  }
+  query_comment += " */ ";
+  return query_comment;
+}
+
 void Dump_loader::Worker::Load_chunk_task::load(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Dump_loader *loader) {
@@ -393,7 +404,7 @@ void Dump_loader::Worker::Load_chunk_task::load(
   import_table::Load_data_worker op(
       import_options, id(), loader->m_progress.get(), &loader->m_output_mutex,
       &loader->m_num_bytes_loaded, &loader->m_worker_hard_interrupt, nullptr,
-      &loader->m_thread_exceptions, &stats);
+      &loader->m_thread_exceptions, &stats, query_comment());
 
   loader->m_num_threads_loading++;
   loader->update_progress();
@@ -807,6 +818,20 @@ void Dump_loader::on_dump_end() {
     } else {
       current_console()->print_warning(
           "gtid update requested but, gtid_executed not set in dump");
+    }
+  }
+
+  // check if redo log is disabled and print a reminder if so
+  auto res = m_session->query(
+      "SELECT VARIABLE_VALUE = 'OFF' FROM "
+      "performance_schema.global_status "
+      "WHERE variable_name = 'Innodb_redo_log_enabled'");
+  if (auto row = res->fetch_one()) {
+    if (row->get_int(0, 0)) {
+      current_console()->print_note(
+          "The redo log is currently disabled, which causes MySQL to not be "
+          "crash safe! Do not forget to enable it again before putting this "
+          "instance in production.");
     }
   }
 }
@@ -1286,9 +1311,10 @@ void Dump_loader::update_progress() {
   static const char k_progress_spin[] = "-\\|/";
 
   std::unique_lock<std::mutex> lock(m_output_mutex, std::try_to_lock);
-  const auto tables_progress =
-      shcore::str_format(", %zu / %zu tables", m_unique_tables_loaded.size(),
-                         m_total_tables_with_data);
+
+  m_progress->set_right_label(shcore::str_format(", %zu / %zu tables done",
+                                                 m_unique_tables_loaded.size(),
+                                                 m_total_tables_with_data));
   if (lock.owns_lock()) {
     if (m_dump->status() == Dump_reader::Status::COMPLETE &&
         m_num_threads_loading.load() == 0 &&
@@ -1299,7 +1325,7 @@ void Dump_loader::update_progress() {
              std::to_string(m_num_threads_recreating_indexes.load()).c_str(),
              k_progress_spin[m_progress_spin]);
       fflush(stdout);
-      m_progress->show_status(false, tables_progress);
+      m_progress->show_status(false);
     } else {
       std::string label;
       if (m_dump->status() != Dump_reader::Status::COMPLETE)
@@ -1317,7 +1343,7 @@ void Dump_loader::update_progress() {
         label[label.length() - 2] = k_progress_spin[m_progress_spin];
 
       m_progress->set_left_label(label);
-      m_progress->show_status(true, tables_progress);
+      m_progress->show_status(true);
     }
 
     m_progress_spin++;
@@ -1347,7 +1373,7 @@ void Dump_loader::open_dump(
   }
 
   if (status != Dump_reader::Status::COMPLETE) {
-    if (m_options.dump_wait_timeout() > 0) {
+    if (m_options.dump_wait_timeout_ms() > 0) {
       console->print_note(
           "Dump is still ongoing, data will be loaded as it becomes "
           "available.");
@@ -1361,8 +1387,6 @@ void Dump_loader::open_dump(
   }
 
   m_dump->validate_options();
-
-  handle_table_only_dump();
 }
 
 void Dump_loader::check_server_version() {
@@ -1563,6 +1587,32 @@ void Dump_loader::check_existing_objects() {
 
   console->print_status("Checking for pre-existing objects...");
 
+  bool has_duplicates = false;
+
+  if (m_options.load_users()) {
+    std::set<std::string> accounts;
+    for (const auto &a : m_dump->accounts()) {
+      if (m_options.include_user(a))
+        accounts.emplace(shcore::str_lower(
+            shcore::str_format("'%s'@'%s'", a.user.c_str(), a.host.c_str())));
+    }
+
+    auto result = m_session->query(
+        "SELECT DISTINCT grantee FROM information_schema.user_privileges");
+    for (auto row = result->fetch_one(); row; row = result->fetch_one()) {
+      auto grantee = row->get_string(0);
+      if (accounts.count(shcore::str_lower(grantee))) {
+        if (m_options.ignore_existing_objects())
+          current_console()->print_note("Account " + grantee +
+                                        " already exists");
+        else
+          current_console()->print_error("Account " + grantee +
+                                         " already exists");
+        has_duplicates = true;
+      }
+    }
+  }
+
   // Case handling:
   // Partition, subpartition, column, index, stored routine, event, and
   // resource group names are not case-sensitive on any platform, nor are
@@ -1580,8 +1630,6 @@ void Dump_loader::check_existing_objects() {
       " WHERE schema_name in (" +
       set + ")");
   std::vector<std::string> dup_schemas = fetch_names(result.get());
-
-  bool has_duplicates = false;
 
   for (const auto &schema : dup_schemas) {
     std::vector<std::string> tables;
@@ -1745,7 +1793,7 @@ void Dump_loader::execute_table_ddl_tasks() {
   std::list<Dump_reader::Name_and_file> view_placeholders;
 
   auto schedule_next_table = [&](Worker *worker) {
-    for (;;) {
+    while (!m_worker_interrupt) {
       // if there are still tables from the previous iteration, return them
       if (!tables.empty()) {
         auto &t = tables.front();
@@ -1803,6 +1851,7 @@ void Dump_loader::execute_table_ddl_tasks() {
         }
       }
     }
+    return false;
   };
 
   log_debug("Begin loading table DDL");
@@ -1904,6 +1953,16 @@ void Dump_loader::execute_tasks() {
 
   setup_progress(&m_resuming);
 
+  // the 1st potentially slow operation, as many errors should be detected
+  // before this as possible
+  m_dump->rescan();
+  if (m_dump->status() == Dump_reader::Status::COMPLETE) {
+    m_progress->total(m_dump->filtered_data_size());
+  }
+  update_progress();
+
+  handle_table_only_dump();
+
   if (!m_resuming && m_options.load_ddl()) check_existing_objects();
 
   check_tables_without_primary_key();
@@ -1989,12 +2048,13 @@ bool Dump_loader::wait_for_more_data() {
         return true;
       }
 
-      if (m_options.dump_wait_timeout() > 0) {
+      if (m_options.dump_wait_timeout_ms() > 0) {
         const auto current_time = std::chrono::steady_clock::now();
         const auto time_diff = std::chrono::duration_cast<std::chrono::seconds>(
                                    current_time - start_time)
                                    .count();
-        if (static_cast<uint64_t>(time_diff) >= m_options.dump_wait_timeout()) {
+        if (static_cast<uint64_t>(time_diff * 1000) >=
+            m_options.dump_wait_timeout_ms()) {
           console->print_warning(
               "Timeout while waiting for dump to finish. Imported data "
               "may be incomplete.");
@@ -2011,12 +2071,16 @@ bool Dump_loader::wait_for_more_data() {
         update_progress();
       }
       waited = true;
-      // wait for at most 5s and try again
-      for (uint64_t j = 0; j < std::min(static_cast<uint64_t>(5),
-                                        m_options.dump_wait_timeout()) &&
-                           !m_worker_interrupt;
-           j++) {
-        shcore::sleep_ms(1000);
+      if (m_options.dump_wait_timeout_ms() < 1000) {
+        shcore::sleep_ms(m_options.dump_wait_timeout_ms());
+      } else {
+        // wait for at most 5s at a time and try again
+        for (uint64_t j = 0;
+             j < std::min<uint64_t>(5000, m_options.dump_wait_timeout_ms()) &&
+             !m_worker_interrupt;
+             j += 1000) {
+          shcore::sleep_ms(1000);
+        }
       }
     }
   }

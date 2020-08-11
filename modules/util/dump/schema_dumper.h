@@ -59,9 +59,6 @@ class Schema_dumper {
       const std::set<std::string> &mysqlaas_allowed_privileges =
           mysqlsh::compatibility::k_mysqlaas_allowed_privileges);
 
-  static std::string normalize_user(const std::string &user,
-                                    const std::string &host);
-
   static std::string preprocess_users_script(
       const std::string &script,
       const std::function<bool(const std::string &)> &include_user);
@@ -98,7 +95,7 @@ class Schema_dumper {
   std::vector<Issue> dump_grants(IFile *file,
                                  const std::vector<shcore::Account> &included,
                                  const std::vector<shcore::Account> &excluded);
-  std::vector<std::pair<std::string, std::string>> get_users(
+  std::vector<shcore::Account> get_users(
       const std::vector<shcore::Account> &included,
       const std::vector<shcore::Account> &excluded);
 

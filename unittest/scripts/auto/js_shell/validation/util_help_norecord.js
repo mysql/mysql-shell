@@ -216,8 +216,9 @@ DESCRIPTION
         the data dump files, one of: "none", "gzip", "zstd".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
-      - osNamespace: string (default: not set) - Specify the OCI namespace
-        (tenancy name) where the OCI bucket is located.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -485,8 +486,9 @@ DESCRIPTION
         the data dump files, one of: "none", "gzip", "zstd".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
-      - osNamespace: string (default: not set) - Specify the OCI namespace
-        (tenancy name) where the OCI bucket is located.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -735,8 +737,9 @@ DESCRIPTION
         the data dump files, one of: "none", "gzip", "zstd".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
-      - osNamespace: string (default: not set) - Specify the OCI namespace
-        (tenancy name) where the OCI bucket is located.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -890,8 +893,9 @@ DESCRIPTION
         the data dump files, one of: "none", "gzip", "zstd".
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
-      - osNamespace: string (default: not set) - Specify the OCI namespace
-        (tenancy name) where the OCI bucket is located.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -1133,22 +1137,25 @@ WHERE
 
 DESCRIPTION
       Scheme part of filename contains infomation about the transport backend.
-      Supported transport backends are: file://, http://, https://, oci+os://.
-      If scheme part of filename is omitted, then file:// transport backend
-      will be chosen.
+      Supported transport backends are: file://, http://, https://. If scheme
+      part of filename is omitted, then file:// transport backend will be
+      chosen.
 
       Supported filename formats:
 
-      - [file://]/path/to/file - Read import data from local file
-      - http[s]://host.domain[:port]/path/to/file - Read import data from file
-        provided in URL
-      - oci+os://region/namespace/bucket/object - Read import data from object
-        stored in OCI (Oracle Cloud Infrastructure) Object Storage. Variables
-        needed to sign requests will be obtained from profile configured in OCI
-        configuration file. Profile name and configuration file path are
-        specified in oci.profile and oci.configFile shell options. ociProfile
-        and ociConfigFile options will override, respectively, oci.profile and
-        oci.configFile shell options.
+      - /path/to/file - Path to a locally or remotely (e.g. in OCI Object
+        Storage) accessible file or directory
+      - file:///path/to/file - Path to a locally accessible file or directory
+      - http[s]://host.domain[:port]/path/to/file - Location of a remote file
+        accessible through HTTP(s) (importTable() only)
+
+      If the osBucketName option is given, the path argument must specify a
+      plain path in that OCI (Oracle Cloud Infrastructure) Object Storage
+      bucket.
+
+      The OCI configuration profile is located through the oci.profile and
+      oci.configFile global shell options and can be overridden with ociProfile
+      and ociConfigFile, respectively.
 
       Options dictionary:
 
@@ -1209,10 +1216,18 @@ DESCRIPTION
         "binary" specifies "no conversion". If not set, the server will use the
         character set indicated by the character_set_database system variable
         to interpret the information in the file.
+
+      OCI Object Storage Options
+
+      - osBucketName: string (default: not set) - Name of the Object Storage
+        bucket to use. The bucket must already exist.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Override oci.configFile
-        shell option. Available only if oci+os:// transport protocol is in use.
+        shell option, to specify the path to the OCI configuration file.
       - ociProfile: string (default: not set) - Override oci.profile shell
-        option. Available only if oci+os:// transport protocol is in use.
+        option, to specify the name of the OCI profile to use.
 
       dialect predefines following set of options fieldsTerminatedBy (FT),
       fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy
@@ -1292,7 +1307,7 @@ DESCRIPTION
       bucket.
 
       The OCI configuration profile is located through the oci.profile and
-      oci.configFile global shell options and can be overriden with ociProfile
+      oci.configFile global shell options and can be overridden with ociProfile
       and ociConfigFile, respectively.
 
       loadDump() will load a dump from the specified path. It transparently
@@ -1391,8 +1406,8 @@ DESCRIPTION
       - loadUsers: bool (default: false) - Executes SQL scripts for user
         accounts, roles and grants contained in the dump. Note: statements for
         the current user will be skipped.
-      - progressFile: path (default: <server_uuid>.progress) - Stores load
-        progress information in the given local file path.
+      - progressFile: path (default: load-progress.<server_uuid>.progress) - 
+        Stores load progress information in the given local file path.
       - resetProgress: bool (default: false) - Discards progress information of
         previous load attempts to the destination server and loads the whole
         dump again.
@@ -1409,13 +1424,14 @@ DESCRIPTION
         value other than 'off' updates GTID_PURGED by either replacing its
         contents or appending to it the gtid set present in the dump.
       - waitDumpTimeout: int (default: 0) - Loads a dump while it's still being
-        created. Once all available tables are processed the command will
-        either wait for more data, the dump is marked as completed or the given
+        created. Once all uploaded tables are processed the command will either
+        wait for more data, the dump is marked as completed or the given
         timeout passes. <= 0 disables waiting.
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
-      - osNamespace: string (default: not set) - Specify the OCI namespace
-        (tenancy name) where the OCI bucket is located.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy id on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile

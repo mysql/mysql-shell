@@ -896,6 +896,16 @@ EXPECT_FAIL("ArgumentError", "Invalid user name: @", test_output_relative, { "ex
 EXPECT_FAIL("ArgumentError", "Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes", test_output_relative, { "includeUsers": ["foo@''nope"] })
 EXPECT_FAIL("ArgumentError", "Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes", test_output_relative, { "excludeUsers": ["foo@''nope"] })
 
+#@<> create an invalid test user with a ' character, which would be dumped wrong
+session.run_sql("CREATE USER IF NOT EXISTS 'foo''bar'@'localhost' IDENTIFIED BY 'pwd';")
+
+EXPECT_FAIL("RuntimeError", "Account 'foo\\'bar'@'localhost' contains the ' character, which is not supported", test_output_absolute, {}, True)
+
+# ok if we exclude it
+EXPECT_SUCCESS([test_schema], test_output_absolute, {"excludeUsers":["foo'bar@localhost"]})
+
+session.run_sql("DROP USER 'foo''bar'@'localhost'")
+
 #@<> create some test users
 session.run_sql("CREATE USER IF NOT EXISTS 'first'@'localhost' IDENTIFIED BY 'pwd';")
 session.run_sql("CREATE USER IF NOT EXISTS 'first'@'10.11.12.13' IDENTIFIED BY 'pwd';")
@@ -1236,9 +1246,9 @@ if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first. You can check for potential upgrade issues using util.check_for_server_upgrade().")
 
 if __version_num < 80000:
-    EXPECT_STDOUT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, test_privilege))
+    EXPECT_STDOUT_CONTAINS("ERROR: User '{0}'@'localhost' is granted restricted privilege: {1}".format(test_user, test_privilege))
 else:
-    EXPECT_STDOUT_CONTAINS("ERROR: User {0}@localhost is granted restricted privileges: {1}".format(test_user, test_privilege))
+    EXPECT_STDOUT_CONTAINS("ERROR: User '{0}'@'localhost' is granted restricted privileges: {1}".format(test_user, test_privilege))
 
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_data_directory))
 
@@ -1256,7 +1266,7 @@ EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} wer
 
 #@<> BUG#31403104: if users is false, error about the users should not be included
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "users": False })
-EXPECT_STDOUT_NOT_CONTAINS("ERROR: User {0}@localhost is granted restricted privilege: {1}".format(test_user, "FILE"))
+EXPECT_STDOUT_NOT_CONTAINS("ERROR: User '{0}'@'localhost' is granted restricted privilege: {1}".format(test_user, "FILE"))
 
 #@<> BUG#31403104: compatibility checks are enabled, but SQL is not dumped, this should succeed
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ocimds": True, "dataOnly": True, "showProgress": False })
@@ -1292,9 +1302,9 @@ EXPECT_STDOUT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQL SE
 # WL13807-TSFR16_5
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_restricted_grants" ] , "ddlOnly": True, "showProgress": False })
 if __version_num < 80000:
-    EXPECT_STDOUT_CONTAINS("NOTE: User {0}@localhost had restricted privilege ({1}) removed".format(test_user, test_privilege))
+    EXPECT_STDOUT_CONTAINS("NOTE: User '{0}'@'localhost' had restricted privilege ({1}) removed".format(test_user, test_privilege))
 else:
-    EXPECT_STDOUT_CONTAINS("NOTE: User {0}@localhost had restricted privileges ({1}) removed".format(test_user, test_privilege))
+    EXPECT_STDOUT_CONTAINS("NOTE: User '{0}'@'localhost' had restricted privileges ({1}) removed".format(test_user, test_privilege))
 
 #@<> WL13807-FR16.2.1 - strip_tablespaces
 # WL13807-TSFR16_4
@@ -1307,7 +1317,7 @@ EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ddlOnly": True, "
 EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_index_directory))
 EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_wrong_engine))
 EXPECT_STDOUT_NOT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQL SECURITY characteristic set to INVOKER".format(incompatible_schema, incompatible_view))
-EXPECT_STDOUT_NOT_CONTAINS("NOTE: User {0}@localhost had restricted privilege ({1}) removed".format(test_user, test_privilege))
+EXPECT_STDOUT_NOT_CONTAINS("NOTE: User '{0}'@'localhost' had restricted privilege ({1}) removed".format(test_user, test_privilege))
 EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported tablespace option removed".format(incompatible_schema, incompatible_table_tablespace))
 
 # WL13807-FR7 - The table data dump must be written in the output directory, to a file with a base name as specified in FR7.1, and a `.tsv` extension.
@@ -1369,8 +1379,8 @@ create_user()
 # This error now confirms the reported issue is fixed
 EXPECT_FAIL("RuntimeError", "Failed to get object list", '', {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"})
 
-#@<> An error should occur when dumping using oci+os:// but no osBucketName is specified
-EXPECT_FAIL("ArgumentError", "The osBucketName option is missing.", 'oci+os://sakila')
+#@<> An error should occur when dumping using oci+os://
+EXPECT_FAIL("ArgumentError", "Directory handling for oci+os protocol is not supported.", 'oci+os://sakila')
 
 #@<> Drop roles {VER(>=8.0.0)}
 session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])

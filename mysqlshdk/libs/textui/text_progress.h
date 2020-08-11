@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -98,11 +98,12 @@ class IProgress {
 
   virtual ~IProgress() = default;
 
-  virtual void show_status(bool = false, const std::string & = "") {}
+  virtual void show_status(bool = false) {}
   virtual void current(uint64_t /* value */) {}
   virtual void total(uint64_t /* value */) {}
   virtual void total(uint64_t /* value */, uint64_t /* initial */) {}
   virtual void set_left_label(const std::string &) {}
+  virtual void set_right_label(const std::string &) {}
   virtual void hide(bool) {}
   virtual void shutdown() {}
 };
@@ -134,14 +135,14 @@ class Text_progress final : public IProgress {
   ~Text_progress() override = default;
 
   void set_left_label(const std::string &label) override;
+  void set_right_label(const std::string &label) override;
 
   /**
    * Update and print progress information status.
    *
    * @param force If true, force status refresh and print.
-   * @param extra Extra message to be appended to the status.
    */
-  void show_status(bool force = false, const std::string &extra = "") override;
+  void show_status(bool force = false) override;
 
   /**
    * Update done work value.
@@ -200,6 +201,7 @@ class Text_progress final : public IProgress {
   std::string m_item_singular;
   std::string m_item_plural;
   std::string m_left_label;
+  std::string m_right_label;
   bool m_space_before_item;
   bool m_total_is_approx = false;
   int m_hide = 0;
@@ -258,9 +260,8 @@ class Json_progress final : public IProgress {
    * Update and print progress information status.
    *
    * @param force If true, force status refresh and print.
-   * @param extra Extra message to be appended to the status.
    */
-  void show_status(bool force = false, const std::string &extra = "") override;
+  void show_status(bool force = false) override;
 
   /**
    * Update done work value.
@@ -291,6 +292,14 @@ class Json_progress final : public IProgress {
     m_initial = initial;
   }
 
+  void set_left_label(const std::string &label) override {
+    m_left_label = label;
+  }
+
+  void set_right_label(const std::string &label) override {
+    m_right_label = label;
+  }
+
  private:
   uint64_t m_initial = 0;
   uint64_t m_current = 0;
@@ -304,6 +313,8 @@ class Json_progress final : public IProgress {
   std::string m_items_abbrev;
   std::string m_item_singular;
   std::string m_item_plural;
+  std::string m_left_label;
+  std::string m_right_label;
   bool m_space_before_item;
 
   double ratio() const noexcept {

@@ -2416,12 +2416,6 @@ std::vector<std::string> Schema_dumper::get_routines(const std::string &db,
   return routine_list;
 }
 
-std::string Schema_dumper::normalize_user(const std::string &user,
-                                          const std::string &host) {
-  return shcore::escape_sql_string(user) + "@" +
-         shcore::escape_sql_string(host);
-}
-
 std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
     IFile *file, const std::vector<shcore::Account> &included,
     const std::vector<shcore::Account> &excluded) {
@@ -2436,28 +2430,38 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
   fputs("--\n-- Dumping user accounts\n--\n\n", file);
   const auto users = get_users(included, excluded);
   for (const auto &u : users) {
-    auto res = query_log_and_throw("SHOW CREATE USER " + u.second);
+    std::string user = shcore::make_account(u);
+
+    if (u.user.find('\'') != std::string::npos) {
+      // we don't allow accounts with 's in them because they're incorrectly
+      // escaped in the output of SHOW GRANTS, which would generate invalid
+      // or dangerous SQL.
+      throw std::runtime_error(
+          "Account " + user +
+          " contains the ' character, which is not supported");
+    }
+
+    auto res = query_log_and_throw("SHOW CREATE USER " + user);
     auto row = res->fetch_one();
     if (!row) {
       current_console()->print_error("No create user statement for user " +
-                                     u.first);
+                                     user);
       return problems;
     }
     auto create_user = row->get_string(0);
     assert(!create_user.empty());
-    fputs("-- begin user " + u.first + "\n", file);
+    fputs("-- begin user " + user + "\n", file);
     fputs(shcore::str_replace(create_user, "CREATE USER",
                               "CREATE USER IF NOT EXISTS") +
               ";\n",
           file);
-    fputs(shcore::str_replace(create_user, "CREATE USER", "/* ALTER USER") +
-              "; */\n",
-          file);
-    fputs("-- end user " + u.first + "\n\n", file);
+    fputs("-- end user " + user + "\n\n", file);
   }
 
   for (const auto &u : users) {
-    auto res = query_log_and_throw("SHOW GRANTS FOR " + u.second);
+    std::string user = shcore::make_account(u);
+
+    auto res = query_log_and_throw("SHOW GRANTS FOR " + user);
     std::vector<std::string> restricted;
     std::vector<std::string> grants;
     for (auto row = res->fetch_one(); row; row = res->fetch_one()) {
@@ -2477,29 +2481,29 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
     if (!restricted.empty()) {
       if (opt_strip_restricted_grants) {
         problems.emplace_back(
-            "User " + u.first + " had restricted " +
+            "User " + user + " had restricted " +
                 (restricted.size() > 1 ? "privileges (" : "privilege (") +
                 shcore::str_join(restricted, ", ") + ") removed",
             true);
       } else {
         problems.emplace_back(
-            "User " + u.first + " is granted restricted " +
+            "User " + user + " is granted restricted " +
                 (restricted.size() > 1 ? "privileges: " : "privilege: ") +
                 shcore::str_join(restricted, ", "),
             false);
       }
     }
     if (!grants.empty()) {
-      fputs("-- begin grants " + u.first + "\n", file);
+      fputs("-- begin grants " + user + "\n", file);
       for (const auto &grant : grants) fputs(grant + ";\n", file);
-      fputs("-- end grants " + u.first + "\n\n", file);
+      fputs("-- end grants " + user + "\n\n", file);
     }
   }
   fputs("-- End of dumping user accounts\n\n", file);
   return problems;
 }
 
-std::vector<std::pair<std::string, std::string>> Schema_dumper::get_users(
+std::vector<shcore::Account> Schema_dumper::get_users(
     const std::vector<shcore::Account> &included,
     const std::vector<shcore::Account> &excluded) {
   std::string where_filter;
@@ -2547,7 +2551,6 @@ std::vector<std::pair<std::string, std::string>> Schema_dumper::get_users(
 
   constexpr auto users_query =
       "SELECT * FROM (SELECT DISTINCT "
-      "grantee, "
       "SUBSTR(grantee, 2, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))-2)"
       "  AS user, "
       "SUBSTR(grantee, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))+3,"
@@ -2555,11 +2558,12 @@ std::vector<std::pair<std::string, std::string>> Schema_dumper::get_users(
       "FROM information_schema.user_privileges ORDER BY user, host) AS users";
 
   auto users_res = query_log_and_throw(users_query + where_filter);
-  std::vector<std::pair<std::string, std::string>> users;
+  std::vector<shcore::Account> users;
   for (auto u = users_res->fetch_one(); u; u = users_res->fetch_one()) {
-    const auto user = u->get_string(1);
-    const auto host = u->get_string(2);
-    users.emplace_back(normalize_user(user, host), u->get_string(0));
+    shcore::Account account;
+    account.user = u->get_string(0);
+    account.host = u->get_string(1);
+    users.emplace_back(std::move(account));
   }
   return users;
 }

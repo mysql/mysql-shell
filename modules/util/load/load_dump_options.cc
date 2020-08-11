@@ -190,12 +190,13 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
   std::unordered_set<std::string> excluded_users;
   std::unordered_set<std::string> included_users;
   std::string update_gtid_set = "off";
+  double wait_dump_timeout = 0;
 
   Unpack_options unpacker(options);
 
   unpacker.optional("threads", &m_threads_count)
       .optional("showProgress", &m_show_progress)
-      .optional("waitDumpTimeout", &m_wait_dump_timeout)
+      .optional("waitDumpTimeout", &wait_dump_timeout)
       .optional("loadData", &m_load_data)
       .optional("loadDdl", &m_load_ddl)
       .optional("loadUsers", &m_load_users)
@@ -217,6 +218,8 @@ void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
       .optional("excludeUsers", &excluded_users)
       .optional("includeUsers", &included_users)
       .optional("updateGtidSet", &update_gtid_set);
+
+  m_wait_dump_timeout_ms = wait_dump_timeout * 1000;
 
   unpacker.unpack(&m_oci_options);
   unpacker.end();

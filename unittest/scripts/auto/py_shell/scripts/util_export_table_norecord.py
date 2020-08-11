@@ -751,8 +751,8 @@ EXPECT_NO_THROWS(lambda: util.import_table(test_output_absolute, { "schema": ver
 # This error now confirms the reported issue is fixed
 EXPECT_FAIL("RuntimeError", "Failed to get object list", quote(types_schema, types_schema_tables[0]), 'out.txt', {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"})
 
-#@<> An error should occur when dumping using oci+os:// but no osBucketName is specified
-EXPECT_FAIL("ArgumentError", "The osBucketName option is missing.", quote(types_schema, types_schema_tables[0]), 'oci+os://sakila')
+#@<> An error should occur when dumping using oci+os://
+EXPECT_FAIL("ArgumentError", "File handling for oci+os protocol is not supported.", quote(types_schema, types_schema_tables[0]), 'oci+os://sakila')
 
 #@<> WL13804-TSFR_1_2
 # WL13804-TSFR_1_3

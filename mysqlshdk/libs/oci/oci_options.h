@@ -42,8 +42,6 @@ constexpr const char kOciParExpireTime[] = "ociParExpireTime";
 constexpr const char kOsPar[] = "osPar";
 constexpr const char kOciRegion[] = "ociRegion";
 
-enum class Oci_uri_type { FILE, DIRECTORY };
-
 struct Oci_options {
   Oci_options(const Oci_options &) = default;
   Oci_options(Oci_options &&) = default;
@@ -106,9 +104,9 @@ struct Oci_options {
 };
 
 bool parse_oci_options(
-    Oci_uri_type type, const std::string &in_path,
+    const std::string &path,
     const std::unordered_map<std::string, std::string> &in_options,
-    Oci_options *out_options, std::string *out_path);
+    Oci_options *out_options);
 }  // namespace oci
 }  // namespace mysqlshdk
 

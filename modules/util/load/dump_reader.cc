@@ -26,6 +26,7 @@
 #include <numeric>
 #include <utility>
 #include "modules/util/dump/dump_utils.h"
+#include "modules/util/dump/schema_dumper.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -126,10 +127,6 @@ Dump_reader::Status Dump_reader::open() {
     m_dump_status = Status::DUMPING;
   }
 
-  if (m_dump_status == Status::COMPLETE) {
-    rescan();
-  }
-
   return m_dump_status;
 }
 
@@ -202,6 +199,20 @@ bool Dump_reader::next_schema_and_views(std::string *out_schema,
   }
 
   return false;
+}
+
+std::vector<shcore::Account> Dump_reader::accounts() const {
+  std::vector<shcore::Account> account_list;
+  std::string script = users_script();
+
+  // parse the script to extract user list
+  Schema_dumper::preprocess_users_script(
+      script, [&account_list](const std::string &account) {
+        account_list.emplace_back(shcore::split_account(account));
+        return true;
+      });
+
+  return account_list;
 }
 
 std::vector<std::string> Dump_reader::schemas() const {

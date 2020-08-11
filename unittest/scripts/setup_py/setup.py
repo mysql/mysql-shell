@@ -83,10 +83,13 @@ def EXPECT_THROWS(func, etext):
   try:
     func()
     testutil.fail("<red>Missing expected exception throw like " + etext + "</red>")
+    return False
   except Exception as e:
     exception_message = str(e)
     if exception_message.find(etext) == -1:
       testutil.fail("<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + exception_message)
+      return False
+    return True
 
 def EXPECT_NO_THROWS(func, context):
   try:

@@ -334,7 +334,12 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {updateGtidSet: ""});
 util.loadDump(__tmp_dir+"/ldtest/dump", {updateGtidSet: true});
 
 //@ Bad Bucket Name Option
+testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 util.loadDump(__tmp_dir+"/ldtest/dump", {osBucketName: "bukkit"});
+
+//@ progressFile errors should be reported before opening the dump
+testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
+util.loadDump(__tmp_dir+"/ldtest/dump", {progressFile:"/invalid/unwritable"});
 
 //@ Plain load of plain dump (compressed and chunked)
 old_gtid_executed=session.runSql("SELECT concat(@@global.gtid_executed,':',@@global.gtid_purged)").fetchOne()[0];
@@ -464,10 +469,14 @@ session.runSql("set global character_set_server='latin1'");
 
 shell.connect("mysql://loader:secret@127.0.0.1:"+__mysql_sandbox_port1);
 
-util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: true});
+util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: true, excludeUsers:["root@localhost", "root@%"]});
 
-EXPECT_OUTPUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user loader@%");
-EXPECT_OUTPUT_CONTAINS("NOTE: Skipping GRANT statements for user loader@%");
+EXPECT_OUTPUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user 'loader'@'%'");
+EXPECT_OUTPUT_CONTAINS("NOTE: Skipping GRANT statements for user 'loader'@'%'");
+EXPECT_OUTPUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user 'root'@'%'");
+EXPECT_OUTPUT_CONTAINS("NOTE: Skipping GRANT statements for user 'root'@'%'");
+EXPECT_OUTPUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user 'root'@'localhost'");
+EXPECT_OUTPUT_CONTAINS("NOTE: Skipping GRANT statements for user 'root'@'localhost'");
 
 session.runSql("set global sql_mode=?", [old_sql_mode]);
 session.runSql("set sql_mode=?", [old_sql_mode]);
@@ -493,7 +502,7 @@ shell.connect(__sandbox_uri1);
 
 //@<> Load DDL and Users only
 // TSFR4_3, TSFR5_1, TSFR6_1
-util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: true, loadDdl: true, loadData: false, deferTableIndexes: "off"});
+util.loadDump(__tmp_dir+"/ldtest/dump", {loadUsers: true, loadDdl: true, loadData: false, deferTableIndexes: "off", excludeUsers:["root@localhost", "root@%"]});
 
 EXPECT_JSON_EQ(strip_snapshot_data(reference), strip_snapshot_data(snapshot_instance(session)));
 
@@ -627,7 +636,8 @@ wipe_instance(session);
 testutil.callMysqlsh([__sandbox_uri1, "--", "util", "load-dump", __tmp_dir+"/ldtest/dump", "--showProgress=true", "--deferTableIndexes=all"]);
 
 EXPECT_STDOUT_CONTAINS("thds loading");
-EXPECT_STDOUT_CONTAINS("thds indexing");
+// this doesn't appear for long enough for the periodic refresh to reliably catch
+// EXPECT_STDOUT_CONTAINS("thds indexing");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -1171,10 +1181,12 @@ wipe_instance(session);
 cluster=dba.createCluster("cluster");
 
 // xtest has tables without PK, so we skip it
-util.loadDump(__tmp_dir+"/ldtest/dump", {excludeSchemas: ["xtest"]});
+util.loadDump(__tmp_dir+"/ldtest/dump", {excludeSchemas: ["xtest"], excludeTables:["all_features.findextable","all_features.findextable3"]});
 
 var noxtest=JSON.parse(JSON.stringify(reference));
 delete noxtest["schemas"]["xtest"];
+delete noxtest["schemas"]["all_features"]["tables"]["findextable"];
+delete noxtest["schemas"]["all_features"]["tables"]["findextable3"];
 
 var stripped=snapshot_instance(session);
 delete stripped["schemas"]["mysql_innodb_cluster_metadata"];

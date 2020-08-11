@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,7 +67,11 @@ void Text_progress::set_left_label(const std::string &label) {
   m_left_label = label;
 }
 
-void Text_progress::show_status(bool force, const std::string &extra) {
+void Text_progress::set_right_label(const std::string &label) {
+  m_right_label = label;
+}
+
+void Text_progress::show_status(bool force) {
   if (m_hide != 0) return;
 
   const auto current_time = std::chrono::steady_clock::now();
@@ -79,7 +83,6 @@ void Text_progress::show_status(bool force, const std::string &extra) {
     m_prev_status = m_status;
 
     render_status();
-    m_status += extra;
     m_changed = false;
     const auto status_printable_size =
         m_status.size() - 1;  // -1 because of leading '\r'
@@ -146,9 +149,11 @@ void Text_progress::render_status() {
                 mysqlshdk::utils::format_throughput_items(
                     m_item_singular, m_item_plural, m_throughput.rate(), 1.0,
                     m_space_before_item);
+
+  m_status += m_right_label;
 }
 
-void Json_progress::show_status(bool force, const std::string &extra) {
+void Json_progress::show_status(bool force) {
   const auto current_time = std::chrono::steady_clock::now();
   const auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(
                              current_time - m_refresh_clock)
@@ -156,7 +161,6 @@ void Json_progress::show_status(bool force, const std::string &extra) {
   const bool refresh_timeout = time_diff >= 1000;  // update status every 1s
   if ((refresh_timeout && m_changed) || force) {
     render_status();
-    m_status += extra;
     m_changed = false;
     mysqlsh::current_console()->raw_print(m_status,
                                           mysqlsh::Output_stream::STDOUT, true);
@@ -168,6 +172,7 @@ void Json_progress::render_status() {
   // 100% (1024.00 MB / 1024.00 MB), 1024.00 MB/s
   // todo(kg): build proper json doc
   m_status.clear();
+  m_status += m_left_label;
   m_status += std::to_string(percent()) + "% (" +
               mysqlshdk::utils::format_items(m_items_full, m_items_abbrev,
                                              m_current, m_space_before_item) +
@@ -178,6 +183,7 @@ void Json_progress::render_status() {
               mysqlshdk::utils::format_throughput_items(
                   m_item_singular, m_item_plural, m_throughput.rate(), 1.0,
                   m_space_before_item);
+  m_status += m_right_label;
 }
 
 }  // namespace textui
