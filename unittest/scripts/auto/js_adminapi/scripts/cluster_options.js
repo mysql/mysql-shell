@@ -48,6 +48,8 @@ cluster.addInstance(__sandbox_uri2, {localAddress: __cfg_local_address2, memberW
 //@ WL#11465: Add instance 3 with specific options
 cluster.addInstance(__sandbox_uri3, {localAddress: __cfg_local_address3, memberWeight: 25, exitStateAction: "READ_ONLY"});
 
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 // F3.1 - On a successful 'options([options])' call, a JSON object with the
 // result of the operation shall be returned:
 // F3.1.1 - The JSON object shall contain the information about the global

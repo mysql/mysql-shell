@@ -483,6 +483,12 @@
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
                 },
+?{VER(>=8.0.22)}
+                {
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+?{}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -741,6 +747,12 @@
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
                 },
+?{VER(>=8.0.22)}
+                {
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+?{}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -999,6 +1011,12 @@
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
                 },
+?{VER(>=8.0.22)}
+                {
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+?{}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -1234,6 +1252,12 @@
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
                 },
+?{VER(>=8.0.22)}
+                {
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+?{}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -1399,6 +1423,12 @@
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
                 },
+?{VER(>=8.0.22)}
+                {
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+?{}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -1564,6 +1594,12 @@
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
                 },
+?{VER(>=8.0.22)}
+                {
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+?{}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
