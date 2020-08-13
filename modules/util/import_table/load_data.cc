@@ -263,47 +263,76 @@ void Load_data_worker::execute(
 
     const auto &decode_columns = m_opt.decode_columns();
 
-    const auto &columns = m_opt.columns();
-    if (!columns.empty()) {
-      const std::vector<std::string> x(columns.size(), "!");
+    const auto columns = m_opt.columns().get();
+    if (columns && !columns->empty()) {
+      const std::vector<std::string> x(columns->size(), "!");
       const auto placeholders = shcore::str_join(
-          columns, ", ",
-          [&decode_columns](const std::string &c) -> std::string {
-            if (decode_columns.find(c) != decode_columns.end())
-              return "@!";
-            else
-              return "!";
+          *columns, ", ",
+          [&decode_columns](const shcore::Value &c) -> std::string {
+            if (c.type == shcore::Value_type::UInteger) {
+              // user defined variable
+              return "@" + c.as_string();
+            } else if (c.type == shcore::Value_type::Integer) {
+              // We do not want user variable to be negative: `@-1`
+              if (c.as_int() < 0) {
+                throw shcore::Exception::value_error(
+                    "User variable binding in 'columns' option must be "
+                    "non-negative integer value");
+              }
+              // user defined variable
+              return "@" + c.as_string();
+            } else if (c.type == shcore::Value_type::String) {
+              if (decode_columns.find(c.as_string()) != decode_columns.end()) {
+                return "@!";
+              } else {
+                return "!";
+              }
+            } else {
+              throw shcore::Exception::type_error(
+                  "Option 'columns' " + type_name(shcore::Value_type::String) +
+                  " (column name) or non-negative " +
+                  type_name(shcore::Value_type::Integer) +
+                  " (user variable binding) expected, but value is " +
+                  type_name(c.type));
+            }
           });
       query_template += " (" + placeholders + ")";
     }
 
-    if (!decode_columns.empty()) {
-      query_template += " SET ";
-      for (const auto &it : decode_columns) {
-        assert(it.second == "UNHEX" || it.second == "FROM_BASE64" ||
-               it.second.empty());
-
-        if (!it.second.empty()) query_template += "! = " + it.second + "(@!),";
-      }
-      query_template.pop_back();  // strip the last ,
-    }
-
     shcore::sqlstring sql(query_template, 0);
     sql << fi.filename << m_opt.schema() << m_opt.table();
-    for (const auto &col : columns) {
-      sql << col;
-    }
-    for (const auto &it : decode_columns) {
-      if (!it.second.empty()) sql << it.first << it.first;
+    if (columns) {
+      for (const auto &col : *columns) {
+        if (col.type == shcore::Value_type::String) {
+          sql << col.as_string();
+        }
+      }
     }
     sql.done();
+
+    std::string full_query{sql};
+
+    if (!decode_columns.empty()) {
+      full_query += " SET ";
+      for (const auto &it : decode_columns) {
+        if (it.second == "UNHEX" || it.second == "FROM_BASE64") {
+          full_query += shcore::sqlformat("! = " + it.second + "(@!),",
+                                          it.first, it.first);
+        } else if (!it.second.empty()) {
+          full_query += shcore::sqlformat("! = ", it.first);
+          // Append "as is".
+          full_query += "(" + it.second + "),";
+        }
+      }
+      full_query.pop_back();  // strip the last ,
+    }
 
     char worker_name[64];
     snprintf(worker_name, sizeof(worker_name), "[Worker%03u] ",
              static_cast<unsigned int>(m_thread_id));
 
 #ifndef NDEBUG
-    log_debug("%s %s %i", worker_name, sql.str().c_str(),
+    log_debug("%s %s %i", worker_name, full_query.c_str(),
               m_range_queue != nullptr);
 #endif
 
@@ -328,7 +357,7 @@ void Load_data_worker::execute(
       std::shared_ptr<mysqlshdk::db::IResult> load_result = nullptr;
 
       try {
-        load_result = session->query(m_query_comment + sql.str());
+        load_result = session->query(m_query_comment + full_query);
 
         m_stats.total_bytes = fi.bytes;
       } catch (const mysqlshdk::db::Error &e) {
@@ -338,7 +367,7 @@ void Load_data_worker::execute(
             (fi.range_read ? " @ file bytes range [" + std::to_string(r.begin) +
                                  ", " + std::to_string(r.end) + "): "
                            : ": ") +
-            sql.str()};
+            full_query.c_str()};
         mysqlsh::current_console()->print_error(error_msg);
         throw std::runtime_error(error_msg);
       } catch (const mysqlshdk::rest::Connection_error &e) {

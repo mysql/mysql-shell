@@ -7,6 +7,13 @@ const xuri = "mysqlx://" + __uripwd;
 
 var filename_for_output = __os_type == "windows" ? function (filename) { return "\\\\?\\" + filename.replace(/\//g, "\\"); } : function (filename) { return filename; };
 
+function compute_crc(schema, table, columns) {
+    session.runSql("SET @crc = '';");
+    var columns_placeholder = Array.from({length: columns.length}, (k, v) => '!').join(",");
+    session.runSql("SELECT @crc := MD5(CONCAT_WS('#',@crc,"+columns_placeholder+")) FROM !.! ORDER BY !;", columns.concat(schema, table, columns[0]));
+    return session.runSql("SELECT @crc;").fetchOne()[0];
+}
+
 //@<> Throw if session is empty
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/world_x_cities.dump', { table: 'cities' });
@@ -290,6 +297,319 @@ session.runSql("truncate table cities_latin2")
 //@<OUT> Import to table with latin2 character set
 util.importTable(__import_data_path + '/cities_pl_latin2.dump', {table:'cities_latin2', characterSet: 'latin2'})
 shell.dumpRows(session.runSql('select hex(id), hex(name) from cities_latin2'), "tabbed")
+
+//@<> Create mirror table
+session.runSql("DROP TABLE IF EXISTS `t_lob_userdefinedset`");
+session.runSql("CREATE TABLE `t_lob_userdefinedset` LIKE `t_lob`");
+
+//@<> User defined transformations using decodeColumns
+util.importTable(__import_data_path + '/xtest.t_lob.tsv', {
+    schema: target_schema, table: 't_lob_userdefinedset',
+    "columns": [
+        1,
+        2,
+        3,
+        4,
+        "c5",
+        "c6",
+        "c7",
+        "c8",
+        "c9",
+        "c10",
+        "c11",
+        "c12"
+    ],
+    decodeColumns: {
+        "c1": "UNHEX(@1)",
+        "c2": "UNHEX(@2)",
+        "c3": "UNHEX(@3)",
+        "c4": "UNHEX(@4)"
+    }
+});
+
+var all_columns = Array('c1','c2','c3','c4','c5','c6','c7','c8','c9','c10','c11','c12');
+EXPECT_EQ(
+    compute_crc(target_schema, 't_lob', all_columns),
+    compute_crc(target_schema, 't_lob_userdefinedset', all_columns)
+);
+
+//@<> Skip columns
+session.runSql("CREATE TABLE IF NOT EXISTS `t_lob_skip` ("+
+    "`c1` tinyblob,"+
+    "`c2` blob"+
+  ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+util.importTable(__import_data_path + '/xtest.t_lob.tsv', {
+    schema: target_schema, table: 't_lob_skip',
+    "columns": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+    ],
+    decodeColumns: {
+        "c1": "UNHEX(@1)",
+        "c2": "UNHEX(@2)"
+    }
+});
+
+//@<> Skip columns output check
+original_output_format = shell.options.resultFormat
+shell.options.resultFormat = 'vertical'
+session.runSql('SELECT * FROM t_lob_skip;');
+shell.options.resultFormat = original_output_format
+EXPECT_STDOUT_CONTAINS_MULTILINE(`
+vertical
+*************************** 1. row ***************************
+c1: 
+c2: 
+*************************** 2. row ***************************
+c1: tinyblob-text readable
+c2: blob-text readable
+*************************** 3. row ***************************
+c1: NULL
+c2: NULL
+3 rows in set [[*]]
+table
+`);
+
+//@<> User defined operations
+session.runSql("CREATE TABLE IF NOT EXISTS `t_numbers` ("+
+    "`a` integer," +
+    "`b` integer," +
+    "`sum` integer," +
+    "`pow` integer," +
+    "`mul` integer" +
+  ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+util.importTable(__import_data_path + '/numbers.tsv', {
+    schema: target_schema, table: 't_numbers',
+    columns: [
+        1,
+        2,
+        3,
+        4
+    ],
+    decodeColumns: {
+        "a": "@1",
+        "b": "@2",
+        "sum": "@1 + @2",
+        "pow": "pow(@1, @2)",
+        "mul": "@1 * @2"
+    }
+});
+
+//@<> User defined operations output check
+original_output_format = shell.options.resultFormat
+shell.options.resultFormat = 'tabbed'
+session.runSql('SELECT * FROM t_numbers;');
+shell.options.resultFormat = original_output_format
+EXPECT_STDOUT_CONTAINS_MULTILINE(`
+tabbed
+a	b	sum	pow	mul
+1	1	2	1	1
+2	2	4	4	4
+3	3	6	27	9
+4	4	8	256	16
+5	5	10	3125	25
+6	6	12	46656	36
+6 rows in set [[*]]
+table
+`);
+
+//@<> Invalid columns type passed
+EXPECT_THROWS(function () {
+    util.importTable(__import_data_path + '/numbers.tsv', {
+        schema: target_schema, table: 't_numbers',
+        columns: [
+            1,
+            2,
+            3,
+            {}
+        ],
+        decodeColumns: {
+            "a": "@1",
+            "b": "@2",
+            "sum": "@1 + @2",
+            "pow": "pow(@1, @2)",
+            "mul": "@1 * @2"
+        }
+    });
+}, "Util.importTable: Option 'columns' String (column name) or non-negative Integer (user variable binding) expected, but value is Map");
+
+EXPECT_THROWS(function () {
+    util.importTable(__import_data_path + '/numbers.tsv', {
+        schema: target_schema, table: 't_numbers',
+        columns: [
+            1,
+            2,
+            3,
+            -6
+        ],
+        decodeColumns: {
+            "a": "@1",
+            "b": "@2",
+            "sum": "@1 + @2",
+            "pow": "pow(@1, @2)",
+            "mul": "@1 * @2"
+        }
+    });
+}, "Util.importTable: User variable binding in 'columns' option must be non-negative integer value");
+
+//@<> Unbalanced brackets in transformations
+EXPECT_THROWS(function () {
+    util.importTable(__import_data_path + '/numbers.tsv', {
+        schema: target_schema, table: 't_numbers',
+        columns: [
+            1,
+            2,
+            3,
+            -6
+        ],
+        decodeColumns: {
+            "a": "@1",
+            "b": "@2",
+            "sum": "@1 + @2",
+            "pow": "pow(@1, @2)",
+            "mul": ")@1 * @2"
+        }
+    });
+}, "Util.importTable: Invalid SQL expression in decodeColumns option for column 'mul'");
+
+//@<> Invalid brackets in transformations
+EXPECT_THROWS(function () {
+    util.importTable(__import_data_path + '/numbers.tsv', {
+        schema: target_schema, table: 't_numbers',
+        columns: [
+            1,
+            2,
+            3,
+            4
+        ],
+        decodeColumns: {
+            "a": "@1",
+            "b": "@2",
+            "sum": "@1 + @2",
+            "pow": "pow(@1, @2)",
+            "mul": "@1 * @2\""
+        }
+    });
+}, "Util.importTable: Invalid SQL expression in decodeColumns option for column 'mul'");
+
+EXPECT_THROWS(function () {
+    util.importTable(__import_data_path + '/numbers.tsv', {
+        schema: target_schema, table: 't_numbers',
+        columns: [
+            1,
+            2,
+            3,
+            4
+        ],
+        decodeColumns: {
+            "a": "@1",
+            "b": "@2",
+            "sum": "@1 + @2",
+            "pow": "pow(@1, @2)",
+            "mul": "(@1 * @2))"
+        }
+    });
+}, "Util.importTable: Invalid SQL expression in decodeColumns option for column 'mul'");
+
+EXPECT_THROWS(function () {
+    util.importTable(__import_data_path + '/numbers.tsv', {
+        schema: target_schema, table: 't_numbers',
+        columns: [
+            1,
+            2,
+            3,
+            4
+        ],
+        decodeColumns: {
+            "a": "@1",
+            "b": "@2",
+            "sum": "@1 + @2",
+            "pow": "pow(@1, @2)",
+            "mul": "@1 * ((@2)"
+        }
+    });
+}, "Util.importTable: Invalid SQL expression in decodeColumns option for column 'mul'");
+
+EXPECT_THROWS(function () {
+    util.importTable(__import_data_path + '/numbers.tsv', {
+        schema: target_schema, table: 't_numbers',
+        columns: [
+            1,
+            2,
+            3,
+            4
+        ],
+        decodeColumns: {
+            "a": "@1",
+            "b": "@2",
+            "sum": "@1 + @2",
+            "pow": "pow(@1, @2)",
+            "mul": "@1 * @2\"\\"
+        }
+    });
+}, "Util.importTable: Invalid SQL expression in decodeColumns option for column 'mul'");
+
+//@<> boolean operators in preprocessing transformations
+session.runSql("CREATE TABLE IF NOT EXISTS `t_bools` ("+
+    "`id` integer not null primary key AUTO_INCREMENT," +
+    "`bool_not0` integer," +
+    "`bool_not1` integer," +
+    "`not0` integer," +
+    "`not1` integer," +
+    "`a_or_b` integer," +
+    "`not_set` integer default -1," +
+    "`null_set` integer default -1" +
+  ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// reuse numbers.tsv as input, but skip it's values
+util.importTable(__import_data_path + '/numbers.tsv', {
+    schema: target_schema, table: 't_bools',
+    columns: [
+        1,
+        2,
+        3,
+        4
+    ],
+    decodeColumns: {
+        "id": "NULL",
+        "bool_not0": "!0",
+        "bool_not1": "!1",
+        "not0": "NOT 0",
+        "not1": "NOT 1",
+        "a_or_b": "(!0) OR (!1)",
+        "null_set": "NULL"
+    }
+});
+
+//@<> boolean operators in preprocessing transformations output check
+original_output_format = shell.options.resultFormat
+shell.options.resultFormat = 'tabbed'
+session.runSql('SELECT * FROM t_bools;');
+shell.options.resultFormat = original_output_format
+EXPECT_STDOUT_CONTAINS_MULTILINE(`
+tabbed
+id	bool_not0	bool_not1	not0	not1	a_or_b	not_set	null_set
+1	1	0	1	0	1	-1	NULL
+2	1	0	1	0	1	-1	NULL
+3	1	0	1	0	1	-1	NULL
+4	1	0	1	0	1	-1	NULL
+5	1	0	1	0	1	-1	NULL
+6	1	0	1	0	1	-1	NULL
+6 rows in set ([[*]])
+table
+`);
 
 //@<> Teardown
 session.runSql("DROP SCHEMA IF EXISTS " + target_schema);

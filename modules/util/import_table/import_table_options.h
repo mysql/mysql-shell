@@ -81,7 +81,7 @@ class Import_table_options {
 
   void set_replace_duplicates(bool flag) { m_replace_duplicates = flag; }
 
-  const std::vector<std::string> &columns() const { return m_columns; }
+  const shcore::Array_t &columns() const { return m_columns; }
 
   const std::map<std::string, std::string> &decode_columns() const {
     return m_decode_columns;
@@ -130,7 +130,7 @@ class Import_table_options {
   std::string m_character_set;
   int64_t m_threads_size = 8;
   std::string m_bytes_per_chunk{"50M"};
-  std::vector<std::string> m_columns;
+  shcore::Array_t m_columns;
   std::map<std::string, std::string> m_decode_columns;
   bool m_replace_duplicates = false;
   std::string m_max_rate;

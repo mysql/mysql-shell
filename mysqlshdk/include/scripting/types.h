@@ -334,7 +334,9 @@ struct SHCORE_PUBLIC Value {
   std::vector<std::string> to_string_vector() const {
     std::vector<std::string> vec;
     check_type(Array);
-    for (const Value &v : *as_array()) {
+    auto arr = as_array();
+    vec.reserve(arr->size());
+    for (const Value &v : *arr) {
       vec.push_back(v.get_string());
     }
     return vec;

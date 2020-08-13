@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,8 @@
 #include <errno.h>
 #include <algorithm>
 #include <limits>
+#include <stack>
+#include <utility>
 
 #include "modules/mod_utils.h"
 #include "modules/util/import_table/helpers.h"
@@ -41,6 +43,69 @@
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
+
+namespace {
+template <typename FwdIter>
+FwdIter consume_string(FwdIter first, FwdIter last, const char qchar,
+                       const char escchar) {
+  if (first == last) return last;
+  if (*first != qchar) return last;
+  ++first;
+  while (first != last) {
+    if (*first == qchar) {
+      return first;
+    } else if (*first == escchar) {
+      ++first;
+      if (first == last) {
+        return last;
+      }
+    }
+    ++first;
+  }
+  return last;
+}
+
+bool transformation_validation(const std::string &expr) {
+  std::stack<char> s;
+  auto first = expr.begin();
+  auto last = expr.end();
+  while (first != last) {
+    switch (*first) {
+      case '[':
+      case '(':
+      case '{':
+        s.push(*first);
+        break;
+      case ']':
+        if (s.empty() || s.top() != '[') {
+          return false;
+        }
+        s.pop();
+        break;
+      case ')':
+        if (s.empty() || s.top() != '(') {
+          return false;
+        }
+        s.pop();
+        break;
+      case '}':
+        if (s.empty() || s.top() != '{') {
+          return false;
+        }
+        s.pop();
+        break;
+      case '\'':
+      case '"':
+      case '`':
+        first = consume_string(first, last, *first, '\\');
+        if (first == last) return false;
+        break;
+    }
+    ++first;
+  }
+  return s.empty();
+}
+}  // namespace
 
 namespace mysqlsh {
 namespace import_table {
@@ -211,11 +276,20 @@ void Import_table_options::unpack(const shcore::Dictionary_t &options) {
   if (decode_columns) {
     for (const auto &it : *decode_columns) {
       if (it.second.type != shcore::Null) {
-        std::string method = shcore::str_upper(it.second.descr());
-        if (method != "UNHEX" && method != "FROM_BASE64" && !method.empty())
-          throw std::runtime_error("Invalid value for decodeColumns: " +
-                                   method);
-        if (!method.empty()) m_decode_columns[it.first] = method;
+        auto transformation = it.second.descr();
+        if (shcore::str_caseeq(transformation, std::string{"UNHEX"}) ||
+            shcore::str_caseeq(transformation, std::string{"FROM_BASE64"})) {
+          m_decode_columns[it.first] = shcore::str_upper(transformation);
+        } else {
+          // Try to initially validate user input, i.e. check if brackets are
+          // balanced in provided user input.
+          if (!transformation_validation(transformation)) {
+            throw std::runtime_error(
+                "Invalid SQL expression in decodeColumns option for column '" +
+                it.first + "'");
+          }
+          m_decode_columns[it.first] = std::move(transformation);
+        }
       }
     }
   }

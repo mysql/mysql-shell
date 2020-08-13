@@ -1163,9 +1163,13 @@ DESCRIPTION
         schema
       - table: string (default: filename without extension) - Name of target
         table
-      - columns: string array (default: empty array) - This option takes a
-        array of column names as its value. The order of the column names
-        indicates how to match data file columns with table columns.
+      - columns: array of strings and/or integers (default: empty array) - This
+        option takes an array of column names as its value. The order of the
+        column names indicates how to match data file columns with table
+        columns. Use non-negative integer `i` to capture column value into user
+        variable @i. With user variables, the decodeColumns option enables you
+        to perform preprocessing transformations on their values before
+        assigning the result to columns.
       - fieldsTerminatedBy: string (default: "\t"), fieldsEnclosedBy: char
         (default: ''), fieldsEscapedBy: char (default: '\') - These options
         have the same meaning as the corresponding clauses for LOAD DATA
@@ -1208,9 +1212,10 @@ DESCRIPTION
         fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy
         options. Must be one of the following values: default, csv, tsv, json
         or csv-unix.
-      - decodeColumns: map (default: not set) - a map between columns names to
-        decode methods (UNHEX or FROM_BASE64) to be applied on the loaded data.
-        Requires 'columns' to be set.
+      - decodeColumns: map (default: not set) - a map between columns names and
+        SQL expressions to be applied on the loaded data. Column value captured
+        in 'columns' by integer is available as user variable '@i', where `i`
+        is that integer.
       - characterSet: string (default: not set) - Interpret the information in
         the input file using this character set encoding. characterSet set to
         "binary" specifies "no conversion". If not set, the server will use the
@@ -1263,6 +1268,53 @@ DESCRIPTION
       - csv-unix:
       "1","20.1000","foo said: \"Where is my bar?\""<LF>
       "2","-12.5000","baz said: \"Where is my <TAB> char?\""<LF>
+
+      Examples of decodeColumns usage:
+
+      - Preprocess column2:
+          util.importTable('file.txt', {
+            table: 't1',
+            columns: ['column1', 1],
+            decodeColumns: {'column2': '@1 / 100'}
+          });
+
+      is equivalent to:
+          LOAD DATA LOCAL INFILE 'file.txt'
+          INTO TABLE `t1` (column1, @var1)
+          SET `column2` = @var/100;
+
+      - Skip columns:
+          util.importTable('file.txt', {
+            table: 't1',
+            columns: ['column1', 1, 'column2', 2, 'column3']
+          });
+
+      is equivalent to:
+          LOAD DATA LOCAL INFILE 'file.txt'
+          INTO TABLE `t1` (column1, @1, column2, @2, column3);
+
+      - Generate values for columns:
+          util.importTable('file.txt', {
+            table: 't1',
+            columns: [1, 2],
+            decodeColumns: {
+              'a': '@1',
+              'b': '@2',
+              'sum': '@1 + @2',
+              'mul': '@1 * @2',
+              'pow': 'POW(@1, @2)'
+            }
+          });
+
+      is equivalent to:
+          LOAD DATA LOCAL INFILE 'file.txt'
+          INTO TABLE `t1` (@1, @2)
+          SET
+            `a` = @1,
+            `b` = @2,
+            `sum` = @1 + @2,
+            `mul` = @1 * @2,
+            `pow` = POW(@1, @2);
 
       If the schema is not provided, an active schema on the global session, if
       set, will be used.
