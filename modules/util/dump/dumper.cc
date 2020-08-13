@@ -1527,7 +1527,7 @@ void Dumper::push_table_task(Table_task &&task) {
 
   if (m_options.split()) {
     if (index.name.empty()) {
-      current_console()->print_warning(
+      current_console()->print_note(
           "Could not select a column to be used as an index for table " +
           quoted_name +
           ". Chunking has been disabled for this table, data will be dumped to "
