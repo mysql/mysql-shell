@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,8 +33,9 @@
 namespace mysqlshdk {
 namespace storage {
 
-std::unique_ptr<IFile> IDirectory::file(const std::string &name) const {
-  return make_file(join_path(full_path(), name));
+std::unique_ptr<IFile> IDirectory::file(const std::string &name,
+                                        const File_options &options) const {
+  return make_file(join_path(full_path(), name), options);
 }
 
 std::unique_ptr<IDirectory> make_directory(

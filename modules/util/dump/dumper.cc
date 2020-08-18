@@ -210,7 +210,9 @@ class Dumper::Table_worker final {
     m_dumper->on_init_thread_session(m_session);
   }
 
-  std::string prepare_query(const Table_data_task &table) const {
+  std::string prepare_query(
+      const Table_data_task &table,
+      std::vector<Dump_writer::Encoding_type> *out_pre_encoded_columns) const {
     const auto base64 = m_dumper->m_options.use_base64();
     std::string query = "SELECT SQL_NO_CACHE ";
 
@@ -218,8 +220,14 @@ class Dumper::Table_worker final {
       if (column.csv_unsafe) {
         query += shcore::sqlstring(base64 ? "TO_BASE64(!)" : "HEX(!)", 0)
                  << column.name;
+
+        out_pre_encoded_columns->push_back(
+            base64 ? Dump_writer::Encoding_type::BASE64
+                   : Dump_writer::Encoding_type::HEX);
       } else {
         query += shcore::sqlstring("!", 0) << column.name;
+
+        out_pre_encoded_columns->push_back(Dump_writer::Encoding_type::NONE);
       }
 
       query += ",";
@@ -259,10 +267,12 @@ class Dumper::Table_worker final {
     const uint64_t write_idx_every = 500;
     Dump_write_result bytes_written;
     mysqlshdk::utils::Profile_timer timer;
+    std::vector<Dump_writer::Encoding_type> pre_encoded_columns;
 
     timer.stage_begin("dumping");
 
-    const auto result = m_session->query(prepare_query(table));
+    const auto result =
+        m_session->query(prepare_query(table, &pre_encoded_columns));
 
     shcore::on_leave_scope close_index_file([&table]() {
       if (table.index_file) {
@@ -274,7 +284,8 @@ class Dumper::Table_worker final {
     if (table.index_file) {
       table.index_file->open(Mode::WRITE);
     }
-    bytes_written = table.writer->write_preamble(result->get_metadata());
+    bytes_written = table.writer->write_preamble(result->get_metadata(),
+                                                 pre_encoded_columns);
     bytes_written_per_file += bytes_written;
     bytes_written_per_update += bytes_written;
 
@@ -1599,7 +1610,7 @@ Dump_writer *Dumper::get_table_data_writer(const std::string &filename) {
     // if we're writing to a single file, simply use the provided name
     auto file = m_options.use_single_file()
                     ? std::move(m_output_file)
-                    : make_file(filename + k_dump_in_progress_ext);
+                    : make_file(filename + k_dump_in_progress_ext, true);
     auto compressed_file =
         mysqlshdk::storage::make_file(std::move(file), m_options.compression());
     std::unique_ptr<Dump_writer> writer;
@@ -2194,8 +2205,16 @@ mysqlshdk::storage::IDirectory *Dumper::directory() const {
 }
 
 std::unique_ptr<mysqlshdk::storage::IFile> Dumper::make_file(
-    const std::string &filename) const {
-  return directory()->file(filename);
+    const std::string &filename, bool use_mmap) const {
+  static const char *s_mmap_mode = nullptr;
+  if (s_mmap_mode == nullptr) {
+    s_mmap_mode = getenv("MYSQLSH_MMAP");
+    if (!s_mmap_mode) s_mmap_mode = "on";
+  }
+
+  mysqlshdk::storage::File_options options;
+  if (use_mmap) options["file.mmap"] = s_mmap_mode;
+  return directory()->file(filename, options);
 }
 
 uint64_t Dumper::get_row_count(const Schema_task &schema,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,11 @@
 
 namespace mysqlsh {
 namespace dump {
+
+static constexpr const char *k_numeric_types_alphabet = "0123456789-.";
+static constexpr const char *k_hex_types_alphabet = "0123456789abcdefABCDEF";
+static constexpr const char *k_base64_types_alphabet =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=";
 
 Text_dump_writer::Text_dump_writer(
     std::unique_ptr<mysqlshdk::storage::IFile> out,
@@ -64,6 +69,15 @@ Text_dump_writer::Text_dump_writer(
     if (!m_dialect.lines_terminated_by.empty()) {
       m_escaped_characters[idx++] = m_dialect.lines_terminated_by[0];
     }
+
+    for (size_t i = 0; i < idx; i++) {
+      if (strchr(k_numeric_types_alphabet, m_escaped_characters[i]))
+        m_numbers_need_escape = Escape_type::FULL;
+      if (strchr(k_hex_types_alphabet, m_escaped_characters[i]))
+        m_hex_need_escape = Escape_type::FULL;
+      if (strchr(k_base64_types_alphabet, m_escaped_characters[i]))
+        m_base64_need_escape = Escape_type::FULL;
+    }
   }
 
   if (!m_dialect.fields_enclosed_by.empty()) {
@@ -77,8 +91,9 @@ Text_dump_writer::Text_dump_writer(
 }
 
 void Text_dump_writer::store_preamble(
-    const std::vector<mysqlshdk::db::Column> &metadata) {
-  read_metadata(metadata);
+    const std::vector<mysqlshdk::db::Column> &metadata,
+    const std::vector<Encoding_type> &pre_encoded_columns) {
+  read_metadata(metadata, pre_encoded_columns);
 
   // no preamble
 }
@@ -98,7 +113,8 @@ void Text_dump_writer::store_postamble() {
 }
 
 void Text_dump_writer::read_metadata(
-    const std::vector<mysqlshdk::db::Column> &metadata) {
+    const std::vector<mysqlshdk::db::Column> &metadata,
+    const std::vector<Encoding_type> &pre_encoded_columns) {
   m_num_fields = static_cast<uint32_t>(metadata.size());
 
   m_is_string_type.clear();
@@ -106,6 +122,9 @@ void Text_dump_writer::read_metadata(
 
   m_is_number_type.clear();
   m_is_number_type.resize(m_num_fields);
+
+  m_needs_escape.clear();
+  m_needs_escape.resize(m_num_fields);
 
   std::size_t fixed_length =
       m_dialect.lines_starting_by.length() + m_line_terminator.length();
@@ -123,6 +142,18 @@ void Text_dump_writer::read_metadata(
     // bit fields are transferred in binary format, should not be inspected for
     // any alpha characters, so they are not accidentally converted to NULL
     m_is_number_type[i] = !is_string && mysqlshdk::db::Type::Bit != type;
+
+    m_needs_escape[i] = Escape_type::FULL;
+    if (m_is_number_type[i]) {
+      m_needs_escape[i] = m_numbers_need_escape;
+    } else {
+      if (pre_encoded_columns.size() == metadata.size()) {
+        if (pre_encoded_columns[i] == Encoding_type::BASE64)
+          m_needs_escape[i] = m_base64_need_escape;
+        else if (pre_encoded_columns[i] == Encoding_type::HEX)
+          m_needs_escape[i] = m_hex_need_escape;
+      }
+    }
 
     if (!m_dialect.fields_optionally_enclosed || m_is_string_type[i]) {
       fixed_length += 2 * m_dialect.fields_enclosed_by.length();
@@ -168,7 +199,13 @@ void Text_dump_writer::store_field(const mysqlshdk::db::IRow *row,
   } else {
     quote_field(idx);
 
-    if (m_escape) {
+    if (!m_escape || m_needs_escape[idx] == Escape_type::NONE) {
+      buffer()->will_write(length);
+      buffer()->append(data, length);
+    } else if (m_escape && m_needs_escape[idx] == Escape_type::BASE64 &&
+               (length < 76 || data[76] == '\n')) {
+      buffer()->write_base64_data(data, length);
+    } else {
       buffer()->will_write(2 * length);
       const auto end = data + length;
 
@@ -229,9 +266,6 @@ void Text_dump_writer::store_field(const mysqlshdk::db::IRow *row,
           buffer()->append(c);
         }
       }
-    } else {
-      buffer()->will_write(length);
-      buffer()->append(data, length);
     }
 
     quote_field(idx);

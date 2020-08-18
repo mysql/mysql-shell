@@ -34,8 +34,17 @@
 #include "mysqlshdk/libs/db/row.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 
+#if !defined(__GNUC__) || (__GNUC__ == 2 && __GNUC_MINOR__ < 96)
+#define __builtin_expect(x, expected_value) (x)
+#endif
+
+#define likely(x) __builtin_expect((x), 1)
+#define unlikely(x) __builtin_expect((x), 0)
+
 namespace mysqlsh {
 namespace dump {
+
+enum class Escape_type { NONE, FULL, BASE64 };
 
 class Dump_write_result final {
  public:
@@ -75,6 +84,8 @@ class Dump_write_result final {
 
 class Dump_writer {
  public:
+  enum class Encoding_type { NONE, BASE64, HEX };
+
   Dump_writer() = delete;
   explicit Dump_writer(std::unique_ptr<mysqlshdk::storage::IFile> out);
 
@@ -91,7 +102,8 @@ class Dump_writer {
   mysqlshdk::storage::IFile *output() const { return m_output.get(); }
 
   Dump_write_result write_preamble(
-      const std::vector<mysqlshdk::db::Column> &metadata);
+      const std::vector<mysqlshdk::db::Column> &metadata,
+      const std::vector<Encoding_type> &pre_encoded_columns = {});
 
   Dump_write_result write_row(const mysqlshdk::db::IRow *row);
 
@@ -135,6 +147,8 @@ class Dump_writer {
       m_length += length;
     }
 
+    void write_base64_data(const char *data, std::size_t length);
+
     void clear() noexcept;
 
     void set_fixed_length(std::size_t fixed_length);
@@ -156,7 +170,8 @@ class Dump_writer {
 
  private:
   virtual void store_preamble(
-      const std::vector<mysqlshdk::db::Column> &metadata) = 0;
+      const std::vector<mysqlshdk::db::Column> &metadata,
+      const std::vector<Encoding_type> &pre_encoded_columns) = 0;
 
   virtual void store_row(const mysqlshdk::db::IRow *row) = 0;
 
@@ -167,6 +182,8 @@ class Dump_writer {
   std::unique_ptr<mysqlshdk::storage::IFile> m_output;
 
   std::unique_ptr<Buffer> m_buffer;
+
+  bool m_compressed = false;
 };
 
 }  // namespace dump

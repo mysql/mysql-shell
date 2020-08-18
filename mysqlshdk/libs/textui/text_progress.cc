@@ -78,7 +78,7 @@ void Text_progress::show_status(bool force) {
   const auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(
                              current_time - m_refresh_clock)
                              .count();
-  const bool refresh_timeout = time_diff >= 2000;  // update status every 2000ms
+  const bool refresh_timeout = time_diff >= 200;  // update status every 200ms
   if ((refresh_timeout && m_changed) || force) {
     m_prev_status = m_status;
 
@@ -97,6 +97,7 @@ void Text_progress::show_status(bool force) {
       }
       was_shown = true;
     }
+    m_refresh_clock = current_time;
     m_last_status_size = status_printable_size;
   }
 }

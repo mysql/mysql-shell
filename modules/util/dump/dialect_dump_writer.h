@@ -114,8 +114,9 @@ class Dialect_dump_writer : public Dump_writer {
 
  private:
   void store_preamble(
-      const std::vector<mysqlshdk::db::Column> &metadata) override {
-    read_metadata(metadata);
+      const std::vector<mysqlshdk::db::Column> &metadata,
+      const std::vector<Encoding_type> &pre_encoded_columns) override {
+    read_metadata(metadata, pre_encoded_columns);
 
     // no preamble
   }
@@ -132,7 +133,8 @@ class Dialect_dump_writer : public Dump_writer {
     // no postamble
   }
 
-  void read_metadata(const std::vector<mysqlshdk::db::Column> &metadata) {
+  void read_metadata(const std::vector<mysqlshdk::db::Column> &metadata,
+                     const std::vector<Encoding_type> &pre_encoded_columns) {
     m_num_fields = static_cast<uint32_t>(metadata.size());
 
     m_is_string_type.clear();
@@ -140,6 +142,9 @@ class Dialect_dump_writer : public Dump_writer {
 
     m_is_number_type.clear();
     m_is_number_type.resize(m_num_fields);
+
+    m_needs_escape.clear();
+    m_needs_escape.resize(m_num_fields);
 
     std::size_t fixed_length = s_lines_terminated_by_length;
 
@@ -157,6 +162,17 @@ class Dialect_dump_writer : public Dump_writer {
       // for any alpha characters, so they are not accidentally converted to
       // NULL
       m_is_number_type[i] = !is_string && mysqlshdk::db::Type::Bit != type;
+
+      // find columns that are safe to not escape
+      m_needs_escape[i] = Escape_type::FULL;
+      if (m_is_number_type[i]) {
+        m_needs_escape[i] = Escape_type::NONE;
+      } else if (pre_encoded_columns.size() == metadata.size()) {
+        if (pre_encoded_columns[i] == Encoding_type::BASE64)
+          m_needs_escape[i] = Escape_type::BASE64;
+        else if (pre_encoded_columns[i] == Encoding_type::HEX)
+          m_needs_escape[i] = Escape_type::NONE;
+      }
 
       if (!T::fields_optionally_enclosed || is_string) {
         fixed_length += 2 * s_fields_enclosed_by_length;
@@ -193,9 +209,23 @@ class Dialect_dump_writer : public Dump_writer {
       store_null();
     } else {
       quote_field(idx);
-      store_field(data, length);
+      switch (m_needs_escape[idx]) {
+        case Escape_type::FULL:
+          store_field(data, length);
+          break;
+        case Escape_type::BASE64:
+          store_base64_field(data, length);
+          break;
+        case Escape_type::NONE:
+          store_field<0>(data, length);
+          break;
+      }
       quote_field(idx);
     }
+  }
+
+  inline void store_base64_field(const char *data, std::size_t length) {
+    buffer()->write_base64_data(data, length);
   }
 
   inline void store_field(const char *data, std::size_t length) {
@@ -351,6 +381,8 @@ class Dialect_dump_writer : public Dump_writer {
   std::vector<int> m_is_string_type;
 
   std::vector<int> m_is_number_type;
+
+  std::vector<Escape_type> m_needs_escape;
 };
 
 }  // namespace detail

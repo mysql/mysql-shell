@@ -77,13 +77,7 @@ class SHCORE_PUBLIC Options : public shcore::Cpp_object_bridge {
   std::string class_name() const override { return "Options"; }
 
   bool operator==(const Object_bridge &other) const override;
-  std::vector<std::string> get_members() const override {
-    return shell_options->get_named_options();
-  }
   shcore::Value get_member(const std::string &prop) const override;
-  bool has_member(const std::string &prop) const override {
-    return shell_options->has_key(prop);
-  }
   void set_member(const std::string &prop, shcore::Value value) override;
   std::string &append_descr(std::string &s_out, int indent = -1,
                             int quote_strings = 0) const override;

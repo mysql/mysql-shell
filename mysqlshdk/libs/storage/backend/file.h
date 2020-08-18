@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,10 +33,25 @@ namespace mysqlshdk {
 namespace storage {
 namespace backend {
 
+enum class Mmap_preference {
+  OFF,      // mmap not allowed even if requested and possible
+  ON,       // mmap used if requested, fallback if not possible
+  REQUIRED  // mmap used if requested, error if not possible
+};
+
+Mmap_preference to_mmap_preference(const std::string &s);
+
 class File : public IFile {
  public:
+  struct Options {
+    Mmap_preference mmap;
+
+    Options() : mmap(Mmap_preference::OFF) {}
+  };
+
   File() = delete;
-  explicit File(const std::string &filename);
+  explicit File(const std::string &filename,
+                const Options &options = Options());
   File(const File &other) = delete;
   File(File &&other) = default;
 
@@ -65,17 +80,75 @@ class File : public IFile {
   void rename(const std::string &new_name) override;
   void remove() override;
 
+ public:
+  bool mmapped() const { return m_mmap_ptr != nullptr; }
+  /**
+   * Extend the file by the given amount, relative to the current position
+   * and return a pointer. Use this for writing to a mmapped file.
+   *
+   * @param length minimum number of bytes to reserve
+   * @param out_avail if not null, contains the number of bytes available to be
+   * written
+   * @return pointer to memory area where that can be written to
+   *
+   * This method can only be used on files open for writing.
+   */
+  char *mmap_will_write(size_t length, size_t *out_avail = nullptr);
+
+  /**
+   * Indicate how many bytes were written to the area reserved by mmap_reserve()
+   *
+   * @param length number of bytes written
+   * @param out_avail if not null, contains the number of bytes available to be
+   * written
+   * @return pointer to memory area to continue writing to buffer
+   *
+   * This method can only be used on files open for writing.
+   */
+  char *mmap_did_write(size_t length, size_t *out_avail = nullptr);
+
+  /**
+   * mmap() the file for reading and return pointer to memory area.
+   *
+   * @param out_avail if not null, contains number of bytes available
+   * @return pointer to memory area that can be used to access file data.
+   *
+   * If file is already mmapped, just returns the current position in the area,
+   * which is incremented by mmap_advanced().
+   *
+   * File must be open for reading. Reading more then file_size() bytes will
+   * trigger a BUS error.
+   */
+  const char *mmap_will_read(size_t *out_avail = nullptr);
+
+  /**
+   * Advance offset within.
+   *
+   * @param length number of bytes to advance
+   * @param out_avail if not null, contains number of bytes left available
+   * @return number of bytes advanced, 0 if past EOF
+   *
+   * File must be open for reading.
+   */
+  const char *mmap_did_read(size_t length, size_t *out_avail = nullptr);
+
  private:
   void do_close();
-
-#ifdef USE_UNBUFFERED_FILES
-  int m_fd = -1;
-  int m_error = 0;
-#else
-  FILE *m_file = nullptr;
+#ifndef _WIN32
+  bool init_mmap_read();
 #endif
 
+  FILE *m_file = nullptr;
+
   std::string m_filepath;
+
+  Mmap_preference m_use_mmap = Mmap_preference::OFF;
+  bool m_writing = false;
+
+  char *m_mmap_ptr = nullptr;
+  size_t m_mmap_offset = 0;
+  size_t m_mmap_used = 0;
+  size_t m_mmap_available = 0;
 };
 
 }  // namespace backend

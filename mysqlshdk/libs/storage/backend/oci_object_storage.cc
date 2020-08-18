@@ -134,7 +134,8 @@ std::string Directory::join_path(const std::string &a,
   return a.empty() ? b : a + "/" + b;
 }
 
-std::unique_ptr<IFile> Directory::file(const std::string &name) const {
+std::unique_ptr<IFile> Directory::file(const std::string &name,
+                                       const File_options &) const {
   std::string file_name = join_path(m_name, name);
 
   return std::make_unique<Object>(m_bucket->get_options(), name,

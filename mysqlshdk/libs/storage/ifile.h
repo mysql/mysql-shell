@@ -49,6 +49,8 @@ class IDirectory;
 
 enum class Mode { READ, WRITE, APPEND };
 
+using File_options = std::unordered_map<std::string, std::string>;
+
 class IFile {
  public:
   IFile() = default;
@@ -90,9 +92,8 @@ class IFile {
   virtual void remove() = 0;
 };
 
-std::unique_ptr<IFile> make_file(
-    const std::string &filepath,
-    const std::unordered_map<std::string, std::string> &options = {});
+std::unique_ptr<IFile> make_file(const std::string &filepath,
+                                 const File_options &options = {});
 
 std::unique_ptr<IFile> make_file(const std::string &filepath,
                                  const mysqlshdk::oci::Oci_options &options);
