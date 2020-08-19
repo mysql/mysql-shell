@@ -15,7 +15,7 @@ Mandatory
 
 Optional
 - gtest and gmock 1.8 (can be automatically downloaded)
-- v8 6.7.288.46
+- v8 8.5.210.20
 
 Building From Source
 ====================
@@ -95,7 +95,7 @@ To support JavaScript on the MySQL Shell add the next flags to the CMake call:
 -DV8_INCLUDE_DIR=<path_to_v8>/include
 -DV8_LIB_DIR=<path_to_folder_containing_the_built_libraries>
 
-Note that version 6.7.288.46 is needed and newer versions may not work.
+Note that version 8.5.210.20 is needed and newer versions may not work.
 
 
 Enabling Python Support
