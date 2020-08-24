@@ -362,7 +362,7 @@ var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandb
 var SANDBOX_LOCAL_URIS = [__sandbox_uri1, __sandbox_uri2, __sandbox_uri3];
 var SANDBOX_URIS = [__hostname_uri1, __hostname_uri2, __hostname_uri3];
 
-var s = mysql.getSession(__mysqluripwd);
+var s = mysql.getSession(__mysqluripwd+"?ssl-mode=disabled");
 var r = s.runSql("SELECT @@hostname, @@report_host").fetchOne();
 var __mysql_hostname = r[0];
 var __mysql_report_host = r[1];

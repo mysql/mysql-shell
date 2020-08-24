@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MODULES_UTIL_DUMP_DUMP_INSTANCE_OPTIONS_H_
 #define MODULES_UTIL_DUMP_DUMP_INSTANCE_OPTIONS_H_
 
+#include <memory>
 #include <string>
 #include <unordered_set>
 
@@ -52,6 +53,9 @@ class Dump_instance_options : public Dump_schemas_options {
   bool dump_users() const override { return m_dump_users; }
 
  private:
+  void on_set_session(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) override;
+
   void unpack_options(shcore::Option_unpacker *unpacker) override;
 
   void validate_options() const override;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,6 +58,16 @@ void Dump_instance_options::unpack_options(shcore::Option_unpacker *unpacker) {
 
   set_excluded_users(excluded_users);
   set_included_users(included_users);
+}
+
+void Dump_instance_options::on_set_session(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  if (m_dump_users &&
+      session->get_server_version() < mysqlshdk::utils::Version(5, 7, 0)) {
+    throw std::invalid_argument(
+        "Dumping user accounts is currently not supported in MySQL versions "
+        "before 5.7. Set the 'users' option to false to continue.");
+  }
 }
 
 void Dump_instance_options::validate_options() const {

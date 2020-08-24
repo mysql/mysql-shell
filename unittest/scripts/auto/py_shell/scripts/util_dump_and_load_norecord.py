@@ -127,7 +127,7 @@ for f in datafiles[:n]:
     copy(f)
 
 def copy_rest():
-    time.sleep(3)
+    time.sleep(2)
     for f in datafiles[n:]:
         copy(f)
 
@@ -139,10 +139,7 @@ shell.connect(__sandbox_uri2)
 threading.Thread(target=copy_rest).start()
 
 # Now at least half of the DDL files would be loaded
-EXPECT_THROWS(lambda: util.load_dump(target, {"waitDumpTimeout": 10}), "Dump timeout")
-
-# The dump should already be completely loaded by now
-compare_servers(session1, session2, check_rows=True)
+EXPECT_THROWS(lambda: util.load_dump(target, {"waitDumpTimeout": 5}), "Dump timeout")
 
 #@<> load dump after it's done
 

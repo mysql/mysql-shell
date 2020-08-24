@@ -357,7 +357,7 @@ class Dump_loader {
   const std::string &pre_data_script() const;
   const std::string &post_data_script() const;
 
-  void update_progress();
+  void update_progress(bool force = false);
 
   void check_server_version();
   void check_tables_without_primary_key();
