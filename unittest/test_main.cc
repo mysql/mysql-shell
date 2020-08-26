@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2020, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -161,15 +161,25 @@ static void detect_mysql_environment(int port, const char *pwd) {
     {
       const char *query =
           "select @@version, @@have_ssl = 'YES', @@have_openssl = 'YES', "
-          "@@mysqlx_port, @@server_id";
+          "@@server_id";
       if (mysql_real_query(mysql, query, strlen(query)) == 0) {
         MYSQL_RES *res = mysql_store_result(mysql);
         if (MYSQL_ROW row = mysql_fetch_row(res)) {
           g_target_server_version = mysqlshdk::utils::Version(row[0]);
           if (row[1] && strcmp(row[1], "1") == 0) have_ssl = true;
           if (row[2] && strcmp(row[2], "1") == 0) have_openssl = true;
-          if (row[3]) xport = atoi(row[3]);
-          server_id = atoi(row[4]);
+          server_id = atoi(row[3]);
+        }
+        mysql_free_result(res);
+      }
+    }
+
+    {
+      const char *query = "select @@mysqlx_port";
+      if (mysql_real_query(mysql, query, strlen(query)) == 0) {
+        MYSQL_RES *res = mysql_store_result(mysql);
+        if (MYSQL_ROW row = mysql_fetch_row(res)) {
+          if (row[0]) xport = atoi(row[0]);
         }
         mysql_free_result(res);
       }
@@ -224,7 +234,7 @@ static void detect_mysql_environment(int port, const char *pwd) {
   }
   mysql_close(mysql);
 
-  if (!xport) {
+  if (!xport && g_target_server_version >= mysqlshdk::utils::Version(5, 7, 0)) {
     std::cerr << "Could not query mysqlx_port. X plugin not installed?\n";
     exit(1);
   }

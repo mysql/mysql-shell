@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -132,6 +132,16 @@ class Auto_script_js : public Shell_js_script_tester,
     code = "var __mysqluripwd = '" + user + ":" + password + "@" + host + ":" +
            m_mysql_port + "';";
     exec_and_out_equals(code);
+
+    // for MySQL 5.6 tests
+    if (getenv("MYSQL56_URI")) {
+      code = "var __mysql56_uri = '";
+      code += getenv("MYSQL56_URI");
+      code += "';";
+      exec_and_out_equals(code);
+    } else {
+      exec_and_out_equals("var __mysql56_uri = null;");
+    }
 
     code = "var __system_user = '" + shcore::get_system_user() + "';";
     exec_and_out_equals(code);

@@ -1307,15 +1307,18 @@ void Dump_loader::show_summary() {
   }
 }
 
-void Dump_loader::update_progress() {
+void Dump_loader::update_progress(bool force) {
   static const char k_progress_spin[] = "-\\|/";
 
-  std::unique_lock<std::mutex> lock(m_output_mutex, std::try_to_lock);
+  auto lock =
+      force ? std::unique_lock<std::mutex>(m_output_mutex)
+            : std::unique_lock<std::mutex>(m_output_mutex, std::try_to_lock);
 
-  m_progress->set_right_label(shcore::str_format(", %zu / %zu tables done",
-                                                 m_unique_tables_loaded.size(),
-                                                 m_total_tables_with_data));
   if (lock.owns_lock()) {
+    m_progress->set_right_label(shcore::str_format(
+        ", %zu / %zu tables done", m_unique_tables_loaded.size(),
+        m_total_tables_with_data));
+
     if (m_dump->status() == Dump_reader::Status::COMPLETE &&
         m_num_threads_loading.load() == 0 &&
         m_num_threads_recreating_indexes.load() > 0 &&
@@ -1401,6 +1404,11 @@ void Dump_loader::check_server_version() {
       ". Dump was produced from MySQL " + m_dump->server_version().get_full();
 
   console->print_info(msg);
+
+  if (target_server < mysqlshdk::utils::Version(5, 7, 0)) {
+    throw std::runtime_error(
+        "Loading dumps is only supported in MySQL 5.7 or newer");
+  }
 
   if (mds && !m_dump->mds_compatibility()) {
     console->print_error(
@@ -1959,7 +1967,7 @@ void Dump_loader::execute_tasks() {
   if (m_dump->status() == Dump_reader::Status::COMPLETE) {
     m_progress->total(m_dump->filtered_data_size());
   }
-  update_progress();
+  update_progress(true);
 
   handle_table_only_dump();
 
@@ -2021,7 +2029,7 @@ void Dump_loader::execute_tasks() {
 
   m_progress->current(m_num_bytes_loaded);
 
-  update_progress();
+  update_progress(true);
 
   if (!m_worker_interrupt) {
     on_dump_end();

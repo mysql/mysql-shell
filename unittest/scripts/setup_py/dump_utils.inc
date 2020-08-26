@@ -25,10 +25,10 @@ def truncate_all_tables(session):
                 session.run_sql("truncate table `%s`.`%s`" % (schema, table))
     session.run_sql("set foreign_key_checks=1")
 
-def compare_query_results(session1, session2, query, args=[]):
-    r1=list([list(r) for r in session1.run_sql(query, args).fetch_all()])
+def compare_query_results(session1, session2, query, args=[], ignore_columns=[]):
+    r1=list([list([str(f) for i,f in enumerate(r) if i not in ignore_columns]) for r in session1.run_sql(query, args).fetch_all()])
     r1.sort()
-    r2=list([list(r) for r in session2.run_sql(query, args).fetch_all()])
+    r2=list([list([str(f) for i,f in enumerate(r) if i not in ignore_columns]) for r in session2.run_sql(query, args).fetch_all()])
     r2.sort()
     EXPECT_EQ(len(r1), len(r2), query)
     for i in range(len(r1)):
@@ -45,7 +45,8 @@ def compare_schema(session1, session2, schema, check_rows=True):
     views = compare_query_results(session1, session2, "select table_name from information_schema.tables where table_schema=? and table_type='VIEW' order by table_name", [schema])
     for view, in views:
         compare_query_results(session1, session2, "show create view `"+schema+"`.`"+view+"`")
-    compare_query_results(session1, session2, "show events in `"+schema+"`")
+    # ignore Originator in the show events output
+    compare_query_results(session1, session2, "show events in `"+schema+"`", ignore_columns=[11])
     compare_query_results(session1, session2, "select TRIGGER_NAME,EVENT_MANIPULATION,EVENT_OBJECT_SCHEMA,EVENT_OBJECT_TABLE,ACTION_ORDER,ACTION_CONDITION,ACTION_STATEMENT,ACTION_ORIENTATION,ACTION_TIMING,ACTION_REFERENCE_OLD_TABLE,ACTION_REFERENCE_NEW_TABLE,ACTION_REFERENCE_OLD_ROW,ACTION_REFERENCE_NEW_ROW,SQL_MODE,DEFINER,CHARACTER_SET_CLIENT,COLLATION_CONNECTION,DATABASE_COLLATION from information_schema.triggers where trigger_schema=? order by trigger_name",[schema])
     compare_query_results(session1, session2, "select SPECIFIC_NAME,ROUTINE_SCHEMA,ROUTINE_NAME,ROUTINE_TYPE,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,CHARACTER_OCTET_LENGTH,NUMERIC_PRECISION,NUMERIC_SCALE,DATETIME_PRECISION,CHARACTER_SET_NAME,COLLATION_NAME,DTD_IDENTIFIER,ROUTINE_BODY,ROUTINE_DEFINITION,EXTERNAL_NAME,EXTERNAL_LANGUAGE,PARAMETER_STYLE,IS_DETERMINISTIC,SQL_DATA_ACCESS,SQL_PATH,SECURITY_TYPE,SQL_MODE,ROUTINE_COMMENT,DEFINER,CHARACTER_SET_CLIENT,COLLATION_CONNECTION,DATABASE_COLLATION from information_schema.routines where routine_schema=? order by specific_name", [schema])
 

@@ -2,6 +2,8 @@
 SET foreign_key_checks=0;
 
 DROP SCHEMA IF EXISTS all_features;
+DROP SCHEMA IF EXISTS all_features2;
+
 CREATE SCHEMA all_features;
 USE all_features;
 
@@ -19,6 +21,7 @@ CREATE USER ''@localhost;
 */
 
 -- Tables
+
 /* TODO
 CREATE TABLE `new
 line` (`a
@@ -58,30 +61,30 @@ CREATE TABLE `*/` (
 
 -- Functional Indexes
 
-CREATE TABLE `findextable` (
-  `data` json DEFAULT NULL
+/*!50700 CREATE TABLE `findextable` (
+  `data` json DEFAULT NULL */
 /*!80000 , UNIQUE KEY `findextable_idx` ((cast(json_extract(`data`,_utf8mb4'$._id') as unsigned array))) */
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!50700 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 */;
 
-CREATE TABLE `findextable2` (
+/*!50700 CREATE TABLE `findextable2` (
   pk int primary key,
-  `data` json DEFAULT NULL
+  `data` json DEFAULT NULL */
 /*!80000 , UNIQUE KEY `findextable_idx` ((cast(json_extract(`data`,_utf8mb4'$._id') as unsigned array))) */
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!50700 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 */;
 
-CREATE TABLE `findextable3` (
+/*!50700 CREATE TABLE `findextable3` (
   `data` json DEFAULT NULL,
-  num int default 42  /*!80000 ,
+  num int default 42 */ /*!80000 ,
   ts int default ((now())),
   KEY `findextable_idx` ((num+1)) */
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!50700 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 */;
 
 -- Generated Columns
 
-CREATE TABLE gctable1 (
+/*!50700 CREATE TABLE gctable1 (
     a INT PRIMARY KEY,
     b INT GENERATED ALWAYS AS (sqrt(a)) VIRTUAL
-);
+) */; 
 
 -- Constraints
 
@@ -100,7 +103,6 @@ insert into aik values (1, 0, "text");
 -- This is to ensure that the schema can be loaded without FK dependency
 -- related errors.
 
-DROP SCHEMA IF EXISTS all_features2;
 CREATE SCHEMA all_features2;
 
 
@@ -160,9 +162,16 @@ CREATE VIEW all_features2.v2 AS SELECT * FROM all_features.tbl2;
 
 -- Attributes (auto_increment)
 
+CREATE TABLE all_features.plaintable (
+  a int primary key auto_increment,
+  b varchar(200)
+);
+
 -- Partitions
 
 -- Triggers
+
+CREATE TRIGGER all_features.mytrigger BEFORE INSERT ON all_features.plaintable FOR EACH ROW BEGIN END;
 
 /* TODO
 CREATE TRIGGER `new
@@ -216,6 +225,8 @@ CREATE FUNCTION `'"`() RETURNS INT RETURN 0;
 
 -- Events
 
+CREATE EVENT all_features.myevent ON SCHEDULE AT '2000-01-01 00:00:00' ON COMPLETION PRESERVE DO begin end;
+
 /* TODO
 CREATE EVENT `new
 line`() BEGIN END;
@@ -228,6 +239,8 @@ CREATE EVENT `'"`() BEGIN END;
 */
 
 -- Charsets
+
+USE all_features;
 
 CREATE TABLE latin1_charset (
     id int primary key auto_increment,
