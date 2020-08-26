@@ -233,7 +233,8 @@ inline size_t span_to_eol(const std::string &s, size_t offset) {
 
 inline size_t span_cstyle_comment(const std::string &s, size_t offset) {
   assert(!s.empty());
-  assert(s[offset] == '/' && s[offset + 1] == '*');
+  assert(offset < s.size());
+  assert(s.size() - offset < 2 || (s[offset] == '/' && s[offset + 1] == '*'));
 
   offset += 2;
   size_t p = s.find("*/", offset);

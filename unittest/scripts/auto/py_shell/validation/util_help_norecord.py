@@ -202,7 +202,7 @@ DESCRIPTION
       - dryRun: bool (default: false) - Print information about what would be
         dumped, but do not dump anything.
       - chunking: bool (default: true) - Enable chunking of the tables.
-      - bytesPerChunk: string (default: "32M") - Sets average estimated number
+      - bytesPerChunk: string (default: "256M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
       - threads: int (default: 4) - Use N threads to dump data chunks from the
         server.
@@ -288,6 +288,11 @@ DESCRIPTION
 
       Once all the threads start transactions, the instance is locked for
       backup and the global read lock is released.
+
+      If the account used for the dump does not have enough privileges to
+      execute FLUSH TABLES, LOCK TABLES will be used as a fallback instead. All
+      tables being dumped, in addition to DDL and GRANT related tables in the
+      mysql schema will be temporarily locked.
 
       The ddlOnly and dataOnly options cannot both be set to true at the same
       time.
@@ -472,7 +477,7 @@ DESCRIPTION
       - dryRun: bool (default: false) - Print information about what would be
         dumped, but do not dump anything.
       - chunking: bool (default: true) - Enable chunking of the tables.
-      - bytesPerChunk: string (default: "32M") - Sets average estimated number
+      - bytesPerChunk: string (default: "256M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
       - threads: int (default: 4) - Use N threads to dump data chunks from the
         server.
@@ -547,6 +552,11 @@ DESCRIPTION
 
       Once all the threads start transactions, the instance is locked for
       backup and the global read lock is released.
+
+      If the account used for the dump does not have enough privileges to
+      execute FLUSH TABLES, LOCK TABLES will be used as a fallback instead. All
+      tables being dumped, in addition to DDL and GRANT related tables in the
+      mysql schema will be temporarily locked.
 
       The ddlOnly and dataOnly options cannot both be set to true at the same
       time.
@@ -723,7 +733,7 @@ DESCRIPTION
       - dryRun: bool (default: false) - Print information about what would be
         dumped, but do not dump anything.
       - chunking: bool (default: true) - Enable chunking of the tables.
-      - bytesPerChunk: string (default: "32M") - Sets average estimated number
+      - bytesPerChunk: string (default: "256M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
       - threads: int (default: 4) - Use N threads to dump data chunks from the
         server.
@@ -792,6 +802,11 @@ DESCRIPTION
 
       Once all the threads start transactions, the instance is locked for
       backup and the global read lock is released.
+
+      If the account used for the dump does not have enough privileges to
+      execute FLUSH TABLES, LOCK TABLES will be used as a fallback instead. All
+      tables being dumped, in addition to DDL and GRANT related tables in the
+      mysql schema will be temporarily locked.
 
       The ddlOnly and dataOnly options cannot both be set to true at the same
       time.

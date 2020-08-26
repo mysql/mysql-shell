@@ -31,6 +31,7 @@ SQL_iterator::SQL_iterator(const std::string &str,
                            std::string::size_type offset,
                            bool skip_quoted_sql_ids)
     : m_s(str), m_offset(offset - 1), m_skip_quoted(skip_quoted_sql_ids) {
+  assert(offset <= str.size());
   // Let's make sure we start from valid SQL
   ++(*this);
 }
