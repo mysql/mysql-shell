@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -237,6 +237,18 @@ std::string get_purged_gtid_set(const mysqlshdk::mysql::IInstance &server);
  */
 std::string get_received_gtid_set(const mysqlshdk::mysql::IInstance &server,
                                   const std::string &channel_name);
+
+/**
+ * Returns total GTID set from the server, including received but not yet
+ * applied.
+ *
+ * known_channel_names must contain the list of all channels to consider when
+ * checking for received_transaction_set (usually just
+ * group_replication_applier)
+ */
+std::string get_total_gtid_set(
+    const mysqlshdk::mysql::IInstance &server,
+    const std::vector<std::string> &known_channel_names);
 
 /**
  * Returns an upper bound of the number of transactions in the given GTID set.

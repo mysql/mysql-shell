@@ -350,6 +350,13 @@ function wait_member_state_from(session, member_port, state) {
   testutil.fail("Timeout while waiting for "+member_port+" to become "+state+" when queried from "+session.runSql("select @@port").fetchOne()[0]);
 }
 
+function normalize_cluster_options(options) {
+    // normalize output of cluster.options(), to make order of tags to be always the same
+    options["defaultReplicaSet"]["tags"][".global"] = options["defaultReplicaSet"]["tags"]["global"];
+    delete options["defaultReplicaSet"]["tags"]["global"];
+    return options;
+}
+
 // Check if the instance exists in the Metadata schema
 function exist_in_metadata_schema() {
   var result = session.runSql(

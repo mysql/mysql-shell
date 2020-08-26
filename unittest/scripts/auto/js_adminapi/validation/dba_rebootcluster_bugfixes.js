@@ -37,7 +37,7 @@
             }
         ],
         "tags": {
-            "global": [],
+            ".global": [],
             "<<<uri1>>>": [],
             "<<<uri2>>>": []
         },
@@ -151,7 +151,7 @@
             }
         ],
         "tags": {
-            "global": [],
+            ".global": [],
             "<<<uri1>>>": [],
             "<<<uri2>>>": []
         },
@@ -286,7 +286,7 @@ ONLINE
             }
         ],
         "tags": {
-            "global": [],
+            ".global": [],
             "<<<uri1>>>": [],
             "<<<uri2>>>": []
         },
@@ -400,7 +400,7 @@ ONLINE
             }
         ],
         "tags": {
-            "global": [],
+            ".global": [],
             "<<<uri1>>>": [],
             "<<<uri2>>>": []
         },
@@ -496,11 +496,8 @@ ONLINE
 //@<OUT> BUG#29305551 - Reboot cluster from complete outage, rejoin fails
 ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (master-slave) replication configured and running. Please stop the slave threads by executing the query: 'STOP SLAVE;'
 
-//@ BUG#29305551: Finalization
-||
-
 //@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying current session is not the most up to date
-||Dba.rebootClusterFromCompleteOutage: The active session instance isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. (RuntimeError)
+||Dba.rebootClusterFromCompleteOutage: The active session instance (<<<hostname>>>:<<<__mysql_sandbox_port1>>>) isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. (RuntimeError)
 
 //@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying there is a gtid mismatch
 ||Conflicting transaction sets between <<<hostname>>>:<<<__mysql_sandbox_port1>>> and <<<hostname>>>:<<<__mysql_sandbox_port2>>>

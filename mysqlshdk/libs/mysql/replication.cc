@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -685,10 +685,23 @@ std::string get_received_gtid_set(const mysqlshdk::mysql::IInstance &server,
                                   const std::string &channel_name) {
   return server.queryf_one_string(
       0, "",
-      "SELECT GROUP_CONCAT(received_transaction_set)"
+      "SELECT GTID_SUBTRACT(GROUP_CONCAT(received_transaction_set), '')"
       "   FROM performance_schema.replication_connection_status"
       "   WHERE channel_name = ?",
       channel_name);
+}
+
+std::string get_total_gtid_set(
+    const mysqlshdk::mysql::IInstance &server,
+    const std::vector<std::string> &known_channel_names) {
+  return server.queryf_one_string(
+      0, "",
+      "SELECT GTID_SUBTRACT(CONCAT(@@GLOBAL.GTID_EXECUTED, ',', ("
+      "   SELECT GROUP_CONCAT(received_transaction_set)"
+      "       FROM performance_schema.replication_connection_status"
+      "       WHERE channel_name IN (" +
+          shcore::str_join(known_channel_names, ",", shcore::quote_sql_string) +
+          "))), '')");
 }
 
 Gtid_set_relation compare_gtid_sets(const mysqlshdk::mysql::IInstance &server,

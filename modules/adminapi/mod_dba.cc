@@ -3333,6 +3333,12 @@ void Dba::validate_instances_gtid_reboot_cluster(
     const mysqlshdk::mysql::IInstance &target_instance) {
   auto console = current_console();
 
+  // list of replication channel names that must be considered when comparing
+  // GTID sets. With ClusterSets, the async channel for secondaries must be
+  // added here.
+  static const std::vector<std::string> k_known_channel_names = {
+      "group_replication_applier"};
+
   // get the current session information
   auto current_session_options = target_instance.get_connection_options();
 
@@ -3345,8 +3351,8 @@ void Dba::validate_instances_gtid_reboot_cluster(
   {
     Instance_gtid_info info;
     info.server = target_instance.get_canonical_address();
-    info.gtid_executed =
-        mysqlshdk::mysql::get_executed_gtid_set(target_instance);
+    info.gtid_executed = mysqlshdk::mysql::get_total_gtid_set(
+        target_instance, k_known_channel_names);
     instance_gtids.push_back(info);
   }
 
@@ -3375,7 +3381,8 @@ void Dba::validate_instances_gtid_reboot_cluster(
 
     Instance_gtid_info info;
     info.server = inst.endpoint;
-    info.gtid_executed = mysqlshdk::mysql::get_executed_gtid_set(*instance);
+    info.gtid_executed =
+        mysqlshdk::mysql::get_total_gtid_set(*instance, k_known_channel_names);
     instance_gtids.push_back(info);
   }
 
@@ -3401,7 +3408,8 @@ void Dba::validate_instances_gtid_reboot_cluster(
                      return c.server == instance_gtids[0].server;
                    }) == primary_candidates.end()) {
     throw shcore::Exception::runtime_error(
-        "The active session instance isn't the most updated "
+        "The active session instance (" + target_instance.descr() +
+        ") isn't the most updated "
         "in comparison with the ONLINE instances of the Cluster's "
         "metadata. Please use the most up to date instance: '" +
         primary_candidates.front().server + "'.");
