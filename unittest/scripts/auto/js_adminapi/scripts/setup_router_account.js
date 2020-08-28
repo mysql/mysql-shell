@@ -37,7 +37,6 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
 
-
 //@<> WL#13536 create cluster
 shell.connect(__sandbox_uri1);
 var c = dba.createCluster("Cluster", {gtidSetIsComplete: true});
@@ -45,13 +44,13 @@ c.addInstance(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@ WL#13536 TSFR3_7 An error is thrown if a non supported format is passed to the user parameter
-c.setupRouterAccount("'foo");
+c.setupRouterAccount("'fooo");
 
 //@ WL#13536 BUG#30645140 An error is thrown if the username contains the @ symbol
 c.setupRouterAccount("foo@bar@baz");
 
 //@ WL#13536 BUG#30645140 but no error is thrown if the @symbol on the username is surrounded by quotes
-c.setupRouterAccount("'foo@bar'@baz", {password: "foo"});
+c.setupRouterAccount("'foo@bar'@baz", {password: "fooo"});
 
 //@ WL#13536 BUG#30648813 Empty usernames are not supported
 c.setupRouterAccount(" ");
@@ -61,15 +60,32 @@ c.setupRouterAccount("@");
 c.setupRouterAccount(" @%");
 c.setupRouterAccount("@%");
 
+// BUG#31491092 reports that when the validate_password plugin is installed, setupAdminAccount() fails
+// with an error indicating the password does not match the current policy requirements. This happened
+// because the function was creating the account with 2 separate transactions: one to create the user
+// without any password, and another to change the password of the created user
+
+//@<> Install the validate_password plugin to verify the fix for BUG#31491092
+ensure_plugin_enabled("validate_password", session1, "validate_password");
+// configure the validate_password plugin for the lowest policy
+session1.runSql('SET GLOBAL validate_password_policy=\'LOW\'');
+session1.runSql('SET GLOBAL validate_password_length=1');
+
+//@<> With validate_password plugin enabled, an error must be thrown when the password does not satisfy the requirements
+EXPECT_THROWS_TYPE(function(){c.setupRouterAccount("%", {password: "foo"})}, "Cluster.setupRouterAccount: " + __endpoint1 + ": Your password does not satisfy the current policy requirements", "RuntimeError");
+
 //@<> WL#13536 TSFR3_8 Host if not specified defaults to %
 // account didnt't exist on the cluster
 EXPECT_EQ(0, count_users_like(session1, "default_hostname", "%"));
 EXPECT_EQ(0, count_users_like(session2, "default_hostname", "%"));
-c.setupRouterAccount("default_hostname", {password: "foo"});
+c.setupRouterAccount("default_hostname", {password: "fooo"});
 EXPECT_EQ(1, count_users_like(session1, "default_hostname", "%"));
 // account was replicated across the cluster
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 EXPECT_EQ(1, count_users_like(session2, "default_hostname", "%"));
+
+// Uninstall the validate_password plugin: negative and positive tests done
+ensure_plugin_disabled("validate_password", session1, "validate_password");
 
 //@<OUT> WL#13536 TSFR3_8 check global privileges of created user
 session1.runSql("SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = \"'default_hostname'@'%'\" ORDER BY PRIVILEGE_TYPE");
@@ -83,17 +99,17 @@ session.runSql("SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FR
 //@<> WL#13536 TSFR3_9 Host specified works as expected
 EXPECT_EQ(0, count_users_like(session1, "specific_host", "198.51.100.0/255.255.255.0"));
 EXPECT_EQ(0, count_users_like(session2, "specific_host", "198.51.100.0/255.255.255.0"));
-c.setupRouterAccount("specific_host@198.51.100.0/255.255.255.0", {password: "foo"});
+c.setupRouterAccount("specific_host@198.51.100.0/255.255.255.0", {password: "fooo"});
 EXPECT_EQ(1, count_users_like(session1, "specific_host", "198.51.100.0/255.255.255.0"));
 // account was replicated across the cluster
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 EXPECT_EQ(1, count_users_like(session2, "specific_host", "198.51.100.0/255.255.255.0"));
 
 //@ WL#13536 TSFR3_10 An error is thrown if user exists but update option is false
-c.setupRouterAccount("specific_host@198.51.100.0/255.255.255.0", {password: "foo", update:false});
+c.setupRouterAccount("specific_host@198.51.100.0/255.255.255.0", {password: "fooo", update:false});
 
 //@ WL#13536 TSFR3_10 An error is thrown if user exists but update option is not specified
-c.setupRouterAccount("specific_host@198.51.100.0/255.255.255.0", {password: "foo"});
+c.setupRouterAccount("specific_host@198.51.100.0/255.255.255.0", {password: "fooo"});
 
 //@<> WL#13536 TSFR3_11 Operation updates existing account privileges if update option is used
 var admin_schema_privs_num = count_schema_privs(session1, "specific_host", "198.51.100.0/255.255.255.0");
@@ -156,7 +172,7 @@ shell.connect(__sandbox_uri1);
 
 //@<> WL#13536 TSFR5_5 Validate upon creating a new account with dryRun the list of privileges is shown but the account is not created
 EXPECT_EQ(0, count_users_like(session1, "dryruntest", "%"));
-c.setupRouterAccount("dryruntest", {password: "foo", dryRun:true});
+c.setupRouterAccount("dryruntest", {password: "fooo", dryRun:true});
 // account not created
 EXPECT_EQ(0, count_users_like(session1, "dryruntest", "%"));
 
@@ -165,7 +181,7 @@ c.setupRouterAccount("dryruntest", {update: true, dryRun:true});
 
 //@<> WL#13536 TSFR5_7 Validate upon updating an existing account with dryRun the list of privileges is shown but none is restored
 // create account
-c.setupRouterAccount("dryruntest", {password: "foo"});
+c.setupRouterAccount("dryruntest", {password: "fooo"});
 var all_schema_privs_num = count_schema_privs(session1, "dryruntest", "%");
 session1.runSql("REVOKE EXECUTE on mysql_innodb_cluster_metadata.* FROM 'dryruntest'@'%'");
 // 1 schema privilege was revoked
@@ -176,7 +192,7 @@ c.setupRouterAccount("dryruntest", {update: true, dryRun:true});
 EXPECT_EQ(all_schema_privs_num - 1 , count_schema_privs(session1, "dryruntest", "%"));
 
 //@WL#13536 TSFR5_8 Validate that upgrading an existing account fails if upgrade is false even with dryRun enabled
-c.setupRouterAccount("dryruntest", {password: "foo", dryRun:true});
+c.setupRouterAccount("dryruntest", {password: "fooo", dryRun:true});
 
 //@<> WL#13536 TSFR6_7 Validate password is asked for creation of a new account if interactive mode enabled
 testutil.expectPassword("Password for new account: ", "1111");
