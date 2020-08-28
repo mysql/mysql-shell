@@ -167,6 +167,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
  private:
   std::shared_ptr<Cluster_impl> m_impl;
   bool m_invalidated = false;
+
+  void verify_add_rejoin_deprecations(const shcore::Dictionary_t &options);
 };
 
 }  // namespace dba

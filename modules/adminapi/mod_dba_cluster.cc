@@ -196,6 +196,37 @@ void Cluster::assert_valid(const std::string &option_name) const {
   }
 }
 
+void Cluster::verify_add_rejoin_deprecations(
+    const shcore::Dictionary_t &options) {
+  auto console = mysqlsh::current_console();
+
+  // Show deprecation message for memberSslMode option if if applies.
+  if (options->has_key(kMemberSslMode)) {
+    console->print_warning(
+        "Option 'memberSslMode' is deprecated for this operation and it will "
+        "be removed in a future release. This option is not needed because the "
+        "SSL mode is automatically obtained from the cluster. Please do not "
+        "use it here.");
+    console->print_info();
+  }
+
+  // Verify deprecation of ipWhitelist
+  if (options->has_key(kIpWhitelist)) {
+    if (options->has_key(kIpAllowlist)) {
+      throw shcore::Exception::argument_error(
+          "Cannot use the ipWhitelist and ipAllowlist options "
+          "simultaneously. The ipWhitelist option is deprecated, "
+          "please use the ipAllowlist option instead.");
+    } else {
+      // Set the internal option name
+      console->print_warning(
+          "The ipWhitelist option is deprecated in favor of ipAllowlist. "
+          "ipAllowlist will be set instead.");
+      console->print_info();
+    }
+  }
+}
+
 REGISTER_HELP_FUNCTION(addInstance, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_ADDINSTANCE, R"*(
 Adds an Instance to the cluster.
@@ -218,8 +249,8 @@ incremental. Default is auto.
 recovery process to finish and its verbosity level.
 @li password: the instance connection password
 @li memberSslMode: SSL mode used on the instance
-@li ipWhitelist: The list of hosts allowed to connect to the instance for group
-replication
+${CLUSTER_OPT_IP_WHITELIST}
+${CLUSTER_OPT_IP_ALLOWLIST}
 @li localAddress: string value with the Group Replication local address to be
 used instead of the automatically generated one.
 @li groupSeeds: string value with a comma-separated list of the Group
@@ -273,10 +304,7 @@ value of 2.
 
 ${CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL}
 
-The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR
-notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
-AUTOMATIC, allowing addresses from the instance private network to be
-automatically set for the whitelist.
+${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
 
 The localAddress and groupSeeds are advanced options and their usage is
 discouraged since incorrect values can lead to Group Replication errors.
@@ -301,6 +329,9 @@ ${CLUSTER_OPT_EXIT_STATE_ACTION_EXTRA}
 ${CLUSTER_OPT_MEMBER_WEIGHT_DETAIL_EXTRA}
 
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
+
+@attention The ipWhitelist option will be removed in a future release.
+Please use the ipAllowlist option instead.
 
 @throw MetadataError in the following scenarios:
 @li If the Metadata is inaccessible.
@@ -361,6 +392,15 @@ void Cluster::add_instance(const Connection_options &instance_def_,
         .optional("label", &label)
         .optional("waitRecovery", &wait_recovery)
         .end();
+
+    verify_add_rejoin_deprecations(options);
+
+    // Set the right value for ip_allowlist_option_name
+    if (options->has_key(kIpWhitelist)) {
+      gr_options.ip_allowlist_option_name = kIpWhitelist;
+    } else {
+      gr_options.ip_allowlist_option_name = kIpAllowlist;
+    }
   }
 
   // Validate waitRecovery option UInteger [0, 3]
@@ -421,8 +461,8 @@ The options dictionary may contain the following attributes:
 @li label: an identifier for the instance being added
 @li password: the instance connection password
 @li memberSslMode: SSL mode used on the instance
-@li ipWhitelist: The list of hosts allowed to connect to the instance for group
-replication
+${CLUSTER_OPT_IP_WHITELIST}
+${CLUSTER_OPT_IP_ALLOWLIST}
 
 The password may be contained on the instance definition, however, it can be
 overwritten if it is specified on the options.
@@ -439,10 +479,10 @@ based on the cluster configuration
 
 If memberSslMode is not specified AUTO will be used by default.
 
-The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR
-notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
-AUTOMATIC, allowing addresses from the instance private network to be
-automatically set for the whitelist.
+${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
+
+@attention The ipWhitelist option will be removed in a future release.
+Please use the ipAllowlist option instead.
 
 @throw MetadataError in the following scenarios:
 @li If the Metadata is inaccessible.
@@ -481,10 +521,28 @@ void Cluster::rejoin_instance(const Connection_options &instance_def_,
   // Throw an error if the cluster has already been dissolved
   assert_valid("rejoinInstance");
 
+  Group_replication_options gr_options(Group_replication_options::REJOIN);
   bool interactive = current_shell_options()->get().wizards;
   const auto console = current_console();
 
   m_impl->check_preconditions("rejoinInstance");
+
+  // SSL Mode AUTO by default
+  gr_options.ssl_mode = mysqlsh::dba::kMemberSSLModeAuto;
+
+  // Retrieves the options
+  if (options) {
+    Unpack_options(options).unpack(&gr_options).end();
+
+    verify_add_rejoin_deprecations(options);
+
+    // Set the right value for ip_allowlist_option_name
+    if (options->has_key(kIpWhitelist)) {
+      gr_options.ip_allowlist_option_name = kIpWhitelist;
+    } else {
+      gr_options.ip_allowlist_option_name = kIpAllowlist;
+    }
+  }
 
   if (interactive) {
     // TODO(rennox): This was done on the interactive call, wondering if
@@ -513,7 +571,7 @@ void Cluster::rejoin_instance(const Connection_options &instance_def_,
   }
 
   // rejoin the Instance to the Default ReplicaSet
-  m_impl->rejoin_instance(instance_def, options);
+  m_impl->rejoin_instance(instance_def, gr_options);
 
   if (interactive) {
     console->println("The instance '" + instance_def.as_uri(only_transport()) +

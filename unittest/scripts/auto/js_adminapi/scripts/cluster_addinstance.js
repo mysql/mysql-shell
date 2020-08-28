@@ -389,6 +389,38 @@ result = session.runSql("SELECT COUNT(*) FROM mysql.user");
 var new_account_number = result.fetchOne()[0];
 EXPECT_EQ(old_account_number + 1, new_account_number);
 
+// Tests for deprecation of ipWhitelist in favor of ipAllowlist
+
+//@<> Remove an instance to add it back using ipWhitelist
+c.removeInstance(__sandbox_uri2);
+
+//@<> Verify that ipWhitelist sets the right sysvars depending on the version
+var ip_white_list = "10.10.10.1/15,127.0.0.1," + hostname_ip;
+
+c.addInstance(__sandbox_uri2, {ipWhitelist: ip_white_list});
+shell.connect(__sandbox_uri2);
+
+//@<> Verify that ipWhitelist sets group_replication_ip_allowlist in 8.0.22 {VER(>=8.0.22)}
+EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
+
+//@<> Verify that ipWhitelist sets group_replication_ip_whitelist in versions < 8.0.22 {VER(<8.0.22)}
+EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+
+//@<> Remove the instance to add it back using ipAllowlist
+c.removeInstance(__sandbox_uri2);
+
+//@<> Verify the new option ipAllowlist sets the right sysvars depending on the version
+ip_white_list = "10.1.1.0/15,127.0.0.1," + hostname_ip;
+
+c.addInstance(__sandbox_uri2, {ipAllowlist:ip_white_list});
+shell.connect(__sandbox_uri2);
+
+//@<> Verify the new option ipAllowlist sets group_replication_ip_allowlist in 8.0.22 {VER(>=8.0.22)}
+EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
+
+//@<> Verify the new option ipAllowlist sets group_replication_ip_whitelist in versions < 8.0.22 {VER(<8.0.22)}
+EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+
 //@<> WL#12773: Cleanup
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
@@ -467,7 +499,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root");
 shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
 
-//@<> IPv6 addresses are supported on localAddress, groupSeeds and ipWhitelist WL#12758 {VER(>= 8.0.14)}
+//@ IPv6 addresses are supported on localAddress, groupSeeds and ipWhitelist WL#12758 {VER(>= 8.0.14)}
 var local_address = "[::1]:" + __mysql_sandbox_gr_port2;
 var ip_white_list = "::1, 127.0.0.1";
 var group_seeds = "[::1]:" + __mysql_sandbox_gr_port1; + ", [::1]:" + __mysql_sandbox_gr_port2;
@@ -475,8 +507,13 @@ cluster.addInstance(__sandbox_uri2, {ipWhitelist:ip_white_list, groupSeeds:group
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 shell.connect(__sandbox_uri2);
 EXPECT_EQ(local_address, get_sysvar(session, "group_replication_local_address"));
-EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
 EXPECT_EQ(group_seeds, get_sysvar(session, "group_replication_group_seeds"));
+
+//@<> Confirm that ipWhitelist is set {VER(>= 8.0.14) && VER(<8.0.22)}
+EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+
+//@<> Confirm that ipWhitelist is set {VER(>= 8.0.22)}
+EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
 //@<> Cleanup WL#12758 IPv6 addresses supported {VER(>= 8.0.14)}
 session.close();

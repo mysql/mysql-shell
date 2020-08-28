@@ -19,6 +19,9 @@
 ||Cannot use the multiMaster and multiPrimary options simultaneously. The multiMaster option is deprecated, please use the multiPrimary option instead.
 ||Invalid value for ipWhitelist: string value cannot be empty.
 
+//@# Dba: createCluster ipWhitelist deprecation {VER(>=8.0.22)}
+||Dba.createCluster: Cannot use the ipWhitelist and ipAllowlist options simultaneously. The ipWhitelist option is deprecated, please use the ipAllowlist option instead. (ArgumentError)
+
 //@ Dba: createCluster with ANSI_QUOTES success
 |Current sql_mode is: ANSI_QUOTES|
 |<Cluster:devCluster>|

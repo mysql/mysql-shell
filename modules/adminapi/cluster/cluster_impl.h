@@ -55,12 +55,6 @@ constexpr const char k_cluster_attribute_default[] = "default";
 // Timestamp of when the instance was added to the group
 constexpr const char k_instance_attribute_join_time[] = "joinTime";
 
-constexpr const char k_warning_deprecate_ssl_mode[] =
-    "Option 'memberSslMode' is deprecated for this operation and it will be "
-    "removed in a future release. This option is not needed because the SSL "
-    "mode is automatically obtained from the cluster. Please do not use it "
-    "here.";
-
 class MetadataStorage;
 struct Cluster_metadata;
 
@@ -89,8 +83,8 @@ class Cluster_impl : public Base_cluster_impl {
   // TODO(miguel): refactor rejoin_instance to Command_interface and to not use
   // shcore types: WL#13535
   void rejoin_instance(const Connection_options &instance_def,
-                       const shcore::Dictionary_t &options,
-                       bool skip_precondition_check = false);
+                       const Group_replication_options &options,
+                       bool reboot = false);
 
   void remove_instance(const Connection_options &instance_def,
                        const mysqlshdk::null_bool &force,

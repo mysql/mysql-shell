@@ -149,6 +149,16 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
@@ -191,6 +201,16 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
@@ -231,6 +251,16 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "option": "groupSeeds",
                     "value": "[[*]]",
                     "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
@@ -312,6 +342,16 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
@@ -354,6 +394,16 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
@@ -394,6 +444,16 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "option": "groupSeeds",
                     "value": "[[*]]",
                     "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",

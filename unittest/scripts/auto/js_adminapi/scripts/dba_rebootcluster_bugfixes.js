@@ -144,6 +144,9 @@ session.runSql("START SLAVE");
 
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
+session.close();
+shell.connect(__sandbox_uri1);
+
 //@ BUG#29305551 - Reboot cluster from complete outage, rejoin fails
 shell.connect(__sandbox_uri1);
 var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});

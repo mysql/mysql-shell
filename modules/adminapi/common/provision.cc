@@ -104,9 +104,14 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
   }
 
   // Set GR IP whitelist (if provided).
-  if (!gr_opts.ip_whitelist.is_null()) {
-    config->set("group_replication_ip_whitelist", gr_opts.ip_whitelist,
-                "ipWhitelist");
+  if (!gr_opts.ip_allowlist.is_null()) {
+    if (instance.get_version() < mysqlshdk::utils::Version(8, 0, 22)) {
+      config->set("group_replication_ip_whitelist", gr_opts.ip_allowlist,
+                  "ipWhitelist");
+    } else {
+      config->set("group_replication_ip_allowlist", gr_opts.ip_allowlist,
+                  "ipAllowlist");
+    }
   }
 
   // Set GR exit state action (if provided).

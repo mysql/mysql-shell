@@ -467,6 +467,16 @@ one server failure.
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
@@ -536,6 +546,11 @@ one server failure.
                     "option": "groupSeeds",
                     "value": "",
                     "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
@@ -612,6 +627,16 @@ one server failure.
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
@@ -636,6 +661,10 @@ one server failure.
 
 //@ canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
 |[::1]:<<<__mysql_sandbox_port1>>> = {"mysqlX": "[::1]:<<<__mysql_sandbox_x_port1>>>", "grLocal": "[::1]:<<<__mysql_sandbox_gr_port1>>>", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port1>>>"}|
+
+//If the target instance is >= 8.0.22, when ipWhitelist is used a deprecation warning must be printed
+//@ IPv6 addresses are supported on localAddress, groupSeeds and ipWhitelist WL#12758 {VER(>=8.0.22)}
+|WARNING: The ipWhitelist option is deprecated in favor of ipAllowlist. ipAllowlist will be set instead.|
 
 //@ canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 |ERROR: Cannot use host '::1' for instance '[::1]:<<<__mysql_sandbox_port1>>>' because it is an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14. Set the MySQL server 'report_host' variable to an IPv4 address or hostname that resolves an IPv4 address.|

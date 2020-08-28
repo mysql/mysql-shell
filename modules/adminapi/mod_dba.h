@@ -209,6 +209,8 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   shcore::Value exec_instance_op(const std::string &function,
                                  const shcore::Argument_list &args,
                                  const std::string &password = "");
+
+  void verify_create_cluster_deprecations(const shcore::Dictionary_t &options);
 };
 }  // namespace dba
 }  // namespace mysqlsh

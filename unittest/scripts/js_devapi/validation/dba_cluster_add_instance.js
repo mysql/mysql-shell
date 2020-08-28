@@ -7,6 +7,9 @@
 //@ create first cluster
 |~WARNING: Option 'memberSslMode' is deprecated|
 
+//@ ipWhitelist deprecation error {VER(>=8.0.22)}
+||Cluster.addInstance: Cannot use the ipWhitelist and ipAllowlist options simultaneously. The ipWhitelist option is deprecated, please use the ipAllowlist option instead. (ArgumentError)
+
 //@ Success adding instance
 |WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.|
 

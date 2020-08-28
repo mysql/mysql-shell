@@ -31,6 +31,7 @@
 #include <utility>
 #include <vector>
 
+#include "adminapi/common/group_replication_options.h"
 #include "modules/adminapi/cluster/add_instance.h"
 #include "modules/adminapi/cluster/check_instance_state.h"
 #include "modules/adminapi/cluster/describe.h"
@@ -953,32 +954,26 @@ void Cluster_impl::add_instance(
 }
 
 void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
-                                   const shcore::Dictionary_t &options,
-                                   bool skip_precondition_check) {
+                                   const Group_replication_options &options,
+                                   bool reboot) {
   // rejoin the Instance to the Cluster
-  if (!skip_precondition_check) check_preconditions("rejoinInstance");
+  if (!reboot) check_preconditions("rejoinInstance");
 
   auto instance_def_ = instance_def;
-
   Group_replication_options gr_options(Group_replication_options::REJOIN);
-  // SSL Mode AUTO by default
-  gr_options.ssl_mode = mysqlsh::dba::kMemberSSLModeAuto;
+
+  if (!reboot) {
+    gr_options = options;
+  } else {
+    gr_options.ssl_mode = mysqlsh::dba::kMemberSSLModeAuto;
+  }
+
   std::string user, password;
   shcore::Value::Array_type_ref errors;
   std::shared_ptr<Instance> instance;
   std::shared_ptr<Instance> seed_instance;
 
   auto console = mysqlsh::current_console();
-
-  // Retrieves the options
-  if (options) {
-    Unpack_options(options).unpack(&gr_options).end();
-
-    if (options->has_key("memberSslMode")) {
-      console->print_warning(k_warning_deprecate_ssl_mode);
-      console->println();
-    }
-  }
 
   // Get instance user information from the cluster session if missing.
   if (!instance_def_.has_user()) {
@@ -1033,7 +1028,7 @@ void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
       throw shcore::Exception::runtime_error(message);
     }
 
-    gr_options.check_option_values(instance->get_version());
+    if (!reboot) gr_options.check_option_values(instance->get_version());
 
     std::string nice_error =
         "The instance '" + instance_def_.uri_endpoint() +

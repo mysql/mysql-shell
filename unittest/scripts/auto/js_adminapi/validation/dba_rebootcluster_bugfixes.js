@@ -69,8 +69,23 @@
                     "variable": "group_replication_group_seeds"
                 },
                 {
-                    "option": "ipWhitelist",
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
                     "value": "<<<ip_white_list80>>>",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": "<<<ip_white_list80>>>",
+?{}
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -111,8 +126,23 @@
                     "variable": "group_replication_group_seeds"
                 },
                 {
-                    "option": "ipWhitelist",
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
                     "value": "<<<ip_white_list80>>>",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": "<<<ip_white_list80>>>",
+?{}
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -183,6 +213,11 @@
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "<<<ip_white_list57>>>",
                     "variable": "group_replication_ip_whitelist"
@@ -223,6 +258,11 @@
                     "option": "groupSeeds",
                     "value": "<<<local_address1>>>",
                     "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
@@ -318,8 +358,23 @@ ONLINE
                     "variable": "group_replication_group_seeds"
                 },
                 {
-                    "option": "ipWhitelist",
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
                     "value": "<<<ip_white_list80>>>",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": "<<<ip_white_list80>>>",
+?{}
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -360,8 +415,23 @@ ONLINE
                     "variable": "group_replication_group_seeds"
                 },
                 {
-                    "option": "ipWhitelist",
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
                     "value": "<<<ip_white_list80>>>",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": "<<<ip_white_list80>>>",
+?{}
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -432,6 +502,11 @@ ONLINE
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "<<<ip_white_list57>>>",
                     "variable": "group_replication_ip_whitelist"
@@ -472,6 +547,11 @@ ONLINE
                     "option": "groupSeeds",
                     "value": "<<<local_address1>>>",
                     "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",

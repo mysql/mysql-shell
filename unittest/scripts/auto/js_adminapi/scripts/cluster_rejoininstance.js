@@ -1,18 +1,8 @@
-// BUG#29305551: ADMINAPI FAILS TO DETECT INSTANCE IS RUNNING ASYNCHRONOUS REPLICATION
-//
-// dba.checkInstance() reports that a target instance which is running the Slave
-// SQL and IO threads is valid to be used in an InnoDB cluster.
-//
-// As a consequence, the AdminAPI fails to detects that an instance has
-// asynchronous replication running and both addInstance() and rejoinInstance()
-// fail with useless/unfriendly errors on this scenario. There's not even
-// information on how to overcome the issue.
-
-//@ BUG#29305551: Initialization
+//@ Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 
-//@<> BUG#29305551: Create cluster
+//@<> Create cluster
 shell.connect(__sandbox_uri1);
 var c = dba.createCluster('test', {gtidSetIsComplete: true});
 
@@ -27,6 +17,16 @@ session.runSql("STOP group_replication");
 session.close();
 shell.connect(__sandbox_uri1);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
+
+// BUG#29305551: ADMINAPI FAILS TO DETECT INSTANCE IS RUNNING ASYNCHRONOUS REPLICATION
+//
+// dba.checkInstance() reports that a target instance which is running the Slave
+// SQL and IO threads is valid to be used in an InnoDB cluster.
+//
+// As a consequence, the AdminAPI fails to detects that an instance has
+// asynchronous replication running and both addInstance() and rejoinInstance()
+// fail with useless/unfriendly errors on this scenario. There's not even
+// information on how to overcome the issue.
 
 //@<> BUG#29305551: Setup asynchronous replication
 // Create Replication user
@@ -44,7 +44,42 @@ session.runSql("START SLAVE");
 //@ rejoinInstance async replication error
 c.rejoinInstance(__sandbox_uri2);
 
-//@ BUG#29305551: Finalization
+// Stop async channel on instance2
+session.runSql("STOP SLAVE");
+
+// Tests for deprecation of ipWhitelist in favor of ipAllowlist
+
+//@<> Verify that ipWhitelist sets the right sysvars depending on the version
+var ip_white_list = "10.10.10.1/15,127.0.0.1," + hostname_ip;
+
+c.rejoinInstance(__sandbox_uri2, {ipWhitelist: ip_white_list});
+
+//@<> Verify that ipWhitelist sets group_replication_ip_allowlist in 8.0.22 {VER(>=8.0.22)}
+EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
+
+//@<> Verify that ipWhitelist sets group_replication_ip_whitelist in versions < 8.0.22 {VER(<8.0.22)}
+EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+
+//@<> Simulate the instance dropping the GR group to rejoin it again
+session.runSql("STOP group_replication");
+session.close();
+shell.connect(__sandbox_uri1);
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
+
+//@<> Verify the new option ipAllowlist sets the right sysvars depending on the version
+ip_white_list = "10.1.1.0/15,127.0.0.1," + hostname_ip;
+
+c.rejoinInstance(__sandbox_uri2, {ipAllowlist:ip_white_list});
+session.close();
+shell.connect(__sandbox_uri2);
+
+//@<> Verify the new option ipAllowlist sets group_replication_ip_allowlist in 8.0.22 {VER(>=8.0.22)}
+EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
+
+//@<> Verify the new option ipAllowlist sets group_replication_ip_whitelist in versions < 8.0.22 {VER(<8.0.22)}
+EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+
+//@ Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
@@ -111,12 +146,17 @@ shell.connect(__sandbox_uri1);
 cluster = dba.getCluster();
 
 //@<> IPv6 addresses are supported on rejoinInstance ipWhitelist WL#12758 {VER(>= 8.0.14)}
-var ip_white_list = "::1, 127.0.0.1";
+var ip_white_list = "::1, 127.0.0.1," + hostname_ip;
 cluster.rejoinInstance(__sandbox_uri2, {ipWhitelist:ip_white_list});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 session.close();
 shell.connect(__sandbox_uri2);
+
+//@<> Confirm that ipWhitelist is set {VER(>= 8.0.14) && VER(<8.0.22)}
 EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_whitelist"));
+
+//@<> Confirm that ipWhitelist is set {VER(>= 8.0.22)}
+EXPECT_EQ(ip_white_list, get_sysvar(session, "group_replication_ip_allowlist"));
 
 //@<> Cleanup IPv6 addresses supported WL#12758 {VER(>= 8.0.14)}
 session.close();

@@ -221,13 +221,6 @@ void Add_instance::validate_local_address_ip_compatibility() const {
  * is used for new instance joining it.
  */
 void Add_instance::resolve_ssl_mode() {
-  // Show deprecation message for memberSslMode option if if applies.
-  if (!m_gr_opts.ssl_mode.is_null()) {
-    auto console = mysqlsh::current_console();
-    console->print_warning(mysqlsh::dba::k_warning_deprecate_ssl_mode);
-    console->println();
-  }
-
   // Set SSL Mode to AUTO by default (not defined).
   if (m_gr_opts.ssl_mode.is_null()) {
     m_gr_opts.ssl_mode = dba::kMemberSSLModeAuto;

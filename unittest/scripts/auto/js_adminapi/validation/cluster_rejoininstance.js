@@ -1,4 +1,4 @@
-//@ BUG#29305551: Initialization
+//@ Initialization
 ||
 
 //@<OUT> rejoinInstance async replication error
@@ -7,7 +7,7 @@ ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to th
 //@<ERR> rejoinInstance async replication error
 Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is running asynchronous (master-slave) replication. (RuntimeError)
 
-//@ BUG#29305551: Finalization
+//@ Finalization
 ||
 
 //@ BUG#29754915: deploy sandboxes.
@@ -75,6 +75,10 @@ Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 //@ BUG#29754915: clean-up.
 ||
+
+// If the target instance is >= 8.0.22, when ipWhitelist is used a deprecation warning must be printed
+//@<> IPv6 addresses are supported on rejoinInstance ipWhitelist WL#12758 {VER(>=8.0.22)}
+|WARNING: The ipWhitelist option is deprecated in favor of ipAllowlist. ipAllowlist will be set instead.|
 
 //@ canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 |ERROR: Cannot use host '::1' for instance '[::1]:<<<__mysql_sandbox_port2>>>' because it is an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14. Set the MySQL server 'report_host' variable to an IPv4 address or hostname that resolves an IPv4 address.|

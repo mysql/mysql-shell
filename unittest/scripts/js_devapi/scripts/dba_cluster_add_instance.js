@@ -12,9 +12,11 @@ var singleSession = session;
 // Regression for BUG#270621122: Deprecate memberSslMode (ensure no warning is showed for createCluster)
 var single = dba.createCluster('single', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
 
+//@ ipWhitelist deprecation error {VER(>=8.0.22)}
+single.addInstance(__sandbox_uri2, {ipWhitelist: "AUTOMATIC", ipAllowlist: "127.0.0.1"});
+
 //@ Success adding instance
 // Regression for BUG#270621122: Deprecate memberSslMode
-testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 single.addInstance(__sandbox_uri2, {memberSslMode: 'AUTO'});
 
 // Waiting for the second added instance to become online

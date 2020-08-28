@@ -1070,7 +1070,6 @@ TEST_F(Dba_common_test, super_read_only_server_off_flag_false) {
 }
 
 TEST(mod_dba_common, validate_ipwhitelist_option) {
-  std::string ip_whitelist;
   using mysqlsh::dba::Group_replication_options;
 
   Group_replication_options options;
@@ -1080,7 +1079,8 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   auto ver_800 = mysqlshdk::utils::Version(8, 0, 0);
 
   // Error if the ipWhitelist is empty.
-  options.ip_whitelist = "";
+  options.ip_allowlist_option_name = "ipWhitelist";
+  options.ip_allowlist = "";
   try {
     options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
@@ -1091,7 +1091,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if the ipWhitelist string is empty (only whitespace).
-  options.ip_whitelist = " ";
+  options.ip_allowlist = " ";
   try {
     options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
@@ -1102,7 +1102,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if CIDR is used but has an invalid value (not in range [1,32])
-  options.ip_whitelist = "192.168.1.1/0";
+  options.ip_allowlist = "192.168.1.1/0";
   try {
     options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
@@ -1115,7 +1115,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if CIDR is used but has an invalid value (not in range [1,32])
-  options.ip_whitelist = "192.168.1.1/33";
+  options.ip_allowlist = "192.168.1.1/33";
   try {
     options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
@@ -1129,7 +1129,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if CIDR is used but has an invalid value (not in range [1,32])
-  options.ip_whitelist = "1/33";
+  options.ip_allowlist = "1/33";
   try {
     options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
@@ -1144,7 +1144,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
 
   // Error if CIDR is used but has an invalid value (not in range [1,32])
   // And a list of values is used
-  options.ip_whitelist = "192.168.1.1/0,192.168.1.1/33";
+  options.ip_allowlist = "192.168.1.1/0,192.168.1.1/33";
   try {
     options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
@@ -1157,7 +1157,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if ipWhitelist is an IPv6 address and not supported by server
-  options.ip_whitelist = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
+  options.ip_allowlist = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
   try {
     options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
@@ -1171,7 +1171,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if ipWhitelist is not a valid IPv4 address (not supported, < 8.0.4)
-  options.ip_whitelist = "256.255.255.255";
+  options.ip_allowlist = "256.255.255.255";
   try {
     options.check_option_values(Version(8, 0, 3));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
@@ -1184,7 +1184,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if ipWhitelist is not a valid IPv4 address
-  options.ip_whitelist = "256.255.255.255/16";
+  options.ip_allowlist = "256.255.255.255/16";
   try {
     options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
@@ -1197,7 +1197,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if hostname is used and server version < 8.0.4
-  options.ip_whitelist = "localhost";
+  options.ip_allowlist = "localhost";
   try {
     options.check_option_values(Version(8, 0, 3));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
@@ -1210,7 +1210,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if hostname with cidr
-  options.ip_whitelist = "localhost/8";
+  options.ip_allowlist = "localhost/8";
   try {
     options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
@@ -1223,7 +1223,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // Error if hostname with cidr
-  options.ip_whitelist = "bogus/8";
+  options.ip_allowlist = "bogus/8";
   try {
     options.check_option_values(Version(8, 0, 4));
     SCOPED_TRACE("Unexpected success calling validate_ip_whitelist_option");
@@ -1236,7 +1236,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
   }
 
   // No error if ipWhitelist is an IPv6 address and server does support it
-  options.ip_whitelist = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
+  options.ip_allowlist = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
   {
     options.check_option_values(Version(8, 0, 14));
     SCOPED_TRACE(
@@ -1245,14 +1245,13 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
     EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 14)));
   }
 
-  options.ip_whitelist = "256.255.255.255";
+  options.ip_allowlist = "256.255.255.255";
   {
     // Error if ipWhitelist is not a valid IPv4 address and version < 8.0.4
     // since it is not a valid IPv4 it assumes it must be an hostname and
     // hostnames are not supported below 8.0.4
     SCOPED_TRACE(
         "Error if ipWhitelist is not a valid IPv4 address and version < 8.0.4");
-    ip_whitelist = "256.255.255.255";
     EXPECT_THROW_LIKE(
         options.check_option_values(Version(8, 0, 0)), shcore::Exception,
         "Invalid value for ipWhitelist '256.255.255.255': hostnames are not "
@@ -1261,7 +1260,7 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
 
   {
     // Error if hostname is used and server version < 8.0.4
-    options.ip_whitelist = "localhost";
+    options.ip_allowlist = "localhost";
     SCOPED_TRACE("Error if hostname is used and server version < 8.0.4");
     EXPECT_THROW_LIKE(
         options.check_option_values(Version(8, 0, 0)), shcore::Exception,
@@ -1273,27 +1272,27 @@ TEST(mod_dba_common, validate_ipwhitelist_option) {
     // No error if hostname is used and server version >= 8.0.4 because
     // we don't do hostname resolution
     SCOPED_TRACE("No error if hostname is used and server version >= 8.0.4");
-    options.ip_whitelist = "fake_hostnanme";
+    options.ip_allowlist = "fake_hostnanme";
     EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
   }
 
   // No error if the ipWhitelist is a valid IPv4 address
-  options.ip_whitelist = "192.168.1.1";
+  options.ip_allowlist = "192.168.1.1";
   EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
 
   // No error if the ipWhitelist is a valid IPv4 address with a valid CIDR value
-  options.ip_whitelist = "192.168.1.1/15";
+  options.ip_allowlist = "192.168.1.1/15";
   EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
 
   // No error if the ipWhitelist consist of several valid IPv4 addresses with a
   // valid CIDR value
   // NOTE: if the server version is > 8.0.4, hostnames are allowed too so we
   // must test it
-  options.ip_whitelist = "192.168.1.1/15,192.169.1.1/1, localhost";
+  options.ip_allowlist = "192.168.1.1/15,192.169.1.1/1, localhost";
   EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 4)));
-  options.ip_whitelist = "192.168.1.1/15,192.169.1.1/1";
+  options.ip_allowlist = "192.168.1.1/15,192.169.1.1/1";
   EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 3)));
-  options.ip_whitelist =
+  options.ip_allowlist =
       "2001:0db8:85a3:0000:0000:8a2e:0370:7334/16,192.168.1.1/15,192.169.1.1/1";
   EXPECT_NO_THROW(options.check_option_values(Version(8, 0, 14)));
 }

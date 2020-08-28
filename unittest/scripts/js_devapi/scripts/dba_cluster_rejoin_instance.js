@@ -62,6 +62,9 @@ testutil.startSandbox(__mysql_sandbox_port2);
 //@<OUT> Cluster status
 cluster.status()
 
+//@ ipWhitelist deprecation error {VER(>=8.0.22)}
+cluster.rejoinInstance(__sandbox_uri2, {ipWhitelist: "AUTOMATIC", ipAllowlist: "127.0.0.1"});
+
 //@<OUT> Rejoin instance 2
 // Regression for BUG#270621122: Deprecate memberSslMode
 cluster.rejoinInstance({DBUser: 'foo', Host: 'localhost', PORT:__mysql_sandbox_port2}, {memberSslMode: 'REQUIRED', password: 'bar'});
