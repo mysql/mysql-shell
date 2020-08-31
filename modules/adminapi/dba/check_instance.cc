@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -88,7 +88,7 @@ void Check_instance::check_running_async_repl() {
   auto console = mysqlsh::current_console();
 
   log_debug(
-      "Checking if instance '%s' is running asynchronous (master-slave) "
+      "Checking if instance '%s' is running asynchronous (source-replica) "
       "replication.",
       m_target_instance->descr().c_str());
 
@@ -96,9 +96,10 @@ void Check_instance::check_running_async_repl() {
     console->print_warning(
         "The instance '" + m_target_instance->descr() +
         "' cannot be added to an InnoDB cluster because it has the "
-        "asynchronous (master-slave) replication configured and running. "
-        "To add to it a cluster please stop the slave threads by executing "
-        "the query: 'STOP SLAVE;'");
+        "asynchronous (source-replica) replication configured and running. "
+        "To add to it a cluster please stop the replica threads by executing "
+        "the query: 'STOP " +
+        mysqlshdk::mysql::get_replica_keyword(*m_target_instance) + ";'.");
   }
 }
 

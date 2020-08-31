@@ -268,10 +268,16 @@ var session3 = mysql.getSession(__sandbox_uri3);
 session3.runSql("STOP SLAVE");
 
 // We must verify if the slave is stopped and the channels reset
-//@<> BUG#30632029: add instance using clone and a secondary as donor
+//@<> BUG#30632029: add instance using clone and a secondary as donor {VER(<8.0.22)}
 var bug_30632029 = [
     "STOP SLAVE FOR CHANNEL ''",
     "RESET SLAVE ALL FOR CHANNEL ''"
+];
+
+//@<> BUG#30632029: add instance using clone and a secondary as donor {VER(>=8.0.22)}
+var bug_30632029 = [
+    "STOP REPLICA FOR CHANNEL ''",
+    "RESET REPLICA ALL FOR CHANNEL ''"
 ];
 
 \option dba.logSql = 2

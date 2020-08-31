@@ -578,7 +578,7 @@ void Add_instance::prepare() {
     }
   }
 
-  // Verify if the instance is running asynchronous (master-slave)
+  // Verify if the instance is running asynchronous (source-replica)
   // replication NOTE: Only verify if this is being called from a
   // addInstance() and not a createCluster() command.
   // TODO(pjesus): remove the 'if (!m_rebooting)' for refactor of reboot
@@ -588,20 +588,21 @@ void Add_instance::prepare() {
     auto console = mysqlsh::current_console();
 
     log_debug(
-        "Checking if instance '%s' is running asynchronous (master-slave) "
+        "Checking if instance '%s' is running asynchronous (source-replica) "
         "replication.",
         m_instance_address.c_str());
 
     if (mysqlshdk::mysql::is_async_replication_running(*m_target_instance)) {
       console->print_error(
           "Cannot add instance '" + m_instance_address +
-          "' to the cluster because it has asynchronous (master-slave) "
-          "replication configured and running. Please stop the slave threads "
-          "by executing the query: 'STOP SLAVE;'");
+          "' to the cluster because it has asynchronous (source-replica) "
+          "replication configured and running. Please stop the replica threads "
+          "by executing the query: 'STOP " +
+          mysqlshdk::mysql::get_replica_keyword(*m_target_instance) + ";'.");
 
       throw shcore::Exception::runtime_error(
           "The instance '" + m_instance_address +
-          "' is running asynchronous (master-slave) replication.");
+          "' is running asynchronous (source-replica) replication.");
     }
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -298,7 +298,7 @@ void Star_global_topology_manager::validate_adopt_cluster(
       } else if (*server->errant_transaction_count > 0) {
         console->print_error(shcore::str_format(
             "A GTID check indicates that the transaction set in %s has %zi "
-            "transactions that do not exist in its master %s.",
+            "transactions that do not exist in its source %s.",
             server->label.c_str(), *server->errant_transaction_count,
             channel->master_ptr->label.c_str()));
         console->print_info(

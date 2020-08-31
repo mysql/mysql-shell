@@ -187,9 +187,11 @@ void leave_cluster(const mysqlsh::dba::Instance &instance) {
   }
 
   // Reset the replication channels used by Group Replication.
-  instance.executef("RESET SLAVE ALL FOR CHANNEL ?",
+  std::string replica_term = mysqlshdk::mysql::get_replica_keyword(instance);
+
+  instance.executef("RESET " + replica_term + " ALL FOR CHANNEL ?",
                     "group_replication_applier");
-  instance.executef("RESET SLAVE ALL FOR CHANNEL ?",
+  instance.executef("RESET " + replica_term + " ALL FOR CHANNEL ?",
                     "group_replication_recovery");
 
   // Disable and persist GR start on boot and reset values for

@@ -1,11 +1,14 @@
 //@ Initialization
 ||
 
-//@<OUT> rejoinInstance async replication error
-ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (master-slave) replication configured and running. Please stop the slave threads by executing the query: 'STOP SLAVE;'
+//@<OUT> rejoinInstance async replication error {VER(<8.0.22)}
+ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replica threads by executing the query: 'STOP SLAVE;'.
+
+//@<OUT> rejoinInstance async replication error {VER(>=8.0.22)}
+ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replica threads by executing the query: 'STOP REPLICA;'.
 
 //@<ERR> rejoinInstance async replication error
-Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is running asynchronous (master-slave) replication. (RuntimeError)
+Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is running asynchronous (source-replica) replication. (RuntimeError)
 
 //@ Finalization
 ||

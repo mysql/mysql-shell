@@ -1106,23 +1106,24 @@ void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
     }
   }
 
-  // Verify if the instance is running asynchronous (master-slave) replication
+  // Verify if the instance is running asynchronous (source-replica) replication
   {
     log_debug(
-        "Checking if instance '%s' is running asynchronous (master-slave) "
+        "Checking if instance '%s' is running asynchronous (source-replica) "
         "replication.",
         instance->descr().c_str());
 
     if (mysqlshdk::mysql::is_async_replication_running(*instance)) {
       console->print_error(
           "Cannot rejoin instance '" + instance->descr() +
-          "' to the cluster because it has asynchronous (master-slave) "
-          "replication configured and running. Please stop the slave threads "
-          "by executing the query: 'STOP SLAVE;'");
+          "' to the cluster because it has asynchronous (source-replica) "
+          "replication configured and running. Please stop the replica threads "
+          "by executing the query: 'STOP " +
+          mysqlshdk::mysql::get_replica_keyword(*instance) + ";'.");
 
       throw shcore::Exception::runtime_error(
           "The instance '" + instance->descr() +
-          "' is running asynchronous (master-slave) replication.");
+          "' is running asynchronous (source-replica) replication.");
     }
   }
 

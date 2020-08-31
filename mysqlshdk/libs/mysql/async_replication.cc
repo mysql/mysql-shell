@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,7 +39,8 @@ void change_master(mysqlshdk::mysql::IInstance *instance,
                    const mysqlshdk::utils::nullable<int> master_retry_count,
                    const mysqlshdk::utils::nullable<int> master_delay) {
   log_info(
-      "Setting up async master for channel '%s' of %s to %s:%i (user %s)",
+      "Setting up async source for channel '%s' of %s to %s:%i (user "
+      "%s)",
       channel_name.c_str(), instance->descr().c_str(), master_host.c_str(),
       master_port,
       (credentials.user.empty() ? "unchanged" : "'" + credentials.user + "'")
@@ -74,7 +75,7 @@ void change_master(mysqlshdk::mysql::IInstance *instance,
 void change_master_host_port(mysqlshdk::mysql::IInstance *instance,
                              const std::string &master_host, int master_port,
                              const std::string &channel_name) {
-  log_info("Changing master address for channel '%s' of %s to %s:%i",
+  log_info("Changing source address for channel '%s' of %s to %s:%i",
            channel_name.c_str(), instance->descr().c_str(), master_host.c_str(),
            master_port);
 
@@ -92,36 +93,46 @@ void change_master_host_port(mysqlshdk::mysql::IInstance *instance,
 
 void reset_slave(mysqlshdk::mysql::IInstance *instance,
                  const std::string &channel_name, bool reset_credentials) {
-  log_debug("Resetting slave%s channel '%s' for %s...",
+  log_debug("Resetting replica%s channel '%s' for %s...",
             reset_credentials ? " ALL" : "", channel_name.c_str(),
             instance->descr().c_str());
-  if (reset_credentials)
-    instance->executef("RESET SLAVE ALL FOR CHANNEL ?", channel_name);
-  else
-    instance->executef("RESET SLAVE FOR CHANNEL ?", channel_name);
+  std::string replica_term = mysqlshdk::mysql::get_replica_keyword(*instance);
+
+  if (reset_credentials) {
+    instance->executef("RESET " + replica_term + " ALL FOR CHANNEL ?",
+                       channel_name);
+  } else {
+    instance->executef("RESET " + replica_term + " FOR CHANNEL ?",
+                       channel_name);
+  }
 }
 
 void start_replication(mysqlshdk::mysql::IInstance *instance,
                        const std::string &channel_name) {
-  log_debug("Starting slave channel %s for %s...", channel_name.c_str(),
+  log_debug("Starting replica channel %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  instance->executef("START SLAVE FOR CHANNEL ?", channel_name);
+  std::string replica_term = mysqlshdk::mysql::get_replica_keyword(*instance);
+
+  instance->executef("START " + replica_term + " FOR CHANNEL ?", channel_name);
 }
 
 void stop_replication(mysqlshdk::mysql::IInstance *instance,
                       const std::string &channel_name) {
-  log_debug("Stopping slave channel %s for %s...", channel_name.c_str(),
+  log_debug("Stopping replica channel %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  instance->executef("STOP SLAVE FOR CHANNEL ?", channel_name);
+  std::string replica_term = mysqlshdk::mysql::get_replica_keyword(*instance);
+
+  instance->executef("STOP " + replica_term + " FOR CHANNEL ?", channel_name);
 }
 
 bool stop_replication_safe(mysqlshdk::mysql::IInstance *instance,
                            const std::string &channel_name, int timeout_sec) {
-  log_debug("Stopping slave channel %s for %s...", channel_name.c_str(),
+  log_debug("Stopping replica channel %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
+  std::string replica_term = mysqlshdk::mysql::get_replica_keyword(*instance);
 
   while (timeout_sec-- >= 0) {
-    instance->executef("STOP SLAVE FOR CHANNEL ?", channel_name);
+    instance->executef("STOP " + replica_term + " FOR CHANNEL ?", channel_name);
 
     auto n = instance->queryf_one_string(
         1, "0", "SHOW STATUS LIKE 'Slave_open_temp_tables'");
@@ -133,7 +144,8 @@ bool stop_replication_safe(mysqlshdk::mysql::IInstance *instance,
         "use?)",
         n.c_str(), instance->descr().c_str());
 
-    instance->executef("START SLAVE FOR CHANNEL ?", channel_name);
+    instance->executef("START " + replica_term + " FOR CHANNEL ?",
+                       channel_name);
 
     shcore::sleep_ms(1000);
   }
@@ -143,30 +155,42 @@ bool stop_replication_safe(mysqlshdk::mysql::IInstance *instance,
 
 void start_replication_receiver(mysqlshdk::mysql::IInstance *instance,
                                 const std::string &channel_name) {
-  log_debug("Starting slave io_thread %s for %s...", channel_name.c_str(),
+  log_debug("Starting replica io_thread %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  instance->executef("START SLAVE IO_THREAD FOR CHANNEL ?", channel_name);
+  instance->executef("START " +
+                         mysqlshdk::mysql::get_replica_keyword(*instance) +
+                         " IO_THREAD FOR CHANNEL ?",
+                     channel_name);
 }
 
 void stop_replication_receiver(mysqlshdk::mysql::IInstance *instance,
                                const std::string &channel_name) {
-  log_debug("Stopping slave io_thread %s for %s...", channel_name.c_str(),
+  log_debug("Stopping replica io_thread %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  instance->executef("STOP SLAVE IO_THREAD FOR CHANNEL ?", channel_name);
+  instance->executef("STOP " +
+                         mysqlshdk::mysql::get_replica_keyword(*instance) +
+                         " IO_THREAD FOR CHANNEL ?",
+                     channel_name);
 }
 
 void start_replication_applier(mysqlshdk::mysql::IInstance *instance,
                                const std::string &channel_name) {
-  log_debug("Starting slave sql_thread %s for %s...", channel_name.c_str(),
+  log_debug("Starting replica sql_thread %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  instance->executef("START SLAVE SQL_THREAD FOR CHANNEL ?", channel_name);
+  instance->executef("START " +
+                         mysqlshdk::mysql::get_replica_keyword(*instance) +
+                         " SQL_THREAD FOR CHANNEL ?",
+                     channel_name);
 }
 
 void stop_replication_applier(mysqlshdk::mysql::IInstance *instance,
                               const std::string &channel_name) {
-  log_debug("Stopping slave sql_thread %s for %s...", channel_name.c_str(),
+  log_debug("Stopping replica sql_thread %s for %s...", channel_name.c_str(),
             instance->descr().c_str());
-  instance->executef("STOP SLAVE SQL_THREAD FOR CHANNEL ?", channel_name);
+  instance->executef("STOP " +
+                         mysqlshdk::mysql::get_replica_keyword(*instance) +
+                         " SQL_THREAD FOR CHANNEL ?",
+                     channel_name);
 }
 
 }  // namespace mysql
