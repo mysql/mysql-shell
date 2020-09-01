@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -70,7 +70,7 @@ struct Group_replication_options {
 
   mysqlshdk::utils::nullable<std::string> group_name;
   mysqlshdk::utils::nullable<std::string> ssl_mode;
-  mysqlshdk::utils::nullable<std::string> ip_whitelist;
+  mysqlshdk::utils::nullable<std::string> ip_allowlist;
   mysqlshdk::utils::nullable<std::string> local_address;
   mysqlshdk::utils::nullable<std::string> group_seeds;
   mysqlshdk::utils::nullable<std::string> exit_state_action;
@@ -78,6 +78,8 @@ struct Group_replication_options {
   mysqlshdk::utils::nullable<int64_t> member_weight;
   mysqlshdk::utils::nullable<int64_t> expel_timeout;
   mysqlshdk::utils::nullable<int64_t> auto_rejoin_tries;
+
+  std::string ip_allowlist_option_name;
 
  private:
   void do_unpack(shcore::Option_unpacker *unpacker);

@@ -285,6 +285,13 @@ REGISTER_HELP(
     "@li autoRejoinTries: integer value to define the number of times an "
     "instance will attempt to rejoin the cluster after being expelled.");
 
+REGISTER_HELP(CLUSTER_OPT_IP_WHITELIST,
+              "@li ipWhitelist: The list of hosts allowed to connect to the "
+              "instance for group replication. Deprecated.");
+REGISTER_HELP(CLUSTER_OPT_IP_ALLOWLIST,
+              "@li ipAllowlist: The list of hosts allowed to connect to the "
+              "instance for group replication.");
+
 REGISTER_HELP(
     OPT_INTERACTIVE,
     "@li interactive: boolean value used to disable/enable the wizards in the "
@@ -413,6 +420,13 @@ the expelled node back to the group. The autoRejoinTries option accepts
 positive integer values in the range [0, 2016].
 
 The default value is 0.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_IP_ALLOWLIST_EXTRA, R"*(
+The ipAllowlist format is a comma separated list of IP addresses or subnet CIDR
+notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
+AUTOMATIC, allowing addresses from the instance private network to be
+automatically set for the allowlist.
 )*");
 
 // TODO create a dedicated topic for InnoDB clusters and replicasets,
@@ -938,6 +952,64 @@ std::shared_ptr<Cluster> Dba::get_cluster(
   return std::make_shared<mysqlsh::dba::Cluster>(cluster);
 }
 
+void Dba::verify_create_cluster_deprecations(
+    const shcore::Dictionary_t &options) {
+  auto console = mysqlsh::current_console();
+
+  // Verify the deprecation of failoverConsistency
+  if (options->has_key(kFailoverConsistency)) {
+    if (options->has_key(kConsistency)) {
+      throw shcore::Exception::argument_error(
+          "Cannot use the failoverConsistency and consistency options "
+          "simultaneously. The failoverConsistency option is deprecated, "
+          "please use the consistency option instead.");
+    } else {
+      console->print_warning(
+          "The failoverConsistency option is deprecated. "
+          "Please use the consistency option instead.");
+      console->print_info();
+    }
+  }
+
+  // Verify deprecation of multiMaster
+  if (options->has_key("multiMaster")) {
+    if (options->has_key("multiPrimary")) {
+      throw shcore::Exception::argument_error(
+          "Cannot use the multiMaster and multiPrimary options "
+          "simultaneously. The multiMaster option is deprecated, please use "
+          "the multiPrimary option instead.");
+    } else {
+      console->print_warning(
+          "The multiMaster option is deprecated. "
+          "Please use the multiPrimary option instead.");
+      console->print_info();
+    }
+  }
+
+  // Verify deprecation of clearReadOnly
+  if (options->has_key("clearReadOnly")) {
+    console->print_warning(
+        "The clearReadOnly option is deprecated. The super_read_only mode is "
+        "now automatically cleared.");
+    console->print_info();
+  }
+
+  // Verify deprecation of ipWhitelist
+  if (options->has_key(kIpWhitelist)) {
+    if (options->has_key(kIpAllowlist)) {
+      throw shcore::Exception::argument_error(
+          "Cannot use the ipWhitelist and ipAllowlist options "
+          "simultaneously. The ipWhitelist option is deprecated, "
+          "please use the ipAllowlist option instead.");
+    } else {
+      console->print_warning(
+          "The ipWhitelist option is deprecated in favor of ipAllowlist. "
+          "ipAllowlist will be set instead.");
+      console->print_info();
+    }
+  }
+}
+
 REGISTER_HELP_FUNCTION(createCluster, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_CREATECLUSTER, R"*(
 Creates a MySQL InnoDB cluster.
@@ -962,8 +1034,8 @@ ${OPT_INTERACTIVE}
 @li adoptFromGR: boolean value used to create the InnoDB cluster based on
 existing replication group.
 @li memberSslMode: SSL mode used to configure the members of the cluster.
-@li ipWhitelist: The list of hosts allowed to connect to the instance for group
-replication.
+${CLUSTER_OPT_IP_WHITELIST}
+${CLUSTER_OPT_IP_ALLOWLIST}
 @li groupName: string value with the Group Replication group name UUID to be
 used instead of the automatically generated one.
 @li localAddress: string value with the Group Replication local address to be
@@ -1031,10 +1103,7 @@ instance, otherwise disabled
 
 If memberSslMode is not specified AUTO will be used by default.
 
-The ipWhitelist format is a comma separated list of IP addresses or subnet CIDR
-notation, for example: 192.168.1.0/24,10.0.0.1. By default the value is set to
-AUTOMATIC, allowing addresses from the instance private network to be
-automatically set for the whitelist.
+${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
 
 The groupName, localAddress, and groupSeeds are advanced options and their
 usage is discouraged since incorrect values can lead to Group Replication
@@ -1080,6 +1149,8 @@ use the multiPrimary option instead.
 @attention The failoverConsistency option will be removed in a future release.
 Please use the consistency option instead.
 
+@attention The ipWhitelist option will be removed in a future release.
+Please use the ipAllowlist option instead.
 
 @throw MetadataError in the following scenarios:
 @li If the Metadata is inaccessible.
@@ -1140,47 +1211,14 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
         .optional("interactive", &interactive)
         .end();
 
-    // Verify the deprecation of failoverConsistency
-    if (options->has_key(kFailoverConsistency)) {
-      if (options->has_key("consistency")) {
-        throw shcore::Exception::argument_error(
-            "Cannot use the failoverConsistency and consistency options "
-            "simultaneously. The failoverConsistency option is deprecated, "
-            "please use the consistency option instead.");
-      } else {
-        auto console = mysqlsh::current_console();
-        console->print_warning(
-            "The failoverConsistency option is deprecated. "
-            "Please use the consistency option instead.");
-        console->println();
-      }
-    }
+    // Verify deprecated options
+    verify_create_cluster_deprecations(options);
 
-    // Verify deprecation of multiMaster
-    if (options->has_key("multiMaster")) {
-      if (options->has_key("multiPrimary")) {
-        throw shcore::Exception::argument_error(
-            "Cannot use the multiMaster and multiPrimary options "
-            "simultaneously. The multiMaster option is deprecated, please use "
-            "the multiPrimary option instead.");
-      } else {
-        std::string warn_msg =
-            "The multiMaster option is deprecated. "
-            "Please use the multiPrimary option instead.";
-        auto console = mysqlsh::current_console();
-        console->print_warning(warn_msg);
-        console->println();
-      }
-    }
-
-    // Verify deprecation of clearReadOnly
-    if (options->has_key("clearReadOnly")) {
-      std::string warn_msg =
-          "The clearReadOnly option is deprecated. The super_read_only mode is "
-          "now automatically cleared.";
-      auto console = mysqlsh::current_console();
-      console->print_warning(warn_msg);
-      console->println();
+    // Set the right value for ip_allowlist_option_name
+    if (options->has_key(kIpWhitelist)) {
+      gr_options.ip_allowlist_option_name = kIpWhitelist;
+    } else {
+      gr_options.ip_allowlist_option_name = kIpAllowlist;
     }
   }
 
@@ -3333,6 +3371,12 @@ void Dba::validate_instances_gtid_reboot_cluster(
     const mysqlshdk::mysql::IInstance &target_instance) {
   auto console = current_console();
 
+  // list of replication channel names that must be considered when comparing
+  // GTID sets. With ClusterSets, the async channel for secondaries must be
+  // added here.
+  static const std::vector<std::string> k_known_channel_names = {
+      "group_replication_applier"};
+
   // get the current session information
   auto current_session_options = target_instance.get_connection_options();
 
@@ -3345,8 +3389,8 @@ void Dba::validate_instances_gtid_reboot_cluster(
   {
     Instance_gtid_info info;
     info.server = target_instance.get_canonical_address();
-    info.gtid_executed =
-        mysqlshdk::mysql::get_executed_gtid_set(target_instance);
+    info.gtid_executed = mysqlshdk::mysql::get_total_gtid_set(
+        target_instance, k_known_channel_names);
     instance_gtids.push_back(info);
   }
 
@@ -3375,7 +3419,8 @@ void Dba::validate_instances_gtid_reboot_cluster(
 
     Instance_gtid_info info;
     info.server = inst.endpoint;
-    info.gtid_executed = mysqlshdk::mysql::get_executed_gtid_set(*instance);
+    info.gtid_executed =
+        mysqlshdk::mysql::get_total_gtid_set(*instance, k_known_channel_names);
     instance_gtids.push_back(info);
   }
 
@@ -3401,7 +3446,8 @@ void Dba::validate_instances_gtid_reboot_cluster(
                      return c.server == instance_gtids[0].server;
                    }) == primary_candidates.end()) {
     throw shcore::Exception::runtime_error(
-        "The active session instance isn't the most updated "
+        "The active session instance (" + target_instance.descr() +
+        ") isn't the most updated "
         "in comparison with the ONLINE instances of the Cluster's "
         "metadata. Please use the most up to date instance: '" +
         primary_candidates.front().server + "'.");

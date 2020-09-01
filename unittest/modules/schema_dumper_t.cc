@@ -702,6 +702,13 @@ TEST_F(Schema_dumper_test, dump_grants) {
 
 TEST_F(Schema_dumper_test, dump_filtered_grants) {
   session->execute(
+      "CREATE USER IF NOT EXISTS 'admin'@'localhost' IDENTIFIED BY 'pwd';");
+  session->execute("GRANT ALL ON *.* TO 'admin'@'localhost';");
+  session->execute(
+      "CREATE USER IF NOT EXISTS 'admin2'@'localhost' IDENTIFIED BY 'pwd';");
+  session->execute(
+      "GRANT ALL ON *.* TO 'admin2'@'localhost' WITH GRANT OPTION;");
+  session->execute(
       "CREATE USER IF NOT EXISTS 'superfirst'@'localhost' IDENTIFIED BY "
       "'pwd';");
   session->execute(
@@ -768,6 +775,27 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   file->flush();
   file->close();
   auto out = testutil->cat_file(file_path);
+
+  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 0)) {
+    EXPECT_NE(
+        std::string::npos,
+        out.find("GRANT "
+                 "SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,PROCESS,REFERENCES,"
+                 "INDEX,ALTER,SHOW DATABASES,CREATE TEMPORARY TABLES,LOCK "
+                 "TABLES,EXECUTE,REPLICATION SLAVE,REPLICATION CLIENT,CREATE "
+                 "VIEW,SHOW VIEW,CREATE ROUTINE,ALTER ROUTINE,CREATE "
+                 "USER,EVENT,TRIGGER ON *.* TO 'admin'@'localhost';"));
+    EXPECT_NE(
+        std::string::npos,
+        out.find(
+            "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,PROCESS,REFERENCES,"
+            "INDEX,ALTER,SHOW DATABASES,CREATE TEMPORARY TABLES,LOCK "
+            "TABLES,EXECUTE,REPLICATION SLAVE,REPLICATION CLIENT,CREATE "
+            "VIEW,SHOW VIEW,CREATE ROUTINE,ALTER ROUTINE,CREATE "
+            "USER,EVENT,TRIGGER ON *.* TO 'admin2'@'localhost' WITH GRANT "
+            "OPTION;"));
+    EXPECT_EQ(std::string::npos, out.find("ALL PRIVILEGES"));
+  }
 
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
     EXPECT_NE(

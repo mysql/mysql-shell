@@ -40,7 +40,6 @@ session1 = mysql.getSession(__sandbox_uri1);
 session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
 
-
 //@<> WL#13536 create cluster
 shell.connect(__sandbox_uri1);
 var c = dba.createCluster("Cluster", {gtidSetIsComplete: true});
@@ -64,15 +63,32 @@ c.setupAdminAccount("@");
 c.setupAdminAccount(" @%");
 c.setupAdminAccount("@%");
 
+// BUG#31491092 reports that when the validate_password plugin is installed, setupAdminAccount() fails
+// with an error indicating the password does not match the current policy requirements. This happened
+// because the function was creating the account with 2 separate transactions: one to create the user
+// without any password, and another to change the password of the created user
+
+//@<> Install the validate_password plugin to verify the fix for BUG#31491092
+ensure_plugin_enabled("validate_password", session1, "validate_password");
+// configure the validate_password plugin for the lowest policy
+session1.runSql('SET GLOBAL validate_password_policy=\'LOW\'');
+session1.runSql('SET GLOBAL validate_password_length=1');
+
+//@<> With validate_password plugin enabled, an error must be thrown when the password does not satisfy the requirements
+EXPECT_THROWS_TYPE(function(){c.setupAdminAccount("%", {password: "foo"})}, "Cluster.setupAdminAccount: " + __endpoint1 + ": Your password does not satisfy the current policy requirements", "RuntimeError");
+
 //@<> WL#13536 TSFR3_2 Host if not specified defaults to %
 // account didnt't exist on the cluster
 EXPECT_EQ(0, count_users_like(session1, "default_hostname", "%"));
 EXPECT_EQ(0, count_users_like(session2, "default_hostname", "%"));
-c.setupAdminAccount("default_hostname", {password: "foo"});
+c.setupAdminAccount("default_hostname", {password: "fooo"});
 EXPECT_EQ(1, count_users_like(session1, "default_hostname", "%"));
 // account was replicated across the cluster
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 EXPECT_EQ(1, count_users_like(session2, "default_hostname", "%"));
+
+// Uninstall the validate_password plugin: negative and positive tests done
+ensure_plugin_disabled("validate_password", session1, "validate_password");
 
 //@<OUT> WL#13536 TSFR3_2 check global privileges of created user
 session1.runSql("SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE = \"'default_hostname'@'%'\" ORDER BY PRIVILEGE_TYPE");
@@ -86,17 +102,17 @@ session.runSql("SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME FR
 //@<> WL#13536 TSFR3_3 Host specified works as expected
 EXPECT_EQ(0, count_users_like(session1, "specific_host", "198.51.100.0/255.255.255.0"));
 EXPECT_EQ(0, count_users_like(session2, "specific_host", "198.51.100.0/255.255.255.0"));
-c.setupAdminAccount("specific_host@198.51.100.0/255.255.255.0", {password: "foo"});
+c.setupAdminAccount("specific_host@198.51.100.0/255.255.255.0", {password: "fooo"});
 EXPECT_EQ(1, count_users_like(session1, "specific_host", "198.51.100.0/255.255.255.0"));
 // account was replicated across the cluster
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 EXPECT_EQ(1, count_users_like(session2, "specific_host", "198.51.100.0/255.255.255.0"));
 
 //@ WL#13536 TSFR3_4 An error is thrown if user exists but update option is false
-c.setupAdminAccount("specific_host@198.51.100.0/255.255.255.0", {password: "foo", update:false});
+c.setupAdminAccount("specific_host@198.51.100.0/255.255.255.0", {password: "fooo", update:false});
 
 //@ WL#13536 TSFR3_4 An error is thrown if user exists but update option is not specified
-c.setupAdminAccount("specific_host@198.51.100.0/255.255.255.0", {password: "foo"});
+c.setupAdminAccount("specific_host@198.51.100.0/255.255.255.0", {password: "fooo"});
 
 //@<> WL#13536 TSFR3_5 Operation updates existing account privileges if update option is used
 var admin_schema_privs_num = count_schema_privs(session1, "specific_host", "198.51.100.0/255.255.255.0");
@@ -158,7 +174,7 @@ shell.connect(__sandbox_uri1);
 
 //@<> WL#13536 TSFR5_1 Validate upon creating a new account with dryRun the list of privileges is shown but the account is not created
 EXPECT_EQ(0, count_users_like(session1, "dryruntest", "%"));
-c.setupAdminAccount("dryruntest", {password: "foo", dryRun:true});
+c.setupAdminAccount("dryruntest", {password: "fooo", dryRun:true});
 // account not created
 EXPECT_EQ(0, count_users_like(session1, "dryruntest", "%"));
 
@@ -167,7 +183,7 @@ c.setupAdminAccount("dryruntest", {update: true, dryRun:true});
 
 //@<> WL#13536 TSFR5_3 Validate upon updating an existing account with dryRun the list of privileges is shown but none is restored
 // create account
-c.setupAdminAccount("dryruntest", {password: "foo"});
+c.setupAdminAccount("dryruntest", {password: "fooo"});
 var all_schema_privs_num = count_schema_privs(session1, "dryruntest", "%");
 session1.runSql("REVOKE EXECUTE on mysql_innodb_cluster_metadata.* FROM 'dryruntest'@'%'");
 // 1 schema privilege was revoked
@@ -178,7 +194,7 @@ c.setupAdminAccount("dryruntest", {update: true, dryRun:true});
 EXPECT_EQ(all_schema_privs_num - 1 , count_schema_privs(session1, "dryruntest", "%"));
 
 //@ WL#13536 TSFR5_4 Validate that upgrading an existing account fails if upgrade is false even with dryRun enabled
-c.setupAdminAccount("dryruntest", {password: "foo", dryRun:true});
+c.setupAdminAccount("dryruntest", {password: "fooo", dryRun:true});
 
 //@<> WL#13536 TSFR6_3 Validate password is asked for creation of a new account if interactive mode enabled
 testutil.expectPassword("Password for new account: ", "1111");

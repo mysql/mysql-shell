@@ -64,6 +64,16 @@
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
@@ -106,6 +116,16 @@
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
@@ -146,6 +166,16 @@
                     "option": "groupSeeds",
                     "value": "<<<__cfg_group_seeds3>>>",
                     "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
@@ -221,6 +251,11 @@
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
@@ -263,6 +298,11 @@
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
                     "variable": "group_replication_ip_whitelist"
@@ -303,6 +343,11 @@
                     "option": "groupSeeds",
                     "value": "<<<__cfg_group_seeds3>>>",
                     "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
@@ -360,6 +405,56 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "EVENTUAL",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "READ_ONLY",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "<<<__default_gr_expel_timeout>>>",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "<<<__cfg_group_seeds1>>>",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "<<<__cfg_local_address1>>>",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "50",
+                    "variable": "group_replication_member_weight"
+                },
+                {
                     "value": "1",
                     "variable": "auto_increment_increment"
                 },
@@ -380,11 +475,6 @@
                 {
                     "value": "7",
                     "variable": "group_replication_auto_increment_increment"
-                },
-                {
-                    "option": "autoRejoinTries",
-                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
-                    "variable": "group_replication_autorejoin_tries"
                 },
                 {
                     "value": "OFF",
@@ -413,18 +503,8 @@
                     "variable": "group_replication_compression_threshold"
                 },
                 {
-                    "option": "consistency",
-                    "value": "EVENTUAL",
-                    "variable": "group_replication_consistency"
-                },
-                {
                     "value": "OFF",
                     "variable": "group_replication_enforce_update_everywhere_checks"
-                },
-                {
-                    "option": "exitStateAction",
-                    "value": "READ_ONLY",
-                    "variable": "group_replication_exit_state_action"
                 },
                 {
                     "value": "25000",
@@ -475,39 +555,8 @@
                     "variable": "group_replication_group_name"
                 },
                 {
-                    "option": "groupSeeds",
-                    "value": "<<<__cfg_group_seeds1>>>",
-                    "variable": "group_replication_group_seeds"
-                },
-                {
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
-                },
-?{VER(>=8.0.22)}
-                {
-                    "value": "AUTOMATIC",
-                    "variable": "group_replication_ip_allowlist"
-                },
-?{}
-                {
-                    "option": "ipWhitelist",
-                    "value": "AUTOMATIC",
-                    "variable": "group_replication_ip_whitelist"
-                },
-                {
-                    "option": "localAddress",
-                    "value": "<<<__cfg_local_address1>>>",
-                    "variable": "group_replication_local_address"
-                },
-                {
-                    "option": "expelTimeout",
-                    "value": "<<<__default_gr_expel_timeout>>>",
-                    "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "memberWeight",
-                    "value": "50",
-                    "variable": "group_replication_member_weight"
                 },
                 {
                     "value": "1073741824",
@@ -624,6 +673,56 @@
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "EVENTUAL",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "ABORT_SERVER",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "<<<__default_gr_expel_timeout>>>",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "<<<__cfg_group_seeds2>>>",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "<<<__cfg_local_address2>>>",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "75",
+                    "variable": "group_replication_member_weight"
+                },
+                {
                     "value": "1",
                     "variable": "auto_increment_increment"
                 },
@@ -644,11 +743,6 @@
                 {
                     "value": "7",
                     "variable": "group_replication_auto_increment_increment"
-                },
-                {
-                    "option": "autoRejoinTries",
-                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
-                    "variable": "group_replication_autorejoin_tries"
                 },
                 {
                     "value": "OFF",
@@ -677,18 +771,8 @@
                     "variable": "group_replication_compression_threshold"
                 },
                 {
-                    "option": "consistency",
-                    "value": "EVENTUAL",
-                    "variable": "group_replication_consistency"
-                },
-                {
                     "value": "OFF",
                     "variable": "group_replication_enforce_update_everywhere_checks"
-                },
-                {
-                    "option": "exitStateAction",
-                    "value": "ABORT_SERVER",
-                    "variable": "group_replication_exit_state_action"
                 },
                 {
                     "value": "25000",
@@ -739,39 +823,8 @@
                     "variable": "group_replication_group_name"
                 },
                 {
-                    "option": "groupSeeds",
-                    "value": "<<<__cfg_group_seeds2>>>",
-                    "variable": "group_replication_group_seeds"
-                },
-                {
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
-                },
-?{VER(>=8.0.22)}
-                {
-                    "value": "AUTOMATIC",
-                    "variable": "group_replication_ip_allowlist"
-                },
-?{}
-                {
-                    "option": "ipWhitelist",
-                    "value": "AUTOMATIC",
-                    "variable": "group_replication_ip_whitelist"
-                },
-                {
-                    "option": "localAddress",
-                    "value": "<<<__cfg_local_address2>>>",
-                    "variable": "group_replication_local_address"
-                },
-                {
-                    "option": "expelTimeout",
-                    "value": "<<<__default_gr_expel_timeout>>>",
-                    "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "memberWeight",
-                    "value": "75",
-                    "variable": "group_replication_member_weight"
                 },
                 {
                     "value": "1073741824",
@@ -888,6 +941,56 @@
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
                 {
+                    "option": "autoRejoinTries",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "EVENTUAL",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "READ_ONLY",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "<<<__default_gr_expel_timeout>>>",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "<<<__cfg_group_seeds3>>>",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "<<<__cfg_local_address3>>>",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "25",
+                    "variable": "group_replication_member_weight"
+                },
+                {
                     "value": "1",
                     "variable": "auto_increment_increment"
                 },
@@ -908,11 +1011,6 @@
                 {
                     "value": "7",
                     "variable": "group_replication_auto_increment_increment"
-                },
-                {
-                    "option": "autoRejoinTries",
-                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
-                    "variable": "group_replication_autorejoin_tries"
                 },
                 {
                     "value": "OFF",
@@ -941,18 +1039,8 @@
                     "variable": "group_replication_compression_threshold"
                 },
                 {
-                    "option": "consistency",
-                    "value": "EVENTUAL",
-                    "variable": "group_replication_consistency"
-                },
-                {
                     "value": "OFF",
                     "variable": "group_replication_enforce_update_everywhere_checks"
-                },
-                {
-                    "option": "exitStateAction",
-                    "value": "READ_ONLY",
-                    "variable": "group_replication_exit_state_action"
                 },
                 {
                     "value": "25000",
@@ -1003,39 +1091,8 @@
                     "variable": "group_replication_group_name"
                 },
                 {
-                    "option": "groupSeeds",
-                    "value": "<<<__cfg_group_seeds3>>>",
-                    "variable": "group_replication_group_seeds"
-                },
-                {
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
-                },
-?{VER(>=8.0.22)}
-                {
-                    "value": "AUTOMATIC",
-                    "variable": "group_replication_ip_allowlist"
-                },
-?{}
-                {
-                    "option": "ipWhitelist",
-                    "value": "AUTOMATIC",
-                    "variable": "group_replication_ip_whitelist"
-                },
-                {
-                    "option": "localAddress",
-                    "value": "<<<__cfg_local_address3>>>",
-                    "variable": "group_replication_local_address"
-                },
-                {
-                    "option": "expelTimeout",
-                    "value": "<<<__default_gr_expel_timeout>>>",
-                    "variable": "group_replication_member_expel_timeout"
-                },
-                {
-                    "option": "memberWeight",
-                    "value": "25",
-                    "variable": "group_replication_member_weight"
                 },
                 {
                     "value": "1073741824",
@@ -1183,40 +1240,14 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
                 {
-                    "value": "1",
-                    "variable": "auto_increment_increment"
+                    "option": "autoRejoinTries",
+                    "value": null,
+                    "variable": "group_replication_autorejoin_tries"
                 },
                 {
-                    "value": "2",
-                    "variable": "auto_increment_offset"
-                },
-                {
-                    "value": "OFF",
-                    "variable": "group_replication_allow_local_disjoint_gtids_join"
-                },
-                {
-                    "value": "OFF",
-                    "variable": "group_replication_allow_local_lower_version_join"
-                },
-                {
-                    "value": "7",
-                    "variable": "group_replication_auto_increment_increment"
-                },
-                {
-                    "value": "OFF",
-                    "variable": "group_replication_bootstrap_group"
-                },
-                {
-                    "value": "31536000",
-                    "variable": "group_replication_components_stop_timeout"
-                },
-                {
-                    "value": "1000000",
-                    "variable": "group_replication_compression_threshold"
-                },
-                {
-                    "value": "OFF",
-                    "variable": "group_replication_enforce_update_everywhere_checks"
+                    "option": "consistency",
+                    "value": null,
+                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "exitStateAction",
@@ -1224,24 +1255,9 @@
                     "variable": "group_replication_exit_state_action"
                 },
                 {
-                    "value": "25000",
-                    "variable": "group_replication_flow_control_applier_threshold"
-                },
-                {
-                    "value": "25000",
-                    "variable": "group_replication_flow_control_certifier_threshold"
-                },
-                {
-                    "value": "QUOTA",
-                    "variable": "group_replication_flow_control_mode"
-                },
-                {
-                    "value": "",
-                    "variable": "group_replication_force_members"
-                },
-                {
-                    "value": "bbbbbbbb-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-                    "variable": "group_replication_group_name"
+                    "option": "expelTimeout",
+                    "value": null,
+                    "variable": "group_replication_member_expel_timeout"
                 },
                 {
                     "option": "groupSeeds",
@@ -1249,15 +1265,10 @@
                     "variable": "group_replication_group_seeds"
                 },
                 {
-                    "value": "1000000",
-                    "variable": "group_replication_gtid_assignment_block_size"
-                },
-?{VER(>=8.0.22)}
-                {
-                    "value": "AUTOMATIC",
+                    "option": "ipAllowlist",
+                    "value": null,
                     "variable": "group_replication_ip_allowlist"
                 },
-?{}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -1274,6 +1285,66 @@
                     "variable": "group_replication_member_weight"
                 },
                 {
+                    "value": "1",
+                    "variable": "auto_increment_increment"
+                },
+                {
+                    "value": "2",
+                    "variable": "auto_increment_offset"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_allow_local_disjoint_gtids_join"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_allow_local_lower_version_join"
+                },
+                {
+                    "value": "7",
+                    "variable": "group_replication_auto_increment_increment"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_bootstrap_group"
+                },
+                {
+                    "value": "31536000",
+                    "variable": "group_replication_components_stop_timeout"
+                },
+                {
+                    "value": "1000000",
+                    "variable": "group_replication_compression_threshold"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_enforce_update_everywhere_checks"
+                },
+                {
+                    "value": "25000",
+                    "variable": "group_replication_flow_control_applier_threshold"
+                },
+                {
+                    "value": "25000",
+                    "variable": "group_replication_flow_control_certifier_threshold"
+                },
+                {
+                    "value": "QUOTA",
+                    "variable": "group_replication_flow_control_mode"
+                },
+                {
+                    "value": "",
+                    "variable": "group_replication_force_members"
+                },
+                {
+                    "value": "bbbbbbbb-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                    "variable": "group_replication_group_name"
+                },
+                {
+                    "value": "1000000",
+                    "variable": "group_replication_gtid_assignment_block_size"
+                },
+                {
                     "value": "0",
                     "variable": "group_replication_poll_spin_loops"
                 },
@@ -1337,12 +1408,6 @@
                     "value": "ON",
                     "variable": "group_replication_start_on_boot"
                 },
-?{VER(>=8.0.21)}
-                {
-                    "value": "MYSQL_MAIN",
-                    "variable": "group_replication_tls_source"
-                },
-?{}
                 {
                     "value": "0",
                     "variable": "group_replication_transaction_size_limit"
@@ -1354,40 +1419,14 @@
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
                 {
-                    "value": "1",
-                    "variable": "auto_increment_increment"
+                    "option": "autoRejoinTries",
+                    "value": null,
+                    "variable": "group_replication_autorejoin_tries"
                 },
                 {
-                    "value": "2",
-                    "variable": "auto_increment_offset"
-                },
-                {
-                    "value": "OFF",
-                    "variable": "group_replication_allow_local_disjoint_gtids_join"
-                },
-                {
-                    "value": "OFF",
-                    "variable": "group_replication_allow_local_lower_version_join"
-                },
-                {
-                    "value": "7",
-                    "variable": "group_replication_auto_increment_increment"
-                },
-                {
-                    "value": "OFF",
-                    "variable": "group_replication_bootstrap_group"
-                },
-                {
-                    "value": "31536000",
-                    "variable": "group_replication_components_stop_timeout"
-                },
-                {
-                    "value": "1000000",
-                    "variable": "group_replication_compression_threshold"
-                },
-                {
-                    "value": "OFF",
-                    "variable": "group_replication_enforce_update_everywhere_checks"
+                    "option": "consistency",
+                    "value": null,
+                    "variable": "group_replication_consistency"
                 },
                 {
                     "option": "exitStateAction",
@@ -1395,24 +1434,9 @@
                     "variable": "group_replication_exit_state_action"
                 },
                 {
-                    "value": "25000",
-                    "variable": "group_replication_flow_control_applier_threshold"
-                },
-                {
-                    "value": "25000",
-                    "variable": "group_replication_flow_control_certifier_threshold"
-                },
-                {
-                    "value": "QUOTA",
-                    "variable": "group_replication_flow_control_mode"
-                },
-                {
-                    "value": "",
-                    "variable": "group_replication_force_members"
-                },
-                {
-                    "value": "bbbbbbbb-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-                    "variable": "group_replication_group_name"
+                    "option": "expelTimeout",
+                    "value": null,
+                    "variable": "group_replication_member_expel_timeout"
                 },
                 {
                     "option": "groupSeeds",
@@ -1420,15 +1444,10 @@
                     "variable": "group_replication_group_seeds"
                 },
                 {
-                    "value": "1000000",
-                    "variable": "group_replication_gtid_assignment_block_size"
-                },
-?{VER(>=8.0.22)}
-                {
-                    "value": "AUTOMATIC",
+                    "option": "ipAllowlist",
+                    "value": null,
                     "variable": "group_replication_ip_allowlist"
                 },
-?{}
                 {
                     "option": "ipWhitelist",
                     "value": "AUTOMATIC",
@@ -1445,6 +1464,66 @@
                     "variable": "group_replication_member_weight"
                 },
                 {
+                    "value": "1",
+                    "variable": "auto_increment_increment"
+                },
+                {
+                    "value": "2",
+                    "variable": "auto_increment_offset"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_allow_local_disjoint_gtids_join"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_allow_local_lower_version_join"
+                },
+                {
+                    "value": "7",
+                    "variable": "group_replication_auto_increment_increment"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_bootstrap_group"
+                },
+                {
+                    "value": "31536000",
+                    "variable": "group_replication_components_stop_timeout"
+                },
+                {
+                    "value": "1000000",
+                    "variable": "group_replication_compression_threshold"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_enforce_update_everywhere_checks"
+                },
+                {
+                    "value": "25000",
+                    "variable": "group_replication_flow_control_applier_threshold"
+                },
+                {
+                    "value": "25000",
+                    "variable": "group_replication_flow_control_certifier_threshold"
+                },
+                {
+                    "value": "QUOTA",
+                    "variable": "group_replication_flow_control_mode"
+                },
+                {
+                    "value": "",
+                    "variable": "group_replication_force_members"
+                },
+                {
+                    "value": "bbbbbbbb-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                    "variable": "group_replication_group_name"
+                },
+                {
+                    "value": "1000000",
+                    "variable": "group_replication_gtid_assignment_block_size"
+                },
+                {
                     "value": "0",
                     "variable": "group_replication_poll_spin_loops"
                 },
@@ -1508,12 +1587,6 @@
                     "value": "ON",
                     "variable": "group_replication_start_on_boot"
                 },
-?{VER(>=8.0.21)}
-                {
-                    "value": "MYSQL_MAIN",
-                    "variable": "group_replication_tls_source"
-                },
-?{}
                 {
                     "value": "0",
                     "variable": "group_replication_transaction_size_limit"
@@ -1524,6 +1597,51 @@
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": null,
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": null,
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "READ_ONLY",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": null,
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "<<<__cfg_group_seeds3>>>",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "<<<__cfg_local_address3>>>",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "25",
+                    "variable": "group_replication_member_weight"
+                },
                 {
                     "value": "1",
                     "variable": "auto_increment_increment"
@@ -1561,11 +1679,6 @@
                     "variable": "group_replication_enforce_update_everywhere_checks"
                 },
                 {
-                    "option": "exitStateAction",
-                    "value": "READ_ONLY",
-                    "variable": "group_replication_exit_state_action"
-                },
-                {
                     "value": "25000",
                     "variable": "group_replication_flow_control_applier_threshold"
                 },
@@ -1586,34 +1699,8 @@
                     "variable": "group_replication_group_name"
                 },
                 {
-                    "option": "groupSeeds",
-                    "value": "<<<__cfg_group_seeds3>>>",
-                    "variable": "group_replication_group_seeds"
-                },
-                {
                     "value": "1000000",
                     "variable": "group_replication_gtid_assignment_block_size"
-                },
-?{VER(>=8.0.22)}
-                {
-                    "value": "AUTOMATIC",
-                    "variable": "group_replication_ip_allowlist"
-                },
-?{}
-                {
-                    "option": "ipWhitelist",
-                    "value": "AUTOMATIC",
-                    "variable": "group_replication_ip_whitelist"
-                },
-                {
-                    "option": "localAddress",
-                    "value": "<<<__cfg_local_address3>>>",
-                    "variable": "group_replication_local_address"
-                },
-                {
-                    "option": "memberWeight",
-                    "value": "25",
-                    "variable": "group_replication_member_weight"
                 },
                 {
                     "value": "0",
@@ -1679,12 +1766,6 @@
                     "value": "ON",
                     "variable": "group_replication_start_on_boot"
                 },
-?{VER(>=8.0.21)}
-                {
-                    "value": "MYSQL_MAIN",
-                    "variable": "group_replication_tls_source"
-                },
-?{}
                 {
                     "value": "0",
                     "variable": "group_replication_transaction_size_limit"
@@ -1753,6 +1834,11 @@
                     "option": "groupSeeds",
                     "value": "<<<__cfg_group_seeds1>>>",
                     "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
@@ -1832,6 +1918,16 @@
                     "option": "groupSeeds",
                     "value": "<<<__cfg_group_seeds1>>>",
                     "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",

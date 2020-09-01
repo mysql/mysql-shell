@@ -231,15 +231,31 @@ inline size_t span_to_eol(const std::string &s, size_t offset) {
   return offset + 1;
 }
 
+/** Spans a string for C style multi-line comments
+ *
+ * This does NOT handle MySQL optimizer hint comments or conditional
+ * comments, so it should only be used to span non-SQL strings.
+ */
 inline size_t span_cstyle_comment(const std::string &s, size_t offset) {
   assert(!s.empty());
-  assert(s[offset] == '/' && s[offset + 1] == '*');
+  assert(offset < s.size());
+  assert(s.size() - offset < 2 || (s[offset] == '/' && s[offset + 1] == '*'));
+
+  if (s.size() < 4) return std::string::npos;
 
   offset += 2;
+
   size_t p = s.find("*/", offset);
   if (p == std::string::npos) return std::string::npos;
   return p + 2;
 }
+
+/** Spans a SQL string for C style multi-line comments
+ *
+ * This function handles special comments that start with a + (optimizer hints)
+ * or ! (conditional statements).
+ */
+size_t span_cstyle_sql_comment(const std::string &s, size_t offset);
 
 /** Class enabling iteration over characters in SQL string skipping comments and
  * quoted strings.

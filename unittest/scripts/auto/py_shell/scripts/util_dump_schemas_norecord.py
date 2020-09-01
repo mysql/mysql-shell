@@ -534,7 +534,7 @@ EXPECT_SUCCESS([test_schema], test_output_absolute, { "bytesPerChunk": "128k", "
 EXPECT_TRUE(has_file_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_primary) + "@"))
 EXPECT_TRUE(has_file_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_unique) + "@"))
 
-# WL13807-FR4.13.4 - If the `bytesPerChunk` option is not given and the `chunking` option is set to `true`, a default value of `32M` must be used instead.
+# WL13807-FR4.13.4 - If the `bytesPerChunk` option is not given and the `chunking` option is set to `true`, a default value of `256M` must be used instead.
 # this dump used smaller chunk size, number of files should be greater
 EXPECT_TRUE(count_files_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_primary) + "@") > number_of_dump_files)
 
@@ -1169,9 +1169,29 @@ session.run_sql("GRANT ALL ON *.* TO !@!;", [test_user, __host])
 session.run_sql("REVOKE RELOAD ON *.* FROM !@!;", [test_user, __host])
 shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
 
-#@<> try to run consistent dump using a user which does not have required privileges
-EXPECT_FAIL("RuntimeError", "Unable to acquire global read lock: MySQL Error 1227 (42000): Access denied; you need (at least one of) the RELOAD privilege(s) for this operation", [types_schema], test_output_absolute, { "showProgress": False }, True)
-EXPECT_STDOUT_CONTAINS("ERROR: Current user lacks privileges to acquire the global read lock. Please disable consistent dump using consistent option set to false.")
+#@<> try to run consistent dump using a user which does not have required privileges for FTWRL but LOCK TABLES are ok
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+
+#@<> revoke lock tables from mysql.* {VER(>=8.0.0)}
+setup_session()
+session.run_sql("SET GLOBAL partial_revokes=1")
+session.run_sql("REVOKE LOCK TABLES ON mysql.* FROM !@!;", [test_user, __host])
+shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+
+#@<> try again, this time it should succeed but without locking mysql.* tables {VER(>=8.0.0)}
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+
+#@<> revoke lock tables from the rest
+setup_session()
+session.run_sql("REVOKE LOCK TABLES ON *.* FROM !@!;", [test_user, __host])
+shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+
+#@<> try to run consistent dump using a user which does not have any required privileges
+EXPECT_FAIL("RuntimeError", "Unable to lock tables: MySQL Error 1044 (42000): Access denied for user 'sample_user'@'localhost' to database 'xtest'", [types_schema], test_output_absolute, { "showProgress": False }, True)
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table read locks")
 
 #@<> using the same user, run inconsistent dump
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "consistent": False, "ddlOnly": True, "showProgress": False })

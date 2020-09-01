@@ -37,7 +37,7 @@
             }
         ],
         "tags": {
-            "global": [],
+            ".global": [],
             "<<<uri1>>>": [],
             "<<<uri2>>>": []
         },
@@ -69,8 +69,23 @@
                     "variable": "group_replication_group_seeds"
                 },
                 {
-                    "option": "ipWhitelist",
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
                     "value": "<<<ip_white_list80>>>",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": "<<<ip_white_list80>>>",
+?{}
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -111,8 +126,23 @@
                     "variable": "group_replication_group_seeds"
                 },
                 {
-                    "option": "ipWhitelist",
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
                     "value": "<<<ip_white_list80>>>",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": "<<<ip_white_list80>>>",
+?{}
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -151,7 +181,7 @@
             }
         ],
         "tags": {
-            "global": [],
+            ".global": [],
             "<<<uri1>>>": [],
             "<<<uri2>>>": []
         },
@@ -181,6 +211,11 @@
                     "option": "groupSeeds",
                     "value": "<<<local_address2>>>",
                     "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
@@ -223,6 +258,11 @@
                     "option": "groupSeeds",
                     "value": "<<<local_address1>>>",
                     "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
@@ -286,7 +326,7 @@ ONLINE
             }
         ],
         "tags": {
-            "global": [],
+            ".global": [],
             "<<<uri1>>>": [],
             "<<<uri2>>>": []
         },
@@ -318,8 +358,23 @@ ONLINE
                     "variable": "group_replication_group_seeds"
                 },
                 {
-                    "option": "ipWhitelist",
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
                     "value": "<<<ip_white_list80>>>",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": "<<<ip_white_list80>>>",
+?{}
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -360,8 +415,23 @@ ONLINE
                     "variable": "group_replication_group_seeds"
                 },
                 {
-                    "option": "ipWhitelist",
+                    "option": "ipAllowlist",
+?{VER(>=8.0.22)}
                     "value": "<<<ip_white_list80>>>",
+?{}
+?{VER(<8.0.22)}
+                    "value": null,
+?{}
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+?{VER(>=8.0.22)}
+                    "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": "<<<ip_white_list80>>>",
+?{}
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -400,7 +470,7 @@ ONLINE
             }
         ],
         "tags": {
-            "global": [],
+            ".global": [],
             "<<<uri1>>>": [],
             "<<<uri2>>>": []
         },
@@ -430,6 +500,11 @@ ONLINE
                     "option": "groupSeeds",
                     "value": "<<<local_address2>>>",
                     "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
                 },
                 {
                     "option": "ipWhitelist",
@@ -474,6 +549,11 @@ ONLINE
                     "variable": "group_replication_group_seeds"
                 },
                 {
+                    "option": "ipAllowlist",
+                    "value": null,
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
                     "option": "ipWhitelist",
                     "value": "<<<ip_white_list57>>>",
                     "variable": "group_replication_ip_whitelist"
@@ -496,11 +576,8 @@ ONLINE
 //@<OUT> BUG#29305551 - Reboot cluster from complete outage, rejoin fails
 ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (master-slave) replication configured and running. Please stop the slave threads by executing the query: 'STOP SLAVE;'
 
-//@ BUG#29305551: Finalization
-||
-
 //@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying current session is not the most up to date
-||Dba.rebootClusterFromCompleteOutage: The active session instance isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. (RuntimeError)
+||Dba.rebootClusterFromCompleteOutage: The active session instance (<<<hostname>>>:<<<__mysql_sandbox_port1>>>) isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. (RuntimeError)
 
 //@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying there is a gtid mismatch
 ||Conflicting transaction sets between <<<hostname>>>:<<<__mysql_sandbox_port1>>> and <<<hostname>>>:<<<__mysql_sandbox_port2>>>

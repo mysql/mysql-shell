@@ -451,6 +451,8 @@ DESCRIPTION
         existing replication group.
       - memberSslMode: SSL mode used to configure the members of the cluster.
       - ipWhitelist: The list of hosts allowed to connect to the instance for
+        group replication. Deprecated.
+      - ipAllowlist: The list of hosts allowed to connect to the instance for
         group replication.
       - groupName: string value with the Group Replication group name UUID to
         be used instead of the automatically generated one.
@@ -527,10 +529,10 @@ DESCRIPTION
 
       If memberSslMode is not specified AUTO will be used by default.
 
-      The ipWhitelist format is a comma separated list of IP addresses or
+      The ipAllowlist format is a comma separated list of IP addresses or
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
       the value is set to AUTOMATIC, allowing addresses from the instance
-      private network to be automatically set for the whitelist.
+      private network to be automatically set for the allowlist.
 
       The groupName, localAddress, and groupSeeds are advanced options and
       their usage is discouraged since incorrect values can lead to Group
@@ -669,6 +671,9 @@ DESCRIPTION
 
       ATTENTION: The failoverConsistency option will be removed in a future
                  release. Please use the consistency option instead.
+
+      ATTENTION: The ipWhitelist option will be removed in a future release.
+                 Please use the ipAllowlist option instead.
 
 EXCEPTIONS
       MetadataError in the following scenarios:

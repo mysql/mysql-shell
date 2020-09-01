@@ -131,27 +131,39 @@ shcore::Array_t Options::get_instance_options(
     const mysqlsh::dba::Instance &instance) {
   shcore::Array_t array = shcore::make_array();
 
-  if (!m_all) {
-    for (const auto &cfg : k_instance_options) {
-      shcore::Dictionary_t option = shcore::make_dict();
-      mysqlshdk::utils::nullable<std::string> value =
-          instance.get_sysvar_string(cfg.second,
-                                     mysqlshdk::mysql::Var_qualifier::GLOBAL);
+  // Get all the options supported by the AdminAPI
+  // If the target instance does not support a particular option, it will be
+  // listed with the null value, as expected.
+  for (const auto &cfg : k_instance_options) {
+    shcore::Dictionary_t option = shcore::make_dict();
+    mysqlshdk::utils::nullable<std::string> value = instance.get_sysvar_string(
+        cfg.second, mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
-      (*option)["option"] = shcore::Value(cfg.first);
-      (*option)["variable"] = shcore::Value(cfg.second);
+    (*option)["option"] = shcore::Value(cfg.first);
+    (*option)["variable"] = shcore::Value(cfg.second);
 
-      // Check if the option exists in the target server
-      if (!value.is_null()) {
-        (*option)["value"] = shcore::Value(*value);
-      } else {
-        (*option)["value"] = shcore::Value::Null();
-      }
-
-      array->push_back(shcore::Value(option));
+    // Check if the option exists in the target server
+    if (!value.is_null()) {
+      (*option)["value"] = shcore::Value(*value);
+    } else {
+      (*option)["value"] = shcore::Value::Null();
     }
-  } else {
-    // Get all GR configurations.
+
+    array->push_back(shcore::Value(option));
+  }
+
+  // If 'all' is enabled, get all GR configuration options to add to the result
+  // array.
+  if (m_all) {
+    auto option_supported_by_adminapi = [](const std::string &cfg) {
+      for (const auto &it : k_instance_options) {
+        if (it.second == cfg) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     log_debug("Get all group replication configurations.");
     std::map<std::string, mysqlshdk::utils::nullable<std::string>> gr_cfgs =
         mysqlshdk::gr::get_all_configurations(instance);
@@ -159,14 +171,10 @@ shcore::Array_t Options::get_instance_options(
     for (const auto &cfg : gr_cfgs) {
       shcore::Dictionary_t option = shcore::make_dict();
 
-      // Check if the option is supported by the AdminAPI so we use its name
-      auto it = k_instance_options.cbegin();
-      while (it != k_instance_options.cend()) {
-        if (it->second == cfg.first) {
-          (*option)["option"] = shcore::Value(it->first);
-          break;
-        }
-        it++;
+      // If the option is part of the list of supported options by the AdminAPI,
+      // skip it as it was already retrieved before
+      if (option_supported_by_adminapi(cfg.first)) {
+        continue;
       }
 
       (*option)["variable"] = shcore::Value(cfg.first);
@@ -178,7 +186,6 @@ shcore::Array_t Options::get_instance_options(
       array->push_back(shcore::Value(option));
     }
   }
-
   return array;
 }
 

@@ -428,6 +428,8 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
 ||Invalid value for ipWhitelist: string value cannot be empty.
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
+WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
+
 Rejoining the instance to the InnoDB cluster. Depending on the original
 problem that made the instance unavailable, the rejoin operation might not be
 successful and further manual steps will be needed to fix the underlying
@@ -437,8 +439,6 @@ Please monitor the output of the rejoin operation and take necessary action if
 the instance cannot rejoin.
 
 Rejoining instance to the cluster ...
-
-WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
 
 <<<(__version_num<80011)?"NOTE: Group Replication will communicate with other members using '"+hostname+":"+__mysql_sandbox_gr_port3+"'. Use the localAddress option to override.\n\n":""\>>>
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port3+"' cannot persist Group Replication configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>

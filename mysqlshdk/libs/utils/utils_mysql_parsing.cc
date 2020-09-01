@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 #include <algorithm>
+#include <iostream>
 #include <iterator>
 #include <sstream>
 #include <tuple>
@@ -51,7 +52,7 @@ void Sql_splitter::reset() {
   m_ptr = nullptr;
 
   m_delimiter = ";";
-  m_context = NONE;
+  m_context.clear();
 
   m_shrinked_bytes = 0;
   m_current_line = 1;
@@ -89,7 +90,7 @@ void Sql_splitter::feed_chunk(char *buffer, size_t size) {
 
   m_ptr = m_begin;
 
-  m_context = NONE;
+  m_context.clear();
 }
 
 void Sql_splitter::set_ansi_quotes(bool flag) { m_ansi_quotes = flag; }
@@ -217,7 +218,6 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
   };
 
   char *bos;  // beginning of statement
-  Context previous_context = Context::NONE;
 
   bos = m_ptr;
   for (;;) {
@@ -251,6 +251,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
 
     // find the end of the statement
     char *p = bol;
+
     const auto run_command = [&](bool delimited) {
       command = false;
       size_t skip;
@@ -265,26 +266,35 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
       eol -= skip;
       next_bol -= skip;
       m_end -= skip;
-      m_context = NONE;
+      pop();
       return true;
     };
 
     while (p && p < eol) {
-      if (m_context == NONE || m_context == STATEMENT) {
-        // check for the current delimiter
-        if (*p == m_delimiter[0] &&
-            (p + m_delimiter.size() <= eol &&
-             m_delimiter.compare(0, m_delimiter.size(), p, 0,
-                                 m_delimiter.size()) == 0)) {
-          if (command && run_command(true)) continue;
-          m_context = NONE;
-          Range range{static_cast<size_t>(bos - m_begin),
-                      static_cast<size_t>(p - bos), m_current_line};
-          m_ptr = p + m_delimiter.size();
-          *out_range = range;
-          *out_delim = m_delimiter;
-          m_current_line += line_count;
-          return true;
+      auto ctx = context();
+      if (ctx == NONE || ctx == STATEMENT || ctx == COMMENT_CONDITIONAL) {
+        if (ctx == COMMENT_CONDITIONAL) {
+          if ((eol - p) > 2 && *p == '*' && *(p + 1) == '/') {
+            pop();
+            p += 2;
+            continue;
+          }
+        } else {
+          // check for the current delimiter
+          if (*p == m_delimiter[0] &&
+              (p + m_delimiter.size() <= eol &&
+               m_delimiter.compare(0, m_delimiter.size(), p, 0,
+                                   m_delimiter.size()) == 0)) {
+            if (command && run_command(true)) continue;
+            pop();
+            Range range{static_cast<size_t>(bos - m_begin),
+                        static_cast<size_t>(p - bos), m_current_line};
+            m_ptr = p + m_delimiter.size();
+            *out_range = range;
+            *out_delim = m_delimiter;
+            m_current_line += line_count;
+            return true;
+          }
         }
 
         switch (*p) {
@@ -318,7 +328,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
               m_ptr = p + skip;
               *out_range = Range{static_cast<size_t>(bos - m_begin),
                                  static_cast<size_t>(p - bos), m_current_line};
-              m_context = NONE;
+              pop();
               m_current_line += line_count;
               return true;
             } else {
@@ -333,38 +343,40 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
 
           case '\'':  // 'str'
             ++p;      // skip the opening '
-            m_context = SQUOTE_STRING;
+            push(SQUOTE_STRING);
             break;
 
           case '"':  // "str"
             ++p;     // skip the opening "
             if (m_ansi_quotes) {
-              m_context = DQUOTE_IDENTIFIER;
+              push(DQUOTE_IDENTIFIER);
             } else {
-              m_context = DQUOTE_STRING;
+              push(DQUOTE_STRING);
             }
             break;
 
           case '`':  // `ident`
             ++p;
-            m_context = BQUOTE_IDENTIFIER;
+            push(BQUOTE_IDENTIFIER);
             break;
 
           case '/':  // /* ... */
             if ((m_end - p) >= 3) {
               if (*(p + 1) == '*') {
-                previous_context = m_context;
-                if (*(p + 2) == '!' || *(p + 2) == '+') {
-                  m_context = COMMENT_HINT;
+                if (*(p + 2) == '+') {
+                  push(COMMENT_HINT);
+                  p += 3;
+                } else if (*(p + 2) == '!') {
+                  push(COMMENT_CONDITIONAL);
                   p += 3;
                 } else {
-                  m_context = COMMENT;
+                  push(COMMENT);
                   p += 2;
                 }
                 break;
               }
             } else {
-              return unfinished_stmt(bos, out_range);
+              if (!has_complete_line) return unfinished_stmt(bos, out_range);
             }
             goto other;
 
@@ -372,7 +384,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           case 'D':
             // Possible start of the keyword DELIMITER. Must be the 1st keyword
             // of a statement.
-            if (m_context == NONE && (m_end - p >= k_delimiter_len) &&
+            if (context() == NONE && (m_end - p >= k_delimiter_len) &&
                 shcore::str_caseeq(p, k_delimiter, k_delimiter_len)) {
               if (has_complete_line) {
                 // handle delimiter change directly here
@@ -385,7 +397,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
                   set_delimiter(std::string(p, end - p));
                 }
                 bos = p = next_bol;
-                m_context = NONE;
+                pop();
                 last_line_was_delimiter = true;
                 // delimiter is like a full statement, so increment line
                 // and start next stmt from scratch
@@ -401,7 +413,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           case '#':  // # ...
             if (has_complete_line) {
               // if the whole line is a comment return it
-              if (m_context == NONE) {
+              if (context() == NONE) {
                 int nl = 1;
                 if (*(eol - 1) == '\r') nl++;
                 Range range{static_cast<size_t>(bos - m_begin),
@@ -424,7 +436,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
             if ((m_end - p) > 2 && *(p + 1) == '-' && is_any_blank(*(p + 2))) {
               if (has_complete_line) {
                 // if the whole line is a comment return it
-                if (m_context == NONE) {
+                if (context() == NONE) {
                   int nl = 1;
                   if (*(eol - 1) == '\r') nl++;
                   Range range{static_cast<size_t>(bos - m_begin),
@@ -448,7 +460,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
 
           default:
           other:
-            if (m_context == NONE) {
+            if (context() == NONE) {
               size_t off = tolower(*p) - 'a';
               if (off < m_commands_table.size() &&
                   !m_commands_table[off].empty()) {
@@ -458,27 +470,27 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
                       is_any_blank(*(p + kwd.length()))) {
                     command = true;
                     p += kwd.length() + 1;
-                    m_context = STATEMENT;
+                    push(STATEMENT);
                     break;
                   }
                 if (command) continue;
               }
             }
 
-            if (!is_any_blank(*p))
-              m_context = STATEMENT;
-            else if (p == bos)
+            if (!is_any_blank(*p)) {
+              if (context() == NONE) push(STATEMENT);
+            } else if (p == bos) {
               bos++;
+            }
             ++p;
             break;
         }
       }
 
-      switch (m_context) {
+      switch (context()) {
         case NONE:
-          break;
-
         case STATEMENT:
+        case COMMENT_CONDITIONAL:
           break;
 
         case SQUOTE_STRING:
@@ -486,13 +498,12 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
                                                                          eol);
           if (!p) {  // closing quote missing
             if (has_complete_line) {
-              m_context = SQUOTE_STRING;
               p = eol;
             } else {
               return unfinished_stmt(bos, out_range);
             }
           } else {
-            m_context = STATEMENT;
+            pop();
           }
           break;
 
@@ -500,13 +511,12 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           p = span_string<internal::k_quoted_string_span_skips_dq, '"'>(p, eol);
           if (!p) {  // closing quote missing
             if (has_complete_line) {
-              m_context = DQUOTE_STRING;
               p = eol;
             } else {
               return unfinished_stmt(bos, out_range);
             }
           } else {
-            m_context = STATEMENT;
+            pop();
           }
           break;
 
@@ -521,7 +531,7 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
             }
           } else {
             p += 2;
-            m_context = previous_context;
+            pop();
           }
           break;
 
@@ -529,13 +539,12 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           p = span_quoted_identifier<'`'>(p, eol);
           if (!p) {  // closing quote missing
             if (has_complete_line) {
-              m_context = BQUOTE_IDENTIFIER;
               p = eol;
             } else {
               return unfinished_stmt(bos, out_range);
             }
           } else {
-            m_context = STATEMENT;
+            pop();
           }
           break;
 
@@ -543,13 +552,12 @@ bool Sql_splitter::next_range(Sql_splitter::Range *out_range,
           p = span_quoted_identifier<'"'>(p, eol);
           if (!p) {  // closing quote missing
             if (has_complete_line) {
-              m_context = DQUOTE_IDENTIFIER;
               p = eol;
             } else {
               return unfinished_stmt(bos, out_range);
             }
           } else {
-            m_context = STATEMENT;
+            pop();
           }
           break;
       }
@@ -715,6 +723,7 @@ std::string to_string(Sql_splitter::Context context) {
       return "";
     case Sql_splitter::STATEMENT:
     case Sql_splitter::COMMENT_HINT:
+    case Sql_splitter::COMMENT_CONDITIONAL:
       return "-";
     case Sql_splitter::COMMENT:
       return "/*";

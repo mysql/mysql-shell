@@ -1,7 +1,7 @@
 
 // how many rows of data to insert in seed instance, so that recovery takes long
 // enough to be observable in the test
-const NUM_DATA_ROWS = 20;
+const NUM_DATA_ROWS = 30;
 
 // Setup
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});

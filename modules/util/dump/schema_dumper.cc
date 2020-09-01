@@ -2464,9 +2464,26 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
     auto res = query_log_and_throw("SHOW GRANTS FOR " + user);
     std::vector<std::string> restricted;
     std::vector<std::string> grants;
-    for (auto row = res->fetch_one(); row; row = res->fetch_one()) {
+
+    res->buffer();
+
+    while (auto row = res->fetch_one()) {
       auto grant = row->get_string(0);
       if (opt_mysqlaas || compatibility) {
+        // In MySQL <= 5.7, if a user has all privs, the SHOW GRANTS will say
+        // ALL PRIVILEGES, which isn't helpful for filtering out grants.
+        const std::string k_grant_all = "GRANT ALL PRIVILEGES";
+        if (shcore::str_beginswith(grant, k_grant_all)) {
+          auto r = query_log_and_throw(
+              "SELECT group_concat(privilege_type) FROM "
+              "information_schema.user_privileges WHERE grantee = " +
+              shcore::quote_sql_string(
+                  shcore::sqlformat("?@?", u.user, u.host)));
+          auto all_grants = r->fetch_one_or_throw()->get_string(0);
+
+          grant = "GRANT " + all_grants + grant.substr(k_grant_all.length());
+        }
+
         std::string rewritten;
         const auto privs = compatibility::check_privileges(
             grant, compatibility ? &rewritten : nullptr, allowed_privs);

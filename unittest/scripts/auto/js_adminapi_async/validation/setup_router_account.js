@@ -54,7 +54,6 @@ ReplicaSet.setupRouterAccount: Could not proceed with the operation because acco
 //@ WL#13536 TSFR5_5 Validate upon creating a new account with dryRun the list of privileges is shown but the account is not created
 |NOTE: dryRun option was specified. Validations will be executed, but no changes will be applied.|
 |Creating user dryruntest@%.|
-|Setting user password.|
 |The following grants would be executed:|
 |GRANT EXECUTE, SELECT ON mysql_innodb_cluster_metadata.* TO 'dryruntest'@'%'|
 |GRANT DELETE, INSERT, UPDATE ON mysql_innodb_cluster_metadata.routers TO 'dryruntest'@'%'|

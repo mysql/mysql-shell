@@ -79,7 +79,9 @@ constexpr const char kGrExitStateAction[] =
 constexpr const char kGroupSeeds[] = "groupSeeds";
 constexpr const char kGrGroupSeeds[] = "group_replication_group_seeds";
 constexpr const char kIpWhitelist[] = "ipWhitelist";
+constexpr const char kIpAllowlist[] = "ipAllowlist";
 constexpr const char kGrIpWhitelist[] = "group_replication_ip_whitelist";
+constexpr const char kGrIpAllowlist[] = "group_replication_ip_allowlist";
 constexpr const char kLocalAddress[] = "localAddress";
 constexpr const char kGrLocalAddress[] = "group_replication_local_address";
 constexpr const char kMemberWeight[] = "memberWeight";
@@ -125,13 +127,10 @@ const std::map<std::string, std::string> k_global_options{
  * <sysvar, name>
  */
 const std::map<std::string, std::string> k_instance_options{
-    {kExitStateAction, kGrExitStateAction},
-    {kGroupSeeds, kGrGroupSeeds},
-    {kIpWhitelist, kGrIpWhitelist},
-    {kLocalAddress, kGrLocalAddress},
-    {kMemberWeight, kGrMemberWeight},
-    {kExpelTimeout, kGrExpelTimeout},
-    {kConsistency, kGrConsistency},
+    {kExitStateAction, kGrExitStateAction}, {kGroupSeeds, kGrGroupSeeds},
+    {kIpWhitelist, kGrIpWhitelist},         {kIpAllowlist, kGrIpAllowlist},
+    {kLocalAddress, kGrLocalAddress},       {kMemberWeight, kGrMemberWeight},
+    {kExpelTimeout, kGrExpelTimeout},       {kConsistency, kGrConsistency},
     {kAutoRejoinTries, kGrAutoRejoinTries}};
 
 /**

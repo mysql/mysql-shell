@@ -110,7 +110,24 @@ TEST(Utils_lexing, span_quoted_string_sq) {
   EXPECT_EQ(std::string::npos, span_quoted_string_sq("'\\'", 0));
 }
 
-TEST(Utils_lexing, span_cstyle_comment) {
+TEST(Utils_lexing, span_cstyle_comment_plain) {
+  EXPECT_EQ(9, span_cstyle_sql_comment("/* foo */", 0));
+  EXPECT_EQ(10, span_cstyle_sql_comment("*/* foo */", 1));
+  EXPECT_EQ(7, span_cstyle_sql_comment("/*foo*/", 0));
+  EXPECT_EQ(10, span_cstyle_sql_comment("/* foo* */", 0));
+  EXPECT_EQ(9, span_cstyle_sql_comment("/* foo */*", 0));
+  EXPECT_EQ(10, span_cstyle_sql_comment("/* foo/ */*", 0));
+  EXPECT_EQ(4, span_cstyle_sql_comment("/**/", 0));
+  EXPECT_EQ(6, span_cstyle_sql_comment("/****/", 0));
+
+  EXPECT_EQ(std::string::npos, span_cstyle_sql_comment("/* foo", 0));
+  EXPECT_EQ(std::string::npos, span_cstyle_sql_comment("/*/", 0));
+
+  EXPECT_EQ(6, span_cstyle_sql_comment("/* '*/' */", 0));
+  EXPECT_EQ(6, span_cstyle_sql_comment("/* \"*/\" */", 0));
+  EXPECT_EQ(6, span_cstyle_sql_comment("/* `*/` */", 0));
+  EXPECT_EQ(9, span_cstyle_sql_comment("/* \n-- */ \n */", 0));
+
   EXPECT_EQ(9, span_cstyle_comment("/* foo */", 0));
   EXPECT_EQ(10, span_cstyle_comment("*/* foo */", 1));
   EXPECT_EQ(7, span_cstyle_comment("/*foo*/", 0));
@@ -118,9 +135,91 @@ TEST(Utils_lexing, span_cstyle_comment) {
   EXPECT_EQ(9, span_cstyle_comment("/* foo */*", 0));
   EXPECT_EQ(10, span_cstyle_comment("/* foo/ */*", 0));
   EXPECT_EQ(4, span_cstyle_comment("/**/", 0));
+  EXPECT_EQ(6, span_cstyle_comment("/****/", 0));
 
   EXPECT_EQ(std::string::npos, span_cstyle_comment("/* foo", 0));
   EXPECT_EQ(std::string::npos, span_cstyle_comment("/*/", 0));
+
+  EXPECT_EQ(6, span_cstyle_comment("/* '*/' */", 0));
+  EXPECT_EQ(6, span_cstyle_comment("/* \"*/\" */", 0));
+  EXPECT_EQ(6, span_cstyle_comment("/* `*/` */", 0));
+  EXPECT_EQ(9, span_cstyle_comment("/* \n-- */\n */", 0));
+}
+
+TEST(Utils_lexing, span_cstyle_comment_hint) {
+  // Tests hints in the form /*+ ... */, which work just like regular C comments
+
+  EXPECT_EQ(10, span_cstyle_sql_comment("/*+ foo */", 0));
+  EXPECT_EQ(11, span_cstyle_sql_comment("*/*+ foo */", 1));
+  EXPECT_EQ(8, span_cstyle_sql_comment("/*+foo*/", 0));
+  EXPECT_EQ(11, span_cstyle_sql_comment("/*+ foo* */", 0));
+  EXPECT_EQ(10, span_cstyle_sql_comment("/*+ foo */*", 0));
+  EXPECT_EQ(11, span_cstyle_sql_comment("/*+ foo/ */*", 0));
+  EXPECT_EQ(5, span_cstyle_sql_comment("/*+*/", 0));
+  EXPECT_EQ(7, span_cstyle_sql_comment("/*+***/", 0));
+
+  EXPECT_EQ(std::string::npos, span_cstyle_sql_comment("/*+ foo", 0));
+  EXPECT_EQ(std::string::npos, span_cstyle_sql_comment("/*+/", 0));
+
+  EXPECT_EQ(7, span_cstyle_sql_comment("/*+ '*/' */", 0));
+  EXPECT_EQ(7, span_cstyle_sql_comment("/*+ \"*/\" */", 0));
+  EXPECT_EQ(7, span_cstyle_sql_comment("/*+ `*/` */", 0));
+  EXPECT_EQ(10, span_cstyle_sql_comment("/*+ \n-- */ \n */", 0));
+
+  EXPECT_EQ(10, span_cstyle_comment("/*+ foo */", 0));
+  EXPECT_EQ(11, span_cstyle_comment("*/*+ foo */", 1));
+  EXPECT_EQ(8, span_cstyle_comment("/*+foo*/", 0));
+  EXPECT_EQ(11, span_cstyle_comment("/*+ foo* */", 0));
+  EXPECT_EQ(10, span_cstyle_comment("/*+ foo */*", 0));
+  EXPECT_EQ(11, span_cstyle_comment("/*+ foo/ */*", 0));
+  EXPECT_EQ(5, span_cstyle_comment("/*+*/", 0));
+  EXPECT_EQ(7, span_cstyle_comment("/*+***/", 0));
+
+  EXPECT_EQ(std::string::npos, span_cstyle_comment("/*+ foo", 0));
+  EXPECT_EQ(std::string::npos, span_cstyle_comment("/*+/", 0));
+
+  EXPECT_EQ(7, span_cstyle_comment("/*+ '*/' */", 0));
+  EXPECT_EQ(7, span_cstyle_comment("/*+ \"*/\" */", 0));
+  EXPECT_EQ(7, span_cstyle_comment("/*+ `*/` */", 0));
+  EXPECT_EQ(10, span_cstyle_comment("/*+ \n-- */\n */", 0));
+}
+
+TEST(Utils_lexing, span_cstyle_comment_conditional) {
+  EXPECT_EQ(10, span_cstyle_sql_comment("/*! foo */", 0));
+  EXPECT_EQ(11, span_cstyle_sql_comment("//*! foo */", 1));
+  EXPECT_EQ(8, span_cstyle_sql_comment("/*!foo*/", 0));
+  EXPECT_EQ(11, span_cstyle_sql_comment("/*! foo* */", 0));
+  EXPECT_EQ(10, span_cstyle_sql_comment("/*! foo */*", 0));
+  EXPECT_EQ(11, span_cstyle_sql_comment("/*! foo/ */*", 0));
+  EXPECT_EQ(5, span_cstyle_sql_comment("/*!*/", 0));
+  EXPECT_EQ(7, span_cstyle_sql_comment("/*!***/", 0));
+  EXPECT_EQ(11, span_cstyle_sql_comment("/*! foo/ *//*!12345 */", 0));
+
+  EXPECT_EQ(std::string::npos, span_cstyle_sql_comment("/*! foo", 0));
+  EXPECT_EQ(std::string::npos, span_cstyle_sql_comment("/*!/", 0));
+
+  // */ inside a string has to be ignored
+  EXPECT_EQ(11, span_cstyle_sql_comment("/*! '*/' */", 0));
+  EXPECT_EQ(11, span_cstyle_sql_comment("/*! \"*/\" */", 0));
+  EXPECT_EQ(11, span_cstyle_sql_comment("/*! `*/` */", 0));
+  EXPECT_EQ(11, span_cstyle_sql_comment("/*! '*/' *//*! */", 0));
+  EXPECT_EQ(11, span_cstyle_sql_comment("/*! \"*/\" *//*! */", 0));
+  EXPECT_EQ(11, span_cstyle_sql_comment("/*! `*/` *//*! */", 0));
+
+  EXPECT_EQ(std::string::npos, span_cstyle_sql_comment("/*! '*/ */", 0));
+  EXPECT_EQ(std::string::npos, span_cstyle_sql_comment("/*! \"*/ */", 0));
+  EXPECT_EQ(std::string::npos, span_cstyle_sql_comment("/*! `*/ */", 0));
+
+  // */ inside a line comment has to be ignored
+  EXPECT_EQ(14, span_cstyle_sql_comment("/*! \n--  */\n*/", 0));
+  EXPECT_EQ(16, span_cstyle_sql_comment("/*! \n--  `*/`\n*/", 0));
+  EXPECT_EQ(16, span_cstyle_sql_comment("/*! \n--  '*/'\n*/", 0));
+  EXPECT_EQ(16, span_cstyle_sql_comment("/*! \n--  \"*/\"\n*/", 0));
+
+  // not really line comments
+  EXPECT_EQ(15, span_cstyle_sql_comment("/*! '\n-- */' */", 0));
+  EXPECT_EQ(15, span_cstyle_sql_comment("/*! \"\n-- */\" */", 0));
+  EXPECT_EQ(15, span_cstyle_sql_comment("/*! `\n-- */` */", 0));
 }
 
 TEST(Utils_lexing, span_sql_identifier) {

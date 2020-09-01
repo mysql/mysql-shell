@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,24 +81,33 @@ class Sql_splitter {
 
   enum Context {
     NONE,
-    STATEMENT,          // any non-comments before delimiter
-    COMMENT,            // /* ... */
-    COMMENT_HINT,       // /*! ... */ ...; or /*+ ... */ ...;
-    SQUOTE_STRING,      // '...'
-    DQUOTE_STRING,      // "..." (only if not ansi_quotes)
-    BQUOTE_IDENTIFIER,  // `...`
-    DQUOTE_IDENTIFIER   // "..." (ansi_quotes)
+    STATEMENT,            // any non-comments before delimiter
+    COMMENT,              // /* ... */
+    COMMENT_HINT,         // /*+ ... */ ...;
+    COMMENT_CONDITIONAL,  // /*! ... */ ...;
+    SQUOTE_STRING,        // '...'
+    DQUOTE_STRING,        // "..." (only if not ansi_quotes)
+    BQUOTE_IDENTIFIER,    // `...`
+    DQUOTE_IDENTIFIER     // "..." (ansi_quotes)
   };
 
-  Context context() const { return m_context; }
+  Context context() const {
+    return m_context.empty() ? NONE : m_context.back();
+  }
 
  private:
+  inline void push(Context c) { m_context.push_back(c); }
+
+  inline void pop() {
+    if (!m_context.empty()) m_context.pop_back();
+  }
+
   char *m_begin;
   char *m_end;
   char *m_ptr;
 
   std::string m_delimiter = ";";
-  Context m_context = NONE;
+  std::vector<Context> m_context;
 
   Command_callback m_cmd_callback;
   Error_callback m_err_callback;

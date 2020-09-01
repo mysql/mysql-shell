@@ -392,6 +392,8 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully added to t
 ||Cluster.rejoinInstance: Could not open connection to 'localhost:3306'
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok {VER(>=8.0.11)}
+WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
+
 Rejoining the instance to the InnoDB cluster. Depending on the original
 problem that made the instance unavailable, the rejoin operation might not be
 successful and further manual steps will be needed to fix the underlying
@@ -401,12 +403,12 @@ Please monitor the output of the rejoin operation and take necessary action if
 the instance cannot rejoin.
 
 Rejoining instance to the cluster ...
-
-WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
 
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port3>>>': The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully rejoined on the cluster.
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok {VER(<8.0.11)}
+WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
+
 Rejoining the instance to the InnoDB cluster. Depending on the original
 problem that made the instance unavailable, the rejoin operation might not be
 successful and further manual steps will be needed to fix the underlying
@@ -416,8 +418,6 @@ Please monitor the output of the rejoin operation and take necessary action if
 the instance cannot rejoin.
 
 Rejoining instance to the cluster ...
-
-WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.
 
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port3>>>': NOTE: Group Replication will communicate with other members using '<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>'. Use the localAddress option to override.
 

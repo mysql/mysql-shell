@@ -339,7 +339,7 @@ bool check_create_table_for_tablespace_option(
     // Find if option encompassed by comment hint '/*!50100 '
     if (it.inside_hint() && create_table.compare(start - 9, 3, "/*!") == 0) {
       start -= 9;
-      auto end = mysqlshdk::utils::span_cstyle_comment(create_table, start);
+      auto end = mysqlshdk::utils::span_cstyle_sql_comment(create_table, start);
       offsets.emplace_back(create_table[prev_pos] == ',' ? prev_pos : start,
                            end);
       it.set_position(end);
@@ -415,7 +415,8 @@ std::vector<std::string> check_statement_for_charset_option(
         res.emplace_back(token);
       if (hint && statement.compare(prev_pos - 9, 3, "/*!") == 0) {
         prev_pos -= 9;
-        auto end = mysqlshdk::utils::span_cstyle_comment(statement, prev_pos);
+        auto end =
+            mysqlshdk::utils::span_cstyle_sql_comment(statement, prev_pos);
         offsets.emplace_back(prev_pos, end);
         it.set_position(end);
       } else {

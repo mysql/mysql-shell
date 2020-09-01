@@ -4,6 +4,21 @@ testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', {report_host: hostname}
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 var mycnf = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 
+// BUG#31491092 reports that when the validate_password plugin is installed, setupAdminAccount() fails
+// with an error indicating the password does not match the current policy requirements. This happened
+// because the function was creating the account with 2 separate transactions: one to create the user
+// without any password, and another to change the password of the created user
+session1 = mysql.getSession(__sandbox_uri1);
+
+//@<> Install the validate_password plugin to verify the fix for BUG#31491092
+ensure_plugin_enabled("validate_password", session1, "validate_password");
+// configure the validate_password plugin for the lowest policy
+session1.runSql('SET GLOBAL validate_password_policy=\'LOW\'');
+session1.runSql('SET GLOBAL validate_password_length=1');
+
+//@<> With validate_password plugin enabled, an error must be thrown when the password does not satisfy the requirements
+EXPECT_THROWS_TYPE(function(){dba.configureInstance(__sandbox_uri1, {mycnfPath:mycnf, clusterAdmin:'admin', clusterAdminPassword:'foo'});}, "Dba.configureInstance: " + __endpoint1 + ": Your password does not satisfy the current policy requirements", "RuntimeError");
+
 //@ configureInstance custom cluster admin and password
 var root_uri1 = "root@" + uri1;
 testutil.expectPrompt("Please select an option [1]: ", "2");
@@ -19,6 +34,10 @@ if (__version_num >= 80011) {
 
 dba.configureInstance(__sandbox_uri1, {interactive: true, mycnfPath: mycnf});
 testutil.assertNoPrompts();
+
+// Uninstall the validate_password plugin: negative and positive tests done
+ensure_plugin_disabled("validate_password", session1, "validate_password");
+session1.close();
 
 //@ test connection with custom cluster admin and password
 shell.connect('repl_admin:sample@' + uri1);

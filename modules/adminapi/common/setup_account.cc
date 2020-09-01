@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -161,20 +161,24 @@ void Setup_account::create_account() {
   const std::string action = m_user_exists ? "Updating" : "Creating";
   console->print_info(shcore::str_format("%s user %s@%s.", action.c_str(),
                                          m_name.c_str(), m_host.c_str()));
-  if (!m_dry_run) {
-    m_primary_server.executef("CREATE USER IF NOT EXISTS ?@?", m_name, m_host);
-  }
 
-  // Set/change the account password
-  if (!m_password.is_null()) {
-    if (m_user_exists) {
+  // If the user already exists, just update the password otherwise create a new
+  // account
+  if (m_user_exists) {
+    if (!m_password.is_null()) {
       console->print_info("Updating user password.");
-    } else {
-      console->print_info("Setting user password.");
+
+      if (!m_dry_run) {
+        m_primary_server.executef(
+            "ALTER USER ?@? IDENTIFIED BY /*((*/ ? /*))*/", m_name, m_host,
+            m_password.get_safe());
+      }
     }
+  } else {
     if (!m_dry_run) {
-      m_primary_server.executef("ALTER USER ?@? IDENTIFIED BY /*((*/ ? /*))*/",
-                                m_name, m_host, m_password.get_safe());
+      m_primary_server.executef(
+          "CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY /*((*/ ? /*))*/", m_name,
+          m_host, m_password.get_safe());
     }
   }
 }

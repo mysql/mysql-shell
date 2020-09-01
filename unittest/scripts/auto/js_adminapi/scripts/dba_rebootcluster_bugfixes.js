@@ -45,7 +45,7 @@ var sandbox_cnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
 dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: sandbox_cnf2});
 
 //@<OUT> BUG29265869 - Show initial cluster options.
-c.options();
+normalize_cluster_options(c.options());
 
 session.close();
 
@@ -77,7 +77,7 @@ testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<OUT> BUG29265869 - Show cluster options after reboot.
-c.options();
+normalize_cluster_options(c.options());
 
 //@<> BUG29265869 - clean-up
 //NOTE: Do not destroy the sandboxes so they can be used on the following test
@@ -144,13 +144,97 @@ session.runSql("START SLAVE");
 
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
-//@ BUG#29305551 - Reboot cluster from complete outage, rejoin fails
-var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+session.close();
+shell.connect(__sandbox_uri1);
 
-//@ BUG#29305551: Finalization
+//@ BUG#29305551 - Reboot cluster from complete outage, rejoin fails
+shell.connect(__sandbox_uri1);
+var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+c.status();
+
+//@<> BUG#29305551 - cleanup for next test
+session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("stop slave");
+c.rejoinInstance(__sandbox_uri2);
+shell.connect(__sandbox_uri1);
+
+//@<> ensure rebootCluster picks the member with the most total transactions, not just the executed ones
+
+// this tests Bug #31673163	REBOOTCLUSTERFROMCOMPLETEOUTAGE() IS MISSING CHECK FOR PENDING CERT TRANSACTIONS
+// procedure:
+// 1 - have a 3 member cluster
+// 2 - FTWRL in secondary sb2 to allow transactions to be received but not applied
+// 3 - execute transaction at primary
+// 4 - stop GR at other secondary sb3
+// 5 - execute another transaction at primary
+// 6 - shutdown primary
+// 7 - rebootCluster using sb3.
+// At this point, gtid_executed at sb3 will be bigger than at sb2, but gtid_executed + received will be bigger at sb2.
+// The correct behaviour is for sb2 to become the primary, not sb3.
+
+testutil.deploySandbox(__mysql_sandbox_port3, "root");
+c.addInstance(__sandbox_uri3);
+session2 = mysql.getSession(__sandbox_uri2);
+session3 = mysql.getSession(__sandbox_uri3);
+
+disable_auto_rejoin(session, __mysql_sandbox_port1);
+disable_auto_rejoin(session2, __mysql_sandbox_port2);
+disable_auto_rejoin(session3, __mysql_sandbox_port3);
+
+session2.runSql("flush tables with read lock");
+
+session.runSql("create schema testschema1");
+
+testutil.waitMemberTransactions(__mysql_sandbox_port3);
+session3.runSql("stop group_replication");
+
+session.runSql("create schema testschema2");
+
+// ensure that the transaction arrived at the secondary but it didn't get applied yet
+wait(10, 0.1, function() {
+  var diff = session2.runSql("SELECT gtid_subtract(received_transaction_set, @@global.gtid_executed) diff FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'").fetchOne()[0];
+  println("received but not executed gtids:", diff);
+  return '' != diff;
+});
+
+println("transactions at sb1:");
+session.runSql("SELECT received_transaction_set, @@global.gtid_executed FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'");
+
+testutil.stopSandbox(__mysql_sandbox_port1);
+
+println("transactions at sb2 before restart:");
+session2.runSql("show schemas");
+session2.runSql("SELECT received_transaction_set, @@global.gtid_executed FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'");
+
+// we can't just stop GR now, because stop GR will try to apply the pending transactions
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port2);
+session2 = mysql.getSession(__sandbox_uri2);
+
+// now, we have:
+// primary sb1 is shutdown
+// secondary sb2 is OFFLINE
+// secondary sb3 is OFFLINE, has bigger GTID_EXECUTED but smaller received_transaction_set
+
+println("transactions at sb2:");
+session2.runSql("SELECT received_transaction_set, @@global.gtid_executed FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'");
+println("transactions at sb3:");
+session3.runSql("SELECT received_transaction_set, @@global.gtid_executed FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'");
+
+// try reboot while connected to sb3 (should fail)
+shell.connect(__sandbox_uri3);
+EXPECT_THROWS(function(){dba.rebootClusterFromCompleteOutage("test");}, "The active session instance (127.0.0.1:"+__mysql_sandbox_port3+") isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '"+hostname+":"+__mysql_sandbox_port2+"'.");
+
+// try reboot while connected to sb2 (should pass)
+shell.connect(__sandbox_uri2);
+var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances:[__sandbox_uri3]});
+c.status();
+
+//@<> Intermediate Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);
 
 //@<> BUG30501978 create cluster and add some data to it
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});

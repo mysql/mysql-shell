@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -161,6 +161,8 @@ class Dumper {
   void acquire_read_locks() const;
 
   void release_read_locks() const;
+
+  void lock_all_tables() const;
 
   void start_transaction(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;

@@ -120,7 +120,9 @@ DESCRIPTION
       - password: the instance connection password
       - memberSslMode: SSL mode used on the instance
       - ipWhitelist: The list of hosts allowed to connect to the instance for
-        group replication
+        group replication. Deprecated.
+      - ipAllowlist: The list of hosts allowed to connect to the instance for
+        group replication.
       - localAddress: string value with the Group Replication local address to
         be used instead of the automatically generated one.
       - groupSeeds: string value with a comma-separated list of the Group
@@ -195,10 +197,10 @@ DESCRIPTION
 
       If exitStateAction is not specified READ_ONLY will be used by default.
 
-      The ipWhitelist format is a comma separated list of IP addresses or
+      The ipAllowlist format is a comma separated list of IP addresses or
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
       the value is set to AUTOMATIC, allowing addresses from the instance
-      private network to be automatically set for the whitelist.
+      private network to be automatically set for the allowlist.
 
       The localAddress and groupSeeds are advanced options and their usage is
       discouraged since incorrect values can lead to Group Replication errors.
@@ -250,6 +252,9 @@ DESCRIPTION
       positive integer values in the range [0, 2016].
 
       The default value is 0.
+
+      ATTENTION: The ipWhitelist option will be removed in a future release.
+                 Please use the ipAllowlist option instead.
 
 EXCEPTIONS
       MetadataError in the following scenarios:
@@ -571,7 +576,9 @@ DESCRIPTION
       - password: the instance connection password
       - memberSslMode: SSL mode used on the instance
       - ipWhitelist: The list of hosts allowed to connect to the instance for
-        group replication
+        group replication. Deprecated.
+      - ipAllowlist: The list of hosts allowed to connect to the instance for
+        group replication.
 
       The password may be contained on the instance definition, however, it can
       be overwritten if it is specified on the options.
@@ -588,10 +595,13 @@ DESCRIPTION
 
       If memberSslMode is not specified AUTO will be used by default.
 
-      The ipWhitelist format is a comma separated list of IP addresses or
+      The ipAllowlist format is a comma separated list of IP addresses or
       subnet CIDR notation, for example: 192.168.1.0/24,10.0.0.1. By default
       the value is set to AUTOMATIC, allowing addresses from the instance
-      private network to be automatically set for the whitelist.
+      private network to be automatically set for the allowlist.
+
+      ATTENTION: The ipWhitelist option will be removed in a future release.
+                 Please use the ipAllowlist option instead.
 
 EXCEPTIONS
       MetadataError in the following scenarios:

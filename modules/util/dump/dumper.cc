@@ -1082,23 +1082,113 @@ void Dumper::close_session() {
   m_session = nullptr;
 }
 
+void Dumper::lock_all_tables() const {
+  // find out the max query size we can send
+  uint64_t max_packet_size;
+  {
+    auto r = session()->query("select @@max_allowed_packet");
+    max_packet_size = r->fetch_one_or_throw()->get_uint(0);
+  }
+
+  auto console = current_console();
+
+  const std::string k_lock_tables = "LOCK TABLES ";
+
+  // lock relevant tables in mysql so that grants, views, routines etc are
+  // consistent too
+  try {
+    std::vector<std::string> tables;
+    auto res = session()->query(
+        "SHOW TABLES IN mysql WHERE Tables_in_mysql IN"
+        "('columns_priv', 'db', 'default_roles', 'func', 'global_grants', "
+        "'procs_priv', 'proxies_priv', 'role_edges', 'tables_priv', 'user')");
+    while (auto row = res->fetch_one()) tables.emplace_back(row->get_string(0));
+
+    std::string stmt = k_lock_tables;
+    for (const auto &t : tables) {
+      stmt.append("mysql." + shcore::quote_identifier(t) + " READ,");
+    }
+    stmt.pop_back();
+    log_debug("Locking tables: %s", stmt.c_str());
+    session()->execute(stmt);
+  } catch (const mysqlshdk::db::Error &e) {
+    if (e.code() == ER_DBACCESS_DENIED_ERROR ||
+        e.code() == ER_ACCESS_DENIED_ERROR) {
+      console->print_warning("Could not lock mysql system tables: " +
+                             e.format());
+      console->print_warning(
+          "The dump will continue, but the dump may not be completely "
+          "consistent if changes to accounts or routines are made during it.");
+    } else {
+      console->print_error("Could not lock mysql system tables: " + e.format());
+      throw;
+    }
+  }
+
+  // iterate all tables that are going to be dumped and LOCK TABLES them
+  try {
+    for (const auto &schema : m_schema_tasks) {
+      std::string stmt = k_lock_tables;
+      for (const auto &table : schema.tables) {
+        size_t prev = stmt.size();
+        stmt.append(shcore::quote_identifier(schema.name) + "." +
+                    shcore::quote_identifier(table.name) + " READ,");
+        // check if we're overflowing the SQL packet (256B slack is probably
+        // enough)
+        if (stmt.size() >= max_packet_size - 256 &&
+            prev > k_lock_tables.size()) {
+          std::string tmp = stmt.substr(0, prev - 1);
+          log_debug("Locking tables: %s", tmp.c_str());
+          session()->execute(tmp);
+          stmt = k_lock_tables + stmt.substr(prev);
+        }
+      }
+      if (stmt.size() > k_lock_tables.size()) {
+        // flush the rest
+        stmt.pop_back();
+        log_debug("Locking tables: %s", stmt.c_str());
+        session()->execute(stmt);
+      }
+    }
+  } catch (const mysqlshdk::db::Error &e) {
+    console->print_error("Error locking tables: " + e.format());
+    throw;
+  }
+}
+
 void Dumper::acquire_read_locks() const {
   if (m_options.consistent_dump()) {
-    // TODO(pawel): this blocks until all statements finish execution, kill
-    //              long running queries or ask user what to do?
+    // This will block until lock_wait_timeout if there are any
+    // sessions with open transactions/locks.
     current_console()->print_info("Acquiring global read lock");
     try {
       session()->execute("FLUSH TABLES WITH READ LOCK;");
+      current_console()->print_info("Global read lock acquired");
     } catch (const mysqlshdk::db::Error &e) {
-      if (ER_SPECIFIC_ACCESS_DENIED_ERROR == e.code()) {
-        current_console()->print_error(
-            "Current user lacks privileges to acquire the global read lock. "
-            "Please disable consistent dump using " +
-            mysqlshdk::textui::bold("consistent") + " option set to false.");
-      }
+      current_console()->print_note("Error acquiring global read lock: " +
+                                    e.format());
+      if (ER_SPECIFIC_ACCESS_DENIED_ERROR == e.code() ||
+          ER_DBACCESS_DENIED_ERROR == e.code() ||
+          ER_ACCESS_DENIED_ERROR == e.code()) {
+        current_console()->print_warning(
+            "The current user lacks privileges to acquire a global read lock "
+            "using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK "
+            "TABLES...");
 
-      throw std::runtime_error("Unable to acquire global read lock: " +
-                               e.format());
+        // if FTWRL isn't executable by the user, try LOCK TABLES instead
+        try {
+          lock_all_tables();
+          current_console()->print_info("Table locks acquired");
+        } catch (const mysqlshdk::db::Error &ee) {
+          current_console()->print_error(
+              "Unable to acquire global read lock neither table read locks.");
+
+          throw std::runtime_error("Unable to lock tables: " + ee.format());
+        }
+      } else {
+        throw std::runtime_error("Unable to acquire global read lock: " +
+                                 e.format());
+      }
     }
   }
 }
@@ -1126,8 +1216,24 @@ void Dumper::start_transaction(
 
 void Dumper::lock_instance() const {
   if (m_options.consistent_dump()) {
-    current_console()->print_info("Locking instance for backup");
-    session()->execute("/*!80000 LOCK INSTANCE FOR BACKUP */;");
+    auto console = current_console();
+
+    console->print_info("Locking instance for backup");
+    if (mysqlshdk::utils::Version(m_dump_info->server_version()) >=
+        mysqlshdk::utils::Version(8, 0, 0)) {
+      try {
+        session()->execute("LOCK INSTANCE FOR BACKUP;");
+      } catch (const shcore::Error &e) {
+        console->print_error("Could not acquire backup lock: " + e.format());
+
+        throw;
+      }
+    } else {
+      console->print_note(
+          "Backup lock is not supported in MySQL 5.7 and DDL changes will not "
+          "be blocked. The dump may fail with an error or not be completely "
+          "consistent if schema changes are made while dumping.");
+    }
   }
 }
 

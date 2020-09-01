@@ -7,12 +7,33 @@ var mycnf = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 //@ ConfigureLocalInstance should fail if there's no session nor parameters provided
 dba.configureLocalInstance();
 
+// BUG#31491092 reports that when the validate_password plugin is installed, setupAdminAccount() fails
+// with an error indicating the password does not match the current policy requirements. This happened
+// because the function was creating the account with 2 separate transactions: one to create the user
+// without any password, and another to change the password of the created user
+session1 = mysql.getSession(__sandbox_uri1);
+
+//@<> Install the validate_password plugin to verify the fix for BUG#31491092
+ensure_plugin_enabled("validate_password", session1, "validate_password");
+// configure the validate_password plugin for the lowest policy
+session1.runSql('SET GLOBAL validate_password_policy=\'LOW\'');
+session1.runSql('SET GLOBAL validate_password_length=1');
+
+//@<> With validate_password plugin enabled, an error must be thrown when the password does not satisfy the requirements
+EXPECT_THROWS_TYPE(function(){dba.configureLocalInstance(__sandbox_uri1, {mycnfPath:mycnf, clusterAdmin:'admin', clusterAdminPassword:'foo'});}, "Dba.configureLocalInstance: " + __endpoint1 + ": Your password does not satisfy the current policy requirements", "RuntimeError");
+
 //@<OUT> Interactive_dba_configure_local_instance read_only_no_prompts
-dba.configureLocalInstance(__sandbox_uri1, {interactive: false, mycnfPath:mycnf, clusterAdmin:'root', clusterAdminPassword:'root'});
+dba.configureLocalInstance(__sandbox_uri1, {interactive: false, mycnfPath:mycnf, clusterAdmin:'admin', clusterAdminPassword:'fooo'});
 
 shell.connect(__sandbox_uri1);
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));
+
+// Uninstall the validate_password plugin: negative and positive tests done
+set_sysvar(session1, "super_read_only", 0);
+ensure_plugin_disabled("validate_password", session1, "validate_password");
+set_sysvar(session1, "super_read_only", 1);
+session1.close();
 
 //@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_yes 8.0 {VER(>=8.0.11)}
 set_sysvar(session, "super_read_only", 0);
