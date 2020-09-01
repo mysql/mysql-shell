@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2020, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -260,7 +260,7 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
   }
 
   static const int k_processlist_info_column = 7;
-  static const int k_processlist_state_column = 6;
+  static const int k_processlist_state_column = 5;
   static const int k_processlist_command_column = 4;
   static void session_wait(uint64_t sid, int timeout, const char *str,
                            int column = 7) {
@@ -269,17 +269,18 @@ class Interrupt_mysql : public Shell_core_test_wrapper {
     conn->connect(connection_options);
     timeout *= 1000;
     while (timeout > 0) {
-      auto result = conn->query("show full processlist");
+      auto result = conn->query("select * from sys.session");
       for (;;) {
         auto row = result->fetch_one();
         if (!row) break;
         // for (int i = 0; i < 8; i++)
-        //   printf("%s\t", row->get_value(i).descr().c_str());
+        //   printf("%s\t", row->get_as_string(i).c_str());
         // printf("\n");
-        if ((sid == 0 || row->get_uint(0) == sid) &&
+        if ((sid == 0 || row->get_uint(1) == sid) &&
             row->get_as_string(column).find(str) != std::string::npos)
           return;
       }
+
       shcore::sleep_ms(200);
       timeout -= 200;
     }
