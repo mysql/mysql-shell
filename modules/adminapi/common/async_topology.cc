@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,7 +57,7 @@ void start_channel(mysqlshdk::mysql::IInstance *instance,
 void reset_channel(mysqlshdk::mysql::IInstance *instance,
                    const std::string &channel_name, bool reset_credentials,
                    bool dry_run) {
-  log_info("Resetting slave for channel '%s' at %s", channel_name.c_str(),
+  log_info("Resetting replica for channel '%s' at %s", channel_name.c_str(),
            instance->descr().c_str());
   if (!dry_run) {
     try {

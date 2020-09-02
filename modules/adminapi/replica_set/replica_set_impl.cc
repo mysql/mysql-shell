@@ -145,14 +145,15 @@ get_valid_slaves(mysqlshdk::mysql::IInstance *instance) {
         }
       }
     } catch (const shcore::Exception &e) {
-      log_info("Could not connect to %s, which is listed as a slave for %s: %s",
-               endpoint.c_str(), instance->descr().c_str(), e.format().c_str());
+      log_info(
+          "Could not connect to %s, which is listed as a replica for %s: %s",
+          endpoint.c_str(), instance->descr().c_str(), e.format().c_str());
       real_slaves.push_back({ch, ""});
       continue;
     }
 
     if (ghost_slave) {
-      log_info("Ignoring stale slave host %s for %s", endpoint.c_str(),
+      log_info("Ignoring stale replica host %s for %s", endpoint.c_str(),
                instance->descr().c_str());
       continue;
     }
@@ -198,13 +199,16 @@ void validate_instance_is_standalone(Instance *target_server,
         "Shell, use the <<<createReplicaSet>>>() operation with the "
         "adoptFromAR option.";
     if (add_op) {
+      std::string replica_term =
+          mysqlshdk::mysql::get_replica_keyword(*target_server);
       info_msg.append(
           " If the <<<addInstance>>>() operation previously failed for the "
           "target instance and you are trying to add it again, then after "
           "fixing the issue you should reset the current replication settings "
           "before retrying to execute the operation. To reset the replication "
           "settings on the target instance execute the following statements: "
-          "'STOP SLAVE' and 'RESET SLAVE ALL'.");
+          "'STOP " +
+          replica_term + ";' and 'RESET " + replica_term + " ALL;'.");
     }
     console->print_para(info_msg);
     throw shcore::Exception("Unexpected replication channel",

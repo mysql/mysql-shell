@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -98,7 +98,7 @@ void load_instance_channels(Instance *instance, mysqlsh::dba::Instance *conn,
   // XXX fix duplicate scans
   for (const auto &ch : channels) {
     if (ch.channel_name == channel_name) {
-      log_info("channel '%s' at %s with source_uuid: %s, master %s:%i (%s)",
+      log_info("channel '%s' at %s with source_uuid: %s, source %s:%i (%s)",
                channel_name.c_str(), instance->label.c_str(),
                ch.source_uuid.c_str(), ch.host.c_str(), ch.port,
                (ch.status() == mysqlshdk::mysql::Replication_channel::OFF
@@ -222,7 +222,7 @@ Node_status Server::status() const {
           if (server.master_channel->info.source_uuid !=
               master_node_ptr->get_primary_member()->uuid) {
             log_warning(
-                "Instance %s is expected to have master %s (%s), but is %s:%i "
+                "Instance %s is expected to have source %s (%s), but is %s:%i "
                 "(%s)",
                 label.c_str(), master_node_ptr->label.c_str(),
                 master_node_ptr->get_primary_member()->uuid.c_str(),
@@ -434,7 +434,7 @@ void Global_topology::check_gtid_consistency(bool use_configured_primary) {
           size_t gtid_diff_size =
               mysqlshdk::mysql::estimate_gtid_set_size(errant_gtids);
 
-          log_debug("GTIDs that exist in %s but not its master %s: '%s' (%zi)",
+          log_debug("GTIDs that exist in %s but not its source %s: '%s' (%zi)",
                     node->label.c_str(), master_node->label.c_str(),
                     errant_gtids.c_str(), gtid_diff_size);
 
@@ -636,7 +636,7 @@ void Server_global_topology::check_servers(bool deep) {
           // this one should point to the actual master
           i.master_channel->master_ptr = try_find_member(ch.source_uuid);
           if (!i.master_channel->master_ptr)
-            log_error("%s: replication master %s:%i (%s) is not known",
+            log_error("%s: replication source %s:%i (%s) is not known",
                       i.label.c_str(), ch.host.c_str(), ch.port,
                       ch.source_uuid.c_str());
         }
@@ -735,7 +735,7 @@ Server *Server_global_topology::scan_instance_recursive(
             Scoped_instance(ipool->connect_unchecked_endpoint(endpoint));
       } catch (const shcore::Exception &e) {
         console->print_error(shcore::str_format(
-            "Could not connect to %s (master of %s): %s", endpoint.c_str(),
+            "Could not connect to %s (source of %s): %s", endpoint.c_str(),
             instance->descr().c_str(), e.format().c_str()));
 
         throw;

@@ -75,11 +75,14 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
 //@ BUG28056944 clean-up.
 ||
 
-//@<OUT> AddInstance async replication error
-ERROR: Cannot add instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (master-slave) replication configured and running. Please stop the slave threads by executing the query: 'STOP SLAVE;'
+//@<OUT> AddInstance async replication error {VER(<8.0.22)}
+ERROR: Cannot add instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replica threads by executing the query: 'STOP SLAVE;'.
+
+//@<OUT> AddInstance async replication error {VER(>=8.0.22)}
+ERROR: Cannot add instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replica threads by executing the query: 'STOP REPLICA;'.
 
 //@<ERR> AddInstance async replication error
-Cluster.addInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is running asynchronous (master-slave) replication. (RuntimeError)
+Cluster.addInstance: The instance '<<<localhost>>>:<<<__mysql_sandbox_port2>>>' is running asynchronous (source-replica) replication. (RuntimeError)
 
 //@ BUG#29305551: Finalization
 ||

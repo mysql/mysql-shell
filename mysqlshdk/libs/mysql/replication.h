@@ -373,6 +373,18 @@ int64_t generate_server_id();
  */
 bool is_async_replication_running(const mysqlshdk::mysql::IInstance &instance);
 
+/**
+ * Get the correct keyword in use for replica/slave regarding the target
+ * instance version.
+ *
+ * Useful for the construction of queries or output/error messages.
+ *
+ * @param instance Instance to use to perform the check.
+ *
+ * @return a string with the right keyword to be used for replica/slave.
+ */
+std::string get_replica_keyword(const mysqlshdk::mysql::IInstance &instance);
+
 }  // namespace mysql
 }  // namespace mysqlshdk
 

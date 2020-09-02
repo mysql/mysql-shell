@@ -97,16 +97,26 @@
 //@# instance belongs to a rs (should fail)
 ||ReplicaSet.addInstance: <<<__endpoint_uri2>>> is already managed by a replicaset.
 
-//@# instance running unmanaged AR (should fail)
-//@# instance running unmanaged AR (should fail)
+//@# instance running unmanaged AR (should fail) {VER(<8.0.22)}
 |Unmanaged replication channels are not supported in a replicaset. If you'd like|
 |to manage an existing MySQL replication topology with the Shell, use the|
 |createReplicaSet() operation with the adoptFromAR option. If the addInstance()|
 |operation previously failed for the target instance and you are trying to add|
 |it again, then after fixing the issue you should reset the current replication|
 |settings before retrying to execute the operation. To reset the replication|
-|settings on the target instance execute the following statements: 'STOP SLAVE'|
-|and 'RESET SLAVE ALL'.|
+|settings on the target instance execute the following statements: 'STOP|
+|SLAVE;' and 'RESET SLAVE ALL;.|
+||ReplicaSet.addInstance: Unexpected replication channel (MYSQLSH 51150)
+
+//@# instance running unmanaged AR (should fail) {VER(>=8.0.22)}
+|Unmanaged replication channels are not supported in a replicaset. If you'd like|
+|to manage an existing MySQL replication topology with the Shell, use the|
+|createReplicaSet() operation with the adoptFromAR option. If the addInstance()|
+|operation previously failed for the target instance and you are trying to add|
+|it again, then after fixing the issue you should reset the current replication|
+|settings before retrying to execute the operation. To reset the replication|
+|settings on the target instance execute the following statements: 'STOP|
+|REPLICA;' and 'RESET REPLICA ALL;'.|
 ||ReplicaSet.addInstance: Unexpected replication channel (MYSQLSH 51150)
 
 //@# instance already in the same rs (should fail)

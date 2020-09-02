@@ -93,8 +93,11 @@
 //@ BUG#29305551: persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
 ||
 
-//@<OUT> BUG#29305551 - Reboot cluster from complete outage, rejoin fails
-ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (master-slave) replication configured and running. Please stop the slave threads by executing the query: 'STOP SLAVE;'
+//@<OUT> BUG#29305551 - Reboot cluster from complete outage, rejoin fails {VER(<8.0.22)}
+ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replica threads by executing the query: 'STOP SLAVE;'.
+
+//@<OUT> BUG#29305551 - Reboot cluster from complete outage, rejoin fails {VER(>=8.0.22)}
+ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replica threads by executing the query: 'STOP REPLICA;'.
 
 //@<OUT> Check cluster status after reboot - uri2 should not be present
 {
