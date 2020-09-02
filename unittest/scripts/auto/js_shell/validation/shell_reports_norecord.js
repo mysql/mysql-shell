@@ -2677,6 +2677,11 @@ DESCRIPTION
             "name",
             "type",
             "value"
+        ],
+        [
+            "one",
+            "Undefined",
+            undefined
         ]
     ]
 }
@@ -2708,6 +2713,11 @@ DESCRIPTION
             "name",
             "type",
             "value"
+        ],
+        [
+            "two",
+            "Undefined",
+            undefined
         ]
     ]
 }
@@ -2738,6 +2748,22 @@ DESCRIPTION
             "name",
             "type",
             "value"
+        ]
+    ]
+}
+
+//@<OUT> call shell.reports.list_report_testing_various_options using the third option - undefined
+{
+    "report": [
+        [
+            "name",
+            "type",
+            "value"
+        ],
+        [
+            "three",
+            "Undefined",
+            undefined
         ]
     ]
 }
@@ -2817,6 +2843,11 @@ DESCRIPTION
             "name",
             "type",
             "value"
+        ],
+        [
+            "four",
+            "Undefined",
+            undefined
         ]
     ]
 }
@@ -2879,6 +2910,11 @@ DESCRIPTION
             "name",
             "type",
             "value"
+        ],
+        [
+            "five",
+            "Undefined",
+            undefined
         ]
     ]
 }
