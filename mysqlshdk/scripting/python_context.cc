@@ -248,13 +248,7 @@ Python_init_singleton::Python_init_singleton() : m_local_initialization(false) {
     std::string home;
 #ifdef _WIN32
 #define MAJOR_MINOR STRINGIFY(PY_MAJOR_VERSION) "." STRINGIFY(PY_MINOR_VERSION)
-    const auto env_value = getenv("PYTHONHOME");
-
-    // If PYTHONHOME is available, honors it
-    if (env_value) {
-      log_info("Setting Python home to '%s' from PYTHONHOME", env_value);
-      home = env_value;
-    } else {
+    {
       // If not will associate what should be the right path in
       // a standard distribution
       std::string python_path = shcore::get_mysqlx_home_path();
@@ -274,16 +268,10 @@ Python_init_singleton::Python_init_singleton() : m_local_initialization(false) {
     }
 #undef MAJOR_MINOR
 #else  // !_WIN32
-    const auto env_value = getenv("PYTHONHOME");
 
-    // If PYTHONHOME is available, honors it
-    if (env_value) {
-      log_info("Setting Python home to '%s' from PYTHONHOME", env_value);
-      home = env_value;
-    } else {
-#if defined(HAVE_PYTHON) && HAVE_PYTHON == 2
-      // If not will associate what should be the right path in
-      // a standard distribution
+#if HAVE_PYTHON == 2
+    {
+      // Set path to the bundled python version.
       std::string python_path = shcore::path::join_path(
           shcore::get_mysqlx_home_path(), "lib", "mysqlsh");
       if (shcore::is_folder(python_path)) {
@@ -291,8 +279,17 @@ Python_init_singleton::Python_init_singleton() : m_local_initialization(false) {
         log_info("Setting Python home to '%s'", python_path.c_str());
         home = python_path;
       }
-#endif
     }
+#else
+    const auto env_value = getenv("PYTHONHOME");
+
+    // If PYTHONHOME is available, honors it
+    if (env_value) {
+      log_info("Setting Python home to '%s' from PYTHONHOME", env_value);
+      home = env_value;
+    }
+#endif
+
 #endif  // !_WIN32
     set_python_home(home);
     set_program_name();
