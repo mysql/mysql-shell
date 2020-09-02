@@ -39,6 +39,12 @@ dba.rebootClusterFromCompleteOutage("");
 var cluster = dba.createCluster("dev");
 dba.dropMetadataSchema({force:true});
 
+//@# Dba_preconditions_standalone, configureLocalInstance allowed
+EXPECT_NO_THROWS(function(){dba.configureLocalInstance(__sandbox_uri1)});
+
+//@# Dba_preconditions_standalone, configureInstance allowed
+EXPECT_NO_THROWS(function(){dba.configureInstance(__sandbox_uri1)});
+
 //@# Dba_preconditions_unmanaged_gr, get_cluster_fails
 dba.getCluster("");
 

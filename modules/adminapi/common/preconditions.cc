@@ -205,7 +205,8 @@ const std::map<std::string, FunctionAvailability>
          {k_min_gr_version,
           GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
               GRInstanceType::StandaloneInMetadata |
-              GRInstanceType::InnoDBCluster | GRInstanceType::Unknown,
+              GRInstanceType::InnoDBCluster | GRInstanceType::Unknown |
+              GRInstanceType::GroupReplication,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {}}},
@@ -219,7 +220,8 @@ const std::map<std::string, FunctionAvailability>
         {"Dba.configureInstance",
          {k_min_gr_version,
           GRInstanceType::Standalone | GRInstanceType::StandaloneWithMetadata |
-              GRInstanceType::StandaloneInMetadata,
+              GRInstanceType::StandaloneInMetadata |
+              GRInstanceType::GroupReplication,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {}}},
