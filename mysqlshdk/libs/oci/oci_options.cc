@@ -36,7 +36,7 @@ namespace mysqlshdk {
 namespace oci {
 const size_t KIB = 1024;
 const size_t MIB = KIB * 1024;
-const size_t DEFAULT_MULTIPART_PART_SIZE = MIB * 64;
+const size_t DEFAULT_MULTIPART_PART_SIZE = MIB * 128;
 
 using Status_code = Response::Status_code;
 
