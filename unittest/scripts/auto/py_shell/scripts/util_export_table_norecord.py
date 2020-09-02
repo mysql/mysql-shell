@@ -217,6 +217,7 @@ def TEST_LOAD(schema, table, options = {}):
             ctype.endswith("bit") or
             ctype.endswith("blob") or
             ctype.endswith("geometry") or
+            ctype.endswith("geomcollection") or
             ctype.endswith("geometrycollection") or
             ctype.endswith("linestring") or
             ctype.endswith("point") or
