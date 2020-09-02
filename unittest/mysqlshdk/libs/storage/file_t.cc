@@ -61,6 +61,22 @@ TEST(Storage, file_write_truncate) {
   EXPECT_EQ("some", buffer);
 }
 
+TEST(Storage, fprintf_off_by_1) {
+  auto path = shcore::path::join_path(getenv("TMPDIR"), "testfile.txt");
+
+  for (int i = 2040; i < 2055; i++) {
+    std::string data(i, '#');
+    auto file = make_file(path);
+    file->open(mysqlshdk::storage::Mode::WRITE);
+    fprintf(file.get(), "[%s]", data.c_str());
+    file->close();
+
+    auto written = shcore::get_text_file(path);
+
+    EXPECT_EQ("[" + data + "]", written) << i;
+  }
+}
+
 #ifndef _WIN32
 TEST(Storage, file_mmap_option) {
   // mmap disabled by default even if requested
