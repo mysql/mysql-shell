@@ -40,6 +40,7 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/script.h"
+#include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -50,13 +51,13 @@
 namespace mysqlsh {
 
 // how many seconds the server should wait to finish reading data from client
-// basically how long it may take for a block of data to be read from its source
-// (download + decompression)
+// basically how long it may take for a block of data to be read from its
+// source (download + decompression)
 static constexpr const int k_mysql_server_net_read_timeout = 30 * 60;
 
 // number of seconds before server disconnects idle clients
-// load can take a long time and some of the connections will be idle meanwhile
-// so this needs to be high
+// load can take a long time and some of the connections will be idle
+// meanwhile so this needs to be high
 static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
 
 // the version of the dump we support in this code
@@ -529,8 +530,8 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
         try {
           session->execute(m_queries[i]);
         } catch (const shcore::Error &e) {
-          // Deadlocks and duplicate key errors should not happen but if they do
-          // they can be ignored at least for a while
+          // Deadlocks and duplicate key errors should not happen but if they
+          // do they can be ignored at least for a while
           if (e.code() == ER_LOCK_DEADLOCK && retries < 20) {
             console->print_note(
                 "Deadlock detected when recreating indexes for table `" +
@@ -646,9 +647,9 @@ void Dump_loader::Worker::load_chunk_file(
 
   // The reason why sending work to worker threads isn't done through a
   // regular queue is because a regular queue would create a static schedule
-  // for the chunk loading order. But we need to be able to dynamically schedule
-  // chunks based on the current conditions at the time each new chunk needs
-  // to be scheduled.
+  // for the chunk loading order. But we need to be able to dynamically
+  // schedule chunks based on the current conditions at the time each new
+  // chunk needs to be scheduled.
 
   m_task = std::make_unique<Load_chunk_task>(
       m_id, schema, table, chunk_index, std::move(file), options, resuming);
@@ -728,7 +729,8 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
                     k_mysql_server_net_read_timeout);
 
   // This is the time until the server kicks out idle connections. Our
-  // connections should last for as long as the dump lasts even if they're idle.
+  // connections should last for as long as the dump lasts even if they're
+  // idle.
   session->executef("SET SESSION wait_timeout = ?",
                     k_mysql_server_wait_timeout);
 
@@ -756,16 +758,83 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
   return session;
 }
 
+std::string Dump_loader::filter_user_script_for_mds(const std::string &script) {
+  // In MDS, the list of grants that a service user can have is restricted,
+  // even in "root" accounts.
+  // User accounts have at most:
+  // - a subset of global privileges
+  // - full DB privileges on any DB
+  // - a subset of DB privileges on mysql.* and sys.*
+
+  // Trying to grant or revoke any of those will result in an error, because
+  // the user doing the load will lack these privileges.
+
+  // Global privileges are stripped during dump with the
+  // strip_restricted_grants compat option, but revokes have to be stripped
+  // at load time. This is because:
+  // - we can't revoke what we don't have
+  // - anything we don't have will be implicitly revoked anyway
+  // Thus, stripping privs during dump will only work as intended if it's
+  // loaded in MDS, where the implicit revokes will happen. If a stripped
+  // dump is loaded by a root user in a non-MDS instance, accounts
+  // can end up without the expected original revokes.
+
+  // get list of privileges revoked from the administrator role
+  auto restrictions = mysqlshdk::mysql::get_user_restrictions(
+      mysqlshdk::mysql::Instance(m_session), "administrator", "%");
+
+#ifndef NDEBUG
+  for (const auto &r : restrictions) {
+    log_debug("Restrictions: schema=%s privileges=%s", r.first.c_str(),
+              shcore::str_join(r.second, ", ").c_str());
+  }
+#endif
+
+  // filter the users script
+  return dump::Schema_dumper::preprocess_users_script(
+      script,
+      [this](const std::string &account) {
+        return m_options.include_user(shcore::split_account(account));
+      },
+      [&restrictions](const std::string &priv_type,
+                      const std::string &priv_level) {
+        std::string schema, object;
+        shcore::split_priv_level(priv_level, &schema, &object);
+
+        if (object.empty() && schema == "*") return false;
+
+        // only schema.* revokes are expected, this needs to be reviewed if
+        // object specific revokes are ever added
+        for (const auto &r : restrictions) {
+          if (r.first == schema) {
+            // return true if the priv should be stripped
+            return std::find_if(r.second.begin(), r.second.end(),
+                                [&priv_type](const std::string &priv) {
+                                  return shcore::str_caseeq(priv, priv_type);
+                                }) != r.second.end();
+          }
+        }
+
+        return false;
+      });
+}
+
 void Dump_loader::on_dump_begin() {
   if (m_options.load_users()) {
     std::string script = m_dump->users_script();
 
     current_console()->print_status("Executing user accounts SQL...");
 
-    script = dump::Schema_dumper::preprocess_users_script(
-        script, [this](const std::string &account) {
-          return m_options.include_user(shcore::split_account(account));
-        });
+    if (m_options.is_mds()) {
+      script = filter_user_script_for_mds(script);
+    } else {
+      script = dump::Schema_dumper::preprocess_users_script(
+          script,
+          [this](const std::string &account) {
+            return m_options.include_user(shcore::split_account(account));
+          },
+          {});
+    }
 
     if (!m_options.dry_run())
       execute_script(m_session, script, "While executing user accounts SQL",
@@ -943,10 +1012,9 @@ void Dump_loader::switch_schema(const std::string &schema, bool load_done) {
     } catch (const std::exception &e) {
       current_console()->print_error(shcore::str_format(
           "Unable to use schema `%s`%s, error message: %s", schema.c_str(),
-          load_done
-              ? " that according to load status was already created, consider "
-                "resetting progress"
-              : "",
+          load_done ? " that according to load status was already created, "
+                      "consider resetting progress"
+                    : "",
           e.what()));
       if (!m_options.force()) throw;
       m_skip_schemas.insert(schema);
@@ -1479,22 +1547,24 @@ void Dump_loader::check_server_version() {
 
       if (!m_options.skip_binlog())
         throw std::runtime_error(
-            "updateGtidSet option on MySQL 5.7 target server can only be used "
-            "if skipBinlog option is enabled.");
+            "updateGtidSet option on MySQL 5.7 target server can only be "
+            "used if skipBinlog option is enabled.");
 
       if (!session.queryf_one_int(0, 0,
                                   "select @@global.gtid_executed = '' and "
                                   "@@global.gtid_purged = ''"))
         throw std::runtime_error(
-            "updateGtidSet:'replace' on target server version can only be used "
-            "if GTID_PURGED and GTID_EXECUTED are empty, but they’re not.");
+            "updateGtidSet:'replace' on target server version can only be "
+            "used if GTID_PURGED and GTID_EXECUTED are empty, but they’re "
+            "not.");
     } else {
       const char *g = m_dump->gtid_executed().c_str();
       if (m_options.update_gtid_set() ==
           Load_dump_options::Update_gtid_set::REPLACE) {
         if (!session.queryf_one_int(
                 0, 0,
-                "select GTID_SUBTRACT(?, GTID_SUBTRACT(@@global.gtid_executed, "
+                "select GTID_SUBTRACT(?, "
+                "GTID_SUBTRACT(@@global.gtid_executed, "
                 "@@global.gtid_purged)) = gtid_subtract(?, '')",
                 g, g))
           throw std::runtime_error(
@@ -1504,8 +1574,8 @@ void Dump_loader::check_server_version() {
         if (!session.queryf_one_int(
                 0, 0, "select GTID_SUBSET(@@global.gtid_purged, ?);", g))
           throw std::runtime_error(
-              "updateGtidSet:'replace' can only be used if dumped gtid set is "
-              "a superset of the current value of gtid_purged on target "
+              "updateGtidSet:'replace' can only be used if dumped gtid set "
+              "is a superset of the current value of gtid_purged on target "
               "server");
       } else if (!session.queryf_one_int(
                      0, 0,
@@ -1755,9 +1825,9 @@ void Dump_loader::setup_progress(bool *out_is_resuming) {
         initial = m_num_bytes_loaded.load();
       } else {
         console->print_note(
-            "Load progress file detected for the instance but 'resetProgress' "
-            "option was enabled. Load progress will be discarded and the whole "
-            "dump will be reloaded.");
+            "Load progress file detected for the instance but "
+            "'resetProgress' option was enabled. Load progress will be "
+            "discarded and the whole dump will be reloaded.");
 
         m_load_log->reset_progress();
       }
@@ -1791,9 +1861,9 @@ void Dump_loader::execute_threaded(
     size_t num_idle_workers = handle_worker_events(schedule_next);
 
     if (num_idle_workers == m_workers.size()) {
-      // make sure that there's really no more work. schedule_work() is supposed
-      // to just return false without doing anything. If it does something
-      // (and returns true), then we have a bug.
+      // make sure that there's really no more work. schedule_work() is
+      // supposed to just return false without doing anything. If it does
+      // something (and returns true), then we have a bug.
       assert(!schedule_next(&m_workers.front()) || m_worker_interrupt);
       break;
     }

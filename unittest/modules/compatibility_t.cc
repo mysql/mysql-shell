@@ -22,8 +22,10 @@
  */
 
 #include "modules/util/dump/compatibility.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
+#include "unittest/test_utils/test_combo_utilities.h"
 
 namespace mysqlsh {
 namespace compatibility {
@@ -997,6 +999,294 @@ TEST_F(Compatibility_test, indexes_recreation) {
                    1, 0);
 
   session->execute("drop database index_recreation_test");
+}
+
+std::vector<std::string> tokenize(const std::string &s) {
+  std::vector<std::string> tokens;
+  mysqlshdk::utils::SQL_iterator it(s, 0, false);
+  while (it.valid()) {
+    tokens.push_back(it.get_next_token());
+  }
+  return tokens;
+}
+
+TEST_F(Compatibility_test, filter_revoke_parsing) {
+  // this just checks parsing of revoke stmts
+
+  tests::String_combinator combinator(
+      "REVOKE {grants} ON {type} {level} FROM {user}");
+
+  std::vector<std::string> grant_test_cases = {
+      "SELECT", "SELECT, INSERT, DELETE", "CREATE TEMPORARY TABLES, EVENT",
+      "SELECT (col1, col2) ,INSERT(col)"};
+
+  combinator.add("grants", grant_test_cases);
+  combinator.add("type", {"", "TABLE", "FUNCTION", "PROCEDURE"});
+  combinator.add("level", {"*", "*.*", "bla.*", "`FROM`.`TO`", "bla.` `"});
+  combinator.add("user", {"root@localhost", "root@'%'", "`FROM`@localhost",
+                          "'FROM'@localhost", "\"FROM\"@localhost"});
+
+  std::string stmt = combinator.get();
+  while (!stmt.empty()) {
+    SCOPED_TRACE(stmt);
+
+    std::string expected_grants = combinator.get("grants");
+    expected_grants = shcore::str_replace(expected_grants, " ", "");
+
+    auto filter = [&](bool is_revoke, const std::string &priv_type,
+                      const std::string &column_list,
+                      const std::string &object_type,
+                      const std::string &priv_level) {
+      EXPECT_TRUE(is_revoke);
+
+      // strip privs we've seen from the expected list
+      std::string r = shcore::str_replace(
+          expected_grants,
+          shcore::str_replace(priv_type, " ", "") + column_list, "");
+      EXPECT_NE(r, expected_grants) << priv_type << "/" << column_list;
+      expected_grants = r;
+
+      EXPECT_EQ(combinator.get("type"), object_type);
+      EXPECT_EQ(combinator.get("level"), priv_level);
+
+      return true;
+    };
+
+    EXPECT_EQ(tokenize(stmt), tokenize(filter_grant_or_revoke(stmt, filter)));
+
+    // this should be empty now
+    expected_grants = shcore::str_replace(expected_grants, ",", "");
+    EXPECT_EQ("", expected_grants);
+
+    stmt = combinator.get();
+  }
+
+  EXPECT_EQ(
+      "REVOKE role@'%' FROM 'admin'@'%';",
+      filter_grant_or_revoke(
+          "REVOKE role@'%' FROM 'admin'@'%';",
+          [&](bool is_revoke, const std::string &priv_type,
+              const std::string &column_list, const std::string &object_type,
+              const std::string &priv_level) {
+            EXPECT_TRUE(is_revoke);
+            EXPECT_EQ(priv_type, "role@'%'");
+            EXPECT_EQ(column_list, "");
+            EXPECT_EQ(object_type, "");
+            EXPECT_EQ(priv_level, "");
+            return true;
+          }));
+
+  EXPECT_EQ(
+      "REVOKE PROXY ON ''@'' FROM 'admin'@'%';",
+      filter_grant_or_revoke(
+          "REVOKE PROXY ON ''@'' FROM 'admin'@'%';",
+          [&](bool is_revoke, const std::string &priv_type,
+              const std::string &column_list, const std::string &object_type,
+              const std::string &priv_level) {
+            EXPECT_TRUE(is_revoke);
+            EXPECT_EQ(priv_type, "PROXY");
+            EXPECT_EQ(column_list, "");
+            EXPECT_EQ(object_type, "");
+            EXPECT_EQ(priv_level, "");
+            return true;
+          }));
+}
+
+TEST_F(Compatibility_test, filter_grant_parsing) {
+  tests::String_combinator combinator(
+      "GRANT {grants} ON {type} {level} TO {user}{extras}");
+
+  std::vector<std::string> grant_test_cases = {
+      "SELECT", "SELECT, INSERT, DELETE", "CREATE TEMPORARY TABLES, EVENT",
+      "SELECT (col1, col2) ,INSERT(col)"};
+
+  combinator.add("grants", grant_test_cases);
+  combinator.add("type", {"", "TABLE", "FUNCTION", "PROCEDURE"});
+  combinator.add("level",
+                 {"*", "*.*", "bla.*", "a.b", "`FROM`.`TO`", "bla.` `"});
+  combinator.add("user",
+                 {"root@localhost", "root@'%'", "`FROM`@localhost",
+                  "'FROM'@localhost", "\"FROM\"@localhost", "`aaa`@`bbbb`"});
+  combinator.add("extras", {" WITH GRANT OPTION", ""});
+
+  std::string stmt = combinator.get();
+  while (!stmt.empty()) {
+    SCOPED_TRACE(stmt);
+
+    std::string expected_grants = combinator.get("grants");
+    expected_grants = shcore::str_replace(expected_grants, " ", "");
+
+    auto filter = [&](bool is_revoke, const std::string &priv_type,
+                      const std::string &column_list,
+                      const std::string &object_type,
+                      const std::string &priv_level) {
+      EXPECT_FALSE(is_revoke);
+
+      // strip privs we've seen from the expected list
+      std::string r = shcore::str_replace(
+          expected_grants,
+          shcore::str_replace(priv_type, " ", "") + column_list, "");
+      EXPECT_NE(r, expected_grants) << priv_type << "/" << column_list << "/";
+      expected_grants = r;
+
+      EXPECT_EQ(combinator.get("type"), object_type);
+      EXPECT_EQ(combinator.get("level"), priv_level);
+
+      return true;
+    };
+
+    EXPECT_EQ(tokenize(stmt), tokenize(filter_grant_or_revoke(stmt, filter)));
+
+    // this should be empty now
+    expected_grants = shcore::str_replace(expected_grants, ",", "");
+    EXPECT_EQ("", expected_grants);
+
+    stmt = combinator.get();
+  }
+
+  EXPECT_EQ(
+      "GRANT PROXY ON ''@'' TO 'admin'@'%' WITH GRANT OPTION;",
+      filter_grant_or_revoke(
+          "GRANT PROXY ON ''@'' TO 'admin'@'%' WITH GRANT OPTION;",
+          [&](bool is_revoke, const std::string &priv_type,
+              const std::string &column_list, const std::string &object_type,
+              const std::string &priv_level) {
+            EXPECT_FALSE(is_revoke);
+            EXPECT_EQ(priv_type, "PROXY");
+            EXPECT_EQ(column_list, "");
+            EXPECT_EQ(object_type, "");
+            EXPECT_EQ(priv_level, "");
+            return true;
+          }));
+
+  EXPECT_EQ(
+      "GRANT `administrator`@`%` TO `admin`@`%` WITH ADMIN OPTION;",
+      filter_grant_or_revoke(
+          "GRANT `administrator`@`%` TO `admin`@`%` WITH ADMIN OPTION;",
+          [&](bool is_revoke, const std::string &priv_type,
+              const std::string &column_list, const std::string &object_type,
+              const std::string &priv_level) {
+            EXPECT_FALSE(is_revoke);
+            EXPECT_EQ(priv_type, "`administrator`@`%`");
+            EXPECT_EQ(column_list, "");
+            EXPECT_EQ(object_type, "");
+            EXPECT_EQ(priv_level, "");
+            return true;
+          }));
+
+  EXPECT_EQ(
+      "GRANT administrator TO `admin`@`%` WITH ADMIN OPTION;",
+      filter_grant_or_revoke(
+          "GRANT administrator TO `admin`@`%` WITH ADMIN OPTION;",
+          [&](bool is_revoke, const std::string &priv_type,
+              const std::string &column_list, const std::string &object_type,
+              const std::string &priv_level) {
+            EXPECT_FALSE(is_revoke);
+            EXPECT_EQ(priv_type, "administrator");
+            EXPECT_EQ(column_list, "");
+            EXPECT_EQ(object_type, "");
+            EXPECT_EQ(priv_level, "");
+            return true;
+          }));
+}
+
+TEST_F(Compatibility_test, filter_revoke) {
+  auto update_filter = [](bool is_revoke, const std::string &priv_type,
+                          const std::string &, const std::string &,
+                          const std::string &priv_level) {
+    EXPECT_TRUE(is_revoke);
+
+    if (priv_level == "mysql.*") {
+      if (priv_type == "insert" || priv_type == "delete" ||
+          priv_type == "update")
+        return false;
+    }
+    return true;
+  };
+
+  EXPECT_EQ("REVOKE select on mysql.* from root@localhost",
+            filter_grant_or_revoke("REVOKE select, insert, update, delete on "
+                                   "mysql.* from root@localhost",
+                                   update_filter));
+
+  EXPECT_EQ(
+      "REVOKE select, insert, update, delete on mysqlx.* from root@localhost",
+      filter_grant_or_revoke("REVOKE select, insert, update, delete on "
+                             "mysqlx.* from root@localhost",
+                             update_filter));
+
+  EXPECT_EQ("revoke select(col1) on mysql.* from root@localhost",
+            filter_grant_or_revoke(
+                "revoke select (col1), insert (col2), update, delete on "
+                "mysql.* from root@localhost",
+                update_filter));
+
+  EXPECT_EQ("", filter_grant_or_revoke("revoke insert, update, delete on "
+                                       "mysql.* from root@localhost",
+                                       update_filter));
+}
+
+TEST_F(Compatibility_test, filter_grant) {
+  auto update_filter = [](bool is_revoke, const std::string &priv_type,
+                          const std::string &, const std::string &,
+                          const std::string &priv_level) {
+    EXPECT_FALSE(is_revoke);
+
+    if (priv_level == "mysql.*") {
+      if (priv_type == "insert" || priv_type == "delete" ||
+          priv_type == "update")
+        return false;
+    }
+    return true;
+  };
+
+  EXPECT_EQ("GRANT select on mysql.* to root@localhost",
+            filter_grant_or_revoke("GRANT select, insert, update, delete on "
+                                   "mysql.* to root@localhost",
+                                   update_filter));
+
+  EXPECT_EQ(
+      "GRANT select, insert, update, delete on mysqlx.* to root@localhost",
+      filter_grant_or_revoke("GRANT select, insert, update, delete on "
+                             "mysqlx.* to root@localhost",
+                             update_filter));
+
+  EXPECT_EQ("GRANT select(col1) on mysql.* to root@localhost",
+            filter_grant_or_revoke(
+                "GRANT select (col1), insert (col2), update, delete on "
+                "mysql.* to root@localhost",
+                update_filter));
+
+  EXPECT_EQ("", filter_grant_or_revoke("grant insert, update, delete on "
+                                       "mysql.* to root@localhost",
+                                       update_filter));
+}
+
+TEST_F(Compatibility_test, filter_grant_malformed) {
+  auto filter = [](bool, const std::string &, const std::string &,
+                   const std::string &, const std::string &) { return true; };
+
+  EXPECT_THROW(filter_grant_or_revoke("grant", filter), std::runtime_error);
+
+  EXPECT_THROW(filter_grant_or_revoke("grant on", filter), std::runtime_error);
+
+  EXPECT_THROW(filter_grant_or_revoke("grant on table", filter),
+               std::runtime_error);
+
+  EXPECT_THROW(filter_grant_or_revoke("revoke *.*", filter),
+               std::runtime_error);
+
+  EXPECT_THROW(filter_grant_or_revoke("revoke from", filter),
+               std::runtime_error);
+
+  EXPECT_THROW(filter_grant_or_revoke("revoke from (", filter),
+               std::runtime_error);
+
+  EXPECT_THROW(filter_grant_or_revoke("revoke x (", filter),
+               std::runtime_error);
+
+  EXPECT_THROW(filter_grant_or_revoke("revoke on all on bla", filter),
+               std::runtime_error);
 }
 
 }  // namespace compatibility

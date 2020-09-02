@@ -58,6 +58,7 @@ const std::set<std::string> k_mysqlaas_allowed_privileges = {
     "SHOW VIEW",
     "TRIGGER",
     "UPDATE"};
+
 namespace {
 using Offset = std::pair<std::size_t, std::size_t>;
 using Offsets = std::vector<Offset>;
@@ -194,7 +195,7 @@ std::vector<std::string> check_privileges(
     token = it.get_next_token();
     auto after_pos = it.position();
     auto next = it.get_next_token();
-    // @ is reported as token for roles, it is skipped as this function only
+    // @ is reported as a token for roles, it is skipped as this function only
     // searches for individual grants
     while (token == "@" && next == ",") {
       token = it.get_next_token();
@@ -244,6 +245,160 @@ std::vector<std::string> check_privileges(
   return res;
 }
 
+std::string filter_grant_or_revoke(
+    const std::string &stmt,
+    const std::function<bool(bool is_revoke, const std::string &priv_type,
+                             const std::string &column_list,
+                             const std::string &object_type,
+                             const std::string &priv_level)> &filter) {
+  std::string filtered_stmt;
+  // tokenize the whole thing to simplify
+  std::vector<std::pair<std::string, size_t>> tokens;
+  {
+    SQL_iterator it(stmt, 0, false);
+    while (it.valid()) {
+      tokens.push_back(it.get_next_token_and_offset());
+    }
+  }
+
+  auto t = tokens.begin();
+  const auto t_end = tokens.end();
+
+  const auto check_if = [&t, t_end](const std::string &token) {
+    if (t != t_end && shcore::str_caseeq(t->first, token)) return true;
+    return false;
+  };
+
+  const auto advance_if = [&t, &check_if](const std::string &token,
+                                          size_t *out_offset = nullptr) {
+    if (check_if(token)) {
+      if (out_offset) *out_offset = t->second;
+      ++t;
+      return true;
+    }
+    return false;
+  };
+
+  const auto consume = [&t, t_end, stmt]() -> const std::string & {
+    if (t != t_end) {
+      auto &tmp = *t;
+      ++t;
+      return tmp.first;
+    }
+    throw std::runtime_error("Malformed grant/revoke statement: " + stmt);
+  };
+
+  if (check_if("REVOKE") || check_if("GRANT")) {
+    // iterate list of privileges (and maybe column list) until an ON keyword
+    std::vector<std::pair<std::string, std::string>> privs;
+    std::string object_type;
+    std::string priv_level;
+
+    filtered_stmt = consume();
+
+    bool is_revoke = (shcore::str_caseeq(filtered_stmt, "REVOKE"));
+
+    size_t priv_list_end = 0;
+    bool role_grant = true;
+
+    {
+      const auto t_save = t;
+
+      // check if there's an ON xxx.yyy clause in the stmt, if there isn't one
+      // then this is a role grant/revoke
+      while (!check_if("TO") && !check_if("FROM")) {
+        if (check_if("ON")) {
+          role_grant = false;
+          break;
+        }
+        consume();
+      }
+      t = t_save;
+    }
+
+    // priv_type
+    std::string priv = consume();
+
+    if (shcore::str_caseeq(priv, "PROXY")) {
+      if (!advance_if("ON", &priv_list_end))
+        throw std::runtime_error("Malformed grant/revoke statement: " + stmt);
+      consume();  // user
+      if (consume() != "@")
+        throw std::runtime_error("Malformed grant/revoke statement: " + stmt);
+      consume();  // host
+
+      privs.emplace_back(priv, "");
+    } else if (role_grant) {
+      // this is granting a role
+      while (!check_if("TO") && !check_if("FROM")) {
+        priv += consume();
+      }
+
+      priv_list_end = t->second;
+      privs.emplace_back(priv, "");
+    } else {
+      for (;;) {
+        // keep consuming until 'ON' ',' or '('
+        while (!check_if("ON") && !check_if("(") && !check_if(",")) {
+          priv += " " + consume();
+        }
+
+        std::string cols;
+        if (advance_if("(")) {
+          // optional (column_list)
+          cols = "(";
+          while (!advance_if(")")) {
+            cols += consume();
+          }
+          cols += ")";
+        }
+
+        privs.emplace_back(priv, cols);
+
+        if (advance_if("ON", &priv_list_end)) {
+          break;
+        }
+        if (!advance_if(",")) {
+          throw std::runtime_error("Malformed grant/revoke statement: " + stmt);
+        }
+        priv = consume();
+      }
+
+      // parse everything until FROM/TO
+      if (!advance_if("FROM") && !advance_if("TO")) {
+        if (check_if("TABLE") || check_if("FUNCTION") ||
+            check_if("PROCEDURE")) {
+          object_type = consume();
+        }
+        while (!advance_if("FROM") && !advance_if("TO")) {
+          priv_level += consume();
+        }
+      }
+    }
+
+    // do the filtering
+    for (const auto &p : privs) {
+      if (filter(is_revoke, p.first, p.second, object_type, priv_level)) {
+        filtered_stmt.append(" ").append(p.first).append(p.second).append(",");
+      }
+    }
+    if (filtered_stmt.back() == ',') {
+      filtered_stmt.pop_back();
+      filtered_stmt.push_back(' ');
+    } else {
+      // all privs got stripped
+      return "";
+    }
+
+    // copy the rest of the stmt
+    filtered_stmt += stmt.substr(priv_list_end);
+  } else {
+    throw std::runtime_error("Malformed grant/revoke statement: " + stmt);
+  }
+
+  return filtered_stmt;
+}
+
 bool check_create_table_for_data_index_dir_option(
     const std::string &create_table, std::string *rewritten) {
   /*
@@ -274,13 +429,6 @@ bool check_create_table_for_data_index_dir_option(
 bool check_create_table_for_encryption_option(const std::string &create_table,
                                               std::string *rewritten) {
   // Comment out ENCRYPTION option.
-  //  std::regex encryption_option(
-  //      "\\s*,?\\s*ENCRYPTION\\s*?=?\\s*?[\"'][NY]?[\"']\\s*,?\\s*",
-  //      std::regex::icase | std::regex::nosubs);
-  //  auto q = std::regex_replace(create_table, encryption_option, " /*$&*/ ");
-  //  bool res = q != create_table;
-  //  if (rewritten) *rewritten = q;
-  //  return res;
 
   return comment_out_option_with_string(
       create_table, rewritten, [](std::string *token, SQL_iterator *it) {

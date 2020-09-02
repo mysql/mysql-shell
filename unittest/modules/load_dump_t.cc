@@ -476,4 +476,53 @@ TEST_F(Load_dump_mocked, chunk_scheduling_more_tables) {
   }
 }
 
+static constexpr const char *k_mds_administrator_restrictions =
+    R"*([{"Database": "sys", "Privileges": ["CREATE", "DROP", "REFERENCES", "INDEX", "ALTER", "CREATE TEMPORARY TABLES", "LOCK TABLES", "CREATE VIEW", "CREATE ROUTINE", "ALTER ROUTINE", "EVENT", "TRIGGER"]}, {"Database": "mysql", "Privileges": ["INSERT", "UPDATE", "DELETE", "CREATE", "DROP", "REFERENCES", "INDEX", "ALTER", "CREATE TEMPORARY TABLES", "LOCK TABLES", "EXECUTE", "CREATE VIEW", "CREATE ROUTINE", "ALTER ROUTINE", "EVENT", "TRIGGER"]}])*";
+
+TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
+  Load_dump_options options;
+
+  auto mock_main_session = std::make_shared<testing::Mock_mysql_session>();
+
+  EXPECT_CALL(*mock_main_session, get_connection_options())
+      .WillRepeatedly(ReturnRef(m_coptions));
+
+  mock_main_session->expect_query("SELECT @@version")
+      .then({"version"})
+      .add_row({"8.0.21-u1-cloud"});
+
+  options.set_session(mock_main_session, "");
+
+  Dump_loader loader(options);
+
+  loader.m_session = options.base_session();
+
+  shcore::iterdir(
+      shcore::path::join_path(g_test_home,
+                              "data/load/filter_user_script_for_mds"),
+      [&](const std::string &f) -> bool {
+        if (!shcore::str_endswith(f, ".sql")) return true;
+        auto path = shcore::path::join_path(
+            g_test_home, "data/load/filter_user_script_for_mds", f);
+
+        std::string script;
+        std::string expected_out;
+
+        EXPECT_TRUE(shcore::load_text_file(path, script));
+        EXPECT_TRUE(shcore::load_text_file(path + ".out", expected_out));
+
+        mock_main_session
+            ->expect_query(
+                "SELECT User_attributes->>'$.Restrictions' FROM mysql.user "
+                "WHERE user='administrator' AND host='%'")
+            .then({"res"})
+            .add_row({k_mds_administrator_restrictions});
+
+        auto out = loader.filter_user_script_for_mds(script);
+        EXPECT_EQ(out, expected_out);
+
+        return true;
+      });
+}
+
 }  // namespace mysqlsh
