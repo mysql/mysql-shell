@@ -1,4 +1,6 @@
 # This is unit test file for WL12193 Parallel data import
+import os
+
 target_port = __mysql_port
 target_xport = __port
 target_schema = 'wl12193'
@@ -235,6 +237,38 @@ session.run_sql("truncate table cities_latin2")
 #@<OUT> Import to table with latin2 character set
 util.import_table(__import_data_path + '/cities_pl_latin2.dump', {'table':'cities_latin2', 'characterSet': 'latin2'})
 shell.dump_rows(session.run_sql('select hex(id), hex(name) from cities_latin2'), "tabbed")
+
+#@<> BUG#31407133 IF SQL_MODE='NO_BACKSLASH_ESCAPES' IS SET, UTIL.IMPORTTABLE FAILS TO IMPORT DATA
+session.run_sql("SET GLOBAL SQL_MODE='NO_BACKSLASH_ESCAPES'")
+
+session.run_sql('TRUNCATE TABLE !.cities', [ target_schema ])
+EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "schema": target_schema, "table": 'cities' }), "importing when SQL mode is set")
+
+session.run_sql("SET GLOBAL SQL_MODE=''")
+
+#@<> BUG#31412330 UTIL.IMPORTTABLE(): UNABLE TO IMPORT DATA INTO A TABLE WITH NON-ASCII NAME
+old_cs_client = session.run_sql("SELECT @@session.character_set_client").fetch_one()[0]
+old_cs_connection = session.run_sql("SELECT @@session.character_set_connection").fetch_one()[0]
+old_cs_results = session.run_sql("SELECT @@session.character_set_results").fetch_one()[0]
+
+target_table = 'citięs'
+if __version_num < 80000:
+    target_character_set = 'utf8mb4'
+else:
+    target_character_set = 'latin1'
+
+session.run_sql("SET NAMES ?", [ target_character_set ])
+session.run_sql("CREATE TABLE !.! LIKE !.!;", [ target_schema, target_table, target_schema, 'cities' ])
+
+EXPECT_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "schema": target_schema, "table": target_table }), "Table '{0}.{1}' doesn't exist".format(target_schema, target_table))
+
+EXPECT_NO_THROWS(lambda: util.import_table(os.path.join(__import_data_path, 'world_x_cities.dump'), { "schema": target_schema, "table": target_table, "characterSet": target_character_set }), "importing with characterSet")
+
+session.run_sql("DROP TABLE !.!;", [ target_schema, target_table ])
+
+session.run_sql("SET @@session.character_set_client = ?", [ old_cs_client ])
+session.run_sql("SET @@session.character_set_connection = ?", [ old_cs_connection ])
+session.run_sql("SET @@session.character_set_results = ?", [ old_cs_results ])
 
 #@<> Teardown
 session.run_sql("DROP SCHEMA IF EXISTS " + target_schema)

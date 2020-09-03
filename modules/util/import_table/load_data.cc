@@ -236,6 +236,15 @@ void Load_data_worker::execute(
     fi.max_rate = m_opt.max_rate();
     fi.range_read = m_range_queue ? true : false;
 
+    // clear the SQL mode
+    session->execute("SET SQL_MODE = '';");
+
+    // if user has specified the character set, set the session variables
+    // related to the client connection
+    if (!m_opt.character_set().empty()) {
+      session->executef("SET NAMES ?;", m_opt.character_set());
+    }
+
     // set session variables
     session->execute("SET unique_checks = 0");
     session->execute("SET foreign_key_checks = 0");
