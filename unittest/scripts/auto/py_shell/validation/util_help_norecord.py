@@ -233,6 +233,10 @@ DESCRIPTION
 
       - MySQL Server 5.7 or newer is required.
       - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+      - Columns with data types which are not safe to be stored in text form
+        (i.e. BLOB) are converted to Base64, hence the size of such columns
+        cannot exceed approximately 0.74 * max_allowed_packet bytes, as
+        configured through that system variable at the target server.
       - Schema object names must use latin1 or utf8 character set.
       - Only tables which use the InnoDB storage engine are guaranteed to be
         dumped with consistent data.
@@ -508,6 +512,10 @@ DESCRIPTION
 
       - MySQL Server 5.7 or newer is required.
       - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+      - Columns with data types which are not safe to be stored in text form
+        (i.e. BLOB) are converted to Base64, hence the size of such columns
+        cannot exceed approximately 0.74 * max_allowed_packet bytes, as
+        configured through that system variable at the target server.
       - Schema object names must use latin1 or utf8 character set.
       - Only tables which use the InnoDB storage engine are guaranteed to be
         dumped with consistent data.
@@ -760,6 +768,10 @@ DESCRIPTION
 
       - MySQL Server 5.7 or newer is required.
       - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+      - Columns with data types which are not safe to be stored in text form
+        (i.e. BLOB) are converted to Base64, hence the size of such columns
+        cannot exceed approximately 0.74 * max_allowed_packet bytes, as
+        configured through that system variable at the target server.
       - Schema object names must use latin1 or utf8 character set.
       - Only tables which use the InnoDB storage engine are guaranteed to be
         dumped with consistent data.
@@ -921,6 +933,10 @@ DESCRIPTION
 
       - MySQL Server 5.7 or newer is required.
       - File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+      - Columns with data types which are not safe to be stored in text form
+        (i.e. BLOB) are converted to Base64, hence the size of such columns
+        cannot exceed approximately 0.74 * max_allowed_packet bytes, as
+        configured through that system variable at the target server.
 
       Details
 
@@ -1473,7 +1489,7 @@ DESCRIPTION
       - loadUsers: bool (default: false) - Executes SQL scripts for user
         accounts, roles and grants contained in the dump. Note: statements for
         the current user will be skipped.
-      - progressFile: path (default: load-progress.<server_uuid>.progress) - 
+      - progressFile: path (default: load-progress.<server_uuid>.progress) -
         Stores load progress information in the given local file path.
       - resetProgress: bool (default: false) - Discards progress information of
         previous load attempts to the destination server and loads the whole
