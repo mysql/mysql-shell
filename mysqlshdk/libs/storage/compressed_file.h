@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,6 +63,7 @@ class Compressed_file : public IFile {
   void remove() override;
 
   IFile *file() const { return m_file.get(); }
+  bool is_compressed() const override { return true; }
 
  private:
   std::unique_ptr<IFile> m_file;
