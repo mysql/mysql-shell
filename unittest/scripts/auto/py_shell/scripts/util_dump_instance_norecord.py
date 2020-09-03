@@ -1246,9 +1246,9 @@ if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first. You can check for potential upgrade issues using util.check_for_server_upgrade().")
 
 if __version_num < 80000:
-    EXPECT_STDOUT_CONTAINS("ERROR: User '{0}'@'localhost' is granted restricted privilege: {1}".format(test_user, test_privilege))
+    EXPECT_STDOUT_CONTAINS("ERROR: User '{0}'@'localhost' is granted restricted privilege: {1} (fix this with 'strip_restricted_grants' compatibility option)".format(test_user, test_privilege))
 else:
-    EXPECT_STDOUT_CONTAINS("ERROR: User '{0}'@'localhost' is granted restricted privileges: {1}".format(test_user, test_privilege))
+    EXPECT_STDOUT_CONTAINS("ERROR: User '{0}'@'localhost' is granted restricted privileges: {1} (fix this with 'strip_restricted_grants' compatibility option)".format(test_user, test_privilege))
 
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_data_directory))
 
@@ -1256,11 +1256,14 @@ EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had ENCRYPTION table option comm
 
 if __version_num < 80000 and __os_type != "windows":
     EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_index_directory))
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM".format(incompatible_schema, incompatible_table_index_directory))
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported tablespace option".format(incompatible_schema, incompatible_table_tablespace))
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM (fix this with 'force_innodb' compatibility option)".format(incompatible_schema, incompatible_table_index_directory))
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM".format(incompatible_schema, incompatible_table_wrong_engine))
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported tablespace option (fix this with 'strip_tablespaces' compatibility option)".format(incompatible_schema, incompatible_table_tablespace))
+
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM (fix this with 'force_innodb' compatibility option)".format(incompatible_schema, incompatible_table_wrong_engine))
+
+EXPECT_STDOUT_CONTAINS("ERROR: View {0}.{1} - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)".format(incompatible_schema, incompatible_view))
 
 EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version))
 

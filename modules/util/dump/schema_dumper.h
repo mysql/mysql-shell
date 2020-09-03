@@ -38,15 +38,26 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
+namespace dump {
 
 using mysqlshdk::storage::IFile;
 
 class Schema_dumper {
  public:
   struct Issue {
-    Issue(const std::string &d, bool f) : description(d), fixed(f) {}
+    enum class Status {
+      FIXED,
+      FIX_MANUALLY,
+      USE_FORCE_INNODB,
+      USE_STRIP_DEFINERS,
+      USE_STRIP_RESTRICTED_GRANTS,
+      USE_STRIP_TABLESPACES
+    };
+
+    Issue(const std::string &d, Status s) : description(d), status(s) {}
+
     std::string description;
-    bool fixed;
+    Status status;
   };
 
   struct Histogram {
@@ -293,6 +304,7 @@ class Schema_dumper {
                                                        const std::string &db);
 };
 
+}  // namespace dump
 }  // namespace mysqlsh
 
 #endif  // MODULES_UTIL_DUMP_SCHEMA_DUMPER_H_

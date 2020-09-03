@@ -57,6 +57,7 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "modules/mod_utils.h"
+#include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/console_with_progress.h"
 #include "modules/util/dump/dialect_dump_writer.h"
 #include "modules/util/dump/dump_manifest.h"
@@ -1226,13 +1227,26 @@ void Dumper::validate_mds() const {
 
     const auto issues = [&](const auto &memory) {
       for (const auto &issue : memory->issues()) {
-        fixed |= issue.fixed;
-        error |= !issue.fixed;
+        const bool was_fixed =
+            Schema_dumper::Issue::Status::FIXED == issue.status;
 
-        if (issue.fixed) {
+        fixed |= was_fixed;
+        error |= !was_fixed;
+
+        if (was_fixed) {
           console->print_note(issue.description);
         } else {
-          console->print_error(issue.description);
+          std::string hint;
+
+          if (Schema_dumper::Issue::Status::FIX_MANUALLY == issue.status) {
+            hint = "this issue needs to be fixed manually";
+          } else {
+            hint = "fix this with '" +
+                   to_string(to_compatibility_option(issue.status)) +
+                   "' compatibility option";
+          }
+
+          console->print_error(issue.description + " (" + hint + ")");
         }
       }
     };

@@ -36,6 +36,7 @@
 #include "modules/util/dump/schema_dumper.h"
 
 namespace mysqlsh {
+namespace dump {
 
 Instance_cache_builder::Instance_cache_builder(
     const std::shared_ptr<mysqlshdk::db::ISession> &session)
@@ -103,4 +104,5 @@ void Instance_cache_builder::fetch_ndbinfo() {
   }
 }
 
+}  // namespace dump
 }  // namespace mysqlsh

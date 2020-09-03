@@ -45,6 +45,20 @@ Compatibility_option to_compatibility_option(const std::string &c) {
   throw std::invalid_argument("Unknown compatibility option: " + c);
 }
 
+Compatibility_option to_compatibility_option(Schema_dumper::Issue::Status s) {
+  if (s == Schema_dumper::Issue::Status::USE_FORCE_INNODB)
+    return Compatibility_option::FORCE_INNODB;
+  else if (s == Schema_dumper::Issue::Status::USE_STRIP_DEFINERS)
+    return Compatibility_option::STRIP_DEFINERS;
+  else if (s == Schema_dumper::Issue::Status::USE_STRIP_RESTRICTED_GRANTS)
+    return Compatibility_option::STRIP_RESTRICTED_GRANTS;
+  else if (s == Schema_dumper::Issue::Status::USE_STRIP_TABLESPACES)
+    return Compatibility_option::STRIP_TABLESPACES;
+
+  throw std::logic_error(
+      "This status cannot be converted to Compatibility_option");
+}
+
 std::string to_string(Compatibility_option c) {
   switch (c) {
     case Compatibility_option::FORCE_INNODB:

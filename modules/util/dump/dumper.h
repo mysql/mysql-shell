@@ -48,10 +48,9 @@
 #include "modules/util/dump/instance_cache.h"
 
 namespace mysqlsh {
+namespace dump {
 
 class Schema_dumper;
-
-namespace dump {
 
 class Dumper {
  public:

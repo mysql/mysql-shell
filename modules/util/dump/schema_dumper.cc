@@ -55,6 +55,7 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
+namespace dump {
 
 /**
   Name of the information schema database.
@@ -942,7 +943,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
         if (row->get_int(0) == 0)
           res.emplace_back(
               prefix + "does not have primary or unique non null key defined",
-              false);
+              Issue::Status::FIX_MANUALLY);
       } else {
         throw std::runtime_error("Table not present in information_schema");
       }
@@ -957,12 +958,12 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
             *create_table, create_table))
       res.emplace_back(
           prefix + "had {DATA|INDEX} DIRECTORY table option commented out",
-          true);
+          Issue::Status::FIXED);
 
     if (compatibility::check_create_table_for_encryption_option(*create_table,
                                                                 create_table))
       res.emplace_back(prefix + "had ENCRYPTION table option commented out",
-                       true);
+                       Issue::Status::FIXED);
   }
 
   if (opt_mysqlaas || opt_force_innodb) {
@@ -972,10 +973,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
       if (opt_force_innodb)
         res.emplace_back(
             prefix + "had unsupported engine " + engine + " changed to InnoDB",
-            opt_force_innodb);
+            Issue::Status::FIXED);
       else
         res.emplace_back(prefix + "uses unsupported storage engine " + engine,
-                         opt_force_innodb);
+                         Issue::Status::USE_FORCE_INNODB);
     }
   }
 
@@ -984,10 +985,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
             *create_table, opt_strip_tablespaces ? create_table : nullptr)) {
       if (opt_strip_tablespaces)
         res.emplace_back(prefix + "had unsupported tablespace option removed",
-                         opt_strip_tablespaces);
+                         Issue::Status::FIXED);
       else
         res.emplace_back(prefix + "uses unsupported tablespace option",
-                         opt_strip_tablespaces);
+                         Issue::Status::USE_STRIP_TABLESPACES);
     }
   }
   return res;
@@ -1015,7 +1016,8 @@ void Schema_dumper::check_object_for_definer(const std::string &db,
     if (!user.empty()) {
       const auto prefix = get_object_err_prefix(db, object, name);
       if (opt_strip_definer) {
-        issues->emplace_back(prefix + "had definer clause removed", true);
+        issues->emplace_back(prefix + "had definer clause removed",
+                             Issue::Status::FIXED);
         if (compatibility::check_statement_for_sqlsecurity_clause(*ddl, ddl))
           issues->back().description +=
               " and SQL SECURITY characteristic set to INVOKER";
@@ -1024,7 +1026,7 @@ void Schema_dumper::check_object_for_definer(const std::string &db,
             prefix + "- definition uses DEFINER clause set to user " + user +
                 " which can only be executed by this user or a user with "
                 "SET_USER_ID or SUPER privileges",
-            false);
+            Issue::Status::USE_STRIP_DEFINERS);
       }
     }
   }
@@ -2278,7 +2280,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
             res.emplace_back(
                 "Database " + qdatabase +
                     " had unsupported ENCRYPTION option commented out",
-                true);
+                Issue::Status::FIXED);
         }
 
         fprintf(file, "\n%s;\n", createdb.c_str());
@@ -2505,13 +2507,13 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
             "User " + user + " had restricted " +
                 (restricted.size() > 1 ? "privileges (" : "privilege (") +
                 shcore::str_join(restricted, ", ") + ") removed",
-            true);
+            Issue::Status::FIXED);
       } else {
         problems.emplace_back(
             "User " + user + " is granted restricted " +
                 (restricted.size() > 1 ? "privileges: " : "privilege: ") +
                 shcore::str_join(restricted, ", "),
-            false);
+            Issue::Status::USE_STRIP_RESTRICTED_GRANTS);
       }
     }
     if (!grants.empty()) {
@@ -2642,4 +2644,5 @@ std::string Schema_dumper::preprocess_users_script(
   return out;
 }
 
+}  // namespace dump
 }  // namespace mysqlsh

@@ -751,7 +751,7 @@ void Dump_loader::on_dump_begin() {
 
     current_console()->print_status("Executing user accounts SQL...");
 
-    script = Schema_dumper::preprocess_users_script(
+    script = dump::Schema_dumper::preprocess_users_script(
         script, [this](const std::string &account) {
           return m_options.include_user(shcore::split_account(account));
         });
