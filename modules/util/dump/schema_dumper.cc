@@ -1786,14 +1786,18 @@ int Schema_dumper::is_ndbinfo(const std::string &dbname) {
   if (!checked_ndbinfo) {
     checked_ndbinfo = 1;
 
-    std::shared_ptr<mysqlshdk::db::IResult> res;
-    if (query_no_throw(
-            "SHOW VARIABLES LIKE " + quote_for_like("ndbinfo_version"), &res))
-      return 0;
+    if (m_cache) {
+      have_ndbinfo = m_cache->has_ndbinfo;
+    } else {
+      std::shared_ptr<mysqlshdk::db::IResult> res;
+      if (query_no_throw(
+              "SHOW VARIABLES LIKE " + quote_for_like("ndbinfo_version"), &res))
+        return 0;
 
-    if (!res->fetch_one()) return 0;
+      if (!res->fetch_one()) return 0;
 
-    have_ndbinfo = 1;
+      have_ndbinfo = 1;
+    }
   }
 
   if (!have_ndbinfo) return 0;
@@ -2523,6 +2527,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
 std::vector<shcore::Account> Schema_dumper::get_users(
     const std::vector<shcore::Account> &included,
     const std::vector<shcore::Account> &excluded) {
+  if (m_cache) {
+    return m_cache->users;
+  }
+
   std::string where_filter;
 
   {

@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "modules/util/dump/compatibility.h"
+#include "modules/util/dump/instance_cache.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -109,6 +110,8 @@ class Schema_dumper {
   void write_comment(IFile *sql_file, const std::string &db_name = "",
                      const std::string &table_name = "");
 
+  void use_cache(const Instance_cache *cache) { m_cache = cache; }
+
  public:
   // Config options
   bool opt_force = false;
@@ -174,6 +177,8 @@ class Schema_dumper {
   bool seen_views = false;
 
   std::string m_dump_info;
+
+  const Instance_cache *m_cache = nullptr;
 
  private:
   int execute_no_throw(const std::string &s,

@@ -687,43 +687,7 @@ class Dumper::Table_worker final {
 
 class Dumper::Dump_info final {
  public:
-  Dump_info() = delete;
-
-  explicit Dump_info(const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-    const auto &co = session->get_connection_options();
-
-    m_user = co.get_user();
-
-    {
-      const auto result = session->query("SELECT @@GLOBAL.HOSTNAME;");
-
-      if (const auto row = result->fetch_one()) {
-        m_server = row->get_string(0);
-      } else {
-        m_server = co.has_host() ? co.get_host() : "localhost";
-      }
-    }
-
-    {
-      const auto result = session->query("SELECT @@GLOBAL.VERSION;");
-
-      if (const auto row = result->fetch_one()) {
-        m_server_version = row->get_string(0);
-      } else {
-        m_server_version = "unknown";
-      }
-    }
-
-    m_hostname = mysqlshdk::utils::Net::get_hostname();
-
-    {
-      const auto result = session->query("SELECT @@GLOBAL.GTID_EXECUTED;");
-
-      if (const auto row = result->fetch_one()) {
-        m_gtid_executed = row->get_string(0);
-      }
-    }
-
+  Dump_info() {
     m_begin = mysqlshdk::utils::fmttime("%Y-%m-%d %T");
 
     m_timer.stage_begin("total");
@@ -748,14 +712,6 @@ class Dumper::Dump_info final {
                                     (sec % 3600ull) / 60ull, sec % 60ull);
   }
 
-  const std::string &user() const { return m_user; }
-
-  const std::string &hostname() const { return m_hostname; }
-
-  const std::string &server() const { return m_server; }
-
-  const std::string &server_version() const { return m_server_version; }
-
   const std::string &begin() const { return m_begin; }
 
   const std::string &end() const { return m_end; }
@@ -764,18 +720,11 @@ class Dumper::Dump_info final {
 
   double seconds() const { return m_timer.total_seconds_elapsed(); }
 
-  const std::string &gtid_executed() const { return m_gtid_executed; }
-
  private:
-  std::string m_user;
-  std::string m_hostname;
-  std::string m_server;
-  std::string m_server_version;
   mysqlshdk::utils::Profile_timer m_timer;
   std::string m_begin;
   std::string m_end;
   std::string m_duration;
-  std::string m_gtid_executed;
 };
 
 class Dumper::Memory_dumper final {
@@ -950,13 +899,9 @@ void Dumper::do_run() {
 
   shcore::on_leave_scope terminate_session([this]() { close_session(); });
 
+  // TODO(pawel): move this to the right place once the full implementation of
+  //              Instance_cache is available
   create_schema_tasks();
-
-  validate_mds();
-  initialize_counters();
-  initialize_progress();
-
-  initialize_dump();
 
   {
     shcore::on_leave_scope read_locks([this]() { release_read_locks(); });
@@ -968,6 +913,10 @@ void Dumper::do_run() {
     }
 
     create_worker_threads();
+
+    // initialize cache while threads are starting up
+    initialize_instance_cache();
+
     wait_for_workers();
 
     if (m_options.consistent_dump() && !m_worker_interrupt) {
@@ -975,6 +924,12 @@ void Dumper::do_run() {
       lock_instance();
     }
   }
+
+  validate_mds();
+  initialize_counters();
+  initialize_progress();
+
+  initialize_dump();
 
   dump_ddl();
 
@@ -1016,6 +971,8 @@ void Dumper::add_schema_task(Schema_task &&task) {
 std::unique_ptr<Schema_dumper> Dumper::schema_dumper(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
   auto dumper = std::make_unique<Schema_dumper>(session);
+
+  dumper->use_cache(&m_cache);
 
   dumper->opt_comments = true;
   dumper->opt_drop_database = false;
@@ -1219,7 +1176,7 @@ void Dumper::lock_instance() const {
     auto console = current_console();
 
     console->print_info("Locking instance for backup");
-    if (mysqlshdk::utils::Version(m_dump_info->server_version()) >=
+    if (mysqlshdk::utils::Version(m_cache.server_version) >=
         mysqlshdk::utils::Version(8, 0, 0)) {
       try {
         session()->execute("LOCK INSTANCE FOR BACKUP;");
@@ -1235,6 +1192,16 @@ void Dumper::lock_instance() const {
           "consistent if schema changes are made while dumping.");
     }
   }
+}
+
+void Dumper::initialize_instance_cache() {
+  auto builder = Instance_cache_builder(session());
+
+  if (m_options.dump_users()) {
+    builder.users(m_options.included_users(), m_options.excluded_users());
+  }
+
+  m_cache = builder.build();
 }
 
 void Dumper::validate_mds() const {
@@ -1846,13 +1813,11 @@ void Dumper::write_dump_started_metadata() const {
   doc.AddMember(StringRef("tzUtc"), m_options.use_timezone_utc(), a);
   doc.AddMember(StringRef("tableOnly"), m_options.table_only(), a);
 
-  doc.AddMember(StringRef("user"), ref(m_dump_info->user()), a);
-  doc.AddMember(StringRef("hostname"), ref(m_dump_info->hostname()), a);
-  doc.AddMember(StringRef("server"), ref(m_dump_info->server()), a);
-  doc.AddMember(StringRef("serverVersion"), ref(m_dump_info->server_version()),
-                a);
-  doc.AddMember(StringRef("gtidExecuted"), ref(m_dump_info->gtid_executed()),
-                a);
+  doc.AddMember(StringRef("user"), ref(m_cache.user), a);
+  doc.AddMember(StringRef("hostname"), ref(m_cache.hostname), a);
+  doc.AddMember(StringRef("server"), ref(m_cache.server), a);
+  doc.AddMember(StringRef("serverVersion"), ref(m_cache.server_version), a);
+  doc.AddMember(StringRef("gtidExecuted"), ref(m_cache.gtid_executed), a);
   doc.AddMember(StringRef("consistent"), m_options.consistent_dump(), a);
 
   if (m_options.mds_compatibility()) {
@@ -2222,7 +2187,7 @@ void Dumper::initialize_progress() {
   }
 
   m_progress->total(m_total_rows);
-  m_dump_info = std::make_unique<Dump_info>(session());
+  m_dump_info = std::make_unique<Dump_info>();
 }
 
 void Dumper::update_progress(uint64_t new_rows,
@@ -2450,6 +2415,7 @@ std::vector<Dumper::Column_info> Dumper::get_columns(
                         shcore::str_iendswith(type, "bit") ||
                         shcore::str_iendswith(type, "blob") ||
                         shcore::str_iendswith(type, "geometry") ||
+                        shcore::str_iendswith(type, "geomcollection") ||
                         shcore::str_iendswith(type, "geometrycollection") ||
                         shcore::str_iendswith(type, "linestring") ||
                         shcore::str_iendswith(type, "point") ||

@@ -1133,7 +1133,7 @@ session.run_sql("REVOKE LOCK TABLES ON *.* FROM !@!;", [test_user, __host])
 shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
 
 #@<> try to run consistent dump using a user which does not have any required privileges
-EXPECT_FAIL("RuntimeError", "Unable to lock tables: MySQL Error 1044 (42000): Access denied for user 'sample_user'@'localhost' to database 'xtest'", types_schema, types_schema_tables, test_output_absolute, { "showProgress": False }, True)
+EXPECT_FAIL("RuntimeError", "Unable to lock tables: MySQL Error 1044 (42000): Access denied for user 'sample_user'@'localhost' to database 'xtest'", types_schema, types_schema_tables, test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table read locks")
 

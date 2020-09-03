@@ -52,6 +52,7 @@ file(GLOB api_module_SOURCES
       "util/dump/dumper.cc"
       "util/dump/export_table.cc"
       "util/dump/export_table_options.cc"
+      "util/dump/instance_cache.cc"
       "util/dump/schema_dumper.cc"
       "util/dump/dump_manifest.cc"
       "util/dump/text_dump_writer.cc"

@@ -45,6 +45,7 @@
 
 #include "modules/util/dump/dump_options.h"
 #include "modules/util/dump/dump_writer.h"
+#include "modules/util/dump/instance_cache.h"
 
 namespace mysqlsh {
 
@@ -168,6 +169,8 @@ class Dumper {
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
   void lock_instance() const;
+
+  void initialize_instance_cache();
 
   void validate_mds() const;
 
@@ -315,6 +318,7 @@ class Dumper {
   std::unique_ptr<mysqlshdk::storage::IDirectory> m_output_dir;
   std::unique_ptr<mysqlshdk::storage::IFile> m_output_file;
   bool m_use_json = false;
+  Instance_cache m_cache;
   std::vector<Schema_task> m_schema_tasks;
   std::unordered_map<std::string, std::size_t> m_truncated_basenames;
 

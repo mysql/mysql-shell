@@ -1069,7 +1069,7 @@ for schema in exclude_all_but_types_schema:
 EXPECT_SUCCESS(None, test_output_absolute, { "ddlOnly": True, "showProgress": False })
 
 for schema in all_schemas:
-    EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema) + ".sql")))
+    EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema) + ".sql")), schema)
 
 # WL13807-FR5.1.3 - The following schemas must be always excluded:
 # * information_schema
@@ -1384,7 +1384,7 @@ session.run_sql("REVOKE LOCK TABLES ON *.* FROM !@!;", [test_user, __host])
 shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
 
 #@<> try to run consistent dump using a user which does not have any required privileges
-EXPECT_FAIL("RuntimeError", "Unable to lock tables: MySQL Error 1044 (42000): Access denied for user 'sample_user'@'localhost' to database '", test_output_absolute, { "showProgress": False }, True)
+EXPECT_FAIL("RuntimeError", "Unable to lock tables: MySQL Error 1044 (42000): Access denied for user 'sample_user'@'localhost' to database '", test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table read locks")
 
