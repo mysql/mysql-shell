@@ -1795,7 +1795,11 @@ compression, ssl-mode, etc., to establish additional connections.
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_EXPORT_COMMON_REQUIREMENTS, R"*(
 <b>Requirements</b>
 @li MySQL Server 5.7 or newer is required.
-@li File size limit for files uploaded to the OCI bucket is 1.2 TiB.)*");
+@li File size limit for files uploaded to the OCI bucket is 1.2 TiB.
+@li Columns with data types which are not safe to be stored in text form (i.e.
+BLOB) are converted to Base64, hence the size of such columns cannot exceed
+approximately 0.74 * <b>max_allowed_packet</b> bytes, as configured through that
+system variable at the target server.)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_REQUIREMENTS, R"*(
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_REQUIREMENTS}

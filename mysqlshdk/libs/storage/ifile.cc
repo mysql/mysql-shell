@@ -86,10 +86,10 @@ int fprintf(IFile *file, const char *format, ...) {
   va_start(args, format);
   va_copy(copy, args);
   int ret = vsnprintf(buf, BUFSIZE, format, args);
-  if (ret > BUFSIZE) {
+  if (ret >= BUFSIZE) {
     std::vector<char> vec(ret + 1u);
     ret = vsnprintf(&vec[0], vec.size(), format, copy);
-    assert(ret <= static_cast<int>(vec.size()));
+    assert(ret < static_cast<int>(vec.size()));
     if (ret > 0) ret = file->write(&vec[0], ret);
   } else if (ret > 0) {
     ret = file->write(buf, ret);
