@@ -261,8 +261,8 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
 
   // Being a new file created with PAR it should NOT exist
   EXPECT_FALSE(new_progress_file->exists());
-  EXPECT_THROW_LIKE(new_progress_file->file_size(), std::logic_error,
-                    "Size is not available for objects created using PAR: ");
+  EXPECT_THROW_LIKE(new_progress_file->file_size(),
+                    mysqlshdk::rest::Response_error, "Not Found");
 
   new_progress_file->open(mysqlshdk::storage::Mode::WRITE);
   new_progress_file->write("MY PROGRESS DATA", 16);

@@ -66,7 +66,7 @@ EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": "my_load_
 EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
 validate_load_progress("my_load_progress.txt")
 os.remove("my_load_progress.txt")
-session.run_sql("drop schema sample")
+session.run_sql("drop schema if exists sample")
 
 #@<> WL14154-TSFR8_1 - When doing a load using a PAR for a manifest file with the progressFile option set to a file system. Validate that the load success and the file given stores the load progress.
 progress_par=create_par(OS_NAMESPACE, k_bucket_name, "ObjectReadWrite", "manifest-par", today_plus_days(1, RFC3339), "shell-test/par-load-progress.json")
@@ -74,7 +74,7 @@ EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_
 EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
 testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
 validate_load_progress("par-load-progress.json")
-session.run_sql("drop schema sample")
+session.run_sql("drop schema if exists sample")
 os.remove("par-load-progress.json")
 delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
 
@@ -128,7 +128,7 @@ testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-p
 validate_load_progress("par-load-progress.json")
 
 # cleanup
-session.run_sql("drop schema sample")
+session.run_sql("drop schema if exists sample")
 os.remove("par-load-progress.json")
 os.remove("@.manifest.json")
 os.remove("@.manifest.json.partial")
@@ -152,7 +152,7 @@ EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_
 EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
 testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
 validate_load_progress("par-load-progress.json")
-session.run_sql("drop schema sample")
+session.run_sql("drop schema if exists sample")
 os.remove("par-load-progress.json")
 delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
 
@@ -165,7 +165,7 @@ EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_
 EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
 testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
 validate_load_progress("par-load-progress.json")
-session.run_sql("drop schema sample")
+session.run_sql("drop schema if exists sample")
 os.remove("par-load-progress.json")
 delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
 
@@ -175,7 +175,7 @@ EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_
 EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
 testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
 validate_load_progress("par-load-progress.json")
-session.run_sql("drop schema sample")
+session.run_sql("drop schema if exists sample")
 os.remove("par-load-progress.json")
 delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
 
@@ -187,7 +187,7 @@ EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_
 EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
 testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
 validate_load_progress("par-load-progress.json")
-session.run_sql("drop schema sample")
+session.run_sql("drop schema if exists sample")
 os.remove("par-load-progress.json")
 delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
 
@@ -200,7 +200,7 @@ EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
 testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
 validate_load_progress("par-load-progress.json")
 # clean the local stuff
-session.run_sql("drop schema sample")
+session.run_sql("drop schema if exists sample")
 os.remove("par-load-progress.json")
 # load once again, reset the progress
 EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": progress_par, "resetProgress": True}), "load_dump() using PAR progress file + resetProgress")
@@ -209,7 +209,7 @@ EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected for the instance but '
 testutil.download_oci_object(OS_NAMESPACE, k_bucket_name, "shell-test/par-load-progress.json", "par-load-progress.json")
 validate_load_progress("par-load-progress.json")
 # clean the local stuff
-session.run_sql("drop schema sample")
+session.run_sql("drop schema if exists sample")
 os.remove("par-load-progress.json")
 # delete the remove progress file
 delete_object(k_bucket_name, "shell-test/par-load-progress.json", OS_NAMESPACE)
