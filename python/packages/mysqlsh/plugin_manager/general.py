@@ -145,7 +145,7 @@ def download_file(url, file_path=None, raise_exceptions=False, ctx=None):
             return download_file(url,
                                  file_path=file_path,
                                  raise_exceptions=True,
-                                 ctx=ssl.create_default_context())
+                                 ctx=ssl.create_default_context(cafile="/private/etc/ssl/cert.pem"))
 
         with urllib.request.urlopen(url, timeout=URL_OPEN_TIMEOUT_SECONDS, context=ctx) as response:
             data = response.read()
@@ -196,7 +196,7 @@ def install_ssl_certificates():
     )
 
     # Shell CA File Path
-    shell_cafile = os.join(get_shell_user_dir(), "certifi-ca.pem")
+    shell_cafile = os.path.join(get_shell_user_dir(), "certifi-ca.pem")
 
     print("Installing SSL certificate...")
     relpath_to_certifi_cafile = os.path.relpath(certifi.where())
