@@ -693,7 +693,8 @@ TEST_F(Completer_frontend, js_shell) {
                                        "setSession()",
                                        "status()",
                                        "storeCredential()",
-                                       "unparseUri()"}));
+                                       "unparseUri()",
+                                       "version"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 
@@ -1192,7 +1193,8 @@ TEST_F(Completer_frontend, py_shell) {
                                        "set_session()",
                                        "status()",
                                        "store_credential()",
-                                       "unparse_uri()"}));
+                                       "unparse_uri()",
+                                       "version"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 
