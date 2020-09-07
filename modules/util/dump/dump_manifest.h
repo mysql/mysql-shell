@@ -94,17 +94,17 @@ class Dump_manifest : public mysqlshdk::storage::backend::oci::Directory {
   friend class Dump_manifest_object;
 
   // Members for WRITE mode
-  bool has_object(const std::string &name) const;
-  IDirectory::File_info get_object(const std::string &name) const;
   void add_par(const mysqlshdk::oci::PAR &par) { m_pars_queue.push(par); }
   void flush_manifest();
+  void finalize();
 
   // Members for READ mode
+  File_info get_object(const std::string &name, bool fetch_size = false) const;
+  bool has_object(const std::string &name, bool fetch_if_needed = false) const;
   void reload_manifest() const;
   File_info list_file(const std::string &object_name);
   bool file_exists(const std::string &name) const;
   size_t file_size(const std::string &name) const;
-  void finalize();
 
   // Global Members
   Mode m_mode;

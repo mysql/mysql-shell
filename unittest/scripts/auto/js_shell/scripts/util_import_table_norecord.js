@@ -298,6 +298,22 @@ session.runSql("truncate table cities_latin2")
 util.importTable(__import_data_path + '/cities_pl_latin2.dump', {table:'cities_latin2', characterSet: 'latin2'})
 shell.dumpRows(session.runSql('select hex(id), hex(name) from cities_latin2'), "tabbed")
 
+//@<> Import into table a gzip file
+session.runSql('TRUNCATE TABLE cities');
+util.importTable(__import_data_path + '/world_x_cities.gz', { schema: target_schema, table: 'cities' })
+EXPECT_EQ(4079, session.runSql('select count(*) from cities').fetchOne()[0])
+
+//@<> Import into table a zstd file
+session.runSql('TRUNCATE TABLE cities');
+util.importTable(__import_data_path + '/world_x_cities.zst', { schema: target_schema, table: 'cities' })
+EXPECT_EQ(4079, session.runSql('select count(*) from cities').fetchOne()[0])
+
+//@<> Import into table a zip file
+EXPECT_THROWS(function () {
+    util.importTable(__import_data_path + '/world_x_cities.zip', { schema: target_schema, table: 'cities' });
+}, "");
+
+
 //@<> Create mirror table
 session.runSql("DROP TABLE IF EXISTS `t_lob_userdefinedset`");
 session.runSql("CREATE TABLE `t_lob_userdefinedset` LIKE `t_lob`");
@@ -369,8 +385,8 @@ shell.options.resultFormat = original_output_format
 EXPECT_STDOUT_CONTAINS_MULTILINE(`
 vertical
 *************************** 1. row ***************************
-c1: 
-c2: 
+c1:
+c2:
 *************************** 2. row ***************************
 c1: tinyblob-text readable
 c2: blob-text readable

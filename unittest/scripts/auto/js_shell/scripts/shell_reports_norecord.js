@@ -1544,7 +1544,7 @@ shell.reports.list_report_testing_various_options(session, null, {'two' : 'text'
 //@ call shell.reports.list_report_testing_various_options not using the third option
 shell.reports.list_report_testing_various_options(session, null, {})
 
-//@ call shell.reports.list_report_testing_various_options using the third option - undefined [USE: call shell.reports.list_report_testing_various_options not using the third option]
+//@ call shell.reports.list_report_testing_various_options using the third option - undefined
 shell.reports.list_report_testing_various_options(session, null, {'three' : undefined})
 
 //@ call shell.reports.list_report_testing_various_options using the third option with int

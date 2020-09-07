@@ -360,7 +360,7 @@ DESCRIPTION
 ||Shell.addExtensionObjectMember: Invalid definition at parameter #1 (ArgumentError)
 
 //@ Registration errors, parameters
-||Shell.addExtensionObjectMember: Missing required options at parameter #1: name, type (ArgumentError)
+||Shell.addExtensionObjectMember: Missing required options at parameter #1: name (ArgumentError)
 ||Shell.addExtensionObjectMember: Option 'type' is expected to be of type String, but is Integer (TypeError)
 
 //@ Registration errors, integer parameters
@@ -385,7 +385,7 @@ DESCRIPTION
 //@ Registration errors, dictionary parameters
 ||Shell.addExtensionObjectMember: Invalid options at dictionary parameter 'sample': class, classes, values (ArgumentError)
 ||Shell.addExtensionObjectMember: Invalid definition at parameter 'sample', option #1 (ArgumentError)
-||Shell.addExtensionObjectMember: Missing required options at parameter 'sample', option #1: name, type (ArgumentError)
+||Shell.addExtensionObjectMember: Missing required options at parameter 'sample', option #1: name (ArgumentError)
 
 //@ Registration errors, invalid identifiers
 ||Shell.addExtensionObjectMember: The function name 'my function' is not a valid identifier. (ArgumentError)

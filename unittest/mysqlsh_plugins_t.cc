@@ -83,7 +83,8 @@ class Mysqlsh_extension_test : public Command_line_test {
 
     auto user_config = shcore::get_user_config_path();
     user_config = "MYSQLSH_USER_CONFIG_HOME=" + user_config;
-    execute(args, nullptr, k_file, {user_config});
+    EXPECT_EQ(0, execute(args, nullptr, k_file, {user_config}))
+        << "unexpected exit code";
   }
 
   std::string expected_output() const {
@@ -1743,6 +1744,29 @@ shell.register_global('pyObject', obj);
     MY_EXPECT_CMD_OUTPUT_CONTAINS(output);
   }
   delete_user_plugin("lot-params");
+}
+
+TEST_F(Mysqlsh_plugin_test, bug31693096) {
+  // JS registers a global object with a method which takes one optional param
+  write_user_plugin("bug31693096", R"(var gl = shell.createExtensionObject();
+shell.addExtensionObjectMember(gl, 'f', function f() { println('hey!'); }, {
+  'parameters': [{'name': 'a0', 'type': 'string', 'required': false}]
+});
+shell.registerGlobal('gl', gl);
+)",
+                    ".js");
+
+  // this method is called without parameters from Python
+  add_py_test("\\py", "Switching to Python mode...");
+  add_py_test("gl.f()", "hey!");
+
+  // run the test
+  run();
+
+  // check the output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
+
+  delete_user_plugin("bug31693096");
 }
 
 }  // namespace tests

@@ -40,9 +40,7 @@ static constexpr auto k_at_done_json = "@.done.json";
 
 namespace mysqlsh {
 namespace dump {
-const size_t k_unexisting_object = 0;
-const size_t k_existing_object = 1;
-const size_t k_unknown_existence = 2;
+
 const std::regex k_full_par_parser(
     "^https:\\/\\/objectstorage\\.(.+)\\.oraclecloud\\.com(\\/"
     "p\\/.+\\/n\\/(.+)\\/b\\/(.*)\\/o\\/((.*)\\/)?(.+))$");
@@ -177,11 +175,7 @@ std::unique_ptr<mysqlshdk::storage::IFile> Dump_manifest::file(
           data.bucket == *m_bucket->get_options().os_bucket_name &&
           data.object_prefix == m_name) {
         object_name = data.object_name;
-        // On these objects (out of manifest), is not possible to retrieve the
-        // size so to test file existence the size member is associated to a
-        // specific value. file_exist() below will handle existence verification
-        // on demand.
-        m_created_objects[object_name] = {data.object_url, k_unknown_existence};
+        m_created_objects[object_name] = {data.object_url, 0};
         prefix = "";
       } else {
         throw std::runtime_error(shcore::str_format(
@@ -250,24 +244,40 @@ void Dump_manifest::flush_manifest() {
   }
 }
 
-bool Dump_manifest::has_object(const std::string &name) const {
-  std::lock_guard<std::mutex> lock(m_manifest_mutex);
-  return m_created_objects.find(name) != m_created_objects.end() ||
-         m_manifest_objects.find(name) != m_manifest_objects.end();
-}
+IDirectory::File_info Dump_manifest::get_object(const std::string &name,
+                                                bool fetch_size) const {
+  // This method is ONLY available on READ mode
+  assert(m_mode == Mode::READ);
 
-IDirectory::File_info Dump_manifest::get_object(const std::string &name) const {
-  auto created_object = m_created_objects.find(name);
-  if (created_object != m_created_objects.end()) return created_object->second;
+  {
+    auto created_object = m_created_objects.find(name);
+
+    if (created_object != m_created_objects.end()) {
+      auto &info = created_object->second;
+
+      if (fetch_size) {
+        info.size = m_bucket->head_object(info.name);
+      }
+
+      return info;
+    }
+  }
 
   {
     std::lock_guard<std::mutex> lock(m_manifest_mutex);
-    auto manifest_object = m_manifest_objects.find(name);
-    if (manifest_object != m_manifest_objects.end())
+    const auto manifest_object = m_manifest_objects.find(name);
+
+    if (manifest_object != m_manifest_objects.end()) {
       return manifest_object->second;
+    }
   }
 
-  return IDirectory::File_info();
+  return {};
+}
+
+bool Dump_manifest::has_object(const std::string &name,
+                               bool fetch_if_needed) const {
+  return !get_object(name, fetch_if_needed).name.empty();
 }
 
 /**
@@ -276,69 +286,41 @@ IDirectory::File_info Dump_manifest::get_object(const std::string &name) const {
  * (i.e. a progress file for a resuming load)
  */
 bool Dump_manifest::file_exists(const std::string &name) const {
-  // This function is only available when the manifest is in READ mode
-  assert(m_mode == Mode::READ);
-  {
-    std::lock_guard<std::mutex> lock(m_manifest_mutex);
-    if (m_manifest_objects.find(name) != m_manifest_objects.end()) {
-      return true;
+  try {
+    return has_object(name, true);
+  } catch (const mysqlshdk::rest::Response_error &error) {
+    if (error.code() == mysqlshdk::rest::Response::Status_code::NOT_FOUND) {
+      return false;
+    } else {
+      throw;
     }
   }
-
-  // For objects created with PAR, the existence of them will be determined
-  // using the size attribue of the object.
-  auto created_object = m_created_objects.find(name);
-  if (created_object != m_created_objects.end()) {
-    if (created_object->second.size == k_unknown_existence) {
-      try {
-        m_bucket->head_object(m_created_objects.at(name).name);
-        m_created_objects.at(name).size = k_existing_object;
-      } catch (const mysqlshdk::rest::Response_error &error) {
-        if (error.code() == mysqlshdk::rest::Response::Status_code::NOT_FOUND) {
-          m_created_objects.at(name).size = k_unexisting_object;
-        } else {
-          throw;
-        }
-      }
-    }
-
-    return m_created_objects.at(name).size == k_existing_object;
-  }
-  return false;
 }
 
 size_t Dump_manifest::file_size(const std::string &name) const {
-  // This function is ONLY available on READ mode
-  assert(m_mode == Mode::READ);
-  size_t size = 0;
-  std::lock_guard<std::mutex> lock(m_manifest_mutex);
-  auto manifest_object = m_manifest_objects.find(name);
-  if (manifest_object != m_manifest_objects.end()) {
-    size = manifest_object->second.size;
-  } else if (m_created_objects.find(name) != m_created_objects.end()) {
-    throw std::logic_error(shcore::str_format(
-        "Size is not available for objects created using PAR: %s",
-        name.c_str()));
-  } else {
-    // This must never happen
-    throw std::logic_error(
-        shcore::str_format("Unkown object on size request : %s", name.c_str()));
+  const auto info = get_object(name, true);
+
+  if (!info.name.empty()) {
+    return info.size;
   }
 
-  return size;
+  // This must never happen
+  throw std::logic_error(
+      shcore::str_format("Unknown object on size request : %s", name.c_str()));
 }
 
 IDirectory::File_info Dump_manifest::list_file(const std::string &object_name) {
-  if (m_mode == Mode::READ) {
-    if (!has_object(object_name)) {
-      reload_manifest();
-    }
+  if (!has_object(object_name)) {
+    reload_manifest();
   }
 
   return get_object(object_name);
 }
 
 void Dump_manifest::reload_manifest() const {
+  // This function is ONLY available on READ mode
+  assert(m_mode == Mode::READ);
+
   // If the manifest is fully loaded, avoids rework
   if (m_full_manifest) return;
 

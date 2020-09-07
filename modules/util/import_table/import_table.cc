@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -87,9 +87,15 @@ void Import_table::progress_shutdown() {
 }
 
 void Import_table::spawn_workers() {
-  for (int64_t i = 0; i < m_opt.threads_size(); i++) {
+  shcore::Synchronized_queue<Range> *range_queue_ptr =
+      m_opt.file_handle()->is_compressed() ? nullptr : &m_range_queue;
+
+  int64_t num_workers =
+      m_opt.file_handle()->is_compressed() ? 1 : m_opt.threads_size();
+
+  for (int64_t i = 0; i < num_workers; i++) {
     Load_data_worker worker(m_opt, i, m_progress.get(), &m_output_mutex,
-                            &m_prog_sent_bytes, m_interrupt, &m_range_queue,
+                            &m_prog_sent_bytes, m_interrupt, range_queue_ptr,
                             &m_thread_exception, &m_stats);
     std::thread t = mysqlsh::spawn_scoped_thread(&Load_data_worker::operator(),
                                                  std::move(worker));
@@ -110,9 +116,15 @@ void Import_table::chunk_file() {
 }
 
 void Import_table::import() {
-  m_timer.stage_begin("Parallel load data");
+  if (m_opt.file_handle()->is_compressed()) {
+    m_timer.stage_begin("Single thread load data");
+    log_info("Compressed file detected, using single thread to load data.");
+  } else {
+    m_timer.stage_begin("Parallel load data");
+  }
   spawn_workers();
-  chunk_file();
+  if (!m_opt.file_handle()->is_compressed()) chunk_file();
+
   join_workers();
   m_timer.stage_end();
   progress_shutdown();

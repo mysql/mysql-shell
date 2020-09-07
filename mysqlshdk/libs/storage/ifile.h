@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,6 +78,7 @@ class IFile {
   virtual ssize_t read(void *buffer, size_t length) = 0;
   virtual ssize_t write(const void *buffer, size_t length) = 0;
   virtual bool flush() = 0;
+  virtual bool is_compressed() const { return false; }
 
   /**
    * Changes name of this file. File cannot be moved to another directory.

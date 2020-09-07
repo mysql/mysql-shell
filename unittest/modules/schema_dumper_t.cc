@@ -38,6 +38,8 @@
 extern "C" const char *g_test_home;
 
 namespace mysqlsh {
+namespace dump {
+namespace tests {
 
 class Schema_dumper_test : public Shell_core_test_wrapper {
  public:
@@ -1492,4 +1494,6 @@ TEST_F(Schema_dumper_test, get_users) {
   session->execute("DROP USER 'second'@'10.11.12.14';");
 }
 
+}  // namespace tests
+}  // namespace dump
 }  // namespace mysqlsh

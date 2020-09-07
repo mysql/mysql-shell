@@ -53,7 +53,6 @@ struct File_info {
   int64_t worker_id = -1;  //< Thread worker id
   std::string filename;    //< Import data filename path
   std::unique_ptr<mysqlshdk::storage::IFile> filehandler = nullptr;
-  mysqlshdk::storage::IFile *raw_filehandler = nullptr;
   size_t chunk_start = 0;   //< File chunk start offset
   size_t bytes_left = 0;    //< Bytes left to read from file
   bool range_read = false;  //< Reading whole file vs chunk range

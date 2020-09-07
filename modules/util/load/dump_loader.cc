@@ -40,6 +40,7 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/script.h"
+#include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
@@ -424,7 +425,17 @@ void Dump_loader::Worker::Load_chunk_task::load(
     loader->m_num_threads_loading--;
   });
 
-  op.execute(session, std::move(m_file));
+  {
+    mysqlshdk::storage::Compression compr;
+    try {
+      compr = mysqlshdk::storage::from_extension(
+          std::get<1>(shcore::path::split_extension(m_file->filename())));
+    } catch (...) {
+      compr = mysqlshdk::storage::Compression::NONE;
+    }
+    op.execute(session,
+               mysqlshdk::storage::make_file(std::move(m_file), compr));
+  }
 
   if (loader->m_thread_exceptions[id()])
     std::rethrow_exception(loader->m_thread_exceptions[id()]);
@@ -751,7 +762,7 @@ void Dump_loader::on_dump_begin() {
 
     current_console()->print_status("Executing user accounts SQL...");
 
-    script = Schema_dumper::preprocess_users_script(
+    script = dump::Schema_dumper::preprocess_users_script(
         script, [this](const std::string &account) {
           return m_options.include_user(shcore::split_account(account));
         });

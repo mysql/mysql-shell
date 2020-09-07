@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -593,7 +593,7 @@ Extensible_object::start_parsing_parameter(const shcore::Dictionary_t &,
 std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
     const shcore::Dictionary_t &definition, shcore::Parameter_context *context,
     const std::set<std::string> &allowed_types, bool as_parameters) {
-  std::string type;
+  mysqlshdk::utils::nullable<std::string> type;
 
   // By default, parameters are required, unless required=false is specified
   // By default, options are not required, unless required=true is specified
@@ -604,13 +604,17 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
   const auto &param = param_definition->parameter;
 
   unpacker.required("name", &param->name);
-  unpacker.required("type", &type);
+  unpacker.optional("type", &type);
   unpacker.optional("required", &required);
   unpacker.optional("default", &param->def_value);
   unpacker.optional("brief", &param_definition->brief);
   unpacker.optional("details", &param_definition->details);
 
-  param->set_type(map_type(type, allowed_types));
+  if (!type.is_null()) {
+    param->set_type(map_type(*type, allowed_types));
+  } else {
+    param->set_type(shcore::Value_type::Undefined);
+  }
 
   if (param->type() == shcore::Value_type::String) {
     std::vector<std::string> allowed;
@@ -693,7 +697,7 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
   auto ctx_position_backup = context->levels.back().position;
 
   if (shcore::is_valid_identifier(param->name)) {
-    context->levels.back().name = (type.empty() ? "" : type + " ") +
+    context->levels.back().name = (type.get_safe().empty() ? "" : *type + " ") +
                                   ctx_name_backup + " '" + param->name + "'";
     context->levels.back().position = nullptr;
   }
@@ -703,7 +707,8 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
 
   context->levels.back().name = ctx_name_backup + " '" + param->name + "'";
 
-  if (param->type() == shcore::Value_type::Undefined) {
+  // If type was specified, it can't be Undefined
+  if (!type.is_null() && param->type() == shcore::Value_type::Undefined) {
     const auto error =
         "Unsupported type used at " + context->str() +
         ". Allowed types: " + shcore::str_join(allowed_types, ", ");
@@ -892,7 +897,9 @@ void Extensible_object::get_param_help_brief(
   else if (!as_parameter && param_definition.is_required())
     param_help += " (required)";
 
-  param_help += " " + to_string(param->type()) + ".";
+  if (param->type() != shcore::Value_type::Undefined) {
+    param_help += " " + to_string(param->type()) + ".";
+  }
 
   if (!param_definition.brief.empty())
     param_help.append(" " + param_definition.brief);
@@ -1014,12 +1021,6 @@ void Extensible_object::validate_parameter(const shcore::Parameter &param,
     const auto error =
         shcore::str_format("%s is not a valid identifier: '%s'.",
                            current_ctx.c_str(), param.name.c_str());
-    throw shcore::Exception::argument_error(error);
-  }
-
-  if (param.type() == shcore::Value_type::Undefined) {
-    const auto error =
-        shcore::str_format("Unsupported data type at %s.", current_ctx.c_str());
     throw shcore::Exception::argument_error(error);
   }
 

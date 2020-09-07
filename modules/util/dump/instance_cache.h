@@ -32,6 +32,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
+namespace dump {
 
 struct Instance_cache {
   bool has_ndbinfo = false;
@@ -76,6 +77,7 @@ class Instance_cache_builder final {
   Instance_cache m_cache;
 };
 
+}  // namespace dump
 }  // namespace mysqlsh
 
 #endif  // MODULES_UTIL_DUMP_INSTANCE_CACHE_H_

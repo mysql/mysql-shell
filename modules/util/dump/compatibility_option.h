@@ -28,6 +28,8 @@
 
 #include "mysqlshdk/libs/utils/enumset.h"
 
+#include "modules/util/dump/schema_dumper.h"
+
 namespace mysqlsh {
 namespace dump {
 
@@ -39,6 +41,8 @@ enum class Compatibility_option {
 };
 
 Compatibility_option to_compatibility_option(const std::string &c);
+
+Compatibility_option to_compatibility_option(Schema_dumper::Issue::Status c);
 
 std::string to_string(Compatibility_option c);
 

@@ -217,6 +217,7 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_prefix}/lib/mysqlsh/libpython*
 %endif
 %endif
+%{_prefix}/lib/mysqlsh/plugins/*
 %{_prefix}/lib/mysqlsh/python-packages/*
 
 %changelog

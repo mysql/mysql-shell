@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,7 +46,6 @@ using off64_t = off_t;
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/libs/rest/error.h"
-#include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -210,24 +209,12 @@ void Load_data_worker::operator()() {
 void Load_data_worker::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     std::unique_ptr<mysqlshdk::storage::IFile> file) {
-  mysqlshdk::storage::IFile *raw_file = file.get();
-
-  mysqlshdk::storage::Compression compr;
-  try {
-    compr = mysqlshdk::storage::from_extension(
-        std::get<1>(shcore::path::split_extension(file->filename())));
-  } catch (...) {
-    compr = mysqlshdk::storage::Compression::NONE;
-  }
-
-  file = mysqlshdk::storage::make_file(std::move(file), compr);
   std::string task = file->filename();
 
   try {
     File_info fi;
     fi.filename = file->full_path();
     fi.filehandler = std::move(file);
-    fi.raw_filehandler = raw_file;
     fi.worker_id = m_thread_id;
     fi.prog = m_opt.show_progress() ? m_progress : nullptr;
     fi.prog_bytes = &m_prog_sent_bytes;
@@ -235,6 +222,15 @@ void Load_data_worker::execute(
     fi.user_interrupt = &m_interrupt;
     fi.max_rate = m_opt.max_rate();
     fi.range_read = m_range_queue ? true : false;
+
+    // clear the SQL mode
+    session->execute("SET SQL_MODE = '';");
+
+    // if user has specified the character set, set the session variables
+    // related to the client connection
+    if (!m_opt.character_set().empty()) {
+      session->executef("SET NAMES ?;", m_opt.character_set());
+    }
 
     // set session variables
     session->execute("SET unique_checks = 0");

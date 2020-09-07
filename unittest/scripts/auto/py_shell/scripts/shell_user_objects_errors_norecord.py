@@ -162,15 +162,6 @@ shell.add_extension_object_member(obj, "function", f5,
                             "parameters":[{}]
                           });
 
-#@ A parameter definition requires type
-shell.add_extension_object_member(obj, "function", f5,
-                          {
-                            "parameters":[
-                            {
-                              "name": "sample",
-                            }]
-                          });
-
 #@ A parameter definition requires string on name
 shell.add_extension_object_member(obj, "function", f5,
                           {
@@ -475,20 +466,6 @@ shell.add_extension_object_member(obj, "function", f5,
                               "name": "sample",
                               "type": "dictionary",
                               "options": [{}]
-                            }]
-                          });
-
-#@ Parameter option definition requires type and name, missing type
-shell.add_extension_object_member(obj, "function", f5,
-                          {
-                            "parameters":[
-                            {
-                              "name": "sample",
-                              "type": "dictionary",
-                              "options": [
-                              {
-                                "name": "myOption",
-                              }]
                             }]
                           });
 
