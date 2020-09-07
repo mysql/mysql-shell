@@ -291,7 +291,7 @@ def format_plugin_listing(repositories, add_description=True):
             if not add_description:
                 out += '\n'
 
-        out += f"{repo_name}\n{'='*94}\n"
+        #out += f"{repo_name}\n{'='*94}\n"
 
         for p in plugins:
             id = p.get("id", i)

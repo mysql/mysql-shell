@@ -1,3 +1,4 @@
+#@{False} Disabled until plugins.repositories is available.
 import http.server
 import threading
 import os

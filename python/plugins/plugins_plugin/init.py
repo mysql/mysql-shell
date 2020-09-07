@@ -40,15 +40,7 @@ class plugins:
     Use plugins.about() to get more information about writing
     MySQL Shell plugins.
     """
-
-    class repositories:
-        """
-        Manages the registry of plugin repositories.
-        """
-
-        def __init__(self):
-            from mysqlsh.plugin_manager import repositories
-
+    pass
 
 @plugin_function("plugins.info")
 def info():
