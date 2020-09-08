@@ -65,15 +65,15 @@ class Schema_dumper {
     std::size_t buckets;
   };
 
-  explicit Schema_dumper(
-      const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
-      const std::vector<std::string> &mysqlaas_supported_charsets = {"utf8mb4"},
-      const std::set<std::string> &mysqlaas_allowed_privileges =
-          mysqlsh::compatibility::k_mysqlaas_allowed_privileges);
+  explicit Schema_dumper(const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
+                         const std::vector<std::string>
+                             &mysqlaas_supported_charsets = {"utf8mb4"});
 
   static std::string preprocess_users_script(
       const std::string &script,
-      const std::function<bool(const std::string &)> &include_user);
+      const std::function<bool(const std::string &)> &include_user,
+      const std::function<bool(const std::string &, const std::string &)>
+          &strip_revoked_privilege);
 
   static const char *version();
 
@@ -165,7 +165,6 @@ class Schema_dumper {
  private:
   std::shared_ptr<mysqlshdk::db::ISession> m_mysql;
   const std::vector<std::string> m_mysqlaas_supported_charsets;
-  const std::set<std::string> m_mysqlaas_allowed_priveleges;
 
   bool stats_tables_included = false;
 
@@ -302,6 +301,9 @@ class Schema_dumper {
   std::vector<Schema_dumper::Issue> get_view_structure(IFile *sql_file,
                                                        const std::string &table,
                                                        const std::string &db);
+
+  std::string expand_all_privileges(const std::string &stmt,
+                                    const std::string &grantee);
 };
 
 }  // namespace dump

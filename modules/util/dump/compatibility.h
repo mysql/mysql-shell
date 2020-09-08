@@ -24,6 +24,7 @@
 #ifndef MODULES_UTIL_DUMP_COMPATIBILITY_H_
 #define MODULES_UTIL_DUMP_COMPATIBILITY_H_
 
+#include <functional>
 #include <set>
 #include <string>
 #include <utility>
@@ -38,6 +39,14 @@ extern const std::set<std::string> k_mysqlaas_allowed_privileges;
 std::vector<std::string> check_privileges(
     const std::string grant, std::string *rewritten_grant = nullptr,
     const std::set<std::string> &privileges = k_mysqlaas_allowed_privileges);
+
+// Rewrite GRANT or REVOKE statement stripping filtered privileges
+std::string filter_grant_or_revoke(
+    const std::string &stmt,
+    const std::function<bool(bool is_revoke, const std::string &priv_type,
+                             const std::string &column_list,
+                             const std::string &object_type,
+                             const std::string &priv_level)> &filter);
 
 bool check_create_table_for_data_index_dir_option(
     const std::string &create_table, std::string *rewritten = nullptr);

@@ -166,8 +166,12 @@ SQL_iterator &SQL_iterator::operator++() {
 }
 
 std::string SQL_iterator::get_next_token() {
+  return get_next_token_and_offset().first;
+}
+
+std::pair<std::string, size_t> SQL_iterator::get_next_token_and_offset() {
   while (valid() && std::isspace(get_char())) ++(*this);
-  if (!valid()) return std::string();
+  if (!valid()) return {std::string(), m_offset};
 
   auto previous = m_offset;
   const auto start = previous;
@@ -176,13 +180,13 @@ std::string SQL_iterator::get_next_token() {
     switch (get_char()) {
       case '`':
         m_offset = span_quoted_sql_identifier_bt(m_s, m_offset);
-        return m_s.substr(start, m_offset - start);
+        return {m_s.substr(start, m_offset - start), start};
       case '\'':
         m_offset = span_quoted_string_sq(m_s, m_offset);
-        return m_s.substr(start, m_offset - start);
+        return {m_s.substr(start, m_offset - start), start};
       case '"':
         m_offset = span_quoted_string_dq(m_s, m_offset);
-        return m_s.substr(start, m_offset - start);
+        return {m_s.substr(start, m_offset - start), start};
     }
   }
 
@@ -216,7 +220,7 @@ std::string SQL_iterator::get_next_token() {
   } while ((++(*this)).valid());
 
   if (m_offset == start) ++(*this);
-  return m_s.substr(start, previous + 1 - start);
+  return {m_s.substr(start, previous + 1 - start), start};
 }
 
 std::string SQL_iterator::get_next_sql_function() {

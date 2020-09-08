@@ -28,6 +28,7 @@
 #include <cctype>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace mysqlshdk {
 namespace utils {
@@ -309,6 +310,8 @@ class SQL_iterator {
   bool valid() const { return m_offset < m_s.length(); }
 
   std::string get_next_token();
+
+  std::pair<std::string, size_t> get_next_token_and_offset();
 
   std::string get_next_sql_function();
 

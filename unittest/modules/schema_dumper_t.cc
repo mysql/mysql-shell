@@ -687,11 +687,12 @@ TEST_F(Schema_dumper_test, dump_grants) {
 
   EXPECT_NE(std::string::npos, out.find("'second'"));
 
-  auto filtered =
-      Schema_dumper::preprocess_users_script(out, [](const std::string &user) {
+  auto filtered = Schema_dumper::preprocess_users_script(
+      out,
+      [](const std::string &user) {
         return !shcore::str_beginswith(user, "'second'");
-      });
-
+      },
+      {});
   EXPECT_EQ(std::string::npos, filtered.find("'second'"));
 
   // cleanup

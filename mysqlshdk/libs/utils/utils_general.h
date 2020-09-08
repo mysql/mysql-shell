@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -206,6 +206,10 @@ std::string SHCORE_PUBLIC get_member_name(const std::string &name,
 void SHCORE_PUBLIC split_schema_and_table(const std::string &str,
                                           std::string *out_schema,
                                           std::string *out_table);
+
+void SHCORE_PUBLIC split_priv_level(const std::string &str,
+                                    std::string *out_schema,
+                                    std::string *out_object);
 
 std::string SHCORE_PUBLIC unquote_identifier(const std::string &str);
 

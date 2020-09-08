@@ -44,6 +44,66 @@ prepare(__mysql_sandbox_port2)
 session2 = mysql.get_session(__sandbox_uri2)
 session2.run_sql("set names utf8mb4")
 
+
+## Tests to ensure restricted users dumped with strip_restricted_grants can be loaded with a restricted user and not just with root
+
+#@<> ensure accounts dumped in compat mode can be loaded {VER(>=8.0.0) and not __dbug_off}
+testutil.dbug_set("+d,dump_loader_force_mds")
+session2.run_sql("SET global partial_revokes=1")
+
+mds_administrator_role_grants = [
+"CREATE ROLE IF NOT EXISTS administrator",
+"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, PROCESS, REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE ROLE, DROP ROLE ON *.* TO `administrator`@`%` WITH GRANT OPTION",
+"GRANT APPLICATION_PASSWORD_ADMIN,CONNECTION_ADMIN,REPLICATION_APPLIER,RESOURCE_GROUP_ADMIN,RESOURCE_GROUP_USER,XA_RECOVER_ADMIN ON *.* TO `administrator`@`%` WITH GRANT OPTION",
+"REVOKE INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `mysql`.* FROM `administrator`@`%`",
+"REVOKE CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `sys`.* FROM `administrator`@`%`"
+]
+
+mds_user_grants = [
+    "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, PROCESS, REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE ROLE, DROP ROLE ON *.* TO {} WITH GRANT OPTION",
+    "GRANT APPLICATION_PASSWORD_ADMIN,CONNECTION_ADMIN,REPLICATION_APPLIER,RESOURCE_GROUP_ADMIN,RESOURCE_GROUP_USER,XA_RECOVER_ADMIN ON *.* TO {} WITH GRANT OPTION",
+    "REVOKE INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `mysql`.* FROM {}",
+    "REVOKE CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `sys`.* FROM {}",
+    "GRANT PROXY ON ''@'' TO {} WITH GRANT OPTION",
+    "GRANT `administrator`@`%` TO {} WITH ADMIN OPTION"
+]
+
+def reset_server(session):
+    wipeout_server(session)
+    for grant in mds_administrator_role_grants:
+        session.run_sql(grant)
+    session.run_sql("create user if not exists admin@'%' identified by 'pass'")
+    for grant in mds_user_grants:
+        session.run_sql(grant.format("admin@'%'"))
+
+reset_server(session2)
+
+session2.run_sql("create user testuser@'%'")
+session2.run_sql("grant select, delete on *.* to testuser@'%'")
+session2.run_sql("create user myuser@'%'")
+session2.run_sql("grant all on mysql.* to myuser@'%'")
+
+shell.connect(__sandbox_uri2)
+
+# dump with root
+util.dump_instance(__tmp_dir+"/ldtest/dump_root", {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True})
+
+# dump with admin user
+shell.connect(f"mysql://admin:pass@localhost:{__mysql_sandbox_port2}")
+# disable consistency b/c we won't be able to acquire a backup lock
+util.dump_instance(__tmp_dir+"/ldtest/dump_admin", {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True, "consistent":False})
+
+# load with admin user
+reset_server(session2)
+util.load_dump(__tmp_dir+"/ldtest/dump_admin", {"loadUsers":1, "loadDdl":0, "loadData":0, "excludeUsers":["root@%","root@localhost"]})
+
+reset_server(session2)
+util.load_dump(__tmp_dir+"/ldtest/dump_root", {"loadUsers":1, "loadDdl":0, "loadData":0, "excludeUsers":["root@%","root@localhost"]})
+
+testutil.dbug_set("")
+
+reset_server(session2)
+
 #@<> Dump ddlOnly
 shell.connect(__sandbox_uri1)
 util.dump_instance(outdir+"/ddlonly", {"ddlOnly": True})
@@ -361,9 +421,6 @@ session.run_sql("DROP USER 'first'@'10.11.12.13';")
 session.run_sql("DROP USER 'firstfirst'@'localhost';")
 session.run_sql("DROP USER 'second'@'localhost';")
 session.run_sql("DROP USER 'second'@'10.11.12.14';")
-
-#@<> Big blob in source, check max_allowed_packet in server and client
-
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

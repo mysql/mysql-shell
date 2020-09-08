@@ -2310,7 +2310,7 @@ uint64_t Dumper::get_row_count(const Schema_task &schema,
       "TABLE_SCHEMA = ? AND TABLE_NAME = ?",
       schema.name, table.name);
   if (const auto row = result->fetch_one()) {
-    return row->get_uint(0);
+    return row->get_uint(0, 0);
   } else {
     return UINT64_C(0);
   }

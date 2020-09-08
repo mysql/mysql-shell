@@ -509,6 +509,31 @@ END//)";
   EXPECT_EQ(";", sit.get_next_token());
   EXPECT_TRUE(sit.get_next_sql_function().empty());
   EXPECT_FALSE(sit.valid());
+
+  // TODO(alfredo): lexer is not breaking these correctly
+  // std::string sql2("!+foo@localhost foo@'%' (x+y/zzz-q*y&x)");
+  // SQL_iterator it2(sql2, 0, false);
+  // EXPECT_EQ("!", it2.get_next_token());
+  // EXPECT_EQ("+", it2.get_next_token());
+  // EXPECT_EQ("foo", it2.get_next_token());
+  // EXPECT_EQ("@", it2.get_next_token());
+  // EXPECT_EQ("localhost", it2.get_next_token());
+  // EXPECT_EQ("foo", it2.get_next_token());
+  // EXPECT_EQ("@", it2.get_next_token());
+  // EXPECT_EQ("'%'", it2.get_next_token());
+  // EXPECT_EQ("(", it2.get_next_token());
+  // EXPECT_EQ("x", it2.get_next_token());
+  // EXPECT_EQ("+", it2.get_next_token());
+  // EXPECT_EQ("y", it2.get_next_token());
+  // EXPECT_EQ("/", it2.get_next_token());
+  // EXPECT_EQ("zzz", it2.get_next_token());
+  // EXPECT_EQ("-", it2.get_next_token());
+  // EXPECT_EQ("q", it2.get_next_token());
+  // EXPECT_EQ("*", it2.get_next_token());
+  // EXPECT_EQ("y", it2.get_next_token());
+  // EXPECT_EQ("&", it2.get_next_token());
+  // EXPECT_EQ("x", it2.get_next_token());
+  // EXPECT_FALSE(it2.valid());
 }
 
 TEST(Utils_lexing, SQL_string_iterator_get_next_sql_function) {

@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/libs/mysql/utils.h"
 #include <mysqld_error.h>
+#include <rapidjson/document.h>
 #include <algorithm>
 #include <memory>
 #include <random>
@@ -167,6 +168,61 @@ void clone_user(const IInstance &instance, const std::string &orig_user,
       instance.execute(grant);
     }
   }
+}
+
+std::vector<std::pair<std::string, Privilege_list>> get_user_restrictions(
+    const IInstance &instance, const std::string &user,
+    const std::string &host) {
+  std::vector<std::pair<std::string, Privilege_list>> restrictions;
+
+  auto res = instance.queryf(
+      "SELECT User_attributes->>'$.Restrictions' FROM mysql.user WHERE user=? "
+      "AND host=?",
+      user, host);
+  if (auto row = res->fetch_one()) {
+    if (!row->is_null(0)) {
+      std::string json = row->get_string(0);
+
+      if (!json.empty()) {
+        rapidjson::Document doc;
+        doc.Parse(json.c_str());
+
+        if (!doc.IsArray())
+          throw std::runtime_error(
+              "Error parsing account restrictions for user " + user + "." +
+              host);
+
+        for (const rapidjson::Value &restr : doc.GetArray()) {
+          if (!restr.IsObject() || !restr.HasMember("Database") ||
+              !restr.HasMember("Privileges"))
+            throw std::runtime_error(
+                "Error parsing account restrictions for user " + user + "." +
+                host);
+
+          const auto &privs = restr["Privileges"];
+          if (!restr["Database"].IsString() || !privs.IsArray())
+            throw std::runtime_error(
+                "Error parsing account restrictions for user " + user + "." +
+                host);
+
+          std::string db = restr["Database"].GetString();
+          Privilege_list priv_list;
+          for (const auto &priv : privs.GetArray()) {
+            if (!priv.IsString())
+              throw std::runtime_error(
+                  "Error parsing account restrictions for user " + user + "." +
+                  host);
+            priv_list.push_back(priv.GetString());
+          }
+          restrictions.emplace_back(db, priv_list);
+        }
+      }
+    }
+  } else {
+    throw std::runtime_error("User " + user + "." + host + " does not exist");
+  }
+
+  return restrictions;
 }
 
 void drop_all_accounts_for_user(const IInstance &instance,

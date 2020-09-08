@@ -27,6 +27,7 @@
 
 #include "modules/mod_utils.h"
 #include "modules/util/dump/dump_manifest.h"
+#include "mysqlshdk/libs/utils/debug.h"
 
 namespace mysqlsh {
 
@@ -76,6 +77,7 @@ void Load_dump_options::set_session(
       m_base_session->query("SELECT @@version")->fetch_one()->get_string(0));
 
   m_is_mds = ::mysqlsh::is_mds(m_target_server_version);
+  DBUG_EXECUTE_IF("dump_loader_force_mds", { m_is_mds = true; });
 }
 
 void Load_dump_options::validate() {

@@ -27,6 +27,7 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
@@ -53,6 +54,12 @@ void clone_user(const IInstance &instance, const std::string &orig_user,
                 const std::string &new_host, const std::string &password,
                 Account_attribute_set flags =
                     Account_attribute_set(Account_attribute::Grants));
+
+using Privilege_list = std::vector<std::string>;
+
+std::vector<std::pair<std::string, Privilege_list>> get_user_restrictions(
+    const IInstance &instance, const std::string &user,
+    const std::string &host);
 
 /** Drops all accounts for a given username */
 void drop_all_accounts_for_user(const IInstance &instance,
