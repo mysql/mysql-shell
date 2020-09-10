@@ -168,6 +168,7 @@ Shell::Shell(Mysql_shell *owner)
 void Shell::init() {
   add_property("options");
   add_property("reports");
+  add_property("version");
 
   expose("parseUri", &Shell::parse_uri, "uri");
   expose("unparseUri", &Shell::unparse_uri, "options");
@@ -235,6 +236,18 @@ Reports Shell::reports;
 Reports Shell::reports;
 #endif
 
+// Documentation of shell.version
+REGISTER_HELP(SHELL_VERSION_BRIEF, "MySQL Shell version information.");
+
+/**
+ * $(SHELL_VERSION_BRIEF)
+ */
+#if DOXYGEN_JS
+String Shell::version;
+#elif DOXYGEN_PY
+str Shell::version;
+#endif
+
 shcore::Value Shell::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
@@ -243,6 +256,8 @@ shcore::Value Shell::get_member(const std::string &prop) const {
         shcore::Value(std::static_pointer_cast<Object_bridge>(_core_options));
   } else if (prop == "reports") {
     ret_val = shcore::Value(m_reports);
+  } else if (prop == "version") {
+    ret_val = shcore::Value(shcore::get_long_version());
   } else {
     ret_val = Cpp_object_bridge::get_member(prop);
   }

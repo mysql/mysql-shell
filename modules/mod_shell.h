@@ -87,6 +87,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
 #if DOXYGEN_JS
   Options options;
   Reports reports;
+  String version;
   Dictionary parseUri(String uri);
   String unparseUri(Dictionary options);
   String prompt(String message, Dictionary options);
@@ -116,6 +117,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
 #elif DOXYGEN_PY
   Options options;
   Reports reports;
+  str version;
   dict parse_uri(str uri);
   str unparse_uri(dict options);
   str prompt(str message, dict options);
