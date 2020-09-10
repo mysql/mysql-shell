@@ -8,10 +8,12 @@ dba.deploySandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir, password
 // sandboxes have report_host variable set to "127.0.0.1"
 shell.connect(__sandbox_uri1);
 session.runSql("SELECT @@report_host")
-session.close();
 
 //@ Stop sandbox in dir with space
 dba.stopSandboxInstance(__mysql_sandbox_port1, {sandboxDir: test_dir, password: 'root'});
+
+//@<> BUG@31113914 SHELL TRIES TO RECONNECT WHEN CALLING QUIT COMMAND AFTER CALLING A SHELL EXT OBJ
+EXPECT_EQ(false, session.isOpen(), "Session has not been closed");
 
 //@ Delete sandbox in dir with space
 try_delete_sandbox(__mysql_sandbox_port1, test_dir);
@@ -58,3 +60,4 @@ dba.deleteSandboxInstance(__mysql_sandbox_port2, {sandboxDir: test_dir});
 
 //@ testutil.destroySandbox must not throw any error if deleting a non existing sandbox BUG#30863587
 testutil.destroySandbox(__mysql_sandbox_port2);
+

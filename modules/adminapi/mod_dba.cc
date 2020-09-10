@@ -2236,6 +2236,21 @@ shcore::Value Dba::stop_sandbox_instance(const shcore::Argument_list &args) {
           "Missing root password for the instance");
     }
 
+    auto instance = std::make_shared<Instance>(get_active_shell_session());
+    if (instance && instance->get_session()) {
+      auto connection_opts = instance->get_connection_options();
+      if ((connection_opts.get_host() == "localhost" ||
+           connection_opts.get_host() == "127.0.0.1") &&
+          connection_opts.get_port() == port) {
+        if (interactive) {
+          console->print_info(
+              "The active session is established to the sandbox being stopped "
+              "so it's going to be closed.");
+        }
+        instance->close_session();
+      }
+    }
+
     ret_val = exec_instance_op("stop", args, *password);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
