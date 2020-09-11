@@ -77,6 +77,9 @@ static constexpr auto k_dump_in_progress_ext = ".dumping";
 static constexpr const int k_mysql_server_net_write_timeout = 30 * 60;
 static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
 
+const int k_chunker_retries = 10;
+const int k_chunker_iterations = 10;
+
 std::string quote_value(const std::string &value, mysqlshdk::db::Type type) {
   if (is_string_type(type)) {
     return shcore::quote_sql_string(value);
@@ -447,9 +450,9 @@ class Dumper::Table_worker final {
     const Range_info total = {min_max->get_as_string(0),
                               min_max->get_as_string(1), min_max->get_type(0)};
 
-    const auto rows_per_chunk =
-        m_dumper->m_options.bytes_per_chunk() /
-        std::max(UINT64_C(1), get_average_row_length(table));
+    const auto average_row_length = get_average_row_length(table);
+    const auto rows_per_chunk = m_dumper->m_options.bytes_per_chunk() /
+                                std::max(UINT64_C(1), average_row_length);
 
     const auto generate_ranges = [&table, &ranges_count, &total,
                                   &rows_per_chunk,
@@ -459,70 +462,90 @@ class Dumper::Table_worker final {
               ? std::max(table.row_count / rows_per_chunk, UINT64_C(1))
               : UINT64_C(1);
       const auto estimated_step = (max - min + 1) / estimated_chunks;
-      const auto accuracy = std::max(estimated_step / 10, UINT64_C(10));
+      const auto accuracy = std::max(rows_per_chunk / 10, UINT64_C(10));
 
       std::string chunk_id;
+      using step_t = decltype(min);
 
       const auto next_step =
           table.row_count < 1'000'000
-              ? std::function<decltype(min)(const decltype(min),
-                                            const decltype(min))>(
+              ? std::function<step_t(const step_t, const step_t)>(
                     [](const auto, const auto step) { return step; })
-              : [&table, &rows_per_chunk, &accuracy, &chunk_id, this](
+              : [&table, &rows_per_chunk, &accuracy, &chunk_id, &max, this](
                     const auto from, const auto step) {
+                  int retry = 0;
                   auto left = from;
-                  auto right = left + 2 * step;
-
                   auto middle = from;
+
                   auto previous_row_count = rows_per_chunk;
                   const auto comment = this->get_query_comment(table, chunk_id);
 
-                  for (int i = 0; i < 10; ++i) {
-                    middle = left + (right - left) / 2;
+                  uint64_t delta = 2 * accuracy;
 
-                    if (middle >= right || middle <= left) {
-                      break;
+                  while (delta > accuracy && retry < k_chunker_retries) {
+                    auto right = left + (2 * (retry + 1)) * step;
+
+                    for (int i = 0; i < k_chunker_iterations; ++i) {
+                      middle = left + (right - left) / 2;
+
+                      if (middle >= right || middle <= left) {
+                        break;
+                      }
+
+                      const auto rows =
+                          m_session
+                              ->queryf(
+                                  "EXPLAIN SELECT COUNT(*) FROM !.! WHERE ! "
+                                  "BETWEEN ? AND ? ORDER BY ! " +
+                                      comment,
+                                  table.schema, table.name, table.index.name,
+                                  from, middle, table.index.name)
+                              ->fetch_one()
+                              ->get_uint(9);
+
+                      if (rows > rows_per_chunk) {
+                        right = middle;
+                        delta = rows - rows_per_chunk;
+                      } else {
+                        left = middle;
+                        delta = rows_per_chunk - rows;
+                      }
+
+                      if (delta <= accuracy) {
+                        // we're close enough
+                        break;
+                      }
+
+                      if (rows == previous_row_count) {
+                        // we're stuck
+                        break;
+                      }
+
+                      previous_row_count = rows;
                     }
 
-                    const auto rows =
-                        m_session
-                            ->queryf(
-                                "EXPLAIN SELECT COUNT(*) FROM !.! WHERE ! "
-                                "BETWEEN ? AND ? ORDER BY ! " +
-                                    comment,
-                                table.schema, table.name, table.index.name,
-                                from, middle, table.index.name)
-                            ->fetch_one()
-                            ->get_uint(9);
-
-                    uint64_t delta = 0;
-
-                    if (rows > rows_per_chunk) {
-                      right = middle;
-                      delta = rows - rows_per_chunk;
-                    } else {
-                      left = middle;
-                      delta = rows_per_chunk - rows;
+                    if (delta > accuracy) {
+                      if (previous_row_count >= rows_per_chunk) {
+                        // we have too many rows, but that's OK...
+                        retry = k_chunker_retries;
+                      } else {
+                        if (middle >= max) {
+                          // we've reached the upper boundary, stop here
+                          retry = k_chunker_retries;
+                        } else {
+                          // we didn't find enough rows here, move farther to
+                          // the right
+                          ++retry;
+                        }
+                      }
                     }
-
-                    if (delta <= accuracy) {
-                      // we're close enough
-                      break;
-                    }
-
-                    if (rows == previous_row_count) {
-                      // we're stuck
-                      break;
-                    }
-
-                    previous_row_count = rows;
                   }
 
                   return middle - from;
                 };
 
       auto current = min;
-      auto step = static_cast<decltype(min)>(estimated_step);
+      auto step = static_cast<step_t>(estimated_step);
 
       while (current <= max) {
         if (m_dumper->m_worker_interrupt) {
@@ -535,7 +558,7 @@ class Dumper::Table_worker final {
         range.type = total.type;
         range.begin = std::to_string(current);
 
-        step = next_step(current, step);
+        step = std::max(next_step(current, step), static_cast<step_t>(2));
 
         current += step - 1;
 
