@@ -287,8 +287,17 @@ void Check_instance::prepare_config_object() {
   bool use_cfg_handler = false;
   // if the configuration file was provided and exists, we add it to the
   // config object.
-  if (!m_mycnf_path.empty() && shcore::is_file(m_mycnf_path)) {
-    use_cfg_handler = true;
+  if (!m_mycnf_path.empty()) {
+    if (shcore::is_file(m_mycnf_path)) {
+      use_cfg_handler = true;
+    } else {
+      mysqlsh::current_console()->print_error(
+          "Configuration file " + m_mycnf_path +
+          " doesn't exist. The verification of the file will be skipped.");
+
+      // Clear it up so we don't print any odd log message
+      m_mycnf_path = "";
+    }
   }
   // Add server configuration handler depending on SET PERSIST support.
   // NOTE: Add server handler first to set it has the default handler.

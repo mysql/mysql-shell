@@ -34,6 +34,10 @@ session.runSql("START SLAVE");
 //@ Check instance configuration async replication warning
 dba.checkInstanceConfiguration(__sandbox_uri2);
 
+//@<> BUG#31468546: invalid path specified as mycnfPath
+dba.checkInstanceConfiguration(__sandbox_uri1, {mycnfPath: "/this/path/is/invalid"});
+EXPECT_STDOUT_CONTAINS("Configuration file /this/path/is/invalid doesn't exist.");
+
 //@<> BUG#29305551: Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
