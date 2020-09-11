@@ -894,12 +894,15 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
   }
 
   bool single_primary;
-  std::vector<mysqlshdk::gr::Member> member_info(
-      mysqlshdk::gr::get_members(*group_instance, &single_primary));
+  std::string view_id;
+  std::vector<mysqlshdk::gr::Member> member_info(mysqlshdk::gr::get_members(
+      *group_instance, &single_primary, nullptr, &view_id));
 
   tmp = check_group_status(*group_instance, member_info);
   (*ret)["statusText"] = shcore::Value(tmp->get_string("statusText"));
   (*ret)["status"] = shcore::Value(tmp->get_string("status"));
+  if (!m_extended.is_null() && *m_extended >= 1)
+    (*ret)["groupViewId"] = shcore::Value(view_id);
 
   bool has_primary = false;
   std::shared_ptr<Instance> primary_instance;

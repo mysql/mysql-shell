@@ -175,8 +175,8 @@ DESCRIPTION
       The data parameter accepts the following values: one, two, three.
 
 #@ Usage, function(string)
-||SystemError: ArgumentError: sampleModulePY.string_function: Argument #1 is expected to be a string
-||SystemError: ArgumentError: sampleModulePY.string_function: Argument #1 only accepts the following values: one, two, three.
+||ValueError: sampleModulePY.string_function: Argument #1 is expected to be a string
+||ValueError: sampleModulePY.string_function: Argument #1 only accepts the following values: one, two, three.
 |Python Function Definition:  one|
 
 #@ Register, function(dictionary)
@@ -227,10 +227,10 @@ DESCRIPTION
 
 
 #@Usage, function(dictionary)
-||SystemError: ArgumentError: sampleModulePY.dict_function: Missing required options at Argument #1: myOption
-||SystemError: ArgumentError: sampleModulePY.dict_function: Invalid and missing options at Argument #1 (invalid: someOption), (missing: myOption)
-||SystemError: ArgumentError: sampleModulePY.dict_function: Argument #1, option 'myOption' is expected to be a string
-||SystemError: ArgumentError: sampleModulePY.dict_function: Argument #1, option 'myOption' only accepts the following values: test, value.
+||ValueError: sampleModulePY.dict_function: Missing required options at Argument #1: myOption
+||ValueError: sampleModulePY.dict_function: Invalid and missing options at Argument #1 (invalid: someOption), (missing: myOption)
+||ValueError: sampleModulePY.dict_function: Argument #1, option 'myOption' is expected to be a string
+||ValueError: sampleModulePY.dict_function: Argument #1, option 'myOption' only accepts the following values: test, value.
 |No function data available|
 |Function data:  test|
 
@@ -293,7 +293,7 @@ DESCRIPTION
       The session parameter must be a Session object.
 
 #@ Usage, function(Session)
-||SystemError: ArgumentError: sampleModulePY.object_function1: Argument #1 is expected to be a 'Session' object.
+||ValueError: sampleModulePY.object_function1: Argument #1 is expected to be a 'Session' object.
 |Active Session: <Session:<<<__uri>>>>|
 
 #@ Register, function(Session and ClassicSession)
@@ -351,43 +351,43 @@ DESCRIPTION
 
 
 #@ Registration errors, function definition
-||SystemError: ArgumentError: Shell.add_extension_object_member: Argument #1 is expected to be an object
-||SystemError: ArgumentError: Shell.add_extension_object_member: Argument #1 is expected to be an extension object.
-||SystemError: ArgumentError: Shell.add_extension_object_member: Argument #2 is expected to be a string
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at function definition: extra
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'brief' is expected to be of type String, but is Integer
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'details' is expected to be of type Array, but is Integer
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'details' String expected, but value is Integer
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'parameters' is expected to be of type Array, but is Integer
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid definition at parameter #1
+||ValueError: Shell.add_extension_object_member: Argument #1 is expected to be an object
+||ValueError: Shell.add_extension_object_member: Argument #1 is expected to be an extension object.
+||ValueError: Shell.add_extension_object_member: Argument #2 is expected to be a string
+||ValueError: Shell.add_extension_object_member: Invalid options at function definition: extra
+||TypeError: Shell.add_extension_object_member: Option 'brief' is expected to be of type String, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'details' is expected to be of type Array, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'details' String expected, but value is Integer
+||TypeError: Shell.add_extension_object_member: Option 'parameters' is expected to be of type Array, but is Integer
+||ValueError: Shell.add_extension_object_member: Invalid definition at parameter #1
 
 
 #@ Registration errors, parameters
-||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter #1: name
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'type' is expected to be of type String, but is Integer
+||ValueError: Shell.add_extension_object_member: Missing required options at parameter #1: name
+||TypeError: Shell.add_extension_object_member: Option 'type' is expected to be of type String, but is Integer
 
 #@ Registration errors, integer parameters
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at integer parameter 'sample': class, classes, options, values
+||ValueError: Shell.add_extension_object_member: Invalid options at integer parameter 'sample': class, classes, options, values
 
 #@ Registration errors, float parameters
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at float parameter 'sample': class, classes, options, values
+||ValueError: Shell.add_extension_object_member: Invalid options at float parameter 'sample': class, classes, options, values
 
 
 #@ Registration errors, bool parameters
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at bool parameter 'sample': class, classes, options, values
+||ValueError: Shell.add_extension_object_member: Invalid options at bool parameter 'sample': class, classes, options, values
 
 #@ Registration errors, string parameters
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at string parameter 'sample': class, classes, options
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'values' is expected to be of type Array, but is Integer
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'values' String expected, but value is Integer
+||ValueError: Shell.add_extension_object_member: Invalid options at string parameter 'sample': class, classes, options
+||TypeError: Shell.add_extension_object_member: Option 'values' is expected to be of type Array, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'values' String expected, but value is Integer
 
 
 #@ Registration errors, dictionary parameters
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': class, classes, values
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid definition at parameter 'sample', option #1
-||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter 'sample', option #1: name
+||ValueError: Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': class, classes, values
+||ValueError: Shell.add_extension_object_member: Invalid definition at parameter 'sample', option #1
+||ValueError: Shell.add_extension_object_member: Missing required options at parameter 'sample', option #1: name
 
 #@ Registration errors, invalid identifiers
-||SystemError: ArgumentError: Shell.add_extension_object_member: The function name 'my function' is not a valid identifier.
-||SystemError: ArgumentError: Shell.add_extension_object_member: parameter #1 is not a valid identifier: 'a sample'.
-||SystemError: ArgumentError: Shell.add_extension_object_member: parameter 'sample', option #1 is not a valid identifier: 'an invalid name'.
+||ValueError: Shell.add_extension_object_member: The function name 'my function' is not a valid identifier.
+||ValueError: Shell.add_extension_object_member: parameter #1 is not a valid identifier: 'a sample'.
+||ValueError: Shell.add_extension_object_member: parameter 'sample', option #1 is not a valid identifier: 'an invalid name'.

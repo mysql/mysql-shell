@@ -46,7 +46,7 @@
 ||Dba.createCluster: Cluster name may only contain alphanumeric characters or '_', and may not start with a number
 
 //@# Dba_preconditions_unmanaged_gr, create_cluster_adopt_needed
-||Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true (ArgumentError)
+||Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true (MYSQLSH 51315)
 
 //@# Dba_preconditions_unmanaged_gr, drop_metadata_schema_fails
 ||Dba.dropMetadataSchema: This function is not available through a session to an instance belonging to an unmanaged replication group

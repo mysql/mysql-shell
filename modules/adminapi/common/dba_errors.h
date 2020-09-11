@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -124,6 +124,7 @@
 #define SHERR_DBA_BADARG_VERSION_NOT_SUPPORTED 51312
 #define SHERR_DBA_BADARG_INSTANCE_NOT_PRIMARY 51313
 #define SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE 51314
+#define SHERR_DBA_BADARG_INSTANCE_ALREADY_IN_GR 51315
 
 // Clone handling error
 #define SHERR_DBA_CLONE_NO_DONORS 51400

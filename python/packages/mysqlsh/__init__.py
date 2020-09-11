@@ -19,15 +19,27 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-
-class DBError(Exception):
-    def __init__(self, code, msg, sqlstate=None):
+class Error(Exception):
+    def __init__(self, code, msg):
         self.code = code
         self.msg = msg
         self.args = (code, msg)
 
     def __str__(self):
-        return 'MySQL Error (%s): %s' % (self.code, self.msg)
+        msg = ""
+        if self.code > 0 and self.code < 50000:
+            msg = "MySQL Error (%s): " % self.code
+        elif self.code > 0:
+            msg = "Shell Error (%s): " % self.code
+
+        msg += self.msg
+
+        return msg
+
+class DBError(Error):
+    def __init__(self, code, msg, sqlstate=None):
+        super().__init__(code, msg)
+        self.sqlstate = sqlstate
 
 
 class ShellGlobals(object):

@@ -41,6 +41,7 @@
 #include "modules/mod_mysql.h"
 #include "modules/mod_mysql_resultset.h"  // temporary
 #include "modules/mod_mysql_session.h"
+#include "modules/mod_mysqlsh.h"
 #include "modules/mod_os.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
@@ -525,6 +526,7 @@ Mysql_shell::Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
   // dummy initialization
   _global_shell->set_session_global({});
 
+  INIT_MODULE(mysqlsh::Mysqlsh);
   INIT_MODULE(mysqlsh::mysql::Mysql);
   INIT_MODULE(mysqlsh::mysqlx::Mysqlx);
 

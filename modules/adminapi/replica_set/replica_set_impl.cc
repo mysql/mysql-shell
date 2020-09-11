@@ -2314,7 +2314,7 @@ void Replica_set_impl::handle_clone(
     });
 
     try {
-      monitor_clone_instance(
+      monitor_standalone_clone_instance(
           recipient->get_connection_options(), begin_time, progress_style,
           k_clone_start_timeout,
           current_shell_options()->get().dba_restart_wait_timeout);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -366,7 +366,8 @@ void Group_replication_options::do_unpack(shcore::Option_unpacker *unpacker) {
     // Here it CREATE falls back into the JOIN case as they
     // share the same options except for groupName
     case CREATE:
-      unpacker->optional(kGroupName, &group_name);
+      unpacker->optional(kGroupName, &group_name)
+          .optional(kManualStartOnBoot, &manual_start_on_boot);
       // fallthrough
     case JOIN:
       unpacker->optional(kMemberSslMode, &ssl_mode)

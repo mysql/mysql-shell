@@ -69,6 +69,7 @@ file(GLOB api_module_SOURCES
       "util/upgrade_check.cc"
       "mod_mysql.cc"
       "mod_mysql_*.cc"
+      "mod_mysqlsh.cc"
       "mod_shell.cc"
       "mod_extensible_object.cc"
       "mod_os.cc"

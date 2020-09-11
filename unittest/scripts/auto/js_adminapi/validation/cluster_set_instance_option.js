@@ -26,10 +26,10 @@ Cluster.setInstanceOption: The instance 'localhost:<<<__mysql_sandbox_port2>>>' 
 Cluster.setInstanceOption: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on 'localhost' ([[*]]) (MySQL Error 2003)
 
 //@<ERR> WL#11465: Error when executing setInstanceOption on a cluster with no visible quorum {VER(>=8.0.14)}
-Cluster.setInstanceOption: There is no quorum to perform the operation (RuntimeError)
+Cluster.setInstanceOption: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@<ERR> WL#11465: Error when executing setInstanceOption on a cluster with no visible quorum 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
-Cluster.setInstanceOption: There is no quorum to perform the operation (RuntimeError)
+Cluster.setInstanceOption: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@ WL#11465: Re-create the cluster
 ||
@@ -63,7 +63,7 @@ Successfully set the value of 'memberWeight' to '25' in the cluster member: 'loc
 25
 
 //@<ERR> WL#11465: setInstanceOption exitStateAction with invalid value
-Cluster.setInstanceOption: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (RuntimeError)
+Cluster.setInstanceOption: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (MYSQLSH 1231)
 
 //@<OUT> WL#11465: setInstanceOption exitStateAction {VER(>=8.0.0)}
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
@@ -95,10 +95,10 @@ Setting the value of 'autoRejoinTries' to '0' in the instance: 'localhost:<<<__m
 Successfully set the value of 'autoRejoinTries' to '0' in the cluster member: 'localhost:<<<__mysql_sandbox_port3>>>'.
 
 //@ WL#12066: TSF3_4 setInstanceOption autoRejoinTries doesn't accept negative values {VER(>=8.0.16)}
-||Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (RuntimeError)
+||Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (MYSQLSH 1231)
 
 //@ WL#12066: TSF3_5 setInstanceOption autoRejoinTries doesn't accept values out of range {VER(>=8.0.16)}
-||Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (RuntimeError)
+||Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (MYSQLSH 1231)
 
 //@ WL#12066: TSF3_3 Verify autoRejoinTries changed correctly in instance 1 {VER(>=8.0.16)}
 |2016|

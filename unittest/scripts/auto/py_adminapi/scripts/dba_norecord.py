@@ -15,6 +15,7 @@ validate_members(dba, [
     'kill_sandbox_instance',
     'reboot_cluster_from_complete_outage',
     'start_sandbox_instance',
+    'session',
     'stop_sandbox_instance',
     'upgrade_metadata',
     'verbose',

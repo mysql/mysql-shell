@@ -459,6 +459,8 @@ void Add_instance::prepare() {
     m_gr_opts.exit_state_action = "READ_ONLY";
   }
 
+  m_gr_opts.manual_start_on_boot = m_cluster->get_manual_start_on_boot_option();
+
   // Check if clone is disabled
   m_clone_disabled = m_cluster->get_disable_clone_option();
 

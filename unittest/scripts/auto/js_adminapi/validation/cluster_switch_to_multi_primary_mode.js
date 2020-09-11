@@ -8,7 +8,7 @@ Cluster.switchToMultiPrimaryMode: Operation not supported on target server versi
 ||Cluster.switchToMultiPrimaryMode: This operation requires all the cluster members to be ONLINE (RuntimeError)
 
 //@<ERR> WL#12052: Error when executing switchToMultiPrimaryMode on a cluster with no visible quorum < 8.0.13 {VER(>=8.0.13)}
-Cluster.switchToMultiPrimaryMode: There is no quorum to perform the operation (RuntimeError)
+Cluster.switchToMultiPrimaryMode: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@ WL#12052: Re-create the cluster {VER(>=8.0.13)}
 ||

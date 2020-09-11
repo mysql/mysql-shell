@@ -37,7 +37,7 @@ c.describe()
 
 //@ Options from master
 testutil.wipeAllOutput();
-c.options()
+normalize_cluster_options(c.options());
 
 //@ Get Cluster from slave
 shell.connect(__sandbox_uri2)
@@ -53,7 +53,7 @@ c.describe()
 
 //@ Options from slave [USE:Options from master]
 testutil.wipeAllOutput();
-c.options()
+normalize_cluster_options(c.options());
 
 session.close();
 

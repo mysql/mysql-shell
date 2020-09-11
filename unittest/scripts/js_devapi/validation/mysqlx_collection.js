@@ -217,4 +217,4 @@
 |Final Document Count: 3|
 
 //@ WL12412-TS2_1: Count throws error on unexisting collection
-||Collection.count: Table 'js_shell_test.count_collection' doesn't exist (RuntimeError)
+||Collection.count: Table 'js_shell_test.count_collection' doesn't exist (MYSQLSH 1146)

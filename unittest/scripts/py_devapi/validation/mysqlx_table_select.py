@@ -285,6 +285,6 @@ Mark
 3 rows in set ([[*]])
 
 #@<ERR> BUG29794340: Expected token type QUOTE
-SystemError: RuntimeError: TableSelect.select: Expected ' but found >, at position 6,
+RuntimeError: TableSelect.select: Expected ' but found >, at position 6,
 in: doc->>>'$.name' as names
           ^

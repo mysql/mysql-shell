@@ -2,22 +2,22 @@
 Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 
 //@<ERR> addInstance
-Cluster.addInstance: There is no quorum to perform the operation (RuntimeError)
+Cluster.addInstance: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@<ERR> removeInstance
-Cluster.removeInstance: There is no quorum to perform the operation (RuntimeError)
+Cluster.removeInstance: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@<ERR> rejoinInstance
-Cluster.rejoinInstance: There is no quorum to perform the operation (RuntimeError)
+Cluster.rejoinInstance: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@<ERR> dissolve
-Cluster.dissolve: There is no quorum to perform the operation (RuntimeError)
+Cluster.dissolve: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@<ERR> checkInstanceState
-Cluster.checkInstanceState: There is no quorum to perform the operation (RuntimeError)
+Cluster.checkInstanceState: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@<ERR> rescan
-Cluster.rescan: There is no quorum to perform the operation (RuntimeError)
+Cluster.rescan: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@<OUT> status (OK)
 {

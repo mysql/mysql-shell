@@ -20,6 +20,9 @@ DESCRIPTION
       When running the shell in interactive mode, this module is automatically
       imported.
 
+CONSTANTS
+ - ErrorCode MySQL server error codes.
+
 FUNCTIONS
       getClassicSession(connectionData[, password])
             Opens a classic MySQL protocol session to a MySQL server.

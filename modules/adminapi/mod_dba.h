@@ -54,6 +54,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
  public:
 #if DOXYGEN_JS
   Integer verbose;
+  Session session;
   JSON checkInstanceConfiguration(InstanceDef instance, Dictionary options);
   Undefined configureReplicaSetInstance(InstanceDef instance,
                                         Dictionary options);
@@ -74,6 +75,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   Undefined upgradeMetadata(Dictionary options);
 #elif DOXYGEN_PY
   int verbose;
+  Session session;
   JSON check_instance_configuration(InstanceDef instance, dict options);
   None configure_replica_set_instance(InstanceDef instance, dict options);
   None configure_local_instance(InstanceDef instance, dict options);
@@ -93,6 +95,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 #endif
 
   explicit Dba(shcore::IShell_core *owner);
+  explicit Dba(const std::shared_ptr<ShellBaseSession> &session);
   virtual ~Dba();
 
   virtual std::string class_name() const { return "Dba"; }
@@ -115,8 +118,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   Cluster_check_info check_preconditions(
       std::shared_ptr<MetadataStorage> metadata,
       const std::string &function_name) const;
-
-  shcore::IShell_core *get_owner() { return _shell_core; }
 
   virtual std::shared_ptr<mysqlshdk::db::ISession> get_active_shell_session()
       const;
@@ -199,7 +200,8 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const std::shared_ptr<Instance> &target_server);
 
  protected:
-  shcore::IShell_core *_shell_core;
+  shcore::IShell_core *_shell_core = nullptr;
+  std::shared_ptr<ShellBaseSession> m_session;
 
   void init();
 

@@ -52,6 +52,11 @@ constexpr const char k_cluster_attribute_disable_clone[] = "opt_disableClone";
 // Flag to indicate the default cluster in the metadata
 constexpr const char k_cluster_attribute_default[] = "default";
 
+// Whether group_replication_start_on_boot should be enabled in each instance
+// (false by default)
+constexpr const char k_cluster_attribute_manual_start_on_boot[] =
+    "opt_manualStartOnBoot";
+
 // Timestamp of when the instance was added to the group
 constexpr const char k_instance_attribute_join_time[] = "joinTime";
 
@@ -128,6 +133,8 @@ class Cluster_impl : public Base_cluster_impl {
 
   bool get_disable_clone_option() const;
   void set_disable_clone_option(const bool disable_clone);
+
+  bool get_manual_start_on_boot_option() const;
 
   const std::string &get_group_name() const { return m_group_name; }
 

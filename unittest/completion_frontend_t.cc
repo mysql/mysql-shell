@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
@@ -726,8 +725,9 @@ TEST_F(Completer_frontend, js_adminapi) {
             "createCluster()", "createReplicaSet()", "deleteSandboxInstance()",
             "deploySandboxInstance()", "dropMetadataSchema()", "getCluster()",
             "getReplicaSet()", "help()", "killSandboxInstance()",
-            "rebootClusterFromCompleteOutage()", "startSandboxInstance()",
-            "stopSandboxInstance()", "upgradeMetadata()", "verbose"}));
+            "rebootClusterFromCompleteOutage()", "session",
+            "startSandboxInstance()", "stopSandboxInstance()",
+            "upgradeMetadata()", "verbose"}));
   EXPECT_AFTER_TAB("dba.depl", "dba.deploySandboxInstance()");
 }
 
@@ -1241,8 +1241,9 @@ TEST_F(Completer_frontend, py_adminapi) {
             "delete_sandbox_instance()", "deploy_sandbox_instance()",
             "drop_metadata_schema()", "get_cluster()", "get_replica_set()",
             "help()", "kill_sandbox_instance()",
-            "reboot_cluster_from_complete_outage()", "start_sandbox_instance()",
-            "stop_sandbox_instance()", "upgrade_metadata()", "verbose"}));
+            "reboot_cluster_from_complete_outage()", "session",
+            "start_sandbox_instance()", "stop_sandbox_instance()",
+            "upgrade_metadata()", "verbose"}));
   EXPECT_AFTER_TAB("dba.depl", "dba.deploy_sandbox_instance()");
 }
 

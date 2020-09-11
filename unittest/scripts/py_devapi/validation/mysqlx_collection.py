@@ -210,11 +210,11 @@
 ||Table 'py_shell_test.replace_one' doesn't exist
 
 #@ WL12412-TS1_1: Count takes no arguments
-||ArgumentError: Collection.count: Invalid number of arguments, expected 0 but got 1
+||ValueError: Collection.count: Invalid number of arguments, expected 0 but got 1
 
 #@ WL12412-TS1_2: Count returns correct number of documents
 |Initial Document Count: 0|
 |Final Document Count: 3|
 
 #@ WL12412-TS2_1: Count throws error on unexisting collection
-||RuntimeError: Collection.count: Table 'py_shell_test.count_collection' doesn't exist
+||mysqlsh.DBError: MySQL Error (1146): Collection.count: Table 'py_shell_test.count_collection' doesn't exist

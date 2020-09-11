@@ -334,15 +334,15 @@ options: {"anyTypeOption": [1, "one", true], "intOption": 45, "strOption": "Stri
 
 #@ Function Call Errors (py)
 |[[*]]> decorator.test_simple_types(1, 2, False, {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')|
-|SystemError: ArgumentError: decorator.test_simple_types: Argument #1 is expected to be a string|
+|ValueError: decorator.test_simple_types: Argument #1 is expected to be a string|
 |[[*]]> decorator.test_simple_types('one', 'two', False, {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')|
-|SystemError: ArgumentError: decorator.test_simple_types: Argument #2 is expected to be an integer|
+|ValueError: decorator.test_simple_types: Argument #2 is expected to be an integer|
 |[[*]]> decorator.test_simple_types('one', 2, 'error', {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')|
-|SystemError: ArgumentError: decorator.test_simple_types: Argument #3 is expected to be a bool|
+|ValueError: decorator.test_simple_types: Argument #3 is expected to be a bool|
 |[[*]]> decorator.test_simple_types('one', 2, False, 'error', [1,2,3], 'Some Value')|
-|SystemError: ArgumentError: decorator.test_simple_types: Argument #4 is expected to be a map|
+|ValueError: decorator.test_simple_types: Argument #4 is expected to be a map|
 |[[*]]> decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, 'error', 'Some Value')|
-|SystemError: ArgumentError: decorator.test_simple_types: Argument #5 is expected to be an array|
+|ValueError: decorator.test_simple_types: Argument #5 is expected to be an array|
 |[[*]]> decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, [1,2,3])|
-|SystemError: ArgumentError: decorator.test_simple_types: Invalid number of arguments, expected 6 but got 5|
+|ValueError: decorator.test_simple_types: Invalid number of arguments, expected 6 but got 5|
 |[[*]]> decorator.inner.test_options('Passing Options', {'invalidOption':'String Option Value'})|

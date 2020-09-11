@@ -177,7 +177,7 @@ Stage compute_failed_upgrade_stage(
                              !at_target_version;
 
   log_info(
-      "Detecting state of failed MD schema upgrade... schema_version=%s, "
+      "Detecting state of MD schema upgrade... schema_version=%s, "
       "target_version=%s, backup_exists=%i, saved_stage=%s",
       schema_version.get_base().c_str(), current_version().get_base().c_str(),
       backup_exists,
@@ -208,7 +208,7 @@ Stage compute_failed_upgrade_stage(
     throw std::logic_error(
         "Metadata schema upgrade was left in an inconsistent state");
 
-  log_info("Failed MD schema upgrade detected to be in stage %s",
+  log_info("MD schema upgrade detected to be in stage %s",
            to_string(actual_stage).c_str());
 
   return actual_stage;
@@ -323,8 +323,7 @@ Instance_list get_locks(const std::shared_ptr<Instance> &group_server) {
       instance->release();
       throw shcore::Exception::runtime_error(shcore::str_format(
           "Unable to get lock '%s' on instance '%s'. Either a metadata "
-          "upgrade "
-          "or restore operation may be in progress.",
+          "upgrade or restore operation may be in progress.",
           kMetadataUpgradeLock, instance_md.endpoint.c_str()));
     }
   }

@@ -291,8 +291,8 @@ EXPECT_ARRAY_NOT_CONTAINS("non_existing", Object.keys(get_tags_for_instance(clus
 //@<> WL#13788: SetInstanceOption must not allow setting tags for instances if there is no quorum TSFR1_6
 testutil.killSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING),UNREACHABLE");
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri1, "tag:test1", "test")}, "There is no quorum to perform the operation", "RuntimeError");
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:test1", "test")}, "There is no quorum to perform the operation", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri1, "tag:test1", "test")}, "There is no quorum to perform the operation", "MYSQLSH");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:test1", "test")}, "There is no quorum to perform the operation", "MYSQLSH");
 
 //@<>Finalization
 cluster.disconnect();

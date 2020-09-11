@@ -1,288 +1,288 @@
 #@Shell create object errors
-||SystemError: ArgumentError: Shell.create_extension_object: Invalid number of arguments, expected 0 but got 1
+||ValueError: Shell.create_extension_object: Invalid number of arguments, expected 0 but got 1
 
 
 #@<OUT> Shell create object ok
 <ExtensionObject>
 
 #@object parameter should be an object
-||SystemError: ArgumentError: Shell.add_extension_object_member: Argument #1 is expected to be an object
+||ValueError: Shell.add_extension_object_member: Argument #1 is expected to be an object
 
 
 #@but not any object, an extension object
-||SystemError: ArgumentError: Shell.add_extension_object_member: Argument #1 is expected to be an extension object.
+||ValueError: Shell.add_extension_object_member: Argument #1 is expected to be an extension object.
 
 
 #@name parameters must be a string
-||SystemError: ArgumentError: Shell.add_extension_object_member: Argument #2 is expected to be a string
+||ValueError: Shell.add_extension_object_member: Argument #2 is expected to be a string
 
 
 #@name parameters must be a valid identifier (member)
-||SystemError: ArgumentError: Shell.add_extension_object_member: The member name 'my name' is not a valid identifier.
+||ValueError: Shell.add_extension_object_member: The member name 'my name' is not a valid identifier.
 
 
 #@name parameters must be a valid identifier (function)
-||SystemError: ArgumentError: Shell.add_extension_object_member: The function name 'my name' is not a valid identifier.
+||ValueError: Shell.add_extension_object_member: The function name 'my name' is not a valid identifier.
 
 
 #@member definition must be a dictionary
-||SystemError: ArgumentError: Shell.add_extension_object_member: Argument #4 is expected to be a map
+||ValueError: Shell.add_extension_object_member: Argument #4 is expected to be a map
 
 
 #@member definition 'brief' must be a string
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'brief' is expected to be of type String, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'brief' is expected to be of type String, but is Integer
 
 
 #@member definition 'details' must be an array
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'details' is expected to be of type Array, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'details' is expected to be of type Array, but is Integer
 
 
 #@member definition 'details' must be an array of strings
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'details' String expected, but value is Integer
+||TypeError: Shell.add_extension_object_member: Option 'details' String expected, but value is Integer
 
 
 #@function definition does not accept other attributes
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at function definition: extra
+||ValueError: Shell.add_extension_object_member: Invalid options at function definition: extra
 
 
 #@member definition does not accept other attributes
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at member definition: extra
+||ValueError: Shell.add_extension_object_member: Invalid options at member definition: extra
 
 
 #@member definition does not accept 'parameters' if member is not a function
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at member definition: extra
+||ValueError: Shell.add_extension_object_member: Invalid options at member definition: extra
 
 
 #@member definition 'parameters' must be an array
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'parameters' is expected to be of type Array, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'parameters' is expected to be of type Array, but is Integer
 
 
 #@member definition 'parameters' must be an array of dictionaries
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid definition at parameter #1
+||ValueError: Shell.add_extension_object_member: Invalid definition at parameter #1
 
 
 #@A parameter definition requires name
-||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter #1: name
+||ValueError: Shell.add_extension_object_member: Missing required options at parameter #1: name
 
 
 #@A parameter definition requires string on name
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'name' is expected to be of type String, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'name' is expected to be of type String, but is Integer
 
 
 #@A parameter definition requires valid identifier on name
-||SystemError: ArgumentError: Shell.add_extension_object_member: Unsupported type used at parameter 'my sample' #1. Allowed types: array, bool, dictionary, float, integer, object, string
+||ValueError: Shell.add_extension_object_member: Unsupported type used at parameter 'my sample' #1. Allowed types: array, bool, dictionary, float, integer, object, string
 
 
 #@A parameter definition requires a string on type
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'type' is expected to be of type String, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'type' is expected to be of type String, but is Integer
 
 
 #@A parameter definition requires a valid type on type
-||SystemError: ArgumentError: Shell.add_extension_object_member: Unsupported type used at parameter 'sample'. Allowed types: array, bool, dictionary, float, integer, object, string
+||ValueError: Shell.add_extension_object_member: Unsupported type used at parameter 'sample'. Allowed types: array, bool, dictionary, float, integer, object, string
 
 
 #@A parameter definition requires a boolean on required
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'required' Bool expected, but value is String
+||TypeError: Shell.add_extension_object_member: Option 'required' Bool expected, but value is String
 
 
 #@On parameters, duplicate definitions are not allowed
-||SystemError: ArgumentError: Shell.add_extension_object_member: parameter 'myname' is already defined.
+||ValueError: Shell.add_extension_object_member: parameter 'myname' is already defined.
 
 
 #@On parameters, required ones can't come after optional ones
-||SystemError: ArgumentError: Shell.add_extension_object_member: parameter 'required' can not be required after optional parameter 'optional'
+||ValueError: Shell.add_extension_object_member: parameter 'required' can not be required after optional parameter 'optional'
 
 
 #@A parameter definition requires a string on brief
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'brief' is expected to be of type String, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'brief' is expected to be of type String, but is Integer
 
 
 #@A parameter definition requires a string on details
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'details' is expected to be of type Array, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'details' is expected to be of type Array, but is Integer
 
 
 #@A parameter definition requires just strings on details
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'details' String expected, but value is Integer
+||TypeError: Shell.add_extension_object_member: Option 'details' String expected, but value is Integer
 
 
 #@<OUT> Non object parameters do not accept 'class' or 'classes' attributes
-ArgumentError: Shell.add_extension_object_member: Invalid options at string parameter 'sample': class
+Shell.add_extension_object_member: Invalid options at string parameter 'sample': class
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at integer parameter 'sample': class
+Shell.add_extension_object_member: Invalid options at integer parameter 'sample': class
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at float parameter 'sample': class
+Shell.add_extension_object_member: Invalid options at float parameter 'sample': class
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at bool parameter 'sample': class
+Shell.add_extension_object_member: Invalid options at bool parameter 'sample': class
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at array parameter 'sample': class
+Shell.add_extension_object_member: Invalid options at array parameter 'sample': class
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': class
+Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': class
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at boolean parameter 'sample': class
+Shell.add_extension_object_member: Invalid options at boolean parameter 'sample': class
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at string parameter 'sample': classes
+Shell.add_extension_object_member: Invalid options at string parameter 'sample': classes
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at integer parameter 'sample': classes
+Shell.add_extension_object_member: Invalid options at integer parameter 'sample': classes
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at float parameter 'sample': classes
+Shell.add_extension_object_member: Invalid options at float parameter 'sample': classes
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at bool parameter 'sample': classes
+Shell.add_extension_object_member: Invalid options at bool parameter 'sample': classes
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at array parameter 'sample': classes
+Shell.add_extension_object_member: Invalid options at array parameter 'sample': classes
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': classes
+Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': classes
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at boolean parameter 'sample': classes
+Shell.add_extension_object_member: Invalid options at boolean parameter 'sample': classes
 
 
 #@<OUT> Non dictionary parameters do not accept 'options' attribute
-ArgumentError: Shell.add_extension_object_member: Invalid options at string parameter 'sample': options
+Shell.add_extension_object_member: Invalid options at string parameter 'sample': options
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at integer parameter 'sample': options
+Shell.add_extension_object_member: Invalid options at integer parameter 'sample': options
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at float parameter 'sample': options
+Shell.add_extension_object_member: Invalid options at float parameter 'sample': options
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at bool parameter 'sample': options
+Shell.add_extension_object_member: Invalid options at bool parameter 'sample': options
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at array parameter 'sample': options
+Shell.add_extension_object_member: Invalid options at array parameter 'sample': options
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at object parameter 'sample': options
+Shell.add_extension_object_member: Invalid options at object parameter 'sample': options
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at boolean parameter 'sample': options
+Shell.add_extension_object_member: Invalid options at boolean parameter 'sample': options
 
 
 #@<OUT> Non string parameters do not accept 'values' attribute
-ArgumentError: Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': values
+Shell.add_extension_object_member: Invalid options at dictionary parameter 'sample': values
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at integer parameter 'sample': values
+Shell.add_extension_object_member: Invalid options at integer parameter 'sample': values
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at float parameter 'sample': values
+Shell.add_extension_object_member: Invalid options at float parameter 'sample': values
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at bool parameter 'sample': values
+Shell.add_extension_object_member: Invalid options at bool parameter 'sample': values
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at array parameter 'sample': values
+Shell.add_extension_object_member: Invalid options at array parameter 'sample': values
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at object parameter 'sample': values
+Shell.add_extension_object_member: Invalid options at object parameter 'sample': values
 
-ArgumentError: Shell.add_extension_object_member: Invalid options at boolean parameter 'sample': values
+Shell.add_extension_object_member: Invalid options at boolean parameter 'sample': values
 
 
 #@String parameters 'values' must be an array
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'values' is expected to be of type Array, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'values' is expected to be of type Array, but is Integer
 
 
 #@String parameter 'values' must be an array of strings
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'values' String expected, but value is Integer
+||TypeError: Shell.add_extension_object_member: Option 'values' String expected, but value is Integer
 
 #@ Object parameter 'class' must be a string
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'class' is expected to be of type String, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'class' is expected to be of type String, but is Integer
 
 #@ Object parameter 'class' can not be empty
-||SystemError: ArgumentError: Shell.add_extension_object_member: The following class is not recognized, it can not be used on the validation of an object parameter: ''.
+||ValueError: Shell.add_extension_object_member: The following class is not recognized, it can not be used on the validation of an object parameter: ''.
 
 #@ Object parameter 'classes' must be an array
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'classes' is expected to be of type Array, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'classes' is expected to be of type Array, but is Integer
 
 #@ Object parameter 'classes' must be an array of strings
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'classes' String expected, but value is Integer
+||TypeError: Shell.add_extension_object_member: Option 'classes' String expected, but value is Integer
 
 #@ Object parameter 'classes' can not be an empty array
-||SystemError: ArgumentError: Shell.add_extension_object_member: An empty array is not valid for the classes option.
+||ValueError: Shell.add_extension_object_member: An empty array is not valid for the classes option.
 
 #@ Object parameter 'class' must hold a valid class name
-||SystemError: ArgumentError: Shell.add_extension_object_member: The following class is not recognized, it can not be used on the validation of an object parameter: unknown.
+||ValueError: Shell.add_extension_object_member: The following class is not recognized, it can not be used on the validation of an object parameter: unknown.
 
 #@ Object parameter 'classes' must hold valid class names (singular)
-||SystemError: ArgumentError: Shell.add_extension_object_member: The following class is not recognized, it can not be used on the validation of an object parameter: Weirdie.
+||ValueError: Shell.add_extension_object_member: The following class is not recognized, it can not be used on the validation of an object parameter: Weirdie.
 
 #@ Object parameter 'classes' must hold valid class names (plural)
-||SystemError: ArgumentError: Shell.add_extension_object_member: The following classes are not recognized, they can not be used on the validation of an object parameter: Unexisting, Weirdie.
+||ValueError: Shell.add_extension_object_member: The following classes are not recognized, they can not be used on the validation of an object parameter: Unexisting, Weirdie.
 
 #@Dictionary parameter 'options' should be an array
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'options' is expected to be of type Array, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'options' is expected to be of type Array, but is Integer
 
 
 #@Dictionary parameter 'options' must be an array of dictionaries
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid definition at parameter 'sample', option #1
+||ValueError: Shell.add_extension_object_member: Invalid definition at parameter 'sample', option #1
 
 
 #@Parameter option definition requires type and name, missing both
-||SystemError: ArgumentError: Shell.add_extension_object_member: Missing required options at parameter 'sample', option #1: name
+||ValueError: Shell.add_extension_object_member: Missing required options at parameter 'sample', option #1: name
 
 
 #@Parameter option definition 'required' must be boolean
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'required' Bool expected, but value is String
+||TypeError: Shell.add_extension_object_member: Option 'required' Bool expected, but value is String
 
 
 #@Parameter option definition 'brief' must be string
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'brief' is expected to be of type String, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'brief' is expected to be of type String, but is Integer
 
 
 #@Parameter option definition 'details' must be array
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'details' is expected to be of type Array, but is Integer
+||TypeError: Shell.add_extension_object_member: Option 'details' is expected to be of type Array, but is Integer
 
 
 #@Parameter option definition 'details' must be array of strings
-||SystemError: TypeError: Shell.add_extension_object_member: Option 'details' String expected, but value is Integer
+||TypeError: Shell.add_extension_object_member: Option 'details' String expected, but value is Integer
 
 
 #@Parameter option definition, duplicates are not allowed
-||SystemError: ArgumentError: Shell.add_extension_object_member: option 'myoption' is already defined.
+||ValueError: Shell.add_extension_object_member: option 'myoption' is already defined.
 
 
 #@Parameter option definition, unknown attributes are not allowed
-||SystemError: ArgumentError: Shell.add_extension_object_member: Invalid options at parameter 'sample', string option 'myoption': other
+||ValueError: Shell.add_extension_object_member: Invalid options at parameter 'sample', string option 'myoption': other
 
 
 #@Adding duplicate member
-||SystemError: ArgumentError: Shell.add_extension_object_member: The object already has a 'sample' member.
+||ValueError: Shell.add_extension_object_member: The object already has a 'sample' member.
 
 #@ Adding self as member
-||SystemError: ArgumentError: Shell.add_extension_object_member: An extension object can not be member of itself.
+||ValueError: Shell.add_extension_object_member: An extension object can not be member of itself.
 
 #@ Adding object that was already added
-||SystemError: ArgumentError: Shell.add_extension_object_member: The provided extension object is already registered as part of another extension object.
+||ValueError: Shell.add_extension_object_member: The provided extension object is already registered as part of another extension object.
 
 
 #@Registering global, missing arguments
-||SystemError: ArgumentError: Shell.register_global: Invalid number of arguments, expected 2 to 3 but got 0
-||SystemError: ArgumentError: Shell.register_global: Invalid number of arguments, expected 2 to 3 but got 1
+||ValueError: Shell.register_global: Invalid number of arguments, expected 2 to 3 but got 0
+||ValueError: Shell.register_global: Invalid number of arguments, expected 2 to 3 but got 1
 
 
 #@Registering global, invalid data for name parameter
-||SystemError: ArgumentError: Shell.register_global: Argument #1 is expected to be a string
+||ValueError: Shell.register_global: Argument #1 is expected to be a string
 
 
 #@Registering global, invalid name parameter
-||SystemError: ArgumentError: Shell.register_global: The name 'bad name' is not a valid identifier.
+||ValueError: Shell.register_global: The name 'bad name' is not a valid identifier.
 
 
 #@Registering global, invalid data for object parameter, not an object
-||SystemError: ArgumentError: Shell.register_global: Argument #2 is expected to be an object
+||ValueError: Shell.register_global: Argument #2 is expected to be an object
 
 
 #@Registering global, invalid data for object parameter, not an extension object
-||SystemError: ArgumentError: Shell.register_global: Argument #2 is expected to be an extension object.
+||ValueError: Shell.register_global: Argument #2 is expected to be an extension object.
 
 
 #@Registering global, invalid data definition
-||SystemError: ArgumentError: Shell.register_global: Argument #3 is expected to be a map
+||ValueError: Shell.register_global: Argument #3 is expected to be a map
 
 
 #@Registering global, invalid definition, brief should be string
-||SystemError: TypeError: Shell.register_global: Option 'brief' is expected to be of type String, but is Integer
+||TypeError: Shell.register_global: Option 'brief' is expected to be of type String, but is Integer
 
 
 #@Registering global, invalid definition, details should be array
-||SystemError: TypeError: Shell.register_global: Option 'details' is expected to be of type Array, but is Integer
+||TypeError: Shell.register_global: Option 'details' is expected to be of type Array, but is Integer
 
 
 #@Registering global, invalid definition, details should be array of strings
-||SystemError: TypeError: Shell.register_global: Option 'details' String expected, but value is Integer
+||TypeError: Shell.register_global: Option 'details' String expected, but value is Integer
 
 
 #@Registering global, invalid definition, other attributes not accepted
-||SystemError: ArgumentError: Shell.register_global: Invalid options at object definition.: other
+||ValueError: Shell.register_global: Invalid options at object definition.: other
 
 
 #@<OUT> Registering global, no definition
@@ -387,42 +387,42 @@ EXAMPLES
       Displays the main SQL help categories.
 
 #@<OUT> Registering global using existing global names
-ArgumentError: Shell.register_global: A global named 'shell' already exists.
+Shell.register_global: A global named 'shell' already exists.
 
-ArgumentError: Shell.register_global: A global named 'dba' already exists.
+Shell.register_global: A global named 'dba' already exists.
 
-ArgumentError: Shell.register_global: A global named 'util' already exists.
+Shell.register_global: A global named 'util' already exists.
 
-ArgumentError: Shell.register_global: The name 'mysql' is reserved.
+Shell.register_global: The name 'mysql' is reserved.
 
-ArgumentError: Shell.register_global: The name 'mysqlx' is reserved.
+Shell.register_global: The name 'mysqlx' is reserved.
 
-ArgumentError: Shell.register_global: A global named 'session' already exists.
+Shell.register_global: A global named 'session' already exists.
 
-ArgumentError: Shell.register_global: A global named 'db' already exists.
+Shell.register_global: A global named 'db' already exists.
 
-ArgumentError: Shell.register_global: A global named 'sys' already exists.
+Shell.register_global: A global named 'sys' already exists.
 
-ArgumentError: Shell.register_global: A global named 'os' already exists.
+Shell.register_global: A global named 'os' already exists.
 
-ArgumentError: Shell.register_global: A global named 'goodName' already exists.
+Shell.register_global: A global named 'goodName' already exists.
 
 
 #@ Adding object that was already registered
-||SystemError: ArgumentError: Shell.add_extension_object_member: The provided extension object is already registered as: sampleObject.
+||ValueError: Shell.add_extension_object_member: The provided extension object is already registered as: sampleObject.
 
 #@ Registering object that was already registered
-||SystemError: ArgumentError: Shell.register_global: The provided extension object is already registered as: sampleObject
+||ValueError: Shell.register_global: The provided extension object is already registered as: sampleObject
 
 
 #@ Attempt to get property of unregistered
-||SystemError: RuntimeError: Unable to access members in an unregistered extension object.
+||RuntimeError: Unable to access members in an unregistered extension object.
 
 #@ Attempt to set property of unregistered
-||SystemError: RuntimeError: Unable to modify members in an unregistered extension object.
+||RuntimeError: Unable to modify members in an unregistered extension object.
 
 #@ Attempt to call function of unregistered
-||SystemError: RuntimeError: Unable to call functions in an unregistered extension object.
+||RuntimeError: Unable to call functions in an unregistered extension object.
 
 #@ Attempt to get property of registered
 |5|

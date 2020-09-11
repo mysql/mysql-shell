@@ -341,11 +341,11 @@ session.run_sql("ANALYZE TABLE !.! UPDATE HISTOGRAM ON `id`;", [ test_schema, te
 
 #@<> WL13804-FR3 - The `table` parameter of the `util.exportTable()` function must be a string value which specifies the table to be dumped. This value may be given in the following forms: `table`, `schema.table`. Both `schema` and `table` must be valid MySQL identifiers and must be quoted with backtick (`` ` ``) character when required.
 # WL13804-TSFR_3_1
-EXPECT_FAIL("ArgumentError", "Argument #1 is expected to be a string", None, test_output_relative)
-EXPECT_FAIL("ArgumentError", "Argument #1 is expected to be a string", 1, test_output_relative)
-EXPECT_FAIL("ArgumentError", "Argument #1 is expected to be a string", [], test_output_relative)
-EXPECT_FAIL("ArgumentError", "Argument #1 is expected to be a string", {}, test_output_relative)
-EXPECT_FAIL("ArgumentError", "Argument #1 is expected to be a string", True, test_output_relative)
+EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", None, test_output_relative)
+EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", 1, test_output_relative)
+EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", [], test_output_relative)
+EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", {}, test_output_relative)
+EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", True, test_output_relative)
 
 EXPECT_SUCCESS("{0}.{1}".format(types_schema, types_schema_tables[0]), test_output_absolute, { "showProgress": False })
 EXPECT_SUCCESS("`{0}`.{1}".format(types_schema, types_schema_tables[0]), test_output_absolute, { "showProgress": False })
@@ -354,26 +354,26 @@ EXPECT_SUCCESS("`{0}`.`{1}`".format(types_schema, types_schema_tables[0]), test_
 
 #@<> WL13804-FR4 - The `outputUrl` parameter of the `util.exportTable()` function must be a string value which specifies the output file, where the dump data is going to be stored.
 # WL13804-TSFR_4_1
-EXPECT_FAIL("ArgumentError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), None)
-EXPECT_FAIL("ArgumentError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), 1)
-EXPECT_FAIL("ArgumentError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), [])
-EXPECT_FAIL("ArgumentError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), {})
-EXPECT_FAIL("ArgumentError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), True)
+EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), None)
+EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), 1)
+EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), [])
+EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), {})
+EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), True)
 
 EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "showProgress": False })
 
 #@<> WL13804-FR5 - The `options` optional parameter of the `util.exportTable()` function must be a dictionary which contains options for the export operation.
-EXPECT_FAIL("ArgumentError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, 1)
-EXPECT_FAIL("ArgumentError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, "string")
-EXPECT_FAIL("ArgumentError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, [])
+EXPECT_FAIL("ValueError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, 1)
+EXPECT_FAIL("ValueError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, "string")
+EXPECT_FAIL("ValueError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, [])
 
 #@<> WL13804-TSFR_1_5 - Call exportTable(): giving less parameters than allowed, giving more parameters than allowed
-EXPECT_THROWS(lambda: util.export_table(), "ArgumentError: Util.export_table: Invalid number of arguments, expected 2 to 3 but got 0")
-EXPECT_THROWS(lambda: util.export_table(quote(test_schema, test_table_non_unique), test_output_relative, {}, None), "ArgumentError: Util.export_table: Invalid number of arguments, expected 2 to 3 but got 4")
+EXPECT_THROWS(lambda: util.export_table(), "ValueError: Util.export_table: Invalid number of arguments, expected 2 to 3 but got 0")
+EXPECT_THROWS(lambda: util.export_table(quote(test_schema, test_table_non_unique), test_output_relative, {}, None), "ValueError: Util.export_table: Invalid number of arguments, expected 2 to 3 but got 4")
 
 #@<> WL13804-FR3.1 - If schema is not specified in the `table` parameter, the current schema of the global Shell session must be used. If there is none, an exception must be raised.
 # WL13804-TSFR_3_1_1
-EXPECT_FAIL("ArgumentError", "The table was given without a schema and there is no active schema on the current session, unable to deduce which table to export.", types_schema_tables[0], test_output_absolute, { "showProgress": False })
+EXPECT_FAIL("ValueError", "The table was given without a schema and there is no active schema on the current session, unable to deduce which table to export.", types_schema_tables[0], test_output_absolute, { "showProgress": False })
 
 # WL13804-TSFR_3_1_2
 session.run_sql("USE !;", [ types_schema ])
@@ -382,21 +382,21 @@ EXPECT_SUCCESS("`{0}`".format(types_schema_tables[0]), test_output_absolute, { "
 
 #@<> WL13804-FR3.2 - If table specified by the `table` parameter does not exist, an exception must be thrown.
 # non-existent table in the current schema
-EXPECT_FAIL("ArgumentError", "The requested table `{0}`.`dummy` was not found in the database.".format(types_schema), "dummy", test_output_absolute, { "showProgress": False })
-EXPECT_FAIL("ArgumentError", "The requested table `{0}`.`dummy` was not found in the database.".format(types_schema), "`dummy`", test_output_absolute, { "showProgress": False })
+EXPECT_FAIL("ValueError", "The requested table `{0}`.`dummy` was not found in the database.".format(types_schema), "dummy", test_output_absolute, { "showProgress": False })
+EXPECT_FAIL("ValueError", "The requested table `{0}`.`dummy` was not found in the database.".format(types_schema), "`dummy`", test_output_absolute, { "showProgress": False })
 # non-existent table in an existing schema
-EXPECT_FAIL("ArgumentError", "The requested table `{0}`.`dummy` was not found in the database.".format(test_schema), quote(test_schema, "dummy"), test_output_absolute, { "showProgress": False })
+EXPECT_FAIL("ValueError", "The requested table `{0}`.`dummy` was not found in the database.".format(test_schema), quote(test_schema, "dummy"), test_output_absolute, { "showProgress": False })
 # non-existent table in a non-existent schema
-EXPECT_FAIL("ArgumentError", "The requested table `dummy`.`dummy` was not found in the database.", quote("dummy", "dummy"), test_output_absolute, { "showProgress": False })
+EXPECT_FAIL("ValueError", "The requested table `dummy`.`dummy` was not found in the database.", quote("dummy", "dummy"), test_output_absolute, { "showProgress": False })
 # WL13804-TSFR_3_2_1
-EXPECT_FAIL("ArgumentError", "The requested table `{0}`.`\n` was not found in the database.".format(types_schema), "`\n`", test_output_absolute, { "showProgress": False })
+EXPECT_FAIL("ValueError", "The requested table `{0}`.`\n` was not found in the database.".format(types_schema), "`\n`", test_output_absolute, { "showProgress": False })
 
 #@<> WL13804-FR4.1 - If the dump is going to be stored on the local filesystem, the `outputUrl` parameter may be optionally prefixed with `file://` scheme.
 EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), "file://" + test_output_absolute, { "showProgress": False })
 
 #@<> WL13804-TSFR_4_1_2
-EXPECT_FAIL("ArgumentError", "File handling for http protocol is not supported.", quote(types_schema, types_schema_tables[0]), "http://example.com", { "showProgress": False })
-EXPECT_FAIL("ArgumentError", "File handling for HTTPS protocol is not supported.", quote(types_schema, types_schema_tables[0]), "HTTPS://www.example.com", { "showProgress": False })
+EXPECT_FAIL("ValueError", "File handling for http protocol is not supported.", quote(types_schema, types_schema_tables[0]), "http://example.com", { "showProgress": False })
+EXPECT_FAIL("ValueError", "File handling for HTTPS protocol is not supported.", quote(types_schema, types_schema_tables[0]), "HTTPS://www.example.com", { "showProgress": False })
 
 #@<> WL13804-FR4.2 - If the dump is going to be stored on the local filesystem and the `outputUrl` parameter holds a relative path, its absolute value is computed as relative to the current working directory.
 EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_relative, { "showProgress": False })
@@ -451,16 +451,16 @@ EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute
 EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "1G", "showProgress": False })
 
 #@<> WL13804-FR5.1.1 - The value of the `maxRate` option must use the same format as specified in WL#12193.
-EXPECT_FAIL("ArgumentError", 'Wrong input number "xyz"', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "xyz" })
-EXPECT_FAIL("ArgumentError", 'Wrong input number "1xyz"', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "1xyz" })
-EXPECT_FAIL("ArgumentError", 'Wrong input number "2Mhz"', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "2Mhz" })
+EXPECT_FAIL("ValueError", 'Wrong input number "xyz"', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "xyz" })
+EXPECT_FAIL("ValueError", 'Wrong input number "1xyz"', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "1xyz" })
+EXPECT_FAIL("ValueError", 'Wrong input number "2Mhz"', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "2Mhz" })
 # WL13804-TSFR_5_1_1_2
-EXPECT_FAIL("ArgumentError", 'Wrong input number "hello world!"', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "hello world!" })
-EXPECT_FAIL("ArgumentError", 'Input number "-1" cannot be negative', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "-1" })
-EXPECT_FAIL("ArgumentError", 'Input number "-1234567890123456" cannot be negative', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "-1234567890123456" })
-EXPECT_FAIL("ArgumentError", 'Input number "-2K" cannot be negative', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "-2K" })
-EXPECT_FAIL("ArgumentError", 'Wrong input number "3m"', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "3m" })
-EXPECT_FAIL("ArgumentError", 'Wrong input number "4g"', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "4g" })
+EXPECT_FAIL("ValueError", 'Wrong input number "hello world!"', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "hello world!" })
+EXPECT_FAIL("ValueError", 'Input number "-1" cannot be negative', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "-1" })
+EXPECT_FAIL("ValueError", 'Input number "-1234567890123456" cannot be negative', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "-1234567890123456" })
+EXPECT_FAIL("ValueError", 'Input number "-2K" cannot be negative', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "-2K" })
+EXPECT_FAIL("ValueError", 'Wrong input number "3m"', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "3m" })
+EXPECT_FAIL("ValueError", 'Wrong input number "4g"', quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "4g" })
 
 EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "maxRate": "1000000", "showProgress": False })
 
@@ -542,14 +542,14 @@ EXPECT_EQ(GZIP_MAGIC_NUMBER, get_magic_number(test_output_absolute, 2))
 EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "compression": "zstd", "showProgress": False })
 EXPECT_EQ(ZSTD_MAGIC_NUMBER, get_magic_number(test_output_absolute, 4))
 
-EXPECT_FAIL("ArgumentError", "Unknown compression type: NoNE", quote(types_schema, types_schema_tables[0]), test_output_relative, { "compression": "NoNE"})
-EXPECT_FAIL("ArgumentError", "Unknown compression type: gZIp", quote(types_schema, types_schema_tables[0]), test_output_relative, { "compression": "gZIp"})
-EXPECT_FAIL("ArgumentError", "Unknown compression type: ZStd", quote(types_schema, types_schema_tables[0]), test_output_relative, { "compression": "ZStd"})
+EXPECT_FAIL("ValueError", "Unknown compression type: NoNE", quote(types_schema, types_schema_tables[0]), test_output_relative, { "compression": "NoNE"})
+EXPECT_FAIL("ValueError", "Unknown compression type: gZIp", quote(types_schema, types_schema_tables[0]), test_output_relative, { "compression": "gZIp"})
+EXPECT_FAIL("ValueError", "Unknown compression type: ZStd", quote(types_schema, types_schema_tables[0]), test_output_relative, { "compression": "ZStd"})
 
-EXPECT_FAIL("ArgumentError", "The option 'compression' cannot be set to an empty string.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "compression": "" })
-EXPECT_FAIL("ArgumentError", "Unknown compression type: dummy", quote(types_schema, types_schema_tables[0]), test_output_relative, { "compression": "dummy" })
+EXPECT_FAIL("ValueError", "The option 'compression' cannot be set to an empty string.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "compression": "" })
+EXPECT_FAIL("ValueError", "Unknown compression type: dummy", quote(types_schema, types_schema_tables[0]), test_output_relative, { "compression": "dummy" })
 # WL13804-TSFR_5_3_1_1
-EXPECT_FAIL("ArgumentError", "Unknown compression type: hello world!", quote(types_schema, types_schema_tables[0]), test_output_relative, { "compression": "hello world!" })
+EXPECT_FAIL("ValueError", "Unknown compression type: hello world!", quote(types_schema, types_schema_tables[0]), test_output_relative, { "compression": "hello world!" })
 
 #@<> WL13804-FR5.3.2 - If the `compression` option is not given, a default value of `"none"` must be used instead.
 # WL13804-TSFR_5_3_2_1
@@ -573,7 +573,7 @@ TEST_STRING_OPTION("osNamespace")
 
 #@<> WL13804-FR5.5.2 - If the value of `osNamespace` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
 # WL13804-TSFR_5_5_2_1
-EXPECT_FAIL("ArgumentError", "The option 'osNamespace' cannot be used when the value of 'osBucketName' option is not set.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "osNamespace": "namespace" })
+EXPECT_FAIL("ValueError", "The option 'osNamespace' cannot be used when the value of 'osBucketName' option is not set.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "osNamespace": "namespace" })
 
 #@<> WL13804-TSFR_5_5_3_2
 EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "osNamespace": "", "showProgress": False })
@@ -584,8 +584,8 @@ TEST_STRING_OPTION("ociConfigFile")
 
 #@<> WL13804-FR5.6.2 - If the value of `ociConfigFile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
 # WL13804-TSFR_5_6_3_1
-EXPECT_FAIL("ArgumentError", "The option 'ociConfigFile' cannot be used when the value of 'osBucketName' option is not set.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ociConfigFile": "config" })
-EXPECT_FAIL("ArgumentError", "The option 'ociConfigFile' cannot be used when the value of 'osBucketName' option is not set.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ociConfigFile": "config", "osBucketName": "" })
+EXPECT_FAIL("ValueError", "The option 'ociConfigFile' cannot be used when the value of 'osBucketName' option is not set.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ociConfigFile": "config" })
+EXPECT_FAIL("ValueError", "The option 'ociConfigFile' cannot be used when the value of 'osBucketName' option is not set.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ociConfigFile": "config", "osBucketName": "" })
 
 #@<> WL13804-TSFR_5_6_3_2
 EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "ociConfigFile": "", "showProgress": False })
@@ -595,7 +595,7 @@ EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute
 TEST_STRING_OPTION("ociProfile")
 
 #@<> WL13804-FR5.7.2 - If the value of `ociProfile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
-EXPECT_FAIL("ArgumentError", "The option 'ociProfile' cannot be used when the value of 'osBucketName' option is not set.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ociProfile": "profile" })
+EXPECT_FAIL("ValueError", "The option 'ociProfile' cannot be used when the value of 'osBucketName' option is not set.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ociProfile": "profile" })
 
 #@<> WL13804-FR5.8 - The `options` dictionary may contain a `defaultCharacterSet` key with a string value, which specifies the character set to be used during the dump. The session variables `character_set_client`, `character_set_connection`, and `character_set_results` must be set to this value for each opened connection.
 TEST_STRING_OPTION("defaultCharacterSet")
@@ -614,8 +614,8 @@ session.run_sql("SET NAMES 'utf8mb4';")
 
 #@<> WL13804-FR5.8.1 - If the value of the `defaultCharacterSet` option is not a character set supported by the MySQL server, an exception must be thrown.
 # WL13804-TSFR_5_8_1_3
-EXPECT_FAIL("RuntimeError", "Unknown character set: ''", quote(types_schema, types_schema_tables[0]), test_output_relative, { "defaultCharacterSet": "" })
-EXPECT_FAIL("RuntimeError", "Unknown character set: 'dummy'", quote(types_schema, types_schema_tables[0]), test_output_relative, { "defaultCharacterSet": "dummy" })
+EXPECT_FAIL("MySQL Error (1115)", "Unknown character set: ''", quote(types_schema, types_schema_tables[0]), test_output_relative, { "defaultCharacterSet": "" })
+EXPECT_FAIL("MySQL Error (1115)", "Unknown character set: 'dummy'", quote(types_schema, types_schema_tables[0]), test_output_relative, { "defaultCharacterSet": "dummy" })
 
 #@<> WL13804-FR5.8.2 - If the `defaultCharacterSet` option is not given, a default value of `"utf8mb4"` must be used instead.
 # WL13804-TSFR_5_8_2_1
@@ -638,7 +638,7 @@ for dialect in [ "default", "csv", "tsv", "csv-unix" ]:
         TEST_LOAD(types_schema, table, { "dialect": dialect })
 
 #@<> WL13804-FR5.9.1 - The JSON dialect must not be supported.
-EXPECT_FAIL("ArgumentError", "The 'json' dialect is not supported.", quote(test_schema, test_table_json), test_output_relative, { "dialect": "json" })
+EXPECT_FAIL("ValueError", "The 'json' dialect is not supported.", quote(test_schema, test_table_json), test_output_relative, { "dialect": "json" })
 
 #@<> WL13804-FR5.9 - custom dialect
 for table in types_schema_tables:
@@ -672,27 +672,27 @@ TEST_LOAD(test_schema, custom_dialect_table, { "fieldsEnclosedBy": '"', "fieldsO
 session.run_sql("DROP TABLE !.!;", [ test_schema, custom_dialect_table ])
 
 #@<> WL13804-FR5.9 - fixed-row format is not supported yet
-EXPECT_FAIL("ArgumentError", "The fieldsTerminatedBy and fieldsEnclosedBy are both empty, resulting in a fixed-row format. This is currently not supported.", quote(types_schema, types_schema_tables[0]), test_output_absolute, { "fieldsTerminatedBy": "", "fieldsEnclosedBy": "" })
+EXPECT_FAIL("ValueError", "The fieldsTerminatedBy and fieldsEnclosedBy are both empty, resulting in a fixed-row format. This is currently not supported.", quote(types_schema, types_schema_tables[0]), test_output_absolute, { "fieldsTerminatedBy": "", "fieldsEnclosedBy": "" })
 
 #@<> options param being a dictionary that contains an unknown key
-EXPECT_FAIL("ArgumentError", "Invalid options: dummy", quote(types_schema, types_schema_tables[0]), test_output_relative, { "dummy": "fails" })
-EXPECT_FAIL("ArgumentError", "Invalid options: indexColumn", quote(types_schema, types_schema_tables[0]), test_output_relative, { "indexColumn": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: consistent", quote(types_schema, types_schema_tables[0]), test_output_relative, { "consistent": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: triggers", quote(types_schema, types_schema_tables[0]), test_output_relative, { "triggers": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: events", quote(types_schema, types_schema_tables[0]), test_output_relative, { "events": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: routines", quote(types_schema, types_schema_tables[0]), test_output_relative, { "routines": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: users", quote(types_schema, types_schema_tables[0]), test_output_relative, { "users": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: excludeUsers", quote(types_schema, types_schema_tables[0]), test_output_relative, { "excludeUsers": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: includeUsers", quote(types_schema, types_schema_tables[0]), test_output_relative, { "includeUsers": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: tzUtc", quote(types_schema, types_schema_tables[0]), test_output_relative, { "tzUtc": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: ddlOnly", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ddlOnly": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: dataOnly", quote(types_schema, types_schema_tables[0]), test_output_relative, { "dataOnly": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: dryRun", quote(types_schema, types_schema_tables[0]), test_output_relative, { "dryRun": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: chunking", quote(types_schema, types_schema_tables[0]), test_output_relative, { "chunking": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: bytesPerChunk", quote(types_schema, types_schema_tables[0]), test_output_relative, { "bytesPerChunk": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: threads", quote(types_schema, types_schema_tables[0]), test_output_relative, { "threads": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: excludeTables", quote(types_schema, types_schema_tables[0]), test_output_relative, { "excludeTables": "dummy" })
-EXPECT_FAIL("ArgumentError", "Invalid options: excludeSchemas", quote(types_schema, types_schema_tables[0]), test_output_relative, { "excludeSchemas": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: dummy", quote(types_schema, types_schema_tables[0]), test_output_relative, { "dummy": "fails" })
+EXPECT_FAIL("ValueError", "Invalid options: indexColumn", quote(types_schema, types_schema_tables[0]), test_output_relative, { "indexColumn": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: consistent", quote(types_schema, types_schema_tables[0]), test_output_relative, { "consistent": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: triggers", quote(types_schema, types_schema_tables[0]), test_output_relative, { "triggers": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: events", quote(types_schema, types_schema_tables[0]), test_output_relative, { "events": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: routines", quote(types_schema, types_schema_tables[0]), test_output_relative, { "routines": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: users", quote(types_schema, types_schema_tables[0]), test_output_relative, { "users": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: excludeUsers", quote(types_schema, types_schema_tables[0]), test_output_relative, { "excludeUsers": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: includeUsers", quote(types_schema, types_schema_tables[0]), test_output_relative, { "includeUsers": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: tzUtc", quote(types_schema, types_schema_tables[0]), test_output_relative, { "tzUtc": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: ddlOnly", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ddlOnly": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: dataOnly", quote(types_schema, types_schema_tables[0]), test_output_relative, { "dataOnly": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: dryRun", quote(types_schema, types_schema_tables[0]), test_output_relative, { "dryRun": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: chunking", quote(types_schema, types_schema_tables[0]), test_output_relative, { "chunking": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: bytesPerChunk", quote(types_schema, types_schema_tables[0]), test_output_relative, { "bytesPerChunk": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: threads", quote(types_schema, types_schema_tables[0]), test_output_relative, { "threads": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: excludeTables", quote(types_schema, types_schema_tables[0]), test_output_relative, { "excludeTables": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: excludeSchemas", quote(types_schema, types_schema_tables[0]), test_output_relative, { "excludeSchemas": "dummy" })
 
 #@<> WL13804-FR15 - Once the dump is complete, the summary of the export process must be presented to the user. It must contain:
 # * The number of rows written.
@@ -753,7 +753,7 @@ EXPECT_NO_THROWS(lambda: util.import_table(test_output_absolute, { "schema": ver
 EXPECT_FAIL("RuntimeError", "Failed to get object list", quote(types_schema, types_schema_tables[0]), 'out.txt', {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"})
 
 #@<> An error should occur when dumping using oci+os://
-EXPECT_FAIL("ArgumentError", "File handling for oci+os protocol is not supported.", quote(types_schema, types_schema_tables[0]), 'oci+os://sakila')
+EXPECT_FAIL("ValueError", "File handling for oci+os protocol is not supported.", quote(types_schema, types_schema_tables[0]), 'oci+os://sakila')
 
 #@<> WL13804-TSFR_1_2
 # WL13804-TSFR_1_3
@@ -779,10 +779,10 @@ session.run_sql("INSERT INTO !.! (!) SELECT data FROM !.!;", [ tested_schema, te
 TEST_LOAD(tested_schema, tested_name)
 
 #@<> WL13804-TSFR_3_2
-EXPECT_FAIL("ArgumentError", "Failed to parse table to be exported '{0}.{1}': Invalid object name, expected '.', but got: ".format(tested_schema, tested_name), "{0}.{1}".format(tested_schema, tested_name), test_output_absolute)
+EXPECT_FAIL("ValueError", "Failed to parse table to be exported '{0}.{1}': Invalid object name, expected '.', but got: ".format(tested_schema, tested_name), "{0}.{1}".format(tested_schema, tested_name), test_output_absolute)
 
 #@<> WL13804-TSFR_3_2_2
-EXPECT_FAIL("ArgumentError", "The requested table `{0}`.`{1}a` was not found in the database.".format(tested_schema, tested_name), quote(tested_schema, tested_name + "a"), test_output_absolute)
+EXPECT_FAIL("ValueError", "The requested table `{0}`.`{1}a` was not found in the database.".format(tested_schema, tested_name), quote(tested_schema, tested_name + "a"), test_output_absolute)
 
 #@<> WL13804-TSFR_1_1
 # use 20 random ASCII characters, we don't want to use too many, 'cause server may have problems renaming the table
@@ -885,7 +885,7 @@ tested_name = "1234"
 
 session.run_sql("CREATE TABLE !.! (`data` INT) ENGINE=InnoDB;", [ test_schema, tested_name ])
 
-EXPECT_FAIL("ArgumentError", "Failed to parse table to be exported '{0}': Invalid identifier: identifiers may begin with a digit but unless quoted may not consist solely of digits.".format(tested_name), tested_name, test_output_absolute)
+EXPECT_FAIL("ValueError", "Failed to parse table to be exported '{0}': Invalid identifier: identifiers may begin with a digit but unless quoted may not consist solely of digits.".format(tested_name), tested_name, test_output_absolute)
 
 session.run_sql("DROP TABLE !.!;", [ test_schema, tested_name ])
 
@@ -896,7 +896,7 @@ tested_name = "1234"
 session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
 session.run_sql("CREATE TABLE !.! (`data` INT) ENGINE=InnoDB;", [ tested_schema, tested_name ])
 
-EXPECT_FAIL("ArgumentError", "Failed to parse table to be exported '{0}.{1}': Invalid character in identifier".format(tested_schema, tested_name), "{0}.{1}".format(tested_schema, tested_name), test_output_absolute)
+EXPECT_FAIL("ValueError", "Failed to parse table to be exported '{0}.{1}': Invalid character in identifier".format(tested_schema, tested_name), "{0}.{1}".format(tested_schema, tested_name), test_output_absolute)
 
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
@@ -959,7 +959,7 @@ session.run_sql("INSERT INTO !.! VALUES (123);", [ used_schema, tested_name ])
 
 session.run_sql("USE !;", [ used_schema ])
 \sql DROP SCHEMA `<<<used_schema>>>`
-EXPECT_FAIL("ArgumentError", "The table was given without a schema and there is no active schema on the current session, unable to deduce which table to export.", quote(tested_name), test_output_absolute)
+EXPECT_FAIL("ValueError", "The table was given without a schema and there is no active schema on the current session, unable to deduce which table to export.", quote(tested_name), test_output_absolute)
 
 #@<> WL13804-TSFR_4_2 {__os_type != "windows"}
 # create the file
@@ -1057,7 +1057,7 @@ EXPECT_STDOUT_CONTAINS("Cannot open file '{0}': Permission denied".format(absolu
 shutil.rmtree(test_output_absolute_parent, True)
 os.mkdir(test_output_absolute_parent)
 tested_path = os.path.join(test_output_absolute_parent, "deeply", "nested", "none", "of", "which", "exists")
-EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), tested_path), "ArgumentError: Util.export_table: Cannot proceed with the dump, the directory containing '{0}' does not exist at the target location {1}.".format(tested_path, absolute_path_for_output(os.path.dirname(tested_path))))
+EXPECT_THROWS(lambda: util.export_table(quote(types_schema, types_schema_tables[0]), tested_path), "ValueError: Util.export_table: Cannot proceed with the dump, the directory containing '{0}' does not exist at the target location {1}.".format(tested_path, absolute_path_for_output(os.path.dirname(tested_path))))
 
 #@<> WL13804-TSFR_4_3_x
 shutil.rmtree(test_output_absolute_parent, True)
@@ -1081,9 +1081,9 @@ EXPECT_FILE_CONTAINS("222", os.path.join(test_output_absolute_parent, "file_b"))
 EXPECT_FILE_CONTAINS("333", os.path.join(test_output_absolute_parent, "nested", "file_c"))
 
 #@<> BUG#31552502 empty outputUrl should be disallowed
-EXPECT_FAIL("ArgumentError", "The name of the output file cannot be empty.", quote(types_schema, types_schema_tables[0]), "")
-EXPECT_FAIL("ArgumentError", "The name of the output file cannot be empty.", quote(types_schema, types_schema_tables[0]), "file://")
-EXPECT_FAIL("ArgumentError", "The name of the output file cannot be empty.", quote(types_schema, types_schema_tables[0]), "FIle://")
+EXPECT_FAIL("ValueError", "The name of the output file cannot be empty.", quote(types_schema, types_schema_tables[0]), "")
+EXPECT_FAIL("ValueError", "The name of the output file cannot be empty.", quote(types_schema, types_schema_tables[0]), "file://")
+EXPECT_FAIL("ValueError", "The name of the output file cannot be empty.", quote(types_schema, types_schema_tables[0]), "FIle://")
 
 #@<> BUG#31545679
 # setup

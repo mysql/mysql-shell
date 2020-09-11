@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -101,6 +101,7 @@ constexpr const char kClusterName[] = "clusterName";
 constexpr const char kAutoRejoinTries[] = "autoRejoinTries";
 constexpr const char kGrAutoRejoinTries[] =
     "group_replication_autorejoin_tries";
+constexpr const char kManualStartOnBoot[] = "manualStartOnBoot";
 constexpr const char kDisableClone[] = "disableClone";
 constexpr const char kTags[] = "tags";
 constexpr const char kGtidSetIsComplete[] = "gtidSetIsComplete";

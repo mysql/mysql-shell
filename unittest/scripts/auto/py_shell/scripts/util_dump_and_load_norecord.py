@@ -325,21 +325,21 @@ def EXPECT_INCLUDE_EXCLUDE(options, included, excluded, expected_exception=None)
             session.run_sql("DROP USER IF EXISTS {0};".format(u))
 
 #@<> the `includeUsers` and `excludeUsers` options cannot be used when `loadUsers` is false
-EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": False, "includeUsers": ["third"] }), "ArgumentError: Util.load_dump: The 'includeUsers' option cannot be used if the 'loadUsers' option is set to false.")
-EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": False, "excludeUsers": ["third"] }), "ArgumentError: Util.load_dump: The 'excludeUsers' option cannot be used if the 'loadUsers' option is set to false.")
+EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": False, "includeUsers": ["third"] }), "ValueError: Util.load_dump: The 'includeUsers' option cannot be used if the 'loadUsers' option is set to false.")
+EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": False, "excludeUsers": ["third"] }), "ValueError: Util.load_dump: The 'excludeUsers' option cannot be used if the 'loadUsers' option is set to false.")
 
 #@<> test invalid user names
-EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": [""] }), "ArgumentError: Util.load_dump: User name must not be empty.")
-EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "excludeUsers": [""] }), "ArgumentError: Util.load_dump: User name must not be empty.")
+EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": [""] }), "ValueError: Util.load_dump: User name must not be empty.")
+EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "excludeUsers": [""] }), "ValueError: Util.load_dump: User name must not be empty.")
 
-EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": ["@"] }), "ArgumentError: Util.load_dump: User name must not be empty.")
-EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "excludeUsers": ["@"] }), "ArgumentError: Util.load_dump: User name must not be empty.")
+EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": ["@"] }), "ValueError: Util.load_dump: User name must not be empty.")
+EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "excludeUsers": ["@"] }), "ValueError: Util.load_dump: User name must not be empty.")
 
-EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": ["@@"] }), "ArgumentError: Util.load_dump: Invalid user name: @")
-EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "excludeUsers": ["@@"] }), "ArgumentError: Util.load_dump: Invalid user name: @")
+EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": ["@@"] }), "ValueError: Util.load_dump: Invalid user name: @")
+EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "excludeUsers": ["@@"] }), "ValueError: Util.load_dump: Invalid user name: @")
 
-EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": ["foo@''nope"] }), "ArgumentError: Util.load_dump: Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes")
-EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": ["foo@''nope"] }), "ArgumentError: Util.load_dump: Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes")
+EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": ["foo@''nope"] }), "ValueError: Util.load_dump: Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes")
+EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": ["foo@''nope"] }), "ValueError: Util.load_dump: Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes")
 
 #@<> don't include or exclude any users, all accounts are loaded (error from duplicates)
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": [], "excludeUsers": [] }, [], [], "Duplicate objects found in destination database")

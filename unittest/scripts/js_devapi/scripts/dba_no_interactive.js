@@ -27,6 +27,7 @@ validateMembers(dba, [
     'startSandboxInstance',
     'stopSandboxInstance',
     'upgradeMetadata',
+    'session',
     'verbose'])
 
 //@# Dba: createCluster errors
@@ -95,7 +96,6 @@ var c1 = dba.createCluster('devCluster');
 //@# Dba: checkInstanceConfiguration errors
 dba.checkInstanceConfiguration('root@localhost:' + __mysql_sandbox_port1);
 dba.checkInstanceConfiguration('sample@localhost:' + __mysql_sandbox_port1);
-dba.checkInstanceConfiguration('root:root@localhost:' + __mysql_sandbox_port1);
 
 //@ Dba: checkInstanceConfiguration ok1
 var uri2 = 'root:root@localhost:' + __mysql_sandbox_port2;

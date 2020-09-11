@@ -79,8 +79,10 @@ Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to
 one server failure.
 
-//@ Dba: checkInstanceConfiguration error
-|Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|Dba.checkInstanceConfiguration: This function is not available through a session to an instance already in an InnoDB cluster (MYSQLSH 51305)
+//@ Dba: checkInstanceConfiguration in a cluster member
+|Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>':|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.|
+
 //@<OUT> Dba: checkInstanceConfiguration ok 1
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Validating local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
 NOTE: Instance detected as a sandbox.

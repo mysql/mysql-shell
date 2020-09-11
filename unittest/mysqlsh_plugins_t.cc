@@ -1096,17 +1096,17 @@ shell.register_global('pyObject', obj);
   // TEST: Providing invalid keyword parameters
   add_py_test(
       "pyObject.self_describe(1,'some',five=10, six=6)",
-      "ArgumentError: pyObject.self_describe: Invalid keyword argument: 'six'");
+      "ValueError: pyObject.self_describe: Invalid keyword argument: 'six'");
   add_py_test("pyObject.self_describe(1,'some',five=10, six=6, seven=7)",
-              "ArgumentError: pyObject.self_describe: Invalid keyword "
+              "ValueError: pyObject.self_describe: Invalid keyword "
               "arguments: 'seven', 'six'");
   // TEST: Passing keyword parameters in addition to positional parameters
   add_py_test("pyObject.self_describe(1,'some',one=2)",
-              "ArgumentError: pyObject.self_describe: Got multiple values for "
+              "ValueError: pyObject.self_describe: Got multiple values for "
               "argument 'one'");
   // TEST: Passing positional parameter using keyword parameter
   add_py_test("pyObject.self_describe(1, two=10)",
-              "ArgumentError: pyObject.self_describe: Argument 'two' is "
+              "ValueError: pyObject.self_describe: Argument 'two' is "
               "expected to be a string");
   // TEST: Passing keyword parameter skipping optional parameters
   add_py_test("pyObject.self_describe(1,'some',four='other')",
@@ -1184,13 +1184,13 @@ shell.register_global('kwtest', obj)
 
   // TEST: Passing named argument for parameter already defined
   add_py_test("kwtest.print_args('Black', 'Pearl', name='dissappears')",
-              "ArgumentError: kwtest.print_args: Got multiple values for "
+              "ValueError: kwtest.print_args: Got multiple values for "
               "argument 'name'");
 
   // TEST: Passing named argument for parameter already defined but in a
   // dictionary (See BUG#31500843 For More Details)
   add_py_test("kwtest.print_args('Black', 'Pearl', {'name': 'allowed'})",
-              "SystemError: ScriptingError: kwtest.print_args: User-defined "
+              "ScriptingError: kwtest.print_args: User-defined "
               "function threw an exception: print_args() got multiple values "
               "for argument 'name'");
 
@@ -1318,7 +1318,7 @@ shell.register_global('kwtest', obj)
 
   // TEST: Passing named argument for parameter already defined
   add_py_test("kwtest.print_args('Black', 'Pearl', first='dissappears')",
-              "ArgumentError: kwtest.print_args: Got multiple values for "
+              "ValueError: kwtest.print_args: Got multiple values for "
               "argument 'first'");
 
   // TEST: Passing named argument for parameter already defined but in a
@@ -1450,7 +1450,7 @@ shell.register_global('kwtest', obj)
 
   // TEST: Passing named argument for parameter already defined
   add_py_test("kwtest.print_args('Black', 'Pearl', name='dissappears')",
-              "ArgumentError: kwtest.print_args: Got multiple values for "
+              "ValueError: kwtest.print_args: Got multiple values for "
               "argument 'name'");
 
   // TEST: Passing option named as parameter, it's handled as option
@@ -1608,7 +1608,7 @@ shell.register_global('kwtest', obj)
 
   // No option is defined and options is mandatory
   add_py_test("kwtest.print_args(name='John', host='127.0.0.1', port=3307)",
-              "SystemError: ArgumentError: kwtest.print_args: Missing value "
+              "ValueError: kwtest.print_args: Missing value "
               "for argument 'options'");
 
   // No option is defined and options is optional

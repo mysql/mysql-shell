@@ -14,7 +14,7 @@ Cluster.setPrimaryInstance: Operation not supported on target server version: '<
 ||Cluster.setPrimaryInstance: This operation requires all the cluster members to be ONLINE (RuntimeError)
 
 //@<ERR> WL#12052: Error when executing setPrimaryInstance on a cluster with no visible quorum < 8.0.13 {VER(>=8.0.13)}
-Cluster.setPrimaryInstance: There is no quorum to perform the operation (RuntimeError)
+Cluster.setPrimaryInstance: There is no quorum to perform the operation (MYSQLSH 51011)
 
 //@ WL#12052: Re-create the cluster but in multi-primary mode {VER(>=8.0.13)}
 ||
