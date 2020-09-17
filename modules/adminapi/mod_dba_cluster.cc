@@ -1749,6 +1749,8 @@ necessary privileges.
 )*");
 
 /**
+ * $(CLUSTER_SETUPADMINACCOUNT_BRIEF)
+ *
  * $(CLUSTER_SETUPADMINACCOUNT)
  */
 #if DOXYGEN_JS
@@ -1839,6 +1841,8 @@ necessary privileges.
 )*");
 
 /**
+ * $(CLUSTER_SETUPROUTERACCOUNT_BRIEF)
+ *
  * $(CLUSTER_SETUPROUTERACCOUNT)
  */
 #if DOXYGEN_JS
