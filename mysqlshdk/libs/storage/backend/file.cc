@@ -147,7 +147,7 @@ void File::do_close() {
 #ifndef _WIN32
   if (m_mmap_ptr) {
     if (m_writing) {
-      if (msync(m_mmap_ptr, m_mmap_used, MS_SYNC) < 0) {
+      if (m_mmap_used > 0 && msync(m_mmap_ptr, m_mmap_used, MS_SYNC) < 0) {
         log_warning("%s: Error syncing mmapped file: %s", m_filepath.c_str(),
                     shcore::errno_to_string(errno).c_str());
       }
@@ -236,7 +236,7 @@ ssize_t File::write(const void *buffer, size_t length) {
 bool File::flush() {
   assert(is_open());
 
-  if (m_mmap_ptr) {
+  if (m_mmap_ptr && m_mmap_used > 0) {
 #ifndef _WIN32
     msync(m_mmap_ptr, m_mmap_used, MS_ASYNC);
     if (m_file) {
@@ -292,7 +292,7 @@ char *File::mmap_will_write(size_t length, size_t *out_avail) {
 
   if (!m_mmap_ptr || m_mmap_offset + length > m_mmap_available) {
     if (m_mmap_ptr) {
-      if (msync(m_mmap_ptr, m_mmap_used, MS_ASYNC) < 0) {
+      if (m_mmap_used > 0 && msync(m_mmap_ptr, m_mmap_used, MS_ASYNC) < 0) {
         throw std::runtime_error("Could not sync mmapped file '" + full_path() +
                                  "': " + shcore::errno_to_string(errno));
       }

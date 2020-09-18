@@ -224,9 +224,16 @@ TEST(Storage, file_mmap_write) {
   auto file = dynamic_cast<backend::File *>(ifile.get());
   file->open(Mode::WRITE);
 
+  // This reproduces a bug where mmap() would try to sync with m_mmap_used == 0
+  size_t avail = 0;
+  file->mmap_will_write(10, &avail);
+  file->mmap_will_write(67240458, &avail);
+  file->close();
+
+  file->open(Mode::WRITE);
+
   EXPECT_EQ(0, file->file_size());
 
-  size_t avail = 0;
   char *ptr = file->mmap_will_write(32, &avail);
   EXPECT_GE(avail, 32);
 
