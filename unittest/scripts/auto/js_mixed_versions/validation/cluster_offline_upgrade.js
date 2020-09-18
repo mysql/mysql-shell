@@ -46,21 +46,21 @@
 |                    "option": "memberWeight",|
 |                    "value": "<<<custom_weigth>>>",|
 |                    "variable": "group_replication_member_weight"|
-|                }|
+|                },|
 |            ],|
 |            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [|
 |                {|
 |                    "option": "memberWeight",|
 |                    "value": "50",|
 |                    "variable": "group_replication_member_weight"|
-|                }|
+|                },|
 |            ],|
 |            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [|
 |                {|
 |                    "option": "memberWeight",|
 |                    "value": "50",|
 |                    "variable": "group_replication_member_weight"|
-|                }|
+|                },|
 |        }|
 |    }|
 |}|

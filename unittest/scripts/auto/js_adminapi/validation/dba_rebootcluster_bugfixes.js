@@ -97,6 +97,46 @@
                     "option": "memberWeight",
                     "value": "<<<member_weight1>>>",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<uri2>>>": [
@@ -154,6 +194,46 @@
                     "option": "memberWeight",
                     "value": "<<<member_weight2>>>",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }
@@ -231,6 +311,46 @@
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<uri2>>>": [
@@ -278,6 +398,46 @@
                     "option": "memberWeight",
                     "value": "75",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }
@@ -384,6 +544,46 @@ ONLINE
                     "option": "memberWeight",
                     "value": "<<<member_weight1>>>",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<uri2>>>": [
@@ -441,6 +641,46 @@ ONLINE
                     "option": "memberWeight",
                     "value": "<<<member_weight2>>>",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }
@@ -518,6 +758,46 @@ ONLINE
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<uri2>>>": [
@@ -565,6 +845,46 @@ ONLINE
                     "option": "memberWeight",
                     "value": "75",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }

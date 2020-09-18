@@ -357,9 +357,9 @@ session.close();
 shell.connect(__sandbox_uri1);
 var c = dba.getCluster('c');
 
-//@ Change shell option dba.gtidWaitTimeout to 1 second (to issue error faster)
+//@ Change shell option dba.gtidWaitTimeout to 5 second
 // WL11889 - FR9_01 and FR10_01
-shell.options["dba.gtidWaitTimeout"] = 1;
+shell.options["dba.gtidWaitTimeout"] = 5;
 
 //@ Execute trx that will lead to error on instance2
 // WL11889 - FR9_01

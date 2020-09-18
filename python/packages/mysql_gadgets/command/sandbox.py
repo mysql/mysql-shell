@@ -589,6 +589,15 @@ def create_sandbox(**kwargs):
     if mysqld_ver >= (8, 0, 21):
         del opt_dict["mysqld"]["binlog_checksum"]
 
+    # Starting with MySQL 8.0.23, having parallel-appliers enabled is a
+    # requirement for InnoDB cluster/ReplicaSet usage.
+    # So when deploying sandboxes, we already enable those settings
+    if mysqld_ver >= (8, 0, 23):
+        opt_dict["mysqld"]["binlog_transaction_dependency_tracking"] = "WRITESET"
+        opt_dict["mysqld"]["slave_preserve_commit_order"] = "ON"
+        opt_dict["mysqld"]["slave_parallel_type"] = "LOGICAL_CLOCK"
+        opt_dict["mysqld"]["slave_parallel_workers"] = 4;
+
     # MySQLx plugin is automatically loaded starting from versions 8.0.11.
     if mysqld_ver < (8, 0, 11):
         opt_dict["mysqld"]["plugin_load"] = \
@@ -1032,7 +1041,7 @@ def start_sandbox(**kwargs):
             start_path += ".bat"
         else:
             start_path += ".sh"
-    
+
         start_cmd = tools.shell_quote(start_path)
 
         if os.name == "posix" and getpass.getuser() == "root":

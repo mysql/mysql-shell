@@ -32,7 +32,7 @@
 //@# disconnected rs object (should fail)
 ||ReplicaSet.addInstance: The replicaset object is disconnected. Please use dba.getReplicaSet() to obtain a new object. (RuntimeError)
 
-//@# bad config (should fail)
+//@# bad config (should fail) {VER(<8.0.23)}
 !This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>!
 !+--------------------------+---------------+----------------+--------------------------------------------------+!
 !| Variable                 | Current Value | Required Value | Note                                             |!
@@ -41,6 +41,22 @@
 !| gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |!
 !| server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |!
 !+--------------------------+---------------+----------------+--------------------------------------------------+!
+!Some variables need to be changed, but cannot be done dynamically on the server.!
+!ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
+!!ReplicaSet.addInstance: Instance check failed (MYSQLSH 51150
+
+//@# bad config (should fail) {VER(>=8.0.23)}
+!This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>!
+!+----------------------------------------+---------------+----------------+--------------------------------------------------+!
+!| Variable                               | Current Value | Required Value | Note                                             |!
+!+----------------------------------------+---------------+----------------+--------------------------------------------------+!
+!| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |!
+!| enforce_gtid_consistency               | OFF           | ON             | Update read-only variable and restart the server |!
+!| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |!
+!| server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |!
+!| slave_parallel_type                    | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |!
+!| slave_preserve_commit_order            | OFF           | ON             | Update the server variable                       |!
+!+----------------------------------------+---------------+----------------+--------------------------------------------------+!
 !Some variables need to be changed, but cannot be done dynamically on the server.!
 !ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
 !!ReplicaSet.addInstance: Instance check failed (MYSQLSH 51150
@@ -177,7 +193,7 @@
 |              Master_SSL_Cert: |
 |            Master_SSL_Cipher: |
 |               Master_SSL_Key: |
-|        Seconds_Behind_Master: 0|
+|        Seconds_Behind_Master: |
 |Master_SSL_Verify_Server_Cert: No|
 |                Last_IO_Errno: 0|
 |                Last_IO_Error: |
@@ -272,9 +288,13 @@
 //@# rebuild test setup
 ||
 
-//@# Replication conflict error (should fail)
+//@# Replication conflict error (should fail) {VER(<8.0.23)}
 |ERROR: Applier error in replication channel '': Error 'Can't create database 'testdb'; database exists' on query. Default database: 'testdb'. Query: 'CREATE SCHEMA testdb' (1007) at [[*]]|
 ||ReplicaSet.addInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
+
+//@# Replication conflict error (should fail) {VER(>=8.0.23)}
+|ERROR: Coordinator error in replication channel '': Coordinator stopped because there were error(s) in the worker(s). The most recent failure being: Worker 1 failed executing transaction [[*]]|
+||ReplicaSet.addInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: Error found in replication coordinator thread (MYSQLSH 51144)
 
 //@# instance has more GTIDs (should fail)
 |WARNING: A GTID set check of the MySQL instance at '<<<__endpoint_uri2>>>' determined that|

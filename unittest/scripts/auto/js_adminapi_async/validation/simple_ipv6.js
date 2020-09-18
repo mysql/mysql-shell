@@ -25,50 +25,52 @@
 |ERROR: Error adding instance to replicaset: MYSQLSH 51400: The ReplicaSet has no compatible clone donors.|
 ||ReplicaSet.addInstance: The ReplicaSet has no compatible clone donors. (MYSQLSH 51400)
 
-//@<OUT> status
-{
-    "replicaSet": {
-        "name": "myrs", 
-        "primary": "[::1]:<<<__mysql_sandbox_port1>>>", 
-        "status": "AVAILABLE", 
-        "statusText": "All instances available.", 
-        "topology": {
-            "[::1]:<<<__mysql_sandbox_port1>>>": {
-                "address": "[::1]:<<<__mysql_sandbox_port1>>>", 
-                "instanceRole": "PRIMARY", 
-                "mode": "R/W", 
-                "status": "ONLINE"
-            }, 
-            "[::1]:<<<__mysql_sandbox_port2>>>": {
-                "address": "[::1]:<<<__mysql_sandbox_port2>>>", 
-                "instanceRole": "SECONDARY", 
-                "mode": "R/O", 
-                "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates", 
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
-                    "replicationLag": null
-                }, 
-                "status": "ONLINE"
-            }, 
-            "[::1]:<<<__mysql_sandbox_port3>>>": {
-                "address": "[::1]:<<<__mysql_sandbox_port3>>>", 
-                "instanceRole": "SECONDARY", 
-                "mode": "R/O", 
-                "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates", 
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
-                    "replicationLag": null
-                }, 
-                "status": "ONLINE"
-            }
-        }, 
-        "type": "ASYNC"
-    }
-}
+//@# status
+|{|
+|    "replicaSet": {|
+|        "name": "myrs",|
+|        "primary": "[::1]:<<<__mysql_sandbox_port1>>>",|
+|        "status": "AVAILABLE",|
+|        "statusText": "All instances available.",|
+|        "topology": {|
+|            "[::1]:<<<__mysql_sandbox_port1>>>": {|
+|                "address": "[::1]:<<<__mysql_sandbox_port1>>>",|
+|                "instanceRole": "PRIMARY",|
+|                "mode": "R/W",|
+|                "status": "ONLINE"|
+|            },|
+|            "[::1]:<<<__mysql_sandbox_port2>>>": {|
+|                "address": "[::1]:<<<__mysql_sandbox_port2>>>",|
+|                "instanceRole": "SECONDARY",|
+|                "mode": "R/O",|
+|                "replication": {|
+|                    "applierStatus": "APPLIED_ALL",|
+|                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",'>>>|
+|                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
+|                    "receiverStatus": "ON",|
+|                    "receiverThreadState": "Waiting for master to send event",|
+|                    "replicationLag": null|
+|                },|
+|                "status": "ONLINE"|
+|            },|
+|            "[::1]:<<<__mysql_sandbox_port3>>>": {|
+|                "address": "[::1]:<<<__mysql_sandbox_port3>>>",|
+|                "instanceRole": "SECONDARY",|
+|                "mode": "R/O",|
+|                "replication": {|
+|                    "applierStatus": "APPLIED_ALL",|
+|                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",'>>>|
+|                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
+|                    "receiverStatus": "ON",|
+|                    "receiverThreadState": "Waiting for master to send event",|
+|                    "replicationLag": null|
+|                },|
+|                "status": "ONLINE"|
+|            }|
+|        },|
+|        "type": "ASYNC"|
+|    }|
+|}|
 
 
 //@# check IPv6 addresses in MD
@@ -105,7 +107,8 @@
 |                "mode": "R/O", |
 |                "replication": {|
 |                    "applierStatus": "APPLIED_ALL", |
-|                    "applierThreadState": "Slave has read all relay log; waiting for more updates", |
+|                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",'>>>|
+|                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
 |                    "receiverStatus": "ON", |
 |                    "receiverThreadState": "Waiting for master to send event", |
 |                    "replicationLag": null|

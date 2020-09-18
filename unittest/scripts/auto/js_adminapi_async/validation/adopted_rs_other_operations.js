@@ -23,6 +23,9 @@
 
 //@<OUT> Rejoin instance 2 (succeed).
 * Validating instance...
+
+This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
+<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: Instance configuration is suitable.
 ** Checking transaction state of the instance...
 The safest and most convenient way to provision a new instance is through automatic clone provisioning, which will completely overwrite the state of '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' with a physical snapshot from an existing replicaset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.
 

@@ -92,6 +92,7 @@ file(GLOB api_module_SOURCES
       "adminapi/common/health_enums.cc"
       "adminapi/common/group_replication_options.cc"
       "adminapi/common/clone_options.cc"
+      "adminapi/common/parallel_applier_options.cc"
       "adminapi/common/clone_progress.cc"
       "adminapi/common/cluster_types.cc"
       "adminapi/common/sql.cc"

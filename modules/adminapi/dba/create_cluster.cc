@@ -81,9 +81,9 @@ void Create_cluster::validate_create_cluster_options() {
   }
 
   // Get the instance GR state
-  GRInstanceType::Type instance_type = get_gr_instance_type(*m_target_instance);
+  InstanceType::Type instance_type = get_gr_instance_type(*m_target_instance);
 
-  if (instance_type == mysqlsh::dba::GRInstanceType::GroupReplication &&
+  if (instance_type == mysqlsh::dba::InstanceType::GroupReplication &&
       !m_adopt_from_gr) {
     if (m_interactive) {
       if (console->confirm(
@@ -113,7 +113,7 @@ void Create_cluster::validate_create_cluster_options() {
         "the Cluster.");
   }
 
-  if (m_adopt_from_gr && instance_type != GRInstanceType::GroupReplication) {
+  if (m_adopt_from_gr && instance_type != InstanceType::GroupReplication) {
     throw shcore::Exception::argument_error(
         "The adoptFromGR option is set to true, but there is no replication "
         "group to adopt");

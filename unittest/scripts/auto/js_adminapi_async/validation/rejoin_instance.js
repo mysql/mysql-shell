@@ -38,8 +38,45 @@
 //@ Try rejoin instance with a user different from the cluster admin user (fail).
 |ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them|ReplicaSet.rejoinInstance: Invalid target instance specification (ArgumentError)
 
+//@<OUT> Rejoin instance with wrong settings (fail) {VER(<8.0.23)}
+* Validating instance...
+
+This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>
+
+NOTE: Some configuration options need to be fixed:
++---------------+---------------+----------------+----------------------------+
+| Variable      | Current Value | Required Value | Note                       |
++---------------+---------------+----------------+----------------------------+
+| binlog_format | STATEMENT     | ROW            | Update the server variable |
++---------------+---------------+----------------+----------------------------+
+
+ERROR: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.
+
+//@ Rejoin instance with wrong settings (fail) {VER(<8.0.23)}
+||ReplicaSet.rejoinInstance: Instance check failed (MYSQLSH 51150)
+
+//@<OUT> Rejoin instance with wrong parallel-applier settings (fail) {VER(>=8.0.23)}
+* Validating instance...
+
+This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>
+
+NOTE: Some configuration options need to be fixed:
++-----------------------------+---------------+----------------+----------------------------+
+| Variable                    | Current Value | Required Value | Note                       |
++-----------------------------+---------------+----------------+----------------------------+
+| slave_preserve_commit_order | OFF           | ON             | Update the server variable |
++-----------------------------+---------------+----------------+----------------------------+
+
+ERROR: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.
+
+//@ Rejoin instance with wrong parallel-applier settings (fail) {VER(>=8.0.23)}
+||ReplicaSet.rejoinInstance: Instance check failed (MYSQLSH 51150)
+
 //@<OUT> Rejoin instance with replication stopped (succeed).
 * Validating instance...
+
+This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>
+<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>: Instance configuration is suitable.
 ** Checking transaction state of the instance...
 The safest and most convenient way to provision a new instance is through automatic clone provisioning, which will completely overwrite the state of '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' with a physical snapshot from an existing replicaset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.
 
@@ -66,6 +103,9 @@ The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>' rejoined the replic
 
 //@<OUT> Rejoin old primary to replicaset (success) and confirm status.
 * Validating instance...
+
+This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
+<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Instance configuration is suitable.
 ** Checking transaction state of the instance...
 The safest and most convenient way to provision a new instance is through automatic clone provisioning, which will completely overwrite the state of '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' with a physical snapshot from an existing replicaset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.
 
@@ -84,8 +124,11 @@ The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' rejoined the replic
 //@ Try to rejoin instance with errant transaction (fail).
 ||ReplicaSet.rejoinInstance: Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
 
-//@ Try to rejoin instance with unsolved replication error (fail).
+//@ Try to rejoin instance with unsolved replication error (fail). {VER(<8.0.23)}
 ||ReplicaSet.rejoinInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>: Error found in replication applier thread (MYSQLSH 51145)
+
+//@ Try to rejoin instance with unsolved replication error (fail). {VER(>=8.0.23)}
+||ReplicaSet.rejoinInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>: Error found in replication coordinator thread (MYSQLSH 51144)
 
 //@ Rejoin instance after solving replication error (succeed).
 ||

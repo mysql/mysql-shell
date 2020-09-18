@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba.h"
@@ -41,16 +42,18 @@ namespace mysqlsh {
 namespace dba {
 
 Configure_local_instance::Configure_local_instance(
-    const mysqlshdk::db::Connection_options &instance_cnx_opts,
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
     const std::string &mycnf_path, const std::string &output_mycnf_path,
     const std::string &cluster_admin,
     const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
     mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
     mysqlshdk::utils::nullable<bool> restart)
-    : Configure_instance(instance_cnx_opts, mycnf_path, output_mycnf_path,
-                         cluster_admin, cluster_admin_password, clear_read_only,
-                         interactive, restart, Cluster_type::GROUP_REPLICATION),
-      m_instance_type(GRInstanceType::Unknown) {}
+    : Configure_instance(
+          target_instance, mycnf_path, output_mycnf_path, cluster_admin,
+          cluster_admin_password, clear_read_only, interactive, restart,
+          mysqlshdk::utils::nullable<int64_t>(nullptr),
+          Cluster_type::GROUP_REPLICATION, InstanceType::Type::Unknown),
+      m_instance_type(InstanceType::Unknown) {}
 
 Configure_local_instance::~Configure_local_instance() {}
 
@@ -59,18 +62,10 @@ Configure_local_instance::~Configure_local_instance() {}
  * the command execution
  */
 void Configure_local_instance::prepare() {
-  // Establish a session to the target instance
-  {
-    m_target_instance = Instance::connect(m_instance_cnx_opts);
-
-    m_local_target =
-        !m_target_instance->get_connection_options().has_host() ||
-        mysqlshdk::utils::Net::is_local_address(
-            m_target_instance->get_connection_options().get_host());
-
-    // Set the current user/host
-    m_target_instance->get_current_user(&m_current_user, &m_current_host);
-  }
+  // Check if the target instance is local
+  m_local_target = !m_target_instance->get_connection_options().has_host() ||
+                   mysqlshdk::utils::Net::is_local_address(
+                       m_target_instance->get_connection_options().get_host());
 
   // Check if we are dealing with a sandbox instance
   std::string cnf_path;
@@ -93,7 +88,7 @@ void Configure_local_instance::prepare() {
   // This function should be deprecated.
 
   // Parameters validation for the case we only need to persist GR options
-  if (m_instance_type == GRInstanceType::InnoDBCluster) {
+  if (m_instance_type == InstanceType::InnoDBCluster) {
     auto console = mysqlsh::current_console();
 
     console->println("The instance '" + m_target_instance->descr() +
@@ -135,7 +130,7 @@ shcore::Value Configure_local_instance::execute() {
   auto console = mysqlsh::current_console();
 
   // Execute the configure local instance operation
-  if (m_instance_type == GRInstanceType::InnoDBCluster) {
+  if (m_instance_type == InstanceType::InnoDBCluster) {
     if (m_target_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 5))
       return {};
     console->print_info("Persisting the cluster settings...");
@@ -174,10 +169,5 @@ shcore::Value Configure_local_instance::execute() {
     return Configure_instance::execute();
   }
 }
-
-void Configure_local_instance::rollback() { Configure_instance::rollback(); }
-
-void Configure_local_instance::finish() { Configure_instance::finish(); }
-
 }  // namespace dba
 }  // namespace mysqlsh

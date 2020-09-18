@@ -102,6 +102,8 @@ rs.listRouters();
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
 rs = dba.createReplicaSet("adopted", {adoptFromAR:true});
 
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+
 rs.status();
 
 //@<> Cleanup

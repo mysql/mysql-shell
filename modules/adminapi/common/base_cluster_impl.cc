@@ -31,10 +31,10 @@
 #include <vector>
 
 #include "modules/adminapi/common/accounts.h"
-#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/setup_account.h"
 #include "modules/adminapi/common/sql.h"
@@ -437,7 +437,7 @@ void Base_cluster_impl::set_option(const std::string &option,
                                    const shcore::Value &value) {
   FunctionAvailability custom_func_avail = {
       k_min_gr_version,
-      GRInstanceType::InnoDBCluster,
+      InstanceType::InnoDBCluster,
       ReplicationQuorum::State(ReplicationQuorum::States::Normal),
       ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
       {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}};
@@ -540,7 +540,7 @@ Base_cluster_impl::validate_set_option_namespace(
   }
 }
 
-shcore::Value Base_cluster_impl::get_cluster_tags() {
+shcore::Value Base_cluster_impl::get_cluster_tags() const {
   shcore::Dictionary_t res = shcore::make_dict();
 
   // lambda function that does the repetitive work of creating an array of

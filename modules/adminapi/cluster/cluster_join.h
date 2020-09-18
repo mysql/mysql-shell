@@ -145,6 +145,8 @@ class Cluster_join {
   mysqlshdk::utils::nullable<std::string> m_instance_label;
 
   bool m_already_member = false;
+
+  bool m_is_autorejoining = false;
 };
 
 }  // namespace cluster

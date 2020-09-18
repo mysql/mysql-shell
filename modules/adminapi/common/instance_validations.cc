@@ -467,17 +467,17 @@ void validate_performance_schema_enabled(
   }
 }
 
-GRInstanceType::Type ensure_instance_not_belong_to_cluster(
+InstanceType::Type ensure_instance_not_belong_to_cluster(
     const mysqlshdk::mysql::IInstance &instance,
     const std::shared_ptr<Instance> &cluster_instance,
     bool *out_already_member) {
-  GRInstanceType::Type type = mysqlsh::dba::get_gr_instance_type(instance);
+  InstanceType::Type type = mysqlsh::dba::get_gr_instance_type(instance);
 
   if (out_already_member) *out_already_member = false;
 
-  if (type != GRInstanceType::Standalone &&
-      type != GRInstanceType::StandaloneWithMetadata &&
-      type != GRInstanceType::StandaloneInMetadata) {
+  if (type != InstanceType::Standalone &&
+      type != InstanceType::StandaloneWithMetadata &&
+      type != InstanceType::StandaloneInMetadata) {
     // Retrieves the new instance UUID
     std::string uuid = instance.get_uuid();
 
@@ -489,7 +489,7 @@ GRInstanceType::Type ensure_instance_not_belong_to_cluster(
                      [&uuid](const mysqlshdk::gr::Member &member) {
                        return member.uuid == uuid;
                      }) != members.end()) {
-      if (type == GRInstanceType::InnoDBCluster) {
+      if (type == InstanceType::InnoDBCluster) {
         log_debug("Instance '%s' already managed by InnoDB cluster",
                   instance.descr().c_str());
         if (out_already_member) {
@@ -516,7 +516,7 @@ GRInstanceType::Type ensure_instance_not_belong_to_cluster(
         }
       }
     } else {
-      if (type == GRInstanceType::InnoDBCluster) {
+      if (type == InstanceType::InnoDBCluster) {
         // Check if instance is running auto-rejoin and warn user.
         if (mysqlshdk::gr::is_running_gr_auto_rejoin(instance)) {
           throw shcore::Exception::runtime_error(

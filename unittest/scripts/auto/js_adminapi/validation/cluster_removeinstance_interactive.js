@@ -540,7 +540,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully remov
 //@ Connect to seed instance and get cluster on last time
 ||
 
-//@ Change shell option dba.gtidWaitTimeout to 1 second
+//@ Change shell option dba.gtidWaitTimeout to 5 second
 ||
 
 //@<OUT> Remove instance with replication error - error
@@ -548,12 +548,20 @@ The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
 
-ERROR: Applier error in replication channel 'group_replication_applier': [[*]]
+//@<OUT> Remove instance with replication error - error {VER(>=8.0.23)}
+ERROR: Coordinator error in replication channel 'group_replication_applier': [[*]]
 ERROR: The instance 'localhost:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
-//@<ERR> Remove instance with replication error - error
+
+//@<OUT> Remove instance with replication error - error {VER(<8.0.23)}
+ERROR: Applier error in replication channel 'group_replication_applier': [[*]]
+
+//@<ERR> Remove instance with replication error - error {VER(>=8.0.23)}
+Cluster.removeInstance: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication coordinator thread (MYSQLSH 51144)
+
+//@<ERR> Remove instance with replication error - error {VER(<8.0.23)}
 Cluster.removeInstance: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
 
-//@ Change shell option dba.gtidWaitTimeout to 5 second
+//@ Change shell option dba.gtidWaitTimeout to 10 second
 ||
 
 //@<OUT> Remove instance with replication error (force: true) - success

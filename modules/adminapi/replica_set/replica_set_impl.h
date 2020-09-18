@@ -224,6 +224,8 @@ class Replica_set_impl : public Base_cluster_impl {
       Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
       bool interactive);
 
+  shcore::Dictionary_t get_topology_options();
+
   Global_topology_type m_topology_type;
 };
 

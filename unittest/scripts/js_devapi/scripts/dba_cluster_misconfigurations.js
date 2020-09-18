@@ -21,10 +21,62 @@ shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, use
 //@ Dba.createCluster (fail because of bad configuration)
 var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
 
+//@ Dba.createCluster (fail because of bad configuration of parallel-appliers) {VER(>=8.0.23)}
+testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_transaction_dependency_tracking", "COMMIT_ORDER");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_parallel_type", "DATABASE");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_preserve_commit_order", "OFF");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "transaction_write_set_extraction", "OFF");
+
+testutil.restartSandbox(__mysql_sandbox_port1);
+
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'ca', password: 'ca'});
+var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
+
+//@ Dba.createCluster (succeeds with right configuration of parallel-appliers) {VER(>=8.0.23)}
+testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_transaction_dependency_tracking", "WRITESET");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_parallel_type", "LOGICAL_CLOCK");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "slave_preserve_commit_order", "ON");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "transaction_write_set_extraction", "XXHASH64");
+testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format", "ROW");
+
+testutil.restartSandbox(__mysql_sandbox_port1);
+
+shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'ca', password: 'ca'});
+var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
+
+//@ Cluster.addInstance (fail because of bad configuration of parallel-appliers) {VER(>=8.0.23)}
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking", "COMMIT_ORDER");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_parallel_type", "DATABASE");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_preserve_commit_order", "OFF");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction", "OFF");
+testutil.restartSandbox(__mysql_sandbox_port2);
+
+cluster.addInstance(__sandbox_uri2);
+
+//@ Cluster.addInstance (succeeds with right configuration of parallel-appliers) {VER(>=8.0.23)}
+testutil.changeSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking", "WRITESET");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_parallel_type", "LOGICAL_CLOCK");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "slave_preserve_commit_order", "ON");
+testutil.changeSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction", "XXHASH64");
+testutil.restartSandbox(__mysql_sandbox_port2);
+
+cluster.addInstance(__sandbox_uri2);
+
+//@<> Cluster.addInstance (succeeds with right configuration of parallel-appliers): finalization {VER(>=8.0.23)}
+cluster.dissolve({force: true});
+
+testutil.changeSandboxConf(__mysql_sandbox_port1, "binlog_format", "MIXED");
+testutil.restartSandbox(__mysql_sandbox_port1);
+
+testutil.destroySandbox(__mysql_sandbox_port2);
+
 //@ Setup next test
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 // Create test schema and tables PK, PKE, and UK
 // Regression for BUG#25974689 : CHECKS ARE MORE STRICT THAN GROUP REPLICATION
+session.runSql('SET GLOBAL super_read_only=0');
 session.runSql('SET sql_log_bin=0');
 session.runSql('CREATE SCHEMA pke_test');
 // Create test table t1 with Primary Key (PK)

@@ -7,6 +7,18 @@
 //@ Dba.createCluster (fail because of bad configuration)
 ||Instance check failed
 
+//@ Dba.createCluster (fail because of bad configuration of parallel-appliers) {VER(>=8.0.23)}
+||Instance check failed
+
+//@ Dba.createCluster (succeeds with right configuration of parallel-appliers) {VER(>=8.0.23)}
+||
+
+//@ Cluster.addInstance (fail because of bad configuration of parallel-appliers) {VER(>=8.0.23)}
+||Instance check failed
+
+//@ Cluster.addInstance (succeeds with right configuration of parallel-appliers) {VER(>=8.0.23)}
+||
+
 //@ Setup next test
 ||
 

@@ -7,14 +7,14 @@ Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<OUT> master-slave from slave
 * Discovering async replication topology starting with <<<__address2>>>
 Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 
 //@<ERR> master-slave from slave
@@ -26,21 +26,21 @@ Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port3>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<OUT> master-(slave1,slave2) from slave2
 * Discovering async replication topology starting with <<<__address3>>>
 Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port3>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master-(slave1,slave2) from slave2
 Dba.createReplicaSet: Target instance is not the PRIMARY (MYSQLSH 51313)
@@ -51,13 +51,13 @@ Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port4>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port2>>>
-	source="localhost:<<<__mysql_sandbox_port2>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port3>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master-(slave1-slave11,slave2) from master
 Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
@@ -67,14 +67,14 @@ Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
 Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port3>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port4>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port2>>>
-	source="localhost:<<<__mysql_sandbox_port2>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master-(slave1-slave11,slave2) from slave2
 Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
@@ -84,14 +84,14 @@ Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
 Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port4>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port2>>>
-	source="localhost:<<<__mysql_sandbox_port2>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 - 127.0.0.1:<<<__mysql_sandbox_port3>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master-(slave1-slave11,slave2) from slave11
 Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
@@ -101,10 +101,10 @@ Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
 Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port2>>>
-	source="localhost:<<<__mysql_sandbox_port2>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master1-master2 from master1
 Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
@@ -114,13 +114,13 @@ Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
 Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port3>>>
-	source="localhost:<<<__mysql_sandbox_port3>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port3 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port3 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port3>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port2>>>
-	source="localhost:<<<__mysql_sandbox_port2>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master-master-master
 Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
@@ -150,7 +150,7 @@ Discovered topology:
     - has a replica 127.0.0.1:<<<__mysql_sandbox_port2>>> through an unsupported replication channel
 - 127.0.0.1:<<<__mysql_sandbox_port3>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> master-(slave,slaveB) from master
 Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
@@ -160,7 +160,7 @@ Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
 Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port3>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
     - has a replica 127.0.0.1:<<<__mysql_sandbox_port2>>> through an unsupported replication channel
 
@@ -183,7 +183,7 @@ Discovered topology:
     - replicates from localhost:<<<__mysql_sandbox_port1>>> through unsupported channel 'chan'
 - 127.0.0.1:<<<__mysql_sandbox_port3>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port2>>>
-	source="localhost:<<<__mysql_sandbox_port2>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 //@<ERR> masterA-slaveB-slave from slaveB
 Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
@@ -193,7 +193,7 @@ Dba.createReplicaSet: Unsupported replication topology (MYSQLSH 51151)
 Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port3>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port2>>>
-	source="localhost:<<<__mysql_sandbox_port2>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port2 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=no
     - replicates from localhost:<<<__mysql_sandbox_port1>>> through unsupported channel 'chan'
 

@@ -98,6 +98,10 @@ testutil.startSandbox(__mysql_sandbox_port2, {timeout: 120});
 testutil.waitSandboxAlive(__mysql_sandbox_port1);
 testutil.waitSandboxAlive(__mysql_sandbox_port2);
 
+//@<> Configure again the instances to include parallel-applier settings @{VER(>=8.0.23)}
+dba.configureInstance(__sandbox_uri1, {clearReadOnly: true});
+dba.configureInstance(__sandbox_uri2, {clearReadOnly: true});
+
 //@<> Restore the cluster object
 shell.connect(__sandbox_admin_uri1);
 cluster = dba.rebootClusterFromCompleteOutage();

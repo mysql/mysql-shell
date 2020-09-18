@@ -78,7 +78,8 @@ struct Invalid_config {
 };
 
 /**
- * Checks if several of the required MySQL variables for Replication are valid.
+ * Checks if several of the required MySQL variables for Replication are
+ * valid.
  *
  * @param instance Instance object that points to the server to be checked.
  * @param config Config object to obtain the settings to check. It can hold
@@ -86,8 +87,8 @@ struct Invalid_config {
  *        option file (e.g., my.cnf).
  * @param group_replication if true, assumes configuration for GR and
  *        if false, for regular async replication.
- * @param out_invalid_vec pointer to vector that will be filled with the details
- *        of the invalid settings.
+ * @param out_invalid_vec pointer to vector that will be filled with the
+ * details of the invalid settings.
  */
 void check_server_variables_compatibility(
     const mysqlshdk::mysql::IInstance &instance,
@@ -101,8 +102,8 @@ void check_server_variables_compatibility(
  * @param config Config object to obtain the settings to check. It can hold
  *        more than one configuration handler, for example for the server and
  *        option file (e.g., my.cnf).
- * @param out_invalid_vec pointer to vector that will be filled with the details
- *        of the invalid settings.
+ * @param out_invalid_vec pointer to vector that will be filled with the
+ * details of the invalid settings.
  */
 void check_server_id_compatibility(
     const mysqlshdk::mysql::IInstance &instance,
@@ -116,8 +117,8 @@ void check_server_id_compatibility(
  * @param config Config object to obtain the settings to check. It can hold
  *        more than one configuration handler, for example for the server and
  *        option file (e.g., my.cnf).
- * @param out_invalid_vec pointer to vector that will be filled with the details
- *        of the invalid settings.
+ * @param out_invalid_vec pointer to vector that will be filled with the
+ * details of the invalid settings.
  */
 void check_log_bin_compatibility(const mysqlshdk::mysql::IInstance &instance,
                                  const mysqlshdk::config::Config &config,

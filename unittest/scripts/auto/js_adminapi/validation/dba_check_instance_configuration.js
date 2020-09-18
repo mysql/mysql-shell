@@ -98,3 +98,46 @@ The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' is valid to be used in an I
 //@ IPv6 not supported on versions below 8.0.14 WL#12758 {VER(< 8.0.14)}
 |ERROR: Cannot use host '::1' for instance '[::1]:<<<__mysql_sandbox_port1>>>' because it is an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14. Set the MySQL server 'report_host' variable to an IPv4 address or hostname that resolves an IPv4 address.|
 ||Dba.checkInstanceConfiguration: Unsupported IP address '::1'. IPv6 is only supported by Group Replication on MySQL version >= 8.0.14. (RuntimeError)
+
+//@<OUT> dba.checkInstanceConfiguration() must validate if parallel-appliers are enabled or not {VER(>= 8.0.23)}
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                               | Current Value | Required Value | Note                                             |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |
+| slave_parallel_type                    | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
+| slave_preserve_commit_order            | OFF           | ON             | Update the server variable                       |
+| transaction_write_set_extraction       | OFF           | XXHASH64       | Update read-only variable and restart the server |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+NOTE: Please use the dba.configureInstance() command to repair these issues.
+
+{
+    "config_errors": [
+        {
+            "action": "server_update",
+            "current": "COMMIT_ORDER",
+            "option": "binlog_transaction_dependency_tracking",
+            "required": "WRITESET"
+        },
+        {
+            "action": "server_update",
+            "current": "DATABASE",
+            "option": "slave_parallel_type",
+            "required": "LOGICAL_CLOCK"
+        },
+        {
+            "action": "server_update",
+            "current": "OFF",
+            "option": "slave_preserve_commit_order",
+            "required": "ON"
+        },
+        {
+            "action": "server_update+restart",
+            "current": "OFF",
+            "option": "transaction_write_set_extraction",
+            "required": "XXHASH64"
+        }
+    ],
+    "status": "error"
+}

@@ -54,24 +54,24 @@ Check_instance_state::~Check_instance_state() {}
  */
 void Check_instance_state::ensure_instance_valid_gr_state() {
   // Get the instance GR state
-  GRInstanceType::Type instance_type = get_gr_instance_type(*m_target_instance);
+  InstanceType::Type instance_type = get_gr_instance_type(*m_target_instance);
 
-  if (instance_type != GRInstanceType::Standalone) {
+  if (instance_type != InstanceType::Standalone) {
     std::string error = "The instance '" + m_target_instance->descr();
 
-    // No need to verify if the state is GRInstanceType::InnoDBCluster because
+    // No need to verify if the state is InstanceType::InnoDBCluster because
     // that has been verified in ensure_instance_not_belong_to_cluster
 
-    if (instance_type == GRInstanceType::GroupReplication) {
+    if (instance_type == InstanceType::GroupReplication) {
       error +=
           "' belongs to a Group Replication group that is not managed as an "
           "InnoDB cluster.";
-    } else if (instance_type == GRInstanceType::StandaloneWithMetadata) {
+    } else if (instance_type == InstanceType::StandaloneWithMetadata) {
       error +=
           "' is a standalone instance but is part of a different InnoDB "
           "Cluster (metadata exists, instance does not belong to that "
           "metadata, and Group Replication is not active).";
-    } else if (instance_type == GRInstanceType::StandaloneInMetadata) {
+    } else if (instance_type == InstanceType::StandaloneInMetadata) {
       error +=
           "' is a standalone instance but is part of a different InnoDB "
           "Cluster (metadata exists, instance belongs to that metadata, but "

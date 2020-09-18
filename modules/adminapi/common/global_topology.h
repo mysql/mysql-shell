@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -89,6 +89,9 @@ class Instance final {
   mysqlshdk::null_bool offline_mode;
 
   mysqlshdk::null_string executed_gtid_set;
+
+  std::map<std::string, mysqlshdk::utils::nullable<std::string>>
+      parallel_appliers;
 
   std::unique_ptr<Channel> master_channel;
 

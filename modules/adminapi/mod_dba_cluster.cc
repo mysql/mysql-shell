@@ -29,7 +29,7 @@
 #include <vector>
 
 #include "modules/adminapi/common/accounts.h"
-#include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mysqlxtest_utils.h"

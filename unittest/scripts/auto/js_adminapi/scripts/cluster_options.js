@@ -72,7 +72,17 @@ cluster.options({all: "foo"})
 //@<OUT> WL#11465: Get the cluster options using 'all'
 normalize_cluster_options(cluster.options({all: true}));
 
+//@ Change the value of applierWorkerThreads of a member of the Cluster {VER(>=8.0.23)}
+dba.configureInstance(__sandbox_uri2, {applierWorkerThreads: 10});
+
+//@<> Verify applierWorkerThreads was successfully changed {VER(>=8.0.23)}
+EXPECT_EQ(10, get_sysvar(__mysql_sandbox_port2, "slave_parallel_workers"));
+
+//@<OUT> Check the output of options after changing applierWorkerThreads {VER(>=8.0.23)}
+normalize_cluster_options(cluster.options());
+
 //@ Kill instances 2 and 3
+shell.connect(__sandbox_uri1);
 testutil.killSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 testutil.killSandbox(__mysql_sandbox_port2);

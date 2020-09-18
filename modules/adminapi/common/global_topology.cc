@@ -22,13 +22,16 @@
  */
 
 #include "modules/adminapi/common/global_topology.h"
+#include <algorithm>
 #include <list>
 #include <vector>
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/parallel_applier_options.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/mysql/repl_config.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -336,6 +339,8 @@ const Instance *Global_topology::find_member(const std::string &uuid) const {
 
 void Global_topology::load_instance_state(Instance *instance,
                                           mysqlsh::dba::Instance *conn) {
+  Parallel_applier_options parallel_applier_options(*conn);
+
   instance->server_id = *conn->get_sysvar_int("server_id");
 
   instance->offline_mode = conn->get_sysvar_bool("offline_mode");
@@ -346,6 +351,9 @@ void Global_topology::load_instance_state(Instance *instance,
   load_instance_channels(instance, conn, m_repl_channel_name);
 
   load_instance_slaves(instance, conn);
+
+  // Set parallel-applier options into instance
+  instance->parallel_appliers = parallel_applier_options.get_current_settings();
 }
 
 void Global_topology::load_instance_slaves(Instance *instance,

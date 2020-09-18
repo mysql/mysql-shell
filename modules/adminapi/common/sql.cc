@@ -37,9 +37,9 @@
 namespace mysqlsh {
 namespace dba {
 
-GRInstanceType::Type get_gr_instance_type(
+InstanceType::Type get_gr_instance_type(
     const mysqlshdk::mysql::IInstance &instance) {
-  GRInstanceType::Type ret_val = GRInstanceType::Standalone;
+  InstanceType::Type ret_val = InstanceType::Standalone;
 
   std::string query(
       "select count(*) "
@@ -55,7 +55,7 @@ GRInstanceType::Type get_gr_instance_type(
       if (row->get_int(0) != 0) {
         log_debug("Instance type check: %s: GR is active",
                   instance.descr().c_str());
-        ret_val = GRInstanceType::GroupReplication;
+        ret_val = InstanceType::GroupReplication;
       } else {
         log_debug("Instance type check: %s: GR is not active",
                   instance.descr().c_str());
@@ -71,7 +71,7 @@ GRInstanceType::Type get_gr_instance_type(
     // SELECT command denied to user 'test_user'@'localhost' for table
     // 'replication_group_members' (MySQL Error 1142)
     if (e.code() == ER_TABLEACCESS_DENIED_ERROR) {
-      ret_val = GRInstanceType::Unknown;
+      ret_val = InstanceType::Unknown;
     } else if (error.code() != ER_NO_SUCH_TABLE) {  // Tables doesn't exists
       throw shcore::Exception::mysql_error_with_code(error.what(),
                                                      error.code());
@@ -80,7 +80,7 @@ GRInstanceType::Type get_gr_instance_type(
 
   // The server is part of a Replication Group
   // Let's see if it is registered in the Metadata Store
-  if (ret_val == GRInstanceType::GroupReplication) {
+  if (ret_val == InstanceType::GroupReplication) {
     // In Metadata schema versions higher than 1.0.1
     // instances.mysql_server_uuid uses the collation ascii_general_ci which
     // then when doing comparisons with the sysvar @@server_uuid will results
@@ -101,7 +101,7 @@ GRInstanceType::Type get_gr_instance_type(
         if (row->get_int(0) != 0) {
           log_debug("Instance type check: %s: Metadata record found",
                     instance.descr().c_str());
-          ret_val = GRInstanceType::InnoDBCluster;
+          ret_val = InstanceType::InnoDBCluster;
         } else {
           log_debug("Instance type check: %s: Metadata record not found",
                     instance.descr().c_str());
@@ -118,7 +118,8 @@ GRInstanceType::Type get_gr_instance_type(
                                                        error.code());
     }
   } else {
-    // This is a standalone instance, check if it has metadata schema.
+    // This is a standalone instance or belongs to a ReplicaSet, check if it has
+    // metadata schema.
     const std::string schema = "mysql_innodb_cluster_metadata";
 
     query = shcore::sqlstring("show databases like ?", 0) << schema;
@@ -129,7 +130,7 @@ GRInstanceType::Type get_gr_instance_type(
     if (row && row->get_string(0) == schema) {
       log_debug("Instance type check: %s: Metadata found",
                 instance.descr().c_str());
-      ret_val = GRInstanceType::StandaloneWithMetadata;
+      ret_val = InstanceType::StandaloneWithMetadata;
 
       // In Metadata schema versions higher than 1.0.1
       // instances.mysql_server_uuid uses the collation ascii_general_ci which
@@ -150,7 +151,7 @@ GRInstanceType::Type get_gr_instance_type(
         if (row->get_int(0) != 0) {
           log_debug("Instance type check: %s: instance is in Metadata",
                     instance.descr().c_str());
-          ret_val = GRInstanceType::StandaloneInMetadata;
+          ret_val = InstanceType::StandaloneInMetadata;
         } else {
           log_debug("Instance type check: %s: instance is not in Metadata",
                     instance.descr().c_str());
@@ -183,7 +184,7 @@ void get_port_and_datadir(const mysqlshdk::mysql::IInstance &instance,
 // been validated to be NOT Standalone
 Cluster_check_info get_replication_group_state(
     const mysqlshdk::mysql::IInstance &connection,
-    GRInstanceType::Type source_type) {
+    InstanceType::Type source_type) {
   Cluster_check_info ret_val;
 
   // Sets the source instance type

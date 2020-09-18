@@ -139,7 +139,7 @@ class Base_cluster_impl {
    * @return a shcore::Value containing a dictionary object with the command
    * output
    */
-  shcore::Value get_cluster_tags();
+  shcore::Value get_cluster_tags() const;
 
   virtual std::list<Scoped_instance> connect_all_members(
       uint32_t read_timeout, bool skip_primary,

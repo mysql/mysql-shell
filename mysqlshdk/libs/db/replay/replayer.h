@@ -99,7 +99,7 @@ class Result_mysql : public db::mysql::Result {
 
   std::vector<db::Row_copy> _rows;
 
-  std::list<std::unique_ptr<Warning>> _warnings;
+  std::list<std::unique_ptr<db::Warning>> _warnings;
   std::vector<std::string> _gtids;
   bool _has_resultset = false;
   bool _fetched_warnings = false;
@@ -174,7 +174,7 @@ class Result_mysqlx : public db::mysqlx::Result {
 
   bool next_resultset() override { return false; }
 
-  std::unique_ptr<db::Warning> fetch_one_warning() override { return {}; }
+  std::unique_ptr<Warning> fetch_one_warning() override { return {}; }
 
   bool has_resultset() override { return _has_resultset; }
 

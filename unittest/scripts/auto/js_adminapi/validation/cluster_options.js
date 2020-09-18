@@ -87,6 +87,46 @@
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -139,6 +179,46 @@
                     "option": "memberWeight",
                     "value": "75",
                     "variable": "group_replication_member_weight"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
@@ -191,6 +271,46 @@
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }
@@ -269,6 +389,46 @@
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -316,6 +476,46 @@
                     "option": "memberWeight",
                     "value": "75",
                     "variable": "group_replication_member_weight"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
@@ -363,6 +563,46 @@
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }
@@ -669,6 +909,46 @@
                 {
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -937,6 +1217,46 @@
                 {
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
@@ -1205,6 +1525,46 @@
                 {
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }
@@ -1415,6 +1775,46 @@
                 {
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -1594,6 +1994,46 @@
                 {
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
@@ -1773,11 +2213,293 @@
                 {
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }
     }
 }
+
+//@ Change the value of applierWorkerThreads of a member of the Cluster {VER(>=8.0.23)}
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster.|
+|Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...|
+|This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.|
+|The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.|
+|WARNING: The changes on the value of slave_parallel_workers will only take place after the instance leaves and rejoins the Cluster.|
+|Successfully set the value of slave_parallel_workers.|
+
+//@<OUT> Check the output of options after changing applierWorkerThreads {VER(>=8.0.23)}
+{
+    "clusterName": "testCluster",
+    "defaultReplicaSet": {
+        "globalOptions": [
+            {
+                "option": "groupName",
+                "value": "bbbbbbbb-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                "variable": "group_replication_group_name"
+            },
+            {
+                "option": "memberSslMode",
+                "value": "REQUIRED",
+                "variable": "group_replication_ssl_mode"
+            },
+            {
+                "option": "disableClone",
+                "value": false
+            }
+        ],
+        "tags": {
+            ".global": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": []
+        },
+        "topology": {
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "EVENTUAL",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "READ_ONLY",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "<<<__default_gr_expel_timeout>>>",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "<<<__cfg_group_seeds1>>>",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "<<<__cfg_local_address1>>>",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "50",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
+                }
+            ],
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "EVENTUAL",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "ABORT_SERVER",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "<<<__default_gr_expel_timeout>>>",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "<<<__cfg_group_seeds2>>>",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "<<<__cfg_local_address2>>>",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "75",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "10",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
+                }
+            ],
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
+                {
+                    "option": "autoRejoinTries",
+                    "value": "<<<__default_gr_auto_rejoin_tries>>>",
+                    "variable": "group_replication_autorejoin_tries"
+                },
+                {
+                    "option": "consistency",
+                    "value": "EVENTUAL",
+                    "variable": "group_replication_consistency"
+                },
+                {
+                    "option": "exitStateAction",
+                    "value": "READ_ONLY",
+                    "variable": "group_replication_exit_state_action"
+                },
+                {
+                    "option": "expelTimeout",
+                    "value": "<<<__default_gr_expel_timeout>>>",
+                    "variable": "group_replication_member_expel_timeout"
+                },
+                {
+                    "option": "groupSeeds",
+                    "value": "<<<__cfg_group_seeds3>>>",
+                    "variable": "group_replication_group_seeds"
+                },
+                {
+                    "option": "ipAllowlist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_allowlist"
+                },
+                {
+                    "option": "ipWhitelist",
+                    "value": "AUTOMATIC",
+                    "variable": "group_replication_ip_whitelist"
+                },
+                {
+                    "option": "localAddress",
+                    "value": "<<<__cfg_local_address3>>>",
+                    "variable": "group_replication_local_address"
+                },
+                {
+                    "option": "memberWeight",
+                    "value": "25",
+                    "variable": "group_replication_member_weight"
+                },
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
+                }
+            ]
+        }
+    }
+}
+
 
 //@ Kill instances 2 and 3
 ||
@@ -1854,6 +2576,46 @@
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
@@ -1943,6 +2705,46 @@
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {

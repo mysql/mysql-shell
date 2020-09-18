@@ -15,6 +15,7 @@ No incompatible tables detected
 Checking instance configuration...
 
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.23)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+<<<(__version_num<80021) ?  "\n| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |\n":"">>>
@@ -22,12 +23,27 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=8.0.23)}
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                               | Current Value | Required Value | Note                                             |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |
+| enforce_gtid_consistency               | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |
+| server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
+| slave_parallel_type                    | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
+| slave_preserve_commit_order            | OFF           | ON             | Update the server variable                       |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
+?{VER(<8.0.23)}
 {
     "config_errors": [
+?{}
 ?{VER(<8.0.21)}
         {
             "action": "server_update",
@@ -36,6 +52,7 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
             "required": "NONE"
         },
 ?{}
+?{VER(<8.0.23)}
         {
             "action": "server_update+restart",
             "current": "OFF",
@@ -57,11 +74,60 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
     ],
     "status": "error"
 }
+?{}
+?{VER(>=8.0.23)}
+{
+    "config_errors": [
+        {
+            "action": "server_update",
+            "current": "COMMIT_ORDER",
+            "option": "binlog_transaction_dependency_tracking",
+            "required": "WRITESET"
+        },
+        {
+            "action": "server_update+restart",
+            "current": "OFF",
+            "option": "enforce_gtid_consistency",
+            "required": "ON"
+        },
+        {
+            "action": "server_update+restart",
+            "current": "OFF",
+            "option": "gtid_mode",
+            "required": "ON"
+        },
+        {
+            "action": "server_update+restart",
+            "current": "1",
+            "option": "server_id",
+            "required": "<unique ID>"
+        },
+        {
+            "action": "server_update",
+            "current": "DATABASE",
+            "option": "slave_parallel_type",
+            "required": "LOGICAL_CLOCK"
+        },
+        {
+            "action": "server_update",
+            "current": "OFF",
+            "option": "slave_preserve_commit_order",
+            "required": "ON"
+        }
+    ],
+    "status": "error"
+}
+?{}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
+?{VER(>=8.0.23)}
+
+applierWorkerThreads will be set to the default value of 4.
+?{}
 
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.23)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+<<<(__version_num<80021) ?  "\n| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |\n":"">>>
@@ -69,6 +135,19 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=8.0.23)}
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                               | Current Value | Required Value | Note                                             |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |
+| enforce_gtid_consistency               | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |
+| server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
+| slave_parallel_type                    | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
+| slave_preserve_commit_order            | OFF           | ON             | Update the server variable                       |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Configuring instance...
@@ -119,6 +198,10 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
+?{VER(>=8.0.23)}
+
+applierWorkerThreads will be set to the default value of 4.
+?{}
 
 NOTE: Some configuration options need to be fixed:
 ?{VER(<8.0.21)}
@@ -144,7 +227,7 @@ Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
-?{VER(>=8.0.21)}
+?{VER(>=8.0.21) && VER(<8.0.23)}
 +----------------------------------+---------------+----------------+-----------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                          |
 +----------------------------------+---------------+----------------+-----------------------------------------------+
@@ -158,6 +241,25 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 | server_id                        | 1             | <unique ID>    | Update the config file and restart the server |
 | transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file                        |
 +----------------------------------+---------------+----------------+-----------------------------------------------+
+?{}
+?{VER(>=8.0.23)}
++----------------------------------------+---------------+----------------+------------------------------------------------+
+| Variable                               | Current Value | Required Value | Note                                           |
++----------------------------------------+---------------+----------------+------------------------------------------------+
+| binlog_format                          | <not set>     | ROW            | Update the config file                         |
+| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable and the config file |
+| enforce_gtid_consistency               | OFF           | ON             | Update the config file and restart the server  |
+| gtid_mode                              | OFF           | ON             | Update the config file and restart the server  |
+| log_slave_updates                      | <not set>     | ON             | Update the config file                         |
+| master_info_repository                 | <not set>     | TABLE          | Update the config file                         |
+| relay_log_info_repository              | <not set>     | TABLE          | Update the config file                         |
+| report_port                            | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                         |
+| server_id                              | 1             | <unique ID>    | Update the config file and restart the server  |
+| slave_parallel_type                    | DATABASE      | LOGICAL_CLOCK  | Update the server variable and the config file |
+| slave_preserve_commit_order            | OFF           | ON             | Update the server variable and the config file |
+| transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file                         |
++----------------------------------------+---------------+----------------+------------------------------------------------+
+?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server: set persist support is disabled. Enable it or provide an option file.
 NOTE: persisted_globals_load option is OFF
@@ -165,7 +267,6 @@ Remote configuration of the instance is not possible because options changed wit
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
-?{}
 
 //@ FR2_2 TEARDOWN {VER(>=8.0.11)}
 ||
@@ -177,8 +278,13 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
+?{VER(>=8.0.23)}
+
+applierWorkerThreads will be set to the default value of 4.
+?{}
 
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.23)}
 +----------------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                         | Current Value | Required Value | Note                                             |
 +----------------------------------+---------------+----------------+--------------------------------------------------+
@@ -195,6 +301,25 @@ NOTE: Some configuration options need to be fixed:
 | server_id                        | 0             | <unique ID>    | Update the config file and restart the server    |
 | transaction_write_set_extraction | OFF           | XXHASH64       | Update the config file and restart the server    |
 +----------------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=8.0.23)}
++----------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                         | Current Value | Required Value | Note                                             |
++----------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_checksum                  | CRC32         | NONE           | Update the server variable and the config file   |
+| binlog_format                    | <not set>     | ROW            | Update the config file                           |
+| enforce_gtid_consistency         | OFF           | ON             | Update the config file and restart the server    |
+| gtid_mode                        | OFF           | ON             | Update the config file and restart the server    |
+| log_bin                          | <not set>     | <no value>     | Update the config file                           |
+| log_bin                          | OFF           | ON             | Update read-only variable and restart the server |
+| log_slave_updates                | OFF           | ON             | Update the config file and restart the server    |
+| master_info_repository           | FILE          | TABLE          | Update the config file and restart the server    |
+| relay_log_info_repository        | FILE          | TABLE          | Update the config file and restart the server    |
+| report_port                      | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                           |
+| server_id                        | 0             | <unique ID>    | Update the config file and restart the server    |
+| transaction_write_set_extraction | OFF           | XXHASH64       | Update the config file and restart the server    |
++----------------------------------+---------------+----------------+--------------------------------------------------+
+?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server: an option file is required.
 Do you want to perform the required configuration changes? [y/n]: Configuring instance...
@@ -274,7 +399,12 @@ ERROR: User 'root' can only connect from 'localhost'. New account(s) with proper
 4) Cancel
 
 Please select an option [1]:
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.23)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+<<<(__version_num<80021) ?  "\n| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |\n":"">>>
@@ -282,6 +412,19 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=8.0.23)}
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                               | Current Value | Required Value | Note                                             |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |
+| enforce_gtid_consistency               | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |
+| server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
+| slave_parallel_type                    | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
+| slave_preserve_commit_order            | OFF           | ON             | Update the server variable                       |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Configuring instance...
@@ -293,9 +436,6 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 //@ FR7 SETUP {VER(>=8.0.11)}
 ||
-
-//@ FR7 Configure instance already belonging to cluster {VER(>=8.0.11)}
-||Dba.configureInstance: This function is not available through a session to an instance already in an InnoDB cluster (MYSQLSH 51305)
 
 //@ FR7 TEARDOWN {VER(>=8.0.11)}
 ||
@@ -318,7 +458,12 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'clusterAdminAccount'@'%' for clusterAdminAccount
 Password for new account: Confirm password:
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.23)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+<<<(__version_num<80021) ?  "\n| binlog_checksum          | CRC32         | NONE           | Update the server variable                       |\n":"">>>
@@ -326,6 +471,19 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=8.0.23)}
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                               | Current Value | Required Value | Note                                             |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |
+| enforce_gtid_consistency               | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |
+| server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
+| slave_parallel_type                    | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
+| slave_preserve_commit_order            | OFF           | ON             | Update the server variable                       |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
@@ -339,6 +497,10 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'newClusterAdminAccount'@'%' for newClusterAdminAccount
 Password for new account: Confirm password:
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 NOTE: Some configuration options need to be fixed:
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |

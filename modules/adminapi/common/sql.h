@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,13 +28,13 @@
 #include <utility>
 #include <vector>
 
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
-#include "modules/adminapi/common/preconditions.h"
 #include "scripting/common.h"
 
 namespace mysqlsh {
 namespace dba {
-GRInstanceType::Type get_gr_instance_type(
+InstanceType::Type get_gr_instance_type(
     const mysqlshdk::mysql::IInstance &instance);
 
 void get_port_and_datadir(const mysqlshdk::mysql::IInstance &instance,
@@ -42,7 +42,7 @@ void get_port_and_datadir(const mysqlshdk::mysql::IInstance &instance,
 
 Cluster_check_info get_replication_group_state(
     const mysqlshdk::mysql::IInstance &connection,
-    GRInstanceType::Type source_type);
+    InstanceType::Type source_type);
 
 std::vector<std::string> get_peer_seeds(
     const mysqlshdk::mysql::IInstance &instance,

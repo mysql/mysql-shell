@@ -1,12 +1,12 @@
 
 // how many rows of data to insert in seed instance, so that recovery takes long
 // enough to be observable in the test
-const NUM_DATA_ROWS = 30;
+const NUM_DATA_ROWS = 60;
 
 // Setup
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {"slave_parallel_workers":2, "slave_preserve_commit_order":1, "slave_parallel_type": "LOGICAL_CLOCK", "slave_preserve_commit_order":1, report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {"slave_parallel_workers":2, "slave_preserve_commit_order":1, "slave_parallel_type": "LOGICAL_CLOCK", report_host: hostname});
 
 shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
@@ -169,6 +169,39 @@ const extended_1_status_templ_80 = {
     "metadataVersion": ""
 };
 
+const extended_1_status_templ_8023 = {
+    "clusterName": "",
+    "defaultReplicaSet": {
+        "GRProtocolVersion": "",
+        "name": "",
+        "groupName": "",
+        "groupViewId": "",
+        "primary": "",
+        "ssl": "",
+        "status": "",
+        "statusText": "",
+        "topology": {
+            "": {
+                "address": "",
+                "fenceSysVars": [],
+                "memberId": "",
+                "memberRole": "",
+                "memberState": "",
+                "mode": "",
+                "readReplicas": {},
+                "replicationLag": "",
+                "role": "",
+                "applierWorkerThreads": 4,
+                "status": "",
+                "version": __version
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": "",
+    "metadataVersion": ""
+};
+
 const extended_1_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
@@ -241,6 +274,49 @@ const extended_2_status_templ_80 = {
     "metadataVersion": ""
 };
 
+const extended_2_status_templ_8023 = {
+    "clusterName": "",
+    "defaultReplicaSet": {
+        "GRProtocolVersion": "",
+        "name": "",
+        "groupName": "",
+        "groupViewId": "",
+        "primary": "",
+        "ssl": "",
+        "status": "",
+        "statusText": "",
+        "topology": {
+            "": {
+                "address": "",
+                "fenceSysVars": [],
+                "memberId": "",
+                "memberRole": "",
+                "memberState": "",
+                "mode": "",
+                "readReplicas": {},
+                "role": "",
+                "applierWorkerThreads": 4,
+                "status": "",
+                "transactions": {
+                    "appliedCount": 0,
+                    "checkedCount": 0,
+                    "committedAllMembers": "",
+                    "conflictsDetectedCount": 0,
+                    "inApplierQueueCount": 0,
+                    "inQueueCount": 0,
+                    "lastConflictFree": "",
+                    "proposedCount": 0,
+                    "rollbackCount": 0
+                },
+                "version": __version
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": "",
+    "metadataVersion": ""
+};
+
 const extended_2_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
@@ -284,7 +360,6 @@ const full_status_templ_80 = {
         "GRProtocolVersion": "",
         "name": "",
         "groupName": "",
-        "groupViewId": "",
         "primary": "",
         "ssl": "",
         "status": "",
@@ -320,6 +395,93 @@ const full_status_templ_80 = {
                         },
                         "receivedHeartbeats": 0,
                         "receivedTransactionSet": "",
+                        "threadId": 0
+                    },
+                    "inApplierQueueCount": 0,
+                    "inQueueCount": 0,
+                    "lastConflictFree": "",
+                    "proposedCount": 0,
+                    "rollbackCount": 0,
+                    "workers": [
+                        {
+                            "lastApplied": {
+                                "applyTime": 0.0,
+                                "endTimestamp": "",
+                                "immediateCommitTimestamp": "",
+                                "immediateCommitToEndTime": 0.0,
+                                "originalCommitTimestamp": "",
+                                "originalCommitToEndTime": 0.0,
+                                "startTimestamp": "",
+                                "transaction": ""
+                            },
+                            "threadId": 0
+                        }
+                    ]
+                }
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": "",
+    "metadataVersion": ""
+};
+
+const full_status_templ_8023 = {
+    "clusterName": "",
+    "defaultReplicaSet": {
+        "GRProtocolVersion": "",
+        "name": "",
+        "groupName": "",
+        "groupViewId": "",
+        "primary": "",
+        "ssl": "",
+        "status": "",
+        "statusText": "",
+        "topology": {
+            "": {
+                "address": "",
+                "fenceSysVars": [],
+                "memberId": "",
+                "memberRole": "",
+                "memberState": "",
+                "mode": "",
+                "readReplicas": {},
+                "role": "",
+                "applierWorkerThreads": 4,
+                "status": "",
+                "version": __version,
+                "transactions": {
+                    "appliedCount": 0,
+                    "checkedCount": 0,
+                    "committedAllMembers": "",
+                    "conflictsDetectedCount": 0,
+                    "connection": {
+                        "lastHeartbeatTimestamp": "",
+                        "lastQueued": {
+                            "endTimestamp": "",
+                            "immediateCommitTimestamp": "",
+                            "immediateCommitToEndTime": 0.0,
+                            "originalCommitTimestamp": "",
+                            "originalCommitToEndTime": 0.0,
+                            "queueTime": 0.1,
+                            "startTimestamp": "",
+                            "transaction": ""
+                        },
+                        "receivedHeartbeats": 0,
+                        "receivedTransactionSet": "",
+                        "threadId": 0
+                    },
+                    "coordinator": {
+                        "lastProcessed": {
+                            "bufferTime": 0.0,
+                            "endTimestamp": "",
+                            "immediateCommitTimestamp": "",
+                            "immediateCommitToEndTime": null,
+                            "originalCommitTimestamp": "",
+                            "originalCommitToEndTime": null,
+                            "startTimestamp": "",
+                            "transaction": ""
+                        },
                         "threadId": 0
                     },
                     "inApplierQueueCount": 0,
@@ -430,6 +592,19 @@ const transaction_status_templ = {
         "receivedTransactionSet": "",
         "threadId": 0
     },
+    "coordinator": {
+        "lastProcessed": {
+            "bufferTime": 0.0,
+            "endTimestamp": "",
+            "immediateCommitTimestamp": "",
+            "immediateCommitToEndTime": null,
+            "originalCommitTimestamp": "",
+            "originalCommitToEndTime": null,
+            "startTimestamp": "",
+            "transaction": ""
+        },
+        "threadId": 0
+    },
     "inApplierQueueCount": 0,
     "inQueueCount": 0,
     "lastConflictFree": "",
@@ -523,8 +698,11 @@ var metadata_version = json_find_key(stat, "metadataVersion");
 EXPECT_NE(undefined, metadata_version);
 EXPECT_EQ(testutil.getInstalledMetadataVersion(), metadata_version);
 
-//@<> WL#13084 - TSF4_2: verify status result with extended:1 for 8.0 {VER(>=8.0)}
+//@<> WL#13084 - TSF4_2: verify status result with extended:1 for 8.0 {VER(>=8.0) && VER(<8.0.23)}
 json_check(stat, extended_1_status_templ_80);
+
+//@<> WL#13084 - TSF4_2: verify status result with extended:1 for 8.0 {VER(>=8.0.23)}
+json_check(stat, extended_1_status_templ_8023);
 
 //@<> WL#13084 - TSF4_2: verify status result with extended:1 for 5.7 {VER(<8.0)}
 json_check(stat, extended_1_status_templ_57);
@@ -540,8 +718,11 @@ EXPECT_EQ(stat, stat_ext_true);
 
 var stat = cluster.status({extended:2});
 
-//@<> WL#13084 - TSF4_3: verify status result with extended:2 for 8.0 {VER(>=8.0)}
+//@<> WL#13084 - TSF4_3: verify status result with extended:2 for 8.0 {VER(>=8.0) && VER(<8.0.23)}
 json_check(stat, extended_2_status_templ_80, [], ["replicationLag"]);
+
+//@<> WL#13084 - TSF4_3: verify status result with extended:2 for 8.0 {VER(>=8.0.23)}
+json_check(stat, extended_2_status_templ_8023, [], ["replicationLag"]);
 
 //@<> WL#13084 - TSF4_3: verify status result with extended:2 for 5.7 {VER(<8.0)}
 json_check(stat, extended_2_status_templ_57);
@@ -565,8 +746,11 @@ EXPECT_NE(undefined, transactions);
 // TS_E4	Validate that when calling cluster.status() with extended and queryMembers options set to false, information about additional transactions stats is not printed.
 var stat = cluster.status({extended:2, queryMembers:false});
 
-//@<> 8.0 execution 2 {VER(>=8.0)}
+//@<> 8.0 execution 2 {VER(>=8.0) && VER(<8.0.23)}
 json_check(stat, extended_2_status_templ_80, [], ["replicationLag"]);
+
+//@<> 8.0 execution 2 {VER(>=8.0.23)}
+json_check(stat, extended_2_status_templ_8023, [], ["replicationLag"]);
 
 //@<> 5.7 execution 2 {VER(<8.0)}
 json_check(stat, extended_2_status_templ_57);
@@ -589,9 +773,13 @@ json_check(stat, base_status_templ_57);
 // TS10_1   Validate that information about member_id/server_uuid and GR group name is added to the output when calling cluster.status() if brief is set to false.
 // WL#13084 - TSF4_4: extended: 3 includes transactions information (same as queryMembers: true).
 
-//@<> F3- queryMembers (deprecated and replaced by extended: 3) for 8.0 {VER(>=8.0)}
+//@<> F3- queryMembers (deprecated and replaced by extended: 3) for 8.0 {VER(>=8.0) && VER(<8.0.23)}
 var stat = cluster.status({extended: 3});
 json_check(stat, full_status_templ_80);
+
+//@<> F3- queryMembers (deprecated and replaced by extended: 3) for 8.0 {VER(>=8.0.23)}
+var stat = cluster.status({extended: 3});
+json_check(stat, full_status_templ_8023);
 
 //@<> F3- queryMembers (deprecated and replaced by extended: 3) for 5.7 {VER(<8.0)}
 var stat = cluster.status({extended: 3});
@@ -617,9 +805,13 @@ EXPECT_NE(undefined, connection);
 var workers = json_find_key(stat, "workers");
 EXPECT_NE(undefined, workers);
 
-//@<> TS_E3	Validate that when calling cluster.status() if the option queryMembers is set to true, it takes precedence over extended option set to false. for 8.0 {VER(>=8.0)}
+//@<> TS_E3	Validate that when calling cluster.status() if the option queryMembers is set to true, it takes precedence over extended option set to false. for 8.0 {VER(>=8.0) && VER(<8.0.23)}
 var stat_qm = cluster.status({queryMembers: true, extended:false});
 json_check(stat_qm, full_status_templ_80);
+
+//@<> TS_E3 Validate that when calling cluster.status() if the option queryMembers is set to true, it takes precedence over extended option set to false. for 8.0 {VER(>=8.0.23)}
+var stat_qm = cluster.status({queryMembers: true, extended:false});
+json_check(stat_qm, full_status_templ_8023);
 
 //@<> TS_E3 Validate that when calling cluster.status() if the option queryMembers is set to true, it takes precedence over extended option set to false. for 8.0 {VER(<8.0)}
 var stat_qm = cluster.status({queryMembers: true, extended:false});
@@ -638,25 +830,42 @@ cluster.addInstance(__sandbox_uri2, {waitRecovery: 0});
 
 // TS6_1	Verify that information about the recovery process is added to the status of a member that is on Recovery status when calling cluster.status().
 
-//@<> F7- Check that recovery stats are there 5.7 {VER(<8.0)}
+//@<> F7- Check that recovery stats are there 5.7 - extended 2 {VER(<8.0)}
 var stat = cluster.status({extended:2});
 var allowed_missing = ["transactions"];
 var allowed_unexpected = ["recovery", "recoveryStatusText", ["replicationLag"]];
 json_check(stat, extended_2_status_templ_57, allowed_missing, allowed_unexpected);
 
-//@<> F7- Check that recovery stats are there 8.0 {VER(>=8.0)}
+//@<> F7- Check that recovery stats are there 8.0 - extended 2 {VER(>=8.0) && VER(<8.0.23)}
 var stat = cluster.status({extended:2});
 var allowed_unexpected = ["recovery", "recoveryStatusText", "replicationLag"];
 json_check(stat, extended_2_status_templ_80, [], allowed_unexpected);
 
+//@<> F7- Check that recovery stats are there 8.0.23 - extended 2 {VER(>=8.0.23)}
+var stat = cluster.status({extended:2});
+var allowed_unexpected = ["recovery", "recoveryStatusText", "replicationLag"];
+json_check(stat, extended_2_status_templ_8023, [], allowed_unexpected);
+
+//@<> F7- Check that recovery stats are there 8.0 - extended 3 {VER(>=8.0)}
 var stat = cluster.status({extended:3});
 println(stat);
 EXPECT_EQ("RECOVERING", json_find_key(stat, hostname+":"+__mysql_sandbox_port2)["status"]);
 var allowed_missing = ["appliedCount", "checkedCount", "committedAllMembers", "conflictsDetectedCount", "inApplierQueueCount", "inQueueCount", "lastConflictFree", "proposedCount", "rollbackCount"];
 // currentlyQueueing only appears if the worker is currently processing a tx
 allowed_missing.push("currentlyQueueing");
+
+//@<> F7- Check that recovery stats for transactions are there 8.0 {VER(>=8.0) && VER(<8.0.23)}
 var transactions = json_find_key(stat, "transactions");
 json_check(transactions, transaction_status_templ, allowed_missing);
+
+//@<> F7- Check that recovery stats for transactions are there 8.0.23 {VER(>=8.0.23)}
+var transactions = json_find_key(stat, "transactions");
+
+EXPECT_NE(undefined, transactions["connection"]);
+EXPECT_NE(undefined, transactions["coordinator"]);
+EXPECT_NE(undefined, transactions["workers"]);
+EXPECT_EQ(4, transactions["workers"].length);
+json_check(transactions["coordinator"], coordinator_status_templ_80);
 
 // WL13208-TS_FR8_3 - Distributed Recovery displays state
 var recovery = json_find_key(stat, "recovery");
@@ -708,7 +917,7 @@ var stat = cluster.status({extended:3});
 var loc = json_find_key(stat, hostname+":" + __mysql_sandbox_port2);
 EXPECT_NE(undefined, loc["shellConnectError"]);
 
-//@<> F6- With parallel appliers for 8.0 {VER(>=8.0)}
+//@<> F6- With parallel appliers for 8.0 {VER(>=8.0) && VER(<8.0.23)}
 // TS5_1	Verify that information about the coordinator thread is added to the status of a member if the member has multithreaded slave enabled when calling cluster.status().
 cluster.addInstance(__sandbox_uri3, {waitRecovery: 0});
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");

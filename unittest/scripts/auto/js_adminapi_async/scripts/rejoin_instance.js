@@ -89,6 +89,24 @@ session3.runSql("STOP SLAVE");
 s = rs.status();
 EXPECT_EQ(s.replicaSet.topology[sb3].status, "OFFLINE");
 
+//@<> Change a required setting to verify that rejoin fails {VER(<8.0.23)}
+session3.runSql("SET GLOBAL binlog_format='STATEMENT'");
+
+//@ Rejoin instance with wrong settings (fail) {VER(<8.0.23)}
+rs.rejoinInstance(__sandbox3);
+
+//@<> Change the required setting back to the required value {VER(<8.0.23)}
+session3.runSql("SET GLOBAL binlog_format='ROW'");
+
+//@<> Change a required parallel-appliers setting to verify that rejoin fails {VER(>=8.0.23)}
+session3.runSql("SET GLOBAL slave_preserve_commit_order=OFF");
+
+//@ Rejoin instance with wrong parallel-applier settings (fail) {VER(>=8.0.23)}
+rs.rejoinInstance(__sandbox3);
+
+//@<> Change the required parallel-appliers setting back to the required value {VER(>=8.0.23)}
+session3.runSql("SET GLOBAL slave_preserve_commit_order=ON");
+
 //@ Rejoin instance with replication stopped (succeed).
 rs.rejoinInstance(__sandbox3);
 s = rs.status();

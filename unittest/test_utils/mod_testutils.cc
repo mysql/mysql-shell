@@ -3369,7 +3369,12 @@ bool Testutils::deploy_sandbox_from_boilerplate(
                                     "binlog_format",
                                     "enforce_gtid_consistency",
                                     "report_port",
+                                    "binlog_transaction_dependency_tracking",
+                                    "slave_preserve_commit_order",
+                                    "slave_parallel_type",
+                                    "slave_parallel_workers",
                                     NULL};
+
     for (const char **opt = options; *opt; ++opt) {
       remove_from_sandbox_conf(port, *opt);
     }

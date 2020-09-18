@@ -387,6 +387,8 @@ setup_slave(session3, __mysql_sandbox_port1);
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
 var rs = dba.createReplicaSet("myrs", {adoptFromAR:true});
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
 rs.status();
 
 reset_instance(session);

@@ -28,6 +28,7 @@
 #include <memory>
 #include <random>
 #include <string>
+#include "utils/error.h"
 
 #ifndef WIN32
 #include <sys/un.h>
@@ -39,11 +40,11 @@
 
 #include "modules/adminapi/cluster/cluster_join.h"
 #include "modules/adminapi/common/clone_options.h"
-#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/dba/check_instance.h"
@@ -298,6 +299,10 @@ REGISTER_HELP(
     "command execution, i.e. prompts and confirmations will be provided or not "
     "according to the value set. The default value is equal to MySQL Shell "
     "wizard mode.");
+
+REGISTER_HELP(OPT_APPLIERWORKERTHREADS,
+              "@li applierWorkerThreads: Number of threads used for applying "
+              "replicated transactions. The default value is 4.");
 
 REGISTER_HELP_DETAIL_TEXT(CLUSTER_OPT_EXIT_STATE_ACTION_DETAIL, R"*(
 The exitStateAction option supports the following values:
@@ -638,7 +643,7 @@ REGISTER_HELP_PROPERTY(verbose, dba);
 REGISTER_HELP_PROPERTY_TEXT(DBA_VERBOSE, R"*(
 Controls debug message verbosity for sandbox related <b>dba</b> operations.
 
-The assigned value can be either boolean or integer, the result 
+The assigned value can be either boolean or integer, the result
 depends on the assigned value:
 @li 0: disables mysqlprovision verbosity
 @li 1: enables mysqlprovision verbosity
@@ -1372,7 +1377,7 @@ void Dba::drop_metadata_schema(const shcore::Dictionary_t &options) {
   // Replica Set, and only for online members that are either RW or RO, however
   // if it is RO we need to get to a primary instance to perform the operation
   if (state.source_state == ManagedInstance::OnlineRO) {
-    if (state.source_type == GRInstanceType::InnoDBCluster) {
+    if (state.source_type == InstanceType::InnoDBCluster) {
       connect_to_target_group({}, &metadata, nullptr, true);
     } else {
       Instance_pool::Auth_options auth_opts;
@@ -2340,94 +2345,104 @@ void Dba::do_configure_instance(
     const shcore::Dictionary_t &options, bool local,
     Cluster_type cluster_type) {
   shcore::Value ret_val;
-  mysqlshdk::db::Connection_options instance_def(instance_def_);
-  std::shared_ptr<Instance> instance;
+  auto instance_def = instance_def_;
+
+  if (instance_def.has_data()) {
+    set_password_from_map(&instance_def, options);
+  }
+
+  std::shared_ptr<Instance> target_instance;
 
   std::string mycnf_path, output_mycnf_path, cluster_admin;
   mysqlshdk::utils::nullable<std::string> cluster_admin_password;
   mysqlshdk::utils::nullable<bool> clear_read_only;
   bool interactive = current_shell_options()->get().wizards;
   mysqlshdk::utils::nullable<bool> restart;
+  mysqlshdk::utils::nullable<int64_t> slave_parallel_workers;
 
-  {
-    mysqlshdk::utils::nullable<std::string> password;
-    // Retrieves optional options if exists or leaves empty so the default
-    // is set afterwards
-    Unpack_options unpacker(options);
+  Cluster_check_info state;
 
-    unpacker.optional("clusterAdmin", &cluster_admin)
-        .optional("clusterAdminPassword", &cluster_admin_password)
-        .optional("restart", &restart)
-        .optional("interactive", &interactive);
+  // Retrieves optional options if exists or leaves empty so the default
+  // is set afterwards
+  Unpack_options unpacker(options);
 
-    if (cluster_type == Cluster_type::GROUP_REPLICATION) {
-      unpacker.optional("mycnfPath", &mycnf_path)
-          .optional("outputMycnfPath", &output_mycnf_path)
-          .optional("clearReadOnly", &clear_read_only)
-          .optional_ci("password", &password);
-    } else {
-      clear_read_only = true;
-    }
-    unpacker.end();
+  unpacker.optional("clusterAdmin", &cluster_admin)
+      .optional("clusterAdminPassword", &cluster_admin_password)
+      .optional("restart", &restart)
+      .optional("interactive", &interactive);
 
-    if (!password.is_null()) {
-      instance_def.clear_password();
-      instance_def.set_password(*password);
-    }
+  if (!local) {
+    unpacker.optional("applierWorkerThreads", &slave_parallel_workers);
   }
+
+  if (cluster_type == Cluster_type::GROUP_REPLICATION) {
+    unpacker.optional("mycnfPath", &mycnf_path)
+        .optional("outputMycnfPath", &output_mycnf_path)
+        .optional("clearReadOnly", &clear_read_only);
+  } else {
+    clear_read_only = true;
+  }
+
+  unpacker.end();
 
   // Establish the session to the target instance
   if (instance_def.has_data()) {
-    instance = Instance::connect(instance_def, interactive);
+    target_instance = Instance::connect(instance_def, interactive);
   } else {
-    instance = connect_to_target_member();
+    target_instance = connect_to_target_member();
   }
 
   // Check the function preconditions
-  // (FR7) Validate if the instance is already part of a GR group
-  // or InnoDB cluster
   if (cluster_type == Cluster_type::ASYNC_REPLICATION) {
-    check_function_preconditions("Dba.configureReplicaSetInstance", instance);
+    state = check_function_preconditions("Dba.configureReplicaSetInstance",
+                                         target_instance);
   } else {
-    check_function_preconditions(
+    state = check_function_preconditions(
         local ? "Dba.configureLocalInstance" : "Dba.configureInstance",
-        instance);
+        target_instance);
   }
 
+  auto warnings_callback = [](const std::string &sql, int code,
+                              const std::string &level,
+                              const std::string &msg) {
+    auto console = current_console();
+    std::string debug_msg;
+
+    debug_msg += level + ": '" + msg + "'. (Code " + std::to_string(code) +
+                 ") When executing query: '" + sql + "'.";
+
+    log_debug("%s", debug_msg.c_str());
+
+    if (level == "WARNING") {
+      console->print_info();
+      console->print_warning(msg + " (Code " + std::to_string(code) + ").");
+    }
+  };
+
+  // Add the warnings callback
+  target_instance->register_warnings_callback(warnings_callback);
+
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(target_instance->get_connection_options());
+  Scoped_instance_pool ipool(interactive, auth_opts);
+
   {
-    // Get the Connection_options
-    Connection_options coptions = instance->get_connection_options();
-
-    // Close the session
-    // TODO(alfredo) - instead of opening a session just for the preconditions
-    // and then closing it right away, the instance obj should be given to the
-    // configure objects
-    instance->close_session();
-
     // Call the API
     std::unique_ptr<Configure_instance> op_configure_instance;
-    if (local)
+    if (local) {
       op_configure_instance.reset(new Configure_local_instance(
-          coptions, mycnf_path, output_mycnf_path, cluster_admin,
+          target_instance, mycnf_path, output_mycnf_path, cluster_admin,
           cluster_admin_password, clear_read_only, interactive, restart));
-    else
+    } else {
       op_configure_instance.reset(new Configure_instance(
-          coptions, mycnf_path, output_mycnf_path, cluster_admin,
+          target_instance, mycnf_path, output_mycnf_path, cluster_admin,
           cluster_admin_password, clear_read_only, interactive, restart,
-          cluster_type));
-
-    try {
-      // Always execute finish when leaving "try catch".
-      auto finally = shcore::on_leave_scope(
-          [&op_configure_instance]() { op_configure_instance->finish(); });
-
-      // Prepare and execute the operation.
-      op_configure_instance->prepare();
-      op_configure_instance->execute();
-    } catch (...) {
-      op_configure_instance->rollback();
-      throw;
+          slave_parallel_workers, cluster_type, state.source_type));
     }
+
+    // Prepare and execute the operation.
+    op_configure_instance->prepare();
+    op_configure_instance->execute();
   }
 }
 
@@ -2513,6 +2528,7 @@ The instance definition is the connection data for the instance.
 ${TOPIC_CONNECTION_MORE_INFO}
 
 ${CONFIGURE_INSTANCE_COMMON_OPTIONS}
+${OPT_APPLIERWORKERTHREADS}
 @li restart: boolean value used to indicate that a remote restart of the target
 instance should be performed to finalize the operation.
 
@@ -2633,6 +2649,7 @@ created. The supported format is the standard MySQL account name format.
 ${OPT_INTERACTIVE}
 @li restart: boolean value used to indicate that a remote restart of the target
 instance should be performed to finalize the operation.
+${OPT_APPLIERWORKERTHREADS}
 
 The connection password may be contained on the instance definition, however,
 it can be overwritten if it is specified on the options.
@@ -3164,12 +3181,12 @@ static void validate_instance_belongs_to_cluster(
   // option like update_mismatched_group_name to be set to ignore the
   // validation error and adopt the new group name
 
-  GRInstanceType::Type type = get_gr_instance_type(instance);
+  InstanceType::Type type = get_gr_instance_type(instance);
 
   std::string member_session_address = instance.descr();
 
   switch (type) {
-    case GRInstanceType::InnoDBCluster: {
+    case InstanceType::InnoDBCluster: {
       std::string err_msg = "The MySQL instance '" + member_session_address +
                             "' belongs to an InnoDB Cluster and is reachable.";
       // Check if quorum is lost to add additional instructions to users.
@@ -3180,21 +3197,21 @@ static void validate_instance_belongs_to_cluster(
       throw shcore::Exception::runtime_error(err_msg);
     }
 
-    case GRInstanceType::GroupReplication:
+    case InstanceType::GroupReplication:
       throw shcore::Exception::runtime_error(
           "The MySQL instance '" + member_session_address +
           "' belongs to a GR group that is not managed as an "
           "InnoDB cluster. ");
 
-    case GRInstanceType::AsyncReplicaSet:
+    case InstanceType::AsyncReplicaSet:
       throw shcore::Exception::runtime_error(
           "The MySQL instance '" + member_session_address +
           "' belongs to an InnoDB ReplicaSet. ");
 
-    case GRInstanceType::Standalone:
-    case GRInstanceType::StandaloneWithMetadata:
-    case GRInstanceType::StandaloneInMetadata:
-    case GRInstanceType::Unknown:
+    case InstanceType::Standalone:
+    case InstanceType::StandaloneWithMetadata:
+    case InstanceType::StandaloneInMetadata:
+    case InstanceType::Unknown:
       // We only want to check whether the status if InnoDBCluster or
       // GroupReplication to stop and thrown an exception
       break;
@@ -3433,7 +3450,7 @@ void Dba::upgrade_metadata(const shcore::Dictionary_t &options) {
   // If it happens we are on a RO instance, we update the metadata to make it
   // use a session to the PRIMARY of the IDC/RSET
   if (state.source_state == ManagedInstance::OnlineRO) {
-    if (state.source_type == GRInstanceType::InnoDBCluster) {
+    if (state.source_type == InstanceType::InnoDBCluster) {
       connect_to_target_group({}, &metadata, nullptr, true);
     } else {
       auto rs = get_replica_set(metadata, instance);

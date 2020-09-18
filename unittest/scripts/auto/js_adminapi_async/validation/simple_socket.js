@@ -4,7 +4,12 @@ Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> f
 This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'admin'@'%' for admin
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.23)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -12,18 +17,36 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=8.0.23)}
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                               | Current Value | Required Value | Note                                             |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |
+| enforce_gtid_consistency               | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |
+| server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
+| slave_parallel_type                    | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
+| slave_preserve_commit_order            | OFF           | ON             | Update the server variable                       |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Cluster admin user 'admin'@'%' created.
 Configuring instance...
 The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB ReplicaSet.
 
-//@<OUT> configureReplicaSetInstance 
+//@<OUT> configureReplicaSetInstance
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB ReplicaSet...
 
 This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port2>>>
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.23)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -31,6 +54,19 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=8.0.23)}
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                               | Current Value | Required Value | Note                                             |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |
+| enforce_gtid_consistency               | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |
+| server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
+| slave_parallel_type                    | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
+| slave_preserve_commit_order            | OFF           | ON             | Update the server variable                       |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Configuring instance...
@@ -55,18 +91,18 @@ Use rs.addInstance() to add more asynchronously replicated instances to this rep
 //@<OUT> status
 {
     "replicaSet": {
-        "name": "myrs", 
-        "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
-        "status": "AVAILABLE", 
-        "statusText": "All instances available.", 
+        "name": "myrs",
+        "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>",
+        "status": "AVAILABLE",
+        "statusText": "All instances available.",
         "topology": {
             "127.0.0.1:<<<__mysql_sandbox_port1>>>": {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
-                "instanceRole": "PRIMARY", 
-                "mode": "R/W", 
+                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>",
+                "instanceRole": "PRIMARY",
+                "mode": "R/W",
                 "status": "ONLINE"
             }
-        }, 
+        },
         "type": "ASYNC"
     }
 }
@@ -139,7 +175,8 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 |                "mode": "R/O", |
 |                "replication": {|
 |                    "applierStatus": "APPLIED_ALL", |
-|                    "applierThreadState": "Slave has read all relay log; waiting for more updates", |
+|                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",'>>>|
+|                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
 |                    "receiverStatus": "ERROR", |
 |                    "receiverThreadState": "", |
 |                    "replicationLag": null|
@@ -152,7 +189,8 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 |                "mode": "R/O", |
 |                "replication": {|
 |                    "applierStatus": "APPLIED_ALL", |
-|                    "applierThreadState": "Slave has read all relay log; waiting for more updates", |
+|                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",'>>>|
+|                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
 |                    "receiverStatus": "ERROR", |
 |                    "receiverThreadState": "", |
 |                    "replicationLag": null|
@@ -208,26 +246,26 @@ Failover finished successfully.
 
 //@<OUT> listRouters
 {
-    "replicaSetName": "myrs", 
+    "replicaSetName": "myrs",
     "routers": {
         "routerhost1::system": {
-            "hostname": "routerhost1", 
-            "lastCheckIn": "2019-01-01 11:22:33", 
-            "roPort": null, 
-            "roXPort": null, 
-            "rwPort": null, 
-            "rwXPort": null, 
-            "upgradeRequired": true, 
+            "hostname": "routerhost1",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
             "version": "8.0.18"
-        }, 
+        },
         "routerhost2::system": {
-            "hostname": "routerhost2", 
-            "lastCheckIn": "2019-01-01 11:22:33", 
-            "roPort": null, 
-            "roXPort": null, 
-            "rwPort": null, 
-            "rwXPort": null, 
-            "upgradeRequired": true, 
+            "hostname": "routerhost2",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
             "version": "8.0.18"
         }
     }
@@ -235,16 +273,16 @@ Failover finished successfully.
 
 //@<OUT> removeRouterMetadata
 {
-    "replicaSetName": "myrs", 
+    "replicaSetName": "myrs",
     "routers": {
         "routerhost2::system": {
-            "hostname": "routerhost2", 
-            "lastCheckIn": "2019-01-01 11:22:33", 
-            "roPort": null, 
-            "roXPort": null, 
-            "rwPort": null, 
-            "rwXPort": null, 
-            "upgradeRequired": true, 
+            "hostname": "routerhost2",
+            "lastCheckIn": "2019-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "upgradeRequired": true,
             "version": "8.0.18"
         }
     }
@@ -263,10 +301,10 @@ Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=yes
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="127.0.0.1:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="127.0.0.1:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="127.0.0.1:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 - 127.0.0.1:<<<__mysql_sandbox_port3>>>: uuid=[[*]] read_only=yes
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="127.0.0.1:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="127.0.0.1:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="127.0.0.1:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 * Checking configuration of discovered instances...
 
@@ -292,46 +330,50 @@ ReplicaSet object successfully created for 127.0.0.1:<<<__mysql_sandbox_port1>>>
 Use rs.addInstance() to add more asynchronously replicated instances to this replicaset and rs.status() to check its status.
 
 <ReplicaSet:adopted>
-{
-    "replicaSet": {
-        "name": "adopted", 
-        "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
-        "status": "AVAILABLE", 
-        "statusText": "All instances available.", 
-        "topology": {
-            "127.0.0.1:<<<__mysql_sandbox_port1>>>": {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>", 
-                "instanceRole": "PRIMARY", 
-                "mode": "R/W", 
-                "status": "ONLINE"
-            }, 
-            "127.0.0.1:<<<__mysql_sandbox_port2>>>": {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>", 
-                "instanceRole": "SECONDARY", 
-                "mode": "R/O", 
-                "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates", 
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
-                    "replicationLag": null
-                }, 
-                "status": "ONLINE"
-            },
-            "127.0.0.1:<<<__mysql_sandbox_port3>>>": {
-                "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>", 
-                "instanceRole": "SECONDARY", 
-                "mode": "R/O", 
-                "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates", 
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
-                    "replicationLag": null
-                }, 
-                "status": "ONLINE"
-            }
-        }, 
-        "type": "ASYNC"
-    }
-}
+
+//@ createReplicaSet(adopt)
+|{|
+|    "replicaSet": {|
+|        "name": "adopted",|
+|        "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>",|
+|        "status": "AVAILABLE",|
+|        "statusText": "All instances available.",|
+|        "topology": {|
+|            "127.0.0.1:<<<__mysql_sandbox_port1>>>": {|
+|                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>",|
+|                "instanceRole": "PRIMARY",|
+|                "mode": "R/W",|
+|                "status": "ONLINE"|
+|            },|
+|            "127.0.0.1:<<<__mysql_sandbox_port2>>>": {|
+|                "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>",|
+|                "instanceRole": "SECONDARY",|
+|                "mode": "R/O",|
+|                "replication": {|
+|                    "applierStatus": "APPLIED_ALL",|
+|                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",'>>>|
+|                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
+|                    "receiverStatus": "ON",|
+|                    "receiverThreadState": "Waiting for master to send event",|
+|                    "replicationLag": null|
+|                },|
+|                "status": "ONLINE"|
+|            },|
+|            "127.0.0.1:<<<__mysql_sandbox_port3>>>": {|
+|                "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>",|
+|                "instanceRole": "SECONDARY",|
+|                "mode": "R/O",|
+|                "replication": {|
+|                    "applierStatus": "APPLIED_ALL",|
+|                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",'>>>|
+|                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
+|                    "receiverStatus": "ON",|
+|                    "receiverThreadState": "Waiting for master to send event",|
+|                    "replicationLag": null|
+|                },|
+|                "status": "ONLINE"|
+|            }|
+|        },|
+|        "type": "ASYNC"|
+|    }|
+|}|

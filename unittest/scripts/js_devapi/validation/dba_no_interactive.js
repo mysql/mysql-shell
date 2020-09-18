@@ -65,6 +65,7 @@ Checking instance configuration...
 Configuration file mybad.cnf will also be checked.
 
 NOTE: Some configuration options need to be fixed:
+//@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.3) && VER(<8.0.23)}
 +----------------------------------+---------------+----------------+------------------------+
 | Variable                         | Current Value | Required Value | Note                   |
 +----------------------------------+---------------+----------------+------------------------+<<<(__version_num<80021) ?  "\n| binlog_checksum                  | <not set>     | NONE           | Update the config file |\n":"">>>
@@ -79,6 +80,25 @@ NOTE: Some configuration options need to be fixed:
 | transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------+---------------+----------------+------------------------+
 
+//@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.23)}
++----------------------------------------+---------------+----------------+------------------------+
+| Variable                               | Current Value | Required Value | Note                   |
++----------------------------------------+---------------+----------------+------------------------+
+| binlog_format                          | <not set>     | ROW            | Update the config file |
+| binlog_transaction_dependency_tracking | <not set>     | WRITESET       | Update the config file |
+| enforce_gtid_consistency               | <not set>     | ON             | Update the config file |
+| gtid_mode                              | OFF           | ON             | Update the config file |
+| log_slave_updates                      | <not set>     | ON             | Update the config file |
+| master_info_repository                 | <not set>     | TABLE          | Update the config file |
+| relay_log_info_repository              | <not set>     | TABLE          | Update the config file |
+| report_port                            | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
+| server_id                              | <not set>     | <unique ID>    | Update the config file |
+| slave_parallel_type                    | <not set>     | LOGICAL_CLOCK  | Update the config file |
+| slave_preserve_commit_order            | <not set>     | ON             | Update the config file |
+| transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file |
++----------------------------------------+---------------+----------------+------------------------+
+
+//@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.3)}
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@<OUT> Dba: checkInstanceConfiguration report with errors {VER(<8.0.3)}
@@ -133,7 +153,12 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 NOTE: Some configuration options need to be fixed:
+//@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.3) && VER(<8.0.23)}
 +----------------------------------+---------------+----------------+------------------------+
 | Variable                         | Current Value | Required Value | Note                   |
 +----------------------------------+---------------+----------------+------------------------+<<<(__version_num<80021) ?  "\n| binlog_checksum                  | <not set>     | NONE           | Update the config file |\n":"">>>
@@ -147,6 +172,24 @@ NOTE: Some configuration options need to be fixed:
 | server_id                        | <not set>     | <unique ID>    | Update the config file |
 | transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------+---------------+----------------+------------------------+
+
+//@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.23)}
++----------------------------------------+---------------+----------------+------------------------+
+| Variable                               | Current Value | Required Value | Note                   |
++----------------------------------------+---------------+----------------+------------------------+
+| binlog_format                          | <not set>     | ROW            | Update the config file |
+| binlog_transaction_dependency_tracking | <not set>     | WRITESET       | Update the config file |
+| enforce_gtid_consistency               | <not set>     | ON             | Update the config file |
+| gtid_mode                              | OFF           | ON             | Update the config file |
+| log_slave_updates                      | <not set>     | ON             | Update the config file |
+| master_info_repository                 | <not set>     | TABLE          | Update the config file |
+| relay_log_info_repository              | <not set>     | TABLE          | Update the config file |
+| report_port                            | <not set>     | <<<__mysql_sandbox_port2>>>           | Update the config file |
+| server_id                              | <not set>     | <unique ID>    | Update the config file |
+| slave_parallel_type                    | <not set>     | LOGICAL_CLOCK  | Update the config file |
+| slave_preserve_commit_order            | <not set>     | ON             | Update the config file |
+| transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file |
++----------------------------------------+---------------+----------------+------------------------+
 
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was configured to be used in an InnoDB cluster.
@@ -219,8 +262,17 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 Assuming full account name 'dba_test'@'%' for dba_test
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 Cluster admin user 'dba_test'@'%' created.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.
+
+?{VER(>=8.0.23)}
+Successfully enabled parallel appliers.
+?{}
 
 //@<OUT> Dba: configureLocalInstance create existing valid admin user
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB cluster...
@@ -231,6 +283,10 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2
 Assuming full account name 'dba_test'@'%' for dba_test
 User 'dba_test'@'%' already exists and will not be created.
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 
 //@ Dba: remove needed privilege (REPLICATION SLAVE) from created admin user

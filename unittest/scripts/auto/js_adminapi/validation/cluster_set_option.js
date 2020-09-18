@@ -45,7 +45,7 @@ Setting the value of 'memberWeight' to '25' in all cluster members ...
 Successfully set the value of 'memberWeight' to '25' in the 'newName' cluster.
 
 //@<ERR> WL#11465: setOption exitStateAction with invalid value
-Cluster.setOption: <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (MYSQLSH 1231)
+Cluster.setOption: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (MYSQLSH 1231)
 
 //@<OUT> WL#11465: setOption exitStateAction {VER(>=8.0.0)}
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in all cluster members ...
@@ -172,6 +172,46 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -224,6 +264,46 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
@@ -276,6 +356,46 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }
@@ -365,6 +485,46 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -417,6 +577,46 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": [
@@ -469,6 +669,46 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
                     "option": "memberWeight",
                     "value": "25",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }

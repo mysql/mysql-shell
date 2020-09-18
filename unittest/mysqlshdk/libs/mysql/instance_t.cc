@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2020, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -367,7 +367,7 @@ TEST_F(Instance_test, set_sysvar) {
   mysqlshdk::mysql::Instance instance(_session);
 
   // Test set string system variable with different scopes (GLOBAL and SESSION).
-  EXPECT_CALL(session, execute("SET GLOBAL `lc_messages` = 'fr_FR'"));
+  session.expect_query("SET GLOBAL `lc_messages` = 'fr_FR'").then({""});
   instance.set_sysvar("lc_messages", (std::string) "fr_FR");
   session
       .expect_query(
@@ -380,7 +380,7 @@ TEST_F(Instance_test, set_sysvar) {
   mysqlshdk::utils::nullable<std::string> new_value =
       instance.get_sysvar_string("lc_messages");
   EXPECT_STREQ("fr_FR", (*new_value).c_str());
-  EXPECT_CALL(session, execute("SET GLOBAL `lc_messages` = 'pt_PT'"));
+  session.expect_query("SET GLOBAL `lc_messages` = 'pt_PT'").then({""});
   instance.set_sysvar("lc_messages", (std::string) "pt_PT",
                       mysqlshdk::mysql::Var_qualifier::GLOBAL);
   session
@@ -394,7 +394,7 @@ TEST_F(Instance_test, set_sysvar) {
   new_value = instance.get_sysvar_string(
       "lc_messages", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   EXPECT_STREQ("pt_PT", (*new_value).c_str());
-  EXPECT_CALL(session, execute("SET SESSION `lc_messages` = 'es_MX'"));
+  session.expect_query("SET SESSION `lc_messages` = 'es_MX'").then({""});
   instance.set_sysvar("lc_messages", (std::string) "es_MX",
                       mysqlshdk::mysql::Var_qualifier::SESSION);
   session
@@ -410,7 +410,7 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_STREQ("es_MX", (*new_value).c_str());
 
   // Test set int system variable with different scopes (GLOBAL and SESSION).
-  EXPECT_CALL(session, execute("SET GLOBAL `lock_wait_timeout` = 86400"));
+  session.expect_query("SET GLOBAL `lock_wait_timeout` = 86400").then({""});
   instance.set_sysvar("lock_wait_timeout", (int64_t)86400);
   session
       .expect_query(
@@ -424,7 +424,7 @@ TEST_F(Instance_test, set_sysvar) {
   mysqlshdk::utils::nullable<int64_t> new_i_value =
       instance.get_sysvar_int("lock_wait_timeout");
   EXPECT_EQ(86400, *new_i_value);
-  EXPECT_CALL(session, execute("SET GLOBAL `lock_wait_timeout` = 172800"));
+  session.expect_query("SET GLOBAL `lock_wait_timeout` = 172800").then({""});
   instance.set_sysvar("lock_wait_timeout", (int64_t)172800,
                       mysqlshdk::mysql::Var_qualifier::GLOBAL);
   session
@@ -439,7 +439,8 @@ TEST_F(Instance_test, set_sysvar) {
   new_i_value = instance.get_sysvar_int(
       "lock_wait_timeout", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   EXPECT_EQ(172800, *new_i_value);
-  EXPECT_CALL(session, execute("SET SESSION `lock_wait_timeout` = 43200"));
+
+  session.expect_query("SET SESSION `lock_wait_timeout` = 43200").then({""});
   instance.set_sysvar("lock_wait_timeout", (int64_t)43200,
                       mysqlshdk::mysql::Var_qualifier::SESSION);
   session
@@ -456,7 +457,7 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_EQ(43200, *new_i_value);
 
   // Test set bool system variable with different scopes (GLOBAL and SESSION).
-  EXPECT_CALL(session, execute("SET GLOBAL `sql_log_off` = 'ON'"));
+  session.expect_query("SET GLOBAL `sql_log_off` = 'ON'").then({""});
   instance.set_sysvar("sql_log_off", true);
   session
       .expect_query(
@@ -469,7 +470,7 @@ TEST_F(Instance_test, set_sysvar) {
   mysqlshdk::utils::nullable<bool> new_b_value =
       instance.get_sysvar_bool("sql_log_off");
   EXPECT_TRUE(*new_b_value);
-  EXPECT_CALL(session, execute("SET GLOBAL `sql_log_off` = 'ON'"));
+  session.expect_query("SET GLOBAL `sql_log_off` = 'ON'").then({""});
   instance.set_sysvar("sql_log_off", true,
                       mysqlshdk::mysql::Var_qualifier::GLOBAL);
   session
@@ -483,7 +484,7 @@ TEST_F(Instance_test, set_sysvar) {
   new_b_value = instance.get_sysvar_bool(
       "sql_log_off", mysqlshdk::mysql::Var_qualifier::GLOBAL);
   EXPECT_TRUE(*new_b_value);
-  EXPECT_CALL(session, execute("SET SESSION `sql_log_off` = 'OFF'"));
+  session.expect_query("SET SESSION `sql_log_off` = 'OFF'").then({""});
   instance.set_sysvar("sql_log_off", false,
                       mysqlshdk::mysql::Var_qualifier::SESSION);
   session
@@ -501,7 +502,7 @@ TEST_F(Instance_test, set_sysvar) {
   // NOTE: Tests using PERSIST and PERSIT_ONLY are only supported by server
   //       versions >= 8.0.2
   // Set string with PERSIST_ONLY.
-  EXPECT_CALL(session, execute("SET PERSIST_ONLY `lc_messages` = 'en_US'"));
+  session.expect_query("SET PERSIST_ONLY `lc_messages` = 'en_US'").then({""});
   instance.set_sysvar("lc_messages", (std::string) "en_US",
                       mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
   session
@@ -530,7 +531,7 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("RESET PERSIST lc_messages"));
   session.execute("RESET PERSIST lc_messages");
   // Set string with PERSIST.
-  EXPECT_CALL(session, execute("SET PERSIST `lc_messages` = 'en_US'"));
+  session.expect_query("SET PERSIST `lc_messages` = 'en_US'").then({""});
   instance.set_sysvar("lc_messages", (std::string) "en_US",
                       mysqlshdk::mysql::Var_qualifier::PERSIST);
   session
@@ -555,8 +556,8 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("RESET PERSIST lc_messages"));
   session.execute("RESET PERSIST lc_messages");
   // Set int with PERSIST_ONLY.
-  EXPECT_CALL(session,
-              execute("SET PERSIST_ONLY `lock_wait_timeout` = 172801"));
+  session.expect_query("SET PERSIST_ONLY `lock_wait_timeout` = 172801")
+      .then({""});
   instance.set_sysvar("lock_wait_timeout", (int64_t)172801,
                       mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
   session
@@ -586,7 +587,7 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("RESET PERSIST lock_wait_timeout"));
   session.execute("RESET PERSIST lock_wait_timeout");
   // Set int with PERSIST.
-  EXPECT_CALL(session, execute("SET PERSIST `lock_wait_timeout` = 172801"));
+  session.expect_query("SET PERSIST `lock_wait_timeout` = 172801").then({""});
   instance.set_sysvar("lock_wait_timeout", (int64_t)172801,
                       mysqlshdk::mysql::Var_qualifier::PERSIST);
   session
@@ -612,7 +613,7 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("RESET PERSIST lock_wait_timeout"));
   session.execute("RESET PERSIST lock_wait_timeout");
   // Set boolean with PERSIST_ONLY.
-  EXPECT_CALL(session, execute("SET PERSIST_ONLY `sql_log_off` = 'OFF'"));
+  session.expect_query("SET PERSIST_ONLY `sql_log_off` = 'OFF'").then({""});
   instance.set_sysvar("sql_log_off", false,
                       mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
   session
@@ -641,7 +642,7 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("RESET PERSIST sql_log_off"));
   session.execute("RESET PERSIST sql_log_off");
   // Set boolean with PERSIST.
-  EXPECT_CALL(session, execute("SET PERSIST `sql_log_off` = 'OFF'"));
+  session.expect_query("SET PERSIST `sql_log_off` = 'OFF'").then({""});
   instance.set_sysvar("sql_log_off", false,
                       mysqlshdk::mysql::Var_qualifier::PERSIST);
   session
@@ -675,7 +676,8 @@ TEST_F(Instance_test, set_sysvar_default) {
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
   // Test set_sysvar_default with different scopes (GLOBAL and SESSION).
-  EXPECT_CALL(session, execute("SET SESSION `max_user_connections` = DEFAULT"));
+  session.expect_query("SET SESSION `max_user_connections` = DEFAULT")
+      .then({""});
   instance.set_sysvar_default("max_user_connections",
                               mysqlshdk::mysql::Var_qualifier::SESSION);
   session
@@ -693,7 +695,8 @@ TEST_F(Instance_test, set_sysvar_default) {
   EXPECT_STREQ("0", (*new_value).c_str());
 
   // Test set_sysvar_default with different scopes (GLOBAL and SESSION).
-  EXPECT_CALL(session, execute("SET GLOBAL `max_user_connections` = DEFAULT"));
+  session.expect_query("SET GLOBAL `max_user_connections` = DEFAULT")
+      .then({""});
   instance.set_sysvar_default("max_user_connections",
                               mysqlshdk::mysql::Var_qualifier::GLOBAL);
   session
@@ -712,7 +715,7 @@ TEST_F(Instance_test, set_sysvar_default) {
   // NOTE: Tests using PERSIST and PERSIST_ONLY are only supported by server
   //       versions >= 8.0.2
   // Set sysvar_default with PERSIST_ONLY.
-  EXPECT_CALL(session, execute("SET PERSIST_ONLY `lc_messages` = DEFAULT"));
+  session.expect_query("SET PERSIST_ONLY `lc_messages` = DEFAULT").then({""});
   instance.set_sysvar_default("lc_messages",
                               mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
   session
@@ -741,7 +744,7 @@ TEST_F(Instance_test, set_sysvar_default) {
   EXPECT_CALL(session, execute("RESET PERSIST lc_messages"));
   session.execute("RESET PERSIST lc_messages");
   // Set string with PERSIST.
-  EXPECT_CALL(session, execute("SET PERSIST `lc_messages` = DEFAULT"));
+  session.expect_query("SET PERSIST `lc_messages` = DEFAULT").then({""});
   instance.set_sysvar_default("lc_messages",
                               mysqlshdk::mysql::Var_qualifier::PERSIST);
   session

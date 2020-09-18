@@ -28,6 +28,8 @@
 #include <limits>
 #include <memory>
 #include <set>
+#include <tuple>
+#include "utils/version.h"
 
 #ifdef WIN32
 #include <windows.h>
@@ -36,6 +38,7 @@
 #endif
 #include <mysqld_error.h>
 
+#include "modules/adminapi/common/parallel_applier_options.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
@@ -158,6 +161,8 @@ void check_server_variables_compatibility(
     const mysqlshdk::mysql::IInstance &instance,
     const mysqlshdk::config::Config &config, bool group_replication,
     std::vector<Invalid_config> *out_invalid_vec) {
+  mysqlsh::dba::Parallel_applier_options parallel_applier_options;
+  auto instance_version = instance.get_version();
   // create a vector for all the variables required values. Each entry is
   // a string with the name of the variable, then a vector of strings with the
   // accepted values and finally a boolean value that says if the variable
@@ -184,13 +189,28 @@ void check_server_variables_compatibility(
   // Option checks specific to GR
   if (group_replication) {
     // Starting with 8.0.21 GR no longer requires binlog_checksum to be NONE
-    if (instance.get_version() < utils::Version(8, 0, 21)) {
+    if (instance_version < utils::Version(8, 0, 21)) {
       requirements.push_back(std::make_tuple(
           "binlog_checksum", std::vector<std::string>{"NONE"}, false));
     }
-    requirements.push_back(std::make_tuple(
-        "transaction_write_set_extraction",
-        std::vector<std::string>{"XXHASH64", "2", "MURMUR32", "1"}, true));
+  }
+
+  requirements.push_back(std::make_tuple(
+      "transaction_write_set_extraction",
+      std::vector<std::string>{"XXHASH64", "2", "MURMUR32", "1"}, true));
+
+  // Check parallel-applier settings
+  // NOTE: Only for instances with version >= 8.0.23
+  if (instance_version >= utils::Version(8, 0, 23)) {
+    // If group_replication (configureInstance() or configureLocalInstance())
+    // we can skip kTransactionWriteSetExtraction as it is already part of the
+    // GR required settings
+    for (const auto &setting :
+         parallel_applier_options.get_required_values(true)) {
+      requirements.push_back(std::make_tuple(
+          std::get<0>(setting), std::vector<std::string>{std::get<1>(setting)},
+          false));
+    }
   }
 
   if (config.has_handler(mysqlshdk::config::k_dft_cfg_server_handler)) {
@@ -205,7 +225,7 @@ void check_server_variables_compatibility(
     utils::nullable<int64_t> slave_p_workers = config.get_int(
         "slave_parallel_workers", mysqlshdk::config::k_dft_cfg_server_handler);
     if (group_replication && !slave_p_workers.is_null() &&
-        *slave_p_workers > 0) {
+        *slave_p_workers > 0 && instance_version < utils::Version(8, 0, 23)) {
       std::vector<std::string> slave_parallel_vec = {"LOGICAL_CLOCK"};
       std::vector<std::string> slave_commit_vec = {"ON", "1"};
       requirements.emplace_back("slave_parallel_type", slave_parallel_vec,

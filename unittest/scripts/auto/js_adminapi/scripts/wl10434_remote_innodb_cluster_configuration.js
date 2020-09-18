@@ -205,9 +205,6 @@ shell.connect(__sandbox_uri1);
 var cluster = dba.createCluster("C");
 cluster.disconnect();
 
-//@ FR7 Configure instance already belonging to cluster {VER(>=8.0.11)}
-dba.configureInstance(__sandbox_uri1, {interactive: true});
-
 //@ FR7 TEARDOWN {VER(>=8.0.11)}
 cluster.disconnect();
 session.close();

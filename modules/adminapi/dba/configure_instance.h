@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/command_interface.h"
@@ -44,18 +45,18 @@ namespace dba {
 class Configure_instance : public Command_interface {
  public:
   Configure_instance(
-      const mysqlshdk::db::Connection_options &instance_cnx_opts,
+      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
       const std::string &mycnf_path, const std::string &output_mycnf_path,
       const std::string &cluster_admin,
       const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
       mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
-      mysqlshdk::utils::nullable<bool> restart, Cluster_type cluster_type);
+      mysqlshdk::utils::nullable<bool> restart,
+      mysqlshdk::utils::nullable<int64_t> applier_worker_threads,
+      Cluster_type cluster_type, InstanceType::Type instance_type);
   ~Configure_instance();
 
   void prepare() override;
   shcore::Value execute() override;
-  void rollback() override;
-  void finish() override;
 
  protected:
   void ensure_configuration_change_possible(bool needs_mycnf_change);
@@ -77,6 +78,7 @@ class Configure_instance : public Command_interface {
    * @throws std::runtime_error if the file provided as mycnfPath doesn't exist.
    */
   void validate_config_path();
+  void validate_applier_worker_threads();
 
   void ensure_instance_address_usable();
   bool check_config_path_for_update();
@@ -87,11 +89,10 @@ class Configure_instance : public Command_interface {
 
   bool clear_super_read_only();
   void restore_super_read_only();
-
   void check_lock_service();
 
  protected:
-  const mysqlshdk::db::Connection_options m_instance_cnx_opts;
+  std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   const bool m_interactive;
   // The following may change from user-interaction
   std::string m_mycnf_path;
@@ -103,11 +104,11 @@ class Configure_instance : public Command_interface {
   bool m_local_target = false;
   mysqlshdk::utils::nullable<bool> m_clear_read_only;
   mysqlshdk::utils::nullable<bool> m_restart;
+  mysqlshdk::utils::nullable<int64_t> m_applier_worker_threads;
 
   // By default, the clusterAdmin account will be created unless
   // it's not specified on the command options or it already exists
   bool m_create_cluster_admin = true;
-
   bool m_install_lock_service_udfs = false;
 
   mysqlshdk::utils::nullable<bool> m_can_set_persist;
@@ -121,6 +122,8 @@ class Configure_instance : public Command_interface {
                                        // but was automatically filled because
                                        // the instance is a sandbox.
 
+  bool m_set_applier_worker_threads = false;
+
   Cluster_type m_cluster_type;
 
   // Configuration object (to read and set instance configurations).
@@ -129,8 +132,8 @@ class Configure_instance : public Command_interface {
   // List of invalid (incompatible) configurations to update.
   std::vector<mysqlshdk::mysql::Invalid_config> m_invalid_cfgs;
 
-  // Target instance to configure.
-  std::shared_ptr<Instance> m_target_instance;
+ private:
+  InstanceType::Type m_instance_type;
 };
 
 }  // namespace dba

@@ -216,6 +216,8 @@ DESCRIPTION
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
         Shell wizard mode.
+      - applierWorkerThreads: Number of threads used for applying replicated
+        transactions. The default value is 4.
       - restart: boolean value used to indicate that a remote restart of the
         target instance should be performed to finalize the operation.
 
@@ -402,6 +404,8 @@ DESCRIPTION
         Shell wizard mode.
       - restart: boolean value used to indicate that a remote restart of the
         target instance should be performed to finalize the operation.
+      - applierWorkerThreads: Number of threads used for applying replicated
+        transactions. The default value is 4.
 
       The connection password may be contained on the instance definition,
       however, it can be overwritten if it is specified on the options.

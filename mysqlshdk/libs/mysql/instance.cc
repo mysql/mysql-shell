@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,6 +57,10 @@ void Auth_options::set(mysqlshdk::db::Connection_options *copts) const {
 
 Instance::Instance(const std::shared_ptr<db::ISession> &session)
     : _session(session) {}
+
+void Instance::register_warnings_callback(const Warnings_callback &callback) {
+  m_warnings_callback = callback;
+}
 
 void Instance::refresh() {
   m_uuid.clear();
@@ -212,7 +216,8 @@ void Instance::set_sysvar(const std::string &name, const std::string &value,
   set_stmt << name;
   set_stmt << value;
   set_stmt.done();
-  execute(set_stmt);
+
+  query(set_stmt);
 }
 
 /**
@@ -236,7 +241,8 @@ void Instance::set_sysvar_default(const std::string &name,
   shcore::sqlstring set_stmt = shcore::sqlstring(set_stmt_fmt.c_str(), 0);
   set_stmt << name;
   set_stmt.done();
-  execute(set_stmt);
+
+  query(set_stmt);
 }
 
 /**
@@ -262,7 +268,8 @@ void Instance::set_sysvar(const std::string &name, const int64_t value,
   set_stmt << name;
   set_stmt << value;
   set_stmt.done();
-  execute(set_stmt);
+
+  query(set_stmt);
 }
 
 /**
@@ -289,7 +296,8 @@ void Instance::set_sysvar(const std::string &name, const bool value,
   set_stmt << name;
   set_stmt << str_value;
   set_stmt.done();
-  execute(set_stmt);
+
+  query(set_stmt);
 }
 
 std::map<std::string, utils::nullable<std::string>>
@@ -771,7 +779,33 @@ void Instance::suppress_binary_log(bool flag) {
 
 std::shared_ptr<mysqlshdk::db::IResult> Instance::query(const std::string &sql,
                                                         bool buffered) const {
-  return get_session()->query(sql, buffered);
+  auto res = get_session()->query(sql, buffered);
+
+  // Call the Warnings_callback if registered
+  if (m_warnings_callback) {
+    // Get all the Warnings
+    while (auto warning = res->fetch_one_warning()) {
+      std::string warning_level;
+
+      switch (warning->level) {
+        case db::Warning::Level::Note:
+          warning_level = "NOTE";
+          break;
+        case db::Warning::Level::Warn:
+          warning_level = "WARNING";
+          break;
+        case db::Warning::Level::Error:
+          warning_level = "ERROR";
+          break;
+      }
+
+      m_warnings_callback(sql, warning->code, warning_level, warning->msg);
+
+      warning = res->fetch_one_warning();
+    }
+  }
+
+  return res;
 }
 
 void Instance::execute(const std::string &sql) const {

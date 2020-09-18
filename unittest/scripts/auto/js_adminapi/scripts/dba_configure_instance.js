@@ -63,8 +63,40 @@ if (__version_num >= 80011) {
 dba.configureInstance(__sandbox_uri1, {interactive:true, mycnfPath: mycnf});
 
 //@ test connection with custom cluster admin and no password
-shell.connect('repl_admin2:@' + uri1);
+var uri_repl_admin = "repl_admin2:@" + uri1;
+shell.connect(uri_repl_admin);
 session.close();
+
+//@<> configuring applierWorkerThreads in versions lower that 8.0.23 (should fail) {VER(<8.0.23)}
+EXPECT_THROWS(function(){dba.configureInstance(uri_repl_admin, {applierWorkerThreads: 5});}, "Option 'applierWorkerThreads' not supported on target server version: '" + __version + "'");
+
+//@<> Verify that the default value for applierWorkerThreads was set (4) {VER(>=8.0.23)}
+EXPECT_EQ(4, get_sysvar(__mysql_sandbox_port1, "slave_parallel_workers"));
+
+//@<> Change the value of applierWorkerThreads {VER(>=8.0.23)}
+dba.configureInstance(uri_repl_admin, {applierWorkerThreads: 10, restart: true})
+testutil.waitSandboxAlive(__mysql_sandbox_port1);
+EXPECT_EQ(10, get_sysvar(__mysql_sandbox_port1, "slave_parallel_workers"));
+
+// Verify that configureInstance() enables parallel-appliers on a cluster member that doesn't have them enabled (upgrade scenario)
+
+//@<> Create a cluster {VER(>=8.0.23)}
+shell.connect(uri_repl_admin);
+dba.createCluster("test");
+
+//@<> Manually disable some parallel-applier settings {VER(>=8.0.23)}
+session.runSql("RESET PERSIST slave_preserve_commit_order");
+session.runSql("RESET PERSIST slave_parallel_workers");
+session.runSql("SET global slave_preserve_commit_order=OFF");
+session.runSql("SET global slave_parallel_workers=0");
+
+//@<OUT> Verify that configureInstance() detects and fixes the wrong settings {VER(>=8.0.23)}
+dba.configureInstance();
+testutil.waitSandboxAlive(__mysql_sandbox_port1);
+
+//@<> Verify that the default value for applierWorkerThreads was set and the wrong config fixed {VER(>=8.0.23)}
+EXPECT_EQ(4, get_sysvar(__mysql_sandbox_port1, "slave_parallel_workers"));
+EXPECT_EQ(1, get_sysvar(__mysql_sandbox_port1, "slave_preserve_commit_order"));
 
 //@<> cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

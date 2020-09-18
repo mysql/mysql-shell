@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,8 +28,8 @@
 #include <memory>
 #include <string>
 
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
-#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/adminapi/dba/configure_instance.h"
 #include "scripting/lang_base.h"
@@ -40,7 +40,7 @@ namespace dba {
 class Configure_local_instance : public Configure_instance {
  public:
   Configure_local_instance(
-      const mysqlshdk::db::Connection_options &instance_cnx_opts,
+      const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
       const std::string &mycnf_path, const std::string &output_mycnf_path,
       const std::string &cluster_admin,
       const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
@@ -50,11 +50,9 @@ class Configure_local_instance : public Configure_instance {
 
   void prepare() override;
   shcore::Value execute() override;
-  void rollback() override;
-  void finish() override;
 
  private:
-  GRInstanceType::Type m_instance_type;
+  InstanceType::Type m_instance_type;
 };
 
 }  // namespace dba

@@ -9,6 +9,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 Assuming full account name 'testUser'@'%' for testUser
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
 
 The MySQL instance at 'localhost:<<<__mysql_sandbox_port1>>>' currently has the super_read_only system
@@ -29,6 +33,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 Assuming full account name 'testUser'@'%' for testUser
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
 Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'
 Cluster admin user 'testUser'@'%' created.
@@ -42,6 +50,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port3>>>
 Assuming full account name 'testUser'@'%' for testUser
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is valid to be used in an InnoDB cluster.
 
 Cluster admin user 'testUser'@'%' created.

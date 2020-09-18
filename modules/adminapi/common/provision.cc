@@ -345,8 +345,9 @@ std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
     for (auto &invalid_cfg : invalid_cfgs_vec) {
       // log_bin variable is a special case and needs to be handled differently
       // since it cannot be persisted it always requires a configuration file.
-      if (invalid_cfg.var_name != "log_bin")
+      if (invalid_cfg.var_name != "log_bin") {
         invalid_cfg.types.set(mysqlshdk::mysql::Config_type::CONFIG);
+      }
     }
   }
   return invalid_cfgs_vec;

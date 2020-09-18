@@ -37,6 +37,10 @@
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/version.h"
 
+using Warnings_callback =
+    std::function<void(const std::string &sql, int code,
+                       const std::string &level, const std::string &msg)>;
+
 namespace mysqlshdk {
 namespace mysql {
 
@@ -79,6 +83,9 @@ class User_privileges;
 class IInstance {
  public:
   virtual ~IInstance() {}
+
+  virtual void register_warnings_callback(
+      const Warnings_callback &callback) = 0;
 
   virtual std::string descr() const = 0;
   virtual std::string get_canonical_hostname() const = 0;
@@ -221,6 +228,8 @@ class Instance : public IInstance {
   Instance() {}
   explicit Instance(const std::shared_ptr<db::ISession> &session);
 
+  void register_warnings_callback(const Warnings_callback &callback) override;
+
   std::string descr() const override;
   std::string get_canonical_hostname() const override;
   std::string get_canonical_address() const override;
@@ -347,6 +356,7 @@ class Instance : public IInstance {
   mutable std::string m_hostname;
   mutable int m_port = 0;
   int m_sql_binlog_suppress_count = 0;
+  Warnings_callback m_warnings_callback = nullptr;
 };
 
 }  // namespace mysql

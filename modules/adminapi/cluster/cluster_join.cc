@@ -582,7 +582,7 @@ void Cluster_join::check_instance_configuration(Check_type type) {
 }
 
 namespace {
-void check_auto_rejoining(Instance *instance) {
+bool check_auto_rejoining(Instance *instance) {
   // Check if instance was doing auto-rejoin and let the user know that the
   // rejoin operation will override the auto-rejoin
   if (mysqlshdk::gr::is_running_gr_auto_rejoin(*instance) ||
@@ -592,17 +592,18 @@ void check_auto_rejoining(Instance *instance) {
         "The instance '" + instance->get_connection_options().uri_endpoint() +
         "' is running auto-rejoin process, which will be cancelled.");
     console->print_info();
+
+    return true;
   }
+
+  return false;
 }
 
 void ensure_not_auto_rejoining(Instance *instance) {
-  if (mysqlshdk::gr::is_group_replication_delayed_starting(*instance) ||
-      mysqlshdk::gr::is_running_gr_auto_rejoin(*instance)) {
-    auto console = current_console();
-    console->print_note("Cancelling active GR auto-initialization at " +
-                        instance->descr());
-    mysqlshdk::gr::stop_group_replication(*instance);
-  }
+  auto console = current_console();
+  console->print_note("Cancelling active GR auto-initialization at " +
+                      instance->descr());
+  mysqlshdk::gr::stop_group_replication(*instance);
 }
 }  // namespace
 
@@ -671,7 +672,7 @@ bool Cluster_join::check_rejoinable() {
 }
 
 void Cluster_join::prepare_reboot() {
-  check_auto_rejoining(m_target_instance.get());
+  m_is_autorejoining = check_auto_rejoining(m_target_instance.get());
 
   // Make sure the target instance does not already belong to a different
   // cluster.
@@ -688,14 +689,14 @@ void Cluster_join::prepare_join(
   check_cluster_members_limit();
 
   // Make sure there isn't some leftover auto-rejoin active
-  check_auto_rejoining(m_target_instance.get());
+  m_is_autorejoining = check_auto_rejoining(m_target_instance.get());
 
   // Make sure the target instance does not already belong to a cluster.
   // Unless it's our cluster, in that case we keep adding it since it
   // may be a retry.
   if (mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
           *m_target_instance, m_cluster->get_target_server(),
-          &m_already_member) == GRInstanceType::InnoDBCluster) {
+          &m_already_member) == InstanceType::InnoDBCluster) {
     throw shcore::Exception::runtime_error(
         "The instance '" + m_target_instance->descr() +
         "' is already part of this InnoDB cluster");
@@ -711,7 +712,7 @@ void Cluster_join::prepare_join(
 }
 
 bool Cluster_join::prepare_rejoin() {
-  check_auto_rejoining(m_target_instance.get());
+  m_is_autorejoining = check_auto_rejoining(m_target_instance.get());
 
   if (!check_rejoinable()) return false;
 
@@ -1131,7 +1132,7 @@ void Cluster_join::rejoin() {
   mysqlshdk::gr::install_group_replication_plugin(*m_target_instance, nullptr);
 
   // Ensure GR is not auto-rejoining, but after the GR plugin is installed
-  ensure_not_auto_rejoining(m_target_instance.get());
+  if (m_is_autorejoining) ensure_not_auto_rejoining(m_target_instance.get());
 
   // Validate group_replication_gtid_assignment_block_size. Its value must be
   // the same on the instance as it is on the cluster but can only be checked
@@ -1176,7 +1177,7 @@ void Cluster_join::reboot() {
   //       Disable read-only temporarily to install the plugin if needed.
   mysqlshdk::gr::install_group_replication_plugin(*m_target_instance, nullptr);
 
-  ensure_not_auto_rejoining(m_target_instance.get());
+  if (m_is_autorejoining) ensure_not_auto_rejoining(m_target_instance.get());
 
   if (!m_gr_opts.group_name.is_null() && !m_gr_opts.group_name->empty()) {
     log_info("Using Group Replication group name: %s",

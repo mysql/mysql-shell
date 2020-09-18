@@ -23,7 +23,9 @@
 
 #include "modules/adminapi/cluster/options.h"
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/parallel_applier_options.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/repl_config.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -130,6 +132,7 @@ shcore::Array_t Options::collect_global_options() {
 shcore::Array_t Options::get_instance_options(
     const mysqlsh::dba::Instance &instance) {
   shcore::Array_t array = shcore::make_array();
+  Parallel_applier_options parallel_applier_options(instance);
 
   // Get all the options supported by the AdminAPI
   // If the target instance does not support a particular option, it will be
@@ -186,6 +189,23 @@ shcore::Array_t Options::get_instance_options(
       array->push_back(shcore::Value(option));
     }
   }
+
+  // Get the parallel-appliers set of options
+  auto parallel_applier_options_values =
+      parallel_applier_options.get_current_settings();
+
+  for (const auto &cfg : parallel_applier_options_values) {
+    shcore::Dictionary_t option = shcore::make_dict();
+    (*option)["variable"] = shcore::Value(cfg.first);
+    // Check if the option exists in the target server
+    if (!cfg.second.is_null()) {
+      (*option)["value"] = shcore::Value(cfg.second.get_safe());
+    } else {
+      (*option)["value"] = shcore::Value::Null();
+    }
+    array->push_back(shcore::Value(option));
+  }
+
   return array;
 }
 
@@ -252,6 +272,10 @@ shcore::Value Options::execute() {
   // Get the default replicaSet options
   (*dict)["defaultReplicaSet"] =
       shcore::Value(collect_default_replicaset_options());
+
+  // Get and insert the tags
+  dict->get_map("defaultReplicaSet")
+      ->emplace(kTags, m_cluster.get_cluster_tags());
 
   return shcore::Value(dict);
 }

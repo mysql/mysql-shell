@@ -94,5 +94,14 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, bi
 shell.connect(__sandbox_uri1);
 c = dba.checkInstanceConfiguration();
 EXPECT_STDOUT_CONTAINS("Instance configuration is compatible with InnoDB cluster");
+
+//@<OUT> dba.checkInstanceConfiguration() must validate if parallel-appliers are enabled or not {VER(>= 8.0.23)}
+session.runSql("SET GLOBAL binlog_transaction_dependency_tracking=COMMIT_ORDER");
+session.runSql("SET GLOBAL slave_preserve_commit_order=OFF");
+session.runSql("SET GLOBAL slave_parallel_type='DATABASE'");
+session.runSql("SET GLOBAL transaction_write_set_extraction=OFF");
+dba.checkInstanceConfiguration();
+
+//@<> Clean-up {VER(>= 8.0.21)}
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

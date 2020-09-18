@@ -24,11 +24,12 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_ARRAY_RESULT_H_
 #define MYSQLSHDK_LIBS_UTILS_ARRAY_RESULT_H_
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/db/result.h"
-
-#include <string>
-#include <vector>
 
 namespace shcore {
 class Array_as_result : public mysqlshdk::db::IResult {

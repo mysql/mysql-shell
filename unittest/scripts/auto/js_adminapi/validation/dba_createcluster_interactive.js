@@ -50,9 +50,9 @@ one server failure.
 //@ WL#12049: Create cluster errors using exitStateAction option {VER(>=5.7.24)}
 ||Invalid value for exitStateAction, string value cannot be empty.
 ||Invalid value for exitStateAction, string value cannot be empty.
-||Unable to set value ':' for 'exitStateAction': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of ':'
-||Unable to set value 'AB' for 'exitStateAction': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
-||Unable to set value '10' for 'exitStateAction': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of '10'
+||Unable to set value ':' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of ':'
+||Unable to set value 'AB' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
+||Unable to set value '10' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of '10'
 
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (ABORT_SERVER) {VER(>=5.7.24)}
 ||
@@ -88,9 +88,9 @@ one server failure.
 //@ WL#12067: Create cluster errors using consistency option {VER(>=8.0.14)}
 ||Invalid value for consistency, string value cannot be empty.
 ||Invalid value for consistency, string value cannot be empty.
-||Unable to set value ':' for 'consistency': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of ':'
-||Unable to set value 'AB' for 'consistency': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of 'AB'
-||Unable to set value '10' for 'consistency': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of '10'
+||Unable to set value ':' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of ':'
+||Unable to set value 'AB' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of 'AB'
+||Unable to set value '10' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of '10'
 ||Option 'consistency' is expected to be of type String, but is Integer (TypeError)
 ||Cannot use the failoverConsistency and consistency options simultaneously. The failoverConsistency option is deprecated, please use the consistency option instead. (ArgumentError)
 

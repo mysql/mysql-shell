@@ -407,17 +407,17 @@ session.close();
 shell.connect(__sandbox_uri1);
 var cluster = dba.getCluster('dev');
 
-//@ Change shell option dba.gtidWaitTimeout to 1 second
+//@ Change shell option dba.gtidWaitTimeout to 5 second
 // WL#11862 - FR7_1
-shell.options["dba.gtidWaitTimeout"] = 1;
+shell.options["dba.gtidWaitTimeout"] = 5;
 
 //@<> Remove instance with replication error - error
 // WL#11862 - FR7_1
 cluster.removeInstance(__sandbox_uri2);
 
-//@ Change shell option dba.gtidWaitTimeout to 5 second
+//@ Change shell option dba.gtidWaitTimeout to 10 second
 // WL#11862 - FR8_1
-shell.options["dba.gtidWaitTimeout"] = 5;
+shell.options["dba.gtidWaitTimeout"] = 10;
 
 //@<> Remove instance with replication error (force: true) - success
 // WL#11862 - FR8_1

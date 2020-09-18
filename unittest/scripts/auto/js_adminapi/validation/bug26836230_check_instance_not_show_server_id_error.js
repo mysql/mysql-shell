@@ -47,6 +47,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 NOTE: Some configuration options need to be fixed:
 +-----------+---------------+----------------+-----------------------------------------------+
 | Variable  | Current Value | Required Value | Note                                          |
@@ -104,6 +108,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 NOTE: Some configuration options need to be fixed:
 +-----------+---------------+----------------+--------------------------------------------------+
 | Variable  | Current Value | Required Value | Note                                             |
@@ -126,7 +134,16 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already ready to be used in an InnoDB cluster.
+
+?{VER(>=8.0.23)}
+Successfully enabled parallel appliers.
+?{}
 
 //@<OUT> checkInstanceConfiguration no server_id in my.cnf (error). {VER(>=8.0.3)}
 {
@@ -148,6 +165,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 NOTE: Some configuration options need to be fixed:
 +-----------+---------------+----------------+-----------------------------------------------+
 | Variable  | Current Value | Required Value | Note                                          |
@@ -167,6 +188,10 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 NOTE: Some configuration options need to be fixed:
 +-----------+---------------+----------------+--------------------------------------------------+
 | Variable  | Current Value | Required Value | Note                                             |
@@ -189,7 +214,16 @@ Please note that sandbox instances are only suitable for deploying test clusters
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
+?{VER(>=8.0.23)}
+applierWorkerThreads will be set to the default value of 4.
+
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.
+
+?{VER(>=8.0.23)}
+Successfully enabled parallel appliers.
+?{}
 
 //@ Clean-up deployed instances.
 ||

@@ -87,7 +87,7 @@ view_id	cluster_id	instance_id	label	member_id	member_role	master_instance_id	ma
                 "mode": "R/O",
                 "replication": {
                     "applierStatus": "APPLIED_ALL",
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates",
+                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for master to send event",
                     "replicationLag": [[*]]
@@ -106,7 +106,7 @@ view_id	cluster_id	instance_id	label	member_id	member_role	master_instance_id	ma
                 "mode": "R/O",
                 "replication": {
                     "applierStatus": "APPLIED_ALL",
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates",
+                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for master to send event",
                     "replicationLag": [[*]]
@@ -227,7 +227,7 @@ dryRun finished.
 
 //@# Replication conflict error (should fail)
 |* Checking transaction state of the instance...|
-|ERROR: Replication or configuration errors at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: source="<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>" channel= status=APPLIER_ERROR receiver=ON applier=OFF last_error="Error 'Can't create database 'testdb'; database exists' on query. Default database: 'testdb'. Query: 'CREATE SCHEMA testdb' (1007) at|
+|ERROR: Replication or configuration errors at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: source="<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>" [[*]]|
 ||ReplicaSet.setPrimaryInstance: Replication or configuration errors at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
 
 //@# promoted has errant GTIDs (should fail)

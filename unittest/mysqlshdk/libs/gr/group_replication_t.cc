@@ -973,8 +973,15 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   // if the config file is empty, there should be an issue for each of the
   // tested variables
   size_t i = 0;
+  bool parallel_appliers_required =
+      m_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 23);
+
   if (!binlog_checksum_allowed) {
-    ASSERT_EQ(8, res.size());
+    if (parallel_appliers_required) {
+      ASSERT_EQ(11, res.size());
+    } else {
+      ASSERT_EQ(8, res.size());
+    }
     i = find("binlog_checksum");
     EXPECT_STREQ(res.at(i).var_name.c_str(), "binlog_checksum");
     EXPECT_STREQ(res.at(i).current_val.c_str(),
@@ -983,7 +990,11 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
     EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
     EXPECT_EQ(res.at(i).restart, false);
   } else {
-    ASSERT_EQ(7, res.size());
+    if (parallel_appliers_required) {
+      ASSERT_EQ(10, res.size());
+    } else {
+      ASSERT_EQ(7, res.size());
+    }
   }
   i = find("binlog_format");
   EXPECT_STREQ(res.at(i).var_name.c_str(), "binlog_format");
@@ -1041,6 +1052,33 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
   EXPECT_EQ(res.at(i).restart, false);
 
+  if (parallel_appliers_required) {
+    i = find("binlog_transaction_dependency_tracking");
+    EXPECT_STREQ(res.at(i).var_name.c_str(),
+                 "binlog_transaction_dependency_tracking");
+    EXPECT_STREQ(res.at(i).current_val.c_str(),
+                 mysqlshdk::mysql::k_value_not_set);
+    EXPECT_STREQ(res.at(i).required_val.c_str(), "WRITESET");
+    EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(i).restart, false);
+
+    i = find("slave_parallel_type");
+    EXPECT_STREQ(res.at(i).var_name.c_str(), "slave_parallel_type");
+    EXPECT_STREQ(res.at(i).current_val.c_str(),
+                 mysqlshdk::mysql::k_value_not_set);
+    EXPECT_STREQ(res.at(i).required_val.c_str(), "LOGICAL_CLOCK");
+    EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(i).restart, false);
+
+    i = find("slave_preserve_commit_order");
+    EXPECT_STREQ(res.at(i).var_name.c_str(), "slave_preserve_commit_order");
+    EXPECT_STREQ(res.at(i).current_val.c_str(),
+                 mysqlshdk::mysql::k_value_not_set);
+    EXPECT_STREQ(res.at(i).required_val.c_str(), "ON");
+    EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(i).restart, false);
+  }
+
   // add the empty file as well to the cfg handler and check that incorrect
   // server results override the incorrect file results for the current value
   // field of the invalid config.
@@ -1063,7 +1101,11 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   // invalid config. Since the cfg has a server handler, then it should also
   // have one more entry for the report_port option.
   if (!binlog_checksum_allowed) {
-    ASSERT_EQ(9, res.size());
+    if (parallel_appliers_required) {
+      ASSERT_EQ(12, res.size());
+    } else {
+      ASSERT_EQ(9, res.size());
+    }
     i = find("binlog_checksum");
     EXPECT_STREQ(res.at(i).var_name.c_str(), "binlog_checksum");
     EXPECT_STREQ(res.at(i).current_val.c_str(), "CRC32");
@@ -1072,7 +1114,11 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
     EXPECT_TRUE(res.at(i).types.is_set(Config_type::SERVER));
     EXPECT_EQ(res.at(i).restart, false);
   } else {
-    ASSERT_EQ(8, res.size());
+    if (parallel_appliers_required) {
+      ASSERT_EQ(11, res.size());
+    } else {
+      ASSERT_EQ(8, res.size());
+    }
   }
 
   i = find("binlog_format");
@@ -1136,6 +1182,21 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   cfg_file_only.set_for_handler("report_port",
                                 nullable<std::string>(instance_port),
                                 mysqlshdk::config::k_dft_cfg_file_handler);
+
+  if (parallel_appliers_required) {
+    cfg_file_only.set_for_handler("binlog_transaction_dependency_tracking",
+                                  nullable<std::string>("WRITESET"),
+                                  mysqlshdk::config::k_dft_cfg_file_handler);
+
+    cfg_file_only.set_for_handler("slave_parallel_type",
+                                  nullable<std::string>("LOGICAL_CLOCK"),
+                                  mysqlshdk::config::k_dft_cfg_file_handler);
+
+    cfg_file_only.set_for_handler("slave_preserve_commit_order",
+                                  nullable<std::string>("ON"),
+                                  mysqlshdk::config::k_dft_cfg_file_handler);
+  }
+
   cfg_file_only.apply();
 
   cfg.set_for_handler("binlog_format", nullable<std::string>("ROW"),
@@ -1255,11 +1316,13 @@ TEST_F(Group_replication_test, update_auto_increment) {
   }
 
   // Set auto-increment for single-primary (3 instances).
-  EXPECT_CALL(*mock_session,
-              execute("SET GLOBAL `auto_increment_increment` = 1"))
-      .Times(3);
-  EXPECT_CALL(*mock_session, execute("SET GLOBAL `auto_increment_offset` = 2"))
-      .Times(3);
+  for (int i = 0; i < 3; i++) {
+    mock_session->expect_query("SET GLOBAL `auto_increment_increment` = 1")
+        .then({""});
+    mock_session->expect_query("SET GLOBAL `auto_increment_offset` = 2")
+        .then({""});
+  }
+
   mysqlshdk::gr::update_auto_increment(&cfg_global,
                                        Topology_mode::SINGLE_PRIMARY);
   cfg_global.apply();
@@ -1275,11 +1338,13 @@ TEST_F(Group_replication_test, update_auto_increment) {
   }
 
   // Set auto-increment for single-primary (10 instances with PERSIST support).
-  EXPECT_CALL(*mock_session,
-              execute("SET PERSIST `auto_increment_increment` = 1"))
-      .Times(10);
-  EXPECT_CALL(*mock_session, execute("SET PERSIST `auto_increment_offset` = 2"))
-      .Times(10);
+  for (int i = 0; i < 10; i++) {
+    mock_session->expect_query("SET PERSIST `auto_increment_increment` = 1")
+        .then({""});
+    mock_session->expect_query("SET PERSIST `auto_increment_offset` = 2")
+        .then({""});
+  }
+
   mysqlshdk::gr::update_auto_increment(&cfg_persist,
                                        Topology_mode::SINGLE_PRIMARY);
   cfg_persist.apply();
@@ -1296,8 +1361,6 @@ TEST_F(Group_replication_test, update_auto_increment) {
   }
 
   // Set auto-increment for multi-primary with 1 server handler.
-  EXPECT_CALL(*mock_session,
-              execute("SET GLOBAL `auto_increment_increment` = 7"));
   mock_session
       ->expect_query(
           "show GLOBAL variables where `variable_name` in ('server_id')")
@@ -1305,7 +1368,11 @@ TEST_F(Group_replication_test, update_auto_increment) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"server_id", "4"}}}});
-  EXPECT_CALL(*mock_session, execute("SET GLOBAL `auto_increment_offset` = 5"));
+
+  mock_session->expect_query("SET GLOBAL `auto_increment_increment` = 7")
+      .then({""});
+  mock_session->expect_query("SET GLOBAL `auto_increment_offset` = 5")
+      .then({""});
   mysqlshdk::gr::update_auto_increment(&cfg_global,
                                        Topology_mode::MULTI_PRIMARY);
   cfg_global.apply();
@@ -1321,8 +1388,6 @@ TEST_F(Group_replication_test, update_auto_increment) {
   }
 
   // Set auto-increment for multi-primary with 1 server handler with PERSIST.
-  EXPECT_CALL(*mock_session,
-              execute("SET PERSIST `auto_increment_increment` = 7"));
   mock_session
       ->expect_query(
           "show GLOBAL variables where `variable_name` in ('server_id')")
@@ -1330,8 +1395,11 @@ TEST_F(Group_replication_test, update_auto_increment) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"server_id", "7"}}}});
-  EXPECT_CALL(*mock_session,
-              execute("SET PERSIST `auto_increment_offset` = 1"));
+
+  mock_session->expect_query("SET PERSIST `auto_increment_increment` = 7")
+      .then({""});
+  mock_session->expect_query("SET PERSIST `auto_increment_offset` = 1")
+      .then({""});
   mysqlshdk::gr::update_auto_increment(&cfg_persist,
                                        Topology_mode::MULTI_PRIMARY);
   cfg_persist.apply();

@@ -20,6 +20,9 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+?{VER(>=8.0.23)}
+                "applierWorkerThreads": 4,
+?{}
                 "fenceSysVars": [],
                 "memberId": "<<<uuid1>>>",
                 "memberRole": "PRIMARY",
@@ -53,6 +56,21 @@
                         "receivedTransactionSet": "[[*]]",
                         "threadId": null
                     },
+?{VER(>=8.0.23)}
+                    "coordinator": {
+                        "lastProcessed": {
+                            "bufferTime": [[*]],
+                            "endTimestamp": "[[*]]",
+                            "immediateCommitTimestamp": "",
+                            "immediateCommitToEndTime": null,
+                            "originalCommitTimestamp": "",
+                            "originalCommitToEndTime": null,
+                            "startTimestamp": "[[*]]",
+                            "transaction": "[[*]]"
+                        },
+                        "threadId": [[*]]
+                    },
+?{}
 ?{VER(>=8.0.17)}
                     "inApplierQueueCount": [[*]],
 ?{}
@@ -82,6 +100,10 @@ ${*}
                             "lastSeen": "[[*]]",
 ?{}
                             "threadId": [[*]]
+?{VER(>=8.0.23)}
+                        },
+${*}
+?{}
                         }
                     ]
                 },
@@ -89,6 +111,9 @@ ${*}
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+?{VER(>=8.0.23)}
+                "applierWorkerThreads": 4,
+?{}
                 "fenceSysVars": [
                     "read_only",
                     "super_read_only"
@@ -125,6 +150,12 @@ ${*}
                         "receivedTransactionSet": "[[*]]",
                         "threadId": null
                     },
+?{VER(>=8.0.23)}
+                    "coordinator": {
+${*}
+                        "threadId": [[*]]
+                    },
+?{}
 ?{VER(>=8.0.17)}
                     "inApplierQueueCount": [[*]],
                     "inQueueCount": [[*]],
@@ -152,7 +183,13 @@ ${*}
                             "lastSeen": "[[*]]",
 ?{}
                             "threadId": [[*]]
+?{VER(>=8.0.23)}
+                        },
+${*}
+?{}
+?{VER(<8.0.23)}
                         }
+?{}
                     ]
                 },
                 "version": "[[*]]"
@@ -266,6 +303,46 @@ ${*}
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": [
@@ -323,6 +400,46 @@ ${*}
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+?{VER(<8.0.23)}
+                {
+                    "value": "COMMIT_ORDER",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "DATABASE",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "0",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "OFF",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+?{VER(>=8.0.23)}
+                {
+                    "value": "WRITESET",
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+                    "value": "LOGICAL_CLOCK",
+                    "variable": "slave_parallel_type"
+                },
+                {
+                    "value": "4",
+                    "variable": "slave_parallel_workers"
+                },
+                {
+                    "value": "ON",
+                    "variable": "slave_preserve_commit_order"
+                },
+?{}
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }

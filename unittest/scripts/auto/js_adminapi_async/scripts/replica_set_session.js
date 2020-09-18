@@ -36,7 +36,7 @@ session.close();
 ////////////////////////////////////////////////////////////////////////////////
 // WL13236-TSFR1_2: Start the Shell with a valid connection data of an instance that is member of a ReplicaSet and use the --replicaset option. Validate that the object named `rs` is set to the ReplicaSet the target instance belongs to.
 
-//@<> WL13236-TSFR1_2
+//@<> WL13236-TSFR1_2 {VER(<8.0.23)}
 function expect_rs_variable() {
   EXPECT_STDOUT_CONTAINS_MULTILINE(`You are connected to a member of replicaset 'rs'.
 {
@@ -71,6 +71,43 @@ function expect_rs_variable() {
 }`);
 }
 
+//@<> WL13236-TSFR1_2 parallel-appliers {VER(>=8.0.23)}
+function expect_rs_variable() {
+  EXPECT_STDOUT_CONTAINS_MULTILINE(`You are connected to a member of replicaset 'rs'.
+{
+    "replicaSet": {
+        "name": "rs",
+        "primary": "${hostname_ip}:${__mysql_sandbox_port1}",
+        "status": "AVAILABLE",
+        "statusText": "All instances available.",
+        "topology": {
+            "${hostname_ip}:${__mysql_sandbox_port1}": {
+                "address": "${hostname_ip}:${__mysql_sandbox_port1}",
+                "instanceRole": "PRIMARY",
+                "mode": "R/W",
+                "status": "ONLINE"
+            },
+            "${hostname_ip}:${__mysql_sandbox_port2}": {
+                "address": "${hostname_ip}:${__mysql_sandbox_port2}",
+                "instanceRole": "SECONDARY",
+                "mode": "R/O",
+                "replication": {
+                    "applierStatus": "APPLIED_ALL",
+                    "applierThreadState": "Waiting for an event from Coordinator",
+                    "applierWorkerThreads": 4,
+                    "receiverStatus": "ON",
+                    "receiverThreadState": "Waiting for master to send event",
+                    "replicationLag": null
+                },
+                "status": "ONLINE"
+            }
+        },
+        "type": "ASYNC"
+    }
+}`);
+}
+
+//@<> WL13236-TSFR1_2
 mysqlsh([__hostname_ip_uri1, '--replicaset', '--execute', 'println(rs.status())']);
 
 expect_rs_variable();

@@ -80,9 +80,11 @@ rs.list_routers()
 
 #@ create_replica_set(adopt)
 session.run_sql("DROP SCHEMA mysql_innodb_cluster_metadata")
+testutil.wait_member_transactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
 rs = dba.create_replica_set(name="adopted", options={"adoptFromAR":True})
 
+#@<> create_replica_set(adopt) - status
 rs.status()
 
 rs.disconnect()

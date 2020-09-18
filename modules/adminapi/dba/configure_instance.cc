@@ -30,15 +30,17 @@
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_validations.h"
+#include "modules/adminapi/common/parallel_applier_options.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
-#include "modules/adminapi/mod_dba.h"
 #include "modules/mod_utils.h"
+#include "my_loglevel.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -50,13 +52,15 @@ namespace mysqlsh {
 namespace dba {
 
 Configure_instance::Configure_instance(
-    const mysqlshdk::db::Connection_options &instance_cnx_opts,
+    const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
     const std::string &mycnf_path, const std::string &output_mycnf_path,
     const std::string &cluster_admin,
     const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
     mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
-    mysqlshdk::utils::nullable<bool> restart, Cluster_type cluster_type)
-    : m_instance_cnx_opts(instance_cnx_opts),
+    mysqlshdk::utils::nullable<bool> restart,
+    mysqlshdk::utils::nullable<int64_t> applier_worker_threads,
+    Cluster_type cluster_type, InstanceType::Type instance_type)
+    : m_target_instance(target_instance),
       m_interactive(interactive),
       m_mycnf_path(mycnf_path),
       m_output_mycnf_path(output_mycnf_path),
@@ -64,7 +68,9 @@ Configure_instance::Configure_instance(
       m_cluster_admin_password(cluster_admin_password),
       m_clear_read_only(clear_read_only),
       m_restart(restart),
-      m_cluster_type(cluster_type) {}
+      m_applier_worker_threads(applier_worker_threads),
+      m_cluster_type(cluster_type),
+      m_instance_type(instance_type) {}
 
 Configure_instance::~Configure_instance() {}
 
@@ -554,6 +560,47 @@ void Configure_instance::validate_config_path() {
   }
 }
 
+namespace {
+void validate_applier_worker_threads_option(
+    const mysqlshdk::utils::Version &version) {
+  if (version < mysqlshdk::utils::Version(8, 0, 23)) {
+    throw shcore::Exception::runtime_error(
+        "Option 'applierWorkerThreads' not supported on target server "
+        "version: '" +
+        version.get_full() + "'");
+  }
+}
+}  // namespace
+
+void Configure_instance::validate_applier_worker_threads() {
+  auto target_instance_version = m_target_instance->get_version();
+  Parallel_applier_options parallel_applier_options(*m_target_instance);
+
+  if (!m_applier_worker_threads.is_null()) {
+    // Validate if the target instance supports applierWorkerThreads
+
+    validate_applier_worker_threads_option(target_instance_version);
+
+    if (*parallel_applier_options.slave_parallel_workers !=
+        m_applier_worker_threads.get_safe()) {
+      m_set_applier_worker_threads = true;
+    }
+  } else {
+    // If the target instance supports applierWorkerThreads, set the default
+    // value of 4
+    if (target_instance_version >= mysqlshdk::utils::Version(8, 0, 23)) {
+      auto console = mysqlsh::current_console();
+
+      m_applier_worker_threads = kSlaveParallelWorkersDefault;
+      m_set_applier_worker_threads = true;
+
+      console->print_info();
+      console->print_info(
+          "applierWorkerThreads will be set to the default value of 4.");
+    }
+  }
+}
+
 void Configure_instance::prepare_config_object() {
   // Add server configuration handler depending on SET PERSIST support.
   // NOTE: Add server handler first to set it as the default handler.
@@ -576,24 +623,43 @@ void Configure_instance::prepare_config_object() {
 void Configure_instance::prepare() {
   auto console = mysqlsh::current_console();
 
+  // If the instance already belongs to an InnoDB Cluster or ReplicaSet the
+  // function can only be used to set a new value for applierWorkerThreads
+  if (m_instance_type == InstanceType::InnoDBCluster ||
+      m_instance_type == InstanceType::AsyncReplicaSet) {
+    std::string cluster_type = m_instance_type == InstanceType::InnoDBCluster
+                                   ? "Cluster"
+                                   : "ReplicaSet";
+
+    console->print_info("The instance '" + m_target_instance->descr() +
+                        "' belongs to an InnoDB " + cluster_type + ".");
+
+    // If the instance already belongs to a cluster/replicaset we must disallow
+    // clusterAdmin
+
+    if (!m_cluster_admin.empty()) {
+      throw shcore::Exception::argument_error(
+          "The clusterAdmin option is not allowed for instances already "
+          "belonging to an InnoDB " +
+          cluster_type + ".");
+    }
+
+    m_create_cluster_admin = false;
+  }
+
   if (m_cluster_admin.empty() && !m_cluster_admin_password.is_null()) {
     throw shcore::Exception::argument_error(
         "The clusterAdminPassword is allowed only if clusterAdmin is "
         "specified.");
   }
 
-  // Establish a session to the target instance if not already established
-  if (!m_target_instance) {
-    m_target_instance = Instance::connect(m_instance_cnx_opts);
+  // Check if the target instance is local
+  m_local_target = !m_target_instance->get_connection_options().has_host() ||
+                   mysqlshdk::utils::Net::is_local_address(
+                       m_target_instance->get_connection_options().get_host());
 
-    m_local_target =
-        !m_target_instance->get_connection_options().has_host() ||
-        mysqlshdk::utils::Net::is_local_address(
-            m_target_instance->get_connection_options().get_host());
-
-    // Set the current user/host
-    m_target_instance->get_current_user(&m_current_user, &m_current_host);
-  }
+  // Set the current user/host
+  m_target_instance->get_current_user(&m_current_user, &m_current_host);
 
   if (!m_local_target) {
     console->print_info(
@@ -632,7 +698,17 @@ void Configure_instance::prepare() {
   ensure_user_privileges(*m_target_instance);
 
   // Check lock service UDFs availability (after checking privileges).
-  check_lock_service();
+  //
+  // This has to be done after checking the user privileges otherwise if
+  // the user has not enough privileges the check for the locks support will
+  // fail
+  //
+  // Skip the check if the instance is already a member of an InnoDB Cluster or
+  // ReplicaSet
+  if (m_instance_type != InstanceType::InnoDBCluster &&
+      m_instance_type != InstanceType::AsyncReplicaSet) {
+    check_lock_service();
+  }
 
   ensure_instance_address_usable();
 
@@ -647,6 +723,9 @@ void Configure_instance::prepare() {
 
   // validate the mycnfpath parameter
   validate_config_path();
+
+  // Validate applierWorkerThreads
+  validate_applier_worker_threads();
 
   // Set the internal configuration object properly according to the given
   // command options (to read/write configuration from the server and/or option
@@ -704,8 +783,9 @@ void Configure_instance::prepare() {
     if (m_clear_read_only.is_null() && m_interactive &&
         m_create_cluster_admin) {
       console->println();
-      if (prompt_super_read_only(*m_target_instance, true))
+      if (prompt_super_read_only(*m_target_instance, true)) {
         m_clear_read_only = true;
+      }
     }
   }
 }
@@ -714,9 +794,10 @@ void Configure_instance::prepare() {
  * Executes the API command.
  */
 shcore::Value Configure_instance::execute() {
+  auto console = mysqlsh::current_console();
   {
     bool need_restore = false;
-    if (m_install_lock_service_udfs || m_create_cluster_admin) {
+    if ((m_install_lock_service_udfs || m_create_cluster_admin)) {
       need_restore = clear_super_read_only();
     }
 
@@ -729,13 +810,20 @@ shcore::Value Configure_instance::execute() {
     // instance.
     m_target_instance->get_lock_exclusive();
 
+    // Always release locks at the end, when leaving the function scope.
+    auto finally =
+        shcore::on_leave_scope([this]() { m_target_instance->release_lock(); });
+
     // Handle the clusterAdmin account creation
     if (m_create_cluster_admin) {
       create_admin_user();
     }
-  }
 
-  auto console = mysqlsh::current_console();
+    // Handle applierWorkerThreads
+    if (m_set_applier_worker_threads) {
+      m_cfg->set(kSlaveParallelWorkers, m_applier_worker_threads);
+    }
+  }
 
   if (m_needs_configuration_update) {
     // Execute the configure instance operation
@@ -761,6 +849,32 @@ shcore::Value Configure_instance::execute() {
         "The instance '" + m_target_instance->descr() +
         "' is already ready to be used in " +
         to_display_string(m_cluster_type, Display_form::A_THING_FULL) + ".");
+
+    if (m_set_applier_worker_threads) {
+      m_cfg->apply();
+
+      if (m_instance_type == InstanceType::InnoDBCluster ||
+          m_instance_type == InstanceType::AsyncReplicaSet) {
+        std::string cluster_type =
+            m_instance_type == InstanceType::InnoDBCluster ? "Cluster"
+                                                           : "ReplicaSet";
+
+        console->print_warning(
+            "The changes on the value of " +
+            std::string(kSlaveParallelWorkers) +
+            " will only take place after the instance leaves and rejoins the " +
+            cluster_type + ".");
+
+        m_cfg->apply();
+
+        console->print_info();
+        console->print_info("Successfully set the value of " +
+                            std::string(kSlaveParallelWorkers) + ".");
+      } else {
+        console->print_info();
+        console->print_info("Successfully enabled parallel appliers.");
+      }
+    }
   }
 
   if (m_needs_restart) {
@@ -786,6 +900,7 @@ shcore::Value Configure_instance::execute() {
           "take effect.");
     }
   }
+
   return shcore::Value();
 }
 
@@ -823,18 +938,6 @@ void Configure_instance::restore_super_read_only() {
 void Configure_instance::check_lock_service() {
   m_install_lock_service_udfs =
       mysqlshdk::mysql::has_lock_service_udfs(*m_target_instance);
-}
-
-void Configure_instance::rollback() {}
-
-void Configure_instance::finish() {
-  // Close the instance session at the end if available.
-  if (m_target_instance) {
-    // Release locks before closing the session.
-    m_target_instance->release_lock();
-
-    m_target_instance->close_session();
-  }
 }
 
 }  // namespace dba

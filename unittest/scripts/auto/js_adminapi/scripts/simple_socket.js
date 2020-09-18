@@ -167,6 +167,8 @@ cluster.listRouters();
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata");
 cluster = dba.createCluster("adopted", {adoptFromGR:true});
 
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+
 cluster.status();
 
 //@<> dissolve

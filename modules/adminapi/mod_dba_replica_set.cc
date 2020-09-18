@@ -25,6 +25,7 @@
 
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"

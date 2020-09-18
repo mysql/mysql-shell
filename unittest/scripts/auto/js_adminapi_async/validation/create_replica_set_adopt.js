@@ -92,13 +92,22 @@
 |ERROR: 127.0.0.1:<<<__mysql_sandbox_port2>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.|
 ||Dba.createReplicaSet: Instance check failed (MYSQLSH 51150)
 
-//@# bad configs: filepos replication (should fail)
+//@# bad configs: filepos replication (should fail) {VER(<8.0.23)}
 @| enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |@
 @| gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |@
 |Some variables need to be changed, but cannot be done dynamically on the server.|
 |ERROR: 127.0.0.1:<<<__mysql_sandbox_port1>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.|
 ||Dba.createReplicaSet: Instance check failed (MYSQLSH 51150)
 
+//@# bad configs: filepos replication (should fail) {VER(>=8.0.23)}
+@| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |@
+@| enforce_gtid_consistency               | OFF           | ON             | Update read-only variable and restart the server |@
+@| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |@
+@| slave_parallel_type                    | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |@
+@| slave_preserve_commit_order            | OFF           | ON             | Update the server variable                       |@
+|Some variables need to be changed, but cannot be done dynamically on the server.|
+|ERROR: 127.0.0.1:<<<__mysql_sandbox_port1>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.|
+||Dba.createReplicaSet: Instance check failed (MYSQLSH 51150)
 
 //@# unsupported option: SSL (should fail)
 ||Dba.createReplicaSet: Replication option 'MASTER_SSL' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '1' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
@@ -138,44 +147,46 @@
 |ReplicaSet object successfully created for <<<__address1>>>.|
 |{|
 |    "replicaSet": {|
-|        "name": "myrs", |
-|        "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>", |
-|        "status": "AVAILABLE", |
-|        "statusText": "All instances available.", |
+|        "name": "myrs",|
+|        "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>",|
+|        "status": "AVAILABLE",|
+|        "statusText": "All instances available.",|
 |        "topology": {|
 |            "127.0.0.1:<<<__mysql_sandbox_port1>>>": {|
-|                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>", |
-|                "instanceRole": "PRIMARY", |
-|                "mode": "R/W", |
+|                "address": "127.0.0.1:<<<__mysql_sandbox_port1>>>",|
+|                "instanceRole": "PRIMARY",|
+|                "mode": "R/W",|
 |                "status": "ONLINE"|
-|            }, |
+|            },|
 |            "127.0.0.1:<<<__mysql_sandbox_port2>>>": {|
-|                "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>", |
-|                "instanceRole": "SECONDARY", |
-|                "mode": "R/O", |
+|                "address": "127.0.0.1:<<<__mysql_sandbox_port2>>>",|
+|                "instanceRole": "SECONDARY",|
+|                "mode": "R/O",|
 |                "replication": {|
-|                    "applierStatus": "APPLIED_ALL", |
-|                    "applierThreadState": "Slave has read all relay log; waiting for more updates", |
-|                    "receiverStatus": "ON", |
-|                    "receiverThreadState": "Waiting for master to send event", |
+|                    "applierStatus": "APPLIED_ALL",|
+|                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",'>>>|
+|                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
+|                    "receiverStatus": "ON",|
+|                    "receiverThreadState": "Waiting for master to send event",|
 |                    "replicationLag": null|
-|                }, |
+|                },|
 |                "status": "ONLINE"|
-|            }, |
+|            },|
 |            "127.0.0.1:<<<__mysql_sandbox_port3>>>": {|
-|                "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>", |
-|                "instanceRole": "SECONDARY", |
-|                "mode": "R/O", |
+|                "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>",|
+|                "instanceRole": "SECONDARY",|
+|                "mode": "R/O",|
 |                "replication": {|
-|                    "applierStatus": "APPLIED_ALL", |
-|                    "applierThreadState": "Slave has read all relay log; waiting for more updates", |
-|                    "receiverStatus": "ON", |
-|                    "receiverThreadState": "Waiting for master to send event", |
+|                    "applierStatus": "APPLIED_ALL",|
+|                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",'>>>|
+|                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
+|                    "receiverStatus": "ON",|
+|                    "receiverThreadState": "Waiting for master to send event",|
 |                    "replicationLag": null|
-|                }, |
+|                },|
 |                "status": "ONLINE"|
 |            }|
-|        }, |
+|        },|
 |        "type": "ASYNC"|
 |    }|
 |}|
@@ -193,7 +204,7 @@ Discovered topology:
 - 127.0.0.1:<<<__mysql_sandbox_port1>>>: uuid=[[*]] read_only=no
 - 127.0.0.1:<<<__mysql_sandbox_port2>>>: uuid=[[*]] read_only=no
     - replicates from 127.0.0.1:<<<__mysql_sandbox_port1>>>
-	source="localhost:<<<__mysql_sandbox_port1>>>" channel= status=ON receiver=ON applier=ON
+<<<(__version_num<80023)?'	source="localhost:"' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON applier=ON':'	source="localhost:' + __mysql_sandbox_port1 + '" channel= status=ON receiver=ON coordinator=ON applier0=ON applier1=ON applier2=ON applier3=ON'>>>
 
 * Checking configuration of discovered instances...
 

@@ -51,9 +51,9 @@ one server failure.
 //@ WL#12049: Create cluster errors using exitStateAction option {VER(>=5.7.24)}
 ||Invalid value for exitStateAction, string value cannot be empty.
 ||Invalid value for exitStateAction, string value cannot be empty.
-||Unable to set value ':' for 'exitStateAction': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of ':'
-||Unable to set value 'AB' for 'exitStateAction': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
-||Unable to set value '10' for 'exitStateAction': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_exit_state_action' can't be set to the value of '10'
+||Unable to set value ':' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of ':'
+||Unable to set value 'AB' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of 'AB'
+||Unable to set value '10' for 'exitStateAction': Variable 'group_replication_exit_state_action' can't be set to the value of '10'
 
 //@ WL#12049: Create cluster specifying a valid value for exitStateAction (ABORT_SERVER) {VER(>=5.7.24)}
 ||
@@ -194,9 +194,9 @@ group_replication_start_on_boot = ON
 //@ WL#12067: Create cluster errors using consistency option {VER(>=8.0.14)}
 ||Invalid value for consistency, string value cannot be empty.
 ||Invalid value for consistency, string value cannot be empty.
-||Unable to set value ':' for 'consistency': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of ':'
-||Unable to set value 'AB' for 'consistency': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of 'AB'
-||Unable to set value '10' for 'consistency': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_consistency' can't be set to the value of '10'
+||Unable to set value ':' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of ':'
+||Unable to set value 'AB' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of 'AB'
+||Unable to set value '10' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of '10'
 ||Option 'consistency' is expected to be of type String, but is Integer (TypeError)
 ||Cannot use the failoverConsistency and consistency options simultaneously. The failoverConsistency option is deprecated, please use the consistency option instead. (ArgumentError)
 
@@ -331,10 +331,10 @@ Cluster.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which i
 ||
 
 //@ WL#12066: TSF1_4 Validate that an exception is thrown if the value specified is not an unsigned integer. {VER(>=8.0.16)}
-||Dba.createCluster: Unable to set value '-1' for 'autoRejoinTries': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (RuntimeError)
+||Dba.createCluster: Unable to set value '-1' for 'autoRejoinTries': Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (RuntimeError)
 
 //@ WL#12066: TSF1_5 Validate that an exception is thrown if the value  is not in the range 0 to 2016. {VER(>=8.0.16)}
-||Dba.createCluster: Unable to set value '2017' for 'autoRejoinTries': <<<hostname>>>:<<<__mysql_sandbox_port1>>>: Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (RuntimeError)
+||Dba.createCluster: Unable to set value '2017' for 'autoRejoinTries': Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (RuntimeError)
 
 //@ WL#12066: TSF1_1 Validate that the functions [dba.]createCluster() and [cluster.]addInstance() support a new option named autoRejoinTries. {VER(>=8.0.16)}
 |WARNING: The member will only proceed according to its exitStateAction if auto-rejoin fails (i.e. all retry attempts are exhausted).|
@@ -488,6 +488,46 @@ one server failure.
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }
@@ -564,6 +604,46 @@ one server failure.
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }
@@ -648,6 +728,46 @@ one server failure.
                     "option": "memberWeight",
                     "value": "50",
                     "variable": "group_replication_member_weight"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "WRITESET",
+?{}
+?{VER(<8.0.23)}
+                    "value": "COMMIT_ORDER",
+?{}
+                    "variable": "binlog_transaction_dependency_tracking"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "LOGICAL_CLOCK",
+?{}
+?{VER(<8.0.23)}
+                    "value": "DATABASE",
+?{}
+                    "variable": "slave_parallel_type"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "4",
+?{}
+?{VER(<8.0.23)}
+                    "value": "0",
+?{}
+                    "variable": "slave_parallel_workers"
+                },
+                {
+?{VER(>=8.0.23)}
+                    "value": "ON",
+?{}
+?{VER(<8.0.23)}
+                    "value": "OFF",
+?{}
+                    "variable": "slave_preserve_commit_order"
+                },
+                {
+                    "value": "XXHASH64",
+                    "variable": "transaction_write_set_extraction"
                 }
             ]
         }

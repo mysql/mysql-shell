@@ -58,6 +58,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/shellcore/shell_console.h"
+#include "scripting/types.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -837,6 +838,9 @@ void Replica_set_impl::validate_rejoin_instance(
     }
     throw;
   }
+
+  // regular instance checks
+  validate_instance(target);
 
   // Check instance status and consistency with the global topology
   topology_mng->validate_rejoin_replica(target);
@@ -2778,6 +2782,48 @@ void Replica_set_impl::drop_replication_user(
   }
 }
 
+shcore::Dictionary_t Replica_set_impl::get_topology_options() {
+  shcore::Dictionary_t ret = shcore::make_dict();
+
+  // Get the topology
+  std::unique_ptr<topology::Global_topology> topo(
+      topology::scan_global_topology(get_metadata_storage().get(),
+                                     get_metadata(),
+                                     k_async_cluster_channel_name, true));
+
+  for (const topology::Server &server :
+       dynamic_cast<topology::Server_global_topology *>(topo.get())
+           ->servers()) {
+    // Get the instance parallel applier options
+    shcore::Array_t array = shcore::make_array();
+
+    const topology::Instance *instance = server.get_primary_member();
+
+    if (instance->connect_error.empty()) {
+      // Get the parallel-appliers options
+      for (const auto &variable : instance->parallel_appliers) {
+        shcore::Dictionary_t option = shcore::make_dict();
+        (*option)["variable"] = shcore::Value(variable.first);
+        // Check if the option exists in the target server
+        if (!variable.second.is_null()) {
+          (*option)["value"] = shcore::Value(*variable.second);
+        } else {
+          (*option)["value"] = shcore::Value::Null();
+        }
+        array->push_back(shcore::Value(option));
+      }
+
+      ret->set(server.label, shcore::Value(array));
+    } else {
+      shcore::Dictionary_t connect_error = shcore::make_dict();
+      (*connect_error)["connectError"] = shcore::Value(instance->connect_error);
+      ret->set(server.label, shcore::Value(connect_error));
+    }
+  }
+
+  return ret;
+}
+
 shcore::Value Replica_set_impl::options() {
   check_preconditions("options");
 
@@ -2785,15 +2831,22 @@ shcore::Value Replica_set_impl::options() {
   try {
     acquire_primary();
   } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE)
+    if (e.code() == SHERR_DBA_ASYNC_PRIMARY_UNAVAILABLE) {
       current_console()->print_warning(e.format());
-    else
+    } else {
       throw;
+    }
   }
   auto finally = shcore::on_leave_scope([this]() { release_primary(); });
 
   shcore::Dictionary_t inner_dict = shcore::make_dict();
   (*inner_dict)["name"] = shcore::Value(get_name());
+
+  // get the topology options
+  (*inner_dict)["topology"] = shcore::Value(get_topology_options());
+
+  // Get the instance options
+
   // get the tags
   (*inner_dict)[kTags] = Base_cluster_impl::get_cluster_tags();
 

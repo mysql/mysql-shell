@@ -26,7 +26,6 @@
 
 #include <memory>
 #include <string>
-#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types.h"

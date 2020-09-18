@@ -41,6 +41,8 @@ shell.connect(__sandbox_uri2);
 session.runSql("CHANGE MASTER TO MASTER_HOST='" + hostname + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
 session.runSql("START SLAVE");
 
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+
 //@ rejoinInstance async replication error
 c.rejoinInstance(__sandbox_uri2);
 

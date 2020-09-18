@@ -147,18 +147,25 @@ Cluster.dissolve: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is '
 //@ Connect to seed and get cluster
 ||
 
-//@ Change shell option dba.gtidWaitTimeout to 1 second (to issue error faster)
+//@ Change shell option dba.gtidWaitTimeout to 5 second
 ||
 
 //@ Execute trx that will lead to error on instance2
 ||
 
-//@<OUT> Dissolve stopped because instance cannot catch up with cluster (no force option).
+//@<OUT> Dissolve stopped because instance cannot catch up with cluster (no force option). {VER(<8.0.23)}
 ERROR: Applier error in replication channel 'group_replication_applier': Error [[*]]
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
 
-//@<ERR> Dissolve stopped because instance cannot catch up with cluster (no force option).
+//@<ERR> Dissolve stopped because instance cannot catch up with cluster (no force option). {VER(<8.0.23)}
 Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
+
+//@<OUT> Dissolve stopped because instance cannot catch up with cluster (no force option). {VER(>=8.0.23)}
+ERROR: Coordinator error in replication channel 'group_replication_applier': [[*]]
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
+
+//@<ERR> Dissolve stopped because instance cannot catch up with cluster (no force option). {VER(>=8.0.23)}
+Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication coordinator thread (MYSQLSH 51144)
 
 //@ Connect to instance on port2 to fix error and add new one
 ||
@@ -169,13 +176,19 @@ Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in rep
 //@ Execute trx that will lead to error on instance2, again
 ||
 
-//@<OUT> Dissolve stopped because instance cannot catch up with cluster (force: false).
+//@<OUT> Dissolve stopped because instance cannot catch up with cluster (force: false). {VER(<8.0.23)}
 ERROR: Applier error in replication channel 'group_replication_applier': Error [[*]]
 ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
 
-
-//@<ERR> Dissolve stopped because instance cannot catch up with cluster (force: false).
+//@<ERR> Dissolve stopped because instance cannot catch up with cluster (force: false). {VER(<8.0.23)}
 Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication applier thread (MYSQLSH 51145)
+
+//@<OUT> Dissolve stopped because instance cannot catch up with cluster (force: false). {VER(>=8.0.23)}
+ERROR: Coordinator error in replication channel 'group_replication_applier': [[*]]
+ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was unable to catch up with cluster transactions. There might be too many transactions to apply or some replication error. In the former case, you can retry the operation (using a higher timeout value by setting the global shell option 'dba.gtidWaitTimeout'). In the later case, analyze and fix any replication error. You can also choose to skip this error using the 'force: true' option, but it might leave the instance in an inconsistent state and lead to errors if you want to reuse it.
+
+//@<ERR> Dissolve stopped because instance cannot catch up with cluster (force: false). {VER(>=8.0.23)}
+Cluster.dissolve: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Error found in replication coordinator thread (MYSQLSH 51144)
 
 //@ Connect to instance on port2 to fix error and add new one, one last time
 ||

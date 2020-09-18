@@ -159,7 +159,7 @@ dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path});
 EXPECT_MYCNF_FIXED(mycnf_path);
 
 // Let the next test reuse the fixed config file from this one
-//@<> File isn't writable, but we don't need to write to it either - pass
+//@<> File isn't writable, but we don't need to write to it either - pass {VER(<8.0.23)}
 testutil.makeFileReadOnly(mycnf_path);
 dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path});
 

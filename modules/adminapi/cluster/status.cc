@@ -24,9 +24,11 @@
 #include "modules/adminapi/cluster/status.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/parallel_applier_options.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/repl_config.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -782,6 +784,13 @@ shcore::Dictionary_t Status::get_topology(
       if (!m_extended.is_null()) {
         if (*m_extended >= 1) {
           fence_sysvars = instance->get_fence_sysvars();
+
+          Parallel_applier_options parallel_applier_options(*instance);
+          auto workers = parallel_applier_options.slave_parallel_workers;
+
+          if (parallel_applier_options.slave_parallel_workers.get_safe() > 0) {
+            (*member)["applierWorkerThreads"] = shcore::Value(*workers);
+          }
         }
 
         if (*m_extended >= 3) {

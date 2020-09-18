@@ -79,6 +79,9 @@
 |                "mode": "R/O", |
 |                "replication": {|
 |                    "applierStatus": "APPLIED_ALL", |
+|                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",'>>>|
+|                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
+//@# do stuff in the old primary to simulate split-brain
 |                    "receiverStatus": "ON", |
 |                    "receiverThreadState": "Waiting for master to send event", |
 |                    "replicationLag": null|
@@ -121,6 +124,8 @@
 |                "mode": "R/O", |
 |                "replication": {|
 |                    "applierStatus": "APPLIED_ALL", |
+|                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",'>>>|
+|                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
 |                    "receiverStatus": "ON", |
 |                    "receiverThreadState": "Waiting for master to send event", |
 |                    "replicationLag": null|
@@ -217,48 +222,48 @@
 //@<OUT> status
 {
     "replicaSet": {
-        "name": "myrs", 
-        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>", 
-        "status": "AVAILABLE_PARTIAL", 
-        "statusText": "The PRIMARY instance is available, but one or more SECONDARY instances are not.", 
+        "name": "myrs",
+        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",
+        "status": "AVAILABLE_PARTIAL",
+        "statusText": "The PRIMARY instance is available, but one or more SECONDARY instances are not.",
         "topology": {
             "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>", 
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
                 "fenced": false,
                 "instanceErrors": [
-                    "WARNING: Instance was INVALIDATED and must be removed from the replicaset.", 
+                    "WARNING: Instance was INVALIDATED and must be removed from the replicaset.",
                     "ERROR: Instance is NOT a PRIMARY but super_read_only option is OFF. Accidental updates to this instance are possible and will cause inconsistencies in the replicaset."
-                ], 
-                "instanceRole": null, 
-                "mode": null, 
+                ],
+                "instanceRole": null,
+                "mode": null,
                 "status": "INVALIDATED",
                 "transactionSetConsistencyStatus": "OK"
-            }, 
+            },
             "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>", 
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",
                 "fenced": true,
                 "instanceErrors": [
-                    "WARNING: Instance was INVALIDATED and must be removed from the replicaset." 
-                ], 
-                "instanceRole": null, 
+                    "WARNING: Instance was INVALIDATED and must be removed from the replicaset."
+                ],
+                "instanceRole": null,
                 "mode": null,
                 "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates", 
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
+                    "applierStatus": "APPLIED_ALL",
+                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
+                    "receiverStatus": "ON",
+                    "receiverThreadState": "Waiting for master to send event",
                     "replicationLag": null
                 },
                 "status": "INVALIDATED",
                 "transactionSetConsistencyStatus": "OK"
-            }, 
+            },
             "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>", 
-                "instanceRole": "PRIMARY", 
-                "mode": "R/W", 
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",
+                "instanceRole": "PRIMARY",
+                "mode": "R/W",
                 "status": "ONLINE"
             }
-        }, 
+        },
         "type": "ASYNC"
     }
 }
@@ -266,48 +271,48 @@
 //@<OUT> status with new object
 {
     "replicaSet": {
-        "name": "myrs", 
-        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>", 
-        "status": "AVAILABLE_PARTIAL", 
-        "statusText": "The PRIMARY instance is available, but one or more SECONDARY instances are not.", 
+        "name": "myrs",
+        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",
+        "status": "AVAILABLE_PARTIAL",
+        "statusText": "The PRIMARY instance is available, but one or more SECONDARY instances are not.",
         "topology": {
             "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
                 "fenced": false,
                 "instanceErrors": [
-                    "WARNING: Instance was INVALIDATED and must be removed from the replicaset.", 
+                    "WARNING: Instance was INVALIDATED and must be removed from the replicaset.",
                     "ERROR: Instance is NOT a PRIMARY but super_read_only option is OFF. Accidental updates to this instance are possible and will cause inconsistencies in the replicaset."
-                ], 
-                "instanceRole": null, 
-                "mode": null, 
+                ],
+                "instanceRole": null,
+                "mode": null,
                 "status": "INVALIDATED",
                 "transactionSetConsistencyStatus": "OK"
-            }, 
+            },
             "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>", 
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",
                 "fenced": true,
                 "instanceErrors": [
-                    "WARNING: Instance was INVALIDATED and must be removed from the replicaset." 
-                ], 
-                "instanceRole": null, 
+                    "WARNING: Instance was INVALIDATED and must be removed from the replicaset."
+                ],
+                "instanceRole": null,
                 "mode": null,
                 "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates", 
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
+                    "applierStatus": "APPLIED_ALL",
+                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
+                    "receiverStatus": "ON",
+                    "receiverThreadState": "Waiting for master to send event",
                     "replicationLag": null
-                }, 
+                },
                 "status": "INVALIDATED",
                 "transactionSetConsistencyStatus": "OK"
-            }, 
+            },
             "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>", 
-                "instanceRole": "PRIMARY", 
-                "mode": "R/W", 
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",
+                "instanceRole": "PRIMARY",
+                "mode": "R/W",
                 "status": "ONLINE"
             }
-        }, 
+        },
         "type": "ASYNC"
     }
 }
@@ -340,44 +345,44 @@
 //@<OUT> final status
 {
     "replicaSet": {
-        "name": "myrs", 
-        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>", 
-        "status": "AVAILABLE", 
-        "statusText": "All instances available.", 
+        "name": "myrs",
+        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",
+        "status": "AVAILABLE",
+        "statusText": "All instances available.",
         "topology": {
             "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>", 
-                "instanceRole": "SECONDARY", 
-                "mode": "R/O", 
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+                "instanceRole": "SECONDARY",
+                "mode": "R/O",
                 "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates",
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
-                    "replicationLag": null 
-                }, 
+                    "applierStatus": "APPLIED_ALL",
+                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
+                    "receiverStatus": "ON",
+                    "receiverThreadState": "Waiting for master to send event",
+                    "replicationLag": null
+                },
                 "status": "ONLINE"
-            }, 
+            },
             "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>", 
-                "instanceRole": "SECONDARY", 
-                "mode": "R/O", 
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",
+                "instanceRole": "SECONDARY",
+                "mode": "R/O",
                 "replication": {
-                    "applierStatus": "APPLIED_ALL", 
-                    "applierThreadState": "Slave has read all relay log; waiting for more updates",
-                    "receiverStatus": "ON", 
-                    "receiverThreadState": "Waiting for master to send event", 
-                    "replicationLag": null 
-                }, 
+                    "applierStatus": "APPLIED_ALL",
+                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
+                    "receiverStatus": "ON",
+                    "receiverThreadState": "Waiting for master to send event",
+                    "replicationLag": null
+                },
                 "status": "ONLINE"
-            }, 
+            },
             "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>", 
-                "instanceRole": "PRIMARY", 
-                "mode": "R/W", 
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",
+                "instanceRole": "PRIMARY",
+                "mode": "R/W",
                 "status": "ONLINE"
             }
-        }, 
+        },
         "type": "ASYNC"
     }
 }

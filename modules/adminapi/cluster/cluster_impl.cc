@@ -1164,11 +1164,6 @@ shcore::Value Cluster_impl::options(const bool all) {
   // Execute Cluster_options operations.
   shcore::Value res = op_option.execute();
 
-  // If everything went well insert the tags
-  auto res_dict = res.as_map();
-  (*res_dict)
-      .get_map("defaultReplicaSet")
-      ->emplace(kTags, Base_cluster_impl::get_cluster_tags());
   return res;
 }
 
@@ -1285,9 +1280,9 @@ void Cluster_impl::force_quorum_using_partition_of(
 
   auto instance_type = get_gr_instance_type(*target_instance);
 
-  if (instance_type != GRInstanceType::Standalone &&
-      instance_type != GRInstanceType::StandaloneWithMetadata &&
-      instance_type != GRInstanceType::StandaloneInMetadata) {
+  if (instance_type != InstanceType::Standalone &&
+      instance_type != InstanceType::StandaloneWithMetadata &&
+      instance_type != InstanceType::StandaloneInMetadata) {
     state = get_replication_group_state(*target_instance, instance_type);
 
     if (state.source_state != ManagedInstance::OnlineRW &&

@@ -63,7 +63,7 @@ Successfully set the value of 'memberWeight' to '25' in the cluster member: 'loc
 25
 
 //@<ERR> WL#11465: setInstanceOption exitStateAction with invalid value
-Cluster.setInstanceOption: <<<hostname>>>:<<<__mysql_sandbox_port2>>>: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (MYSQLSH 1231)
+Cluster.setInstanceOption: Variable 'group_replication_exit_state_action' can't be set to the value of 'ABORT' (MYSQLSH 1231)
 
 //@<OUT> WL#11465: setInstanceOption exitStateAction {VER(>=8.0.0)}
 Setting the value of 'exitStateAction' to 'ABORT_SERVER' in the instance: 'localhost:<<<__mysql_sandbox_port2>>>' ...
