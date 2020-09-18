@@ -524,7 +524,10 @@ int main(int argc, char **argv) {
 #endif  // ENABLE_VIRTUAL_TERMINAL_PROCESSING
 #else
   auto locale = std::setlocale(LC_ALL, "en_US.UTF-8");
-  if (!locale) log_error("Failed to set locale to en_US.UTF-8");
+  // logger is not initialized yet here
+  if (!locale)
+    fprintf(stderr, "Cannot set LC_ALL to locale en_US.UTF-8: %s\n",
+            strerror(errno));
   // set the environment variable as well, this ensures that locale is not
   // reset using setlocale(LC_XXX, "") call by any of our dependencies
   shcore::setenv("LC_ALL", "en_US.UTF-8");
