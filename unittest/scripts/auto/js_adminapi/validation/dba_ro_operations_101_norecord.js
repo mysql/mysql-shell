@@ -240,7 +240,7 @@ ${*}
                 {
                     "option": "ipAllowlist",
 ?{VER(>=8.0.22)}
-                    "value": "AUTOMATIC",
+                    "value": "<<<allowlist>>>",
 ?{}
 ?{VER(<8.0.22)}
                     "value": null,
@@ -249,7 +249,12 @@ ${*}
                 },
                 {
                     "option": "ipWhitelist",
+?{VER(>=8.0.22)}
                     "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": "<<<allowlist>>>",
+?{}
                     "variable": "group_replication_ip_whitelist"
                 },
                 {
@@ -292,7 +297,7 @@ ${*}
                 {
                     "option": "ipAllowlist",
 ?{VER(>=8.0.22)}
-                    "value": "AUTOMATIC",
+                    "value": "<<<allowlist>>>",
 ?{}
 ?{VER(<8.0.22)}
                     "value": null,
@@ -301,7 +306,12 @@ ${*}
                 },
                 {
                     "option": "ipWhitelist",
+?{VER(>=8.0.22)}
                     "value": "AUTOMATIC",
+?{}
+?{VER(<8.0.22)}
+                    "value": "<<<allowlist>>>",
+?{}
                     "variable": "group_replication_ip_whitelist"
                 },
                 {

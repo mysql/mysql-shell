@@ -31,13 +31,13 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' i
 //@<> create cluster fails with nice error if innodb_page_size=4k
 shell.connect(__sandbox_uri1);
 EXPECT_THROWS(function(){
-  var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
+  var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
 }, "Dba.createCluster: Unsupported innodb_page_size value: 4096");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' is using a non-supported InnoDB page size (innodb_page_size=4096). Only instances with innodb_page_size greater than 4k (4096) can be used with InnoDB Cluster.`);
 
 //@<> create cluster works with innodb_page_size=8k (> 4k)
 shell.connect(__sandbox_uri2);
-var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true});
+var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
 EXPECT_STDERR_EMPTY();
 
 //@<> Clean-up deployed instances.
@@ -50,7 +50,7 @@ cleanup_sandbox(__mysql_sandbox_port2);
 //@<> dba.createCluster using innodb_default_row__format=COMPACT
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, innodb_default_row_format: 'COMPACT'});
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('sample');
+var c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
 EXPECT_STDERR_EMPTY();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
@@ -58,7 +58,7 @@ testutil.destroySandbox(__mysql_sandbox_port1);
 //@<> dba.createCluster using innodb_default_row__format=REDUNDANT
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, innodb_default_row_format: 'REDUNDANT'});
 shell.connect(__sandbox_uri1);
-var c = dba.createCluster('sample');
+var c = dba.createCluster('sample', {ipAllowlist:"127.0.0.1," + hostname_ip});
 EXPECT_STDERR_EMPTY();
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);

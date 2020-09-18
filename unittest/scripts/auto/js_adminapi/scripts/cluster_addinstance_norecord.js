@@ -10,10 +10,10 @@ dba.deploySandboxInstance(__mysql_sandbox_port1, {allowRootFrom:"%", mysqldOptio
 dba.deploySandboxInstance(__mysql_sandbox_port2, {allowRootFrom:"%", mysqldOptions: ["lower_case_table_names=" + lower_case_value, "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
 EXPECT_STDERR_EMPTY();
 shell.connect(__sandbox_uri1);
-var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
+var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
 
 //@<> addInstance fails with nice error if lower_case_table_names of instance different from the value off the cluster
-EXPECT_THROWS_TYPE(function(){cluster.addInstance(__sandbox_uri2);}, "Cluster.addInstance: The 'lower_case_table_names' value '" + lower_case_value + "' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster '1'.", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){cluster.addInstance(__sandbox_uri2, {ipAllowlist:"127.0.0.1," + hostname_ip});}, "Cluster.addInstance: The 'lower_case_table_names' value '" + lower_case_value + "' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster '1'.", "RuntimeError");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Cannot join instance 'localhost:${__mysql_sandbox_port2}' to cluster: incompatible 'lower_case_table_names' value.`);
 
 //@<> BUG#29255212 cleanup

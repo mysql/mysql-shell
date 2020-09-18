@@ -66,7 +66,7 @@ cluster.setPrimaryInstance(__sandbox_uri2)
 
 //@ WL#12052: Re-create the cluster but in multi-primary mode {VER(>=8.0.13)}
 scene.destroy();
-var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3], "mm");
+var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3], {multiPrimary: true, force: true, gtidSetIsComplete: true});
 var cluster = scene.cluster
 
 // F3.2 - The function execution shall be allowed only on single-primary clusters.

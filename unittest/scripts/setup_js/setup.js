@@ -1008,7 +1008,7 @@ function StandaloneScenario(ports) {
 }
 
 // ** Cluster based scenarios
-function ClusterScenario(ports, topology_mode="pm", sandboxConfiguration) {
+function ClusterScenario(ports, create_cluster_options, sandboxConfiguration) {
   for (i in ports) {
     testutil.deploySandbox(ports[i], "root", {report_host: hostname});
 
@@ -1019,14 +1019,22 @@ function ClusterScenario(ports, topology_mode="pm", sandboxConfiguration) {
   }
 
   this.session = shell.connect("mysql://root:root@localhost:" + ports[0]);
-  if (topology_mode == "mm") {
-    this.cluster = dba.createCluster("cluster", { multiPrimary: true, force: true, gtidSetIsComplete: true });
-  } else {
-    this.cluster = dba.createCluster("cluster", { gtidSetIsComplete: true });
+
+  if (create_cluster_options === undefined) {
+    create_cluster_options = { gtidSetIsComplete: true };
   }
+
+  this.cluster = dba.createCluster("cluster", create_cluster_options);
+
+  var allowList = create_cluster_options["ipAllowlist"];
+
   for (i in ports) {
     if (i > 0) {
-      this.cluster.addInstance("mysql://root:root@localhost:" + ports[i]);
+      if (allowList === undefined) {
+        this.cluster.addInstance("mysql://root:root@localhost:" + ports[i]);
+      } else {
+        this.cluster.addInstance("mysql://root:root@localhost:" + ports[i], {ipAllowlist: allowList});
+      }
       testutil.waitMemberState(ports[i], "ONLINE");
     }
   }

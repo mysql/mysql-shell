@@ -4,7 +4,8 @@
 
 //@ Initialization
 metadata_1_0_1_file = "metadata_1_0_1.sql";
-var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2]);
+var allowlist = "127.0.0.1," + hostname_ip;
+var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2], {ipAllowlist: allowlist, gtidSetIsComplete: true});
 var status = scene.cluster.status({extended:2});
 var topology = status.defaultReplicaSet.topology;
 var instances = dir(topology);
