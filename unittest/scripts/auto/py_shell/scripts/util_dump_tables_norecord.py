@@ -1606,6 +1606,29 @@ EXPECT_FILE_CONTAINS("2\tabc\\ndef\tghi\\txyz\n", os.path.join(test_output_absol
 
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
+#@<> BUG#31896448
+tested_schema = "test_schema"
+tested_table = "test"
+
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (a BIGINT PRIMARY KEY, b VARCHAR(32));", [ tested_schema, tested_table ])
+session.run_sql("""INSERT INTO !.! VALUES
+(-9223372036854775808, 'a'),
+(-6917529027641081856, 'b'),
+(-4611686018427387904, 'c'),
+(-2305843009213693952, 'd'),
+(0, 'e'),
+(2305843009213693952, 'f'),
+(4611686018427387904, 'g'),
+(6917529027641081856, 'h'),
+(9223372036854775807, 'i');""", [ tested_schema, tested_table ])
+session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+
+EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "bytesPerChunk": "128k", "compression": "none", "showProgress": False })
+TEST_LOAD(tested_schema, tested_table, True)
+
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")

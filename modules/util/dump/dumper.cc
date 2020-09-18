@@ -461,7 +461,9 @@ class Dumper::Table_worker final {
           rows_per_chunk > 0
               ? std::max(table.row_count / rows_per_chunk, UINT64_C(1))
               : UINT64_C(1);
-      const auto estimated_step = (max - min + 1) / estimated_chunks;
+      // it should be (max - min + 1), but this can potentially overflow and
+      // `+ 1` is not significant, as the result is divided anyway
+      const auto estimated_step = (max - min) / estimated_chunks;
       const auto accuracy = std::max(rows_per_chunk / 10, UINT64_C(10));
 
       std::string chunk_id;
@@ -560,17 +562,25 @@ class Dumper::Table_worker final {
 
         step = std::max(next_step(current, step), static_cast<step_t>(2));
 
-        current += step - 1;
+        // ensure that there's no integer overflow
+        current = (current > max - step + 1 ? max : current + step - 1);
 
-        // if current is greater than max or close to it, finish the chunking
-        if (current > max || max - current <= step / 4) {
+        // if current is close to max, finish the chunking
+        if (max - current <= step / 4) {
           current = max;
         }
 
         range.end = std::to_string(current);
 
+        const auto last_chunk = (current >= max);
+
         create_table_data_task(table, std::move(range), chunk_id,
-                               ranges_count++, current >= max);
+                               ranges_count++, last_chunk);
+
+        if (last_chunk) {
+          // exit here in case ++current overflows
+          break;
+        }
 
         ++current;
       }
