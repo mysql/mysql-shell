@@ -476,7 +476,6 @@ class Dumper::Table_worker final {
               : [&table, &rows_per_chunk, &accuracy, &chunk_id, &max, this](
                     const auto from, const auto step) {
                   int retry = 0;
-                  auto left = from;
                   auto middle = from;
 
                   auto previous_row_count = rows_per_chunk;
@@ -485,6 +484,7 @@ class Dumper::Table_worker final {
                   uint64_t delta = 2 * accuracy;
 
                   while (delta > accuracy && retry < k_chunker_retries) {
+                    auto left = from;
                     auto right = left + (2 * (retry + 1)) * step;
 
                     for (int i = 0; i < k_chunker_iterations; ++i) {
