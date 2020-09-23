@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,15 +48,13 @@ Http_get::Http_get(const std::string &uri) : m_uri(uri) {
   m_rest->set_timeout(30000, 1024, 60);
 
   auto response = m_rest->head(std::string{});
+  m_open_status_code = response.status;
   if (response.status == Response::Status_code::OK) {
     m_file_size = std::stoul(response.headers["content-length"]);
-    m_open_status_code = response.status;
     if (response.headers["Accept-Ranges"] != "bytes") {
       throw std::runtime_error(
           "Target server does not support partial requests.");
     }
-  } else {
-    throw Response_error(response.status);
   }
 }
 
@@ -69,6 +67,33 @@ void Http_get::open(Mode m) {
 }
 
 bool Http_get::is_open() const {
+  return m_open_status_code == Response::Status_code::OK;
+}
+
+std::string Http_get::filename() const {
+  std::string fname(m_uri);
+  {
+    auto p = fname.find("#");
+    if (p != std::string::npos) {
+      fname = fname.substr(0, p);
+    }
+  }
+  {
+    auto p = fname.rfind("?");
+    if (p != std::string::npos) {
+      fname = fname.substr(0, p);
+    }
+  }
+  {
+    auto p = fname.rfind("/");
+    if (p != std::string::npos) {
+      fname = fname.substr(p + 1);
+    }
+  }
+  return fname;
+}
+
+bool Http_get::exists() const {
   return m_open_status_code == Response::Status_code::OK;
 }
 

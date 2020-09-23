@@ -25,6 +25,7 @@
 
 #include <memory>
 #include <set>
+#include <utility>
 #include <vector>
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
@@ -81,7 +82,9 @@ Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
   expose("importJson", &Util::import_json, "path", "?options");
   shcore::ssl::init();
   expose("configureOci", &Util::configure_oci, "?profile");
-  expose("importTable", &Util::import_table, "path", "?options");
+  add_method("importTable",
+             std::bind(&Util::import_table, this, std::placeholders::_1),
+             "args", shcore::Array);
   expose("dumpSchemas", &Util::dump_schemas, "schemas", "outputUrl",
          "?options");
   expose("dumpTables", &Util::dump_tables, "schema", "tables", "outputUrl",
@@ -1017,7 +1020,9 @@ REGISTER_HELP_FUNCTION_TEXT(UTIL_IMPORTTABLE, R"*(
 Import table dump stored in filename to target table using LOAD DATA LOCAL
 INFILE calls in parallel connections.
 
-@param filename Path to file with user data
+@param filename Path or list of paths to files with user data.
+Path name can contain a glob pattern with wildcard '*' and/or '?'.
+All selected files must be chunks of the same target table.
 @param options Optional dictionary with import options
 
 Scheme part of <b>filename</b> contains infomation about the transport backend.
@@ -1062,7 +1067,8 @@ server.
 bytesPerChunk (+ bytes to end of the row) in single LOAD DATA call. Unit
 suffixes, k - for Kilobytes (n * 1'000 bytes), M - for Megabytes (n * 1'000'000
 bytes), G - for Gigabytes (n * 1'000'000'000 bytes), bytesPerChunk="2k" - ~2
-kilobyte data chunk will send to the MySQL Server.
+kilobyte data chunk will send to the MySQL Server. Not available for multiple
+files import.
 @li <b>maxRate</b>: string (default: "0") - Limit data send throughput to
 maxRate in bytes per second per thread.
 maxRate="0" - no limit. Unit suffixes, k - for Kilobytes (n * 1'000 bytes),
@@ -1199,6 +1205,8 @@ Connection options set in the global session, such as compression, ssl-mode, etc
 are used in parallel connections.
 
 Each parallel connection sets the following session variables:
+@li SET SQL_MODE = ''; -- Clear SQL Mode
+@li SET NAMES ?; -- Set to characterSet option if provided by user.
 @li SET unique_checks = 0
 @li SET foreign_key_checks = 0
 @li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
@@ -1210,7 +1218,9 @@ Each parallel connection sets the following session variables:
  * Import table dump stored in filename to target table using LOAD DATA LOCAL
  * INFILE calls in parallel connections.
  *
- * @param filename Path to file with user data
+ * @param filename Path or list of paths to files with user data.
+ * Path name can contain a glob pattern with wildcard '*' and/or '?'.
+ * All selected files must be chunks of the same target table.
  * @param options Optional dictionary with import options
  *
  * Scheme part of <b>filename</b> contains infomation about the transport
@@ -1257,6 +1267,7 @@ Each parallel connection sets the following session variables:
  * suffixes, k - for Kilobytes (n * 1'000 bytes), M - for Megabytes (n *
  * 1'000'000 bytes), G - for Gigabytes (n * 1'000'000'000 bytes),
  * bytesPerChunk="2k" - ~2 kilobyte data chunk will send to the MySQL Server.
+ * Not available for multiple files import.
  * @li <b>maxRate</b>: string (default: "0") - Limit data send throughput to
  * maxRate in bytes per second per thread.
  * maxRate="0" - no limit. Unit suffixes, k - for Kilobytes (n * 1'000 bytes),
@@ -1393,62 +1404,93 @@ Each parallel connection sets the following session variables:
  * etc. are used in parallel connections.
  *
  * Each parallel connection sets the following session variables:
+ * @li SET SQL_MODE = ''; -- Clear SQL Mode
+ * @li SET NAMES ?; -- Set to characterSet option if provided by user.
  * @li SET unique_checks = 0
  * @li SET foreign_key_checks = 0
  * @li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
  */
 // clang-format on
 #if DOXYGEN_JS
-Undefined Util::importTable(String filename, Dictionary options);
+Undefined Util::importTable(List filename, Dictionary options);
 #elif DOXYGEN_PY
-None Util::import_table(str filename, dict options);
+None Util::import_table(list filename, dict options);
 #endif
-void Util::import_table(const std::string &filename,
-                        const shcore::Dictionary_t &options) {
+shcore::Value Util::import_table(const shcore::Argument_list &args) {
   using import_table::Import_table;
   using import_table::Import_table_options;
   using mysqlshdk::utils::format_bytes;
 
-  Import_table_options opt(filename, options);
+  try {
+    // extract file list and options from argument list
+    auto files = shcore::make_array();
+    auto options = shcore::make_dict();
 
-  auto shell_session = _shell_core.get_dev_session();
-  if (!shell_session || !shell_session->is_open() ||
-      shell_session->get_node_type().compare("mysql") != 0) {
-    throw shcore::Exception::runtime_error(
-        "A classic protocol session is required to perform this operation.");
+    if (args.size() > 0 && args[0].type == shcore::Value_type::Array) {
+      files = args[0].as_array();
+      if (args.size() > 1) {
+        options = args[1].as_map();
+      }
+    } else {
+      auto file_list = std::find_if_not(
+          args.begin(), args.end(),
+          [](const auto &x) { return x.type == shcore::Value_type::String; });
+      for (auto it = args.begin(); it != file_list; it++) {
+        files->push_back(*it);
+      }
+
+      if (file_list != args.end()) {
+        options = file_list->as_map();
+      }
+    }
+
+    // Array_t -> vector<string>
+    std::vector<std::string> file_list;
+    file_list.reserve(files->size());
+    for (auto i = files->begin(); i != files->end(); i++) {
+      file_list.push_back(i->get_string());
+    }
+
+    Import_table_options opt(std::move(file_list), options);
+
+    auto shell_session = _shell_core.get_dev_session();
+    if (!shell_session || !shell_session->is_open() ||
+        shell_session->get_node_type().compare("mysql") != 0) {
+      throw shcore::Exception::runtime_error(
+          "A classic protocol session is required to perform this operation.");
+    }
+
+    opt.base_session(std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(
+        shell_session->get_core_session()));
+    opt.validate();
+
+    volatile bool interrupt = false;
+    shcore::Interrupt_handler intr_handler([&interrupt]() -> bool {
+      mysqlsh::current_console()->print_note(
+          "Interrupted by user. Cancelling...");
+      interrupt = true;
+      return false;
+    });
+
+    Import_table importer(opt);
+    importer.interrupt(&interrupt);
+
+    auto console = mysqlsh::current_console();
+    console->print_info(opt.target_import_info());
+
+    importer.import();
+
+    const bool thread_thrown_exception = importer.any_exception();
+    if (!thread_thrown_exception) {
+      console->print_info(importer.import_summary());
+    }
+
+    console->print_info(importer.rows_affected_info());
+    importer.rethrow_exceptions();
   }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("importTable"));
 
-  opt.base_session(std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(
-      shell_session->get_core_session()));
-  opt.validate();
-
-  volatile bool interrupt = false;
-  shcore::Interrupt_handler intr_handler([&interrupt]() -> bool {
-    mysqlsh::current_console()->print_note(
-        "Interrupted by user. Cancelling...");
-    interrupt = true;
-    return false;
-  });
-
-  Import_table importer(opt);
-  importer.interrupt(&interrupt);
-
-  auto console = mysqlsh::current_console();
-  console->print_info(opt.target_import_info());
-
-  importer.import();
-
-  const auto filesize = opt.file_size();
-  const bool thread_thrown_exception = importer.any_exception();
-  if (thread_thrown_exception) {
-    console->print_error("Error occur while importing file '" +
-                         opt.full_path() + "' (" + format_bytes(filesize) +
-                         ")");
-  } else {
-    console->print_info(importer.import_summary());
-  }
-  console->print_info(importer.rows_affected_info());
-  importer.rethrow_exceptions();
+  return shcore::Value();
 }
 
 REGISTER_HELP_FUNCTION(loadDump, util);

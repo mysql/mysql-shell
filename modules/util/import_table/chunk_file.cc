@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -198,20 +198,29 @@ void Chunk_file::start() {
   auto first = fh.begin(needle_size);
   auto last = fh.end(needle_size);
 
+  File_import_info stencil;
+  stencil.file_path = m_file_handle->full_path();
+  stencil.file_handler = nullptr;
+  stencil.file_size = fh.size();
+  stencil.content_size = fh.size();
+  stencil.range_read = true;
+  stencil.is_guard = false;
+
   if (m_dialect.fields_escaped_by.empty()) {
     if (m_skip_rows_count > 0) {
       first = skip_rows(first, last, m_dialect.lines_terminated_by,
                         m_skip_rows_count);
     }
     chunk_by_max_bytes(first, last, m_dialect.lines_terminated_by, m_chunk_size,
-                       m_queue);
+                       m_queue, stencil);
   } else {
     if (m_skip_rows_count > 0) {
       first = skip_rows(first, last, m_dialect.lines_terminated_by,
                         m_skip_rows_count, m_dialect.fields_escaped_by[0]);
     }
     chunk_by_max_bytes(first, last, m_dialect.lines_terminated_by,
-                       m_dialect.fields_escaped_by[0], m_chunk_size, m_queue);
+                       m_dialect.fields_escaped_by[0], m_chunk_size, m_queue,
+                       stencil);
   }
 }
 

@@ -697,7 +697,7 @@ wipe_instance(session);
 //@<> characterSet:invalid (should fail)
 // TSFR14_5
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {characterSet: "bog\"`'us"})}, "Util.loadDump: Unknown character set: 'bog\"`'us'");
-EXPECT_OUTPUT_CONTAINS("ERROR: [Worker001] Error opening connection to MySQL: MySQL Error 1115 (42000): Unknown character set: 'bog\"`'us'");
+EXPECT_OUTPUT_CONTAINS("Error opening connection to MySQL: MySQL Error 1115 (42000): Unknown character set: 'bog\"`'us'");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -727,7 +727,7 @@ testutil.createFile(__tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zst", "badf
 
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nochunk");}, "Util.loadDump: Error loading dump");
 
-EXPECT_OUTPUT_CONTAINS("xtest@t_json.tsv.zst: zstd.read: Unknown frame descriptor");
+EXPECT_OUTPUT_CONTAINS("xtest@t_json.tsv.zst: MySQL Error 2000 (00000): zstd.read: Unknown frame descriptor:");
 EXPECT_OUTPUT_CONTAINS("ERROR: Aborting load...");
 
 testutil.rename(__tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zst.bak", __tmp_dir+"/ldtest/dump-nochunk/xtest@t_json.tsv.zst");

@@ -1163,7 +1163,9 @@ SYNTAX
       util.import_table(filename[, options])
 
 WHERE
-      filename: Path to file with user data
+      filename: Path or list of paths to files with user data. Path name can
+                contain a glob pattern with wildcard '*' and/or '?'. All
+                selected files must be chunks of the same target table.
       options: Dictionary with import options
 
 DESCRIPTION
@@ -1226,7 +1228,7 @@ DESCRIPTION
         Unit suffixes, k - for Kilobytes (n * 1'000 bytes), M - for Megabytes
         (n * 1'000'000 bytes), G - for Gigabytes (n * 1'000'000'000 bytes),
         bytesPerChunk="2k" - ~2 kilobyte data chunk will send to the MySQL
-        Server.
+        Server. Not available for multiple files import.
       - maxRate: string (default: "0") - Limit data send throughput to maxRate
         in bytes per second per thread. maxRate="0" - no limit. Unit suffixes,
         k - for Kilobytes (n * 1'000 bytes), M - for Megabytes (n * 1'000'000
@@ -1361,6 +1363,8 @@ DESCRIPTION
 
       Each parallel connection sets the following session variables:
 
+      - SET SQL_MODE = ''; -- Clear SQL Mode
+      - SET NAMES ?; -- Set to characterSet option if provided by user.
       - SET unique_checks = 0
       - SET foreign_key_checks = 0
       - SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED

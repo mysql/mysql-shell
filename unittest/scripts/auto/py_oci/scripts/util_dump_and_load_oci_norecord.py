@@ -89,7 +89,7 @@ testutil.anycopy("sakila@film_text@@0.tsv.zst", {"osBucketName":k_bucket_name, "
 
 EXPECT_THROWS(lambda: util.load_dump("mydump", {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file}), "Error loading dump")
 
-EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zst: zstd.read: Unknown frame descriptor")
+EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zst: MySQL Error 2000 (00000): zstd.read: Unknown frame descriptor")
 
 testutil.anycopy(backup_file, {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file, "name":"mydump/sakila@film_text@@0.tsv.zst"})
 

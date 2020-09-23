@@ -104,6 +104,9 @@ class Directory : public mysqlshdk::storage::IDirectory {
    */
   std::vector<File_info> list_files(bool hidden_files = false) const override;
 
+  std::vector<File_info> filter_files(
+      const std::string &pattern) const override;
+
   /**
    * Creates a new file handle for for a file contained on this directory.
    *

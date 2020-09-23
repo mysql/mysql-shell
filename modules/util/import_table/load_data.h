@@ -25,6 +25,7 @@
 #define MODULES_UTIL_IMPORT_TABLE_LOAD_DATA_H_
 
 #include <atomic>
+#include <exception>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -112,14 +113,17 @@ struct File_info {
 
   // data for transaction size limiter
   Transaction_buffer buffer;  //< buffered file wrapper
+  std::exception_ptr last_error;
 };
 
 // Functions for local infile callbacks.
-int local_infile_init(void **buffer, const char *filename, void *userdata);
-int local_infile_read(void *userdata, char *buffer, unsigned int length);
-void local_infile_end(void *userdata);
+int local_infile_init(void **buffer, const char *filename,
+                      void *userdata) noexcept;
+int local_infile_read(void *userdata, char *buffer,
+                      unsigned int length) noexcept;
+void local_infile_end(void *userdata) noexcept;
 int local_infile_error(void *userdata, char *error_msg,
-                       unsigned int error_msg_len);
+                       unsigned int error_msg_len) noexcept;
 
 class Load_data_worker final {
  public:
@@ -129,7 +133,7 @@ class Load_data_worker final {
                    std::mutex *output_mutex,
                    std::atomic<size_t> *prog_sent_bytes,
                    volatile bool *interrupt,
-                   shcore::Synchronized_queue<Range> *range_queue,
+                   shcore::Synchronized_queue<File_import_info> *range_queue,
                    std::vector<std::exception_ptr> *thread_exception,
                    Stats *stats, const std::string &query_comment = "");
   Load_data_worker(const Load_data_worker &other) = default;
@@ -153,7 +157,7 @@ class Load_data_worker final {
   std::atomic<size_t> &m_prog_sent_bytes;
   std::mutex &m_output_mutex;
   volatile bool &m_interrupt;
-  shcore::Synchronized_queue<Range> *m_range_queue;
+  shcore::Synchronized_queue<File_import_info> *m_range_queue;
   std::vector<std::exception_ptr> &m_thread_exception;
   Stats &m_stats;
   std::string m_query_comment;

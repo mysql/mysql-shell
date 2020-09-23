@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,11 +42,12 @@ namespace mysqlsh {
 namespace import_table {
 
 struct Stats {
-  size_t total_records = 0;
-  size_t total_deleted = 0;
-  size_t total_skipped = 0;
-  size_t total_warnings = 0;
-  size_t total_bytes = 0;
+  std::atomic<size_t> total_records{0};
+  std::atomic<size_t> total_deleted{0};
+  std::atomic<size_t> total_skipped{0};
+  std::atomic<size_t> total_warnings{0};
+  std::atomic<size_t> total_bytes{0};
+  std::atomic<size_t> total_files_processed{0};
 
   std::string to_string() const {
     return std::string{"Records: " + std::to_string(total_records) +
@@ -66,7 +67,7 @@ class Import_table final {
   Import_table &operator=(const Import_table &other) = delete;
   Import_table &operator=(Import_table &&other) = delete;
 
-  ~Import_table() = default;
+  ~Import_table();
 
   void interrupt(volatile bool *interrupt) { m_interrupt = interrupt; }
 
@@ -81,6 +82,7 @@ class Import_table final {
   void spawn_workers();
   void join_workers();
   void chunk_file();
+  void build_queue();
   void progress_shutdown();
 
   std::atomic<size_t> m_prog_sent_bytes{0};
@@ -88,7 +90,7 @@ class Import_table final {
   std::mutex m_output_mutex;
   Scoped_console m_console;
 
-  shcore::Synchronized_queue<Range> m_range_queue;
+  shcore::Synchronized_queue<File_import_info> m_range_queue;
 
   const Import_table_options &m_opt;
   Stats m_stats;

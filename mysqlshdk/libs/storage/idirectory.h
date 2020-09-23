@@ -70,6 +70,16 @@ class IDirectory {
       bool hidden_files = false) const = 0;
 
   /**
+   * Return file list matching glob pattern.
+   *
+   * @param pattern Glob pattern. Available wildcards '*' and '?'. Wildcard
+   * escaping available on linux using backslash '\' char.
+   * @return std::vector<File_info>
+   */
+  virtual std::vector<File_info> filter_files(
+      const std::string &pattern) const = 0;
+
+  /**
    * Provides handle to the file with the specified name in this directory.
    *
    * @param name Name of the file.

@@ -1177,9 +1177,12 @@ bool _match_glob(const std::string &pat, const std::string &str) {
  */
 bool match_glob(const std::string &pattern, const std::string &s,
                 bool case_sensitive) {
-  std::string str = case_sensitive ? s : str_lower(s);
-  std::string pat = case_sensitive ? pattern : str_lower(pattern);
-  return _match_glob(pat, str);
+  if (!case_sensitive) {
+    const std::string &str = str_lower(s);
+    const std::string &pat = str_lower(pattern);
+    return _match_glob(pat, str);
+  }
+  return _match_glob(pattern, s);
 }
 
 const char *get_long_version() {

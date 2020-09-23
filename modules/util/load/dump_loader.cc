@@ -2333,9 +2333,9 @@ void Dump_loader::join_workers() {
 }
 
 void Dump_loader::clear_worker(Worker *worker) {
-  m_worker_threads[worker->id()].join();
-  m_workers.remove_if(
-      [worker](const Worker &w) { return w.id() == worker->id(); });
+  const auto wid = worker->id();
+  m_worker_threads[wid].join();
+  m_workers.remove_if([wid](const Worker &w) { return w.id() == wid; });
 }
 
 void Dump_loader::post_worker_event(Worker *worker, Worker_event::Event event) {

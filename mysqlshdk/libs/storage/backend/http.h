@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,13 +56,9 @@ class Http_get : public IFile {
   size_t file_size() const override;
   std::string full_path() const override;
 
-  std::string filename() const override {
-    throw std::logic_error("Http_get::filename() - not implemented");
-  }
+  std::string filename() const override;
 
-  bool exists() const override {
-    throw std::logic_error("Http_get::exists() - not implemented");
-  }
+  bool exists() const override;
 
   std::unique_ptr<IDirectory> parent() const override {
     throw std::logic_error("Http_get::parent() - not implemented");

@@ -1,23 +1,25 @@
-/* Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
-
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License, version 2.0,
- as published by the Free Software Foundation.
-
- This program is also distributed with certain software (including
- but not limited to OpenSSL) that is licensed under separate terms, as
- designated in a particular file or component or in included license
- documentation.  The authors of MySQL hereby grant you an additional
- permission to link the program and your derivative works with the
- separately licensed software that they have included with MySQL.
- This program is distributed in the hope that it will be useful,  but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
- the GNU General Public License, version 2.0, for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
+/*
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #include <iostream>
 #include <queue>
@@ -34,6 +36,11 @@ namespace mysqlsh {
 namespace import_table {
 
 constexpr const int kBufferSize = BUFFER_SIZE;
+
+struct Range {
+  size_t begin{0};
+  size_t end{0};
+};
 
 TEST(import_table, double_buffer_iteration) {
   const std::string pattern{"abcdefghijklmnopqrstuvwxyz01234567890"};
@@ -152,9 +159,9 @@ TEST(import_table, chunks) {
   {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
+    std::queue<File_import_info> r;
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, 1, &r);
+                       line_terminator, 1, &r, File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -162,8 +169,8 @@ TEST(import_table, chunks) {
       auto range = r.front();
       r.pop();
 
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
+      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
+      EXPECT_EQ(expected_ranges[i].end, range.range.second);
     }
 
     EXPECT_TRUE(r.empty());
@@ -216,9 +223,9 @@ TEST(import_table, chunks_2) {
   {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
+    std::queue<File_import_info> r;
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, 1, &r);
+                       line_terminator, 1, &r, File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -226,8 +233,8 @@ TEST(import_table, chunks_2) {
       auto range = r.front();
       r.pop();
 
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
+      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
+      EXPECT_EQ(expected_ranges[i].end, range.range.second);
     }
 
     EXPECT_TRUE(r.empty());
@@ -276,9 +283,9 @@ TEST(import_table, false_line_termination) {
   {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
+    std::queue<File_import_info> r;
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, 1, &r);
+                       line_terminator, escape, 1, &r, File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -286,8 +293,8 @@ TEST(import_table, false_line_termination) {
       auto range = r.front();
       r.pop();
 
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
+      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
+      EXPECT_EQ(expected_ranges[i].end, range.range.second);
     }
 
     EXPECT_TRUE(r.empty());
@@ -338,9 +345,9 @@ TEST(import_table, escape_char_in_the_middle_if_line_terminator) {
   {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
+    std::queue<File_import_info> r;
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, 1, &r);
+                       line_terminator, escape, 1, &r, File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -348,8 +355,8 @@ TEST(import_table, escape_char_in_the_middle_if_line_terminator) {
       auto range = r.front();
       r.pop();
 
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
+      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
+      EXPECT_EQ(expected_ranges[i].end, range.range.second);
     }
 
     EXPECT_TRUE(r.empty());
@@ -407,9 +414,9 @@ TEST(import_table, escape_at_the_end_of_a_buffer) {
   {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
+    std::queue<File_import_info> r;
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, 1, &r);
+                       line_terminator, escape, 1, &r, File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -417,8 +424,8 @@ TEST(import_table, escape_at_the_end_of_a_buffer) {
       auto range = r.front();
       r.pop();
 
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
+      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
+      EXPECT_EQ(expected_ranges[i].end, range.range.second);
     }
 
     EXPECT_TRUE(r.empty());
@@ -515,9 +522,9 @@ TEST(import_table, multichar_line_terminator_with_buffer_invalidation) {
   {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
+    std::queue<File_import_info> r;
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, kSkipBytes, &r);
+                       line_terminator, kSkipBytes, &r, File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -525,8 +532,8 @@ TEST(import_table, multichar_line_terminator_with_buffer_invalidation) {
       auto range = r.front();
       r.pop();
 
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
+      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
+      EXPECT_EQ(expected_ranges[i].end, range.range.second);
     }
 
     EXPECT_TRUE(r.empty());
@@ -584,9 +591,9 @@ TEST(import_table, false_line_terminator_after_eof) {
   {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
+    std::queue<File_import_info> r;
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, kSkipBytes, &r);
+                       line_terminator, kSkipBytes, &r, File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -594,8 +601,8 @@ TEST(import_table, false_line_terminator_after_eof) {
       auto range = r.front();
       r.pop();
 
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
+      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
+      EXPECT_EQ(expected_ranges[i].end, range.range.second);
     }
 
     EXPECT_TRUE(r.empty());
@@ -661,9 +668,10 @@ TEST(import_table, last_character_same_as_terminator) {
   {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
+    std::queue<File_import_info> r;
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, kSkipBytes, &r);
+                       line_terminator, escape, kSkipBytes, &r,
+                       File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -671,8 +679,8 @@ TEST(import_table, last_character_same_as_terminator) {
       auto range = r.front();
       r.pop();
 
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
+      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
+      EXPECT_EQ(expected_ranges[i].end, range.range.second);
     }
 
     EXPECT_TRUE(r.empty());
@@ -754,9 +762,10 @@ TEST(import_table, onechar_a_line_terminator_same_as_row_data) {
   {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
+    std::queue<File_import_info> r;
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, kSkipBytes, &r);
+                       line_terminator, escape, kSkipBytes, &r,
+                       File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -764,8 +773,8 @@ TEST(import_table, onechar_a_line_terminator_same_as_row_data) {
       auto range = r.front();
       r.pop();
 
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
+      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
+      EXPECT_EQ(expected_ranges[i].end, range.range.second);
     }
 
     EXPECT_TRUE(r.empty());
@@ -849,9 +858,10 @@ TEST(import_table, twochar_ab_line_terminator_same_as_row_data) {
   {
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
+    std::queue<File_import_info> r;
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, kSkipBytes, &r);
+                       line_terminator, escape, kSkipBytes, &r,
+                       File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -859,8 +869,8 @@ TEST(import_table, twochar_ab_line_terminator_same_as_row_data) {
       auto range = r.front();
       r.pop();
 
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
+      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
+      EXPECT_EQ(expected_ranges[i].end, range.range.second);
     }
 
     EXPECT_TRUE(r.empty());
@@ -946,9 +956,10 @@ TEST(import_table, twochar_aa_line_terminator_same_as_row_data) {
 
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
+    std::queue<File_import_info> r;
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, kSkipBytes, &r);
+                       line_terminator, escape, kSkipBytes, &r,
+                       File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -956,8 +967,8 @@ TEST(import_table, twochar_aa_line_terminator_same_as_row_data) {
       auto range = r.front();
       r.pop();
 
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
+      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
+      EXPECT_EQ(expected_ranges[i].end, range.range.second);
     }
 
     EXPECT_TRUE(r.empty());
@@ -973,9 +984,9 @@ TEST(import_table, twochar_aa_line_terminator_same_as_row_data) {
 
     auto fh_ptr = mysqlshdk::storage::make_file(path);
     File_handler fh{fh_ptr.get()};
-    std::queue<Range> r;
+    std::queue<File_import_info> r;
     chunk_by_max_bytes(fh.begin(needle_size), fh.end(needle_size),
-                       line_terminator, escape, 254, &r);
+                       line_terminator, escape, 254, &r, File_import_info());
 
     EXPECT_EQ(expected_ranges.size(), r.size());
 
@@ -983,8 +994,8 @@ TEST(import_table, twochar_aa_line_terminator_same_as_row_data) {
       auto range = r.front();
       r.pop();
 
-      EXPECT_EQ(expected_ranges[i].begin, range.begin);
-      EXPECT_EQ(expected_ranges[i].end, range.end);
+      EXPECT_EQ(expected_ranges[i].begin, range.range.first);
+      EXPECT_EQ(expected_ranges[i].end, range.range.second);
     }
 
     EXPECT_TRUE(r.empty());

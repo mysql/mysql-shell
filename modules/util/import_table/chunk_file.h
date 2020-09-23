@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -241,9 +241,14 @@ class File_handler final {
   size_t m_file_size = 0;
 };
 
-struct Range {
-  size_t begin;
-  size_t end;
+struct File_import_info {
+  std::string file_path;
+  mysqlshdk::storage::IFile *file_handler = nullptr;
+  mysqlshdk::utils::nullable<size_t> file_size;
+  mysqlshdk::utils::nullable<size_t> content_size;
+  bool range_read = false;
+  std::pair<size_t, size_t> range{0, 0};
+  bool is_guard = true;
 };
 
 /**
@@ -408,10 +413,11 @@ Iter skip_rows(Iter first, Iter last, const std::string &needle,
  * @param range_queue Queue where file chunk offset will be stored.
  */
 template <typename Iter,
-          class QueueContainer = shcore::Synchronized_queue<Range>>
+          class QueueContainer = shcore::Synchronized_queue<File_import_info>>
 void chunk_by_max_bytes(Iter first, Iter last, const std::string &needle,
                         char escape_char, const size_t max_bytes_per_chunk,
-                        QueueContainer *range_queue) {
+                        QueueContainer *range_queue,
+                        const File_import_info &stencil) {
   assert(range_queue);
 
   size_t current_offset = first.offset();
@@ -439,7 +445,9 @@ void chunk_by_max_bytes(Iter first, Iter last, const std::string &needle,
     }
 
     current_offset = first.offset();
-    range_queue->push(Range{prev_offset, current_offset});
+    File_import_info info = stencil;
+    info.range = std::make_pair(prev_offset, current_offset);
+    range_queue->push(std::move(info));
   }
 }
 
@@ -456,10 +464,11 @@ void chunk_by_max_bytes(Iter first, Iter last, const std::string &needle,
  * @param range_queue Queue where file chunk offset will be stored.
  */
 template <typename Iter,
-          class QueueContainer = shcore::Synchronized_queue<Range>>
+          class QueueContainer = shcore::Synchronized_queue<File_import_info>>
 void chunk_by_max_bytes(Iter first, Iter last, const std::string &needle,
                         const size_t max_bytes_per_chunk,
-                        QueueContainer *range_queue) {
+                        QueueContainer *range_queue,
+                        const File_import_info &stencil) {
   assert(range_queue);
 
   size_t current_offset = first.offset();
@@ -482,7 +491,9 @@ void chunk_by_max_bytes(Iter first, Iter last, const std::string &needle,
     }
 
     current_offset = first.offset();
-    range_queue->push(Range{prev_offset, current_offset});
+    File_import_info info = stencil;
+    info.range = std::make_pair(prev_offset, current_offset);
+    range_queue->push(std::move(info));
   }
 }
 
@@ -501,7 +512,7 @@ class Chunk_file final {
   void set_file_handle(mysqlshdk::storage::IFile *fh) { m_file_handle = fh; }
   void set_dialect(const Dialect &dialect) { m_dialect = dialect; }
   void set_rows_to_skip(const size_t rows) { m_skip_rows_count = rows; }
-  void set_output_queue(shcore::Synchronized_queue<Range> *queue) {
+  void set_output_queue(shcore::Synchronized_queue<File_import_info> *queue) {
     m_queue = queue;
   }
   void start();
@@ -510,7 +521,7 @@ class Chunk_file final {
   size_t m_chunk_size = 2 * BUFFER_SIZE;
   Dialect m_dialect;
   uint64_t m_skip_rows_count = 0;
-  shcore::Synchronized_queue<Range> *m_queue = nullptr;
+  shcore::Synchronized_queue<File_import_info> *m_queue = nullptr;
   mysqlshdk::storage::IFile *m_file_handle;
 };
 

@@ -58,6 +58,9 @@ class Directory : public IDirectory {
   std::vector<IDirectory::File_info> list_files(
       bool hidden_files = false) const override;
 
+  std::vector<IDirectory::File_info> filter_files(
+      const std::string &pattern) const override;
+
   bool is_local() const override { return true; }
 
  protected:

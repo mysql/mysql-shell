@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -76,12 +76,11 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
   void configure_oci(const std::string &profile = "");
 
 #if DOXYGEN_JS
-  Undefined importTable(String filename, Dictionary options);
+  Undefined importTable(List filename, Dictionary options);
 #elif DOXYGEN_PY
-  None import_table(str filename, dict options);
+  None import_table(list filename, dict options);
 #endif
-  void import_table(const std::string &filename,
-                    const shcore::Dictionary_t &options);
+  shcore::Value import_table(const shcore::Argument_list &args);
 
 #if DOXYGEN_JS
   Undefined loadDump(String url, Dictionary options);

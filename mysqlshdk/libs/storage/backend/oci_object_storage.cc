@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "mysqlshdk/include/shellcore/console.h"
@@ -126,6 +127,35 @@ std::vector<IDirectory::File_info> Directory::list_files(
     }
   }
 
+  return files;
+}
+
+std::vector<IDirectory::File_info> Directory::filter_files(
+    const std::string &pattern) const {
+  std::vector<IDirectory::File_info> files;
+  std::string prefix = m_name.empty() ? "" : m_name + "/";
+
+  std::vector<mysqlshdk::oci::Object_details> objects;
+  try {
+    objects = m_bucket->list_objects(prefix, "", "", 0, false);
+  } catch (const Response_error &error) {
+    throw shcore::Exception::runtime_error(error.format());
+  }
+
+  if (prefix.empty()) {
+    for (const auto &object : objects) {
+      if (shcore::match_glob(pattern, object.name)) {
+        files.push_back({object.name, object.size});
+      }
+    }
+  } else {
+    for (const auto &object : objects) {
+      auto file_name = object.name.substr(prefix.size());
+      if (shcore::match_glob(pattern, file_name)) {
+        files.push_back({std::move(file_name), object.size});
+      }
+    }
+  }
   return files;
 }
 

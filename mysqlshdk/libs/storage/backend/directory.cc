@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 
 #include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -57,9 +58,26 @@ std::vector<IDirectory::File_info> Directory::list_files(
       IDirectory::File_info fi = {name, shcore::file_size(file_path)};
       files.emplace_back(std::move(fi));
     }
-
     return true;
   });
+
+  return files;
+}
+
+std::vector<IDirectory::File_info> Directory::filter_files(
+    const std::string &pattern) const {
+  const auto path = full_path();
+  std::vector<IDirectory::File_info> files;
+
+  shcore::iterdir(
+      path, [this, &path, &files, &pattern](const std::string &name) {
+        auto file_path = join_path(path, name);
+        if (shcore::match_glob(pattern, name) && shcore::is_file(file_path)) {
+          IDirectory::File_info fi = {name, shcore::file_size(file_path)};
+          files.emplace_back(std::move(fi));
+        }
+        return true;
+      });
 
   return files;
 }

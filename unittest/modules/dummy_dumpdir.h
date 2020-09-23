@@ -30,6 +30,7 @@
 #include <vector>
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -98,19 +99,30 @@ class Dummy_dump_directory : public mysqlshdk::storage::IDirectory {
                        size_t file_count)
       : m_dumpdir(dumpdir), m_file_list(file_list, file_list + file_count) {}
 
-  bool exists() const { return true; }
+  bool exists() const override { return true; }
 
-  void create() {}
+  void create() override {}
 
-  void close() {}
+  void close() override {}
 
-  std::string full_path() const { return m_dumpdir; }
+  std::string full_path() const override { return m_dumpdir; }
 
-  std::vector<File_info> list_files(bool) const { return m_file_list; }
+  std::vector<File_info> list_files(bool) const override { return m_file_list; }
+
+  std::vector<File_info> filter_files(
+      const std::string &pattern) const override {
+    std::vector<File_info> filtered_files;
+    for (const auto &f : m_file_list) {
+      if (shcore::match_glob(pattern, f.name)) {
+        filtered_files.push_back(f);
+      }
+    }
+    return filtered_files;
+  }
 
   std::unique_ptr<mysqlshdk::storage::IFile> file(
       const std::string &name,
-      const mysqlshdk::storage::File_options &options = {}) const {
+      const mysqlshdk::storage::File_options &options = {}) const override {
     if (shcore::str_endswith(name, ".sql") ||
         shcore::str_endswith(name, ".json")) {
       return mysqlshdk::storage::make_file(join_path(m_dumpdir, name), options);
@@ -127,9 +139,10 @@ class Dummy_dump_directory : public mysqlshdk::storage::IDirectory {
     }
   }
 
-  bool is_local() const { return false; }
+  bool is_local() const override { return false; }
 
-  std::string join_path(const std::string &a, const std::string &b) const {
+  std::string join_path(const std::string &a,
+                        const std::string &b) const override {
     return shcore::path::join_path(a, b);
   }
 

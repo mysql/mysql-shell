@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include <unistd.h>
 #endif
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -50,7 +51,7 @@ class Import_table_options {
 
   explicit Import_table_options(const shcore::Dictionary_t &options);
 
-  Import_table_options(const std::string &filename,
+  Import_table_options(std::vector<std::string> &&filenames,
                        const shcore::Dictionary_t &options);
 
   Import_table_options(const Import_table_options &other) = delete;
@@ -71,9 +72,13 @@ class Import_table_options {
 
   Connection_options connection_options() const;
 
-  const std::string &filename() const { return m_filename; }
+  bool is_multifile() const;
 
   const std::string &full_path() const { return m_full_path; }
+
+  const std::vector<std::string> &filelist_from_user() const {
+    return m_filelist_from_user;
+  }
 
   size_t max_rate() const;
 
@@ -115,14 +120,18 @@ class Import_table_options {
   /**
    * Creates a new file handle using the provided options.
    */
-  std::unique_ptr<mysqlshdk::storage::IFile> create_file_handle() const;
+  std::unique_ptr<mysqlshdk::storage::IFile> create_file_handle(
+      const std::string &filepath) const;
+
+  std::unique_ptr<mysqlshdk::storage::IFile> create_file_handle(
+      std::unique_ptr<mysqlshdk::storage::IFile> file_handler) const;
 
  private:
   void unpack(const shcore::Dictionary_t &options);
 
   size_t calc_thread_size();
 
-  std::string m_filename;
+  std::vector<std::string> m_filelist_from_user;
   std::string m_full_path;
   size_t m_file_size;
   std::string m_table;

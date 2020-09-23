@@ -37,15 +37,15 @@ session.close()
 
 #/ Create wl12193.cities table
 shell.connect(uri)
-# session.run_sql('DROP SCHEMA IF EXISTS ' + target_schema);
-# session.run_sql('CREATE SCHEMA ' + target_schema);
+# session.run_sql('DROP SCHEMA IF EXISTS ' + target_schema)
+# session.run_sql('CREATE SCHEMA ' + target_schema)
 session.run_sql('USE ' + target_schema)
 session.run_sql('DROP TABLE IF EXISTS `cities`')
 session.run_sql("""CREATE TABLE `cities` (`ID` int(11) NOT NULL AUTO_INCREMENT, `Name` char(64) NOT NULL DEFAULT '', `CountryCode` char(3) NOT NULL DEFAULT '', `District` char(64) NOT NULL DEFAULT '', `Info` json DEFAULT NULL, PRIMARY KEY (`ID`)) ENGINE=InnoDB AUTO_INCREMENT=4080 DEFAULT CHARSET=utf8mb4""")
 
 
 #@<> Throw if MySQL Server config option local_infile is false
-session.run_sql('SET GLOBAL local_infile = false');
+session.run_sql('SET GLOBAL local_infile = false')
 EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "schema": target_schema, "table": 'cities' }),
     "Invalid preconditions")
 
@@ -223,7 +223,7 @@ EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".employee: R
 #@<OUT> Show employee table
 original_output_format = shell.options.resultFormat
 shell.options.resultFormat = 'tabbed'
-session.run_sql('select * from ' + target_schema + '.employee order by boss asc');
+session.run_sql('select * from ' + target_schema + '.employee order by boss asc')
 shell.options.resultFormat = original_output_format
 
 #@<> Create latin2 charset table
@@ -275,4 +275,4 @@ session.run_sql("DROP SCHEMA IF EXISTS " + target_schema)
 session.close()
 
 #@<> Throw if session is closed
-EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "table": 'cities' }), "A classic protocol session is required to perform this operation.");
+EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "table": 'cities' }), "A classic protocol session is required to perform this operation.")
