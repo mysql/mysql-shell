@@ -1141,6 +1141,34 @@ for(i=0; i<ntables; i++) {
   session.runSql("create table "+name+" (id int primary key, value text)");
 }
 util.dumpInstance(__tmp_dir+"/ldtest/dump2", {compression: "none", compatibility: ['strip_tablespaces']});
+
+function host_to_network(num) {
+  function to_byte_array(num) {
+    return new Uint8Array(new Uint32Array([num]).buffer);
+  }
+
+  function swap(arr, from, to) {
+    [arr[to], arr[from]] = [arr[from], arr[to]];
+  }
+
+  function to_string(arr) {
+    let s = "";
+    for (let v of arr) {
+      s += String.fromCharCode(v);
+    }
+    return s;
+  }
+
+  let hex = to_byte_array(num);
+
+  if (to_byte_array(1)[0] === 1) {
+    swap(hex, 0, 3);
+    swap(hex, 1, 2);
+  }
+
+  return "\0\0\0\0" + to_string(hex);
+}
+
 // add extra artificial chunks for the tables, with more chunks in some of them
 for(i=0; i<ntables; i++) {
   name="table"+i;
@@ -1150,8 +1178,11 @@ for(i=0; i<ntables; i++) {
     for(j=0; j<1000; j++)
       data+=(c*1000+j)+"\txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n";
     testutil.createFile(__tmp_dir+"/ldtest/dump2/test@"+name+"@"+c+".tsv", data);
+    testutil.createFile(__tmp_dir+"/ldtest/dump2/test@"+name+"@"+c+".tsv.idx", host_to_network(data.length));
   }
-  testutil.createFile(__tmp_dir+"/ldtest/dump2/test@"+name+"@@"+c+".tsv", (c*1000+j)+"\txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n");
+  data = (c*1000+j)+"\txxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n";
+  testutil.createFile(__tmp_dir+"/ldtest/dump2/test@"+name+"@@"+c+".tsv", data);
+  testutil.createFile(__tmp_dir+"/ldtest/dump2/test@"+name+"@@"+c+".tsv.idx", host_to_network(data.length));
 }
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump2/load-progress*");

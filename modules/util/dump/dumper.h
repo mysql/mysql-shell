@@ -245,9 +245,9 @@ class Dumper {
 
   Dump_writer *get_table_data_writer(const std::string &filename);
 
-  void finish_writing(Dump_writer *writer);
+  void finish_writing(Dump_writer *writer, uint64_t total_bytes);
 
-  void close_file(const Dump_writer &writer) const;
+  std::string close_file(const Dump_writer &writer) const;
 
   void write_metadata() const;
 
@@ -342,6 +342,9 @@ class Dumper {
   // schema -> table -> data bytes
   std::unordered_map<std::string, std::unordered_map<std::string, uint64_t>>
       m_table_data_bytes;
+
+  // path -> uncompressed bytes
+  std::unordered_map<std::string, uint64_t> m_chunk_file_bytes;
 
   // threads
   std::vector<std::thread> m_workers;

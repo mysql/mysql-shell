@@ -71,19 +71,238 @@ int local_infile_error_nop(void * /* userdata */, char * /* error_msg */,
                            unsigned int /* error_msg_len */) {
   return CR_LOAD_DATA_LOCAL_INFILE_REJECTED;
 }
+
 }  // namespace
+
+void Transaction_buffer::flush_done(bool *out_has_more_data) {
+  m_trx_size = 0;
+  m_trx_end_offset = 0;
+  m_partial_row_sent = false;
+
+  *out_has_more_data = m_max_trx_size > 0 && (!m_eof || !m_data.empty());
+}
+
+bool Transaction_buffer::flush_pending() const {
+  return m_max_trx_size > 0 && m_trx_end_offset > 0 &&
+         m_trx_end_offset <= m_trx_size;
+}
+
+int Transaction_buffer::consume(char *buffer, unsigned int length) {
+  if (m_trx_end_offset > 0 && length > m_trx_end_offset - m_trx_size) {
+    assert(m_trx_end_offset >= m_trx_size);
+    length = m_trx_end_offset - m_trx_size;
+  }
+
+  if (length > 0) {
+    if (m_data.length() > length) {
+      memcpy(buffer, &m_data[0], length);
+
+      memmove(&m_data[0], &m_data[length], m_data.length() - length);
+
+      m_data.resize(m_data.length() - length);
+    } else {
+      length = m_data.length();
+      memcpy(buffer, &m_data[0], length);
+      m_data.clear();
+    }
+
+    m_trx_size += length;
+    m_current_offset += length;
+  }
+
+  return length;
+}
+
+int Transaction_buffer::read(char *buffer, unsigned int length) {
+  if (m_max_trx_size == 0) {
+    // regular read if truncation is not enabled
+    return m_file->read(buffer, length);
+  }
+
+  const auto read_more = [this](unsigned int count) -> int64_t {
+    int64_t bytes = 0;
+
+    if (!m_eof) {
+      auto end = m_data.size();
+      m_data.resize(end + count);
+      bytes = m_file->read(&m_data[end], count);
+      if (bytes <= 0) {
+        m_data.resize(end);
+        if (bytes == 0) m_eof = true;
+        return bytes;
+      }
+
+      m_data.resize(end + bytes);
+    }
+    return bytes;
+  };
+
+  // return as many bytes as we can from the data we have, as long as we know
+  // it will fit in the transaction
+
+retry:
+  // 1 - read as much data as we can use (if any)
+  if (m_trx_end_offset == 0) {
+    const auto bytes = read_more(length);
+    if (bytes < 0) return bytes;
+  }
+
+  // 2 - check if the data we've read so far would fill the transaction
+  if (m_trx_end_offset == 0 && trx_bytes_left() > 0 &&
+      static_cast<int64_t>(m_data.length()) >= trx_bytes_left()) {
+    // calculate the last row that will fit
+    auto last_row_end = find_last_row_boundary_before(trx_bytes_left());
+    if (last_row_end > 0) {
+      set_trx_end_offset(last_row_end);
+    }
+  }
+
+  // 3 - send data if we know it will fit or we have a row boundary
+  if (m_trx_end_offset > 0) {
+    // if we already know the last row that will fit in the transaction, we
+    // can send a full buffer
+    return consume(buffer, length);
+  } else {
+    if (static_cast<int64_t>(m_data.length()) >= trx_bytes_left()) {
+      if (!m_partial_row_sent) {
+        // we've already read more data than will fit in the transaction, so
+        // just find the last row that will fit whole
+        auto last_row_end = find_last_row_boundary_before(trx_bytes_left());
+
+        // if we don't find a newline here, it has to mean the row doesn't fit
+        // in the transaction (otherwise there's a bug)
+        if (last_row_end > 0) {
+          set_trx_end_offset(last_row_end);
+          return consume(buffer, length);
+        }
+
+        // end-of-row wasn't read yet, even tho we're already over the trx size
+        // limit. If we've already sent whole rows, flush them.
+        if (m_trx_size > 0) {
+          // flush the rows that we've already sent earlier
+          set_trx_end_offset(0);
+          return 0;
+        }
+      }
+
+      auto row_end = find_first_row_boundary_after(0);
+      if (row_end > 0) {
+        // we found EOR, send the rest of the row and flush
+        set_trx_end_offset(row_end);
+        return consume(buffer, length);
+      }
+
+      assert(m_trx_size == 0 || m_partial_row_sent);
+      // The first and only row of the transaction is oversized, so the only
+      // thing left to do is to send the row data until its end and immediately
+      // flush to see what happens.
+      m_partial_row_sent = true;
+      return consume(buffer, length);
+    } else {
+      // otherwise, send data at a row boundary to allow safe flushing
+      auto last_row_end = find_last_row_boundary_before(length);
+      if (last_row_end > 0) {
+        // EOR found, if we sent a partial row, it's complete now
+        m_partial_row_sent = false;
+
+        return consume(buffer, last_row_end);
+      }
+
+      // there's a full row in the buffer, but more data than we can return at
+      // once
+      last_row_end = find_last_row_boundary_before(trx_bytes_left());
+      if (last_row_end > 0) {
+        return consume(buffer, std::min<unsigned int>(length, last_row_end));
+      }
+
+      // There are no full rows in the buffer, only the current partial row.
+      if (m_trx_size == 0) {
+        // If no other rows were sent yet, we can start sending this one
+        m_partial_row_sent = true;
+        return consume(buffer, length);
+      }
+      // If we're sending a partial row, then keep sending more since we didn't
+      // hit EOR yet
+      if (m_partial_row_sent) {
+        return consume(buffer, length);
+      }
+
+      // If we're here, it means that we've already sent some complete rows
+      // to the server, there's still space in the transaction for more but
+      // we don't know yet if the partial row that's currently buffered will
+      // fit or not.
+      // The only thing left to do now is to keep reading more data until we
+      // either find EOF, EOR or we find out for sure that the row won't fit.
+      if (m_eof) {
+        set_trx_end_offset(m_data.length());
+        return consume(buffer, length);
+      }
+
+      // read some more and check everything again
+      goto retry;
+    }
+  }
+}
+
+uint64_t Transaction_buffer::find_first_row_boundary_after(
+    uint64_t offset) const {
+  if (offset > m_data.length()) offset = m_data.length();
+  const auto end = m_data.find(m_delimiter, offset);
+  if (end >= offset && end < m_data.length()) {
+    return end + 1;
+  }
+  return 0;
+}
+
+uint64_t Transaction_buffer::find_last_row_boundary_before(uint64_t limit) {
+  // find boundary of the last row that will fit within the given limit
+  auto length = std::min<size_t>(limit, m_data.length());
+
+  if (length == 0) return 0;
+
+  if (m_offsets) {
+    const auto size = m_offsets->size();
+
+    for (; m_offset_index < size; ++m_offset_index) {
+      const auto &o = (*m_offsets)[m_offset_index];
+
+      if (o > m_current_offset + limit) {
+        if (m_offset_index > 0) {
+          --m_offset_index;
+        }
+        break;
+      }
+
+      if (o > m_current_offset) {
+        length = o - m_current_offset;
+      }
+    }
+  }
+
+  const char *last_row_end = &m_data[0] + length - 1;
+
+  while (last_row_end > &m_data[0] && *last_row_end != m_delimiter) {
+    --last_row_end;
+  }
+
+  length = last_row_end - &m_data[0];
+
+  if (*last_row_end == m_delimiter && length < limit) {
+    ++last_row_end;
+    ++length;
+    return length;
+  } else {
+    return 0;
+  }
+}
+
+// ------
 
 int local_infile_init(void **buffer, const char * /* filename */,
                       void *userdata) {
   File_info *file_info = static_cast<File_info *>(userdata);
-  // todo(kg): we can get rid of file open and close (in local_infile_end()).
-  //           We can open it when constructing File_info object.
-  try {
-    file_info->filehandler->open(mysqlshdk::storage::Mode::READ);
-  } catch (const std::runtime_error &ex) {
-    mysqlsh::current_console()->print_error(ex.what());
-    return 1;
-  }
+
+  *buffer = file_info;
 
   if (file_info->range_read) {
     off64_t offset = file_info->filehandler->seek(file_info->chunk_start);
@@ -92,26 +311,33 @@ int local_infile_init(void **buffer, const char * /* filename */,
     }
   }
 
-  *buffer = file_info;
-
   file_info->rate_limit = mysqlshdk::utils::Rate_limit(file_info->max_rate);
+
   return 0;
 }
 
 int local_infile_read(void *userdata, char *buffer, unsigned int length) {
   File_info *file_info = static_cast<File_info *>(userdata);
 
-  ssize_t bytes;
+  ssize_t bytes = 0;
+
   if (file_info->range_read) {
     size_t len = std::min({static_cast<size_t>(length), file_info->bytes_left});
 
     bytes = file_info->filehandler->read(buffer, len);
-    if (bytes == -1) return bytes;
+    if (bytes < 0) return bytes;
 
     file_info->bytes_left -= bytes;
   } else {
-    bytes = file_info->filehandler->read(buffer, length);
-    if (bytes == -1) return bytes;
+    if (file_info->buffer.flush_pending()) {
+      bytes = 0;
+    } else {
+      // read from the file until either EOF, or we read enough data to fill the
+      // buffer or the transaction
+      bytes = file_info->buffer.read(buffer, length);
+      if (bytes < 0) return bytes;
+      assert(bytes <= length);
+    }
   }
 
   *(file_info->prog_bytes) += bytes;
@@ -148,8 +374,6 @@ void local_infile_end(void *userdata) {
       file_info->prog->show_status();
     }
   }
-
-  file_info->filehandler->close();
 }
 
 int local_infile_error(void *userdata, char *error_msg,
@@ -186,9 +410,9 @@ void Load_data_worker::operator()() {
 
   auto session = mysqlshdk::db::mysql::Session::create();
 
-  // Prevent local infile rogue server attack. Safe local infile callbacks must
-  // be set before connecting to the MySQL Server. Otherwise, rogue MySQL Server
-  // can ask for arbitrary file from client.
+  // Prevent local infile rogue server attack. Safe local infile callbacks
+  // must be set before connecting to the MySQL Server. Otherwise, rogue MySQL
+  // Server can ask for arbitrary file from client.
   session->set_local_infile_userdata(nullptr);
   session->set_local_infile_init(local_infile_init_nop);
   session->set_local_infile_read(local_infile_read_nop);
@@ -208,7 +432,8 @@ void Load_data_worker::operator()() {
 
 void Load_data_worker::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    std::unique_ptr<mysqlshdk::storage::IFile> file) {
+    std::unique_ptr<mysqlshdk::storage::IFile> file, size_t max_trx_size,
+    const std::vector<uint64_t> *offsets) {
   std::string task = file->filename();
 
   try {
@@ -221,7 +446,16 @@ void Load_data_worker::execute(
     fi.prog_mutex = &m_output_mutex;
     fi.user_interrupt = &m_interrupt;
     fi.max_rate = m_opt.max_rate();
-    fi.range_read = m_range_queue ? true : false;
+    if (m_range_queue) {
+      fi.range_read = true;
+    } else {
+      fi.range_read = false;
+      fi.buffer = Transaction_buffer(m_opt.dialect(), max_trx_size,
+                                     fi.filehandler.get(), offsets);
+    }
+
+    fi.filehandler->open(mysqlshdk::storage::Mode::READ);
+    auto cleanup = shcore::on_leave_scope([&fi]() { fi.filehandler->close(); });
 
     // clear the SQL mode
     session->execute("SET SQL_MODE = '';");
@@ -332,7 +566,10 @@ void Load_data_worker::execute(
               m_range_queue != nullptr);
 #endif
 
+    uint64_t subchunk = 0;
+
     while (true) {
+      ++subchunk;
       mysqlsh::import_table::Range r;
 
       if (m_range_queue) {
@@ -351,9 +588,12 @@ void Load_data_worker::execute(
       }
 
       std::shared_ptr<mysqlshdk::db::IResult> load_result = nullptr;
+      bool has_more_data = false;
 
       try {
         load_result = session->query(m_query_comment + full_query);
+
+        fi.buffer.flush_done(&has_more_data);
 
         m_stats.total_bytes = fi.bytes;
       } catch (const mysqlshdk::db::Error &e) {
@@ -392,7 +632,13 @@ void Load_data_worker::execute(
       {
         const char *mysql_info = session->get_mysql_info();
         mysqlsh::current_console()->print_info(
-            worker_name + task + ": " + (mysql_info ? mysql_info : "ERROR"));
+            worker_name + task + ": " + (mysql_info ? mysql_info : "ERROR") +
+            (max_trx_size == 0
+                 ? ""
+                 : (has_more_data
+                        ? " - flushed sub-chunk " + std::to_string(subchunk)
+                        : " - loading finished in " + std::to_string(subchunk) +
+                              " sub-chunks")));
 
         if (mysql_info) {
           size_t records = 0;
@@ -461,7 +707,7 @@ void Load_data_worker::execute(
         }
       }
 
-      if (!m_range_queue) break;
+      if (!m_range_queue && !has_more_data) break;
     }
   } catch (...) {
     m_thread_exception[m_thread_id] = std::current_exception();

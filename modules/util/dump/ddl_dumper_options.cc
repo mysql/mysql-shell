@@ -40,9 +40,9 @@ constexpr auto k_minimum_chunk_size = "128k";
 // The chunk size will determine the size of transactions when loading them and
 // GR has a default group_replication_transaction_size_limit of 143MB. Because
 // chunk sizes will not be exact and can offshoot what's configured, we leave
-// the default chunk size at 32MB to leave a healthy margin and be on the safe
+// the default chunk size at 64MB to leave a healthy margin and be on the safe
 // side.
-constexpr auto k_default_chunk_size = "32M";
+constexpr auto k_default_chunk_size = "64M";
 
 }  // namespace
 

@@ -188,8 +188,13 @@ for f in datafiles[:n]:
 
 def copy_rest():
     time.sleep(2)
+    # copy idx files first because they must exist before the matching data file
     for f in datafiles[n:]:
-        copy(f)
+        if f.endswith(".idx"):
+            copy(f)
+    for f in datafiles[n:]:
+        if not f.endswith(".idx"):
+            copy(f)
 
 #@<> load dump while dump still running
 
@@ -227,6 +232,9 @@ for f in source_files:
         ordered.append(f)
 for f in source_files:
     if f.count("@") == 1 and "tsv" not in f and f not in ordered:
+        ordered.append(f)
+for f in source_files:
+    if ".idx" in f and f not in ordered:
         ordered.append(f)
 for f in source_files:
     if f not in ordered:

@@ -131,6 +131,22 @@ class Dump_reader {
   size_t total_data_size() const { return m_contents.data_size; }
   size_t filtered_data_size() const;
 
+  uint64_t bytes_per_chunk() const { return m_contents.bytes_per_chunk; }
+
+  uint64_t chunk_size(const std::string &name, bool *valid) const {
+    assert(valid);
+
+    const auto it = m_contents.chunk_sizes.find(name);
+
+    if (it == m_contents.chunk_sizes.end()) {
+      *valid = false;
+      return 0;
+    } else {
+      *valid = true;
+      return it->second;
+    }
+  }
+
   void rescan();
 
   void add_deferred_indexes(const std::string &schema, const std::string &table,
@@ -292,6 +308,8 @@ class Dump_reader {
     bool table_only = false;
     mysqlshdk::utils::Version server_version;
     mysqlshdk::utils::Version dump_version;
+    uint64_t bytes_per_chunk = 0;
+    std::unordered_map<std::string, uint64_t> chunk_sizes;
 
     bool md_done = false;
 

@@ -267,8 +267,8 @@ class Dumper::Table_worker final {
     Dump_write_result bytes_written_per_update{table.schema, table.name};
     uint64_t rows_written_per_update = 0;
     const uint64_t update_every = 2000;
-    uint64_t rows_written_per_idx = 0;
-    const uint64_t write_idx_every = 500;
+    uint64_t bytes_written_per_idx = 0;
+    const uint64_t write_idx_every = 1024 * 1024;  // bytes
     Dump_write_result bytes_written;
     mysqlshdk::utils::Profile_timer timer;
     std::vector<Dump_writer::Encoding_type> pre_encoded_columns;
@@ -280,7 +280,9 @@ class Dumper::Table_worker final {
 
     shcore::on_leave_scope close_index_file([&table]() {
       if (table.index_file) {
-        table.index_file->close();
+        if (table.index_file->is_open()) {
+          table.index_file->close();
+        }
       }
     });
 
@@ -301,16 +303,17 @@ class Dumper::Table_worker final {
       bytes_written = table.writer->write_row(row);
       bytes_written_per_file += bytes_written;
       bytes_written_per_update += bytes_written;
+      bytes_written_per_idx += bytes_written.data_bytes();
       ++rows_written_per_update;
-      ++rows_written_per_idx;
 
-      if (table.index_file && write_idx_every == rows_written_per_idx) {
+      if (table.index_file && bytes_written_per_idx >= write_idx_every) {
         // the idx file contains offsets to the data stream, not to binary one
         const auto offset = mysqlshdk::utils::host_to_network(
             bytes_written_per_file.data_bytes());
         table.index_file->write(&offset, sizeof(uint64_t));
 
-        rows_written_per_idx = 0;
+        // make sure offsets are written when close to the write_idx_every
+        bytes_written_per_idx %= write_idx_every;
       }
 
       if (update_every == rows_written_per_update) {
@@ -338,6 +341,7 @@ class Dumper::Table_worker final {
       const auto total = mysqlshdk::utils::host_to_network(
           bytes_written_per_file.data_bytes());
       table.index_file->write(&total, sizeof(uint64_t));
+      table.index_file->close();
     }
 
     log_debug("Dump of `%s`.`%s` into '%s' took %f seconds",
@@ -345,7 +349,7 @@ class Dumper::Table_worker final {
               table.writer->output()->full_path().c_str(),
               timer.total_seconds_elapsed());
 
-    m_dumper->finish_writing(table.writer);
+    m_dumper->finish_writing(table.writer, bytes_written_per_file.data_bytes());
     m_dumper->update_progress(rows_written_per_update,
                               bytes_written_per_update);
   }
@@ -1764,11 +1768,16 @@ Dump_writer *Dumper::get_table_data_writer(const std::string &filename) {
   return m_worker_writers.back().get();
 }
 
-void Dumper::finish_writing(Dump_writer *writer) {
+void Dumper::finish_writing(Dump_writer *writer, uint64_t total_bytes) {
   // close the file if we're writing to multiple files, otherwise the single
   // file is going to be closed when all tasks are finished
   if (!m_options.use_single_file()) {
-    close_file(*writer);
+    std::string final_filename = close_file(*writer);
+
+    {
+      std::lock_guard<std::mutex> lock(m_table_data_bytes_mutex);
+      m_chunk_file_bytes[final_filename] = total_bytes;
+    }
 
     {
       std::lock_guard<std::mutex> lock(m_worker_writers_mutex);
@@ -1781,7 +1790,7 @@ void Dumper::finish_writing(Dump_writer *writer) {
   }
 }
 
-void Dumper::close_file(const Dump_writer &writer) const {
+std::string Dumper::close_file(const Dump_writer &writer) const {
   const auto output = writer.output();
 
   if (output->is_open()) {
@@ -1794,6 +1803,7 @@ void Dumper::close_file(const Dump_writer &writer) const {
   if (trimmed != filename) {
     output->rename(trimmed);
   }
+  return trimmed;
 }
 
 void Dumper::write_metadata() const {
@@ -1865,6 +1875,7 @@ void Dumper::write_dump_started_metadata() const {
                 ref(m_options.character_set()), a);
   doc.AddMember(StringRef("tzUtc"), m_options.use_timezone_utc(), a);
   doc.AddMember(StringRef("tableOnly"), m_options.table_only(), a);
+  doc.AddMember(StringRef("bytesPerChunk"), m_options.bytes_per_chunk(), a);
 
   doc.AddMember(StringRef("user"), ref(m_cache.user), a);
   doc.AddMember(StringRef("hostname"), ref(m_cache.hostname), a);
@@ -1913,6 +1924,17 @@ void Dumper::write_dump_finished_metadata() const {
     }
 
     doc.AddMember(StringRef("tableDataBytes"), std::move(schemas), a);
+  }
+
+  {
+    Value files{Type::kObjectType};
+
+    for (const auto &file : m_chunk_file_bytes) {
+      Value tables{Type::kObjectType};
+
+      files.AddMember(ref(file.first), file.second, a);
+    }
+    doc.AddMember(StringRef("chunkFileBytes"), std::move(files), a);
   }
 
   write_json(make_file("@.done.json"), &doc);
