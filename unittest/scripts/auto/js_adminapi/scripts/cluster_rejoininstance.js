@@ -124,7 +124,9 @@ c.rejoinInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<> BUG#29754915: confirm cluster status.
-c.status();
+var topology = c.status()["defaultReplicaSet"]["topology"];
+EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port2}`]["status"], "RECOVERING");
+EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
 
 //@ BUG#29754915: clean-up.
 c.disconnect();

@@ -545,14 +545,13 @@ void Cluster_join::check_instance_configuration(Check_type type) {
           "The instance '" + m_target_instance->descr() +
           "' is running asynchronous replication.");
     }
-  }
 
-  if (type != Check_type::BOOTSTRAP)
     // If this is not seed instance, then we should try to read the
     // failoverConsistency and expelTimeout values from a a cluster member.
     m_cluster->query_group_wide_option_values(m_target_instance.get(),
                                               &m_gr_opts.consistency,
                                               &m_gr_opts.expel_timeout);
+  }
 
   if (type == Check_type::JOIN) {
     if (!m_already_member) {
@@ -607,11 +606,11 @@ void ensure_not_auto_rejoining(Instance *instance) {
 }
 }  // namespace
 
-bool Cluster_join::check_rejoinable() {
+bool Cluster_join::check_rejoinable(bool *out_uuid_mistmatch) {
   // Check if the instance is part of the Metadata
-  auto status = validate_instance_rejoinable(*m_target_instance,
-                                             m_cluster->get_metadata_storage(),
-                                             m_cluster->get_id());
+  auto status = validate_instance_rejoinable(
+      *m_target_instance, m_cluster->get_metadata_storage(),
+      m_cluster->get_id(), out_uuid_mistmatch);
 
   switch (status) {
     case Instance_rejoinability::NOT_MEMBER:
@@ -711,10 +710,10 @@ void Cluster_join::prepare_join(
   check_instance_configuration(Check_type::JOIN);
 }
 
-bool Cluster_join::prepare_rejoin() {
+bool Cluster_join::prepare_rejoin(bool *out_uuid_mistmatch) {
   m_is_autorejoining = check_auto_rejoining(m_target_instance.get());
 
-  if (!check_rejoinable()) return false;
+  if (!check_rejoinable(out_uuid_mistmatch)) return false;
 
   // Check for various instance specific configuration issues
   check_instance_configuration(Check_type::REJOIN);
@@ -1048,8 +1047,8 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
 
     // If the instance is not on the Metadata, we must add it.
     if (!is_instance_on_md) {
-      m_cluster->add_instance_metadata(*m_target_instance,
-                                       m_instance_label.get_safe());
+      m_cluster->add_metadata_for_instance(*m_target_instance,
+                                           m_instance_label.get_safe());
       m_cluster->get_metadata_storage()->update_instance_attribute(
           m_target_instance->get_uuid(), k_instance_attribute_join_time,
           shcore::Value(join_begin_time));

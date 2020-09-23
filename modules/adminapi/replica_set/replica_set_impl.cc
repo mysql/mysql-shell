@@ -591,7 +591,7 @@ void Replica_set_impl::validate_add_instance(
   auto validate_unique_server_id = [](Instance *target,
                                       Global_topology_manager *topology_mgr) {
     std::string server_uuid = target->get_uuid();
-    uint32_t server_id = target->queryf_one_int(0, 0, "SELECT @@server_id");
+    uint32_t server_id = target->get_server_id();
 
     for (const auto &node : topology_mgr->topology()->nodes()) {
       for (const auto &m : node->members()) {

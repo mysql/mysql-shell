@@ -7,47 +7,7 @@
 //@ Configure sandboxes.
 ||
 
-//@<OUT> Create cluster.
-{
-    "clusterName": "c", 
-    "defaultReplicaSet": {
-        "name": "default", 
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED", 
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            }, 
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    }, 
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
-
-//@<OUT> No-op.
+//@<OUT> No-op - Still missing server_id attributes are added
 Rescanning the cluster...
 
 Result of the rescanning operation for the 'c' cluster:
@@ -55,7 +15,8 @@ Result of the rescanning operation for the 'c' cluster:
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
-    "unavailableInstances": []
+    "unavailableInstances": [],
+    "updatedInstances": []
 }
 
 //@ WL10644 - TSF2_6: empty addInstances throw ArgumentError.
@@ -100,7 +61,8 @@ Result of the rescanning operation for the 'c' cluster:
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
-    "unavailableInstances": []
+    "unavailableInstances": [],
+    "updatedInstances": []
 }
 
 WARNING: The following instances were not added to the metadata because they are already part of the cluster: '<<<member_address>>>'. Please verify if the specified value for 'addInstances' option is correct.
@@ -147,7 +109,8 @@ Result of the rescanning operation for the 'c' cluster:
     "name": "c",
     "newTopologyMode": null,
     "newlyDiscoveredInstances": [],
-    "unavailableInstances": []
+    "unavailableInstances": [],
+    "updatedInstances": []
 }
 
 WARNING: The following instances were not removed from the metadata because they are already not part of the cluster or are running auto-rejoin: 'localhost:1111'. Please verify if the specified value for 'removeInstances' option is correct.
@@ -156,52 +119,6 @@ WARNING: The following instances were not removed from the metadata because they
 ||Cluster.rescan: The same instances cannot be used in both 'addInstances' and 'removeInstances' options: 'localhost:3300, localhost:3301'. (ArgumentError)
 ||Cluster.rescan: The same instance cannot be used in both 'addInstances' and 'removeInstances' options: 'localhost:3301'. (ArgumentError)
 ||Cluster.rescan: The same instance cannot be used in both 'addInstances' and 'removeInstances' options: 'localhost:3301'. (ArgumentError)
-
-//@<OUT> Remove instance on port 2 and 3 from MD but keep it in the group.
-{
-    "clusterName": "c", 
-    "defaultReplicaSet": {
-        "name": "default", 
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED", 
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
-                "instanceErrors": [
-                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
-                ], 
-                "mode": "R/O", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE", 
-                "version": "[[*]]"
-            }, 
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>", 
-                "instanceErrors": [
-                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
-                ], 
-                "mode": "R/O", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE", 
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    }, 
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> WL10644 - TSF2_1: Rescan with addInstances:[complete_valid_list].
 Rescanning the cluster...
@@ -222,7 +139,8 @@ Result of the rescanning operation for the 'c' cluster:
             "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         }
     ],
-    "unavailableInstances": []
+    "unavailableInstances": [],
+    "updatedInstances": []
 }
 
 A new instance '<<<member_address2>>>' was discovered in the cluster.
@@ -232,93 +150,6 @@ The instance '<<<member_address2>>>' was successfully added to the cluster metad
 A new instance '<<<member_address3>>>' was discovered in the cluster.
 Adding instance to the cluster metadata...
 The instance '<<<member_address3>>>' was successfully added to the cluster metadata.
-
-
-//@<OUT> WL10644 - TSF2_1: Validate that the instances were added.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<member_address2>>>": {
-                "address": "<<<member_address2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<member_address3>>>": {
-                "address": "<<<member_address3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
-
-//@<OUT> WL10644 - TSF2_2: Remove instances on port 2 and 3 from MD again.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
-                "instanceErrors": [
-                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
-                ], 
-                "mode": "R/O", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE", 
-                "version": "[[*]]"
-            }, 
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>", 
-                "instanceErrors": [
-                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
-                ], 
-                "mode": "R/O", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE", 
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> WL10644 - TSF2_2: Rescan with addInstances:[incomplete_valid_list] and interactive:true.
 Rescanning the cluster...
@@ -339,7 +170,8 @@ Result of the rescanning operation for the 'c' cluster:
             "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         }
     ],
-    "unavailableInstances": []
+    "unavailableInstances": [],
+    "updatedInstances": []
 }
 
 A new instance '<<<member_address2>>>' was discovered in the cluster.
@@ -349,92 +181,6 @@ The instance '<<<member_address2>>>' was successfully added to the cluster metad
 A new instance '<<<member_address3>>>' was discovered in the cluster.
 Would you like to add it to the cluster metadata? [Y/n]: Adding instance to the cluster metadata...
 The instance '<<<member_address3>>>' was successfully added to the cluster metadata.
-
-//@<OUT> WL10644 - TSF2_2: Validate that the instances were added.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<member_address2>>>": {
-                "address": "<<<member_address2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<member_address3>>>": {
-                "address": "<<<member_address3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
-
-//@<OUT> WL10644 - TSF2_3: Remove instances on port 2 and 3 from MD again.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
-                "instanceErrors": [
-                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
-                ], 
-                "mode": "R/O", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE", 
-                "version": "[[*]]"
-            }, 
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>", 
-                "instanceErrors": [
-                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
-                ], 
-                "mode": "R/O", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE", 
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> WL10644 - TSF2_3: Rescan with addInstances:[incomplete_valid_list] and interactive:false.
 Rescanning the cluster...
@@ -455,7 +201,8 @@ Result of the rescanning operation for the 'c' cluster:
             "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         }
     ],
-    "unavailableInstances": []
+    "unavailableInstances": [],
+    "updatedInstances": []
 }
 
 A new instance '<<<member_address2>>>' was discovered in the cluster.
@@ -464,94 +211,7 @@ The instance '<<<member_address2>>>' was successfully added to the cluster metad
 
 A new instance '<<<member_address3>>>' was discovered in the cluster.
 
-//@<OUT> WL10644 - TSF2_3: Validate that the instances were added.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<member_address2>>>": {
-                "address": "<<<member_address2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<member_address3>>>": {
-                "address": "<<<member_address3>>>", 
-                "instanceErrors": [
-                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
-                ], 
-                "mode": "R/O", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE", 
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
-//@<OUT> WL10644 - TSF2_4: Remove instances on port 2 from MD.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
-                "instanceErrors": [
-                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
-                ], 
-                "mode": "R/O", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE", 
-                "version": "[[*]]"
-            }, 
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>", 
-                "instanceErrors": [
-                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
-                ], 
-                "mode": "R/O", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE", 
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> WL10644 - TSF2_4: Rescan with addInstances:"auto" and interactive:true.
 Rescanning the cluster...
@@ -572,7 +232,8 @@ Result of the rescanning operation for the 'c' cluster:
             "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         }
     ],
-    "unavailableInstances": []
+    "unavailableInstances": [],
+    "updatedInstances": []
 }
 
 A new instance '<<<member_address2>>>' was discovered in the cluster.
@@ -583,91 +244,8 @@ A new instance '<<<member_address3>>>' was discovered in the cluster.
 Adding instance to the cluster metadata...
 The instance '<<<member_address3>>>' was successfully added to the cluster metadata.
 
-//@<OUT> WL10644 - TSF2_4: Validate that the instances were added.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<member_address2>>>": {
-                "address": "<<<member_address2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<member_address3>>>": {
-                "address": "<<<member_address3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
-//@<OUT> WL10644 - TSF2_5: Remove instances on port 2 and 3 from MD again.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
-                "instanceErrors": [
-                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
-                ], 
-                "mode": "R/O", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE", 
-                "version": "[[*]]"
-            }, 
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>", 
-                "instanceErrors": [
-                    "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair."
-                ], 
-                "mode": "R/O", 
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA", 
-                "status": "ONLINE", 
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
+
 
 //@<OUT> WL10644 - TSF2_5: Rescan with addInstances:"auto" and interactive:false.
 Rescanning the cluster...
@@ -688,7 +266,8 @@ Result of the rescanning operation for the 'c' cluster:
             "name": null<<<(__version_num>=80011)?",\n[[*]]\"version\": \"" + __version + "\"":"">>>
         }
     ],
-    "unavailableInstances": []
+    "unavailableInstances": [],
+    "updatedInstances": []
 }
 
 A new instance '<<<member_address2>>>' was discovered in the cluster.
@@ -699,88 +278,10 @@ A new instance '<<<member_address3>>>' was discovered in the cluster.
 Adding instance to the cluster metadata...
 The instance '<<<member_address3>>>' was successfully added to the cluster metadata.
 
-//@<OUT> WL10644 - TSF2_5: Validate that the instances were added.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<member_address2>>>": {
-                "address": "<<<member_address2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<member_address3>>>": {
-                "address": "<<<member_address3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@ WL10644 - TSF3_1: Disable GR in persisted settings {VER(>=8.0.11)}.
 ||
 
-//@<OUT> WL10644 - TSF3_1: Stop instances on port 2 and 3 (no metadata MD changes).
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<member_address2>>>": {
-                "address": "<<<member_address2>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            },
-            "<<<member_address3>>>": {
-                "address": "<<<member_address3>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> WL10644 - TSF3_1: Number of instances in the MD before rescan().
 3
@@ -804,7 +305,8 @@ Result of the rescanning operation for the 'c' cluster:
             "label": "<<<member_address3>>>",
             "member_id": "<<<instance3_uuid>>>"
         }
-    ]
+    ],
+    "updatedInstances": []
 }
 
 The instance '<<<member_address2>>>' is no longer part of the cluster.
@@ -818,29 +320,6 @@ The instance '<<<member_address3>>>' was successfully removed from the cluster m
 //@<OUT> WL10644 - TSF3_1: Number of instances in the MD after rescan().
 1
 
-//@<OUT> WL10644 - TSF3_1: Validate that the instances were removed.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@ WL10644 - TSF3_2: Start instances and add them back to the cluster.
 ||
@@ -848,45 +327,6 @@ The instance '<<<member_address3>>>' was successfully removed from the cluster m
 //@ WL10644 - TSF3_2: Disable GR in persisted settings {VER(>=8.0.11)}.
 ||
 
-//@<OUT> WL10644 - TSF3_2: Stop instances on port 2 and 3 (no metadata MD changes).
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> WL10644 - TSF3_2: Number of instances in the MD before rescan().
 3
@@ -910,7 +350,8 @@ Result of the rescanning operation for the 'c' cluster:
             "label": "<<<member_fqdn_address3>>>",
             "member_id": "<<<instance3_uuid>>>"
         }
-    ]
+    ],
+    "updatedInstances": []
 }
 
 The instance '<<<member_fqdn_address2>>>' is no longer part of the cluster.
@@ -925,29 +366,6 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
 //@<OUT> WL10644 - TSF3_2: Number of instances in the MD after rescan().
 1
 
-//@<OUT> WL10644 - TSF3_2: Validate that the instances were removed.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@ WL10644 - TSF3_3: Start instances and add them back to the cluster.
 ||
@@ -955,45 +373,6 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
 //@ WL10644 - TSF3_3: Disable GR in persisted settings {VER(>=8.0.11)}.
 ||
 
-//@<OUT> WL10644 - TSF3_3: Stop instances on port 2 and 3 (no metadata MD changes).
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> WL10644 - TSF3_3: Number of instances in the MD before rescan().
 3
@@ -1017,7 +396,8 @@ Result of the rescanning operation for the 'c' cluster:
             "label": "<<<member_fqdn_address3>>>",
             "member_id": "<<<instance3_uuid>>>"
         }
-    ]
+    ],
+    "updatedInstances": []
 }
 
 The instance '<<<member_fqdn_address2>>>' is no longer part of the cluster.
@@ -1030,37 +410,6 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the cluster.
 //@<OUT> WL10644 - TSF3_3: Number of instances in the MD after rescan().
 2
 
-//@<OUT> WL10644 - TSF3_3: Validate that the instances were removed.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 1 member is not active.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@ WL10644 - TSF3_4: Start instance on port 2 and add it back to the cluster.
 ||
@@ -1068,45 +417,6 @@ The instance '<<<member_fqdn_address3>>>' is no longer part of the cluster.
 //@ WL10644 - TSF3_4: Disable GR in persisted settings {VER(>=8.0.11)}.
 ||
 
-//@<OUT> WL10644 - TSF3_4: Stop instances on port 2 (no metadata MD changes).
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> WL10644 - TSF3_4: Number of instances in the MD before rescan().
 3
@@ -1130,7 +440,8 @@ Result of the rescanning operation for the 'c' cluster:
             "label": "<<<member_fqdn_address3>>>",
             "member_id": "<<<instance3_uuid>>>"
         }
-    ]
+    ],
+    "updatedInstances": []
 }
 
 The instance '<<<member_fqdn_address2>>>' is no longer part of the cluster.
@@ -1144,29 +455,6 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
 //@<OUT> WL10644 - TSF3_4: Number of instances in the MD after rescan().
 1
 
-//@<OUT> WL10644 - TSF3_4: Validate that the instances were removed.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@ WL10644 - TSF3_5: Start instances and add them back to the cluster.
 ||
@@ -1174,45 +462,6 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
 //@ WL10644 - TSF3_5: Disable GR in persisted settings {VER(>=8.0.11)}.
 ||
 
-//@<OUT> WL10644 - TSF3_5: Stop instances on port 2 and 3 (no metadata MD changes).
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> WL10644 - TSF3_5: Number of instances in the MD before rescan().
 3
@@ -1236,7 +485,8 @@ Result of the rescanning operation for the 'c' cluster:
             "label": "<<<member_fqdn_address3>>>",
             "member_id": "<<<instance3_uuid>>>"
         }
-    ]
+    ],
+    "updatedInstances": []
 }
 
 The instance '<<<member_fqdn_address2>>>' is no longer part of the cluster.
@@ -1250,29 +500,6 @@ The instance '<<<member_fqdn_address3>>>' was successfully removed from the clus
 //@<OUT> WL10644 - TSF3_5: Number of instances in the MD after rescan().
 1
 
-//@<OUT> WL10644 - TSF3_5: Validate that the instances were removed.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@ WL10644: Start instances and add them back to the cluster again.
 ||
@@ -1292,45 +519,6 @@ mm
 //@<> BUG#29330769: Verify deprecation message added about updateTopologyMode
 |The updateTopologyMode option is deprecated. The topology-mode is now automatically updated.|
 
-//@<OUT> WL10644 - TSF4_2: status() succeeds after rescan() updates topology mode.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> WL10644 - TSF4_5: Check auto_increment settings after change to single-primary.
 auto_increment_increment: 1
@@ -1340,44 +528,6 @@ auto_increment_offset: 2
 auto_increment_increment: 1
 auto_increment_offset: 2
 
-//@<OUT> Create multi-primary cluster.
-{
-    "clusterName": "c",
-    "defaultReplicaSet": {
-        "name": "default",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "<<<__version>>>"
-            }
-        },
-        "topologyMode": "Multi-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@ WL10644 - TSF4_3: Change the topology mode in the MD to the wrong value.
 ||
@@ -1396,7 +546,8 @@ Result of the rescanning operation for the 'c' cluster:
     "name": "c",
     "newTopologyMode": "Multi-Primary",
     "newlyDiscoveredInstances": [],
-    "unavailableInstances": []
+    "unavailableInstances": [],
+    "updatedInstances": []
 }
 
 NOTE: The topology mode of the cluster changed to 'Multi-Primary'.
@@ -1431,7 +582,8 @@ Result of the rescanning operation for the 'c' cluster:
     "name": "c",
     "newTopologyMode": "Multi-Primary",
     "newlyDiscoveredInstances": [],
-    "unavailableInstances": []
+    "unavailableInstances": [],
+    "updatedInstances": []
 }
 
 NOTE: The topology mode of the cluster changed to 'Multi-Primary'.

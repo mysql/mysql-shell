@@ -627,7 +627,7 @@ WHERE
       options: Dictionary with options for the operation.
 
 RETURNS
-      Nothing.
+      A JSON object with the result of the operation.
 
 DESCRIPTION
       This function rejoins an Instance to the cluster.

@@ -96,6 +96,7 @@ class IInstance {
   virtual const std::string &get_group_name() const = 0;
   virtual const std::string &get_version_compile_os() const = 0;
   virtual const std::string &get_version_compile_machine() const = 0;
+  virtual uint32_t get_server_id() const = 0;
 
   virtual void refresh() = 0;
 
@@ -239,6 +240,7 @@ class Instance : public IInstance {
   const std::string &get_group_name() const override;
   const std::string &get_version_compile_os() const override;
   const std::string &get_version_compile_machine() const override;
+  uint32_t get_server_id() const override;
 
   // Clears cached values, forcing all methods (except for those that have
   // values that cannot change) to query the DB again, if they use a cache.
@@ -355,6 +357,7 @@ class Instance : public IInstance {
   mutable std::string m_group_name;
   mutable std::string m_hostname;
   mutable int m_port = 0;
+  mutable uint32_t m_server_id = 0;
   int m_sql_binlog_suppress_count = 0;
   Warnings_callback m_warnings_callback = nullptr;
 };

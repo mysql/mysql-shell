@@ -741,25 +741,47 @@ bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
  * @param metadata Metadata object which represents the session to the metadata
  * storage
  * @param cluster_id The Cluster id
+ * @param out_uuid_mistmatch Boolean value that will be set to TRUE if the UUID
+ * changed for the given instance
  *
  * @return Indication whether instance can be rejoined and reason if not.
+ *
+ * It is considered that the UUID changed for an instance if the instance is NOT
+ * found using the current UUID but it is found using it's canonical address.
  */
 Instance_rejoinability validate_instance_rejoinable(
     const mysqlshdk::mysql::IInstance &instance,
-    const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id) {
+    const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id,
+    bool *out_uuid_mistmatch) {
   std::string instance_uuid = instance.get_uuid();
 
   // Ensure that:
   // 1 - instance is part of the given cluster
   // 2 - instance is not ONLINE or RECOVERING
   Instance_metadata imd;
+  bool uuid_in_md = false;
   try {
     imd = metadata->get_instance_by_uuid(instance.get_uuid());
+    uuid_in_md = true;
   } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING)
-      return Instance_rejoinability::NOT_MEMBER;
-    throw;
+    if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
+      try {
+        imd =
+            metadata->get_instance_by_address(instance.get_canonical_address());
+      } catch (const shcore::Exception &ex) {
+        if (e.code() == SHERR_DBA_MEMBER_METADATA_MISSING) {
+          return Instance_rejoinability::NOT_MEMBER;
+        }
+        throw;
+      }
+    } else {
+      throw;
+    }
   }
+
+  // If the instance was not found by UUID then it means the UUID changed
+  if (out_uuid_mistmatch) *out_uuid_mistmatch = !uuid_in_md;
+
   if (imd.cluster_id != cluster_id) return Instance_rejoinability::NOT_MEMBER;
 
   auto state = mysqlshdk::gr::get_member_state(instance);

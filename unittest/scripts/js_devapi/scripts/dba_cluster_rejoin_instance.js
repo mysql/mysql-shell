@@ -59,8 +59,12 @@ testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 // Start instance 2
 testutil.startSandbox(__mysql_sandbox_port2);
 
-//@<OUT> Cluster status
-cluster.status()
+//@<> Cluster status
+var topology = cluster.status()["defaultReplicaSet"]["topology"];
+EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
+EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port2}`]["status"], "(MISSING)");
+EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
+
 
 //@ ipWhitelist deprecation error {VER(>=8.0.22)}
 cluster.rejoinInstance(__sandbox_uri2, {ipWhitelist: "AUTOMATIC", ipAllowlist: "127.0.0.1"});
@@ -72,8 +76,11 @@ cluster.rejoinInstance({DBUser: 'foo', Host: 'localhost', PORT:__mysql_sandbox_p
 // Waiting for instance 2 to become back online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<OUT> Cluster status after rejoin
-cluster.status();
+//@<> Cluster status after rejoin
+var topology = cluster.status()["defaultReplicaSet"]["topology"];
+EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
+EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port2}`]["status"], "ONLINE");
+EXPECT_EQ(topology[`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
 
 //@<OUT> Cannot rejoin an instance that is already in the group (not missing) Bug#26870329
 // operation should succeed (no error), but not do anything

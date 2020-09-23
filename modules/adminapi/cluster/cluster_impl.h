@@ -60,8 +60,13 @@ constexpr const char k_cluster_attribute_manual_start_on_boot[] =
 // Timestamp of when the instance was added to the group
 constexpr const char k_instance_attribute_join_time[] = "joinTime";
 
+constexpr const char k_instance_attribute_server_id[] = "server_id";
+
 class MetadataStorage;
 struct Cluster_metadata;
+
+using Instance_md_and_gr_member =
+    std::pair<Instance_metadata, mysqlshdk::gr::Member>;
 
 class Cluster_impl : public Base_cluster_impl {
  public:
@@ -115,15 +120,21 @@ class Cluster_impl : public Base_cluster_impl {
   // Class functions
   void sanity_check() const;
 
-  void add_instance_metadata(
+  void add_metadata_for_instance(
       const mysqlshdk::db::Connection_options &instance_definition,
       const std::string &label = "") const;
 
-  void add_instance_metadata(const mysqlshdk::mysql::IInstance &instance,
-                             const std::string &label = "") const;
+  void add_metadata_for_instance(const mysqlshdk::mysql::IInstance &instance,
+                                 const std::string &label = "") const;
 
   void remove_instance_metadata(
       const mysqlshdk::db::Connection_options &instance_def);
+
+  void update_metadata_for_instance(
+      const mysqlshdk::db::Connection_options &instance_definition) const;
+
+  void update_metadata_for_instance(
+      const mysqlshdk::mysql::IInstance &instance) const;
 
   bool get_disable_clone_option() const;
   void set_disable_clone_option(const bool disable_clone);
@@ -244,6 +255,8 @@ class Cluster_impl : public Base_cluster_impl {
       const std::vector<std::string> &ignore_instances_vector,
       const std::function<bool(const std::shared_ptr<Instance> &instance)>
           &functor,
+      const std::function<bool(const Instance_md_and_gr_member &md)>
+          &condition = nullptr,
       bool ignore_network_conn_errors = true) const;
 
   /**
@@ -292,6 +305,16 @@ class Cluster_impl : public Base_cluster_impl {
       const std::vector<mysqlshdk::gr::Member_state> &states = {}) const;
 
   /**
+   * Ensures the server_id of each instance is registered as an attribute on the
+   * instances table. If an instance does not have it then inserts it.
+   *
+   * @param target_instance: The instance to be used to get the cluster members
+   * to update the server_id attribute on the instances table.
+   */
+  void ensure_metadata_has_server_id(
+      const mysqlshdk::mysql::IInstance &target_instance);
+
+  /**
    * Get an online instance from the cluster.
    *
    * Return an online instance from the cluster that is reachable (able
@@ -316,8 +339,7 @@ class Cluster_impl : public Base_cluster_impl {
    * Return list of instances registered in metadata along with their current
    * GR member state.
    */
-  std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
-  get_instances_with_state() const;
+  std::vector<Instance_md_and_gr_member> get_instances_with_state() const;
 
   std::unique_ptr<mysqlshdk::config::Config> create_config_object(
       const std::vector<std::string> &ignored_instances = {},

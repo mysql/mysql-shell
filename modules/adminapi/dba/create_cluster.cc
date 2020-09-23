@@ -640,7 +640,7 @@ shcore::Value Create_cluster::execute() {
 
       // If the instance is not in the Metadata, we must add it.
       if (!is_instance_on_md) {
-        cluster_impl->add_instance_metadata(
+        cluster_impl->add_metadata_for_instance(
             m_target_instance->get_connection_options());
       }
 

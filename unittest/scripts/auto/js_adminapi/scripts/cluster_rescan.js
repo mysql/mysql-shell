@@ -40,6 +40,32 @@ function check_auto_increment_settings(uri) {
     s.close();
 }
 
+function validate_instance_status(status, instance, expected) {
+    topology = status["defaultReplicaSet"]["topology"];
+    if (expected == "N/A") {
+        EXPECT_FALSE(`${hostname}:${instance}` in topology);
+    } else {
+        instance_status = topology[`${hostname}:${instance}`];
+        if (expected == "OK") {
+            EXPECT_EQ(instance_status["status"], "ONLINE");
+            EXPECT_FALSE("instanceErrors" in instance_status);
+        } else if (expected == "UNMANAGED") {
+            EXPECT_EQ(instance_status["status"], "ONLINE");
+            EXPECT_TRUE("instanceErrors" in instance_status);
+            EXPECT_EQ(instance_status["instanceErrors"][0],
+                "WARNING: Instance is not managed by InnoDB cluster. Use cluster.rescan() to repair.");
+        } else if (expected == "MISSING" ) {
+            EXPECT_EQ(instance_status["status"], "(MISSING)");
+            EXPECT_FALSE("instanceErrors" in instance_status);
+        }
+    }
+}
+
+function validate_status(status, instance_data) {
+    instance_data.forEach(instance=>
+        validate_instance_status(status, instance[0], instance[1]))
+}
+
 //@ Initialize.
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {server_uuid: "cd93e780-b558-11ea-b3de-0242ac130004", report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
@@ -68,17 +94,25 @@ dba.configureInstance(__sandbox_uri1, {clusterAdmin:'root', mycnfPath: mycnf_pat
 dba.configureInstance(__sandbox_uri2, {clusterAdmin:'root', mycnfPath: mycnf_path2});
 dba.configureInstance(__sandbox_uri3, {clusterAdmin:'root', mycnfPath: mycnf_path3});
 
-//@ Create cluster.
+//@<> Create cluster.
 shell.connect(__hostname_uri1);
 var cluster = dba.createCluster("c", {gtidSetIsComplete: true});
 cluster.addInstance(__hostname_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.addInstance(__hostname_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
-cluster.status();
 
-//@ No-op.
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "OK"],
+                                   [__mysql_sandbox_port2, "OK"]]);
+
+//@ No-op - Still missing server_id attributes are added
+var initial_atts = session.runSql(`SELECT attributes->'$.server_id' AS server_id FROM mysql_innodb_cluster_metadata.instances WHERE address = '${hostname}:${__mysql_sandbox_port3}'`).fetchOneObject();
+session.runSql(`UPDATE mysql_innodb_cluster_metadata.instances set attributes=JSON_REMOVE(attributes, '$.server_id') WHERE address= '${hostname}:${__mysql_sandbox_port3}'`);
 cluster.rescan();
+var final_atts = session.runSql(`SELECT attributes->'$.server_id' AS server_id FROM mysql_innodb_cluster_metadata.instances WHERE address = '${hostname}:${__mysql_sandbox_port3}'`).fetchOneObject();
+EXPECT_EQ(initial_atts.server_id, final_atts.server_id);
+
 
 //@ WL10644 - TSF2_6: empty addInstances throw ArgumentError.
 cluster.rescan({addInstances: []});
@@ -156,10 +190,13 @@ cluster.rescan({addInstances: ["localhost:3300", "localhost:3302", "localhost:33
 cluster.rescan({addInstances: [{host: "localhost", port: "3301", user: "root"}], removeInstances: [{host: "localhost", port: "3300"}, {host: "localhost", port: "3301"}]});
 cluster.rescan({addInstances: ["localhost:3301", "localhost:3300"], removeInstances: [{host: "localhost", port: "3301"}]});
 
-//@ Remove instance on port 2 and 3 from MD but keep it in the group.
+//@<> Remove instance on port 2 and 3 from MD but keep it in the group.
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [hostname+":"+__mysql_sandbox_port2]);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [hostname+":"+__mysql_sandbox_port3]);
-cluster.status();
+
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "UNMANAGED"],
+                                   [__mysql_sandbox_port3, "UNMANAGED"]]);
 
 //@<> WL10644 - TSF2_1: Rescan with addInstances:[complete_valid_list].
 var member_address2 = hostname + ":" + __mysql_sandbox_port2;
@@ -167,51 +204,71 @@ var member_address3 = hostname + ":" + __mysql_sandbox_port3;
 cluster.rescan({addInstances: [member_address2, member_address3]});
 
 //@<> WL10644 - TSF2_1: Validate that the instances were added.
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "OK"],
+                                   [__mysql_sandbox_port3, "OK"]]);
 
 //@<> WL10644 - TSF2_2: Remove instances on port 2 and 3 from MD again.
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address3]);
-cluster.status();
+
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "UNMANAGED"],
+                                   [__mysql_sandbox_port3, "UNMANAGED"]]);
 
 //@<> WL10644 - TSF2_2: Rescan with addInstances:[incomplete_valid_list] and interactive:true.
 testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]:", "y");
 cluster.rescan({addInstances: [member_address2], interactive: true});
 
 //@<> WL10644 - TSF2_2: Validate that the instances were added.
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "OK"],
+                                   [__mysql_sandbox_port3, "OK"]]);
 
 //@<> WL10644 - TSF2_3: Remove instances on port 2 and 3 from MD again.
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address3]);
-cluster.status();
+
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "UNMANAGED"],
+                                   [__mysql_sandbox_port3, "UNMANAGED"]]);
 
 //@<> WL10644 - TSF2_3: Rescan with addInstances:[incomplete_valid_list] and interactive:false.
 cluster.rescan({addInstances: [member_address2], interactive: false});
 
 //@<> WL10644 - TSF2_3: Validate that the instances were added.
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "OK"],
+                                   [__mysql_sandbox_port3, "UNMANAGED"]]);
 
 //@<> WL10644 - TSF2_4: Remove instances on port 2 from MD.
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "UNMANAGED"],
+                                   [__mysql_sandbox_port3, "UNMANAGED"]]);
 
 //@<> WL10644 - TSF2_4: Rescan with addInstances:"auto" and interactive:true.
 cluster.rescan({addInstances: "AUTO", interactive: true});
 
 //@<> WL10644 - TSF2_4: Validate that the instances were added.
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "OK"],
+                                   [__mysql_sandbox_port3, "OK"]]);
 
 //@<> WL10644 - TSF2_5: Remove instances on port 2 and 3 from MD again.
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address3]);
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "UNMANAGED"],
+                                   [__mysql_sandbox_port2, "UNMANAGED"]]);
 
 //@<> WL10644 - TSF2_5: Rescan with addInstances:"auto" and interactive:false.
 cluster.rescan({addInstances: "auto", interactive: false});
 
 //@<> WL10644 - TSF2_5: Validate that the instances were added.
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "OK"],
+                                   [__mysql_sandbox_port3, "OK"]]);
 
 //@ WL10644 - TSF3_1: Disable GR in persisted settings {VER(>=8.0.11)}.
 //NOTE: GR configurations are not updated on my.cnf therefore GR settings
@@ -230,7 +287,9 @@ testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 testutil.stopSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "MISSING"],
+                                   [__mysql_sandbox_port3, "MISSING"]]);
 
 //@<> WL10644 - TSF3_1: Number of instances in the MD before rescan().
 count_in_metadata_schema();
@@ -242,7 +301,9 @@ cluster.rescan({removeInstances: [member_address2, member_address3]});
 count_in_metadata_schema();
 
 //@<> WL10644 - TSF3_1: Validate that the instances were removed.
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "N/A"],
+                                   [__mysql_sandbox_port3, "N/A"]]);
 
 //@ WL10644 - TSF3_2: Start instances and add them back to the cluster.
 testutil.startSandbox(__mysql_sandbox_port2);
@@ -269,7 +330,9 @@ testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 testutil.stopSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "MISSING"],
+                                   [__mysql_sandbox_port3, "MISSING"]]);
 
 //@<> WL10644 - TSF3_2: Number of instances in the MD before rescan().
 count_in_metadata_schema();
@@ -284,7 +347,9 @@ cluster.rescan({removeInstances: [member_fqdn_address2], interactive: true});
 count_in_metadata_schema();
 
 //@<> WL10644 - TSF3_2: Validate that the instances were removed.
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "N/A"],
+                                   [__mysql_sandbox_port3, "N/A"]]);
 
 //@ WL10644 - TSF3_3: Start instances and add them back to the cluster.
 testutil.startSandbox(__mysql_sandbox_port2);
@@ -311,7 +376,9 @@ testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 testutil.stopSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "MISSING"],
+                                   [__mysql_sandbox_port3, "MISSING"]]);
 
 //@<> WL10644 - TSF3_3: Number of instances in the MD before rescan().
 count_in_metadata_schema();
@@ -323,7 +390,9 @@ cluster.rescan({removeInstances: [member_fqdn_address2], interactive: false});
 count_in_metadata_schema();
 
 //@<> WL10644 - TSF3_3: Validate that the instances were removed.
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "N/A"],
+                                   [__mysql_sandbox_port3, "MISSING"]]);
 
 //@ WL10644 - TSF3_4: Start instance on port 2 and add it back to the cluster.
 //NOTE: Not need for instance 3 (no removed from MD in previous test).
@@ -343,7 +412,9 @@ s2.close();
 //NOTE: Not need for instance 3 (no removed from MD in previous test).
 testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "MISSING"],
+                                   [__mysql_sandbox_port3, "MISSING"]]);
 
 //@<> WL10644 - TSF3_4: Number of instances in the MD before rescan().
 count_in_metadata_schema();
@@ -355,7 +426,9 @@ cluster.rescan({removeInstances: "auto", interactive: true});
 count_in_metadata_schema();
 
 //@<> WL10644 - TSF3_4: Validate that the instances were removed.
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "N/A"],
+                                   [__mysql_sandbox_port3, "N/A"]]);
 
 //@ WL10644 - TSF3_5: Start instances and add them back to the cluster.
 testutil.startSandbox(__mysql_sandbox_port2);
@@ -382,7 +455,9 @@ testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 testutil.stopSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "MISSING"],
+                                   [__mysql_sandbox_port3, "MISSING"]]);
 
 //@<> WL10644 - TSF3_5: Number of instances in the MD before rescan().
 count_in_metadata_schema();
@@ -394,7 +469,9 @@ cluster.rescan({removeInstances: "AUTO", interactive: false});
 count_in_metadata_schema();
 
 //@<> WL10644 - TSF3_5: Validate that the instances were removed.
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "N/A"],
+                                   [__mysql_sandbox_port3, "N/A"]]);
 
 //@ WL10644: Start instances and add them back to the cluster again.
 testutil.startSandbox(__mysql_sandbox_port2);
@@ -438,7 +515,9 @@ get_metadata_topology_mode();
 cluster.rescan({updateTopologyMode: true});
 
 //@<> WL10644 - TSF4_2: status() succeeds after rescan() updates topology mode.
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "OK"],
+                                   [__mysql_sandbox_port3, "OK"]]);
 
 //@<> WL10644 - TSF4_5: Check auto_increment settings after change to single-primary.
 check_auto_increment_settings(__sandbox_uri1);
@@ -453,7 +532,9 @@ cluster.addInstance(__hostname_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.addInstance(__hostname_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
-cluster.status();
+validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
+                                   [__mysql_sandbox_port2, "OK"],
+                                   [__mysql_sandbox_port3, "OK"]]);
 
 //@ WL10644 - TSF4_3: Change the topology mode in the MD to the wrong value.
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET primary_mode = 'pm'");

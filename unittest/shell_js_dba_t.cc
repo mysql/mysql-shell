@@ -586,6 +586,7 @@ TEST_F(Shell_js_dba_tests, dba_cluster_remove_instance) {
 
 TEST_F(Shell_js_dba_tests, dba_cluster_rejoin_instance) {
   _options->wizards = false;
+  _options->dba_log_sql = 2;
   reset_replayable_shell();
   // Regression for Bug #25786495
   validate_interactive("dba_cluster_rejoin_instance.js");

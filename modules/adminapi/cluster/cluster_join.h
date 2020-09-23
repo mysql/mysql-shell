@@ -65,7 +65,8 @@ class Cluster_join {
   void prepare_join(
       const mysqlshdk::utils::nullable<std::string> &instance_label);
 
-  bool prepare_rejoin();
+  bool check_rejoinable(bool *out_uuid_mistmatch = nullptr);
+  bool prepare_rejoin(bool *out_uuid_mistmatch = nullptr);
 
   void prepare_reboot();
 
@@ -131,8 +132,6 @@ class Cluster_join {
    * and the target instance
    */
   void handle_clone_plugin_state(bool enable_clone);
-
-  bool check_rejoinable();
 
  private:
   Cluster_impl *m_cluster = nullptr;

@@ -452,7 +452,7 @@ Rejoins an Instance to the cluster.
 @param instance An instance definition.
 @param options Optional dictionary with options for the operation.
 
-@returns Nothing.
+@returns A JSON object with the result of the operation.
 
 This function rejoins an Instance to the cluster.
 
@@ -512,9 +512,9 @@ cluster.
  * $(CLUSTER_REJOININSTANCE)
  */
 #if DOXYGEN_JS
-Undefined Cluster::rejoinInstance(InstanceDef instance, Dictionary options) {}
+Dictionary Cluster::rejoinInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
-None Cluster::rejoin_instance(InstanceDef instance, dict options) {}
+Dict Cluster::rejoin_instance(InstanceDef instance, dict options) {}
 #endif
 
 void Cluster::rejoin_instance(const Connection_options &instance_def_,

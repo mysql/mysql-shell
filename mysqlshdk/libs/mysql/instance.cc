@@ -103,6 +103,14 @@ std::string Instance::get_canonical_address() const {
   return mysqlshdk::utils::make_host_and_port(m_hostname, m_port);
 }
 
+uint32_t Instance::get_server_id() const {
+  if (m_server_id == 0) {
+    m_server_id = queryf_one_int(0, 0, "SELECT @@server_id");
+  }
+
+  return m_server_id;
+}
+
 const std::string &Instance::get_uuid() const {
   if (m_uuid.empty()) {
     m_uuid = queryf_one_string(0, "", "SELECT @@server_uuid");
