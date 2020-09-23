@@ -46,6 +46,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
+#include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
@@ -63,6 +64,10 @@ static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
 // the version of the dump we support in this code
 static constexpr const int k_supported_dump_version_major = 1;
 static constexpr const int k_supported_dump_version_minor = 0;
+
+// Multiplier for bytesPerChunk which determines how big a chunk can actually be
+// before we enable sub-chunking for it.
+static constexpr const auto k_chunk_size_overshoot_tolerance = 1.5;
 
 class dump_wait_timeout : public std::runtime_error {
  public:
@@ -85,9 +90,6 @@ bool has_pke(mysqlshdk::db::ISession *session, const std::string &schema,
   }
   return false;
 }
-}  // namespace
-
-namespace {
 
 std::vector<std::string> preprocess_table_script_for_indexes(
     std::string *script, const std::string &key, bool fulltext_only) {
@@ -167,6 +169,89 @@ void execute_script(const std::shared_ptr<mysqlshdk::db::ISession> &session,
       },
       [console](const std::string &err) { console->print_error(err); });
 }
+
+class Index_file {
+ public:
+  explicit Index_file(mysqlshdk::storage::IFile *data_file) {
+    m_idx_file = data_file->parent()->file(data_file->filename() + ".idx");
+  }
+
+  uint64_t data_size() {
+    load_metadata();
+    return m_data_size;
+  }
+
+  const std::vector<uint64_t> &offsets() {
+    load_offsets();
+    return m_offsets;
+  }
+
+ private:
+  void load_metadata() {
+    if (m_metadata_loaded) {
+      return;
+    }
+
+    m_file_size = m_idx_file->file_size();
+    if ((m_file_size % k_entry_size) != 0 || m_file_size < k_entry_size) {
+      log_warning(
+          "idx file %s has unexpected size %s, which is not a multiple of %s",
+          m_idx_file->filename().c_str(), std::to_string(m_file_size).c_str(),
+          std::to_string(k_entry_size).c_str());
+      return;
+    }
+    m_entries = m_file_size / k_entry_size;
+
+    m_idx_file->open(mysqlshdk::storage::Mode::READ);
+    m_idx_file->seek(m_file_size - k_entry_size);
+    m_idx_file->read(&m_data_size, k_entry_size);
+    m_idx_file->seek(0);
+    m_idx_file->close();
+
+    m_data_size = mysqlshdk::utils::network_to_host(m_data_size);
+
+    m_metadata_loaded = true;
+  }
+
+  void load_offsets() {
+    if (m_offsets_loaded) {
+      return;
+    }
+
+    load_metadata();
+
+    if (m_entries > 0) {
+      m_offsets.resize(m_entries);
+
+      m_idx_file->open(mysqlshdk::storage::Mode::READ);
+      m_idx_file->read(&m_offsets[0], m_file_size);
+      m_idx_file->close();
+
+      std::transform(m_offsets.begin(), m_offsets.end(), m_offsets.begin(),
+                     [](uint64_t offset) {
+                       return mysqlshdk::utils::network_to_host(offset);
+                     });
+    }
+    m_offsets_loaded = true;
+  }
+
+  static constexpr uint64_t k_entry_size = sizeof(uint64_t);
+
+  std::unique_ptr<mysqlshdk::storage::IFile> m_idx_file;
+
+  std::size_t m_file_size = 0;
+
+  uint64_t m_entries = 0;
+
+  uint64_t m_data_size = 0;
+
+  std::vector<uint64_t> m_offsets;
+
+  bool m_metadata_loaded = false;
+
+  bool m_offsets_loaded = false;
+};
+
 }  // namespace
 
 void Dump_loader::Worker::Task::handle_current_exception(
@@ -434,8 +519,53 @@ void Dump_loader::Worker::Load_chunk_task::load(
     } catch (...) {
       compr = mysqlshdk::storage::Compression::NONE;
     }
-    op.execute(session,
-               mysqlshdk::storage::make_file(std::move(m_file), compr));
+
+    // If max_transaction_size > 0, chunk truncation is enabled, where LOAD
+    // DATA will be truncated if the transaction size exceeds that value and
+    // then retried until the whole chunk is loaded.
+    //
+    // The max. transaction size depends on server options like
+    // max_binlog_cache_size and gr_transaction_size_limit. However, it's not
+    // straightforward to calculate the transaction size from CSV data (at least
+    // not without a lot of effort and cpu cycles). Thus, we instead use a
+    // different approach where we assume that the value of bytesPerChunk used
+    // during dumping will be sufficiently small to fit in a transaction. If any
+    // chunks are bigger than that value (because approximations made during
+    // dumping were not good), we will break them down further here during
+    // loading.
+    // Ideally, only chunks that are much bigger than the specified
+    // bytesPerChunk value will get sub-chunked, chunks that are smaller or just
+    // a little bigger will be loaded whole. If they still don't fit, the user
+    // should dump with a smaller bytesPerChunk value.
+    uint64_t max_transaction_size = loader->m_dump->bytes_per_chunk();
+    uint64_t max_chunk_size =
+        max_transaction_size * k_chunk_size_overshoot_tolerance;
+    const std::vector<uint64_t> *offsets = nullptr;
+    Index_file idx_file{m_file.get()};
+
+    if (max_transaction_size > 0) {
+      bool valid = false;
+      auto chunk_file_size =
+          loader->m_dump->chunk_size(m_file->filename(), &valid);
+
+      if (!valid) {
+        // @.done.json not there yet, use the idx file directly
+        chunk_file_size = idx_file.data_size();
+      }
+
+      if (chunk_file_size < max_chunk_size) {
+        // chunk is small enough, so don't sub-chunk
+        max_transaction_size = 0;
+      } else {
+        // data will not fit into a single transaction and needs to be divided
+        // load the row offsets from the IDX file
+        offsets = &idx_file.offsets();
+        if (offsets->empty()) offsets = nullptr;
+      }
+    }
+
+    op.execute(session, mysqlshdk::storage::make_file(std::move(m_file), compr),
+               max_transaction_size, offsets);
   }
 
   if (loader->m_thread_exceptions[id()])

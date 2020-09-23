@@ -81,6 +81,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/modules/mysql_connection_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/mod_utils_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/dump_utils_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/dummy_dumpdir.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_common_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_cluster_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_sql_t.cc"

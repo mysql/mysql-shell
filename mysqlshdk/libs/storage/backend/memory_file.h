@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,10 +61,9 @@ class Memory_file : public IFile {
   }
 
   off64_t seek(off64_t offset) override;
-  off64_t tell() const override {
-    throw std::logic_error("Memory_file::tell() - not implemented");
-  }
-  off64_t offset() { return m_offset; }
+
+  off64_t tell() const override { return m_offset; }
+
   ssize_t read(void *buffer, size_t length) override;
   ssize_t write(const void *buffer, size_t length) override;
   bool flush() override;

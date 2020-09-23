@@ -201,7 +201,7 @@ DESCRIPTION
       - dryRun: bool (default: false) - Print information about what would be
         dumped, but do not dump anything.
       - chunking: bool (default: true) - Enable chunking of the tables.
-      - bytesPerChunk: string (default: "256M") - Sets average estimated number
+      - bytesPerChunk: string (default: "64M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
       - threads: int (default: 4) - Use N threads to dump data chunks from the
         server.
@@ -480,7 +480,7 @@ DESCRIPTION
       - dryRun: bool (default: false) - Print information about what would be
         dumped, but do not dump anything.
       - chunking: bool (default: true) - Enable chunking of the tables.
-      - bytesPerChunk: string (default: "256M") - Sets average estimated number
+      - bytesPerChunk: string (default: "64M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
       - threads: int (default: 4) - Use N threads to dump data chunks from the
         server.
@@ -740,7 +740,7 @@ DESCRIPTION
       - dryRun: bool (default: false) - Print information about what would be
         dumped, but do not dump anything.
       - chunking: bool (default: true) - Enable chunking of the tables.
-      - bytesPerChunk: string (default: "256M") - Sets average estimated number
+      - bytesPerChunk: string (default: "64M") - Sets average estimated number
         of bytes to be written to each chunk file, enables chunking.
       - threads: int (default: 4) - Use N threads to dump data chunks from the
         server.

@@ -116,6 +116,9 @@ Dump_reader::Status Dump_reader::open() {
   if (md->has_key("tableOnly"))
     m_contents.table_only = md->get_bool("tableOnly");
 
+  if (md->has_key("bytesPerChunk"))
+    m_contents.bytes_per_chunk = md->get_uint("bytesPerChunk");
+
   m_contents.has_users = md->has_key("users");
 
   try {
@@ -1007,6 +1010,13 @@ void Dump_reader::Dump_info::parse_done_metadata(
       log_warning(
           "Dump metadata file @.done.json does not contain tableDataBytes "
           "information");
+    }
+
+    // only exists in 1.0.1+
+    if (metadata->has_key("chunkFileBytes")) {
+      for (const auto &file : *metadata->get_map("chunkFileBytes")) {
+        chunk_sizes[file.first] = file.second.as_uint();
+      }
     }
   } else {
     log_warning("Dump metadata file @.done.json is invalid");

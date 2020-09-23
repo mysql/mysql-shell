@@ -1761,7 +1761,7 @@ dumps.
 dumped, but do not dump anything.
 
 @li <b>chunking</b>: bool (default: true) - Enable chunking of the tables.
-@li <b>bytesPerChunk</b>: string (default: "256M") - Sets average estimated
+@li <b>bytesPerChunk</b>: string (default: "64M") - Sets average estimated
 number of bytes to be written to each chunk file, enables <b>chunking</b>.
 @li <b>threads</b>: int (default: 4) - Use N threads to dump data chunks from
 the server.

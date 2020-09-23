@@ -390,7 +390,7 @@ TEST_F(Load_dump_mocked, chunk_scheduling_more_threads) {
   auto file_list = test_dump1_files;
   auto file_list_size = sizeof(test_dump1_files) / sizeof(*test_dump1_files);
 
-  auto dir = std::make_unique<Dummy_dump_directory>(
+  auto dir = std::make_unique<tests::Dummy_dump_directory>(
       shcore::path::join_path(g_test_home, "data/load/test_dump1"), file_list,
       file_list_size);
 
@@ -437,7 +437,7 @@ TEST_F(Load_dump_mocked, chunk_scheduling_more_tables) {
   auto file_list = test_dump1_files;
   auto file_list_size = sizeof(test_dump1_files) / sizeof(*test_dump1_files);
 
-  auto dir = std::make_unique<Dummy_dump_directory>(
+  auto dir = std::make_unique<tests::Dummy_dump_directory>(
       shcore::path::join_path(g_test_home, "data/load/test_dump1"), file_list,
       file_list_size);
 
