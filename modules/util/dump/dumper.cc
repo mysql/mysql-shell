@@ -445,22 +445,28 @@ class Dumper::Table_worker final {
     mysqlshdk::utils::Profile_timer timer;
     timer.stage_begin("chunking");
 
+    // default row size to use when there's no known row size
+    constexpr const uint64_t k_default_row_size = 256;
+
     std::size_t ranges_count = 0;
     std::string range_end;
     const Range_info total = {min_max->get_as_string(0),
                               min_max->get_as_string(1), min_max->get_type(0)};
 
     const auto average_row_length = get_average_row_length(table);
-    const auto rows_per_chunk = m_dumper->m_options.bytes_per_chunk() /
-                                std::max(UINT64_C(1), average_row_length);
+    const auto rows_per_chunk =
+        m_dumper->m_options.bytes_per_chunk() /
+        std::max(k_default_row_size, average_row_length);
 
     const auto generate_ranges = [&table, &ranges_count, &total,
                                   &rows_per_chunk,
                                   this](const auto min, const auto max) {
+      // if rows_per_chunk <= 1 it may mean that the rows are bigger than
+      // chunk size, which means we # chunks ~= # rows
       const auto estimated_chunks =
           rows_per_chunk > 0
               ? std::max(table.row_count / rows_per_chunk, UINT64_C(1))
-              : UINT64_C(1);
+              : table.row_count;
       // it should be (max - min + 1), but this can potentially overflow and
       // `+ 1` is not significant, as the result is divided anyway
       const auto estimated_step = (max - min) / estimated_chunks;
@@ -470,7 +476,7 @@ class Dumper::Table_worker final {
       using step_t = decltype(min);
 
       const auto next_step =
-          table.row_count < 1'000'000
+          estimated_chunks < 2
               ? std::function<step_t(const step_t, const step_t)>(
                     [](const auto, const auto step) { return step; })
               : [&table, &rows_per_chunk, &accuracy, &chunk_id, &max, this](
