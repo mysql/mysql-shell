@@ -68,7 +68,12 @@ def EXPECT_NE(expected, actual):
     context = "Tested values should not match:\n\tActual: " + str(actual) + "\n\tExpected: " + str(expected)
     testutil.fail(context)
 
-def  EXPECT_TRUE(value, context=""):
+def EXPECT_LE(expected, actual, note=""):
+  if expected > actual:
+    context = "Tested values not as expected: "+note+"\n\t"+str(expected)+" (expected) <= "+str(actual)+" (actual)"
+    testutil.fail(context)
+
+def EXPECT_TRUE(value, context=""):
   if not value:
     if not len(context):
       context = "Tested value expected to be true but is false"
