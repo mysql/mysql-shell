@@ -132,9 +132,11 @@ static void handle_ctrlc_signal(int /* sig */) {
 
 static void install_signal_handler() {
   // install signal handler
-  signal(SIGINT, handle_ctrlc_signal);
-  // allow system calls to be interrupted
-  siginterrupt(SIGINT, 1);
+  struct sigaction sa;
+  memset(&sa, '\0', sizeof(sa));
+  sa.sa_handler = &handle_ctrlc_signal;
+  sa.sa_flags = SA_RESTART;
+  sigaction(SIGINT, &sa, NULL);
   // Ignore broken pipe signal
   signal(SIGPIPE, SIG_IGN);
 }
