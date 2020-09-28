@@ -355,6 +355,9 @@ unsigned int Python_init_singleton::s_cnt = 0;
 
 Python_context::Python_context(bool redirect_stdio) : _types(this) {
   m_compiler_flags.cf_flags = 0;
+#if PY_VERSION_HEX >= 0x03080000
+  m_compiler_flags.cf_feature_version = PY_MINOR_VERSION;
+#endif
 
   Python_init_singleton::init_python();
 
