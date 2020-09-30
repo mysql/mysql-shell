@@ -1169,7 +1169,7 @@ session.run_sql("SET GLOBAL SQL_MODE='';")
 
 #@<> prepare user privileges, switch user
 session.run_sql("GRANT ALL ON *.* TO !@!;", [test_user, __host])
-session.run_sql("REVOKE RELOAD ON *.* FROM !@!;", [test_user, __host])
+session.run_sql("REVOKE RELOAD /*!80023 , FLUSH_TABLES */ ON *.* FROM !@!;", [test_user, __host])
 shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
 
 #@<> try to run consistent dump using a user which does not have required privileges for FTWRL but LOCK TABLES are ok
