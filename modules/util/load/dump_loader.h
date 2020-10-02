@@ -433,7 +433,7 @@ class Dump_loader {
   bool m_workers_killed = false;
 
   std::unique_ptr<mysqlshdk::textui::IProgress> m_progress;
-  std::mutex m_output_mutex;
+  std::recursive_mutex m_output_mutex;
   Scoped_console m_console;
 
   std::unordered_set<std::string> m_unique_tables_loaded;

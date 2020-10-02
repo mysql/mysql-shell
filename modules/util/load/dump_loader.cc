@@ -1521,9 +1521,9 @@ void Dump_loader::show_summary() {
 void Dump_loader::update_progress(bool force) {
   static const char k_progress_spin[] = "-\\|/";
 
-  auto lock =
-      force ? std::unique_lock<std::mutex>(m_output_mutex)
-            : std::unique_lock<std::mutex>(m_output_mutex, std::try_to_lock);
+  auto lock = force ? std::unique_lock<std::recursive_mutex>(m_output_mutex)
+                    : std::unique_lock<std::recursive_mutex>(m_output_mutex,
+                                                             std::try_to_lock);
 
   if (lock.owns_lock()) {
     m_progress->set_right_label(shcore::str_format(

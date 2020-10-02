@@ -2278,7 +2278,8 @@ void Dumper::update_progress(uint64_t new_rows,
   }
 
   {
-    std::unique_lock<std::mutex> lock(m_progress_mutex, std::try_to_lock);
+    std::unique_lock<std::recursive_mutex> lock(m_progress_mutex,
+                                                std::try_to_lock);
     if (lock.owns_lock()) {
       m_data_throughput->push(m_data_bytes);
       m_bytes_throughput->push(m_bytes_written);

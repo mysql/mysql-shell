@@ -333,7 +333,7 @@ class Dumper {
   std::atomic<uint64_t> m_bytes_written;
   std::atomic<uint64_t> m_rows_written;
   std::unique_ptr<mysqlshdk::textui::IProgress> m_progress;
-  std::mutex m_progress_mutex;
+  std::recursive_mutex m_progress_mutex;
   std::unique_ptr<mysqlshdk::textui::Throughput> m_data_throughput;
   std::unique_ptr<mysqlshdk::textui::Throughput> m_bytes_throughput;
   std::atomic<uint64_t> m_num_threads_chunking;

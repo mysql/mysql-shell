@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,7 +32,8 @@ class Hide_progress final {
  public:
   Hide_progress() = delete;
 
-  Hide_progress(mysqlshdk::textui::IProgress *progress, std::mutex *mutex)
+  Hide_progress(mysqlshdk::textui::IProgress *progress,
+                std::recursive_mutex *mutex)
       : m_progress(dynamic_cast<mysqlshdk::textui::Text_progress *>(progress)),
         m_mutex(mutex) {
     hide_progress();
@@ -49,27 +50,27 @@ class Hide_progress final {
  private:
   void hide_progress() const {
     if (m_progress) {
-      std::lock_guard<std::mutex> lock(*m_mutex);
+      std::lock_guard<std::recursive_mutex> lock(*m_mutex);
       m_progress->hide(true);
     }
   }
 
   void show_progress() const {
     if (m_progress) {
-      std::lock_guard<std::mutex> lock(*m_mutex);
+      std::lock_guard<std::recursive_mutex> lock(*m_mutex);
       m_progress->hide(false);
     }
   }
 
   mysqlshdk::textui::Text_progress *m_progress;
-  std::mutex *m_mutex;
+  std::recursive_mutex *m_mutex;
 };
 
 }  // namespace
 
 Console_with_progress::Console_with_progress(
     const std::unique_ptr<mysqlshdk::textui::IProgress> &progress,
-    std::mutex *mutex)
+    std::recursive_mutex *mutex)
     : m_progress(progress), m_mutex(mutex), m_console(current_console()) {}
 
 void Console_with_progress::raw_print(const std::string &text,

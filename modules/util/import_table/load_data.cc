@@ -369,8 +369,8 @@ int local_infile_read(void *userdata, char *buffer,
   }
 
   if (file_info->prog) {
-    std::unique_lock<std::mutex> lock(*(file_info->prog_mutex),
-                                      std::try_to_lock);
+    std::unique_lock<std::recursive_mutex> lock(*(file_info->prog_mutex),
+                                                std::try_to_lock);
     if (lock.owns_lock()) {
       file_info->prog->current(*(file_info->prog_bytes));
       file_info->prog->show_status();
@@ -385,8 +385,8 @@ void local_infile_end(void *userdata) noexcept {
   File_info *file_info = static_cast<File_info *>(userdata);
 
   if (file_info->prog) {
-    std::unique_lock<std::mutex> lock(*(file_info->prog_mutex),
-                                      std::try_to_lock);
+    std::unique_lock<std::recursive_mutex> lock(*(file_info->prog_mutex),
+                                                std::try_to_lock);
     if (lock.owns_lock()) {
       file_info->prog->current(*(file_info->prog_bytes));
       file_info->prog->show_status();
@@ -417,7 +417,7 @@ int local_infile_error(void *userdata, char *error_msg,
 
 Load_data_worker::Load_data_worker(
     const Import_table_options &options, int64_t thread_id,
-    mysqlshdk::textui::IProgress *progress, std::mutex *output_mutex,
+    mysqlshdk::textui::IProgress *progress, std::recursive_mutex *output_mutex,
     std::atomic<size_t> *prog_sent_bytes, volatile bool *interrupt,
     shcore::Synchronized_queue<File_import_info> *range_queue,
     std::vector<std::exception_ptr> *thread_exception, Stats *stats,
@@ -677,6 +677,7 @@ void Load_data_worker::execute(
           load_result ? load_result->get_warning_count() : 0;
 
       {
+        std::lock_guard<std::recursive_mutex> lock(*(fi.prog_mutex));
         const char *mysql_info = session->get_mysql_info();
         mysqlsh::current_console()->print_info(
             worker_name + task + ": " + (mysql_info ? mysql_info : "ERROR") +

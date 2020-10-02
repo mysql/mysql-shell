@@ -87,7 +87,7 @@ class Import_table final {
 
   std::atomic<size_t> m_prog_sent_bytes{0};
   std::unique_ptr<mysqlshdk::textui::IProgress> m_progress = nullptr;
-  std::mutex m_output_mutex;
+  std::recursive_mutex m_output_mutex;
   Scoped_console m_console;
 
   shcore::Synchronized_queue<File_import_info> m_range_queue;
