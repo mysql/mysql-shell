@@ -75,79 +75,79 @@ Console_with_progress::Console_with_progress(
 void Console_with_progress::raw_print(const std::string &text,
                                       Output_stream stream,
                                       bool format_json) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   m_console->raw_print(text, stream, format_json);
 }
 
 void Console_with_progress::print(const std::string &text) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   m_console->print(text);
 }
 
 void Console_with_progress::println(const std::string &text) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   m_console->println(text);
 }
 
 void Console_with_progress::print_error(const std::string &text) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   m_console->print_error(text);
 }
 
 void Console_with_progress::print_warning(const std::string &text) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   m_console->print_warning(text);
 }
 
 void Console_with_progress::print_note(const std::string &text) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   m_console->print_note(text);
 }
 
 void Console_with_progress::print_status(const std::string &text) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   m_console->print_status(text);
 }
 
 void Console_with_progress::print_info(const std::string &text) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   m_console->print_info(text);
 }
 
 void Console_with_progress::print_para(const std::string &text) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   m_console->print_para(text);
 }
 
 void Console_with_progress::print_value(const shcore::Value &value,
                                         const std::string &tag) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   m_console->print_value(value, tag);
 }
 
 void Console_with_progress::print_diag(const std::string &text) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   m_console->print_diag(text);
 }
 
 bool Console_with_progress::prompt(const std::string &prompt,
                                    std::string *out_val,
                                    Validator validator) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   return m_console->prompt(prompt, out_val, validator);
 }
 
 Prompt_answer Console_with_progress::confirm(
     const std::string &prompt, Prompt_answer def, const std::string &yes_label,
     const std::string &no_label, const std::string &alt_label) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   return m_console->confirm(prompt, def, yes_label, no_label, alt_label);
 }
 
 shcore::Prompt_result Console_with_progress::prompt_password(
     const std::string &prompt, std::string *out_val,
     Validator validator) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   return m_console->prompt_password(prompt, out_val, validator);
 }
 
@@ -156,7 +156,7 @@ bool Console_with_progress::select(const std::string &prompt_text,
                                    const std::vector<std::string> &items,
                                    size_t default_option, bool allow_custom,
                                    Validator validator) const {
-  Hide_progress(m_progress.get(), m_mutex);
+  Hide_progress hp(m_progress.get(), m_mutex);
   return m_console->select(prompt_text, result, items, default_option,
                            allow_custom, validator);
 }
