@@ -522,6 +522,12 @@ TEST_F(Rest_service_test, response_headers) {
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ("two", response.headers["one"]);
   EXPECT_EQ("four", response.headers["three"]);
+
+  // BUG#31979374 it should be possible to fetch a header with an empty value
+  response = m_service.get("/headers?one=");
+  EXPECT_EQ(Response::Status_code::OK, response.status);
+  ASSERT_TRUE(response.headers.find("one") != response.headers.end());
+  EXPECT_EQ("", response.headers["one"]);
 }
 
 TEST_F(Rest_service_test, response_content_type) {

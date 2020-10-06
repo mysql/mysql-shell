@@ -112,7 +112,7 @@ class TestRequestHandler(BaseHTTPRequestHandler):
         return True
 
     def handle_headers(self, args):
-        self.reply(extra_headers=parse_qsl(urlparse(self.path).query))
+        self.reply(extra_headers=parse_qsl(urlparse(self.path).query, keep_blank_values=True))
         return True
 
     def invoke_handler(self):

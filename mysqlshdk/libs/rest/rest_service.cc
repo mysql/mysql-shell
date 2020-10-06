@@ -91,7 +91,10 @@ Headers parse_headers(const std::string &s) {
         const auto begin = it->find_first_not_of(" \t", colon + 1);
         const auto end = it->find_last_not_of(" \t");
 
-        headers[it->substr(0, colon)] = it->substr(begin, end - begin + 1);
+        // if `begin` is std::string::npos, header has an empty value
+        headers[it->substr(0, colon)] = std::string::npos != begin
+                                            ? it->substr(begin, end - begin + 1)
+                                            : "";
       }
     }
   }
@@ -281,10 +284,12 @@ class Rest_service::Impl {
       throw Connection_error{m_error_buffer};
     }
 
-    response.status = get_status_code();
-    response.headers = parse_headers(response_headers);
+    const auto status = get_status_code();
 
-    log_response(m_request_sequence, response.status, response_headers);
+    log_response(m_request_sequence, status, response_headers);
+
+    response.status = status;
+    response.headers = parse_headers(response_headers);
 
     return response;
   }
@@ -318,11 +323,11 @@ class Rest_service::Impl {
       throw Connection_error{m_error_buffer};
     }
 
-    if (response_headers) *response_headers = parse_headers(header_data);
-
-    auto status = get_status_code();
+    const auto status = get_status_code();
 
     log_response(m_request_sequence, status, header_data);
+
+    if (response_headers) *response_headers = parse_headers(header_data);
 
     return status;
   }
