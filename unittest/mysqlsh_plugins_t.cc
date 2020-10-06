@@ -106,12 +106,18 @@ class Mysqlsh_extension_test : public Command_line_test {
   void add_js_test(const std::string &input, const std::string &output = "") {
 #ifdef HAVE_V8
     add_test(input, output);
+#else
+    (void)input;
+    (void)output;
 #endif  // HAVE_V8
   }
 
   void add_py_test(const std::string &input, const std::string &output = "") {
 #ifdef HAVE_PYTHON
     add_test(input, output);
+#else
+    (void)input;
+    (void)output;
 #endif  // HAVE_PYTHON
   }
 
@@ -126,24 +132,32 @@ class Mysqlsh_extension_test : public Command_line_test {
   void add_expected_js_log(const std::string &expected) {
 #ifdef HAVE_V8
     add_expected_log(expected);
+#else
+    (void)expected;
 #endif  // HAVE_V8
   }
 
   void add_expected_py_log(const std::string &expected) {
 #ifdef HAVE_PYTHON
     add_expected_log(expected);
+#else
+    (void)expected;
 #endif  // HAVE_PYTHON
   }
 
   void add_unexpected_js_log(const std::string &unexpected) {
 #ifdef HAVE_V8
     add_unexpected_log(unexpected);
+#else
+    (void)unexpected;
 #endif  // HAVE_V8
   }
 
   void add_unexpected_py_log(const std::string &unexpected) {
 #ifdef HAVE_PYTHON
     add_unexpected_log(unexpected);
+#else
+    (void)unexpected;
 #endif  // HAVE_PYTHON
   }
 
