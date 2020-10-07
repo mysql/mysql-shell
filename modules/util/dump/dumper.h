@@ -306,6 +306,8 @@ class Dumper {
   std::string get_query_comment(const Table_data_task &task,
                                 const char *context) const;
 
+  void validate_trigger_privilege() const;
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 

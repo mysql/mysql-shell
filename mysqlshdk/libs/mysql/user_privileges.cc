@@ -327,8 +327,8 @@ std::set<std::string> User_privileges::get_missing_privileges(
     // Get privileges from user and associated roles.
     for (const auto &kv : m_privileges) {
       // Get wildcard privileges.
-      auto role_privileges = kv.second;
-      auto wildcard_privileges = role_privileges.at(k_wildcard).at(k_wildcard);
+      auto &role_privileges = kv.second;
+      auto &wildcard_privileges = role_privileges.at(k_wildcard).at(k_wildcard);
       user_privileges.insert(wildcard_privileges.begin(),
                              wildcard_privileges.end());
 
@@ -362,7 +362,7 @@ std::set<std::string> User_privileges::get_missing_privileges(
         std::inserter(missing_privileges, missing_privileges.begin()));
   } else {
     // If user does not exist, then all privileges are also missing.
-    missing_privileges = privileges;
+    missing_privileges = std::move(privileges);
   }
 
   if (required_privileges.size() == 1 &&

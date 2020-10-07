@@ -43,6 +43,7 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/utils.h"
@@ -969,6 +970,7 @@ void Dumper::do_run() {
     }
   }
 
+  validate_trigger_privilege();
   validate_mds();
   initialize_counters();
   initialize_progress();
@@ -2509,6 +2511,39 @@ bool Dumper::should_dump_data(const Table_task &table) {
     return false;
   } else {
     return true;
+  }
+}
+
+void Dumper::validate_trigger_privilege() const {
+  if (m_options.dump_triggers()) {
+    using mysqlshdk::mysql::Instance;
+    using mysqlshdk::mysql::User_privileges;
+
+    const auto &s = session();
+    const auto &co = s->get_connection_options();
+    const auto privileges =
+        User_privileges(Instance(s), co.get_user(), co.get_host());
+    const std::set<std::string> trigger{"TRIGGER"};
+
+    if (privileges.validate(trigger).has_missing_privileges()) {
+      // user doesn't have the global TRIGGER privilege, check schemas
+      for (const auto &schema : m_schema_tasks) {
+        if (privileges.validate(trigger, schema.name)
+                .has_missing_privileges()) {
+          // user doesn't have per-schema TRIGGER privilege, check tables
+          for (const auto &table : schema.tables) {
+            if (privileges.validate(trigger, schema.name, table.name)
+                    .has_missing_privileges()) {
+              // user doesn't have the TRIGGER privilege for this table
+              throw std::runtime_error(
+                  "It is not possible to check if table " +
+                  quote(schema, table) +
+                  " has any triggers, user is missing the TRIGGER privilege.");
+            }
+          }
+        }
+      }
+    }
   }
 }
 

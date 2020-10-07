@@ -1,5 +1,6 @@
 from __future__ import print_function
 import difflib
+import re
 import sys
 
 def get_members(object):
@@ -58,9 +59,31 @@ def has_oci_environment(context):
     return False
   return True
 
+def is_re_instance(o):
+    return isinstance(o, is_re_instance.__re_type)
+
+is_re_instance.__re_type = type(re.compile(''))
+
+class __TextMatcher:
+    def __init__(self, o):
+        self.__is_re = is_re_instance(o)
+        if not self.__is_re and not isinstance(o, str):
+            raise Exception("Expected str or re.Pattern, but got: " + str(type(o)))
+        self.__o = o
+    def __str__(self):
+        if self.__is_re:
+            return "re.Pattern('" + self.__o.pattern + "')"
+        else:
+            return self.__o
+    def matches(self, s):
+        if self.__is_re:
+            return self.__o.search(s) is not None
+        else:
+            return s.find(self.__o) != -1
+
 def EXPECT_EQ(expected, actual, note=""):
   if expected != actual:
-    context = "Tested values don't match as expected:"+note+"\n\tActual: " + str(actual) + "\n\tExpected: " + str(expected)
+    context = "Tested values don't match as expected: "+note+"\n\tActual: " + str(actual) + "\n\tExpected: " + str(expected)
     testutil.fail(context)
 
 def EXPECT_NE(expected, actual):
@@ -85,14 +108,15 @@ def EXPECT_FALSE(value):
     testutil.fail(context)
 
 def EXPECT_THROWS(func, etext):
+  m = __TextMatcher(etext)
   try:
     func()
-    testutil.fail("<red>Missing expected exception throw like " + etext + "</red>")
+    testutil.fail("<red>Missing expected exception throw like " + str(m) + "</red>")
     return False
   except Exception as e:
     exception_message = type(e).__name__ + ": " + str(e)
-    if exception_message.find(etext) == -1:
-      testutil.fail("<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + exception_message)
+    if not m.matches(exception_message):
+      testutil.fail("<red>Exception expected:</red> " + str(m) + "\n\t<yellow>Actual:</yellow> " + exception_message)
       return False
     return True
 

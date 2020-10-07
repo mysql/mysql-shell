@@ -100,7 +100,8 @@ else:
 def setup_session(u = uri):
     shell.connect(u)
     session.run_sql("SET NAMES 'utf8mb4';")
-    session.run_sql("SET GLOBAL local_infile = true;")
+    if __user + ":" in u:
+        session.run_sql("SET GLOBAL local_infile = true;")
 
 def drop_all_schemas(exclude=[]):
     for schema in session.run_sql("SELECT SCHEMA_NAME FROM information_schema.schemata;").fetch_all():
@@ -185,8 +186,11 @@ def EXPECT_SUCCESS(schemas, outputUrl, options = {}):
 
 def EXPECT_FAIL(error, msg, outputUrl, options = {}, expect_dir_created = False):
     shutil.rmtree(test_output_absolute, True)
-    EXPECT_THROWS(lambda: util.dump_instance(outputUrl, options), "{0}: Util.dump_instance: {1}".format(error, msg))
-    EXPECT_EQ(expect_dir_created, os.path.isdir(test_output_absolute))
+    full_msg = "{0}: Util.dump_instance: {1}".format(error, msg.pattern if is_re_instance(msg) else msg)
+    if is_re_instance(msg):
+        full_msg = re.compile("^" + full_msg)
+    EXPECT_THROWS(lambda: util.dump_instance(outputUrl, options), full_msg)
+    EXPECT_EQ(expect_dir_created, os.path.isdir(test_output_absolute), "Output directory should" + ("" if expect_dir_created else " NOT") + " be created.")
 
 def TEST_BOOL_OPTION(option):
     EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type Bool, but is Null".format(option), test_output_relative, { option: None })
@@ -1347,6 +1351,83 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "chunking": False, "compr
 
 for table in types_schema_tables:
     TEST_LOAD(types_schema, table, False)
+
+#@<> test privileges required to dump an instance
+class PrivilegeError:
+    def __init__(self, exception_message, error_message="", exception_type="RuntimeError", output_dir_created=True):
+        self.exception_message = exception_message
+        self.error_message = error_message
+        self.exception_type = exception_type
+        self.output_dir_created = output_dir_created
+
+# if this list ever changes, online docs need to be updated
+required_privileges = {
+    "EVENT": PrivilegeError(
+        "Could not execute 'show events': MySQL Error 1044 (42000): Access denied for user '{0}'@'{1}'".format(test_user, __host)
+    ),
+    "RELOAD": PrivilegeError(
+        "Unable to lock tables: MySQL Error 1044 (42000): Access denied for user '{0}'@'{1}'".format(test_user, __host),
+        "ERROR: Unable to acquire global read lock neither table read locks.",
+        output_dir_created=False
+    ),
+    "SELECT": PrivilegeError(
+        "Fatal error during dump",
+        "MySQL Error 1142 (42000): SELECT command denied to user '{0}'@'{1}' for table '".format(test_user, __host)
+    ),
+    "SHOW VIEW": PrivilegeError(
+        "Fatal error during dump",
+        "MySQL Error 1142 (42000): SHOW VIEW command denied to user '{0}'@'{1}'".format(test_user, __host),
+    ),
+    "TRIGGER": PrivilegeError(
+        re.compile(r"It is not possible to check if table `.+`\.`.+` has any triggers, user is missing the TRIGGER privilege."),
+        output_dir_created=False
+    ),
+}
+
+if __version_num >= 80000:
+    # when running a consistent dump on 8.0, LOCK INSTANCE FOR BACKUP is executed, which requires BACKUP_ADMIN privilege
+    required_privileges["BACKUP_ADMIN"] = PrivilegeError(
+        "Access denied; you need (at least one of) the BACKUP_ADMIN privilege(s) for this operation",
+        "ERROR: Could not acquire backup lock: MySQL Error 1227 (42000): Access denied; you need (at least one of) the BACKUP_ADMIN privilege(s) for this operation",
+        "DBError: MySQL Error (1227)",
+        False
+    )
+    # 8.0 has roles which are checked prior to running the dump, if user is missing the SELECT privilege, error will be reported at this stage
+    required_privileges["SELECT"] = PrivilegeError(
+        "Unable to get roles information.",
+        "ERROR: Unable to check privileges for user '{0}'@'{1}'. User requires SELECT privilege on mysql.* to obtain information about all roles.".format(test_user, __host),
+        output_dir_created=False
+    )
+
+# setup the user, grant only required privileges
+create_user()
+session.run_sql("REVOKE ALL PRIVILEGES ON *.* FROM !@!;", [test_user, __host])
+for privilege in required_privileges.keys():
+    session.run_sql("GRANT {0} ON *.* TO !@!;".format(privilege), [test_user, __host])
+
+# reconnect as test user
+setup_session("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+
+# create session for root
+root_session = mysql.get_session(uri)
+
+# user has all the required privileges, this should succeed
+EXPECT_SUCCESS(all_schemas, test_output_absolute, { "showProgress": False })
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".triggers.sql")))
+
+# check if revoking one of the privileges results in a failure
+for privilege, error in required_privileges.items():
+    print("--> testing:", privilege)
+    root_session.run_sql("REVOKE {0} ON *.* FROM !@!;".format(privilege), [test_user, __host])
+    WIPE_STDOUT()
+    EXPECT_FAIL(error.exception_type, error.exception_message, test_output_absolute, { "showProgress": False }, expect_dir_created=error.output_dir_created)
+    EXPECT_STDOUT_CONTAINS(error.error_message)
+    root_session.run_sql("GRANT {0} ON *.* TO !@!;".format(privilege), [test_user, __host])
+
+# cleanup
+root_session.close()
+setup_session()
+create_user()
 
 #@<> dump table when different character set/SQL mode is used
 # this should be the last test that uses `test_schema`, as it drops it in order to not mess up with test
