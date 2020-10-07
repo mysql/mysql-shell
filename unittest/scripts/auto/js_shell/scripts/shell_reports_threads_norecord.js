@@ -43,6 +43,7 @@ var __test_ids = get_ids(__test_session);
 var __session_ids = get_ids(session);
 
 //@ create database
+session.runSql("DROP DATABASE IF EXISTS threads_test")
 session.runSql("CREATE DATABASE IF NOT EXISTS threads_test")
 session.runSql("CREATE TABLE IF NOT EXISTS threads_test.innodb (value int) ENGINE=InnoDB")
 session.runSql("INSERT INTO threads_test.innodb VALUES (1)")
@@ -802,7 +803,11 @@ EXPECT_STDERR_EMPTY();
 var stdout = testutil.fetchCapturedStdout(false);
 
 // if one ID is smaller than the other one, it should appear in the output before the other one
-EXPECT_TRUE((__test_ids.tid < __session_ids.tid) === (stdout.indexOf(__test_ids.tid) < stdout.indexOf(__session_ids.tid)));
+var test_tid_offset = stdout.indexOf("| " + __test_ids.tid + " ");
+var session_tid_offset = stdout.indexOf("| " + __session_ids.tid + " ");
+EXPECT_TRUE(test_tid_offset !== -1);
+EXPECT_TRUE(session_tid_offset !== -1);
+EXPECT_TRUE((__session_ids.tid < __test_ids.tid) === (session_tid_offset < test_tid_offset));
 
 //@ WL11651-TSFR9_3 - When the --order-by option is used, validate that the report is ordered by the column specified.
 
