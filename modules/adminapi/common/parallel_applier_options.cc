@@ -60,10 +60,10 @@ std::vector<std::tuple<std::string, std::string>>
 Parallel_applier_options::get_required_values(
     bool skip_transaction_writeset_extraction) const {
   std::vector<std::tuple<std::string, std::string>> req_cfgs{
-      {kSlaveParallelType, "LOGICAL_CLOCK"},
-      {kSlavePreserveCommitOrder, "ON"},
-      {kBinlogTransactionDependencyTracking, "WRITESET"},
-      {kTransactionWriteSetExtraction, "XXHASH64"}};
+      std::make_tuple(kSlaveParallelType, "LOGICAL_CLOCK"),
+      std::make_tuple(kSlavePreserveCommitOrder, "ON"),
+      std::make_tuple(kBinlogTransactionDependencyTracking, "WRITESET"),
+      std::make_tuple(kTransactionWriteSetExtraction, "XXHASH64")};
 
   if (skip_transaction_writeset_extraction) {
     req_cfgs.pop_back();
