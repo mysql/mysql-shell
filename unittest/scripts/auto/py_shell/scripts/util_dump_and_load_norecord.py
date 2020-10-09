@@ -166,35 +166,37 @@ testutil.mkdir(target)
 files = os.listdir(source)
 files.sort()
 files.remove("@.done.json")
+
 # Copy global metadata files first
 for f in files[:]:
     if f.startswith("@."):
         copy(f)
         files.remove(f)
+
 ddlfiles = []
+idxfiles = []
 datafiles = []
+
 for f in files:
     if f.endswith(".json") or f.endswith(".sql"):
         ddlfiles.append(f)
+    elif f.endswith(".idx"):
+        idxfiles.append(f)
     else:
         datafiles.append(f)
 
-# Copy ddl files and half of the data files first
-for f in ddlfiles:
+# Copy ddl, idx files and half of the data files first
+for f in ddlfiles + idxfiles:
     copy(f)
+
 n = int(len(datafiles)/2)
 for f in datafiles[:n]:
     copy(f)
 
 def copy_rest():
     time.sleep(2)
-    # copy idx files first because they must exist before the matching data file
     for f in datafiles[n:]:
-        if f.endswith(".idx"):
-            copy(f)
-    for f in datafiles[n:]:
-        if not f.endswith(".idx"):
-            copy(f)
+        copy(f)
 
 #@<> load dump while dump still running
 
