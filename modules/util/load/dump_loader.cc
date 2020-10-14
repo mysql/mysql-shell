@@ -1003,21 +1003,23 @@ void Dump_loader::on_dump_end() {
     } else if (!m_dump->gtid_executed().empty()) {
       try {
         m_load_log->start_gtid_update();
+
+        const auto query = m_options.is_mds() ? "CALL sys.set_gtid_purged(?)"
+                                              : "SET GLOBAL GTID_PURGED=?";
+
         if (m_options.update_gtid_set() ==
             Load_dump_options::Update_gtid_set::REPLACE) {
           current_console()->print_status(
               "Resetting GTID_PURGED to dumped gtid set");
           log_info("Setting GTID_PURGED to %s",
                    m_dump->gtid_executed().c_str());
-          m_session->executef("SET GLOBAL GTID_PURGED=?",
-                              m_dump->gtid_executed());
+          m_session->executef(query, m_dump->gtid_executed());
         } else {
           current_console()->print_status(
               "Appending dumped gtid set to GTID_PURGED");
           log_info("Appending %s to GTID_PURGED",
                    m_dump->gtid_executed().c_str());
-          m_session->executef("SET GLOBAL GTID_PURGED=?",
-                              "+" + m_dump->gtid_executed());
+          m_session->executef(query, "+" + m_dump->gtid_executed());
         }
         m_load_log->end_gtid_update();
       } catch (const std::exception &e) {
