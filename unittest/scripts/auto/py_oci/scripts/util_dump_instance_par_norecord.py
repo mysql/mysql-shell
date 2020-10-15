@@ -103,7 +103,8 @@ testutil.set_trap("par_manifest", ["name == {0}/sample@data.json".format(prefix)
 
 prepare_empty_bucket(k_bucket_name, OS_NAMESPACE)
 EXPECT_THROWS(lambda:util.dump_instance(prefix, {"osBucketName":k_bucket_name, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ociParManifest": True}),
-    "RuntimeError: Util.dump_instance: Failed creating PAR for object '{0}/sample@data.json': Injected failure".format(prefix))
+    "RuntimeError: Util.dump_instance: Fatal error during dump")
+EXPECT_STDOUT_CONTAINS("Failed creating PAR for object '{0}/sample@data.json': Injected failure".format(prefix))
 
 testutil.clear_traps("par_manifest")
 
