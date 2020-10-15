@@ -236,7 +236,9 @@ static PyTypeObject PyShMethodObjectType = {
 #if PY_VERSION_HEX >= 0x03080000
     ,
     0,  // tp_vectorcall
-    0   // tp_print
+#if PY_VERSION_HEX < 0x03090000
+    0  // tp_print
+#endif
 #endif
 };
 
@@ -667,7 +669,9 @@ static PyTypeObject PyShObjObjectType = {
 #if PY_VERSION_HEX >= 0x03080000
     ,
     0,  // tp_vectorcall
-    0   // tp_print
+#if PY_VERSION_HEX < 0x03090000
+    0  // tp_print
+#endif
 #endif
 };
 
@@ -759,7 +763,9 @@ static PyTypeObject PyShObjIndexedObjectType = {
 #if PY_VERSION_HEX >= 0x03080000
     ,
     0,  // tp_vectorcall
-    0   // tp_print
+#if PY_VERSION_HEX < 0x03090000
+    0  // tp_print
+#endif
 #endif
 };
 

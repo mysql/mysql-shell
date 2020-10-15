@@ -429,7 +429,9 @@ Python_context::Python_context(bool redirect_stdio) : _types(this) {
   // Stores the main thread state
   _main_thread_state = PyThreadState_Get();
 
+#if PY_VERSION_HEX < 0x03070000
   PyEval_InitThreads();
+#endif
   PyEval_SaveThread();
 
   _types.init();

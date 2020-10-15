@@ -128,6 +128,7 @@ class Python : public ::testing::Test {
 
 TEST_F(Python, simple_to_py_and_back) {
   ASSERT_TRUE(py);
+  WillEnterPython lock;
 
   {
     Value v(Value::True());

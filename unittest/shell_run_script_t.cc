@@ -590,11 +590,11 @@ Exception)";
   rc = execute({_mysqlsh, _uri.c_str(), "--py", "-f", "badsyn.py", nullptr});
   // error, exit code not-0
   EXPECT_EQ(1, rc);
-  static const char *result3 = R"(File "<string>", line 1
-    if:
-    ^
-IndentationError: unexpected indent)";
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(result3);
+  static const char *result3a = R"(File "<string>", line 1
+    if:)";
+  static const char *result3b = "IndentationError: unexpected indent";
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result3a);
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(result3b);
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end");
 
   wipe_out();
