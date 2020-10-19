@@ -97,13 +97,30 @@ bool manifest_object_exists(
   return false;
 }
 
+::testing::AssertionResult wait_for_manifest(
+    Bucket *bucket, mysqlshdk::oci::Object_details *manifest) {
+  int retries = 0;
+  const int max_retries = 10;
+
+  while (++retries <= max_retries) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    const auto objects = bucket->list_objects("@.manifest.json");
+
+    if (!objects.empty()) {
+      *manifest = objects[0];
+      return ::testing::AssertionSuccess();
+    }
+  }
+
+  return ::testing::AssertionFailure() << "Timed-out waiting for manifest";
+}
+
 TEST_F(Oci_os_tests, dump_manifest_write_complete) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Dump_manifest manifest(Dump_manifest::Mode::WRITE,
-                         get_options(PRIVATE_BUCKET));
-  Bucket bucket(get_options(PRIVATE_BUCKET));
+  Dump_manifest manifest(Dump_manifest::Mode::WRITE, get_options());
+  Bucket bucket(get_options());
 
   shcore::Scoped_callback cleanup([this, &bucket]() { clean_bucket(bucket); });
 
@@ -111,16 +128,15 @@ TEST_F(Oci_os_tests, dump_manifest_write_complete) {
 
   // Manifest for the first object is written right away
   // We just wait as a safety measure
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  auto objects = bucket.list_objects("@.manifest.json");
-  EXPECT_STREQ("@.manifest.json", objects[0].name.c_str());
-  auto first_manifest = objects[0];
+  mysqlshdk::oci::Object_details first_manifest;
+  ASSERT_TRUE(wait_for_manifest(&bucket, &first_manifest));
+  EXPECT_STREQ("@.manifest.json", first_manifest.name.c_str());
 
   write_object(&manifest, Obj_index::SECOND);
 
   // Second object is not written, but cached for 5 seconds so second manifest
   // is the same as the first (comparing size)
-  objects = bucket.list_objects("@.manifest.json");
+  auto objects = bucket.list_objects("@.manifest.json");
   auto second_manifest = objects[0];
   EXPECT_EQ(first_manifest.size, second_manifest.size);
 
@@ -156,12 +172,11 @@ TEST_F(Oci_os_tests, dump_manifest_write_complete) {
 }
 
 TEST_F(Oci_os_tests, dump_manifest_write_incomplete) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Dump_manifest manifest(Dump_manifest::Mode::WRITE,
-                         get_options(PRIVATE_BUCKET));
-  Bucket bucket(get_options(PRIVATE_BUCKET));
+  Dump_manifest manifest(Dump_manifest::Mode::WRITE, get_options());
+  Bucket bucket(get_options());
 
   shcore::Scoped_callback cleanup([this, &bucket]() { clean_bucket(bucket); });
 
@@ -169,16 +184,15 @@ TEST_F(Oci_os_tests, dump_manifest_write_incomplete) {
 
   // Manifest for the first object is written right away
   // We just wait as a safety measure
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  auto objects = bucket.list_objects("@.manifest.json");
-  EXPECT_STREQ("@.manifest.json", objects[0].name.c_str());
-  auto first_manifest = objects[0];
+  mysqlshdk::oci::Object_details first_manifest;
+  ASSERT_TRUE(wait_for_manifest(&bucket, &first_manifest));
+  EXPECT_STREQ("@.manifest.json", first_manifest.name.c_str());
 
   write_object(&manifest, Obj_index::SECOND);
 
   // Second object is not written, but cached for 5 seconds so second manifest
   // is the same as the first (comparing size)
-  objects = bucket.list_objects("@.manifest.json");
+  auto objects = bucket.list_objects("@.manifest.json");
   auto second_manifest = objects[0];
   EXPECT_EQ(first_manifest.size, second_manifest.size);
 
@@ -202,12 +216,11 @@ TEST_F(Oci_os_tests, dump_manifest_write_incomplete) {
 }
 
 TEST_F(Oci_os_tests, dump_manifest_read_mode) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Dump_manifest write_manifest(Dump_manifest::Mode::WRITE,
-                               get_options(PRIVATE_BUCKET));
-  Bucket bucket(get_options(PRIVATE_BUCKET));
+  Dump_manifest write_manifest(Dump_manifest::Mode::WRITE, get_options());
+  Bucket bucket(get_options());
 
   shcore::Scoped_callback cleanup([this, &bucket]() { clean_bucket(bucket); });
 
@@ -224,7 +237,7 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
       "@.manifest.json");
 
   Dump_manifest read_manifest(
-      Dump_manifest::Mode::READ, get_options(PRIVATE_BUCKET),
+      Dump_manifest::Mode::READ, get_options(),
       bucket.get_rest_service()->end_point() + manifest_par.access_uri);
 
   auto manifest_files = read_manifest.list_files();
@@ -282,7 +295,7 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
   EXPECT_STREQ("MY PROGRESS DATA", progress_data.c_str());
 
   EXPECT_THROW_LIKE(
-      Dump_manifest(Dump_manifest::Mode::READ, get_options(PRIVATE_BUCKET),
+      Dump_manifest(Dump_manifest::Mode::READ, get_options(),
                     bucket.get_rest_service()->end_point() + rw_par.access_uri),
       std::runtime_error, "Invalid manifest PAR: ");
 }

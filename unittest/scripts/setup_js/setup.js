@@ -74,7 +74,8 @@ function hasOciEnvironment(context) {
 
   let variables = ['OCI_CONFIG_HOME',
                    'OCI_COMPARTMENT_ID',
-                   'OS_NAMESPACE'];
+                   'OS_NAMESPACE',
+                   'OS_BUCKET_NAME'];
   if (context == 'MDS') {
     variables = variables.concat(['OCI_INSTANCE_HOST',
                                   'OCI_INSTANCE_USER',

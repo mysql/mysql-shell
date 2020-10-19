@@ -23,9 +23,9 @@
 
 namespace testing {
 TEST_F(Oci_os_tests, directory_list_files) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Oci_options options{get_options()};
   Bucket bucket(options);
   Directory root_directory(options);
   Directory sakila(options, "sakila");
@@ -103,9 +103,9 @@ TEST_F(Oci_os_tests, directory_list_files) {
 }
 
 TEST_F(Oci_os_tests, file_errors) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Oci_options options{get_options()};
   Bucket bucket(options);
   Directory root(options, "");
 
@@ -123,9 +123,9 @@ TEST_F(Oci_os_tests, file_errors) {
 }
 
 TEST_F(Oci_os_tests, file_write_simple_upload) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Oci_options options{get_options()};
   Bucket bucket(options);
   clean_bucket(bucket);
   Directory root(options, "");
@@ -152,9 +152,9 @@ TEST_F(Oci_os_tests, file_write_simple_upload) {
 }
 
 TEST_F(Oci_os_tests, file_write_multipart_upload) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Oci_options options{get_options()};
   Bucket bucket(options);
   Directory root(options, "test");
 
@@ -197,9 +197,9 @@ TEST_F(Oci_os_tests, file_write_multipart_upload) {
 }
 
 TEST_F(Oci_os_tests, file_append_new_file) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Oci_options options{get_options()};
   Bucket bucket(options);
   Directory root(options, "");
 
@@ -225,9 +225,9 @@ TEST_F(Oci_os_tests, file_append_new_file) {
 }
 
 TEST_F(Oci_os_tests, file_append_resume_interrupted_upload) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Oci_options options{get_options()};
   Bucket bucket(options);
   Directory root(options, "");
 
@@ -284,9 +284,9 @@ TEST_F(Oci_os_tests, file_append_resume_interrupted_upload) {
 }
 
 TEST_F(Oci_os_tests, file_append_existing_file) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Oci_options options{get_options()};
   Bucket bucket(options);
   Directory root(options, "");
 
@@ -319,11 +319,11 @@ TEST_F(Oci_os_tests, file_append_existing_file) {
 }
 
 TEST_F(Oci_os_tests, file_write_multipart_errors) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
   output_handler.set_log_level(shcore::Logger::LOG_LEVEL::LOG_DEBUG2);
 
-  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Oci_options options{get_options()};
   Bucket bucket(options);
   Directory root(options, "");
   // Now APPEND should be allowed
@@ -348,9 +348,9 @@ TEST_F(Oci_os_tests, file_write_multipart_errors) {
 }
 
 TEST_F(Oci_os_tests, file_writing) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Oci_options options{get_options()};
 
   Directory root(options);
 
@@ -405,9 +405,9 @@ TEST_F(Oci_os_tests, file_writing) {
 }
 
 TEST_F(Oci_os_tests, file_rename) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Oci_options options{get_options(PRIVATE_BUCKET)};
+  Oci_options options{get_options()};
   Bucket bucket(options);
   Directory root(options, "");
 

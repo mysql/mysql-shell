@@ -5,7 +5,6 @@
 
 #@<> Setup
 
-k_bucket_name="mds-dump-test-bucket"
 oci_config_file=os.path.join(OCI_CONFIG_HOME, "config")
 
 datadir = __tmp_dir + "/mdstest-datadir-%s-%s" % (__version, __mysql_sandbox_port1)
@@ -32,33 +31,33 @@ def delete_progress_file(name=None, prefix=""):
             result = prefix + result
         return result
     if name is None:
-        name = list_oci_objects(OS_NAMESPACE, k_bucket_name, prepend_prefix(prefix, "load-progress."))[0].name
+        name = list_oci_objects(OS_NAMESPACE, OS_BUCKET_NAME, prepend_prefix(prefix, "load-progress."))[0].name
         prefix = ""
-    delete_object(k_bucket_name, prepend_prefix(prefix, name), OS_NAMESPACE)
+    delete_object(OS_BUCKET_NAME, prepend_prefix(prefix, name), OS_NAMESPACE)
 
 # ------------
 # Defaults
 
 #@<> Dump mysqlaas_compat to OS without MDS compatibility
-prepare_empty_bucket(k_bucket_name, OS_NAMESPACE)
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 
 shell.connect(__sandbox_uri1)
-util.dump_schemas(["mysqlaas_compat"], '', {"osBucketName":k_bucket_name, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file})
+util.dump_schemas(["mysqlaas_compat"], '', {"osBucketName":OS_BUCKET_NAME, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file})
 EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
 WIPE_OUTPUT()
 
 #@<> Loading incompatible mysqlaas_compat will fail
 execute_oci_shell("--sql -e \"drop schema if exists mysqlaas_compat\"")
-execute_oci_shell("-e \"util.loadDump('', {osBucketName:'%s', osNamespace:'%s'})\"" % (k_bucket_name, OS_NAMESPACE))
+execute_oci_shell("-e \"util.loadDump('', {osBucketName:'%s', osNamespace:'%s'})\"" % (OS_BUCKET_NAME, OS_NAMESPACE))
 EXPECT_STDERR_CONTAINS("Util.loadDump: Dump is not MDS compatible (RuntimeError)")
 WIPE_OUTPUT()
 
 #@<> Dump mysqlaas_compat to OS with MDS compatibility
-prepare_empty_bucket(k_bucket_name, OS_NAMESPACE)
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 
 shell.connect(__sandbox_uri1)
 util.dump_schemas(["mysqlaas_compat"], '',
-                  { "osBucketName":k_bucket_name,
+                  { "osBucketName":OS_BUCKET_NAME,
                     "osNamespace":OS_NAMESPACE,
                     "ociConfigFile":oci_config_file,
                     "ocimds": True,
@@ -69,7 +68,7 @@ WIPE_OUTPUT()
 
 #@<> Loading incompatible mysqlaas_compat will succeed
 execute_oci_shell("--sql -e \"drop schema if exists mysqlaas_compat\"")
-execute_oci_shell("-e \"util.loadDump('', {osBucketName:'%s', osNamespace:'%s'})\"" % (k_bucket_name, OS_NAMESPACE))
+execute_oci_shell("-e \"util.loadDump('', {osBucketName:'%s', osNamespace:'%s'})\"" % (OS_BUCKET_NAME, OS_NAMESPACE))
 EXPECT_STDERR_CONTAINS("Loading DDL and Data from OCI ObjectStorage bucket=mds-dump-test-bucket, prefix='' using 4 threads.")
 EXPECT_STDERR_CONTAINS("0 warnings were reported during the load.")
 WIPE_OUTPUT()
@@ -77,19 +76,19 @@ delete_progress_file()
 
 #@<> BUG#32009225 use 'updateGtidSet' when loading a dump into MDS, set it to 'append'
 execute_oci_shell("--sql -e \"drop schema if exists mysqlaas_compat\"")
-execute_oci_shell("-e \"util.loadDump('', {osBucketName:'{0}', osNamespace:'{1}', 'updateGtidSet': 'append'})\"".format(k_bucket_name, OS_NAMESPACE))
+execute_oci_shell("-e \"util.loadDump('', {osBucketName:'{0}', osNamespace:'{1}', 'updateGtidSet': 'append'})\"".format(OS_BUCKET_NAME, OS_NAMESPACE))
 EXPECT_STDERR_CONTAINS("0 warnings were reported during the load.")
 WIPE_OUTPUT()
 delete_progress_file()
 
 #@<> BUG#32009225 use 'updateGtidSet' when loading a dump into MDS, set it to 'replace'
 execute_oci_shell("--sql -e \"drop schema if exists mysqlaas_compat\"")
-execute_oci_shell("-e \"util.loadDump('', {osBucketName:'{0}', osNamespace:'{1}', 'updateGtidSet': 'replace'})\"".format(k_bucket_name, OS_NAMESPACE))
+execute_oci_shell("-e \"util.loadDump('', {osBucketName:'{0}', osNamespace:'{1}', 'updateGtidSet': 'replace'})\"".format(OS_BUCKET_NAME, OS_NAMESPACE))
 EXPECT_STDERR_CONTAINS("0 warnings were reported during the load.")
 WIPE_OUTPUT()
 delete_progress_file()
 
 #@<> cleanup
-delete_bucket(k_bucket_name, OS_NAMESPACE)
+delete_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 testutil.rmdir(datadir, True)
 testutil.destroy_sandbox(__mysql_sandbox_port1)

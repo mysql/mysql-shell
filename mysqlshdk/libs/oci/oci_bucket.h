@@ -290,10 +290,17 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
 
   const Oci_options &get_options() { return m_options; }
 
+  bool exists();
+
+  void create(const std::string &compartment_id);
+
+  void delete_();
+
  private:
   Oci_options m_options;
   std::shared_ptr<Oci_rest_service> m_rest_service;
 
+  const std::string kNamespacePath;
   const std::string kBucketPath;
   const std::string kListObjectsPath;
   const std::string kObjectActionFormat;

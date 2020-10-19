@@ -83,16 +83,17 @@ std::string encode_json(Args &&... args) {
 
 Bucket::Bucket(const Oci_options &options)
     : m_options(options),
-      kBucketPath{shcore::str_format(
-          "/n/%s/b/%s", encode_path(*m_options.os_namespace).c_str(),
-          encode_path(*m_options.os_bucket_name).c_str())},
-      kListObjectsPath{kBucketPath + "/o"},
-      kObjectActionFormat{kBucketPath + "/o/%s"},
-      kRenameObjectPath{kBucketPath + "/actions/renameObject"},
-      kMultipartActionPath{kBucketPath + "/u"},
-      kUploadPartFormat{kBucketPath + "/u/%s?uploadId=%s&uploadPartNum=%zi"},
-      kMultipartActionFormat{kBucketPath + "/u/%s?uploadId=%s"},
-      kParActionPath{kBucketPath + "/p/"} {}
+      kNamespacePath{shcore::str_format(
+          "/n/%s/b/", encode_path(*m_options.os_namespace).c_str())},
+      kBucketPath{kNamespacePath + encode_path(*m_options.os_bucket_name) +
+                  "/"},
+      kListObjectsPath{kBucketPath + "o"},
+      kObjectActionFormat{kBucketPath + "o/%s"},
+      kRenameObjectPath{kBucketPath + "actions/renameObject"},
+      kMultipartActionPath{kBucketPath + "u"},
+      kUploadPartFormat{kBucketPath + "u/%s?uploadId=%s&uploadPartNum=%zi"},
+      kMultipartActionFormat{kBucketPath + "u/%s?uploadId=%s"},
+      kParActionPath{kBucketPath + "p/"} {}
 
 void Bucket::ensure_connection() {
   if (!m_rest_service) {
@@ -768,6 +769,40 @@ std::vector<PAR> Bucket::list_preauthenticated_requests(
   }
 
   return list;
+}
+
+bool Bucket::exists() {
+  // Ensures the REST connection is established
+  ensure_connection();
+
+  try {
+    m_rest_service->head(kBucketPath);
+    return true;
+  } catch (const Response_error &error) {
+    if (rest::Response::Status_code::NOT_FOUND == error.code()) {
+      return false;
+    } else {
+      throw;
+    }
+  }
+}
+
+void Bucket::create(const std::string &compartment_id) {
+  // Ensures the REST connection is established
+  ensure_connection();
+
+  // CreateBucketDetails
+  const auto body = encode_json("compartmentId", compartment_id, "name",
+                                encode_path(*m_options.os_bucket_name));
+
+  m_rest_service->post(kNamespacePath, body.c_str(), body.size());
+}
+
+void Bucket::delete_() {
+  // Ensures the REST connection is established
+  ensure_connection();
+
+  m_rest_service->delete_(kBucketPath, "", 0);
 }
 
 }  // namespace oci

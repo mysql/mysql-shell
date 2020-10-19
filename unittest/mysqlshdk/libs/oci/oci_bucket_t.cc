@@ -26,10 +26,10 @@
 namespace testing {
 
 TEST_F(Oci_os_tests, bucket_create_and_delete) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Bucket bucket(get_options(PRIVATE_BUCKET));
+  Bucket bucket(get_options());
   auto objects = bucket.list_objects();
   EXPECT_TRUE(objects.empty());
 
@@ -46,9 +46,9 @@ TEST_F(Oci_os_tests, bucket_create_and_delete) {
 }
 
 TEST_F(Oci_os_tests, bucket_list_objects) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Bucket bucket(get_options(PRIVATE_BUCKET));
+  Bucket bucket(get_options());
   std::vector<std::string> prefixes;
   std::string next_start;
 
@@ -143,9 +143,9 @@ TEST_F(Oci_os_tests, bucket_list_objects) {
 }
 
 TEST_F(Oci_os_tests, bucket_multipart_uploads) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Bucket bucket(get_options(PRIVATE_BUCKET));
+  Bucket bucket(get_options());
 
   // ACTIVE MULTIPART UPLOADS
   auto first = bucket.create_multipart_upload("sakila.sql");
@@ -195,9 +195,9 @@ TEST_F(Oci_os_tests, bucket_multipart_uploads) {
 }
 
 TEST_F(Oci_os_tests, bucket_object_operations) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
-  Bucket bucket(get_options(PRIVATE_BUCKET));
+  Bucket bucket(get_options());
 
   // PUT
   bucket.put_object("sakila.txt", "0123456789", 10);
@@ -298,14 +298,14 @@ TEST_F(Oci_os_tests, bucket_object_operations) {
 }
 
 TEST_F(Oci_os_tests, bucket_error_conditions) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
   Bucket unexisting(get_options("unexisting"));
   EXPECT_THROW_LIKE(unexisting.put_object("sample.txt", "data", 4, false),
                     Response_error,
                     "Failed to put object 'sample.txt': Either the bucket "
                     "named 'unexisting' does not exist in the namespace");
 
-  Bucket bucket(get_options(PUBLIC_BUCKET));
+  Bucket bucket(get_options());
 
   // PUT_OBJECT: Override disabled
   bucket.put_object("sample.txt", "data", 4);
@@ -322,7 +322,7 @@ TEST_F(Oci_os_tests, bucket_error_conditions) {
   EXPECT_THROW_LIKE(bucket.delete_object("sample.txt"), Response_error,
                     "Failed to delete object 'sample.txt': The object "
                     "'sample.txt' does not exist in bucket '" +
-                        PUBLIC_BUCKET + "' with namespace '" +
+                        m_os_bucket_name + "' with namespace '" +
                         bucket.get_namespace() + "'");
 
   // HEAD: Unexisnting Object
@@ -333,7 +333,7 @@ TEST_F(Oci_os_tests, bucket_error_conditions) {
   EXPECT_THROW_LIKE(bucket.get_object("sample.txt", nullptr), Response_error,
                     "Failed to get object 'sample.txt': The object "
                     "'sample.txt' was not found in the bucket '" +
-                        PUBLIC_BUCKET + "'");
+                        m_os_bucket_name + "'");
 
   // RENAME: Unexisting Object
   EXPECT_THROW_LIKE(
@@ -357,10 +357,10 @@ TEST_F(Oci_os_tests, bucket_error_conditions) {
 }
 
 TEST_F(Oci_os_tests, bucket_par) {
-  SKIP_IF_NO_OCI_CONFIGURATION
+  SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Bucket bucket(get_options(PRIVATE_BUCKET));
+  Bucket bucket(get_options());
 
   // Adds an object
   bucket.put_object("sample.txt", "Sample Content", 14);
@@ -374,6 +374,24 @@ TEST_F(Oci_os_tests, bucket_par) {
   bucket.delete_pre_authenticated_request(par.id);
 
   bucket.delete_object("sample.txt");
+}
+
+TEST_F(Oci_os_tests, exists) {
+  SKIP_IF_NO_OCI_CONFIGURATION;
+
+  {
+    Bucket bucket(get_options());
+
+    EXPECT_TRUE(bucket.exists());
+    EXPECT_TRUE(bucket.exists());
+  }
+
+  {
+    Bucket bucket(get_options("invalid-bucket-name"));
+
+    EXPECT_FALSE(bucket.exists());
+    EXPECT_FALSE(bucket.exists());
+  }
 }
 
 }  // namespace testing

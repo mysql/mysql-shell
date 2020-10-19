@@ -28,16 +28,18 @@
 #include <string>
 #include <vector>
 
-#include "gtest_clean.h"
+#include "unittest/gtest_clean.h"
+#include "unittest/test_utils.h"
+
+#include "mysqlshdk/include/scripting/common.h"
+#include "mysqlshdk/include/scripting/lang_base.h"
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/oci/oci_options.h"
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
-#include "scripting/common.h"
-#include "scripting/lang_base.h"
-#include "scripting/types.h"
-#include "scripting/types_cpp.h"
-#include "unittest/test_utils.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 extern "C" const char *g_oci_config_path;
 namespace testing {
@@ -48,14 +50,17 @@ using mysqlshdk::oci::Response_error;
 using mysqlshdk::storage::Mode;
 
 #define SKIP_IF_NO_OCI_CONFIGURATION \
-  if (!m_skip_reason.empty()) {      \
-    SKIP_TEST(m_skip_reason);        \
-  }
+  do {                               \
+    if (should_skip()) {             \
+      SKIP_TEST(skip_reason());      \
+    }                                \
+  } while (false)
 
 class Oci_os_tests : public Shell_core_test_wrapper {
  public:
   void SetUp() override {
     Shell_core_test_wrapper::SetUp();
+
     // Note that these object names are in alphabetical order on purpose
     m_objects = {"sakila.sql",
                  "sakila/actor.csv",
@@ -69,18 +74,40 @@ class Oci_os_tests : public Shell_core_test_wrapper {
                  "uncommon%25%name.txt",
                  "uncommon's name.txt"};
 
-    const auto oci_config_path =
-        mysqlsh::current_shell_options()->get().oci_config_file;
+    {
+      const auto oci_config_path =
+          mysqlsh::current_shell_options()->get().oci_config_file;
 
-    if (!shcore::path_exists(oci_config_path))
-      m_skip_reason = "OCI Configuration does not exist: " + oci_config_path;
+      if (!shcore::path_exists(oci_config_path)) {
+        skip("OCI Configuration does not exist: " + oci_config_path);
+      }
+    }
+
+    const auto read_var = [this](const char *name, std::string *out,
+                                 bool required = true) {
+      const auto var = getenv(name);
+
+      if (var) {
+        *out = var;
+      } else if (required) {
+        skip("Missing environment variable: " + std::string(name));
+      }
+    };
+
+    read_var("OS_NAMESPACE", &m_os_namespace, false);
+    read_var("OCI_COMPARTMENT_ID", &m_oci_compartment_id);
+    read_var("OS_BUCKET_NAME", &m_os_bucket_name);
+
+    create_bucket();
   }
 
+  void TearDown() override { delete_bucket(); }
+
  protected:
-  std::string m_skip_reason;
   std::vector<std::string> m_objects;
-  const std::string PUBLIC_BUCKET = "shell-rut-pub";
-  const std::string PRIVATE_BUCKET = "shell-rut-priv";
+  std::string m_os_namespace;
+  std::string m_os_bucket_name;
+  std::string m_oci_compartment_id;
 
   void create_objects(Bucket &bucket) {
     for (const auto &name : m_objects) {
@@ -88,13 +115,12 @@ class Oci_os_tests : public Shell_core_test_wrapper {
     }
   }
 
-  Oci_options get_options(const std::string bucket) {
+  Oci_options get_options(const std::string &bucket = {}) {
     Oci_options options;
-    options.os_bucket_name = bucket;
+    options.os_bucket_name = bucket.empty() ? m_os_bucket_name : bucket;
 
-    const char *ns = getenv("OS_NAMESPACE");
-    if (ns) {
-      options.os_namespace = std::string(ns);
+    if (!m_os_namespace.empty()) {
+      options.os_namespace = m_os_namespace;
     }
 
     options.check_option_values();
@@ -138,6 +164,38 @@ class Oci_os_tests : public Shell_core_test_wrapper {
       }
     }
   }
+
+  void skip(const std::string &reason) { m_skip_reasons.emplace_back(reason); }
+
+  bool should_skip() const { return !m_skip_reasons.empty(); }
+
+  std::string skip_reason() const {
+    return shcore::str_join(m_skip_reasons, "\n");
+  }
+
+ private:
+  void create_bucket() {
+    if (!should_skip()) {
+      Bucket bucket(get_options());
+
+      if (bucket.exists()) {
+        clean_bucket(bucket);
+      } else {
+        bucket.create(m_oci_compartment_id);
+      }
+    }
+  }
+
+  void delete_bucket() {
+    if (!should_skip()) {
+      Bucket bucket(get_options());
+
+      clean_bucket(bucket);
+      bucket.delete_();
+    }
+  }
+
+  std::vector<std::string> m_skip_reasons;
 };
 
 }  // namespace testing

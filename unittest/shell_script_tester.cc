@@ -1673,6 +1673,7 @@ void Shell_script_tester::set_defaults() {
   def_string_var_from_env("OCI_CONFIG_HOME");
   def_string_var_from_env("OCI_COMPARTMENT_ID");
   def_string_var_from_env("OS_NAMESPACE");
+  def_string_var_from_env("OS_BUCKET_NAME");
 
   // Variables for MDS Tests
   def_string_var_from_env("OCI_INSTANCE_HOST");
