@@ -24,6 +24,7 @@
 #include "mysqlsh/mysql_shell.h"
 #include <mysqld_error.h>
 #include <algorithm>
+#include <atomic>
 #include <iterator>
 #include <map>
 #include <memory>
@@ -1804,8 +1805,13 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
     if (!force) print("The global session got disconnected..\n");
     print("Attempting to reconnect to '" + co.as_uri() + "'..");
 
+    std::atomic<int> attempts{6};
+    shcore::Interrupt_handler intr_handler([&attempts]() -> bool {
+      attempts = 0;
+      return false;
+    });
     shcore::sleep_ms(500);
-    int attempts = 6;
+
     while (!ret_val && attempts > 0) {
       try {
         session->connect(co);
