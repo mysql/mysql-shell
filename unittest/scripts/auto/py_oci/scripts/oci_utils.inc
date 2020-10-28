@@ -5,49 +5,49 @@ from oci.object_storage.models.create_preauthenticated_request_details import Cr
 
 config = oci.config.from_file(os.path.join(OCI_CONFIG_HOME, "config"))
 
-def wipeout_bucket(os, namespace, bucket):
+def wipeout_bucket(os_client, namespace, bucket):
   print("Deleting objects in bucket {}".format(bucket))
-  objects = os.list_objects(namespace, bucket)
+  objects = os_client.list_objects(namespace, bucket)
   for o in objects.data.objects:
-    os.delete_object(namespace, bucket, o.name)
+    os_client.delete_object(namespace, bucket, o.name, retry_strategy=oci.retry.DEFAULT_RETRY_STRATEGY)
   print("Aborting multi-part uploads for bucket {}".format(bucket))
-  multiparts = os.list_multipart_uploads(namespace, bucket)
+  multiparts = os_client.list_multipart_uploads(namespace, bucket)
   for mp in multiparts.data:
-    os.abort_multipart_upload(namespace, bucket, mp.object, mp.upload_id)
+    os_client.abort_multipart_upload(namespace, bucket, mp.object, mp.upload_id, retry_strategy=oci.retry.DEFAULT_RETRY_STRATEGY)
   print("Deleting PARs for bucket {}".format(bucket))
-  pars = os.list_preauthenticated_requests(namespace, bucket)
+  pars = os_client.list_preauthenticated_requests(namespace, bucket)
   for par in pars.data:
-    os.delete_preauthenticated_request(namespace, bucket, par.id)
+    os_client.delete_preauthenticated_request(namespace, bucket, par.id, retry_strategy=oci.retry.DEFAULT_RETRY_STRATEGY)
 
 
 def delete_bucket(bucket, namespace=""):
-  os = oci.object_storage.ObjectStorageClient(config)
+  os_client = oci.object_storage.ObjectStorageClient(config)
   if namespace == "":
-    namespace = os.get_namespace().data
-  wipeout_bucket(os, namespace, bucket)
-  os.delete_bucket(namespace, bucket)
+    namespace = os_client.get_namespace().data
+  wipeout_bucket(os_client, namespace, bucket)
+  os_client.delete_bucket(namespace, bucket, retry_strategy=oci.retry.DEFAULT_RETRY_STRATEGY)
 
 def delete_object(bucket, name, namespace=""):
-  os = oci.object_storage.ObjectStorageClient(config)
+  os_client = oci.object_storage.ObjectStorageClient(config)
   if namespace == "":
-    namespace = os.get_namespace().data
-  os.delete_object(namespace, bucket, name)
+    namespace = os_client.get_namespace().data
+  os_client.delete_object(namespace, bucket, name, retry_strategy=oci.retry.DEFAULT_RETRY_STRATEGY)
 
 
 def prepare_empty_bucket(bucket, namespace=""):
-  os = oci.object_storage.ObjectStorageClient(config)
+  os_client = oci.object_storage.ObjectStorageClient(config)
   if namespace == "":
-    namespace = os.get_namespace().data
+    namespace = os_client.get_namespace().data
   try:
-    os.get_bucket(namespace, bucket)
+    os_client.get_bucket(namespace, bucket)
     exists = True
   except Exception as e:
     exists = False
     print(e)
   if exists:
-    wipeout_bucket(os, namespace, bucket)
+    wipeout_bucket(os_client, namespace, bucket)
   else:
-    os.create_bucket(namespace, oci.object_storage.models.CreateBucketDetails(
+    os_client.create_bucket(namespace, oci.object_storage.models.CreateBucketDetails(
           name=bucket,
           compartment_id=OCI_COMPARTMENT_ID,
           storage_tier='Standard'

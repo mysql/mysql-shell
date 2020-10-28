@@ -78,8 +78,10 @@ os.remove("par-load-progress.json")
 delete_object(OS_BUCKET_NAME, "shell-test/par-load-progress.json", OS_NAMESPACE)
 
 #@<> WL14154-TSFR9_1 - When doing a load using a PAR for a manifest file with the progressFile option set to a read/write PAR object for a file that is not in the same bucket where the dump is. Validate that the load fails because the file to store the progress is not in the same bucket.
-progress_par=create_par(OS_NAMESPACE, "shell-rut-priv", "ObjectReadWrite", "manifest-par", today_plus_days(1, RFC3339), "shell-test/another-bucket-progress.json")
+prepare_empty_bucket(OS_BUCKET_NAME + '-par-test', OS_NAMESPACE)
+progress_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME + '-par-test', "ObjectReadWrite", "manifest-par", today_plus_days(1, RFC3339), "shell-test/another-bucket-progress.json")
 EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": progress_par}), "Util.load_dump: The provided PAR must be a file on the dump location:")
+delete_bucket(OS_BUCKET_NAME + '-par-test', OS_NAMESPACE)
 
 #@<> WL14154-TSFR9_2 - When doing a load using a PAR for a manifest file with the progressFile option set to a read/write PAR object for a file that is in the same bucket but in diferent location where the dump is. Validate that the load fails because the file to store the progress is not in the same location in the bucket.
 progress_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "manifest-par", today_plus_days(1, RFC3339), "same-bucket-different-prefix.json")
