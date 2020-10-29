@@ -256,44 +256,38 @@ uint64_t Transaction_buffer::find_first_row_boundary_after(
 
 uint64_t Transaction_buffer::find_last_row_boundary_before(uint64_t limit) {
   // find boundary of the last row that will fit within the given limit
-  auto length = std::min<size_t>(limit, m_data.length());
+  const auto max_length = std::min<size_t>(limit, m_data.length());
+  auto length = max_length;
 
   if (length == 0) return 0;
 
   if (m_offsets) {
     const auto size = m_offsets->size();
+    bool index_changed = false;
 
-    for (; m_offset_index < size; ++m_offset_index) {
+    for (; m_offset_index < size; ++m_offset_index, index_changed = true) {
       const auto &o = (*m_offsets)[m_offset_index];
 
-      if (o > m_current_offset + limit) {
-        if (m_offset_index > 0) {
-          --m_offset_index;
-        }
-        break;
-      }
-
       if (o > m_current_offset) {
-        length = o - m_current_offset;
+        const auto new_length = o - m_current_offset;
+
+        if (new_length > max_length) {
+          if (index_changed) {
+            --m_offset_index;
+          }
+          break;
+        }
+
+        length = new_length;
       }
     }
   }
 
-  const char *last_row_end = &m_data[0] + length - 1;
-
-  while (last_row_end > &m_data[0] && *last_row_end != m_delimiter) {
-    --last_row_end;
-  }
-
-  length = last_row_end - &m_data[0];
-
-  if (*last_row_end == m_delimiter && length < limit) {
-    ++last_row_end;
-    ++length;
-    return length;
-  } else {
-    return 0;
-  }
+  assert(length <= m_data.length());
+  const auto last_row_end = m_data.rend() - length;
+  const auto delimiter_pos =
+      std::find(last_row_end, m_data.rend(), m_delimiter);
+  return std::distance(m_data.begin(), delimiter_pos.base());
 }
 
 // ------

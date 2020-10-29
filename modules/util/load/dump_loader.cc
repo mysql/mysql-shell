@@ -227,10 +227,21 @@ class Index_file {
       m_idx_file->read(&m_offsets[0], m_file_size);
       m_idx_file->close();
 
+      uint64_t prev = 0;
+      bool invalid = false;
+
       std::transform(m_offsets.begin(), m_offsets.end(), m_offsets.begin(),
-                     [](uint64_t offset) {
-                       return mysqlshdk::utils::network_to_host(offset);
+                     [&prev, &invalid](uint64_t offset) {
+                       const auto next =
+                           mysqlshdk::utils::network_to_host(offset);
+                       invalid |= prev > next;
+                       prev = next;
+                       return next;
                      });
+
+      if (invalid) {
+        m_offsets.clear();
+      }
     }
     m_offsets_loaded = true;
   }

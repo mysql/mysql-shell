@@ -178,7 +178,7 @@ testutil.rmfile(__tmp_dir+"/ldtest/dump-toobig/load-progress*")
 #@<> impossible load: deceptively small row sizes
 
 # each row of this table will be 255+ bytes long, but the dump data is just 1 byte
-# this is a corner case where the dump size and estimated transaction size 
+# this is a corner case where the dump size and estimated transaction size
 # will be much smaller than the actual transaction size, which will break the
 # sub-chunking logic. In practice, if a user falls into this case, they should
 # specify a smaller chunk size.
@@ -225,6 +225,25 @@ TEST_LOAD("dump-toobig2", trx_size_limit, trx_size_limit//2)
 
 wipeout_server(session)
 testutil.rmfile(__tmp_dir+"/ldtest/dump-toobig2/load-progress*")
+
+#@<> BUG#32072961
+# data in the first row is bigger than net-buffer-length, but it is possible to fit multiple rows into a single transaction
+# the find_last_row_boundary_before() method will be called twice, first time with `length` (equal to net-buffer-length), second time with the transaction size
+# when find_last_row_boundary_before() was using indexes from .idx file in order to find row boundary within the specified limit, it was not checking if the given index does not exceed the size of data in buffer, resulting in segmentation fault
+# test table has many long rows, to ensure that test would crash the testsuite in case of regression (index will point far away from data buffer)
+shell.connect(__sandbox_uri1)
+wipeout_server(session)
+
+session.run_sql("create schema testdb")
+session.run_sql("create table testdb.data0 (data longblob)")
+
+for i in range(70):
+    session.run_sql("insert into testdb.data0 values (repeat('a', 1024 * 1024 + 1))")
+
+set_test_table_count(1)
+
+util.dump_instance(__tmp_dir+"/ldtest/bug32072961", { "chunking": False })
+TEST_LOAD("bug32072961", 1024 * 1024, 4 * 1024 * 1024 * 1024)
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
