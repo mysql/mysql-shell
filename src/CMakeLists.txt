@@ -123,11 +123,10 @@ if(BUNDLED_OPENSSL)
 
     # Copy the OpenSSL libraries to the build dir (for running tests in build tree)
     ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${INSTALL_BINDIR}"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${HAVE_CRYPTO_DLL}"
-                  "${CMAKE_BINARY_DIR}/${INSTALL_BINDIR}/${CRYPTO_NAME}"
+                  "$<TARGET_FILE_DIR:mysqlsh>/${CRYPTO_NAME}"
       COMMAND ${CMAKE_COMMAND} -E copy_if_different "${HAVE_OPENSSL_DLL}"
-                  "${CMAKE_BINARY_DIR}/${INSTALL_BINDIR}/${OPENSSL_NAME}")
+                  "$<TARGET_FILE_DIR:mysqlsh>/${OPENSSL_NAME}")
 
     # Install/bundle the OpenSSL libraries
     install(FILES
@@ -226,6 +225,18 @@ IF(HAVE_PYTHON)
     add_custom_command(TARGET mysqlsh PRE_BUILD
                       COMMAND ${CMAKE_COMMAND} -E copy_directory
                       "${PYTHON_DLLS_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs)
+    # Copy sqlite3 shared library
+    FIND_FILE(PYTHON_SQLITE3_SHARED
+      NAMES
+        "sqlite3.dll"
+      HINTS
+        "${PY_DLL}"
+      NO_DEFAULT_PATH
+    )
+    install(FILES "${PYTHON_SQLITE3_SHARED}" DESTINATION lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs COMPONENT main)
+    add_custom_command(TARGET mysqlsh PRE_BUILD
+                      COMMAND ${CMAKE_COMMAND} -E copy
+                      "${PYTHON_SQLITE3_SHARED}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs)
   elseif(BUNDLED_PYTHON_DIR)
     GET_FILENAME_COMPONENT(PYTHON_INCLUDE_DIR_NAME "${PYTHON_INCLUDE_DIRS}" NAME)
     INSTALL(DIRECTORY "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}" DESTINATION "${INSTALL_LIBDIR}/lib" COMPONENT main

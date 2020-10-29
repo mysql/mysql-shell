@@ -33,7 +33,7 @@ if(NOT EXTRA_NAME_SUFFIX2)
   set(EXTRA_NAME_SUFFIX2 "")
 endif()
 
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "MySQL Shell ${MYSH_VERSION}, a command line shell and scripting environment for MySQL Hybrid")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "MySQL Shell ${MYSH_VERSION}, a command line shell and scripting environment for MySQL")
 set(CPACK_PACKAGE_NAME                "mysql-shell${EXTRA_NAME_SUFFIX}")
 set(CPACK_PACKAGE_VENDOR              "Oracle and/or its affiliates")
 set(CPACK_PACKAGE_DESCRIPTION_FILE    "${CMAKE_SOURCE_DIR}/README")
@@ -128,10 +128,8 @@ if(WIN32)
 
 # install(FILES ChangeLog     DESTINATION . RENAME ChangeLog.txt)
   install(FILES README        DESTINATION . RENAME README.txt COMPONENT main)
-  install(FILES README        DESTINATION . RENAME README.txt COMPONENT dev)
 # install(FILES INSTALL       DESTINATION . RENAME INSTALL.txt)
   install(FILES LICENSE       DESTINATION . RENAME LICENSE.txt COMPONENT main)
-  install(FILES LICENSE       DESTINATION . RENAME LICENSE.txt COMPONENT dev)
 
   # Install all .pdb files to enable debugging. Note that what build
   # type and what sub directory the binaries ends up in, like
