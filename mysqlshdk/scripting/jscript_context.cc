@@ -30,13 +30,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
-#if V8_MAJOR_VERSION > 6 || (V8_MAJOR_VERSION == 6 && V8_MINOR_VERSION > 7)
-#error "v8::Platform uses deprecated code, remove these undefs when it's fixed"
-#else
-#undef V8_DEPRECATE_SOON
-#define V8_DEPRECATE_SOON(message, declarator) declarator
 #include <libplatform/libplatform.h>
-#endif
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop

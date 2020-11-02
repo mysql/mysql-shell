@@ -970,8 +970,8 @@ Create Table: CREATE TABLE `my_coll` (
 
 //@ Create an index with a not valid JSON document definition. (WL10858-FR5_3)
 ||SyntaxError: Invalid shorthand property initializer
-||SyntaxError: Unexpected token ]
-||SyntaxError: Unexpected token }
+||SyntaxError: Unexpected token ']'
+||SyntaxError: Unexpected token '}'
 
 //@ Create an index where its definition is a JSON document but its structure is not valid. (WL10858-FR5_4)
 ||Invalid number of arguments, expected value for 'fields[0].field' (MySQL Error 5015)

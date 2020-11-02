@@ -479,7 +479,7 @@ in throw 'error'
   // error, exit code not-0
   EXPECT_EQ(1, rc);
   static const char *result3 =
-      R"(SyntaxError: Unexpected token ) at badsyn.js:1:0
+      R"(SyntaxError: Unexpected token ')' at badsyn.js:1:0
 in ){}
    ^)";
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result3);

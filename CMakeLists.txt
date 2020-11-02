@@ -298,7 +298,6 @@ IF(V8_INCLUDE_DIR AND V8_LIB_DIR)
   set(HAVE_V8 "YES")         # Variable for CMake processing
   add_definitions(-DHAVE_V8) # Preprocessor variable for generated projects
   add_definitions(-DV8_DEPRECATION_WARNINGS)
-  add_definitions(-DV8_IMMINENT_DEPRECATION_WARNINGS)
 ELSE()
   message(WARNING "V8 is unavailable: building without JavaScript support.")
 ENDIF()
