@@ -163,8 +163,6 @@ class Schema_dumper {
 
   bool stats_tables_included = false;
 
-  bool lock_tables = true;
-
   /**
    Use double quotes ("") like in the standard  to quote identifiers if true,
     otherwise backticks (``, non-standard MySQL feature).
@@ -276,12 +274,6 @@ class Schema_dumper {
   std::vector<std::string> get_table_names();
 
   std::string get_actual_table_name(const std::string &old_table_name);
-
-  int do_flush_tables_read_lock();
-
-  int do_unlock_tables();
-
-  int start_transaction();
 
   char check_if_ignore_table(const std::string &db,
                              const std::string &table_name,

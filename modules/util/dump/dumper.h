@@ -152,6 +152,9 @@ class Dumper {
   void start_transaction(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
+  void assert_transaction_is_open(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
+
   void lock_instance();
 
   void initialize_instance_cache_minimal();
@@ -305,6 +308,7 @@ class Dumper {
 
   // status
   bool m_instance_locked = false;
+  // whether FLUSH TABLES WITH READ LOCK has failed
   bool m_ftwrl_failed = false;
 
   // counters

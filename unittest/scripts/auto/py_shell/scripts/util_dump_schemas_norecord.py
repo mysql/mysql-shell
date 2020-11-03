@@ -5,6 +5,7 @@ import os.path
 import re
 import shutil
 import stat
+import time
 import urllib.parse
 
 # constants
@@ -767,6 +768,49 @@ EXPECT_FAIL("ValueError", "Invalid options: excludeSchemas", [types_schema], tes
 TEST_BOOL_OPTION("consistent")
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "consistent": False, "showProgress": False })
+
+#@<> BUG#32107327 verify if consistent dump works
+
+# setup
+session.run_sql("CREATE DATABASE db1")
+session.run_sql("CREATE TABLE db1.t1 (pk INT PRIMARY KEY AUTO_INCREMENT, c INT NOT NULL)")
+session.run_sql("CREATE DATABASE db2")
+session.run_sql("CREATE TABLE db2.t1 (pk INT PRIMARY KEY AUTO_INCREMENT, c INT NOT NULL)")
+
+# insert values to both tables in the same transaction
+insert_values = """v = 0
+session.run_sql("TRUNCATE db1.t1")
+session.run_sql("TRUNCATE db2.t1")
+while True:
+    session.run_sql("BEGIN")
+    session.run_sql("INSERT INTO db1.t1 (c) VALUES({0})".format(v))
+    session.run_sql("INSERT INTO db2.t1 (c) VALUES({0})".format(v))
+    session.run_sql("COMMIT")
+    v = v + 1
+session.close()
+"""
+
+# run a process which constantly inserts some values
+pid = testutil.call_mysqlsh_async(["--py", uri], insert_values)
+
+# wait a bit for process to start
+time.sleep(1)
+
+# check if dumps for both tables have the same number of entries
+for i in range(10):
+    EXPECT_SUCCESS(["db1", "db2"], test_output_absolute, { "consistent": True, "showProgress": False, "compression": "none", "chunking": False })
+    db1 = os.path.join(test_output_absolute, encode_table_basename("db1", "t1") + ".tsv")
+    db2 = os.path.join(test_output_absolute, encode_table_basename("db2", "t1") + ".tsv")
+    EXPECT_TRUE(os.path.isfile(db1), "File '{0}' should exist".format(db1))
+    EXPECT_TRUE(os.path.isfile(db2), "File '{0}' should exist".format(db2))
+    EXPECT_EQ(os.stat(db1).st_size, os.stat(db2).st_size, "Files '{0}' and '{1}' should have the same size".format(db1, db2))
+
+# terminate immediately, process will not stop on its own
+testutil.wait_mysqlsh_async(pid, 0)
+
+# cleanup
+session.run_sql("DROP DATABASE db1")
+session.run_sql("DROP DATABASE db2")
 
 #@<> WL13807-FR4.3 - The `options` dictionary may contain a `events` key with a Boolean value, which specifies whether to include events in the DDL file of each schema.
 TEST_BOOL_OPTION("events")

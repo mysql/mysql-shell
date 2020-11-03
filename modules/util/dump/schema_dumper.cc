@@ -799,18 +799,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
                 "\n--\n-- Dumping routines for database '%s'\n--\n\n",
                 routines_text.c_str());
 
-  /*
-    not using "mysql_query_with_error_report" because we may have not
-    enough privileges to lock mysql.proc.
-  */
-  if (lock_tables) {
-    try {
-      m_mysql->execute("LOCK TABLES mysql.proc READ");
-    } catch (const mysqlshdk::db::Error &e) {
-      log_debug("LOCK TABLES mysql.proc READ failed: %s", e.format().c_str());
-    }
-  }
-
   /* Get database collation. */
 
   fetch_db_collation(db, &db_cl_name);
@@ -915,14 +903,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
   } /* end of for i (0 .. 1)  */
 
   switch_character_set_results(opt_character_set_results.c_str());
-
-  if (lock_tables) {
-    try {
-      m_mysql->execute("UNLOCK TABLES");
-    } catch (const mysqlshdk::db::Error &e) {
-      log_debug("UNLOCK TABLES failed: %s", e.format().c_str());
-    }
-  }
 
   return res;
 }
@@ -1922,39 +1902,6 @@ std::string Schema_dumper::get_actual_table_name(
   }
 
   return "";
-}
-
-int Schema_dumper::do_flush_tables_read_lock() {
-  /*
-    We do first a FLUSH TABLES. If a long update is running, the FLUSH TABLES
-    will wait but will not stall the whole mysqld, and when the long update is
-    done the FLUSH TABLES WITH READ LOCK will start and succeed quickly. So,
-    FLUSH TABLES is to lower the probability of a stage where both mysqldump
-    and most client connections are stalled. Of course, if a second long
-    update starts between the two FLUSHes, we have that bad stall.
-  */
-  return (execute_no_throw("FLUSH TABLES") ||
-          execute_no_throw("FLUSH TABLES WITH READ LOCK"));
-}
-
-int Schema_dumper::do_unlock_tables() {
-  return execute_no_throw("UNLOCK TABLES");
-}
-
-int Schema_dumper::start_transaction() {
-  log_debug("-- Starting transaction...");
-  /*
-    We use BEGIN for old servers. --single-transaction --master-data will fail
-    on old servers, but that's ok as it was already silently broken (it didn't
-    do a consistent read, so better tell people frankly, with the error).
-
-    We want the first consistent read to be used for all tables to dump so we
-    need the REPEATABLE READ level (not anything lower, for example READ
-    COMMITTED would give one new consistent read per dumped table).
-  */
-  return (execute_no_throw(
-              "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ") ||
-          execute_no_throw("START TRANSACTION WITH CONSISTENT SNAPSHOT"));
 }
 
 /*

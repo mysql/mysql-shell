@@ -195,6 +195,8 @@ class Dumper::Table_worker final {
           return;
         }
       }
+
+      m_dumper->assert_transaction_is_open(m_session);
     } catch (const std::exception &e) {
       handle_exception(e.what());
     } catch (...) {
@@ -1019,6 +1021,19 @@ void Dumper::do_run() {
   }
 
   rethrow();
+
+#ifndef NDEBUG
+  if (mysqlshdk::utils::Version(m_cache.server_version) <
+          mysqlshdk::utils::Version(8, 0, 21) ||
+      !m_options.dump_users()) {
+    // SHOW CREATE USER auto-commits transaction in some 8.0 versions, we don't
+    // check if transaction is still open in such case if users were dumped
+
+    // this bug is tracked as BUG#32123671, once it is fixed version check above
+    // should be updated
+    assert_transaction_is_open(session());
+  }
+#endif  // !NDEBUG
 }
 
 const std::shared_ptr<mysqlshdk::db::ISession> &Dumper::session() const {
@@ -1117,7 +1132,8 @@ void Dumper::lock_all_tables() {
     auto res = session()->query(
         "SHOW TABLES IN mysql WHERE Tables_in_mysql IN"
         "('columns_priv', 'db', 'default_roles', 'func', 'global_grants', "
-        "'procs_priv', 'proxies_priv', 'role_edges', 'tables_priv', 'user')");
+        "'proc', 'procs_priv', 'proxies_priv', 'role_edges', 'tables_priv', "
+        "'user')");
     while (auto row = res->fetch_one()) tables.emplace_back(row->get_string(0));
 
     std::string stmt = k_lock_tables;
@@ -1180,8 +1196,20 @@ void Dumper::acquire_read_locks() {
     // sessions with open transactions/locks.
     current_console()->print_info("Acquiring global read lock");
     try {
+      // We do first a FLUSH TABLES. If a long update is running, the FLUSH
+      // TABLES will wait but will not stall the whole mysqld, and when the long
+      // update is done the FLUSH TABLES WITH READ LOCK will start and succeed
+      // quickly. So, FLUSH TABLES is to lower the probability of a stage where
+      // both shell and most client connections are stalled. Of course, if a
+      // second long update starts between the two FLUSHes, we have that bad
+      // stall.
+      session()->execute("FLUSH TABLES;");
       session()->execute("FLUSH TABLES WITH READ LOCK;");
       current_console()->print_info("Global read lock acquired");
+
+      // FTWRL was used to lock the tables, it is safe to start a transaction,
+      // as it will not release the global read lock
+      start_transaction(session());
     } catch (const mysqlshdk::db::Error &e) {
       m_ftwrl_failed = true;
 
@@ -1199,6 +1227,8 @@ void Dumper::acquire_read_locks() {
         try {
           lock_all_tables();
           current_console()->print_info("Table locks acquired");
+          // a transaction would release the table locks, it cannot be started
+          // until tables are unlocked
         } catch (const mysqlshdk::db::Error &ee) {
           current_console()->print_error(
               "Unable to acquire global read lock neither table read locks.");
@@ -1215,7 +1245,16 @@ void Dumper::acquire_read_locks() {
 
 void Dumper::release_read_locks() const {
   if (m_options.consistent_dump()) {
-    session()->execute("UNLOCK TABLES;");
+    if (m_ftwrl_failed) {
+      // FTWRL has failed, LOCK TABLES was used instead, transaction is not yet
+      // active, we start it here - existing table locks will be implicitly
+      // released
+      start_transaction(session());
+    } else {
+      // FTWRL has succeeded, transaction is active, UNLOCK TABLES will not
+      // automatically commit the transaction
+      session()->execute("UNLOCK TABLES;");
+    }
 
     if (!m_worker_interrupt) {
       // we've been interrupted, we still need to release locks, but don't
@@ -1232,6 +1271,29 @@ void Dumper::start_transaction(
         "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;");
     session->execute("START TRANSACTION WITH CONSISTENT SNAPSHOT;");
   }
+}
+
+void Dumper::assert_transaction_is_open(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
+#ifdef NDEBUG
+  // no-op
+  (void)session;
+#else   // !NDEBUG
+  if (m_options.consistent_dump()) {
+    try {
+      // if there's an active transaction, this will throw
+      session->execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+      // no exception -> transaction is not active
+      assert(false);
+    } catch (const mysqlshdk::db::Error &e) {
+      // make sure correct error is reported
+      assert(e.code() == ER_CANT_CHANGE_TX_CHARACTERISTICS);
+    } catch (...) {
+      // any other exception means that something else went wrong
+      assert(false);
+    }
+  }
+#endif  // !NDEBUG
 }
 
 void Dumper::lock_instance() {
