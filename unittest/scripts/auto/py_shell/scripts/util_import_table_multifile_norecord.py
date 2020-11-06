@@ -39,14 +39,14 @@ print("zst_files", zst_files)
 #@<> Variations about empty file list
 rc = testutil.call_mysqlsh([uri, '--schema=' + target_schema, '--', 'util', 'import-table', '', '--table=lorem'])
 EXPECT_EQ(1, rc)
-EXPECT_STDOUT_CONTAINS("Util.importTable: File list cannot be empty.")
+EXPECT_STDOUT_CONTAINS("File list cannot be empty.")
 
 rc = testutil.call_mysqlsh([uri, '--schema=' + target_schema, '--', 'util', 'import-table', '', '', '--table=lorem'])
 EXPECT_EQ(1, rc)
-EXPECT_STDOUT_CONTAINS("Util.importTable: File list cannot be empty.")
+EXPECT_STDOUT_CONTAINS("File list cannot be empty.")
 
 EXPECT_THROWS(lambda: util.import_table('', {'table': 'lorem'}), "RuntimeError: Util.import_table: File list cannot be empty.")
-EXPECT_THROWS(lambda: util.import_table('', '', {'table': 'lorem'}), "RuntimeError: Util.import_table: File list cannot be empty.")
+EXPECT_THROWS(lambda: util.import_table('', '', {'table': 'lorem'}), "ValueError: Util.import_table: Invalid number of arguments, expected 1 to 2 but got 3")
 EXPECT_THROWS(lambda: util.import_table([], {'table': 'lorem'}), "RuntimeError: Util.import_table: File list cannot be empty.")
 EXPECT_THROWS(lambda: util.import_table([''], {'table': 'lorem'}), "RuntimeError: Util.import_table: File list cannot be empty.")
 EXPECT_THROWS(lambda: util.import_table(['', ''], {'table': 'lorem'}), "RuntimeError: Util.import_table: File list cannot be empty.")
@@ -170,7 +170,7 @@ EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".lorem: Reco
 
 #@<> Multifile import does not support byterPerChunk option
 EXPECT_THROWS(lambda: util.import_table([os.path.join(chunked_dir, "nonexisting_a.csv"), os.path.join(chunked_dir, "lorem_a*"), '', os.path.join(chunked_dir, zst_files[0]), os.path.join(chunked_dir, zst_files[1]), os.path.join(chunked_dir, gz_files[0])], {'schema': target_schema, 'table': 'lorem', 'replaceDuplicates': True, 'bytesPerChunk': '1M'}),
-    "Util.import_table: Invalid options: bytesPerChunk"
+    "Util.import_table: The 'bytesPerChunk' option cannot be used when loading from multiple files."
 )
 
 #@<> Missing target table + single path with wildcard

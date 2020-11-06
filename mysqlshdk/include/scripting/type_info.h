@@ -114,6 +114,8 @@ struct Arg_handler {
     } catch (const shcore::Exception &ex) {
       throw Exception(ex.type(), prepend_arg_index(position, ex.what()),
                       ex.code());
+    } catch (const std::runtime_error &ex) {
+      throw Exception::runtime_error(prepend_arg_index(position, ex.what()));
     } catch (const std::exception &ex) {
       throw Exception::argument_error(prepend_arg_index(position, ex.what()));
     }

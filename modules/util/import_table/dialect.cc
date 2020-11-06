@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,17 +21,56 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "modules/util/import_table/dialect.h"
+
 #include <algorithm>
 #include <stdexcept>
 
-#include "modules/util/import_table/dialect.h"
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+
 namespace mysqlsh {
 namespace import_table {
+
+const shcore::Option_pack_def<Dialect> &Dialect::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Dialect>()
+          .optional("dialect", &Dialect::set_dialect)
+          .optional("fieldsTerminatedBy", &Dialect::fields_terminated_by)
+          .optional("fieldsEnclosedBy", &Dialect::fields_enclosed_by)
+          .optional("fieldsOptionallyEnclosed",
+                    &Dialect::fields_optionally_enclosed)
+          .optional("fieldsEscapedBy", &Dialect::fields_escaped_by)
+          .optional("linesTerminatedBy", &Dialect::lines_terminated_by)
+          .on_done(&Dialect::on_unpacked_options);
+
+  return opts;
+}
+
+void Dialect::set_dialect(const std::string & /*option*/,
+                          const std::string &name) {
+  if (!name.empty()) {
+    if (shcore::str_casecmp(name, "default") == 0) {
+      // nop
+    } else if (shcore::str_casecmp(name, "csv") == 0) {
+      *this = csv();
+    } else if (shcore::str_casecmp(name, "tsv") == 0) {
+      *this = tsv();
+    } else if (shcore::str_casecmp(name, "json") == 0) {
+      *this = json();
+    } else if (shcore::str_casecmp(name, "csv-unix") == 0) {
+      *this = csv_unix();
+    } else {
+      throw shcore::Exception::argument_error(
+          "dialect value must be default, csv, tsv, json or csv-unix.");
+    }
+  }
+}
 
 bool Dialect::operator==(const Dialect &d) const {
   return lines_terminated_by == d.lines_terminated_by &&
@@ -136,43 +175,14 @@ std::string Dialect::build_sql() {
   return sql;
 }
 
-Dialect Dialect::unpack(shcore::Option_unpacker *unpacker) {
-  Dialect dialect;
-  std::string name;
-
-  unpacker->optional("dialect", &name);
-
-  if (name.empty()) {
-    // nop
-  } else if (shcore::str_casecmp(name, "default") == 0) {
-    // nop
-  } else if (shcore::str_casecmp(name, "csv") == 0) {
-    dialect = csv();
-  } else if (shcore::str_casecmp(name, "tsv") == 0) {
-    dialect = tsv();
-  } else if (shcore::str_casecmp(name, "json") == 0) {
-    dialect = json();
-  } else if (shcore::str_casecmp(name, "csv-unix") == 0) {
-    dialect = csv_unix();
-  } else {
-    throw shcore::Exception::argument_error(
-        "dialect value must be default, csv, tsv, json or csv-unix.");
-  }
-
-  unpacker->optional("fieldsTerminatedBy", &dialect.fields_terminated_by)
-      .optional("fieldsEnclosedBy", &dialect.fields_enclosed_by)
-      .optional("fieldsOptionallyEnclosed", &dialect.fields_optionally_enclosed)
-      .optional("fieldsEscapedBy", &dialect.fields_escaped_by)
-      .optional("linesTerminatedBy", &dialect.lines_terminated_by);
+void Dialect::on_unpacked_options() {
+  validate();
 
   // If LINES TERMINATED BY is an empty string and FIELDS TERMINATED BY is
   // nonempty, lines are also terminated with FIELDS TERMINATED BY.
-  if (dialect.lines_terminated_by.empty() &&
-      !dialect.fields_terminated_by.empty()) {
-    dialect.lines_terminated_by = dialect.fields_terminated_by;
+  if (lines_terminated_by.empty() && !fields_terminated_by.empty()) {
+    lines_terminated_by = fields_terminated_by;
   }
-
-  return dialect;
 }
 
 }  // namespace import_table

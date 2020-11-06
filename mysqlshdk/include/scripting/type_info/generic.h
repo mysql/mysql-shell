@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -136,6 +136,7 @@ struct Type_info<std::vector<std::string>> {
   static std::vector<std::string> to_native(const shcore::Value &in) {
     std::vector<std::string> strs;
     shcore::Array_t array(in.as_array());
+
     if (!array) {
       throw shcore::Exception::type_error(
           "is expected to be an array of strings");
@@ -148,11 +149,65 @@ struct Type_info<std::vector<std::string>> {
       throw shcore::Exception::type_error(
           "is expected to be an array of strings");
     }
+
+    return strs;
+  }
+
+  static Value_type vtype() { return shcore::Array; }
+  static const char *code() { return "A"; }
+  static std::vector<std::string> default_value() { return {}; }
+  static std::string desc() {
+    return type_description(vtype()) + " of strings";
+  }
+};
+
+template <typename T>
+struct Validator_for<std::vector<T>> {
+  static std::unique_ptr<List_validator> get() {
+    auto validator = std::make_unique<List_validator>();
+    validator->set_element_type(Type_info<T>::vtype());
+    return validator;
+  }
+};
+
+template <typename T>
+struct Validator_for<std::unordered_set<T>> {
+  static std::unique_ptr<List_validator> get() {
+    auto validator = std::make_unique<List_validator>();
+    validator->set_element_type(Type_info<T>::vtype());
+    return validator;
+  }
+};
+
+template <>
+struct Type_info<std::unordered_set<std::string>> {
+  static std::unordered_set<std::string> to_native(const shcore::Value &in) {
+    std::unordered_set<std::string> strs;
+    shcore::Array_t array(in.as_array());
+    bool type_error = false;
+    if (!array) {
+      type_error = true;
+    }
+    try {
+      for (size_t i = 0; i < array->size(); ++i) {
+        strs.emplace(array->at(i).get_string());
+      }
+    } catch (const shcore::Exception &ex) {
+      if (ex.is_type())
+        type_error = true;
+      else
+        throw;
+    }
+
+    if (type_error) {
+      throw shcore::Exception::type_error(
+          "is expected to be an array of strings");
+    }
     return strs;
   }
   static Value_type vtype() { return shcore::Array; }
   static const char *code() { return "A"; }
-  static std::vector<std::string> default_value() { return {}; }
+  static std::unordered_set<std::string> default_value() { return {}; }
   static std::string desc() {
     return type_description(vtype()) + " of strings";
   }

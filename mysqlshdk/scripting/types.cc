@@ -905,36 +905,63 @@ Value Value::parse_number(const char **pcc) {
   Value ret_val;
   const char *pc = *pcc;
 
-  // Sign can appear at the beggining
-  if (*pc == '-' || *pc == '+') ++pc;
+  // Parsing based on the following state table
+  // Valid integer: state == 1
+  // Valid float: state == 2,4,6
+  //                                0  1  2  3  4  5  6
+  //                                +  #  .  #  e  +  d
+  constexpr unsigned char STATE_VALIDITY[] = {0, 1, 0, 1, 0, 0, 1};
+  enum States {
+    FRONT_SIGN,
+    INT_DIGITS,
+    DOT,
+    FLOAT_DIGITS,
+    EXP,
+    EXP_SIGN,
+    EXP_DIGITS
+  };
 
-  // Continues while there are digits
-  while (*pc && IS_DIGIT(*++pc)) {
+  // State starts at 1
+  int state = INT_DIGITS;
+
+  // Sign can appear at the beggining
+  if (*pc == '-' || *pc == '+') {
+    ++pc;
+    state = FRONT_SIGN;
   }
 
-  bool is_integer = true;
-  if (tolower(*pc) == '.') {
-    is_integer = false;
+  // Continues while there are digits
+  if (*pc && IS_DIGIT(*pc)) state = INT_DIGITS;
+  while (*pc && IS_DIGIT(*++pc))
+    ;
+
+  if (STATE_VALIDITY[state] == 1 && tolower(*pc) == '.') {
+    state = DOT;
 
     // Skips the .
     ++pc;
 
     // Continues while there are digits
-    while (*pc && IS_DIGIT(*++pc)) {
-    }
+    if (*pc && IS_DIGIT(*pc)) state = FLOAT_DIGITS;
+    while (*pc && IS_DIGIT(*++pc))
+      ;
   }
 
-  if (tolower(*pc) == 'e')  // exponential
-  {
-    is_integer = false;
+  // exponential
+  if (STATE_VALIDITY[state] == 1 && tolower(*pc) == 'e') {
+    state = EXP;
 
     // Skips the e
     ++pc;
 
     // Sign can appear for exponential numbers
-    if (*pc == '-' || *pc == '+') ++pc;
+    if (*pc == '-' || *pc == '+') {
+      ++pc;
+      state = EXP_SIGN;
+    }
 
     // Continues while there are digits
+    if (*pc && IS_DIGIT(*pc)) state = FLOAT_DIGITS;
     while (*pc && IS_DIGIT(*++pc))
       ;
   }
@@ -942,27 +969,33 @@ Value Value::parse_number(const char **pcc) {
   size_t len = pc - *pcc;
   std::string number(*pcc, len);
 
-  if (is_integer) {
-    int64_t ll = 0;
-    try {
-      ll = std::atoll(number.c_str());
-    } catch (const std::invalid_argument &e) {
-      std::string s = "Error parsing int: ";
-      s += e.what();
-      throw Exception::parser_error(s);
-    }
-    ret_val = Value(static_cast<int64_t>(ll));
-  } else {
-    double d = 0;
-    try {
-      d = std::stod(number.c_str());
-    } catch (const std::invalid_argument &e) {
-      std::string s = "Error parsing float: ";
-      s += e.what();
-      throw Exception::parser_error(s);
-    }
+  if (STATE_VALIDITY[state] == 1) {
+    if (state == INT_DIGITS) {
+      int64_t ll = 0;
+      try {
+        ll = std::atoll(number.c_str());
+      } catch (const std::invalid_argument &e) {
+        std::string s = "Error parsing int: ";
+        s += e.what();
+        throw Exception::parser_error(s);
+      }
+      ret_val = Value(static_cast<int64_t>(ll));
+    } else {
+      double d = 0;
+      try {
+        d = std::stod(number.c_str());
+      } catch (const std::invalid_argument &e) {
+        std::string s = "Error parsing float: ";
+        s += e.what();
+        throw Exception::parser_error(s);
+      }
 
-    ret_val = Value(d);
+      ret_val = Value(d);
+    }
+  } else {
+    std::string parsed(*pcc, pc - *pcc);
+    throw Exception::parser_error("Error parsing number from: '" + parsed +
+                                  "'");
   }
 
   *pcc = pc;
@@ -2018,10 +2051,17 @@ bool Argument_map::validate_keys(const std::set<std::string> &mandatory_keys,
   return missing_keys.empty() && invalid_keys.empty();
 }
 
-Option_unpacker::Option_unpacker(const Dictionary_t &options)
-    : m_options(options) {
-  if (m_options)
+Option_unpacker::Option_unpacker(const Dictionary_t &options) {
+  set_options(options);
+}
+
+void Option_unpacker::set_options(const Dictionary_t &options) {
+  m_options = options;
+  m_unknown.clear();
+  m_missing.clear();
+  if (m_options) {
     for (const auto &opt : *m_options) m_unknown.insert(opt.first);
+  }
 }
 
 Value Option_unpacker::get_required(const char *name, Value_type type) {

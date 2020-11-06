@@ -34,10 +34,7 @@ namespace dump {
 
 class Export_table_options : public Dump_options {
  public:
-  Export_table_options() = delete;
-  Export_table_options(const std::string &schema_table,
-                       const std::string &output_url);
-
+  Export_table_options();
   Export_table_options(const Export_table_options &) = default;
   Export_table_options(Export_table_options &&) = default;
 
@@ -46,9 +43,13 @@ class Export_table_options : public Dump_options {
 
   virtual ~Export_table_options() = default;
 
+  static const shcore::Option_pack_def<Export_table_options> &options();
+
   const std::string &schema() const { return m_schema; }
 
   const std::string &table() const { return m_table; }
+
+  void set_table(const std::string &schema_table);
 
   bool is_export_only() const override { return true; }
 
@@ -79,22 +80,21 @@ class Export_table_options : public Dump_options {
   bool use_timezone_utc() const override { return false; }
 
  private:
-  void unpack_options(shcore::Option_unpacker *unpacker) override;
-
   void on_set_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) override;
 
   void validate_options() const override;
 
-  mysqlshdk::oci::Oci_options::Unpack_target oci_target() const override {
-    return mysqlshdk::oci::Oci_options::Unpack_target::
-        OBJECT_STORAGE_NO_PAR_SUPPORT;
-  }
+  void on_unpacked_options();
 
   void set_includes();
 
   std::string m_schema;
   std::string m_table;
+  import_table::Dialect m_dialect_unpacker;
+  mysqlshdk::oci::Oci_option_unpacker<
+      mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE_NO_PAR_SUPPORT>
+      m_oci_option_unpacker;
 };
 
 }  // namespace dump

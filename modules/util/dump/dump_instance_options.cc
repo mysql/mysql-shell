@@ -26,6 +26,8 @@
 #include <utility>
 #include <vector>
 
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {
@@ -41,30 +43,46 @@ const char *k_excluded_schemas[] = {"information_schema", "mysql", "ndbinfo",
 
 }  // namespace
 
-Dump_instance_options::Dump_instance_options(const std::string &output_url)
-    : Dump_schemas_options(output_url) {}
-
-void Dump_instance_options::unpack_options(shcore::Option_unpacker *unpacker) {
-  Dump_schemas_options::unpack_options(unpacker);
-
-  std::unordered_set<std::string> excluded_users;
-  std::unordered_set<std::string> included_users;
-
-  unpacker->optional("excludeSchemas", &m_excluded_schemas)
-      .optional("users", &m_dump_users)
-      .optional("excludeUsers", &excluded_users)
-      .optional("includeUsers", &included_users);
-
+Dump_instance_options::Dump_instance_options() {
   // some users are always excluded
-  excluded_users.insert(std::begin(k_excluded_users),
-                        std::end(k_excluded_users));
-
-  set_excluded_users(excluded_users);
-  set_included_users(included_users);
+  std::vector<std::string> data{std::begin(k_excluded_users),
+                                std::end(k_excluded_users)};
+  add_excluded_users(data);
 
   // some schemas are always excluded
   m_excluded_schemas.insert(std::begin(k_excluded_schemas),
                             std::end(k_excluded_schemas));
+}
+
+const shcore::Option_pack_def<Dump_instance_options>
+    &Dump_instance_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Dump_instance_options>()
+          .include<Dump_schemas_options>()
+          .optional("excludeSchemas",
+                    &Dump_instance_options::set_string_list_option)
+          .optional("users", &Dump_instance_options::m_dump_users)
+          .optional("excludeUsers",
+                    &Dump_instance_options::set_string_list_option)
+          .optional("includeUsers",
+                    &Dump_instance_options::set_string_list_option)
+          .on_done(&Dump_instance_options::on_unpacked_options);
+
+  return opts;
+}
+
+void Dump_instance_options::set_string_list_option(
+    const std::string &option, const std::unordered_set<std::string> &data) {
+  if (option == "excludeUsers") {
+    add_excluded_users(data);
+  } else if (option == "includeUsers") {
+    set_included_users(data);
+  } else if (option == "excludeSchemas") {
+    m_excluded_schemas.insert(data.begin(), data.end());
+  } else {
+    // This function should only be called with the options above.
+    assert(false);
+  }
 }
 
 void Dump_instance_options::on_set_session(
@@ -77,11 +95,7 @@ void Dump_instance_options::on_set_session(
   }
 }
 
-void Dump_instance_options::validate_options() const {
-  // call method up the chain, Dump_schemas_options has an empty list of schemas
-  // and would throw
-  Ddl_dumper_options::validate_options();
-
+void Dump_instance_options::on_unpacked_options() {
   if (!m_dump_users) {
     if (excluded_users().size() > shcore::array_size(k_excluded_users)) {
       throw std::invalid_argument(
@@ -95,6 +109,12 @@ void Dump_instance_options::validate_options() const {
           "set to false.");
     }
   }
+}
+
+void Dump_instance_options::validate_options() const {
+  // call method up the chain, Dump_schemas_options has an empty list of schemas
+  // and would throw
+  Ddl_dumper_options::validate_options();
 }
 
 }  // namespace dump

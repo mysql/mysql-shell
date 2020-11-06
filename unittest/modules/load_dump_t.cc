@@ -396,9 +396,10 @@ TEST_F(Load_dump_mocked, chunk_scheduling_more_threads) {
 
   Load_dump_options options;
   options.set_session(make_mock_main_session(), "");
-  options.set_options(shcore::make_dict("threads", shcore::Value(num_threads),
-                                        "showProgress", shcore::Value(0),
-                                        "progressFile", shcore::Value("")));
+  options.options().unpack(
+      shcore::make_dict("threads", shcore::Value(num_threads), "showProgress",
+                        shcore::Value(0), "progressFile", shcore::Value("")),
+      &options);
 
   Dump_loader loader(options);
 
@@ -444,9 +445,10 @@ TEST_F(Load_dump_mocked, chunk_scheduling_more_tables) {
   Load_dump_options options;
   options.set_session(make_mock_main_session(), "");
 
-  options.set_options(shcore::make_dict("threads", shcore::Value(num_threads),
-                                        "showProgress", shcore::Value(0),
-                                        "progressFile", shcore::Value("")));
+  Load_dump_options::options().unpack(
+      shcore::make_dict("threads", shcore::Value(num_threads), "showProgress",
+                        shcore::Value(0), "progressFile", shcore::Value("")),
+      &options);
 
   Dump_loader loader(options);
 

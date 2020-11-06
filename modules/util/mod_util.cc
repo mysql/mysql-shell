@@ -42,9 +42,6 @@
 #include "modules/util/json_importer.h"
 #include "modules/util/load/dump_loader.h"
 #include "modules/util/load/load_dump_options.h"
-#include "modules/util/upgrade_check.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
@@ -64,7 +61,6 @@
 #include "rapidjson/stringbuffer.h"
 
 namespace mysqlsh {
-
 REGISTER_HELP_GLOBAL_OBJECT(util, shellapi);
 REGISTER_HELP(UTIL_GLOBAL_BRIEF,
               "Global object that groups miscellaneous tools like upgrade "
@@ -74,17 +70,21 @@ REGISTER_HELP(UTIL_BRIEF,
               "checker and JSON import.");
 
 Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
-  add_method(
-      "checkForServerUpgrade",
-      std::bind(&Util::check_for_server_upgrade, this, std::placeholders::_1),
-      "data", shcore::Map);
-
+  expose("checkForServerUpgrade", &Util::check_for_server_upgrade,
+         "?connectionData", "?options");
   expose("importJson", &Util::import_json, "path", "?options");
   shcore::ssl::init();
   expose("configureOci", &Util::configure_oci, "?profile");
+  // TODO(rennox): Temporary hack to continue supporting multifile import from
+  // CLI after option pack introduction but before CLI enhancements WL
+  // This should be deleted and lines below uncommented when the CLI WL is IN
   add_method("importTable",
              std::bind(&Util::import_table, this, std::placeholders::_1),
-             "args", shcore::Array);
+             "files", shcore::Array, "?options", shcore::Map);
+  /*
+    expose("importTable", &Util::import_table_file, "files", "?options");
+    expose("importTable", &Util::import_table_files, "path", "?options");
+    */
   expose("dumpSchemas", &Util::dump_schemas, "schemas", "outputUrl",
          "?options");
   expose("dumpTables", &Util::dump_tables, "schema", "tables", "outputUrl",
@@ -383,32 +383,21 @@ Upgrade_check_output_formatter::get_formatter(const std::string &format) {
 }
 
 void check_upgrade(const Connection_options &connection_options,
-                   const shcore::Value::Map_type_ref &options) {
+                   const Upgrade_check_options &options) {
   using mysqlshdk::utils::Version;
-  Upgrade_check_options opts{Version(), Version(MYSH_VERSION), "", ""};
-  std::string output_format(
-      shcore::str_beginswith(mysqlsh::current_shell_options()->get().wrap_json,
-                             "json")
-          ? "JSON"
-          : "TEXT");
 
-  if (options) {
-    std::string target_version(MYSH_VERSION);
-    std::string password;
-    shcore::Option_unpacker(options)
-        .optional("outputFormat", &output_format)
-        .optional("targetVersion", &target_version)
-        .optional("configPath", &opts.config_path)
-        .optional("password", &password)
-        .end();
+  auto opts = options;
 
-    if (target_version == "8.0")
-      opts.target_version = Version(MYSH_VERSION);
-    else
-      opts.target_version = Version(target_version);
+  if (opts.output_format.empty()) {
+    opts.output_format =
+        shcore::str_beginswith(
+            mysqlsh::current_shell_options()->get().wrap_json, "json")
+            ? "JSON"
+            : "TEXT";
   }
 
-  auto print = Upgrade_check_output_formatter::get_formatter(output_format);
+  auto print =
+      Upgrade_check_output_formatter::get_formatter(opts.output_format);
 
   auto session = establish_session(connection_options,
                                    current_shell_options()->get().wizards);
@@ -569,50 +558,25 @@ None Util::check_for_server_upgrade(ConnectionData connectionData,
 None Util::check_for_server_upgrade(dict options);
 #endif
 
-shcore::Value Util::check_for_server_upgrade(
-    const shcore::Argument_list &args) {
-  args.ensure_count(0, 2, get_function_name("checkForServerUpgrade").c_str());
-
-  try {
-    Connection_options connection_options;
-    std::shared_ptr<shcore::Value::Map_type> options_dictionary =
-        args.size() > 0 && args[args.size() - 1].type == shcore::Value_type::Map
-            ? args.map_at(args.size() - 1)
-            : nullptr;
-
-    if (args.size() > 0 && args[0] != shcore::Value::Null()) {
-      try {
-        connection_options = mysqlsh::get_connection_options(args[0]);
-        if (args.size() > 1 && options_dictionary)
-          set_password_from_map(&connection_options, options_dictionary);
-        else
-          options_dictionary.reset();
-      } catch (const std::exception &) {
-        if (!_shell_core.get_dev_session() || !options_dictionary ||
-            args.size() == 2)
-          throw;
-        connection_options =
-            _shell_core.get_dev_session()->get_connection_options();
-      }
-    } else {
-      if (!_shell_core.get_dev_session())
-        throw shcore::Exception::argument_error(
-            "Please connect the shell to the MySQL server to be checked or "
-            "specify the server URI as a parameter.");
-      connection_options =
-          _shell_core.get_dev_session()->get_connection_options();
+void Util::check_for_server_upgrade(
+    const mysqlshdk::db::Connection_options &connection_options,
+    const shcore::Option_pack_ref<Upgrade_check_options> &options) {
+  mysqlshdk::db::Connection_options connection = connection_options;
+  if (connection.has_data()) {
+    if (!options->password.is_null()) {
+      if (connection.has_password()) connection.clear_password();
+      connection.set_password(*options->password);
     }
-
-    if (args.size() == 2 && !options_dictionary)
+  } else {
+    if (!_shell_core.get_dev_session())
       throw shcore::Exception::argument_error(
-          "Argument #2 is expected to be a map.");
-
-    check_upgrade(connection_options, options_dictionary);
+          "Please connect the shell to the MySQL server to be checked or "
+          "specify the server URI as a parameter.");
+    connection = _shell_core.get_dev_session()->get_connection_options();
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("checkForServerUpgrade"));
+  const auto &uc_options = *options;
 
-  return shcore::Value();
+  check_upgrade(connection, uc_options);
 }
 
 REGISTER_HELP_FUNCTION(importJson, util);
@@ -1044,10 +1008,12 @@ names indicates how to match data file columns with table columns.
 Use non-negative integer `i` to capture column value into user variable @i.
 With user variables, the decodeColumns option enables you to perform preprocessing
 transformations on their values before assigning the result to columns.
-@li <b>fieldsTerminatedBy</b>: string (default: "\t"), <b>fieldsEnclosedBy</b>:
-char (default: ''), <b>fieldsEscapedBy</b>: char (default: '\\') - These options
-have the same meaning as the corresponding clauses for LOAD DATA INFILE. For
-more information use <b>\\? LOAD DATA</b>, (a session is required).
+@li <b>fieldsTerminatedBy</b>: string (default: "\t") - This option has the same
+meaning as the corresponding clause for LOAD DATA INFILE.
+@li <b>fieldsEnclosedBy</b>: char (default: '') - This option has the same meaning
+as the corresponding clause for LOAD DATA INFILE.
+@li <b>fieldsEscapedBy</b>: char (default: '\\') - This option has the same meaning
+as the corresponding clause for LOAD DATA INFILE.
 @li <b>fieldsOptionallyEnclosed</b>: bool (default: false) - Set to true if the
 input values are not necessarily enclosed within quotation marks specified by
 <b>fieldsEnclosedBy</b> option. Set to false if all fields are quoted by
@@ -1416,81 +1382,100 @@ Undefined Util::importTable(List filename, Dictionary options);
 #elif DOXYGEN_PY
 None Util::import_table(list filename, dict options);
 #endif
+
+// TODO(rennox): Temporary hack to continue supporting multifile import from
+// CLI after option pack introduction but before CLI enhancements WL
 shcore::Value Util::import_table(const shcore::Argument_list &args) {
-  using import_table::Import_table;
-  using import_table::Import_table_options;
-  using mysqlshdk::utils::format_bytes;
+  args.ensure_count(1, 2, get_function_name("importTable").c_str());
+
+  shcore::Option_pack_ref<import_table::Import_table_option_pack>
+      import_table_options;
 
   try {
     // extract file list and options from argument list
-    auto files = shcore::make_array();
+    std::vector<std::string> files;
     auto options = shcore::make_dict();
 
     if (args.size() > 0 && args[0].type == shcore::Value_type::Array) {
-      files = args[0].as_array();
+      for (const auto &file : *args[0].as_array()) {
+        files.push_back(file.as_string());
+      }
       if (args.size() > 1) {
-        options = args[1].as_map();
+        import_table_options.unpack(args[1].as_map());
       }
     } else {
       auto file_list = std::find_if_not(
           args.begin(), args.end(),
           [](const auto &x) { return x.type == shcore::Value_type::String; });
+
       for (auto it = args.begin(); it != file_list; it++) {
-        files->push_back(*it);
+        files.push_back(it->as_string());
       }
 
       if (file_list != args.end()) {
-        options = file_list->as_map();
+        import_table_options.unpack(file_list->as_map());
       }
     }
-
-    // Array_t -> vector<string>
-    std::vector<std::string> file_list;
-    file_list.reserve(files->size());
-    for (auto i = files->begin(); i != files->end(); i++) {
-      file_list.push_back(i->get_string());
-    }
-
-    Import_table_options opt(std::move(file_list), options);
-
-    auto shell_session = _shell_core.get_dev_session();
-    if (!shell_session || !shell_session->is_open() ||
-        shell_session->get_node_type().compare("mysql") != 0) {
-      throw shcore::Exception::runtime_error(
-          "A classic protocol session is required to perform this operation.");
-    }
-
-    opt.base_session(std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(
-        shell_session->get_core_session()));
-    opt.validate();
-
-    volatile bool interrupt = false;
-    shcore::Interrupt_handler intr_handler([&interrupt]() -> bool {
-      mysqlsh::current_console()->print_note(
-          "Interrupted by user. Cancelling...");
-      interrupt = true;
-      return false;
-    });
-
-    Import_table importer(opt);
-    importer.interrupt(&interrupt);
-
-    auto console = mysqlsh::current_console();
-    console->print_info(opt.target_import_info());
-
-    importer.import();
-
-    const bool thread_thrown_exception = importer.any_exception();
-    if (!thread_thrown_exception) {
-      console->print_info(importer.import_summary());
-    }
-
-    console->print_info(importer.rows_affected_info());
-    importer.rethrow_exceptions();
+    import_table_files(files, import_table_options);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("importTable"));
 
   return shcore::Value();
+}
+
+void Util::import_table_file(
+    const std::string &filename,
+    const shcore::Option_pack_ref<import_table::Import_table_option_pack>
+        &options) {
+  import_table_files({filename}, options);
+}
+
+void Util::import_table_files(
+    const std::vector<std::string> &files,
+    const shcore::Option_pack_ref<import_table::Import_table_option_pack>
+        &options) {
+  using import_table::Import_table;
+  using mysqlshdk::utils::format_bytes;
+
+  import_table::Import_table_options opt(*options);
+
+  opt.set_filenames(files);
+
+  auto shell_session = _shell_core.get_dev_session();
+  if (!shell_session || !shell_session->is_open() ||
+      shell_session->get_node_type().compare("mysql") != 0) {
+    throw shcore::Exception::runtime_error(
+        "A classic protocol session is required to perform this operation.");
+  }
+
+  opt.set_base_session(std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(
+      shell_session->get_core_session()));
+
+  opt.validate();
+
+  volatile bool interrupt = false;
+  shcore::Interrupt_handler intr_handler([&interrupt]() -> bool {
+    mysqlsh::current_console()->print_note(
+        "Interrupted by user. Cancelling...");
+    interrupt = true;
+    return false;
+  });
+
+  Import_table importer(opt);
+  importer.interrupt(&interrupt);
+
+  auto console = mysqlsh::current_console();
+  console->print_info(opt.target_import_info());
+
+  importer.import();
+
+  const bool thread_thrown_exception = importer.any_exception();
+  if (!thread_thrown_exception) {
+    console->print_info(importer.import_summary());
+  }
+
+  console->print_info(importer.rows_affected_info());
+  importer.rethrow_exceptions();
 }
 
 REGISTER_HELP_FUNCTION(loadDump, util);
@@ -1663,18 +1648,18 @@ Undefined Util::loadDump(String url, Dictionary options) {}
 #elif DOXYGEN_PY
 None Util::load_dump(str url, dict options) {}
 #endif
-void Util::load_dump(const std::string &url,
-                     const shcore::Dictionary_t &options) {
-  Load_dump_options opt(url);
-
+void Util::load_dump(
+    const std::string &url,
+    const shcore::Option_pack_ref<Load_dump_options> &options) {
   auto session = _shell_core.get_dev_session();
   if (!session || !session->is_open()) {
     throw std::runtime_error(
         "An open session is required to perform this operation.");
   }
 
+  Load_dump_options opt = *options;
+  opt.set_url(url);
   opt.set_session(session->get_core_session(), session->get_current_schema());
-  opt.set_options(options);
   opt.validate();
 
   Dump_loader loader(opt);
@@ -2064,8 +2049,9 @@ Undefined Util::exportTable(String table, String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
 None Util::export_table(str table, str outputUrl, dict options);
 #endif
-void Util::export_table(const std::string &table, const std::string &file,
-                        const shcore::Dictionary_t &options) {
+void Util::export_table(
+    const std::string &table, const std::string &file,
+    const shcore::Option_pack_ref<dump::Export_table_options> &options) {
   const auto session = _shell_core.get_dev_session();
 
   if (!session || !session->is_open()) {
@@ -2074,10 +2060,10 @@ void Util::export_table(const std::string &table, const std::string &file,
   }
 
   using mysqlsh::dump::Export_table;
-  using mysqlsh::dump::Export_table_options;
 
-  Export_table_options opts{table, file};
-  opts.set_options(options);
+  mysqlsh::dump::Export_table_options opts = *options;
+  opts.set_table(table);
+  opts.set_output_url(file);
   opts.set_session(session->get_core_session());
 
   Export_table{opts}.run();
@@ -2160,10 +2146,10 @@ Undefined Util::dumpTables(String schema, List tables, String outputUrl,
 #elif DOXYGEN_PY
 None Util::dump_tables(str schema, list tables, str outputUrl, dict options);
 #endif
-void Util::dump_tables(const std::string &schema,
-                       const std::vector<std::string> &tables,
-                       const std::string &directory,
-                       const shcore::Dictionary_t &options) {
+void Util::dump_tables(
+    const std::string &schema, const std::vector<std::string> &tables,
+    const std::string &directory,
+    const shcore::Option_pack_ref<dump::Dump_tables_options> &options) {
   const auto session = _shell_core.get_dev_session();
 
   if (!session || !session->is_open()) {
@@ -2172,10 +2158,11 @@ void Util::dump_tables(const std::string &schema,
   }
 
   using mysqlsh::dump::Dump_tables;
-  using mysqlsh::dump::Dump_tables_options;
 
-  Dump_tables_options opts{schema, tables, directory};
-  opts.set_options(options);
+  mysqlsh::dump::Dump_tables_options opts = *options;
+  opts.set_schema(schema);
+  opts.set_tables(tables);
+  opts.set_output_url(directory);
   opts.set_session(session->get_core_session());
 
   Dump_tables{opts}.run();
@@ -2232,9 +2219,9 @@ Undefined Util::dumpSchemas(List schemas, String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
 None Util::dump_schemas(list schemas, str outputUrl, dict options);
 #endif
-void Util::dump_schemas(const std::vector<std::string> &schemas,
-                        const std::string &directory,
-                        const shcore::Dictionary_t &options) {
+void Util::dump_schemas(
+    const std::vector<std::string> &schemas, const std::string &directory,
+    const shcore::Option_pack_ref<dump::Dump_schemas_options> &options) {
   const auto session = _shell_core.get_dev_session();
 
   if (!session || !session->is_open()) {
@@ -2243,10 +2230,10 @@ void Util::dump_schemas(const std::vector<std::string> &schemas,
   }
 
   using mysqlsh::dump::Dump_schemas;
-  using mysqlsh::dump::Dump_schemas_options;
 
-  Dump_schemas_options opts{schemas, directory};
-  opts.set_options(options);
+  mysqlsh::dump::Dump_schemas_options opts = *options;
+  opts.set_schemas(schemas);
+  opts.set_output_url(directory);
   opts.set_session(session->get_core_session());
 
   Dump_schemas{opts}.run();
@@ -2320,8 +2307,9 @@ Undefined Util::dumpInstance(String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
 None Util::dump_instance(str outputUrl, dict options);
 #endif
-void Util::dump_instance(const std::string &directory,
-                         const shcore::Dictionary_t &options) {
+void Util::dump_instance(
+    const std::string &directory,
+    const shcore::Option_pack_ref<dump::Dump_instance_options> &options) {
   const auto session = _shell_core.get_dev_session();
 
   if (!session || !session->is_open()) {
@@ -2330,10 +2318,9 @@ void Util::dump_instance(const std::string &directory,
   }
 
   using mysqlsh::dump::Dump_instance;
-  using mysqlsh::dump::Dump_instance_options;
 
-  Dump_instance_options opts{directory};
-  opts.set_options(options);
+  mysqlsh::dump::Dump_instance_options opts = *options;
+  opts.set_output_url(directory);
   opts.set_session(session->get_core_session());
 
   Dump_instance{opts}.run();

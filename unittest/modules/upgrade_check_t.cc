@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,11 +32,12 @@
 using Version = mysqlshdk::utils::Version;
 
 namespace mysqlsh {
+using mysqlshdk::db::Connection_options;
 
 class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
  public:
   MySQL_upgrade_check_test()
-      : opts{_target_server_version, Version(MYSH_VERSION), "", ""} {}
+      : opts(_target_server_version, Version(MYSH_VERSION)) {}
 
  protected:
   static void SetUpTestCase() {
@@ -100,34 +101,33 @@ TEST_F(MySQL_upgrade_check_test, checklist_generation) {
   Version current(MYSH_VERSION);
   Version prev(current.get_major(), current.get_minor(),
                current.get_patch() - 1);
-  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
-                        Version("5.7"), Version("5.7"), "", ""}),
+  EXPECT_THROW_LIKE(Upgrade_check::create_checklist(
+                        Upgrade_check_options{Version("5.7"), Version("5.7")}),
                     std::invalid_argument, "This tool supports checking");
   EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
-                        Version("5.6.11"), Version("8.0"), "", ""}),
+                        Version("5.6.11"), Version("8.0")}),
                     std::invalid_argument, "at least at version 5.7");
   EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
-                        Version("5.7.19"), Version("8.1.0"), "", ""}),
+                        Version("5.7.19"), Version("8.1.0")}),
                     std::invalid_argument, "This tool supports checking");
   EXPECT_THROW_LIKE(
-      Upgrade_check::create_checklist(
-          Upgrade_check_options{current, current, "", ""}),
+      Upgrade_check::create_checklist(Upgrade_check_options{current, current}),
       std::invalid_argument,
       "MySQL Shell cannot check MySQL server instances for upgrade if they are "
       "at a version the same as or higher than the MySQL Shell version.");
   EXPECT_THROW_LIKE(Upgrade_check::create_checklist(Upgrade_check_options{
-                        Version("8.0.12"), Version("8.0.12"), "", ""}),
+                        Version("8.0.12"), Version("8.0.12")}),
                     std::invalid_argument, "Target version must be greater");
   EXPECT_NO_THROW(Upgrade_check::create_checklist(
-      Upgrade_check_options{Version("5.7.19"), current, "", ""}));
+      Upgrade_check_options{Version("5.7.19"), current}));
   EXPECT_NO_THROW(Upgrade_check::create_checklist(
-      Upgrade_check_options{Version("5.7.17"), Version("8.0"), "", ""}));
+      Upgrade_check_options{Version("5.7.17"), Version("8.0")}));
   EXPECT_NO_THROW(Upgrade_check::create_checklist(
-      Upgrade_check_options{Version("5.7"), Version("8.0.12"), "", ""}));
+      Upgrade_check_options{Version("5.7"), Version("8.0.12")}));
 
   std::vector<std::unique_ptr<Upgrade_check>> checks;
   EXPECT_NO_THROW(checks = Upgrade_check::create_checklist(
-                      Upgrade_check_options{prev, current, "", ""}));
+                      Upgrade_check_options{prev, current}));
   // Check for table command is there for every valid version as a last check
   EXPECT_FALSE(checks.empty());
   EXPECT_EQ(0, strcmp("checkTableOutput", checks.back()->get_name()));
@@ -189,7 +189,7 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   EXPECT_EQ("LEAD", issues[11].table);
 
   check = Sql_upgrade_check::get_reserved_keywords_check(
-      Upgrade_check_options{Version(5, 7, 0), Version(8, 0, 11), "", ""});
+      Upgrade_check_options{Version(5, 7, 0), Version(8, 0, 11)});
   ASSERT_NO_THROW(issues = check->run(session, opts));
   ASSERT_EQ(10, issues.size());
 }
@@ -772,23 +772,23 @@ TEST_F(MySQL_upgrade_check_test, non_native_partitioning) {
 TEST_F(MySQL_upgrade_check_test, fts_tablename_check) {
   const auto res = session->query("select UPPER(@@version_compile_os);");
   const auto compile_os = res->fetch_one()->get_string(0);
+  auto options = Upgrade_check_options(Version(5, 7, 25), Version(8, 0, 17));
+  options.server_os = compile_os;
 #if defined(WIN32)
-  EXPECT_THROW(
-      Sql_upgrade_check::get_fts_in_tablename_check(Upgrade_check_options{
-          Version(5, 7, 25), Version(8, 0, 17), compile_os.c_str(), ""}),
-      Upgrade_check::Check_not_needed);
+  EXPECT_THROW(Sql_upgrade_check::get_fts_in_tablename_check(options),
+               Upgrade_check::Check_not_needed);
 #else
   PrepareTestDatabase("fts_tablename");
   EXPECT_THROW(Sql_upgrade_check::get_fts_in_tablename_check(opts),
                Upgrade_check::Check_not_needed);
-  auto check =
-      Sql_upgrade_check::get_fts_in_tablename_check(Upgrade_check_options{
-          Version(5, 7, 25), Version(8, 0, 17), compile_os.c_str(), ""});
+  auto check = Sql_upgrade_check::get_fts_in_tablename_check(options);
   EXPECT_NO_ISSUES(check.get());
 
-  ASSERT_NO_THROW(session->execute(
-      "CREATE TABLE `DP01_FTS_REGULATION_ACTION_HIST` ( `HJID` bigint(20) NOT "
-      "NULL, `VERSION` bigint(20) NOT NULL, PRIMARY KEY (`HJID`,`VERSION`));"));
+  ASSERT_NO_THROW(
+      session->execute("CREATE TABLE `DP01_FTS_REGULATION_ACTION_HIST` "
+                       "( `HJID` bigint(20) NOT "
+                       "NULL, `VERSION` bigint(20) NOT NULL, PRIMARY "
+                       "KEY (`HJID`,`VERSION`));"));
 #ifndef __APPLE__
   ASSERT_NO_THROW(session->execute(
       "create table `DP01_FtS_REGULATION_ACTION_HIST` (i integer);"));
@@ -854,7 +854,7 @@ TEST_F(MySQL_upgrade_check_test, engine_mixup_check) {
 
 TEST_F(MySQL_upgrade_check_test, manual_checks) {
   auto manual = Upgrade_check::create_checklist(
-      Upgrade_check_options{Version("5.7.0"), Version("8.0.11"), "", ""});
+      Upgrade_check_options{Version("5.7.0"), Version("8.0.11")});
   manual.erase(std::remove_if(manual.begin(), manual.end(),
                               [](const std::unique_ptr<Upgrade_check> &c) {
                                 return c->is_runnable();
@@ -884,66 +884,51 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   if (_target_server_version < Version(5, 7, 0) ||
       _target_server_version >= Version(8, 0, 0))
     SKIP_TEST("This test requires running against MySQL server version 5.7");
-  _interactive_shell->connect(
-      mysqlsh::get_connection_options(shcore::Value(_mysql_uri)));
+  auto mysql_connection_options = shcore::get_connection_options(_mysql_uri);
+  _interactive_shell->connect(mysql_connection_options);
   Util util(_interactive_shell->shell_context().get());
-  shcore::Argument_list args;
 
   // valid mysql 5.7 superuser
-  args.push_back(shcore::Value(_mysql_uri));
   try {
-    util.check_for_server_upgrade(args);
+    util.check_for_server_upgrade(mysql_connection_options);
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     EXPECT_TRUE(false);
   }
-  args.clear();
 
   // valid mysql 5.7 superuser X protocol
-  args.push_back(shcore::Value(_uri));
-  EXPECT_NO_THROW(util.check_for_server_upgrade(args));
-  args.clear();
+  EXPECT_NO_THROW(
+      util.check_for_server_upgrade(shcore::get_connection_options(_uri)));
 
   // new user with required privileges sans grant option and '%' in host
   EXPECT_NO_THROW(session->execute(
       "create user if not exists 'percent'@'%' identified by 'percent';"));
   std::string percent_uri = _mysql_uri;
   percent_uri.replace(0, 4, "percent:percent");
-  args.push_back(shcore::Value(percent_uri));
+  auto percent_connection_options = shcore::get_connection_options(percent_uri);
   // No privileges function should throw
-  EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
+  EXPECT_THROW(util.check_for_server_upgrade(percent_connection_options),
+               std::invalid_argument);
 
   // Still not enough privileges
   EXPECT_NO_THROW(session->execute("grant SELECT on *.* to 'percent'@'%';"));
-  EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
+  EXPECT_THROW(util.check_for_server_upgrade(percent_connection_options),
+               std::invalid_argument);
 
   // Privileges check out we should succeed
   EXPECT_NO_THROW(
       session->execute("grant RELOAD, PROCESS on *.* to 'percent'@'%';"));
-  EXPECT_NO_THROW(util.check_for_server_upgrade(args));
+  EXPECT_NO_THROW(util.check_for_server_upgrade(percent_connection_options));
 
   EXPECT_NO_THROW(session->execute("drop user 'percent'@'%';"));
 
   // Using default session to run checks
-  args.clear();
-  EXPECT_NO_THROW(util.check_for_server_upgrade(args));
+  EXPECT_NO_THROW(util.check_for_server_upgrade(Connection_options()));
 
   // Using default session with options dictionary
-  auto op = std::make_shared<shcore::Value::Map_type>();
-  op->set("targetVersion", shcore::Value("8.0.18"));
-  args.push_back(shcore::Value(op));
-  EXPECT_NO_THROW(util.check_for_server_upgrade(args));
-
-  // Wrong options
-  op->set("blah", shcore::Value("whatever"));
-  EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
-
-  // Wrong type of parameters
-  args.clear();
-  args.push_back(shcore::Value(_mysql_uri));
-  args.push_back(shcore::Value("whatever"));
-  EXPECT_THROW_LIKE(util.check_for_server_upgrade(args), shcore::Exception,
-                    "Argument #2 is expected to be a map.");
+  shcore::Option_pack_ref<Upgrade_check_options> op;
+  op->target_version = mysqlshdk::utils::Version(8, 0, 18);
+  EXPECT_NO_THROW(util.check_for_server_upgrade(Connection_options(), op));
 }
 
 TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
@@ -953,15 +938,13 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
         "This test requires running against MySQL server version 5.7 up to but "
         "not including " MYSH_VERSION);
   Util util(_interactive_shell->shell_context().get());
-  shcore::Argument_list args;
 
   // valid mysql 5.7 superuser
-  args.push_back(shcore::Value(_mysql_uri));
-  const auto options = shcore::make_dict();
-  options->set("outputFormat", shcore::Value("JSON"));
-  args.push_back(shcore::Value(options));
+  shcore::Option_pack_ref<Upgrade_check_options> options;
+  options->output_format = "JSON";
+  auto connection_options = shcore::get_connection_options(_mysql_uri);
   try {
-    util.check_for_server_upgrade(args);
+    util.check_for_server_upgrade(connection_options, options);
     rapidjson::Document d;
     d.Parse(output_handler.std_out.c_str());
 
@@ -1040,8 +1023,7 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
     EXPECT_NE("json/raw", _options->wrap_json);
     auto old_wrap = _options->wrap_json;
     _options->wrap_json = "json/raw";
-    args.pop_back();
-    util.check_for_server_upgrade(args);
+    util.check_for_server_upgrade(connection_options);
     _options->wrap_json = old_wrap;
     rapidjson::Document d1;
     d1.Parse(output_handler.std_out.c_str());
@@ -1051,7 +1033,6 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
     std::cerr << e.what() << std::endl;
     EXPECT_TRUE(false);
   }
-  args.clear();
 }
 
 TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
@@ -1063,22 +1044,21 @@ TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
         "This test requires running against MySQL server version 8.0, equal "
         "or greater than the shell version");
   Util util(_interactive_shell->shell_context().get());
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(_mysql_uri));
-  EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
+  EXPECT_ANY_THROW(util.check_for_server_upgrade(
+      shcore::get_connection_options(_mysql_uri)));
 }
 
 TEST_F(MySQL_upgrade_check_test, password_prompted) {
   Util util(_interactive_shell->shell_context().get());
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(_mysql_uri_nopasswd));
 
   output_handler.passwords.push_back(
       {"Please provide the password for "
        "'" +
            _mysql_uri_nopasswd + "': ",
        "WhAtEvEr"});
-  EXPECT_THROW(util.check_for_server_upgrade(args), shcore::Exception);
+  EXPECT_THROW(util.check_for_server_upgrade(
+                   shcore::get_connection_options(_mysql_uri_nopasswd)),
+               shcore::Exception);
 
   // Passwords are consumed if prompted, so verifying this indicates the
   // password was prompted as expected and consumed
@@ -1087,14 +1067,11 @@ TEST_F(MySQL_upgrade_check_test, password_prompted) {
 
 TEST_F(MySQL_upgrade_check_test, password_no_prompted) {
   Util util(_interactive_shell->shell_context().get());
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(_mysql_uri));
-
   output_handler.passwords.push_back(
       {"If this was prompted it is an error", "WhAtEvEr"});
 
   try {
-    util.check_for_server_upgrade(args);
+    util.check_for_server_upgrade(shcore::get_connection_options(_mysql_uri));
   } catch (...) {
     // We don't really care for this test
   }
@@ -1109,14 +1086,13 @@ TEST_F(MySQL_upgrade_check_test, password_no_promptable) {
   _options->wizards = false;
   reset_shell();
   Util util(_interactive_shell->shell_context().get());
-  shcore::Argument_list args;
-  args.push_back(shcore::Value(_mysql_uri_nopasswd));
 
   output_handler.passwords.push_back(
       {"If this was prompted it is an error", "WhAtEvEr"});
 
   try {
-    util.check_for_server_upgrade(args);
+    util.check_for_server_upgrade(
+        shcore::get_connection_options(_mysql_uri_nopasswd));
   } catch (...) {
     // We don't really care for this test
   }

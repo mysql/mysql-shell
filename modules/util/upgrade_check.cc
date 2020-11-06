@@ -29,6 +29,8 @@
 #include <utility>
 
 #include "modules/util/upgrade_check.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -68,6 +70,24 @@ std::string Upgrade_issue::get_db_object() const {
   if (!table.empty()) ss << "." << table;
   if (!column.empty()) ss << "." << column;
   return ss.str();
+}
+
+const shcore::Option_pack_def<Upgrade_check_options>
+    &Upgrade_check_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Upgrade_check_options>()
+          .optional("outputFormat", &Upgrade_check_options::output_format)
+          .optional("targetVersion", &Upgrade_check_options::set_target_version)
+          .optional("configPath", &Upgrade_check_options::config_path)
+          .optional("password", &Upgrade_check_options::password, "", false);
+
+  return opts;
+}
+
+void Upgrade_check_options::set_target_version(const std::string &value) {
+  if (!value.empty() && value != "8.0") {
+    target_version = Version(value);
+  }
 }
 
 const Version Upgrade_check::TRANSLATION_MODE("0.0.0");
@@ -142,7 +162,8 @@ void Upgrade_check::prepare_translation_file(const char *filename) {
 
   writer.write_header(oracle_copyright);
   writer.write_header();
-  Upgrade_check_options opts{TRANSLATION_MODE, TRANSLATION_MODE, "", ""};
+  Upgrade_check_options opts(TRANSLATION_MODE, TRANSLATION_MODE);
+
   for (const auto &it : s_available_checks) {
     auto check = it.second(opts);
     std::string prefix(check->m_name);

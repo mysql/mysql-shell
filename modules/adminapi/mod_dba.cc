@@ -62,6 +62,7 @@
 #include "mysqlshdk/include/scripting/object_factory.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -175,17 +176,12 @@ static std::map<std::string, Op_data> Operations_text{
     {"delete", {"deleteSandboxInstance", "Deleting", "deleted"}},
     {"kill", {"killSandboxInstance", "Killing", "killed"}},
     {"stop", {"stopSandboxInstance", "Stopping", "stopped"}},
-    {"deploy",
-     {"deploySandboxInstance", "Deploying new", "deployed and started"}},
     {"start", {"startSandboxInstance", "Starting", "started"}}};
 
 }  // namespace sandbox
 
 namespace {
 
-const std::set<std::string> kDeployInstanceOpts = {
-    "portx",         "sandboxDir",     "password",
-    "allowRootFrom", "ignoreSslError", "mysqldOptions"};
 const std::set<std::string> kStopInstanceOpts = {"sandboxDir", "password"};
 const std::set<std::string> kDefaultLocalInstanceOpts = {"sandboxDir"};
 
@@ -216,6 +212,30 @@ std::string get_sandbox_dir(shcore::Argument_map *opt_map = nullptr) {
   }
 
   return sandbox_dir;
+}
+
+void validate_sandbox_dir(const std::string &sandbox_dir) {
+  if (!shcore::is_folder(sandbox_dir)) {
+    throw shcore::Exception::argument_error(
+        "The sandbox dir path '" + sandbox_dir + "' is not valid: it " +
+        (shcore::path_exists(sandbox_dir) ? "is not a directory"
+                                          : "does not exist") +
+        ".");
+  }
+}
+
+void throw_instance_op_error(const shcore::Array_t &errors) {
+  std::vector<std::string> str_errors;
+  if (errors && !errors->empty()) {
+    for (const auto &error : *errors) {
+      auto data = error.as_map();
+      auto error_type = data->get_string("type");
+      auto error_text = data->get_string("msg");
+      str_errors.push_back(error_type + ": " + error_text);
+    }
+
+    throw shcore::Exception::runtime_error(shcore::str_join(str_errors, "\n"));
+  }
 }
 
 }  // namespace
@@ -595,22 +615,18 @@ void Dba::init() {
   expose("dropMetadataSchema", &Dba::drop_metadata_schema, "?options");
   expose("checkInstanceConfiguration", &Dba::check_instance_configuration,
          "?instanceDef", "?options");
-  add_method("deploySandboxInstance",
-             std::bind(&Dba::deploy_sandbox_instance, this, _1,
-                       "deploySandboxInstance"),
-             "data", shcore::Map);
-  add_method("startSandboxInstance",
-             std::bind(&Dba::start_sandbox_instance, this, _1), "data",
-             shcore::Map);
-  add_method("stopSandboxInstance",
-             std::bind(&Dba::stop_sandbox_instance, this, _1), "data",
-             shcore::Map);
-  add_method("deleteSandboxInstance",
-             std::bind(&Dba::delete_sandbox_instance, this, _1), "data",
-             shcore::Map);
-  add_method("killSandboxInstance",
-             std::bind(&Dba::kill_sandbox_instance, this, _1), "data",
-             shcore::Map);
+  expose("deploySandboxInstance", &Dba::deploy_sandbox_instance, "port",
+         "?options");
+  // TODO(rennox): The sandbox operations must be moved to export() and the
+  // correct option definitions must be added just as the deploy operation
+  expose("startSandboxInstance", &Dba::start_sandbox_instance, "port",
+         "?options");
+  expose("stopSandboxInstance", &Dba::stop_sandbox_instance, "port",
+         "?options");
+  expose("deleteSandboxInstance", &Dba::delete_sandbox_instance, "port",
+         "?options");
+  expose("killSandboxInstance", &Dba::kill_sandbox_instance, "port",
+         "?options");
   expose("rebootClusterFromCompleteOutage",
          &Dba::reboot_cluster_from_complete_outage, "?clusterName", "?options");
   expose("upgradeMetadata", &Dba::upgrade_metadata, "?options");
@@ -1771,41 +1787,21 @@ shcore::Value Dba::create_replica_set(const std::string &full_rs_name,
   return shcore::Value(std::make_shared<ReplicaSet>(cluster));
 }
 
-shcore::Value Dba::exec_instance_op(const std::string &function,
-                                    const shcore::Argument_list &args,
-                                    const std::string &password) {
-  shcore::Value ret_val;
-
-  shcore::Value::Map_type_ref options;  // Map with the connection data
+void Dba::exec_instance_op(const std::string &function, int port,
+                           const shcore::Dictionary_t &options,
+                           const std::string &password) {
   shcore::Value mycnf_options;
 
   std::string sandbox_dir;
-  int port = args.int_at(0);
   validate_port(port, "port");
-  int portx = 0;
 
-  bool ignore_ssl_error = true;  // SSL errors are ignored by default.
-
-  if (args.size() == 2) {
-    options = args.map_at(1);
-
+  if (options) {
     // Verification of invalid attributes on the instance commands
     shcore::Argument_map opt_map(*options);
 
     sandbox_dir = get_sandbox_dir(&opt_map);
 
-    if (function == "deploy") {
-      if (opt_map.has_key("ignoreSslError"))
-        ignore_ssl_error = opt_map.bool_at("ignoreSslError");
-
-      if (options->has_key("mysqldOptions"))
-        mycnf_options = (*options)["mysqldOptions"];
-
-      if (options->has_key("portx")) portx = opt_map.int_at("portx");
-
-      mycnf_options = (*options)["mysqldOptions"];
-
-    } else if (function != "stop") {
+    if (function != "stop") {
       opt_map.ensure_keys({}, kDefaultLocalInstanceOpts, "the instance data");
     }
   } else {
@@ -1826,12 +1822,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
   }
 
   int rc = 0;
-  if (function == "deploy") {
-    // First we need to create the instance
-    rc = _provisioning_interface.create_sandbox(
-        port, portx, sandbox_dir, password, mycnf_options, true,
-        ignore_ssl_error, 0, "", &errors);
-  } else if (function == "delete") {
+  if (function == "delete") {
     rc = _provisioning_interface.delete_sandbox(port, sandbox_dir, false,
                                                 &errors);
   } else if (function == "kill") {
@@ -1855,15 +1846,13 @@ shcore::Value Dba::exec_instance_op(const std::string &function,
     }
 
     throw shcore::Exception::runtime_error(shcore::str_join(str_errors, "\n"));
-  } else if (interactive && function != "deploy") {
+  } else if (interactive) {
     console->println();
     console->println("Instance localhost:" + std::to_string(port) +
                      " successfully " +
                      sandbox::Operations_text[function].past + ".");
     console->println();
   }
-
-  return ret_val;
 }
 
 REGISTER_HELP_FUNCTION(deploySandboxInstance, dba);
@@ -1922,147 +1911,140 @@ Instance Dba::deploySandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 Instance Dba::deploy_sandbox_instance(int port, dict options) {}
 #endif
-shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
-                                           const std::string &fname) {
-  shcore::Value ret_val;
+void Dba::deploy_sandbox_instance(
+    int port, const shcore::Option_pack_ref<Deploy_instance_options> &options) {
+  validate_port(port, "port");
 
-  args.ensure_count(1, 2, get_function_name(fname).c_str());
+  const Deploy_instance_options &opts = *options;
 
-  int port = 0;
-  try {
-    port = args.int_at(0);
-    validate_port(port, "port");
+  if (!opts.xport.is_null()) {
+    validate_port(*opts.xport, "portx");
+  }
 
-    std::string remote_root;
-    std::string sandbox_dir;
-    mysqlshdk::utils::nullable<std::string> password;
+  auto sandbox_dir = mysqlsh::current_shell_options()->get().sandbox_directory;
 
-    if (args.size() == 2) {
-      auto map = args.map_at(1);
-      shcore::Argument_map opt_map(*map);
+  if (!opts.sandbox_dir.is_null()) {
+    sandbox_dir = *opts.sandbox_dir;
 
-      opt_map.ensure_keys({}, kDeployInstanceOpts, "the instance data");
+    validate_sandbox_dir(sandbox_dir);
+  }
 
-      if (opt_map.has_key("portx")) {
-        validate_port(opt_map.int_at("portx"), "portx");
-      }
+  mysqlshdk::utils::nullable<std::string> password = opts.password;
 
-      sandbox_dir = get_sandbox_dir(&opt_map);
+  // create root@<addr> if needed
+  // Valid values:
+  // allowRootFrom: address
+  // allowRootFrom: %
+  // allowRootFrom: null (that is, disable the option)
+  std::string remote_root;
+  if (!opts.allow_root_from.is_null()) remote_root = *opts.allow_root_from;
 
-      if (opt_map.has_key("password")) password = opt_map.string_at("password");
+  bool interactive = current_shell_options()->get().wizards;
+  auto console = mysqlsh::current_console();
+  std::string path = shcore::path::join_path(sandbox_dir, std::to_string(port));
 
-      // create root@<addr> if needed
-      // Valid values:
-      // allowRootFrom: address
-      // allowRootFrom: %
-      // allowRootFrom: null (that is, disable the option)
-      if (opt_map.has_key("allowRootFrom") &&
-          opt_map.at("allowRootFrom").type != shcore::Null) {
-        remote_root = opt_map.string_at("allowRootFrom");
-      }
-    } else {
-      sandbox_dir = get_sandbox_dir();
-    }
+  if (interactive) {
+    // TODO(anyone): This default value was being set on the interactive
+    // layer, for that reason is kept here only if interactive, to avoid
+    // changes in behavior. This should be fixed at BUG#27369121."
+    //
+    // When this is fixed search for the following test chunk:
+    // "//@ Deploy instances (with specific innodb_page_size)."
+    // The allowRootFrom:"%" option was added there to make this test pass
+    // after the removal of the Interactive wrappers.
+    //
+    // The only reason the test was passing before was because of a BUG on the
+    // test framework that was meant to execute the script in NON interative
+    // mode.
+    //
+    // Debugging the test it effectively had options.wizards = false,
+    // however the Interactive Wrappers were in place which means this
+    // function was getting allowRootFrom="%" even the test was not in
+    // interactive mode.
+    //
+    // I tried reproducing the chunk using the shell and it effectively fails
+    // as expected, rather than succeeding as the test suite claimed.
+    //
+    // Funny thing is that the BUG in the test suite gets fixed with the
+    // removal of the Interactive wrappers.
+    //
+    // The test mentioned above must be also revisited when BUG#27369121 is
+    // addressed.
+    if (remote_root.empty()) remote_root = "%";
 
-    bool interactive = current_shell_options()->get().wizards;
-    auto console = mysqlsh::current_console();
-    std::string path =
-        shcore::path::join_path(sandbox_dir, std::to_string(port));
-
-    if (interactive) {
-      // TODO(anyone): This default value was being set on the interactive
-      // layer, for that reason is kept here only if interactive, to avoid
-      // changes in behavior. This should be fixed at BUG#27369121."
-      //
-      // When this is fixed search for the following test chunk:
-      // "//@ Deploy instances (with specific innodb_page_size)."
-      // The allowRootFrom:"%" option was added there to make this test pass
-      // after the removal of the Interactive wrappers.
-      //
-      // The only reason the test was passing before was because of a BUG on the
-      // test framework that was meant to execute the script in NON interative
-      // mode.
-      //
-      // Debugging the test it effectively had options.wizards = false,
-      // however the Interactive Wrappers were in place which means this
-      // function was getting allowRootFrom="%" even the test was not in
-      // interactive mode.
-      //
-      // I tried reproducing the chunk using the shell and it effectively fails
-      // as expected, rather than succeeding as the test suite claimed.
-      //
-      // Funny thing is that the BUG in the test suite gets fixed with the
-      // removal of the Interactive wrappers.
-      //
-      // The test mentioned above must be also revisited when BUG#27369121 is
-      // addressed.
-      if (remote_root.empty()) remote_root = "%";
-
-      console->println(
-          "A new MySQL sandbox instance will be created on this host in \n" +
-          path +
-          "\n\nWarning: Sandbox instances are only suitable for deploying and "
-          "\nrunning on your local machine for testing purposes and are not "
-          "\naccessible from external networks.\n");
-
-      std::string answer;
-      if (password.is_null()) {
-        if (console->prompt_password(
-                "Please enter a MySQL root password for the new instance: ",
-                &answer) == shcore::Prompt_result::Ok) {
-          password = answer;
-        } else {
-          return shcore::Value();
-        }
-      }
-    }
+    console->println(
+        "A new MySQL sandbox instance will be created on this host in \n" +
+        path +
+        "\n\nWarning: Sandbox instances are only suitable for deploying and "
+        "\nrunning on your local machine for testing purposes and are not "
+        "\naccessible from external networks.\n");
 
     if (password.is_null()) {
-      throw shcore::Exception::argument_error(
-          "Missing root password for the deployed instance");
-    }
-
-    ret_val = exec_instance_op("deploy", args, *password);
-
-    if (!remote_root.empty()) {
-      std::string uri = "root@localhost:" + std::to_string(port);
-      mysqlshdk::db::Connection_options instance_def(uri);
-      instance_def.set_password(*password);
-
-      std::shared_ptr<Instance> instance = Instance::connect(instance_def);
-
-      log_info("Creating root@%s account for sandbox %i", remote_root.c_str(),
-               port);
-      instance->execute("SET sql_log_bin = 0");
-      {
-        std::string pwd;
-        if (instance_def.has_password()) pwd = instance_def.get_password();
-
-        shcore::sqlstring create_user(
-            "CREATE USER root@? IDENTIFIED BY /*((*/ ? /*))*/", 0);
-        create_user << remote_root << pwd;
-        create_user.done();
-        instance->execute(create_user);
+      std::string answer;
+      if (console->prompt_password(
+              "Please enter a MySQL root password for the new instance: ",
+              &answer) == shcore::Prompt_result::Ok) {
+        password = answer;
+      } else {
+        return;
       }
-      {
-        shcore::sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION",
-                                0);
-        grant << remote_root;
-        grant.done();
-        instance->execute(grant);
-      }
-      instance->execute("SET sql_log_bin = 1");
     }
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(fname));
+
+  if (password.is_null()) {
+    throw shcore::Exception::argument_error(
+        "Missing root password for the deployed instance");
+  }
+
+  if (interactive) {
+    console->println();
+    console->println("Deploying new MySQL instance...");
+  }
+
+  shcore::Array_t errors;
+  int rc = _provisioning_interface.create_sandbox(
+      port, opts.xport.get_safe(0), sandbox_dir, *password,
+      shcore::Value(opts.mysqld_options), true, opts.ignore_ssl_error, 0, "",
+      &errors);
+
+  if (rc != 0) throw_instance_op_error(errors);
+
+  if (!remote_root.empty()) {
+    std::string uri = "root@localhost:" + std::to_string(port);
+    mysqlshdk::db::Connection_options instance_def(uri);
+    instance_def.set_password(*password);
+
+    std::shared_ptr<Instance> instance = Instance::connect(instance_def);
+
+    log_info("Creating root@%s account for sandbox %i", remote_root.c_str(),
+             port);
+    instance->execute("SET sql_log_bin = 0");
+    {
+      std::string pwd;
+      if (instance_def.has_password()) pwd = instance_def.get_password();
+
+      shcore::sqlstring create_user(
+          "CREATE USER root@? IDENTIFIED BY /*((*/ ? /*))*/", 0);
+      create_user << remote_root << pwd;
+      create_user.done();
+      instance->execute(create_user);
+    }
+    {
+      shcore::sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION",
+                              0);
+      grant << remote_root;
+      grant.done();
+      instance->execute(grant);
+    }
+    instance->execute("SET sql_log_bin = 1");
+  }
+
   log_warning(
       "Sandbox instances are only suitable for deploying and running on "
       "your local machine for testing purposes and are not accessible "
       "from external networks.");
 
   if (current_shell_options()->get().wizards) {
-    auto console = current_console();
-
     console->print_info();
     console->print_info("Instance localhost:" + std::to_string(port) +
                         " successfully deployed and started.");
@@ -2072,8 +2054,6 @@ shcore::Value Dba::deploy_sandbox_instance(const shcore::Argument_list &args,
         "') to connect to the instance.");
     console->print_info();
   }
-
-  return ret_val;
 }
 
 REGISTER_HELP_FUNCTION(deleteSandboxInstance, dba);
@@ -2114,18 +2094,9 @@ Undefined Dba::deleteSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::delete_sandbox_instance(int port, dict options) {}
 #endif
-shcore::Value Dba::delete_sandbox_instance(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
-  args.ensure_count(1, 2, get_function_name("deleteSandboxInstance").c_str());
-
-  try {
-    ret_val = exec_instance_op("delete", args);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("deleteSandboxInstance"));
-
-  return ret_val;
+void Dba::delete_sandbox_instance(int port,
+                                  const shcore::Dictionary_t &options) {
+  exec_instance_op("delete", port, options);
 }
 
 REGISTER_HELP_FUNCTION(killSandboxInstance, dba);
@@ -2165,18 +2136,8 @@ Undefined Dba::killSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::kill_sandbox_instance(int port, dict options) {}
 #endif
-shcore::Value Dba::kill_sandbox_instance(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
-  args.ensure_count(1, 2, get_function_name("killSandboxInstance").c_str());
-
-  try {
-    ret_val = exec_instance_op("kill", args);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("killSandboxInstance"));
-
-  return ret_val;
+void Dba::kill_sandbox_instance(int port, const shcore::Dictionary_t &options) {
+  exec_instance_op("kill", port, options);
 }
 
 REGISTER_HELP_FUNCTION(stopSandboxInstance, dba);
@@ -2218,80 +2179,68 @@ Undefined Dba::stopSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::stop_sandbox_instance(int port, dict options) {}
 #endif
-shcore::Value Dba::stop_sandbox_instance(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
+void Dba::stop_sandbox_instance(int port, const shcore::Dictionary_t &options) {
+  std::string sandbox_dir;
 
-  args.ensure_count(1, 2, get_function_name("stopSandboxInstance").c_str());
+  validate_port(port, "port");
 
-  try {
-    std::string sandbox_dir;
-    int port = args.int_at(0);
-    validate_port(port, "port");
+  mysqlshdk::utils::nullable<std::string> password;
 
-    mysqlshdk::utils::nullable<std::string> password;
+  if (options) {
+    shcore::Argument_map opt_map(*options);
 
-    if (args.size() == 2) {
-      auto map = args.map_at(1);
-      shcore::Argument_map opt_map(*map);
+    opt_map.ensure_keys({}, kStopInstanceOpts, "the instance data");
 
-      opt_map.ensure_keys({}, kStopInstanceOpts, "the instance data");
+    if (opt_map.has_key("password")) password = opt_map.string_at("password");
 
-      if (opt_map.has_key("password")) password = opt_map.string_at("password");
+    sandbox_dir = get_sandbox_dir(&opt_map);
+  } else {
+    sandbox_dir = get_sandbox_dir();
+  }
 
-      sandbox_dir = get_sandbox_dir(&opt_map);
-    } else {
-      sandbox_dir = get_sandbox_dir();
-    }
-
-    bool interactive = current_shell_options()->get().wizards;
-    auto console = mysqlsh::current_console();
-    std::string path =
-        shcore::path::join_path(sandbox_dir, std::to_string(port));
-    if (interactive) {
-      console->println("The MySQL sandbox instance on this host in \n" + path +
-                       " will be " + sandbox::Operations_text["stop"].past +
-                       "\n");
-
-      if (password.is_null()) {
-        std::string answer;
-        if (console->prompt_password(
-                "Please enter the MySQL root password for the instance "
-                "'localhost:" +
-                    std::to_string(port) + "': ",
-                &answer) == shcore::Prompt_result::Ok) {
-          password = answer;
-        } else {
-          return shcore::Value();
-        }
-      }
-    }
+  bool interactive = current_shell_options()->get().wizards;
+  auto console = mysqlsh::current_console();
+  std::string path = shcore::path::join_path(sandbox_dir, std::to_string(port));
+  if (interactive) {
+    console->println("The MySQL sandbox instance on this host in \n" + path +
+                     " will be " + sandbox::Operations_text["stop"].past +
+                     "\n");
 
     if (password.is_null()) {
-      throw shcore::Exception::argument_error(
-          "Missing root password for the instance");
-    }
-
-    auto instance = std::make_shared<Instance>(get_active_shell_session());
-    if (instance && instance->get_session()) {
-      auto connection_opts = instance->get_connection_options();
-      if ((connection_opts.get_host() == "localhost" ||
-           connection_opts.get_host() == "127.0.0.1") &&
-          connection_opts.get_port() == port) {
-        if (interactive) {
-          console->print_info(
-              "The active session is established to the sandbox being stopped "
-              "so it's going to be closed.");
-        }
-        instance->close_session();
+      std::string answer;
+      if (console->prompt_password(
+              "Please enter the MySQL root password for the instance "
+              "'localhost:" +
+                  std::to_string(port) + "': ",
+              &answer) == shcore::Prompt_result::Ok) {
+        password = answer;
+      } else {
+        return;
       }
     }
-
-    ret_val = exec_instance_op("stop", args, *password);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("stopSandboxInstance"));
 
-  return ret_val;
+  if (password.is_null()) {
+    throw shcore::Exception::argument_error(
+        "Missing root password for the instance");
+  }
+
+  auto instance = std::make_shared<Instance>(get_active_shell_session());
+  if (instance && instance->get_session()) {
+    auto connection_opts = instance->get_connection_options();
+    if ((connection_opts.get_host() == "localhost" ||
+         connection_opts.get_host() == "127.0.0.1") &&
+        connection_opts.get_port() == port) {
+      if (interactive) {
+        console->print_info(
+            "The active session is established to the sandbox being stopped "
+            "so it's going to be closed.");
+      }
+      instance->close_session();
+    }
+  }
+
+  exec_instance_op("stop", port, options, *password);
 }
 
 REGISTER_HELP_FUNCTION(startSandboxInstance, dba);
@@ -2331,16 +2280,9 @@ Undefined Dba::startSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::start_sandbox_instance(int port, dict options) {}
 #endif
-shcore::Value Dba::start_sandbox_instance(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
-  args.ensure_count(1, 2, get_function_name("startSandboxInstance").c_str());
-  try {
-    ret_val = exec_instance_op("start", args);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(
-      get_function_name("startSandboxInstance"));
-  return ret_val;
+void Dba::start_sandbox_instance(int port,
+                                 const shcore::Dictionary_t &options) {
+  exec_instance_op("start", port, options);
 }
 
 void Dba::do_configure_instance(

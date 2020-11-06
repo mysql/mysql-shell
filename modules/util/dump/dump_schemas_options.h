@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,9 +37,7 @@ namespace dump {
 
 class Dump_schemas_options : public Ddl_dumper_options {
  public:
-  Dump_schemas_options() = delete;
-  Dump_schemas_options(const std::vector<std::string> &schemas,
-                       const std::string &output_url);
+  Dump_schemas_options() = default;
 
   Dump_schemas_options(const Dump_schemas_options &) = default;
   Dump_schemas_options(Dump_schemas_options &&) = default;
@@ -49,20 +47,26 @@ class Dump_schemas_options : public Ddl_dumper_options {
 
   virtual ~Dump_schemas_options() = default;
 
+  static const shcore::Option_pack_def<Dump_schemas_options> &options();
+
   bool dump_events() const override { return m_dump_events; }
 
   bool dump_routines() const override { return m_dump_routines; }
 
   bool dump_users() const override { return false; }
 
+  void set_schemas(const std::vector<std::string> &schemas);
+
  protected:
   explicit Dump_schemas_options(const std::string &output_url);
-
-  void unpack_options(shcore::Option_unpacker *unpacker) override;
 
   void validate_options() const override;
 
  private:
+  void on_unpacked_options();
+
+  void set_exclude_tables(const std::vector<std::string> &data);
+
   bool m_dump_events = true;
   bool m_dump_routines = true;
 };

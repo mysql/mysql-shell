@@ -700,7 +700,7 @@ int main(int argc, char **argv) {
       if (shell_cli_operation && !shell_cli_operation->empty()) {
         try {
           shell->print_result(shell_cli_operation->execute());
-        } catch (const shcore::Shell_cli_operation::Mapping_error &e) {
+        } catch (const std::invalid_argument &e) {
           mysqlsh::current_console()->print_error(e.what());
           ret_val = 10;
         } catch (const shcore::Error &e) {

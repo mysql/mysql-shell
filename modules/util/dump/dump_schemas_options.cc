@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,28 +32,37 @@
 namespace mysqlsh {
 namespace dump {
 
-Dump_schemas_options::Dump_schemas_options(
-    const std::vector<std::string> &schemas, const std::string &output_url)
-    : Ddl_dumper_options(output_url) {
+const shcore::Option_pack_def<Dump_schemas_options>
+    &Dump_schemas_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Dump_schemas_options>()
+          .include<Ddl_dumper_options>()
+          .optional("excludeTables", &Dump_schemas_options::set_exclude_tables)
+          .optional("events", &Dump_schemas_options::m_dump_events)
+          .optional("routines", &Dump_schemas_options::m_dump_routines)
+          .on_done(&Dump_schemas_options::on_unpacked_options);
+
+  return opts;
+}
+
+void Dump_schemas_options::on_unpacked_options() {
+  if (mds_compatibility()) {
+    // if MDS compatibility option is set, mysql schema should not be dumped
+    m_excluded_schemas.emplace("mysql");
+  }
+}
+
+void Dump_schemas_options::set_schemas(
+    const std::vector<std::string> &schemas) {
   m_included_schemas.insert(schemas.begin(), schemas.end());
 }
 
-Dump_schemas_options::Dump_schemas_options(const std::string &output_url)
-    : Ddl_dumper_options(output_url) {}
-
-void Dump_schemas_options::unpack_options(shcore::Option_unpacker *unpacker) {
-  Ddl_dumper_options::unpack_options(unpacker);
-
-  std::vector<std::string> tables;
-
-  unpacker->optional("excludeTables", &tables)
-      .optional("events", &m_dump_events)
-      .optional("routines", &m_dump_routines);
-
+void Dump_schemas_options::set_exclude_tables(
+    const std::vector<std::string> &data) {
   std::string schema;
   std::string table;
 
-  for (const auto &t : tables) {
+  for (const auto &t : data) {
     try {
       shcore::split_schema_and_table(t, &schema, &table);
     } catch (const std::runtime_error &e) {
@@ -69,11 +78,6 @@ void Dump_schemas_options::unpack_options(shcore::Option_unpacker *unpacker) {
     }
 
     m_excluded_tables[schema].emplace(std::move(table));
-  }
-
-  if (mds_compatibility()) {
-    // if MDS compatibility option is set, mysql schema should not be dumped
-    m_excluded_schemas.emplace("mysql");
   }
 }
 

@@ -30,22 +30,29 @@
 namespace mysqlsh {
 namespace dump {
 
-Dump_tables_options::Dump_tables_options(const std::string &schema,
-                                         const std::vector<std::string> &tables,
-                                         const std::string &output_url)
-    : Ddl_dumper_options(output_url) {
-  m_included_schemas.emplace(schema);
-  m_has_tables = !tables.empty();
+const shcore::Option_pack_def<Dump_tables_options>
+    &Dump_tables_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Dump_tables_options>()
+          .include<Ddl_dumper_options>()
+          .optional("all", &Dump_tables_options::m_dump_all);
 
-  if (m_has_tables) {
-    m_included_tables[schema].insert(tables.begin(), tables.end());
-  }
+  return opts;
 }
 
-void Dump_tables_options::unpack_options(shcore::Option_unpacker *unpacker) {
-  Ddl_dumper_options::unpack_options(unpacker);
+void Dump_tables_options::set_schema(const std::string &schema) {
+  m_included_schemas.emplace(schema);
+}
 
-  unpacker->optional("all", &m_dump_all);
+void Dump_tables_options::set_tables(const std::vector<std::string> &tables) {
+  m_has_tables = !tables.empty();
+
+  assert(!m_included_schemas.empty());
+
+  if (m_has_tables) {
+    m_included_tables[*m_included_schemas.begin()].insert(tables.begin(),
+                                                          tables.end());
+  }
 }
 
 void Dump_tables_options::validate_options() const {

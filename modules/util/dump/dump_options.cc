@@ -28,10 +28,13 @@
 #else
 #include <unistd.h>
 #endif
+#include <mutex>
 
 #include <algorithm>
 #include <iterator>
 
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -40,41 +43,47 @@
 namespace mysqlsh {
 namespace dump {
 
-Dump_options::Dump_options(const std::string &output_url)
-    : m_output_url(output_url),
-      m_show_progress(isatty(fileno(stdout)) ? true : false) {}
+Dump_options::Dump_options()
+    : m_show_progress(isatty(fileno(stdout)) ? true : false) {}
 
-void Dump_options::set_options(const shcore::Dictionary_t &options) {
+const shcore::Option_pack_def<Dump_options> &Dump_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Dump_options>()
+          .on_start(&Dump_options::on_start_unpack)
+          .optional("maxRate", &Dump_options::set_string_option)
+          .optional("showProgress", &Dump_options::m_show_progress)
+          .optional("compression", &Dump_options::set_string_option)
+          .optional("defaultCharacterSet", &Dump_options::m_character_set);
+
+  return opts;
+}
+
+void Dump_options::on_start_unpack(const shcore::Dictionary_t &options) {
   m_options = options;
+}
 
-  shcore::Option_unpacker unpacker{options};
-  std::string rate;
-  mysqlshdk::db::nullable<std::string> compression;
-
-  unpacker.optional("maxRate", &rate)
-      .optional("showProgress", &m_show_progress)
-      .optional("compression", &compression)
-      .optional("defaultCharacterSet", &m_character_set);
-
-  m_oci_options.target = oci_target();
-  m_oci_options.unpack(&unpacker);
-
-  unpack_options(&unpacker);
-
-  unpacker.end();
-
-  if (!rate.empty()) {
-    m_max_rate = mysqlshdk::utils::expand_to_bytes(rate);
-  }
-
-  if (compression) {
-    if (compression->empty()) {
+void Dump_options::set_string_option(const std::string &option,
+                                     const std::string &value) {
+  if (option == "maxRate") {
+    if (!value.empty()) {
+      m_max_rate = mysqlshdk::utils::expand_to_bytes(value);
+    }
+  } else if (option == "compression") {
+    if (value.empty()) {
       throw std::invalid_argument(
           "The option 'compression' cannot be set to an empty string.");
     }
 
-    m_compression = mysqlshdk::storage::to_compression(*compression);
+    m_compression = mysqlshdk::storage::to_compression(value);
+  } else {
+    // This function should only be called with the options above.
+    assert(false);
   }
+}
+
+void Dump_options::set_oci_options(
+    const mysqlshdk::oci::Oci_options &oci_options) {
+  m_oci_options = oci_options;
 
   m_oci_options.check_option_values();
 }
@@ -86,11 +95,7 @@ void Dump_options::set_session(
   on_set_session(session);
 }
 
-void Dump_options::validate() const {
-  m_dialect.validate();
-
-  validate_options();
-}
+void Dump_options::validate() const { validate_options(); }
 
 bool Dump_options::exists(const std::string &schema) const {
   return find_missing({schema}).empty();

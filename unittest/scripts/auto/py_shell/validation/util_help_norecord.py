@@ -1306,10 +1306,12 @@ DESCRIPTION
         variable @i. With user variables, the decodeColumns option enables you
         to perform preprocessing transformations on their values before
         assigning the result to columns.
-      - fieldsTerminatedBy: string (default: "\t"), fieldsEnclosedBy: char
-        (default: ''), fieldsEscapedBy: char (default: '\') - These options
-        have the same meaning as the corresponding clauses for LOAD DATA
-        INFILE. For more information use \? LOAD DATA, (a session is required).
+      - fieldsTerminatedBy: string (default: "\t") - This option has the same
+        meaning as the corresponding clause for LOAD DATA INFILE.
+      - fieldsEnclosedBy: char (default: '') - This option has the same meaning
+        as the corresponding clause for LOAD DATA INFILE.
+      - fieldsEscapedBy: char (default: '\') - This option has the same meaning
+        as the corresponding clause for LOAD DATA INFILE.
       - fieldsOptionallyEnclosed: bool (default: false) - Set to true if the
         input values are not necessarily enclosed within quotation marks
         specified by fieldsEnclosedBy option. Set to false if all fields are

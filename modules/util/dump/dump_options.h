@@ -27,8 +27,10 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <utility>
 
 #include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/oci/oci_options.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
@@ -44,8 +46,7 @@ namespace dump {
 
 class Dump_options {
  public:
-  Dump_options() = delete;
-  explicit Dump_options(const std::string &output_url);
+  Dump_options();
 
   Dump_options(const Dump_options &) = default;
   Dump_options(Dump_options &&) = default;
@@ -55,15 +56,17 @@ class Dump_options {
 
   virtual ~Dump_options() = default;
 
+  static const shcore::Option_pack_def<Dump_options> &options();
+
   void validate() const;
 
   // setters
-  void set_options(const shcore::Dictionary_t &options);
-
   void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
   // getters
   const std::string &output_url() const { return m_output_url; }
+
+  void set_output_url(const std::string &url) { m_output_url = url; }
 
   const shcore::Dictionary_t &original_options() const { return m_options; }
 
@@ -145,12 +148,12 @@ class Dump_options {
   virtual bool use_timezone_utc() const = 0;
 
  protected:
-  void set_compression(mysqlshdk::storage::Compression compression) {
-    m_compression = compression;
-  }
-
   void set_dialect(const import_table::Dialect &dialect) {
     m_dialect = dialect;
+  }
+
+  void set_compression(mysqlshdk::storage::Compression compression) {
+    m_compression = compression;
   }
 
   void set_mds_compatibility(
@@ -159,9 +162,11 @@ class Dump_options {
   }
 
   template <typename C>
-  void set_excluded_users(const C &excluded_users) {
+  void add_excluded_users(const C &excluded_users) {
     try {
-      m_excluded_users = shcore::to_accounts(excluded_users);
+      auto accounts = shcore::to_accounts(excluded_users);
+      std::move(accounts.begin(), accounts.end(),
+                std::back_inserter(m_excluded_users));
     } catch (const std::runtime_error &e) {
       throw std::invalid_argument(e.what());
     }
@@ -192,15 +197,19 @@ class Dump_options {
   Instance_cache_builder::Schema_objects m_included_tables;
   Instance_cache_builder::Schema_objects m_excluded_tables;
 
- private:
-  virtual void unpack_options(shcore::Option_unpacker *unpacker) = 0;
+ protected:
+  void on_start_unpack(const shcore::Dictionary_t &options);
+  void set_oci_options(const mysqlshdk::oci::Oci_options &oci_options);
 
+  // This function should be implemented when the validation process requires
+  // data NOT coming on the user options, i.e. a session
+  virtual void validate_options() const {}
+
+ private:
   virtual void on_set_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) = 0;
 
-  virtual void validate_options() const = 0;
-
-  virtual mysqlshdk::oci::Oci_options::Unpack_target oci_target() const = 0;
+  void set_string_option(const std::string &option, const std::string &value);
 
   std::set<std::string> find_missing_impl(
       const std::string &subquery, const std::set<std::string> &objects) const;
@@ -221,6 +230,7 @@ class Dump_options {
   mysqlshdk::storage::Compression m_compression =
       mysqlshdk::storage::Compression::ZSTD;
   mysqlshdk::oci::Oci_options m_oci_options;
+
   std::string m_character_set = "utf8mb4";
 
   // these options are unpacked elsewhere, but are here 'cause we're returning

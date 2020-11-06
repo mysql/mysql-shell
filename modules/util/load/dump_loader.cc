@@ -479,12 +479,15 @@ std::string Dump_loader::Worker::Load_chunk_task::query_comment() const {
 void Dump_loader::Worker::Load_chunk_task::load(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Dump_loader *loader) {
-  import_table::Import_table_options import_options(m_options);
+  import_table::Import_table_options import_options;
+
+  import_table::Import_table_options::options().unpack(m_options,
+                                                       &import_options);
 
   // replace duplicate rows by default
   import_options.set_replace_duplicates(true);
 
-  import_options.base_session(session);
+  import_options.set_base_session(session);
 
   import_table::Stats stats;
   if (m_resume) {

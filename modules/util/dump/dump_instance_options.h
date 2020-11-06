@@ -34,8 +34,7 @@ namespace dump {
 
 class Dump_instance_options : public Dump_schemas_options {
  public:
-  Dump_instance_options() = delete;
-  explicit Dump_instance_options(const std::string &output_url);
+  Dump_instance_options();
 
   Dump_instance_options(const Dump_instance_options &) = default;
   Dump_instance_options(Dump_instance_options &&) = default;
@@ -45,15 +44,20 @@ class Dump_instance_options : public Dump_schemas_options {
 
   virtual ~Dump_instance_options() = default;
 
+  static const shcore::Option_pack_def<Dump_instance_options> &options();
+
   bool dump_users() const override { return m_dump_users; }
 
  private:
   void on_set_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) override;
 
-  void unpack_options(shcore::Option_unpacker *unpacker) override;
+  void on_unpacked_options();
 
   void validate_options() const override;
+
+  void set_string_list_option(const std::string &option,
+                              const std::unordered_set<std::string> &data);
 
   bool m_dump_users = true;
 };

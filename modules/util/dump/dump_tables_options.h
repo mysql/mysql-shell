@@ -34,10 +34,7 @@ namespace dump {
 
 class Dump_tables_options : public Ddl_dumper_options {
  public:
-  Dump_tables_options() = delete;
-  Dump_tables_options(const std::string &schema,
-                      const std::vector<std::string> &tables,
-                      const std::string &output_url);
+  Dump_tables_options() = default;
 
   Dump_tables_options(const Dump_tables_options &) = default;
   Dump_tables_options(Dump_tables_options &&) = default;
@@ -47,6 +44,12 @@ class Dump_tables_options : public Ddl_dumper_options {
 
   virtual ~Dump_tables_options() = default;
 
+  static const shcore::Option_pack_def<Dump_tables_options> &options();
+
+  void set_schema(const std::string &schema);
+
+  void set_tables(const std::vector<std::string> &tables);
+
   bool dump_events() const override { return false; }
 
   bool dump_routines() const override { return false; }
@@ -54,8 +57,6 @@ class Dump_tables_options : public Ddl_dumper_options {
   bool dump_users() const override { return false; }
 
  private:
-  void unpack_options(shcore::Option_unpacker *unpacker) override;
-
   void validate_options() const override;
 
   bool m_dump_all = false;

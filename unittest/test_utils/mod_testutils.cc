@@ -4038,13 +4038,17 @@ std::unique_ptr<mysqlshdk::storage::IFile> file(const shcore::Value &location) {
   if (location.type == shcore::String) {
     return mysqlshdk::storage::make_file(location.as_string());
   } else if (location.type == shcore::Map) {
-    mysqlshdk::oci::Oci_options oci_options;
+    mysqlshdk::oci::Oci_option_unpacker<
+        mysqlshdk::oci::Oci_options::OBJECT_STORAGE>
+        oci_option_pack;
     std::string name;
 
-    mysqlsh::Unpack_options(location.as_map())
-        .required("name", &name)
-        .unpack(&oci_options)
-        .end();
+    auto options = location.as_map();
+
+    mysqlsh::Unpack_options(options).required("name", &name).end();
+
+    oci_option_pack.options().unpack(options, &oci_option_pack);
+    mysqlshdk::oci::Oci_options &oci_options = oci_option_pack;
 
     if (oci_options) {
       oci_options.check_option_values();

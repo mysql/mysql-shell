@@ -26,6 +26,9 @@
 #include <string>
 #include <unordered_map>
 
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/shellcore/wizard.h"
 
@@ -42,7 +45,10 @@ constexpr const char kOciParExpireTime[] = "ociParExpireTime";
 constexpr const char kOsPar[] = "osPar";
 constexpr const char kOciRegion[] = "ociRegion";
 
+enum class Oci_uri_type { FILE, DIRECTORY };
+
 struct Oci_options {
+  Oci_options() = default;
   Oci_options(const Oci_options &) = default;
   Oci_options(Oci_options &&) = default;
 
@@ -54,22 +60,12 @@ struct Oci_options {
     OBJECT_STORAGE_NO_PAR_OPTIONS,
     OBJECT_STORAGE_NO_PAR_SUPPORT
   };
-
-  Oci_options() : Oci_options(OBJECT_STORAGE) {}
-
-  explicit Oci_options(Unpack_target t) : target(t) {}
-
-  template <typename Unpacker>
-  Unpacker &unpack(Unpacker *options) {
-    do_unpack(options);
-    return *options;
-  }
-
   explicit operator bool() const {
     return !os_bucket_name.get_safe().empty() || !os_par.get_safe().empty();
   }
 
   void check_bucket_name_dependent_options();
+  void validate();
   void check_option_values();
 
   Unpack_target target;
@@ -87,8 +83,6 @@ struct Oci_options {
   mysqlshdk::utils::nullable<std::string> oci_region;
 
  private:
-  void do_unpack(shcore::Option_unpacker *unpacker);
-
   static std::mutex s_tenancy_name_mutex;
   static std::map<std::string, std::string> s_tenancy_names;
 
@@ -103,6 +97,60 @@ struct Oci_options {
   void load_defaults(const std::vector<std::string> &par_data);
 };
 
+/**
+ * Oci option pack that enables/disables allowed options based on the provided
+ * Unpack_target
+ */
+template <Oci_options::Unpack_target T>
+struct Oci_option_unpacker : public Oci_options {
+  Oci_option_unpacker() { target = T; }
+
+  static const shcore::Option_pack_def<Oci_option_unpacker> &options() {
+    static shcore::Option_pack_def<Oci_option_unpacker> opts;
+
+    if (opts.empty()) {
+      opts.optional(kOsNamespace, &Oci_option_unpacker<T>::set_string_option)
+          .optional(kOsBucketName, &Oci_option_unpacker<T>::set_string_option)
+          .optional(kOciConfigFile, &Oci_option_unpacker<T>::set_string_option)
+          .optional(kOciProfile, &Oci_option_unpacker<T>::set_string_option);
+
+      if (T == Oci_options::Unpack_target::OBJECT_STORAGE) {
+        opts.optional(kOciParExpireTime,
+                      &Oci_option_unpacker<T>::set_string_option)
+            .optional(kOciParManifest,
+                      &Oci_option_unpacker<T>::set_par_manifest);
+      }
+    }
+
+    return opts;
+  }
+
+ private:
+  void set_string_option(const std::string &option, const std::string &value) {
+    if (option == kOsNamespace)
+      os_namespace = value;
+    else if (option == kOsBucketName)
+      os_bucket_name = value;
+    else if (option == kOciConfigFile)
+      config_path = value;
+    else if (option == kOciProfile)
+      config_profile = value;
+    else if (option == kOciParExpireTime)
+      oci_par_expire_time = value;
+    else
+      // This function should only be called with the options above.
+      assert(false);
+  }
+
+  void set_par_manifest(const std::string & /*option*/, const bool &value) {
+    oci_par_manifest = value;
+  }
+};
+
+/**
+ * Reviews in_options to pull from it any OCI option such as osBucketName and
+ * osNamespace, returns true if the osNamespace option was found.
+ **/
 bool parse_oci_options(
     const std::string &path,
     const std::unordered_map<std::string, std::string> &in_options,

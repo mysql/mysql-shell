@@ -711,6 +711,7 @@ std::string SHCORE_PUBLIC type_name(Value_type type);
 // Replaces Argument_map
 class Option_unpacker {
  public:
+  Option_unpacker() = default;
   explicit Option_unpacker(const Dictionary_t &options);
 
   virtual ~Option_unpacker() {}
@@ -756,6 +757,10 @@ class Option_unpacker {
   }
 
   void end(const std::string &context = "");
+
+  void set_options(const shcore::Dictionary_t &options);
+
+  const shcore::Dictionary_t &options() const { return m_options; }
 
  protected:
   Dictionary_t m_options;

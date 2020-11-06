@@ -31,6 +31,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlshdk {
@@ -57,10 +58,23 @@ struct Upgrade_issue {
 };
 
 struct Upgrade_check_options {
+  Upgrade_check_options() {}
+  Upgrade_check_options(const mysqlshdk::utils::Version &server_ver,
+                        const mysqlshdk::utils::Version &target_ver)
+      : server_version(server_ver), target_version(target_ver) {}
+
+  static const shcore::Option_pack_def<Upgrade_check_options> &options();
+
   mysqlshdk::utils::Version server_version;
-  mysqlshdk::utils::Version target_version;
+  mysqlshdk::utils::Version target_version =
+      mysqlshdk::utils::Version(MYSH_VERSION);
   std::string server_os;
   std::string config_path;
+  std::string output_format;
+  mysqlshdk::utils::nullable<std::string> password;
+
+ private:
+  void set_target_version(const std::string &value);
 };
 
 std::string upgrade_issue_to_string(const Upgrade_issue &problem);

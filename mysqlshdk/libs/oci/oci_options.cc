@@ -74,30 +74,6 @@ bool parse_par(const std::string &par, std::vector<std::string> *data_ptr) {
 std::mutex Oci_options::s_tenancy_name_mutex;
 std::map<std::string, std::string> Oci_options::s_tenancy_names = {};
 
-void Oci_options::do_unpack(shcore::Option_unpacker *unpacker) {
-  switch (target) {
-    case OBJECT_STORAGE:
-      unpacker->optional(kOsNamespace, &os_namespace)
-          .optional(kOsBucketName, &os_bucket_name)
-          .optional(kOciConfigFile, &config_path)
-          .optional(kOciProfile, &config_profile)
-          .optional(kOciParManifest, &oci_par_manifest)
-          .optional(kOciParExpireTime, &oci_par_expire_time);
-
-      if (!os_bucket_name.get_safe().empty() && oci_par_manifest.is_null()) {
-        unpacker->optional("ocimds", &oci_par_manifest);
-      }
-      break;
-    case OBJECT_STORAGE_NO_PAR_OPTIONS:
-    case OBJECT_STORAGE_NO_PAR_SUPPORT:
-      unpacker->optional(kOsNamespace, &os_namespace)
-          .optional(kOsBucketName, &os_bucket_name)
-          .optional(kOciConfigFile, &config_path)
-          .optional(kOciProfile, &config_profile);
-      break;
-  }
-}
-
 void Oci_options::load_defaults(const std::vector<std::string> &par_data) {
   if (!par_data.empty()) {
     oci_region = par_data[0];

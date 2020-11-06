@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,8 @@
 
 #include <string>
 
+#include "mysqlshdk/include/scripting/types_cpp.h"
+
 namespace shcore {
 
 class Option_unpacker;
@@ -39,6 +41,8 @@ namespace import_table {
  * Store field- and line-handling options for LOAD DATA INFILE
  */
 struct Dialect {
+  static const shcore::Option_pack_def<Dialect> &options();
+
   std::string lines_terminated_by{"\n"};   // string
   std::string fields_escaped_by{"\\"};     // char
   std::string fields_terminated_by{"\t"};  // string
@@ -46,12 +50,9 @@ struct Dialect {
   bool fields_optionally_enclosed = false;
   std::string lines_starting_by{""};  // string
 
-  bool operator==(const Dialect &d) const;
+  void set_dialect(const std::string &option, const std::string &name);
 
-  /**
-   * Validate provided options
-   */
-  void validate() const;
+  bool operator==(const Dialect &d) const;
 
   /**
    * Build part of LOAD DATA LOCAL INFILE SQL statement describing import file
@@ -89,10 +90,12 @@ struct Dialect {
    */
   static Dialect csv_unix();
 
+ private:
+  void on_unpacked_options();
   /**
-   * Returns dialect described by the options.
+   * Validate provided options
    */
-  static Dialect unpack(shcore::Option_unpacker *unpacker);
+  void validate() const;
 };
 
 }  // namespace import_table

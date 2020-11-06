@@ -30,6 +30,13 @@
 
 #include "mysqlshdk/libs/db/connection_options.h"
 
+#include "modules/util/dump/dump_instance_options.h"
+#include "modules/util/dump/dump_schemas_options.h"
+#include "modules/util/dump/dump_tables_options.h"
+#include "modules/util/dump/export_table_options.h"
+#include "modules/util/import_table/import_table_options.h"
+#include "modules/util/load/load_dump_options.h"
+#include "modules/util/upgrade_check.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 
 namespace shcore {
@@ -58,7 +65,10 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
   None check_for_server_upgrade(ConnectionData connectionData, dict options);
   None check_for_server_upgrade(dict options);
 #endif
-  shcore::Value check_for_server_upgrade(const shcore::Argument_list &args);
+  void check_for_server_upgrade(
+      const mysqlshdk::db::Connection_options &connection_options =
+          mysqlshdk::db::Connection_options(),
+      const shcore::Option_pack_ref<Upgrade_check_options> &options = {});
 
 #if DOXYGEN_JS
   Undefined importJson(String file, Dictionary options);
@@ -80,22 +90,34 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
 #elif DOXYGEN_PY
   None import_table(list filename, dict options);
 #endif
+  // TODO(rennox): Temporary hack to continue supporting multifile import from
+  // CLI after option pack introduction but before CLI enhancements WL
   shcore::Value import_table(const shcore::Argument_list &args);
+  void import_table_file(
+      const std::string &filename,
+      const shcore::Option_pack_ref<import_table::Import_table_option_pack>
+          &options);
+  void import_table_files(
+      const std::vector<std::string> &filenames,
+      const shcore::Option_pack_ref<import_table::Import_table_option_pack>
+          &options);
 
 #if DOXYGEN_JS
   Undefined loadDump(String url, Dictionary options);
 #elif DOXYGEN_PY
   None load_dump(str url, dict options);
 #endif
-  void load_dump(const std::string &url, const shcore::Dictionary_t &options);
+  void load_dump(const std::string &url,
+                 const shcore::Option_pack_ref<Load_dump_options> &options);
 
 #if DOXYGEN_JS
   Undefined exportTable(String table, String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
   None export_table(str table, str outputUrl, dict options);
 #endif
-  void export_table(const std::string &table, const std::string &file,
-                    const shcore::Dictionary_t &options);
+  void export_table(
+      const std::string &table, const std::string &file,
+      const shcore::Option_pack_ref<dump::Export_table_options> &options);
 
 #if DOXYGEN_JS
   Undefined dumpTables(String schema, List tables, String outputUrl,
@@ -103,27 +125,28 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
 #elif DOXYGEN_PY
   None dump_tables(str schema, list tables, str outputUrl, dict options);
 #endif
-  void dump_tables(const std::string &schema,
-                   const std::vector<std::string> &tables,
-                   const std::string &directory,
-                   const shcore::Dictionary_t &options);
+  void dump_tables(
+      const std::string &schema, const std::vector<std::string> &tables,
+      const std::string &directory,
+      const shcore::Option_pack_ref<dump::Dump_tables_options> &options);
 
 #if DOXYGEN_JS
   Undefined dumpSchemas(List schemas, String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
   None dump_schemas(list schemas, str outputUrl, dict options);
 #endif
-  void dump_schemas(const std::vector<std::string> &schemas,
-                    const std::string &directory,
-                    const shcore::Dictionary_t &options);
+  void dump_schemas(
+      const std::vector<std::string> &schemas, const std::string &directory,
+      const shcore::Option_pack_ref<dump::Dump_schemas_options> &options);
 
 #if DOXYGEN_JS
   Undefined dumpInstance(String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
   None dump_instance(str outputUrl, dict options);
 #endif
-  void dump_instance(const std::string &directory,
-                     const shcore::Dictionary_t &options);
+  void dump_instance(
+      const std::string &directory,
+      const shcore::Option_pack_ref<dump::Dump_instance_options> &options);
 
  private:
   shcore::IShell_core &_shell_core;

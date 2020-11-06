@@ -38,6 +38,8 @@
 #include "modules/adminapi/mod_dba_replica_set.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "modules/mod_common.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
@@ -45,6 +47,31 @@
 
 namespace mysqlsh {
 namespace dba {
+struct Deploy_instance_options {
+  static const shcore::Option_pack_def<Deploy_instance_options> &options() {
+    static shcore::Option_pack_def<Deploy_instance_options> opts;
+
+    if (opts.empty()) {
+      opts.optional("portx", &Deploy_instance_options::xport)
+          .optional("sandboxDir", &Deploy_instance_options::sandbox_dir)
+          .optional("password", &Deploy_instance_options::password)
+          .optional("allowRootFrom", &Deploy_instance_options::allow_root_from)
+          .optional("ignoreSslError",
+                    &Deploy_instance_options::ignore_ssl_error)
+          .optional("mysqldOptions", &Deploy_instance_options::mysqld_options);
+    }
+
+    return opts;
+  }
+
+  mysqlshdk::utils::nullable<int> xport;
+  mysqlshdk::utils::nullable<std::string> sandbox_dir;
+  mysqlshdk::utils::nullable<std::string> password;
+  mysqlshdk::utils::nullable<std::string> allow_root_from;
+  bool ignore_ssl_error = false;
+  shcore::Array_t mysqld_options;
+};
+
 /**
  * \ingroup AdminAPI
  * $(DBA_BRIEF)
@@ -144,12 +171,17 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
       const mysqlshdk::utils::nullable<Connection_options> &instance_def = {},
       const shcore::Dictionary_t &options = {});
   // create and start
-  shcore::Value deploy_sandbox_instance(const shcore::Argument_list &args,
-                                        const std::string &fname);
-  shcore::Value stop_sandbox_instance(const shcore::Argument_list &args);
-  shcore::Value delete_sandbox_instance(const shcore::Argument_list &args);
-  shcore::Value kill_sandbox_instance(const shcore::Argument_list &args);
-  shcore::Value start_sandbox_instance(const shcore::Argument_list &args);
+  void deploy_sandbox_instance(
+      int port,
+      const shcore::Option_pack_ref<Deploy_instance_options> &options = {});
+  void stop_sandbox_instance(int port,
+                             const shcore::Dictionary_t &options = {});
+  void delete_sandbox_instance(int port,
+                               const shcore::Dictionary_t &options = {});
+  void kill_sandbox_instance(int port,
+                             const shcore::Dictionary_t &options = {});
+  void start_sandbox_instance(int port,
+                              const shcore::Dictionary_t &options = {});
 
   void configure_local_instance(
       const mysqlshdk::utils::nullable<Connection_options> &instance_def = {},
@@ -205,9 +237,9 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
  private:
   ProvisioningInterface _provisioning_interface;
 
-  shcore::Value exec_instance_op(const std::string &function,
-                                 const shcore::Argument_list &args,
-                                 const std::string &password = "");
+  void exec_instance_op(const std::string &function, int port,
+                        const shcore::Dictionary_t &options,
+                        const std::string &password = "");
 
   void verify_create_cluster_deprecations(const shcore::Dictionary_t &options);
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,8 +34,6 @@ namespace dump {
 
 class Ddl_dumper_options : public Dump_options {
  public:
-  Ddl_dumper_options() = delete;
-
   Ddl_dumper_options(const Ddl_dumper_options &) = default;
   Ddl_dumper_options(Ddl_dumper_options &&) = default;
 
@@ -43,6 +41,8 @@ class Ddl_dumper_options : public Dump_options {
   Ddl_dumper_options &operator=(Ddl_dumper_options &&) = default;
 
   virtual ~Ddl_dumper_options() = default;
+
+  static const shcore::Option_pack_def<Ddl_dumper_options> &options();
 
   bool split() const override { return m_split; }
 
@@ -71,23 +71,24 @@ class Ddl_dumper_options : public Dump_options {
   }
 
  protected:
-  explicit Ddl_dumper_options(const std::string &output_url);
-
-  void unpack_options(shcore::Option_unpacker *unpacker) override;
+  Ddl_dumper_options();
 
   void on_set_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &) override {}
 
-  void validate_options() const override;
-
-  mysqlshdk::oci::Oci_options::Unpack_target oci_target() const override {
-    return mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE;
-  }
+  void on_unpacked_options();
 
  private:
+  void set_bytes_per_chunk(const std::string &value);
+  void set_ocimds(bool value);
+  void set_compatibility_options(const std::vector<std::string> &options);
+  mysqlshdk::oci::Oci_option_unpacker<
+      mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE>
+      m_oci_option_unpacker;
+
   bool m_split = true;
   uint64_t m_bytes_per_chunk;
-  std::size_t m_threads = 4;
+  uint64_t m_threads = 4;
 
   bool m_dump_triggers = true;
   bool m_timezone_utc = true;

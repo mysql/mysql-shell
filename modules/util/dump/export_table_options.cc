@@ -29,9 +29,34 @@
 namespace mysqlsh {
 namespace dump {
 
-Export_table_options::Export_table_options(const std::string &schema_table,
-                                           const std::string &output_url)
-    : Dump_options(output_url) {
+Export_table_options::Export_table_options() {
+  // calling this in the constructor sets the default value
+  set_compression(mysqlshdk::storage::Compression::NONE);
+}
+
+const shcore::Option_pack_def<Export_table_options>
+    &Export_table_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Export_table_options>()
+          .include<Dump_options>()
+          .include(&Export_table_options::m_dialect_unpacker)
+          .include(&Export_table_options::m_oci_option_unpacker)
+          .on_done(&Export_table_options::on_unpacked_options);
+
+  return opts;
+}
+
+void Export_table_options::on_unpacked_options() {
+  set_dialect(m_dialect_unpacker);
+
+  if (import_table::Dialect::json() == dialect()) {
+    throw std::invalid_argument("The 'json' dialect is not supported.");
+  }
+
+  set_oci_options(m_oci_option_unpacker);
+}
+
+void Export_table_options::set_table(const std::string &schema_table) {
   try {
     shcore::split_schema_and_table(schema_table, &m_schema, &m_table);
     set_includes();
@@ -39,13 +64,6 @@ Export_table_options::Export_table_options(const std::string &schema_table,
     throw std::invalid_argument("Failed to parse table to be exported '" +
                                 schema_table + "': " + e.what());
   }
-
-  // calling this in the constructor sets the default value
-  set_compression(mysqlshdk::storage::Compression::NONE);
-}
-
-void Export_table_options::unpack_options(shcore::Option_unpacker *unpacker) {
-  set_dialect(import_table::Dialect::unpack(unpacker));
 }
 
 void Export_table_options::on_set_session(
@@ -66,12 +84,8 @@ void Export_table_options::on_set_session(
 void Export_table_options::validate_options() const {
   if (schema().empty()) {
     throw std::invalid_argument(
-        "The table was given without a schema and there is no active schema on "
-        "the current session, unable to deduce which table to export.");
-  }
-
-  if (import_table::Dialect::json() == dialect()) {
-    throw std::invalid_argument("The 'json' dialect is not supported.");
+        "The table was given without a schema and there is no active schema "
+        "on the current session, unable to deduce which table to export.");
   }
 
   if (!exists(schema(), table())) {

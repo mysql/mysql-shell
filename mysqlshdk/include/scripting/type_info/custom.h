@@ -29,6 +29,7 @@
 
 #include "mysqlshdk/include/scripting/type_info.h"
 #include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 
 namespace mysqlshdk {
@@ -164,6 +165,35 @@ struct Type_info<std::shared_ptr<mysqlsh::Extensible_object>> {
     return std::shared_ptr<mysqlsh::Extensible_object>();
   }
   static std::string desc() { return "an extension object"; }
+};
+
+template <typename T>
+struct Type_info<Option_pack_ref<T>> {
+  static Option_pack_ref<T> to_native(const shcore::Value &in) {
+    Option_pack_ref<T> ret_val;
+
+    // Null or Undefined get interpreted as a default option pack
+    if (in.type != shcore::Null && in.type != shcore::Undefined) {
+      ret_val.unpack(in.as_map());
+    }
+
+    return ret_val;
+  }
+  static Value_type vtype() { return shcore::Map; }
+  static const char *code() { return "D"; }
+  static Option_pack_ref<T> default_value() { return Option_pack_ref<T>(); }
+  static std::string desc() { return "an options dictionary"; }
+};
+
+template <typename T>
+struct Validator_for<Option_pack_ref<T>> {
+  static std::unique_ptr<Parameter_validator> get() {
+    auto validator = std::make_unique<Option_validator>();
+    validator->set_allowed(&T::options().options());
+    // Option validators should be disabled as validation is done on unpacking
+    validator->set_enabled(false);
+    return validator;
+  }
 };
 
 }  // namespace detail

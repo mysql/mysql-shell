@@ -48,7 +48,7 @@ inline std::string schema_table_key(const std::string &schema,
          shcore::quote_identifier(table);
 }
 
-class Load_dump_options final {
+class Load_dump_options {
  public:
   using Connection_options = mysqlshdk::db::Connection_options;
 
@@ -58,7 +58,7 @@ class Load_dump_options final {
 
   enum class Update_gtid_set { OFF, REPLACE, APPEND };
 
-  Load_dump_options() = default;
+  Load_dump_options();
 
   explicit Load_dump_options(const std::string &url);
 
@@ -70,9 +70,11 @@ class Load_dump_options final {
 
   ~Load_dump_options() = default;
 
+  static const shcore::Option_pack_def<Load_dump_options> &options();
+
   void validate();
 
-  void set_options(const shcore::Dictionary_t &options);
+  void on_unpacked_options();
 
   void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session,
                    const std::string &current_schema);
@@ -155,7 +157,15 @@ class Load_dump_options final {
 
   bool is_mds() const { return m_is_mds; }
 
+  void set_url(const std::string &url) { m_url = url; }
+
  private:
+  void set_wait_timeout(const double &timeout_seconds);
+  void set_str_vector_option(const std::string &option,
+                             const std::vector<std::string> &data);
+  void set_str_unordered_set_option(
+      const std::string &option, const std::unordered_set<std::string> &data);
+
   std::string m_url;
   std::string m_prefix;
   bool m_use_par = false;
@@ -163,6 +173,9 @@ class Load_dump_options final {
   int64_t m_threads_count = 4;
   bool m_show_progress = isatty(fileno(stdout)) ? true : false;
 
+  mysqlshdk::oci::Oci_option_unpacker<
+      mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE_NO_PAR_OPTIONS>
+      m_oci_option_pack;
   mysqlshdk::oci::Oci_options m_oci_options;
   Connection_options m_target;
   std::shared_ptr<mysqlshdk::db::ISession> m_base_session;

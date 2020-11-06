@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2020, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -436,6 +436,25 @@ TEST(Parsing, Bad) {
   EXPECT_THROW(shcore::Value::parse("nullfoo"), shcore::Exception);
   EXPECT_THROW(shcore::Value::parse("[true123]"), shcore::Exception);
   EXPECT_THROW(shcore::Value::parse("{'a':truefoo}"), shcore::Exception);
+
+  EXPECT_THROW_LIKE(shcore::Value::parse("-"), shcore::Exception,
+                    "Error parsing number from: '-'");
+  EXPECT_THROW_LIKE(shcore::Value::parse("+"), shcore::Exception,
+                    "Error parsing number from: '+'");
+  EXPECT_THROW_LIKE(shcore::Value::parse("45."), shcore::Exception,
+                    "Error parsing number from: '45.'");
+  EXPECT_THROW_LIKE(shcore::Value::parse("45.3e"), shcore::Exception,
+                    "Error parsing number from: '45.3e'");
+  EXPECT_THROW_LIKE(shcore::Value::parse("45.3e+"), shcore::Exception,
+                    "Error parsing number from: '45.3e+'");
+  EXPECT_THROW_LIKE(shcore::Value::parse("45.3e-"), shcore::Exception,
+                    "Error parsing number from: '45.3e-'");
+  EXPECT_THROW_LIKE(shcore::Value::parse("45e"), shcore::Exception,
+                    "Error parsing number from: '45e'");
+  EXPECT_THROW_LIKE(shcore::Value::parse("45e-"), shcore::Exception,
+                    "Error parsing number from: '45e-'");
+  EXPECT_THROW_LIKE(shcore::Value::parse("45e+"), shcore::Exception,
+                    "Error parsing number from: '45e+'");
 
   // Not bad
   EXPECT_NO_THROW(shcore::Value::parse("{'a':true  \n}"));

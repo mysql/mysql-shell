@@ -251,7 +251,8 @@ Cpp_function::Metadata &Cpp_object_bridge::get_metadata(
 
 void Cpp_object_bridge::set_metadata(
     Cpp_function::Metadata &meta, const std::string &name, Value_type rtype,
-    const std::vector<std::pair<std::string, Value_type>> &ptypes) {
+    const std::vector<std::pair<std::string, Value_type>> &ptypes,
+    const std::string &pcodes) {
   bool found_optional = false;
   // validate optional parameter sanity
   // func(p1, p2=opt, p3=opt) is ok
@@ -263,7 +264,7 @@ void Cpp_object_bridge::set_metadata(
       throw std::logic_error(
           "optional parameters have to be at the end of param list");
   }
-  meta.set(name, rtype, ptypes);
+  meta.set(name, rtype, ptypes, pcodes);
 }
 
 void Cpp_function::Metadata::set_name(const std::string &name_) {
@@ -279,17 +280,21 @@ void Cpp_function::Metadata::set_name(const std::string &name_) {
 
 void Cpp_function::Metadata::set(
     const std::string &name_, Value_type rtype,
-    const std::vector<std::pair<std::string, Value_type>> &ptypes) {
+    const std::vector<std::pair<std::string, Value_type>> &ptypes,
+    const std::string &pcodes) {
   set_name(name_);
 
   signature = Cpp_function::gen_signature(ptypes);
 
   param_types = ptypes;
+  param_codes = pcodes;
   return_type = rtype;
 }
 
-void Cpp_function::Metadata::set(const std::string &name_, Value_type rtype,
-                                 const Raw_signature &params) {
+void Cpp_function::Metadata::set(
+    const std::string &name_, Value_type rtype, const Raw_signature &params,
+    const std::vector<std::pair<std::string, Value_type>> &ptypes,
+    const std::string &pcodes) {
   set_name(name_);
 
   signature = params;
@@ -302,6 +307,8 @@ void Cpp_function::Metadata::set(const std::string &name_, Value_type rtype,
     param_types.push_back(std::make_pair(param_name, param->type()));
   }
 
+  param_types = ptypes;
+  param_codes = pcodes;
   return_type = rtype;
 }
 
@@ -467,6 +474,74 @@ bool Cpp_object_bridge::has_method(const std::string &name) const {
   return method_index != _funcs.end();
 }
 
+Cpp_function::Metadata *Cpp_object_bridge::expose(
+    const std::string &name, const shcore::Function_base_ref &func,
+    const Cpp_function::Raw_signature &parameters) {
+  assert(func);
+  assert(!name.empty());
+
+  std::string pcodes;
+  std::vector<std::pair<std::string, Value_type>> ptypes;
+
+  for (const auto &param : parameters) {
+    switch (param->type()) {
+      case shcore::Value_type::Object:
+        pcodes.append("O");
+        break;
+      case shcore::Value_type::Map:
+        pcodes.append("D");
+        break;
+      case shcore::Value_type::Array:
+        pcodes.append("A");
+        break;
+      case shcore::Value_type::String:
+        pcodes.append("s");
+        break;
+      case shcore::Value_type::Integer:
+        pcodes.append("i");
+        break;
+      case shcore::Value_type::Bool:
+        pcodes.append("b");
+        break;
+      case shcore::Value_type::Float:
+        pcodes.append("f");
+        break;
+      case shcore::Value_type::Undefined:
+        pcodes.append("V");
+        break;
+      default:
+        throw std::runtime_error("Unsupported parameter type for '" +
+                                 param->name + "'");
+    }
+    ptypes.push_back({param->name, param->type()});
+  }
+
+  std::string mangled_name = class_name() + "::" + name + ":" + pcodes;
+
+  Cpp_function::Metadata &md = get_metadata(mangled_name);
+  if (md.name[0].empty()) {
+    md.set(name, func->return_type(), parameters, ptypes, pcodes);
+  }
+
+  std::string registered_name = name.substr(0, name.find("|"));
+  detect_overload_conflicts(registered_name, md);
+  _funcs.emplace(std::make_pair(
+      registered_name,
+      std::shared_ptr<Cpp_function>(new Cpp_function(
+          &md, [&md, func](const shcore::Argument_list &args) -> shcore::Value {
+            // Executes parameter validators
+            for (size_t index = 0; index < args.size(); index++) {
+              Parameter_context context{
+                  "", {{"Argument", static_cast<int>(index + 1)}}};
+              md.signature[index]->validate(args[index], &context);
+            }
+
+            return func->invoke(args);
+          }))));
+
+  return &md;
+}
+
 bool Cpp_object_bridge::has_method_advanced(const std::string &name) const {
   if (lookup_function(name)) return true;
   return false;
@@ -589,6 +664,8 @@ Value Cpp_object_bridge::call_function(
       throw shcore::Exception(scope + ": " + e.what(), e.code());
     } catch (const std::runtime_error &e) {
       throw shcore::Exception::runtime_error(scope + ": " + e.what());
+    } catch (const std::invalid_argument &e) {
+      throw shcore::Exception::argument_error(scope + ": " + e.what());
     } catch (const std::logic_error &e) {
       throw shcore::Exception::logic_error(scope + ": " + e.what());
     } catch (...) {
@@ -775,6 +852,53 @@ void Cpp_object_bridge::detect_overload_conflicts(
 Cpp_function::Cpp_function(const Metadata *meta, const Function &func)
     : _func(func), _meta(meta) {}
 
+// TODO(rennox) legacy, delme once add_method is no longer needed
+std::string get_param_codes(
+    const std::vector<std::pair<std::string, Value_type>> &args) {
+  std::string codes;
+  for (const auto &arg : args) {
+    switch (arg.second) {
+      case Value_type::Array:
+        codes.append("A");
+        break;
+      case Value_type::Bool:
+        codes.append("b");
+        break;
+      case Value_type::Float:
+        codes.append("f");
+        break;
+      case Value_type::Function:
+        codes.append("F");
+        break;
+      case Value_type::Integer:
+        codes.append("i");
+        break;
+      case Value_type::Map:
+        codes.append("D");
+        break;
+      case Value_type::MapRef:
+        codes.append("D");
+        break;
+      case Value_type::Null:
+        codes.append("n");
+        break;
+      case Value_type::Object:
+        codes.append("O");
+        break;
+      case Value_type::String:
+        codes.append("s");
+        break;
+      case Value_type::UInteger:
+        codes.append("u");
+        break;
+      case Value_type::Undefined:
+        codes.append("V");
+        break;
+    }
+  }
+  return codes;
+}
+
 // TODO(alfredo) legacy, delme
 Cpp_function::Cpp_function(
     const std::string &name_, const Function &func,
@@ -792,6 +916,7 @@ Cpp_function::Cpp_function(
     _meta_tmp.name[LowerCaseUnderscores] = name_.substr(index + 1);
   }
   _meta_tmp.param_types = args;
+  _meta_tmp.param_codes = get_param_codes(args);
   _meta_tmp.signature = Cpp_function::gen_signature(args);
   _meta = &_meta_tmp;
 }
@@ -941,6 +1066,7 @@ bool Parameter_validator::valid_type(const Parameter &param,
 
 void Parameter_validator::validate(const Parameter &param, const Value &data,
                                    Parameter_context *context) const {
+  if (!m_enabled) return;
   try {
     // NOTE: Skipping validation for Undefined parameters that are optional as
     // they will use the default value
@@ -974,13 +1100,14 @@ void Parameter_validator::validate(const Parameter &param, const Value &data,
 
 void Object_validator::validate(const Parameter &param, const Value &data,
                                 Parameter_context *context) const {
+  if (!m_enabled) return;
   // NOTE: Skipping validation for Undefined parameters that are optional as
   // they will use the default value
   if (param.flag == Param_flag::Optional && data.type == Value_type::Undefined)
     return;
   Parameter_validator::validate(param, data, context);
 
-  if (!m_allowed.empty()) {
+  if (!m_allowed_ref->empty()) {
     const auto object = data.as_object();
 
     if (!object) {
@@ -1007,18 +1134,19 @@ void Object_validator::validate(const Parameter &param, const Value &data,
 
 void String_validator::validate(const Parameter &param, const Value &data,
                                 Parameter_context *context) const {
+  if (!m_enabled) return;
   // NOTE: Skipping validation for Undefined parameters that are optional as
   // they will use the default value
   if (param.flag == Param_flag::Optional && data.type == Value_type::Undefined)
     return;
   Parameter_validator::validate(param, data, context);
 
-  if (!m_allowed.empty()) {
-    if (std::find(std::begin(m_allowed), std::end(m_allowed),
-                  data.as_string()) == std::end(m_allowed)) {
+  if (!m_allowed_ref->empty()) {
+    if (std::find(std::begin(*m_allowed_ref), std::end(*m_allowed_ref),
+                  data.as_string()) == std::end(*m_allowed_ref)) {
       auto error = shcore::str_format(
           "%s only accepts the following values: %s.", context->str().c_str(),
-          shcore::str_join(m_allowed, ", ").c_str());
+          shcore::str_join(*m_allowed_ref, ", ").c_str());
       throw shcore::Exception::argument_error(error);
     }
   }
@@ -1026,16 +1154,17 @@ void String_validator::validate(const Parameter &param, const Value &data,
 
 void Option_validator::validate(const Parameter &param, const Value &data,
                                 Parameter_context *context) const {
+  if (!m_enabled) return;
   // NOTE: Skipping validation for Undefined parameters that are optional as
   // they will use the default value
   if (param.flag == Param_flag::Optional && data.type == Value_type::Undefined)
     return;
   Parameter_validator::validate(param, data, context);
 
-  if (!m_allowed.empty()) {
+  if (!m_allowed_ref->empty()) {
     Option_unpacker unpacker(data.as_map());
 
-    for (const auto &item : m_allowed) {
+    for (const auto &item : *m_allowed_ref) {
       shcore::Value value;
       if (item->flag == Param_flag::Mandatory) {
         unpacker.required(item->name.c_str(), &value);

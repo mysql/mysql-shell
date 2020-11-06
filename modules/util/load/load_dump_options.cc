@@ -27,11 +27,12 @@
 
 #include "modules/mod_utils.h"
 #include "modules/util/dump/dump_manifest.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
-
 namespace {
 
 const char *k_excluded_users[] = {"mysql.infoschema", "mysql.session",
@@ -43,14 +44,168 @@ bool is_mds(const mysqlshdk::utils::Version &version) {
   return shcore::str_endswith(version.get_extra(), "cloud");
 }
 
+void parse_tables(const std::vector<std::string> &opt_tables,
+                  std::unordered_set<std::string> *out_filter,
+                  bool add_schema_entry) {
+  for (const auto &table_def : opt_tables) {
+    std::string schema, table;
+    try {
+      shcore::split_schema_and_table(table_def, &schema, &table);
+    } catch (const std::exception &e) {
+      throw std::invalid_argument(
+          "Can't parse table filter '" + table_def +
+          "'. The table must be in the following form: "
+          "schema.table, with optional backtick quotes.");
+    }
+
+    if (schema.empty()) {
+      throw std::invalid_argument(
+          "Can't parse table filter '" + table_def +
+          "'. The table must be in the following form: "
+          "schema.table, with optional backtick quotes.");
+    }
+
+    if (schema[0] == '`') schema = shcore::unquote_identifier(schema);
+
+    if (table[0] == '`') table = shcore::unquote_identifier(table_def);
+
+    out_filter->insert(schema_table_key(schema, table));
+
+    if (add_schema_entry) {
+      // insert schema."", so that we can check whether we want to include
+      // one or more tables for a given schema, but not the whole schema
+      out_filter->insert(schema_table_key(schema, ""));
+    }
+  }
+}
+
 }  // namespace
 
 using mysqlsh::dump::Dump_manifest;
+Load_dump_options::Load_dump_options() : Load_dump_options("") {}
+Load_dump_options::Load_dump_options(const std::string &url) : m_url(url) {}
 
-Load_dump_options::Load_dump_options(const std::string &url)
-    : m_url(url),
-      m_oci_options(mysqlshdk::oci::Oci_options::Unpack_target::
-                        OBJECT_STORAGE_NO_PAR_OPTIONS) {}
+const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Load_dump_options>()
+          .optional("threads", &Load_dump_options::m_threads_count)
+          .optional("showProgress", &Load_dump_options::m_show_progress)
+          .optional("waitDumpTimeout", &Load_dump_options::set_wait_timeout)
+          .optional("loadData", &Load_dump_options::m_load_data)
+          .optional("loadDdl", &Load_dump_options::m_load_ddl)
+          .optional("loadUsers", &Load_dump_options::m_load_users)
+          .optional("dryRun", &Load_dump_options::m_dry_run)
+          .optional("resetProgress", &Load_dump_options::m_reset_progress)
+          .optional("progressFile", &Load_dump_options::m_progress_file)
+          .optional("includeSchemas", &Load_dump_options::set_str_vector_option)
+          .optional("includeTables", &Load_dump_options::set_str_vector_option)
+          .optional("excludeSchemas", &Load_dump_options::set_str_vector_option)
+          .optional("excludeTables", &Load_dump_options::set_str_vector_option)
+          .optional("characterSet", &Load_dump_options::m_character_set)
+          .optional("skipBinlog", &Load_dump_options::m_skip_binlog)
+          .optional("ignoreExistingObjects",
+                    &Load_dump_options::m_ignore_existing_objects)
+          .optional("ignoreVersion", &Load_dump_options::m_ignore_version)
+          .optional("analyzeTables", &Load_dump_options::m_analyze_tables,
+                    {{"histogram", Analyze_table_mode::HISTOGRAM},
+                     {"on", Analyze_table_mode::ON},
+                     {"off", Analyze_table_mode::OFF}})
+          .optional("deferTableIndexes",
+                    &Load_dump_options::m_defer_table_indexes,
+                    {{"off", Defer_index_mode::OFF},
+                     {"all", Defer_index_mode::ALL},
+                     {"fulltext", Defer_index_mode::FULLTEXT}})
+          .optional("loadIndexes", &Load_dump_options::m_load_indexes)
+          .optional("schema", &Load_dump_options::m_target_schema)
+          .optional("excludeUsers",
+                    &Load_dump_options::set_str_unordered_set_option)
+          .optional("includeUsers",
+                    &Load_dump_options::set_str_unordered_set_option)
+          .optional("updateGtidSet", &Load_dump_options::m_update_gtid_set,
+                    {{"append", Update_gtid_set::APPEND},
+                     {"replace", Update_gtid_set::REPLACE},
+                     {"off", Update_gtid_set::OFF}})
+          .include(&Load_dump_options::m_oci_option_pack)
+          .on_done(&Load_dump_options::on_unpacked_options);
+
+  return opts;
+}
+
+void Load_dump_options::set_wait_timeout(const double &timeout_seconds) {
+  m_wait_dump_timeout_ms = timeout_seconds * 1000;
+}
+
+void Load_dump_options::set_str_vector_option(
+    const std::string &option, const std::vector<std::string> &data) {
+  if (option == "includeSchemas") {
+    for (const auto &schema : data) {
+      if (!schema.empty() && schema[0] != '`')
+        m_include_schemas.insert(shcore::quote_identifier(schema));
+      else
+        m_include_schemas.insert(schema);
+    }
+  } else if (option == "includeTables") {
+    parse_tables(data, &m_include_tables, true);
+  } else if (option == "excludeSchemas") {
+    for (const auto &schema : data) {
+      if (!schema.empty() && schema[0] != '`')
+        m_exclude_schemas.insert(shcore::quote_identifier(schema));
+      else
+        m_exclude_schemas.insert(schema);
+    }
+  } else if (option == "excludeTables") {
+    parse_tables(data, &m_exclude_tables, false);
+  } else {
+    // This function should only be called with the options above.
+    assert(false);
+  }
+}
+
+void Load_dump_options::set_str_unordered_set_option(
+    const std::string &option, const std::unordered_set<std::string> &data) {
+  if (option == "excludeUsers") {
+    if (!m_load_users) {
+      if (!data.empty()) {
+        throw std::invalid_argument(
+            "The 'excludeUsers' option cannot be used if the "
+            "'loadUsers' option is set to false.");
+      }
+    } else {
+      try {
+        // some users are always excluded
+        auto excluded_users = data;
+        excluded_users.insert(std::begin(k_excluded_users),
+                              std::end(k_excluded_users));
+
+        if (is_mds()) {
+          excluded_users.insert(std::begin(k_oci_excluded_users),
+                                std::end(k_oci_excluded_users));
+        }
+
+        m_excluded_users = shcore::to_accounts(excluded_users);
+      } catch (const std::runtime_error &e) {
+        throw std::invalid_argument(e.what());
+      }
+    }
+  } else if (option == "includeUsers") {
+    if (!m_load_users) {
+      if (!data.empty()) {
+        throw std::invalid_argument(
+            "The 'includeUsers' option cannot be used if the "
+            "'loadUsers' option is set to false.");
+      }
+    } else {
+      try {
+        m_included_users = shcore::to_accounts(data);
+      } catch (const std::runtime_error &e) {
+        throw std::invalid_argument(e.what());
+      }
+    }
+  } else {
+    // This function should only be called with the options above.
+    assert(false);
+  }
+}
 
 void Load_dump_options::set_session(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
@@ -82,25 +237,6 @@ void Load_dump_options::set_session(
 }
 
 void Load_dump_options::validate() {
-  if (!m_load_data && !m_load_ddl && !m_load_users &&
-      m_analyze_tables == Analyze_table_mode::OFF &&
-      m_update_gtid_set == Update_gtid_set::OFF)
-    throw shcore::Exception::runtime_error(
-        "At least one of loadData, loadDdl or loadUsers options must be "
-        "enabled");
-
-  if (m_use_par) {
-    if (m_progress_file.is_null()) {
-      throw shcore::Exception::runtime_error(
-          "When using a PAR to a dump manifest, the progressFile option must "
-          "be defined.");
-    } else {
-      dump::Par_structure progress_par_data;
-      m_use_par_progress =
-          dump::parse_full_object_par(*m_progress_file, &progress_par_data);
-    }
-  }
-
   {
     auto result =
         m_base_session->query("SHOW GLOBAL VARIABLES LIKE 'local_infile'");
@@ -127,6 +263,11 @@ void Load_dump_options::validate() {
         "It is not possible to disable the binary log when loading a dump into "
         "the MySQL Database Service.");
   }
+
+  m_excluded_users.emplace_back(
+      shcore::split_account(m_base_session->query("SELECT current_user()")
+                                ->fetch_one()
+                                ->get_string(0)));
 }
 
 std::string Load_dump_options::target_import_info() const {
@@ -189,184 +330,39 @@ std::string Load_dump_options::target_import_info() const {
   return action + detail;
 }
 
-void Load_dump_options::set_options(const shcore::Dictionary_t &options) {
-  std::vector<std::string> tables;
-  std::vector<std::string> schemas;
-  std::vector<std::string> exclude_tables;
-  std::vector<std::string> exclude_schemas;
-  std::string analyze_tables = "off";
-  std::string defer_table_indexes = "fulltext";
-  std::unordered_set<std::string> excluded_users;
-  std::unordered_set<std::string> included_users;
-  std::string update_gtid_set = "off";
-  double wait_dump_timeout = 0;
-
-  Unpack_options unpacker(options);
-
-  unpacker.optional("threads", &m_threads_count)
-      .optional("showProgress", &m_show_progress)
-      .optional("waitDumpTimeout", &wait_dump_timeout)
-      .optional("loadData", &m_load_data)
-      .optional("loadDdl", &m_load_ddl)
-      .optional("loadUsers", &m_load_users)
-      .optional("dryRun", &m_dry_run)
-      .optional("resetProgress", &m_reset_progress)
-      .optional("progressFile", &m_progress_file)
-      .optional("includeSchemas", &schemas)
-      .optional("includeTables", &tables)
-      .optional("excludeSchemas", &exclude_schemas)
-      .optional("excludeTables", &exclude_tables)
-      .optional("characterSet", &m_character_set)
-      .optional("skipBinlog", &m_skip_binlog)
-      .optional("ignoreExistingObjects", &m_ignore_existing_objects)
-      .optional("ignoreVersion", &m_ignore_version)
-      .optional("analyzeTables", &analyze_tables)
-      .optional("deferTableIndexes", &defer_table_indexes)
-      .optional("loadIndexes", &m_load_indexes)
-      .optional("schema", &m_target_schema)
-      .optional("excludeUsers", &excluded_users)
-      .optional("includeUsers", &included_users)
-      .optional("updateGtidSet", &update_gtid_set);
-
-  m_wait_dump_timeout_ms = wait_dump_timeout * 1000;
-
-  unpacker.unpack(&m_oci_options);
-  unpacker.end();
+void Load_dump_options::on_unpacked_options() {
+  if (!m_load_data && !m_load_ddl && !m_load_users &&
+      m_analyze_tables == Analyze_table_mode::OFF &&
+      m_update_gtid_set == Update_gtid_set::OFF)
+    throw shcore::Exception::argument_error(
+        "At least one of loadData, loadDdl or loadUsers options must be "
+        "enabled");
 
   dump::Par_structure url_par_data;
+  m_oci_options = m_oci_option_pack;
   m_use_par = dump::parse_full_object_par(m_url, &url_par_data);
 
   if (m_use_par) {
+    if (m_progress_file.is_null()) {
+      throw shcore::Exception::argument_error(
+          "When using a PAR to a dump manifest, the progressFile option must "
+          "be defined.");
+    } else {
+      dump::Par_structure progress_par_data;
+      m_use_par_progress =
+          dump::parse_full_object_par(*m_progress_file, &progress_par_data);
+    }
+
     m_oci_options.os_par = m_url;
     m_prefix = url_par_data.object_prefix;
   }
 
   m_oci_options.check_option_values();
 
-  for (const auto &schema : schemas) {
-    if (!schema.empty() && schema[0] != '`')
-      m_include_schemas.insert(shcore::quote_identifier(schema));
-    else
-      m_include_schemas.insert(schema);
-  }
-
-  for (const auto &schema : exclude_schemas) {
-    if (!schema.empty() && schema[0] != '`')
-      m_exclude_schemas.insert(shcore::quote_identifier(schema));
-    else
-      m_exclude_schemas.insert(schema);
-  }
-
-  auto parse_tables = [](const std::vector<std::string> &opt_tables,
-                         std::unordered_set<std::string> *out_filter,
-                         bool add_schema_entry) {
-    for (const auto &table : opt_tables) {
-      std::string schema_, table_;
-      try {
-        shcore::split_schema_and_table(table, &schema_, &table_);
-      } catch (const std::exception &e) {
-        throw std::runtime_error(
-            "Can't parse table filter '" + table +
-            "'. The table must be in the following form: "
-            "schema.table, with optional backtick quotes.");
-      }
-
-      if (schema_.empty()) {
-        throw std::runtime_error(
-            "Can't parse table filter '" + table +
-            "'. The table must be in the following form: "
-            "schema.table, with optional backtick quotes.");
-      }
-
-      if (schema_[0] == '`') schema_ = shcore::unquote_identifier(schema_);
-
-      if (table_[0] == '`') table_ = shcore::unquote_identifier(table);
-
-      out_filter->insert(schema_table_key(schema_, table_));
-
-      if (add_schema_entry) {
-        // insert schema."", so that we can check whether we want to include
-        // one or more tables for a given schema, but not the whole schema
-        out_filter->insert(schema_table_key(schema_, ""));
-      }
-    }
-  };
-
-  parse_tables(tables, &m_include_tables, true);
-  parse_tables(exclude_tables, &m_exclude_tables, false);
-
-  if (defer_table_indexes == "off") {
-    m_defer_table_indexes = Defer_index_mode::OFF;
-  } else if (defer_table_indexes == "all") {
-    m_defer_table_indexes = Defer_index_mode::ALL;
-  } else if (defer_table_indexes == "fulltext") {
-    m_defer_table_indexes = Defer_index_mode::FULLTEXT;
-  } else {
-    throw std::runtime_error("Invalid value '" + defer_table_indexes +
-                             "' for deferTableIndexes option, allowed values: "
-                             "'all', 'fulltext', and 'off'.");
-  }
-
-  update_gtid_set = shcore::str_lower(update_gtid_set);
-  if (update_gtid_set == "append")
-    m_update_gtid_set = Update_gtid_set::APPEND;
-  else if (update_gtid_set == "replace")
-    m_update_gtid_set = Update_gtid_set::REPLACE;
-  else if (update_gtid_set != "off")
-    throw std::runtime_error("Invalid value '" + update_gtid_set +
-                             "' for updateGtidSet option, allowed values: "
-                             "'off', 'replace', and 'append'.");
-
   if (!m_load_indexes && m_defer_table_indexes == Defer_index_mode::OFF)
     throw std::invalid_argument(
         "'deferTableIndexes' option needs to be enabled when "
         "'loadIndexes' option is disabled");
-
-  if (analyze_tables == "histogram") {
-    m_analyze_tables = Analyze_table_mode::HISTOGRAM;
-  } else if (analyze_tables == "on") {
-    m_analyze_tables = Analyze_table_mode::ON;
-  } else if (analyze_tables == "off") {
-    m_analyze_tables = Analyze_table_mode::OFF;
-  } else {
-    throw std::runtime_error("Invalid value '" + analyze_tables +
-                             "' for analyzeTables option, allowed values: "
-                             "'off', 'on', and 'histogram'.");
-  }
-
-  if (!m_load_users) {
-    if (!excluded_users.empty()) {
-      throw std::invalid_argument(
-          "The 'excludeUsers' option cannot be used if the 'loadUsers' option "
-          "is set to false.");
-    }
-
-    if (!included_users.empty()) {
-      throw std::invalid_argument(
-          "The 'includeUsers' option cannot be used if the 'loadUsers' option "
-          "is set to false.");
-    }
-  } else {
-    try {
-      // some users are always excluded
-      excluded_users.emplace(m_base_session->query("SELECT current_user()")
-                                 ->fetch_one()
-                                 ->get_string(0));
-
-      excluded_users.insert(std::begin(k_excluded_users),
-                            std::end(k_excluded_users));
-
-      if (is_mds()) {
-        excluded_users.insert(std::begin(k_oci_excluded_users),
-                              std::end(k_oci_excluded_users));
-      }
-
-      m_excluded_users = shcore::to_accounts(excluded_users);
-      m_included_users = shcore::to_accounts(included_users);
-    } catch (const std::runtime_error &e) {
-      throw std::invalid_argument(e.what());
-    }
-  }
 }
 
 std::unique_ptr<mysqlshdk::storage::IDirectory>

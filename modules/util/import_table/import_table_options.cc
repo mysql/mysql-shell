@@ -114,32 +114,101 @@ bool has_wildcard(const std::string &s) {
 namespace mysqlsh {
 namespace import_table {
 
-Import_table_options::Import_table_options(std::vector<std::string> &&filenames,
-                                           const shcore::Dictionary_t &options)
-    : m_filelist_from_user(std::move(filenames)),
-      m_oci_options(mysqlshdk::oci::Oci_options::Unpack_target::
-                        OBJECT_STORAGE_NO_PAR_OPTIONS) {
-  if (!is_multifile()) {
-    m_table = std::get<0>(shcore::path::split_extension(
-        shcore::path::basename(m_filelist_from_user[0])));
-  }
-  unpack(options);
+const shcore::Option_pack_def<Import_table_option_pack>
+    &Import_table_option_pack::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Import_table_option_pack>()
+          .optional("table", &Import_table_option_pack::m_table)
+          .optional("schema", &Import_table_option_pack::m_schema)
+          .optional("threads", &Import_table_option_pack::m_threads_size)
+          .optional("bytesPerChunk",
+                    &Import_table_option_pack::m_bytes_per_chunk)
+          .optional("columns", &Import_table_option_pack::m_columns)
+          .optional("replaceDuplicates",
+                    &Import_table_option_pack::m_replace_duplicates)
+          .optional("maxRate", &Import_table_option_pack::m_max_rate)
+          .optional("showProgress", &Import_table_option_pack::m_show_progress)
+          .optional("skipRows", &Import_table_option_pack::m_skip_rows_count)
+          .optional("decodeColumns",
+                    &Import_table_option_pack::set_decode_columns)
+          .optional("characterSet", &Import_table_option_pack::m_character_set)
+          .include(&Import_table_option_pack::m_dialect);
+
+  return opts;
 }
 
-Import_table_options::Import_table_options(const shcore::Dictionary_t &options)
-    : m_oci_options(mysqlshdk::oci::Oci_options::Unpack_target::
-                        OBJECT_STORAGE_NO_PAR_OPTIONS) {
-  unpack(options);
+void Import_table_option_pack::set_filenames(
+    const std::vector<std::string> &filenames) {
+  m_filelist_from_user = filenames;
+
+  if (!is_multifile()) {
+    // If loading single file, chunk size defaults to 50M if not specified by
+    // the user.
+    if (m_bytes_per_chunk.empty()) {
+      m_bytes_per_chunk = "50M";
+    }
+
+    // If loading single file, table name is taken from the file if not
+    // specified by the user.
+    if (m_table.empty()) {
+      m_table = std::get<0>(shcore::path::split_extension(
+          shcore::path::basename(m_filelist_from_user[0])));
+    }
+  }
+}
+
+void Import_table_option_pack::set_decode_columns(
+    const shcore::Dictionary_t &decode_columns) {
+  if (decode_columns) {
+    for (const auto &it : *decode_columns) {
+      if (it.second.type != shcore::Null) {
+        auto transformation = it.second.descr();
+        if (shcore::str_caseeq(transformation, std::string{"UNHEX"}) ||
+            shcore::str_caseeq(transformation, std::string{"FROM_BASE64"})) {
+          m_decode_columns[it.first] = shcore::str_upper(transformation);
+        } else {
+          // Try to initially validate user input, i.e. check if
+          // brackets are balanced in provided user input.
+          if (!transformation_validation(transformation)) {
+            throw std::runtime_error(
+                "Invalid SQL expression in decodeColumns option "
+                "for column '" +
+                it.first + "'");
+          }
+          m_decode_columns[it.first] = std::move(transformation);
+        }
+      }
+    }
+  }
+}
+
+bool Import_table_option_pack::is_multifile() const {
+  if (m_filelist_from_user.size() == 1) {
+    if (has_wildcard(m_filelist_from_user[0])) {
+      return true;
+    }
+    // const auto &extension = std::get<1>(shcore::path::split_extension(path));
+    // if (extension == ".gz" || extension == ".zst") {
+    //   return true;
+    // }
+    return false;
+  }
+  return true;
+}
+
+Import_table_options::Import_table_options(
+    const Import_table_option_pack &pack) {
+  // Copies the options defined in pack into this object
+  Import_table_option_pack &this_pack(*this);
+  this_pack = pack;
 }
 
 void Import_table_options::validate() {
   if (m_table.empty()) {
-    throw shcore::Exception::runtime_error(
+    throw std::runtime_error(
         "Target table is not set. The target table for the import operation "
         "must be provided in the options.");
   }
-
-  m_dialect.validate();
 
   // remove empty paths provided by user
   m_filelist_from_user.erase(
@@ -148,7 +217,7 @@ void Import_table_options::validate() {
       m_filelist_from_user.end());
 
   if (m_filelist_from_user.empty()) {
-    throw shcore::Exception::runtime_error("File list cannot be empty.");
+    throw std::runtime_error("File list cannot be empty.");
   }
 
   if (m_schema.empty()) {
@@ -172,7 +241,7 @@ void Import_table_options::validate() {
       mysqlsh::current_console()->print_error(
           "The 'local_infile' global system variable must be set to ON in "
           "the target server, after the server is verified to be trusted.");
-      throw shcore::Exception::runtime_error("Invalid preconditions");
+      throw std::runtime_error("Invalid preconditions");
     }
   }
 
@@ -180,7 +249,13 @@ void Import_table_options::validate() {
     m_oci_options.check_option_values();
   }
 
-  if (!is_multifile()) {
+  if (is_multifile()) {
+    if (!m_bytes_per_chunk.empty()) {
+      throw std::runtime_error(
+          "The 'bytesPerChunk' option cannot be used when loading from "
+          "multiple files.");
+    }
+  } else {
     if (!m_filelist_from_user[0].empty()) {
       if (m_oci_options) {
         // this call is here to verify if filename does not have a scheme
@@ -199,22 +274,9 @@ void Import_table_options::validate() {
   m_threads_size = calc_thread_size();
 }
 
-bool Import_table_options::is_multifile() const {
-  if (m_filelist_from_user.size() == 1) {
-    if (has_wildcard(m_filelist_from_user[0])) {
-      return true;
-    }
-    // const auto &extension = std::get<1>(shcore::path::split_extension(path));
-    // if (extension == ".gz" || extension == ".zst") {
-    //   return true;
-    // }
-    return false;
-  }
-  return true;
-}
-
 std::unique_ptr<mysqlshdk::storage::IFile>
-Import_table_options::create_file_handle(const std::string &filepath) const {
+Import_table_option_pack::create_file_handle(
+    const std::string &filepath) const {
   std::unique_ptr<mysqlshdk::storage::IFile> file;
 
   if (!m_oci_options.os_bucket_name.is_null()) {
@@ -226,7 +288,7 @@ Import_table_options::create_file_handle(const std::string &filepath) const {
 }
 
 std::unique_ptr<mysqlshdk::storage::IFile>
-Import_table_options::create_file_handle(
+Import_table_option_pack::create_file_handle(
     std::unique_ptr<mysqlshdk::storage::IFile> file_handler) const {
   mysqlshdk::storage::Compression compr;
   try {
@@ -238,7 +300,7 @@ Import_table_options::create_file_handle(
   return mysqlshdk::storage::make_file(std::move(file_handler), compr);
 }
 
-size_t Import_table_options::calc_thread_size() {
+size_t Import_table_option_pack::calc_thread_size() {
   // We need at least one thread
   int64_t threads_size = std::max(static_cast<int64_t>(1), m_threads_size);
 
@@ -254,7 +316,7 @@ size_t Import_table_options::calc_thread_size() {
   return threads_size;
 }
 
-size_t Import_table_options::max_rate() const {
+size_t Import_table_option_pack::max_rate() const {
   if (!m_max_rate.empty()) {
     return std::max(static_cast<size_t>(0),
                     mysqlshdk::utils::expand_to_bytes(m_max_rate));
@@ -284,7 +346,7 @@ Connection_options Import_table_options::connection_options() const {
   return connection_options;
 }
 
-size_t Import_table_options::bytes_per_chunk() const {
+size_t Import_table_option_pack::bytes_per_chunk() const {
   constexpr const size_t min_bytes_per_chunk = 2 * BUFFER_SIZE;
   return std::max(mysqlshdk::utils::expand_to_bytes(m_bytes_per_chunk),
                   min_bytes_per_chunk);
@@ -310,53 +372,6 @@ std::string Import_table_options::target_import_info() const {
       " using " + std::to_string(threads_size());
   info_msg += threads_size() == 1 ? " thread" : " threads";
   return info_msg;
-}
-
-void Import_table_options::unpack(const shcore::Dictionary_t &options) {
-  auto unpack_options = Unpack_options(options);
-
-  unpack_options.unpack(&m_oci_options);
-
-  m_dialect = Dialect::unpack(&unpack_options);
-  shcore::Dictionary_t decode_columns = nullptr;
-
-  unpack_options.optional("table", &m_table)
-      .optional("schema", &m_schema)
-      .optional("threads", &m_threads_size)
-      .optional("columns", &m_columns)
-      .optional("replaceDuplicates", &m_replace_duplicates)
-      .optional("maxRate", &m_max_rate)
-      .optional("showProgress", &m_show_progress)
-      .optional("skipRows", &m_skip_rows_count)
-      .optional("decodeColumns", &decode_columns)
-      .optional("characterSet", &m_character_set);
-
-  if (!is_multifile()) {
-    unpack_options.optional("bytesPerChunk", &m_bytes_per_chunk);
-  }
-
-  unpack_options.end();
-
-  if (decode_columns) {
-    for (const auto &it : *decode_columns) {
-      if (it.second.type != shcore::Null) {
-        auto transformation = it.second.descr();
-        if (shcore::str_caseeq(transformation, std::string{"UNHEX"}) ||
-            shcore::str_caseeq(transformation, std::string{"FROM_BASE64"})) {
-          m_decode_columns[it.first] = shcore::str_upper(transformation);
-        } else {
-          // Try to initially validate user input, i.e. check if brackets are
-          // balanced in provided user input.
-          if (!transformation_validation(transformation)) {
-            throw std::runtime_error(
-                "Invalid SQL expression in decodeColumns option for column '" +
-                it.first + "'");
-          }
-          m_decode_columns[it.first] = std::move(transformation);
-        }
-      }
-    }
-  }
 }
 
 }  // namespace import_table

@@ -180,37 +180,37 @@ def EXPECT_FAIL(error, msg, schema, tables, output_url, options = {}, expect_dir
     EXPECT_EQ(expect_dir_created, os.path.isdir(test_output_absolute))
 
 def TEST_BOOL_OPTION(option):
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type Bool, but is Null".format(option), types_schema, types_schema_tables, test_output_relative, { option: None })
-    EXPECT_FAIL("TypeError", "Option '{0}' Bool expected, but value is String".format(option), types_schema, types_schema_tables, test_output_relative, { option: "dummy" })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type Bool, but is Array".format(option), types_schema, types_schema_tables, test_output_relative, { option: [] })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type Bool, but is Map".format(option), types_schema, types_schema_tables, test_output_relative, { option: {} })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type Bool, but is Null".format(option), types_schema, types_schema_tables, test_output_relative, { option: None })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' Bool expected, but value is String".format(option), types_schema, types_schema_tables, test_output_relative, { option: "dummy" })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type Bool, but is Array".format(option), types_schema, types_schema_tables, test_output_relative, { option: [] })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type Bool, but is Map".format(option), types_schema, types_schema_tables, test_output_relative, { option: {} })
 
 def TEST_STRING_OPTION(option):
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type String, but is Null".format(option), types_schema, types_schema_tables, test_output_relative, { option: None })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type String, but is Integer".format(option), types_schema, types_schema_tables, test_output_relative, { option: 5 })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type String, but is Integer".format(option), types_schema, types_schema_tables, test_output_relative, { option: -5 })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type String, but is Array".format(option), types_schema, types_schema_tables, test_output_relative, { option: [] })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type String, but is Map".format(option), types_schema, types_schema_tables, test_output_relative, { option: {} })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type String, but is Bool".format(option), types_schema, types_schema_tables, test_output_relative, { option: False })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type String, but is Null".format(option), types_schema, types_schema_tables, test_output_relative, { option: None })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type String, but is Integer".format(option), types_schema, types_schema_tables, test_output_relative, { option: 5 })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type String, but is Integer".format(option), types_schema, types_schema_tables, test_output_relative, { option: -5 })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type String, but is Array".format(option), types_schema, types_schema_tables, test_output_relative, { option: [] })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type String, but is Map".format(option), types_schema, types_schema_tables, test_output_relative, { option: {} })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type String, but is Bool".format(option), types_schema, types_schema_tables, test_output_relative, { option: False })
 
 def TEST_UINT_OPTION(option):
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type UInteger, but is Null".format(option), types_schema, types_schema_tables, test_output_relative, { option: None })
-    EXPECT_FAIL("TypeError", "Option '{0}' UInteger expected, but Integer value is out of range".format(option), types_schema, types_schema_tables, test_output_relative, { option: -5 })
-    EXPECT_FAIL("TypeError", "Option '{0}' UInteger expected, but value is String".format(option), types_schema, types_schema_tables, test_output_relative, { option: "dummy" })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type UInteger, but is Array".format(option), types_schema, types_schema_tables, test_output_relative, { option: [] })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type UInteger, but is Map".format(option), types_schema, types_schema_tables, test_output_relative, { option: {} })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type UInteger, but is Null".format(option), types_schema, types_schema_tables, test_output_relative, { option: None })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' UInteger expected, but Integer value is out of range".format(option), types_schema, types_schema_tables, test_output_relative, { option: -5 })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' UInteger expected, but value is String".format(option), types_schema, types_schema_tables, test_output_relative, { option: "dummy" })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type UInteger, but is Array".format(option), types_schema, types_schema_tables, test_output_relative, { option: [] })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type UInteger, but is Map".format(option), types_schema, types_schema_tables, test_output_relative, { option: {} })
 
 def TEST_ARRAY_OF_STRINGS_OPTION(option):
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type Array, but is Integer".format(option), types_schema, types_schema_tables, test_output_relative, { option: 5 })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type Array, but is Integer".format(option), types_schema, types_schema_tables, test_output_relative, { option: -5 })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type Array, but is String".format(option), types_schema, types_schema_tables, test_output_relative, { option: "dummy" })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type Array, but is Map".format(option), types_schema, types_schema_tables, test_output_relative, { option: {} })
-    EXPECT_FAIL("TypeError", "Option '{0}' is expected to be of type Array, but is Bool".format(option), types_schema, types_schema_tables, test_output_relative, { option: False })
-    EXPECT_FAIL("TypeError", "Option '{0}' String expected, but value is Null".format(option), types_schema, types_schema_tables, test_output_relative, { option: [ None ] })
-    EXPECT_FAIL("TypeError", "Option '{0}' String expected, but value is Integer".format(option), types_schema, types_schema_tables, test_output_relative, { option: [ 5 ] })
-    EXPECT_FAIL("TypeError", "Option '{0}' String expected, but value is Integer".format(option), types_schema, types_schema_tables, test_output_relative, { option: [ -5 ] })
-    EXPECT_FAIL("TypeError", "Option '{0}' String expected, but value is Map".format(option), types_schema, types_schema_tables, test_output_relative, { option: [ {} ] })
-    EXPECT_FAIL("TypeError", "Option '{0}' String expected, but value is Bool".format(option), types_schema, types_schema_tables, test_output_relative, { option: [ False ] })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type Array, but is Integer".format(option), types_schema, types_schema_tables, test_output_relative, { option: 5 })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type Array, but is Integer".format(option), types_schema, types_schema_tables, test_output_relative, { option: -5 })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type Array, but is String".format(option), types_schema, types_schema_tables, test_output_relative, { option: "dummy" })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type Array, but is Map".format(option), types_schema, types_schema_tables, test_output_relative, { option: {} })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' is expected to be of type Array, but is Bool".format(option), types_schema, types_schema_tables, test_output_relative, { option: False })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' String expected, but value is Null".format(option), types_schema, types_schema_tables, test_output_relative, { option: [ None ] })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' String expected, but value is Integer".format(option), types_schema, types_schema_tables, test_output_relative, { option: [ 5 ] })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' String expected, but value is Integer".format(option), types_schema, types_schema_tables, test_output_relative, { option: [ -5 ] })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' String expected, but value is Map".format(option), types_schema, types_schema_tables, test_output_relative, { option: [ {} ] })
+    EXPECT_FAIL("TypeError", "Argument #4: Option '{0}' String expected, but value is Bool".format(option), types_schema, types_schema_tables, test_output_relative, { option: [ False ] })
 
 def get_load_columns(options):
     decode = options["decodeColumns"] if "decodeColumns" in options else {}
@@ -552,15 +552,15 @@ EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "maxRa
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "maxRate": "1G", "ddlOnly": True, "showProgress": False })
 
 #@<> WL13804-FR5.1.1 - The value of the `maxRate` option must use the same format as specified in WL#12193.
-EXPECT_FAIL("ValueError", 'Wrong input number "xyz"', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "xyz" })
-EXPECT_FAIL("ValueError", 'Wrong input number "1xyz"', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "1xyz" })
-EXPECT_FAIL("ValueError", 'Wrong input number "2Mhz"', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "2Mhz" })
-EXPECT_FAIL("ValueError", 'Wrong input number "hello world!"', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "hello world!" })
-EXPECT_FAIL("ValueError", 'Input number "-1" cannot be negative', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "-1" })
-EXPECT_FAIL("ValueError", 'Input number "-1234567890123456" cannot be negative', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "-1234567890123456" })
-EXPECT_FAIL("ValueError", 'Input number "-2K" cannot be negative', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "-2K" })
-EXPECT_FAIL("ValueError", 'Wrong input number "3m"', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "3m" })
-EXPECT_FAIL("ValueError", 'Wrong input number "4g"', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "4g" })
+EXPECT_FAIL("ValueError", 'Argument #4: Wrong input number "xyz"', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "xyz" })
+EXPECT_FAIL("ValueError", 'Argument #4: Wrong input number "1xyz"', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "1xyz" })
+EXPECT_FAIL("ValueError", 'Argument #4: Wrong input number "2Mhz"', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "2Mhz" })
+EXPECT_FAIL("ValueError", 'Argument #4: Wrong input number "hello world!"', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "hello world!" })
+EXPECT_FAIL("ValueError", 'Argument #4: Input number "-1" cannot be negative', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "-1" })
+EXPECT_FAIL("ValueError", 'Argument #4: Input number "-1234567890123456" cannot be negative', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "-1234567890123456" })
+EXPECT_FAIL("ValueError", 'Argument #4: Input number "-2K" cannot be negative', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "-2K" })
+EXPECT_FAIL("ValueError", 'Argument #4: Wrong input number "3m"', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "3m" })
+EXPECT_FAIL("ValueError", 'Argument #4: Wrong input number "4g"', types_schema, types_schema_tables, test_output_absolute, { "maxRate": "4g" })
 
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "maxRate": "1000000", "ddlOnly": True, "showProgress": False })
 
@@ -621,8 +621,8 @@ EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basen
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "compression": "zstd", "chunking": False, "showProgress": False })
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(types_schema, types_schema_tables[0]) + ".tsv.zst")))
 
-EXPECT_FAIL("ValueError", "The option 'compression' cannot be set to an empty string.", types_schema, types_schema_tables, test_output_relative, { "compression": "" })
-EXPECT_FAIL("ValueError", "Unknown compression type: dummy", types_schema, types_schema_tables, test_output_relative, { "compression": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'compression' cannot be set to an empty string.", types_schema, types_schema_tables, test_output_relative, { "compression": "" })
+EXPECT_FAIL("ValueError", "Argument #4: Unknown compression type: dummy", types_schema, types_schema_tables, test_output_relative, { "compression": "dummy" })
 
 #@<> WL13804-FR5.3.2 - If the `compression` option is not given, a default value of `"none"` must be used instead.
 # * The `compression` option specified in WL#13804, FR5.3, with the modification of FR5.3.2, the default value must be`"zstd"`.
@@ -636,38 +636,38 @@ TEST_STRING_OPTION("osBucketName")
 TEST_STRING_OPTION("osNamespace")
 
 #@<> WL13804-FR5.5.2 - If the value of `osNamespace` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
-EXPECT_FAIL("ValueError", "The option 'osNamespace' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "osNamespace": "namespace" })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'osNamespace' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "osNamespace": "namespace" })
 
 #@<> WL13804-FR5.6 - The `options` dictionary may contain a `ociConfigFile` key with a string value, which specifies the path to the OCI configuration file.
 TEST_STRING_OPTION("ociConfigFile")
 
 #@<> WL13804-FR5.6.2 - If the value of `ociConfigFile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
-EXPECT_FAIL("ValueError", "The option 'ociConfigFile' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociConfigFile": "config" })
-EXPECT_FAIL("ValueError", "The option 'ociConfigFile' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociConfigFile": "config", "osBucketName": "" })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'ociConfigFile' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociConfigFile": "config" })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'ociConfigFile' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociConfigFile": "config", "osBucketName": "" })
 
 #@<> WL13804-FR5.7 - The `options` dictionary may contain a `ociProfile` key with a string value, which specifies the name of the OCI profile to use.
 TEST_STRING_OPTION("ociProfile")
 
 #@<> WL13804-FR5.7.2 - If the value of `ociProfile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
-EXPECT_FAIL("ValueError", "The option 'ociProfile' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociProfile": "profile" })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'ociProfile' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociProfile": "profile" })
 
 #@<> Validate that the option ociParManifest only take boolean values as valid values.
 TEST_BOOL_OPTION("ociParManifest")
 
 #@<> Validate that the option ociParManifest is valid only when doing a dump to OCI.
-EXPECT_FAIL("ValueError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociParManifest": True })
-EXPECT_FAIL("ValueError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociParManifest": False })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociParManifest": True })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociParManifest": False })
 
 #@<> Doing a dump to file system with ociParManifest set to True and ociParExpireTime set to a valid value. Validate that dump fails because ociParManifest is not valid if osBucketName is not specified.
-EXPECT_FAIL("ValueError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociParManifest": True, "ociParExpireTime": "2021-01-01" })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociParManifest": True, "ociParExpireTime": "2021-01-01" })
 
 #@<> Validate that the option ociParExpireTime only take string values
 TEST_STRING_OPTION("ociParExpireTime")
 
 #@<> Doing a dump to OCI ociParManifest not set or set to False and ociParExpireTime set to a valid value. Validate that the dump fail because ociParExpireTime it's valid only when ociParManifest is set to True.
-EXPECT_FAIL("ValueError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", types_schema, types_schema_tables, test_output_relative, { "ociParExpireTime": "2021-01-01" })
-EXPECT_FAIL("ValueError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", types_schema, types_schema_tables, test_output_relative, { "osBucketName": "bucket", "ociParExpireTime": "2021-01-01" })
-EXPECT_FAIL("ValueError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", types_schema, types_schema_tables, test_output_relative, { "osBucketName": "bucket", "ociParManifest": False, "ociParExpireTime": "2021-01-01" })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", types_schema, types_schema_tables, test_output_relative, { "ociParExpireTime": "2021-01-01" })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", types_schema, types_schema_tables, test_output_relative, { "osBucketName": "bucket", "ociParExpireTime": "2021-01-01" })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", types_schema, types_schema_tables, test_output_relative, { "osBucketName": "bucket", "ociParManifest": False, "ociParExpireTime": "2021-01-01" })
 
 #@<> WL13804-FR5.8 - The `options` dictionary may contain a `defaultCharacterSet` key with a string value, which specifies the character set to be used during the dump. The session variables `character_set_client`, `character_set_connection`, and `character_set_results` must be set to this value for each opened connection.
 TEST_STRING_OPTION("defaultCharacterSet")
@@ -761,7 +761,7 @@ EXPECT_NE(0, count_files_with_extension(test_output_absolute, ".zst"))
 EXPECT_EQ(0, count_files_with_extension(test_output_absolute, ".sql"))
 
 #@<> WL13804: WL13807-FR4.8.2 - If both `ddlOnly` and `dataOnly` options are set to `true`, an exception must be raised.
-EXPECT_FAIL("ValueError", "The 'ddlOnly' and 'dataOnly' options cannot be both set to true.", types_schema, types_schema_tables, test_output_relative, { "ddlOnly": True, "dataOnly": True })
+EXPECT_FAIL("ValueError", "Argument #4: The 'ddlOnly' and 'dataOnly' options cannot be both set to true.", types_schema, types_schema_tables, test_output_relative, { "ddlOnly": True, "dataOnly": True })
 
 #@<> WL13804: WL13807-FR4.8.3 - If the `dataOnly` option is not given, a default value of `false` must be used instead.
 # WL13804-TSFR_11_2_14
@@ -829,17 +829,17 @@ EXPECT_TRUE(has_file_with_basename(test_output_absolute, encode_table_basename(t
 EXPECT_TRUE(count_files_with_basename(test_output_absolute, encode_table_basename(test_schema, test_table_primary) + "@") > number_of_dump_files)
 
 #@<> WL13804: WL13807-FR4.13.2 - The value of the `bytesPerChunk` option must use the same format as specified in WL#12193.
-EXPECT_FAIL("ValueError", 'Wrong input number "xyz"', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "xyz" })
-EXPECT_FAIL("ValueError", 'Wrong input number "1xyz"', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "1xyz" })
-EXPECT_FAIL("ValueError", 'Wrong input number "2Mhz"', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "2Mhz" })
+EXPECT_FAIL("ValueError", 'Argument #4: Wrong input number "xyz"', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "xyz" })
+EXPECT_FAIL("ValueError", 'Argument #4: Wrong input number "1xyz"', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "1xyz" })
+EXPECT_FAIL("ValueError", 'Argument #4: Wrong input number "2Mhz"', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "2Mhz" })
 # WL13804-TSFR_11_2_31
-EXPECT_FAIL("ValueError", 'Wrong input number "0.1k"', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "0.1k" })
-EXPECT_FAIL("ValueError", 'Wrong input number "0,3M"', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "0,3M" })
-EXPECT_FAIL("ValueError", 'Input number "-1G" cannot be negative', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "-1G" })
-EXPECT_FAIL("ValueError", 'Wrong input number "hello"', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "hello" })
-EXPECT_FAIL("ValueError", "The option 'bytesPerChunk' cannot be set to an empty string.", types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "" })
+EXPECT_FAIL("ValueError", 'Argument #4: Wrong input number "0.1k"', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "0.1k" })
+EXPECT_FAIL("ValueError", 'Argument #4: Wrong input number "0,3M"', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "0,3M" })
+EXPECT_FAIL("ValueError", 'Argument #4: Input number "-1G" cannot be negative', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "-1G" })
+EXPECT_FAIL("ValueError", 'Argument #4: Wrong input number "hello"', types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "hello" })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'bytesPerChunk' cannot be set to an empty string.", types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "" })
 # WL13804-TSFR_11_2_28
-EXPECT_FAIL("ValueError", "The option 'bytesPerChunk' cannot be used if the 'chunking' option is set to false.", types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "128k", "chunking": False })
+EXPECT_FAIL("ValueError", "Argument #4: The option 'bytesPerChunk' cannot be used if the 'chunking' option is set to false.", types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "128k", "chunking": False })
 
 # WL13804-TSFR_11_2_29
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "bytesPerChunk": "1000k", "ddlOnly": True, "showProgress": False })
@@ -849,11 +849,11 @@ EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "bytes
 
 #@<> WL13804: WL13807-FR4.13.3 - If the value of the `bytesPerChunk` option is smaller than `128k`, an exception must be thrown.
 # WL13804-TSFR_11_2_32
-EXPECT_FAIL("ValueError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "127k" })
-EXPECT_FAIL("ValueError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "127999" })
-EXPECT_FAIL("ValueError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "1" })
-EXPECT_FAIL("ValueError", "The value of 'bytesPerChunk' option must be greater or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "0" })
-EXPECT_FAIL("ValueError", 'Input number "-1" cannot be negative', types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "-1" })
+EXPECT_FAIL("ValueError", "Argument #4: The value of 'bytesPerChunk' option must be greater or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "127k" })
+EXPECT_FAIL("ValueError", "Argument #4: The value of 'bytesPerChunk' option must be greater or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "127999" })
+EXPECT_FAIL("ValueError", "Argument #4: The value of 'bytesPerChunk' option must be greater or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "1" })
+EXPECT_FAIL("ValueError", "Argument #4: The value of 'bytesPerChunk' option must be greater or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "0" })
+EXPECT_FAIL("ValueError", 'Argument #4: Input number "-1" cannot be negative', types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "-1" })
 
 #@<> WL13804: WL13807-FR4.14 - The `options` dictionary may contain a `threads` key with an unsigned integer value, which specifies the number of threads to be used to perform the dump.
 # WL13804-TSFR_11_2_34
@@ -865,7 +865,7 @@ EXPECT_STDOUT_CONTAINS("Running data dump using 2 threads.")
 
 #@<> WL13804: WL13807-FR4.14.1 - If the value of the `threads` option is set to `0`, an exception must be thrown.
 # WL13804-TSFR_11_2_34
-EXPECT_FAIL("ValueError", "The value of 'threads' option must be greater than 0.", types_schema, types_schema_tables, test_output_relative, { "threads": 0 })
+EXPECT_FAIL("ValueError", "Argument #4: The value of 'threads' option must be greater than 0.", types_schema, types_schema_tables, test_output_relative, { "threads": 0 })
 
 #@<> WL13804: WL13807-FR4.14.2 - If the `threads` option is not given, a default value of `4` must be used instead.
 # WL13804-TSFR_11_2_36
@@ -939,21 +939,21 @@ for view in test_schema_views:
 
 #@<> options param being a dictionary that contains an unknown key
 # WL13804-TSFR_11_1_2
-EXPECT_FAIL("ValueError", "Invalid options: dummy", types_schema, types_schema_tables, test_output_relative, { "dummy": "fails" })
-EXPECT_FAIL("ValueError", "Invalid options: indexColumn", types_schema, types_schema_tables, test_output_relative, { "indexColumn": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: fieldsTerminatedBy", types_schema, types_schema_tables, test_output_relative, { "fieldsTerminatedBy": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: fieldsEnclosedBy", types_schema, types_schema_tables, test_output_relative, { "fieldsEnclosedBy": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: fieldsEscapedBy", types_schema, types_schema_tables, test_output_relative, { "fieldsEscapedBy": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: fieldsOptionallyEnclosed", types_schema, types_schema_tables, test_output_relative, { "fieldsOptionallyEnclosed": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: linesTerminatedBy", types_schema, types_schema_tables, test_output_relative, { "linesTerminatedBy": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: dialect", types_schema, types_schema_tables, test_output_relative, { "dialect": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: events", types_schema, types_schema_tables, test_output_relative, { "events": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: routines", types_schema, types_schema_tables, test_output_relative, { "routines": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: users", types_schema, types_schema_tables, test_output_relative, { "users": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: excludeUsers", types_schema, types_schema_tables, test_output_relative, { "excludeUsers": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: includeUsers", types_schema, types_schema_tables, test_output_relative, { "includeUsers": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: excludeTables", types_schema, types_schema_tables, test_output_relative, { "excludeTables": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: excludeSchemas", types_schema, types_schema_tables, test_output_relative, { "excludeSchemas": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: dummy", types_schema, types_schema_tables, test_output_relative, { "dummy": "fails" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: indexColumn", types_schema, types_schema_tables, test_output_relative, { "indexColumn": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: fieldsTerminatedBy", types_schema, types_schema_tables, test_output_relative, { "fieldsTerminatedBy": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: fieldsEnclosedBy", types_schema, types_schema_tables, test_output_relative, { "fieldsEnclosedBy": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: fieldsEscapedBy", types_schema, types_schema_tables, test_output_relative, { "fieldsEscapedBy": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: fieldsOptionallyEnclosed", types_schema, types_schema_tables, test_output_relative, { "fieldsOptionallyEnclosed": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: linesTerminatedBy", types_schema, types_schema_tables, test_output_relative, { "linesTerminatedBy": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: dialect", types_schema, types_schema_tables, test_output_relative, { "dialect": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: events", types_schema, types_schema_tables, test_output_relative, { "events": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: routines", types_schema, types_schema_tables, test_output_relative, { "routines": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: users", types_schema, types_schema_tables, test_output_relative, { "users": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: excludeUsers", types_schema, types_schema_tables, test_output_relative, { "excludeUsers": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: includeUsers", types_schema, types_schema_tables, test_output_relative, { "includeUsers": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: excludeTables", types_schema, types_schema_tables, test_output_relative, { "excludeTables": "dummy" })
+EXPECT_FAIL("ValueError", "Argument #4: Invalid options: excludeSchemas", types_schema, types_schema_tables, test_output_relative, { "excludeSchemas": "dummy" })
 
 # FR12 - The `util.dumpTables()` function must create:
 # * table data dumps, as specified in WL#13807, FR7,
@@ -1046,12 +1046,12 @@ for crc in test_schema_tables_crc:
 testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
 
 #@<> WL13804-FR13.2 - The `util.loadDump()` function must accept a new option `schema` with a string value, which specifies the schema into which the dump should be loaded.
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": None }), "TypeError: Util.load_dump: Option 'schema' is expected to be of type String, but is Null")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": 5 }), "TypeError: Util.load_dump: Option 'schema' is expected to be of type String, but is Integer")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": -5 }), "TypeError: Util.load_dump: Option 'schema' is expected to be of type String, but is Integer")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": [] }), "TypeError: Util.load_dump: Option 'schema' is expected to be of type String, but is Array")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": {} }), "TypeError: Util.load_dump: Option 'schema' is expected to be of type String, but is Map")
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": False }), "TypeError: Util.load_dump: Option 'schema' is expected to be of type String, but is Bool")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": None }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Null")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": 5 }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Integer")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": -5 }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Integer")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": [] }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Array")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": {} }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Map")
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": False }), "TypeError: Util.load_dump: Argument #2: Option 'schema' is expected to be of type String, but is Bool")
 
 #@<> choose the same active schema, use 'schema' option, expect success
 # WL13804-TSFR_13_2_2
@@ -1278,8 +1278,8 @@ EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_abso
 #@<> The `options` dictionary may contain a `compatibility` key with an array of strings value, which specifies the `MySQL Database Service`-related compatibility modifications that should be applied when creating the DDL files.
 TEST_ARRAY_OF_STRINGS_OPTION("compatibility")
 
-EXPECT_FAIL("ValueError", "Unknown compatibility option: dummy", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "dummy" ] })
-EXPECT_FAIL("ValueError", "Unknown compatibility option: ", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "" ] })
+EXPECT_FAIL("ValueError", "Argument #4: Unknown compatibility option: dummy", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "dummy" ] })
+EXPECT_FAIL("ValueError", "Argument #4: Unknown compatibility option: ", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "" ] })
 
 #@<> The `compatibility` option may contain the following values:
 # * `force_innodb` - replace incompatible table engines with `InnoDB`,

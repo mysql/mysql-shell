@@ -35,6 +35,9 @@
 #include <string>
 #include <vector>
 #include "modules/util/import_table/dialect.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/oci/oci_options.h"
@@ -45,34 +48,26 @@ namespace import_table {
 
 using Connection_options = mysqlshdk::db::Connection_options;
 
-class Import_table_options {
+class Import_table_option_pack {
  public:
-  Import_table_options() = default;
+  Import_table_option_pack() = default;
+  Import_table_option_pack(const Import_table_option_pack &other) = default;
+  Import_table_option_pack(Import_table_option_pack &&other) = default;
 
-  explicit Import_table_options(const shcore::Dictionary_t &options);
+  Import_table_option_pack &operator=(const Import_table_option_pack &other) =
+      default;
+  Import_table_option_pack &operator=(Import_table_option_pack &&other) =
+      default;
+  ~Import_table_option_pack() = default;
 
-  Import_table_options(std::vector<std::string> &&filenames,
-                       const shcore::Dictionary_t &options);
-
-  Import_table_options(const Import_table_options &other) = delete;
-  Import_table_options(Import_table_options &&other) = default;
-
-  Import_table_options &operator=(const Import_table_options &other) = delete;
-  Import_table_options &operator=(Import_table_options &&other) = default;
-  ~Import_table_options() = default;
+  static const shcore::Option_pack_def<Import_table_option_pack> &options();
+  void set_decode_columns(const shcore::Dictionary_t &decode_columns);
 
   Dialect dialect() const { return m_dialect; }
 
-  void validate();
-
-  void base_session(
-      const std::shared_ptr<mysqlshdk::db::mysql::Session> &session) {
-    m_base_session = session;
-  }
-
-  Connection_options connection_options() const;
-
   bool is_multifile() const;
+
+  void set_filenames(const std::vector<std::string> &filenames);
 
   const std::string &full_path() const { return m_full_path; }
 
@@ -108,14 +103,7 @@ class Import_table_options {
 
   size_t bytes_per_chunk() const;
 
-  std::string target_import_info() const;
-
   mysqlshdk::oci::Oci_options get_oci_options() const { return m_oci_options; }
-
-  /**
-   * Returns the raw pointer to the file handle
-   */
-  mysqlshdk::storage::IFile *file_handle() const { return m_file_handle.get(); }
 
   /**
    * Creates a new file handle using the provided options.
@@ -129,6 +117,7 @@ class Import_table_options {
  private:
   void unpack(const shcore::Dictionary_t &options);
 
+ protected:
   size_t calc_thread_size();
 
   std::vector<std::string> m_filelist_from_user;
@@ -138,15 +127,41 @@ class Import_table_options {
   std::string m_schema;
   std::string m_character_set;
   int64_t m_threads_size = 8;
-  std::string m_bytes_per_chunk{"50M"};
+  std::string m_bytes_per_chunk;
   shcore::Array_t m_columns;
   std::map<std::string, std::string> m_decode_columns;
+  shcore::Dictionary_t m_decode_columns_dict;
   bool m_replace_duplicates = false;
   std::string m_max_rate;
   bool m_show_progress = isatty(fileno(stdout)) ? true : false;
   uint64_t m_skip_rows_count = 0;
   Dialect m_dialect;
-  mysqlshdk::oci::Oci_options m_oci_options;
+  mysqlshdk::oci::Oci_option_unpacker<
+      mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE>
+      m_oci_options;
+};
+
+class Import_table_options : public Import_table_option_pack {
+ public:
+  Import_table_options() = default;
+  explicit Import_table_options(const Import_table_option_pack &pack);
+  void set_base_session(
+      const std::shared_ptr<mysqlshdk::db::mysql::Session> &session) {
+    m_base_session = session;
+  }
+
+  /**
+   * Returns the raw pointer to the file handle
+   */
+  mysqlshdk::storage::IFile *file_handle() const { return m_file_handle.get(); }
+
+  void validate();
+
+  Connection_options connection_options() const;
+
+  std::string target_import_info() const;
+
+ private:
   std::shared_ptr<mysqlshdk::db::mysql::Session> m_base_session;
   std::unique_ptr<mysqlshdk::storage::IFile> m_file_handle;
 };

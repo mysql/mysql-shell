@@ -46,52 +46,49 @@ constexpr auto k_default_chunk_size = "64M";
 
 }  // namespace
 
-Ddl_dumper_options::Ddl_dumper_options(const std::string &output_url)
-    : Dump_options(output_url),
+Ddl_dumper_options::Ddl_dumper_options()
+    : Dump_options(),
       m_bytes_per_chunk(expand_to_bytes(k_default_chunk_size)) {}
 
-void Ddl_dumper_options::unpack_options(shcore::Option_unpacker *unpacker) {
-  mysqlshdk::db::nullable<std::string> bytes_per_chunk;
-  std::vector<std::string> compatibility_options;
-  bool mds = false;
+const shcore::Option_pack_def<Ddl_dumper_options>
+    &Ddl_dumper_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Ddl_dumper_options>()
+          .include<Dump_options>()
+          .optional("chunking", &Ddl_dumper_options::m_split)
+          .optional("bytesPerChunk", &Ddl_dumper_options::set_bytes_per_chunk)
+          .optional("threads", &Ddl_dumper_options::m_threads)
+          .optional("triggers", &Ddl_dumper_options::m_dump_triggers)
+          .optional("tzUtc", &Ddl_dumper_options::m_timezone_utc)
+          .optional("ddlOnly", &Ddl_dumper_options::m_ddl_only)
+          .optional("dataOnly", &Ddl_dumper_options::m_data_only)
+          .optional("dryRun", &Ddl_dumper_options::m_dry_run)
+          .optional("consistent", &Ddl_dumper_options::m_consistent_dump)
+          .optional("ocimds", &Ddl_dumper_options::set_ocimds)
+          .optional("compatibility",
+                    &Ddl_dumper_options::set_compatibility_options)
+          .include(&Ddl_dumper_options::m_oci_option_unpacker)
+          .on_done(&Ddl_dumper_options::on_unpacked_options);
 
-  unpacker->optional("chunking", &m_split)
-      .optional("bytesPerChunk", &bytes_per_chunk)
-      .optional("threads", &m_threads)
-      .optional("triggers", &m_dump_triggers)
-      .optional("tzUtc", &m_timezone_utc)
-      .optional("ddlOnly", &m_ddl_only)
-      .optional("dataOnly", &m_data_only)
-      .optional("dryRun", &m_dry_run)
-      .optional("consistent", &m_consistent_dump)
-      .optional("ocimds", &mds)
-      .optional("compatibility", &compatibility_options);
+  return opts;
+}
 
-  if (bytes_per_chunk) {
-    if (bytes_per_chunk->empty()) {
-      throw std::invalid_argument(
-          "The option 'bytesPerChunk' cannot be set to an empty string.");
-    }
-
-    if (!split()) {
-      throw std::invalid_argument(
-          "The option 'bytesPerChunk' cannot be used if the 'chunking' option "
-          "is set to false.");
-    }
-
-    m_bytes_per_chunk = expand_to_bytes(*bytes_per_chunk);
-  }
-
-  if (mds) {
+void Ddl_dumper_options::set_ocimds(bool value) {
+  if (value) {
     set_mds_compatibility(mysqlshdk::utils::Version(MYSH_VERSION));
   }
+}
 
-  for (const auto &option : compatibility_options) {
+void Ddl_dumper_options::set_compatibility_options(
+    const std::vector<std::string> &options) {
+  for (const auto &option : options) {
     m_compatibility_options |= to_compatibility_option(option);
   }
 }
 
-void Ddl_dumper_options::validate_options() const {
+void Ddl_dumper_options::on_unpacked_options() {
+  set_oci_options(m_oci_option_unpacker);
+
   if (m_bytes_per_chunk < expand_to_bytes(k_minimum_chunk_size)) {
     throw std::invalid_argument(
         "The value of 'bytesPerChunk' option must be greater or equal to " +
@@ -107,6 +104,21 @@ void Ddl_dumper_options::validate_options() const {
     throw std::invalid_argument(
         "The 'ddlOnly' and 'dataOnly' options cannot be both set to true.");
   }
+}
+
+void Ddl_dumper_options::set_bytes_per_chunk(const std::string &value) {
+  if (value.empty()) {
+    throw std::invalid_argument(
+        "The option 'bytesPerChunk' cannot be set to an empty string.");
+  }
+
+  if (!split()) {
+    throw std::invalid_argument(
+        "The option 'bytesPerChunk' cannot be used if the 'chunking' "
+        "option is set to false.");
+  }
+
+  m_bytes_per_chunk = expand_to_bytes(value);
 }
 
 }  // namespace dump
