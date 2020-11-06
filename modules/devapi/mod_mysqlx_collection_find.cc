@@ -366,11 +366,11 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args) {
           message_.mutable_projection()->Add()->set_allocated_source(
               expr_obj.release());
         } else {
-          throw shcore::Exception::argument_error(
+          throw shcore::Exception::type_error(
               "Argument #1 is expected to be a JSON expression");
         }
       } else {
-        throw shcore::Exception::argument_error(
+        throw shcore::Exception::type_error(
             "Argument #1 is expected to be a string, array of strings or a "
             "JSON expression");
       }

@@ -420,16 +420,16 @@ session.run_sql("CREATE ROLE ?;", [ test_role ])
 session.run_sql("ANALYZE TABLE !.! UPDATE HISTOGRAM ON `id`;", [ test_schema, test_table_no_index ])
 
 #@<> WL13807-TSFR_1_3 - first parameter
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", None)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", 1)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", [])
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", {})
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", False)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", None)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", 1)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", [])
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", {})
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", False)
 
 #@<> WL13807-TSFR_3_1 - second parameter
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a map", test_output_relative, 1)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a map", test_output_relative, "string")
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a map", test_output_relative, [])
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a map", test_output_relative, 1)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a map", test_output_relative, "string")
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a map", test_output_relative, [])
 
 #@<> WL13807-FR1.1 - The `outputUrl` parameter must be a string value which specifies the output directory, where the dump data is going to be stored.
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })

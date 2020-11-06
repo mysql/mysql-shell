@@ -402,23 +402,23 @@ for table in session.run_sql("SELECT TABLE_NAME, TABLE_TYPE FROM information_sch
 session.run_sql("ANALYZE TABLE !.! UPDATE HISTOGRAM ON `id`;", [ test_schema, test_table_no_index ])
 
 #@<> first parameter
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be an array of strings", None, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be an array", 1, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be an array", types_schema, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be an array", {}, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be an array of strings", [1], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be an array of strings", None, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be an array", 1, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be an array", types_schema, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be an array", {}, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be an array of strings", [1], test_output_relative)
 
 #@<> WL13807-TSFR_2_3_3 - second parameter
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", [types_schema], None)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", [types_schema], 1)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", [types_schema], [])
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", [types_schema], {})
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", [types_schema], True)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", [types_schema], None)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", [types_schema], 1)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", [types_schema], [])
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", [types_schema], {})
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", [types_schema], True)
 
 #@<> WL13807-TSFR_3_1 - third parameter
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, 1)
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, "string")
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, [])
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, 1)
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, "string")
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, [])
 
 #@<> WL13807-TSFR_2_2 - Call dumpSchemas(): giving less parameters than allowed, giving more parameters than allowed
 EXPECT_THROWS(lambda: util.dump_schemas(), "ValueError: Util.dump_schemas: Invalid number of arguments, expected 2 to 3 but got 0")

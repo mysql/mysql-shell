@@ -163,8 +163,9 @@ Connection_options get_connection_options(const shcore::Value &v) {
   } else if (shcore::Map == v.type) {
     return get_connection_options(v.as_map());
   } else {
-    throw std::invalid_argument(
-        "Invalid connection options, expected either a URI or a Dictionary.");
+    throw shcore::Exception::type_error(
+        "Invalid connection options, expected either a URI or a Connection "
+        "Options Dictionary");
   }
 }
 
@@ -678,11 +679,7 @@ namespace detail {
 
 mysqlshdk::db::Connection_options Type_info<
     mysqlshdk::db::Connection_options>::to_native(const shcore::Value &in) {
-  try {
-    return mysqlsh::get_connection_options(in);
-  } catch (const shcore::Exception &ex) {
-    throw std::invalid_argument(ex.what());
-  }
+  return mysqlsh::get_connection_options(in);
 }
 
 mysqlshdk::db::Connection_options

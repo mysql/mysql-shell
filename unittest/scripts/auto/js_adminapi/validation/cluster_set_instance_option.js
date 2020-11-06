@@ -4,14 +4,14 @@ Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 //@ WL#11465: ArgumentErrors of setInstanceOption
 ||Invalid number of arguments, expected 3 but got 0 (ArgumentError)
 ||Argument #1: Invalid URI: empty. (ArgumentError)
-||Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+||Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary (TypeError)
 ||Argument #1: Invalid connection options, no options provided. (ArgumentError)
 ||Invalid number of arguments, expected 3 but got 1 (ArgumentError)
 ||Invalid number of arguments, expected 3 but got 2 (ArgumentError)
-||Argument #3 is expected to be a string or an integer. (ArgumentError)
-||Argument #3 is expected to be a string or an integer. (ArgumentError)
+||Argument #3 is expected to be a string or an integer (TypeError)
+||Argument #3 is expected to be a string or an integer (TypeError)
 ||Option 'foobar' not supported. (ArgumentError)
-||Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+||Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary (TypeError)
 
 //@ WL#11465: F2.2.1.2 - Remove instance 2 from the cluster
 ||

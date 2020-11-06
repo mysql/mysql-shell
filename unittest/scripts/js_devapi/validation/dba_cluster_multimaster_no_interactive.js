@@ -197,7 +197,7 @@
 //@ Cluster: rejoinInstance errors
 ||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 0
 ||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 3
-||Cluster.rejoinInstance: Argument #1: Invalid connection options, expected either a URI or a Dictionary.
+||Cluster.rejoinInstance: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary
 ||Cluster.rejoinInstance: Argument #1: Invalid values in connection options: authMethod
 ||Cluster.rejoinInstance: Could not open connection to 'localhost'
 ||Cluster.rejoinInstance: Could not open connection to 'localhost:3306'

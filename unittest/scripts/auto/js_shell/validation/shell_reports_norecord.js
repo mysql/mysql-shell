@@ -114,10 +114,10 @@ DESCRIPTION
 |upper-case report name with underscore|
 
 //@ try to register the report with function set to undefined
-||Shell.registerReport: Argument #3 is expected to be a function (ArgumentError)
+||Shell.registerReport: Argument #3 is expected to be a function (TypeError)
 
 //@ try to register the report with options set to invalid type
-||Shell.registerReport: Argument #4 is expected to be a map (ArgumentError)
+||Shell.registerReport: Argument #4 is expected to be a map (TypeError)
 
 //@ WL11263_TSF9_1 - Try to register a plugin report with a duplicated name, error is expected.
 ||Shell.registerReport: Duplicate report: query (ArgumentError)
@@ -128,7 +128,7 @@ DESCRIPTION
 // WL11263_TSF9_3 - Try to register a plugin report without giving a value to the 'name' dictionary option, error is expected.
 
 //@ WL11263_TSF9_3 - The 'name' key is set to undefined
-||Shell.registerReport: Argument #1 is expected to be a string (ArgumentError)
+||Shell.registerReport: Argument #1 is expected to be a string (TypeError)
 
 //@ WL11263_TSF9_3 - The 'name' key is set to an empty string
 ||Shell.registerReport: The function name '' is not a valid identifier. (ArgumentError)
@@ -136,7 +136,7 @@ DESCRIPTION
 // WL11263_TSF9_4 - Try to register a plugin report without giving a value to the 'type' parameter, error is expected.
 
 //@ WL11263_TSF9_4 - The 'type' key is set to undefined
-||Shell.registerReport: Argument #2 is expected to be a string (ArgumentError)
+||Shell.registerReport: Argument #2 is expected to be a string (TypeError)
 
 // WL11263_TSF9_5 - Try to register a plugin report with a value different than the supported as the value for the 'type' dictionary option, error is expected.
 
@@ -2639,17 +2639,17 @@ DESCRIPTION
 
 
 //@ call shell.reports.list_report_testing_various_options with session - undefined
-||reports.list_report_testing_various_options: Argument #1 is expected to be an object (ArgumentError)
+||reports.list_report_testing_various_options: Argument #1 is expected to be an object (TypeError)
 
 //@ call shell.reports.list_report_testing_various_options with session - null
-||reports.list_report_testing_various_options: Argument #1 is expected to be an object (ArgumentError)
+||reports.list_report_testing_various_options: Argument #1 is expected to be an object (TypeError)
 
 //@ call shell.reports.list_report_testing_various_options with session - string
-||reports.list_report_testing_various_options: Argument #1 is expected to be an object (ArgumentError)
+||reports.list_report_testing_various_options: Argument #1 is expected to be an object (TypeError)
 
 
 //@ call shell.reports.list_report_testing_various_options with options - undefined
-||reports.list_report_testing_various_options: Argument #3 is expected to be a map (ArgumentError)
+||reports.list_report_testing_various_options: Argument #3 is expected to be a map (TypeError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options with options - null
 {
@@ -2663,7 +2663,7 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_various_options with options - string
-||reports.list_report_testing_various_options: Argument #3 is expected to be a map (ArgumentError)
+||reports.list_report_testing_various_options: Argument #3 is expected to be a map (TypeError)
 
 
 //@ call shell.reports.list_report_testing_various_options with an unknown option
@@ -2687,7 +2687,7 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_various_options using the first option with int
-||reports.list_report_testing_various_options: Argument #3, option 'one' is expected to be a string (ArgumentError)
+||reports.list_report_testing_various_options: Argument #3, option 'one' is expected to be a string (TypeError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the first option with string
 {
@@ -2723,7 +2723,7 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_various_options using the second option with int
-||reports.list_report_testing_various_options: Argument #3, option 'two' is expected to be a string (ArgumentError)
+||reports.list_report_testing_various_options: Argument #3, option 'two' is expected to be a string (TypeError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the second option with string
 {
@@ -2801,7 +2801,7 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_various_options using the third option with string
-||reports.list_report_testing_various_options: Argument #3, option 'three' is expected to be a bool (ArgumentError)
+||reports.list_report_testing_various_options: Argument #3, option 'three' is expected to be a bool (TypeError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the third option with bool
 {
@@ -2885,7 +2885,7 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_various_options using the fourth option with string
-||reports.list_report_testing_various_options: Argument #3, option 'four' is expected to be an integer (ArgumentError)
+||reports.list_report_testing_various_options: Argument #3, option 'four' is expected to be an integer (TypeError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the fourth option with int
 {
@@ -2936,7 +2936,7 @@ DESCRIPTION
 }
 
 //@ call shell.reports.list_report_testing_various_options using the fifth option with string
-||reports.list_report_testing_various_options: Argument #3, option 'five' is expected to be a float (ArgumentError)
+||reports.list_report_testing_various_options: Argument #3, option 'five' is expected to be a float (TypeError)
 
 //@<OUT> call shell.reports.list_report_testing_various_options using the fifth option with int
 {

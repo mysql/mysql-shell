@@ -7,7 +7,7 @@
 ||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 4
 ||Cluster.addInstance: Argument #2 is expected to be a map
 ||Cluster.addInstance: Argument #2 is expected to be a map
-||Cluster.addInstance: Argument #1: Invalid connection options, expected either a URI or a Dictionary.
+||Cluster.addInstance: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary
 ||Cluster.addInstance: Argument #1: Invalid URI: empty.
 ||Cluster.addInstance: Argument #1: Invalid values in connection options: ipWhitelist, memberSslMode
 ||Cluster.addInstance: Argument #2 is expected to be a map
@@ -195,8 +195,8 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
 //@<ERR> Cluster: removeInstance errors
 Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
 Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
-Cluster.removeInstance: Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
-Cluster.removeInstance: Argument #1: Argument auth-method is expected to be a string (ArgumentError)
+Cluster.removeInstance: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary (TypeError)
+Cluster.removeInstance: Argument #1: Argument auth-method is expected to be a string (TypeError)
 Cluster.removeInstance: Metadata for instance <<<__host>>>:<<<__mysql_port>>> not found [[*]]
 Cluster.removeInstance: Could not open connection to 'localhost:3306': {{Access denied for user [[*]]|Can't connect to MySQL server on [[*]]}}
 
@@ -425,7 +425,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
 //@: Cluster: rejoinInstance errors
 ||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 0
 ||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 3
-||Cluster.rejoinInstance: Argument #1: Invalid connection options, expected either a URI or a Dictionary.
+||Cluster.rejoinInstance: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary
 ||Cluster.rejoinInstance: Argument #1: Invalid values in connection options: ipWhitelist, memberSslMode
 ||Cluster.rejoinInstance: Argument #2 is expected to be a map
 ||Cluster.rejoinInstance: Could not open connection to 'localhost'

@@ -137,14 +137,16 @@ struct Type_info<std::vector<std::string>> {
     std::vector<std::string> strs;
     shcore::Array_t array(in.as_array());
     if (!array) {
-      // std:: invalid_argument is more appropriate, but Arg_handler would
-      // rethrow it keeping this message, we want to generate the standard
-      // error message to make it consistent with other conversion errors
-      throw std::runtime_error(
-          "Argument is expected to be an array of strings");
+      throw shcore::Exception::type_error(
+          "is expected to be an array of strings");
     }
-    for (size_t i = 0; i < array->size(); ++i) {
-      strs.push_back(array->at(i).get_string());
+    try {
+      for (size_t i = 0; i < array->size(); ++i) {
+        strs.push_back(array->at(i).get_string());
+      }
+    } catch (...) {
+      throw shcore::Exception::type_error(
+          "is expected to be an array of strings");
     }
     return strs;
   }

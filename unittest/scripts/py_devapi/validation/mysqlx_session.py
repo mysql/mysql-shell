@@ -31,7 +31,7 @@
 ||
 
 #@# Savepoint Error Conditions (WL10859-ET1_2)
-||ValueError: Session.set_savepoint: Argument #1 is expected to be a string
+||TypeError: Session.set_savepoint: Argument #1 is expected to be a string
 ||Session.set_savepoint: Invalid number of arguments, expected 0 to 1 but got 2
 
 #@ Create a savepoint without specifying a name (WL10869-SR1_1)
@@ -190,7 +190,7 @@
 ||ValueError: Session.quote_name: Invalid number of arguments, expected 1 but got 0
 
 #@ Session: quote_name wrong param type
-||ValueError: Session.quote_name: Argument #1 is expected to be a string
+||TypeError: Session.quote_name: Argument #1 is expected to be a string
 
 #@ Session: quote_name with correct parameters
 |`sample`|
@@ -201,6 +201,6 @@
 
 #@# Session: bad params
 ||mysqlx.get_session: Invalid number of arguments, expected 1 to 2 but got 0
-||mysqlx.get_session: Argument #1: Invalid connection options, expected either a URI or a Dictionary.
-||mysqlx.get_session: Argument #1: Invalid connection options, expected either a URI or a Dictionary.
-||mysqlx.get_session: Argument #1: Invalid connection options, expected either a URI or a Dictionary.
+||mysqlx.get_session: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary
+||mysqlx.get_session: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary
+||mysqlx.get_session: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary

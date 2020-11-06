@@ -73,7 +73,7 @@ void Set_instance_option::ensure_option_valid() {
   if (m_option == "label") {
     // The value must be a string
     if (!m_value_int.is_null()) {
-      throw shcore::Exception::argument_error(
+      throw shcore::Exception::type_error(
           "Invalid value for 'label': Argument #3 is expected to be a "
           "string.");
     } else {

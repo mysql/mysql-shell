@@ -611,8 +611,8 @@
 
 //@ WL#11465: ArgumentErrors of cluster.options
 ||Invalid number of arguments, expected 0 to 1 but got 2 (ArgumentError)
-||Argument #1 is expected to be a map (ArgumentError)
-||Argument #1 is expected to be a map (ArgumentError)
+||Argument #1 is expected to be a map (TypeError)
+||Argument #1 is expected to be a map (TypeError)
 ||Invalid options: foo (ArgumentError)
 ||Option 'all' Bool expected, but value is String (TypeError)
 

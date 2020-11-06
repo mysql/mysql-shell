@@ -62,7 +62,7 @@ Result of the rescanning operation for the 'c' cluster:
 ||Cluster.rescan: The list for 'addInstances' option cannot be empty. (ArgumentError)
 
 //@ WL10644 - TSF2_8: invalid addInstances list throw ArgumentError.
-||Cluster.rescan: Invalid value 'undefined' for 'addInstances' option: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+||Cluster.rescan: Invalid value 'undefined' for 'addInstances' option: Invalid connection options, expected either a URI or a Connection Options Dictionary (ArgumentError)
 ||Cluster.rescan: Invalid value 'localhost' for 'addInstances' option: port is missing. (ArgumentError)
 ||Cluster.rescan: Invalid value ':3301' for 'addInstances' option: host cannot be empty. (ArgumentError)
 ||Cluster.rescan: Invalid value '@' for 'addInstances' option: Invalid URI: Missing user information (ArgumentError)
@@ -109,7 +109,7 @@ WARNING: The following instances were not added to the metadata because they are
 ||Cluster.rescan: The list for 'removeInstances' option cannot be empty. (ArgumentError)
 
 //@ WL10644 - TSF3_8: invalid removeInstances list throw ArgumentError.
-||Cluster.rescan: Invalid value 'undefined' for 'removeInstances' option: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+||Cluster.rescan: Invalid value 'undefined' for 'removeInstances' option: Invalid connection options, expected either a URI or a Connection Options Dictionary (ArgumentError)
 ||Cluster.rescan: Invalid value 'localhost' for 'removeInstances' option: port is missing. (ArgumentError)
 ||Cluster.rescan: Invalid value ':3301' for 'removeInstances' option: host cannot be empty. (ArgumentError)
 ||Cluster.rescan: Invalid value '@' for 'removeInstances' option: Invalid URI: Missing user information (ArgumentError)

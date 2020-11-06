@@ -372,40 +372,40 @@ for table in session.run_sql("SELECT TABLE_NAME, TABLE_TYPE FROM information_sch
 session.run_sql("ANALYZE TABLE !.! UPDATE HISTOGRAM ON `id`;", [ test_schema, test_table_no_index ])
 
 #@<> WL13804-FR8 - The `schema` parameter of the `util.dumpTables()` function must be a string value which specifies the schema to be dumped.
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", None, [test_table_non_unique], test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", 1, [test_table_non_unique], test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", [], [test_table_non_unique], test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", {}, [test_table_non_unique], test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", True, [test_table_non_unique], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", None, [test_table_non_unique], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", 1, [test_table_non_unique], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", [], [test_table_non_unique], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", {}, [test_table_non_unique], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", True, [test_table_non_unique], test_output_relative)
 
 #@<> WL13804-FR9 - The `tables` parameter of the `util.dumpTables()` function must be an array of string values which specifies the tables or views to be dumped.
 # WL13804-TSFR_9_1_1
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be an array of strings", test_schema, None, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be an array", test_schema, 1, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be an array", test_schema, True, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be an array", test_schema, test_table_non_unique, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be an array", test_schema, {}, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be an array of strings", test_schema, [1], test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be an array of strings", test_schema, [test_table_non_unique, 1], test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be an array of strings", test_schema, [test_table_non_unique, True], test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be an array of strings", test_schema, [test_table_non_unique, False], test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be an array of strings", test_schema, [test_view, 1], test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be an array of strings", test_schema, [test_view, True], test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be an array of strings", test_schema, [test_view, False], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be an array of strings", test_schema, None, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be an array", test_schema, 1, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be an array", test_schema, True, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be an array", test_schema, test_table_non_unique, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be an array", test_schema, {}, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be an array of strings", test_schema, [1], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be an array of strings", test_schema, [test_table_non_unique, 1], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be an array of strings", test_schema, [test_table_non_unique, True], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be an array of strings", test_schema, [test_table_non_unique, False], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be an array of strings", test_schema, [test_view, 1], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be an array of strings", test_schema, [test_view, True], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be an array of strings", test_schema, [test_view, False], test_output_relative)
 
 #@<> WL13804-FR10 - The `outputUrl` parameter of the `util.dumpTables()` function must be a string value which specifies the output directory, where the dump data is going to be stored.
 # WL13804-TSFR_10_1_1
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a string", test_schema, [test_table_non_unique], None)
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a string", test_schema, [test_table_non_unique], 1)
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a string", test_schema, [test_table_non_unique], [])
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a string", test_schema, [test_table_non_unique], {})
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a string", test_schema, [test_table_non_unique], True)
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a string", test_schema, [test_table_non_unique], None)
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a string", test_schema, [test_table_non_unique], 1)
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a string", test_schema, [test_table_non_unique], [])
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a string", test_schema, [test_table_non_unique], {})
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a string", test_schema, [test_table_non_unique], True)
 
 #@<> WL13804-FR11 - The `options` optional parameter of the `util.dumpTables()` function must be a dictionary which contains options for the dump operation.
 # WL13804-TSFR_11_1_1
-EXPECT_FAIL("ValueError", "Argument #4 is expected to be a map", test_schema, [test_table_non_unique], test_output_relative, 1)
-EXPECT_FAIL("ValueError", "Argument #4 is expected to be a map", test_schema, [test_table_non_unique], test_output_relative, "string")
-EXPECT_FAIL("ValueError", "Argument #4 is expected to be a map", test_schema, [test_table_non_unique], test_output_relative, [])
+EXPECT_FAIL("TypeError", "Argument #4 is expected to be a map", test_schema, [test_table_non_unique], test_output_relative, 1)
+EXPECT_FAIL("TypeError", "Argument #4 is expected to be a map", test_schema, [test_table_non_unique], test_output_relative, "string")
+EXPECT_FAIL("TypeError", "Argument #4 is expected to be a map", test_schema, [test_table_non_unique], test_output_relative, [])
 
 #@<> WL13804-TSFR_6_2 - Call dumpTables(): giving less parameters than allowed, giving more parameters than allowed
 EXPECT_THROWS(lambda: util.dump_tables(), "ValueError: Util.dump_tables: Invalid number of arguments, expected 3 to 4 but got 0")

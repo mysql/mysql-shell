@@ -65,7 +65,7 @@ void Crud_definition::parse_string_list(const shcore::Argument_list &args,
   // When there is 1 argument, it must be either an array of strings or a string
   if (args.size() == 1 && args[0].type != shcore::Array &&
       args[0].type != shcore::String)
-    throw shcore::Exception::argument_error(
+    throw shcore::Exception::type_error(
         "Argument #1 is expected to be a string or an array of strings");
 
   if (args.size() == 1 && args[0].type == shcore::Array) {
@@ -76,7 +76,7 @@ void Crud_definition::parse_string_list(const shcore::Argument_list &args,
     for (index = shell_fields->begin(); index != end; index++) {
       count++;
       if (index->type != shcore::String)
-        throw shcore::Exception::argument_error(shcore::str_format(
+        throw shcore::Exception::type_error(shcore::str_format(
             "Element #%d is expected to be a string", count));
       else
         data.push_back(index->get_string());

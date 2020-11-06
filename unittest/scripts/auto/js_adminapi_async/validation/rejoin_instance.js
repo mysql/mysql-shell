@@ -3,10 +3,10 @@
 
 //@ Invalid parameters (fail).
 ||ReplicaSet.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
-||ReplicaSet.rejoinInstance: Argument #1 is expected to be a string (ArgumentError)
-||ReplicaSet.rejoinInstance: Argument #1 is expected to be a string (ArgumentError)
-||ReplicaSet.rejoinInstance: Argument #1 is expected to be a string (ArgumentError)
-||ReplicaSet.rejoinInstance: Argument #1 is expected to be a string (ArgumentError)
+||ReplicaSet.rejoinInstance: Argument #1 is expected to be a string (TypeError)
+||ReplicaSet.rejoinInstance: Argument #1 is expected to be a string (TypeError)
+||ReplicaSet.rejoinInstance: Argument #1 is expected to be a string (TypeError)
+||ReplicaSet.rejoinInstance: Argument #1 is expected to be a string (TypeError)
 ||ReplicaSet.rejoinInstance: Invalid URI: empty. (ArgumentError)
 ||ReplicaSet.rejoinInstance: Invalid URI: empty. (ArgumentError)
 ||ReplicaSet.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)

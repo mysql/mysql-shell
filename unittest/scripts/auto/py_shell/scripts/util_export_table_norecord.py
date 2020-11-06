@@ -341,11 +341,11 @@ session.run_sql("ANALYZE TABLE !.! UPDATE HISTOGRAM ON `id`;", [ test_schema, te
 
 #@<> WL13804-FR3 - The `table` parameter of the `util.exportTable()` function must be a string value which specifies the table to be dumped. This value may be given in the following forms: `table`, `schema.table`. Both `schema` and `table` must be valid MySQL identifiers and must be quoted with backtick (`` ` ``) character when required.
 # WL13804-TSFR_3_1
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", None, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", 1, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", [], test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", {}, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", True, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", None, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", 1, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", [], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", {}, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", True, test_output_relative)
 
 EXPECT_SUCCESS("{0}.{1}".format(types_schema, types_schema_tables[0]), test_output_absolute, { "showProgress": False })
 EXPECT_SUCCESS("`{0}`.{1}".format(types_schema, types_schema_tables[0]), test_output_absolute, { "showProgress": False })
@@ -354,18 +354,18 @@ EXPECT_SUCCESS("`{0}`.`{1}`".format(types_schema, types_schema_tables[0]), test_
 
 #@<> WL13804-FR4 - The `outputUrl` parameter of the `util.exportTable()` function must be a string value which specifies the output file, where the dump data is going to be stored.
 # WL13804-TSFR_4_1
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), None)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), 1)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), [])
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), {})
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), True)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), None)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), 1)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), [])
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), {})
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", quote(test_schema, test_table_non_unique), True)
 
 EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_absolute, { "showProgress": False })
 
 #@<> WL13804-FR5 - The `options` optional parameter of the `util.exportTable()` function must be a dictionary which contains options for the export operation.
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, 1)
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, "string")
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, [])
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, 1)
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, "string")
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", quote(test_schema, test_table_non_unique), test_output_relative, [])
 
 #@<> WL13804-TSFR_1_5 - Call exportTable(): giving less parameters than allowed, giving more parameters than allowed
 EXPECT_THROWS(lambda: util.export_table(), "ValueError: Util.export_table: Invalid number of arguments, expected 2 to 3 but got 0")

@@ -1908,8 +1908,8 @@ void Cluster_impl::_set_instance_option(const std::string &instance_def,
     op_set_instance_option = std::make_unique<cluster::Set_instance_option>(
         *this, instance_conn_opt, option, value_int);
   } else {
-    throw shcore::Exception::argument_error(
-        "Argument #3 is expected to be a string or an integer.");
+    throw shcore::Exception::type_error(
+        "Argument #3 is expected to be a string or an integer");
   }
 
   // Always execute finish when leaving "try catch".
@@ -1947,7 +1947,7 @@ void Cluster_impl::_set_option(const std::string &option,
     op_cluster_set_option =
         std::make_unique<cluster::Set_option>(this, option, value_bool);
   } else {
-    throw shcore::Exception::argument_error(
+    throw shcore::Exception::type_error(
         "Argument #2 is expected to be a string, an integer or a boolean.");
   }
 

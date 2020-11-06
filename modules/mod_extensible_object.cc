@@ -1120,7 +1120,8 @@ Type_info<std::shared_ptr<mysqlsh::Extensible_object>>::to_native(
 
   if (!object) {
     throw shcore::Exception::type_error(
-        "Invalid typecast: extension object expected.");
+        "is expected to be " +
+        Type_info<std::shared_ptr<mysqlsh::Extensible_object>>::desc());
   }
 
   return object;

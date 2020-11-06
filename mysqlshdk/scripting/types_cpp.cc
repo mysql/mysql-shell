@@ -95,11 +95,11 @@ Cpp_function::Raw_signature Cpp_function::gen_signature(
   return sig;
 }
 
-std::tuple<bool, int, std::string> Cpp_function::match_signatures(
+std::tuple<bool, int, shcore::Exception> Cpp_function::match_signatures(
     const Raw_signature &cand, const std::vector<Value_type> &wanted,
     const shcore::Dictionary_t &kwds) {
   bool match = true;
-  std::string error;
+  shcore::Exception error("", 0);
   bool have_object_params = false;
   size_t exact_matches = 0;
 
@@ -113,11 +113,11 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
 
     if (!real_kwargs.empty() && !support_kwargs) {
       match = false;
-      error = shcore::str_format(
+      error = shcore::Exception::argument_error(shcore::str_format(
           "Invalid keyword argument%s: %s", real_kwargs.size() == 1 ? "" : "s",
           shcore::str_join(real_kwargs, ", ", [](const std::string &item) {
             return "'" + item + "'";
-          }).c_str());
+          }).c_str()));
     } else {
       size_t param_count = 0;
       // We make sure the data for each parameter is correctly defined
@@ -134,8 +134,9 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
           if (param->valid_type(wanted[param_count])) {
             if (kwds->find(param->name) != kwds->end()) {
               match = false;
-              error = shcore::str_format(
-                  "Got multiple values for argument '%s'", param->name.c_str());
+              error = shcore::Exception::argument_error(
+                  shcore::str_format("Got multiple values for argument '%s'",
+                                     param->name.c_str()));
             } else if (param->type() == wanted[param_count]) {
               exact_matches++;
             }
@@ -143,9 +144,9 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
                 have_object_params || (wanted[param_count] == Object);
           } else {
             match = false;
-            error = shcore::str_format("Argument #%zu is expected to be %s",
-                                       param_count + 1,
-                                       type_description(param->type()).c_str());
+            error = shcore::Exception::type_error(shcore::str_format(
+                "Argument #%zu is expected to be %s", param_count + 1,
+                type_description(param->type()).c_str()));
           }
         } else if (kwds->has_key(param->name)) {
           // A keyword parameter is given, we must ensure
@@ -158,9 +159,9 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
                 have_object_params || (kwds->at(param->name).type == Object);
           } else {
             match = false;
-            error = shcore::str_format("Argument '%s' is expected to be %s",
-                                       param->name.c_str(),
-                                       type_description(param->type()).c_str());
+            error = shcore::Exception::type_error(shcore::str_format(
+                "Argument '%s' is expected to be %s", param->name.c_str(),
+                type_description(param->type()).c_str()));
           }
           // This is the last parameter, it's a map and there are dangling named
           // arguments, they will be used to construct the options dictionary
@@ -168,8 +169,8 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
           exact_matches++;
         } else if (param->flag != Param_flag::Optional) {
           match = false;
-          error = shcore::str_format("Missing value for argument '%s'",
-                                     param->name.c_str());
+          error = shcore::Exception::argument_error(shcore::str_format(
+              "Missing value for argument '%s'", param->name.c_str()));
         }
         param_count++;
         if (!match) break;
@@ -206,12 +207,12 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
       }
 
       if (min == max)
-        error = shcore::str_format(
-            "Invalid number of arguments, expected %zu but got %zu", min, m);
+        error = shcore::Exception::argument_error(shcore::str_format(
+            "Invalid number of arguments, expected %zu but got %zu", min, m));
       else
-        error = shcore::str_format(
+        error = shcore::Exception::argument_error(shcore::str_format(
             "Invalid number of arguments, expected %zu to %zu but got %zu", min,
-            max, m);
+            max, m));
     } else {
       exact_matches = m;
 
@@ -219,9 +220,9 @@ std::tuple<bool, int, std::string> Cpp_function::match_signatures(
       for (ssize_t index = m - 1; index >= 0; index--) {
         if (!cand[index]->valid_type(wanted[index])) {
           match = false;
-          error = shcore::str_format(
+          error = shcore::Exception::type_error(shcore::str_format(
               "Argument #%zu is expected to be %s", index + 1,
-              type_description(cand[index]->type()).c_str());
+              type_description(cand[index]->type()).c_str()));
         }
         exact_matches -= (wanted[index] != cand[index]->type());
         have_object_params = have_object_params || (wanted[index] == Object);
@@ -635,14 +636,14 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
 
   std::vector<std::pair<int, std::shared_ptr<Cpp_function>>> candidates;
   int max_error_score = -1;
-  std::string match_error;
+  shcore::Exception match_error("", 0);
+  shcore::Exception error("", 0);
   while (i != _funcs.end() &&
          i->second->name(current_naming_style()) == method) {
     if (i->second->is_legacy) return i->second;
 
     bool match;
     int score;
-    std::string error;
     std::tie(match, score, error) = Cpp_function::match_signatures(
         i->second->function_signature(), arg_types, kwds);
     if (match) {
@@ -677,9 +678,10 @@ std::shared_ptr<Cpp_function> Cpp_object_bridge::lookup_function_overload(
                                   " has ambiguous candidates.");
   }
 
-  if (!match_error.empty()) {
-    throw Exception::argument_error(get_function_name(method, true) + ": " +
-                                    match_error);
+  if (max_error_score != -1) {
+    throw Exception(match_error.type(),
+                    get_function_name(method, true) + ": " + match_error.what(),
+                    match_error.code());
   } else {
     throw Exception::argument_error("Call to " +
                                     get_function_name(method, true) +
@@ -857,7 +859,7 @@ Value Cpp_function::invoke(const Argument_list &args) {
       if ((a->type != Value_type::Undefined ||
            (*s)->flag != Param_flag::Optional) &&
           !(*s)->valid_type(a->type)) {
-        throw Exception::argument_error(
+        throw Exception::type_error(
             name() + ": Argument #" + std::to_string(n + 1) +
             " is expected to be " + type_description((*s)->type()));
       }
@@ -966,7 +968,7 @@ void Parameter_validator::validate(const Parameter &param, const Value &data,
     auto error =
         shcore::str_format("%s is expected to be %s", context->str().c_str(),
                            shcore::type_description(param.type()).c_str());
-    throw shcore::Exception::argument_error(error);
+    throw shcore::Exception::type_error(error);
   }
 }
 
@@ -982,22 +984,23 @@ void Object_validator::validate(const Parameter &param, const Value &data,
     const auto object = data.as_object();
 
     if (!object) {
-      throw shcore::Exception::argument_error(shcore::str_format(
+      throw shcore::Exception::type_error(shcore::str_format(
           "%s is expected to be an object", context->str().c_str()));
     }
 
     if (std::find(std::begin(m_allowed), std::end(m_allowed),
                   object->class_name()) == std::end(m_allowed)) {
       auto allowed_str = shcore::str_join(m_allowed, ", ");
-      std::string error;
+
       if (m_allowed.size() == 1) {
-        error = shcore::str_format("%s is expected to be a '%s' object.",
-                                   context->str().c_str(), allowed_str.c_str());
+        throw shcore::Exception::type_error(
+            shcore::str_format("%s is expected to be a '%s' object",
+                               context->str().c_str(), allowed_str.c_str()));
       } else {
-        error = shcore::str_format("%s is expected to be one of '%s'.",
-                                   context->str().c_str(), allowed_str.c_str());
+        throw shcore::Exception::argument_error(
+            shcore::str_format("%s is expected to be one of '%s'",
+                               context->str().c_str(), allowed_str.c_str()));
       }
-      throw shcore::Exception::argument_error(error);
     }
   }
 }
