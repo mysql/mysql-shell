@@ -1629,6 +1629,29 @@ TEST_LOAD(tested_schema, tested_table, True)
 
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
+#@<> BUG#31766490 {not __dbug_off}
+tested_schema = "test_schema"
+tested_table = "test"
+
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (c INT PRIMARY KEY);", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! VALUES " + ','.join("(" + str(k) + ")" for k in range(1024)), [ tested_schema, tested_table ])
+
+expected_msg = "NOTE: Table statistics not available for `{0}`.`{1}`, chunking operation may be not optimal. Please consider running 'ANALYZE TABLE `{0}`.`{1}`;' first.".format(tested_schema, tested_table)
+
+testutil.dbug_set("+d,dumper_average_row_length_0")
+
+EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showProgress": False })
+EXPECT_STDOUT_CONTAINS(expected_msg)
+
+testutil.dbug_set("")
+
+session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+
+WIPE_STDOUT()
+EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showProgress": False })
+EXPECT_STDOUT_NOT_CONTAINS(expected_msg)
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")

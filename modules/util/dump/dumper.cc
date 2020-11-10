@@ -49,6 +49,7 @@
 #include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/textui/progress.h"
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/rate_limit.h"
 #include "mysqlshdk/libs/utils/std.h"
@@ -461,10 +462,23 @@ class Dumper::Table_worker final {
     const Range_info total = {min_max->get_as_string(0),
                               min_max->get_as_string(1), min_max->get_type(0)};
 
-    const auto average_row_length = table.cache->average_row_length;
+    auto average_row_length = table.cache->average_row_length;
+
+    DBUG_EXECUTE_IF("dumper_average_row_length_0", { average_row_length = 0; });
+
+    if (0 == average_row_length) {
+      average_row_length = k_default_row_size;
+
+      const auto quoted = Dumper::quote(table.schema, table.name);
+      current_console()->print_note("Table statistics not available for " +
+                                    quoted +
+                                    ", chunking operation may be not optimal. "
+                                    "Please consider running 'ANALYZE TABLE " +
+                                    quoted + ";' first.");
+    }
+
     const auto rows_per_chunk =
-        m_dumper->m_options.bytes_per_chunk() /
-        std::max(k_default_row_size, average_row_length);
+        m_dumper->m_options.bytes_per_chunk() / average_row_length;
 
     const auto generate_ranges = [&table, &ranges_count, &total,
                                   &rows_per_chunk, &index, &order_by,
