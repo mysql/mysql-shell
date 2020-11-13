@@ -18,6 +18,94 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+MESSAGE(STATUS "Running cmake version ${CMAKE_VERSION}")
+
+IF(WIN32)
+  # CMake 3.8.0 is needed for Visual Studio 2017 and x64 toolset.
+  CMAKE_MINIMUM_REQUIRED(VERSION 3.8.0)
+  EXECUTE_PROCESS(COMMAND wmic os get version
+    OUTPUT_VARIABLE NT_RELEASE_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE WMIC_RESULT
+    )
+  IF(WMIC_RESULT EQUAL 0)
+    STRING(REPLACE "\r" "" NT_RELEASE_VERSION "${NT_RELEASE_VERSION}")
+    STRING(REPLACE "\n" "" NT_RELEASE_VERSION "${NT_RELEASE_VERSION}")
+    STRING(REGEX MATCH "Version[ ]+([0-9\.]+)" V_NUM "${NT_RELEASE_VERSION}")
+    MESSAGE(STATUS "NT_RELEASE_VERSION is ${NT_RELEASE_VERSION}")
+    IF(CMAKE_MATCH_1)
+      IF(CMAKE_MATCH_1 VERSION_LESS "10")
+        MESSAGE(FATAL_ERROR
+          "Need at least Windows Server 2016, or Windows 10, to build")
+      ENDIF()
+    ENDIF()
+  ENDIF()
+  IF(CMAKE_GENERATOR MATCHES "Visual Studio" AND CMAKE_GENERATOR MATCHES "2019")
+    IF(CMAKE_VERSION MATCHES "MSVC")
+      # It is the bundled version, ignore version check,
+      # (although this seems to be buggy too).
+    ELSE()
+      # Bug in msbuild, install the latest in the 3.15 series as a workaround.
+      # https://gitlab.kitware.com/cmake/cmake/issues/19303
+      # custom commands are re-built every time
+      CMAKE_MINIMUM_REQUIRED(VERSION 3.15.3)
+    ENDIF()
+  ENDIF()
+ELSEIF(APPLE)
+  # Version 3.12.4 is needed because the new build system of Xcode is not
+  # supported by cmake. 3.12.4 will force using the legacy build system.
+  # Version 3.9.2 is needed because INCLUDE_DIRECTORIES(SYSTEM ...) wasn't
+  # handled properly by the cmake Xcode generator.
+  IF(CMAKE_GENERATOR STREQUAL "Xcode")
+    CMAKE_MINIMUM_REQUIRED(VERSION 3.12.4)
+  ELSE()
+    CMAKE_MINIMUM_REQUIRED(VERSION 3.9.2)
+  ENDIF()
+  # If this is macOS 11, we need cmake 3.18
+  # System libraries like
+  #    /usr/lib/libresolv.dylib
+  # are no longer present in the file system.
+  # cmake >= 3.18 will look for .tbd files in the SDK instead
+  # So we end up linking with:
+  #    /Applications/Xcode.app/.../usr/lib/libresolv.tbd
+  # We must postpone the version test until we have called 'uname -r' below.
+ELSEIF(UNIX)
+  # This is currently minimum version on all supported platforms.
+  IF(CMAKE_VERSION VERSION_LESS 3.5.1)
+    # Default cmake is 2.8.12.2 on RedHat
+    IF(EXISTS "/etc/redhat-release")
+      MESSAGE(WARNING "Please use cmake3 rather than cmake on this platform")
+      FIND_PROGRAM(MY_CMAKE3 cmake3 /bin /usr/bin /usr/local/bin)
+      IF(MY_CMAKE3)
+        MESSAGE(STATUS "Found ${MY_CMAKE3}")
+      ELSE()
+        MESSAGE(STATUS "Please install cmake3 (yum install cmake3)")
+      ENDIF()
+    ELSE()
+      # On SunOS /opt/csw/bin/cmake is (most likely) too old.
+      FIND_PROGRAM(MY_UNAME uname /bin /usr/bin /usr/local/bin /sbin)
+      IF(MY_UNAME)
+        EXEC_PROGRAM(uname ARGS -s OUTPUT_VARIABLE MY_HOST_SYSTEM_NAME)
+        IF(MY_HOST_SYSTEM_NAME MATCHES "SunOS")
+          FIND_PROGRAM(MY_CMAKE cmake /usr/bin
+            NO_CMAKE_ENVIRONMENT_PATH
+            NO_SYSTEM_ENVIRONMENT_PATH
+            )
+          IF(MY_CMAKE)
+            MESSAGE(STATUS "Found ${MY_CMAKE}")
+            EXEC_PROGRAM(${MY_CMAKE} ARGS --version)
+          ELSE()
+            MESSAGE(STATUS "Please install /usr/bin/cmake ")
+          ENDIF()
+        ENDIF()
+      ENDIF()
+    ENDIF()
+  ENDIF()
+ENDIF()
+
+# CMake 3.5 is needed for TARGET_SOURCES(... $<TARGET_OBJECTS:${LIB}_objlib>)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.5.1)
+INCLUDE(CMakePushCheckState)
 
 # On Linux el6/el7 the default gcc is too old, see if devtoolset is installed.
 # Same with SLES 12, look for gcc 7 there.
@@ -36,12 +124,6 @@ IF(UNIX)
       RESULT_VARIABLE MY_UNAME_RESULT
     )
     EXEC_PROGRAM(${MY_UNAME} ARGS -r OUTPUT_VARIABLE MY_HOST_SYSTEM_VERSION)
-
-    # CMake 3.4.0 is needed for Solaris due to CMake bug 15673.
-    # Cannot use CMAKE_SYSTEM_NAME until after PROJECT(), use uname directly.
-    IF(MY_HOST_SYSTEM_NAME MATCHES "SunOS")
-      CMAKE_MINIMUM_REQUIRED(VERSION 3.4.0)
-    ENDIF()
   ENDIF()
 
   FIND_PROGRAM(MY_RPM rpm /bin /usr/bin)
@@ -53,9 +135,6 @@ IF(UNIX)
       )
   ENDIF()
 ENDIF()
-
-# 2.8.12 as minimum unless higher is checked above.
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 
 
 IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
@@ -131,12 +210,14 @@ ENDIF()
 
 project(mysqlsh)
 
-IF(CMAKE_VERSION VERSION_EQUAL "3.0.0" OR
-   CMAKE_VERSION VERSION_GREATER "3.0.0")
-  CMAKE_POLICY(SET CMP0026 OLD)
-  CMAKE_POLICY(SET CMP0045 OLD)
-  CMAKE_POLICY(SET CMP0042 OLD)
+IF(CMAKE_VERSION VERSION_GREATER "3.12.0")
+  CMAKE_POLICY(SET CMP0075 NEW)
 ENDIF()
+
+# STRING(APPEND ...) from cmake VERSION 3.4
+MACRO(STRING_APPEND STRING_VAR INPUT)
+  SET(${STRING_VAR} "${${STRING_VAR}}${INPUT}")
+ENDMACRO()
 
 set(CMAKE_MODULE_PATH
     ${CMAKE_SOURCE_DIR}/cmake

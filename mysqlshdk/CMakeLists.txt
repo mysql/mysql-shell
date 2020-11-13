@@ -50,7 +50,7 @@ ADD_SUBDIRECTORY(shellcore)
 #    scripting
 #    shellcore)
 
-merge_libraries(mysqlshdk-static STATIC
+merge_convenience_libraries(mysqlshdk-static
     utils
     db
     mysql
@@ -61,7 +61,7 @@ merge_libraries(mysqlshdk-static STATIC
     scripting
     shellcore
     storage
-    oci NOINSTALL)
+    oci SKIP_INSTALL)
 
   #target_link_libraries(mysqlshdk
   #        ${V8_LINK_LIST}
@@ -70,7 +70,7 @@ merge_libraries(mysqlshdk-static STATIC
   #        ${PROTOBUF_LIBRARY}
   #        ${SSL_LIBRARIES})
 
-target_link_libraries(mysqlshdk-static
+target_link_libraries(mysqlshdk-static PUBLIC
           ${V8_LINK_LIST}
           ${PYTHON_LIBRARIES}
           ${MYSQL_LIBRARIES}
