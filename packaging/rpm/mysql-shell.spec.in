@@ -45,9 +45,9 @@ Source0:        https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.g
 # on "libpythonVER.so". But it can't know about the dependency on the
 # standard Python modules, i.e. almost all of a normal Python install
 %if 0%{?suse_version}
-Requires:       python3-base >= 3.4.3
+Requires:       python3-base >= 3.6
 %else
-Requires:       python3 >= 3.4.3
+Requires:       python3 >= 3.6
 %endif
 %endif
 
@@ -61,7 +61,7 @@ BuildRequires:  protobuf-compiler
 # will use "/usr/bin/python" and may fail
 %global __python %{bundled_python}/bin/python
 %else
-BuildRequires:  python3-devel >= 3.4.3
+BuildRequires:  python3-devel >= 3.6
 %endif
 %if 0%{!?static}
 BuildRequires:  mysql-devel
