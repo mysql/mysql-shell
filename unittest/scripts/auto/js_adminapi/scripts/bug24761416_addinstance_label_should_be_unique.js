@@ -13,8 +13,11 @@ var cluster = dba.createCluster('c', {gtidSetIsComplete: true});
 cluster.addInstance(__sandbox_uri2, {label: '1node1'});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<OUT> check status (1)
-cluster.status();
+//@<> check status (1)
+var status = cluster.status();
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node1"]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node1"]["address"], `${hostname}:${__mysql_sandbox_port2}`);
 
 //@ third instance is valid for cluster usage
 dba.checkInstanceConfiguration(__sandbox_uri3);
@@ -22,8 +25,11 @@ dba.checkInstanceConfiguration(__sandbox_uri3);
 //@ add third instance with duplicated label
 cluster.addInstance(__sandbox_uri3, {label: '1node1'});
 
-//@<OUT> check status (2)
-cluster.status();
+//@<> check status (2)
+var status = cluster.status();
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node1"]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node1"]["address"], `${hostname}:${__mysql_sandbox_port2}`);
 
 //@ third instance is still valid for cluster usage
 dba.checkInstanceConfiguration(__sandbox_uri3);
@@ -32,8 +38,13 @@ dba.checkInstanceConfiguration(__sandbox_uri3);
 cluster.addInstance(__sandbox_uri3, {label: '1node2'});
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@<OUT> check status (3)
-cluster.status();
+//@<> check status (3)
+var status = cluster.status();
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node1"]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node1"]["address"], `${hostname}:${__mysql_sandbox_port2}`);
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node2"]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1node2"]["address"], `${hostname}:${__mysql_sandbox_port3}`);
 
 // Cleanup
 cluster.disconnect();

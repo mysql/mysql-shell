@@ -96,8 +96,6 @@ Cluster.removeInstance(1);
 Cluster.removeInstance({host: "localhost", port:33060, schema: 'abs', user:"sample", "auth-method":56});
 // try to remove instance that is not in the cluster using the classic port
 Cluster.removeInstance({user: __user, host: __host, port: __mysql_port, password: shell.parseUri(__uripwd).password});
-// note: validation takes into account the possibility of an unexpected server running on default ports
-Cluster.removeInstance("localhost");
 
 //@ Cluster: removeInstance
 Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port2});

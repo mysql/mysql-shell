@@ -48,54 +48,12 @@
     }
 }
 
-//@<OUT> Cluster: status cluster with instance
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "2nd": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
-
 //@<ERR> Cluster: removeInstance errors
 Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
 Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
 Cluster.removeInstance: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary (TypeError)
 Cluster.removeInstance: Argument #1: Invalid values in connection options: fakeOption (ArgumentError)
-Cluster.removeInstance: Could not open connection to 'localhost:3306': {{Access denied for user|Can't connect to MySQL server on}} [[*]]
-Cluster.removeInstance: Could not open connection to 'localhost:3306': {{Access denied for user|Can't connect to MySQL server on}} [[*]]
-Cluster.removeInstance: Could not open connection to 'localhost:3306': {{Access denied for user|Can't connect to MySQL server on}} [[*]]
+Cluster.removeInstance: Metadata for instance <<<__host>>>:<<<__mysql_port>>> not found [[*]]
 
 //@ Cluster: removeInstance read only
 ||
@@ -119,38 +77,6 @@ Cluster.removeInstance: Could not open connection to 'localhost:3306': {{Access 
         ],
         "topologyMode": "Single-Primary"
     }
-}
-
-//@<OUT> Cluster: status removed read only member
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: addInstance read only back
@@ -182,46 +108,6 @@ Cluster.removeInstance: Could not open connection to 'localhost:3306': {{Access 
     }
 }
 
-
-//@<OUT> Cluster: status after adding read only instance back
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@ Cluster: remove_instance master
 ||
@@ -261,38 +147,6 @@ Cluster.removeInstance: Could not open connection to 'localhost:3306': {{Access 
     }
 }
 
-//@<OUT> Cluster: status on new master
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "3rd_sandbox": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
-}
-
 //@ Cluster: addInstance adding old master as read only
 ||
 
@@ -322,46 +176,6 @@ Cluster.removeInstance: Could not open connection to 'localhost:3306': {{Access 
     }
 }
 
-//@<OUT> Cluster: status on new master with slave
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "1st_sandbox": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "3rd_sandbox": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
-}
-
 //@# Dba: kill instance 3
 ||
 
@@ -385,46 +199,6 @@ Cluster.removeInstance: Could not open connection to 'localhost:3306': {{Access 
 
 //@#: Dba: Wait instance 3 ONLINE {VER(>=8.0.11)}
 ||
-
-//@<OUT> Cluster: status for rejoin: success
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "1st_sandbox": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "3rd_sandbox": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
-}
 
 //@ Cluster: dissolve errors
 ||Cluster.dissolve: Argument #1 is expected to be a map

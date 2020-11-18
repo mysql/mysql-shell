@@ -75,18 +75,20 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 //@<OUT> Cluster: describe cluster with instance
 Cluster.describe();
 
-//@<OUT> Cluster: status cluster with instance
-Cluster.status();
+//@<> Cluster: status cluster with instance
+var status = Cluster.status();
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["2nd"]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["2nd"]["address"], `${hostname}:${__mysql_sandbox_port2}`);
 
 //@ Cluster: removeInstance errors
 Cluster.removeInstance();
 Cluster.removeInstance(1,2,3);
 Cluster.removeInstance(1);
 Cluster.removeInstance({host: "localhost", schema: 'abs', user:"sample", fakeOption:56});
-// note: validation takes into account possibility of unexpected server running at the default ports
-Cluster.removeInstance("localhost:3306");
-Cluster.removeInstance("localhost");
-Cluster.removeInstance({host: "localhost"});
+// try to remove instance that is not in the cluster using the classic port
+Cluster.removeInstance({user: __user, host: __host, port: __mysql_port, password: shell.parseUri(__uripwd).password});
 
 //@ Cluster: removeInstance read only
 Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port2});
@@ -94,8 +96,12 @@ Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port2});
 //@<OUT> Cluster: describe removed read only member
 Cluster.describe();
 
-//@<OUT> Cluster: status removed read only member
-Cluster.status();
+//@<> Cluster: status removed read only member
+var status = Cluster.status();
+EXPECT_EQ(2, Object.keys(status["defaultReplicaSet"]["topology"]).length)
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
+
 
 //@ Cluster: addInstance read only back
 Cluster.addInstance(__sandbox_uri2);
@@ -105,8 +111,11 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 //@<OUT> Cluster: describe after adding read only instance back
 Cluster.describe();
 
-//@<OUT> Cluster: status after adding read only instance back
-Cluster.status();
+//@<> Cluster: status after adding read only instance back
+var status = Cluster.status();
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"], "ONLINE");
 
 // Make sure uri2 is selected as the new master
 Cluster.removeInstance(uri3);
@@ -137,8 +146,13 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 //@<OUT> Cluster: describe on new master
 Cluster.describe();
 
-//@<OUT> Cluster: status on new master
-Cluster.status();
+//@<> Cluster: status on new master
+var status = Cluster.status();
+EXPECT_EQ(2, Object.keys(status["defaultReplicaSet"]["topology"]).length)
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"], "R/W");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]['3rd_sandbox']["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["3rd_sandbox"]["address"], `${hostname}:${__mysql_sandbox_port3}`);
 
 //@ Cluster: addInstance adding old master as read only
 Cluster.addInstance(__sandbox_uri1, {'label': '1st_sandbox'});
@@ -147,8 +161,14 @@ testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 //@<OUT> Cluster: describe on new master with slave
 Cluster.describe();
 
-//@<OUT> Cluster: status on new master with slave
-Cluster.status();
+//@<> Cluster: status on new master with slave
+var status = Cluster.status();
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]['1st_sandbox']["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1st_sandbox"]["address"], `${hostname}:${__mysql_sandbox_port1}`);
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"], "R/W");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]['3rd_sandbox']["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["3rd_sandbox"]["address"], `${hostname}:${__mysql_sandbox_port3}`);
 
 // Rejoin tests
 
@@ -184,8 +204,14 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // Verify if the cluster is OK
 
-//@<OUT> Cluster: status for rejoin: success
-Cluster.status();
+//@<> Cluster: status for rejoin: success
+var status = Cluster.status();
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]['1st_sandbox']["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["1st_sandbox"]["address"], `${hostname}:${__mysql_sandbox_port1}`);
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"], "R/W");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]['3rd_sandbox']["status"], "ONLINE");
+EXPECT_EQ(status["defaultReplicaSet"]["topology"]["3rd_sandbox"]["address"], `${hostname}:${__mysql_sandbox_port3}`);
 
 //@ Cluster: dissolve errors
 Cluster.dissolve(1);
