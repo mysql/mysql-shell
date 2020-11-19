@@ -67,43 +67,43 @@ prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 EXPECT_THROWS(lambda:util.dump_instance(prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants"], "ociParManifest": False, "ociParExpireTime":today_plus_days(1, RFC3339)}),
     "Util.dump_instance: The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.")
 
-#@<> WL14154-TSFR3_2 - ZSTD compression {not __dbug_off and not __recording and not __replaying}
-testutil.set_trap("par_manifest", ["name == {0}/sample@data.tsv.zst".format(prefix)], {"code": 404, "msg": "Injected failure"})
+#@<> WL14154-TSFR3_2 - ZSTD compression {not __dbug_off}
+testutil.set_trap("par_manifest", ["name == {0}/sample@data.tsv.zst".format(prefix)], {"code": 404, "msg": "Injected exception"})
 
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 EXPECT_THROWS(lambda:util.dump_instance(prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ociParManifest": True, "chunking": False}),
     "RuntimeError: Util.dump_instance: Fatal error during dump")
-EXPECT_STDOUT_CONTAINS("Failed creating PAR for object '{0}/sample@data.tsv.zst': Injected failure".format(prefix))
+EXPECT_STDOUT_CONTAINS("Failed creating PAR for object '{0}/sample@data.tsv.zst': Injected exception".format(prefix))
 
 testutil.clear_traps("par_manifest")
 
-#@<> WL14154-TSFR3_2 - GZIP compression {not __dbug_off and not __recording and not __replaying}
-testutil.set_trap("par_manifest", ["name == {0}/sample@data.tsv.gz".format(prefix)], {"code": 404, "msg": "Injected failure"})
+#@<> WL14154-TSFR3_2 - GZIP compression {not __dbug_off}
+testutil.set_trap("par_manifest", ["name == {0}/sample@data.tsv.gz".format(prefix)], {"code": 404, "msg": "Injected exception"})
 
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 EXPECT_THROWS(lambda:util.dump_instance(prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ociParManifest": True, "chunking": False, "compression": "gzip"}),
     "RuntimeError: Util.dump_instance: Fatal error during dump")
-EXPECT_STDOUT_CONTAINS("Failed creating PAR for object '{0}/sample@data.tsv.gz': Injected failure".format(prefix))
+EXPECT_STDOUT_CONTAINS("Failed creating PAR for object '{0}/sample@data.tsv.gz': Injected exception".format(prefix))
 
 testutil.clear_traps("par_manifest")
 
-#@<> WL14154-TSFR3_2 - no compression {not __dbug_off and not __recording and not __replaying}
-testutil.set_trap("par_manifest", ["name == {0}/sample@data.tsv".format(prefix)], {"code": 404, "msg": "Injected failure"})
+#@<> WL14154-TSFR3_2 - no compression {not __dbug_off}
+testutil.set_trap("par_manifest", ["name == {0}/sample@data.tsv".format(prefix)], {"code": 404, "msg": "Injected exception"})
 
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 EXPECT_THROWS(lambda:util.dump_instance(prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ociParManifest": True, "chunking": False, "compression": "none"}),
     "RuntimeError: Util.dump_instance: Fatal error during dump")
-EXPECT_STDOUT_CONTAINS("Failed creating PAR for object '{0}/sample@data.tsv': Injected failure".format(prefix))
+EXPECT_STDOUT_CONTAINS("Failed creating PAR for object '{0}/sample@data.tsv': Injected exception".format(prefix))
 
 testutil.clear_traps("par_manifest")
 
-#@<> WL14154-TSFR3_2 - one of the text files {not __dbug_off and not __recording and not __replaying}
-testutil.set_trap("par_manifest", ["name == {0}/sample@data.json".format(prefix)], {"code": 404, "msg": "Injected failure"})
+#@<> WL14154-TSFR3_2 - one of the text files {not __dbug_off}
+testutil.set_trap("par_manifest", ["name == {0}/sample@data.json".format(prefix)], {"code": 404, "msg": "Injected exception"})
 
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 EXPECT_THROWS(lambda:util.dump_instance(prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ociParManifest": True}),
     "RuntimeError: Util.dump_instance: Fatal error during dump")
-EXPECT_STDOUT_CONTAINS("Failed creating PAR for object '{0}/sample@data.json': Injected failure".format(prefix))
+EXPECT_STDOUT_CONTAINS("Failed creating PAR for object '{0}/sample@data.json': Injected exception".format(prefix))
 
 testutil.clear_traps("par_manifest")
 

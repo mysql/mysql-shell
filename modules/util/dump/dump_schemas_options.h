@@ -30,7 +30,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/ddl_dumper_options.h"
 
 namespace mysqlsh {
@@ -56,10 +55,6 @@ class Dump_schemas_options : public Ddl_dumper_options {
 
   bool dump_users() const override { return false; }
 
-  const Compatibility_options &compatibility_options() const {
-    return m_compatibility_options;
-  }
-
  protected:
   explicit Dump_schemas_options(const std::string &output_url);
 
@@ -68,13 +63,8 @@ class Dump_schemas_options : public Ddl_dumper_options {
   void validate_options() const override;
 
  private:
-  mysqlshdk::oci::Oci_options::Unpack_target oci_target() const override {
-    return mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE;
-  }
-
   bool m_dump_events = true;
   bool m_dump_routines = true;
-  Compatibility_options m_compatibility_options;
 };
 
 }  // namespace dump

@@ -102,6 +102,8 @@ Dump_reader::Status Dump_reader::open() {
     m_contents.server_version =
         mysqlshdk::utils::Version(md->get_string("serverVersion"));
 
+  if (md->has_key("origin")) m_contents.origin = md->get_string("origin");
+
   if (md->has_key("defaultCharacterSet"))
     m_contents.default_charset = md->get_string("defaultCharacterSet");
 
@@ -589,15 +591,18 @@ void Dump_reader::add_deferred_indexes(const std::string &schema,
 }
 
 void Dump_reader::replace_target_schema(const std::string &schema) {
-  if (1 != m_contents.schemas.size()) {
+  if (!is_dump_tables()) {
     throw std::logic_error("Dump was not created using util.dumpTables().");
   }
+
+  assert(1 == m_contents.schemas.size());
 
   const auto info = m_contents.schemas.begin()->second;
   m_contents.schemas.clear();
   m_contents.schemas.emplace(schema, info);
 
   info->schema = schema;
+  info->has_sql = false;
 
   for (const auto &table : info->tables) {
     table.second->schema = schema;
@@ -620,18 +625,17 @@ void Dump_reader::validate_options() {
         "the user data.");
   }
 
-  if (table_only()) {
+  if (is_dump_tables()) {
     if (m_options.target_schema().empty()) {
-      // user didn't provide an option, use the current schema
-      // if there's no current schema, we cannot proceed
-      if (m_options.current_schema().empty()) {
+      // user didn't provide an option, we cannot proceed if the dump was
+      // created by an old version of dumpTables()
+      if (table_only()) {
         current_console()->print_error(
-            "The dump was created by the util." +
+            "The dump was created by an older version of the util." +
             shcore::get_member_name("dumpTables",
                                     shcore::current_naming_style()) +
             "() function and needs to be loaded into an existing schema. "
-            "Please set the default schema for the global session or use the "
-            "'schema' option.");
+            "Please set the target schema using the 'schema' option.");
         throw std::invalid_argument("The target schema was not specified.");
       }
     } else {

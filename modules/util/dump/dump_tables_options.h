@@ -47,8 +47,6 @@ class Dump_tables_options : public Ddl_dumper_options {
 
   virtual ~Dump_tables_options() = default;
 
-  bool table_only() const override { return true; }
-
   bool dump_events() const override { return false; }
 
   bool dump_routines() const override { return false; }
@@ -59,11 +57,6 @@ class Dump_tables_options : public Ddl_dumper_options {
   void unpack_options(shcore::Option_unpacker *unpacker) override;
 
   void validate_options() const override;
-
-  mysqlshdk::oci::Oci_options::Unpack_target oci_target() const override {
-    return mysqlshdk::oci::Oci_options::Unpack_target::
-        OBJECT_STORAGE_NO_PAR_SUPPORT;
-  }
 
   bool m_dump_all = false;
   bool m_has_tables = false;

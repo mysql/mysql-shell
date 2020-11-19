@@ -1350,7 +1350,7 @@ void Dumper::initialize_instance_cache() {
     builder.users(m_options.included_users(), m_options.excluded_users());
   }
 
-  if (m_options.dump_schema_ddl()) {
+  if (m_options.dump_ddl()) {
     if (m_options.dump_events()) {
       builder.events();
     }
@@ -1358,10 +1358,10 @@ void Dumper::initialize_instance_cache() {
     if (m_options.dump_routines()) {
       builder.routines();
     }
-  }
 
-  if (m_options.dump_ddl() && m_options.dump_triggers()) {
-    builder.triggers();
+    if (m_options.dump_triggers()) {
+      builder.triggers();
+    }
   }
 
   m_cache = builder.build();
@@ -1717,11 +1717,9 @@ void Dumper::create_schema_ddl_tasks() {
   }
 
   for (const auto &schema : m_schema_infos) {
-    if (m_options.dump_schema_ddl()) {
-      m_worker_tasks.push(
-          [&schema](Table_worker *worker) { worker->dump_schema_ddl(schema); },
-          shcore::Queue_priority::HIGH);
-    }
+    m_worker_tasks.push(
+        [&schema](Table_worker *worker) { worker->dump_schema_ddl(schema); },
+        shcore::Queue_priority::HIGH);
 
     for (const auto &view : schema.views) {
       m_worker_tasks.push(
@@ -1939,6 +1937,7 @@ void Dumper::write_dump_started_metadata() const {
   const auto mysqlsh = std::string("mysqlsh ") + shcore::get_long_version();
   doc.AddMember(StringRef("dumper"), ref(mysqlsh), a);
   doc.AddMember(StringRef("version"), StringRef(Schema_dumper::version()), a);
+  doc.AddMember(StringRef("origin"), StringRef(name()), a);
 
   {
     // list of schemas
@@ -1979,7 +1978,6 @@ void Dumper::write_dump_started_metadata() const {
   doc.AddMember(StringRef("defaultCharacterSet"),
                 ref(m_options.character_set()), a);
   doc.AddMember(StringRef("tzUtc"), m_options.use_timezone_utc(), a);
-  doc.AddMember(StringRef("tableOnly"), m_options.table_only(), a);
   doc.AddMember(StringRef("bytesPerChunk"), m_options.bytes_per_chunk(), a);
 
   doc.AddMember(StringRef("user"), ref(m_cache.user), a);
@@ -2061,7 +2059,7 @@ void Dumper::write_schema_metadata(const Schema_info &schema) const {
   auto &a = doc.GetAllocator();
 
   doc.AddMember(StringRef("schema"), ref(schema.name), a);
-  doc.AddMember(StringRef("includesDdl"), m_options.dump_schema_ddl(), a);
+  doc.AddMember(StringRef("includesDdl"), m_options.dump_ddl(), a);
   doc.AddMember(StringRef("includesViewsDdl"), m_options.dump_ddl(), a);
   doc.AddMember(StringRef("includesData"), m_options.dump_data(), a);
 
@@ -2087,7 +2085,7 @@ void Dumper::write_schema_metadata(const Schema_info &schema) const {
     doc.AddMember(StringRef("views"), std::move(views), a);
   }
 
-  if (m_options.dump_schema_ddl()) {
+  if (m_options.dump_ddl()) {
     const auto dumper = schema_dumper(session());
 
     if (m_options.dump_events()) {

@@ -693,6 +693,8 @@ EXPECT_FAIL("ValueError", "Invalid options: bytesPerChunk", quote(types_schema, 
 EXPECT_FAIL("ValueError", "Invalid options: threads", quote(types_schema, types_schema_tables[0]), test_output_relative, { "threads": "dummy" })
 EXPECT_FAIL("ValueError", "Invalid options: excludeTables", quote(types_schema, types_schema_tables[0]), test_output_relative, { "excludeTables": "dummy" })
 EXPECT_FAIL("ValueError", "Invalid options: excludeSchemas", quote(types_schema, types_schema_tables[0]), test_output_relative, { "excludeSchemas": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: ociParManifest", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ociParManifest": "dummy" })
+EXPECT_FAIL("ValueError", "Invalid options: ociParExpireTime", quote(types_schema, types_schema_tables[0]), test_output_relative, { "ociParExpireTime": "dummy" })
 
 #@<> WL13804-FR15 - Once the dump is complete, the summary of the export process must be presented to the user. It must contain:
 # * The number of rows written.

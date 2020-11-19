@@ -362,7 +362,7 @@ class Dump_loader {
   void check_server_version();
   void check_tables_without_primary_key();
 
-  void handle_table_only_dump();
+  void handle_schema_option();
 
   std::string filter_user_script_for_mds(const std::string &script);
 

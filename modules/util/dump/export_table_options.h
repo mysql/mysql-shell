@@ -62,8 +62,6 @@ class Export_table_options : public Dump_options {
 
   bool dump_ddl() const override { return false; }
 
-  bool table_only() const override { return false; }
-
   bool dump_data() const override { return true; }
 
   bool is_dry_run() const override { return false; }

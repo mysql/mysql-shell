@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,9 +24,6 @@
 #ifndef MODULES_UTIL_DUMP_DUMP_INSTANCE_H_
 #define MODULES_UTIL_DUMP_DUMP_INSTANCE_H_
 
-#include <string>
-#include <unordered_set>
-
 #include "modules/util/dump/dump_instance_options.h"
 #include "modules/util/dump/dump_schemas.h"
 
@@ -36,7 +33,8 @@ namespace dump {
 class Dump_instance : public Dump_schemas {
  public:
   Dump_instance() = delete;
-  explicit Dump_instance(const Dump_instance_options &options);
+  explicit Dump_instance(const Dump_instance_options &options)
+      : Dump_schemas(options) {}
 
   Dump_instance(const Dump_instance &) = delete;
   Dump_instance(Dump_instance &&) = delete;
@@ -44,7 +42,7 @@ class Dump_instance : public Dump_schemas {
   Dump_instance &operator=(const Dump_instance &) = delete;
   Dump_instance &operator=(Dump_instance &&) = delete;
 
-  virtual ~Dump_instance() = default;
+  ~Dump_instance() override = default;
 
  private:
   const char *name() const override { return "dumpInstance"; }

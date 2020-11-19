@@ -52,6 +52,8 @@ Ddl_dumper_options::Ddl_dumper_options(const std::string &output_url)
 
 void Ddl_dumper_options::unpack_options(shcore::Option_unpacker *unpacker) {
   mysqlshdk::db::nullable<std::string> bytes_per_chunk;
+  std::vector<std::string> compatibility_options;
+  bool mds = false;
 
   unpacker->optional("chunking", &m_split)
       .optional("bytesPerChunk", &bytes_per_chunk)
@@ -61,7 +63,9 @@ void Ddl_dumper_options::unpack_options(shcore::Option_unpacker *unpacker) {
       .optional("ddlOnly", &m_ddl_only)
       .optional("dataOnly", &m_data_only)
       .optional("dryRun", &m_dry_run)
-      .optional("consistent", &m_consistent_dump);
+      .optional("consistent", &m_consistent_dump)
+      .optional("ocimds", &mds)
+      .optional("compatibility", &compatibility_options);
 
   if (bytes_per_chunk) {
     if (bytes_per_chunk->empty()) {
@@ -76,6 +80,14 @@ void Ddl_dumper_options::unpack_options(shcore::Option_unpacker *unpacker) {
     }
 
     m_bytes_per_chunk = expand_to_bytes(*bytes_per_chunk);
+  }
+
+  if (mds) {
+    set_mds_compatibility(mysqlshdk::utils::Version(MYSH_VERSION));
+  }
+
+  for (const auto &option : compatibility_options) {
+    m_compatibility_options |= to_compatibility_option(option);
   }
 }
 

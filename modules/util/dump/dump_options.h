@@ -116,8 +116,6 @@ class Dump_options {
     return m_excluded_tables;
   }
 
-  bool dump_schema_ddl() const { return dump_ddl() && !table_only(); }
-
   virtual bool split() const = 0;
 
   virtual uint64_t bytes_per_chunk() const = 0;
@@ -129,8 +127,6 @@ class Dump_options {
   virtual bool use_single_file() const = 0;
 
   virtual bool dump_ddl() const = 0;
-
-  virtual bool table_only() const = 0;
 
   virtual bool dump_data() const = 0;
 
@@ -232,7 +228,7 @@ class Dump_options {
   // currently used by exportTable()
   import_table::Dialect m_dialect;
 
-  // currently used by dumpSchemas() and dumpInstance()
+  // currently used by dumpTables(), dumpSchemas() and dumpInstance()
   mysqlshdk::utils::nullable<mysqlshdk::utils::Version> m_mds;
 
   // currently used by dumpInstance()

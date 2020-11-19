@@ -469,6 +469,33 @@ shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2)
 missing_privileges = ', '.join(sql_log_bin_privileges[:-1]) + (' or ' if len(sql_log_bin_privileges) > 1 else '') + sql_log_bin_privileges[-1]
 EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "skipBinlog": True, "showProgress": False, "resetProgress": True  }), "RuntimeError: Util.load_dump: 'SET sql_log_bin=0' failed with error - MySQL Error 1227 (42000): Access denied; you need (at least one of) the {0} privilege(s) for this operation".format(missing_privileges))
 
+
+#@<> BUG#32140970 {not __dbug_off}
+# create a MDS-compatible dump but without 'ocimds' option
+shell.connect(__sandbox_uri1)
+
+dump_dir = os.path.join(outdir, "ignore_version")
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "compatibility": ["strip_restricted_grants", "strip_definers"], "ddlOnly": True, "showProgress": False }), "Dumping the instance should not fail")
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+
+testutil.dbug_set("+d,dump_loader_force_mds")
+
+# loading non-MDS dump into MDS should fail
+
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "RuntimeError: Util.load_dump: Dump is not MDS compatible")
+EXPECT_STDOUT_CONTAINS("ERROR: Destination is a MySQL Database Service instance but the dump was produced without the compatibility option. Please enable the 'ocimds' option when dumping your database. Alternatively, enable the 'ignoreVersion' option to load anyway.")
+
+# loading non-MDS dump into MDS with the 'ignoreVersion' option enabled should succeed
+wipeout_server(session2)
+WIPE_OUTPUT()
+
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "ignoreVersion": True, "showProgress": False }), "Loading with 'ignoreVersion' should succeed")
+EXPECT_STDOUT_CONTAINS("WARNING: Destination is a MySQL Database Service instance but the dump was produced without the compatibility option. The 'ignoreVersion' option is enabled, so loading anyway. If this operation fails, create the dump once again with the 'ocimds' option enabled.")
+
+testutil.dbug_set("")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

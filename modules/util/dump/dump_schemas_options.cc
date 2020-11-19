@@ -45,14 +45,10 @@ void Dump_schemas_options::unpack_options(shcore::Option_unpacker *unpacker) {
   Ddl_dumper_options::unpack_options(unpacker);
 
   std::vector<std::string> tables;
-  std::vector<std::string> compatibility_options;
-  bool mds = false;
 
   unpacker->optional("excludeTables", &tables)
       .optional("events", &m_dump_events)
-      .optional("routines", &m_dump_routines)
-      .optional("ocimds", &mds)
-      .optional("compatibility", &compatibility_options);
+      .optional("routines", &m_dump_routines);
 
   std::string schema;
   std::string table;
@@ -75,14 +71,9 @@ void Dump_schemas_options::unpack_options(shcore::Option_unpacker *unpacker) {
     m_excluded_tables[schema].emplace(std::move(table));
   }
 
-  if (mds) {
-    set_mds_compatibility(mysqlshdk::utils::Version(MYSH_VERSION));
+  if (mds_compatibility()) {
     // if MDS compatibility option is set, mysql schema should not be dumped
     m_excluded_schemas.emplace("mysql");
-  }
-
-  for (const auto &option : compatibility_options) {
-    m_compatibility_options |= to_compatibility_option(option);
   }
 }
 

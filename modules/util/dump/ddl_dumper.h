@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,41 +21,36 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/util/dump/dump_schemas.h"
+#ifndef MODULES_UTIL_DUMP_DDL_DUMPER_H_
+#define MODULES_UTIL_DUMP_DDL_DUMPER_H_
 
-#include <algorithm>
-#include <iterator>
-#include <set>
-#include <stdexcept>
-#include <unordered_set>
-#include <utility>
-
-#include "mysqlshdk/libs/utils/utils_string.h"
-
-#include "modules/util/dump/schema_dumper.h"
+#include "modules/util/dump/ddl_dumper_options.h"
+#include "modules/util/dump/dumper.h"
 
 namespace mysqlsh {
 namespace dump {
 
-Dump_schemas::Dump_schemas(const Dump_schemas_options &options)
-    : Dumper(options), m_options(options) {}
+class Ddl_dumper : public Dumper {
+ public:
+  Ddl_dumper() = delete;
+  explicit Ddl_dumper(const Ddl_dumper_options &options);
 
-std::unique_ptr<Schema_dumper> Dump_schemas::schema_dumper(
-    const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
-  auto dumper = Dumper::schema_dumper(session);
+  Ddl_dumper(const Ddl_dumper &) = delete;
+  Ddl_dumper(Ddl_dumper &&) = delete;
 
-  const auto &options = m_options.compatibility_options();
+  Ddl_dumper &operator=(const Ddl_dumper &) = delete;
+  Ddl_dumper &operator=(Ddl_dumper &&) = delete;
 
-  dumper->opt_force_innodb = options.is_set(Compatibility_option::FORCE_INNODB);
-  dumper->opt_strip_definer =
-      options.is_set(Compatibility_option::STRIP_DEFINERS);
-  dumper->opt_strip_restricted_grants =
-      options.is_set(Compatibility_option::STRIP_RESTRICTED_GRANTS);
-  dumper->opt_strip_tablespaces =
-      options.is_set(Compatibility_option::STRIP_TABLESPACES);
+  ~Ddl_dumper() override = default;
 
-  return dumper;
-}
+ private:
+  std::unique_ptr<Schema_dumper> schema_dumper(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) const override;
+
+  const Ddl_dumper_options &m_options;
+};
 
 }  // namespace dump
 }  // namespace mysqlsh
+
+#endif  // MODULES_UTIL_DUMP_DDL_DUMPER_H_

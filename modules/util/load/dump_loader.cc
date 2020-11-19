@@ -1639,13 +1639,29 @@ void Dump_loader::check_server_version() {
   }
 
   if (mds && !m_dump->mds_compatibility()) {
-    console->print_error(
+    msg =
         "Destination is a MySQL Database Service instance but the dump was "
-        "produced without the compatibility option. Please enable the "
-        "'ocimds' option when dumping your database.");
-    throw std::runtime_error("Dump is not MDS compatible");
-  } else if (target_server.get_major() !=
-             m_dump->server_version().get_major()) {
+        "produced without the compatibility option. ";
+
+    if (m_options.ignore_version()) {
+      msg +=
+          "The 'ignoreVersion' option is enabled, so loading anyway. If this "
+          "operation fails, create the dump once again with the 'ocimds' "
+          "option enabled.";
+
+      console->print_warning(msg);
+    } else {
+      msg +=
+          "Please enable the 'ocimds' option when dumping your database. "
+          "Alternatively, enable the 'ignoreVersion' option to load anyway.";
+
+      console->print_error(msg);
+
+      throw std::runtime_error("Dump is not MDS compatible");
+    }
+  }
+
+  if (target_server.get_major() != m_dump->server_version().get_major()) {
     if (target_server.get_major() < m_dump->server_version().get_major())
       msg =
           "Destination MySQL version is older than the one where the dump "
@@ -1658,7 +1674,7 @@ void Dump_loader::check_server_version() {
         " Loading dumps from different major MySQL versions is "
         "not fully supported and may not work.";
     if (m_options.ignore_version()) {
-      msg += " 'ignoreVersion' option is enabled, so loading anyway.";
+      msg += " The 'ignoreVersion' option is enabled, so loading anyway.";
       console->print_warning(msg);
     } else {
       msg += " Enable the 'ignoreVersion' option to load anyway.";
@@ -2199,7 +2215,7 @@ void Dump_loader::execute_tasks() {
   }
   update_progress(true);
 
-  handle_table_only_dump();
+  handle_schema_option();
 
   if (!m_resuming && m_options.load_ddl()) check_existing_objects();
 
@@ -2433,11 +2449,9 @@ void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
   });
 }
 
-void Dump_loader::handle_table_only_dump() {
-  if (m_dump->table_only()) {
-    m_dump->replace_target_schema(m_options.target_schema().empty()
-                                      ? m_options.current_schema()
-                                      : m_options.target_schema());
+void Dump_loader::handle_schema_option() {
+  if (!m_options.target_schema().empty()) {
+    m_dump->replace_target_schema(m_options.target_schema());
   }
 }
 

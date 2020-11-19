@@ -36,6 +36,26 @@ verification_schema = "wl13804_ver"
 
 types_schema = "xtest"
 
+incompatible_schema = "mysqlaas"
+incompatible_table_wrong_engine = "wrong_engine"
+incompatible_table_encryption = "has_encryption"
+incompatible_table_data_directory = "has_data_dir"
+incompatible_table_index_directory = "has_index_dir"
+incompatible_tablespace = "sample_tablespace"
+incompatible_table_tablespace = "use_tablespace"
+incompatible_view = "has_definer"
+incompatible_schema_tables = [incompatible_table_wrong_engine, incompatible_table_encryption, incompatible_table_data_directory, incompatible_table_index_directory, incompatible_table_tablespace]
+incompatible_schema_views = [incompatible_view]
+
+incompatible_table_directory = os.path.join(__tmp_dir, "incompatible")
+table_data_directory = os.path.join(incompatible_table_directory, "data")
+table_index_directory = os.path.join(incompatible_table_directory, "index")
+
+shutil.rmtree(incompatible_table_directory, True)
+os.makedirs(incompatible_table_directory)
+os.mkdir(table_data_directory)
+os.mkdir(table_index_directory)
+
 if __os_type == "windows":
     # on windows server would have to be installed in the root folder to
     # handle long schema/table names
@@ -51,7 +71,7 @@ if __os_type == "windows":
         test_table_non_unique = "@a"
         test_table_no_index = "fourth"
 
-all_schemas = [world_x_schema, types_schema, test_schema, verification_schema]
+all_schemas = [world_x_schema, types_schema, test_schema, verification_schema, incompatible_schema]
 test_schema_tables = [test_table_primary, test_table_unique, test_table_non_unique, test_table_no_index]
 test_schema_views = [test_view]
 
@@ -115,6 +135,9 @@ def truncate_basename(basename):
         return basename[:225] + "0"
     else:
         return basename
+
+def encode_schema_basename(schema):
+    return truncate_basename(urlencode(schema))
 
 # WL13804-FR12 - The `util.dumpTables()` function must create:
 #    * table data dumps, as specified in WL#13807, FR7,
@@ -285,7 +308,11 @@ def TEST_LOAD(schema, table, chunked):
 EXPECT_FAIL("RuntimeError", "An open session is required to perform this operation.", 'mysql', ['user'], test_output_relative)
 
 #@<> deploy sandbox
-testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root")
+testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root", {
+    "loose_innodb_directories": filename_for_file(table_data_directory),
+    "early-plugin-load": "keyring_file." + ("dll" if __os_type == "windows" else "so"),
+    "keyring_file_data": filename_for_file(os.path.join(incompatible_table_directory, "keyring"))
+})
 
 #@<> wait for server
 testutil.wait_sandbox_alive(uri)
@@ -357,6 +384,16 @@ session.run_sql("INSERT INTO !.! (`id`, `data`) VALUES (1, 1), (NULL, NULL);", [
 
 for table in [test_table_primary, test_table_unique, test_table_non_unique, test_table_no_index]:
     session.run_sql("ANALYZE TABLE !.!;", [ test_schema, table ])
+
+#@<> schema with MySQLaaS incompatibilities
+session.run_sql("ALTER DATABASE ! CHARACTER SET latin1;", [ incompatible_schema ])
+session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT) ENGINE=MyISAM DEFAULT CHARSET=latin1;", [ incompatible_schema, incompatible_table_wrong_engine ])
+session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT) ENGINE=InnoDB ENCRYPTION = 'Y' DEFAULT CHARSET=latin1;", [ incompatible_schema, incompatible_table_encryption ])
+session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT) ENGINE=InnoDB DATA DIRECTORY = '{0}' DEFAULT CHARSET=latin1;".format(filename_for_file(table_data_directory)), [ incompatible_schema, incompatible_table_data_directory ])
+session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT) ENGINE=MyISAM INDEX DIRECTORY = '{0}' DEFAULT CHARSET=latin1;".format(filename_for_file(table_index_directory)), [ incompatible_schema, incompatible_table_index_directory ])
+session.run_sql("CREATE TABLESPACE ! ADD DATAFILE 't_s_1.ibd' ENGINE=INNODB;", [ incompatible_tablespace ])
+session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT) TABLESPACE ! DEFAULT CHARSET=latin1;", [ incompatible_schema, incompatible_table_tablespace, incompatible_tablespace ])
+session.run_sql("CREATE VIEW !.! AS SELECT `data` FROM !.!;", [ incompatible_schema, incompatible_view, incompatible_schema, incompatible_table_wrong_engine ])
 
 #@<> count types tables
 types_schema_tables = []
@@ -613,6 +650,24 @@ TEST_STRING_OPTION("ociProfile")
 
 #@<> WL13804-FR5.7.2 - If the value of `ociProfile` option is a non-empty string and the value of `osBucketName` option is an empty string, an exception must be thrown.
 EXPECT_FAIL("ValueError", "The option 'ociProfile' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociProfile": "profile" })
+
+#@<> Validate that the option ociParManifest only take boolean values as valid values.
+TEST_BOOL_OPTION("ociParManifest")
+
+#@<> Validate that the option ociParManifest is valid only when doing a dump to OCI.
+EXPECT_FAIL("ValueError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociParManifest": True })
+EXPECT_FAIL("ValueError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociParManifest": False })
+
+#@<> Doing a dump to file system with ociParManifest set to True and ociParExpireTime set to a valid value. Validate that dump fails because ociParManifest is not valid if osBucketName is not specified.
+EXPECT_FAIL("ValueError", "The option 'ociParManifest' cannot be used when the value of 'osBucketName' option is not set.", types_schema, types_schema_tables, test_output_relative, { "ociParManifest": True, "ociParExpireTime": "2021-01-01" })
+
+#@<> Validate that the option ociParExpireTime only take string values
+TEST_STRING_OPTION("ociParExpireTime")
+
+#@<> Doing a dump to OCI ociParManifest not set or set to False and ociParExpireTime set to a valid value. Validate that the dump fail because ociParExpireTime it's valid only when ociParManifest is set to True.
+EXPECT_FAIL("ValueError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", types_schema, types_schema_tables, test_output_relative, { "ociParExpireTime": "2021-01-01" })
+EXPECT_FAIL("ValueError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", types_schema, types_schema_tables, test_output_relative, { "osBucketName": "bucket", "ociParExpireTime": "2021-01-01" })
+EXPECT_FAIL("ValueError", "The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.", types_schema, types_schema_tables, test_output_relative, { "osBucketName": "bucket", "ociParManifest": False, "ociParExpireTime": "2021-01-01" })
 
 #@<> WL13804-FR5.8 - The `options` dictionary may contain a `defaultCharacterSet` key with a string value, which specifies the character set to be used during the dump. The session variables `character_set_client`, `character_set_connection`, and `character_set_results` must be set to this value for each opened connection.
 TEST_STRING_OPTION("defaultCharacterSet")
@@ -899,8 +954,6 @@ EXPECT_FAIL("ValueError", "Invalid options: excludeUsers", types_schema, types_s
 EXPECT_FAIL("ValueError", "Invalid options: includeUsers", types_schema, types_schema_tables, test_output_relative, { "includeUsers": "dummy" })
 EXPECT_FAIL("ValueError", "Invalid options: excludeTables", types_schema, types_schema_tables, test_output_relative, { "excludeTables": "dummy" })
 EXPECT_FAIL("ValueError", "Invalid options: excludeSchemas", types_schema, types_schema_tables, test_output_relative, { "excludeSchemas": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: ocimds", types_schema, types_schema_tables, test_output_relative, { "ocimds": "dummy" })
-EXPECT_FAIL("ValueError", "Invalid options: compatibility", types_schema, types_schema_tables, test_output_relative, { "compatibility": "dummy" })
 
 # FR12 - The `util.dumpTables()` function must create:
 # * table data dumps, as specified in WL#13807, FR7,
@@ -942,20 +995,53 @@ for f in [ "@.sql", "@.post.sql" ]:
     EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, f)))
 
 #@<> WL13804-FR13 - It must be possible to load the dump created by `util.dumpTables()` function using `util.loadDump()` function specified in WL#13808.
-# create a small dump to test util.load_dump() options
-EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "ddlOnly": True, "showProgress": False }, test_schema_views)
+# create a full dump to test util.load_dump() options
+EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "showProgress": False }, test_schema_views)
 
-#@<> WL13804-FR13.1 - The `util.loadDump()` function must load the dump into the current schema of the global shell session. If there is no current schema, an exception must be thrown.
-# no active schema
-# WL13804-TSFR_13_1_1
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute), "ValueError: Util.load_dump: The target schema was not specified.")
+test_schema_tables_crc = []
 
-# select a schema, run the test, expect success
-# WL13804-TSFR_13_1
+for table in test_schema_tables:
+    crc = {}
+    crc["table"] = table
+    crc["columns"] = get_all_columns(test_schema, table)
+    crc["crc"] = compute_crc(test_schema, table, crc["columns"])
+    test_schema_tables_crc.append(crc)
+
+#@<> no active schema, dump should be loaded into the original one
+session.run_sql("DROP SCHEMA !;", [ test_schema ])
+
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "showProgress": False }), "loading the dump without active schema in global shell session")
+
+# expect tables and views to be created
+EXPECT_EQ(sorted(test_schema_tables + test_schema_views), sorted(get_all_tables(test_schema)))
+
+# expect data to be correct
+for crc in test_schema_tables_crc:
+    print("---> checking: `{0}`.`{1}`".format(test_schema, crc["table"]))
+    EXPECT_EQ(crc["crc"], compute_crc(test_schema, crc["table"], crc["columns"]))
+
+# remove the progress file
+testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
+
+#@<> active schema, dump should be loaded into the original one
+session.run_sql("DROP SCHEMA !;", [ test_schema ])
 recreate_verification_schema()
+
 session.run_sql("USE !;", [ verification_schema ])
+
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "showProgress": False }), "loading the dump with active schema in global shell session")
-EXPECT_EQ(sorted(test_schema_tables + test_schema_views), sorted(get_all_tables(verification_schema)))
+
+# verification schema should remain empty
+EXPECT_EQ([], sorted(get_all_tables(verification_schema)))
+
+# expect tables and views to be created
+EXPECT_EQ(sorted(test_schema_tables + test_schema_views), sorted(get_all_tables(test_schema)))
+
+# expect data to be correct
+for crc in test_schema_tables_crc:
+    print("---> checking: `{0}`.`{1}`".format(test_schema, crc["table"]))
+    EXPECT_EQ(crc["crc"], compute_crc(test_schema, crc["table"], crc["columns"]))
+
 # remove the progress file
 testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
 
@@ -972,7 +1058,12 @@ EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": False }),
 recreate_verification_schema()
 session.run_sql("USE !;", [ verification_schema ])
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "loading the dump using 'schema' option")
+# expect tables and views to be created
 EXPECT_EQ(sorted(test_schema_tables + test_schema_views), sorted(get_all_tables(verification_schema)))
+# expect data to be correct
+for crc in test_schema_tables_crc:
+    print("---> checking: `{0}`.`{1}`".format(verification_schema, crc["table"]))
+    EXPECT_EQ(crc["crc"], compute_crc(verification_schema, crc["table"], crc["columns"]))
 # remove the progress file
 testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
 
@@ -981,7 +1072,12 @@ testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
 recreate_verification_schema()
 session.run_sql("USE !;", [ "mysql" ])
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "loading the dump using 'schema' option")
+# expect tables and views to be created
 EXPECT_EQ(sorted(test_schema_tables + test_schema_views), sorted(get_all_tables(verification_schema)))
+# expect data to be correct
+for crc in test_schema_tables_crc:
+    print("---> checking: `{0}`.`{1}`".format(verification_schema, crc["table"]))
+    EXPECT_EQ(crc["crc"], compute_crc(verification_schema, crc["table"], crc["columns"]))
 # remove the progress file
 testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
 
@@ -1025,10 +1121,9 @@ EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "dataOnl
 # schema structure was created by the previous test, so ignore existing objects
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "ignoreExistingObjects": True, "showProgress": False }), "loading the dump using 'schema' option")
 # expect data to be correct
-for table in test_schema_tables:
-    print("---> checking: `{0}`.`{1}`".format(verification_schema, table))
-    all_columns = get_all_columns(test_schema, table)
-    EXPECT_EQ(compute_crc(test_schema, table, all_columns), compute_crc(verification_schema, table, all_columns))
+for crc in test_schema_tables_crc:
+    print("---> checking: `{0}`.`{1}`".format(verification_schema, crc["table"]))
+    EXPECT_EQ(crc["crc"], compute_crc(verification_schema, crc["table"], crc["columns"]))
 
 #@<> WL13804-FR13 - full dump
 recreate_verification_schema()
@@ -1039,10 +1134,56 @@ EXPECT_EQ(sorted(test_schema_tables + test_schema_views), sorted(get_all_tables(
 # expect trigger to be created
 EXPECT_EQ(test_table_trigger, session.run_sql("SELECT TRIGGER_NAME from information_schema.triggers WHERE EVENT_OBJECT_SCHEMA = ? AND EVENT_OBJECT_TABLE = ?;", [ test_schema, test_table_no_index ]).fetch_one()[0])
 # expect data to be correct
-for table in test_schema_tables:
-    print("---> checking: `{0}`.`{1}`".format(verification_schema, table))
-    all_columns = get_all_columns(test_schema, table)
-    EXPECT_EQ(compute_crc(test_schema, table, all_columns), compute_crc(verification_schema, table, all_columns))
+for crc in test_schema_tables_crc:
+    print("---> checking: `{0}`.`{1}`".format(verification_schema, crc["table"]))
+    EXPECT_EQ(crc["crc"], compute_crc(verification_schema, crc["table"], crc["columns"]))
+
+#<> simulate old dumpTables() behavior
+# remove the SQL file for schema
+testutil.rmfile(os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+
+# change the global JSON config
+global_config = os.path.join(test_output_absolute, "@.json")
+
+with open(global_config, encoding="utf-8") as json_file:
+    global_json = json.load(json_file)
+
+del global_json["origin"]
+global_json["tableOnly"] = True
+
+with open(global_config, "w", encoding="utf-8") as json_file:
+    json.dump(global_json, json_file)
+
+# change the schema JSON config
+schema_config = os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".json")
+
+with open(schema_config, encoding="utf-8") as json_file:
+    schema_json = json.load(json_file)
+
+schema_json["includesDdl"] = False
+
+with open(schema_config, "w", encoding="utf-8") as json_file:
+    json.dump(schema_json, json_file)
+
+#<> loading an old dumpTables() dump without 'schema' option should fail
+recreate_verification_schema()
+EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "showProgress": False }), "ValueError: Util.load_dump: The target schema was not specified.")
+EXPECT_STDOUT_CONTAINS("ERROR: The dump was created by an older version of the util.dump_tables() function and needs to be loaded into an existing schema. Please set the target schema using the 'schema' option.")
+
+#<> loading an old dumpTables() dump with 'schema' option should succeed
+# remove the progress file
+testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
+
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "loading the old dumpTables() using 'schema' option")
+
+# expect tables and views to be created
+EXPECT_EQ(sorted(test_schema_tables + test_schema_views), sorted(get_all_tables(verification_schema)))
+# expect trigger to be created
+EXPECT_EQ(test_table_trigger, session.run_sql("SELECT TRIGGER_NAME from information_schema.triggers WHERE EVENT_OBJECT_SCHEMA = ? AND EVENT_OBJECT_TABLE = ?;", [ test_schema, test_table_no_index ]).fetch_one()[0])
+# expect data to be correct
+for crc in test_schema_tables_crc:
+    print("---> checking: `{0}`.`{1}`".format(verification_schema, crc["table"]))
+    EXPECT_EQ(crc["crc"], compute_crc(verification_schema, crc["table"], crc["columns"]))
 
 #@<> WL13804-FR15 - Once the dump is complete, the summary of the export process must be presented to the user. It must contain:
 # * The number of rows written.
@@ -1083,6 +1224,84 @@ for f in os.listdir(test_output_absolute):
     path = os.path.join(test_output_absolute, f)
     EXPECT_EQ(0o640, stat.S_IMODE(os.stat(path).st_mode))
     EXPECT_EQ(os.getuid(), os.stat(path).st_uid)
+
+
+#@<> The `options` dictionary may contain a `ocimds` key with a Boolean or string value, which specifies whether the compatibility checks with `MySQL Database Service` and DDL substitutions should be done.
+TEST_BOOL_OPTION("ocimds")
+
+#@<> If the `ocimds` option is set to `true`, the following must be done:
+# * General
+#   * Add the `mysql` schema to the schema exclusion list
+# * GRANT
+#   * Check whether users or roles are granted the following privileges and error out if so.
+#     * SUPER,
+#     * FILE,
+#     * RELOAD,
+#     * BINLOG_ADMIN,
+#     * SET_USER_ID.
+# * CREATE TABLE
+#   * If ENGINE is not `InnoDB`, an exception must be raised.
+#   * DATA|INDEX DIRECTORY and ENCRYPTION options must be commented out.
+#   * Same restrictions for partitions.
+# * CHARSETS - checks whether db objects use any other character set than supported utf8mb4.
+EXPECT_FAIL("RuntimeError", "Compatibility issues were found", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "ocimds": True })
+EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {0}".format(__mysh_version))
+
+if __version_num < 80000:
+    EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first. You can check for potential upgrade issues using util.check_for_server_upgrade().")
+
+EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_data_directory))
+
+EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had ENCRYPTION table option commented out".format(incompatible_schema, incompatible_table_encryption))
+
+if __version_num < 80000 and __os_type != "windows":
+    EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_index_directory))
+
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM (fix this with 'force_innodb' compatibility option)".format(incompatible_schema, incompatible_table_index_directory))
+
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported tablespace option (fix this with 'strip_tablespaces' compatibility option)".format(incompatible_schema, incompatible_table_tablespace))
+
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM (fix this with 'force_innodb' compatibility option)".format(incompatible_schema, incompatible_table_wrong_engine))
+
+EXPECT_STDOUT_CONTAINS("ERROR: View {0}.{1} - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)".format(incompatible_schema, incompatible_view))
+
+EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version))
+
+#@<> If the `ocimds` option is not given, a default value of `false` must be used instead.
+EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
+
+#@<> The `options` dictionary may contain a `compatibility` key with an array of strings value, which specifies the `MySQL Database Service`-related compatibility modifications that should be applied when creating the DDL files.
+TEST_ARRAY_OF_STRINGS_OPTION("compatibility")
+
+EXPECT_FAIL("ValueError", "Unknown compatibility option: dummy", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "dummy" ] })
+EXPECT_FAIL("ValueError", "Unknown compatibility option: ", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "" ] })
+
+#@<> The `compatibility` option may contain the following values:
+# * `force_innodb` - replace incompatible table engines with `InnoDB`,
+# * `strip_restricted_grants` - remove disallowed grants.
+# * `strip_tablespaces` - remove unsupported tablespace syntax.
+# * `strip_definers` - remove DEFINER clause from views, triggers, events and routines and change SQL SECURITY property to INVOKER for views and routines.
+EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "compatibility": [ "force_innodb", "strip_definers", "strip_restricted_grants", "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
+
+#@<> force_innodb
+EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "compatibility": [ "force_innodb" ] , "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
+EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_index_directory))
+EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_wrong_engine))
+
+#@<> strip_definers
+EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "compatibility": [ "strip_definers" ] , "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
+EXPECT_STDOUT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQL SECURITY characteristic set to INVOKER".format(incompatible_schema, incompatible_view))
+
+#@<> strip_tablespaces
+EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "compatibility": [ "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
+EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported tablespace option removed".format(incompatible_schema, incompatible_table_tablespace))
+
+#@<> If the `compatibility` option is not given, a default value of `[]` must be used instead.
+EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
+EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_index_directory))
+EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_wrong_engine))
+EXPECT_STDOUT_NOT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQL SECURITY characteristic set to INVOKER".format(incompatible_schema, incompatible_view))
+EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported tablespace option removed".format(incompatible_schema, incompatible_table_tablespace))
 
 #@<> test a single table with no chunking
 EXPECT_SUCCESS(world_x_schema, [world_x_table], test_output_absolute, { "chunking": False, "compression": "none", "showProgress": False })
@@ -1661,3 +1880,4 @@ drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")
 session.close()
 testutil.destroy_sandbox(__mysql_sandbox_port1);
+shutil.rmtree(incompatible_table_directory, True)
