@@ -473,7 +473,11 @@ os.remove(test_output_relative)
 
 #@<> WL13807-FR1.1.4 - If a local directory is used and the output directory must be created, `rwxr-x---` permissions should be used on the created directory. The owner of the directory is the user running the Shell. {__os_type != "windows"}
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
-EXPECT_EQ(0o750, stat.S_IMODE(os.stat(test_output_absolute).st_mode))
+# get the umask value
+umask = os.umask(0o777)
+os.umask(umask)
+# use the umask value to compute the expected access rights
+EXPECT_EQ(0o750 & ~umask, stat.S_IMODE(os.stat(test_output_absolute).st_mode))
 EXPECT_EQ(os.getuid(), os.stat(test_output_absolute).st_uid)
 
 #@<> WL13807-FR1.1.5 - If the output directory exists and is not empty, an exception must be thrown.
