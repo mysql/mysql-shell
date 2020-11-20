@@ -82,6 +82,12 @@ void setup_slave(mysqlshdk::mysql::IInstance *master,
   if (stop_slave) {
     log_info("Stopping replication at %s ...", instance->descr().c_str());
     stop_channel(instance, channel_name, dry_run);
+
+    // If the replication channel was stopped due to an error it's not possible
+    // to configure it with a CHANGE REPLICA due to a protection to avoid
+    // possible gaps in the replication stream. For that reason, we must always
+    // reset the channel first to avoid being blocked with that protection.
+    reset_channel(instance, channel_name, false, dry_run);
   }
 
   try {
