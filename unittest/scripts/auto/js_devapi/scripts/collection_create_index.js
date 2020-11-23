@@ -4,6 +4,7 @@ session.dropSchema('my_schema');
 var schema = session.createSchema('my_schema');
 var coll = schema.createCollection('my_coll');
 shell.options.resultFormat = 'vertical';
+session.sql("set session sql_mode='TRADITIONAL'").execute();
 
 // This function will retrieve the key columns
 // for my_coll and create global variables with them
