@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -194,8 +194,8 @@ class Test_net_utilities : public mysqlshdk::utils::Net {
 
   std::string get_hostname_impl() const override { return m_hostname; }
 
-  std::string get_fqdn_impl(const std::string &address) const
-      noexcept override {
+  std::string get_fqdn_impl(
+      const std::string &address) const noexcept override {
     const std::string key = "get_fqdn:" + address;
     switch (m_mode) {
       case mysqlshdk::db::replay::Mode::Record: {
