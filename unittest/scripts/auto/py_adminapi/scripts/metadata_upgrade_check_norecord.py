@@ -11,7 +11,9 @@ snapshot_file = 'metadata-1.0.1-8.0.17-snapshot.sql'
 
 #@<> Comparing Upgraded Model vs Actual Model
 # Creates the sample cluster
-testutil.deploy_sandbox(__mysql_sandbox_port1, "root", {'report_host': hostname})
+# Use ANSI_QUOTES and other special modes in sql_mode. The Upgrade should not fail. (BUG#31428813)
+sql_mode = "ANSI_QUOTES,NO_AUTO_VALUE_ON_ZERO,NO_BACKSLASH_ESCAPES,NO_UNSIGNED_SUBTRACTION,PIPES_AS_CONCAT,IGNORE_SPACE,STRICT_TRANS_TABLES,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,TRADITIONAL,NO_ENGINE_SUBSTITUTION";
+testutil.deploy_sandbox(__mysql_sandbox_port1, "root", {'report_host': hostname, 'sql_mode': sql_mode})
 testutil.snapshot_sandbox_conf(__mysql_sandbox_port1)
 shell.connect(__sandbox_uri1)
 dba.create_cluster('sample', {'ipAllowlist': '127.0.0.1,' + hostname_ip});

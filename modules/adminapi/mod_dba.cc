@@ -850,9 +850,9 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     bool connect_to_primary = true;
     bool fallback_to_anything = true;
 
-    check_function_preconditions(
-        "Dba.getCluster",
-        std::make_shared<Instance>(get_active_shell_session()));
+    auto target_member = connect_to_target_member();
+
+    check_function_preconditions("Dba.getCluster", target_member);
 
     if (options) {
       Unpack_options(options)
@@ -871,7 +871,8 @@ std::shared_ptr<Cluster> Dba::get_cluster(
       // Connect to the target cluster member and
       // also find the primary and connect to it, unless target is already
       // primary or connectToPrimary:false was given
-      connect_to_target_group({}, &metadata, &group_server, connect_to_primary);
+      connect_to_target_group(target_member, &metadata, &group_server,
+                              connect_to_primary);
     } catch (const shcore::Exception &e) {
       // Print warning in case a cluster error is found (e.g., no quorum).
       if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
@@ -1367,7 +1368,7 @@ void Dba::drop_metadata_schema(const shcore::Dictionary_t &options) {
         .end();
   }
 
-  auto instance = std::make_shared<Instance>(get_active_shell_session());
+  auto instance = connect_to_target_member();
   auto state = check_function_preconditions("Dba.dropMetadataSchema", instance);
   auto metadata = std::make_shared<MetadataStorage>(instance);
 
@@ -3462,7 +3463,8 @@ void Dba::upgrade_metadata(const shcore::Dictionary_t &options) {
         .end();
   }
 
-  auto instance = std::make_shared<Instance>(get_active_shell_session());
+  auto instance = connect_to_target_member();
+
   auto state = check_function_preconditions("Dba.upgradeMetadata", instance);
   auto metadata = std::make_shared<MetadataStorage>(instance);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,10 +31,10 @@
  *
  * 2) PRE SQL Statements: Statements to be executed before the actual migration
  *    takes place, examples of statements include (but not limited to):
- * 
+ *
  * - Data Backup
  * - Removal of conflicting objects: views, stored procedures
- * 
+ *
  * 3) Metadata Deploy Tag: Indicates the target metadata schema to be deployed
  *    once the PRE SQL statements are executed, the format is:
  *
@@ -60,7 +60,7 @@ USE mysql_innodb_cluster_metadata;
 
 /*
  * The following tables are discarded in favor of views with the same name.
- * 
+ *
  * They are already backed up by the upgrade initial backup at
  * mysql_innodb_cluster_metadata_previous
  */
@@ -109,7 +109,7 @@ UPDATE instances
     AND   CAST(SUBSTRING_INDEX(addresses->>'$.mysqlX', ':', -1) AS UNSIGNED) > 65535;
 
 INSERT INTO routers
-    SELECT r.router_id, r.router_name, "MySQL Router", h.host_name,
+    SELECT r.router_id, r.router_name, 'MySQL Router', h.host_name,
         r.attributes->>'$.version', NULL, r.attributes,
     CAST(c.cluster_id AS CHAR(36)), NULL
     FROM mysql_innodb_cluster_metadata_previous.routers AS r,

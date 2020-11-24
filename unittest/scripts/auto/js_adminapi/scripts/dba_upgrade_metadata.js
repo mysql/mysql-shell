@@ -4,17 +4,18 @@
 metadata_1_0_1_file = "metadata_1_0_1.sql";
 
 //@<> Configures custom user on the instance
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+// Use ANSI_QUOTES and other special modes in sql_mode. The Upgrade should not fail. (BUG#31428813)
+var sql_mode = "ANSI_QUOTES,NO_AUTO_VALUE_ON_ZERO,NO_BACKSLASH_ESCAPES,NO_UNSIGNED_SUBTRACTION,PIPES_AS_CONCAT,IGNORE_SPACE,STRICT_TRANS_TABLES,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,TRADITIONAL,NO_ENGINE_SUBSTITUTION";
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname, sql_mode: sql_mode});
 dba.configureInstance(__sandbox_uri1, {clusterAdmin: 'tst_admin', clusterAdminPassword: 'tst_pwd'});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1)
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname, sql_mode: sql_mode});
 dba.configureInstance(__sandbox_uri2, {clusterAdmin: 'tst_admin', clusterAdminPassword: 'tst_pwd'});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2)
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname, sql_mode: sql_mode});
 dba.configureInstance(__sandbox_uri3, {clusterAdmin: 'tst_admin', clusterAdminPassword: 'tst_pwd'});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3)
 cluster_admin_uri= "mysql://tst_admin:tst_pwd@" + __host + ":" + __mysql_sandbox_port1;
-
 
 //@<> upgradeMetadata without connection
 EXPECT_THROWS(function(){dba.upgradeMetadata()}, "An open session is required to perform this operation")
@@ -35,7 +36,6 @@ shell.connect(cluster_admin_uri);
 var cluster = dba.createCluster('sample');
 cluster.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
 cluster.addInstance(__sandbox_uri3, {recoveryMethod:'incremental'});
-
 
 shell.connect(__sandbox_uri1);
 var group_name = session.runSql("SELECT @@group_replication_group_name").fetchOne()[0];
@@ -107,7 +107,6 @@ shell.connect(__sandbox_uri2);
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 dba.upgradeMetadata()
 
-
 //@<> WL13386-TSFR1_4 Upgrades the metadata, interactive off, error
 shell.connect(__sandbox_uri1);
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
@@ -152,24 +151,23 @@ EXPECT_NO_THROWS(function () { dba.upgradeMetadata({interactive:true})});
 //@<> WL13386-TSFR2_1 Account Verification
 // Verifying grants for mysql_router_test
 session.runSql("SHOW GRANTS FOR mysql_router_test@`%`")
-EXPECT_STDOUT_CONTAINS("GRANT USAGE ON *.*")
-EXPECT_STDOUT_CONTAINS("GRANT SELECT, EXECUTE ON `mysql_innodb_cluster_metadata`.*")
-EXPECT_STDOUT_CONTAINS("GRANT INSERT, UPDATE, DELETE ON `mysql_innodb_cluster_metadata`.`routers`")
-EXPECT_STDOUT_CONTAINS("GRANT INSERT, UPDATE, DELETE ON `mysql_innodb_cluster_metadata`.`v2_routers`")
-EXPECT_STDOUT_CONTAINS("GRANT SELECT ON `performance_schema`.`global_variables`")
-EXPECT_STDOUT_CONTAINS("GRANT SELECT ON `performance_schema`.`replication_group_member_stats`")
-EXPECT_STDOUT_CONTAINS("GRANT SELECT ON `performance_schema`.`replication_group_members`")
+EXPECT_STDOUT_CONTAINS('GRANT USAGE ON *.*')
+EXPECT_STDOUT_CONTAINS('GRANT SELECT, EXECUTE ON "mysql_innodb_cluster_metadata".*')
+EXPECT_STDOUT_CONTAINS('GRANT INSERT, UPDATE, DELETE ON "mysql_innodb_cluster_metadata"."routers"')
+EXPECT_STDOUT_CONTAINS('GRANT INSERT, UPDATE, DELETE ON "mysql_innodb_cluster_metadata"."v2_routers"')
+EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."global_variables"')
+EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_member_stats"')
+EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_members"')
 
 // Verifying grants for mysql_router1_bc0e9n9dnfzk
-session.runSql("SHOW GRANTS FOR mysql_router1_bc0e9n9dnfzk@`%`")
-EXPECT_STDOUT_CONTAINS("GRANT USAGE ON *.*")
-EXPECT_STDOUT_CONTAINS("GRANT SELECT, EXECUTE ON `mysql_innodb_cluster_metadata`.*")
-EXPECT_STDOUT_CONTAINS("GRANT INSERT, UPDATE, DELETE ON `mysql_innodb_cluster_metadata`.`routers`")
-EXPECT_STDOUT_CONTAINS("GRANT INSERT, UPDATE, DELETE ON `mysql_innodb_cluster_metadata`.`v2_routers`")
-EXPECT_STDOUT_CONTAINS("GRANT SELECT ON `performance_schema`.`global_variables`")
-EXPECT_STDOUT_CONTAINS("GRANT SELECT ON `performance_schema`.`replication_group_member_stats`")
-EXPECT_STDOUT_CONTAINS("GRANT SELECT ON `performance_schema`.`replication_group_members`")
-
+session.runSql('SHOW GRANTS FOR mysql_router1_bc0e9n9dnfzk@"%"')
+EXPECT_STDOUT_CONTAINS('GRANT USAGE ON *.*')
+EXPECT_STDOUT_CONTAINS('GRANT SELECT, EXECUTE ON "mysql_innodb_cluster_metadata".*')
+EXPECT_STDOUT_CONTAINS('GRANT INSERT, UPDATE, DELETE ON "mysql_innodb_cluster_metadata"."routers"')
+EXPECT_STDOUT_CONTAINS('GRANT INSERT, UPDATE, DELETE ON "mysql_innodb_cluster_metadata"."v2_routers"')
+EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."global_variables"')
+EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_member_stats"')
+EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_members"')
 
 //@ Second upgrade attempt should succeed
 testutil.expectPrompt("Please select an option: ", "2")
@@ -189,13 +187,13 @@ dba.upgradeMetadata({interactive:true});
 session.runSql("SHOW GRANTS FOR mysql_router2_bc0e9n9dnfzk@`%`")
 EXPECT_STDOUT_CONTAINS("Updating Router accounts...")
 EXPECT_STDOUT_CONTAINS("NOTE: 3 Router accounts have been updated.")
-EXPECT_STDOUT_CONTAINS("GRANT USAGE ON *.*")
-EXPECT_STDOUT_CONTAINS("GRANT SELECT, EXECUTE ON `mysql_innodb_cluster_metadata`.*")
-EXPECT_STDOUT_CONTAINS("GRANT INSERT, UPDATE, DELETE ON `mysql_innodb_cluster_metadata`.`routers`")
-EXPECT_STDOUT_CONTAINS("GRANT INSERT, UPDATE, DELETE ON `mysql_innodb_cluster_metadata`.`v2_routers`")
-EXPECT_STDOUT_CONTAINS("GRANT SELECT ON `performance_schema`.`global_variables`")
-EXPECT_STDOUT_CONTAINS("GRANT SELECT ON `performance_schema`.`replication_group_member_stats`")
-EXPECT_STDOUT_CONTAINS("GRANT SELECT ON `performance_schema`.`replication_group_members`")
+EXPECT_STDOUT_CONTAINS('GRANT USAGE ON *.*')
+EXPECT_STDOUT_CONTAINS('GRANT SELECT, EXECUTE ON "mysql_innodb_cluster_metadata".*')
+EXPECT_STDOUT_CONTAINS('GRANT INSERT, UPDATE, DELETE ON "mysql_innodb_cluster_metadata"."routers"')
+EXPECT_STDOUT_CONTAINS('GRANT INSERT, UPDATE, DELETE ON "mysql_innodb_cluster_metadata"."v2_routers"')
+EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."global_variables"')
+EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_member_stats"')
+EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_members"')
 
 //@ Test Migration from 1.0.1 to 2.0.0
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
