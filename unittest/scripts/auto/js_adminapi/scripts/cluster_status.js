@@ -207,6 +207,16 @@ session1.runSql("update mysql_innodb_cluster_metadata.instances set mysql_server
 
 cluster.status();
 
+//@ instanceError mismatch would not be reported correctly if the member is not in the group
+// Bug#31991496 INSTANCEERRORS DO NOT PILE UP IN CLUSTER.STATUS
+session2.runSql("stop group_replication");
+
+cluster.status();
+
+session2.runSql("start group_replication");
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+//@<> restore the original uuid
 session1.runSql("update mysql_innodb_cluster_metadata.instances set mysql_server_uuid=? where instance_id=?", [uuid, instance_id]);
 
 //@<OUT> Status cluster
