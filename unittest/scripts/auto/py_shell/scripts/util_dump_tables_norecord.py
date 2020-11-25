@@ -1081,8 +1081,13 @@ for crc in test_schema_tables_crc:
 # remove the progress file
 testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
 
-#@<> dump does not contain users information, trying to load it should fail
-EXPECT_THROWS(lambda: util.load_dump(test_output_absolute, { "loadUsers": True }), "ValueError: Util.load_dump: The 'loadUsers' option is set to true, but the dump does not contain the user data.")
+#@<> dump does not contain users information, trying to load it should result in a warning
+recreate_verification_schema()
+
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "loadUsers": True, "schema": verification_schema, "showProgress": False }), "loading the dump using 'loadUsers' option")
+EXPECT_STDOUT_CONTAINS("WARNING: The 'loadUsers' option is set to true, but the dump does not contain the user data.")
+
+testutil.rmfile(os.path.join(test_output_absolute, "load-progress*"))
 
 #@<> WL13804-FR13.2.1 - If the specified schema does not exist, an exception must be thrown.
 # WL13804-TSFR_13_2_1

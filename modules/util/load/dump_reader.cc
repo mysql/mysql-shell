@@ -620,7 +620,7 @@ void Dump_reader::replace_target_schema(const std::string &schema) {
 
 void Dump_reader::validate_options() {
   if (m_options.load_users() && !m_contents.has_users) {
-    throw std::invalid_argument(
+    current_console()->print_warning(
         "The 'loadUsers' option is set to true, but the dump does not contain "
         "the user data.");
   }
