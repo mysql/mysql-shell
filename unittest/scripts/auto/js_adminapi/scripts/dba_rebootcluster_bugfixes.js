@@ -192,7 +192,7 @@ wait(10, 0.1, function() {
 println("transactions at sb1:");
 session.runSql("SELECT received_transaction_set, @@global.gtid_executed FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'");
 
-testutil.stopSandbox(__mysql_sandbox_port1);
+testutil.killSandbox(__mysql_sandbox_port1);
 
 println("transactions at sb2 before restart:");
 session2.runSql("show schemas");
@@ -285,7 +285,22 @@ session1.runSql("SET GLOBAL super_read_only=0");
 session1.runSql("CREATE DATABASE ERRANTDB1");
 var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
 
+//@<> BUG#32112864 - REBOOTCLUSTERFROMCOMPLETEOUTAGE() DOES NOT EXCLUDE INSTANCES IF IN OPTION "REMOVEINSTANCES" LIST
+EXPECT_NO_THROWS(function(){var c = dba.rebootClusterFromCompleteOutage("test", {removeInstances: [uri2]})});
+
+//@<> Verify instance2 was removed from the cluster
+EXPECT_FALSE(exist_in_metadata_schema(__mysql_sandbox_port2));
+
+//@<> Clean instance 2 errant transactions
+session2.runSql("DROP DATABASE ERRANTDB2");
+session2.runSql("RESET MASTER");
+
+//@<> Add instance2 back to the cluster
+c.addInstance(__sandbox_uri2);
+
 //@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying to run rejoinInstance
+session1.runSql("STOP group_replication");
+session2.runSql("STOP group_replication");
 session1.runSql("FLUSH BINARY LOGS");
 session1.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
 session2.runSql("RESET MASTER");

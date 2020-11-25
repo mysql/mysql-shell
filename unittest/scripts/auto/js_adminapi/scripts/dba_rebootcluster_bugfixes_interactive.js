@@ -141,6 +141,9 @@ testutil.killSandbox(__mysql_sandbox_port1);
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port3);
 testutil.startSandbox(__mysql_sandbox_port1);
+session1 = mysql.getSession(__sandbox_uri1);
+session2 = mysql.getSession(__sandbox_uri2);
+session3 = mysql.getSession(__sandbox_uri3);
 
 //@<> BUG#29305551: Setup asynchronous replication
 shell.connect(__sandbox_uri1);
@@ -170,6 +173,16 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@<OUT> Check cluster status after reboot - uri2 should not be present
 c.status();
+
+//@<> BUG#32112864 - REBOOTCLUSTERFROMCOMPLETEOUTAGE() DOES NOT EXCLUDE INSTANCES IF IN OPTION "REMOVEINSTANCES" LIST
+session1.runSql("STOP group_replication;")
+session3.runSql("STOP group_replication;")
+session3.runSql("SET GLOBAL super_read_only=0");
+session3.runSql("CREATE DATABASE ERRANTDB2");
+
+testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "n");
+testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "n");
+EXPECT_NO_THROWS(function(){var c = dba.rebootClusterFromCompleteOutage("test")});
 
 //@ BUG#29305551: Finalization
 session.close();

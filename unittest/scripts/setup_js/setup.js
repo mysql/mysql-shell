@@ -421,9 +421,14 @@ function normalize_rs_options(options) {
 }
 
 // Check if the instance exists in the Metadata schema
-function exist_in_metadata_schema() {
-  var result = session.runSql(
+function exist_in_metadata_schema(port) {
+  if (typeof port == "number") {
+    var result = session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE instance_name = '" + hostname + ":" + port + "';");
+  } else {
+    var result = session.runSql(
       'SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances where CAST(mysql_server_uuid AS char ascii) = CAST(@@server_uuid AS char ascii);');
+  }
+
   var row = result.fetchOne();
   return row[0] != 0;
 }
@@ -1111,7 +1116,7 @@ function ClusterScenario(ports, create_cluster_options, sandboxConfiguration) {
       var uri = `root:root@localhost:${ports[i]}`;
       dba.configureInstance(uri, sandboxConfiguration);
     }
-    
+
     if (testutil.versionCheck(__version, "<", "8.0.0")) {
       testutil.snapshotSandboxConf(ports[i]);
     }

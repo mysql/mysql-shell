@@ -2761,7 +2761,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   shcore::Array_t remove_instances_ref, rejoin_instances_ref;
   std::vector<std::string> remove_instances_list, rejoin_instances_list,
-      instances_lists_intersection;
+      instances_lists_intersection, instances_to_skip_gtid_check;
 
   bool interactive = current_shell_options()->get().wizards;
   const auto console = current_console();
@@ -2821,6 +2821,10 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
             "'removeInstances' list.");
 
       remove_instances_list.push_back(value.get_string());
+
+      // The user wants to explicitly remove the instance from the cluster, so
+      // it must be skipped on the GTID check
+      instances_to_skip_gtid_check.push_back(value.get_string());
     }
   }
 
@@ -2999,6 +3003,10 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
                                mysqlsh::Prompt_answer::NO) ==
               mysqlsh::Prompt_answer::YES) {
             rejoin_instances_list.push_back(instance_address);
+          } else {
+            // The user doesn't want to rejoin the instance to the cluster,
+            // so it must be skipped on the GTID check
+            instances_to_skip_gtid_check.push_back(instance_address);
           }
           console->println();
         }
@@ -3055,6 +3063,10 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
                 "Would you like to remove it from the cluster's metadata?",
                 mysqlsh::Prompt_answer::NO) == mysqlsh::Prompt_answer::YES) {
           remove_instances_list.push_back(instance_address);
+
+          // The user wants to explicitly remove the instance from the cluster,
+          // so it must be skipped on the GTID check
+          instances_to_skip_gtid_check.push_back(instance_address);
         }
         console->println();
       }
@@ -3063,10 +3075,13 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
   // 5. Verify which of the online instances has the GTID superset.
   // 5.1 Skip the verification on the list of instances to be removed:
-  // "removeInstances" 5.2 If the current session instance doesn't have the
-  // GTID superset, error out with that information and including on the
-  // message the instance with the GTID superset
-  validate_instances_gtid_reboot_cluster(cluster, options, *target_instance);
+  // "removeInstances" and the instances that were explicitly indicated to not
+  // be rejoined
+  // 5.2 If the current session instance doesn't have the GTID
+  // superset, error out with that information and including on the message the
+  // instance with the GTID superset
+  validate_instances_gtid_reboot_cluster(cluster, options, *target_instance,
+                                         instances_to_skip_gtid_check);
 
   // 6. Set the current session instance as the seed instance of the Cluster
   {
@@ -3278,7 +3293,8 @@ Dba::validate_instances_status_reboot_cluster(
 void Dba::validate_instances_gtid_reboot_cluster(
     std::shared_ptr<Cluster> cluster,
     const shcore::Value::Map_type_ref &options,
-    const mysqlshdk::mysql::IInstance &target_instance) {
+    const mysqlshdk::mysql::IInstance &target_instance,
+    const std::vector<std::string> &instances_to_skip) {
   auto console = current_console();
 
   // list of replication channel names that must be considered when comparing
@@ -3308,7 +3324,16 @@ void Dba::validate_instances_gtid_reboot_cluster(
   std::vector<Instance_metadata> instances = cluster->impl()->get_instances();
 
   for (const auto &inst : instances) {
-    if (inst.endpoint == instance_gtids[0].server) continue;
+    bool skip_instance = false;
+
+    // Check if there are instances to skip
+    if (!instances_to_skip.empty()) {
+      for (const auto &instance : instances_to_skip) {
+        if (instance == inst.address) skip_instance = true;
+      }
+    }
+
+    if ((inst.endpoint == instance_gtids[0].server) || skip_instance) continue;
 
     auto connection_options =
         shcore::get_connection_options(inst.endpoint, false);
