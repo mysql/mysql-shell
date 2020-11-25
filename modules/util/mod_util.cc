@@ -1715,7 +1715,10 @@ the "compatibility" option.
 storage engine. This option will modify the ENGINE= clause of CREATE TABLE
 statements that use incompatible storage engines and replace them with InnoDB.
 
-<b>strip_definers</b> - strips the "DEFINER=account" clause from views, routines,
+<b>skip_invalid_accounts</b> - Skips accounts which use authentication methods
+(plugins) not supported by the MySQL Database Service.
+
+<b>strip_definers</b> - Strips the "DEFINER=account" clause from views, routines,
 events and triggers. The MySQL Database Service requires special privileges to
 create these objects with a definer other than the user loading the schema.
 By stripping the DEFINER clause, these objects will be created with that default
@@ -1819,8 +1822,8 @@ REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_MDS_COMMON_OPTIONS, R"*(
 MySQL Database Service (MDS)
 @li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
 Database Service compatibility modifications when writing dump files. Supported
-values: "force_innodb", "strip_definers", "strip_restricted_grants",
-"strip_tablespaces".)*");
+values: "force_innodb", "skip_invalid_accounts", "strip_definers",
+"strip_restricted_grants", "strip_tablespaces".)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS, R"*(
 @li <b>excludeTables</b>: list of strings (default: empty) - List of tables to

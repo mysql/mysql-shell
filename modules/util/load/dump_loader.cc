@@ -1603,6 +1603,15 @@ void Dump_loader::open_dump(
     throw std::runtime_error("Unsupported dump version");
   }
 
+  if (m_dump->dump_version() <
+      mysqlshdk::utils::Version(dump::Schema_dumper::version())) {
+    console->print_note(
+        "Dump format has version " + m_dump->dump_version().get_full() +
+        " and was created by an older version of MySQL Shell. "
+        "If you experience problems loading it, please recreate the dump using "
+        "the current version of MySQL Shell and try again.");
+  }
+
   if (status != Dump_reader::Status::COMPLETE) {
     if (m_options.dump_wait_timeout_ms() > 0) {
       console->print_note(

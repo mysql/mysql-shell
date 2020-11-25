@@ -44,6 +44,8 @@ std::unique_ptr<Schema_dumper> Ddl_dumper::schema_dumper(
       options.is_set(Compatibility_option::STRIP_RESTRICTED_GRANTS);
   dumper->opt_strip_tablespaces =
       options.is_set(Compatibility_option::STRIP_TABLESPACES);
+  dumper->opt_skip_invalid_accounts =
+      options.is_set(Compatibility_option::SKIP_INVALID_ACCOUNTS);
 
   return dumper;
 }

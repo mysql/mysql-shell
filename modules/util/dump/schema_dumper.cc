@@ -25,7 +25,7 @@
 // Dump a table's contents and format to a text file.
 // Adapted from mysqldump.cc
 
-#define DUMP_VERSION "1.0.1"
+#define DUMP_VERSION "1.0.2"
 
 #include "include/mysh_config.h"
 
@@ -2550,8 +2550,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
   log_debug("Dumping grants for server");
 
   fputs("--\n-- Dumping user accounts\n--\n\n", file);
-  const auto users = get_users(included, excluded);
-  for (const auto &u : users) {
+
+  std::vector<std::string> users;
+
+  for (const auto &u : get_users(included, excluded)) {
     std::string user = shcore::make_account(u);
 
     if (u.user.find('\'') != std::string::npos) {
@@ -2570,19 +2572,48 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
                                      user);
       return problems;
     }
-    auto create_user = row->get_string(0);
+    const auto create_user = row->get_string(0);
     assert(!create_user.empty());
-    fputs("-- begin user " + user + "\n", file);
-    fputs(shcore::str_replace(create_user, "CREATE USER",
-                              "CREATE USER IF NOT EXISTS") +
-              ";\n",
-          file);
-    fputs("-- end user " + user + "\n\n", file);
+
+    bool add_user = true;
+
+    if (opt_mysqlaas || opt_skip_invalid_accounts) {
+      const auto plugin =
+          compatibility::check_create_user_for_authentication_plugin(
+              create_user);
+
+      if (!plugin.empty()) {
+        // we're removing the user from the list even if
+        // opt_skip_invalid_accounts is not set, account is invalid in MDS, so
+        // other checks can be skipped
+        add_user = false;
+
+        problems.emplace_back(
+            "User " + user +
+                " is using an unsupported authentication plugin '" + plugin +
+                "'" +
+                (opt_skip_invalid_accounts
+                     ? ", this account has been removed from the dump"
+                     : ""),
+            opt_skip_invalid_accounts
+                ? Issue::Status::FIXED
+                : Issue::Status::USE_SKIP_INVALID_ACCOUNTS);
+      }
+    }
+
+    if (add_user) {
+      fputs("-- begin user " + user + "\n", file);
+      fputs(shcore::str_replace(create_user, "CREATE USER",
+                                "CREATE USER IF NOT EXISTS") +
+                ";\n",
+            file);
+      fputs("-- end user " + user + "\n\n", file);
+
+      users.emplace_back(std::move(user));
+    }
   }
 
-  for (const auto &u : users) {
-    std::string user = shcore::make_account(u);
-
+  for (const auto &user : users) {
     auto res = query_log_and_throw("SHOW GRANTS FOR " + user);
     std::vector<std::string> restricted;
     std::vector<std::string> grants;
@@ -2595,8 +2626,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
         // In MySQL <= 5.7, if a user has all privs, the SHOW GRANTS will say
         // ALL PRIVILEGES, which isn't helpful for filtering out grants.
         // Also, ALL PRIVILEGES can appear even in 8.0 for DB grants
-        grant = expand_all_privileges(grant,
-                                      shcore::sqlformat("?@?", u.user, u.host));
+        grant = expand_all_privileges(grant, user);
 
         std::set<std::string> allowed_privs;
         if (opt_mysqlaas || opt_strip_restricted_grants) {

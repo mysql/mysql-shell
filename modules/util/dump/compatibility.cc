@@ -59,6 +59,12 @@ const std::set<std::string> k_mysqlaas_allowed_privileges = {
     "TRIGGER",
     "UPDATE"};
 
+const std::set<std::string> k_mysqlaas_allowed_authentication_plugins = {
+    "caching_sha2_password",
+    "mysql_native_password",
+    "sha256_password",
+};
+
 namespace {
 using Offset = std::pair<std::size_t, std::size_t>;
 using Offsets = std::vector<Offset>;
@@ -177,7 +183,7 @@ bool comment_out_option_with_string(
 }  // namespace
 
 std::vector<std::string> check_privileges(
-    const std::string grant, std::string *rewritten_grant,
+    const std::string &grant, std::string *out_rewritten_grant,
     const std::set<std::string> &privileges) {
   std::vector<std::string> res;
   Offsets offsets;
@@ -214,7 +220,7 @@ std::vector<std::string> check_privileges(
         last_removed = false;
       } else {
         res.emplace_back(token);
-        if (rewritten_grant) {
+        if (out_rewritten_grant) {
           if (grant[prev_pos] == ',')
             offsets.emplace_back(prev_pos, after_pos);
           else if (next == ",")
@@ -235,11 +241,11 @@ std::vector<std::string> check_privileges(
     if (next.empty() || shcore::str_caseeq_mv(next, "ON", "TO", "FROM")) break;
   }
 
-  if (rewritten_grant) {
+  if (out_rewritten_grant) {
     if (remaining_priv == 0)
-      rewritten_grant->clear();
+      out_rewritten_grant->clear();
     else
-      *rewritten_grant = replace_at_offsets(grant, offsets, "");
+      *out_rewritten_grant = replace_at_offsets(grant, offsets, "");
   }
 
   return res;
@@ -757,6 +763,57 @@ std::vector<std::string> check_create_table_for_indexes(
 
   if (rewritten) *rewritten = replace_at_offsets(statement, offsets, "");
   return ret;
+}
+
+std::string check_create_user_for_authentication_plugin(
+    const std::string &create_user, const std::set<std::string> &plugins) {
+  SQL_iterator it(create_user, 0, false);
+
+  if (!shcore::str_caseeq(it.get_next_token(), "CREATE") ||
+      !shcore::str_caseeq(it.get_next_token(), "USER")) {
+    throw std::runtime_error(
+        "Authentication plugin check can be only performed on CREATE USER "
+        "statements");
+  }
+
+  auto user = it.get_next_token();  // IF or user
+
+  if (shcore::str_caseeq(user, "IF")) {
+    it.get_next_token();         // NOT
+    it.get_next_token();         // EXISTS
+    user = it.get_next_token();  // user
+  }
+
+  const auto is_quote = [](char c) {
+    return '\'' == c || '"' == c || '`' == c;
+  };
+
+  assert(!user.empty());
+
+  // if the user name is quoted, @ and host are still remaining, if next token
+  // is equal to '@', host was quoted, needs to be read separately
+  // or
+  // the user name was not quoted, if it ends with '@', host was quoted, needs
+  // to be read separately
+  if ((is_quote(user[0]) && (1 == it.get_next_token().size())) ||
+      ('@' == user.back())) {
+    it.get_next_token();  // host
+  }
+
+  if (shcore::str_caseeq(it.get_next_token(), "IDENTIFIED") &&
+      shcore::str_caseeq(it.get_next_token(), "WITH")) {
+    auto auth_plugin = it.get_next_token();
+
+    if (!auth_plugin.empty() && is_quote(auth_plugin[0])) {
+      auth_plugin = shcore::unquote_string(auth_plugin, auth_plugin[0]);
+    }
+
+    if (plugins.end() == plugins.find(auth_plugin)) {
+      return auth_plugin;
+    }
+  }
+
+  return "";
 }
 
 }  // namespace compatibility

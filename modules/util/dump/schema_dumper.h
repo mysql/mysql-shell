@@ -51,7 +51,8 @@ class Schema_dumper {
       USE_FORCE_INNODB,
       USE_STRIP_DEFINERS,
       USE_STRIP_RESTRICTED_GRANTS,
-      USE_STRIP_TABLESPACES
+      USE_STRIP_TABLESPACES,
+      USE_SKIP_INVALID_ACCOUNTS
     };
 
     Issue(const std::string &d, Status s) : description(d), status(s) {}
@@ -148,6 +149,7 @@ class Schema_dumper {
   bool opt_strip_restricted_grants = false;
   bool opt_strip_tablespaces = false;
   bool opt_strip_definer = false;
+  bool opt_skip_invalid_accounts = false;
   std::string opt_character_set_results = "utf8mb4";
 
   enum enum_set_gtid_purged_mode {

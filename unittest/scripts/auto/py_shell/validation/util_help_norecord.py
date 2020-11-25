@@ -177,8 +177,8 @@ DESCRIPTION
         MySQL Database Service (MDS)
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
-        values: "force_innodb", "strip_definers", "strip_restricted_grants",
-        "strip_tablespaces".
+        values: "force_innodb", "skip_invalid_accounts", "strip_definers",
+        "strip_restricted_grants", "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
@@ -347,7 +347,10 @@ DESCRIPTION
       TABLE statements that use incompatible storage engines and replace them
       with InnoDB.
 
-      strip_definers - strips the "DEFINER=account" clause from views,
+      skip_invalid_accounts - Skips accounts which use authentication methods
+      (plugins) not supported by the MySQL Database Service.
+
+      strip_definers - Strips the "DEFINER=account" clause from views,
       routines, events and triggers. The MySQL Database Service requires
       special privileges to create these objects with a definer other than the
       user loading the schema. By stripping the DEFINER clause, these objects
@@ -465,8 +468,8 @@ DESCRIPTION
         MySQL Database Service (MDS)
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
-        values: "force_innodb", "strip_definers", "strip_restricted_grants",
-        "strip_tablespaces".
+        values: "force_innodb", "skip_invalid_accounts", "strip_definers",
+        "strip_restricted_grants", "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
@@ -615,7 +618,10 @@ DESCRIPTION
       TABLE statements that use incompatible storage engines and replace them
       with InnoDB.
 
-      strip_definers - strips the "DEFINER=account" clause from views,
+      skip_invalid_accounts - Skips accounts which use authentication methods
+      (plugins) not supported by the MySQL Database Service.
+
+      strip_definers - Strips the "DEFINER=account" clause from views,
       routines, events and triggers. The MySQL Database Service requires
       special privileges to create these objects with a definer other than the
       user loading the schema. By stripping the DEFINER clause, these objects
@@ -734,8 +740,8 @@ DESCRIPTION
         MySQL Database Service (MDS)
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
-        values: "force_innodb", "strip_definers", "strip_restricted_grants",
-        "strip_tablespaces".
+        values: "force_innodb", "skip_invalid_accounts", "strip_definers",
+        "strip_restricted_grants", "strip_tablespaces".
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
@@ -877,7 +883,10 @@ DESCRIPTION
       TABLE statements that use incompatible storage engines and replace them
       with InnoDB.
 
-      strip_definers - strips the "DEFINER=account" clause from views,
+      skip_invalid_accounts - Skips accounts which use authentication methods
+      (plugins) not supported by the MySQL Database Service.
+
+      strip_definers - Strips the "DEFINER=account" clause from views,
       routines, events and triggers. The MySQL Database Service requires
       special privileges to create these objects with a definer other than the
       user loading the schema. By stripping the DEFINER clause, these objects
