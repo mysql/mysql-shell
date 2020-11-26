@@ -88,20 +88,19 @@ void Check_instance::check_running_async_repl() {
   auto console = mysqlsh::current_console();
 
   log_debug(
-      "Checking if instance '%s' is running asynchronous (source-replica) "
-      "replication.",
+      "Checking if instance '%s' has asynchronous (source-replica) "
+      "replication configured.",
       m_target_instance->descr().c_str());
 
-  if (mysqlshdk::mysql::is_async_replication_running(*m_target_instance)) {
+  if (mysqlshdk::mysql::is_async_replication_configured(*m_target_instance)) {
     console->print_warning(
         "The instance '" + m_target_instance->descr() +
-        "' cannot be added to an InnoDB cluster because it has the "
-        "asynchronous (source-replica) replication configured and running. "
-        "To add to it a cluster please stop the replica threads by executing "
-        "the query: 'STOP " +
-        mysqlshdk::mysql::get_replica_keyword(
-            m_target_instance->get_version()) +
-        ";'.");
+        "' cannot be added to an InnoDB cluster because it has "
+        "asynchronous (source-replica) replication channel(s) configured."
+        "MySQL InnoDB Cluster does not support manually configured channels as "
+        "they are not managed using the AdminAPI (e.g when PRIMARY moves to "
+        "another member) which may cause cause replication to break or even "
+        "create split brains scenarios (data loss).");
   }
 }
 

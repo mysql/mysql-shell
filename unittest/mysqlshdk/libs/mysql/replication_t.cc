@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -189,7 +189,7 @@ TEST_F(Replication_test, check_replica_gtid_state) {
   EXPECT_EQ(gtidset3, errant);
 }
 
-TEST_F(Replication_test, is_async_replication_running) {
+TEST_F(Replication_test, is_async_replication_configured) {
   std::shared_ptr<Mock_session> mock_session = std::make_shared<Mock_session>();
   mysqlshdk::mysql::Instance instance{mock_session};
 
@@ -199,6 +199,7 @@ TEST_F(Replication_test, is_async_replication_running) {
   // RECEIVER: CONNECTING, APPLIER: ON
   // RECEIVER: CONNECTING, APPLIER: OFF
   // RECEIVER: OFF, APPLIER: ON
+  // RECEIVER: OFF, APPLIER: OFF
 
   // True if RECEIVER: ON, APPLIER: ON
   mock_session
@@ -215,7 +216,7 @@ TEST_F(Replication_test, is_async_replication_running) {
                      {"RECEIVER", "APPLIER"},
                      {Type::String, Type::String},
                      {{"ON", "ON"}}}});
-  EXPECT_TRUE(mysqlshdk::mysql::is_async_replication_running(instance));
+  EXPECT_TRUE(mysqlshdk::mysql::is_async_replication_configured(instance));
 
   // True if RECEIVER: ON, APPLIER: OFF
   mock_session
@@ -232,7 +233,7 @@ TEST_F(Replication_test, is_async_replication_running) {
                      {"RECEIVER", "APPLIER"},
                      {Type::String, Type::String},
                      {{"ON", "OFF"}}}});
-  EXPECT_TRUE(mysqlshdk::mysql::is_async_replication_running(instance));
+  EXPECT_TRUE(mysqlshdk::mysql::is_async_replication_configured(instance));
 
   // True if RECEIVER: CONNECTING, APPLIER: ON
   mock_session
@@ -249,7 +250,7 @@ TEST_F(Replication_test, is_async_replication_running) {
                      {"RECEIVER", "APPLIER"},
                      {Type::String, Type::String},
                      {{"CONNECTING", "ON"}}}});
-  EXPECT_TRUE(mysqlshdk::mysql::is_async_replication_running(instance));
+  EXPECT_TRUE(mysqlshdk::mysql::is_async_replication_configured(instance));
 
   // True if RECEIVER: CONNECTING, APPLIER: OFF
   mock_session
@@ -266,7 +267,7 @@ TEST_F(Replication_test, is_async_replication_running) {
                      {"RECEIVER", "APPLIER"},
                      {Type::String, Type::String},
                      {{"CONNECTING", "OFF"}}}});
-  EXPECT_TRUE(mysqlshdk::mysql::is_async_replication_running(instance));
+  EXPECT_TRUE(mysqlshdk::mysql::is_async_replication_configured(instance));
 
   // True if RECEIVER: CONNECTING, APPLIER: OFF
   mock_session
@@ -283,9 +284,9 @@ TEST_F(Replication_test, is_async_replication_running) {
                      {"RECEIVER", "APPLIER"},
                      {Type::String, Type::String},
                      {{"OFF", "ON"}}}});
-  EXPECT_TRUE(mysqlshdk::mysql::is_async_replication_running(instance));
+  EXPECT_TRUE(mysqlshdk::mysql::is_async_replication_configured(instance));
 
-  // False if RECEIVER: OFF, APPLIER: OFF
+  // True if RECEIVER: OFF, APPLIER: OFF
   mock_session
       ->expect_query(
           "SELECT a.SERVICE_STATE AS RECEIVER, b.SERVICE_STATE "
@@ -300,7 +301,7 @@ TEST_F(Replication_test, is_async_replication_running) {
                      {"RECEIVER", "APPLIER"},
                      {Type::String, Type::String},
                      {{"OFF", "OFF"}}}});
-  EXPECT_FALSE(mysqlshdk::mysql::is_async_replication_running(instance));
+  EXPECT_TRUE(mysqlshdk::mysql::is_async_replication_configured(instance));
 
   // False if there are no results
   mock_session
@@ -314,7 +315,7 @@ TEST_F(Replication_test, is_async_replication_running) {
           "b.CHANNEL_NAME != 'group_replication_applier' AND "
           "b.CHANNEL_NAME != 'group_replication_recovery'")
       .then_return({{"", {}, {}, {}}});
-  EXPECT_FALSE(mysqlshdk::mysql::is_async_replication_running(instance));
+  EXPECT_FALSE(mysqlshdk::mysql::is_async_replication_configured(instance));
 }
 
 TEST_F(Replication_test, estimate_gtid_set_size) {

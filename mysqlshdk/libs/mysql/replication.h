@@ -361,17 +361,17 @@ int64_t generate_server_id();
 
 /**
  * Checks if the asynchronous (master-slave) replication channels and threads
- * are active on the target instance:
- *   - Verifies if the replication I/O thread exists (receiver channel) and is
- * active or connecting to the master
- *   - Verifies if replication applier thread is active (applier channel)
+ * are configured on the target instance:
+ *   - Gets the state of the replication I/O thread (receiver channel)
+ *   - Gets the state of the replication applier thread (applier channel)
  *
  * @param instance Instance to use to perform the check.
  *
  * @return a boolean value indicating if the instance has the asynchronous
  * (master-slave) replication active
  */
-bool is_async_replication_running(const mysqlshdk::mysql::IInstance &instance);
+bool is_async_replication_configured(
+    const mysqlshdk::mysql::IInstance &instance);
 
 /**
  * Get the correct keyword in use for replica/slave regarding the target

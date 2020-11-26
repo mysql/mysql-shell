@@ -1,14 +1,17 @@
 //@ Initialization
 ||
 
-//@<OUT> rejoinInstance async replication error {VER(<8.0.22)}
-ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replication threads by executing the query: 'STOP SLAVE;'
-
-//@<OUT> rejoinInstance async replication error {VER(>=8.0.22)}
-ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication configured and running. Please stop the replication threads by executing the query: 'STOP REPLICA;'
+//@<OUT> rejoinInstance async replication error
+ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured.MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g when PRIMARY moves to another member) which may cause cause replication to break or even create split brains scenarios (data loss).
 
 //@<ERR> rejoinInstance async replication error
-Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is running asynchronous replication. (RuntimeError)
+Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has asynchronous replication configured. (RuntimeError)
+
+//@<OUT> rejoinInstance async replication error with channels stopped
+ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured.MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g when PRIMARY moves to another member) which may cause cause replication to break or even create split brains scenarios (data loss).
+
+//@<ERR> rejoinInstance async replication error with channels stopped
+Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has asynchronous replication configured. (RuntimeError)
 
 //@ Finalization
 ||

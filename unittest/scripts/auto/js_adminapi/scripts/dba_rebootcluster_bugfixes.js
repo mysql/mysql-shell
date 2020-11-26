@@ -144,11 +144,24 @@ shell.connect(__sandbox_uri1);
 var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
 c.status();
 
-//@<> BUG#29305551 - cleanup for next test
-session2 = mysql.getSession(__sandbox_uri2);
-session2.runSql("stop slave");
-c.rejoinInstance(__sandbox_uri2);
+// BUG#32197197: ADMINAPI DOES NOT PROPERLY CHECK FOR PRECONFIGURED REPLICATION CHANNELS
+//
+// Even if replication is not running but configured, the warning/error has to
+// be provided as implemented in BUG#29305551
+session.runSql("STOP group_replication");
+shell.connect(__sandbox_uri2);
+session.runSql("STOP SLAVE");
+
+//@ Reboot cluster from complete outage, secondary runs async replication = should succeed, but rejoin fail with channels stopped
 shell.connect(__sandbox_uri1);
+var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+c.status();
+
+//@<> BUG#29305551: Finalization
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);
 
 //@<> ensure rebootCluster picks the member with the most total transactions, not just the executed ones
 
@@ -164,8 +177,16 @@ shell.connect(__sandbox_uri1);
 // At this point, gtid_executed at sb3 will be bigger than at sb2, but gtid_executed + received will be bigger at sb2.
 // The correct behaviour is for sb2 to become the primary, not sb3.
 
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+
+shell.connect(__sandbox_uri1);
+var c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true});
+c.addInstance(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 c.addInstance(__sandbox_uri3);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
 
@@ -215,7 +236,7 @@ session3.runSql("SELECT received_transaction_set, @@global.gtid_executed FROM pe
 
 // try reboot while connected to sb3 (should fail)
 shell.connect(__sandbox_uri3);
-EXPECT_THROWS(function(){dba.rebootClusterFromCompleteOutage("test");}, "The active session instance (127.0.0.1:"+__mysql_sandbox_port3+") isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '"+hostname+":"+__mysql_sandbox_port2+"'.");
+EXPECT_THROWS(function(){dba.rebootClusterFromCompleteOutage("test");}, "The active session instance ("+hostname+":"+__mysql_sandbox_port3+") isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '"+hostname+":"+__mysql_sandbox_port2+"'.");
 
 // try reboot while connected to sb2 (should pass)
 shell.connect(__sandbox_uri2);
@@ -231,7 +252,7 @@ session3.runSql("stop group_replication");
 shell.connect(__sandbox_uri2);
 var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: []});
 
-//@<> BUG#29305551: Finalization
+//@<> BUG#31673163: Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);

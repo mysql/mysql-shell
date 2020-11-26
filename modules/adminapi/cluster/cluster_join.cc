@@ -529,21 +529,21 @@ void Cluster_join::check_instance_configuration(Check_type type) {
     log_debug("Checking if instance '%s' is running asynchronous replication.",
               m_target_instance->descr().c_str());
 
-    if (mysqlshdk::mysql::is_async_replication_running(*m_target_instance)) {
+    if (mysqlshdk::mysql::is_async_replication_configured(*m_target_instance)) {
       console->print_error(
           "Cannot " +
           std::string(type == Check_type::REJOIN ? "rejoin" : "join") +
           " instance '" + m_target_instance->descr() +
-          "' to the cluster because it has asynchronous "
-          "(source-replica) replication configured and running. Please stop "
-          "the replication threads by executing the query: 'STOP " +
-          mysqlshdk::mysql::get_replica_keyword(
-              m_target_instance->get_version()) +
-          ";'");
+          "' to the cluster because it has asynchronous (source-replica) "
+          "replication channel(s) configured."
+          "MySQL InnoDB Cluster does not support manually configured channels "
+          "as they are not managed using the AdminAPI (e.g when PRIMARY moves "
+          "to another member) which may cause cause replication to break or "
+          "even create split brains scenarios (data loss).");
 
       throw shcore::Exception::runtime_error(
           "The instance '" + m_target_instance->descr() +
-          "' is running asynchronous replication.");
+          "' has asynchronous replication configured.");
     }
 
     // If this is not seed instance, then we should try to read the

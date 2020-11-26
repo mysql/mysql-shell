@@ -174,6 +174,27 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 //@<OUT> Check cluster status after reboot - uri2 should not be present
 c.status();
 
+// BUG#32197197: ADMINAPI DOES NOT PROPERLY CHECK FOR PRECONFIGURED REPLICATION CHANNELS
+//
+// Even if replication is not running but configured, the warning/error has to
+// be provided as implemented in BUG#29305551
+session1.runSql("STOP group_replication");
+session3.runSql("STOP group_replication");
+session2.runSql("STOP SLAVE");
+
+//@ BUG#32197197 - Reboot cluster from complete outage, rejoin fails with channels stopped
+shell.connect(__sandbox_uri1);
+testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "y");
+testutil.expectPrompt("Would you like to rejoin it to the cluster? [y/N]: ", "y");
+var c = dba.rebootClusterFromCompleteOutage("test");
+
+// Waiting for the instances to become online
+testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+
+//@ BUG#32197197 - Check cluster status after reboot - uri2 should not be present
+c.status();
+
 //@<> BUG#32112864 - REBOOTCLUSTERFROMCOMPLETEOUTAGE() DOES NOT EXCLUDE INSTANCES IF IN OPTION "REMOVEINSTANCES" LIST
 session1.runSql("STOP group_replication;")
 session3.runSql("STOP group_replication;")

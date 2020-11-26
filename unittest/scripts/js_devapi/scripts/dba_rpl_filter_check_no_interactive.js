@@ -88,9 +88,9 @@ session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (foo), REPLICATE
 cluster.addInstance(__sandbox_uri3);
 
 session.runSql("CHANGE REPLICATION FILTER REPLICATE_IGNORE_DB = (), REPLICATE_DO_DB = () FOR CHANNEL 'x'");
-session.runSql("RESET SLAVE ALL");
 
 //@# Dba: add_instance succeeds without repl filter
+session.runSql("RESET SLAVE ALL");
 cluster.addInstance(__sandbox_uri3);
 
 //@ Finalization

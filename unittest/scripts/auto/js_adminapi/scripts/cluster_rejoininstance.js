@@ -46,8 +46,20 @@ testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 //@ rejoinInstance async replication error
 c.rejoinInstance(__sandbox_uri2);
 
-// Stop async channel on instance2
+// Stop and reset async channel on instance2
 session.runSql("STOP SLAVE");
+
+// BUG#32197197: ADMINAPI DOES NOT PROPERLY CHECK FOR PRECONFIGURED REPLICATION CHANNELS
+//
+// Even if replication is not running but configured, the warning/error has to
+// be provided as implemented in BUG#29305551
+session.runSql("STOP SLAVE");
+
+//@ rejoinInstance async replication error with channels stopped
+c.rejoinInstance(__sandbox_uri2);
+
+// BUG#32197197: clean-up
+session.runSql("RESET SLAVE ALL");
 
 // Tests for deprecation of ipWhitelist in favor of ipAllowlist
 
