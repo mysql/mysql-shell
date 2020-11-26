@@ -385,6 +385,23 @@ bool is_async_replication_configured(
  */
 std::string get_replica_keyword(const mysqlshdk::utils::Version &version);
 
+/**
+ * Get the correct keyword in use for the replication configuration command:
+ * 'change replication source/master' regarding the target instance version.
+ *
+ * Useful for the construction of queries or output/error messages.
+ *
+ * @param version Version of the target server.
+ * @param command Boolean value to indicate if the keyword is for the
+ * replication configuration command itself or if it is for an optional
+ * parameter of it (e.g. SOURCE_HOST)
+ *
+ * @return a string with the right keyword to be used for the replication
+ * configuration command
+ */
+std::string get_replication_source_keyword(
+    const mysqlshdk::utils::Version &version, bool command = false);
+
 }  // namespace mysql
 }  // namespace mysqlshdk
 

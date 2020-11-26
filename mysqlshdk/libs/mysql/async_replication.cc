@@ -47,25 +47,36 @@ void change_master(mysqlshdk::mysql::IInstance *instance,
           .c_str());
 
   try {
+    std::string source_term_cmd =
+        mysqlshdk::mysql::get_replication_source_keyword(
+            instance->get_version(), true);
+    std::string source_term = mysqlshdk::mysql::get_replication_source_keyword(
+        instance->get_version());
+
     std::string options;
     if (!master_retry_count.is_null())
-      options.append(", MASTER_RETRY_COUNT=" +
-                     std::to_string(*master_retry_count));
+      options.append(", " + source_term +
+                     "_RETRY_COUNT=" + std::to_string(*master_retry_count));
     if (!master_connect_retry.is_null())
-      options.append(", MASTER_CONNECT_RETRY=" +
-                     std::to_string(*master_connect_retry));
+      options.append(", " + source_term +
+                     "_CONNECT_RETRY=" + std::to_string(*master_connect_retry));
     if (!master_delay.is_null())
-      options.append(", MASTER_DELAY=" + std::to_string(*master_delay));
+      options.append(", " + source_term +
+                     "_DELAY=" + std::to_string(*master_delay));
 
-    instance->executef(
-        "CHANGE MASTER TO /*!80011 get_master_public_key=1, */"
-        " MASTER_HOST=/*(*/ ? /*)*/, MASTER_PORT=/*(*/ ? /*)*/,"
-        " MASTER_USER=?, MASTER_PASSWORD=/*((*/ ? /*))*/" +
-            options +
-            ", MASTER_AUTO_POSITION=1"
-            " FOR CHANNEL ?",
-        master_host, master_port, credentials.user, *credentials.password,
-        channel_name);
+    instance->executef("CHANGE " + source_term_cmd +
+                           " TO /*!80011 get_master_public_key=1, */"
+                           " " +
+                           source_term + "_HOST=/*(*/ ? /*)*/, " + source_term +
+                           "_PORT=/*(*/ ? /*)*/,"
+                           " " +
+                           source_term + "_USER=?, " + source_term +
+                           "_PASSWORD=/*((*/ ? /*))*/" + options + ", " +
+                           source_term +
+                           "_AUTO_POSITION=1"
+                           " FOR CHANNEL ?",
+                       master_host, master_port, credentials.user,
+                       *credentials.password, channel_name);
   } catch (const std::exception &e) {
     log_error("Error setting up async replication: %s", e.what());
     throw;
@@ -79,12 +90,18 @@ void change_master_host_port(mysqlshdk::mysql::IInstance *instance,
            channel_name.c_str(), instance->descr().c_str(), master_host.c_str(),
            master_port);
 
+  std::string source_term_cmd =
+      mysqlshdk::mysql::get_replication_source_keyword(instance->get_version(),
+                                                       true);
+  std::string source_term =
+      mysqlshdk::mysql::get_replication_source_keyword(instance->get_version());
+
   try {
-    instance->executef(
-        "CHANGE MASTER TO "
-        " MASTER_HOST=/*(*/ ? /*)*/, MASTER_PORT=/*(*/ ? /*)*/"
-        " FOR CHANNEL ?",
-        master_host, master_port, channel_name);
+    instance->executef("CHANGE " + source_term_cmd + " TO " + source_term +
+                           "_HOST=/*(*/ ? /*)*/, " + source_term +
+                           "_PORT=/*(*/ ? /*)*/ "
+                           "FOR CHANNEL ?",
+                       master_host, master_port, channel_name);
   } catch (const std::exception &e) {
     log_error("Error setting up async replication: %s", e.what());
     throw;

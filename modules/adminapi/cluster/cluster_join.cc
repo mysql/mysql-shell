@@ -291,7 +291,9 @@ void Cluster_join::handle_recovery_account() const {
 
 void Cluster_join::update_change_master() const {
   // See note in handle_recovery_account()
-  log_debug("Re-issuing the CHANGE MASTER command");
+  std::string source_term = mysqlshdk::mysql::get_replication_source_keyword(
+      m_target_instance->get_version());
+  log_debug("Re-issuing the CHANGE %s command", source_term.c_str());
 
   mysqlshdk::gr::change_recovery_credentials(
       *m_target_instance, m_gr_opts.recovery_credentials->user,

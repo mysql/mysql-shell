@@ -877,5 +877,14 @@ std::string get_replica_keyword(const mysqlshdk::utils::Version &version) {
   }
 }
 
+std::string get_replication_source_keyword(
+    const mysqlshdk::utils::Version &version, bool command) {
+  if (version < mysqlshdk::utils::Version(8, 0, 23)) {
+    return "MASTER";
+  } else {
+    return (command == true ? "REPLICATION SOURCE" : "SOURCE");
+  }
+}
+
 }  // namespace mysql
 }  // namespace mysqlshdk

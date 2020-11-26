@@ -40,6 +40,7 @@
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/plugin.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/trandom.h"
@@ -692,9 +693,17 @@ std::map<std::string, utils::nullable<std::string>> get_all_configurations(
 void change_recovery_credentials(const mysqlshdk::mysql::IInstance &instance,
                                  const std::string &rpl_user,
                                  const std::string &rpl_pwd) {
+  std::string source_term_cmd =
+      mysqlshdk::mysql::get_replication_source_keyword(instance.get_version(),
+                                                       true);
+
+  std::string source_term =
+      mysqlshdk::mysql::get_replication_source_keyword(instance.get_version());
+
   std::string change_master_stmt_fmt =
-      "CHANGE MASTER TO MASTER_USER = /*(*/ ? /*)*/, "
-      "MASTER_PASSWORD = /*((*/ ? /*))*/ "
+      "CHANGE " + source_term_cmd + " TO " + source_term +
+      "_USER = /*(*/ ? /*)*/, " + source_term +
+      "_PASSWORD = /*((*/ ? /*))*/ "
       "FOR CHANNEL 'group_replication_recovery'";
   shcore::sqlstring change_master_stmt =
       shcore::sqlstring(change_master_stmt_fmt.c_str(), 0);
