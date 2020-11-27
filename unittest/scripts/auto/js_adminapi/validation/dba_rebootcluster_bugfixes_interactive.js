@@ -100,7 +100,7 @@
 ||
 
 //@<OUT> BUG#29305551 - Reboot cluster from complete outage, rejoin fails
-ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured.MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g when PRIMARY moves to another member) which may cause cause replication to break or even create split brains scenarios (data loss).
+ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured. MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g. when PRIMARY moves to another member) which may cause cause replication to break or even create split-brain scenarios (data loss).
 
 //@<OUT> Check cluster status after reboot - uri2 should not be present
 {
@@ -147,7 +147,7 @@ ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to th
 }
 
 //@<OUT> BUG#32197197 - Reboot cluster from complete outage, rejoin fails with channels stopped
-ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured.MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g when PRIMARY moves to another member) which may cause cause replication to break or even create split brains scenarios (data loss).
+ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured. MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g. when PRIMARY moves to another member) which may cause cause replication to break or even create split-brain scenarios (data loss).
 
 //@<OUT> BUG#32197197 - Check cluster status after reboot - uri2 should not be present
 {

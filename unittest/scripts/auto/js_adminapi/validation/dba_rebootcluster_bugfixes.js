@@ -891,13 +891,19 @@ ONLINE
     }
 }
 
+//@<OUT> BUG#29305551: Reboot cluster from complete outage must fail if async replication is configured on the target instance
+ERROR: Cannot bootstrap cluster on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' because it has asynchronous (source-replica) replication channel(s) configured. MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g. when PRIMARY moves to another member) which may cause cause replication to break or even create split-brain scenarios (data loss).
+
+//@<ERR> BUG#29305551: Reboot cluster from complete outage must fail if async replication is configured on the target instance
+Dba.rebootClusterFromCompleteOutage: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' has asynchronous replication configured. (RuntimeError)
+
 //@# Reboot cluster from complete outage, secondary runs async replication = should succeed, but rejoin fail
 |<<<hostname>>>:<<<__mysql_sandbox_port1>>> was restored.|
-|ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured.MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g when PRIMARY moves to another member) which may cause cause replication to break or even create split brains scenarios (data loss).|
+|ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured. MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g. when PRIMARY moves to another member) which may cause cause replication to break or even create split-brain scenarios (data loss).|
 
 //@# Reboot cluster from complete outage, secondary runs async replication = should succeed, but rejoin fail with channels stopped
 |<<<hostname>>>:<<<__mysql_sandbox_port1>>> was restored.|
-|ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured.MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g when PRIMARY moves to another member) which may cause cause replication to break or even create split brains scenarios (data loss).|
+|ERROR: Cannot rejoin instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster because it has asynchronous (source-replica) replication channel(s) configured. MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g. when PRIMARY moves to another member) which may cause cause replication to break or even create split-brain scenarios (data loss).|
 
 //@# Reboot cluster from complete outage, seed runs async replication = should pass
 |<<<hostname>>>:<<<__mysql_sandbox_port2>>> was restored.|

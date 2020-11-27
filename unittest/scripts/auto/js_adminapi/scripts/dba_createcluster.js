@@ -656,17 +656,21 @@ print(get_query_single_result(session, number_of_rpl_users_query) + "\n");
 //NOTE: Do not destroy sandbox 2 to be used on the next tests
 session.close();
 
-// BUG#29305551: ADMINAPI FAILS TO DETECT INSTANCE IS RUNNING ASYNCHRONOUS REPLICATION
+// BUG#32197222: ADMINAPI CREATECLUSTER() SHOULD NOT ALLOW EXISTING ASYNC REPLICATION CHANNELS
 //
-// dba.checkInstance() reports that a target instance which is running the Slave
-// SQL and IO threads is valid to be used in an InnoDB cluster.
+// With BUG#29305551, dba.checkInstanceConfiguration() was extended to
+// include a check to verify if asynchronous replication is configured and
+// running on the target instance and print a warning if that's the case.
+// On top of that, the same check is used in <Cluster>.addInstance() and
+// <Cluster>.rejoinInstance() to terminate the commands with an error if
+// such scenario is verified.
+// The same check is also used in dba.rebootClusterFromCompleteOutage()
+// whenever there are instances to be rejoined to the cluster.
 //
-// As a consequence, the AdminAPI fails to detects that an instance has
-// asynchronous replication running and both addInstance() and rejoinInstance()
-// fail with useless/unfriendly errors on this scenario. There's not even
-// information on how to overcome the issue.
+// However, dba.createCluster() was skipping that check.
 //
-// dba.createCluster() shall not fail if asynchronous replication is running
+// dba.createCluster() must fail if asynchronous replication is running, unless
+// the 'force' option is
 
 //@ BUG#29305551: Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
@@ -685,8 +689,11 @@ shell.connect(__sandbox_uri2);
 session.runSql("CHANGE MASTER TO MASTER_HOST='" + hostname + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
 session.runSql("START SLAVE");
 
-//@ Create cluster async replication OK
+//@ Create cluster async replication (should fail)
 dba.createCluster('testAsync', {clearReadOnly: true});
+
+//@<> Create cluster async replication using force option (should pass)
+EXPECT_NO_THROWS(function(){dba.createCluster('testAsync', {clearReadOnly: true, force: true});});
 
 //@ BUG#29305551: Finalization
 session.close();

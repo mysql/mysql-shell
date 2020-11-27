@@ -465,7 +465,9 @@ DESCRIPTION
         is false.
       - multiPrimary: boolean value used to define an InnoDB cluster with
         multiple writable instances.
-      - force: boolean, confirms that the multiPrimary option must be applied.
+      - force: boolean, confirms that the multiPrimary option must be applied
+        and/or the operation must proceed even if unmanaged replication
+        channels were detected.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL

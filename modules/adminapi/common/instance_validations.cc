@@ -574,6 +574,79 @@ void ensure_instance_not_belong_to_metadata(
   }
 }
 
+/**
+ * Validate if asynchronous replication is configured on the target instance.
+ *
+ * This function validates if replication is configured on the target
+ * instance and depending on the type of check, prints a warning message,
+ * or an error message and terminates with an exception.
+ *
+ * @param instance The instance to validate.
+ * @param type     The type of check (Check_type)
+ */
+void validate_async_channels(const mysqlshdk::mysql::IInstance &instance,
+                             Check_type type) {
+  log_debug(
+      "Checking if instance '%s' has asynchronous (source-replica) "
+      "replication configured.",
+      instance.descr().c_str());
+
+  if (mysqlshdk::mysql::is_async_replication_configured(instance)) {
+    auto console = mysqlsh::current_console();
+    std::string error_msg = "";
+
+    switch (type) {
+      case Check_type::CHECK:
+        error_msg += "The";
+        break;
+      case Check_type::CREATE:
+        error_msg += "Cannot create cluster on";
+        break;
+      case Check_type::BOOTSTRAP:
+        error_msg += "Cannot bootstrap cluster on";
+        break;
+      case Check_type::JOIN:
+        error_msg += "Cannot join";
+        break;
+      case Check_type::REJOIN:
+        error_msg += "Cannot rejoin";
+        break;
+    }
+
+    error_msg +=
+        " instance '" + instance.descr() + "' " +
+        std::string((type == Check_type::JOIN || type == Check_type::REJOIN)
+                        ? "to the cluster "
+                        : "") +
+        std::string(type == Check_type::CHECK
+                        ? "cannot be added to an InnoDB cluster "
+                        : "") +
+        "because it has asynchronous (source-replica) "
+        "replication channel(s) configured. "
+        "MySQL InnoDB Cluster does not support manually configured channels "
+        "as they are not managed using the AdminAPI (e.g. when PRIMARY moves "
+        "to another member) which may cause cause replication to break or "
+        "even create split-brain scenarios (data loss).";
+
+    if (type == Check_type::CREATE) {
+      error_msg +=
+          " Use the 'force' option to skip this validation on a temporary "
+          "scenario (e.g. migrating from a replication topology to InnoDB "
+          "Cluster).";
+    }
+
+    if (type == Check_type::CHECK) {
+      console->print_warning(error_msg);
+    } else {
+      console->print_error(error_msg);
+
+      throw shcore::Exception::runtime_error(
+          "The instance '" + instance.descr() +
+          "' has asynchronous replication configured.");
+    }
+  }
+}
+
 }  // namespace checks
 }  // namespace dba
 }  // namespace mysqlsh

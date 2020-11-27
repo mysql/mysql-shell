@@ -1059,7 +1059,9 @@ The options dictionary can contain the following values:
 of the seed instance corresponds to all transactions executed. Default is false.
 @li multiPrimary: boolean value used to define an InnoDB cluster with multiple
 writable instances.
-@li force: boolean, confirms that the multiPrimary option must be applied.
+@li force: boolean, confirms that the multiPrimary option must be applied
+and/or the operation must proceed even if unmanaged replication channels
+were detected.
 ${OPT_INTERACTIVE}
 @li adoptFromGR: boolean value used to create the InnoDB cluster based on
 existing replication group.

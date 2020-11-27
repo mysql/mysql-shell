@@ -84,26 +84,6 @@ bool Check_instance::check_schema_compatibility() {
   return false;
 }
 
-void Check_instance::check_running_async_repl() {
-  auto console = mysqlsh::current_console();
-
-  log_debug(
-      "Checking if instance '%s' has asynchronous (source-replica) "
-      "replication configured.",
-      m_target_instance->descr().c_str());
-
-  if (mysqlshdk::mysql::is_async_replication_configured(*m_target_instance)) {
-    console->print_warning(
-        "The instance '" + m_target_instance->descr() +
-        "' cannot be added to an InnoDB cluster because it has "
-        "asynchronous (source-replica) replication channel(s) configured."
-        "MySQL InnoDB Cluster does not support manually configured channels as "
-        "they are not managed using the AdminAPI (e.g when PRIMARY moves to "
-        "another member) which may cause cause replication to break or even "
-        "create split brains scenarios (data loss).");
-  }
-}
-
 void Check_instance::check_clone_plugin_status() {
   if (m_target_instance->get_version() >=
       mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
@@ -237,7 +217,7 @@ void Check_instance::prepare() {
     // to ensure_instance_configuration_valid() which on the background creates
     // a Check_instance object with the silent flag enabled and executes it.
     if (!m_silent) {
-      check_running_async_repl();
+      validate_async_channels(*m_target_instance, checks::Check_type::CHECK);
     }
 
     // Check if the target instance has the clone plugin installed

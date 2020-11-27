@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-#include "adminapi/cluster/cluster_impl.h"
+#include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/db/session.h"
@@ -70,6 +70,11 @@ void ensure_instance_not_belong_to_metadata(
     const mysqlshdk::mysql::IInstance &instance,
     const std::string &address_in_metadata,
     const mysqlsh::dba::Cluster_impl &cluster);
+
+enum class Check_type { CHECK, CREATE, BOOTSTRAP, JOIN, REJOIN };
+
+void validate_async_channels(const mysqlshdk::mysql::IInstance &instance,
+                             Check_type type);
 
 }  // namespace checks
 }  // namespace dba

@@ -205,6 +205,17 @@ void Create_cluster::prepare() {
   // Validate create cluster options (combinations).
   validate_create_cluster_options();
 
+  // Verify if the instance is running asynchronous
+  // replication. Skip if 'force' is enabled.
+  if (!m_force) {
+    validate_async_channels(*m_target_instance, checks::Check_type::CREATE);
+  } else {
+    log_debug(
+        "Skipping verification to check if instance '%s' is running "
+        "asynchronous replication.",
+        m_target_instance->descr().c_str());
+  }
+
   // If adopting, set the target_instance to the primary member of the group:.
   //
   // Adopting a cluster can be performed using any member of the group

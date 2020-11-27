@@ -93,6 +93,23 @@ session.close();
 // fail with useless/unfriendly errors on this scenario. There's not even
 // information on how to overcome the issue.
 
+// BUG#32197222: ADMINAPI CREATECLUSTER() SHOULD NOT ALLOW EXISTING ASYNC REPLICATION CHANNELS
+//
+// With BUG#29305551, dba.checkInstanceConfiguration() was extended to
+// include a check to verify if asynchronous replication is configured and
+// running on the target instance and print a warning if that's the case.
+// On top of that, the same check is used in <Cluster>.addInstance() and
+// <Cluster>.rejoinInstance() to terminate the commands with an error if
+// such scenario is verified.
+// The same check is also used in dba.rebootClusterFromCompleteOutage()
+// whenever there are instances to be rejoined to the cluster.
+//
+// However, dba.createCluster() and rebootClusterFromCompleteOutage() were
+// skipping that test.
+//
+// dba.rebootClusterFromCompleteOutage() must fail if asynchronous replication
+// is running on the target instance
+
 //@<> BUG#29305551: Initialization
 c.dissolve({force: true});
 
@@ -130,10 +147,20 @@ session.runSql("SET GLOBAL super_read_only=0");
 session.runSql("CREATE USER 'repl'@'%' IDENTIFIED BY 'password' REQUIRE SSL");
 session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';");
 
+//@<> BUG#29305551: setup asynchronous replication on the target instance
+session.runSql("CHANGE MASTER TO MASTER_HOST='test', MASTER_PORT=3306, MASTER_USER='foo', MASTER_PASSWORD='bar'");
+
+//@ BUG#29305551: Reboot cluster from complete outage must fail if async replication is configured on the target instance
+var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+
+//@<> BUG#29305551: clean-up for the next test
+session.runSql("RESET SLAVE ALL");
+
 // Set async channel on instance2
 session.close();
 shell.connect(__sandbox_uri2);
 
+session.runSql("RESET SLAVE ALL");
 session.runSql("CHANGE MASTER TO MASTER_HOST='" + hostname + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
 session.runSql("START SLAVE");
 

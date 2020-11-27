@@ -35,7 +35,6 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/gtid_validations.h"
-#include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/member_recovery_monitoring.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/provision.h"
@@ -109,7 +108,8 @@ void Cluster_join::ensure_instance_check_installed_schema_version() const {
 
 void Cluster_join::resolve_local_address(
     Group_replication_options *gr_options,
-    const Group_replication_options &user_gr_options, Check_type check_type) {
+    const Group_replication_options &user_gr_options,
+    checks::Check_type check_type) {
   std::string hostname = m_target_instance->get_canonical_hostname();
 
   gr_options->local_address = mysqlsh::dba::resolve_gr_local_address(
@@ -117,8 +117,8 @@ void Cluster_join::resolve_local_address(
           ? gr_options->local_address
           : user_gr_options.local_address,
       hostname, *m_target_instance->get_sysvar_int("port"),
-      !m_already_member && check_type == Check_type::JOIN,
-      check_type != Check_type::JOIN);
+      !m_already_member && check_type == checks::Check_type::JOIN,
+      check_type != checks::Check_type::JOIN);
 
   // Validate that the local_address value we want to use as well as the
   // local address values in use on the cluster are compatible with the
@@ -130,7 +130,7 @@ void Cluster_join::resolve_local_address(
 
 void Cluster_join::validate_local_address_ip_compatibility(
     const std::string &local_address, const std::string &group_seeds,
-    Check_type check_type) const {
+    checks::Check_type check_type) const {
   // local_address must have some value
   assert(!local_address.empty());
 
@@ -149,7 +149,7 @@ void Cluster_join::validate_local_address_ip_compatibility(
         m_target_instance->get_version().get_base().c_str()));
   }
 
-  if (check_type != Check_type::BOOTSTRAP) {
+  if (check_type != checks::Check_type::BOOTSTRAP) {
     // Validate that the localAddress values of the cluster members are
     // compatible with the target instance we are adding
     auto local_address_list = shcore::str_split(group_seeds, ",");
@@ -470,10 +470,10 @@ Member_recovery_method Cluster_join::check_recovery_method(
   return recovery_method;
 }
 
-void Cluster_join::check_instance_configuration(Check_type type) {
+void Cluster_join::check_instance_configuration(checks::Check_type type) {
   Group_replication_options user_options(m_gr_opts);
 
-  if (type != Check_type::BOOTSTRAP) {
+  if (type != checks::Check_type::BOOTSTRAP) {
     // Check instance version compatibility with cluster.
     ensure_instance_check_installed_schema_version();
 
@@ -481,13 +481,13 @@ void Cluster_join::check_instance_configuration(Check_type type) {
     resolve_ssl_mode();
   }
 
-  if (type == Check_type::BOOTSTRAP) {
+  if (type == checks::Check_type::BOOTSTRAP) {
     // The current 'group_replication_group_name' must be kept otherwise
     // if instances are rejoined later the operation may fail because
     // a new group_name started being used.
     m_gr_opts.group_name = m_cluster->get_group_name();
   }
-  if (type != Check_type::JOIN) {
+  if (type != checks::Check_type::JOIN) {
     // Read actual GR configurations to preserve them when rejoining the
     // instance.
     m_gr_opts.read_option_values(*m_target_instance);
@@ -496,12 +496,12 @@ void Cluster_join::check_instance_configuration(Check_type type) {
   // Check instance configuration and state, like dba.checkInstance
   // But don't do it if it was already done by the caller
   ensure_gr_instance_configuration_valid(m_target_instance.get(),
-                                         type == Check_type::JOIN);
+                                         type == checks::Check_type::JOIN);
 
   // Validate the lower_case_table_names and default_table_encryption
   // variables. Their values must be the same on the target instance as they
   // are on the cluster.
-  if (type != Check_type::BOOTSTRAP) {
+  if (type != checks::Check_type::BOOTSTRAP) {
     // The lower_case_table_names can only be set the first time the server
     // boots, as such there is no need to validate it other than the first time
     // the instance is added to the cluster.
@@ -522,32 +522,12 @@ void Cluster_join::check_instance_configuration(Check_type type) {
   }
 
   // Verify if the instance is running asynchronous
-  // replication NOTE: Only verify if this is being called from a
-  // addInstance() and not a createCluster() command or the seed of a
-  // rebootCluster()
-  if (type != Check_type::BOOTSTRAP) {
-    auto console = mysqlsh::current_console();
+  // replication
+  // NOTE: Verify for all operations: addInstance(), rejoinInstance() and
+  // rebootClusterFromCompleteOutage()
+  validate_async_channels(*m_target_instance, type);
 
-    log_debug("Checking if instance '%s' is running asynchronous replication.",
-              m_target_instance->descr().c_str());
-
-    if (mysqlshdk::mysql::is_async_replication_configured(*m_target_instance)) {
-      console->print_error(
-          "Cannot " +
-          std::string(type == Check_type::REJOIN ? "rejoin" : "join") +
-          " instance '" + m_target_instance->descr() +
-          "' to the cluster because it has asynchronous (source-replica) "
-          "replication channel(s) configured."
-          "MySQL InnoDB Cluster does not support manually configured channels "
-          "as they are not managed using the AdminAPI (e.g when PRIMARY moves "
-          "to another member) which may cause cause replication to break or "
-          "even create split brains scenarios (data loss).");
-
-      throw shcore::Exception::runtime_error(
-          "The instance '" + m_target_instance->descr() +
-          "' has asynchronous replication configured.");
-    }
-
+  if (type != checks::Check_type::BOOTSTRAP) {
     // If this is not seed instance, then we should try to read the
     // failoverConsistency and expelTimeout values from a a cluster member.
     m_cluster->query_group_wide_option_values(m_target_instance.get(),
@@ -555,7 +535,7 @@ void Cluster_join::check_instance_configuration(Check_type type) {
                                               &m_gr_opts.expel_timeout);
   }
 
-  if (type == Check_type::JOIN) {
+  if (type == checks::Check_type::JOIN) {
     if (!m_already_member) {
       // Check instance server UUID (must be unique among the cluster members).
       m_cluster->validate_server_uuid(*m_target_instance);
@@ -569,10 +549,10 @@ void Cluster_join::check_instance_configuration(Check_type type) {
   // before joining instance to cluster, get the values of the
   // gr_local_address from all the active members of the cluster
   if (user_options.group_seeds.is_null() || user_options.group_seeds->empty()) {
-    if (type == Check_type::REJOIN)
+    if (type == checks::Check_type::REJOIN)
       m_gr_opts.group_seeds =
           m_cluster->get_cluster_group_seeds(m_target_instance);
-    else if (type == Check_type::JOIN)
+    else if (type == checks::Check_type::JOIN)
       m_gr_opts.group_seeds = m_cluster->get_cluster_group_seeds();
   }
 
@@ -680,7 +660,7 @@ void Cluster_join::prepare_reboot() {
   mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
       *m_target_instance, m_cluster->get_target_server(), &m_already_member);
 
-  check_instance_configuration(Check_type::BOOTSTRAP);
+  check_instance_configuration(checks::Check_type::BOOTSTRAP);
 }
 
 void Cluster_join::prepare_join(
@@ -709,7 +689,7 @@ void Cluster_join::prepare_join(
       check_recovery_method(m_cluster->get_disable_clone_option());
 
   // Check for various instance specific configuration issues
-  check_instance_configuration(Check_type::JOIN);
+  check_instance_configuration(checks::Check_type::JOIN);
 }
 
 bool Cluster_join::prepare_rejoin(bool *out_uuid_mistmatch) {
@@ -718,7 +698,7 @@ bool Cluster_join::prepare_rejoin(bool *out_uuid_mistmatch) {
   if (!check_rejoinable(out_uuid_mistmatch)) return false;
 
   // Check for various instance specific configuration issues
-  check_instance_configuration(Check_type::REJOIN);
+  check_instance_configuration(checks::Check_type::REJOIN);
 
   // Check GTID consistency to determine if the instance can safely rejoin the
   // cluster BUG#29953812: ADD_INSTANCE() PICKY ABOUT GTID_EXECUTED,
