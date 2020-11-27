@@ -20,7 +20,7 @@ An upgrade of all cluster router instances is required. All router installations
 | <<<real_hostname>>>::[[*]]| <= 8.0.18 | NULL          | NULL     | NULL     |
 | <<<real_hostname>>>::test-router[[*]]| <= 8.0.18 | NULL          | NULL     | NULL     |
 [[*]]
-There are 2 Routers to upgrade. Please upgrade them and select Continue when done.
+There are 2 Routers to upgrade. Please upgrade them and select Continue once they are restarted.
 
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
@@ -32,7 +32,7 @@ Please select an option: [[*]]
 [[*]]
 | <<<real_hostname>>>::[[*]]| <= 8.0.18 | NULL          | NULL     | NULL     |
 [[*]]
-There is 1 Router to upgrade. Please upgrade it and select Continue when done.
+There is 1 Router to upgrade. Please upgrade it and select Continue once it is restarted.
 
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
@@ -44,7 +44,7 @@ Please select an option: Unregistering a Router implies it will not be used in t
 [[*]]
 | <<<real_hostname>>>::[[*]]| <= 8.0.18 | NULL          | NULL     | NULL     |
 [[*]]
-There is 1 Router to upgrade. Please upgrade it and select Continue when done.
+There is 1 Router to upgrade. Please upgrade it and select Continue once it is restarted.
 
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
@@ -64,7 +64,7 @@ If the following Router instances no longer exist, select Unregister to delete t
 [[*]]
 | <<<real_hostname>>>::[[*]]| <= 8.0.18 | NULL          | NULL     | NULL     |
 [[*]]
-There is 1 Router to upgrade. Please upgrade it and select Continue when done.
+There is 1 Router to upgrade. Please upgrade it and select Continue once it is restarted.
 
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
@@ -95,7 +95,7 @@ An upgrade of all cluster router instances is required. All router installations
 | <<<real_hostname>>>::[[*]]| <= 8.0.18 | NULL          | NULL     | NULL     |
 | <<<real_hostname>>>::second[[*]]| <= 8.0.18 | NULL          | NULL     | NULL     |
 [[*]]
-There are 2 Routers to upgrade. Please upgrade them and select Continue when done.
+There are 2 Routers to upgrade. Please upgrade them and select Continue once they are restarted.
 
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
@@ -107,7 +107,7 @@ Please select an option: [[*]]
 [[*]]
 | <<<real_hostname>>>::[[*]]| <= 8.0.18 | NULL          | NULL     | NULL     |
 [[*]]
-There is 1 Router to upgrade. Please upgrade it and select Continue when done.
+There is 1 Router to upgrade. Please upgrade it and select Continue once it is restarted.
 
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
@@ -119,7 +119,7 @@ Please select an option: Unregistering a Router implies it will not be used in t
 [[*]]
 | <<<real_hostname>>>::[[*]]| <= 8.0.18 | NULL          | NULL     | NULL     |
 [[*]]
-There is 1 Router to upgrade. Please upgrade it and select Continue when done.
+There is 1 Router to upgrade. Please upgrade it and select Continue once it is restarted.
 
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
@@ -139,7 +139,7 @@ If the following Router instances no longer exist, select Unregister to delete t
 [[*]]
 | <<<real_hostname>>>::[[*]]| <= 8.0.18 | NULL          | NULL     | NULL     |
 [[*]]
-There is 1 Router to upgrade. Please upgrade it and select Continue when done.
+There is 1 Router to upgrade. Please upgrade it and select Continue once it is restarted.
 
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
