@@ -1857,8 +1857,7 @@ TEST_LOAD(tested_schema, tested_table, True)
 
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
-# TODO(rennox): Revert this condition to: not __dbug_off
-#@<> BUG#31766490 {False}
+#@<> BUG#31766490 {not __dbug_off}
 tested_schema = "test_schema"
 tested_table = "test"
 

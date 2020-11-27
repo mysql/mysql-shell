@@ -466,8 +466,6 @@ class Dumper::Table_worker final {
 
     auto average_row_length = table.cache->average_row_length;
 
-    DBUG_EXECUTE_IF("dumper_average_row_length_0", { average_row_length = 0; });
-
     if (0 == average_row_length) {
       average_row_length = k_default_row_size;
 

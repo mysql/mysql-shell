@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -320,6 +321,9 @@ void Instance_cache_builder::filter_tables(const Schema_objects &included,
         table.create_options = row->get_string(6, "");
         table.comment = row->get_string(7, "");
         m_has_tables = true;
+
+        DBUG_EXECUTE_IF("dumper_average_row_length_0",
+                        { table.average_row_length = 0; });
       } else if ("VIEW" == table_type) {
         // nop, just to insert the view
         schema->views[table_name].character_set_client = "";
