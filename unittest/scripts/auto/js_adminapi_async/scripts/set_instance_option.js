@@ -38,7 +38,7 @@ EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "not_a_tag", 
 //@<> WL#13788 Built-in tag values are validated and throw error if value cannot be converted to expected type - TSFR2_6
 EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", "123")}, "ReplicaSet.setInstanceOption: Built-in tag '_hidden' is expected to be of type Bool, but is String", "TypeError");
 EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", [true])}, "ReplicaSet.setInstanceOption: Built-in tag '_hidden' is expected to be of type Bool, but is Array", "TypeError");
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", "True")}, "ReplicaSet.setInstanceOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", "invalid")}, "ReplicaSet.setInstanceOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
 EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", [123])}, "ReplicaSet.setInstanceOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is Array", "TypeError");
 
 //@<> WL#13788 Validate replicaSet.options shows values about the tags set via setInstanceOption - TSFR2_7

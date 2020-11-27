@@ -222,7 +222,7 @@ EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:", 123)}, "Cluster.setOptio
 //@<> WL#13788 Built-in tag values are validated and throw error if value cannot be converted to expected type - TSFR1_5
 EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_hidden", "123")}, "Cluster.setOption: Built-in tag '_hidden' is expected to be of type Bool, but is String", "TypeError");
 EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_hidden", [true])}, "Cluster.setOption: Built-in tag '_hidden' is expected to be of type Bool, but is Array", "TypeError");
-EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", "True")}, "Cluster.setOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", "invalid")}, "Cluster.setOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
 EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", [123])}, "Cluster.setOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is Array", "TypeError");
 
 //@<> WL#13788 Validate cluster.options shows values about the tags set via setOption - TSFR1_7
