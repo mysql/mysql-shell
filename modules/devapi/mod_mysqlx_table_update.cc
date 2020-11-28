@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -133,36 +133,27 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(set, TableUpdate);
-REGISTER_HELP(TABLEUPDATE_SET_BRIEF, "Adds an update operation.");
-REGISTER_HELP(
-    TABLEUPDATE_SET_PARAM,
-    "@param attribute Identifies the column to be updated by this operation.");
-REGISTER_HELP(
-    TABLEUPDATE_SET_PARAM1,
-    "@param value Defines the value to be set on the indicated column.");
-REGISTER_HELP(TABLEUPDATE_SET_RETURNS, "@returns This TableUpdate object.");
-REGISTER_HELP(TABLEUPDATE_SET_DETAIL,
-              "Adds an operation into the update handler to update a column "
-              "value in the records that were included on the selection filter "
-              "and limit.");
-REGISTER_HELP(TABLEUPDATE_SET_DETAIL1, "<b>Using Expressions As Values</b>");
-REGISTER_HELP(TABLEUPDATE_SET_DETAIL2,
-              "If a <b>mysqlx.expr(...)</b> object is defined as a value, it "
-              "will be evaluated in the server, the resulting value will be "
-              "set at the indicated column.");
+REGISTER_HELP_FUNCTION_TEXT(TABLEUPDATE_SET, R"*(
+Adds an update operation.
+
+@param attribute Identifies the column to be updated by this operation.
+@param value Defines the value to be set on the indicated column.
+
+@returns This TableUpdate object.
+
+Adds an operation into the update handler to update a column value in the
+records that were included on the selection filter and limit.
+
+<b>Using Expressions As Values</b>
+
+If a <b>mysqlx.expr(...)</b> object is defined as a value, it will be evaluated
+in the server, the resulting value will be set at the indicated column.
+)*");
+
 /**
  * $(TABLEUPDATE_SET_BRIEF)
  *
- * $(TABLEUPDATE_SET_PARAM)
- * $(TABLEUPDATE_SET_PARAM1)
- *
- * $(TABLEUPDATE_SET_RETURNS)
- *
- * $(TABLEUPDATE_SET_DETAIL)
- *
- * #### $(TABLEUPDATE_SET_DETAIL1)
- *
- * $(TABLEUPDATE_SET_DETAIL2)
+ * $(TABLEUPDATE_SET)
  *
  * The expression also can be used for \a [Parameter
  * Binding](param_binding.html).
