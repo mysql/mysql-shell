@@ -25,6 +25,7 @@
 
 #include <ctime>
 #include <regex>
+#include <utility>
 
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
@@ -130,7 +131,7 @@ Dump_manifest::Dump_manifest(Mode mode,
               if (!par.name.empty()) {
                 if (shcore::str_endswith(par.name, k_at_done_json))
                   m_full_manifest = true;
-                m_par_cache.push_back(std::move(par));
+                m_par_cache.emplace_back(std::move(par));
               }
 
               auto waited_for =
@@ -145,7 +146,12 @@ Dump_manifest::Dump_manifest(Mode mode,
               if (last_count == 0 || (waited_for >= five_seconds &&
                                       last_count < m_par_cache.size())) {
                 last_update = std::chrono::system_clock::now();
-                flush_manifest();
+                try {
+                  flush_manifest();
+                } catch (const std::runtime_error &error) {
+                  m_par_thread_error = error.what();
+                  break;
+                }
                 last_count = m_par_cache.size();
                 wait_for = five_seconds;
               } else {
@@ -154,6 +160,14 @@ Dump_manifest::Dump_manifest(Mode mode,
             }
           }
         }));
+  }
+}
+
+Dump_manifest::~Dump_manifest() {
+  try {
+    finalize();
+  } catch (const std::runtime_error &error) {
+    log_error("%s", error.what());
   }
 }
 
@@ -231,7 +245,7 @@ void Dump_manifest::flush_manifest() {
   // Ends the manifest object
   json.end_object();
 
-  std::string data = json.str();
+  const std::string &data = json.str();
 
   try {
     auto file = Directory::file(k_at_manifest_json);
@@ -239,8 +253,7 @@ void Dump_manifest::flush_manifest() {
     file->write(data.c_str(), data.length());
     file->close();
   } catch (const std::runtime_error &error) {
-    throw std::runtime_error(
-        shcore::str_format("Error flushing dump manifest: %s", error.what()));
+    m_par_thread_error = error.what();
   }
 }
 
@@ -349,7 +362,13 @@ void Dump_manifest::reload_manifest() const {
   }
 }
 
-void Dump_manifest::close() { finalize(); }
+void Dump_manifest::close() {
+  try {
+    finalize();
+  } catch (const std::runtime_error &error) {
+    log_error("%s", error.what());
+  }
+}
 
 /**
  * Ensures the par thread is properly finished and ensures the remaining cached
@@ -442,6 +461,11 @@ void Dump_manifest_object::close() {
       try {
         this->remove();
       } catch (const mysqlshdk::oci::Response_error &error) {
+        m_par_thread_error = error.what();
+        log_error("Failed removing object '%s' after PAR creation failed: %s",
+                  Object::full_path().c_str(), error.what());
+      } catch (const mysqlshdk::rest::Connection_error &error) {
+        m_par_thread_error = error.what();
         log_error("Failed removing object '%s' after PAR creation failed: %s",
                   Object::full_path().c_str(), error.what());
       }
@@ -487,6 +511,10 @@ void Dump_manifest_object::create_par(
 
     m_par = std::make_unique<mysqlshdk::oci::PAR>(par);
   } catch (const mysqlshdk::oci::Response_error &error) {
+    m_par_thread_error = error.what();
+    log_error("Error creating PAR for object '%s': %s", name.c_str(),
+              error.what());
+  } catch (const mysqlshdk::rest::Connection_error &error) {
     m_par_thread_error = error.what();
     log_error("Error creating PAR for object '%s': %s", name.c_str(),
               error.what());

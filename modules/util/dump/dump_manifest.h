@@ -24,8 +24,11 @@
 #ifndef MODULES_UTIL_DUMP_DUMP_MANIFEST_H_
 #define MODULES_UTIL_DUMP_DUMP_MANIFEST_H_
 
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
-
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
 namespace mysqlsh {
@@ -69,7 +72,7 @@ class Dump_manifest : public mysqlshdk::storage::backend::oci::Directory {
   enum class Mode { READ, WRITE };
   Dump_manifest(Mode mode, const mysqlshdk::oci::Oci_options &options,
                 const std::string &name = "");
-  ~Dump_manifest() override { finalize(); }
+  ~Dump_manifest() override;
 
   /**
    * Creates a file handle either for a file contained on the manifest or
