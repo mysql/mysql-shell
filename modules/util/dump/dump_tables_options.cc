@@ -23,15 +23,24 @@
 
 #include "modules/util/dump/dump_tables_options.h"
 
+#include <set>
+
+#include "mysqlshdk/libs/utils/utils_string.h"
+
 namespace mysqlsh {
 namespace dump {
 
 Dump_tables_options::Dump_tables_options(const std::string &schema,
                                          const std::vector<std::string> &tables,
                                          const std::string &output_url)
-    : Ddl_dumper_options(output_url),
-      m_schema(schema),
-      m_tables(tables.begin(), tables.end()) {}
+    : Ddl_dumper_options(output_url) {
+  m_included_schemas.emplace(schema);
+  m_has_tables = !tables.empty();
+
+  if (m_has_tables) {
+    m_included_tables[schema].insert(tables.begin(), tables.end());
+  }
+}
 
 void Dump_tables_options::unpack_options(shcore::Option_unpacker *unpacker) {
   Ddl_dumper_options::unpack_options(unpacker);
@@ -42,20 +51,39 @@ void Dump_tables_options::unpack_options(shcore::Option_unpacker *unpacker) {
 void Dump_tables_options::validate_options() const {
   Ddl_dumper_options::validate_options();
 
-  if (schema().empty()) {
+  const auto &schema = *m_included_schemas.begin();
+
+  if (schema.empty()) {
     throw std::invalid_argument(
         "The 'schema' parameter cannot be an empty string.");
   }
 
-  if (!dump_all() && tables().empty()) {
+  if (!m_dump_all && !m_has_tables) {
     throw std::invalid_argument(
         "The 'tables' parameter cannot be an empty list.");
   }
 
-  if (dump_all() && !tables().empty()) {
+  if (m_dump_all && m_has_tables) {
     throw std::invalid_argument(
         "When the 'all' parameter is set to true, the 'tables' parameter must "
         "be an empty list.");
+  }
+
+  if (!exists(schema)) {
+    throw std::invalid_argument("The requested schema '" + schema +
+                                "' was not found in the database.");
+  }
+
+  if (!m_dump_all) {
+    const auto missing = find_missing(schema, m_included_tables.at(schema));
+
+    if (!missing.empty()) {
+      throw std::invalid_argument(
+          "Following tables were not found in the schema '" + schema +
+          "': " + shcore::str_join(missing, ", ", [](const std::string &t) {
+            return "'" + t + "'";
+          }));
+    }
   }
 }
 

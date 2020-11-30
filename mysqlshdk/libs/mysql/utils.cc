@@ -25,12 +25,15 @@
 #include <mysqld_error.h>
 #include <rapidjson/document.h>
 #include <algorithm>
+#include <map>
 #include <memory>
 #include <random>
+#include <set>
 #include <string>
 #include <tuple>
 #include <vector>
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
@@ -673,20 +676,30 @@ void create_indicator_tag(const mysql::IInstance &instance,
                           const std::string &name) {
   assert(name.length() <= 64);
 
+  std::string source_term_cmd =
+      mysqlshdk::mysql::get_replication_source_keyword(instance.get_version(),
+                                                       true);
+  std::string source_term =
+      mysqlshdk::mysql::get_replication_source_keyword(instance.get_version());
+
   // The reason this hack is done this way:
   // - any method based on a DB object, requires the user to have privs
   //   to create and drop that DB object
   // - if the DB object is inside a schema the user owns, then that wouldn't
   //   be atomic, since we'd have to create the schema and then the object
   // - doesn't require additional plugins/UDFs
-  instance.executef("CHANGE MASTER TO master_user=/*(*/ ? /*)*/ FOR CHANNEL ?",
+  instance.executef("CHANGE " + source_term_cmd + " TO " + source_term +
+                        "_USER=/*(*/ ? /*)*/ FOR CHANNEL ?",
                     mysqlshdk::utils::isotime(), name);
 }
 
 void drop_indicator_tag(const mysql::IInstance &instance,
                         const std::string &name) {
+  std::string replica_term =
+      mysqlshdk::mysql::get_replica_keyword(instance.get_version());
+
   try {
-    instance.executef("RESET SLAVE ALL FOR CHANNEL ?", name);
+    instance.executef("RESET " + replica_term + " ALL FOR CHANNEL ?", name);
   } catch (const shcore::Error &e) {
     if (e.code() != ER_SLAVE_CHANNEL_DOES_NOT_EXIST) throw;
   }

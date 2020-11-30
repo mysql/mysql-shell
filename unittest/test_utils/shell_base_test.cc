@@ -363,7 +363,8 @@ bool Shell_base_test::check_multiline_expect(const std::string &context,
           } else {
             SCOPED_TRACE(makeyellow(stream + " actual: ") + actual);
 
-            expected_lines[0] += makeyellow("<------ INCONSISTENCY");
+            expected_lines[expected_index] +=
+                makeyellow("<------ INCONSISTENCY");
 
             SCOPED_TRACE(makeyellow(stream + " expected: ") +
                          shcore::str_join(expected_lines, "\n"));

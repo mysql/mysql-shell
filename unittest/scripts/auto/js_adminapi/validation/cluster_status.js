@@ -176,6 +176,25 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |"<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {|
 |},|
 
+//@ instanceError mismatch would not be reported correctly if the member is not in the group
+|"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|
+|},|
+|"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
+|    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
+|    "instanceErrors": [|
+|        "NOTE: group_replication is stopped.",|
+|        "WARNING: server_uuid for instance has changed from its last known value. Use cluster.rescan() to update the metadata."|
+|    ], |
+|    "memberState": "OFFLINE",|
+|    "mode": "R/O", |
+|    "readReplicas": {}, |
+|    "role": "HA", |
+|    "status": "(MISSING)", |
+|    "version": "[[*]]"|
+|}, |
+|"<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {|
+|},|
+    
 //@<OUT> Status cluster
 {
     "clusterName": "cluster",

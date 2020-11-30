@@ -37,7 +37,8 @@ enum class Compatibility_option {
   FORCE_INNODB,
   STRIP_DEFINERS,
   STRIP_RESTRICTED_GRANTS,
-  STRIP_TABLESPACES
+  STRIP_TABLESPACES,
+  SKIP_INVALID_ACCOUNTS
 };
 
 Compatibility_option to_compatibility_option(const std::string &c);
@@ -48,7 +49,7 @@ std::string to_string(Compatibility_option c);
 
 using Compatibility_options =
     mysqlshdk::utils::Enum_set<Compatibility_option,
-                               Compatibility_option::STRIP_TABLESPACES>;
+                               Compatibility_option::SKIP_INVALID_ACCOUNTS>;
 
 }  // namespace dump
 }  // namespace mysqlsh

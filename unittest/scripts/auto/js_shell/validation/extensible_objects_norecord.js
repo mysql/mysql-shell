@@ -175,7 +175,7 @@ DESCRIPTION
       The data parameter accepts the following values: one, two, three.
 
 //@ Usage, function(string)
-||sampleModuleJS.stringFunction: Argument #1 is expected to be a string (ArgumentError)
+||sampleModuleJS.stringFunction: Argument #1 is expected to be a string (TypeError)
 ||sampleModuleJS.stringFunction: Argument #1 only accepts the following values: one, two, three. (ArgumentError)
 |JavaScript Function Definition: one|
 
@@ -229,7 +229,7 @@ DESCRIPTION
 //@ Usage, function(dictionary)
 ||sampleModuleJS.dictFunction: Missing required options at Argument #1: myOption (ArgumentError)
 ||sampleModuleJS.dictFunction: Invalid and missing options at Argument #1 (invalid: someOption), (missing: myOption) (ArgumentError)
-||sampleModuleJS.dictFunction: Argument #1, option 'myOption' is expected to be a string (ArgumentError)
+||sampleModuleJS.dictFunction: Argument #1, option 'myOption' is expected to be a string (TypeError)
 ||sampleModuleJS.dictFunction: Argument #1, option 'myOption' only accepts the following values: test, value. (ArgumentError)
 |No function data available|
 |Function data: test|
@@ -292,7 +292,7 @@ DESCRIPTION
       The session parameter must be a Session object.
 
 //@ Usage, function(Session)
-||sampleModuleJS.objectFunction1: Argument #1 is expected to be a 'Session' object. (ArgumentError)
+||sampleModuleJS.objectFunction1: Argument #1 is expected to be a 'Session' object (TypeError)
 |Active Session: <Session:<<<__uri>>>>|
 
 //@ Register, function(Session and ClassicSession)
@@ -349,9 +349,9 @@ DESCRIPTION
 |Active Session: <Session:<<<__uri>>>>|
 
 //@ Registration errors, function definition
-||Shell.addExtensionObjectMember: Argument #1 is expected to be an object
-||Shell.addExtensionObjectMember: Argument #1 is expected to be an extension object
-||Shell.addExtensionObjectMember: Argument #2 is expected to be a string
+||Shell.addExtensionObjectMember: Argument #1 is expected to be an object (TypeError)
+||Shell.addExtensionObjectMember: Argument #1 is expected to be an extension object (TypeError)
+||Shell.addExtensionObjectMember: Argument #2 is expected to be a string (TypeError)
 ||Shell.addExtensionObjectMember: Invalid options at function definition: extra (ArgumentError)
 ||Shell.addExtensionObjectMember: Option 'brief' is expected to be of type String, but is Integer (TypeError)
 ||Shell.addExtensionObjectMember: Option 'details' is expected to be of type Array, but is Integer (TypeError)

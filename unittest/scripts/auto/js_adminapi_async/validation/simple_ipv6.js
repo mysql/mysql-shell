@@ -75,9 +75,9 @@
 
 //@# check IPv6 addresses in MD
 |instance_id	cluster_id	address	mysql_server_uuid	instance_name	addresses	attributes	description|
-|1	[[*]]	[::1]:<<<__mysql_sandbox_port1>>>	[[*]]	[::1]:<<<__mysql_sandbox_port1>>>	{"mysqlX": "[::1]:<<<__mysql_sandbox_port1>>>0", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port1>>>"}	{}	NULL|
-|2	[[*]]	[::1]:<<<__mysql_sandbox_port2>>>	[[*]]	[::1]:<<<__mysql_sandbox_port2>>>	{"mysqlX": "[::1]:<<<__mysql_sandbox_port2>>>0", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port2>>>"}	{}	NULL|
-|3	[[*]]	[::1]:<<<__mysql_sandbox_port3>>>	[[*]]	[::1]:<<<__mysql_sandbox_port3>>>	{"mysqlX": "[::1]:<<<__mysql_sandbox_port3>>>0", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port3>>>"}	{}	NULL|
+|1	[[*]]	[::1]:<<<__mysql_sandbox_port1>>>	[[*]]	[::1]:<<<__mysql_sandbox_port1>>>	{"mysqlX": "[::1]:<<<__mysql_sandbox_port1>>>0", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port1>>>"}	{"server_id": [[*]]}	NULL|
+|2	[[*]]	[::1]:<<<__mysql_sandbox_port2>>>	[[*]]	[::1]:<<<__mysql_sandbox_port2>>>	{"mysqlX": "[::1]:<<<__mysql_sandbox_port2>>>0", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port2>>>"}	{"server_id": [[*]]}	NULL|
+|3	[[*]]	[::1]:<<<__mysql_sandbox_port3>>>	[[*]]	[::1]:<<<__mysql_sandbox_port3>>>	{"mysqlX": "[::1]:<<<__mysql_sandbox_port3>>>0", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port3>>>"}	{"server_id": [[*]]}	NULL|
 
 
 //@# rejoinInstance (clone) (should fail) {VER(>=8.0.17)}

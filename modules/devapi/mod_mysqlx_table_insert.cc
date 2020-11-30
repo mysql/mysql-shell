@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -262,45 +262,34 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
 }
 
 REGISTER_HELP_FUNCTION(values, TableInsert);
-REGISTER_HELP(TABLEINSERT_VALUES_BRIEF,
-              "Adds a new row to the insert operation with the given values.");
 REGISTER_HELP(TABLEINSERT_VALUES_SIGNATURE, "(value[, value, ...])");
-REGISTER_HELP(TABLEINSERT_VALUES_RETURNS, "@returns This TableInsert object.");
-REGISTER_HELP(
-    TABLEINSERT_VALUES_DETAIL,
-    "Each parameter represents the value for a column in the target table.");
-REGISTER_HELP(TABLEINSERT_VALUES_DETAIL1,
-              "If the columns were defined on the <b>insert()</b> function, "
-              "the number of values on this function must match the number of "
-              "defined columns.");
-REGISTER_HELP(TABLEINSERT_VALUES_DETAIL2,
-              "If no column was defined, the number of parameters must match "
-              "the number of columns on the target Table.");
-REGISTER_HELP(TABLEINSERT_VALUES_DETAIL3,
-              "This function is not available when the <b>insert()</b> is "
-              "called passing a JSON object with columns and values.");
-REGISTER_HELP(TABLEINSERT_VALUES_DETAIL4, "<b>Using Expressions As Values</b>");
-REGISTER_HELP(TABLEINSERT_VALUES_DETAIL5,
-              "If a <b>mysqlx.expr(...)</b> object is defined as a value, it "
-              "will be evaluated in the server, the resulting value will be "
-              "inserted into the record.");
+
+REGISTER_HELP_FUNCTION_TEXT(TABLEINSERT_VALUES, R"*(
+Adds a new row to the insert operation with the given values.
+
+@returns This TableInsert object.
+
+Each parameter represents the value for a column in the target table.
+
+If the columns were defined on the <b>insert()</b> function, the number of
+values on this function must match the number of defined columns.
+
+If no column was defined, the number of parameters must match the number of
+columns on the target Table.
+
+This function is not available when the <b>insert()</b> is called passing a
+JSON object with columns and values.
+
+<b>Using Expressions As Values</b>
+
+If a <b>mysqlx.expr(...)</b> object is defined as a value, it will be evaluated
+in the server, the resulting value will be inserted into the record.
+)*");
 
 /**
  * $(TABLEINSERT_VALUES_BRIEF)
  *
- * $(TABLEINSERT_VALUES_RETURNS)
- *
- * $(TABLEINSERT_VALUES_DETAIL)
- *
- * $(TABLEINSERT_VALUES_DETAIL1)
- *
- * $(TABLEINSERT_VALUES_DETAIL2)
- *
- * $(TABLEINSERT_VALUES_DETAIL3)
- *
- * #### $(TABLEINSERT_VALUES_DETAIL4)
- *
- * $(TABLEINSERT_VALUES_DETAIL5)
+ * $(TABLEINSERT_VALUES)
  *
  * #### Method Chaining
  *

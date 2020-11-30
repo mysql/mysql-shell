@@ -24,6 +24,7 @@
 #include "modules/util/dump/export_table.h"
 
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 #include "mysqlshdk/include/scripting/naming_style.h"
@@ -39,27 +40,11 @@ namespace dump {
 Export_table::Export_table(const Export_table_options &options)
     : Dumper(options), m_options(options) {}
 
-void Export_table::create_schema_tasks() {
-  const auto &schema = m_options.schema();
-  const auto &table = m_options.table();
-
-  if (!exists(schema, table)) {
-    throw std::invalid_argument(
-        "The requested table " + shcore::quote_identifier(schema) + "." +
-        shcore::quote_identifier(table) + " was not found in the database.");
+void Export_table::summary() const {
+  if (nullptr == m_cache) {
+    throw std::runtime_error("Internal error - table was not dumped!");
   }
 
-  Table_info info;
-  info.name = m_options.table();
-
-  Schema_task task;
-  task.name = m_options.schema();
-  task.tables.emplace_back(std::move(info));
-
-  add_schema_task(std::move(task));
-}
-
-void Export_table::summary() const {
   const auto quoted_filename =
       shcore::quote_string(m_options.output_url(), '"');
   const auto import_table =
@@ -78,7 +63,7 @@ void Export_table::summary() const {
   const auto decode = shcore::make_dict();
   const auto mode = m_options.use_base64() ? "FROM_BASE64" : "UNHEX";
 
-  for (const auto &c : m_task.columns) {
+  for (const auto &c : m_cache->columns) {
     columns->emplace_back(c.name);
 
     if (c.csv_unsafe) {
@@ -139,16 +124,12 @@ void Export_table::summary() const {
   console->print_status("The dump can be loaded using:");
   console->print_status("util." + import_table + "(" + quoted_filename + ", " +
                         dumper.str() + ")");
-
-  if (mysqlshdk::storage::Compression::NONE != m_options.compression()) {
-    console->print_note("The util." + import_table +
-                        "() function currently does not support compressed "
-                        "files, the output file needs to be unpacked first.");
-  }
 }
 
-void Export_table::on_create_table_task(const Table_task &task) {
-  m_task = task;
+void Export_table::on_create_table_task(const std::string &,
+                                        const std::string &,
+                                        const Instance_cache::Table *cache) {
+  m_cache = cache;
 }
 
 }  // namespace dump

@@ -361,17 +361,17 @@ int64_t generate_server_id();
 
 /**
  * Checks if the asynchronous (master-slave) replication channels and threads
- * are active on the target instance:
- *   - Verifies if the replication I/O thread exists (receiver channel) and is
- * active or connecting to the master
- *   - Verifies if replication applier thread is active (applier channel)
+ * are configured on the target instance:
+ *   - Gets the state of the replication I/O thread (receiver channel)
+ *   - Gets the state of the replication applier thread (applier channel)
  *
  * @param instance Instance to use to perform the check.
  *
  * @return a boolean value indicating if the instance has the asynchronous
  * (master-slave) replication active
  */
-bool is_async_replication_running(const mysqlshdk::mysql::IInstance &instance);
+bool is_async_replication_configured(
+    const mysqlshdk::mysql::IInstance &instance);
 
 /**
  * Get the correct keyword in use for replica/slave regarding the target
@@ -384,6 +384,23 @@ bool is_async_replication_running(const mysqlshdk::mysql::IInstance &instance);
  * @return a string with the right keyword to be used for replica/slave.
  */
 std::string get_replica_keyword(const mysqlshdk::utils::Version &version);
+
+/**
+ * Get the correct keyword in use for the replication configuration command:
+ * 'change replication source/master' regarding the target instance version.
+ *
+ * Useful for the construction of queries or output/error messages.
+ *
+ * @param version Version of the target server.
+ * @param command Boolean value to indicate if the keyword is for the
+ * replication configuration command itself or if it is for an optional
+ * parameter of it (e.g. SOURCE_HOST)
+ *
+ * @return a string with the right keyword to be used for the replication
+ * configuration command
+ */
+std::string get_replication_source_keyword(
+    const mysqlshdk::utils::Version &version, bool command = false);
 
 }  // namespace mysql
 }  // namespace mysqlshdk

@@ -947,9 +947,18 @@ shcore::Dictionary_t Status::get_topology(
     if (!found) {
       log_debug("Instance with uuid=%s address=%s is in MD but not in group",
                 i.uuid.c_str(), i.endpoint.c_str());
+
+      auto &instance(m_member_sessions[i.endpoint]);
+
       Instance_metadata_info mdi;
       mdi.md = i;
-      mdi.actual_server_uuid = i.uuid;
+      if (instance) {
+        mdi.actual_server_uuid = instance->get_uuid();
+      } else {
+        // fallback to assuming the server_uuid is OK if we can't connect to
+        // the instance
+        mdi.actual_server_uuid = i.uuid;
+      }
       instances.emplace_back(std::move(mdi));
     }
   }
@@ -960,7 +969,7 @@ shcore::Dictionary_t Status::get_topology(
     mysqlshdk::gr::Member_state self_state =
         mysqlshdk::gr::Member_state::MISSING;
 
-    auto instance(m_member_sessions[inst.md.endpoint]);
+    auto &instance(m_member_sessions[inst.md.endpoint]);
 
     mysqlshdk::utils::nullable<bool> super_read_only;
     std::vector<std::string> fence_sysvars;

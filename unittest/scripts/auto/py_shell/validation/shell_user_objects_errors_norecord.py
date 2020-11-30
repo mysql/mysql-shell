@@ -6,15 +6,15 @@
 <ExtensionObject>
 
 #@object parameter should be an object
-||ValueError: Shell.add_extension_object_member: Argument #1 is expected to be an object
+||TypeError: Shell.add_extension_object_member: Argument #1 is expected to be an object
 
 
 #@but not any object, an extension object
-||ValueError: Shell.add_extension_object_member: Argument #1 is expected to be an extension object.
+||TypeError: Shell.add_extension_object_member: Argument #1 is expected to be an extension object
 
 
 #@name parameters must be a string
-||ValueError: Shell.add_extension_object_member: Argument #2 is expected to be a string
+||TypeError: Shell.add_extension_object_member: Argument #2 is expected to be a string
 
 
 #@name parameters must be a valid identifier (member)
@@ -26,7 +26,7 @@
 
 
 #@member definition must be a dictionary
-||ValueError: Shell.add_extension_object_member: Argument #4 is expected to be a map
+||TypeError: Shell.add_extension_object_member: Argument #4 is expected to be a map
 
 
 #@member definition 'brief' must be a string
@@ -250,7 +250,7 @@ Shell.add_extension_object_member: Invalid options at boolean parameter 'sample'
 
 
 #@Registering global, invalid data for name parameter
-||ValueError: Shell.register_global: Argument #1 is expected to be a string
+||TypeError: Shell.register_global: Argument #1 is expected to be a string
 
 
 #@Registering global, invalid name parameter
@@ -258,15 +258,15 @@ Shell.add_extension_object_member: Invalid options at boolean parameter 'sample'
 
 
 #@Registering global, invalid data for object parameter, not an object
-||ValueError: Shell.register_global: Argument #2 is expected to be an object
+||TypeError: Shell.register_global: Argument #2 is expected to be an object
 
 
 #@Registering global, invalid data for object parameter, not an extension object
-||ValueError: Shell.register_global: Argument #2 is expected to be an extension object.
+||TypeError: Shell.register_global: Argument #2 is expected to be an extension object
 
 
 #@Registering global, invalid data definition
-||ValueError: Shell.register_global: Argument #3 is expected to be a map
+||TypeError: Shell.register_global: Argument #3 is expected to be a map
 
 
 #@Registering global, invalid definition, brief should be string

@@ -5,6 +5,7 @@ import os.path
 import re
 import shutil
 import stat
+import time
 import urllib.parse
 
 # constants
@@ -402,23 +403,23 @@ for table in session.run_sql("SELECT TABLE_NAME, TABLE_TYPE FROM information_sch
 session.run_sql("ANALYZE TABLE !.! UPDATE HISTOGRAM ON `id`;", [ test_schema, test_table_no_index ])
 
 #@<> first parameter
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be an array of strings", None, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be an array", 1, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be an array", types_schema, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be an array", {}, test_output_relative)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be an array of strings", [1], test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be an array of strings", None, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be an array", 1, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be an array", types_schema, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be an array", {}, test_output_relative)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be an array of strings", [1], test_output_relative)
 
 #@<> WL13807-TSFR_2_3_3 - second parameter
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", [types_schema], None)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", [types_schema], 1)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", [types_schema], [])
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", [types_schema], {})
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a string", [types_schema], True)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", [types_schema], None)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", [types_schema], 1)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", [types_schema], [])
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", [types_schema], {})
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a string", [types_schema], True)
 
 #@<> WL13807-TSFR_3_1 - third parameter
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, 1)
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, "string")
-EXPECT_FAIL("ValueError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, [])
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, 1)
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, "string")
+EXPECT_FAIL("TypeError", "Argument #3 is expected to be a map", [types_schema], test_output_relative, [])
 
 #@<> WL13807-TSFR_2_2 - Call dumpSchemas(): giving less parameters than allowed, giving more parameters than allowed
 EXPECT_THROWS(lambda: util.dump_schemas(), "ValueError: Util.dump_schemas: Invalid number of arguments, expected 2 to 3 but got 0")
@@ -473,7 +474,11 @@ os.remove(test_output_relative)
 
 #@<> WL13807-FR1.1.4 - If a local directory is used and the output directory must be created, `rwxr-x---` permissions should be used on the created directory. The owner of the directory is the user running the Shell. {__os_type != "windows"}
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
-EXPECT_EQ(0o750, stat.S_IMODE(os.stat(test_output_absolute).st_mode))
+# get the umask value
+umask = os.umask(0o777)
+os.umask(umask)
+# use the umask value to compute the expected access rights
+EXPECT_EQ(0o750 & ~umask, stat.S_IMODE(os.stat(test_output_absolute).st_mode))
 EXPECT_EQ(os.getuid(), os.stat(test_output_absolute).st_uid)
 
 #@<> WL13807-FR1.1.5 - If the output directory exists and is not empty, an exception must be thrown.
@@ -763,6 +768,49 @@ EXPECT_FAIL("ValueError", "Invalid options: excludeSchemas", [types_schema], tes
 TEST_BOOL_OPTION("consistent")
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "consistent": False, "showProgress": False })
+
+#@<> BUG#32107327 verify if consistent dump works
+
+# setup
+session.run_sql("CREATE DATABASE db1")
+session.run_sql("CREATE TABLE db1.t1 (pk INT PRIMARY KEY AUTO_INCREMENT, c INT NOT NULL)")
+session.run_sql("CREATE DATABASE db2")
+session.run_sql("CREATE TABLE db2.t1 (pk INT PRIMARY KEY AUTO_INCREMENT, c INT NOT NULL)")
+
+# insert values to both tables in the same transaction
+insert_values = """v = 0
+session.run_sql("TRUNCATE db1.t1")
+session.run_sql("TRUNCATE db2.t1")
+while True:
+    session.run_sql("BEGIN")
+    session.run_sql("INSERT INTO db1.t1 (c) VALUES({0})".format(v))
+    session.run_sql("INSERT INTO db2.t1 (c) VALUES({0})".format(v))
+    session.run_sql("COMMIT")
+    v = v + 1
+session.close()
+"""
+
+# run a process which constantly inserts some values
+pid = testutil.call_mysqlsh_async(["--py", uri], insert_values)
+
+# wait a bit for process to start
+time.sleep(1)
+
+# check if dumps for both tables have the same number of entries
+for i in range(10):
+    EXPECT_SUCCESS(["db1", "db2"], test_output_absolute, { "consistent": True, "showProgress": False, "compression": "none", "chunking": False })
+    db1 = os.path.join(test_output_absolute, encode_table_basename("db1", "t1") + ".tsv")
+    db2 = os.path.join(test_output_absolute, encode_table_basename("db2", "t1") + ".tsv")
+    EXPECT_TRUE(os.path.isfile(db1), "File '{0}' should exist".format(db1))
+    EXPECT_TRUE(os.path.isfile(db2), "File '{0}' should exist".format(db2))
+    EXPECT_EQ(os.stat(db1).st_size, os.stat(db2).st_size, "Files '{0}' and '{1}' should have the same size".format(db1, db2))
+
+# terminate immediately, process will not stop on its own
+testutil.wait_mysqlsh_async(pid, 0)
+
+# cleanup
+session.run_sql("DROP DATABASE db1")
+session.run_sql("DROP DATABASE db2")
 
 #@<> WL13807-FR4.3 - The `options` dictionary may contain a `events` key with a Boolean value, which specifies whether to include events in the DDL file of each schema.
 TEST_BOOL_OPTION("events")

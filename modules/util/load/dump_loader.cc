@@ -227,10 +227,21 @@ class Index_file {
       m_idx_file->read(&m_offsets[0], m_file_size);
       m_idx_file->close();
 
+      uint64_t prev = 0;
+      bool invalid = false;
+
       std::transform(m_offsets.begin(), m_offsets.end(), m_offsets.begin(),
-                     [](uint64_t offset) {
-                       return mysqlshdk::utils::network_to_host(offset);
+                     [&prev, &invalid](uint64_t offset) {
+                       const auto next =
+                           mysqlshdk::utils::network_to_host(offset);
+                       invalid |= prev > next;
+                       prev = next;
+                       return next;
                      });
+
+      if (invalid) {
+        m_offsets.clear();
+      }
     }
     m_offsets_loaded = true;
   }
@@ -864,7 +875,7 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
   session->executef("SET SESSION wait_timeout = ?",
                     k_mysql_server_wait_timeout);
 
-  // Disable binlog if requested by user or if target is -cloud
+  // Disable binlog if requested by user and if target is not MDS
   if (m_options.skip_binlog() && !m_options.is_mds()) {
     try {
       session->execute("SET sql_log_bin=0");
@@ -1001,6 +1012,12 @@ void Dump_loader::on_dump_end() {
       current_console()->print_status("GTID_PURGED already updated");
       log_info("GTID_PURGED already updated");
     } else if (!m_dump->gtid_executed().empty()) {
+      if (m_dump->gtid_executed_inconsistent()) {
+        current_console()->print_warning(
+            "The gtid update requested, but gtid_executed was not guaranteed "
+            "to be consistent during the dump");
+      }
+
       try {
         m_load_log->start_gtid_update();
 
@@ -1586,6 +1603,15 @@ void Dump_loader::open_dump(
     throw std::runtime_error("Unsupported dump version");
   }
 
+  if (m_dump->dump_version() <
+      mysqlshdk::utils::Version(dump::Schema_dumper::version())) {
+    console->print_note(
+        "Dump format has version " + m_dump->dump_version().get_full() +
+        " and was created by an older version of MySQL Shell. "
+        "If you experience problems loading it, please recreate the dump using "
+        "the current version of MySQL Shell and try again.");
+  }
+
   if (status != Dump_reader::Status::COMPLETE) {
     if (m_options.dump_wait_timeout_ms() > 0) {
       console->print_note(
@@ -1622,13 +1648,29 @@ void Dump_loader::check_server_version() {
   }
 
   if (mds && !m_dump->mds_compatibility()) {
-    console->print_error(
+    msg =
         "Destination is a MySQL Database Service instance but the dump was "
-        "produced without the compatibility option. Please enable the "
-        "'ocimds' option when dumping your database.");
-    throw std::runtime_error("Dump is not MDS compatible");
-  } else if (target_server.get_major() !=
-             m_dump->server_version().get_major()) {
+        "produced without the compatibility option. ";
+
+    if (m_options.ignore_version()) {
+      msg +=
+          "The 'ignoreVersion' option is enabled, so loading anyway. If this "
+          "operation fails, create the dump once again with the 'ocimds' "
+          "option enabled.";
+
+      console->print_warning(msg);
+    } else {
+      msg +=
+          "Please enable the 'ocimds' option when dumping your database. "
+          "Alternatively, enable the 'ignoreVersion' option to load anyway.";
+
+      console->print_error(msg);
+
+      throw std::runtime_error("Dump is not MDS compatible");
+    }
+  }
+
+  if (target_server.get_major() != m_dump->server_version().get_major()) {
     if (target_server.get_major() < m_dump->server_version().get_major())
       msg =
           "Destination MySQL version is older than the one where the dump "
@@ -1641,7 +1683,7 @@ void Dump_loader::check_server_version() {
         " Loading dumps from different major MySQL versions is "
         "not fully supported and may not work.";
     if (m_options.ignore_version()) {
-      msg += " 'ignoreVersion' option is enabled, so loading anyway.";
+      msg += " The 'ignoreVersion' option is enabled, so loading anyway.";
       console->print_warning(msg);
     } else {
       msg += " Enable the 'ignoreVersion' option to load anyway.";
@@ -2182,7 +2224,7 @@ void Dump_loader::execute_tasks() {
   }
   update_progress(true);
 
-  handle_table_only_dump();
+  handle_schema_option();
 
   if (!m_resuming && m_options.load_ddl()) check_existing_objects();
 
@@ -2416,11 +2458,9 @@ void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
   });
 }
 
-void Dump_loader::handle_table_only_dump() {
-  if (m_dump->table_only()) {
-    m_dump->replace_target_schema(m_options.target_schema().empty()
-                                      ? m_options.current_schema()
-                                      : m_options.target_schema());
+void Dump_loader::handle_schema_option() {
+  if (!m_options.target_schema().empty()) {
+    m_dump->replace_target_schema(m_options.target_schema());
   }
 }
 

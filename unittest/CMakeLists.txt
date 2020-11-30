@@ -20,18 +20,9 @@
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 if(WITH_TESTS)
-    IF(WITH_GTEST)
-        ## Backwards compatibility with old scripts, remove once all
-        ## builds are updated
-        INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/gtest_legacy.cmake)
-        SET(GMOCK_INCLUDE_DIRS ${GTEST_INCLUDE_DIR} ${GMOCK_INCLUDE_DIR})
-        SET(GTEST_LIBRARIES gtest gmock)
-    ELSE()
-        INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/gtest.cmake)
-    ENDIF()
+    INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/gtest.cmake)
 
-    ADD_DEFINITIONS(-DWITH_GTEST=1)
-    add_definitions(-DGTEST_LANG_CXX11=1 ${GMOCK_CFLAGS})
+    add_definitions(${GMOCK_CFLAGS})
     add_definitions(-DMYSQLX_SOURCE_HOME="${CMAKE_SOURCE_DIR}")
     ADD_DEFINITIONS(-DCURL_VERSION="${CURL_VERSION_MAJOR}.${CURL_VERSION_MINOR}")
 
@@ -123,6 +114,11 @@ if(WITH_TESTS)
 
     IF(CMAKE_COMPILER_IS_GNUCXX)
       SET_SOURCE_FILES_PROPERTIES(${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough")
+      SET_SOURCE_FILES_PROPERTIES(
+        "${CMAKE_SOURCE_DIR}/unittest/mysqlshdk/libs/db/db_row_decimal_t.cc"
+        "${CMAKE_SOURCE_DIR}/unittest/mysqlshdk/libs/db/db_row_t.cc"
+        "${CMAKE_SOURCE_DIR}/unittest/shell_history_t.cc"
+        PROPERTIES COMPILE_FLAGS "-fno-var-tracking-assignments")
     ENDIF()
 
     IF(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -173,5 +169,5 @@ if(WITH_TESTS)
       target_link_libraries(run_unit_tests "${PYTHON_LIBRARIES}")
     endif()
 else()
-  message(WARNING "Skipping tests. To enable unit-tests use -DWITH_TESTS=1 -DWITH_GTEST=path")
+  message(WARNING "Skipping tests. To enable unit-tests use -DWITH_TESTS=1 -DWITH_GMOCK=path or -DENABLE_DOWNLOADS=1 -DWITH_TESTS=1")
 endif()

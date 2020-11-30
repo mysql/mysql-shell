@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -183,8 +183,8 @@ class Shell_console : public IConsole {
    */
   virtual void print_para(const std::string &text) const override;
 
-  bool prompt(const std::string &prompt, std::string *out_val,
-              Validator validator = nullptr) const override;
+  shcore::Prompt_result prompt(const std::string &prompt, std::string *out_val,
+                               Validator validator = nullptr) const override;
   Prompt_answer confirm(const std::string &prompt,
                         Prompt_answer def = Prompt_answer::NO,
                         const std::string &yes_label = "&Yes",
@@ -228,6 +228,10 @@ class Shell_console : public IConsole {
   void on_set_verbose() override;
 
   void detach_log_hook();
+
+  shcore::Prompt_result call_prompt(
+      const std::string &prompt, std::string *ret_val, Validator validator,
+      const char *tag, shcore::Interpreter_delegate::Prompt func) const;
 
   shcore::Interpreter_delegate *m_ideleg;
   std::weak_ptr<IPager> m_current_pager;

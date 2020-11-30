@@ -141,23 +141,30 @@ class Rescan : public Command_interface {
   shcore::Value::Map_type_ref get_rescan_report() const;
 
   /**
-   * Auxiliary function to add new instances or remove unavailable instances
-   * from the metadata.
+   * Handles the addition of new instances to the the metadata.
    *
-   * @param found_instances list of new or unavailable instances reported by
-   *                        get_rescan_report().
-   * @param auto_opt boolean indicating if "auto" was used for the corresponding
-   *                 to add or remove the instances.
-   * @param instances_list_opt list of connection options used for the
-   *                           corresponding option to add or remove the
-   *                           instances.
-   * @param to_add boolean value to indicate if the instances will be added to
-   *               the metadata (true) or removed from the metadata (false).
+   * @param instance_list list of new instances reported by get_rescan_report().
    */
-  void update_instances_list(
-      std::shared_ptr<shcore::Value::Array_type> found_instances, bool auto_opt,
-      std::vector<mysqlshdk::db::Connection_options> *instances_list_opt,
-      bool to_add);
+  void add_metadata_for_instances(
+      const std::shared_ptr<shcore::Value::Array_type> &instance_list);
+
+  /**
+   * Handles the removal of unavailable instances from the the metadata.
+   *
+   * @param instance_list list of unavailable instances reported by
+   * get_rescan_report().
+   */
+  void remove_metadata_for_instances(
+      const std::shared_ptr<shcore::Value::Array_type> &instance_list);
+
+  /**
+   * Handles the update of modified instances on the the metadata.
+   *
+   * @param instance_list list of updated instances reported by
+   * get_rescan_report().
+   */
+  void update_metadata_for_instances(
+      const std::shared_ptr<shcore::Value::Array_type> &instance_list);
 
   /**
    * Update the topology mode in the metadata.
@@ -177,6 +184,8 @@ class Rescan : public Command_interface {
   void add_instance_to_metadata(
       const mysqlshdk::db::Connection_options &instance_cnx_opts);
 
+  void update_metadata_for_instance(
+      const mysqlshdk::db::Connection_options &instance_cnx_opts);
   /**
    * Remove the given instance from the metadata.
    *

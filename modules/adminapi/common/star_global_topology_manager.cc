@@ -83,8 +83,9 @@ bool check_replication_working(const mysqlshdk::mysql::IInstance &instance,
   return repl_ok;
 }
 
-void validate_unsupported_options(const std::string &target,
-                                  const topology::Channel &channel) {
+void validate_unsupported_options(
+    const std::string &target, const topology::Channel &channel,
+    const mysqlshdk::utils::Version &server_version) {
   const auto &master_info = channel.master_info;
 
   auto check_blank = [&](const char *opt, const std::string &s) {
@@ -134,24 +135,30 @@ void validate_unsupported_options(const std::string &target,
   constexpr auto k_default_heartbeat_period = 30;
   constexpr auto k_default_compression_algorithm = "uncompressed";
 
-  check_equal("MASTER_CONNECT_RETRY", master_info.connect_retry,
-              k_default_connect_retry);
-  check_equal("MASTER_SSL", master_info.enabled_ssl, 0);
-  check_equal("MASTER_SSL_VERIFY_SERVER_CERT",
+  std::string source_term =
+      mysqlshdk::mysql::get_replication_source_keyword(server_version);
+
+  check_equal(std::string(source_term + "_CONNECT_RETRY").c_str(),
+              master_info.connect_retry, k_default_connect_retry);
+  check_equal(std::string(source_term + "_SSL").c_str(),
+              master_info.enabled_ssl, 0);
+  check_equal(std::string(source_term + "_SSL_VERIFY_SERVER_CERT").c_str(),
               master_info.ssl_verify_server_cert, 0);
-  check_equal("MASTER_HEARTBEAT_PERIOD", master_info.heartbeat,
-              k_default_heartbeat_period);
-  check_blank("MASTER_BIND", master_info.bind);
+  check_equal(std::string(source_term + "_HEARTBEAT_PERIOD").c_str(),
+              master_info.heartbeat, k_default_heartbeat_period);
+  check_blank(std::string(source_term + "_BIND").c_str(), master_info.bind);
   check_strequal("IGNORE_SERVER_IDS", master_info.ignored_server_ids, "0");
-  check_equal("MASTER_RETRY_COUNT", master_info.retry_count,
-              k_default_retry_count);
-  check_blank("MASTER_PUBLIC_KEY_PATH", master_info.public_key_path.get_safe());
+  check_equal(std::string(source_term + "_RETRY_COUNT").c_str(),
+              master_info.retry_count, k_default_retry_count);
+  check_blank(std::string(source_term + "_PUBLIC_KEY_PATH").c_str(),
+              master_info.public_key_path.get_safe());
   check_blank("NETWORK_NAMESPACE", master_info.network_namespace.get_safe());
-  check_strequal("MASTER_COMPRESSION_ALGORITHMS",
+  check_strequal(std::string(source_term + "_COMPRESSION_ALGORITHMS").c_str(),
                  master_info.master_compression_algorithm.get_safe(
                      k_default_compression_algorithm),
                  k_default_compression_algorithm);
-  check_equal("MASTER_DELAY", channel.relay_log_info.sql_delay, 0);
+  check_equal(std::string(source_term + "_DELAY").c_str(),
+              channel.relay_log_info.sql_delay, 0);
   check_blank("PRIVILEGE_CHECKS_USER",
               channel.relay_log_info.privilege_checks_username.get_safe());
   check_blank("PRIVILEGE_CHECKS_USER",
@@ -313,7 +320,10 @@ void Star_global_topology_manager::validate_adopt_cluster(
       }
 
       // check for unsupported replication options
-      validate_unsupported_options(server->label, *channel);
+      Scoped_instance instance(current_ipool()->connect_unchecked_endpoint(
+          server->get_primary_member()->endpoint));
+      auto server_version = instance->get_version();
+      validate_unsupported_options(server->label, *channel, server_version);
 
       console->print_info("Replication state of " + server->label + " is OK.");
     }

@@ -28,6 +28,7 @@
 #include "modules/mod_utils.h"
 #include "modules/util/dump/dump_manifest.h"
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
 
@@ -39,7 +40,7 @@ const char *k_oci_excluded_users[] = {"administrator", "ociadmin", "ocimonitor",
                                       "ocirpl"};
 
 bool is_mds(const mysqlshdk::utils::Version &version) {
-  return version.get_extra() == "cloud";
+  return shcore::str_endswith(version.get_extra(), "cloud");
 }
 
 }  // namespace
@@ -119,6 +120,12 @@ void Load_dump_options::validate() {
                            ->fetch_one_or_throw()
                            ->get_string(0);
     m_default_progress_file = "load-progress." + uuid + ".json";
+  }
+
+  if (skip_binlog() && is_mds()) {
+    throw shcore::Exception::argument_error(
+        "It is not possible to disable the binary log when loading a dump into "
+        "the MySQL Database Service.");
   }
 }
 

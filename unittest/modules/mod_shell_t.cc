@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,6 +41,7 @@ class Mock_mysql_shell : public mysqlsh::Mysql_shell {
   MOCK_METHOD3(connect,
                std::shared_ptr<mysqlsh::ShellBaseSession>(
                    const mysqlshdk::db::Connection_options &, bool, bool));
+  MOCK_METHOD1(cmd_disconnect, bool(const std::vector<std::string> &args));
 };
 
 class mod_shell_test : public Shell_core_test_wrapper {
@@ -291,6 +292,12 @@ TEST_F(mod_shell_test, connect) {
 
   EXPECT_CALL(*_backend, connect(_, false, false));
   _shell->open_session(mysqlshdk::db::Connection_options{_mysql_uri});
+}
+
+TEST_F(mod_shell_test, disconnect) {
+  // ensure that shell.disconnect() calls Mysql_shell::disconnect()
+  EXPECT_CALL(*_backend, cmd_disconnect(_)).Times(1);
+  _shell->disconnect();
 }
 
 TEST_F(mod_shell_test, dump_rows) {

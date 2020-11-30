@@ -36,6 +36,9 @@ namespace {
 const char *k_excluded_users[] = {"mysql.infoschema", "mysql.session",
                                   "mysql.sys"};
 
+const char *k_excluded_schemas[] = {"information_schema", "mysql", "ndbinfo",
+                                    "performance_schema", "sys"};
+
 }  // namespace
 
 Dump_instance_options::Dump_instance_options(const std::string &output_url)
@@ -58,6 +61,10 @@ void Dump_instance_options::unpack_options(shcore::Option_unpacker *unpacker) {
 
   set_excluded_users(excluded_users);
   set_included_users(included_users);
+
+  // some schemas are always excluded
+  m_excluded_schemas.insert(std::begin(k_excluded_schemas),
+                            std::end(k_excluded_schemas));
 }
 
 void Dump_instance_options::on_set_session(

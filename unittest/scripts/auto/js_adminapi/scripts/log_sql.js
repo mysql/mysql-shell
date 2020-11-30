@@ -23,7 +23,8 @@ var create_cluster_sql = [
     "SELECT @@hostname, @@report_host",
     "SELECT plugin_status FROM information_schema.plugins WHERE plugin_name = 'group_replication'",
     "START GROUP_REPLICATION",
-    "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_*' /*)*/, MASTER_PASSWORD = **** FOR CHANNEL 'group_replication_recovery'"
+    "CHANGE MASTER TO MASTER_USER = /*(*/ 'mysql_innodb_cluster_*' /*)*/, MASTER_PASSWORD = **** FOR CHANNEL 'group_replication_recovery'",
+    "CHANGE REPLICATION SOURCE TO SOURCE_USER = /*(*/ 'mysql_innodb_cluster_*' /*)*/, SOURCE_PASSWORD = **** FOR CHANNEL 'group_replication_recovery'",
 ];
 
 var add_instance_sql = [
@@ -177,7 +178,10 @@ var c = dba.createCluster('test', {gtidSetIsComplete: true});
 EXPECT_SHELL_LOG_NOT_CONTAINS(create_cluster_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(create_cluster_sql[1]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(create_cluster_sql[2]);
+//@<> WL#13294: create cluster (dba.logSql = 0). < 8.0.23 {VER(<8.0.23)}
 EXPECT_SHELL_LOG_NOT_CONTAINS(create_cluster_sql[3]);
+//@<> WL#13294: create cluster (dba.logSql = 0). >= 8.0.23 {VER(>=8.0.23)}
+EXPECT_SHELL_LOG_NOT_CONTAINS(create_cluster_sql[4]);
 
 //@<> WL#13294: add instance (dba.logSql = 0).
 WIPE_SHELL_LOG();
@@ -400,7 +404,10 @@ var c = dba.createCluster('test', {gtidSetIsComplete: true});
 EXPECT_SHELL_LOG_NOT_CONTAINS(create_cluster_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(create_cluster_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(create_cluster_sql[2]);
+//@<> WL#13294: create cluster (dba.logSql = 1). < 8.0.23 {VER(<8.0.23)}
 EXPECT_SHELL_LOG_CONTAINS(create_cluster_sql[3]);
+//@<> WL#13294: create cluster (dba.logSql = 1). >= 8.0.23 {VER(>=8.0.23)}
+EXPECT_SHELL_LOG_CONTAINS(create_cluster_sql[4]);
 
 //@<> WL#13294: add instance (dba.logSql = 1).
 WIPE_SHELL_LOG();
@@ -624,7 +631,10 @@ var c = dba.createCluster('test', {gtidSetIsComplete: true});
 EXPECT_SHELL_LOG_CONTAINS(create_cluster_sql[0]);
 EXPECT_SHELL_LOG_CONTAINS(create_cluster_sql[1]);
 EXPECT_SHELL_LOG_CONTAINS(create_cluster_sql[2]);
+//@<> WL#13294: create cluster (dba.logSql = 2). < 8.0.23 {VER(<8.0.23)}
 EXPECT_SHELL_LOG_CONTAINS(create_cluster_sql[3]);
+//@<> WL#13294: create cluster (dba.logSql = 2). >= 8.0.23 {VER(>=8.0.23)}
+EXPECT_SHELL_LOG_CONTAINS(create_cluster_sql[4]);
 
 //@<> WL#13294: add instance (dba.logSql = 2).
 WIPE_SHELL_LOG();

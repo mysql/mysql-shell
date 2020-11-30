@@ -68,47 +68,32 @@ class Dumper {
   void run();
 
  protected:
-  struct Table_info {
-    std::string name;
-    std::string basename;
-    uint64_t row_count = 0;
-  };
-
-  struct Schema_task {
-    std::string name;
-    std::vector<Table_info> tables;
-    std::vector<Table_info> views;
-    std::string basename;
-  };
-
-  struct Column_info {
-    std::string name;
-    bool csv_unsafe = false;
-  };
-
-  struct Index_info {
-    std::string name;
-    bool primary = false;
-  };
-
-  struct Table_task : Table_info {
-    std::string schema;
-    Index_info index;
-    std::vector<Column_info> columns;
-  };
-
   const std::shared_ptr<mysqlshdk::db::ISession> &session() const;
-
-  void add_schema_task(Schema_task &&task);
-
-  bool exists(const std::string &schema) const;
-
-  bool exists(const std::string &schema, const std::string &table) const;
 
   virtual std::unique_ptr<Schema_dumper> schema_dumper(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
  private:
+  struct Object_info {
+    std::string name;
+    std::string basename;
+  };
+
+  struct Table_info : public Object_info {
+    const Instance_cache::Table *cache = nullptr;
+  };
+
+  struct View_info : public Object_info {};
+
+  struct Schema_info : public Object_info {
+    std::vector<Table_info> tables;
+    std::vector<View_info> views;
+  };
+
+  struct Table_task : Table_info {
+    std::string schema;
+  };
+
   struct Range_info {
     std::string begin;
     std::string end;
@@ -131,23 +116,23 @@ class Dumper {
 
   class Memory_dumper;
 
-  static std::string quote(const Schema_task &schema);
+  static std::string quote(const Schema_info &schema);
 
-  static std::string quote(const Schema_task &schema, const Table_info &table);
+  static std::string quote(const Schema_info &schema, const Object_info &table);
 
-  static std::string quote(const Schema_task &schema, const std::string &view);
+  static std::string quote(const Schema_info &schema, const std::string &view);
 
   static std::string quote(const Table_task &table);
 
   static std::string quote(const std::string &schema, const std::string &table);
 
-  virtual void create_schema_tasks() = 0;
-
   virtual const char *name() const = 0;
 
   virtual void summary() const = 0;
 
-  virtual void on_create_table_task(const Table_task &task) = 0;
+  virtual void on_create_table_task(const std::string &schema,
+                                    const std::string &table,
+                                    const Instance_cache::Table *cache) = 0;
 
   void do_run();
 
@@ -158,18 +143,25 @@ class Dumper {
 
   void close_session();
 
-  void acquire_read_locks() const;
+  void acquire_read_locks();
 
   void release_read_locks() const;
 
-  void lock_all_tables() const;
+  void lock_all_tables();
 
   void start_transaction(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
-  void lock_instance() const;
+  void assert_transaction_is_open(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
+
+  void lock_instance();
+
+  void initialize_instance_cache_minimal();
 
   void initialize_instance_cache();
+
+  void create_schema_tasks();
 
   void validate_mds() const;
 
@@ -178,8 +170,6 @@ class Dumper {
   void initialize_dump();
 
   void create_output_directory();
-
-  void set_basenames();
 
   void create_worker_threads();
 
@@ -228,16 +218,10 @@ class Dumper {
 
   void create_table_tasks();
 
-  Table_task create_table_task(const Schema_task &schema,
+  Table_task create_table_task(const Schema_info &schema,
                                const Table_info &table);
 
   void push_table_task(Table_task &&task);
-
-  Index_info choose_index(const Schema_task &schema,
-                          const Table_info &table) const;
-
-  std::vector<Column_info> get_columns(const Schema_task &schema,
-                                       const Table_info &table) const;
 
   bool is_chunked(const Table_task &task) const;
 
@@ -255,7 +239,7 @@ class Dumper {
 
   void write_dump_finished_metadata() const;
 
-  void write_schema_metadata(const Schema_task &schema) const;
+  void write_schema_metadata(const Schema_info &schema) const;
 
   void write_table_metadata(
       const Table_task &table,
@@ -290,9 +274,6 @@ class Dumper {
   std::unique_ptr<mysqlshdk::storage::IFile> make_file(
       const std::string &filename, bool use_mmap = false) const;
 
-  uint64_t get_row_count(const Schema_task &schema,
-                         const Table_info &table) const;
-
   std::string get_basename(const std::string &basename);
 
   bool compressed() const;
@@ -306,7 +287,9 @@ class Dumper {
   std::string get_query_comment(const Table_data_task &task,
                                 const char *context) const;
 
-  void validate_trigger_privilege() const;
+  void validate_privileges() const;
+
+  bool is_gtid_executed_inconsistent() const;
 
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
@@ -320,8 +303,13 @@ class Dumper {
   std::unique_ptr<mysqlshdk::storage::IFile> m_output_file;
   bool m_use_json = false;
   Instance_cache m_cache;
-  std::vector<Schema_task> m_schema_tasks;
+  std::vector<Schema_info> m_schema_infos;
   std::unordered_map<std::string, std::size_t> m_truncated_basenames;
+
+  // status
+  bool m_instance_locked = false;
+  // whether FLUSH TABLES WITH READ LOCK has failed
+  bool m_ftwrl_failed = false;
 
   // counters
   uint64_t m_total_rows = 0;

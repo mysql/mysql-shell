@@ -205,6 +205,17 @@ void Create_cluster::prepare() {
   // Validate create cluster options (combinations).
   validate_create_cluster_options();
 
+  // Verify if the instance is running asynchronous
+  // replication. Skip if 'force' is enabled.
+  if (!m_force) {
+    validate_async_channels(*m_target_instance, checks::Check_type::CREATE);
+  } else {
+    log_debug(
+        "Skipping verification to check if instance '%s' is running "
+        "asynchronous replication.",
+        m_target_instance->descr().c_str());
+  }
+
   // If adopting, set the target_instance to the primary member of the group:.
   //
   // Adopting a cluster can be performed using any member of the group
@@ -640,7 +651,7 @@ shcore::Value Create_cluster::execute() {
 
       // If the instance is not in the Metadata, we must add it.
       if (!is_instance_on_md) {
-        cluster_impl->add_instance_metadata(
+        cluster_impl->add_metadata_for_instance(
             m_target_instance->get_connection_options());
       }
 

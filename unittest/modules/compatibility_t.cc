@@ -1289,5 +1289,94 @@ TEST_F(Compatibility_test, filter_grant_malformed) {
                std::runtime_error);
 }
 
+TEST_F(Compatibility_test, create_user) {
+  const std::string exception =
+      "Authentication plugin check can be only performed on CREATE USER "
+      "statements";
+
+  // unsupported statements
+  EXPECT_THROW_LIKE(check_create_user_for_authentication_plugin(""),
+                    std::runtime_error, exception);
+  EXPECT_THROW_LIKE(check_create_user_for_authentication_plugin("CREATE"),
+                    std::runtime_error, exception);
+  EXPECT_THROW_LIKE(check_create_user_for_authentication_plugin("create Table"),
+                    std::runtime_error, exception);
+
+  // statements without authentication plugin
+  EXPECT_EQ("",
+            check_create_user_for_authentication_plugin("CREATE USER r@l;"));
+  EXPECT_EQ(
+      "", check_create_user_for_authentication_plugin("CREATE USER 'r'@'l';"));
+  EXPECT_EQ("",
+            check_create_user_for_authentication_plugin("CREATE USER 'r'@l;"));
+  EXPECT_EQ("",
+            check_create_user_for_authentication_plugin("CREATE USER r@'l';"));
+  EXPECT_EQ("", check_create_user_for_authentication_plugin(
+                    "CREATE USER if not exists 'r'@'l';"));
+  EXPECT_EQ("", check_create_user_for_authentication_plugin(
+                    "CREATE USER r@l IDENTIFIED BY 'pass';"));
+
+  // unknown plugin not in the default list
+  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
+                          "CREATE USER r@l IDENTIFIED with 'plugin';"));
+  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
+                          "CREATE USER 'r'@'l' identified WITH 'plugin';"));
+  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
+                          "CREATE USER r@'l' identified WITH 'plugin';"));
+  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
+                          "CREATE USER 'r'@l identified WITH 'plugin';"));
+  EXPECT_EQ("plugin",
+            check_create_user_for_authentication_plugin(
+                "CREATE USER if NOT Exists 'r'@'l' IDENTIFIED WITH 'plugin';"));
+  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
+                          "CREATE USER r@l IDENTIFIED WITH \"plugin\""));
+  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
+                          "CREATE USER r@l IDENTIFIED WITH `plugin`"));
+  EXPECT_EQ("plugin", check_create_user_for_authentication_plugin(
+                          "CREATE USER r@l IDENTIFIED WITH plugin"));
+
+  // plugins on the default list
+  EXPECT_EQ("", check_create_user_for_authentication_plugin(
+                    "CREATE USER r@l IDENTIFIED WITH 'caching_sha2_password'"));
+  EXPECT_EQ("", check_create_user_for_authentication_plugin(
+                    "CREATE USER r@l IDENTIFIED WITH 'mysql_native_password'"));
+  EXPECT_EQ("", check_create_user_for_authentication_plugin(
+                    "CREATE USER r@l IDENTIFIED WITH 'sha256_password'"));
+
+  // disallowed plugins
+  EXPECT_EQ("authentication_ldap_sasl",
+            check_create_user_for_authentication_plugin(
+                "CREATE USER r@l IDENTIFIED WITH 'authentication_ldap_sasl'"));
+  EXPECT_EQ(
+      "authentication_ldap_simple",
+      check_create_user_for_authentication_plugin(
+          "CREATE USER r@l IDENTIFIED WITH 'authentication_ldap_simple'"));
+  EXPECT_EQ("authentication_pam",
+            check_create_user_for_authentication_plugin(
+                "CREATE USER r@l IDENTIFIED WITH 'authentication_pam'"));
+  EXPECT_EQ("authentication_windows",
+            check_create_user_for_authentication_plugin(
+                "CREATE USER r@l IDENTIFIED WITH 'authentication_windows'"));
+
+  // plugins which are not enabled
+  EXPECT_EQ("auth_socket",
+            check_create_user_for_authentication_plugin(
+                "CREATE USER r@l IDENTIFIED WITH 'auth_socket'"));
+  EXPECT_EQ("mysql_no_login",
+            check_create_user_for_authentication_plugin(
+                "CREATE USER r@l IDENTIFIED WITH 'mysql_no_login'"));
+
+  // non-default list
+  EXPECT_EQ("",
+            check_create_user_for_authentication_plugin(
+                "CREATE USER r@l IDENTIFIED WITH 'plugin_a'", {"plugin_a"}));
+  EXPECT_EQ("PLUGIN_A",
+            check_create_user_for_authentication_plugin(
+                "CREATE USER r@l IDENTIFIED WITH 'PLUGIN_A'", {"plugin_a"}));
+  EXPECT_EQ("plugin_b",
+            check_create_user_for_authentication_plugin(
+                "CREATE USER r@l IDENTIFIED WITH 'plugin_b'", {"plugin_a"}));
+}
+
 }  // namespace compatibility
 }  // namespace mysqlsh

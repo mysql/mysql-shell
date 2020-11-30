@@ -354,8 +354,11 @@ Cluster.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which i
 //@ BUG#29305551: Initialization
 ||
 
-//@ Create cluster async replication OK
-||
+//@<OUT> Create cluster async replication (should fail)
+ERROR: Cannot create cluster on instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' because it has asynchronous (source-replica) replication channel(s) configured. MySQL InnoDB Cluster does not support manually configured channels as they are not managed using the AdminAPI (e.g. when PRIMARY moves to another member) which may cause cause replication to break or even create split-brain scenarios (data loss). Use the 'force' option to skip this validation on a temporary scenario (e.g. migrating from a replication topology to InnoDB Cluster).
+
+//@<ERR> Create cluster async replication (should fail)
+Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has asynchronous replication configured. (RuntimeError)
 
 //@ BUG#29305551: Finalization
 ||

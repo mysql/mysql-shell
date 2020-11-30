@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -149,7 +149,7 @@ struct Type_info<mysqlshdk::db::Connection_options> {
   }
   static const char *code() { return "C"; }
   static std::string desc() {
-    return "the connection data (a URI or a Dictionary)";
+    return "either a URI or a Connection Options Dictionary";
   }
 };
 

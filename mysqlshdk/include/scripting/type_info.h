@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -89,17 +89,33 @@ template <typename T>
 struct Arg_handler {
   static Type_info_t<T> get(uint64_t position,
                             const shcore::Argument_list &args) {
+    // Prepends the Arg# to the given msg.
+    // If the error starts with uppercase, the final error is in the format of:
+    // Argument #<number>: <error>
+    //
+    // i.e. Argument #2: Option X is expected to be String
+    //
+    // If the error starts with lowercase then the final error is in the format
+    // of:
+    // Argument # <number> <error>
+    // i.e. Argument #2 is expected to be String.
+    auto prepend_arg_index = [](uint64_t index,
+                                const char *msg) -> std::string {
+      std::string error{"Argument #"};
+      error.append(std::to_string(index + 1));
+      if (std::isupper(*msg)) error.append(":");
+      error.append(" ");
+      error.append(msg);
+      return error;
+    };
+
     try {
       return Type_info<T>::to_native(args.at(position));
-    } catch (const std::invalid_argument &ex) {
-      throw Exception::argument_error(
-          "Argument #" + std::to_string(position + 1) + ": " + ex.what());
-    } catch (...) {
-      std::string error = "Argument #";
-      error.append(std::to_string(position + 1));
-      error.append(" is expected to be ")
-          .append(Type_info<T>::desc().append("."));
-      throw Exception::argument_error(error);
+    } catch (const shcore::Exception &ex) {
+      throw Exception(ex.type(), prepend_arg_index(position, ex.what()),
+                      ex.code());
+    } catch (const std::exception &ex) {
+      throw Exception::argument_error(prepend_arg_index(position, ex.what()));
     }
   }
 };

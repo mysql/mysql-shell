@@ -232,9 +232,10 @@ void Upgrade_metadata::prepare_rolling_upgrade() {
 
           console->println(shcore::str_format(
               "There %s %zu Router%s to upgrade. Please "
-              "upgrade %s and select Continue when done.\n",
+              "upgrade %s and select Continue once %s restarted.\n",
               (count == 1) ? "is" : "are", count, (count == 1) ? "" : "s",
-              (count == 1) ? "it" : "them"));
+              (count == 1) ? "it" : "them",
+              (count == 1) ? "it is" : "they are"));
 
           std::vector<std::string> options = {
               "Re-check for outdated Routers and continue with the metadata "

@@ -59,7 +59,7 @@ command: Sleep
 ||reports.threads: Option 'format' is expected to be of type String, but is Undefined (TypeError)
 
 //@ WL11651-TSFR7_2 - bool
-||reports.threads: Argument #3, option 'format' is expected to be a string (ArgumentError)
+||reports.threads: Argument #3, option 'format' is expected to be a string (TypeError)
 
 //@<OUT> WL11651-TSFR7_2 - string
 {

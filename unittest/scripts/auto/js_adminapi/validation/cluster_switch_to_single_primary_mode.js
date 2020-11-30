@@ -6,7 +6,7 @@ Cluster.switchToSinglePrimaryMode: Operation not supported on target server vers
 
 //@ WL#12052: ArgumentErrors of switchToSinglePrimaryMode {VER(>=8.0.13)}
 ||Argument #1: Invalid URI: empty. (ArgumentError)
-||Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+||Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary (TypeError)
 ||Argument #1: Invalid connection options, no options provided. (ArgumentError)
 
 //@ WL#12052: Error when executing switchToSinglePrimaryMode on a cluster with 1 or more members not ONLINE

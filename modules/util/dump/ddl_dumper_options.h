@@ -26,6 +26,7 @@
 
 #include <string>
 
+#include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/dump_options.h"
 
 namespace mysqlsh {
@@ -55,8 +56,6 @@ class Ddl_dumper_options : public Dump_options {
 
   bool dump_ddl() const override { return !m_data_only; }
 
-  bool table_only() const override { return false; }
-
   bool dump_data() const override { return !m_ddl_only; }
 
   bool is_dry_run() const override { return m_dry_run; }
@@ -67,6 +66,10 @@ class Ddl_dumper_options : public Dump_options {
 
   bool use_timezone_utc() const override { return m_timezone_utc; }
 
+  const Compatibility_options &compatibility_options() const {
+    return m_compatibility_options;
+  }
+
  protected:
   explicit Ddl_dumper_options(const std::string &output_url);
 
@@ -76,6 +79,10 @@ class Ddl_dumper_options : public Dump_options {
       const std::shared_ptr<mysqlshdk::db::ISession> &) override {}
 
   void validate_options() const override;
+
+  mysqlshdk::oci::Oci_options::Unpack_target oci_target() const override {
+    return mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE;
+  }
 
  private:
   bool m_split = true;
@@ -88,6 +95,8 @@ class Ddl_dumper_options : public Dump_options {
   bool m_data_only = false;
   bool m_dry_run = false;
   bool m_consistent_dump = true;
+
+  Compatibility_options m_compatibility_options;
 };
 
 }  // namespace dump

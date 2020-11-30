@@ -346,6 +346,7 @@ Instance_metadata query_instance_info(
 
   instance_def.grendpoint = local_gr_address;
   instance_def.uuid = instance.get_uuid();
+  instance_def.server_id = instance.get_server_id();
 
   // default label
   instance_def.label = instance_def.endpoint;

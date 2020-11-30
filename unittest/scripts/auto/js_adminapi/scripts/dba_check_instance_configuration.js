@@ -34,6 +34,15 @@ session.runSql("START SLAVE");
 //@ Check instance configuration async replication warning
 dba.checkInstanceConfiguration(__sandbox_uri2);
 
+// BUG#32197197: ADMINAPI DOES NOT PROPERLY CHECK FOR PRECONFIGURED REPLICATION CHANNELS
+//
+// Even if replication is not running but configured, the warning/error has to
+// be provided as implemented in BUG#29305551
+session.runSql("STOP SLAVE");
+
+//@ Check instance configuration async replication warning with channels stopped
+dba.checkInstanceConfiguration(__sandbox_uri2);
+
 //@<> BUG#31468546: invalid path specified as mycnfPath
 dba.checkInstanceConfiguration(__sandbox_uri1, {mycnfPath: "/this/path/is/invalid"});
 EXPECT_STDOUT_CONTAINS("Configuration file /this/path/is/invalid doesn't exist.");

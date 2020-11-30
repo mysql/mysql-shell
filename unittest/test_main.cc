@@ -710,7 +710,11 @@ int main(int argc, char **argv) {
   });
 #else
   auto locale = std::setlocale(LC_ALL, "en_US.UTF-8");
-  if (!locale) log_error("Failed to set locale to en_US.UTF-8");
+  if (!locale) {
+    // logger is not yet initialized here
+    std::cerr << "Failed to set LC_ALL locale to en_US.UTF-8: "
+              << strerror(errno) << '\n';
+  }
   shcore::setenv("LC_ALL", "en_US.UTF-8");
 #endif
 

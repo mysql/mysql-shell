@@ -48,6 +48,7 @@ struct Instance_metadata {
   std::string endpoint;
   std::string xendpoint;
   std::string grendpoint;
+  uint32_t server_id = 0;
 
   // GR clusters only
   std::string group_name;
@@ -141,6 +142,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
                                                  bool adopted);
 
   Instance_id insert_instance(const Instance_metadata &instance);
+  void update_instance(const Instance_metadata &instance);
   void remove_instance(const std::string &instance_address);
   void drop_cluster(const std::string &cluster_name);
 

@@ -51,18 +51,14 @@ class Schema_dumper {
       USE_FORCE_INNODB,
       USE_STRIP_DEFINERS,
       USE_STRIP_RESTRICTED_GRANTS,
-      USE_STRIP_TABLESPACES
+      USE_STRIP_TABLESPACES,
+      USE_SKIP_INVALID_ACCOUNTS
     };
 
     Issue(const std::string &d, Status s) : description(d), status(s) {}
 
     std::string description;
     Status status;
-  };
-
-  struct Histogram {
-    std::string column;
-    std::size_t buckets;
   };
 
   explicit Schema_dumper(const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
@@ -111,8 +107,8 @@ class Schema_dumper {
       const std::vector<shcore::Account> &included,
       const std::vector<shcore::Account> &excluded);
 
-  std::vector<Histogram> get_histograms(const std::string &db_name,
-                                        const std::string &table_name);
+  std::vector<Instance_cache::Histogram> get_histograms(
+      const std::string &db_name, const std::string &table_name);
 
   // Must be called for each file
   void write_header(IFile *sql_file);
@@ -153,6 +149,7 @@ class Schema_dumper {
   bool opt_strip_restricted_grants = false;
   bool opt_strip_tablespaces = false;
   bool opt_strip_definer = false;
+  bool opt_skip_invalid_accounts = false;
   std::string opt_character_set_results = "utf8mb4";
 
   enum enum_set_gtid_purged_mode {
@@ -167,8 +164,6 @@ class Schema_dumper {
   const std::vector<std::string> m_mysqlaas_supported_charsets;
 
   bool stats_tables_included = false;
-
-  bool lock_tables = true;
 
   /**
    Use double quotes ("") like in the standard  to quote identifiers if true,
@@ -282,13 +277,8 @@ class Schema_dumper {
 
   std::string get_actual_table_name(const std::string &old_table_name);
 
-  int do_flush_tables_read_lock();
-
-  int do_unlock_tables();
-
-  int start_transaction();
-
-  char check_if_ignore_table(const std::string &table_name,
+  char check_if_ignore_table(const std::string &db,
+                             const std::string &table_name,
                              std::string *out_table_type);
 
   bool is_binlog_disabled = false;

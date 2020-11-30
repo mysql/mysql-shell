@@ -14,7 +14,7 @@
 ||CollectionAdd.add: Invalid number of arguments, expected at least 1 but got 0
 ||CollectionAdd.add: Argument #1 expected to be a document, JSON expression or a list of documents
 ||CollectionAdd.add: Element #1 expected to be a document, JSON expression or a list of documents
-||CollectionAdd.add: Argument #1 expected to be a document, JSON expression or a list of documents (ArgumentError)
+||CollectionAdd.add: Argument #1 expected to be a document, JSON expression or a list of documents (TypeError)
 ||CollectionAdd.add: Element #2 expected to be a document, JSON expression or a list of documents
 ||CollectionAdd.add: Argument #2 expected to be a document, JSON expression or a list of documents
 

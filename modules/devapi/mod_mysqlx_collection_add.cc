@@ -214,7 +214,7 @@ void CollectionAdd::add_one_document(shcore::Value doc,
   if (!(doc.type == shcore::Map ||
         (doc.type == shcore::Object &&
          doc.as_object()->class_name() == "Expression"))) {
-    throw shcore::Exception::argument_error(
+    throw shcore::Exception::type_error(
         error_context +
         " expected to be a document, JSON expression or a list of documents");
   }
@@ -228,22 +228,12 @@ void CollectionAdd::add_one_document(shcore::Value doc,
     docx.reset(new Mysqlx::Expr::Expr());
     encode_expression_object(docx.get(), doc);
     if (docx->type() != Mysqlx::Expr::Expr::OBJECT) {
-      throw shcore::Exception::argument_error(
+      throw shcore::Exception::type_error(
           error_context +
           " expected to be a document, JSON expression or a list of documents");
     }
   }
 
-  /*std::string id = extract_id(docx.get());
-  if (id.empty()) {
-    auto session = std::dynamic_pointer_cast<Session>(_owner->session());
-    id = session->get_uuid();
-    // inject the id
-    auto fld = docx->mutable_object()->add_fld();
-    fld->set_key("_id");
-    mysqlshdk::db::mysqlx::util::set_scalar(*fld->mutable_value(), id);
-  }
-  last_document_ids_.push_back(id);*/
   message_.mutable_row()->Add()->mutable_field()->AddAllocated(docx.release());
 }
 

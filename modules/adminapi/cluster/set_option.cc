@@ -90,7 +90,7 @@ void Set_option::ensure_option_valid() {
     // Validate if the disableClone value is valid
     // Ensure disableClone is a boolean or integer value
     if (!m_value_str.is_null()) {
-      throw shcore::Exception::argument_error(
+      throw shcore::Exception::type_error(
           "Invalid value for 'disableClone': Argument #2 is expected to be a "
           "boolean.");
     }

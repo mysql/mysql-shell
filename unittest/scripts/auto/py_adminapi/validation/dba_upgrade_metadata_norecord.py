@@ -95,7 +95,7 @@ An upgrade of all cluster router instances is required. All router installations
 | rennox-tc::tenth   | <= 8.0.18 | NULL          | NULL     | NULL     |
 | rennox-tc::third   | <= 8.0.18 | NULL          | NULL     | NULL     |
 +--------------------+-----------+---------------+----------+----------+
-There are 10 Routers to upgrade. Please upgrade them and select Continue when done.
+There are 10 Routers to upgrade. Please upgrade them and select Continue once they are restarted.
 
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
@@ -139,7 +139,7 @@ An upgrade of all cluster router instances is required. All router installations
 | rennox-tc::sixth    | <= 8.0.18 | NULL          | NULL     | NULL     |
 | ...                 | ...       | ...           | ...      | ...      |
 +---------------------+-----------+---------------+----------+----------+
-There are 11 Routers to upgrade. Please upgrade them and select Continue when done.
+There are 11 Routers to upgrade. Please upgrade them and select Continue once they are restarted.
 
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.
@@ -174,7 +174,7 @@ An upgrade of all cluster router instances is required. All router installations
 +-------------+-----------+---------------+----------+----------+
 | rennox-tc:: | <= 8.0.18 | NULL          | NULL     | NULL     |
 +-------------+-----------+---------------+----------+----------+
-There is 1 Router to upgrade. Please upgrade it and select Continue when done.
+There is 1 Router to upgrade. Please upgrade it and select Continue once it is restarted.
 
   1) Re-check for outdated Routers and continue with the metadata upgrade.
   2) Unregister the remaining Routers.

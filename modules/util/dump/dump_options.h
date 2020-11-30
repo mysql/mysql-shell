@@ -25,6 +25,7 @@
 #define MODULES_UTIL_DUMP_DUMP_OPTIONS_H_
 
 #include <memory>
+#include <set>
 #include <string>
 
 #include "mysqlshdk/include/scripting/types.h"
@@ -35,6 +36,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
 
+#include "modules/util/dump/instance_cache.h"
 #include "modules/util/import_table/dialect.h"
 
 namespace mysqlsh {
@@ -98,7 +100,21 @@ class Dump_options {
     return m_included_users;
   }
 
-  bool dump_schema_ddl() const { return dump_ddl() && !table_only(); }
+  const Instance_cache_builder::Objects &included_schemas() const {
+    return m_included_schemas;
+  }
+
+  const Instance_cache_builder::Objects &excluded_schemas() const {
+    return m_excluded_schemas;
+  }
+
+  const Instance_cache_builder::Schema_objects &included_tables() const {
+    return m_included_tables;
+  }
+
+  const Instance_cache_builder::Schema_objects &excluded_tables() const {
+    return m_excluded_tables;
+  }
 
   virtual bool split() const = 0;
 
@@ -111,8 +127,6 @@ class Dump_options {
   virtual bool use_single_file() const = 0;
 
   virtual bool dump_ddl() const = 0;
-
-  virtual bool table_only() const = 0;
 
   virtual bool dump_data() const = 0;
 
@@ -162,6 +176,22 @@ class Dump_options {
     }
   }
 
+  bool exists(const std::string &schema) const;
+
+  bool exists(const std::string &schema, const std::string &table) const;
+
+  std::set<std::string> find_missing(
+      const std::set<std::string> &schemas) const;
+
+  std::set<std::string> find_missing(const std::string &schema,
+                                     const std::set<std::string> &tables) const;
+
+  Instance_cache_builder::Objects m_included_schemas;
+  Instance_cache_builder::Objects m_excluded_schemas;
+
+  Instance_cache_builder::Schema_objects m_included_tables;
+  Instance_cache_builder::Schema_objects m_excluded_tables;
+
  private:
   virtual void unpack_options(shcore::Option_unpacker *unpacker) = 0;
 
@@ -171,6 +201,9 @@ class Dump_options {
   virtual void validate_options() const = 0;
 
   virtual mysqlshdk::oci::Oci_options::Unpack_target oci_target() const = 0;
+
+  std::set<std::string> find_missing_impl(
+      const std::string &subquery, const std::set<std::string> &objects) const;
 
   // global session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
@@ -195,7 +228,7 @@ class Dump_options {
   // currently used by exportTable()
   import_table::Dialect m_dialect;
 
-  // currently used by dumpSchemas() and dumpInstance()
+  // currently used by dumpTables(), dumpSchemas() and dumpInstance()
   mysqlshdk::utils::nullable<mysqlshdk::utils::Version> m_mds;
 
   // currently used by dumpInstance()

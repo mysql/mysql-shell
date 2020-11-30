@@ -1708,14 +1708,17 @@ Some issues found by the <b>ocimds</b> option may require you to manually
 make changes to your database schema before it can be loaded into the MySQL
 Database Service. However, the <b>compatibility</b> option can be used to
 automatically modify the dumped schema SQL scripts, resolving some of these
-compatibility issues. You may pass one or more of the following options to
-"compatibility", separated by a comma (,).
+compatibility issues. You may pass one or more of the following values to
+the "compatibility" option.
 
 <b>force_innodb</b> - The MySQL Database Service requires use of the InnoDB
 storage engine. This option will modify the ENGINE= clause of CREATE TABLE
 statements that use incompatible storage engines and replace them with InnoDB.
 
-<b>strip_definers</b> - strips the "DEFINER=account" clause from views, routines,
+<b>skip_invalid_accounts</b> - Skips accounts which use authentication methods
+(plugins) not supported by the MySQL Database Service.
+
+<b>strip_definers</b> - Strips the "DEFINER=account" clause from views, routines,
 events and triggers. The MySQL Database Service requires special privileges to
 create these objects with a definer other than the user loading the schema.
 By stripping the DEFINER clause, these objects will be created with that default
@@ -1814,16 +1817,20 @@ REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMPRESSION, R"*(
 the data dump files, one of: "none", "gzip", "zstd".
 )*");
 
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS, R"*(
-@li <b>excludeTables</b>: list of strings (default: empty) - List of tables to
-be excluded from the dump in the format of <b>schema</b>.<b>table</b>.
-
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_MDS_COMMON_OPTIONS, R"*(
 @li <b>ocimds</b>: bool (default: false) - Enable checks for compatibility with
 MySQL Database Service (MDS)
 @li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
 Database Service compatibility modifications when writing dump files. Supported
-values: "force_innodb", "strip_definers", "strip_restricted_grants",
-"strip_tablespaces".
+values: "force_innodb", "skip_invalid_accounts", "strip_definers",
+"strip_restricted_grants", "strip_tablespaces".)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS, R"*(
+@li <b>excludeTables</b>: list of strings (default: empty) - List of tables to
+be excluded from the dump in the format of <b>schema</b>.<b>table</b>.
+
+${TOPIC_UTIL_DUMP_MDS_COMMON_OPTIONS}
+
 @li <b>events</b>: bool (default: true) - Include events from each dumped
 schema.
 @li <b>routines</b>: bool (default: true) - Include functions and stored
@@ -2093,10 +2100,14 @@ ${TOPIC_UTIL_DUMP_DDL_COMMON_PARAMETERS}
 <b>The following options are supported:</b>
 @li <b>all</b>: bool (default: false) - Dump all views and tables from the
 specified schema.
+
+${TOPIC_UTIL_DUMP_MDS_COMMON_OPTIONS}
+
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_DDL_COMPRESSION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
+${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 
 ${TOPIC_UTIL_DUMP_DDL_COMMON_REQUIREMENTS}
 @li Views and triggers to be dumped must not use qualified names to reference
@@ -2105,11 +2116,10 @@ other views or tables.
 <b>Details</b>
 
 This operation writes SQL files per each table and view dumped, along with some
-global SQL files. The information about the source schema is not saved, meaning
-that the dump must be loaded into an existing target schema. When using the
-util.<<<loadDump>>>() function to load the dump, the current schema of the
-global shell session is automatically used as the target schema. Alternatively,
-it can be specified explicitly using the <b>schema</b> option.
+global SQL files. The information about the source schema is also saved, meaning
+that when using the util.<<<loadDump>>>() function to load the dump, it is
+automatically recreated. Alternatively, dump can be loaded into another existing
+schema using the <b>schema</b> option.
 
 Table data dumps are written to TSV files, optionally splitting them into
 multiple chunk files.
@@ -2124,7 +2134,9 @@ be dumped. If the <b>tables</b> parameter is not set to an empty array, an
 exception is thrown.
 
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS}
+${TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION}
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
+${TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS}
 
 @throws ArgumentError in the following scenarios:
 @li If any of the input arguments contains an invalid value.

@@ -93,6 +93,23 @@ session.close();
 // fail with useless/unfriendly errors on this scenario. There's not even
 // information on how to overcome the issue.
 
+// BUG#32197222: ADMINAPI CREATECLUSTER() SHOULD NOT ALLOW EXISTING ASYNC REPLICATION CHANNELS
+//
+// With BUG#29305551, dba.checkInstanceConfiguration() was extended to
+// include a check to verify if asynchronous replication is configured and
+// running on the target instance and print a warning if that's the case.
+// On top of that, the same check is used in <Cluster>.addInstance() and
+// <Cluster>.rejoinInstance() to terminate the commands with an error if
+// such scenario is verified.
+// The same check is also used in dba.rebootClusterFromCompleteOutage()
+// whenever there are instances to be rejoined to the cluster.
+//
+// However, dba.createCluster() and rebootClusterFromCompleteOutage() were
+// skipping that test.
+//
+// dba.rebootClusterFromCompleteOutage() must fail if asynchronous replication
+// is running on the target instance
+
 //@<> BUG#29305551: Initialization
 c.dissolve({force: true});
 
@@ -130,10 +147,20 @@ session.runSql("SET GLOBAL super_read_only=0");
 session.runSql("CREATE USER 'repl'@'%' IDENTIFIED BY 'password' REQUIRE SSL");
 session.runSql("GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';");
 
+//@<> BUG#29305551: setup asynchronous replication on the target instance
+session.runSql("CHANGE MASTER TO MASTER_HOST='test', MASTER_PORT=3306, MASTER_USER='foo', MASTER_PASSWORD='bar'");
+
+//@ BUG#29305551: Reboot cluster from complete outage must fail if async replication is configured on the target instance
+var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+
+//@<> BUG#29305551: clean-up for the next test
+session.runSql("RESET SLAVE ALL");
+
 // Set async channel on instance2
 session.close();
 shell.connect(__sandbox_uri2);
 
+session.runSql("RESET SLAVE ALL");
 session.runSql("CHANGE MASTER TO MASTER_HOST='" + hostname + "', MASTER_PORT=" + __mysql_sandbox_port1 + ", MASTER_USER='repl', MASTER_PASSWORD='password', MASTER_AUTO_POSITION=1, MASTER_SSL=1");
 session.runSql("START SLAVE");
 
@@ -144,11 +171,24 @@ shell.connect(__sandbox_uri1);
 var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
 c.status();
 
-//@<> BUG#29305551 - cleanup for next test
-session2 = mysql.getSession(__sandbox_uri2);
-session2.runSql("stop slave");
-c.rejoinInstance(__sandbox_uri2);
+// BUG#32197197: ADMINAPI DOES NOT PROPERLY CHECK FOR PRECONFIGURED REPLICATION CHANNELS
+//
+// Even if replication is not running but configured, the warning/error has to
+// be provided as implemented in BUG#29305551
+session.runSql("STOP group_replication");
+shell.connect(__sandbox_uri2);
+session.runSql("STOP SLAVE");
+
+//@ Reboot cluster from complete outage, secondary runs async replication = should succeed, but rejoin fail with channels stopped
 shell.connect(__sandbox_uri1);
+var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
+c.status();
+
+//@<> BUG#29305551: Finalization
+session.close();
+testutil.destroySandbox(__mysql_sandbox_port1);
+testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);
 
 //@<> ensure rebootCluster picks the member with the most total transactions, not just the executed ones
 
@@ -164,8 +204,16 @@ shell.connect(__sandbox_uri1);
 // At this point, gtid_executed at sb3 will be bigger than at sb2, but gtid_executed + received will be bigger at sb2.
 // The correct behaviour is for sb2 to become the primary, not sb3.
 
-testutil.deploySandbox(__mysql_sandbox_port3, "root");
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+
+shell.connect(__sandbox_uri1);
+var c = dba.createCluster('test', {clearReadOnly: true, gtidSetIsComplete: true});
+c.addInstance(__sandbox_uri2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 c.addInstance(__sandbox_uri3);
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
 
@@ -192,7 +240,7 @@ wait(10, 0.1, function() {
 println("transactions at sb1:");
 session.runSql("SELECT received_transaction_set, @@global.gtid_executed FROM performance_schema.replication_connection_status WHERE channel_name='group_replication_applier'");
 
-testutil.stopSandbox(__mysql_sandbox_port1);
+testutil.killSandbox(__mysql_sandbox_port1);
 
 println("transactions at sb2 before restart:");
 session2.runSql("show schemas");
@@ -215,7 +263,7 @@ session3.runSql("SELECT received_transaction_set, @@global.gtid_executed FROM pe
 
 // try reboot while connected to sb3 (should fail)
 shell.connect(__sandbox_uri3);
-EXPECT_THROWS(function(){dba.rebootClusterFromCompleteOutage("test");}, "The active session instance (127.0.0.1:"+__mysql_sandbox_port3+") isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '"+hostname+":"+__mysql_sandbox_port2+"'.");
+EXPECT_THROWS(function(){dba.rebootClusterFromCompleteOutage("test");}, "The active session instance ("+hostname+":"+__mysql_sandbox_port3+") isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '"+hostname+":"+__mysql_sandbox_port2+"'.");
 
 // try reboot while connected to sb2 (should pass)
 shell.connect(__sandbox_uri2);
@@ -231,7 +279,7 @@ session3.runSql("stop group_replication");
 shell.connect(__sandbox_uri2);
 var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: []});
 
-//@<> BUG#29305551: Finalization
+//@<> BUG#31673163: Finalization
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
@@ -285,7 +333,22 @@ session1.runSql("SET GLOBAL super_read_only=0");
 session1.runSql("CREATE DATABASE ERRANTDB1");
 var c = dba.rebootClusterFromCompleteOutage("test", {rejoinInstances: [uri2]});
 
+//@<> BUG#32112864 - REBOOTCLUSTERFROMCOMPLETEOUTAGE() DOES NOT EXCLUDE INSTANCES IF IN OPTION "REMOVEINSTANCES" LIST
+EXPECT_NO_THROWS(function(){var c = dba.rebootClusterFromCompleteOutage("test", {removeInstances: [uri2]})});
+
+//@<> Verify instance2 was removed from the cluster
+EXPECT_FALSE(exist_in_metadata_schema(__mysql_sandbox_port2));
+
+//@<> Clean instance 2 errant transactions
+session2.runSql("DROP DATABASE ERRANTDB2");
+session2.runSql("RESET MASTER");
+
+//@<> Add instance2 back to the cluster
+c.addInstance(__sandbox_uri2);
+
 //@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying to run rejoinInstance
+session1.runSql("STOP group_replication");
+session2.runSql("STOP group_replication");
 session1.runSql("FLUSH BINARY LOGS");
 session1.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
 session2.runSql("RESET MASTER");

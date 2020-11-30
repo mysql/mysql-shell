@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -115,7 +115,8 @@ constexpr const char *k_base_instance_query =
     "SELECT i.instance_id, i.cluster_id, c.group_name,"
     " am.master_instance_id, am.master_member_id, am.member_role, am.view_id,"
     " i.label, i.mysql_server_uuid, i.address,"
-    " i.endpoint, i.xendpoint, ii.addresses->>'$.grLocal' as grendpoint"
+    " i.endpoint, i.xendpoint, ii.addresses->>'$.grLocal' as grendpoint,"
+    " CAST(ii.attributes->'$.server_id' AS UNSIGNED) server_id"
     " FROM mysql_innodb_cluster_metadata.v2_instances i"
     " LEFT JOIN mysql_innodb_cluster_metadata.instances ii"
     "   ON ii.instance_id = i.instance_id"
@@ -130,7 +131,8 @@ constexpr const char *k_base_instance_query_1_0_1 =
     " i.instance_name label, i.mysql_server_uuid, "
     " i.addresses->>'$.mysqlClassic' endpoint,"
     " i.addresses->>'$.mysqlX' xendpoint,"
-    " i.addresses->>'$.grLocal' grendpoint"
+    " i.addresses->>'$.grLocal' grendpoint,"
+    " CAST(i.attributes->'$.server_id' AS UNSIGNED) server_id"
     " FROM mysql_innodb_cluster_metadata.instances i"
     " LEFT JOIN mysql_innodb_cluster_metadata.replicasets r"
     "   ON r.replicaset_id = i.replicaset_id";
@@ -650,13 +652,16 @@ Instance_id MetadataStorage::insert_instance(
   if (!instance.grendpoint.empty())
     addresses += shcore::sqlstring(", 'grLocal', ?", 0) << instance.grendpoint;
 
+  std::string attributes;
+  attributes = shcore::sqlstring("'server_id', ?", 0) << instance.server_id;
+
   shcore::sqlstring query;
   query = shcore::sqlstring(
       "INSERT INTO mysql_innodb_cluster_metadata.instances "
       "(cluster_id, address, mysql_server_uuid, "
       "instance_name, addresses, attributes)"
       "VALUES (?, ?, ?, ?, json_object(" +
-          addresses + "), '{}')",
+          addresses + "), json_object(" + attributes + "))",
       0);
 
   query << instance.cluster_id;
@@ -668,6 +673,36 @@ Instance_id MetadataStorage::insert_instance(
   auto result = execute_sql(query);
 
   return result->get_auto_increment_value();
+}
+
+void MetadataStorage::update_instance(const Instance_metadata &instance) {
+  std::string addresses;
+  addresses = shcore::sqlstring("'mysqlClassic', ?", 0) << instance.endpoint;
+  if (!instance.xendpoint.empty())
+    addresses += shcore::sqlstring(", 'mysqlX', ?", 0) << instance.xendpoint;
+  if (!instance.grendpoint.empty())
+    addresses += shcore::sqlstring(", 'grLocal', ?", 0) << instance.grendpoint;
+
+  std::string attributes;
+  attributes = shcore::sqlstring("'server_id', ?", 0) << instance.server_id;
+
+  shcore::sqlstring query;
+  query = shcore::sqlstring(
+      "UPDATE mysql_innodb_cluster_metadata.instances "
+      "SET cluster_id = ?, address = ?, mysql_server_uuid = ?, addresses = "
+      "json_merge_patch(addresses, json_object(" +
+          addresses +
+          ")), attributes = json_merge_patch(attributes, json_object(" +
+          attributes + ")) WHERE address = ?",
+      0);
+
+  query << instance.cluster_id;
+  query << instance.address;
+  query << instance.uuid;
+  query << instance.address;
+  query.done();
+
+  execute_sql(query);
 }
 
 bool MetadataStorage::query_instance_attribute(const std::string &uuid,
@@ -1099,6 +1134,8 @@ Instance_metadata MetadataStorage::unserialize_instance(
   if (row.has_field("grendpoint"))
     instance.grendpoint = row.get_string("grendpoint", "");
 
+  instance.server_id = row.get_uint("server_id", 0);
+
   return instance;
 }
 
@@ -1182,7 +1219,8 @@ constexpr const char *k_replica_set_instances_query =
     "SELECT i.instance_id, i.cluster_id,"
     " am.master_instance_id, am.master_member_id,"
     " am.member_role, am.view_id, "
-    " i.label, i.mysql_server_uuid, i.address, i.endpoint, i.xendpoint"
+    " i.label, i.mysql_server_uuid, i.address, i.endpoint, i.xendpoint, "
+    " CAST(i.attributes->'$.server_id' AS UNSIGNED) server_id"
     " FROM mysql_innodb_cluster_metadata.v2_instances i"
     " LEFT JOIN mysql_innodb_cluster_metadata.v2_ar_members am"
     "   ON am.instance_id = i.instance_id"

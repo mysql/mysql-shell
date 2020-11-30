@@ -1,4 +1,59 @@
+var sandbox_uris = {}
+sandbox_uris[__mysql_sandbox_port1] = __sandbox_uri1;
+sandbox_uris[__mysql_sandbox_port2] = __sandbox_uri2;
+sandbox_uris[__mysql_sandbox_port3] = __sandbox_uri3;
 
+// Gets the initial UUID of the given instance caching the data
+// for further requests
+var sandbox_uuids = {}
+function get_sandbox_uuid(port){
+    if (!sandbox_uuids.hasOwnProperty(port)) {
+        var mySession = mysql.getSession(sandbox_uris[port]);
+        var result = mySession.runSql("select @@server_uuid as uuid");
+        sandbox_uuids[port] = result.fetchOneObject().uuid;
+        mySession.close()
+    }
+
+    return sandbox_uuids[port];
+}
+
+// Gets the initial auto.cnf file for the given sandbox
+var auto_cnfs = {}
+var auto_cnf_paths = {}
+function get_sandbox_auto_cnf(port){
+    if (!auto_cnfs.hasOwnProperty(port)) {
+        var auto_path = testutil.getSandboxLogPath(port);
+        var auto_path = auto_path.replace("error.log", "auto.cnf");
+        auto_cnf_paths[port] = auto_path;
+        auto_cnfs[port] = os.loadTextFile(auto_path);
+    }
+
+    return auto_cnfs[port];
+}
+
+
+// Update the sandbox UUID on auto.cnf replacing the last
+// characters of the current UUID with the value provided
+// at sequence
+function update_sandbox_uuid(port, sequence) {
+    var uuid = get_sandbox_uuid(port)
+    var new_uuid = uuid.substring(0, uuid.length - sequence.length) + sequence;
+    var new_auto_cnf = [];
+    function update_auto_cnf(value, index, array) {
+        if(value.startsWith("server-uuid")) {
+            new_auto_cnf.push("server-uuid = " + new_uuid);
+        } else {
+            new_auto_cnf.push(value);
+        }
+    }
+    var auto_cnf = get_sandbox_auto_cnf(port)
+    auto_cnf.split("\n").forEach(update_auto_cnf);
+    auto_cnfs[port] = new_auto_cnf.join("\n");
+    sandbox_uuids[port] = new_uuid;
+    testutil.createFile(auto_cnf_paths[port], auto_cnfs[port]);
+
+    return new_uuid;
+}
 
 function create_root_from_anywhere(session, clear_super_read_only) {
   var super_read_only = get_sysvar(session, "super_read_only");
@@ -366,9 +421,14 @@ function normalize_rs_options(options) {
 }
 
 // Check if the instance exists in the Metadata schema
-function exist_in_metadata_schema() {
-  var result = session.runSql(
+function exist_in_metadata_schema(port) {
+  if (typeof port == "number") {
+    var result = session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE instance_name = '" + hostname + ":" + port + "';");
+  } else {
+    var result = session.runSql(
       'SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances where CAST(mysql_server_uuid AS char ascii) = CAST(@@server_uuid AS char ascii);');
+  }
+
   var row = result.fetchOne();
   return row[0] != 0;
 }
@@ -1056,11 +1116,19 @@ function ClusterScenario(ports, create_cluster_options, sandboxConfiguration) {
       var uri = `root:root@localhost:${ports[i]}`;
       dba.configureInstance(uri, sandboxConfiguration);
     }
+
+    if (testutil.versionCheck(__version, "<", "8.0.0")) {
+      testutil.snapshotSandboxConf(ports[i]);
+    }
   }
 
   this.session = shell.connect("mysql://root:root@localhost:" + ports[0]);
 
-  if (create_cluster_options === undefined) {
+  if (create_cluster_options) {
+    if (!create_cluster_options.hasOwnProperty("gtidSetIsComplete")) {
+      create_cluster_options["gtidSetIsComplete"] = true;
+    }
+  } else {
     create_cluster_options = { gtidSetIsComplete: true };
   }
 
@@ -1070,12 +1138,17 @@ function ClusterScenario(ports, create_cluster_options, sandboxConfiguration) {
 
   for (i in ports) {
     if (i > 0) {
+      var uri = "mysql://root:root@localhost:" + ports[i];
       if (allowList === undefined) {
-        this.cluster.addInstance("mysql://root:root@localhost:" + ports[i]);
+        this.cluster.addInstance(uri);
       } else {
-        this.cluster.addInstance("mysql://root:root@localhost:" + ports[i], {ipAllowlist: allowList});
+        this.cluster.addInstance(uri, {ipAllowlist: allowList});
       }
       testutil.waitMemberState(ports[i], "ONLINE");
+
+      if (testutil.versionCheck(__version, "<", "8.0.0")) {
+        dba.configureLocalInstance(uri, {mycnfPath: testutil.getSandboxConfPath(ports[i])});
+      }
     }
   }
 

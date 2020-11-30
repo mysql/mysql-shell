@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,7 +51,6 @@ class Check_instance : public Command_interface {
   void check_instance_address();
   bool check_schema_compatibility();
   bool check_configuration();
-  void check_running_async_repl();
   void check_clone_plugin_status();
 
   /**

@@ -1,5 +1,5 @@
-# Copyright (c) 2010, 2019, Oracle and/or its affiliates. All rights reserved.
-# 
+# Copyright (c) 2010, 2020, Oracle and/or its affiliates.
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
 # as published by the Free Software Foundation.
@@ -20,15 +20,15 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 
-# We want release-1.8.0.zip in order to build these unit tests.
+# We want release-1.10.0.zip in order to build these unit tests.
 # If you have already downloaded it,
-# invoke cmake with -DWITH_GMOCK=/path/to/release-1.8.0.zip
+# invoke cmake with -DWITH_GMOCK=/path/to/release-1.10.0.zip
 #                or -DWITH_GMOCK=/path/to
 #
 # Alternatively, set an environment variable
-# export WITH_GMOCK=/path/to/release-1.8.0.zip
+# export WITH_GMOCK=/path/to/release-1.10.0.zip
 #
-# You can also do cmake -DENABLE_DOWNLOADS=1 
+# You can also do cmake -DENABLE_DOWNLOADS=1
 # and we will download it from https://github.com/google/googletest/archive/
 #
 # Either way: we will unpack the zip, compile gmock-all.cc and gtest-all.cc
@@ -40,8 +40,8 @@ IF(NOT DOWNLOAD_ROOT)
   SET(DOWNLOAD_ROOT ${CMAKE_SOURCE_DIR}/source_downloads)
 ENDIF()
 
-# We want googletest version 1.8, which also contains googlemock.
-SET(GMOCK_PACKAGE_NAME "release-1.8.0")
+# We want googletest version 1.10, which also contains googlemock.
+SET(GMOCK_PACKAGE_NAME "release-1.10.0")
 
 IF (DEFINED ENV{WITH_GMOCK} AND NOT DEFINED WITH_GMOCK)
   FILE(TO_CMAKE_PATH "$ENV{WITH_GMOCK}" WITH_GMOCK)
@@ -116,10 +116,10 @@ OPTION(ENABLE_DOWNLOADS
 
 # While experimenting, use local URL rather than google.
 SET(GMOCK_TARBALL "googletest-${GMOCK_PACKAGE_NAME}.zip")
-SET(GMOCK_DOWNLOAD_URL 
+SET(GMOCK_DOWNLOAD_URL
   "https://github.com/google/googletest/archive/${GMOCK_PACKAGE_NAME}.zip"
   )
-  
+
 MACRO(HTTP_PROXY_HINT)
   MESSAGE(STATUS
     "If you are inside a firewall, you may need to use an https proxy: "
@@ -137,7 +137,7 @@ IF(NOT GMOCK_FOUND)
     HTTP_PROXY_HINT()
     RETURN()
   ENDIF()
-  
+
   # Download googletest source
   IF(NOT EXISTS ${GMOCK_SOURCE_DIR})
     IF(NOT EXISTS ${DOWNLOAD_ROOT}/${GMOCK_TARBALL})
@@ -154,17 +154,17 @@ IF(NOT GMOCK_FOUND)
       ENDIF()
 
       IF (DOWNLOAD_SUCCEEDED)
-        MESSAGE(STATUS 
+        MESSAGE(STATUS
           "Successfully downloaded ${GMOCK_DOWNLOAD_URL} to ${DOWNLOAD_ROOT}")
       ELSE()
-        MESSAGE(STATUS 
+        MESSAGE(STATUS
           "To enable googletest, please download ${GMOCK_DOWNLOAD_URL} "
           "to the directory ${DOWNLOAD_ROOT}")
         HTTP_PROXY_HINT()
         RETURN()
       ENDIF()
     ENDIF()
-    
+
     # Unpack tarball
     EXECUTE_PROCESS(
       COMMAND ${CMAKE_COMMAND} -E tar xfz  "${DOWNLOAD_ROOT}/${GMOCK_TARBALL}"

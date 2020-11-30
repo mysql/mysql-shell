@@ -6,3 +6,4 @@ covbuild
 source_downloads
 unittest/traces
 mysqlshdk/libs/db/mysqlx/xpl_error.h
+/build/

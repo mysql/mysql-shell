@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2018, 2020, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -114,7 +114,7 @@ TEST_F(User_privileges_test, validate_user_does_not_exist) {
     auto sup = up.validate(tested_privileges);
 
     EXPECT_FALSE(sup.user_exists());
-    EXPECT_EQ(expected_privileges, sup.get_missing_privileges());
+    EXPECT_EQ(expected_privileges, sup.missing_privileges());
     EXPECT_TRUE(sup.has_missing_privileges());
     EXPECT_FALSE(sup.has_grant_option());
   };
@@ -294,7 +294,7 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
     auto sup = up.validate(test_priv, schema, table);
 
     EXPECT_TRUE(sup.user_exists());
-    EXPECT_EQ(expected_privileges, sup.get_missing_privileges());
+    EXPECT_EQ(expected_privileges, sup.missing_privileges());
     EXPECT_EQ(expected_privileges.size() != 0, sup.has_missing_privileges());
     EXPECT_EQ(expected_has_grant_option, sup.has_grant_option());
   };
@@ -556,7 +556,7 @@ TEST_F(User_privileges_test, validate_all_privileges) {
     auto sup = up.validate(test_priv, schema, table);
 
     EXPECT_TRUE(sup.user_exists());
-    EXPECT_EQ(std::set<std::string>{}, sup.get_missing_privileges());
+    EXPECT_EQ(std::set<std::string>{}, sup.missing_privileges());
     EXPECT_FALSE(sup.has_missing_privileges());
     EXPECT_TRUE(sup.has_grant_option());
   };
@@ -1027,13 +1027,13 @@ TEST_F(User_privileges_test, validate_role_privileges) {
   EXPECT_TRUE(up.user_exists());
   auto upr = up.validate(test_priv, "*", "*");
   EXPECT_TRUE(upr.user_exists());
-  EXPECT_EQ(std::set<std::string>{}, upr.get_missing_privileges());
+  EXPECT_EQ(std::set<std::string>{}, upr.missing_privileges());
   EXPECT_FALSE(upr.has_missing_privileges());
   EXPECT_FALSE(upr.has_grant_option());
 
   upr = up.validate(test_priv, "test_db", "test_tbl");
   EXPECT_TRUE(upr.user_exists());
-  EXPECT_EQ(std::set<std::string>{}, upr.get_missing_privileges());
+  EXPECT_EQ(std::set<std::string>{}, upr.missing_privileges());
   EXPECT_FALSE(upr.has_missing_privileges());
   EXPECT_FALSE(upr.has_grant_option());
 
@@ -1042,7 +1042,7 @@ TEST_F(User_privileges_test, validate_role_privileges) {
                "create", "ALTER",  "DROP"};
   upr = up.validate(test_priv, "*", "*");
   EXPECT_TRUE(upr.user_exists());
-  EXPECT_EQ(std::set<std::string>{"DROP"}, upr.get_missing_privileges());
+  EXPECT_EQ(std::set<std::string>{"DROP"}, upr.missing_privileges());
   EXPECT_TRUE(upr.has_missing_privileges());
   EXPECT_FALSE(upr.has_grant_option());
 }

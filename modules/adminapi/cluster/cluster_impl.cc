@@ -240,7 +240,7 @@ void Cluster_impl::adopt_from_gr() {
 
     newly_discovered_instance.set_login_options_from(session_data);
 
-    add_instance_metadata(newly_discovered_instance);
+    add_metadata_for_instance(newly_discovered_instance);
   }
 }
 
@@ -254,6 +254,11 @@ void Cluster_impl::adopt_from_gr() {
  * ignored even if their state is specified in the states vector.
  * @param functor Function that is called on each member of the cluster whose
  * state is specified in the states vector.
+ * @param condition Optional condition function. If provided, the result will be
+ * evaluated and the functor will only be called if the condition returns true.
+ * @param ignore_network_conn_errors Optional flag to indicate whether
+ * connection errors should be treated as errors and stop execution in remaining
+ * instances, by default is set to true.
  */
 void Cluster_impl::execute_in_members(
     const std::vector<mysqlshdk::gr::Member_state> &states,
@@ -261,6 +266,8 @@ void Cluster_impl::execute_in_members(
     const std::vector<std::string> &ignore_instances_vector,
     const std::function<bool(const std::shared_ptr<Instance> &instance)>
         &functor,
+    const std::function<
+        bool(const Instance_md_and_gr_member &instance_with_state)> &condition,
     bool ignore_network_conn_errors) const {
   std::shared_ptr<Instance> instance_session;
   // Note (nelson): should we handle the super_read_only behavior here or should
@@ -268,6 +275,10 @@ void Cluster_impl::execute_in_members(
   auto instance_definitions = get_instances_with_state();
 
   for (auto &instance_def : instance_definitions) {
+    // If the condition functor is given and the condition is not met then
+    // continues to the next member
+    if (condition && !condition(instance_def)) continue;
+
     std::string instance_address = instance_def.first.endpoint;
 
     // if instance is on the list of instances to be ignored, skip it
@@ -485,6 +496,24 @@ std::vector<Instance_metadata> Cluster_impl::get_instances(
   }
 }
 
+void Cluster_impl::ensure_metadata_has_server_id(
+    const mysqlshdk::mysql::IInstance &target_instance) {
+  execute_in_members(
+      {}, target_instance.get_connection_options(), {},
+      [this](const std::shared_ptr<Instance> &instance) {
+        get_metadata_storage()->update_instance_attribute(
+            instance->get_uuid(), k_instance_attribute_server_id,
+            shcore::Value(instance->get_server_id()));
+
+        return true;
+      },
+      [](const Instance_md_and_gr_member &md) {
+        return md.first.server_id == 0 &&
+               (md.second.state == mysqlshdk::gr::Member_state::ONLINE ||
+                md.second.state == mysqlshdk::gr::Member_state::RECOVERING);
+      });
+}
+
 std::vector<Instance_metadata> Cluster_impl::get_active_instances() const {
   return get_instances({mysqlshdk::gr::Member_state::ONLINE,
                         mysqlshdk::gr::Member_state::RECOVERING});
@@ -565,31 +594,29 @@ void Cluster_impl::validate_server_uuid(
 void Cluster_impl::validate_server_id(
     const mysqlshdk::mysql::IInstance &target_instance) const {
   // Get the server_id of the target instance.
-  mysqlshdk::utils::nullable<int64_t> server_id =
-      target_instance.get_sysvar_int("server_id");
+  uint32_t server_id = target_instance.get_server_id();
 
-  // Check if there is a member with the same server_id and throw an exception
-  // in that case.
-  // NOTE: attempt to check all members (except itself) independently of their
-  //       state, but skip it if the connection fails.
-  execute_in_members(
-      {}, get_target_server()->get_connection_options(),
-      {target_instance.get_canonical_address()},
-      [&server_id](const std::shared_ptr<Instance> &instance) {
-        mysqlshdk::utils::nullable<int64_t> id =
-            instance->get_sysvar_int("server_id");
+  // Get connection option for the metadata.
+  std::shared_ptr<Instance> cluster_instance = get_target_server();
+  Connection_options cluster_cnx_opt =
+      cluster_instance->get_connection_options();
 
-        if (!server_id.is_null() && !id.is_null() && *server_id == *id) {
-          throw std::runtime_error{"The server_id '" + std::to_string(*id) +
-                                   "' is already used by instance '" +
-                                   instance->descr() + "'."};
-        }
-        return true;
-      });
+  // Get list of instances in the metadata
+  std::vector<Instance_metadata> metadata_instances = get_instances();
+
+  // Get and compare the server_id of all instances with the one of
+  // the target instance.
+  for (const Instance_metadata &instance : metadata_instances) {
+    if (server_id != 0 && server_id == instance.server_id) {
+      throw std::runtime_error{"The server_id '" + std::to_string(server_id) +
+                               "' is already used by instance '" +
+                               instance.endpoint + "'."};
+    }
+  }
 }
 
-std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>>
-Cluster_impl::get_instances_with_state() const {
+std::vector<Instance_md_and_gr_member> Cluster_impl::get_instances_with_state()
+    const {
   std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>> ret;
 
   std::vector<mysqlshdk::gr::Member> members(
@@ -963,6 +990,10 @@ void Cluster_impl::add_instance(
   console->print_info();
 
   joiner.join(progress_style);
+
+  // Verification step to ensure the server_id is an attribute on all the
+  // instances of the cluster
+  ensure_metadata_has_server_id(target);
 }
 
 void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
@@ -981,9 +1012,18 @@ void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
                                interactive);
 
   // Rejoin the Instance to the Cluster
-  if (joiner.prepare_rejoin()) {
+  bool uuid_mistmatch = false;
+  if (joiner.prepare_rejoin(&uuid_mistmatch)) {
     joiner.rejoin();
   }
+
+  if (uuid_mistmatch) {
+    update_metadata_for_instance(target);
+  }
+
+  // Verification step to ensure the server_id is an attribute on all the
+  // instances of the cluster
+  ensure_metadata_has_server_id(target);
 }
 
 void Cluster_impl::remove_instance(const Connection_options &instance_def,
@@ -1007,19 +1047,14 @@ void Cluster_impl::remove_instance(const Connection_options &instance_def,
   op_remove_instance.execute();
 }
 
-void Cluster_impl::add_instance_metadata(
-    const mysqlshdk::db::Connection_options &instance_definition,
-    const std::string &label) const {
-  log_debug("Adding instance to metadata");
-
-  // Check if the instance was already added
+std::shared_ptr<Instance> connect_to_instance_for_metadata(
+    const mysqlshdk::db::Connection_options &instance_definition) {
   std::string instance_address =
       instance_definition.as_uri(mysqlshdk::db::uri::formats::only_transport());
 
   log_debug("Connecting to '%s' to query for metadata information...",
             instance_address.c_str());
-  // Get the required data from the joining instance to store in the metadata:
-  // - server UUID, reported_host, etc
+
   std::shared_ptr<Instance> classic;
   try {
     classic = Instance::connect(instance_definition,
@@ -1035,11 +1070,9 @@ void Cluster_impl::add_instance_metadata(
     // doesn't (GR keeps the hostname in the members table)
     if (e.code() == ER_ACCESS_DENIED_ERROR) {
       std::stringstream se;
-      se << "Access denied connecting to new instance " << instance_address
-         << ".\n"
+      se << "Access denied connecting to instance " << instance_address << ".\n"
          << "Please ensure all instances in the same group/cluster have"
             " the same password for account '"
-            ""
          << instance_definition.get_user()
          << "' and that it is accessible from the host mysqlsh is running "
             "from.";
@@ -1048,10 +1081,20 @@ void Cluster_impl::add_instance_metadata(
     throw shcore::Exception::runtime_error(ss.str());
   }
 
-  add_instance_metadata(*classic, label);
+  return classic;
 }
 
-void Cluster_impl::add_instance_metadata(
+void Cluster_impl::add_metadata_for_instance(
+    const mysqlshdk::db::Connection_options &instance_definition,
+    const std::string &label) const {
+  log_debug("Adding instance to metadata");
+
+  auto instance = connect_to_instance_for_metadata(instance_definition);
+
+  add_metadata_for_instance(*instance, label);
+}
+
+void Cluster_impl::add_metadata_for_instance(
     const mysqlshdk::mysql::IInstance &instance,
     const std::string &label) const {
   Instance_metadata instance_md(query_instance_info(instance));
@@ -1062,6 +1105,33 @@ void Cluster_impl::add_instance_metadata(
 
   // Add the instance to the metadata.
   get_metadata_storage()->insert_instance(instance_md);
+}
+
+void Cluster_impl::update_metadata_for_instance(
+    const mysqlshdk::db::Connection_options &instance_definition) const {
+  auto instance = connect_to_instance_for_metadata(instance_definition);
+
+  update_metadata_for_instance(*instance);
+}
+
+void Cluster_impl::update_metadata_for_instance(
+    const mysqlshdk::mysql::IInstance &instance) const {
+  log_debug("Updating instance metadata");
+
+  auto console = mysqlsh::current_console();
+  console->print_info("Updating instance metadata...");
+
+  Instance_metadata instance_md(query_instance_info(instance));
+
+  instance_md.cluster_id = get_id();
+
+  // Updates the instance metadata.
+  get_metadata_storage()->update_instance(instance_md);
+
+  console->print_info("The instance metadata for '" +
+                      instance.get_canonical_address() +
+                      "' was successfully updated.");
+  console->print_info();
 }
 
 void Cluster_impl::remove_instance_metadata(
@@ -1908,8 +1978,8 @@ void Cluster_impl::_set_instance_option(const std::string &instance_def,
     op_set_instance_option = std::make_unique<cluster::Set_instance_option>(
         *this, instance_conn_opt, option, value_int);
   } else {
-    throw shcore::Exception::argument_error(
-        "Argument #3 is expected to be a string or an integer.");
+    throw shcore::Exception::type_error(
+        "Argument #3 is expected to be a string or an integer");
   }
 
   // Always execute finish when leaving "try catch".
@@ -1947,7 +2017,7 @@ void Cluster_impl::_set_option(const std::string &option,
     op_cluster_set_option =
         std::make_unique<cluster::Set_option>(this, option, value_bool);
   } else {
-    throw shcore::Exception::argument_error(
+    throw shcore::Exception::type_error(
         "Argument #2 is expected to be a string, an integer or a boolean.");
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1214,13 +1214,13 @@ void test_available_helpers() {
     invoker.clear();                                                          \
   }
 
-#define REGISTER_TESTS(test_case_name)                                \
-  namespace {                                                         \
-  const auto test_case_name##_list = test_case_name::list_helpers();  \
-  }                                                                   \
-  INSTANTIATE_TEST_CASE_P(Helpers, test_case_name,                    \
-                          ::testing::ValuesIn(test_case_name##_list), \
-                          g_format_parameter)
+#define REGISTER_TESTS(test_case_name)                                 \
+  namespace {                                                          \
+  const auto test_case_name##_list = test_case_name::list_helpers();   \
+  }                                                                    \
+  INSTANTIATE_TEST_SUITE_P(Helpers, test_case_name,                    \
+                           ::testing::ValuesIn(test_case_name##_list), \
+                           g_format_parameter)
 
 }  // namespace
 

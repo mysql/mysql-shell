@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,9 +62,10 @@ TEST(modules_mod_utils, get_connection_data_invalid_uri) {
 }
 
 TEST(modules_mod_utils, get_connection_data_invalid_connection_data) {
-  EXPECT_THROW_LIKE(
-      mysqlsh::get_connection_options(shcore::Value(1)), std::invalid_argument,
-      "Invalid connection options, expected either a URI or a Dictionary.");
+  EXPECT_THROW_LIKE(mysqlsh::get_connection_options(shcore::Value(1)),
+                    shcore::Exception,
+                    "Invalid connection options, expected either a URI or a "
+                    "Connection Options Dictionary");
 }
 
 TEST(modules_mod_utils, get_connection_data_empty_uri_connection_data) {

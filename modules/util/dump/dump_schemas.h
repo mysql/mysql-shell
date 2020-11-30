@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,21 +24,17 @@
 #ifndef MODULES_UTIL_DUMP_DUMP_SCHEMAS_H_
 #define MODULES_UTIL_DUMP_DUMP_SCHEMAS_H_
 
-#include <memory>
-#include <string>
-#include <unordered_set>
-#include <vector>
-
+#include "modules/util/dump/ddl_dumper.h"
 #include "modules/util/dump/dump_schemas_options.h"
-#include "modules/util/dump/dumper.h"
 
 namespace mysqlsh {
 namespace dump {
 
-class Dump_schemas : public Dumper {
+class Dump_schemas : public Ddl_dumper {
  public:
   Dump_schemas() = delete;
-  explicit Dump_schemas(const Dump_schemas_options &options);
+  explicit Dump_schemas(const Dump_schemas_options &options)
+      : Ddl_dumper(options) {}
 
   Dump_schemas(const Dump_schemas &) = delete;
   Dump_schemas(Dump_schemas &&) = delete;
@@ -46,33 +42,15 @@ class Dump_schemas : public Dumper {
   Dump_schemas &operator=(const Dump_schemas &) = delete;
   Dump_schemas &operator=(Dump_schemas &&) = delete;
 
-  virtual ~Dump_schemas() = default;
-
- protected:
-  void create_schema_tasks() override;
-
-  virtual bool dump_all_schemas() const { return false; }
-
-  virtual const std::unordered_set<std::string> &excluded_schemas() const;
-
-  std::unique_ptr<Schema_dumper> schema_dumper(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session) const override;
+  ~Dump_schemas() override = default;
 
  private:
   const char *name() const override { return "dumpSchemas"; }
 
   void summary() const override {}
 
-  void on_create_table_task(const Table_task &) override {}
-
-  std::vector<Table_info> get_tables(const std::string &schema);
-
-  std::vector<Table_info> get_views(const std::string &schema);
-
-  std::vector<Table_info> get_tables(const std::string &schema,
-                                     const std::string &type);
-
-  const Dump_schemas_options &m_options;
+  void on_create_table_task(const std::string &, const std::string &,
+                            const Instance_cache::Table *) override {}
 };
 
 }  // namespace dump

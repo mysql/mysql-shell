@@ -175,7 +175,7 @@ DESCRIPTION
       The data parameter accepts the following values: one, two, three.
 
 #@ Usage, function(string)
-||ValueError: sampleModulePY.string_function: Argument #1 is expected to be a string
+||TypeError: sampleModulePY.string_function: Argument #1 is expected to be a string
 ||ValueError: sampleModulePY.string_function: Argument #1 only accepts the following values: one, two, three.
 |Python Function Definition:  one|
 
@@ -229,7 +229,7 @@ DESCRIPTION
 #@Usage, function(dictionary)
 ||ValueError: sampleModulePY.dict_function: Missing required options at Argument #1: myOption
 ||ValueError: sampleModulePY.dict_function: Invalid and missing options at Argument #1 (invalid: someOption), (missing: myOption)
-||ValueError: sampleModulePY.dict_function: Argument #1, option 'myOption' is expected to be a string
+||TypeError: sampleModulePY.dict_function: Argument #1, option 'myOption' is expected to be a string
 ||ValueError: sampleModulePY.dict_function: Argument #1, option 'myOption' only accepts the following values: test, value.
 |No function data available|
 |Function data:  test|
@@ -293,7 +293,7 @@ DESCRIPTION
       The session parameter must be a Session object.
 
 #@ Usage, function(Session)
-||ValueError: sampleModulePY.object_function1: Argument #1 is expected to be a 'Session' object.
+||TypeError: sampleModulePY.object_function1: Argument #1 is expected to be a 'Session' object
 |Active Session: <Session:<<<__uri>>>>|
 
 #@ Register, function(Session and ClassicSession)
@@ -351,9 +351,9 @@ DESCRIPTION
 
 
 #@ Registration errors, function definition
-||ValueError: Shell.add_extension_object_member: Argument #1 is expected to be an object
-||ValueError: Shell.add_extension_object_member: Argument #1 is expected to be an extension object.
-||ValueError: Shell.add_extension_object_member: Argument #2 is expected to be a string
+||TypeError: Shell.add_extension_object_member: Argument #1 is expected to be an object
+||TypeError: Shell.add_extension_object_member: Argument #1 is expected to be an extension object
+||TypeError: Shell.add_extension_object_member: Argument #2 is expected to be a string
 ||ValueError: Shell.add_extension_object_member: Invalid options at function definition: extra
 ||TypeError: Shell.add_extension_object_member: Option 'brief' is expected to be of type String, but is Integer
 ||TypeError: Shell.add_extension_object_member: Option 'details' is expected to be of type Array, but is Integer

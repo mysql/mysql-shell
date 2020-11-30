@@ -7,15 +7,15 @@
 //@# bad parameters (should fail)
 |ERROR: Unable to connect to the target instance 'localhost:<<<__mysql_sandbox_port3>>>'. Please verify the connection settings, make sure the instance is available and try again.|
 ||ReplicaSet.addInstance: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
-||ReplicaSet.addInstance: Argument #1 is expected to be a string (ArgumentError)
-||ReplicaSet.addInstance: Argument #1 is expected to be a string (ArgumentError)
-||ReplicaSet.addInstance: Argument #1 is expected to be a string (ArgumentError)
-||ReplicaSet.addInstance: Argument #2 is expected to be a map (ArgumentError)
+||ReplicaSet.addInstance: Argument #1 is expected to be a string (TypeError)
+||ReplicaSet.addInstance: Argument #1 is expected to be a string (TypeError)
+||ReplicaSet.addInstance: Argument #1 is expected to be a string (TypeError)
+||ReplicaSet.addInstance: Argument #2 is expected to be a map (TypeError)
 ||ReplicaSet.addInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
-||ReplicaSet.addInstance: Argument #1 is expected to be a string (ArgumentError)
-||ReplicaSet.addInstance: Argument #1 is expected to be a string (ArgumentError)
+||ReplicaSet.addInstance: Argument #1 is expected to be a string (TypeError)
+||ReplicaSet.addInstance: Argument #1 is expected to be a string (TypeError)
 ||ReplicaSet.addInstance: Invalid options: badOption (ArgumentError)
-||ReplicaSet.addInstance: Argument #1 is expected to be a string (ArgumentError)
+||ReplicaSet.addInstance: Argument #1 is expected to be a string (TypeError)
 ||ReplicaSet.addInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on 'localhost'
 ||ReplicaSet.addInstance: Invalid value '0' for option 'waitRecovery'. It must be an integer in the range [1, 3].
 ||ReplicaSet.addInstance: Invalid value for option recoveryMethod: bogus (ArgumentError)

@@ -374,7 +374,8 @@ enum class Instance_rejoinability {
 
 Instance_rejoinability validate_instance_rejoinable(
     const mysqlshdk::mysql::IInstance &instance,
-    const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id);
+    const std::shared_ptr<MetadataStorage> &metadata, Cluster_id cluster_id,
+    bool *out_uuid_mistmatch = nullptr);
 
 bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
                 std::string *cnfPath = nullptr);

@@ -25,7 +25,6 @@
 #define MODULES_UTIL_DUMP_DUMP_TABLES_OPTIONS_H_
 
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 #include "modules/util/dump/ddl_dumper_options.h"
@@ -48,14 +47,6 @@ class Dump_tables_options : public Ddl_dumper_options {
 
   virtual ~Dump_tables_options() = default;
 
-  const std::string &schema() const { return m_schema; }
-
-  const std::unordered_set<std::string> &tables() const { return m_tables; }
-
-  bool dump_all() const { return m_dump_all; }
-
-  bool table_only() const override { return true; }
-
   bool dump_events() const override { return false; }
 
   bool dump_routines() const override { return false; }
@@ -67,14 +58,8 @@ class Dump_tables_options : public Ddl_dumper_options {
 
   void validate_options() const override;
 
-  mysqlshdk::oci::Oci_options::Unpack_target oci_target() const override {
-    return mysqlshdk::oci::Oci_options::Unpack_target::
-        OBJECT_STORAGE_NO_PAR_SUPPORT;
-  }
-
-  std::string m_schema;
-  std::unordered_set<std::string> m_tables;
   bool m_dump_all = false;
+  bool m_has_tables = false;
 };
 
 }  // namespace dump

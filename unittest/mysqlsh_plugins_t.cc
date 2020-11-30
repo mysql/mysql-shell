@@ -1120,7 +1120,7 @@ shell.register_global('pyObject', obj);
               "argument 'one'");
   // TEST: Passing positional parameter using keyword parameter
   add_py_test("pyObject.self_describe(1, two=10)",
-              "ValueError: pyObject.self_describe: Argument 'two' is "
+              "TypeError: pyObject.self_describe: Argument 'two' is "
               "expected to be a string");
   // TEST: Passing keyword parameter skipping optional parameters
   add_py_test("pyObject.self_describe(1,'some',four='other')",

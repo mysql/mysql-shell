@@ -31,6 +31,7 @@
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
+#include "modules/adminapi/common/instance_validations.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -65,7 +66,8 @@ class Cluster_join {
   void prepare_join(
       const mysqlshdk::utils::nullable<std::string> &instance_label);
 
-  bool prepare_rejoin();
+  bool check_rejoinable(bool *out_uuid_mistmatch = nullptr);
+  bool prepare_rejoin(bool *out_uuid_mistmatch = nullptr);
 
   void prepare_reboot();
 
@@ -90,20 +92,18 @@ class Cluster_join {
 
  private:
   void ensure_instance_check_installed_schema_version() const;
-
-  enum class Check_type { BOOTSTRAP, JOIN, REJOIN };
   /**
    * Validate the use of IPv6 addresses on the localAddress of the
    * target instance and check if the target instance supports usage of
    * IPv6 on the localAddress values being used on the cluster instances.
    */
-  void validate_local_address_ip_compatibility(const std::string &local_address,
-                                               const std::string &group_seeds,
-                                               Check_type check_type) const;
+  void validate_local_address_ip_compatibility(
+      const std::string &local_address, const std::string &group_seeds,
+      checks::Check_type check_type) const;
 
   void resolve_local_address(Group_replication_options *gr_options,
                              const Group_replication_options &user_gr_options,
-                             Check_type check_type);
+                             checks::Check_type check_type);
 
   void resolve_ssl_mode();
   void handle_gr_protocol_version();
@@ -117,7 +117,7 @@ class Cluster_join {
 
   void refresh_target_connections();
 
-  void check_instance_configuration(Check_type type);
+  void check_instance_configuration(checks::Check_type type);
 
   Member_recovery_method check_recovery_method(bool clone_disabled);
   void wait_recovery(const std::string &join_begin_time,
@@ -131,8 +131,6 @@ class Cluster_join {
    * and the target instance
    */
   void handle_clone_plugin_state(bool enable_clone);
-
-  bool check_rejoinable();
 
  private:
   Cluster_impl *m_cluster = nullptr;

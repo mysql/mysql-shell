@@ -24,19 +24,17 @@
 #ifndef MODULES_UTIL_DUMP_DUMP_TABLES_H_
 #define MODULES_UTIL_DUMP_DUMP_TABLES_H_
 
-#include <string>
-#include <vector>
-
+#include "modules/util/dump/ddl_dumper.h"
 #include "modules/util/dump/dump_tables_options.h"
-#include "modules/util/dump/dumper.h"
 
 namespace mysqlsh {
 namespace dump {
 
-class Dump_tables : public Dumper {
+class Dump_tables : public Ddl_dumper {
  public:
   Dump_tables() = delete;
-  explicit Dump_tables(const Dump_tables_options &options);
+  explicit Dump_tables(const Dump_tables_options &options)
+      : Ddl_dumper(options) {}
 
   Dump_tables(const Dump_tables &) = delete;
   Dump_tables(Dump_tables &&) = delete;
@@ -44,18 +42,15 @@ class Dump_tables : public Dumper {
   Dump_tables &operator=(const Dump_tables &) = delete;
   Dump_tables &operator=(Dump_tables &&) = delete;
 
-  virtual ~Dump_tables() = default;
+  ~Dump_tables() override = default;
 
  private:
-  void create_schema_tasks() override;
-
   const char *name() const override { return "dumpTables"; }
 
   void summary() const override {}
 
-  void on_create_table_task(const Table_task &) override {}
-
-  const Dump_tables_options &m_options;
+  void on_create_table_task(const std::string &, const std::string &,
+                            const Instance_cache::Table *) override {}
 };
 
 }  // namespace dump

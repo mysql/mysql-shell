@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -323,8 +323,8 @@ bool Helper_interface::store(const Secret_spec &spec,
   return m_impl->store(spec, secret);
 }
 
-bool Helper_interface::get(const Secret_spec &spec, std::string *secret) const
-    noexcept {
+bool Helper_interface::get(const Secret_spec &spec,
+                           std::string *secret) const noexcept {
   return m_impl->get(spec, secret);
 }
 

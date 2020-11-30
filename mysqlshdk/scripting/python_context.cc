@@ -233,6 +233,11 @@ Python_init_singleton::~Python_init_singleton() {
 
 void Python_init_singleton::init_python() {
   if (!s_instance) {
+    // python-cryptography requires this definition to allow working with
+    // OpenSSL versions lower than 1.1.0
+    if (OPENSSL_VERSION_ID < 10100) {
+      shcore::setenv("CRYPTOGRAPHY_ALLOW_OPENSSL_102", "1");
+    }
     s_instance.reset(new Python_init_singleton());
   }
 }
@@ -1005,7 +1010,8 @@ std::pair<shcore::Prompt_result, std::string> Python_context::read_line(
     }
   }
   std::string ret;
-  if (!mysqlsh::current_console()->prompt(prompt, &ret)) {
+  if (mysqlsh::current_console()->prompt(prompt, &ret) !=
+      shcore::Prompt_result::Ok) {
     return {shcore::Prompt_result::Cancel, ""};
   }
   _stdin_buffer.append(ret).append("\n");

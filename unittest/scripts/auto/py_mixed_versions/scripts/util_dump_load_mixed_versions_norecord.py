@@ -117,7 +117,7 @@ EXPECT_STDOUT_CONTAINS("ERROR: Destination MySQL version is older than the one w
 EXPECT_THROWS(lambda: util.load_dump(__tmp_dir+"/ldtest/dump2", {"ignoreVersion":True}), "Util.load_dump: Unknown collation: 'utf8mb4_0900_ai_ci'")
 
 EXPECT_STDOUT_CONTAINS("Target is MySQL "+version_57+". Dump was produced from MySQL "+version_80)
-EXPECT_STDOUT_CONTAINS("WARNING: Destination MySQL version is older than the one where the dump was created. Loading dumps from different major MySQL versions is not fully supported and may not work. 'ignoreVersion' option is enabled, so loading anyway.")
+EXPECT_STDOUT_CONTAINS("WARNING: Destination MySQL version is older than the one where the dump was created. Loading dumps from different major MySQL versions is not fully supported and may not work. The 'ignoreVersion' option is enabled, so loading anyway.")
 
 
 #@<> Cleanup

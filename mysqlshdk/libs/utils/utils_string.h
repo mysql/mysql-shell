@@ -144,6 +144,19 @@ inline bool str_endswith(const std::string &s, const std::string &suffix) {
   return s.compare(s.length() - suffix.length(), suffix.length(), suffix) == 0;
 }
 
+template <typename... T>
+bool str_endswith(const char *s, const char *suffix, T &&... suffixes) {
+  return str_endswith(s, suffix) ||
+         str_endswith(s, std::forward<T>(suffixes)...);
+}
+
+template <typename... T>
+bool str_endswith(const std::string &s, const std::string &suffix,
+                  T &&... suffixes) {
+  return str_endswith(s, suffix) ||
+         str_endswith(s, std::forward<T>(suffixes)...);
+}
+
 inline bool str_iendswith(const char *s, const char *suffix) {
   size_t l = strlen(suffix);
   size_t sl = strlen(s);
@@ -164,6 +177,19 @@ inline bool str_iendswith(const std::string &s, const std::string &suffix) {
   return strncasecmp(s.c_str() + s.length() - suffix.length(), suffix.c_str(),
                      suffix.length()) == 0;
 #endif
+}
+
+template <typename... T>
+bool str_iendswith(const char *s, const char *suffix, T &&... suffixes) {
+  return str_iendswith(s, suffix) ||
+         str_iendswith(s, std::forward<T>(suffixes)...);
+}
+
+template <typename... T>
+bool str_iendswith(const std::string &s, const std::string &suffix,
+                   T &&... suffixes) {
+  return str_iendswith(s, suffix) ||
+         str_iendswith(s, std::forward<T>(suffixes)...);
 }
 
 /** Return position of the first difference in the strings or npos if they're

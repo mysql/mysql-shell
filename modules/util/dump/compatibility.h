@@ -35,9 +35,11 @@ namespace compatibility {
 
 extern const std::set<std::string> k_mysqlaas_allowed_privileges;
 
+extern const std::set<std::string> k_mysqlaas_allowed_authentication_plugins;
+
 /// Checks grant statement for presence of privileges, returns found ones.
 std::vector<std::string> check_privileges(
-    const std::string grant, std::string *rewritten_grant = nullptr,
+    const std::string &grant, std::string *out_rewritten_grant = nullptr,
     const std::set<std::string> &privileges = k_mysqlaas_allowed_privileges);
 
 // Rewrite GRANT or REVOKE statement stripping filtered privileges
@@ -75,6 +77,11 @@ bool check_statement_for_sqlsecurity_clause(const std::string &statement,
 std::vector<std::string> check_create_table_for_indexes(
     const std::string &statement, bool fulltext_only,
     std::string *rewritten = nullptr, bool return_alter_table = false);
+
+std::string check_create_user_for_authentication_plugin(
+    const std::string &create_user,
+    const std::set<std::string> &plugins =
+        k_mysqlaas_allowed_authentication_plugins);
 
 }  // namespace compatibility
 }  // namespace mysqlsh

@@ -25,7 +25,7 @@
 // Dump a table's contents and format to a text file.
 // Adapted from mysqldump.cc
 
-#define DUMP_VERSION "1.0.1"
+#define DUMP_VERSION "1.0.2"
 
 #include "include/mysh_config.h"
 
@@ -475,30 +475,34 @@ int Schema_dumper::query_with_binary_charset(
 
 void Schema_dumper::fetch_db_collation(const std::string &db,
                                        std::string *out_db_cl_name) {
-  bool err_status = false;
+  if (m_cache) {
+    *out_db_cl_name = m_cache->schemas.at(db).collation;
+  } else {
+    bool err_status = false;
 
-  m_mysql->executef("use !", db);
-  auto db_cl_res = query_log_and_throw("select @@collation_database");
+    m_mysql->executef("use !", db);
+    auto db_cl_res = query_log_and_throw("select @@collation_database");
 
-  do {
-    auto row = db_cl_res->fetch_one();
-    if (!row) {
-      err_status = true;
-      break;
+    do {
+      auto row = db_cl_res->fetch_one();
+      if (!row) {
+        err_status = true;
+        break;
+      }
+
+      *out_db_cl_name = row->get_string(0);
+
+      if (db_cl_res->fetch_one() != nullptr) {
+        err_status = true;
+        break;
+      }
+    } while (false);
+
+    if (err_status) {
+      throw std::runtime_error(
+          "Error processing select @@collation_database; results");
     }
-
-    *out_db_cl_name = row->get_string(0);
-
-    if (db_cl_res->fetch_one() != nullptr) {
-      err_status = true;
-      break;
-    }
-
-  } while (false);
-
-  if (err_status)
-    throw std::runtime_error(
-        "Error processing select @@collation_database; results");
+  }
 }
 
 /**
@@ -668,9 +672,11 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
 
     switch_character_set_results("binary");
 
-    for (const auto &event_name : events) {
+    for (const auto &event : events) {
+      const auto event_name = shcore::quote_identifier_if_needed(event);
       log_debug("retrieving CREATE EVENT for %s", event_name.c_str());
-      snprintf(query_buff, sizeof(query_buff), "SHOW CREATE EVENT %s",
+      snprintf(query_buff, sizeof(query_buff), "SHOW CREATE EVENT %s.%s",
+               shcore::quote_identifier_if_needed(db).c_str(),
                event_name.c_str());
 
       auto event_res = query_log_and_throw(query_buff);
@@ -793,18 +799,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
                 "\n--\n-- Dumping routines for database '%s'\n--\n\n",
                 routines_text.c_str());
 
-  /*
-    not using "mysql_query_with_error_report" because we may have not
-    enough privileges to lock mysql.proc.
-  */
-  if (lock_tables) {
-    try {
-      m_mysql->execute("LOCK TABLES mysql.proc READ");
-    } catch (const mysqlshdk::db::Error &e) {
-      log_debug("LOCK TABLES mysql.proc READ failed: %s", e.format().c_str());
-    }
-  }
-
   /* Get database collation. */
 
   fetch_db_collation(db, &db_cl_name);
@@ -814,11 +808,14 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
   /* 0, retrieve and dump functions, 1, procedures */
   for (const auto &routine_type : routine_types) {
     const auto routine_list = get_routines(db, routine_type);
-    for (const auto &routine_name : routine_list) {
+    for (const auto &routine : routine_list) {
+      const auto routine_name = shcore::quote_identifier_if_needed(routine);
       log_debug("retrieving CREATE %s for %s", routine_type.c_str(),
                 routine_name.c_str());
-      snprintf(query_buff, sizeof(query_buff), "SHOW CREATE %s %s",
-               routine_type.c_str(), routine_name.c_str());
+      snprintf(query_buff, sizeof(query_buff), "SHOW CREATE %s %s.%s",
+               routine_type.c_str(),
+               shcore::quote_identifier_if_needed(db).c_str(),
+               routine_name.c_str());
 
       auto routine_res = query_log_and_throw(query_buff);
       while (auto row = routine_res->fetch_one()) {
@@ -906,14 +903,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
   } /* end of for i (0 .. 1)  */
 
   switch_character_set_results(opt_character_set_results.c_str());
-
-  if (lock_tables) {
-    try {
-      m_mysql->execute("UNLOCK TABLES");
-    } catch (const mysqlshdk::db::Error &e) {
-      log_debug("UNLOCK TABLES failed: %s", e.format().c_str());
-    }
-  }
 
   return res;
 }
@@ -1070,7 +1059,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
   std::shared_ptr<mysqlshdk::db::IResult> result;
   mysqlshdk::db::Error error;
 
-  *ignore_flag = check_if_ignore_table(table, out_table_type);
+  *ignore_flag = check_if_ignore_table(db, table, out_table_type);
 
   /*
     for mysql.innodb_table_stats, mysql.innodb_index_stats tables we
@@ -1356,27 +1345,41 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
 
       /* Get MySQL specific create options */
       if (opt_create_options) {
-        mysqlshdk::db::Row_ref_by_name row;
-        if (query_no_throw("show table status like " + quote_for_like(table),
-                           &result, &err)) {
-          if (err.code() != ER_PARSE_ERROR) { /* If old MySQL version */
-            log_debug(
-                "-- Warning: Couldn't get status information for "
-                "table %s (%s)",
-                result_table.c_str(), err.format().c_str());
-          }
-        } else if (!(row = result->fetch_one_named())) {
-          fprintf(stderr,
-                  "Error: Couldn't read status information for table %s\n",
-                  result_table.c_str());
-        } else {
+        const auto write_options = [sql_file, this](
+                                       const std::string &engine,
+                                       const std::string &options,
+                                       const std::string &comment) {
           fputs("/*!", sql_file);
-          fprintf(sql_file, "engine=%s", row.get_string("Engine").c_str());
-          fprintf(sql_file, "%s", row.get_string("Create_options").c_str());
+          fprintf(sql_file, "engine=%s", engine.c_str());
+          fprintf(sql_file, "%s", options.c_str());
           fprintf(sql_file, "comment='%s'",
-                  m_mysql->escape_string(row.get_string("Comment")).c_str());
+                  m_mysql->escape_string(comment).c_str());
           fputs(" */", sql_file);
           check_io(sql_file);
+        };
+
+        if (m_cache) {
+          const auto &t = m_cache->schemas.at(db).tables.at(table);
+          write_options(t.engine, t.create_options, t.comment);
+        } else {
+          mysqlshdk::db::Row_ref_by_name row;
+          if (query_no_throw("show table status like " + quote_for_like(table),
+                             &result, &err)) {
+            if (err.code() != ER_PARSE_ERROR) { /* If old MySQL version */
+              log_debug(
+                  "-- Warning: Couldn't get status information for "
+                  "table %s (%s)",
+                  result_table.c_str(), err.format().c_str());
+            }
+          } else if (!(row = result->fetch_one_named())) {
+            fprintf(stderr,
+                    "Error: Couldn't read status information for table %s\n",
+                    result_table.c_str());
+          } else {
+            write_options(row.get_string("Engine"),
+                          row.get_string("Create_options"),
+                          row.get_string("Comment"));
+          }
         }
       }
     continue_xml:
@@ -1476,12 +1479,15 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_triggers_for_table(
                   db.c_str(), table.c_str());
 
   for (const auto &trigger : triggers) {
+    const auto trigger_name = shcore::quote_identifier_if_needed(trigger);
     std::shared_ptr<mysqlshdk::db::IResult> show_create_trigger_rs;
-    if (query_no_throw("SHOW CREATE TRIGGER " + trigger,
+    if (query_no_throw("SHOW CREATE TRIGGER " +
+                           shcore::quote_identifier_if_needed(db) + "." +
+                           trigger_name,
                        &show_create_trigger_rs) == 0) {
-      Object_guard_msg guard(sql_file, "trigger", db, trigger);
+      Object_guard_msg guard(sql_file, "trigger", db, trigger_name);
       const auto out = dump_trigger(sql_file, show_create_trigger_rs, db,
-                                    db_cl_name, trigger);
+                                    db_cl_name, trigger_name);
       if (!out.empty()) res.insert(res.end(), out.begin(), out.end());
     }
   }
@@ -1497,11 +1503,14 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_triggers_for_table(
   return res;
 }
 
-std::vector<Schema_dumper::Histogram> Schema_dumper::get_histograms(
+std::vector<Instance_cache::Histogram> Schema_dumper::get_histograms(
     const std::string &db_name, const std::string &table_name) {
-  std::vector<Histogram> histograms;
+  std::vector<Instance_cache::Histogram> histograms;
 
-  if (m_mysql->get_server_version() >= mysqlshdk::utils::Version(8, 0, 0)) {
+  if (m_cache) {
+    histograms = m_cache->schemas.at(db_name).tables.at(table_name).histograms;
+  } else if (m_mysql->get_server_version() >=
+             mysqlshdk::utils::Version(8, 0, 0)) {
     char query_buff[QUERY_LENGTH * 3 / 2];
     const auto old_ansi_quotes_mode = ansi_quotes_mode;
     const auto escaped_db = m_mysql->escape_string(db_name);
@@ -1511,18 +1520,18 @@ std::vector<Schema_dumper::Histogram> Schema_dumper::get_histograms(
 
     /* Get list of columns with statistics. */
     snprintf(query_buff, sizeof(query_buff),
-             "SELECT COLUMN_NAME, \
-                JSON_EXTRACT(HISTOGRAM, '$.\"number-of-buckets-specified\"') \
-              FROM information_schema.COLUMN_STATISTICS \
-              WHERE SCHEMA_NAME = '%s' AND TABLE_NAME = '%s';",
+             "SELECT COLUMN_NAME, "
+             "JSON_EXTRACT(HISTOGRAM, '$.\"number-of-buckets-specified\"') "
+             "FROM information_schema.COLUMN_STATISTICS "
+             "WHERE SCHEMA_NAME = '%s' AND TABLE_NAME = '%s';",
              escaped_db.c_str(), escaped_table.c_str());
 
     const auto column_statistics_rs = query_log_and_throw(query_buff);
 
     while (auto row = column_statistics_rs->fetch_one()) {
-      Histogram histogram;
+      Instance_cache::Histogram histogram;
 
-      histogram.column = shcore::quote_identifier_if_needed(row->get_string(0));
+      histogram.column = row->get_string(0);
       histogram.buckets = shcore::lexical_cast<std::size_t>(row->get_string(1));
 
       histograms.emplace_back(std::move(histogram));
@@ -1549,7 +1558,9 @@ void Schema_dumper::dump_column_statistics_for_table(
     fprintf(sql_file,
             "/*!80002 ANALYZE TABLE %s UPDATE HISTOGRAM ON %s "
             "WITH %zu BUCKETS */;\n",
-            quoted_table.c_str(), histogram.column.c_str(), histogram.buckets);
+            quoted_table.c_str(),
+            shcore::quote_identifier_if_needed(histogram.column).c_str(),
+            histogram.buckets);
   }
 }
 
@@ -1893,39 +1904,6 @@ std::string Schema_dumper::get_actual_table_name(
   return "";
 }
 
-int Schema_dumper::do_flush_tables_read_lock() {
-  /*
-    We do first a FLUSH TABLES. If a long update is running, the FLUSH TABLES
-    will wait but will not stall the whole mysqld, and when the long update is
-    done the FLUSH TABLES WITH READ LOCK will start and succeed quickly. So,
-    FLUSH TABLES is to lower the probability of a stage where both mysqldump
-    and most client connections are stalled. Of course, if a second long
-    update starts between the two FLUSHes, we have that bad stall.
-  */
-  return (execute_no_throw("FLUSH TABLES") ||
-          execute_no_throw("FLUSH TABLES WITH READ LOCK"));
-}
-
-int Schema_dumper::do_unlock_tables() {
-  return execute_no_throw("UNLOCK TABLES");
-}
-
-int Schema_dumper::start_transaction() {
-  log_debug("-- Starting transaction...");
-  /*
-    We use BEGIN for old servers. --single-transaction --master-data will fail
-    on old servers, but that's ok as it was already silently broken (it didn't
-    do a consistent read, so better tell people frankly, with the error).
-
-    We want the first consistent read to be used for all tables to dump so we
-    need the REPEATABLE READ level (not anything lower, for example READ
-    COMMITTED would give one new consistent read per dumped table).
-  */
-  return (execute_no_throw(
-              "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ") ||
-          execute_no_throw("START TRANSACTION WITH CONSISTENT SNAPSHOT"));
-}
-
 /*
   SYNOPSIS
 
@@ -1949,41 +1927,55 @@ int Schema_dumper::start_transaction() {
     char (bit value)            See IGNORE_ values at top
 */
 
-char Schema_dumper::check_if_ignore_table(const std::string &table_name,
+char Schema_dumper::check_if_ignore_table(const std::string &db,
+                                          const std::string &table_name,
                                           std::string *out_table_type) {
   char result = IGNORE_NONE;
 
   std::shared_ptr<mysqlshdk::db::IResult> res;
 
-  try {
-    res =
-        m_mysql->query("show table status like " + quote_for_like(table_name));
-  } catch (const mysqlshdk::db::Error &e) {
-    if (e.code() != ER_PARSE_ERROR) { /* If old MySQL version */
-      log_debug(
-          "-- Warning: Couldn't get status information for "
-          "table %s (%s)",
-          table_name.c_str(), e.format().c_str());
+  if (m_cache) {
+    const auto &schema = m_cache->schemas.at(db);
+    const auto it = schema.tables.find(table_name);
+
+    if (it == schema.tables.end()) {
+      *out_table_type = "VIEW";
+    } else {
+      *out_table_type = it->second.engine;
+    }
+  } else {
+    try {
+      res = m_mysql->query("show table status like " +
+                           quote_for_like(table_name));
+    } catch (const mysqlshdk::db::Error &e) {
+      if (e.code() != ER_PARSE_ERROR) { /* If old MySQL version */
+        log_debug(
+            "-- Warning: Couldn't get status information for "
+            "table %s (%s)",
+            table_name.c_str(), e.format().c_str());
+        return result; /* assume table is ok */
+      }
+      throw;
+    }
+    auto row = res->fetch_one();
+    if (!row) {
+      log_error("Error: Couldn't read status information for table %s\n",
+                table_name.c_str());
       return result; /* assume table is ok */
     }
-    throw;
+    if (row->is_null(1)) {
+      *out_table_type = "VIEW";
+    } else {
+      *out_table_type = row->get_string(1);
+    }
   }
-  auto row = res->fetch_one();
-  if (!row) {
-    log_error("Error: Couldn't read status information for table %s\n",
-              table_name.c_str());
-    return result; /* assume table is ok */
-  }
-  if (row->is_null(1))
-    *out_table_type = "VIEW";
-  else {
-    *out_table_type = row->get_string(1);
 
-    /*  If these two types, we want to skip dumping the table. */
-    if ((shcore::str_caseeq(out_table_type->c_str(), "MRG_MyISAM") ||
-         *out_table_type == "MRG_ISAM" || *out_table_type == "FEDERATED"))
-      result = IGNORE_DATA;
+  /*  If these two types, we want to skip dumping the table. */
+  if ((shcore::str_caseeq(out_table_type->c_str(), "MRG_MyISAM") ||
+       *out_table_type == "MRG_ISAM" || *out_table_type == "FEDERATED")) {
+    result = IGNORE_DATA;
   }
+
   return result;
 }
 
@@ -2164,7 +2156,8 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
   fprintf(sql_file, "/*!50001 DROP VIEW IF EXISTS %s*/;\n",
           opt_quoted_table.c_str());
 
-  if (query_with_binary_charset(
+  if (!m_cache &&
+      query_with_binary_charset(
           shcore::sqlformat("SELECT CHECK_OPTION, DEFINER, SECURITY_TYPE, "
                             "CHARACTER_SET_CLIENT, COLLATION_CONNECTION "
                             "FROM information_schema.views "
@@ -2181,16 +2174,31 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
   } else {
     std::string ds_view;
 
-    /* Save the result of SHOW CREATE TABLE in ds_view */
-    auto row = table_res->fetch_one();
-    ds_view = row->get_string(1);
+    {
+      /* Save the result of SHOW CREATE TABLE in ds_view */
+      const auto row = table_res->fetch_one();
+      ds_view = row->get_string(1);
+    }
 
-    /* Get the result from "select ... information_schema" */
-    if (!(row = infoschema_res->fetch_one()))
-      throw std::runtime_error("No information about view: " + table);
+    std::string client_cs;
+    std::string connection_col;
 
-    auto client_cs = row->get_string(3);
-    auto connection_col = row->get_string(4);
+    if (m_cache) {
+      const auto &view = m_cache->schemas.at(db).views.at(table);
+      client_cs = view.character_set_client;
+      connection_col = view.collation_connection;
+    } else {
+      const auto row = infoschema_res->fetch_one();
+
+      /* Get the result from "select ... information_schema" */
+      if (!row) {
+        throw std::runtime_error("No information about view: " + table);
+      }
+
+      client_cs = row->get_string(3);
+      connection_col = row->get_string(4);
+    }
+
     check_object_for_definer(db, "View", table, &ds_view, &res);
 
     /* Dump view structure to file */
@@ -2342,13 +2350,17 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_view_ddl(
 
 int Schema_dumper::count_triggers_for_table(const std::string &db,
                                             const std::string &table) {
-  auto res = m_mysql->queryf(
-      "select count(TRIGGER_NAME) from information_schema.triggers where "
-      "TRIGGER_SCHEMA = ? and EVENT_OBJECT_TABLE = ?;",
-      db.c_str(), table.c_str());
-  if (auto row = res->fetch_one()) return row->get_int(0);
-  throw std::runtime_error("Unable to check trigger count for table: " + db +
-                           "." + table);
+  if (m_cache) {
+    return m_cache->schemas.at(db).tables.at(table).triggers.size();
+  } else {
+    auto res = m_mysql->queryf(
+        "select count(TRIGGER_NAME) from information_schema.triggers where "
+        "TRIGGER_SCHEMA = ? and EVENT_OBJECT_TABLE = ?;",
+        db.c_str(), table.c_str());
+    if (auto row = res->fetch_one()) return row->get_int(0);
+    throw std::runtime_error("Unable to check trigger count for table: " + db +
+                             "." + table);
+  }
 }
 
 std::vector<Schema_dumper::Issue> Schema_dumper::dump_triggers_for_table_ddl(
@@ -2363,13 +2375,22 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_triggers_for_table_ddl(
 
 std::vector<std::string> Schema_dumper::get_triggers(const std::string &db,
                                                      const std::string &table) {
-  m_mysql->executef("USE !", db);
-  auto show_triggers_rs =
-      query_log_and_throw("SHOW TRIGGERS LIKE " + quote_for_like(table));
   std::vector<std::string> triggers;
-  while (auto row = show_triggers_rs->fetch_one())
-    triggers.emplace_back(
-        shcore::quote_identifier_if_needed(row->get_string(0)));
+
+  if (m_cache) {
+    for (const auto &trigger :
+         m_cache->schemas.at(db).tables.at(table).triggers) {
+      triggers.emplace_back(trigger);
+    }
+  } else {
+    m_mysql->executef("USE !", db);
+    auto show_triggers_rs =
+        query_log_and_throw("SHOW TRIGGERS LIKE " + quote_for_like(table));
+
+    while (auto row = show_triggers_rs->fetch_one()) {
+      triggers.emplace_back(row->get_string(0));
+    }
+  }
   return triggers;
 }
 
@@ -2385,11 +2406,20 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_ddl(
 }
 
 std::vector<std::string> Schema_dumper::get_events(const std::string &db) {
-  m_mysql->executef("USE !", db);
-  auto event_res = query_log_and_throw("show events");
   std::vector<std::string> events;
-  while (auto row = event_res->fetch_one())
-    events.emplace_back(shcore::quote_identifier_if_needed(row->get_string(1)));
+
+  if (m_cache) {
+    for (const auto &event : m_cache->schemas.at(db).events) {
+      events.emplace_back(event);
+    }
+  } else {
+    m_mysql->executef("USE !", db);
+    auto event_res = query_log_and_throw("show events");
+
+    while (auto row = event_res->fetch_one()) {
+      events.emplace_back(row->get_string(1));
+    }
+  }
   return events;
 }
 
@@ -2406,17 +2436,30 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_ddl(
 
 std::vector<std::string> Schema_dumper::get_routines(const std::string &db,
                                                      const std::string &type) {
-  m_mysql->executef("USE !", db);
-
-  shcore::sqlstring query(
-      shcore::str_format("SHOW %s STATUS WHERE Db = ?", type.c_str()), 0);
-  query << db;
-
-  auto routine_list_res = query_log_and_throw(query.str());
   std::vector<std::string> routine_list;
-  while (auto routine_list_row = routine_list_res->fetch_one())
-    routine_list.emplace_back(
-        shcore::quote_identifier_if_needed(routine_list_row->get_string(1)));
+
+  if (m_cache) {
+    const auto &schema = m_cache->schemas.at(db);
+    const auto &routines =
+        "PROCEDURE" == type ? schema.procedures : schema.functions;
+
+    for (const auto &routine : routines) {
+      routine_list.emplace_back(routine);
+    }
+  } else {
+    m_mysql->executef("USE !", db);
+
+    shcore::sqlstring query(
+        shcore::str_format("SHOW %s STATUS WHERE Db = ?", type.c_str()), 0);
+    query << db;
+
+    auto routine_list_res = query_log_and_throw(query.str());
+
+    while (auto routine_list_row = routine_list_res->fetch_one()) {
+      routine_list.emplace_back(routine_list_row->get_string(1));
+    }
+  }
+
   return routine_list;
 }
 
@@ -2507,8 +2550,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
   log_debug("Dumping grants for server");
 
   fputs("--\n-- Dumping user accounts\n--\n\n", file);
-  const auto users = get_users(included, excluded);
-  for (const auto &u : users) {
+
+  std::vector<std::string> users;
+
+  for (const auto &u : get_users(included, excluded)) {
     std::string user = shcore::make_account(u);
 
     if (u.user.find('\'') != std::string::npos) {
@@ -2527,19 +2572,48 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
                                      user);
       return problems;
     }
-    auto create_user = row->get_string(0);
+    const auto create_user = row->get_string(0);
     assert(!create_user.empty());
-    fputs("-- begin user " + user + "\n", file);
-    fputs(shcore::str_replace(create_user, "CREATE USER",
-                              "CREATE USER IF NOT EXISTS") +
-              ";\n",
-          file);
-    fputs("-- end user " + user + "\n\n", file);
+
+    bool add_user = true;
+
+    if (opt_mysqlaas || opt_skip_invalid_accounts) {
+      const auto plugin =
+          compatibility::check_create_user_for_authentication_plugin(
+              create_user);
+
+      if (!plugin.empty()) {
+        // we're removing the user from the list even if
+        // opt_skip_invalid_accounts is not set, account is invalid in MDS, so
+        // other checks can be skipped
+        add_user = false;
+
+        problems.emplace_back(
+            "User " + user +
+                " is using an unsupported authentication plugin '" + plugin +
+                "'" +
+                (opt_skip_invalid_accounts
+                     ? ", this account has been removed from the dump"
+                     : ""),
+            opt_skip_invalid_accounts
+                ? Issue::Status::FIXED
+                : Issue::Status::USE_SKIP_INVALID_ACCOUNTS);
+      }
+    }
+
+    if (add_user) {
+      fputs("-- begin user " + user + "\n", file);
+      fputs(shcore::str_replace(create_user, "CREATE USER",
+                                "CREATE USER IF NOT EXISTS") +
+                ";\n",
+            file);
+      fputs("-- end user " + user + "\n\n", file);
+
+      users.emplace_back(std::move(user));
+    }
   }
 
-  for (const auto &u : users) {
-    std::string user = shcore::make_account(u);
-
+  for (const auto &user : users) {
     auto res = query_log_and_throw("SHOW GRANTS FOR " + user);
     std::vector<std::string> restricted;
     std::vector<std::string> grants;
@@ -2552,8 +2626,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
         // In MySQL <= 5.7, if a user has all privs, the SHOW GRANTS will say
         // ALL PRIVILEGES, which isn't helpful for filtering out grants.
         // Also, ALL PRIVILEGES can appear even in 8.0 for DB grants
-        grant = expand_all_privileges(grant,
-                                      shcore::sqlformat("?@?", u.user, u.host));
+        grant = expand_all_privileges(grant, user);
 
         std::set<std::string> allowed_privs;
         if (opt_mysqlaas || opt_strip_restricted_grants) {

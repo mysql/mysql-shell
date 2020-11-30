@@ -44,17 +44,16 @@ class Export_table : public Dumper {
   virtual ~Export_table() = default;
 
  private:
-  void create_schema_tasks() override;
-
   const char *name() const override { return "exportTable"; }
 
   void summary() const override;
 
-  void on_create_table_task(const Table_task &task) override;
+  void on_create_table_task(const std::string &schema, const std::string &table,
+                            const Instance_cache::Table *cache) override;
 
   const Export_table_options &m_options;
 
-  Table_task m_task;
+  const Instance_cache::Table *m_cache = nullptr;
 };
 
 }  // namespace dump

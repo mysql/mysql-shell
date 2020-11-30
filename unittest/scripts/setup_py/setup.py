@@ -1,5 +1,6 @@
 from __future__ import print_function
 import difflib
+import mysqlsh
 import re
 import sys
 
@@ -260,7 +261,11 @@ def ensure_plugin_enabled(plugin_name, session, plugin_soname=None):
     else:
         ext = "so"
 
-    session.run_sql("INSTALL PLUGIN {0} SONAME '{1}.{2}';".format(plugin_name, plugin_soname, ext))
+    try:
+        session.run_sql("INSTALL PLUGIN {0} SONAME '{1}.{2}';".format(plugin_name, plugin_soname, ext))
+    except mysqlsh.DBError as e:
+        if 1125 != e.code:
+            raise e
 
 def ensure_plugin_disabled(plugin_name, session):
     is_installed = session.run_sql("SELECT COUNT(1) FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME LIKE '" + plugin_name + "';").fetch_one()[0]

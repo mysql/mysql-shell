@@ -771,7 +771,7 @@ shcore::Value Schema::drop_schema_object(const shcore::Argument_list &args,
   args.ensure_count(1, function.c_str());
 
   if (args[0].type != shcore::String)
-    throw shcore::Exception::argument_error(
+    throw shcore::Exception::type_error(
         function + ": Argument #1 is expected to be a string");
 
   Value schema = this->get_member("name");

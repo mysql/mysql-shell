@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -76,16 +76,15 @@ Table::~Table() {}
 
 // Documentation of insert function
 REGISTER_HELP_FUNCTION(insert, Table);
-REGISTER_HELP(
-    TABLE_INSERT_BRIEF,
-    "Creates <b>TableInsert</b> object to insert new records into the table.");
 REGISTER_HELP(TABLE_INSERT_CHAINED, "TableInsert.insert.[values].execute");
-REGISTER_HELP(TABLE_INSERT_DETAIL,
-              "The TableInsert class has several functions that allow "
-              "specifying the way the insertion occurs.");
-REGISTER_HELP(TABLE_INSERT_DETAIL1,
-              "The insertion is done when the execute() method is called on "
-              "the handler.");
+REGISTER_HELP_FUNCTION_TEXT(TABLE_INSERT, R"*(
+Creates <b>TableInsert</b> object to insert new records into the table.
+
+The TableInsert class has several functions that allow specifying the way the
+insertion occurs.
+
+The insertion is done when the execute() method is called on the handler.
+)*");
 
 /**
  * $(TABLE_INSERT_BRIEF)
@@ -126,17 +125,7 @@ REGISTER_HELP(TABLE_INSERT_DETAIL1,
  *
  * #### .values(value[, value, ...])
  *
- * $(TABLEINSERT_VALUES_DETAIL)
- *
- * $(TABLEINSERT_VALUES_DETAIL1)
- *
- * $(TABLEINSERT_VALUES_DETAIL2)
- *
- * $(TABLEINSERT_VALUES_DETAIL3)
- *
- * ##### $(TABLEINSERT_VALUES_DETAIL4)
- *
- * $(TABLEINSERT_VALUES_DETAIL5)
+ * $(TABLEINSERT_VALUES)
  *
  * #### .execute()
  *
@@ -234,11 +223,7 @@ REGISTER_HELP(
  *
  * #### .set(attribute, value)
  *
- * $(TABLEUPDATE_SET_DETAIL)
- *
- * ##### $(TABLEUPDATE_SET_DETAIL1)
- *
- * $(TABLEUPDATE_SET_DETAIL2)
+ * $(TABLEUPDATE_SET)
  *
  * The expression also can be used for \a [Parameter
  * Binding](param_binding.html).

@@ -43,7 +43,7 @@ Other names may be trademarks of their respective owners.
 Type '\help' or '\?' for help; '\quit' to exit.
 
 Loading the OCI configuration for the profile 'DEFAULT'...
-
+${*}
 The config, identity and compute objects have been initialized.
 Type '\? oci' for help.
 {
@@ -70,6 +70,7 @@ Type '\help' or '\?' for help; '\quit' to exit.
 Loading the OCI configuration for the profile 'DEFAULT'...
 WARNING: The API key for 'DEFAULT' requires a passphrase to be successfully used and the one in the configuration is incorrect.
 Please enter the API key passphrase: 
+${*}
 The config, identity and compute objects have been initialized.
 Type '\? oci' for help.
 {
@@ -95,6 +96,7 @@ Type '\help' or '\?' for help; '\quit' to exit.
 
 Loading the OCI configuration for the profile 'DEFAULT'...
 Please enter the API key passphrase: 
+${*}
 The config, identity and compute objects have been initialized.
 Type '\? oci' for help.
 {
@@ -150,6 +152,7 @@ Type '\help' or '\?' for help; '\quit' to exit.
 
 Loading the OCI configuration for the profile 'passwordless'...
 Please enter the API key passphrase: 
+${*}
 The config, identity and compute objects have been initialized.
 Type '\? oci' for help.
 {

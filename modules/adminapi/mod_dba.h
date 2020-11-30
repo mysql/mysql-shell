@@ -180,10 +180,11 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   validate_instances_status_reboot_cluster(
       Cluster_impl *cluster,
       const mysqlshdk::mysql::IInstance &target_instance);
-  virtual void validate_instances_gtid_reboot_cluster(
+  void validate_instances_gtid_reboot_cluster(
       std::shared_ptr<Cluster> cluster,
       const shcore::Value::Map_type_ref &options,
-      const mysqlshdk::mysql::IInstance &target_instance);
+      const mysqlshdk::mysql::IInstance &target_instance,
+      const std::vector<std::string> &instances_to_skip);
 
   // ReplicaSets
 

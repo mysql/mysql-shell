@@ -34,6 +34,26 @@ test_user = "sample_user"
 test_user_pwd = "p4$$"
 test_privilege = "FILE" if __version_num < 80000 else "FILE, ROLE_ADMIN"
 
+allowed_authentication_plugins = [
+    "caching_sha2_password",
+    "mysql_native_password",
+    "sha256_password"
+]
+
+all_authentication_plugins = [
+    "auth_socket",
+    "authentication_ldap_sasl",
+    "authentication_ldap_simple",
+    "authentication_pam",
+    "authentication_windows",
+    "caching_sha2_password",
+    "mysql_native_password",
+    "mysql_no_login",
+    "sha256_password"
+]
+
+disallowed_authentication_plugins = set(all_authentication_plugins) - set(allowed_authentication_plugins)
+
 verification_schema = "wl13807_ver"
 
 types_schema = "xtest"
@@ -112,10 +132,37 @@ def create_all_schemas():
     for schema in all_schemas:
         session.run_sql("CREATE SCHEMA !;", [ schema ])
 
-def create_user():
+def test_user_name(name):
+    return "'test_{0}'@'{1}'".format(name, __host)
+
+def create_authentication_plugin_user(name):
+    full_name = test_user_name(name)
+    session.run_sql("DROP USER IF EXISTS " + full_name)
+    ensure_plugin_enabled(name, session)
+    session.run_sql("CREATE USER IF NOT EXISTS {0} IDENTIFIED WITH ?".format(full_name), [name])
+
+def create_users():
     session.run_sql("DROP USER IF EXISTS !@!;", [test_user, __host])
     session.run_sql("CREATE USER IF NOT EXISTS !@! IDENTIFIED BY ?;", [test_user, __host, test_user_pwd])
     session.run_sql("GRANT {0} ON *.* TO !@!;".format(test_privilege), [test_user, __host])
+    global allowed_authentication_plugins
+    global disallowed_authentication_plugins
+    allowed = []
+    for plugin in allowed_authentication_plugins:
+        try:
+            create_authentication_plugin_user(plugin)
+            allowed.append(plugin)
+        except Exception as e:
+            pass
+    allowed_authentication_plugins = allowed
+    disallowed = []
+    for plugin in disallowed_authentication_plugins:
+        try:
+            create_authentication_plugin_user(plugin)
+            disallowed.append(plugin)
+        except Exception as e:
+            pass
+    disallowed_authentication_plugins = disallowed
 
 def recreate_verification_schema():
     session.run_sql("DROP SCHEMA IF EXISTS !;", [ verification_schema ])
@@ -336,7 +383,7 @@ setup_session()
 drop_all_schemas()
 create_all_schemas()
 
-create_user()
+create_users()
 
 session.run_sql("CREATE TABLE !.! (`ID` int(11) NOT NULL AUTO_INCREMENT, `Name` char(64) NOT NULL DEFAULT '', `CountryCode` char(3) NOT NULL DEFAULT '', `District` char(64) NOT NULL DEFAULT '', `Info` json DEFAULT NULL, PRIMARY KEY (`ID`)) ENGINE=InnoDB AUTO_INCREMENT=4080 DEFAULT CHARSET=utf8mb4;", [ world_x_schema, world_x_table ])
 util.import_table(os.path.join(__import_data_path, "world_x_cities.dump"), { "schema": world_x_schema, "table": world_x_table, "characterSet": "utf8mb4", "showProgress": False })
@@ -420,16 +467,16 @@ session.run_sql("CREATE ROLE ?;", [ test_role ])
 session.run_sql("ANALYZE TABLE !.! UPDATE HISTOGRAM ON `id`;", [ test_schema, test_table_no_index ])
 
 #@<> WL13807-TSFR_1_3 - first parameter
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", None)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", 1)
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", [])
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", {})
-EXPECT_FAIL("ValueError", "Argument #1 is expected to be a string", False)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", None)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", 1)
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", [])
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", {})
+EXPECT_FAIL("TypeError", "Argument #1 is expected to be a string", False)
 
 #@<> WL13807-TSFR_3_1 - second parameter
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a map", test_output_relative, 1)
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a map", test_output_relative, "string")
-EXPECT_FAIL("ValueError", "Argument #2 is expected to be a map", test_output_relative, [])
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a map", test_output_relative, 1)
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a map", test_output_relative, "string")
+EXPECT_FAIL("TypeError", "Argument #2 is expected to be a map", test_output_relative, [])
 
 #@<> WL13807-FR1.1 - The `outputUrl` parameter must be a string value which specifies the output directory, where the dump data is going to be stored.
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
@@ -466,7 +513,11 @@ os.remove(test_output_relative)
 
 #@<> WL13807-FR1.1.4 - If a local directory is used and the output directory must be created, `rwxr-x---` permissions should be used on the created directory. The owner of the directory is the user running the Shell. {__os_type != "windows"}
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
-EXPECT_EQ(0o750, stat.S_IMODE(os.stat(test_output_absolute).st_mode))
+# get the umask value
+umask = os.umask(0o777)
+os.umask(umask)
+# use the umask value to compute the expected access rights
+EXPECT_EQ(0o750 & ~umask, stat.S_IMODE(os.stat(test_output_absolute).st_mode))
 EXPECT_EQ(os.getuid(), os.stat(test_output_absolute).st_uid)
 
 #@<> WL13807-FR1.1.5 - If the output directory exists and is not empty, an exception must be thrown.
@@ -1271,9 +1322,20 @@ EXPECT_STDOUT_CONTAINS("ERROR: View {0}.{1} - definition uses DEFINER clause set
 
 EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version))
 
-#@<> BUG#31403104: if users is false, error about the users should not be included
+for plugin in allowed_authentication_plugins:
+    EXPECT_STDOUT_NOT_CONTAINS("ERROR: User {0} is using an unsupported authentication plugin '{1}' (fix this with 'skip_invalid_accounts' compatibility option)".format(test_user_name(plugin), plugin))
+
+for plugin in disallowed_authentication_plugins:
+    EXPECT_STDOUT_CONTAINS("ERROR: User {0} is using an unsupported authentication plugin '{1}' (fix this with 'skip_invalid_accounts' compatibility option)".format(test_user_name(plugin), plugin))
+    # invalid user is removed from further checks, there should be no errors about restricted privileges
+    EXPECT_STDOUT_NOT_CONTAINS("ERROR: User {0} is granted restricted privilege".format(test_user_name(plugin)))
+
+#@<> BUG#31403104: if users is false, errors about the users should not be included
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "users": False })
 EXPECT_STDOUT_NOT_CONTAINS("ERROR: User '{0}'@'localhost' is granted restricted privilege: {1}".format(test_user, "FILE"))
+
+for plugin in disallowed_authentication_plugins:
+    EXPECT_STDOUT_NOT_CONTAINS("ERROR: User {0} is using an unsupported authentication plugin '{1}' (fix this with 'skip_invalid_accounts' compatibility option)".format(test_user_name(plugin), plugin))
 
 #@<> BUG#31403104: compatibility checks are enabled, but SQL is not dumped, this should succeed
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ocimds": True, "dataOnly": True, "showProgress": False })
@@ -1293,7 +1355,8 @@ EXPECT_FAIL("ValueError", "Unknown compatibility option: ", test_output_relative
 # * `strip_restricted_grants` - remove disallowed grants.
 # * `strip_tablespaces` - remove unsupported tablespace syntax.
 # * `strip_definers` - remove DEFINER clause from views, triggers, events and routines and change SQL SECURITY property to INVOKER for views and routines.
-EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "force_innodb", "strip_definers", "strip_restricted_grants", "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False })
+# BUG#32115948 - added `skip_invalid_accounts` - removes users using unsupported authentication plugins
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "force_innodb", "strip_definers", "strip_restricted_grants", "strip_tablespaces", "skip_invalid_accounts" ] , "ddlOnly": True, "showProgress": False })
 
 #@<> WL13807-FR16.2.1 - force_innodb
 # WL13807-TSFR16_3
@@ -1317,6 +1380,12 @@ else:
 # WL13807-TSFR16_4
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported tablespace option removed".format(incompatible_schema, incompatible_table_tablespace))
+
+# BUG#32115948 - added `skip_invalid_accounts` - removes users using unsupported authentication plugins
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "skip_invalid_accounts" ] , "ddlOnly": True, "showProgress": False })
+
+for plugin in disallowed_authentication_plugins:
+    EXPECT_STDOUT_CONTAINS("NOTE: User {0} is using an unsupported authentication plugin '{1}', this account has been removed from the dump".format(test_user_name(plugin), plugin))
 
 #@<> WL13807-FR16.2.2 - If the `compatibility` option is not given, a default value of `[]` must be used instead.
 # WL13807-TSFR16_6
@@ -1354,7 +1423,7 @@ for table in types_schema_tables:
 
 #@<> test privileges required to dump an instance
 class PrivilegeError:
-    def __init__(self, exception_message, error_message="", exception_type="RuntimeError", output_dir_created=True):
+    def __init__(self, exception_message, error_message="", exception_type="RuntimeError", output_dir_created=False):
         self.exception_message = exception_message
         self.error_message = error_message
         self.exception_type = exception_type
@@ -1362,45 +1431,43 @@ class PrivilegeError:
 
 # if this list ever changes, online docs need to be updated
 required_privileges = {
-    "EVENT": PrivilegeError(
-        "Could not execute 'show events': MySQL Error 1044 (42000): Access denied for user '{0}'@'{1}'".format(test_user, __host)
+    "EVENT": PrivilegeError(  # database-level privilege
+        re.compile(r"User '{0}'@'{1}' is missing the following privilege\(s\) for schema `.+`: EVENT.".format(test_user, __host))
     ),
-    "RELOAD": PrivilegeError(
+    "RELOAD": PrivilegeError(  # global privilege
         "Unable to lock tables: MySQL Error 1044 (42000): Access denied for user '{0}'@'{1}'".format(test_user, __host),
-        "ERROR: Unable to acquire global read lock neither table read locks.",
-        output_dir_created=False
+        "ERROR: Unable to acquire global read lock neither table read locks."
     ),
-    "SELECT": PrivilegeError(
+    "SELECT": PrivilegeError(  # table-level privilege
         "Fatal error during dump",
-        "MySQL Error 1142 (42000): SELECT command denied to user '{0}'@'{1}' for table '".format(test_user, __host)
+        "MySQL Error 1142 (42000): SELECT command denied to user '{0}'@'{1}' for table '".format(test_user, __host),
+        output_dir_created=True
     ),
-    "SHOW VIEW": PrivilegeError(
+    "SHOW VIEW": PrivilegeError(  # table-level privilege
         "Fatal error during dump",
         "MySQL Error 1142 (42000): SHOW VIEW command denied to user '{0}'@'{1}'".format(test_user, __host),
+        output_dir_created=True
     ),
-    "TRIGGER": PrivilegeError(
-        re.compile(r"It is not possible to check if table `.+`\.`.+` has any triggers, user is missing the TRIGGER privilege."),
-        output_dir_created=False
+    "TRIGGER": PrivilegeError(  # table-level privilege
+        re.compile(r"User '{0}'@'{1}' is missing the following privilege\(s\) for table `.+`\.`.+`: TRIGGER.".format(test_user, __host))
     ),
 }
 
 if __version_num >= 80000:
     # when running a consistent dump on 8.0, LOCK INSTANCE FOR BACKUP is executed, which requires BACKUP_ADMIN privilege
-    required_privileges["BACKUP_ADMIN"] = PrivilegeError(
+    required_privileges["BACKUP_ADMIN"] = PrivilegeError(  # global privilege
         "Access denied; you need (at least one of) the BACKUP_ADMIN privilege(s) for this operation",
         "ERROR: Could not acquire backup lock: MySQL Error 1227 (42000): Access denied; you need (at least one of) the BACKUP_ADMIN privilege(s) for this operation",
-        "DBError: MySQL Error (1227)",
-        False
+        "DBError: MySQL Error (1227)"
     )
     # 8.0 has roles which are checked prior to running the dump, if user is missing the SELECT privilege, error will be reported at this stage
-    required_privileges["SELECT"] = PrivilegeError(
+    required_privileges["SELECT"] = PrivilegeError(  # table-level privilege
         "Unable to get roles information.",
-        "ERROR: Unable to check privileges for user '{0}'@'{1}'. User requires SELECT privilege on mysql.* to obtain information about all roles.".format(test_user, __host),
-        output_dir_created=False
+        "ERROR: Unable to check privileges for user '{0}'@'{1}'. User requires SELECT privilege on mysql.* to obtain information about all roles.".format(test_user, __host)
     )
 
 # setup the user, grant only required privileges
-create_user()
+create_users()
 session.run_sql("REVOKE ALL PRIVILEGES ON *.* FROM !@!;", [test_user, __host])
 for privilege in required_privileges.keys():
     session.run_sql("GRANT {0} ON *.* TO !@!;".format(privilege), [test_user, __host])
@@ -1413,6 +1480,14 @@ root_session = mysql.get_session(uri)
 
 # user has all the required privileges, this should succeed
 EXPECT_SUCCESS(all_schemas, test_output_absolute, { "showProgress": False })
+# check if events are here
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` EVENT IF NOT EXISTS `{2}`".format(__user, __host, test_schema_event), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+# check if routines are here
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` PROCEDURE `{2}`".format(__user, __host, test_schema_procedure), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` FUNCTION `{2}`".format(__user, __host, test_schema_function), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+# check is users are here
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, "@.users.sql")))
+# check if triggers are here
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".triggers.sql")))
 
 # check if revoking one of the privileges results in a failure
@@ -1427,7 +1502,7 @@ for privilege, error in required_privileges.items():
 # cleanup
 root_session.close()
 setup_session()
-create_user()
+create_users()
 
 #@<> dump table when different character set/SQL mode is used
 # this should be the last test that uses `test_schema`, as it drops it in order to not mess up with test
@@ -1477,7 +1552,7 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "consistent": False, "ddl
 
 #@<> reconnect to the user with full privilages, restore test user account
 setup_session()
-create_user()
+create_users()
 
 #@<> Bug #31188854: USING THE OCIPROFILE OPTION IN A DUMP MAKE THE DUMP TO ALWAYS FAIL {has_oci_environment('OS')}
 # This error now confirms the reported issue is fixed

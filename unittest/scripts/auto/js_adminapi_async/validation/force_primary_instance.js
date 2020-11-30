@@ -2,13 +2,13 @@
 ||
 
 //@# bad parameters (should fail)
-||ReplicaSet.forcePrimaryInstance: Argument #1 is expected to be a string (ArgumentError)
-||ReplicaSet.forcePrimaryInstance: Argument #2 is expected to be a map (ArgumentError)
+||ReplicaSet.forcePrimaryInstance: Argument #1 is expected to be a string (TypeError)
+||ReplicaSet.forcePrimaryInstance: Argument #2 is expected to be a map (TypeError)
 ||ReplicaSet.forcePrimaryInstance: Invalid number of arguments, expected 0 to 2 but got 3 (ArgumentError)
 ||ReplicaSet.forcePrimaryInstance: Invalid options: badOption (ArgumentError)
-||ReplicaSet.forcePrimaryInstance: Argument #1 is expected to be a string (ArgumentError)
-||ReplicaSet.forcePrimaryInstance: Argument #2 is expected to be a map (ArgumentError)
-||ReplicaSet.forcePrimaryInstance: Argument #1 is expected to be a string (ArgumentError)
+||ReplicaSet.forcePrimaryInstance: Argument #1 is expected to be a string (TypeError)
+||ReplicaSet.forcePrimaryInstance: Argument #2 is expected to be a map (TypeError)
+||ReplicaSet.forcePrimaryInstance: Argument #1 is expected to be a string (TypeError)
 
 //@# disconnected rs object (should fail)
 ||ReplicaSet.forcePrimaryInstance: The replicaset object is disconnected. Please use dba.getReplicaSet() to obtain a new object. (RuntimeError)

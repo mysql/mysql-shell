@@ -64,9 +64,24 @@ class Dump_reader {
 
   const std::string &gtid_executed() const { return m_contents.gtid_executed; }
 
+  bool gtid_executed_inconsistent() const {
+    return m_contents.gtid_executed_inconsistent;
+  }
+
   bool tz_utc() const { return m_contents.tz_utc; }
 
+  /**
+   * Checks whether this is a dump created by an old version of dumpTables(),
+   * which has no schema SQL.
+   */
   bool table_only() const { return m_contents.table_only; }
+
+  /**
+   * Checks whether this is a dump created by any version of dumpTables().
+   */
+  bool is_dump_tables() const {
+    return table_only() || "dumpTables" == m_contents.origin;
+  }
 
   void replace_target_schema(const std::string &schema);
 
@@ -303,11 +318,13 @@ class Dump_reader {
 
     std::string default_charset;
     std::string gtid_executed;
+    bool gtid_executed_inconsistent = false;
     bool tz_utc = true;
     bool mds_compatibility = false;
     bool table_only = false;
     mysqlshdk::utils::Version server_version;
     mysqlshdk::utils::Version dump_version;
+    std::string origin;
     uint64_t bytes_per_chunk = 0;
     std::unordered_map<std::string, uint64_t> chunk_sizes;
 

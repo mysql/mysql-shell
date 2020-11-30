@@ -261,7 +261,7 @@ bool validate_cluster_admin_user_privileges(
   auto global = user_privileges.validate(global_privileges);
 
   if (global.has_missing_privileges()) {
-    append_error_message("*.*", global.get_missing_privileges());
+    append_error_message("*.*", global.missing_privileges());
   } else if (!global.has_grant_option()) {
     append_error_message("*.*", global_privileges);
   }
@@ -272,7 +272,7 @@ bool validate_cluster_admin_user_privileges(
 
     if (schema.has_missing_privileges()) {
       append_error_message(schema_grants.first + ".*",
-                           schema.get_missing_privileges());
+                           schema.missing_privileges());
     } else if (!schema.has_grant_option()) {
       append_error_message(schema_grants.first + ".*", schema_grants.second);
     }
@@ -285,7 +285,7 @@ bool validate_cluster_admin_user_privileges(
 
       if (table.has_missing_privileges()) {
         append_error_message(schema_grants.first + "." + table_grants.first,
-                             table.get_missing_privileges());
+                             table.missing_privileges());
       } else if (!table.has_grant_option()) {
         append_error_message(schema_grants.first + "." + table_grants.first,
                              table_grants.second);

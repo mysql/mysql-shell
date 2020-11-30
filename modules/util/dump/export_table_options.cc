@@ -24,6 +24,7 @@
 #include "modules/util/dump/export_table_options.h"
 
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -33,6 +34,7 @@ Export_table_options::Export_table_options(const std::string &schema_table,
     : Dump_options(output_url) {
   try {
     shcore::split_schema_and_table(schema_table, &m_schema, &m_table);
+    set_includes();
   } catch (const std::runtime_error &e) {
     throw std::invalid_argument("Failed to parse table to be exported '" +
                                 schema_table + "': " + e.what());
@@ -56,6 +58,8 @@ void Export_table_options::on_set_session(
         m_schema = row->get_string(0);
       }
     }
+
+    set_includes();
   }
 }
 
@@ -68,6 +72,19 @@ void Export_table_options::validate_options() const {
 
   if (import_table::Dialect::json() == dialect()) {
     throw std::invalid_argument("The 'json' dialect is not supported.");
+  }
+
+  if (!exists(schema(), table())) {
+    throw std::invalid_argument(
+        "The requested table " + shcore::quote_identifier(schema()) + "." +
+        shcore::quote_identifier(table()) + " was not found in the database.");
+  }
+}
+
+void Export_table_options::set_includes() {
+  if (!schema().empty()) {
+    m_included_schemas.emplace(schema());
+    m_included_tables[schema()].emplace(table());
   }
 }
 

@@ -6,7 +6,7 @@ Cluster.setPrimaryInstance: Operation not supported on target server version: '<
 
 //@ WL#12052: ArgumentErrors of setPrimaryInstance {VER(>=8.0.13)}
 ||Argument #1: Invalid URI: empty. (ArgumentError)
-||Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+||Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary (TypeError)
 ||Argument #1: Invalid connection options, no options provided. (ArgumentError)
 ||The instance 'localhost:3355' does not belong to the cluster: 'cluster'. (RuntimeError)
 

@@ -820,7 +820,8 @@ int64_t generate_server_id() {
   return distribution(rnd_gen);
 }
 
-bool is_async_replication_running(const mysqlshdk::mysql::IInstance &instance) {
+bool is_async_replication_configured(
+    const mysqlshdk::mysql::IInstance &instance) {
   std::string receiver_channel_state, applier_channel_state;
 
   assert(instance.get_session());
@@ -855,9 +856,9 @@ bool is_async_replication_running(const mysqlshdk::mysql::IInstance &instance) {
     receiver_channel_state = row->get_string(0);
     applier_channel_state = row->get_string(1);
 
-    // If any of the channels is running, we can consider async replication
-    // is running
-    if ((receiver_channel_state != "OFF") || (applier_channel_state != "OFF")) {
+    // If the channels state info exists, we can consider async replication is
+    // configured. It's irrelevant if running (ON/CONNECTING) or not (OFF).
+    if (!receiver_channel_state.empty() || !applier_channel_state.empty()) {
       return true;
     } else {
       return false;
@@ -873,6 +874,15 @@ std::string get_replica_keyword(const mysqlshdk::utils::Version &version) {
     return "SLAVE";
   } else {
     return "REPLICA";
+  }
+}
+
+std::string get_replication_source_keyword(
+    const mysqlshdk::utils::Version &version, bool command) {
+  if (version < mysqlshdk::utils::Version(8, 0, 23)) {
+    return "MASTER";
+  } else {
+    return (command == true ? "REPLICATION SOURCE" : "SOURCE");
   }
 }
 

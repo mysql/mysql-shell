@@ -29,8 +29,13 @@
 #include <unistd.h>
 #endif
 
+#include <algorithm>
+#include <iterator>
+
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -85,6 +90,55 @@ void Dump_options::validate() const {
   m_dialect.validate();
 
   validate_options();
+}
+
+bool Dump_options::exists(const std::string &schema) const {
+  return find_missing({schema}).empty();
+}
+
+bool Dump_options::exists(const std::string &schema,
+                          const std::string &table) const {
+  return find_missing(schema, {table}).empty();
+}
+
+std::set<std::string> Dump_options::find_missing(
+    const std::set<std::string> &schemas) const {
+  return find_missing_impl(
+      "SELECT SCHEMA_NAME AS name FROM information_schema.schemata", schemas);
+}
+
+std::set<std::string> Dump_options::find_missing(
+    const std::string &schema, const std::set<std::string> &tables) const {
+  return find_missing_impl(
+      shcore::sqlstring("SELECT TABLE_NAME AS name "
+                        "FROM information_schema.tables WHERE TABLE_SCHEMA = ?",
+                        0)
+          << schema,
+      tables);
+}
+
+std::set<std::string> Dump_options::find_missing_impl(
+    const std::string &subquery, const std::set<std::string> &objects) const {
+  std::string query =
+      "SELECT n.name FROM (SELECT " +
+      shcore::str_join(objects, " UNION SELECT ",
+                       [&objects](const std::string &v) {
+                         return (shcore::sqlstring("?", 0) << v).str() +
+                                (v == *objects.begin() ? " AS name" : "");
+                       });
+
+  query += ") AS n LEFT JOIN (" + subquery +
+           ") AS o ON STRCMP(o.name COLLATE utf8_bin, n.name)=0 "
+           "WHERE o.name IS NULL";
+
+  const auto result = m_session->query(query);
+  std::set<std::string> missing;
+
+  while (const auto row = result->fetch_one()) {
+    missing.emplace(row->get_string(0));
+  }
+
+  return missing;
 }
 
 }  // namespace dump

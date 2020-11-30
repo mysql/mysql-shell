@@ -56,7 +56,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined forceQuorumUsingPartitionOf(InstanceDef instance, String password);
   String getName();
   Dictionary listRouters(Dictionary options);
-  Undefined rejoinInstance(InstanceDef instance, Dictionary options);
+  Dictionary rejoinInstance(InstanceDef instance, Dictionary options);
   Undefined removeInstance(InstanceDef instance, Dictionary options);
   Undefined rescan(Dictionary options);
   Undefined resetRecoveryAccountsPassword(Dictionary options);
@@ -81,7 +81,7 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None force_quorum_using_partition_of(InstanceDef instance, str password);
   str get_name();
   dict list_routers(dict options);
-  None rejoin_instance(InstanceDef instance, dict options);
+  dict rejoin_instance(InstanceDef instance, dict options);
   None remove_instance(InstanceDef instance, dict options);
   None rescan(dict options);
   None reset_recovery_accounts_password(dict options);

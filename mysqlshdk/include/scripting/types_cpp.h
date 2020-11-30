@@ -209,7 +209,7 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
 
   static Raw_signature gen_signature(
       const std::vector<std::pair<std::string, Value_type>> &param_types);
-  static std::tuple<bool, int, std::string> match_signatures(
+  static std::tuple<bool, int, shcore::Exception> match_signatures(
       const Raw_signature &cand, const std::vector<Value_type> &wanted,
       const shcore::Dictionary_t &kwds);
 

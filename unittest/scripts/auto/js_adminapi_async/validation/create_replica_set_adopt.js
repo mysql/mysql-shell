@@ -5,7 +5,7 @@
 ||Dba.createReplicaSet: Target server is not part of an async replication topology (MYSQLSH 51151)
 
 //@# Bad options (should fail)
-||Dba.createReplicaSet: Argument #1 is expected to be a string (ArgumentError)
+||Dba.createReplicaSet: Argument #1 is expected to be a string (TypeError)
 ||Dba.createReplicaSet: instanceLabel option not allowed when adoptFromAR:true (ArgumentError)
 ||Dba.createReplicaSet: An open session is required to perform this operation. (RuntimeError)
 
@@ -109,29 +109,47 @@
 |ERROR: 127.0.0.1:<<<__mysql_sandbox_port1>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.|
 ||Dba.createReplicaSet: Instance check failed (MYSQLSH 51150)
 
-//@# unsupported option: SSL (should fail)
+//@# unsupported option: SSL (should fail) {VER(<8.0.23)}
 ||Dba.createReplicaSet: Replication option 'MASTER_SSL' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '1' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
+
+//@# unsupported option: SSL (should fail) {VER(>=8.0.23)}
+||Dba.createReplicaSet: Replication option 'SOURCE_SSL' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '1' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
 
 //@# unsupported option: SSL=0
 |ReplicaSet object successfully created for 127.0.0.1:<<<__mysql_sandbox_port1>>>.|
 
-//@# unsupported option: delay (should fail)
+//@# unsupported option: delay (should fail) {VER(<8.0.23)}
 ||Dba.createReplicaSet: Replication option 'MASTER_DELAY' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '5' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
 
-//@# unsupported option: connect_retry (should fail)
+//@# unsupported option: delay (should fail) {VER(>=8.0.23)}
+||Dba.createReplicaSet: Replication option 'SOURCE_DELAY' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '5' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
+
+//@# unsupported option: connect_retry (should fail) {VER(<8.0.23)}
 ||Dba.createReplicaSet: Replication option 'MASTER_CONNECT_RETRY' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '4' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
 
-//@# unsupported option: retry_count (should fail)
+//@# unsupported option: connect_retry (should fail) {VER(>=8.0.23)}
+||Dba.createReplicaSet: Replication option 'SOURCE_CONNECT_RETRY' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '4' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
+
+//@# unsupported option: retry_count (should fail) {VER(<8.0.23)}
 ||Dba.createReplicaSet: Replication option 'MASTER_RETRY_COUNT' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '3' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
 
-//@# unsupported option: heartbeat (should fail)
+//@# unsupported option: retry_count (should fail) {VER(>=8.0.23)}
+||Dba.createReplicaSet: Replication option 'SOURCE_RETRY_COUNT' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '3' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
+
+//@# unsupported option: heartbeat (should fail) {VER(<8.0.23)}
 ||Dba.createReplicaSet: Replication option 'MASTER_HEARTBEAT_PERIOD' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '32' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
+
+//@# unsupported option: heartbeat (should fail) {VER(>=8.0.23)}
+||Dba.createReplicaSet: Replication option 'SOURCE_HEARTBEAT_PERIOD' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value '32' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
 
 //@# unsupported option: no auto_position (should fail)
 ||Dba.createReplicaSet: 127.0.0.1:<<<__mysql_sandbox_port2>>> uses replication without auto-positioning, which is not supported by the AdminAPI. (MYSQLSH 51164)
 
-//@# unsupported option: MASTER_COMPRESSION_ALGORITHMS (should fail)
+//@# unsupported option: MASTER_COMPRESSION_ALGORITHMS (should fail) {VER(<8.0.23)}
 ||Dba.createReplicaSet: Replication option 'MASTER_COMPRESSION_ALGORITHMS' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value 'zstd' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
+
+//@# unsupported option: MASTER_COMPRESSION_ALGORITHMS (should fail) {VER(>=8.0.23)}
+||Dba.createReplicaSet: Replication option 'SOURCE_COMPRESSION_ALGORITHMS' at '127.0.0.1:<<<__mysql_sandbox_port2>>>' has a non-default value 'zstd' but it is currently not supported by the AdminAPI. (MYSQLSH 51164)
 
 //@# supported option: GET_MASTER_PUBLIC_KEY
 |ReplicaSet object successfully created for 127.0.0.1:<<<__mysql_sandbox_port1>>>.|

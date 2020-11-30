@@ -185,11 +185,15 @@ endif()
 
 if(HAVE_PYTHON)
   list(APPEND EXTRA_CMAKE_OPTS "-DHAVE_PYTHON=1")
-  list(APPEND DEB_BUILD_DEPS "python3-dev (>= 3.4.3)")
-  # Most runtime deps the Deb build tools figures out, like the dependency
-  # on "libpythonVER.so". But it can't know about the dependency on the
-  # standard Python modules, i.e. almost all of a normal Python install
-  list(APPEND DEB_DEPS "python3 (>= 3.4.3)")
+  if (BUNDLED_PYTHON_DIR)
+    list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_PYTHON_DIR=${BUNDLED_PYTHON_DIR}")
+  else()
+    list(APPEND DEB_BUILD_DEPS "python3-dev (>= 3.6)")
+    # Most runtime deps the Deb build tools figures out, like the dependency
+    # on "libpythonVER.so". But it can't know about the dependency on the
+    # standard Python modules, i.e. almost all of a normal Python install
+    list(APPEND DEB_DEPS "python3 (>= 3.6)")
+  endif()
 endif()
 
 if(MYSQL_SOURCE_DIR)
@@ -226,7 +230,6 @@ set(in_files
   control
   copyright
   rules
-  mysql-shellPRODUCTSUFFIX.install
 )
 
 foreach(_in_file ${in_files})
@@ -237,3 +240,28 @@ foreach(_in_file ${in_files})
     @ONLY
   )
 endforeach()
+
+# We need mysql-shell.install file to be dynamic depending on BUNDLED_PYTHON_DIR
+# option, and configure_file() does not have control statements, therefore we
+# are creating this file in following way.
+file(WRITE "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"usr/bin/mysqlsh
+usr/bin/mysql-secret-store-login-path
+usr/share/mysqlsh/LICENSE    usr/share/doc/mysqlsh
+usr/share/mysqlsh/README     usr/share/doc/mysqlsh
+usr/share/mysqlsh/Docs/INFO_SRC     usr/share/mysqlsh/Docs
+usr/share/mysqlsh/Docs/INFO_BIN     usr/share/mysqlsh/Docs
+usr/share/mysqlsh/prompt/*   usr/share/mysqlsh/prompt
+usr/share/mysqlsh/oci_sdk/*   usr/share/mysqlsh/oci_sdk
+usr/share/mysqlsh/upgrade_checker.msg
+usr/lib/mysqlsh/plugins
+usr/lib/mysqlsh/python-packages
+")
+
+if (BUNDLED_PYTHON_DIR)
+file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"# For python bundle
+usr/lib/mysqlsh/include
+usr/lib/mysqlsh/lib
+usr/lib/mysqlsh/libpython*.so*")
+endif()

@@ -118,6 +118,12 @@ shell.help("prompt")
 //@ Help on Prompt, \? [USE:Help on Prompt]
 \? prompt
 
+//@ Help on shell.disconnect
+shell.help("disconnect")
+
+//@ Help on disconnect [USE: Help on shell.disconnect]
+\? shell.disconnect
+
 //@ Help on reconnect
 shell.help("reconnect")
 

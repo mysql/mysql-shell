@@ -221,6 +221,18 @@ TEST(utils_string, endswith) {
   EXPECT_FALSE(str_endswith(std::string(""), std::string("a")));
   EXPECT_FALSE(str_endswith(std::string("a"), std::string("b")));
   EXPECT_FALSE(str_endswith(std::string("a"), std::string("ab")));
+
+  EXPECT_TRUE(str_endswith("aba", "a", "b"));
+  EXPECT_TRUE(str_endswith("aba", "b", "a"));
+  EXPECT_FALSE(str_endswith("aba", "b", "c"));
+
+  EXPECT_TRUE(str_endswith(std::string("aba"), "a", "b"));
+  EXPECT_TRUE(str_endswith(std::string("aba"), std::string("b"), "a"));
+  EXPECT_FALSE(
+      str_endswith(std::string("aba"), std::string("b"), std::string("c")));
+
+  EXPECT_TRUE(str_endswith("aba", std::string("a"), "b"));
+  EXPECT_TRUE(str_endswith("aba", "b", std::string("a")));
 }
 
 TEST(utils_string, partition) {

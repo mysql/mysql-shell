@@ -176,8 +176,8 @@ DESCRIPTION
         MySQL Database Service (MDS)
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
-        values: "force_innodb", "strip_definers", "strip_restricted_grants",
-        "strip_tablespaces".
+        values: "force_innodb", "skip_invalid_accounts", "strip_definers",
+        "strip_restricted_grants", "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
@@ -339,14 +339,17 @@ DESCRIPTION
       Database Service. However, the compatibility option can be used to
       automatically modify the dumped schema SQL scripts, resolving some of
       these compatibility issues. You may pass one or more of the following
-      options to "compatibility", separated by a comma (,).
+      values to the "compatibility" option.
 
       force_innodb - The MySQL Database Service requires use of the InnoDB
       storage engine. This option will modify the ENGINE= clause of CREATE
       TABLE statements that use incompatible storage engines and replace them
       with InnoDB.
 
-      strip_definers - strips the "DEFINER=account" clause from views,
+      skip_invalid_accounts - Skips accounts which use authentication methods
+      (plugins) not supported by the MySQL Database Service.
+
+      strip_definers - Strips the "DEFINER=account" clause from views,
       routines, events and triggers. The MySQL Database Service requires
       special privileges to create these objects with a definer other than the
       user loading the schema. By stripping the DEFINER clause, these objects
@@ -464,8 +467,8 @@ DESCRIPTION
         MySQL Database Service (MDS)
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
-        values: "force_innodb", "strip_definers", "strip_restricted_grants",
-        "strip_tablespaces".
+        values: "force_innodb", "skip_invalid_accounts", "strip_definers",
+        "strip_restricted_grants", "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
@@ -607,14 +610,17 @@ DESCRIPTION
       Database Service. However, the compatibility option can be used to
       automatically modify the dumped schema SQL scripts, resolving some of
       these compatibility issues. You may pass one or more of the following
-      options to "compatibility", separated by a comma (,).
+      values to the "compatibility" option.
 
       force_innodb - The MySQL Database Service requires use of the InnoDB
       storage engine. This option will modify the ENGINE= clause of CREATE
       TABLE statements that use incompatible storage engines and replace them
       with InnoDB.
 
-      strip_definers - strips the "DEFINER=account" clause from views,
+      skip_invalid_accounts - Skips accounts which use authentication methods
+      (plugins) not supported by the MySQL Database Service.
+
+      strip_definers - Strips the "DEFINER=account" clause from views,
       routines, events and triggers. The MySQL Database Service requires
       special privileges to create these objects with a definer other than the
       user loading the schema. By stripping the DEFINER clause, these objects
@@ -729,6 +735,12 @@ DESCRIPTION
 
       - all: bool (default: false) - Dump all views and tables from the
         specified schema.
+      - ocimds: bool (default: false) - Enable checks for compatibility with
+        MySQL Database Service (MDS)
+      - compatibility: list of strings (default: empty) - Apply MySQL Database
+        Service compatibility modifications when writing dump files. Supported
+        values: "force_innodb", "skip_invalid_accounts", "strip_definers",
+        "strip_restricted_grants", "strip_tablespaces".
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
@@ -762,6 +774,10 @@ DESCRIPTION
         configuration file instead of the one in the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
         instead of the default one.
+      - ociParManifest: bool (default: not set) - Enables the generation of the
+        PAR manifest while the dump operation is being executed.
+      - ociParExpireTime: string (default: not set) - Allows defining the
+        expiration time for the PARs generated when ociParManifest is enabled.
 
       Requirements
 
@@ -781,11 +797,9 @@ DESCRIPTION
 
       This operation writes SQL files per each table and view dumped, along
       with some global SQL files. The information about the source schema is
-      not saved, meaning that the dump must be loaded into an existing target
-      schema. When using the util.loadDump() function to load the dump, the
-      current schema of the global shell session is automatically used as the
-      target schema. Alternatively, it can be specified explicitly using the
-      schema option.
+      also saved, meaning that when using the util.loadDump() function to load
+      the dump, it is automatically recreated. Alternatively, dump can be
+      loaded into another existing schema using the schema option.
 
       Table data dumps are written to TSV files, optionally splitting them into
       multiple chunk files.
@@ -842,6 +856,69 @@ DESCRIPTION
 
       The value of the bytesPerChunk option cannot be smaller than "128k".
 
+      MySQL Database Service Compatibility
+
+      The MySQL Database Service has a few security related restrictions that
+      are not present in a regular, on-premise instance of MySQL. In order to
+      make it easier to load existing databases into the Service, the dump
+      commands in the MySQL Shell has options to detect potential issues and in
+      some cases, to automatically adjust your schema definition to be
+      compliant.
+
+      The ocimds option, when set to true, will perform schema checks for most
+      of these issues and abort the dump if any are found. The loadDump command
+      will also only allow loading dumps that have been created with the
+      "ocimds" option enabled.
+
+      Some issues found by the ocimds option may require you to manually make
+      changes to your database schema before it can be loaded into the MySQL
+      Database Service. However, the compatibility option can be used to
+      automatically modify the dumped schema SQL scripts, resolving some of
+      these compatibility issues. You may pass one or more of the following
+      values to the "compatibility" option.
+
+      force_innodb - The MySQL Database Service requires use of the InnoDB
+      storage engine. This option will modify the ENGINE= clause of CREATE
+      TABLE statements that use incompatible storage engines and replace them
+      with InnoDB.
+
+      skip_invalid_accounts - Skips accounts which use authentication methods
+      (plugins) not supported by the MySQL Database Service.
+
+      strip_definers - Strips the "DEFINER=account" clause from views,
+      routines, events and triggers. The MySQL Database Service requires
+      special privileges to create these objects with a definer other than the
+      user loading the schema. By stripping the DEFINER clause, these objects
+      will be created with that default definer. Views and Routines will
+      additionally have their SQL SECURITY clause changed from DEFINER to
+      INVOKER. This ensures that the access permissions of the account querying
+      or calling these are applied, instead of the user that created them. This
+      should be sufficient for most users, but if your database security model
+      requires that views and routines have more privileges than their invoker,
+      you will need to manually modify the schema before loading it.
+
+      Please refer to the MySQL manual for details about DEFINER and SQL
+      SECURITY.
+
+      strip_restricted_grants - Certain privileges are restricted in the MySQL
+      Database Service. Attempting to create users granting these privileges
+      would fail, so this option allows dumped GRANT statements to be stripped
+      of these privileges.
+
+      strip_tablespaces - Tablespaces have some restrictions in the MySQL
+      Database Service. If you'd like to have tables created in their default
+      tablespaces, this option will strip the TABLESPACE= option from CREATE
+      TABLE statements.
+
+      Additionally, the following changes will always be made to DDL scripts
+      when the ocimds option is enabled:
+
+      - DATA DIRECTORY, INDEX DIRECTORY and ENCRYPTION options in CREATE TABLE
+        statements will be commented out.
+
+      Please refer to the MySQL Database Service documentation for more
+      information about restrictions and compatibility.
+
       Dumping to a Bucket in the OCI Object Storage
 
       If the osBucketName option is used, the dump is stored in the specified
@@ -853,6 +930,32 @@ DESCRIPTION
 
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
+
+      Enabling dump loading using preauthenticated requests
+
+      To enable loading a dump without requiring an OCI Profile, the dump
+      operations can automatically generate a preauthenticated request (PAR)
+      for every file generated on the dump operation, this is done by enabling
+      the ociParManifest option.
+
+      When the ociParManifest option is enabled, a file named "@.manifest.json"
+      is generated, it contains the PAR for each file generated on the dump.
+      The manifest is updated as the dump operation progresses.
+
+      The ociParManifest option cannot be used if osBucketName is not set. The
+      default value of this option depends on the dump settings: if ocimds is
+      enabled and osBucketName is specified then it will be enabled, otherwise
+      it will be disabled. In any case, if the option is explicitly set to a
+      value, the user provided value will be used.
+
+      When creating PARs, an expiration time is required, it can be defined
+      through the ociParExpireTime option. If the option is not used, a
+      predefined expiration time will be used equivalent to a week afer the
+      dump operation started. The values assigned to this option should be
+      conformant to RFC3339.
+
+      The ociParExpireTime option cannot be used if the ociParManifest option
+      is not enabled.
 
 EXCEPTIONS
       ArgumentError in the following scenarios:

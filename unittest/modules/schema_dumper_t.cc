@@ -46,7 +46,9 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
   static void TearDownTestCase() {
     if (initialized) {
       auto session = connect_session();
-      session->execute(std::string("drop database ") + db_name);
+      session->execute(std::string("DROP SCHEMA IF EXISTS ") + db_name);
+      session->execute(std::string("DROP SCHEMA IF EXISTS ") + compat_db_name);
+      session->execute(std::string("DROP SCHEMA IF EXISTS ") + crazy_names_db);
       session->execute("DROP USER IF EXISTS testusr1@localhost;");
       session->execute("DROP USER IF EXISTS testusr2@localhost;");
       session->execute("DROP USER IF EXISTS testusr3@localhost;");

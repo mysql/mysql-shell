@@ -4,7 +4,7 @@
 //@ checkInstanceState: ArgumentErrors
 ||Invalid number of arguments, expected 1 but got 0 (ArgumentError)
 ||Argument #1: Invalid URI: empty. (ArgumentError)
-||Argument #1: Invalid connection options, expected either a URI or a Dictionary. (ArgumentError)
+||Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary (TypeError)
 ||Argument #1: Invalid connection options, no options provided. (ArgumentError)
 
 //@ checkInstanceState: unreachable instance

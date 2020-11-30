@@ -38,14 +38,12 @@ file(GLOB api_module_SOURCES
       "util/dump/compatibility.cc"
       "util/dump/compatibility_option.cc"
       "util/dump/console_with_progress.cc"
+      "util/dump/ddl_dumper.cc"
       "util/dump/ddl_dumper_options.cc"
       "util/dump/dialect_dump_writer.cc"
-      "util/dump/dump_instance.cc"
       "util/dump/dump_instance_options.cc"
       "util/dump/dump_options.cc"
-      "util/dump/dump_schemas.cc"
       "util/dump/dump_schemas_options.cc"
-      "util/dump/dump_tables.cc"
       "util/dump/dump_tables_options.cc"
       "util/dump/dump_utils.cc"
       "util/dump/dump_writer.cc"
@@ -147,6 +145,13 @@ file(GLOB api_module_SOURCES
       "reports/threads.cc"
       "reports/utils.cc"
 )
+
+IF(CMAKE_COMPILER_IS_GNUCXX)
+    SET_SOURCE_FILES_PROPERTIES(
+        "mod_shell.cc"
+        PROPERTIES COMPILE_FLAGS "-fno-var-tracking-assignments"
+    )
+ENDIF()
 
 add_convenience_library(api_modules ${api_module_SOURCES})
 target_link_libraries(api_modules utils)

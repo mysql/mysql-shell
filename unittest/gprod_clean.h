@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,9 +29,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
-#ifdef WITH_GTEST
 #include <gtest/gtest_prod.h>
-#endif
 #if defined __GNUC__
 #pragma GCC diagnostic pop
 #endif
