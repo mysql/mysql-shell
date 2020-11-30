@@ -33,6 +33,8 @@ test_role = "sample_role"
 test_user = "sample_user"
 test_user_pwd = "p4$$"
 test_privilege = "FILE" if __version_num < 80000 else "FILE, ROLE_ADMIN"
+test_all_allowed_privileges = "allowed_privileges"
+test_disallowed_privileges = "disallowed_privileges"
 
 allowed_authentication_plugins = [
     "caching_sha2_password",
@@ -53,6 +55,116 @@ all_authentication_plugins = [
 ]
 
 disallowed_authentication_plugins = set(all_authentication_plugins) - set(allowed_authentication_plugins)
+
+allowed_privileges = [
+    # each account has USAGE
+    "USAGE",
+    # global static privileges
+    "ALTER",
+    "ALTER ROUTINE",
+    "CREATE",
+    "CREATE ROLE",
+    "CREATE ROUTINE",
+    "CREATE TEMPORARY TABLES",
+    "CREATE USER",
+    "CREATE VIEW",
+    "DELETE",
+    "DROP",
+    "DROP ROLE",
+    "EVENT",
+    "EXECUTE",
+    "INDEX",
+    "INSERT",
+    "LOCK TABLES",
+    "PROCESS",
+    "REFERENCES",
+    "REPLICATION_APPLIER",
+    "REPLICATION CLIENT",
+    "REPLICATION SLAVE",
+    "SELECT",
+    "SHOW DATABASES",
+    "SHOW VIEW",
+    "TRIGGER",
+    "UPDATE",
+    # global dynamic privileges
+    "APPLICATION_PASSWORD_ADMIN",
+    "CONNECTION_ADMIN",
+    "RESOURCE_GROUP_ADMIN",
+    "RESOURCE_GROUP_USER",
+    "XA_RECOVER_ADMIN",
+]
+
+all_privileges = [
+    # static privileges
+    "ALTER",
+    "ALTER ROUTINE",
+    "CREATE",
+    "CREATE ROLE",
+    "CREATE ROUTINE",
+    "CREATE TABLESPACE",
+    "CREATE TEMPORARY TABLES",
+    "CREATE USER",
+    "CREATE VIEW",
+    "DELETE",
+    "DROP",
+    "DROP ROLE",
+    "EVENT",
+    "EXECUTE",
+    "FILE",
+    "GRANT OPTION",
+    "INDEX",
+    "INSERT",
+    "LOCK TABLES",
+    "PROCESS",
+    "PROXY",
+    "REFERENCES",
+    "RELOAD",
+    "REPLICATION CLIENT",
+    "REPLICATION SLAVE",
+    "SELECT",
+    "SHOW DATABASES",
+    "SHOW VIEW",
+    "SHUTDOWN",
+    "SUPER",
+    "TRIGGER",
+    "UPDATE",
+    "USAGE",
+    # dynamic privileges
+    "APPLICATION_PASSWORD_ADMIN",
+    "AUDIT_ADMIN",
+    "BACKUP_ADMIN",
+    "BINLOG_ADMIN",
+    "BINLOG_ENCRYPTION_ADMIN",
+    "CLONE_ADMIN",
+    "CONNECTION_ADMIN",
+    "ENCRYPTION_KEY_ADMIN",
+    "FIREWALL_ADMIN",
+    "FIREWALL_USER",
+    "FLUSH_OPTIMIZER_COSTS",
+    "FLUSH_STATUS",
+    "FLUSH_TABLES",
+    "FLUSH_USER_RESOURCES",
+    "GROUP_REPLICATION_ADMIN",
+    "INNODB_REDO_LOG_ARCHIVE",
+    "NDB_STORED_USER",
+    "PERSIST_RO_VARIABLES_ADMIN",
+    "REPLICATION_APPLIER",
+    "REPLICATION_SLAVE_ADMIN",
+    "RESOURCE_GROUP_ADMIN",
+    "RESOURCE_GROUP_USER",
+    "ROLE_ADMIN",
+    "SESSION_VARIABLES_ADMIN",
+    "SET_USER_ID",
+    "SHOW_ROUTINE",
+    "SYSTEM_USER",
+    "SYSTEM_VARIABLES_ADMIN",
+    "TABLE_ENCRYPTION_ADMIN",
+    "VERSION_TOKEN_ADMIN",
+    "XA_RECOVER_ADMIN",
+]
+
+# GRANT OPTION is implicitly allowed
+disallowed_privileges = set(all_privileges) - set(allowed_privileges) - {'GRANT OPTION'}
 
 verification_schema = "wl13807_ver"
 
@@ -142,11 +254,12 @@ def create_authentication_plugin_user(name):
     session.run_sql("CREATE USER IF NOT EXISTS {0} IDENTIFIED WITH ?".format(full_name), [name])
 
 def create_users():
+    # test user which has some disallowed privileges
     session.run_sql("DROP USER IF EXISTS !@!;", [test_user, __host])
     session.run_sql("CREATE USER IF NOT EXISTS !@! IDENTIFIED BY ?;", [test_user, __host, test_user_pwd])
     session.run_sql("GRANT {0} ON *.* TO !@!;".format(test_privilege), [test_user, __host])
+    # accounts which use allowed authentication plugins
     global allowed_authentication_plugins
-    global disallowed_authentication_plugins
     allowed = []
     for plugin in allowed_authentication_plugins:
         try:
@@ -155,6 +268,8 @@ def create_users():
         except Exception as e:
             pass
     allowed_authentication_plugins = allowed
+    # accounts which use disallowed authentication plugins
+    global disallowed_authentication_plugins
     disallowed = []
     for plugin in disallowed_authentication_plugins:
         try:
@@ -163,6 +278,31 @@ def create_users():
         except Exception as e:
             pass
     disallowed_authentication_plugins = disallowed
+    # user which has all allowed privileges
+    global allowed_privileges
+    account_name = test_user_name(test_all_allowed_privileges)
+    session.run_sql("DROP USER IF EXISTS " + account_name)
+    session.run_sql("CREATE USER IF NOT EXISTS " + account_name)
+    for privilege in allowed_privileges:
+        try:
+            session.run_sql("GRANT {0} ON *.* TO {1}".format(privilege, account_name))
+        except Exception as e:
+            # ignore exceptions on non-exisiting privileges
+            pass
+    # user which has only disallowed privileges
+    global disallowed_privileges
+    disallowed = []
+    account_name = test_user_name(test_disallowed_privileges)
+    session.run_sql("DROP USER IF EXISTS " + account_name)
+    session.run_sql("CREATE USER IF NOT EXISTS " + account_name)
+    for privilege in disallowed_privileges:
+        try:
+            session.run_sql("GRANT {0} ON *.* TO {1}".format(privilege, account_name))
+            disallowed.append(privilege)
+        except Exception as e:
+            # ignore exceptions on non-exisiting privileges
+            pass
+    disallowed_privileges = disallowed
 
 def recreate_verification_schema():
     session.run_sql("DROP SCHEMA IF EXISTS !;", [ verification_schema ])
@@ -1329,6 +1469,14 @@ for plugin in disallowed_authentication_plugins:
     EXPECT_STDOUT_CONTAINS("ERROR: User {0} is using an unsupported authentication plugin '{1}' (fix this with 'skip_invalid_accounts' compatibility option)".format(test_user_name(plugin), plugin))
     # invalid user is removed from further checks, there should be no errors about restricted privileges
     EXPECT_STDOUT_NOT_CONTAINS("ERROR: User {0} is granted restricted privilege".format(test_user_name(plugin)))
+
+# BUG#32213605 - list of privileges allowed in MDS
+# there should be no errors on USAGE privilege
+EXPECT_STDOUT_NOT_CONTAINS("USAGE")
+# there should be no errors about the user which only has allowed privileges
+EXPECT_STDOUT_NOT_CONTAINS(test_user_name(test_all_allowed_privileges))
+# all disallowed privileges should be reported
+EXPECT_STDOUT_CONTAINS("ERROR: User {0} is granted restricted privileges: {1} (fix this with 'strip_restricted_grants' compatibility option)".format(test_user_name(test_disallowed_privileges), ', '.join(sorted(disallowed_privileges))))
 
 #@<> BUG#31403104: if users is false, errors about the users should not be included
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "users": False })

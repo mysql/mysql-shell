@@ -2615,7 +2615,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
 
   for (const auto &user : users) {
     auto res = query_log_and_throw("SHOW GRANTS FOR " + user);
-    std::vector<std::string> restricted;
+    std::set<std::string> restricted;
     std::vector<std::string> grants;
 
     res->buffer();
@@ -2637,7 +2637,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
         const auto privs = compatibility::check_privileges(
             grant, compatibility ? &rewritten : nullptr, allowed_privs);
         if (!privs.empty()) {
-          restricted.insert(restricted.end(), privs.begin(), privs.end());
+          restricted.insert(privs.begin(), privs.end());
           if (compatibility) grant = rewritten;
         }
       }

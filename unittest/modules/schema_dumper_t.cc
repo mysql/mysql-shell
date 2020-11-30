@@ -1012,20 +1012,20 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
   auto expected_issues =
       _target_server_version < mysqlshdk::utils::Version(8, 0, 0) ?
       std::set<std::string>{
-      "User 'testusr1'@'localhost' is granted restricted privileges: RELOAD, "
-      "FILE, SUPER",
+      "User 'testusr1'@'localhost' is granted restricted privileges: FILE, "
+      "RELOAD, SUPER",
       "User 'testusr2'@'localhost' is granted restricted privilege: SUPER",
-      "User 'testusr3'@'localhost' is granted restricted privileges: RELOAD, "
-      "FILE",
+      "User 'testusr3'@'localhost' is granted restricted privileges: FILE, "
+      "RELOAD",
       "User 'testusr4'@'localhost' is granted restricted privilege: SUPER",
       "User 'testusr5'@'localhost' is granted restricted privilege: FILE",
       "User 'testusr6'@'localhost' is granted restricted privilege: FILE"} :
       std::set<std::string>{
-        "User 'testusr1'@'localhost' is granted restricted privileges: RELOAD, "
-        "FILE, SUPER, BINLOG_ADMIN",
+        "User 'testusr1'@'localhost' is granted restricted privileges: "
+        "BINLOG_ADMIN, FILE, RELOAD, SUPER",
         "User 'testusr2'@'localhost' is granted restricted privilege: SUPER",
-        "User 'testusr3'@'localhost' is granted restricted privileges: RELOAD, "
-        "FILE, BINLOG_ADMIN",
+        "User 'testusr3'@'localhost' is granted restricted privileges: "
+        "BINLOG_ADMIN, FILE, RELOAD",
         "User 'testusr4'@'localhost' is granted restricted privilege: SUPER",
         "User 'testusr5'@'localhost' is granted restricted privilege: FILE",
         "User 'testusr6'@'localhost' is granted restricted privilege: FILE"};
