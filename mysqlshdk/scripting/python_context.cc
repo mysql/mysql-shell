@@ -233,6 +233,11 @@ Python_init_singleton::~Python_init_singleton() {
 
 void Python_init_singleton::init_python() {
   if (!s_instance) {
+    // python-cryptography requires this definition to allow working with
+    // OpenSSL versions lower than 1.1.0
+    if (OPENSSL_VERSION_ID < 10100) {
+      shcore::setenv("CRYPTOGRAPHY_ALLOW_OPENSSL_102", "1");
+    }
     s_instance.reset(new Python_init_singleton());
   }
 }
