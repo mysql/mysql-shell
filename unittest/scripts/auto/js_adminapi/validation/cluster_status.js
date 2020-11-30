@@ -54,7 +54,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |        "source": null|
 |    }, |
 |    "instanceErrors": [|
-|        "ERROR: GR Applier channel applier stopped with an error: [[*]]Error 'Can't create database 'foobar'; database exists' on query. Default database: 'foobar'. Query: 'create schema foobar' (1007) at [[*]]", |    
+|        "ERROR: GR Applier channel applier stopped with an error: [[*]]Error 'Can't create database 'foobar'; database exists' on query. Default database: 'foobar'. Query: 'create schema foobar' (1007) at [[*]]", |
 |        "ERROR: group_replication has stopped with an error."|
 |    ], |
 |    "memberState": "ERROR", |
@@ -194,8 +194,65 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
 |}, |
 |"<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {|
 |},|
-    
+
 //@<OUT> Status cluster
+{
+    "clusterName": "cluster",
+    "defaultReplicaSet": {
+        "name": "default",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+        "ssl": "REQUIRED",
+        "status": "OK",
+        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
+        "topology": {
+            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "mode": "R/W",
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "[[*]]"
+            },
+            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "mode": "R/O",
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "[[*]]"
+            },
+            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "mode": "R/O",
+                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
+                "role": "HA",
+                "status": "ONLINE",
+                "version": "[[*]]"
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
+}
+
+//@ BUG#32015164: instanceErrors must report missing parallel-appliers
+|"<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {|
+|},|
+|"<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {|
+|    "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", |
+|    "instanceErrors": [|
+|        "NOTE: The required parallel-appliers settings are not enabled on the instance. Use dba.configureInstance() to fix it."|
+|    ], |
+|    "mode": "R/O", |
+|    "readReplicas": {}, |
+|    "role": "HA", |
+|    "status": "ONLINE", |
+|    "version": "[[*]]"|
+|}, |
+|"<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {|
+|},|
+
+//@<OUT> BUG#32015164: status should be fine now
 {
     "clusterName": "cluster",
     "defaultReplicaSet": {

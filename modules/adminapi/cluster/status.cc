@@ -777,7 +777,9 @@ shcore::Array_t instance_diagnostics(
     const mysqlshdk::mysql::Replication_channel &applier_channel,
     const mysqlshdk::utils::nullable<bool> &super_read_only,
     mysqlshdk::gr::Member_state state, mysqlshdk::gr::Member_state self_state,
-    mysqlshdk::gr::Member_role role) {
+    mysqlshdk::gr::Member_role role,
+    const mysqlshdk::utils::Version &instance_version,
+    Parallel_applier_options parallel_applier_options) {
   using mysqlshdk::mysql::Replication_channel;
 
   auto check_channel_error = [](shcore::Array_t issues,
@@ -851,6 +853,26 @@ shcore::Array_t instance_diagnostics(
     issues->push_back(
         shcore::Value("WARNING: Instance is not managed by InnoDB cluster. Use "
                       "cluster.rescan() to repair."));
+
+  // Check if parallel-appliers are not configured. The requirement was
+  // introduced in 8.0.23 so only check if the version is equal or higher to
+  // that.
+  if (instance_version >= mysqlshdk::utils::Version(8, 0, 23)) {
+    auto current_values = parallel_applier_options.get_current_settings();
+    auto required_values = parallel_applier_options.get_required_values();
+
+    for (const auto &setting : required_values) {
+      std::string current_value =
+          current_values[std::get<0>(setting)].get_safe();
+
+      if (!current_value.empty() && current_value != std::get<1>(setting)) {
+        issues->push_back(shcore::Value(
+            "NOTE: The required parallel-appliers settings are not enabled "
+            "on the instance. Use dba.configureInstance() to fix it."));
+        break;
+      }
+    }
+  }
 
   if (!issues->empty())
     return issues;
@@ -977,7 +999,13 @@ shcore::Dictionary_t Status::get_topology(
 
     Replication_channel applier_channel;
     Replication_channel recovery_channel;
+
+    Parallel_applier_options parallel_applier_options;
+
     if (instance) {
+      // Get the current parallel-applier options
+      parallel_applier_options = Parallel_applier_options(*instance);
+
       // Get super_read_only value of each instance to set the mode accurately.
       super_read_only = instance->get_sysvar_bool("super_read_only");
 
@@ -992,7 +1020,6 @@ shcore::Dictionary_t Status::get_topology(
         if (*m_extended >= 1) {
           fence_sysvars = instance->get_fence_sysvars();
 
-          Parallel_applier_options parallel_applier_options(*instance);
           auto workers = parallel_applier_options.slave_parallel_workers;
 
           if (parallel_applier_options.slave_parallel_workers.get_safe() > 0) {
@@ -1080,9 +1107,18 @@ shcore::Dictionary_t Status::get_topology(
     feed_member_info(member, minfo, super_read_only, fence_sysvars, self_state,
                      auto_rejoin);
 
+    mysqlshdk::utils::Version instance_version;
+
+    // If there's no version info, set it as zero.
+    if (!minfo.version.empty()) {
+      instance_version = mysqlshdk::utils::Version(minfo.version);
+    } else {
+      instance_version = mysqlshdk::utils::Version(0, 0, 0);
+    }
+
     shcore::Array_t issues = instance_diagnostics(
         inst, recovery_channel, applier_channel, super_read_only, minfo.state,
-        self_state, minfo.role);
+        self_state, minfo.role, instance_version, parallel_applier_options);
     if (issues && !issues->empty()) {
       (*member)["instanceErrors"] = shcore::Value(issues);
     }

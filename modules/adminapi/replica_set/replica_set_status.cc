@@ -27,8 +27,10 @@
 #include <utility>
 #include <vector>
 
+#include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/common_status.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/parallel_applier_options.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -156,6 +158,27 @@ void instance_diagnostics(shcore::Dictionary_t status,
       issues->push_back(
           shcore::Value("ERROR: Invalid/unexpected replication channel: " +
                         mysqlshdk::mysql::format_status(ch)));
+    }
+  }
+
+  // Check if parallel-appliers are not configured. The requirement was
+  // introduced in 8.0.23 so only check if the version is equal or higher to
+  // that.
+  if (instance.version >= mysqlshdk::utils::Version(8, 0, 23)) {
+    Parallel_applier_options parallel_applier_aux;
+    auto current_values = instance.parallel_appliers;
+    auto required_values = parallel_applier_aux.get_required_values();
+
+    for (const auto &setting : required_values) {
+      std::string current_value =
+          current_values[std::get<0>(setting)].get_safe();
+
+      if (!current_value.empty() && current_value != std::get<1>(setting)) {
+        issues->push_back(shcore::Value(
+            "NOTE: The required parallel-appliers settings are not enabled on "
+            "the instance. Use dba.configureReplicaSetInstance() to fix it."));
+        break;
+      }
     }
   }
 

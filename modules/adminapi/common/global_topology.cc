@@ -287,6 +287,7 @@ void Server::scan(mysqlsh::dba::Instance *conn,
     instance.offline_mode = conn->get_sysvar_bool("offline_mode");
     instance.read_only = conn->get_sysvar_bool("read_only");
     instance.super_read_only = conn->get_sysvar_bool("super_read_only");
+    instance.version = conn->get_version();
 
     instance.executed_gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*conn);
 
@@ -346,6 +347,7 @@ void Global_topology::load_instance_state(Instance *instance,
   instance->offline_mode = conn->get_sysvar_bool("offline_mode");
   instance->read_only = conn->get_sysvar_bool("read_only");
   instance->super_read_only = conn->get_sysvar_bool("super_read_only");
+  instance->version = conn->get_version();
 
   instance->executed_gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*conn);
   load_instance_channels(instance, conn, m_repl_channel_name);
