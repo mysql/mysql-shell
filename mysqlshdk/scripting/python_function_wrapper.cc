@@ -90,6 +90,16 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *) {
   return NULL;
 }
 
+#if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
+#ifdef __clang__
+// The tp_print is marked as deprecated, which makes clang unhappy, 'cause it's
+// initialized below. Skipping initialization also makes clang unhappy, so we're
+// disabling the deprecated declarations warning.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif  // __clang__
+#endif  // PY_VERSION_HEX
+
 static PyTypeObject PyShFuncObjectType = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
     "builtin_function_or_method",  // char *tp_name; /* For printing, in format
@@ -183,6 +193,12 @@ static PyTypeObject PyShFuncObjectType = {
 #endif
 #endif
 };
+
+#if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif  // __clang__
+#endif  // PY_VERSION_HEX
 
 void Python_context::init_shell_function_type() {
   if (PyType_Ready(&PyShFuncObjectType) < 0) {

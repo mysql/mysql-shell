@@ -382,6 +382,16 @@ static PyObject *Key_iterator_next_key(Key_iterator *self) {
   }
 }
 
+#if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
+#ifdef __clang__
+// The tp_print is marked as deprecated, which makes clang unhappy, 'cause it's
+// initialized below. Skipping initialization also makes clang unhappy, so we're
+// disabling the deprecated declarations warning.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif  // __clang__
+#endif  // PY_VERSION_HEX
+
 static PyTypeObject Key_iterator_type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
     "shell.DictIter",                       /* tp_name */
@@ -430,6 +440,12 @@ static PyTypeObject Key_iterator_type = {
 #endif
 };
 
+#if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif  // __clang__
+#endif  // PY_VERSION_HEX
+
 static PyObject *dict_iter(PyShDictObject *self) {
   Key_iterator *iterator = PyObject_New(Key_iterator, &Key_iterator_type);
   iterator->map = new Value::Map_type_ref(*self->map);
@@ -462,6 +478,16 @@ static PyMappingMethods PyShDictObject_as_mapping = {
     (binaryfunc)dict_subscript,       // binaryfunc mp_subscript;
     (objobjargproc)dict_as_subscript  // objobjargproc mp_ass_subscript;
 };
+
+#if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
+#ifdef __clang__
+// The tp_print is marked as deprecated, which makes clang unhappy, 'cause it's
+// initialized below. Skipping initialization also makes clang unhappy, so we're
+// disabling the deprecated declarations warning.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif  // __clang__
+#endif  // PY_VERSION_HEX
 
 static PyTypeObject PyShDictObjectType = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
@@ -556,6 +582,12 @@ static PyTypeObject PyShDictObjectType = {
 #endif
 #endif
 };
+
+#if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif  // __clang__
+#endif  // PY_VERSION_HEX
 
 void Python_context::init_shell_dict_type() {
   if (PyType_Ready(&PyShDictObjectType) < 0) {
