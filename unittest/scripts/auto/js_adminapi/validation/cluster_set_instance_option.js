@@ -23,7 +23,7 @@ Cluster.setInstanceOption: The instance 'localhost:<<<__mysql_sandbox_port2>>>' 
 ||
 
 //@<ERR> WL#11465: Error when executing setInstanceOption when the target instance is not reachable
-Cluster.setInstanceOption: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on 'localhost' ([[*]]) (MySQL Error 2003)
+Cluster.setInstanceOption: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port3)>>>' ([[*]]) (MySQL Error 2003)
 
 //@<ERR> WL#11465: Error when executing setInstanceOption on a cluster with no visible quorum {VER(>=8.0.14)}
 Cluster.setInstanceOption: There is no quorum to perform the operation (MYSQLSH 51011)

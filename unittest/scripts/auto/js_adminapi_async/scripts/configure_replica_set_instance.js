@@ -8,7 +8,7 @@ EXPECT_THROWS(function(){dba.configureReplicaSetInstance()},
 
 //@<> configure bad URI (should fail)
 EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri3)},
-    "Dba.configureReplicaSetInstance: Can't connect to MySQL server on 'localhost'");
+    `Dba.configureReplicaSetInstance: Can't connect to MySQL server on '${libmysql_host_description('localhost', __mysql_sandbox_port3)}'`);
 
 //@<> configure raw 5.7 server (should fail) {VER(<8.0.0)}
 EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri1)},

@@ -65,7 +65,7 @@ EXPECT_TRUE(get_tags_for_instance(rs, __endpoint2)["test_bool"] === true);
 
 //@<> WL#13788: setInstanceOption must not allow setting tags for an instance if it is unreachable.
 testutil.stopSandbox(__mysql_sandbox_port2, {wait:1});
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", false)}, "ReplicaSet.setInstanceOption: Could not open connection to '" + __sandbox2 + "': Can't connect to MySQL server on 'localhost'", "MySQL Error");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", false)}, "ReplicaSet.setInstanceOption: Could not open connection to '" + __sandbox2 + "': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port2)>>>'", "MySQL Error");
 
 //@<> WL#13788 setInstanceOption must not allow settings tags for an instance that doesn't belong to the replicaSet.
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});

@@ -1,5 +1,5 @@
 //@ Check Instance Configuration must work without a session
-||Can't connect to MySQL server on 'localhost'
+||Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port1)>>>'
 
 //@ Check Instance Configuration should fail if there's no session nor parameters provided
 ||An open session is required to perform this operation.

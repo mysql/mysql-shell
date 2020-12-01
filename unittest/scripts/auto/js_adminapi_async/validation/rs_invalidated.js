@@ -181,11 +181,11 @@
 
 //@# remove the invalidated instance while it's down (should fail)
 |ERROR: Unable to connect to the target instance localhost:<<<__mysql_sandbox_port1>>>. Please make sure the instance is available and try again. If the instance is permanently not reachable, use the 'force' option to remove it from the replicaset metadata and skip reconfiguration of that instance.|
-||ReplicaSet.removeInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on 'localhost'
+||ReplicaSet.removeInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port1)>>>'
 
 //@# add back the removed instance while it's down (should fail)
 |ERROR: Unable to connect to the target instance 'localhost:<<<__mysql_sandbox_port1>>>'. Please verify the connection settings, make sure the instance is available and try again.|
-||ReplicaSet.addInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on 'localhost'
+||ReplicaSet.addInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port1)>>>'
 
 //@# add back the removed instance after bringing it back up (should fail)
 ||ReplicaSet.addInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is already a member of this replicaset. (MYSQLSH 51301)
@@ -195,7 +195,7 @@
 ||ReplicaSet.forcePrimaryInstance: One or more instances are unreachable (MYSQLSH 51161)
 
 //@# promote remaining secondary with invalidateErrorInstances
-|WARNING: Could not connect to SECONDARY instance: MySQL Error 2003: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>': Can't connect to MySQL server on '<<<hostname_ip>>>'|
+|WARNING: Could not connect to SECONDARY instance: MySQL Error 2003: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>': Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port2)>>>'|
 |NOTE: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> will be invalidated and must be removed from the replicaset.|
 |NOTE: 1 instances will be skipped and invalidated during the failover|
 |<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> was force-promoted to PRIMARY.|

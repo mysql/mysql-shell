@@ -195,7 +195,7 @@ rs.status();
 var rs = rebuild_rs();
 testutil.stopSandbox(__mysql_sandbox_port2, {wait:true});
 
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `ReplicaSet.removeInstance: Could not open connection to 'localhost:${__mysql_sandbox_port2}': Can't connect to MySQL server on 'localhost' `);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `ReplicaSet.removeInstance: Could not open connection to 'localhost:${__mysql_sandbox_port2}': Can't connect to MySQL server on '${libmysql_host_description('localhost', __mysql_sandbox_port2)}'`);
 
 EXPECT_STDOUT_NOT_CONTAINS(`ERROR: Unable to connect to the target instance 'localhost:${__mysql_sandbox_port2}'. Please verify the connection settings, make sure the instance is available and try again.`);
 EXPECT_STDOUT_CONTAINS(`ERROR: Unable to connect to the target instance localhost:${__mysql_sandbox_port2}. Please make sure the instance is available and try again. If the instance is permanently not reachable, use the 'force' option to remove it from the replicaset metadata and skip reconfiguration of that instance.`);

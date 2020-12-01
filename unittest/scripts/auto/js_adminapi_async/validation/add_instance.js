@@ -16,7 +16,7 @@
 ||ReplicaSet.addInstance: Argument #1 is expected to be a string (TypeError)
 ||ReplicaSet.addInstance: Invalid options: badOption (ArgumentError)
 ||ReplicaSet.addInstance: Argument #1 is expected to be a string (TypeError)
-||ReplicaSet.addInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on 'localhost'
+||ReplicaSet.addInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port3)>>>'
 ||ReplicaSet.addInstance: Invalid value '0' for option 'waitRecovery'. It must be an integer in the range [1, 3].
 ||ReplicaSet.addInstance: Invalid value for option recoveryMethod: bogus (ArgumentError)
 ||ReplicaSet.addInstance: Invalid value '42' for option 'waitRecovery'. It must be an integer in the range [1, 3]. (ArgumentError)
@@ -91,7 +91,7 @@
 
 //@# invalid instance (should fail)
 |ERROR: Unable to connect to the target instance 'localhost:1'. Please verify the connection settings, make sure the instance is available and try again.|
-||ReplicaSet.addInstance: Could not open connection to 'localhost:1': Can't connect to MySQL server on 'localhost'
+||ReplicaSet.addInstance: Could not open connection to 'localhost:1': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', '1')>>>'
 
 //@# admin account has mismatched passwords (should fail)
 |ERROR: The administrative account credentials for localhost:<<<__mysql_sandbox_port2>>> do not match the cluster's administrative account. The cluster administrative account user name and password must be the same on all instances that belong to it.|ReplicaSet.addInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@'localhost' (using password: YES) (MySQL Error 1045)

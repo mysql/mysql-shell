@@ -8,7 +8,7 @@
 ||Argument #1: Invalid connection options, no options provided. (ArgumentError)
 
 //@ checkInstanceState: unreachable instance
-|Unable to connect to the target instance 'localhost:11111'. Please verify the connection settings, make sure the instance is available and try again.|Cluster.checkInstanceState: Could not open connection to 'localhost:11111': Can't connect to MySQL server on 'localhost' ([[*]]) (MySQL Error 2003)
+|Unable to connect to the target instance 'localhost:11111'. Please verify the connection settings, make sure the instance is available and try again.|Cluster.checkInstanceState: Could not open connection to 'localhost:11111': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', '11111')>>>' ([[*]]) (MySQL Error 2003)
 
 //@<ERR> checkInstanceState: cluster member
 Cluster.checkInstanceState: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' already belongs to the cluster: 'cluster'. (RuntimeError)

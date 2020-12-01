@@ -2619,10 +2619,10 @@
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])"
+                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])"
+                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>' ([[*]])"
             }
         }
     }
@@ -2748,10 +2748,10 @@
                 }
             ],
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])"
+                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<hostname>>>' ([[*]])"
+                "shellConnectError": "MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port3)>>>' ([[*]])"
             }
         }
     }

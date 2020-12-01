@@ -273,3 +273,13 @@ def ensure_plugin_disabled(plugin_name, session):
     if is_installed:
         session.run_sql("UNINSTALL PLUGIN " + plugin_name + ";")
 
+
+# Starting 8.0.24 the client lib started reporting connection error using
+# host:port format, previous versions used just the host.
+#
+# This function is used to format the host description accordingly.
+def libmysql_host_description(hostname, port):
+  if testutil.version_check(__libmysql_version_id, ">", "8.0.23"):
+    return hostname + ":" + str(port)
+
+  return hostname

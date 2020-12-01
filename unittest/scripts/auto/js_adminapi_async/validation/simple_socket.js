@@ -161,7 +161,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 127.0.0.1:<<<__mysql_sandbox_port3>>> was promoted to PRIMARY.
 
 //@# forcePrimaryInstance (prepare)
-|ERROR: Unable to connect to the PRIMARY of the replicaset myrs: MySQL Error 2003: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '127.0.0.1' ([[*]])|
+|ERROR: Unable to connect to the PRIMARY of the replicaset myrs: MySQL Error 2003: Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('127.0.0.1', __mysql_sandbox_port3)>>>' ([[*]])|
 |{|
 |    "replicaSet": {|
 |        "name": "myrs", |
@@ -199,7 +199,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 |            }, |
 |            "127.0.0.1:<<<__mysql_sandbox_port3>>>": {|
 |                "address": "127.0.0.1:<<<__mysql_sandbox_port3>>>", |
-|                "connectError": "Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '127.0.0.1' ([[*]])", |
+|                "connectError": "Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('127.0.0.1', __mysql_sandbox_port3)>>>' ([[*]])", |
 |                "fenced": null, |
 |                "instanceRole": "PRIMARY", |
 |                "mode": null, |

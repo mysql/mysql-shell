@@ -407,3 +407,16 @@ function EXPECT_THROWS_TYPE(func, etext, type) {
     }
   }
 }
+
+// Starting 8.0.24 the client lib started reporting connection error using
+// host:port format, previous versions used just the host.
+//
+// This function is used to format the host description accordingly.
+function libmysql_host_description(hostname, port) {
+  if (testutil.versionCheck(__libmysql_version_id, ">", "8.0.23")) {
+    return hostname + ":" + port;
+  }
+
+  return hostname;
+}
+  

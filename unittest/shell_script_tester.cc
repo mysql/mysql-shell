@@ -20,9 +20,12 @@
    51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include "unittest/shell_script_tester.h"
+
+#include <mysql_version.h>
 #include <iostream>
 #include <string>
 #include <utility>
+
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/shellcore/shell_console.h"
@@ -1635,7 +1638,6 @@ void Shell_script_tester::set_defaults() {
   exec_and_out_equals(code);
 
   def_var("__mysqluripwd", "''");
-
   def_var("__os_type", "'" + shcore::to_string(shcore::get_os_type()) + "'");
   def_var("__test_data_path",
           shcore::quote_string(shcore::path::join_path(g_test_home, "data", ""),
@@ -1685,6 +1687,8 @@ void Shell_script_tester::set_defaults() {
   def_string_var_from_env("MDS_USER");
   def_string_var_from_env("MDS_PASSWORD");
 
+  def_var("__libmysql_version_id",
+          shcore::str_format("'%d'", LIBMYSQL_VERSION_ID));
   const char *oci_config_home = getenv("OCI_CONFIG_HOME");
   if (oci_config_home) {
     _opts->set_oci_config_file(
