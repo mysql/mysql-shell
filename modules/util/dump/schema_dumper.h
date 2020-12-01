@@ -218,7 +218,7 @@ class Schema_dumper {
   void print_comment(IFile *sql_file, bool is_error, const char *format, ...);
 
   char *create_delimiter(const std::string &query, char *delimiter_buff,
-                         int delimiter_max_size);
+                         const int delimiter_max_size);
 
   std::vector<Issue> dump_events_for_db(IFile *sql_file, const std::string &db);
 

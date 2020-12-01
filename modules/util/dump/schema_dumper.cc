@@ -616,14 +616,14 @@ void Schema_dumper::print_comment(IFile *sql_file, bool is_error,
 */
 char *Schema_dumper::create_delimiter(const std::string &query,
                                       char *delimiter_buff,
-                                      int delimiter_max_size) {
+                                      const int delimiter_max_size) {
   int proposed_length;
   const char *presence;
 
   delimiter_buff[0] = ';'; /* start with one semicolon, and */
 
   for (proposed_length = 2; proposed_length < delimiter_max_size;
-       delimiter_max_size++) {
+       ++proposed_length) {
     delimiter_buff[proposed_length - 1] = ';'; /* add semicolons, until */
     delimiter_buff[proposed_length] = '\0';
 

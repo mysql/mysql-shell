@@ -559,6 +559,9 @@ session.run_sql("CREATE FUNCTION !.!(s CHAR(20)) RETURNS CHAR(50) DETERMINISTIC 
 
 session.run_sql("CREATE EVENT !.! ON SCHEDULE EVERY 1 HOUR STARTS CURRENT_TIMESTAMP + INTERVAL 1 WEEK DO DELETE FROM !.!;", [ test_schema, test_schema_event, test_schema, test_table_no_index ])
 
+# BUG#31820571 - events which contain string `;;` cause dump to freeze
+session.run_sql("CREATE DEFINER=`root`@`localhost` EVENT !.! ON SCHEDULE AT '2020-08-28 10:53:50' ON COMPLETION PRESERVE ENABLE COMMENT '/* ;; */' DO begin end;", [ test_schema, "bug31820571" ])
+
 session.run_sql("""INSERT INTO !.! (`data`)
 SELECT (tth * 10000 + th * 1000 + h * 100 + t * 10 + u + 1) x FROM
     (SELECT 0 tth UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) E,
@@ -954,6 +957,7 @@ EXPECT_FILE_NOT_CONTAINS("CREATE DEFINER=`{0}`@`{1}` EVENT IF NOT EXISTS `{2}`".
 #@<> WL13807-FR4.3.1 - If the `events` option is not given, a default value of `true` must be used instead.
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` EVENT IF NOT EXISTS `{2}`".format(__user, __host, test_schema_event), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`root`@`localhost` EVENT IF NOT EXISTS `bug31820571`", os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
 
 #@<> WL13807-FR4.4 - The `options` dictionary may contain a `routines` key with a Boolean value, which specifies whether to include functions and stored procedures in the DDL file of each schema. User-defined functions must not be included.
 TEST_BOOL_OPTION("routines")
