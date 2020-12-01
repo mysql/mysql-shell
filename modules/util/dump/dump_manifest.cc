@@ -149,7 +149,8 @@ Dump_manifest::Dump_manifest(Mode mode,
                 try {
                   flush_manifest();
                 } catch (const std::runtime_error &error) {
-                  m_par_thread_error = error.what();
+                  m_par_thread_error = shcore::str_format(
+                      "Error flushing dump manifest: %s", error.what());
                   break;
                 }
                 last_count = m_par_cache.size();
@@ -461,11 +462,9 @@ void Dump_manifest_object::close() {
       try {
         this->remove();
       } catch (const mysqlshdk::oci::Response_error &error) {
-        m_par_thread_error = error.what();
         log_error("Failed removing object '%s' after PAR creation failed: %s",
                   Object::full_path().c_str(), error.what());
       } catch (const mysqlshdk::rest::Connection_error &error) {
-        m_par_thread_error = error.what();
         log_error("Failed removing object '%s' after PAR creation failed: %s",
                   Object::full_path().c_str(), error.what());
       }
