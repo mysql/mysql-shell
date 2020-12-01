@@ -265,6 +265,74 @@
     }
 }
 
+//@<OUT> BUG#32015164: instanceErrors must report missing parallel-appliers
+{
+    "replicaSet": {
+        "name": "myrs",
+        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+        "status": "AVAILABLE",
+        "statusText": "All instances available.",
+        "topology": {
+            "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+                "instanceRole": "PRIMARY",
+                "mode": "R/W",
+                "status": "ONLINE"
+            },
+            "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",
+                "instanceErrors": [
+                    "NOTE: The required parallel-appliers settings are not enabled on the instance. Use dba.configureReplicaSetInstance() to fix it."
+                ],
+                "instanceRole": "SECONDARY",
+                "mode": "R/O",
+                "replication": {
+                    "applierStatus": "APPLIED_ALL",
+                    "applierThreadState": "Slave has read all relay log; waiting for more updates",
+                    "receiverStatus": "ON",
+                    "receiverThreadState": "Waiting for master to send event",
+                    "replicationLag": null
+                },
+                "status": "ONLINE"
+            }
+        },
+        "type": "ASYNC"
+    }
+}
+
+//@<OUT> BUG#32015164: status should be fine now
+{
+    "replicaSet": {
+        "name": "myrs",
+        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+        "status": "AVAILABLE",
+        "statusText": "All instances available.",
+        "topology": {
+            "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>": {
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",
+                "instanceRole": "PRIMARY",
+                "mode": "R/W",
+                "status": "ONLINE"
+            },
+            "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>": {
+                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>",
+                "instanceRole": "SECONDARY",
+                "mode": "R/O",
+                "replication": {
+                    "applierStatus": "APPLIED_ALL",
+                    "applierThreadState": "Waiting for an event from Coordinator",
+                    "applierWorkerThreads": 4,
+                    "receiverStatus": "ON",
+                    "receiverThreadState": "Waiting for master to send event",
+                    "replicationLag": null
+                },
+                "status": "ONLINE"
+            }
+        },
+        "type": "ASYNC"
+    }
+}
+
 //@<OUT> Primary is RO, should show as error
 {
     "replicaSet": {

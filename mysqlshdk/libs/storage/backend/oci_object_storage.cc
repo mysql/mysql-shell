@@ -471,6 +471,8 @@ void Object::Writer::close() {
       }
 
       throw shcore::Exception::runtime_error(error.format());
+    } catch (const mysqlshdk::rest::Connection_error &error) {
+      throw shcore::Exception::runtime_error(error.what());
     }
 
   } else {
@@ -480,6 +482,8 @@ void Object::Writer::close() {
                                      m_buffer.size());
     } catch (const Response_error &error) {
       throw shcore::Exception::runtime_error(error.format());
+    } catch (const mysqlshdk::rest::Connection_error &error) {
+      throw shcore::Exception::runtime_error(error.what());
     }
   }
 }
@@ -497,6 +501,8 @@ Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
     } else {
       throw shcore::Exception::runtime_error(error.format());
     }
+  } catch (const mysqlshdk::rest::Connection_error &error) {
+    throw shcore::Exception::runtime_error(error.what());
   }
 }
 

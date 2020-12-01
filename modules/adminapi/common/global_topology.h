@@ -87,6 +87,7 @@ class Instance final {
   mysqlshdk::null_bool super_read_only;
   mysqlshdk::null_bool read_only;
   mysqlshdk::null_bool offline_mode;
+  mysqlshdk::utils::Version version;
 
   mysqlshdk::null_string executed_gtid_set;
 

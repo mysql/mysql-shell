@@ -89,6 +89,47 @@ session2.runSql("START SLAVE");
 
 // ==== Error conditions
 
+// BUG#32015164: MISSING INFORMATION ABOUT REQUIRED PARALLEL-APPLIERS SETTINGS ON UPGRADE SCNARIO
+// If a cluster member with a version >= 8.0.23 doesn't have parallel-appliers enabled, that information
+// must be included in 'instanceErrors'
+
+//@<> BUG#32015164: preparation {VER(>=8.0.23)}
+
+// Disable parallel-appliers
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "slave_parallel_type");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "slave_preserve_commit_order");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "slave_parallel_workers");
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+testutil.restartSandbox(__mysql_sandbox_port2);
+// Instance must be back online
+sb2 = hostname_ip+":"+__mysql_sandbox_port2;
+s = rs.status();
+EXPECT_EQ(s.replicaSet.topology[sb2].status, "ONLINE");
+
+//@ BUG#32015164: instanceErrors must report missing parallel-appliers {VER(>=8.0.23)}
+println(s);
+
+//@<> BUG#32015164: fix with dba.configureInstance() {VER(>=8.0.23)}
+session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("STOP SLAVE");
+dba.configureReplicaSetInstance(__sandbox_uri2);
+
+//@<> BUG#32015164: rejoin instance after fix {VER(>=8.0.23)}
+testutil.restartSandbox(__mysql_sandbox_port2);
+session2 = mysql.getSession(__sandbox_uri2);
+s = rs.status();
+EXPECT_EQ(s.replicaSet.topology[sb2].status, "ONLINE");
+
+//@<OUT> BUG#32015164: status should be fine now {VER(>=8.0.23)}
+println(s);
+
+//@<> BUG#32015164: Finalize (restore value of slave_parallel_workers)
+session2.runSql("STOP SLAVE");
+session2.runSql("SET GLOBAL slave_parallel_workers=0");
+session2.runSql("START SLAVE");
+
 //@ Primary is RO, should show as error
 session1.runSql("SET GLOBAL super_read_only=1");
 s = rs.status();

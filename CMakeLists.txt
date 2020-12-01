@@ -145,7 +145,7 @@ set(CMAKE_MODULE_PATH
 
 ### Configuring package year
 IF(NOT PACKAGE_YEAR)
-  SET(PACKAGE_YEAR "2020")
+  SET(PACKAGE_YEAR "2021")
 
   string(TIMESTAMP month_year "%Y/%m" UTC)
   # Changes done in december will probably be released

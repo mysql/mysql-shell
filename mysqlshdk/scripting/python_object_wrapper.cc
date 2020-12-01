@@ -148,6 +148,16 @@ static PyObject *method_getattro(PyShMethodObject *self, PyObject *attr_name) {
   return NULL;
 }
 
+#if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
+#ifdef __clang__
+// The tp_print is marked as deprecated, which makes clang unhappy, 'cause it's
+// initialized below. Skipping initialization also makes clang unhappy, so we're
+// disabling the deprecated declarations warning.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif  // __clang__
+#endif  // PY_VERSION_HEX
+
 static PyTypeObject PyShMethodObjectType = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
     "builtin_function_or_method",  // char *tp_name; /* For printing, in format
@@ -241,6 +251,12 @@ static PyTypeObject PyShMethodObjectType = {
 #endif
 #endif
 };
+
+#if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif  // __clang__
+#endif  // PY_VERSION_HEX
 
 static PyObject *wrap_method(const std::shared_ptr<Cpp_object_bridge> &object,
                              const char *method_name) {
@@ -581,6 +597,16 @@ static PyMappingMethods PyShObjMappingMethods = {
     (setattrofunc)object_setattro,  // PyMappingMethods.mp_ass_subscript
 };
 
+#if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
+#ifdef __clang__
+// The tp_print is marked as deprecated, which makes clang unhappy, 'cause it's
+// initialized below. Skipping initialization also makes clang unhappy, so we're
+// disabling the deprecated declarations warning.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif  // __clang__
+#endif  // PY_VERSION_HEX
+
 static PyTypeObject PyShObjObjectType = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)  // PyObject_VAR_HEAD
     "shell.Object",  // char *tp_name; /* For printing, in format
@@ -768,6 +794,12 @@ static PyTypeObject PyShObjIndexedObjectType = {
 #endif
 #endif
 };
+
+#if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif  // __clang__
+#endif  // PY_VERSION_HEX
 
 static PyObject *object_rich_compare(PyShObjObject *self, PyObject *other,
                                      int op) {

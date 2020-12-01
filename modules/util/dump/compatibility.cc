@@ -33,6 +33,9 @@ namespace mysqlsh {
 namespace compatibility {
 
 const std::set<std::string> k_mysqlaas_allowed_privileges = {
+    // each account has USAGE
+    "USAGE",
+    // global static privileges
     "ALTER",
     "ALTER ROUTINE",
     "CREATE",
@@ -51,13 +54,21 @@ const std::set<std::string> k_mysqlaas_allowed_privileges = {
     "LOCK TABLES",
     "PROCESS",
     "REFERENCES",
+    "REPLICATION_APPLIER",
     "REPLICATION CLIENT",
     "REPLICATION SLAVE",
     "SELECT",
     "SHOW DATABASES",
     "SHOW VIEW",
     "TRIGGER",
-    "UPDATE"};
+    "UPDATE",
+    // global dynamic privileges
+    "APPLICATION_PASSWORD_ADMIN",
+    "CONNECTION_ADMIN",
+    "RESOURCE_GROUP_ADMIN",
+    "RESOURCE_GROUP_USER",
+    "XA_RECOVER_ADMIN",
+};
 
 const std::set<std::string> k_mysqlaas_allowed_authentication_plugins = {
     "caching_sha2_password",

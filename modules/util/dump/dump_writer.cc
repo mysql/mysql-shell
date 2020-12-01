@@ -27,6 +27,7 @@
 #include <utility>
 
 #include "mysqlshdk/libs/storage/compressed_file.h"
+#include "mysqlshdk/libs/utils/logger.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -127,8 +128,12 @@ Dump_writer::Dump_writer(std::unique_ptr<IFile> out)
 }
 
 Dump_writer::~Dump_writer() {
-  if (output()->is_open()) {
-    output()->close();
+  try {
+    if (output()->is_open()) {
+      output()->close();
+    }
+  } catch (const std::runtime_error &error) {
+    log_error("%s", error.what());
   }
 }
 

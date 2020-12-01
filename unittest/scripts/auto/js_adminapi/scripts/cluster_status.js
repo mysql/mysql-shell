@@ -223,6 +223,39 @@ session1.runSql("update mysql_innodb_cluster_metadata.instances set mysql_server
 var stat = cluster.status();
 println(stat);
 
+// BUG#32015164: MISSING INFORMATION ABOUT REQUIRED PARALLEL-APPLIERS SETTINGS ON UPGRADE SCNARIO
+// If a cluster member with a version >= 8.0.23 doesn't have parallel-appliers enabled, that information
+// must be included in 'instanceErrors'
+
+//@<> BUG#32015164: preparation {VER(>=8.0.23)}
+// Stop GR
+session2.runSql("STOP group_replication");
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
+// Disable parallel-appliers
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "slave_parallel_type");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "slave_preserve_commit_order");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "slave_parallel_workers");
+testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+testutil.restartSandbox(__mysql_sandbox_port2);
+// Let the instance rejoin the cluster
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+//@ BUG#32015164: instanceErrors must report missing parallel-appliers {VER(>=8.0.23)}
+cluster.status();
+
+//@<> BUG#32015164: fix with dba.configureInstance() {VER(>=8.0.23)}
+dba.configureInstance(__sandbox_uri2);
+
+//@<> BUG#32015164: rejoin instance after fix {VER(>=8.0.23)}
+testutil.restartSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
+//@<OUT> BUG#32015164: status should be fine now {VER(>=8.0.23)}
+var stat = cluster.status();
+println(stat);
+
 //@<> WL#13084 - TSF4_5: extended: 0 is the default (same as with no options).
 var ext_0_status = cluster.status({extended: 0});
 EXPECT_EQ(ext_0_status, stat);

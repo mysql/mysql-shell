@@ -285,10 +285,14 @@ class Dumper::Table_worker final {
         m_session->query(prepare_query(table, &pre_encoded_columns));
 
     shcore::on_leave_scope close_index_file([&table]() {
-      if (table.index_file) {
-        if (table.index_file->is_open()) {
-          table.index_file->close();
+      try {
+        if (table.index_file) {
+          if (table.index_file->is_open()) {
+            table.index_file->close();
+          }
         }
+      } catch (const std::runtime_error &error) {
+        log_error("%s", error.what());
       }
     });
 
