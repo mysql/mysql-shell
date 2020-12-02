@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,6 +39,7 @@
 
 #include "mysqlsh/history.h"
 #include "mysqlsh/prompt_manager.h"
+#include "mysqlshdk/libs/utils/syslog.h"
 
 namespace mysqlsh {
 
@@ -83,7 +84,7 @@ class Command_line_shell : public Mysql_shell,
   bool _interrupted = false;
 
  protected:
-  void pause_history(bool flag) { _history.pause(flag); }
+  void pause_history(bool flag);
 
  private:
   Command_line_shell(std::shared_ptr<Shell_options> options,
@@ -134,6 +135,10 @@ class Command_line_shell : public Mysql_shell,
 
   bool set_pending_command(const Pending_command &command);
 
+  void syslog(const std::string &statement);
+
+  std::string syslog_format(const std::string &statement);
+
   std::unique_ptr<shcore::Interpreter_delegate> _delegate;
 
   shcore::Interpreter_print_handler m_suppressed_handler;
@@ -147,6 +152,8 @@ class Command_line_shell : public Mysql_shell,
 
   bool m_set_pending_command = false;
   Pending_command m_pending_command;
+
+  shcore::Syslog m_syslog;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, query_variable_classic);

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-  Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+  Copyright (c) 2016, 2020, Oracle and/or its affiliates.
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2.0,
@@ -64,6 +64,14 @@
             <Component Id="UpdatePath" Directory="CM_DP_main.bin" Guid="0D572FF7-1AE6-493D-8991-D2DC99E1F5C1">
                 <CreateFolder/>
                 <Environment Id="UpdatePathEnv" Action="set" Part="first" Name="PATH" Value="[CM_DP_main.bin]"/>
+                <RegistryKey Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\mysqlsh">
+                    <RegistryValue Type="expandable" Name="EventMessageFile" Value="[CM_DP_main.bin]\mysqlsh.exe">
+                        <!-- Give full access to the authenticated users, system and built-in administrators -->
+                        <PermissionEx Sddl="D:(A;;KA;;;AU)(A;;KA;;;SY)(A;;KA;;;BA)" />
+                    </RegistryValue>
+                    <!-- EVENTLOG_ERROR_TYPE | EVENTLOG_WARNING_TYPE | EVENTLOG_INFORMATION_TYPE == 7 -->
+                    <RegistryValue Type="integer" Name="TypesSupported" Value="7" />
+                </RegistryKey>
             </Component>
         </FeatureRef>
 

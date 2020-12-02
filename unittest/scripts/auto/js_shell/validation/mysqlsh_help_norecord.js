@@ -132,6 +132,9 @@ Usage: mysqlsh [OPTIONS] [URI]
                                   operations: 0 - logging disabled; 1 - log
                                   statements other than SELECT and SHOW; 2 -
                                   log all statements.
+  --syslog                        Log filtered interactive commands to the
+                                  system log. Filtering of commands depends on
+                                  the patterns supplied via histignore option.
   --verbose[={0|1|2|3|4}]         Enable diagnostic message output to the
                                   console: 0 - display no messages; 1 - display
                                   error, warning and informational messages; 2,

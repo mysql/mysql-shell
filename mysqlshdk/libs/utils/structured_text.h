@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,26 +26,31 @@
 
 #include <cstring>
 #include <string>
+
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
-namespace internal {
-#ifdef _WIN32
-#define MSVC_WORKAROUND extern const __declspec(selectany)
-#else
-#define MSVC_WORKAROUND constexpr
-#endif
 
-MSVC_WORKAROUND char k_kvp_allowed_chars[] =
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.$@";
-}  // namespace internal
+namespace kvp {
 
-// Chars that don't need to be quoted in a KVP key or value
+inline bool should_quote(const char *s) {
+  // Chars that don't need to be quoted in a KVP key or value
+  static constexpr auto k_kvp_allowed_chars =
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.$@";
 
-inline bool is_kvp_token(const char *s) {
-  size_t p = strspn(s, internal::k_kvp_allowed_chars);
-  return s[p] == 0;
+  size_t p = strspn(s, k_kvp_allowed_chars);
+  return s[p] != 0;
 }
+
+inline std::string quote(const std::string &v, char q) {
+  return should_quote(v.c_str()) ? quote_string(v, q) : v;
+}
+
+inline std::string make(const char *key, const std::string &value, char quote) {
+  return kvp::quote(key, quote) + "=" + value;
+}
+
+}  // namespace kvp
 
 /**
  * Produces a KVP pair, quoting strings when necessary.
@@ -53,30 +58,18 @@ inline bool is_kvp_token(const char *s) {
  * Use ' for quotes by default, so that they don't get escaped in a JSON string.
  */
 inline std::string make_kvp(const char *key, const std::string &value,
-                            int quote = '\'') {
-  std::string s =
-      !is_kvp_token(key) ? quote_string(key, quote) : std::string(key);
-  s += "=";
-  s += !is_kvp_token(value.c_str()) ? quote_string(value, quote) : value;
-  return s;
+                            char quote = '\'') {
+  return kvp::make(key, kvp::quote(value, quote), quote);
 }
 
 inline std::string make_kvp(const char *key, const char *value,
-                            int quote = '\'') {
-  std::string s =
-      !is_kvp_token(key) ? quote_string(key, quote) : std::string(key);
-  s += "=";
-  s += !is_kvp_token(value) ? quote_string(value, quote) : value;
-  return s;
+                            char quote = '\'') {
+  return make_kvp(key, std::string{value}, quote);
 }
 
 template <typename T>
-inline std::string make_kvp(const char *key, T value, int quote = '\'') {
-  std::string s =
-      !is_kvp_token(key) ? quote_string(key, quote) : std::string(key);
-  s += "=";
-  s += std::to_string(value);
-  return s;
+inline std::string make_kvp(const char *key, T value, char quote = '\'') {
+  return kvp::make(key, std::to_string(value), quote);
 }
 
 }  // namespace shcore

@@ -72,9 +72,11 @@ if(WIN32)
   SET(MYSH_ORIGINAL_FILE_NAME "mysqlsh.exe")
   SET(MYSH_FILE_DESCRIPTION "MySQL Shell")
   CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/res/resource.rc.in   ${CMAKE_BINARY_DIR}/mysqlsh.rc @ONLY)
+  set_source_files_properties("${SYSLOG_EVENT_RC}" PROPERTIES GENERATED TRUE)
   set(mysqlsh_SRC
       "${mysqlsh_SRC}"
       "${CMAKE_BINARY_DIR}/mysqlsh.rc"
+      "${SYSLOG_EVENT_RC}"
       )
 endif()
 
@@ -82,6 +84,10 @@ add_definitions(-DMYSH_COMMIT_ID="${MYSH_COMMIT_ID}")
 
 add_shell_executable(mysqlsh "${mysqlsh_SRC}")
 ADD_STAN_TARGET(mysqlsh mysqlsh/main.cc)
+
+if(WIN32)
+  add_dependencies(mysqlsh generate_syslog_event_rc)
+endif()
 
 set(mysqlsh_SRC
   ${mysqlsh_SRC}

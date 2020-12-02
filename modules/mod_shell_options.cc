@@ -81,6 +81,9 @@ and table name aliases in the db object, for DevAPI operations.
 @li history.sql.ignorePattern: colon separated list of glob
 patterns to filter out of the command history in SQL mode
 
+@li history.sql.syslog: true to log filtered interactive commands to the system
+log, filtering of commands depends on the value of history.sql.ignorePattern
+
 @li interactive: read-only, boolean value that indicates if the shell is
 running in interactive mode
 

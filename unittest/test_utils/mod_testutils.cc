@@ -66,6 +66,7 @@
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
+#include "mysqlshdk/libs/utils/syslog_system.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -112,6 +113,24 @@ constexpr int k_wait_repl_connection_error = 300;
 constexpr int k_wait_member_timeout = 120;
 constexpr int k_wait_delayed_gr_start_timeout = 300;
 const char *k_boilerplate_root_password = "root";
+
+namespace {
+
+void syslog_hook(shcore::syslog::Level level, const char *msg, void *data) {
+  const auto syslog_trace = reinterpret_cast<std::ofstream *>(data);
+
+  assert(syslog_trace);
+
+  const auto entry =
+      shcore::Value(shcore::make_dict("level", to_string(level), "msg", msg))
+          .json() +
+      "\n";
+
+  syslog_trace->write(entry.c_str(), entry.length());
+  syslog_trace->flush();
+}
+
+}  // namespace
 
 Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
                      std::shared_ptr<mysqlsh::Command_line_shell> shell,
@@ -249,7 +268,12 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
          "content");
   expose("deleteOciObject", &Testutils::delete_oci_object, "bucket", "name");
   expose("anycopy", &Testutils::anycopy, "from", "to");
+
+  expose("traceSyslog", &Testutils::trace_syslog, "file");
+  expose("stopTracingSyslog", &Testutils::stop_tracing_syslog);
 }
+
+Testutils::~Testutils() { stop_tracing_syslog(); }
 
 //!<  @name Testing Utilities
 ///@{
@@ -4107,6 +4131,62 @@ void Testutils::anycopy(const shcore::Value &from, const shcore::Value &to) {
 
   from_file->close();
   to_file->close();
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Starts writing the messages logged to the system log to the given file.
+ *
+ * Each line is a JSON object with the following attributes:
+ *  - 'level' - log level
+ *  - 'msg' - message logged
+ *
+ * @param file path to the file
+ */
+#if DOXYGEN_JS
+Undefined Testutils::traceSyslog(String file);
+#elif DOXYGEN_PY
+None Testutils::trace_syslog(str file);
+#endif
+///@}
+void Testutils::trace_syslog(const std::string &file) {
+  if (m_syslog_trace.is_open()) {
+    throw std::runtime_error("Syslog tracing is already enabled.");
+  }
+
+#ifdef _WIN32
+  const auto filename = shcore::utf8_to_wide(file);
+#else   // !_WIN32
+  const auto &filename = file;
+#endif  // !_WIN32
+
+  m_syslog_trace.open(filename, std::ios_base::app);
+
+  if (m_syslog_trace.fail()) {
+    throw std::runtime_error("Failed to open syslog trace file: " + file);
+  }
+
+  shcore::syslog::add_hook(&syslog_hook, &m_syslog_trace);
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Stops tracing the syslog messages.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::stopTracingSyslog();
+#elif DOXYGEN_PY
+None Testutils::stop_tracing_syslog();
+#endif
+///@}
+void Testutils::stop_tracing_syslog() {
+  if (m_syslog_trace.is_open()) {
+    shcore::syslog::remove_hook(&syslog_hook, &m_syslog_trace);
+
+    m_syslog_trace.close();
+  }
 }
 
 }  // namespace tests

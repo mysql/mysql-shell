@@ -41,6 +41,7 @@
 #include "modules/devapi/base_resultset.h"
 #include "modules/mod_shell_options.h"  // <---
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/structured_text.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -370,6 +371,8 @@ Command_line_shell::Command_line_shell(
 
   _history.set_limit(std::min<int64_t>(options().history_max_size,
                                        std::numeric_limits<int>::max()));
+
+  m_syslog.enable(options().history_sql_syslog);
 
   observe_notification(SN_SHELL_OPTION_CHANGED);
 
@@ -1057,23 +1060,16 @@ void Command_line_shell::print_cmd_line_helper() {
 bool Command_line_shell::cmd_process_file(
     const std::vector<std::string> &params) {
   pause_history(true);
-  try {
-    bool r = Mysql_shell::cmd_process_file(params);
-    pause_history(false);
-    return r;
-  } catch (...) {
-    pause_history(false);
-    throw;
-  }
+  shcore::on_leave_scope resume_history{[this]() { pause_history(false); }};
+
+  return Mysql_shell::cmd_process_file(params);
 }
 
 void Command_line_shell::handle_notification(
     const std::string &name, const shcore::Object_bridge_ref & /* sender */,
     shcore::Value::Map_type_ref data) {
   if (name == "SN_STATEMENT_EXECUTED") {
-    std::string executed = data->get_string("statement");
-    while (executed.back() == '\n' || executed.back() == '\r')
-      executed.pop_back();
+    const auto executed = shcore::str_strip(data->get_string("statement"));
     auto mode = interactive_mode();
     auto sql = executed;
     if (shcore::str_beginswith(executed, "\\sql ") && executed.length() > 5) {
@@ -1082,6 +1078,10 @@ void Command_line_shell::handle_notification(
     }
     if (mode != shcore::Shell_core::Mode::SQL || sql_safe_for_logging(sql)) {
       _history.add(executed);
+
+      if (shcore::Shell_core::Mode::SQL == mode) {
+        syslog(sql);
+      }
     } else {
       // add but delete after the next command and
       // don't let it get saved to disk either
@@ -1113,6 +1113,8 @@ void Command_line_shell::handle_notification(
       const auto console = current_console();
 
       console->set_verbose(data->get_int("value"));
+    } else if (SHCORE_HISTORY_SQL_SYSLOG == option) {
+      m_syslog.enable(data->get_bool("value"));
     }
   }
 }
@@ -1201,6 +1203,47 @@ void Command_line_shell::process_line(const std::string &line) {
   } else {
     Mysql_shell::process_line(line);
   }
+}
+
+void Command_line_shell::syslog(const std::string &statement) {
+  // log SQL statements and \source commands
+  if (m_syslog.active() &&
+      ('\\' != statement[0] || shcore::str_beginswith(statement, "\\source ") ||
+       shcore::str_beginswith(statement, "\\. "))) {
+    m_syslog.log(shcore::syslog::Level::INFO, syslog_format(statement));
+  }
+}
+
+std::string Command_line_shell::syslog_format(const std::string &statement) {
+  const std::size_t max_log_length = 1024;
+  const auto variables = prompt_variables();
+
+  std::vector<std::string> data;
+
+  const auto add_data = [&data](const char *key, const std::string &value) {
+    data.emplace_back(shcore::make_kvp(key, value.empty() ? "--" : value));
+  };
+
+  const auto add_data_from_prompt =
+      [&variables, &add_data](const char *key, const std::string &var) {
+        const auto value = variables->find(var);
+
+        add_data(key, variables->end() != value ? value->second : "");
+      };
+
+  add_data_from_prompt("SYSTEM_USER", "system_user");
+  add_data_from_prompt("MYSQL_USER", "user");
+  add_data_from_prompt("CONNECTION_ID", "connection_id");
+  add_data_from_prompt("DB_SERVER", "host");
+  add_data_from_prompt("DB", "schema");
+  add_data("QUERY", statement);
+
+  return shcore::truncate(shcore::str_join(data, " "), max_log_length);
+}
+
+void Command_line_shell::pause_history(bool flag) {
+  _history.pause(flag);
+  m_syslog.pause(flag);
 }
 
 }  // namespace mysqlsh

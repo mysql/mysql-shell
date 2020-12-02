@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -279,6 +279,10 @@ void init_debug_shell(std::shared_ptr<mysqlsh::Command_line_shell> shell) {
         set_one_trap(v.as_map());
       }
     }
+  }
+
+  if (const auto file = getenv("MYSQLSH_TRACE_SYSLOG")) {
+    testutil->trace_syslog(file);
   }
 
   std::shared_ptr<Devutil> devutil(new Devutil(shell->shell_context().get()));

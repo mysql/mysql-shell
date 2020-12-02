@@ -242,8 +242,12 @@ std::map<std::string, std::string> *Base_shell::prompt_variables() {
 }
 
 void Base_shell::request_prompt_variables_update(bool clear_cache) {
-  m_pending_update = clear_cache ? Prompt_variables_update_type::CLEAR_CACHE
-                                 : Prompt_variables_update_type::UPDATE;
+  const auto type = clear_cache ? Prompt_variables_update_type::CLEAR_CACHE
+                                : Prompt_variables_update_type::UPDATE;
+
+  if (type > m_pending_update) {
+    m_pending_update = type;
+  }
 }
 
 void Base_shell::update_prompt_variables() {
@@ -253,6 +257,8 @@ void Base_shell::update_prompt_variables() {
 
   const auto session = _shell->get_dev_session();
   if (_prompt_variables.empty()) {
+    _prompt_variables["system_user"] = shcore::get_system_user();
+
     if (session && session->is_open()) {
       mysqlshdk::db::Connection_options options(session->uri());
       std::string socket;
@@ -284,6 +290,8 @@ void Base_shell::update_prompt_variables() {
       _prompt_variables["port"] = port;
       _prompt_variables["socket"] = socket;
       _prompt_variables["node_type"] = session->get_node_type();
+      _prompt_variables["connection_id"] =
+          std::to_string(session->get_connection_id());
     } else {
       _prompt_variables["ssl"] = "";
       _prompt_variables["uri"] = "";
@@ -293,6 +301,7 @@ void Base_shell::update_prompt_variables() {
       _prompt_variables["socket"] = "";
       _prompt_variables["session"] = "";
       _prompt_variables["node_type"] = "";
+      _prompt_variables["connection_id"] = "";
     }
   }
   if (session && session->is_open()) {

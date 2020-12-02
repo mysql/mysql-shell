@@ -39,6 +39,7 @@
 
 #define SHCORE_HISTORY_MAX_SIZE "history.maxSize"
 #define SHCORE_HISTIGNORE "history.sql.ignorePattern"
+#define SHCORE_HISTORY_SQL_SYSLOG "history.sql.syslog"
 #define SHCORE_HISTORY_AUTOSAVE "history.autoSave"
 
 #define SHCORE_DB_NAME_CACHE "autocomplete.nameCache"
@@ -126,6 +127,7 @@ class Shell_options : public shcore::Options {
     std::string histignore;
     int history_max_size = 1000;
     bool history_autosave = false;
+    bool history_sql_syslog = false;
     enum class Redirect_to {
       None,
       Primary,

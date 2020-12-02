@@ -57,6 +57,8 @@ set(utils_SOURCE
     rate_limit.cc
     ssl_keygen.cc
     dtoa.cc
+    syslog.cc
+    syslog_level.cc
 )
 
 IF(CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -65,9 +67,35 @@ ENDIF()
 
 # platform dependent implementations
 IF(UNIX)
-    LIST(APPEND utils_SOURCE utils_path_unix.cc)
+    LIST(APPEND utils_SOURCE syslog_system_unix.cc utils_path_unix.cc)
 ELSEIF(WIN32)
     LIST(APPEND utils_SOURCE utils_path_win32.cc)
+
+    SET(SYSLOG_EVENT_MC "${CMAKE_SOURCE_DIR}/res/syslog_event.mc")
+    SET(SYSLOG_EVENT_H  "${CMAKE_CURRENT_BINARY_DIR}/syslog_event.h")
+    SET(SYSLOG_EVENT_RC "${CMAKE_CURRENT_BINARY_DIR}/syslog_event.rc"
+        CACHE INTERNAL "Path to RC file with message resources")
+
+    add_custom_command(
+        OUTPUT
+            "${SYSLOG_EVENT_H}"
+            "${SYSLOG_EVENT_RC}"
+            "${CMAKE_CURRENT_BINARY_DIR}/MSG00001.bin"
+        COMMAND mc -c -n
+            "${SYSLOG_EVENT_MC}"
+            -h "${CMAKE_CURRENT_BINARY_DIR}"
+            -r "${CMAKE_CURRENT_BINARY_DIR}"
+        DEPENDS
+            "${SYSLOG_EVENT_MC}"
+    )
+
+    add_custom_target(generate_syslog_event_rc DEPENDS "${SYSLOG_EVENT_RC}")
+
+    LIST(APPEND utils_SOURCE
+        "${SYSLOG_EVENT_H}"
+         syslog_system_win32.cc
+    )
+
 ENDIF()
 
 add_convenience_library(utils ${utils_SOURCE})

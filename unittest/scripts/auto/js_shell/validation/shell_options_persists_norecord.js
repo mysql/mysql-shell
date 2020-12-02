@@ -43,6 +43,13 @@
 ||
 |*IDENTIFIED*:*PASSWORD*|
 
+//@ history.sql.syslog update and set back to default using shell.options
+||
+|true|
+|"history.sql.syslog": "true"|
+||
+|false|
+
 //@ interactive update and set back to default using shell.options
 ||This option is read only
 |true|
@@ -164,6 +171,12 @@
 |*PATTERN*|
 ||
 |*IDENTIFIED*:*PASSWORD*|
+
+//@ history.sql.syslog update and set back to default using \option
+||
+|true|
+||
+|false|
 
 //@ interactive update and set back to default using \option
 ||This option is read only
@@ -287,6 +300,7 @@
  history.autoSave                false
  history.maxSize                 1000
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD*
+ history.sql.syslog              false
  interactive                     true
  logLevel                        5
  oci.configFile                  <<<_defaultOciConfigFile>>>
@@ -316,6 +330,7 @@
  history.autoSave                false (Compiled default)
  history.maxSize                 1000 (Compiled default)
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD* (Compiled default)
+ history.sql.syslog              false (Compiled default)
  interactive                     true (Compiled default)
  logLevel                        5 (Compiled default)
  oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)
@@ -402,6 +417,7 @@
  history.autoSave                false
  history.maxSize                 1000
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD*
+ history.sql.syslog              false
  interactive                     true
  logLevel                        5
  oci.configFile                  <<<_defaultOciConfigFile>>>
@@ -432,6 +448,7 @@ Switching to SQL mode... Commands end with ;
  history.autoSave                false (Compiled default)
  history.maxSize                 1000 (Compiled default)
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD* (Compiled default)
+ history.sql.syslog              false (Compiled default)
  interactive                     true (Compiled default)
  logLevel                        5 (Compiled default)
  oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)

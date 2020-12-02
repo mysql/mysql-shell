@@ -46,6 +46,13 @@ os.loadTextFile(options_file);
 shell.options.unsetPersist("history.sql.ignorePattern");
 shell.options["history.sql.ignorePattern"]
 
+//@ history.sql.syslog update and set back to default using shell.options
+shell.options.setPersist("history.sql.syslog", true);
+shell.options["history.sql.syslog"]
+os.loadTextFile(options_file);
+shell.options.unsetPersist("history.sql.syslog");
+shell.options["history.sql.syslog"]
+
 //@ interactive update and set back to default using shell.options
 shell.options["interactive"] = "true"
 shell.options["interactive"]
@@ -171,6 +178,13 @@ os.loadTextFile(options_file);
 os.loadTextFile(options_file);
 \option --unset --persist history.sql.ignorePattern
 \option history.sql.ignorePattern
+
+//@ history.sql.syslog update and set back to default using \option
+\option --persist history.sql.syslog = true
+\option history.sql.syslog
+os.loadTextFile(options_file);
+\option --unset --persist history.sql.syslog
+\option history.sql.syslog
 
 //@ interactive update and set back to default using \option
 \option interactive = true

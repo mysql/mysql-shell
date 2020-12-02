@@ -49,7 +49,7 @@ class Shell_test_env;
  */
 class Testutils : public mysqlsh::Extensible_object {
  private:
-  virtual std::string class_name() const { return "Testutils"; }
+  std::string class_name() const override { return "Testutils"; }
 
  public:
 #if DOXYGEN_JS
@@ -117,6 +117,8 @@ class Testutils : public mysqlsh::Extensible_object {
   String getCurrentMetadataVersion();
   String getInstalledMetadataVersion();
   // Undefined slowify(Integer port, Boolean start);
+  Undefined traceSyslog(String file);
+  Undefined stopTracingSyslog();
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd, Dictionary options);
   None destroy_sandbox(int port);
@@ -177,11 +179,15 @@ class Testutils : public mysqlsh::Extensible_object {
   None wipe_all_output();
   str get_current_metadata_version();
   str get_installed_metadata_version();
+  None trace_syslog(str file);
+  None stop_tracing_syslog();
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
             std::shared_ptr<mysqlsh::Command_line_shell> shell = {},
             const std::string &mysqlsh_path = "");
+
+  ~Testutils() override;
 
   void set_sandbox_snapshot_dir(const std::string &dir);
 
@@ -378,6 +384,10 @@ class Testutils : public mysqlsh::Extensible_object {
    */
   void enable_extensible();
 
+  void trace_syslog(const std::string &file);
+
+  void stop_tracing_syslog();
+
  private:
   // Testing stuff
   bool is_replaying();
@@ -438,6 +448,8 @@ class Testutils : public mysqlsh::Extensible_object {
   std::string _test_file;
   int _test_line = 0;
   Shell_test_env *_test_env = nullptr;
+
+  std::ofstream m_syslog_trace;
 
   void wait_sandbox_dead(int port);
 

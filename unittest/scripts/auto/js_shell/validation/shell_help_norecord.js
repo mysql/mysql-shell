@@ -134,6 +134,9 @@ DESCRIPTION
       - history.maxSize: number of entries to keep in command history
       - history.sql.ignorePattern: colon separated list of glob patterns to
         filter out of the command history in SQL mode
+      - history.sql.syslog: true to log filtered interactive commands to the
+        system log, filtering of commands depends on the value of
+        history.sql.ignorePattern
       - interactive: read-only, boolean value that indicates if the shell is
         running in interactive mode
       - logLevel: current log level

@@ -406,6 +406,10 @@ Shell_options::Shell_options(int argc, char **argv,
         "Log SQL statements executed by AdminAPI operations: "
         "0 - logging disabled; 1 - log statements other than SELECT and SHOW; "
         "2 - log all statements.", shcore::opts::Range<int>(0, 2))
+    (&storage.history_sql_syslog, false, SHCORE_HISTORY_SQL_SYSLOG,
+        cmdline("--syslog"),
+        "Log filtered interactive commands to the system log. Filtering of "
+        "commands depends on the patterns supplied via histignore option.")
     (&storage.verbose_level, 0, SHCORE_VERBOSE,
         cmdline("--verbose[={0|1|2|3|4}]"),
         "Enable diagnostic message output to the console: 0 - display no "
