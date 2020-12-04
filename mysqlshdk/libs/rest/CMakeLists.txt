@@ -35,8 +35,7 @@ set(rest_SOURCES
   retry_strategy.cc
 )
 
-add_convenience_library(rest ${rest_SOURCES})
-set_target_properties(rest PROPERTIES COMPILE_DEFINITIONS "${CURL_DEFINITIONS}")
+add_convenience_library(rest ${rest_SOURCES} COMPILE_DEFINITIONS "${CURL_DEFINITIONS}")
 
 include_directories(SYSTEM ${CURL_INCLUDE_DIR})
 target_link_libraries(rest ${CURL_LIBRARY})

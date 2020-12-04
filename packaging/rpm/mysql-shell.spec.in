@@ -51,7 +51,11 @@ Requires:       python3 >= 3.6
 %endif
 %endif
 
-BuildRequires:  cmake
+%if 0%{?rhel} && 0%{?rhel} <= 7
+BuildRequires: cmake3
+%else
+BuildRequires: cmake
+%endif
 %if 0%{!?with_protobuf:1} && 0%{!?with_mysql_source:1}
 BuildRequires:  protobuf-devel
 BuildRequires:  protobuf-compiler
@@ -124,7 +128,11 @@ a query and administration shell client and framework.
 
 %build
 rm -rf build && mkdir build && cd build
+%if 0%{?rhel} && 0%{?rhel} <= 7
+cmake3 .. \
+%else
 cmake .. \
+%endif
     -DCMAKE_INSTALL_PREFIX=%{_prefix} \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 %if 0%{?commercial}
