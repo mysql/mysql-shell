@@ -24,6 +24,7 @@
 
 #include <map>
 #include <regex>
+#include <vector>
 
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/config/config_file.h"
@@ -74,7 +75,7 @@ bool parse_par(const std::string &par, std::vector<std::string> *data_ptr) {
 std::mutex Oci_options::s_tenancy_name_mutex;
 std::map<std::string, std::string> Oci_options::s_tenancy_names = {};
 
-void Oci_options::load_defaults(const std::vector<std::string> &par_data) {
+void Oci_options::load_defaults() {
   if (!par_data.empty()) {
     oci_region = par_data[0];
     os_namespace = par_data[1];
@@ -132,7 +133,7 @@ void Oci_options::load_defaults(const std::vector<std::string> &par_data) {
   }
 }
 
-void Oci_options::check_bucket_name_dependent_options() {
+void Oci_options::on_unpacked_options() {
   if (os_bucket_name.get_safe().empty()) {
     if (!os_namespace.get_safe().empty()) {
       throw std::invalid_argument(
@@ -157,46 +158,47 @@ void Oci_options::check_bucket_name_dependent_options() {
           "The option 'ociParManifest' cannot be used when the value of "
           "'osBucketName' option is not set.");
     }
+  } else {
+    // If the Namespace is given, sets the right value for PAR manifest
+    if (oci_par_manifest.is_null() && par_manifest_default)
+      oci_par_manifest = par_manifest_default;
+  }
+
+  if (target == OBJECT_STORAGE) {
+    if (!oci_par_manifest.get_safe() &&
+        !oci_par_expire_time.get_safe().empty()) {
+      throw std::invalid_argument(
+          "The option 'ociParExpireTime' cannot be used when the value "
+          "of 'ociParManifest' option is not True.");
+    }
   }
 }
 
 void Oci_options::check_option_values() {
-  std::vector<std::string> par_data;
-  switch (target) {
-    case OBJECT_STORAGE:
-    case OBJECT_STORAGE_NO_PAR_OPTIONS:
-      if (!os_par.get_safe().empty()) {
-        if (parse_par(*os_par, &par_data)) {
-          if (!os_namespace.is_null() && *os_namespace != par_data[1]) {
-            throw std::invalid_argument(
-                "The option 'osNamespace' doesn't match the namespace of the "
-                "provided preauthenticated request.");
-          }
-          if (!os_bucket_name.is_null() && *os_bucket_name != par_data[2]) {
-            throw std::invalid_argument(
-                "The option 'osBucketName' doesn't match the bucket name of "
-                "the provided preauthenticated request.");
-          }
-        }
-      } else {
-        check_bucket_name_dependent_options();
-
-        if (!oci_par_manifest.get_safe() &&
-            !oci_par_expire_time.get_safe().empty()) {
-          throw std::invalid_argument(
-              "The option 'ociParExpireTime' cannot be used when the value "
-              "of 'ociParManifest' option is not True.");
-        }
-      }
-      break;
-    case OBJECT_STORAGE_NO_PAR_SUPPORT:
-      check_bucket_name_dependent_options();
-      break;
-  }
-
   if (!os_bucket_name.get_safe().empty() || !par_data.empty()) {
-    load_defaults(par_data);
+    load_defaults();
   }
+}
+
+void Oci_options::set_par(const mysqlshdk::null_string &url) {
+  assert(target != OBJECT_STORAGE_NO_PAR_SUPPORT);
+
+  if (!url.get_safe().empty()) {
+    if (parse_par(*url, &par_data)) {
+      if (!os_namespace.is_null() && *os_namespace != par_data[1]) {
+        throw std::invalid_argument(
+            "The option 'osNamespace' doesn't match the namespace of the "
+            "provided preauthenticated request.");
+      }
+      if (!os_bucket_name.is_null() && *os_bucket_name != par_data[2]) {
+        throw std::invalid_argument(
+            "The option 'osBucketName' doesn't match the bucket name of "
+            "the provided preauthenticated request.");
+      }
+    }
+  }
+
+  os_par = url;
 }
 
 bool parse_oci_options(

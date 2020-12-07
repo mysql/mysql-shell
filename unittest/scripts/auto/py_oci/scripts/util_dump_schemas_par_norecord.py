@@ -66,7 +66,7 @@ validate_full_dump(OS_NAMESPACE, OS_BUCKET_NAME, prefix, expire_time)
 #@<> WL14154-TSFR2_10 - Doing a dump to OCI ociParManifest set to False, ocimds set to True and ociParExpireTime set to a valid value. Validate that the dump fail because ociParExpireTime it's valid only when ociParManifest is set to True.
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 EXPECT_THROWS(lambda:util.dump_schemas(["sample"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants"], "ociParManifest": False, "ociParExpireTime":today_plus_days(1, RFC3339)}),
-    "Util.dump_schemas: The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.")
+    "Util.dump_schemas: Argument #3: The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.")
 
 #@<> WL14154-TSFR3_2 - ZSTD compression {not __dbug_off}
 testutil.set_trap("par_manifest", ["name == {0}/sample@data.tsv.zst".format(prefix)], {"code": 404, "msg": "Injected exception"})

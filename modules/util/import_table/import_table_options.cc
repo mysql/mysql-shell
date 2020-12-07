@@ -132,7 +132,8 @@ const shcore::Option_pack_def<Import_table_option_pack>
           .optional("decodeColumns",
                     &Import_table_option_pack::set_decode_columns)
           .optional("characterSet", &Import_table_option_pack::m_character_set)
-          .include(&Import_table_option_pack::m_dialect);
+          .include(&Import_table_option_pack::m_dialect)
+          .include(&Import_table_option_pack::m_oci_options);
 
   return opts;
 }
@@ -261,7 +262,6 @@ void Import_table_options::validate() {
         // this call is here to verify if filename does not have a scheme
         mysqlshdk::oci::parse_oci_options(m_filelist_from_user[0], {},
                                           &m_oci_options);
-        m_oci_options.check_option_values();
       }
 
       m_file_handle = create_file_handle(m_filelist_from_user[0]);

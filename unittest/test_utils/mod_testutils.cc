@@ -4042,14 +4042,17 @@ std::unique_ptr<mysqlshdk::storage::IFile> file(const shcore::Value &location) {
         mysqlshdk::oci::Oci_options::OBJECT_STORAGE>
         oci_option_pack;
     std::string name;
+    mysqlshdk::oci::Oci_options oci_options;
 
     auto options = location.as_map();
 
-    mysqlsh::Unpack_options(options).required("name", &name).end();
+    shcore::Option_unpacker unpacker;
+    unpacker.set_options(options);
+    unpacker.required("name", &name);
+    oci_option_pack.options().unpack(&unpacker, &oci_option_pack);
+    unpacker.end();
 
-    oci_option_pack.options().unpack(options, &oci_option_pack);
-    mysqlshdk::oci::Oci_options &oci_options = oci_option_pack;
-
+    oci_options = oci_option_pack;
     if (oci_options) {
       oci_options.check_option_values();
       return mysqlshdk::storage::make_file(name, oci_options);

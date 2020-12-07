@@ -9,7 +9,7 @@ Util.loadDump: Argument #2 is expected to be a map (TypeError)
 Util.loadDump: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
 Util.loadDump: Argument #2: The option 'osNamespace' cannot be used when the value of 'osBucketName' option is not set. (ArgumentError)
 Util.loadDump: Argument #2: The option 'ociConfigFile' cannot be used when the value of 'osBucketName' option is not set. (ArgumentError)
-Util.loadDump: Argument #2: Cannot open file: /badpath. (RuntimeError)
+Util.loadDump: Cannot open file: /badpath. (RuntimeError)
 Util.loadDump: Argument #2: Invalid options: bogus (ArgumentError)
 Util.loadDump: Argument #2: Option 'includeSchemas' is expected to be of type Array, but is String (TypeError)
 Util.loadDump: Argument #2: At least one of loadData, loadDdl or loadUsers options must be enabled (ArgumentError)
@@ -25,7 +25,7 @@ Util.loadDump: Argument #2: Invalid value 'xxx' for updateGtidSet option, allowe
 Util.loadDump: Argument #2: Invalid value '' for updateGtidSet option, allowed values: 'append', 'off' and 'replace'. (ArgumentError)
 Util.loadDump: Argument #2: Option 'updateGtidSet' is expected to be of type String, but is Bool (TypeError)
 //@<ERR> Bad Bucket Name Option {!hasOciEnvironment('OS')}
-Util.loadDump: Argument #2: Cannot open file: [[*]]<<<filename_for_output("/.oci/config")>>>. (RuntimeError)
+Util.loadDump: Cannot open file: [[*]]<<<filename_for_output("/.oci/config")>>>. (RuntimeError)
 
 //@<ERR> Bad Bucket Name Option {hasOciEnvironment('OS')}
 Util.loadDump: Failed opening object '@.json' in READ mode: Not Found (404) (RuntimeError)

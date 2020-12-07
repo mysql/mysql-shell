@@ -75,6 +75,11 @@ const shcore::Option_pack_def<Ddl_dumper_options>
 
 void Ddl_dumper_options::set_ocimds(bool value) {
   if (value) {
+    // When ocimds is enabled, the PAR generation default changes to true.
+    // NOTE: This can still be disabled with the explicit OCI option which is
+    // read after.
+    m_oci_option_unpacker.set_par_manifest_default(value);
+
     set_mds_compatibility(mysqlshdk::utils::Version(MYSH_VERSION));
   }
 }

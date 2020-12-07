@@ -142,7 +142,7 @@ Oci_rest_service::Oci_rest_service(Oci_service service,
                                    const Oci_options &options) {
   // NOTE: At this point we assume the options are valid, this is, the
   // configured profile exists on the indicated configuration file
-  if (!options.os_par.is_null()) {
+  if (!options.get_par().is_null()) {
     m_region = *options.oci_region;
   } else {
     auto oci_profile = *options.config_profile;

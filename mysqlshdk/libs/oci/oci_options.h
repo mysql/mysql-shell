@@ -64,11 +64,11 @@ struct Oci_options {
     return !os_bucket_name.get_safe().empty() || !os_par.get_safe().empty();
   }
 
-  void check_bucket_name_dependent_options();
+  void on_unpacked_options();
   void validate();
   void check_option_values();
 
-  Unpack_target target;
+  Unpack_target target = OBJECT_STORAGE;
 
   mysqlshdk::utils::nullable<std::string> os_bucket_name;
   mysqlshdk::utils::nullable<std::string> os_namespace;
@@ -79,8 +79,11 @@ struct Oci_options {
   mysqlshdk::utils::nullable<std::string> oci_par_expire_time;
 
   // Internal use options
-  mysqlshdk::utils::nullable<std::string> os_par;
   mysqlshdk::utils::nullable<std::string> oci_region;
+
+  void set_par(const mysqlshdk::null_string &url);
+  void set_par_manifest_default(bool value) { par_manifest_default = value; }
+  const mysqlshdk::null_string &get_par() const { return os_par; }
 
  private:
   static std::mutex s_tenancy_name_mutex;
@@ -94,7 +97,11 @@ struct Oci_options {
    *
    * @param instance target Instance object to read the GR options.
    */
-  void load_defaults(const std::vector<std::string> &par_data);
+  void load_defaults();
+
+  mysqlshdk::utils::nullable<std::string> os_par;
+  std::vector<std::string> par_data;
+  bool par_manifest_default = false;
 };
 
 /**
@@ -108,21 +115,36 @@ struct Oci_option_unpacker : public Oci_options {
   static const shcore::Option_pack_def<Oci_option_unpacker> &options() {
     static shcore::Option_pack_def<Oci_option_unpacker> opts;
 
-    if (opts.empty()) {
-      opts.optional(kOsNamespace, &Oci_option_unpacker<T>::set_string_option)
-          .optional(kOsBucketName, &Oci_option_unpacker<T>::set_string_option)
-          .optional(kOciConfigFile, &Oci_option_unpacker<T>::set_string_option)
-          .optional(kOciProfile, &Oci_option_unpacker<T>::set_string_option);
+    if (T == Oci_options::Unpack_target::OBJECT_STORAGE) {
+      static const auto with_par_opts =
+          shcore::Option_pack_def<Oci_option_unpacker>()
+              .optional(kOsNamespace,
+                        &Oci_option_unpacker<T>::set_string_option)
+              .optional(kOsBucketName,
+                        &Oci_option_unpacker<T>::set_string_option)
+              .optional(kOciConfigFile,
+                        &Oci_option_unpacker<T>::set_string_option)
+              .optional(kOciProfile, &Oci_option_unpacker<T>::set_string_option)
+              .optional(kOciParExpireTime,
+                        &Oci_option_unpacker<T>::set_string_option)
+              .optional(kOciParManifest,
+                        &Oci_option_unpacker<T>::set_par_manifest)
+              .on_done(&Oci_option_unpacker<T>::on_unpacked_options);
+      return with_par_opts;
+    } else {
+      static const auto no_par_opts =
+          shcore::Option_pack_def<Oci_option_unpacker>()
+              .optional(kOsNamespace,
+                        &Oci_option_unpacker<T>::set_string_option)
+              .optional(kOsBucketName,
+                        &Oci_option_unpacker<T>::set_string_option)
+              .optional(kOciConfigFile,
+                        &Oci_option_unpacker<T>::set_string_option)
+              .optional(kOciProfile, &Oci_option_unpacker<T>::set_string_option)
+              .on_done(&Oci_option_unpacker<T>::on_unpacked_options);
 
-      if (T == Oci_options::Unpack_target::OBJECT_STORAGE) {
-        opts.optional(kOciParExpireTime,
-                      &Oci_option_unpacker<T>::set_string_option)
-            .optional(kOciParManifest,
-                      &Oci_option_unpacker<T>::set_par_manifest);
-      }
+      return no_par_opts;
     }
-
-    return opts;
   }
 
  private:

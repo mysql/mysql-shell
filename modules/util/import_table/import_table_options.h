@@ -137,7 +137,7 @@ class Import_table_option_pack {
   uint64_t m_skip_rows_count = 0;
   Dialect m_dialect;
   mysqlshdk::oci::Oci_option_unpacker<
-      mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE>
+      mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE_NO_PAR_OPTIONS>
       m_oci_options;
 };
 

@@ -237,6 +237,26 @@ void Load_dump_options::set_session(
 }
 
 void Load_dump_options::validate() {
+  dump::Par_structure url_par_data;
+  m_use_par = dump::parse_full_object_par(m_url, &url_par_data);
+
+  if (m_use_par) {
+    if (m_progress_file.is_null()) {
+      throw shcore::Exception::argument_error(
+          "When using a PAR to a dump manifest, the progressFile option must "
+          "be defined.");
+    } else {
+      dump::Par_structure progress_par_data;
+      m_use_par_progress =
+          dump::parse_full_object_par(*m_progress_file, &progress_par_data);
+    }
+
+    m_oci_options.set_par(m_url);
+    m_prefix = url_par_data.object_prefix;
+  }
+
+  m_oci_options.check_option_values();
+
   {
     auto result =
         m_base_session->query("SHOW GLOBAL VARIABLES LIKE 'local_infile'");
@@ -331,33 +351,14 @@ std::string Load_dump_options::target_import_info() const {
 }
 
 void Load_dump_options::on_unpacked_options() {
+  m_oci_options = m_oci_option_pack;
+
   if (!m_load_data && !m_load_ddl && !m_load_users &&
       m_analyze_tables == Analyze_table_mode::OFF &&
       m_update_gtid_set == Update_gtid_set::OFF)
     throw shcore::Exception::argument_error(
         "At least one of loadData, loadDdl or loadUsers options must be "
         "enabled");
-
-  dump::Par_structure url_par_data;
-  m_oci_options = m_oci_option_pack;
-  m_use_par = dump::parse_full_object_par(m_url, &url_par_data);
-
-  if (m_use_par) {
-    if (m_progress_file.is_null()) {
-      throw shcore::Exception::argument_error(
-          "When using a PAR to a dump manifest, the progressFile option must "
-          "be defined.");
-    } else {
-      dump::Par_structure progress_par_data;
-      m_use_par_progress =
-          dump::parse_full_object_par(*m_progress_file, &progress_par_data);
-    }
-
-    m_oci_options.os_par = m_url;
-    m_prefix = url_par_data.object_prefix;
-  }
-
-  m_oci_options.check_option_values();
 
   if (!m_load_indexes && m_defer_table_indexes == Defer_index_mode::OFF)
     throw std::invalid_argument(

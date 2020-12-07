@@ -1412,7 +1412,7 @@ shcore::Value Util::import_table(const shcore::Argument_list &args) {
         files.push_back(it->as_string());
       }
 
-      if (file_list != args.end()) {
+      if (file_list != args.end() && (*file_list)) {
         import_table_options.unpack(file_list->as_map());
       }
     }
