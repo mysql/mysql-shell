@@ -75,6 +75,17 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
                   mysqlshdk::utils::nullable<bool>(true));
       config->set("group_replication_ssl_mode",
                   mysqlshdk::utils::nullable<std::string>("REQUIRED"));
+    } else if (*gr_opts.ssl_mode == mysqlsh::dba::kMemberSSLModeVerifyCA) {
+      config->set("group_replication_recovery_use_ssl",
+                  mysqlshdk::utils::nullable<bool>(true));
+      config->set("group_replication_ssl_mode",
+                  mysqlshdk::utils::nullable<std::string>("VERIFY_CA"));
+    } else if (*gr_opts.ssl_mode ==
+               mysqlsh::dba::kMemberSSLModeVerifyIdentity) {
+      config->set("group_replication_recovery_use_ssl",
+                  mysqlshdk::utils::nullable<bool>(true));
+      config->set("group_replication_ssl_mode",
+                  mysqlshdk::utils::nullable<std::string>("VERIFY_IDENTITY"));
     } else if (*gr_opts.ssl_mode == mysqlsh::dba::kMemberSSLModeDisabled) {
       if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 5)) {
         // This option is required to connect using the new

@@ -300,7 +300,9 @@ std::string resolve_instance_ssl_mode(
   gr_ssl_mode = *pinstance.get_sysvar_string("group_replication_ssl_mode");
 
   // The cluster REQUIRES SSL
-  if (!shcore::str_casecmp(gr_ssl_mode.c_str(), "REQUIRED")) {
+  if ((!shcore::str_casecmp(gr_ssl_mode.c_str(), "REQUIRED")) ||
+      (!shcore::str_casecmp(gr_ssl_mode.c_str(), "VERIFY_CA")) ||
+      (!shcore::str_casecmp(gr_ssl_mode.c_str(), "VERIFY_IDENTITY"))) {
     // memberSslMode is DISABLED
     if (!shcore::str_casecmp(member_ssl_mode.c_str(), "DISABLED"))
       throw shcore::Exception::runtime_error(
@@ -327,7 +329,13 @@ std::string resolve_instance_ssl_mode(
     }
 
     // memberSslMode is either AUTO or REQUIRED
-    ret_val = dba::kMemberSSLModeRequired;
+    if (!shcore::str_casecmp(gr_ssl_mode.c_str(), "REQUIRED")) {
+      ret_val = dba::kMemberSSLModeRequired;
+    } else if (!shcore::str_casecmp(gr_ssl_mode.c_str(), "VERIFY_CA")) {
+      ret_val = dba::kMemberSSLModeVerifyCA;
+    } else if (!shcore::str_casecmp(gr_ssl_mode.c_str(), "VERIFY_IDENTITY")) {
+      ret_val = dba::kMemberSSLModeVerifyIdentity;
+    }
 
     // The cluster has SSL DISABLED
   } else if (!shcore::str_casecmp(gr_ssl_mode.c_str(), "DISABLED")) {

@@ -221,6 +221,8 @@ std::string get_mysqlprovision_error_string(
 extern const char *kMemberSSLModeAuto;
 extern const char *kMemberSSLModeRequired;
 extern const char *kMemberSSLModeDisabled;
+extern const char *kMemberSSLModeVerifyCA;
+extern const char *kMemberSSLModeVerifyIdentity;
 
 /**
  * Check if a setting is supported on the target instance

@@ -52,8 +52,11 @@ void validate_group_name_option(std::string group_name) {
 const char *kMemberSSLModeAuto = "AUTO";
 const char *kMemberSSLModeRequired = "REQUIRED";
 const char *kMemberSSLModeDisabled = "DISABLED";
+const char *kMemberSSLModeVerifyCA = "VERIFY_CA";
+const char *kMemberSSLModeVerifyIdentity = "VERIFY_IDENTITY";
 const std::set<std::string> kMemberSSLModeValues = {
-    kMemberSSLModeAuto, kMemberSSLModeDisabled, kMemberSSLModeRequired};
+    kMemberSSLModeAuto, kMemberSSLModeDisabled, kMemberSSLModeRequired,
+    kMemberSSLModeVerifyCA, kMemberSSLModeVerifyIdentity};
 
 void validate_ssl_instance_options(std::string ssl_mode) {
   // Validate use of SSL options for the cluster instance and issue an
