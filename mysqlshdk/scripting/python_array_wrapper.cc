@@ -362,7 +362,6 @@ static PyTypeObject PyShListObjectType = {
 #if PY_VERSION_HEX >= 0x03080000
     ,
     0,  // tp_vectorcall
-    0   // tp_print
 #endif
 };
 
