@@ -1,0 +1,1 @@
+mysqlx://user:password@(../path/to/socket)/schema

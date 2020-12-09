@@ -1,0 +1,1 @@
+mysqlx://user:sample@[fe80::850a:5a7c:6ab7:aec4%25eth%3F]:2540/testing

@@ -239,22 +239,25 @@ IF(NOT PACKAGE_YEAR)
 ENDIF()
 add_definitions(-DPACKAGE_YEAR="${PACKAGE_YEAR}")
 
+IF(WITH_TESTS)
+  ENABLE_TESTING()
+ENDIF()
+
 ###
 ### Initial configuration
 ###
-
 INCLUDE(version.cmake)
 
 ###
 ### Detect Stuff
 ###
-
 INCLUDE(install_macros)
 INCLUDE(exeutils)
 INCLUDE(libutils)
 INCLUDE(compiler)
 INCLUDE(static_analysis)
 include(cmake/compile_flags.cmake)
+include(cmake/fuzzer.cmake)
 INCLUDE(msvc)
 
 INCLUDE(CheckIncludeFiles)
@@ -689,6 +692,7 @@ IF(WITH_TESTS)
   ### Unit-test support
   ###
   add_subdirectory(unittest)
+  add_subdirectory(tests/fuzz)
 ENDIF()
 
 ###
