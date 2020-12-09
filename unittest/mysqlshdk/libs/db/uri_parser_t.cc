@@ -1,23 +1,25 @@
-/* Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
-
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License, version 2.0,
- as published by the Free Software Foundation.
-
- This program is also distributed with certain software (including
- but not limited to OpenSSL) that is licensed under separate terms, as
- designated in a particular file or component or in included license
- documentation.  The authors of MySQL hereby grant you an additional
- permission to link the program and your derivative works with the
- separately licensed software that they have included with MySQL.
- This program is distributed in the hope that it will be useful,  but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
- the GNU General Public License, version 2.0, for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
+/*
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/nullable.h"
@@ -358,6 +360,9 @@ TEST(Uri_parser, parse_host_ipv4) {
   validate_uri("mysqlx://user@10.150.123.45:2845", "mysqlx", "user",
                NO_PASSWORD, "10.150.123.45", 2845, NO_SOCK, NO_DB,
                HAS_NO_PASSWORD, HAS_PORT, Transport_type::Tcp);
+  validate_uri("mysqlx://user@10.150.123.45:0", "mysqlx", "user", NO_PASSWORD,
+               "10.150.123.45", 0, NO_SOCK, NO_DB, HAS_NO_PASSWORD, HAS_PORT,
+               Transport_type::Tcp);
 
   //                0    0    1    1    2    2    3    3    4    4    5    5
   //                0    5    0    5    0    5    0    5    0    5    0    5
@@ -378,6 +383,22 @@ TEST(Uri_parser, parse_host_ipv4) {
   validate_bad_uri("mysqlx://user@10.150.123.45:", "Missing port number");
   validate_bad_uri("mysqlx://user@10.150.123.45:2845f",
                    "Illegal character [f] found at position 32");
+  validate_bad_uri("mysqlx://user@10.150.123.45:2147483647",
+                   "Port is out of the valid range: 0 - 65535");
+  validate_bad_uri("mysqlx://user@10.150.123.45:2147483648",
+                   "Port is out of the valid range: 0 - 65535");
+  validate_bad_uri("mysqlx://user@10.150.123.45:4294967295",
+                   "Port is out of the valid range: 0 - 65535");
+  validate_bad_uri("mysqlx://user@10.150.123.45:4294967296",
+                   "Port is out of the valid range: 0 - 65535");
+  validate_bad_uri("mysqlx://user@10.150.123.45:928482174821947214627846278",
+                   "Port is out of the valid range: 0 - 65535");
+  validate_bad_uri("mysqlx://user@10.150.123.45:-4294967296",
+                   "Illegal character [-] found at position 28");
+  validate_bad_uri("mysqlx://user@10.150.123.45:-1",
+                   "Illegal character [-] found at position 28");
+  validate_bad_uri("mysqlx://user@10.150.123.45:-0",
+                   "Illegal character [-] found at position 28");
   validate_bad_uri("mysqlx://user@10.150.123.45:invalid",
                    "Illegal character [i] found at position 28");
 }

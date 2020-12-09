@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -235,18 +235,16 @@ std::string Uri_parser::parse_ipv4(size_t *offset) {
       _tokenizer.next_token_type(".", 5) &&
       _tokenizer.next_token_type("digits", 6)) {
     for (size_t index = 0; index < 4; index++) {
-      std::string octet = _tokenizer.consume_token("digits");
-      int value;
+      const std::string octet = _tokenizer.consume_token("digits");
+      int value = -1;
       try {
         value = std::stoi(octet);
-      } catch (const std::invalid_argument &e) {
-        std::string s = "Error parsing IPV4 address: ";
-        s += e.what();
-        throw std::invalid_argument(s);
+      } catch (const std::out_of_range &) {
+      } catch (const std::invalid_argument &) {
       }
       if (value < 0 || value > 255) {
         throw std::invalid_argument(
-            "Octet value out of bounds [" + octet +
+            "Error parsing IPV4 address: Octet value out of bounds [" + octet +
             "], valid range for IPv4 is 0 to 255 at position " +
             std::to_string(*offset));
       } else {
@@ -464,9 +462,14 @@ void Uri_parser::parse_port(const std::pair<size_t, size_t> &range,
   (*offset)++;
 
   if (_tokenizer.tokens_available()) {
-    std::string str_port = _tokenizer.consume_token("digits");
+    const std::string str_port = _tokenizer.consume_token("digits");
     (*offset) += str_port.length();
-    int port = std::stoi(str_port);
+    int port = -1;
+    try {
+      port = std::stoi(str_port);
+    } catch (const std::out_of_range &) {
+    } catch (const std::invalid_argument &) {
+    }
 
     if (port < 0 || port > 65535)
       throw std::invalid_argument("Port is out of the valid range: 0 - 65535");
