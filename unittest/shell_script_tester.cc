@@ -1661,7 +1661,7 @@ void Shell_script_tester::set_defaults() {
   def_var("__with_oci", "0");
 #endif
 
-#ifdef DBUG_OFF
+#ifdef NDEBUG
   // TODO(.) - remove __dbug_off and replace all uses with __dbug
   def_var("__dbug_off", "1");
   // dbug tests should only run in direct mode, so that traces aren't affected

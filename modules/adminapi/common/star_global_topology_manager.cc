@@ -30,6 +30,7 @@
 
 #include "modules/adminapi/common/star_global_topology_manager.h"
 
+#include <assert.h>
 #include <list>
 #include <numeric>
 #include <string>
@@ -40,7 +41,6 @@
 #include "modules/adminapi/common/global_topology_check.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/validations.h"
-#include "my_dbug.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
@@ -555,7 +555,7 @@ void Star_global_topology_manager::validate_active_unavailable() {
   // Find the primary master cluster according to the MD
   primary_master = m_topology->get_primary_master_node();
 
-  DBUG_ASSERT(primary_master);
+  assert(primary_master);
 
   log_info("Status of PRIMARY node %s is %s", primary_master->label.c_str(),
            to_string(primary_master->status()).c_str());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -196,7 +196,7 @@ bool debug_object_dump_report(bool verbose);
 
 // Right now, this is in mysql-trunk only, remove once DBUG_TRACE hits
 // our target branch
-#if !defined(DBUG_PRETTY_FUNCTION) && !defined(DBUG_OFF)
+#if !defined(DBUG_PRETTY_FUNCTION) && !defined(NDEBUG)
 
 #if defined(__GNUC__)
 // GCC, Clang, and compatible compilers.
@@ -260,7 +260,7 @@ class AutoDebugTrace {
 
 #endif
 
-#if !defined(DBUG_OFF)
+#if !defined(NDEBUG)
 
 // workaround for BUG30071277
 
@@ -276,6 +276,6 @@ class AutoDebugTrace {
     }                                        \
   } while (0)
 
-#endif  // !DBUG_OFF
+#endif  // !NDEBUG
 
 #endif  // MYSQLSHDK_LIBS_UTILS_DEBUG_H_

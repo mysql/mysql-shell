@@ -52,7 +52,7 @@ namespace utils {
  *
  * An injector is a custom routine that executes a custom action, like throwing
  * an exception or calling abort(). That can be done with the FI_DEFINE()
- * macro, which is only enabled if DBUG_OFF is NOT defined.
+ * macro, which is only enabled if NDEBUG is NOT defined.
  *
  * These injectors must then be invoked by the code to be tested (e.g. right
  * before SQL is executed, to simulate client or server DB errors) by using
@@ -194,7 +194,7 @@ class FI {
    * context, which should be used to trigger faults.
    *
    * Use the FI_DEFINE() macro instead of calling directly, which becomes
-   * a no-op in DBUG_OFF builds.
+   * a no-op in NDEBUG builds.
    */
   static Type_id add_injector(const std::string &type,
                               const std::function<void(const Args &)> &handler);
@@ -205,7 +205,7 @@ class FI {
    * This function may not return.
    *
    * Use the FI_TRIGGER_TRAP() macro instead of calling directly, which becomes
-   * a no-op in DBUG_OFF builds.
+   * a no-op in NDEBUG builds.
    */
   static void trigger_trap(Type_id type, const Trigger_options &input);
 
@@ -229,7 +229,7 @@ class FI {
   static void reset_traps(const std::string &type = "");
 };
 
-#ifdef DBUG_OFF
+#ifdef NDEBUG
 
 #define FI_DEFINE(type, injector) struct dummy_fi_##type
 

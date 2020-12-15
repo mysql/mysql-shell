@@ -1,7 +1,7 @@
 # -*- indent-tabs-mode:nil; -*-
 # vim: set expandtab:
 #
-#   Copyright (c) 2008, 2014, Oracle and/or its affiliates. All rights reserved.
+#   Copyright (c) 2008, 2020, Oracle and/or its affiliates.
 #
 #   This program is free software; you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License, version 2.0,
@@ -180,7 +180,7 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
 else()
   set(_lib_suffix_dist opt)
   set(_lib_suffix_build Release)
-  add_definitions(-DDBUG_OFF)   # FIXME what?!
+  add_definitions(-DNDEBUG)   # FIXME what?!
 endif()
 
 set(_exe_fallback_path

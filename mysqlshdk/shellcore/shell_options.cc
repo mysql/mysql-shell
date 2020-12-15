@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -566,7 +566,7 @@ Shell_options::Shell_options(int argc, char **argv,
       })
       (cmdline("--debug=<control>"),
       [this](const std::string &, const char* value) {
-#ifdef DBUG_OFF
+#ifdef NDEBUG
         // If DBUG is disabled, we just print a warning saying the option won't
         // do anything. This is to keep options compatible between build types
         std::cout << "WARNING: This build of mysqlsh has the DBUG feature "

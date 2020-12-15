@@ -373,11 +373,11 @@ void Testutils::bp(bool flag) {
 void Testutils::set_trap(const std::string &type,
                          const shcore::Array_t &conditions,
                          const shcore::Dictionary_t &options) {
-#ifdef DBUG_OFF
+#ifdef NDEBUG
   (void)type;
   (void)conditions;
   (void)options;
-  throw std::logic_error("set_trap() not available in DBUG_OFF builds");
+  throw std::logic_error("set_trap() not available in NDEBUG builds");
 #else
   mysqlshdk::utils::FI::Conditions conds;
 
@@ -399,18 +399,18 @@ void Testutils::set_trap(const std::string &type,
 }
 
 void Testutils::clear_traps(const std::string &type) {
-#ifdef DBUG_OFF
+#ifdef NDEBUG
   (void)type;
-  throw std::logic_error("clear_traps() not available in DBUG_OFF builds");
+  throw std::logic_error("clear_traps() not available in NDEBUG builds");
 #else
   mysqlshdk::utils::FI::clear_traps(type);
 #endif
 }
 
 void Testutils::reset_traps(const std::string &type) {
-#ifdef DBUG_OFF
+#ifdef NDEBUG
   (void)type;
-  throw std::logic_error("reset_traps() not available in DBUG_OFF builds");
+  throw std::logic_error("reset_traps() not available in NDEBUG builds");
 #else
   mysqlshdk::utils::FI::reset_traps(type);
 #endif

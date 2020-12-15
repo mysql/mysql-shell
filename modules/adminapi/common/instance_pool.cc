@@ -631,7 +631,7 @@ std::shared_ptr<Instance> Instance_pool::connect_unchecked(
 
   const Cluster_metadata *cluster =
       m_mdcache->try_get_cluster(node->cluster_id);
-  DBUG_ASSERT(cluster);
+  assert(cluster);
   if (!cluster) {
     throw shcore::Exception::logic_error("Invalid node " + node->label);
   }
@@ -714,7 +714,7 @@ std::shared_ptr<Instance> Instance_pool::connect_primary(
 
   const Cluster_metadata *cluster =
       m_mdcache->try_get_cluster(node->cluster_id);
-  DBUG_ASSERT(cluster);
+  assert(cluster);
   if (!cluster) {
     throw shcore::Exception::logic_error("Invalid cluster " + node->label);
   }

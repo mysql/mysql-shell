@@ -577,10 +577,10 @@ IF(WIN32)
   ENDIF()
 ENDIF()
 
-# Set DBUG_OFF for non-debug project types.
+# Set NDEBUG for non-debug project types.
 FOREACH(BUILD_TYPE RELEASE RELWITHDEBINFO MINSIZEREL)
   FOREACH(LANG C CXX)
-    SET(CMAKE_${LANG}_FLAGS_${BUILD_TYPE} "${CMAKE_${LANG}_FLAGS_${BUILD_TYPE}} -DDBUG_OFF ")
+    SET(CMAKE_${LANG}_FLAGS_${BUILD_TYPE} "${CMAKE_${LANG}_FLAGS_${BUILD_TYPE}} -DNDEBUG ")
   ENDFOREACH()
 ENDFOREACH()
 
@@ -589,8 +589,8 @@ IF(NOT CMAKE_BUILD_TYPE
     AND NOT CMAKE_GENERATOR MATCHES "Xcode")
     # This is the case of no CMAKE_BUILD_TYPE choosen, typical for VS and Xcode
     # or if custom C flags are set. In VS and Xcode for non-Debug configurations
-    # DBUG_OFF is already correctly set.
-    ADD_DEFINITIONS(-DDBUG_OFF)
+    # NDEBUG is already correctly set.
+    ADD_DEFINITIONS(-DNDEBUG)
 ENDIF()
 
 # Includes common to the whole project

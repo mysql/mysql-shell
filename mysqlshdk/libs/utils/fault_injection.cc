@@ -248,7 +248,7 @@ void FI::trigger_trap(Type_id type, const Trap_options &input) {
 
 void FI::set_trap(const std::string &type, const Conditions &conds,
                   const Trap_options &options) {
-#ifdef DBUG_OFF
+#ifdef NDEBUG
   throw std::logic_error("FI not enabled in this build");
 #endif
   bool flag = false;
