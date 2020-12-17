@@ -121,12 +121,6 @@ void Load_dump_options::validate() {
                            ->get_string(0);
     m_default_progress_file = "load-progress." + uuid + ".json";
   }
-
-  if (skip_binlog() && is_mds()) {
-    throw shcore::Exception::argument_error(
-        "It is not possible to disable the binary log when loading a dump into "
-        "the MySQL Database Service.");
-  }
 }
 
 std::string Load_dump_options::target_import_info() const {

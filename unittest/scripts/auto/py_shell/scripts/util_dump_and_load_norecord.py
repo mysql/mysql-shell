@@ -440,28 +440,17 @@ shell.connect(__sandbox_uri1)
 dump_dir = os.path.join(outdir, "skip_binlog")
 EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "ocimds": True, "compatibility": ["strip_restricted_grants", "strip_definers"], "ddlOnly": True, "showProgress": False }), "Dumping the instance should not fail")
 
-shell.connect(__sandbox_uri2)
-
-wipeout_server(session2)
-
-# skipBinlog should be ignored when loading into MDS
-testutil.dbug_set("+d,dump_loader_force_mds")
-
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "skipBinlog": True, "showProgress": False }), "ValueError: Util.load_dump: It is not possible to disable the binary log when loading a dump into the MySQL Database Service.")
-
-testutil.dbug_set("")
-
 # when loading into non-MDS instance, if skipBinlog is set, but user doesn't have required privileges, exception should be thrown
 wipeout_server(session2)
 
-session.run_sql("CREATE USER IF NOT EXISTS admin@'%' IDENTIFIED BY 'pass'")
-session.run_sql("GRANT ALL ON *.* TO 'admin'@'%'")
+session2.run_sql("CREATE USER IF NOT EXISTS admin@'%' IDENTIFIED BY 'pass'")
+session2.run_sql("GRANT ALL ON *.* TO 'admin'@'%'")
 sql_log_bin_privileges = [ 'SUPER' ]
 if __version_num >= 80000:
     sql_log_bin_privileges.append('SYSTEM_VARIABLES_ADMIN')
 if __version_num >= 80014:
     sql_log_bin_privileges.append('SESSION_VARIABLES_ADMIN')
-session.run_sql("REVOKE {0} ON *.* FROM 'admin'@'%'".format(", ".join(sql_log_bin_privileges)))
+session2.run_sql("REVOKE {0} ON *.* FROM 'admin'@'%'".format(", ".join(sql_log_bin_privileges)))
 
 shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2))
 
@@ -469,6 +458,12 @@ shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2)
 missing_privileges = ', '.join(sql_log_bin_privileges[:-1]) + (' or ' if len(sql_log_bin_privileges) > 1 else '') + sql_log_bin_privileges[-1]
 EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "skipBinlog": True, "showProgress": False, "resetProgress": True  }), "RuntimeError: Util.load_dump: 'SET sql_log_bin=0' failed with error - MySQL Error 1227 (42000): Access denied; you need (at least one of) the {0} privilege(s) for this operation".format(missing_privileges))
 
+# when loading into MDS instance, if skipBinlog is set, but user doesn't have required privileges, exception should be thrown
+testutil.dbug_set("+d,dump_loader_force_mds")
+
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "skipBinlog": True, "showProgress": False, "resetProgress": True  }), "RuntimeError: Util.load_dump: 'SET sql_log_bin=0' failed with error - MySQL Error 1227 (42000): Access denied; you need (at least one of) the {0} privilege(s) for this operation".format(missing_privileges))
+
+testutil.dbug_set("")
 
 #@<> BUG#32140970 {not __dbug_off}
 # create a MDS-compatible dump but without 'ocimds' option
