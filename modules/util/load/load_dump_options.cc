@@ -278,12 +278,6 @@ void Load_dump_options::validate() {
     m_default_progress_file = "load-progress." + uuid + ".json";
   }
 
-  if (skip_binlog() && is_mds()) {
-    throw shcore::Exception::argument_error(
-        "It is not possible to disable the binary log when loading a dump into "
-        "the MySQL Database Service.");
-  }
-
   m_excluded_users.emplace_back(
       shcore::split_account(m_base_session->query("SELECT current_user()")
                                 ->fetch_one()

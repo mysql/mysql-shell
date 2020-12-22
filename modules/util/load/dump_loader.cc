@@ -878,8 +878,8 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
   session->executef("SET SESSION wait_timeout = ?",
                     k_mysql_server_wait_timeout);
 
-  // Disable binlog if requested by user and if target is not MDS
-  if (m_options.skip_binlog() && !m_options.is_mds()) {
+  // Disable binlog if requested by user
+  if (m_options.skip_binlog()) {
     try {
       session->execute("SET sql_log_bin=0");
     } catch (const mysqlshdk::db::Error &e) {
