@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -173,7 +173,7 @@ struct Parameter final {
   // Scenario: same option being valid in 2 different parameters even both of
   // them are used for the same thing, it makes no sense to allow both in CLI so
   // we can disable one to avoid unnecessary inconsistency.
-  // i.e. Sandbox Operations support password option both in instanceDef and
+  // i.e. Sandbox Operations support password option both in instance and
   // options param.
   bool cmd_line_enabled;
 
@@ -734,6 +734,7 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
     Metadata(const Metadata &) = delete;
     std::string name[2];
     Raw_signature signature;
+    mysqlshdk::utils::nullable<bool> cli_enabled;
 
     std::vector<std::pair<std::string, Value_type>> param_types;
     std::string param_codes;
@@ -747,6 +748,7 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
              const Raw_signature &params,
              const std::vector<std::pair<std::string, Value_type>> &ptypes,
              const std::string &pcodes);
+    void cli(bool enable = true);
   };
 
  protected:
@@ -792,6 +794,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
 
   std::vector<std::string> get_members() const override;
   Value get_member(const std::string &prop) const override;
+  std::vector<std::string> get_cli_members() const;
 
   bool has_member(const std::string &prop) const override;
   void set_member(const std::string &prop, Value value) override;
@@ -801,6 +804,24 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   void set_member(size_t index, Value value) override;
 
   bool has_method(const std::string &name) const override;
+
+  /**
+   * Returns the metadata associated to a function with the given name
+   * considering whether it is enabled for CLI or not.
+   *
+   * @param name: the name of the function for which the metadata will be
+   * returned.
+   * @param cli_enabled: flag to indicate whether only functions with CLI
+   * enabled should be considered.
+   *
+   * If cli_enabled is FALSE, then the metadata of the first function matching
+   * the name will be returned.
+   *
+   * If cli_enabled is TRUE, only functions enabled for CLI will be considered
+   * in the search.
+   */
+  const Cpp_function::Metadata *get_function_metadata(const std::string &name,
+                                                      bool cli_enabled = false);
 
   Value call(const std::string &name, const Argument_list &args) override;
 

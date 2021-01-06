@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -721,7 +721,7 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
       throw std::invalid_argument(
           "MySQL Shell can handle only one operation at a time");
     iterator->next_no_value();
-    m_shell_cli_operation.reset(new shcore::Shell_cli_operation());
+    m_shell_cli_operation.reset(new shcore::cli::Shell_cli_operation());
     m_shell_cli_operation->parse(iterator->iterator());
   } else if ("--file" == option || "-f" == option) {
     handle_missing_value(iterator);
@@ -847,22 +847,26 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
       if (m_shell_cli_operation)
         throw std::invalid_argument(
             "MySQL Shell can handle only one operation at a time");
-      m_shell_cli_operation = std::make_unique<shcore::Shell_cli_operation>();
+      m_shell_cli_operation =
+          std::make_unique<shcore::cli::Shell_cli_operation>();
       m_shell_cli_operation->set_object_name("util");
       m_shell_cli_operation->set_method_name("importJson");
+
+      m_shell_cli_operation->add_cmdline_argument(storage.import_args.at(1));
 
       // Parses the positional arguments to set them on the CLI operation
       switch (storage.import_args.size()) {
         case 4: {
           const std::string &target = storage.import_args.at(2);
           const std::string &column = storage.import_args.at(3);
-          m_shell_cli_operation->add_option("--table=" + target);
-          m_shell_cli_operation->add_option("--tableColumn=" + column);
+          m_shell_cli_operation->add_cmdline_argument("--table=" + target);
+          m_shell_cli_operation->add_cmdline_argument("--tableColumn=" +
+                                                      column);
           break;
         }
         case 3: {
           const std::string &target = storage.import_args.at(2);
-          m_shell_cli_operation->add_option("--collection=" + target);
+          m_shell_cli_operation->add_cmdline_argument("--collection=" + target);
           break;
         }
         case 2:
@@ -874,9 +878,6 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
       }
 
       // All of the options above are valid
-      const std::string &file = storage.import_args.at(1);
-      m_shell_cli_operation->add_argument(shcore::Value(file));
-
       m_shell_cli_operation->parse(cmdline);
     }
   } else if ("-m" == option) {

@@ -372,3 +372,65 @@ shell.options.unset(InvalidOption)
 \sql
 \option --list --show-origin
 \js
+
+
+var user_path = testutil.getUserConfigPath()
+
+function callMysqlsh(command_line_args) {
+    testutil.callMysqlsh(command_line_args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+}
+
+/**
+ * Test updating shell.options using the CLI set-persist and setting
+ * back to the default value using unset-persist functions
+ *
+ * @param {*} option : the option to be tested
+ * @param {*} default_value : the default value of the option
+ * @param {*} test_value : the value to be used in the test
+ */
+function test_cli_option_update(option, default_value, test_value) {
+    callMysqlsh(['-i', '-e', 'shell.options'])
+    if (typeof(test_value) == "string") {
+      EXPECT_STDOUT_CONTAINS(`"${option}": "${default_value}"`);
+    } else {
+        EXPECT_STDOUT_CONTAINS(`"${option}": ${default_value}`);
+    }
+    WIPE_OUTPUT();
+    callMysqlsh(['--', 'shell', 'options', 'set-persist', option, `${test_value}`])
+    callMysqlsh(['-i', '-e', 'shell.options'])
+
+    if (typeof(test_value) == "string") {
+      EXPECT_STDOUT_CONTAINS(`"${option}": "${test_value}"`);
+    } else {
+      EXPECT_STDOUT_CONTAINS(`"${option}": ${test_value}`);
+    }
+
+    WIPE_OUTPUT();
+    callMysqlsh(['--', 'shell', 'options', 'unset-persist', option])
+    callMysqlsh(['-i', '-e', 'shell.options'])
+    if (typeof(test_value) == "string") {
+      EXPECT_STDOUT_CONTAINS(`"${option}": "${default_value}"`);
+    } else {
+      EXPECT_STDOUT_CONTAINS(`"${option}": ${default_value}`);
+    }
+
+    WIPE_OUTPUT();
+}
+
+//@<> WL14297 - TSFR_3_1_1 - Updating Shell Options using CLI integration
+//test_cli_option_update('autocomplete.nameCache', true, false);
+test_cli_option_update('dba.gtidWaitTimeout', 60, 30);
+test_cli_option_update('dba.logSql', 0, 2);
+test_cli_option_update('dba.gtidWaitTimeout', 60, 30);
+test_cli_option_update('defaultCompress', false, true);
+test_cli_option_update('defaultMode', 'none', 'py');
+test_cli_option_update('devapi.dbObjectHandles', true, false);
+test_cli_option_update('history.autoSave', false, true);
+test_cli_option_update('history.maxSize', 1000, 20);
+test_cli_option_update('logLevel', 5, 1);
+test_cli_option_update('outputFormat', "table", "vertical");
+test_cli_option_update('resultFormat', "table", "vertical");
+test_cli_option_update('showColumnTypeInfo', false, true);
+test_cli_option_update('showWarnings', true, false);
+test_cli_option_update('useWizards', true, false);
+test_cli_option_update('verbose', 0, 2);

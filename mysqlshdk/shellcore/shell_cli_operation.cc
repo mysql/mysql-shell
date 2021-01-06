@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -17,17 +17,27 @@
  * the GNU General Public License, version 2.0, for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
 #include "mysqlshdk/shellcore/shell_cli_operation.h"
+
+#include <regex>
 #include <stdexcept>
+#include "modules/mod_extensible_object.h"
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
+namespace cli {
+
+const std::regex k_api_general_error(
+    "^([a-z|A-Z|_][a-z|A-Z|0-9|_]*)\\.([a-z|A-Z|_][a-z|A-Z|0-9|_]*):\\s("
+    "Argument #(\\d+):\\s)?(.+)$$");
 
 REGISTER_HELP_TOPIC(Command Line, TOPIC, cmdline, Contents, ALL);
 REGISTER_HELP_TOPIC_TEXT(cmdline, R"*(
@@ -41,12 +51,12 @@ command line, by following a specific syntax.
 
 <b>SYNTAX</b>:
 
-  mysqlsh [options] -- <object> <method> [arguments]
+  mysqlsh [options] -- <object> <operation> [arguments]
 
 <b>WHERE</b>:
 
 @li object - a string identifying shell object to be called.
-@li method - a string identifying method to be called on the object.
+@li operation - a string identifying method to be called on the object.
 @li arguments - arguments passed to the called method.
 
 <b>DETAILS</b>:
@@ -59,7 +69,7 @@ The following objects can be called using this format:
 @li shell.options - shell.options object.
 @li util - util global object
 
-The method name can be given in the following naming styles:
+The operation name can be given in the following naming styles:
 
 @li Camel case: (e.g. createCluster, checkForServerUpgrade)
 @li Kebab case: (e.g. create-cluster, check-for-server-upgrade)
@@ -101,18 +111,6 @@ specified either using camelCaseNaming or kebab-case-naming, examples:<br>
 If the value is not provided the option name will be handled as a boolean
 option with a default value of TRUE.
 
-<b>Grouping Named Arguments</b>
-
-It is possible to create a group of named arguments by enclosing them between
-curly braces. This group would be handled as a positional argument at the
-position where the opening curly brace was found, it will be passed to the
-function as a dictionary containing all the named arguments defined on the
-group.
-
-Named arguments that are not placed inside curly braces (independently of the
-position on the command line), are packed a single dictionary, passed as a last
-parameter on the method call.
-
 Following are some examples of command line calls as well as how they are mapped
 to the API method call.
 )*");
@@ -141,159 +139,266 @@ REGISTER_HELP(
     "mysql-js> util.checkForServerUpgrade(\"root@localhost\",{outputFormat: "
     "\"JSON\"})");
 REGISTER_HELP(cmdline_EXAMPLE5,
-              "$ mysqlsh -- util check-for-server-upgrade { --user=root "
-              "--host=localhost } --password=");
-REGISTER_HELP(
-    cmdline_EXAMPLE5_DESC,
-    "mysql-js> util.checkForServerUpgrade({user:\"root\", host:\"localhost\"}, "
-    "{password:\"\"})");
+              "$ mysqlsh -- util check-for-server-upgrade --user=root "
+              "--host=localhost --password=");
+REGISTER_HELP(cmdline_EXAMPLE5_DESC,
+              "mysql-js> util.checkForServerUpgrade({user:\"root\", "
+              "host:\"localhost\"}, "
+              "{password:\"\"})");
 
-void Shell_cli_operation::register_provider(
-    const std::string &name, Shell_cli_operation::Provider provider) {
-  if (m_providers.find(name) != m_providers.end())
-    throw std::invalid_argument(
-        "Shell operation provider already registered under "
-        "name " +
-        name);
-
-  m_providers.emplace(name, provider);
-}
-
-void Shell_cli_operation::remove_provider(const std::string &name) {
-  auto it = m_providers.find(name);
-  if (it != m_providers.end()) m_providers.erase(it);
+void Shell_cli_operation::add_cmdline_argument(const std::string &cmdline_arg) {
+  m_cli_mapper.add_cmdline_argument(cmdline_arg);
 }
 
 void Shell_cli_operation::set_object_name(const std::string &name) {
   m_object_name = name;
+  m_cli_mapper.set_object_name(name);
 }
 
 void Shell_cli_operation::set_method_name(const std::string &name) {
-  m_method_name = name;
   m_method_name_original = name;
+  m_cli_mapper.set_operation_name(name);
 }
 
-void Shell_cli_operation::add_argument(const shcore::Value &argument) {
-  m_argument_list.push_back(argument);
-}
-
-void Shell_cli_operation::add_option(Value::Map_type_ref target_map,
-                                     const std::string &option_definition) {
-  std::string::size_type offset = option_definition.find('=');
-  // named argument without value means boolean with true value
-  if (offset == std::string::npos) {
-    target_map->emplace(to_camel_case(option_definition.substr(2)),
-                        Value::True());
-  } else {
-    std::string arg_name =
-        to_camel_case(option_definition.substr(2, offset - 2));
-    std::string val = option_definition.substr(offset + 1);
-    target_map->emplace(arg_name, val == "-" ? Value::Null() : Value(val));
-  }
-}
-
-void Shell_cli_operation::add_option(const std::string &option_definition) {
-  if (!m_argument_map) m_argument_map = std::make_shared<Value::Map_type>();
-
-  add_option(m_argument_map, option_definition);
-}
-
+/**
+ * Parses the command line to identify the operation to be executed as well as
+ * to aggregate the received arguments into a list for further processing.
+ *
+ * For backward compatibility it ignores the presense of { and } as they are
+ * no longer needed to group options.
+ *
+ * GRAMMAR For a Command Line Call:
+ * ================================
+ * CMDLINE_CALL ::= '-' '-' 'space' (HELP | (OBJECT_NAME (OBJECT_NAME)*
+ *            (HELP | COMMAND (HELP | (ARGUMENT)*))))
+ * HELP ::= '-' '-' 'help' | '-' 'h'
+ * ARGUMENT ::= VALUE | '-' '-' NAME (('=' NAME )? (':' TYPE)? '=' VALUE)?
+ * VALUE ::= JSON_NO_WHITESPACES | UNQUOTED_STRING | RAW_LIST
+ * RAW_LIST ::= VALUE (',' VALUE)*
+ * TYPE ::= 'int'|'uint'|'float'|'json'|'bool'|'null'|'list'|'dict'
+ * ================================
+ * OBJECT_NAME: Defined by the global objects and nested objects exposing
+ *              operations for CLI.
+ * COMMAND: Defined by the functions exposed for CLI in every single object
+ * JSON_NO_WHITESPACES: Refers to any sequence valid JSON specification
+ *                      sequence except that being command line calls,
+ *                      whitespace TOKENS would be taken by the terminal as
+ *                      beggining of new argument.
+ * UNQUOTED_STRING: ANY value not matching JSON_NO_WITESPACES will be processed
+ *                      as a string.
+ */
 void Shell_cli_operation::parse(Options::Cmdline_iterator *cmdline_iterator) {
-  if (m_object_name.empty() && m_method_name_original.empty() &&
-      !cmdline_iterator->valid()) {
-    throw Mapping_error("Empty operations are not allowed");
-  }
-
-  // Object name is only read if not already provided
-  if (m_object_name.empty()) m_object_name = cmdline_iterator->get();
-
-  // Object name is only read if not already provided
-  if (m_method_name_original.empty()) {
-    if (!cmdline_iterator->valid())
-      throw Mapping_error("No operation specified for object " + m_object_name);
-
-    m_method_name_original = cmdline_iterator->get();
-    m_method_name = to_camel_case(m_method_name_original);
-  }
-
-  Value::Map_type_ref local_map;
-
   //  argument_list;
-  while (cmdline_iterator->valid()) {
+  while (cmdline_iterator->valid() && !help_requested()) {
     std::string arg = cmdline_iterator->get();
 
     // "{" is the correct syntax, we are matching "{--" for user
     // convenience as it will be a common mistake
     if (arg == "{" || str_beginswith(arg, "{--")) {
-      if (local_map)
-        throw Mapping_error("Nested dictionaries are not supported");
-      local_map = std::make_shared<Value::Map_type>();
       if (arg.length() == 1)
         continue;
       else
         arg = arg.substr(1);
     }
 
-    if (arg == "}") {
-      if (!local_map) throw Mapping_error("Unmatched character '}' found");
-      m_argument_list.push_back(Value(fix_connection_options(local_map)));
-      local_map.reset();
-    } else if (str_beginswith(arg, "--")) {
-      if (!local_map && !m_argument_map)
-        m_argument_map = std::make_shared<Value::Map_type>();
-      Value::Map_type_ref target_map = local_map ? local_map : m_argument_map;
-
-      add_option(target_map, arg);
-    } else {
-      if (local_map)
-        throw Mapping_error(
-            "Positional arguments are not allowed inside local "
-            "dictionary");
-      m_argument_list.push_back(arg == "-" ? Value::Null() : Value(arg));
+    if (arg != "}") {
+      add_cmdline_argument(arg);
     }
   }
-  if (local_map) throw Mapping_error("Unmatched '{' character found");
-  if (m_argument_map)
-    m_argument_list.push_back(Value(fix_connection_options(m_argument_map)));
+}
+
+/**
+ * This function is called before the actual execution takes place.
+ *
+ * Its purpose is to:
+ *
+ * - Ensure the target object.function is valid for CLI integration.
+ * - Associate each named argument to it's corresponding parameter.
+ * - Process positional arguments and create the final argument list to be
+ * used on the function call.
+ */
+void Shell_cli_operation::prepare() {
+  m_current_provider = m_cli_mapper.identify_operation(&m_provider);
+  m_object_name = m_cli_mapper.object_name();
+  m_method_name_original = m_cli_mapper.operation_name();
+  m_method_name = shcore::to_camel_case(m_method_name_original);
+
+  if (!m_object_name.empty()) {
+    auto object = m_current_provider->get_object(help_requested());
+
+    if (!object)
+      throw std::invalid_argument(
+          "Unable to retrieve object instance for name " + m_object_name);
+
+    if (!m_method_name.empty()) {
+      auto md = object->get_function_metadata(m_method_name, true);
+      if (md) {
+        m_cli_mapper.set_metadata(object->class_name(), *md);
+      } else {
+        throw std::invalid_argument("Invalid operation for " + m_object_name +
+                                    " object: " + m_method_name_original);
+      }
+    }
+  }
+
+  if (!help_requested()) m_cli_mapper.process_arguments(&m_argument_list);
+}
+
+void Shell_cli_operation::print_help() {
+  auto help_type = m_cli_mapper.help_type();
+
+  Help_manager help;
+  help.set_mode(shcore::IShell_core::Mode::JavaScript);
+  auto get_help_topic = [&help](
+                            const std::shared_ptr<Cpp_object_bridge> &object,
+                            const std::string &function = "",
+                            const std::string &qualified_parent = "") {
+    auto extension_object =
+        std::dynamic_pointer_cast<mysqlsh::Extensible_object>(object);
+
+    std::string search_item;
+    if (extension_object) {
+      search_item = extension_object->get_qualified_name();
+    } else if (qualified_parent.empty()) {
+      search_item = object->class_name();
+    } else {
+      search_item = qualified_parent + "." + object->class_name();
+    }
+
+    if (!function.empty()) search_item += "." + function;
+
+    auto topics = help.search_topics(search_item);
+
+    return topics.empty() ? nullptr : topics[0];
+  };
+
+  std::string help_text;
+  auto object_chain = m_cli_mapper.get_object_chain();
+  if (help_type == Help_type::GLOBAL || help_type == Help_type::OBJECT) {
+    std::string target_object;
+    if (!object_chain.empty()) {
+      target_object += " at '";
+      target_object += shcore::str_join(object_chain, " ");
+      target_object += "'";
+    }
+
+    std::vector<shcore::Help_topic *> cli_members;
+    size_t provider_count = m_current_provider->get_providers().size();
+    if (provider_count > 0) {
+      help_text = shcore::str_format(
+          "The following object%s provide%s command line operations%s:\n\n",
+          provider_count == 1 ? "" : "s", provider_count == 1 ? "s" : "",
+          target_object.empty() ? "" : target_object.c_str());
+    }
+
+    std::map<Help_topic *, std::string> object_names;
+
+    // Objects members require the fully qualified object chain
+    std::string qualified_parent = shcore::str_join(object_chain, ".");
+    for (const auto &provider : m_current_provider->get_providers()) {
+      auto object = provider.second->get_object(true);
+
+      auto topic = get_help_topic(object, "", qualified_parent);
+
+      if (topic) {
+        cli_members.push_back(topic);
+        object_names[topic] = provider.first;
+      }
+    }
+
+    help_text.append(help.format_member_list(
+        cli_members, 0UL, false, [object_names](shcore::Help_topic *topic) {
+          return "   " + object_names.at(topic);
+        }));
+
+    std::shared_ptr<Cpp_object_bridge> object =
+        m_current_provider->get_object(true);
+
+    if (object && help_type == Help_type::OBJECT) {
+      auto members = object->get_cli_members();
+      cli_members.clear();
+      for (const auto &method : members) {
+        auto md = object->get_function_metadata(method, true);
+        if (md) {
+          auto topic = get_help_topic(object, md->name[0]);
+          if (topic) {
+            cli_members.push_back(topic);
+          }
+        }
+      }
+
+      if (!cli_members.empty()) {
+        if (!help_text.empty()) help_text += "\n\n";
+        help_text +=
+            "The following operations are available" + target_object + ":\n\n";
+        help_text.append(help.format_member_list(
+            cli_members, 0UL, false, [](shcore::Help_topic *topic) {
+              return "   " + shcore::from_camel_case_to_dashes(topic->get_name(
+                                 shcore::IShell_core::Mode::JavaScript));
+            }));
+      }
+    }
+  } else {
+    std::shared_ptr<Cpp_object_bridge> object =
+        m_current_provider->get_object(true);
+
+    auto md = object->get_function_metadata(m_method_name, true);
+    auto topic = get_help_topic(object, md->name[0]);
+
+    if (topic) {
+      help_text = help.get_help(*topic, Help_options::any(), &m_cli_mapper);
+    }
+  }
+
+  if (!help_text.empty()) {
+    mysqlsh::current_console()->println(help_text);
+  }
 }
 
 Value Shell_cli_operation::execute() {
-  auto provider = m_providers.find(m_object_name);
-  if (provider == m_providers.end())
-    throw Mapping_error("There is no global object registered under name " +
-                        m_object_name);
+  try {
+    prepare();
+    if (help_requested()) {
+      print_help();
+      return shcore::Value();
+    } else {
+      std::shared_ptr<Cpp_object_bridge> object =
+          m_current_provider->get_object(false);
 
-  std::shared_ptr<Object_bridge> object = provider->second();
-  if (!object)
-    throw Mapping_error("Unable to retrieve object instance for name " +
-                        m_object_name);
+      // Useful to see what the shell actually receives from the terminal
+      if (current_logger()->get_log_level() >= shcore::Logger::LOG_DEBUG) {
+        std::vector<std::string> api_call;
+        api_call.push_back("CLI-API Mapping:");
+        api_call.push_back("\tObject: " + m_object_name);
+        api_call.push_back("\tMethod: " + m_method_name);
+        api_call.push_back("\tArguments:");
+        for (const auto &arg : m_argument_list) {
+          api_call.push_back("\t\t: " + arg.json(false));
+        }
+        log_debug("%s", shcore::str_join(api_call, "\n").c_str());
+      }
 
-  if (!object->has_method(m_method_name))
-    throw Mapping_error("Invalid method for " + m_object_name +
-                        " object: " + m_method_name);
-
-  return object->call(m_method_name, m_argument_list);
-}
-
-Value::Map_type_ref Shell_cli_operation::fix_connection_options(
-    Value::Map_type_ref dict) {
-  shcore::Value::Map_type_ref ret = std::make_shared<shcore::Value::Map_type>();
-
-  for (const auto &i : *dict) {
-    std::string new_name = shcore::str_beginswith(i.first, "db")
-                               ? shcore::to_camel_case(i.first)
-                               : shcore::from_camel_case_to_dashes(i.first);
-    if (mysqlshdk::db::connection_attributes.find(new_name) ==
-        mysqlshdk::db::connection_attributes.end())
-      return dict;
-    auto r = ret->emplace(new_name, i.second);
-    if (!r.second)
-      throw std::invalid_argument("Connection option '" + i.first +
-                                  "' is already defined as '" +
-                                  r.first->second.as_string() + "'.");
+      return object->call(m_method_name, m_argument_list);
+    }
+  } catch (const std::exception &ex) {
+    std::smatch results;
+    std::string error(ex.what());
+    if (std::regex_match(error, results, k_api_general_error)) {
+      if (results[3].matched) {
+        size_t arg_num = std::atoi(results[4].str().c_str());
+        std::string new_error;
+        new_error.append("Argument ");
+        new_error.append(m_cli_mapper.metadata()->signature[arg_num - 1]->name +
+                         ": ");
+        new_error.append(results[5]);
+        throw shcore::Exception::argument_error(new_error);
+      } else {
+        throw shcore::Exception::runtime_error(results[5]);
+      }
+    } else {
+      throw;
+    }
   }
-
-  return ret;
 }
-
-} /* namespace shcore */
+}  // namespace cli
+}  // namespace shcore

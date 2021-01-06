@@ -442,7 +442,7 @@ var rc = testutil.callMysqlsh([
 
 EXPECT_EQ(1, rc);
 EXPECT_STDOUT_CONTAINS(
-    'ERROR: Util.importJson: Table \'wl10606.blubb_table_view\' exists but is not a collection');
+    'ERROR: Table \'wl10606.blubb_table_view\' exists but is not a collection');
 
 //@<> E6 Missing connection options on cli returns error
 var rc = testutil.callMysqlsh(['--import', __import_data_path + '/sample.json', 'sample']);
@@ -541,7 +541,7 @@ EXPECT_THROWS(function() {
     collection: "2MB_less________",
     unexisting: 5
   });
-}, "Util.importJson: Invalid options: unexisting");
+}, "Util.importJson: Argument #2: Invalid options: unexisting");
 
 //@ Teardown
 session.close();

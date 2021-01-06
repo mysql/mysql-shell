@@ -56,11 +56,11 @@ SYNTAX
       anUndefined)
 
 WHERE
-      aString: String. A string parameter.
-      anInt: Integer. An integer parameter.
-      aBool: Bool. A boolean parameter.
-      aDict: Dictionary. A dictionary parameter.
-      aList: Array. A list parameter.
+      aString: String - A string parameter.
+      anInt: Integer - An integer parameter.
+      aBool: Bool - A boolean parameter.
+      aDict: Dictionary - A dictionary parameter.
+      aList: Array - A list parameter.
       anUndefined: A parameter with no type.
 
 DESCRIPTION
@@ -79,11 +79,11 @@ SYNTAX
       anUndefined])
 
 WHERE
-      aString: String. A string parameter.
-      anInt: Integer. An integer parameter.
-      aBool: Bool. A boolean parameter.
-      aDict: Dictionary. A dictionary parameter.
-      aList: Array. A list parameter.
+      aString: String - A string parameter.
+      anInt: Integer - An integer parameter.
+      aBool: Bool - A boolean parameter.
+      aDict: Dictionary - A dictionary parameter.
+      aList: Array - A list parameter.
       anUndefined: A parameter with no type.
 
 DESCRIPTION
@@ -101,8 +101,8 @@ SYNTAX
       decorator.inner.testOptions(stritem[, options])
 
 WHERE
-      stritem: String. String parameter.
-      options: Dictionary. Options to whatever.
+      stritem: String - String parameter.
+      options: Dictionary - Options to whatever.
 
 DESCRIPTION
       The options function is only used to test how the options for a
@@ -110,9 +110,10 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - strOption String. String parameter.
-      - intOption Integer. String List parameter.
-      - anyTypeOption Any type option.
+      - strOption: String - String parameter.
+      - intOption: Integer - String List parameter.
+      - anyTypeOption: Any type option.
+
 
 #@<OUT> Test calling simple types function (js)
 [[*]]> decorator.testSimpleTypes('one', 2, false, {whateverOption:'whateverValue'}, [1,2,3], 'Some Value')
@@ -231,11 +232,11 @@ SYNTAX
       anUndefined)
 
 WHERE
-      aString: String. A string parameter.
-      anInt: Integer. An integer parameter.
-      aBool: Bool. A boolean parameter.
-      aDict: Dictionary. A dictionary parameter.
-      aList: Array. A list parameter.
+      aString: String - A string parameter.
+      anInt: Integer - An integer parameter.
+      aBool: Bool - A boolean parameter.
+      aDict: Dictionary - A dictionary parameter.
+      aList: Array - A list parameter.
       anUndefined: A parameter with no type.
 
 DESCRIPTION
@@ -254,11 +255,11 @@ SYNTAX
       aList][, anUndefined])
 
 WHERE
-      aString: String. A string parameter.
-      anInt: Integer. An integer parameter.
-      aBool: Bool. A boolean parameter.
-      aDict: Dictionary. A dictionary parameter.
-      aList: Array. A list parameter.
+      aString: String - A string parameter.
+      anInt: Integer - An integer parameter.
+      aBool: Bool - A boolean parameter.
+      aDict: Dictionary - A dictionary parameter.
+      aList: Array - A list parameter.
       anUndefined: A parameter with no type.
 
 DESCRIPTION
@@ -276,8 +277,8 @@ SYNTAX
       decorator.inner.test_options(stritem[, options])
 
 WHERE
-      stritem: String. String parameter.
-      options: Dictionary. Options to whatever.
+      stritem: String - String parameter.
+      options: Dictionary - Options to whatever.
 
 DESCRIPTION
       The options function is only used to test how the options for a
@@ -285,9 +286,9 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - strOption String. String parameter.
-      - intOption Integer. String List parameter.
-      - anyTypeOption Any type option.
+      - strOption: String - String parameter.
+      - intOption: Integer - String List parameter.
+      - anyTypeOption: Any type option.
 
 #@<OUT> Test calling simple types function (py)
 [[*]]> decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')
@@ -346,3 +347,95 @@ options: {"anyTypeOption": [1, "one", true], "intOption": 45, "strOption": "Stri
 |[[*]]> decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, [1,2,3])|
 |ValueError: decorator.test_simple_types: Invalid number of arguments, expected 6 but got 5|
 |[[*]]> decorator.inner.test_options('Passing Options', {'invalidOption':'String Option Value'})|
+
+#@<OUT> Lists help of plugin (cli)
+The following object provides command line operations at 'decorator':
+
+   inner
+      Brief description of a child plugin object.
+
+The following operations are available at 'decorator':
+
+   test-optional-parameters
+      Tests documentation for optional parameters.
+
+   test-simple-types
+      Tests documentation for simple types, no options defined.
+
+#@<OUT> Lists help of plugin child object (cli)
+The following operations are available at 'decorator inner':
+
+   test-options
+      Tests some parameter documentation.
+
+#@<OUT> Lists help of plugin function for simple type parameters (cli)
+NAME
+      test-simple-types - Tests documentation for simple types, no options
+                          defined.
+
+SYNTAX
+      decorator test-simple-types <aString> <anInt> <aBool> <aDict> <aList>
+      --anUndefined[:<type>]=<value>
+
+WHERE
+      aString: String - A string parameter.
+      anInt: Integer - An integer parameter.
+      aBool: Bool - A boolean parameter.
+      aList: Array - A list parameter.
+
+OPTIONS
+--anUndefined[:<type>]=<value>
+            A parameter with no type.
+
+#@<OUT> Lists help of plugin function with options (cli)
+NAME
+      test-options - Tests some parameter documentation.
+
+SYNTAX
+      decorator inner test-options <stritem> [<options>]
+
+WHERE
+      stritem: String - String parameter.
+
+OPTIONS
+--strOption=<str>
+            String parameter.
+
+--intOption=<int>
+            String List parameter.
+
+--anyTypeOption[:<type>]=<value>
+            Any type option.
+
+#@<OUT> Test calling simple types function (cli)
+aString value: one
+anInt value: 2
+aBool value: False
+aDict value: {"whateverOption": "whateverValue"}
+aList value: [1, 2, 3]
+anUndefined value: 'Some Value'
+
+#@<OUT> Test calling function with optionals 1 (cli)
+aString value: two
+anInt value: 1
+aBool value: True
+aDict value: {"whateverOption": "whateverValue"}
+aList value: [1, 2, 3]
+
+#@<OUT> Test calling function with optionals 2 (cli)
+aString value: two
+anInt value: 1
+aBool value: True
+aDict value: {"whateverOption": "whateverValue"}
+aList value: [4, 5, 6]
+
+#@<OUT> Test calling function with optionals 3 (cli)
+aString value: two
+anInt value: 1
+aBool value: True
+aDict value: {"anykey": "anyValue", "whateverOption": "whateverValue"}
+aList value: [4, 5, 6]
+
+#@<OUT> Test calling function with options 1 (cli)
+stritem value: Passing No Options
+

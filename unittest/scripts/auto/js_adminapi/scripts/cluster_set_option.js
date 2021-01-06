@@ -21,6 +21,11 @@ function get_global_tags(cluster){
     return get_tags_for_instance(cluster,"global");
 }
 
+function callMysqlsh(command_line_args) {
+    testutil.callMysqlsh(command_line_args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+}
+
+
 // WL#11465 AdminAPI: AdminAPI: change cluster member options
 //
 // Currently, it's not possible to change a previously configuration option
@@ -110,7 +115,8 @@ cluster.setOption("clusterName", "newName");
 print_metadata_clusters_cluster_name(session);
 
 //@<OUT> WL#11465: setOption memberWeight {VER(>=8.0.0)}
-cluster.setOption("memberWeight", 25);
+// BUG#31186637 - SETOPTION TAKES INT VALUES AS STRINGS
+callMysqlsh([__sandbox_uri1, "--", "cluster", "set-option", "memberWeight", "25"])
 
 //@<OUT> WL#11465: setOption memberWeight 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
 cluster.setOption("memberWeight", 25);
@@ -128,7 +134,7 @@ EXPECT_EQ(25, get_sysvar(__mysql_sandbox_port3, "group_replication_member_weight
 cluster.setOption("exitStateAction", "ABORT");
 
 //@<OUT> WL#11465: setOption exitStateAction {VER(>=8.0.0)}
-cluster.setOption("exitStateAction", "ABORT_SERVER");
+callMysqlsh([__sandbox_uri1, "--", "cluster", "set-option", "exitStateAction", "ABORT_SERVER"])
 
 //@<OUT> WL#11465: setOption exitStateAction 5.7 {VER(>=5.7.24) && VER(<8.0.0)}
 cluster.setOption("exitStateAction", "ABORT_SERVER");
@@ -167,7 +173,7 @@ EXPECT_EQ(3500, get_sysvar(__mysql_sandbox_port2, "group_replication_member_expe
 EXPECT_EQ(3500, get_sysvar(__mysql_sandbox_port3, "group_replication_member_expel_timeout"));
 
 //@<OUT> WL#12066: TSF6_1 setOption autoRejoinTries {VER(>=8.0.16)}
-cluster.setOption("autoRejoinTries", 2016);
+callMysqlsh([__sandbox_uri1, "--", "cluster", "set-option", "autoRejoinTries", "2016"])
 
 //@ WL#12066: TSF2_4 setOption autoRejoinTries doesn't accept negative values {VER(>=8.0.16)}
 cluster.setOption("autoRejoinTries", -1);
@@ -251,8 +257,8 @@ testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 EXPECT_ARRAY_NOT_CONTAINS("_hidden", Object.keys(get_global_tags(cluster)));
 EXPECT_ARRAY_NOT_CONTAINS("_disconnect_existing_sessions_when_hidden", Object.keys(get_global_tags(cluster)));
 
-cluster.setOption("tag:_hidden", false);
-cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", true);
+callMysqlsh([__sandbox_uri1, "--", "cluster", "set-option", "tag:_hidden", "false"])
+callMysqlsh([__sandbox_uri1, "--", "cluster", "set-option", "tag:_disconnect_existing_sessions_when_hidden", "true"])
 
 EXPECT_ARRAY_CONTAINS("_hidden", Object.keys(get_global_tags(cluster)));
 EXPECT_ARRAY_CONTAINS("_disconnect_existing_sessions_when_hidden", Object.keys(get_global_tags(cluster)));
@@ -260,13 +266,14 @@ EXPECT_TRUE(get_global_tags(cluster)["_hidden"] === false);
 EXPECT_TRUE(get_global_tags(cluster)["_disconnect_existing_sessions_when_hidden"] === true);
 
 cluster.setOption("tag:_hidden", 1);
+
 cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", 0.0);
 
 EXPECT_TRUE(get_global_tags(cluster)["_hidden"] === true);
 EXPECT_TRUE(get_global_tags(cluster)["_disconnect_existing_sessions_when_hidden"] === false);
 
-cluster.setOption("tag:_hidden", "false");
-cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", "true");
+callMysqlsh([__sandbox_uri1, "--", "cluster", "set-option", "tag:_hidden", "false"])
+callMysqlsh([__sandbox_uri1, "--", "cluster", "set-option", "tag:_disconnect_existing_sessions_when_hidden", "true"])
 
 EXPECT_TRUE(get_global_tags(cluster)["_hidden"] === false);
 EXPECT_TRUE(get_global_tags(cluster)["_disconnect_existing_sessions_when_hidden"] === true);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,12 +24,14 @@
 #ifndef MODULES_MOD_EXTENSIBLE_OBJECT_H_
 #define MODULES_MOD_EXTENSIBLE_OBJECT_H_
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
-#include "scripting/types_cpp.h"
 
 namespace mysqlsh {
 /**
@@ -121,6 +123,7 @@ struct Function_definition : public Member_definition {
   Parameters parameters;
 
   Examples examples;
+  bool cli_enabled = false;
 };
 
 /**
@@ -373,6 +376,12 @@ class Extensible_object
   }
 
   bool is_registered() const { return m_registered; }
+  void enable_cli() {
+    m_cli_enabled = true;
+    auto parent = get_parent();
+    if (parent) parent->enable_cli();
+  }
+  bool cli_enabled() const { return m_cli_enabled; }
 
   std::string get_name() const { return m_name; }
   std::string get_qualified_name() const { return m_qualified_name; }
@@ -432,6 +441,7 @@ class Extensible_object
   std::string m_name;
   std::string m_qualified_name;
   bool m_registered;
+  bool m_cli_enabled = false;
   size_t m_detail_sequence;
   std::map<std::string, std::shared_ptr<Extensible_object>> m_children;
   shcore::Value::Map_type m_members;

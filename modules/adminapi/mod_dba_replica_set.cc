@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -83,31 +83,38 @@ bool ReplicaSet::operator==(const Object_bridge &other) const {
 void ReplicaSet::init() {
   add_property("name", "getName");
 
-  expose("addInstance", &ReplicaSet::add_instance, "instanceDef", "?options");
-  expose("rejoinInstance", &ReplicaSet::rejoin_instance, "instanceDef",
-         "?options");
-  expose("removeInstance", &ReplicaSet::remove_instance, "instanceDef",
-         "?options");
+  expose("addInstance", &ReplicaSet::add_instance, "instance", "?options")
+      ->cli();
+  expose("rejoinInstance", &ReplicaSet::rejoin_instance, "instance", "?options")
+      ->cli();
+  expose("removeInstance", &ReplicaSet::remove_instance, "instance", "?options")
+      ->cli();
 
-  expose("status", &ReplicaSet::status, "?options");
-  expose("disconnect", &ReplicaSet::disconnect);
+  expose("status", &ReplicaSet::status, "?options")->cli();
+  expose("disconnect", &ReplicaSet::disconnect)->cli(false);
 
-  expose("setPrimaryInstance", &ReplicaSet::set_primary_instance, "instanceDef",
-         "?options");
+  expose("setPrimaryInstance", &ReplicaSet::set_primary_instance, "instance",
+         "?options")
+      ->cli();
   expose("forcePrimaryInstance", &ReplicaSet::force_primary_instance,
-         "?instanceDef", "?options");
+         "?instance", "?options")
+      ->cli();
 
-  expose("listRouters", &ReplicaSet::list_routers, "?options");
+  expose("listRouters", &ReplicaSet::list_routers, "?options")->cli();
   expose("removeRouterMetadata", &ReplicaSet::remove_router_metadata,
-         "routerDef");
+         "routerDef")
+      ->cli();
   expose("setupAdminAccount", &ReplicaSet::setup_admin_account, "user",
-         "?options");
+         "?options")
+      ->cli();
   expose("setupRouterAccount", &ReplicaSet::setup_router_account, "user",
-         "?options");
-  expose("options", &ReplicaSet::options);
-  expose("setOption", &ReplicaSet::set_option, "option", "value");
-  expose("setInstanceOption", &ReplicaSet::set_instance_option, "instanceDef",
-         "option", "value");
+         "?options")
+      ->cli();
+  expose("options", &ReplicaSet::options)->cli();
+  expose("setOption", &ReplicaSet::set_option, "option", "value")->cli();
+  expose("setInstanceOption", &ReplicaSet::set_instance_option, "instance",
+         "option", "value")
+      ->cli();
 
   // TODO(alfredo):
   // - dissolve()

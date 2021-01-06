@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,7 +35,11 @@
 #endif
 
 #include <deque>
+#include <mutex>
 #include <string>
+
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/shellcore/shell_console.h"
@@ -60,19 +64,84 @@ std::string hexify(const std::string &data) {
 }
 }  // namespace
 
+const shcore::Option_pack_def<Document_reader_options>
+    &Document_reader_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Document_reader_options>()
+          .optional("convertBsonTypes",
+                    &Document_reader_options::convert_bson_types)
+          .optional("convertBsonOid", &Document_reader_options::convert_bson_id)
+          .optional("extractOidTime",
+                    &Document_reader_options::extract_oid_time)
+          .optional("ignoreDate", &Document_reader_options::ignore_date)
+          .optional("ignoreTimestamp",
+                    &Document_reader_options::ignore_timestamp)
+          .optional("ignoreBinary", &Document_reader_options::ignore_binary)
+          .optional("ignoreRegex", &Document_reader_options::ignore_regexp)
+          .optional("ignoreRegexOptions",
+                    &Document_reader_options::ignore_regexp_options)
+          .optional("decimalAsDouble",
+                    &Document_reader_options::decimal_as_double)
+          .on_done(&Document_reader_options::on_unpacked_options);
+
+  return opts;
+}
+
+void Document_reader_options::on_unpacked_options() {
+  // The default value for convert_bson_id is the value of convert_bson_types
+  if (convert_bson_id.is_null()) convert_bson_id = convert_bson_types;
+
+  if (!extract_oid_time.is_null() && !convert_bson_id.get_safe(false)) {
+    throw shcore::Exception::argument_error(
+        "The 'extractOidTime' option can not be used if 'convertBsonOid' is "
+        "disabled.");
+  }
+
+  std::vector<std::string> used_options;
+
+  if (!ignore_date.is_null()) used_options.push_back("ignoreDate");
+  if (!ignore_timestamp.is_null()) used_options.push_back("ignoreTimestamp");
+  if (!ignore_binary.is_null()) used_options.push_back("ignoreBinary");
+  if (!ignore_regexp.is_null()) used_options.push_back("ignoreRegex");
+  if (!ignore_regexp_options.is_null())
+    used_options.push_back("ignoreRegexOptions");
+  if (!decimal_as_double.is_null()) used_options.push_back("decimalAsDouble");
+
+  if (!used_options.empty() && !convert_bson_types.get_safe(false)) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "The following option%s can not be used if 'convertBsonTypes' is "
+        "disabled: %s",
+        used_options.size() > 1 ? "s" : "",
+        shcore::str_join(used_options, ", ", [](const std::string &data) {
+          return "'" + data + "'";
+        }).c_str()));
+  }
+
+  if (ignore_regexp.get_safe(false) && ignore_regexp_options.get_safe(false)) {
+    throw shcore::Exception::argument_error(
+        "The 'ignoreRegex' and 'ignoreRegexOptions' options can't both be "
+        "enabled");
+  }
+
+  if (!extract_oid_time.is_null() && (*extract_oid_time).empty()) {
+    throw shcore::Exception::runtime_error(
+        "Option 'extractOidTime' can not be empty.");
+  }
+}
+
 bool Document_reader_options::ignore_type(Bson_type type) const {
-  if (convert_bson_types) {
+  if (convert_bson_types.get_safe(false)) {
     switch (type) {
       case Bson_type::OBJECT_ID:
-        return !convert_bson_id;
+        return !convert_bson_id.get_safe(false);
       case Bson_type::DATE:
-        return ignore_date;
+        return ignore_date.get_safe(false);
       case Bson_type::TIMESTAMP:
-        return ignore_timestamp;
+        return ignore_timestamp.get_safe(false);
       case Bson_type::REGEX:
-        return ignore_regexp;
+        return ignore_regexp.get_safe(false);
       case Bson_type::BINARY:
-        return ignore_binary;
+        return ignore_binary.get_safe(false);
       case Bson_type::LONG:
       case Bson_type::INTEGER:
       case Bson_type::DECIMAL:
@@ -81,7 +150,8 @@ bool Document_reader_options::ignore_type(Bson_type type) const {
         break;
     }
   } else {
-    return type == Bson_type::OBJECT_ID ? !convert_bson_id : true;
+    return type == Bson_type::OBJECT_ID ? !convert_bson_id.get_safe(false)
+                                        : true;
   }
   return true;
 }
@@ -225,7 +295,8 @@ void Json_document_parser::parse(std::string *document) {
       get_string(m_document);
       m_last_attribute_end = m_document->size() - 1;
 
-      if (m_options.convert_bson_types || m_options.convert_bson_id) {
+      if (m_options.convert_bson_types.get_safe(false) ||
+          m_options.convert_bson_id.get_safe(false)) {
         auto type = get_bson_type();
         // If the first field is a mongo special field
         // The original document is translated based on
@@ -570,14 +641,14 @@ void Json_document_parser::parse_bson_decimal() {
 
   std::string decimal_str;
   std::string *custom_target =
-      m_options.decimal_as_double ? &decimal_str : m_document;
+      m_options.decimal_as_double.get_safe(false) ? &decimal_str : m_document;
   double number;
 
   // Gets the associated value
   get_bson_data({{':'}, {'N', "", custom_target, &number}, {'}'}},
                 "processing extended JSON for $numberDecimal");
 
-  if (m_options.decimal_as_double) {
+  if (m_options.decimal_as_double.get_safe(false)) {
     m_document->append(std::to_string(number));
   }
 }
@@ -681,7 +752,7 @@ void Json_document_parser::parse_bson_regex() {
   // Unquotes the options
   options = options.substr(1, options.size() - 2);
 
-  if (m_options.ignore_regexp_options) {
+  if (m_options.ignore_regexp_options.get_safe(true)) {
     m_document->append(regex);
     if (!options.empty()) {
       std::string warning = "The regular expression for " + m_context +

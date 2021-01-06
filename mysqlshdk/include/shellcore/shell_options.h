@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -180,7 +180,7 @@ class Shell_options : public shcore::Options {
     return named_options.find(option) != named_options.end();
   }
 
-  shcore::Shell_cli_operation *get_shell_cli_operation() {
+  shcore::cli::Shell_cli_operation *get_shell_cli_operation() {
     return m_shell_cli_operation.get();
   }
 
@@ -236,7 +236,7 @@ class Shell_options : public shcore::Options {
   void check_import_options();
 
   Storage storage;
-  std::unique_ptr<shcore::Shell_cli_operation> m_shell_cli_operation;
+  std::unique_ptr<shcore::cli::Shell_cli_operation> m_shell_cli_operation;
   mysqlshdk::db::Connection_options uri_data;
   std::string session_type_arg;
 

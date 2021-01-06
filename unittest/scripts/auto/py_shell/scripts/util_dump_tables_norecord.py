@@ -525,7 +525,7 @@ EXPECT_EQ(os.getuid(), os.stat(test_output_absolute).st_uid)
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
 os.mkdir(test_output_absolute)
-util.dump_tables(types_schema, types_schema_tables, test_output_absolute, { "ddlOnly": True, "showProgress": False })
+testutil.call_mysqlsh([uri, '--', 'util', 'dump-tables', types_schema, ','.join(types_schema_tables), '--output-url=' + test_output_absolute, '--ddl-only', '--show-progress=false'])
 EXPECT_STDOUT_CONTAINS("Tables dumped: {0}".format(len(types_schema_tables)))
 
 #@<> dump once again to the same directory, should fail
@@ -584,15 +584,19 @@ TEST_BOOL_OPTION("showProgress")
 
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "showProgress": True, "ddlOnly": True })
 
+#@<> WL14297 - TSFR_5_1_3_1 - CLI tests dump tables passing url without the named parameter
+shutil.rmtree(test_output_absolute, True)
+EXPECT_FALSE(os.path.isdir(test_output_absolute))
+rc = testutil.call_mysqlsh([uri, "--", "util", "dump-tables", types_schema] + types_schema_tables + [test_output_relative, "--showProgress", "true"])
+EXPECT_STDOUT_CONTAINS("The following required option is missing: --output-url")
+
 #@<> WL13804-FR5.2.1 - The information about the progress must include:
 # * The estimated total number of rows to be dumped.
 # * The number of rows dumped so far.
 # * The current progress as a percentage.
 # * The current throughput in rows per second.
 # * The current throughput in bytes written per second.
-shutil.rmtree(test_output_absolute, True)
-EXPECT_FALSE(os.path.isdir(test_output_absolute))
-rc = testutil.call_mysqlsh([uri, "--py", "-e", "util.dump_tables('{0}', {1}, '".format(types_schema, repr(types_schema_tables)) + test_output_relative + "', { 'showProgress': True })"])
+rc = testutil.call_mysqlsh([uri, "--", "util", "dump-tables", types_schema] + types_schema_tables + ["--outputUrl", test_output_relative, "--showProgress", "true"])
 EXPECT_EQ(0, rc)
 EXPECT_TRUE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_MATCHES(re.compile(r'\d+ thds dumping - \d+% \(\d+\.?\d*[TGMK]? rows / ~\d+\.?\d*[TGMK]? rows\), \d+\.?\d*[TGMK]? rows?/s, \d+\.?\d* [TGMK]?B/s', re.MULTILINE))
@@ -600,7 +604,7 @@ EXPECT_STDOUT_MATCHES(re.compile(r'\d+ thds dumping - \d+% \(\d+\.?\d*[TGMK]? ro
 #@<> WL13804-FR5.2.2 - If the `showProgress` option is not given, a default value of `true` must be used instead if shell is used interactively. Otherwise, it is set to `false`.
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
-rc = testutil.call_mysqlsh([uri, "--py", "-e", "util.dump_tables('{0}', {1}, '".format(types_schema, repr(types_schema_tables)) + test_output_relative + "')"])
+rc = testutil.call_mysqlsh([uri, "--", "util", "dump-tables", types_schema, json.dumps(types_schema_tables[:2], separators=(',', ':')), "--outputUrl", test_output_relative])
 EXPECT_EQ(0, rc)
 EXPECT_TRUE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_NOT_CONTAINS("rows/s")

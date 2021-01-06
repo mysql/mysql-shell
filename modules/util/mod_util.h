@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,6 +45,16 @@ class IShell_core;
 
 namespace mysqlsh {
 
+struct Import_json_options {
+  std::string schema;
+  std::string table;
+  std::string collection;
+  std::string table_column;
+  shcore::Document_reader_options doc_reader;
+
+  static const shcore::Option_pack_def<Import_json_options> &options();
+};
+
 /**
  * \defgroup util util
  * \ingroup ShellAPI
@@ -75,8 +85,9 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
 #elif DOXYGEN_PY
   None import_json(str file, dict options);
 #endif
-  void import_json(const std::string &file,
-                   const shcore::Dictionary_t &options);
+  void import_json(
+      const std::string &file,
+      const shcore::Option_pack_ref<Import_json_options> &options = {});
 
 #if DOXYGEN_JS
   Undefined configureOci(String profile) {}
@@ -86,13 +97,10 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
   void configure_oci(const std::string &profile = "");
 
 #if DOXYGEN_JS
-  Undefined importTable(List filename, Dictionary options);
+  Undefined importTable(List files, Dictionary options);
 #elif DOXYGEN_PY
-  None import_table(list filename, dict options);
+  None import_table(list files, dict options);
 #endif
-  // TODO(rennox): Temporary hack to continue supporting multifile import from
-  // CLI after option pack introduction but before CLI enhancements WL
-  shcore::Value import_table(const shcore::Argument_list &args);
   void import_table_file(
       const std::string &filename,
       const shcore::Option_pack_ref<import_table::Import_table_option_pack>

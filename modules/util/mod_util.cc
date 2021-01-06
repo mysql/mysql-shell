@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -71,27 +71,23 @@ REGISTER_HELP(UTIL_BRIEF,
 
 Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
   expose("checkForServerUpgrade", &Util::check_for_server_upgrade,
-         "?connectionData", "?options");
-  expose("importJson", &Util::import_json, "path", "?options");
+         "?connectionData", "?options")
+      ->cli();
+  expose("importJson", &Util::import_json, "path", "?options")->cli();
   shcore::ssl::init();
-  expose("configureOci", &Util::configure_oci, "?profile");
-  // TODO(rennox): Temporary hack to continue supporting multifile import from
-  // CLI after option pack introduction but before CLI enhancements WL
-  // This should be deleted and lines below uncommented when the CLI WL is IN
-  add_method("importTable",
-             std::bind(&Util::import_table, this, std::placeholders::_1),
-             "files", shcore::Array, "?options", shcore::Map);
-  /*
-    expose("importTable", &Util::import_table_file, "files", "?options");
-    expose("importTable", &Util::import_table_files, "path", "?options");
-    */
-  expose("dumpSchemas", &Util::dump_schemas, "schemas", "outputUrl",
-         "?options");
+  expose("configureOci", &Util::configure_oci, "?profile")->cli();
+  expose("importTable", &Util::import_table_file, "path", "?options")
+      ->cli(false);
+  expose("importTable", &Util::import_table_files, "files", "?options")->cli();
+  expose("dumpSchemas", &Util::dump_schemas, "schemas", "outputUrl", "?options")
+      ->cli();
   expose("dumpTables", &Util::dump_tables, "schema", "tables", "outputUrl",
-         "?options");
-  expose("dumpInstance", &Util::dump_instance, "outputUrl", "?options");
-  expose("exportTable", &Util::export_table, "table", "outputUrl", "?options");
-  expose("loadDump", &Util::load_dump, "url", "?options");
+         "?options")
+      ->cli();
+  expose("dumpInstance", &Util::dump_instance, "outputUrl", "?options")->cli();
+  expose("exportTable", &Util::export_table, "table", "outputUrl", "?options")
+      ->cli();
+  expose("loadDump", &Util::load_dump, "url", "?options")->cli();
 }
 
 namespace {
@@ -705,6 +701,19 @@ REGISTER_HELP(UTIL_IMPORTJSON_THROWS10, "@li MySQL Server returns an error");
 REGISTER_HELP(UTIL_IMPORTJSON_THROWS11, "Throws InvalidJson when:");
 REGISTER_HELP(UTIL_IMPORTJSON_THROWS12, "@li JSON document is ill-formed");
 
+const shcore::Option_pack_def<Import_json_options>
+    &Import_json_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Import_json_options>()
+          .optional("schema", &Import_json_options::schema)
+          .optional("collection", &Import_json_options::collection)
+          .optional("table", &Import_json_options::table)
+          .optional("tableColumn", &Import_json_options::table_column)
+          .include(&Import_json_options::doc_reader);
+
+  return opts;
+}
+
 /**
  * \ingroup util
  *
@@ -775,30 +784,9 @@ Undefined Util::importJson(String file, Dictionary options);
 None Util::import_json(str file, dict options);
 #endif
 
-void Util::import_json(const std::string &file,
-                       const shcore::Dictionary_t &options) {
-  std::string schema;
-  std::string collection;
-  std::string table;
-  std::string table_column;
-
-  shcore::Option_unpacker unpacker(options);
-  unpacker.optional("schema", &schema);
-  unpacker.optional("collection", &collection);
-  unpacker.optional("table", &table);
-  unpacker.optional("tableColumn", &table_column);
-
-  shcore::Document_reader_options roptions;
-  mysqlsh::unpack_json_import_flags(&unpacker, &roptions);
-
-  unpacker.end();
-
-  if (!roptions.extract_oid_time.is_null() &&
-      (*roptions.extract_oid_time).empty()) {
-    throw shcore::Exception::runtime_error(
-        "Option 'extractOidTime' can not be empty.");
-  }
-
+void Util::import_json(
+    const std::string &file,
+    const shcore::Option_pack_ref<Import_json_options> &options) {
   auto shell_session = _shell_core.get_dev_session();
 
   if (!shell_session) {
@@ -825,8 +813,8 @@ void Util::import_json(const std::string &file,
 
   Prepare_json_import prepare{xsession};
 
-  if (!schema.empty()) {
-    prepare.schema(schema);
+  if (!options->schema.empty()) {
+    prepare.schema(options->schema);
   } else if (!shell_session->get_current_schema().empty()) {
     prepare.schema(shell_session->get_current_schema());
   } else {
@@ -837,20 +825,20 @@ void Util::import_json(const std::string &file,
 
   prepare.path(file);
 
-  if (!table.empty()) {
-    prepare.table(table);
+  if (!options->table.empty()) {
+    prepare.table(options->table);
   }
 
-  if (!table_column.empty()) {
-    prepare.column(table_column);
+  if (!options->table_column.empty()) {
+    prepare.column(options->table_column);
   }
 
-  if (!collection.empty()) {
-    if (!table_column.empty()) {
+  if (!options->collection.empty()) {
+    if (!options->table_column.empty()) {
       throw std::invalid_argument(
           "tableColumn cannot be used with collection.");
     }
-    prepare.collection(collection);
+    prepare.collection(options->collection);
   }
 
   // Validate provided parameters and build Json_importer object.
@@ -867,7 +855,7 @@ void Util::import_json(const std::string &file,
   });
 
   try {
-    importer.load_from(roptions);
+    importer.load_from(options->doc_reader);
   } catch (...) {
     importer.print_stats();
     throw;
@@ -981,18 +969,18 @@ option, to specify the name of the OCI profile to use.
 
 REGISTER_HELP_FUNCTION(importTable, util);
 REGISTER_HELP_FUNCTION_TEXT(UTIL_IMPORTTABLE, R"*(
-Import table dump stored in filename to target table using LOAD DATA LOCAL
+Import table dump stored in files to target table using LOAD DATA LOCAL
 INFILE calls in parallel connections.
 
-@param filename Path or list of paths to files with user data.
+@param files Path or list of paths to files with user data.
 Path name can contain a glob pattern with wildcard '*' and/or '?'.
 All selected files must be chunks of the same target table.
 @param options Optional dictionary with import options
 
-Scheme part of <b>filename</b> contains infomation about the transport backend.
+The scheme part of a filename contains infomation about the transport backend.
 Supported transport backends are: file://, http://, https://.
-If scheme part of <b>filename</b> is omitted, then file:// transport
-backend will be chosen.
+If the scheme part of a filename is omitted, then file:// transport backend
+will be chosen.
 
 Supported filename formats:
 ${IMPORT_EXPORT_URL_DETAIL}
@@ -1005,7 +993,7 @@ table
 @li <b>columns</b>: array of strings and/or integers (default: empty array) -
 This option takes an array of column names as its value. The order of the column
 names indicates how to match data file columns with table columns.
-Use non-negative integer `i` to capture column value into user variable @i.
+Use non-negative integer `i` to capture column value into user variable @@i.
 With user variables, the decodeColumns option enables you to perform preprocessing
 transformations on their values before assigning the result to columns.
 @li <b>fieldsTerminatedBy</b>: string (default: "\t") - This option has the same
@@ -1053,7 +1041,7 @@ values: default, csv, tsv, json or csv-unix.
 @li <b>decodeColumns</b>: map (default: not set) - a map between columns names
 and SQL expressions to be applied on the loaded
 data. Column value captured in 'columns' by integer is available as user
-variable '@i', where `i` is that integer.
+variable '@@i', where `i` is that integer.
 @li <b>characterSet</b>: string (default: not set) -
 Interpret the information in the input file using this character set
 encoding. characterSet set to "binary" specifies "no conversion". If not set,
@@ -1068,95 +1056,13 @@ and linesTerminatedBy (LT) in following manner:
 @li default: no quoting, tab-separated, lf line endings.
 (LT=@<LF@>, FESC='\', FT=@<TAB@>, FE=@<empty@>, FOE=false)
 @li csv: optionally quoted, comma-separated, crlf line endings.
-(LT=@<CR@>@<LF@>, FESC='\', FT=",", FE='"', FOE=true)
+(LT=@<CR@>@<LF@>, FESC='\', FT=",", FE='&quot;', FOE=true)
 @li tsv: optionally quoted, tab-separated, crlf line endings.
-(LT=@<CR@>@<LF@>, FESC='\', FT=@<TAB@>, FE='"', FOE=true)
+(LT=@<CR@>@<LF@>, FESC='\', FT=@<TAB@>, FE='&quot;', FOE=true)
 @li json: one JSON document per line.
 (LT=@<LF@>, FESC=@<empty@>, FT=@<LF@>, FE=@<empty@>, FOE=false)
 @li csv-unix: fully quoted, comma-separated, lf line endings.
-(LT=@<LF@>, FESC='\', FT=",", FE='"', FOE=false)
-
-Example input data for dialects:
-@li default:
-@code
-1<TAB>20.1000<TAB>foo said: "Where is my bar?"<LF>
-2<TAB>-12.5000<TAB>baz said: "Where is my \<TAB> char?"<LF>
-@endcode
-@li csv:
-@code
-1,20.1000,"foo said: \"Where is my bar?\""<CR><LF>
-2,-12.5000,"baz said: \"Where is my <TAB> char?\""<CR><LF>
-@endcode
-@li tsv:
-@code
-1<TAB>20.1000<TAB>"foo said: \"Where is my bar?\""<CR><LF>
-2<TAB>-12.5000<TAB>"baz said: \"Where is my <TAB> char?\""<CR><LF>
-@endcode
-@li json:
-@code
-{"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is my bar?\""}<LF>
-{"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is my \u000b char?\""}<LF>
-@endcode
-@li csv-unix:
-@code
-"1","20.1000","foo said: \"Where is my bar?\""<LF>
-"2","-12.5000","baz said: \"Where is my <TAB> char?\""<LF>
-@endcode
-
-Examples of <b>decodeColumns</b> usage:
-@li Preprocess column2:
-@code
-    util.importTable('file.txt', {
-      table: 't1',
-      columns: ['column1', 1],
-      decodeColumns: {'column2': '@1 / 100'}
-    });
-@endcode
-is equivalent to:
-@code
-    LOAD DATA LOCAL INFILE 'file.txt'
-    INTO TABLE `t1` (column1, @var1)
-    SET `column2` = @var/100;
-@endcode
-
-@li Skip columns:
-@code
-    util.importTable('file.txt', {
-      table: 't1',
-      columns: ['column1', 1, 'column2', 2, 'column3']
-    });
-@endcode
-is equivalent to:
-@code
-    LOAD DATA LOCAL INFILE 'file.txt'
-    INTO TABLE `t1` (column1, @1, column2, @2, column3);
-@endcode
-
-@li Generate values for columns:
-@code
-    util.importTable('file.txt', {
-      table: 't1',
-      columns: [1, 2],
-      decodeColumns: {
-        'a': '@1',
-        'b': '@2',
-        'sum': '@1 + @2',
-        'mul': '@1 * @2',
-        'pow': 'POW(@1, @2)'
-      }
-    });
-@endcode
-is equivalent to:
-@code
-    LOAD DATA LOCAL INFILE 'file.txt'
-    INTO TABLE `t1` (@1, @2)
-    SET
-      `a` = @1,
-      `b` = @2,
-      `sum` = @1 + @2,
-      `mul` = @1 * @2,
-      `pow` = POW(@1, @2);
-@endcode
+(LT=@<LF@>, FESC='\', FT=",", FE='&quot;', FOE=false)
 
 If the <b>schema</b> is not provided, an active schema on the global session, if
 set, will be used.
@@ -1177,103 +1083,12 @@ Each parallel connection sets the following session variables:
 @li SET foreign_key_checks = 0
 @li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 )*");
-// clang-format off
 /**
  * \ingroup util
  *
- * Import table dump stored in filename to target table using LOAD DATA LOCAL
- * INFILE calls in parallel connections.
+ * $(UTIL_IMPORTTABLE_BRIEF)
  *
- * @param filename Path or list of paths to files with user data.
- * Path name can contain a glob pattern with wildcard '*' and/or '?'.
- * All selected files must be chunks of the same target table.
- * @param options Optional dictionary with import options
- *
- * Scheme part of <b>filename</b> contains infomation about the transport
- * backend. Supported transport backends are: file://, http://, https://.
- * If scheme part of <b>filename</b> is omitted, then file:// transport backend
- * will be chosen.
- *
- * Supported filename formats:
- * $(IMPORT_EXPORT_URL_DETAIL)
- *
- * Options dictionary:
- * @li <b>schema</b>: string (default: current shell active schema) - Name of
- * target schema
- * @li <b>table</b>: string (default: filename without extension) - Name of
- * target table
- * @li <b>columns</b>: array of strings and/or integers (default: empty array) -
- * This option takes an array of column names as its value. The order of the column
- * names indicates how to match data file columns with table columns.
- * Use non-negative integer `i` to capture column value into user variable @@i.
- * With user variables, the decodeColumns option enables you to perform preprocessing
- * transformations on their values before assigning the result to columns.
- * @li <b>fieldsTerminatedBy</b>: string (default: "\t"),
- * <b>fieldsEnclosedBy</b>: char (default: ''), <b>fieldsEscapedBy</b>: char
- * (default: '\\') - These options have the same meaning as the corresponding
- * clauses for LOAD DATA INFILE. For more information use <b>\\? LOAD DATA</b>,
- * (a session is required).
- * @li <b>fieldsOptionallyEnclosed</b>: bool (default: false) - Set to true if
- * the input values are not necessarily enclosed within quotation marks
- * specified by <b>fieldsEnclosedBy</b> option. Set to false if all fields are
- * quoted by character specified by <b>fieldsEnclosedBy</b> option.
- * @li <b>linesTerminatedBy</b>: string (default: "\n") - This option has the
- * same meaning as the corresponding clause for LOAD DATA INFILE. For example,
- * to import Windows files that have lines terminated with carriage
- * return/linefeed pairs, use --lines-terminated-by="\r\n". (You might have to
- * double the backslashes, depending on the escaping conventions of your command
- * interpreter.) See Section 13.2.7, "LOAD DATA INFILE Syntax".
- * @li <b>replaceDuplicates</b>: bool (default: false) - If true, input rows
- * that have the same value for a primary key or unique index as an existing row
- * will be replaced, otherwise input rows will be skipped.
- * @li <b>threads</b>: int (default: 8) - Use N threads to sent file chunks to
- * the server.
- * @li <b>bytesPerChunk</b>: string (minimum: "131072", default: "50M") - Send
- * bytesPerChunk (+ bytes to end of the row) in single LOAD DATA call. Unit
- * suffixes, k - for Kilobytes (n * 1'000 bytes), M - for Megabytes (n *
- * 1'000'000 bytes), G - for Gigabytes (n * 1'000'000'000 bytes),
- * bytesPerChunk="2k" - ~2 kilobyte data chunk will send to the MySQL Server.
- * Not available for multiple files import.
- * @li <b>maxRate</b>: string (default: "0") - Limit data send throughput to
- * maxRate in bytes per second per thread.
- * maxRate="0" - no limit. Unit suffixes, k - for Kilobytes (n * 1'000 bytes),
- * M - for Megabytes (n * 1'000'000 bytes), G - for Gigabytes (n * 1'000'000'000
- * bytes), maxRate="2k" - limit to 2 kilobytes per second.
- * @li <b>showProgress</b>: bool (default: true if stdout is a tty, false
- * otherwise) - Enable or disable import progress information.
- * @li <b>skipRows</b>: int (default: 0) - Skip first n rows of the data in the
- * file. You can use this option to skip an initial header line containing
- * column names.
- * @li <b>dialect</b>: enum (default: "default") - Setup fields and lines
- * options that matches specific data file format. Can be used as base dialect
- * and customized with fieldsTerminatedBy, fieldsEnclosedBy,
- * fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy options. Must
- * be one of the following values: default, csv, tsv, json or csv-unix.
- * @li <b>decodeColumns</b>: map (default: not set) - a map between columns names
- * and SQL expressions to be applied on the loaded
- * data. Column value captured in 'columns' by integer is available as user
- * variable '@@i', where `i` is that integer.
- * @li <b>characterSet</b>: string (default: not set) -
- * Interpret the information in the input file using this character set
- * encoding. characterSet set to "binary" specifies "no conversion". If not set,
- * the server will use the character set indicated by the character_set_database
- * system variable to interpret the information in the file.
- *
- * $(IMPORT_EXPORT_OCI_OPTIONS_DETAIL)
- *
- * <b>dialect</b> predefines following set of options fieldsTerminatedBy (FT),
- * fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)
- * and linesTerminatedBy (LT) in following manner:
- * @li default: no quoting, tab-separated, lf line endings.
- * (LT=@<LF@>, FESC='\', FT=@<TAB@>, FE=@<empty@>, FOE=false)
- * @li csv: optionally quoted, comma-separated, crlf line endings.
- * (LT=@<CR@>@<LF@>, FESC='\', FT=",", FE='"', FOE=true)
- * @li tsv: optionally quoted, tab-separated, crlf line endings.
- * (LT=@<CR@>@<LF@>, FESC='\', FT=@<TAB@>, FE='"', FOE=true)
- * @li json: one JSON document per line.
- * (LT=@<LF@>, FESC=@<empty@>, FT=@<LF@>, FE=@<empty@>, FOE=false)
- * @li csv-unix: fully quoted, comma-separated, lf line endings.
- * (LT=@<LF@>, FESC='\', FT=",", FE='"', FOE=false)
+ * $(UTIL_IMPORTTABLE)
  *
  * Example input data for dialects:
  * @li default:
@@ -1293,8 +1108,10 @@ Each parallel connection sets the following session variables:
  * @endcode
  * @li json:
  * @code{.unparsed}
- * {"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is my bar?\""}<LF>
- * {"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is my \u000b char?\""}<LF>
+ * {"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is my
+ * bar?\""}<LF>
+ * {"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is my
+ * \u000b char?\""}<LF>
  * @endcode
  * @li csv-unix:
  * @code{.unparsed}
@@ -1356,73 +1173,12 @@ Each parallel connection sets the following session variables:
  *       `mul` = @1 * @2,
  *       `pow` = POW(@1, @2);
  * @endcode
- *
- * If the <b>schema</b> is not provided, an active schema on the global session,
- * if set, will be used.
- *
- * If the input values are not necessarily enclosed within
- * <b>fieldsEnclosedBy</b>, set <b>fieldsOptionallyEnclosed</b> to true.
- *
- * If you specify one separator that is the same as or a prefix of another, LOAD
- * DATA INFILE cannot interpret the input properly.
- *
- * Connection options set in the global session, such as compression, ssl-mode,
- * etc. are used in parallel connections.
- *
- * Each parallel connection sets the following session variables:
- * @li SET SQL_MODE = ''; -- Clear SQL Mode
- * @li SET NAMES ?; -- Set to characterSet option if provided by user.
- * @li SET unique_checks = 0
- * @li SET foreign_key_checks = 0
- * @li SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
  */
-// clang-format on
 #if DOXYGEN_JS
-Undefined Util::importTable(List filename, Dictionary options);
+Undefined Util::importTable(List files, Dictionary options);
 #elif DOXYGEN_PY
-None Util::import_table(list filename, dict options);
+None Util::import_table(list files, dict options);
 #endif
-
-// TODO(rennox): Temporary hack to continue supporting multifile import from
-// CLI after option pack introduction but before CLI enhancements WL
-shcore::Value Util::import_table(const shcore::Argument_list &args) {
-  args.ensure_count(1, 2, get_function_name("importTable").c_str());
-
-  shcore::Option_pack_ref<import_table::Import_table_option_pack>
-      import_table_options;
-
-  try {
-    // extract file list and options from argument list
-    std::vector<std::string> files;
-    auto options = shcore::make_dict();
-
-    if (args.size() > 0 && args[0].type == shcore::Value_type::Array) {
-      for (const auto &file : *args[0].as_array()) {
-        files.push_back(file.as_string());
-      }
-      if (args.size() > 1) {
-        import_table_options.unpack(args[1].as_map());
-      }
-    } else {
-      auto file_list = std::find_if_not(
-          args.begin(), args.end(),
-          [](const auto &x) { return x.type == shcore::Value_type::String; });
-
-      for (auto it = args.begin(); it != file_list; it++) {
-        files.push_back(it->as_string());
-      }
-
-      if (file_list != args.end() && (*file_list)) {
-        import_table_options.unpack(file_list->as_map());
-      }
-    }
-    import_table_files(files, import_table_options);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("importTable"));
-
-  return shcore::Value();
-}
-
 void Util::import_table_file(
     const std::string &filename,
     const shcore::Option_pack_ref<import_table::Import_table_option_pack>

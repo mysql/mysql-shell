@@ -165,7 +165,7 @@ SYNTAX
       testutil.sample_module_p_y.string_function(data)
 
 WHERE
-      data: String. Brief description for string parameter.
+      data: String - Brief description for string parameter.
 
 DESCRIPTION
       Detailed description for stringFunction
@@ -210,7 +210,7 @@ SYNTAX
       testutil.sample_module_p_y.dict_function([data])
 
 WHERE
-      data: Dictionary. Short description for dictionary parameter.
+      data: Dictionary - Short description for dictionary parameter.
 
 DESCRIPTION
       Detailed description for dictFunction
@@ -219,7 +219,7 @@ DESCRIPTION
 
       The data parameter accepts the following options:
 
-      - myOption (required) String. A sample option
+      - myOption: String (required) - A sample option.
 
       Details for the sample option
 
@@ -283,7 +283,7 @@ SYNTAX
       testutil.sample_module_p_y.object_function1(session)
 
 WHERE
-      session: Object. Short description for object parameter.
+      session: Object - Short description for object parameter.
 
 DESCRIPTION
       Detailed description for objectFunction
@@ -336,7 +336,7 @@ SYNTAX
       testutil.sample_module_p_y.object_function2(session)
 
 WHERE
-      session: Object. Short description for object parameter.
+      session: Object - Short description for object parameter.
 
 DESCRIPTION
       Detailed description for objectFunction

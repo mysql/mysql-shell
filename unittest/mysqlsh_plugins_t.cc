@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -85,6 +85,20 @@ class Mysqlsh_extension_test : public Command_line_test {
     user_config = "MYSQLSH_USER_CONFIG_HOME=" + user_config;
     EXPECT_EQ(0, execute(args, nullptr, k_file, {user_config}))
         << "unexpected exit code";
+  }
+
+  void run_cli_plugin(const std::vector<std::string> &extra = {}) {
+    std::vector<const char *> args = {_mysqlsh};
+
+    for (const auto &e : extra) {
+      args.emplace_back(e.c_str());
+    }
+
+    args.emplace_back(nullptr);
+
+    auto user_config = shcore::get_user_config_path();
+    user_config = "MYSQLSH_USER_CONFIG_HOME=" + user_config;
+    execute(args, nullptr, nullptr, {user_config});
   }
 
   std::string expected_output() const {

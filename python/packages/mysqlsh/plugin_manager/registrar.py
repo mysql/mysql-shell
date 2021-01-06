@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -225,9 +225,10 @@ class PluginRegistrar:
         The documentation provides  brief and details.
         """
 
-        def __init__(self, function):
+        def __init__(self, function, cli=False):
             self.name = function.__name__
             self.docs = PluginRegistrar.ItemDoc()
+            self.cli = cli
 
             signature = inspect.signature(function)
             self.parameters = [
@@ -250,6 +251,9 @@ class PluginRegistrar:
                     params.append(param.format_info())
 
                 info["parameters"] = params
+
+            if self.cli:
+                info["cli"] = self.cli
 
             return info
 
@@ -575,14 +579,14 @@ class PluginRegistrar:
             )
 
     def register_function(
-        self, plugin_obj, function, plugin_function_name=None
+        self, plugin_obj, function, plugin_function_name=None, cli=None
     ):
         """Registers a new member into the provided shell extension object"""
         import mysqlsh
 
         shell = mysqlsh.globals.shell
 
-        definition = PluginRegistrar.FunctionData(function)
+        definition = PluginRegistrar.FunctionData(function, cli)
 
         try:
             shell.add_extension_object_member(
@@ -671,7 +675,7 @@ def plugin(cls):
     return wrapper
 
 
-def plugin_function(fully_qualified_name, plugin_docs=None):
+def plugin_function(fully_qualified_name, plugin_docs=None, cli=False):
     """Decorator factory to register Shell plugins functions
 
     Args:
@@ -679,6 +683,7 @@ def plugin_function(fully_qualified_name, plugin_docs=None):
             e.g. cloud.create.mysqlDbSystem
         plugin_docs (dict): The documentation structure of the plugin. This
             is only required for the first function that will be registered
+        cli (bool): Defines whether the function should be available in the CLI
 
     Returns:
         The decorator function
@@ -701,7 +706,7 @@ def plugin_function(fully_qualified_name, plugin_docs=None):
 
             # register the function
             plugin_manager.register_function(
-                plugin_obj, function, function_name
+                plugin_obj, function, function_name, cli
             )
         except Exception as e:
             print(

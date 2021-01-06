@@ -35,9 +35,9 @@ FUNCTIONS
             Import JSON documents from file to collection or table in MySQL
             Server using X Protocol session.
 
-      import_table(filename[, options])
-            Import table dump stored in filename to target table using LOAD
-            DATA LOCAL INFILE calls in parallel connections.
+      import_table(files[, options])
+            Import table dump stored in files to target table using LOAD DATA
+            LOCAL INFILE calls in parallel connections.
 
       load_dump(url[, options])
             Loads database dumps created by MySQL Shell.
@@ -1092,6 +1092,7 @@ EXCEPTIONS
 
       - If there is no open global session.
       - If creating or writing to the output file fails.
+
 #@<OUT> util import_json help
 NAME
       import_json - Import JSON documents from file to collection or table in
@@ -1259,23 +1260,23 @@ for image in images:
 
 #@<OUT> util import_table help
 NAME
-      import_table - Import table dump stored in filename to target table using
+      import_table - Import table dump stored in files to target table using
                      LOAD DATA LOCAL INFILE calls in parallel connections.
 
 SYNTAX
-      util.import_table(filename[, options])
+      util.import_table(files[, options])
 
 WHERE
-      filename: Path or list of paths to files with user data. Path name can
-                contain a glob pattern with wildcard '*' and/or '?'. All
-                selected files must be chunks of the same target table.
+      files: Path or list of paths to files with user data. Path name can
+             contain a glob pattern with wildcard '*' and/or '?'. All selected
+             files must be chunks of the same target table.
       options: Dictionary with import options
 
 DESCRIPTION
-      Scheme part of filename contains infomation about the transport backend.
-      Supported transport backends are: file://, http://, https://. If scheme
-      part of filename is omitted, then file:// transport backend will be
-      chosen.
+      The scheme part of a filename contains infomation about the transport
+      backend. Supported transport backends are: file://, http://, https://. If
+      the scheme part of a filename is omitted, then file:// transport backend
+      will be chosen.
 
       Supported filename formats:
 
@@ -1386,73 +1387,6 @@ DESCRIPTION
         FE=<empty>, FOE=false)
       - csv-unix: fully quoted, comma-separated, lf line endings. (LT=<LF>,
         FESC='\', FT=",", FE='"', FOE=false)
-
-      Example input data for dialects:
-
-      - default:
-      1<TAB>20.1000<TAB>foo said: "Where is my bar?"<LF>
-      2<TAB>-12.5000<TAB>baz said: "Where is my \<TAB> char?"<LF>
-      - csv:
-      1,20.1000,"foo said: \"Where is my bar?\""<CR><LF>
-      2,-12.5000,"baz said: \"Where is my <TAB> char?\""<CR><LF>
-      - tsv:
-      1<TAB>20.1000<TAB>"foo said: \"Where is my bar?\""<CR><LF>
-      2<TAB>-12.5000<TAB>"baz said: \"Where is my <TAB> char?\""<CR><LF>
-      - json:
-      {"id_int": 1, "value_float": 20.1000, "text_text": "foo said: \"Where is
-      my bar?\""}<LF>
-      {"id_int": 2, "value_float": -12.5000, "text_text": "baz said: \"Where is
-      my \u000b char?\""}<LF>
-      - csv-unix:
-      "1","20.1000","foo said: \"Where is my bar?\""<LF>
-      "2","-12.5000","baz said: \"Where is my <TAB> char?\""<LF>
-
-      Examples of decodeColumns usage:
-
-      - Preprocess column2:
-          util.importTable('file.txt', {
-            table: 't1',
-            columns: ['column1', 1],
-            decodeColumns: {'column2': '@1 / 100'}
-          });
-
-      is equivalent to:
-          LOAD DATA LOCAL INFILE 'file.txt'
-          INTO TABLE `t1` (column1, @var1)
-          SET `column2` = @var/100;
-
-      - Skip columns:
-          util.importTable('file.txt', {
-            table: 't1',
-            columns: ['column1', 1, 'column2', 2, 'column3']
-          });
-
-      is equivalent to:
-          LOAD DATA LOCAL INFILE 'file.txt'
-          INTO TABLE `t1` (column1, @1, column2, @2, column3);
-
-      - Generate values for columns:
-          util.importTable('file.txt', {
-            table: 't1',
-            columns: [1, 2],
-            decodeColumns: {
-              'a': '@1',
-              'b': '@2',
-              'sum': '@1 + @2',
-              'mul': '@1 * @2',
-              'pow': 'POW(@1, @2)'
-            }
-          });
-
-      is equivalent to:
-          LOAD DATA LOCAL INFILE 'file.txt'
-          INTO TABLE `t1` (@1, @2)
-          SET
-            `a` = @1,
-            `b` = @2,
-            `sum` = @1 + @2,
-            `mul` = @1 * @2,
-            `pow` = POW(@1, @2);
 
       If the schema is not provided, an active schema on the global session, if
       set, will be used.

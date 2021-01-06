@@ -464,12 +464,12 @@ command line, by following a specific syntax.
 
 SYNTAX:
 
-  mysqlsh [options] -- <object> <method> [arguments]
+  mysqlsh [options] -- <object> <operation> [arguments]
 
 WHERE:
 
 - object - a string identifying shell object to be called.
-- method - a string identifying method to be called on the object.
+- operation - a string identifying method to be called on the object.
 - arguments - arguments passed to the called method.
 
 DETAILS:
@@ -482,7 +482,7 @@ The following objects can be called using this format:
 - shell.options - shell.options object.
 - util - util global object
 
-The method name can be given in the following naming styles:
+The operation name can be given in the following naming styles:
 
 - Camel case: (e.g. createCluster, checkForServerUpgrade)
 - Kebab case: (e.g. create-cluster, check-for-server-upgrade)
@@ -522,18 +522,6 @@ specified either using camelCaseNaming or kebab-case-naming, examples:
 If the value is not provided the option name will be handled as a boolean
 option with a default value of TRUE.
 
-Grouping Named Arguments
-
-It is possible to create a group of named arguments by enclosing them between
-curly braces. This group would be handled as a positional argument at the
-position where the opening curly brace was found, it will be passed to the
-function as a dictionary containing all the named arguments defined on the
-group.
-
-Named arguments that are not placed inside curly braces (independently of the
-position on the command line), are packed a single dictionary, passed as a last
-parameter on the method call.
-
 Following are some examples of command line calls as well as how they are
 mapped to the API method call.
 
@@ -554,7 +542,7 @@ $ mysqlsh -- util checkForServerUpgrade root@localhost --outputFormat=JSON
       mysql-js> util.checkForServerUpgrade("root@localhost",{outputFormat:
       "JSON"})
 
-$ mysqlsh -- util check-for-server-upgrade { --user=root --host=localhost }
+$ mysqlsh -- util check-for-server-upgrade --user=root --host=localhost
 --password=
       mysql-js> util.checkForServerUpgrade({user:"root", host:"localhost"},
       {password:""})

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_UTILS_DOCUMENT_PARSER_H_
 
 #include <string>
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_buffered_input.h"
 
@@ -61,17 +62,21 @@ enum class Bson_type {
 };
 
 struct Document_reader_options {
-  bool convert_bson_types = false;
-  bool convert_bson_id = false;
-  bool ignore_date = false;
-  bool ignore_timestamp = false;
-  bool ignore_regexp = false;
-  bool ignore_regexp_options = true;
-  bool ignore_binary = false;
-  bool decimal_as_double = false;
+  mysqlshdk::utils::nullable<bool> convert_bson_types;
+  mysqlshdk::utils::nullable<bool> convert_bson_id;
+  mysqlshdk::utils::nullable<bool> ignore_date;
+  mysqlshdk::utils::nullable<bool> ignore_timestamp;
+  mysqlshdk::utils::nullable<bool> ignore_regexp;
+  mysqlshdk::utils::nullable<bool> ignore_regexp_options;
+  mysqlshdk::utils::nullable<bool> ignore_binary;
+  mysqlshdk::utils::nullable<bool> decimal_as_double;
   mysqlshdk::utils::nullable<std::string> extract_oid_time;
 
   bool ignore_type(Bson_type type) const;
+
+  static const shcore::Option_pack_def<Document_reader_options> &options();
+
+  void on_unpacked_options();
 };
 
 /**

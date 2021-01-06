@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -171,35 +171,42 @@ void Shell::init() {
   add_property("reports");
   add_property("version");
 
-  expose("parseUri", &Shell::parse_uri, "uri");
-  expose("unparseUri", &Shell::unparse_uri, "options");
-  expose("prompt", &Shell::prompt, "message", "?options");
-  expose("setCurrentSchema", &Shell::set_current_schema, "name");
-  expose("setSession", &Shell::set_session, "session");
-  expose("getSession", &Shell::get_session);
-  expose("disconnect", &Shell::disconnect);
-  expose("reconnect", &Shell::reconnect);
-  expose("log", &Shell::log, "level", "message");
-  expose("status", &Shell::status);
-  expose("listCredentialHelpers", &Shell::list_credential_helpers);
-  expose("storeCredential", &Shell::store_credential, "url", "?password");
-  expose("deleteCredential", &Shell::delete_credential, "url");
-  expose("deleteAllCredentials", &Shell::delete_all_credentials);
-  expose("listCredentials", &Shell::list_credentials);
-  expose("enablePager", &Shell::enable_pager);
-  expose("disablePager", &Shell::disable_pager);
+  expose("parseUri", &Shell::parse_uri, "uri")->cli(false);
+  expose("unparseUri", &Shell::unparse_uri, "options")->cli(false);
+  expose("prompt", &Shell::prompt, "message", "?options")->cli(false);
+  expose("setCurrentSchema", &Shell::set_current_schema, "name")->cli(false);
+  expose("setSession", &Shell::set_session, "session")->cli(false);
+  expose("getSession", &Shell::get_session)->cli(false);
+  expose("log", &Shell::log, "level", "message")->cli(false);
+  expose("status", &Shell::status)->cli();
+  expose("listCredentialHelpers", &Shell::list_credential_helpers)->cli();
+  expose("storeCredential", &Shell::store_credential, "url", "?password")
+      ->cli();
+  expose("deleteCredential", &Shell::delete_credential, "url")->cli();
+  expose("deleteAllCredentials", &Shell::delete_all_credentials)->cli();
+  expose("listCredentials", &Shell::list_credentials)->cli();
+  expose("enablePager", &Shell::enable_pager)->cli(false);
+  expose("disablePager", &Shell::disable_pager)->cli(false);
   expose("registerReport", &Shell::register_report, "name", "type", "report",
-         "?description");
-  expose("createExtensionObject", &Shell::create_extension_object);
+         "?description")
+      ->cli(false);
+  expose("createExtensionObject", &Shell::create_extension_object)->cli(false);
   expose("addExtensionObjectMember", &Shell::add_extension_object_member,
-         "object", "name", "function", "?definition");
+         "object", "name", "function", "?definition")
+      ->cli(false);
   expose("registerGlobal", &Shell::register_global, "name", "object",
-         "?definition");
-  expose("dumpRows", &Shell::dump_rows, "resultset", "?format", "table");
-  expose("connect", &Shell::connect, "connectionData", "?password");
+         "?definition")
+      ->cli(false);
+  expose("dumpRows", &Shell::dump_rows, "resultset", "?format", "table")
+      ->cli(false);
+  expose("connect", &Shell::connect, "connectionData", "?password")->cli(false);
+  expose("disconnect", &Shell::disconnect)->cli(false);
+  expose("reconnect", &Shell::reconnect)->cli(false);
   expose("connectToPrimary", &Shell::connect_to_primary, "?connectionData",
-         "?password");
-  expose("openSession", &Shell::open_session, "connectionData", "?password");
+         "?password")
+      ->cli(false);
+  expose("openSession", &Shell::open_session, "connectionData", "?password")
+      ->cli(false);
 }
 
 Shell::~Shell() {}

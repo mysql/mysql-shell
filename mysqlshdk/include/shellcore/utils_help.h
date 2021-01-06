@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,7 @@
 #include "mysqlshdk/include/shellcore/ishell_core.h"
 #include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/shellcore/shell_cli_mapper.h"
 #include "scripting/common.h"
 
 namespace shcore {
@@ -484,7 +485,8 @@ class Help_manager {
    * Retrieves the help text associated to the given topic.
    */
   std::string get_help(const Help_topic &topic,
-                       const Help_options &options = Help_options::any());
+                       const Help_options &options = Help_options::any(),
+                       cli::Shell_cli_mapper *cli = nullptr);
 
   void add_childs_section(const std::vector<Help_topic *> &childs,
                           std::vector<std::string> *sections, size_t padding,
@@ -500,6 +502,25 @@ class Help_manager {
                             const std::string &single_title = "EXAMPLE",
                             const std::string &multi_title = "EXAMPLES");
 
+  /**
+   * Takes a list of member topics and produces a formatted list as follows:
+   *
+   *      MemberName1
+   *            Member1 brief description
+   *
+   *      MemberName2
+   *            Member2 brief description
+   *      ...
+   *      MemberNameN
+   *            MemberN brief description
+   *
+   * Naming honors the active language naming convention
+   */
+  std::string format_member_list(
+      const std::vector<Help_topic *> &topics, size_t lpadding = 0,
+      bool do_signatures = true,
+      std::function<std::string(Help_topic *)> format_name_cb = nullptr);
+
  private:
   // Holds the active mode to be used for the help handling
   IShell_core::Mode m_mode = IShell_core::Mode::None;
@@ -508,7 +529,8 @@ class Help_manager {
 
   std::string format_object_help(const Help_topic &object,
                                  const Help_options &options);
-  std::string format_function_help(const Help_topic &function);
+  std::string format_function_help(const Help_topic &function,
+                                   cli::Shell_cli_mapper *cli = nullptr);
   std::string format_property_help(const Help_topic &property);
   std::string format_command_help(const Help_topic &property,
                                   const Help_options &options);
@@ -549,7 +571,8 @@ class Help_manager {
       std::string *signature = nullptr);
 
   void add_name_section(const Help_topic &topic,
-                        std::vector<std::string> *sections);
+                        std::vector<std::string> *sections,
+                        cli::Shell_cli_mapper *cli = nullptr);
 
   /**
    * The following functions format the help data using a specific format for
@@ -564,11 +587,18 @@ class Help_manager {
                           const Help_topic &parent,
                           std::vector<std::string> *sections, size_t padding);
 
+  void add_cli_options_section(
+      const std::string &tag, const Help_topic &parent,
+      const std::vector<std::pair<std::string, std::string>> &pdata,
+      std::vector<std::string> *sections, size_t padding,
+      cli::Shell_cli_mapper *cli);
+
   /**
    * Inserts a new section with the content of a function definition
    */
   void add_simple_function_help(const Help_topic &function,
-                                std::vector<std::string> *sections);
+                                std::vector<std::string> *sections,
+                                cli::Shell_cli_mapper *cli = nullptr);
 
   /**
    * Formats help for a function that supports chaining
@@ -576,7 +606,8 @@ class Help_manager {
   void add_chained_function_help(const Help_topic &function,
                                  std::vector<std::string> *sections);
 
-  std::string get_signature(const Help_topic &function);
+  std::string get_signature(const Help_topic &function,
+                            cli::Shell_cli_mapper *cli = nullptr);
 
   /**
    * Given a list of topic references, retrieves the max length either for
@@ -610,23 +641,6 @@ class Help_manager {
                                       size_t name_max_len, size_t lpadding = 0,
                                       const std::string &alias = "",
                                       size_t alas_max_len = 0);
-
-  /**
-   * Takes a list of member topics and produces a formatted list as follows:
-   *
-   *      MemberName1
-   *            Member1 brief description
-   *
-   *      MemberName2
-   *            Member2 brief description
-   *      ...
-   *      MemberNameN
-   *            MemberN brief description
-   *
-   * Naming honors the active language naming convention
-   */
-  std::string format_member_list(const std::vector<Help_topic *> &topics,
-                                 size_t lpadding = 0);
 
   std::vector<std::string> get_member_brief(Help_topic *member);
   std::vector<std::string> get_topic_brief(Help_topic *member);

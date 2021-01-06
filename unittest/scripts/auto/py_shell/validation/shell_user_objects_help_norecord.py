@@ -158,10 +158,10 @@ SYNTAX
       myGlobal.my_function(one, two[, three][, four])
 
 WHERE
-      one: String. Exersices the string parameter usage
-      two: Integer. Exersices the integer parameter usage
-      three: Float. Exersices the float parameter usage
-      four: Bool. Exersices the boolean parameter usage
+      one: String - Exersices the string parameter usage.
+      two: Integer - Exersices the integer parameter usage.
+      three: Float - Exersices the float parameter usage.
+      four: Bool - Exersices the boolean parameter usage.
 
 DESCRIPTION
       This function is to test how the help gets properly registered.
@@ -225,9 +225,9 @@ SYNTAX
       myGlobal.my_second_function(one, two[, data])
 
 WHERE
-      one: Array. Exersices the array parameter usage
-      two: Object. A session object for DB work execution.
-      data: Dictionary. A sample dictionary with options for the function
+      one: Array - Exersices the array parameter usage.
+      two: Object - A session object for DB work execution.
+      data: Dictionary - A sample dictionary with options for the function.
 
 DESCRIPTION
       This function is to test how the help gets properly registered.
@@ -238,12 +238,12 @@ DESCRIPTION
 
       The data parameter accepts the following options:
 
-      - myOption Bool. This option will be used show how options look like at
-        the function help
+      - myOption: Bool - This option will be used show how options look like at
+        the function help.
 
 #@<OUT> The function is added to the object help again
 NAME
-      {{myGlobal|mySecondGlobal}} - User defined global object.
+      myGlobal - User defined global object.
 
 DESCRIPTION
       This object is used to verify how each element help is registered on the
@@ -287,6 +287,51 @@ FUNCTIONS
       my_second_function(one, two[, data])
             Simple description for a function.
 
+#@<OUT> Request the second object help
+NAME
+      mySecondGlobal - User defined global object.
+
+DESCRIPTION
+      This object is used to verify how each element help is registered on the
+      go.
+
+      The reason for this is because this object was registered as global right
+      after it's creation
+
+PROPERTIES
+      my_array
+            Simple description for array member.
+
+      my_boolean
+            Simple description for boolean member.
+
+      my_child_object
+            Child object with it's own definitions.
+
+      my_dictionary
+            Simple description for dictionary member.
+
+      my_float
+            Simple description for float member.
+
+      my_integer
+            Simple description for integer member.
+
+      my_null
+            Simple description for none member.
+
+      my_string
+            Simple description for string member.
+
+FUNCTIONS
+      help([member])
+            Provides help about this object and it's members
+
+      my_function(one, two[, three][, four])
+            Simple description for a function.
+
+      my_second_function(one, two[, data])
+            Simple description for a function.
 
 #@<OUT> Finally the last global help
 GLOBAL OBJECTS

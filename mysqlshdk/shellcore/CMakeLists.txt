@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -40,6 +40,8 @@ set(SHELLCORE_SOURCES
   provider_script.cc
   ishell_core.cc
   shell_cli_operation.cc
+  shell_cli_operation_provider.cc
+  shell_cli_mapper.cc
   shell_core.cc
   shell_init.cc
   shell_notifications.cc

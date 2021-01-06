@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -312,8 +312,10 @@ void Cpp_function::Metadata::set(
   return_type = rtype;
 }
 
+void Cpp_function::Metadata::cli(bool enable) { cli_enabled = enable; }
+
 Cpp_object_bridge::Cpp_object_bridge() {
-  expose("help", &Cpp_object_bridge::help, "?item");
+  expose("help", &Cpp_object_bridge::help, "?item")->cli(false);
 }
 
 Cpp_object_bridge::~Cpp_object_bridge() {
@@ -339,6 +341,17 @@ std::vector<std::string> Cpp_object_bridge::get_members() const {
 
   for (const auto &func : _funcs) {
     members.push_back(func.second->name(current_naming_style()));
+  }
+  return members;
+}
+
+std::vector<std::string> Cpp_object_bridge::get_cli_members() const {
+  std::vector<std::string> members;
+
+  for (const auto &func : _funcs) {
+    if (func.second->get_metadata()->cli_enabled.get_safe(false)) {
+      members.push_back(func.second->name(current_naming_style()));
+    }
   }
   return members;
 }
@@ -540,6 +553,20 @@ Cpp_function::Metadata *Cpp_object_bridge::expose(
           }))));
 
   return &md;
+}
+
+const Cpp_function::Metadata *Cpp_object_bridge::get_function_metadata(
+    const std::string &name, bool cli_enabled) {
+  auto range = _funcs.equal_range(name);
+
+  for (auto it = range.first; it != range.second; it++) {
+    auto md = it->second->get_metadata();
+    if (!cli_enabled || md->cli_enabled.get_safe(false)) {
+      return md;
+    }
+  }
+
+  return nullptr;
 }
 
 bool Cpp_object_bridge::has_method_advanced(const std::string &name) const {

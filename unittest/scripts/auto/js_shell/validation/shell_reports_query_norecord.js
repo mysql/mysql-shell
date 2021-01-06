@@ -101,8 +101,8 @@ SYNTAX
       shell.reports.query(session, argv)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-* arguments.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-* arguments.
 
 DESCRIPTION
       This is a 'list' type report.

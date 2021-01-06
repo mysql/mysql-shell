@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -609,35 +609,43 @@ void Dba::init() {
   add_property("session");
 
   // Pure functions
-  expose("createCluster", &Dba::create_cluster, "clusterName", "?options");
+  expose("createCluster", &Dba::create_cluster, "name", "?options")->cli();
 
-  expose("getCluster", &Dba::get_cluster, "?clusterName", "?options");
-  expose("dropMetadataSchema", &Dba::drop_metadata_schema, "?options");
+  expose("getCluster", &Dba::get_cluster, "?name", "?options")->cli(false);
+  expose("dropMetadataSchema", &Dba::drop_metadata_schema, "?options")->cli();
   expose("checkInstanceConfiguration", &Dba::check_instance_configuration,
-         "?instanceDef", "?options");
+         "?instance", "?options")
+      ->cli();
   expose("deploySandboxInstance", &Dba::deploy_sandbox_instance, "port",
-         "?options");
+         "?options")
+      ->cli();
   // TODO(rennox): The sandbox operations must be moved to export() and the
   // correct option definitions must be added just as the deploy operation
   expose("startSandboxInstance", &Dba::start_sandbox_instance, "port",
-         "?options");
-  expose("stopSandboxInstance", &Dba::stop_sandbox_instance, "port",
-         "?options");
+         "?options")
+      ->cli();
+  expose("stopSandboxInstance", &Dba::stop_sandbox_instance, "port", "?options")
+      ->cli();
   expose("deleteSandboxInstance", &Dba::delete_sandbox_instance, "port",
-         "?options");
-  expose("killSandboxInstance", &Dba::kill_sandbox_instance, "port",
-         "?options");
+         "?options")
+      ->cli();
+  expose("killSandboxInstance", &Dba::kill_sandbox_instance, "port", "?options")
+      ->cli();
   expose("rebootClusterFromCompleteOutage",
-         &Dba::reboot_cluster_from_complete_outage, "?clusterName", "?options");
-  expose("upgradeMetadata", &Dba::upgrade_metadata, "?options");
-  expose("configureLocalInstance", &Dba::configure_local_instance,
-         "?instanceDef", "?options");
-  expose("configureInstance", &Dba::configure_instance, "?instanceDef",
-         "?options");
+         &Dba::reboot_cluster_from_complete_outage, "?clusterName", "?options")
+      ->cli();
+  expose("upgradeMetadata", &Dba::upgrade_metadata, "?options")->cli();
+  expose("configureLocalInstance", &Dba::configure_local_instance, "?instance",
+         "?options")
+      ->cli();
+  expose("configureInstance", &Dba::configure_instance, "?instance", "?options")
+      ->cli();
   expose("configureReplicaSetInstance", &Dba::configure_replica_set_instance,
-         "?instanceDef", "?options");
-  expose("createReplicaSet", &Dba::create_replica_set, "name", "?options");
-  expose("getReplicaSet", &Dba::get_replica_set);
+         "?instance", "?options")
+      ->cli();
+  expose("createReplicaSet", &Dba::create_replica_set, "name", "?options")
+      ->cli();
+  expose("getReplicaSet", &Dba::get_replica_set)->cli(false);
 }
 
 void Dba::set_member(const std::string &prop, shcore::Value value) {

@@ -15,9 +15,9 @@ function print_metadata_replicasets_topology_type(session) {
 // In order to support defining such wide-group configuration changes, the
 // AdminAPI was extended by with three new commands:
 //
-// Cluster.switchToSinglePrimaryMode([instanceDef])
+// Cluster.switchToSinglePrimaryMode([instance])
 // Cluster.switchToMultiPrimaryMode()
-// Cluster.setPrimaryInstance(instanceDef)
+// Cluster.setPrimaryInstance(instance)
 //
 
 // Let "group configuration functions" be:

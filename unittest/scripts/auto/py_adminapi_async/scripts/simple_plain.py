@@ -14,12 +14,12 @@ testutil.snapshot_sandbox_conf(port=__mysql_sandbox_port3)
 shell.options.useWizards = False
 
 #@ configure_replica_set_instance + create admin user
-dba.configure_replica_set_instance(instanceDef=__sandbox_uri1, options={"clusterAdmin":"admin", "clusterAdminPassword":"bla"})
+dba.configure_replica_set_instance(instance=__sandbox_uri1, options={"clusterAdmin":"admin", "clusterAdminPassword":"bla"})
 testutil.restart_sandbox(port=__mysql_sandbox_port1)
 
 #@ configure_replica_set_instance
-dba.configure_replica_set_instance(instanceDef=__sandbox_uri2, options={"clusterAdmin":"admin", "clusterAdminPassword":"bla"})
-dba.configure_replica_set_instance(instanceDef=__sandbox_uri3, options={"clusterAdmin":"admin", "clusterAdminPassword":"bla"})
+dba.configure_replica_set_instance(instance=__sandbox_uri2, options={"clusterAdmin":"admin", "clusterAdminPassword":"bla"})
+dba.configure_replica_set_instance(instance=__sandbox_uri3, options={"clusterAdmin":"admin", "clusterAdminPassword":"bla"})
 
 #@ create_replica_set
 shell.connect(connectionData=__sandbox_uri1)
@@ -36,21 +36,21 @@ rs.disconnect()
 rs = dba.get_replica_set()
 
 #@<> add_instance using clone recovery {VER(>=8.0.17)}
-rs.add_instance(instanceDef=__sandbox_uri2, options={"recoveryMethod":'clone'})
+rs.add_instance(instance=__sandbox_uri2, options={"recoveryMethod":'clone'})
 
 #@<> add_instance using incremental recovery {VER(<8.0.17)}
-rs.add_instance(instanceDef=__sandbox_uri2, options={"recoveryMethod":'incremental'})
+rs.add_instance(instance=__sandbox_uri2, options={"recoveryMethod":'incremental'})
 
 #@<> add_instance 3
-rs.add_instance(instanceDef=__sandbox_uri3, options={"recoveryMethod":'incremental'})
+rs.add_instance(instance=__sandbox_uri3, options={"recoveryMethod":'incremental'})
 
 #@ remove_instance
-rs.remove_instance(instanceDef=__sandbox_uri2)
+rs.remove_instance(instance=__sandbox_uri2)
 
-rs.add_instance(instanceDef=__sandbox_uri2, options={"recoveryMethod":'incremental'})
+rs.add_instance(instance=__sandbox_uri2, options={"recoveryMethod":'incremental'})
 
 #@ set_primary_instance
-rs.set_primary_instance(instanceDef=__sandbox_uri3)
+rs.set_primary_instance(instance=__sandbox_uri3)
 
 #@ force_primary_instance (prepare)
 testutil.stop_sandbox(port=__mysql_sandbox_port3, options={"wait":1})
@@ -59,7 +59,7 @@ rs = dba.get_replica_set()
 rs.status()
 
 #@ force_primary_instance
-rs.force_primary_instance(instanceDef=__sandbox_uri1)
+rs.force_primary_instance(instance=__sandbox_uri1)
 
 # rejoinInstance
 testutil.start_sandbox(port=__mysql_sandbox_port3)

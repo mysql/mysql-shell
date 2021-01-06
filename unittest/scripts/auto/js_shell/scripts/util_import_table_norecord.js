@@ -14,6 +14,11 @@ function compute_crc(schema, table, columns) {
     return session.runSql("SELECT @crc;").fetchOne()[0];
 }
 
+function callMysqlsh(command_line_args) {
+    return testutil.callMysqlsh(command_line_args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+}
+
+
 //@<> Throw if session is empty
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/world_x_cities.dump', { table: 'cities' });
@@ -62,7 +67,7 @@ session.runSql('SET GLOBAL local_infile = true');
 /// TSF1_2:
 /// Validate that the load data operation is done using the session created
 /// through the command line for method util.importTable
-var rc = testutil.callMysqlsh([uri, '--schema=' + target_schema, '--', 'util', 'import-table', __import_data_path + '/world_x_cities.dump', '--table=cities']);
+var rc = callMysqlsh([uri, '--schema=' + target_schema, '--', 'util', 'import-table', __import_data_path + '/world_x_cities.dump', '--table=cities']);
 EXPECT_EQ(0, rc);
 EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/world_x_cities.dump") + "' (209.75 KB) was imported in ");
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".cities: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0");
@@ -182,10 +187,14 @@ EXPECT_STDOUT_CONTAINS("File '" + filename_for_output(__import_data_path + "/pri
 EXPECT_STDOUT_CONTAINS("Total rows affected in " + target_schema + ".document_store: Records: 25359  Deleted: 0  Skipped: 0  Warnings: 0");
 
 WIPE_OUTPUT();
-util.importTable(__import_data_path + '/primer-dataset-id.json', {
-    schema: target_schema, table: 'document_store',
-    columns: ['doc'], dialect: 'json', bytesPerChunk: '20M'
-});
+var rc = callMysqlsh([uri,
+    '--schema=' + target_schema,
+    '--', 'util', 'import-table',
+    __import_data_path + '/primer-dataset-id.json',
+    '--table=document_store',
+    '--columns=doc',
+    '--dialect=json',
+    '--bytesPerChunk=20M'])
 
 keyname = testutil.versionCheck(__version, '<', '8.0.19') ? `'PRIMARY'` : `'document_store.PRIMARY'`;
 
@@ -259,29 +268,17 @@ session.runSql("CREATE TABLE IF NOT EXISTS `t_lob` ("+
     "`c12` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin"+
   ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-util.importTable(__import_data_path + '/xtest.t_lob.tsv', {
-    schema: target_schema, table: 't_lob',
-    "columns": [
-        "c1",
-        "c2",
-        "c3",
-        "c4",
-        "c5",
-        "c6",
-        "c7",
-        "c8",
-        "c9",
-        "c10",
-        "c11",
-        "c12"
-    ],
-    decodeColumns: {
-        "c1": "UNHEX",
-        "c2": "UNHEX",
-        "c3": "UNHEX",
-        "c4": "UNHEX"
-    }
-});
+var rc = callMysqlsh([uri,
+    '--schema=' + target_schema,
+    '--', 'util', 'import-table',
+    __import_data_path + '/xtest.t_lob.tsv',
+    '--table=t_lob',
+    '--columns=c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12',
+    '--decodeColumns=c1=UNHEX',
+    '--decodeColumns=c2=UNHEX',
+    '--decodeColumns=c3=UNHEX',
+    '--decodeColumns=c4=UNHEX'])
+
 
 //@<OUT> dump blob data
 shell.dumpRows(session.runSql("SELECT md5(c1), md5(c2), md5(c3), md5(c4), md5(c5), md5(c6), md5(c7), md5(c8), md5(c9), md5(c10), md5(c11), md5(c12) FROM "+target_schema+".t_lob"), "tabbed");
@@ -290,7 +287,14 @@ shell.dumpRows(session.runSql("SELECT md5(c1), md5(c2), md5(c3), md5(c4), md5(c5
 session.runSql("create table cities_latin2(id integer primary key, name text) CHARACTER SET = latin2")
 
 //@<OUT> Import to table with utf8 character set
-util.importTable(__import_data_path + '/cities_pl_utf8.dump', {table:'cities_latin2', characterSet: 'utf8mb4'})
+
+var rc = callMysqlsh([uri,
+    '--schema=' + target_schema,
+    '--', 'util', 'import-table',
+    __import_data_path + '/cities_pl_utf8.dump',
+    '--table=cities_latin2',
+    '--character-set=utf8mb4'])
+
 shell.dumpRows(session.runSql('select hex(id), hex(name) from cities_latin2'), "tabbed")
 session.runSql("truncate table cities_latin2")
 
@@ -498,7 +502,7 @@ EXPECT_THROWS(function () {
             "mul": ")@1 * @2"
         }
     });
-}, "Util.importTable: Invalid SQL expression in decodeColumns option for column 'mul'");
+}, "Util.importTable: Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
 
 //@<> Invalid brackets in transformations
 EXPECT_THROWS(function () {
@@ -518,7 +522,7 @@ EXPECT_THROWS(function () {
             "mul": "@1 * @2\""
         }
     });
-}, "Util.importTable: Invalid SQL expression in decodeColumns option for column 'mul'");
+}, "Util.importTable: Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
 
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/numbers.tsv', {
@@ -537,7 +541,7 @@ EXPECT_THROWS(function () {
             "mul": "(@1 * @2))"
         }
     });
-}, "Util.importTable: Invalid SQL expression in decodeColumns option for column 'mul'");
+}, "Util.importTable: Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
 
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/numbers.tsv', {
@@ -556,7 +560,7 @@ EXPECT_THROWS(function () {
             "mul": "@1 * ((@2)"
         }
     });
-}, "Util.importTable: Invalid SQL expression in decodeColumns option for column 'mul'");
+}, "Util.importTable: Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
 
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/numbers.tsv', {
@@ -575,7 +579,7 @@ EXPECT_THROWS(function () {
             "mul": "@1 * @2\"\\"
         }
     });
-}, "Util.importTable: Invalid SQL expression in decodeColumns option for column 'mul'");
+}, "Util.importTable: Argument #2: Invalid SQL expression in decodeColumns option for column 'mul'");
 
 //@<> boolean operators in preprocessing transformations
 session.runSql("CREATE TABLE IF NOT EXISTS `t_bools` ("+

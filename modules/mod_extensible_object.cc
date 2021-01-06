@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -417,6 +417,8 @@ void Extensible_object::register_object(
 
   object->m_parent = shared_from_this();
 
+  if (object->cli_enabled()) enable_cli();
+
   m_children.emplace(object->m_definition->name, object);
 
   add_property(object->m_definition->name);
@@ -476,6 +478,7 @@ Extensible_object::parse_function_definition(
     unpacker.optional("parameters", &params);
     unpacker.optional("brief", &def->brief);
     unpacker.optional("details", &def->details);
+    unpacker.optional("cli", &def->cli_enabled);
     unpacker.end("at function definition");
   }
 
@@ -509,7 +512,10 @@ void Extensible_object::register_function(
 
   validate_function(definition);
 
-  expose(definition->name, function, to_raw_signature(definition->parameters));
+  expose(definition->name, function, to_raw_signature(definition->parameters))
+      ->cli(definition->cli_enabled);
+
+  if (definition->cli_enabled) enable_cli();
 
   if (is_registered())
     register_function_help(definition);
@@ -615,12 +621,20 @@ std::shared_ptr<Parameter_definition> Extensible_object::parse_parameter(
   } else {
     param->set_type(shcore::Value_type::Undefined);
   }
+  param->cmd_line_enabled = true;
 
   if (param->type() == shcore::Value_type::String) {
     std::vector<std::string> allowed;
     unpacker.optional("values", &allowed);
     param->validator<shcore::String_validator>()->set_allowed(
         std::move(allowed));
+  }
+
+  if (param->type() == shcore::Value_type::Array) {
+    std::string itemtype;
+    unpacker.optional("itemtype", &itemtype);
+    param->validator<shcore::List_validator>()->set_element_type(
+        map_type(itemtype, kAllowedParamTypes));
   }
 
   if (param->type() == shcore::Value_type::Object) {
@@ -892,17 +906,25 @@ void Extensible_object::get_param_help_brief(
 
   param_help += param->name;
 
-  if (as_parameter && !param_definition.is_required())
-    param_help += " Optional";
-  else if (!as_parameter && param_definition.is_required())
-    param_help += " (required)";
-
-  if (param->type() != shcore::Value_type::Undefined) {
-    param_help += " " + to_string(param->type()) + ".";
+  if (!as_parameter) {
+    param_help += ":";
+  } else {
+    if (!param_definition.is_required()) param_help += " Optional";
   }
 
-  if (!param_definition.brief.empty())
+  size_t help_size = param_help.size();
+  if (param->type() != shcore::Value_type::Undefined)
+    param_help += " " + to_string(param->type());
+
+  if (!as_parameter && param_definition.is_required())
+    param_help += " (required)";
+
+  if (!param_definition.brief.empty()) {
+    if (param_help.size() > help_size) param_help.append(" -");
     param_help.append(" " + param_definition.brief);
+  }
+
+  if (!shcore::str_endswith(param_help, ".")) param_help.append(".");
 
   target->emplace_back(std::move(param_help));
 }

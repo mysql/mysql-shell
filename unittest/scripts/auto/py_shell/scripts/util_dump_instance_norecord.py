@@ -668,7 +668,7 @@ EXPECT_EQ(os.getuid(), os.stat(test_output_absolute).st_uid)
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
 os.mkdir(test_output_absolute)
-util.dump_instance(test_output_absolute, { "excludeSchemas": exclude_all_but_types_schema, "ddlOnly": True, "showProgress": False })
+testutil.call_mysqlsh([uri, "--", "util", "dump-instance", test_output_absolute, "--exclude-schemas=" + ','.join(exclude_all_but_types_schema), "--ddl-only", "--show-progress=false"])
 EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
 
 #@<> dump once again to the same directory, should fail
@@ -823,15 +823,26 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": True, "dd
 # * The current throughput in bytes written per second.
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
-rc = testutil.call_mysqlsh([uri, "--py", "-e", 'util.dump_instance("' + test_output_relative + '", { "showProgress": True })'])
+rc = testutil.call_mysqlsh([uri, "--", "util", "dump-instance", test_output_relative, "--showProgress", "true"])
 EXPECT_EQ(0, rc)
 EXPECT_TRUE(os.path.isdir(test_output_absolute))
+EXPECT_STDOUT_MATCHES(re.compile(r'\d+ thds dumping - \d+% \(\d+\.?\d*[TGMK]? rows / ~\d+\.?\d*[TGMK]? rows\), \d+\.?\d*[TGMK]? rows?/s, \d+\.?\d* [TGMK]?B/s', re.MULTILINE))
+
+#@<> Bug #31829337 - IMPROVE USABILITY OF DUMP OPERATIONS IN CLI: LIST PARAMETERS NOT SUPPORTED
+shutil.rmtree(test_output_absolute, True)
+EXPECT_FALSE(os.path.isdir(test_output_absolute))
+rc = testutil.call_mysqlsh([uri, "--", "util", "dump-instance", test_output_relative, "--showProgress", "true", "--excludeTables=xtest.t_decimal1,xtest.t_decimal3", "--chunking=false"])
+EXPECT_EQ(0, rc)
+EXPECT_TRUE(os.path.isdir(test_output_absolute))
+EXPECT_STDOUT_NOT_CONTAINS("Data dump for table `xtest`.`t_decimal1` will be written to 1 file")
+EXPECT_STDOUT_CONTAINS("Data dump for table `xtest`.`t_decimal2` will be written to 1 file")
+EXPECT_STDOUT_NOT_CONTAINS("Data dump for table `xtest`.`t_decimal3` will be written to 1 file")
 EXPECT_STDOUT_MATCHES(re.compile(r'\d+ thds dumping - \d+% \(\d+\.?\d*[TGMK]? rows / ~\d+\.?\d*[TGMK]? rows\), \d+\.?\d*[TGMK]? rows?/s, \d+\.?\d* [TGMK]?B/s', re.MULTILINE))
 
 #@<> WL13807: WL13804-FR5.2.2 - If the `showProgress` option is not given, a default value of `true` must be used instead if shell is used interactively. Otherwise, it is set to `false`.
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
-rc = testutil.call_mysqlsh([uri, "--py", "-e", 'util.dump_instance("' + test_output_relative + '")'])
+rc = testutil.call_mysqlsh([uri, "--", "util", "dump-instance", test_output_relative])
 EXPECT_EQ(0, rc)
 EXPECT_TRUE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_NOT_CONTAINS("rows/s")
@@ -1048,7 +1059,7 @@ TEST_BOOL_OPTION("dryRun")
 # WL13807-TSFR4_27
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
-util.dump_instance(test_output_absolute, { "dryRun": True, "showProgress": False })
+testutil.call_mysqlsh([uri, "--", "util", "dump-instance", test_output_absolute, "--dry-run", "--show-progress=false"])
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_NOT_CONTAINS("Schemas dumped: ")
 

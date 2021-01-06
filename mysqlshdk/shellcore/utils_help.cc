@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,7 @@
 
 #include "shellcore/utils_help.h"
 #include <cctype>
+#include <regex>
 #include <vector>
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -55,6 +56,139 @@
 namespace textui = mysqlshdk::textui;
 
 namespace shcore {
+namespace {
+/**
+ * This regular expression is to parse the help data for the options to be used
+ * in the CLI help. Formatting of option help comes in the following format:
+ *
+ * @li [<b>]<option>[/b>]: [<type>|<allowed_values>[(default[:] <default>)] - ]
+ *<description>
+ *
+ * This regular expression identifies the different tokens in order to:
+ * - Remove documented default from CLI help (it is taken from API metadata)
+ * - Produce a CLI formatted description as:
+ *   [<allowed_values>.] <description>.[ Default: <default>.]
+ **/
+const std::regex k_cli_option_help_regexp(
+    "^@li\\s(<b>)?([a-z|A-Z|_][a-z|A-Z|_|0-9]+)(<\\/"
+    "b>)?(:\\s|\\s-\\s)((([a-z|A-Z|\\s]+)(\\s\\([default|required]*(.*)\\))?"
+    "\\s-\\s)?(.*))$");
+
+std::map<std::string, std::string> parse_cli_option_data(
+    const std::vector<std::string> &data) {
+  std::map<std::string, std::string> options;
+
+  for (const auto &entry : data) {
+    std::smatch results;
+    if (std::regex_match(entry, results, k_cli_option_help_regexp)) {
+      // Result 6 indicates type description was found
+      if (results[6].matched) {
+        std::string full_details;
+        auto type_tokens = shcore::str_split(results[7], " ");
+        // Type description found, should be ignored.
+        if (type_tokens.size() == 1 ||
+            shcore::str_caseeq(type_tokens[0], "array") ||
+            shcore::str_caseeq(type_tokens[0], "list")) {
+          // NO-OP (Let here for clarity)
+        } else {
+          // Allowed values found, they are the first part of the description.
+          full_details = results[7];
+          full_details.append(". ");
+        }
+
+        if (results[8].matched && results[8] == "(required)") {
+          full_details.append("Required. ");
+        }
+
+        // Appends the description.
+        std::string details = results[10];
+        if (!details.empty()) details[0] = std::toupper(details[0]);
+
+        // Appends the default/required data.
+        full_details.append(details);
+        if (results[9].matched) {
+          full_details.append(" Default: ");
+          std::string def_val = results[9];
+          if (def_val[0] == ':') def_val = def_val.substr(1);
+          def_val = shcore::str_strip(def_val);
+          full_details.append(def_val + ".");
+        }
+        options[results[2]] = full_details;
+      } else {
+        // Appends the description.
+        std::string details = results[5];
+        if (!details.empty()) details[0] = std::toupper(details[0]);
+        options[results[2]] = details;
+      }
+    }
+  }
+  return options;
+}
+
+std::string get_cli_param_type(shcore::Value_type type) {
+  switch (type) {
+    case shcore::Value_type::Bool:
+      return "bool";
+    case shcore::Value_type::Float:
+      return "float";
+    case shcore::Value_type::Integer:
+      return "int";
+    case shcore::Value_type::UInteger:
+      return "uint";
+    case shcore::Value_type::String:
+      return "str";
+    case shcore::Value_type::Array:
+      return "list";
+    default:
+      return "";
+  }
+}
+
+std::string format_cli_option(const std::shared_ptr<Parameter> &option) {
+  std::string option_detail;
+  if (!option->short_name.empty())
+    option_detail = "-" + option->short_name + ", ";
+  option_detail.append("--" + option->name);
+
+  if (option->type() == shcore::Array) {
+    auto validator = option->validator<List_validator>();
+    if (validator->element_type() == shcore::Undefined) {
+      option_detail += "[:<type>]=<value>";
+    } else {
+      option_detail += "=<" + get_cli_param_type(validator->element_type()) +
+                       " " + get_cli_param_type(option->type()) + ">";
+    }
+  } else if (option->type() == shcore::Map) {
+    option_detail += "=<key>[:<type>]=<value>";
+  } else if (option->type() == shcore::Undefined) {
+    option_detail += "[:<type>]=<value>";
+  } else {
+    option_detail += "=<" + get_cli_param_type(option->type()) + ">";
+  }
+
+  return option_detail;
+}
+
+std::string strip_param_type(const std::string &input) {
+  std::string ret_val{input};
+
+  auto pos = input.find(" - ");
+  if (pos != std::string::npos) {
+    auto type = input.substr(0, pos);
+
+    std::string allowed_types =
+        "DictionaryBoolIntegerUIntegerFloatStringObjectArrayMapFunctionUndefine"
+        "dNull";
+
+    if (allowed_types.find(type) != std::string::npos) {
+      ret_val = ret_val.substr(pos + 3);
+      ret_val[0] = std::toupper(ret_val[0]);
+    }
+  }
+  return ret_val;
+}
+
+}  // namespace
 using Mode_mask = shcore::IShell_core::Mode_mask;
 
 bool Help_topic_compare::operator()(Help_topic *const &lhs,
@@ -998,7 +1132,7 @@ Help_manager::parse_function_parameters(
       }
 
       // Updates parameter names to reflect the optional attribute on the
-      // signature Removed the optionsl word from the description
+      // signature Removed the options word from the description
       if (shcore::str_caseeq(first_word, HELP_OPTIONAL_STR)) {
         if (fpnames.empty()) {
           fpnames.push_back("[" + pname + "]");  // First creates: [pname]
@@ -1024,8 +1158,9 @@ Help_manager::parse_function_parameters(
   return pdata;
 }
 
-void Help_manager::add_simple_function_help(
-    const Help_topic &function, std::vector<std::string> *sections) {
+void Help_manager::add_simple_function_help(const Help_topic &function,
+                                            std::vector<std::string> *sections,
+                                            cli::Shell_cli_mapper *cli) {
   std::string name = function.get_base_name();
   Help_topic *parent = function.m_parent;
 
@@ -1033,22 +1168,27 @@ void Help_manager::add_simple_function_help(
   std::string display_name = function.get_name(m_mode);
   std::string syntax =
       textui::bold(HELP_TITLE_SYNTAX) + HEADER_CONTENT_SEPARATOR;
+
   std::string fsyntax;
 
-  if (parent->is_api()) {
-    if (parent->is_class()) {
-      fsyntax += "<" + parent->m_name + ">." + textui::bold(display_name);
-    } else {
-      std::string parent_name =
-          function.m_parent->get_id(m_mode, Topic_id_mode::EXCLUDE_CATEGORIES);
-      fsyntax += parent_name + HELP_API_SPLITTER + textui::bold(display_name);
-    }
+  if (cli) {
+    fsyntax = shcore::str_join(cli->get_object_chain(), " ") + " " +
+              textui::bold(shcore::from_camel_case_to_dashes(name));
   } else {
-    fsyntax += textui::bold(display_name);
+    if (parent->is_api()) {
+      if (parent->is_class()) {
+        fsyntax += "<" + parent->m_name + ">." + textui::bold(display_name);
+      } else {
+        std::string parent_name = function.m_parent->get_id(
+            m_mode, Topic_id_mode::EXCLUDE_CATEGORIES);
+        fsyntax += parent_name + HELP_API_SPLITTER + textui::bold(display_name);
+      }
+    } else {
+      fsyntax += textui::bold(display_name);
+    }
   }
-
   // Gets the function signature
-  std::string signature = get_signature(function);
+  std::string signature = get_signature(function, cli);
 
   // Ellipsis indicates the function is overloaded
   std::vector<std::string> signatures;
@@ -1065,8 +1205,8 @@ void Help_manager::add_simple_function_help(
                                        SECTION_PADDING, false);
   sections->push_back(syntax);
 
-  if (signature != "()") {
-    std::vector<std::pair<std::string, std::string>> pdata;
+  std::vector<std::pair<std::string, std::string>> pdata;
+  if (signature != "()" || (cli && !signature.empty())) {
     auto params = resolve_help_text(*parent, name + "_PARAM");
 
     pdata = parse_function_parameters(params);
@@ -1078,20 +1218,25 @@ void Help_manager::add_simple_function_help(
 
       size_t index;
       for (index = 0; index < params.size(); index++) {
-        // Padding includes two spaces at the beggining, colon and space at the
-        // end like:"  name: "<description>.
-        size_t desc_padding = SECTION_PADDING;
-        desc_padding += pdata[index].first.size() + 2;
-        std::vector<std::string> data = {pdata[index].second};
+        // for CLI only anonymous parameters get explained on the WHERE section,
+        // the rest (the options) will be explained on the OPTIONS section
+        if (!cli || !cli->has_argument_options(pdata[index].first) ||
+            cli->metadata()->param_codes[index] == 'C') {
+          // Padding includes two spaces at the beggining, colon and space at
+          // the end like:"  name: "<description>.
+          size_t desc_padding = SECTION_PADDING;
+          desc_padding += pdata[index].first.size() + 2;
+          std::vector<std::string> data = {pdata[index].second};
 
-        std::string desc =
-            format_help_text(&data, MAX_HELP_WIDTH, desc_padding, true);
+          std::string desc =
+              format_help_text(&data, MAX_HELP_WIDTH, desc_padding, true);
 
-        if (!desc.empty()) {
-          desc.replace(SECTION_PADDING, pdata[index].first.size() + 1,
-                       pdata[index].first + ":");
+          if (!desc.empty()) {
+            desc.replace(SECTION_PADDING, pdata[index].first.size() + 1,
+                         pdata[index].first + ":");
 
-          where_items.push_back(desc);
+            where_items.push_back(desc);
+          }
         }
       }
 
@@ -1111,36 +1256,80 @@ void Help_manager::add_simple_function_help(
     sections->push_back(ret);
   }
 
-  // Description
-  add_member_section(HELP_TITLE_DESCRIPTION, name + "_DETAIL", *parent,
-                     sections, SECTION_PADDING);
+  if (cli) {
+    add_cli_options_section(name + "_DETAIL", *parent, pdata, sections,
+                            SECTION_PADDING, cli);
+  } else {
+    // Description
+    add_member_section(HELP_TITLE_DESCRIPTION, name + "_DETAIL", *parent,
+                       sections, SECTION_PADDING);
 
-  // Exceptions
-  add_member_section("EXCEPTIONS", name + "_THROWS", *parent, sections,
-                     SECTION_PADDING);
-
-  add_examples_section(parent->m_name + "_" + name + "_EXAMPLE", sections,
+    // Exceptions
+    add_member_section("EXCEPTIONS", name + "_THROWS", *parent, sections,
                        SECTION_PADDING);
+
+    add_examples_section(parent->m_name + "_" + name + "_EXAMPLE", sections,
+                         SECTION_PADDING);
+  }
 }
 
-std::string Help_manager::get_signature(const Help_topic &function) {
+std::string Help_manager::get_signature(const Help_topic &function,
+                                        cli::Shell_cli_mapper *cli) {
   std::string signature;
   Help_topic *parent = function.m_parent;
   std::string name = function.get_base_name();
   std::vector<std::string> signatures;
 
-  signatures = resolve_help_text(*parent, name + "_SIGNATURE");
+  if (cli) {
+    for (size_t index = 0; index < cli->metadata()->param_codes.size();
+         index++) {
+      std::string param_signature;
 
-  if (signatures.empty()) {
-    std::vector<std::string> params;
-    // No signatures, we create it using the defined parameters
-    params = resolve_help_text(*parent, name + "_PARAM");
+      const auto &param = cli->metadata()->signature[index];
 
-    parse_function_parameters(params, &signature);
-  } else if (signatures.size() > 1) {
-    signature = "(...)";
+      if (cli->metadata()->param_codes[index] == 'C' ||
+          cli->metadata()->param_codes[index] == 'D' ||
+          !cli->has_argument_options(param->name)) {
+        param_signature = "<" + param->name + ">";
+      } else if (cli->metadata()->param_codes[index] == 'A') {
+        param_signature = "--" + param->name;
+        auto validator = param->validator<List_validator>();
+        if (validator->element_type() == shcore::Value_type::Undefined) {
+          param_signature.append("[:<type>]=<value>...");
+        } else {
+          param_signature.append("=<" + get_cli_param_type(param->type()) +
+                                 " list>...");
+        }
+      } else {
+        param_signature = "--" + param->name;
+        if (param->type() == shcore::Value_type::Undefined) {
+          param_signature.append("[:<type>]=<value>");
+        } else {
+          param_signature.append("=<" + get_cli_param_type(param->type()) +
+                                 ">");
+        }
+      }
+
+      if (param->flag == shcore::Param_flag::Optional) {
+        signature.append(" [" + param_signature + "]");
+      } else {
+        signature.append(" " + param_signature + "");
+      }
+    }
   } else {
-    signature = signatures[0];
+    signatures = resolve_help_text(*parent, name + "_SIGNATURE");
+
+    if (signatures.empty()) {
+      std::vector<std::string> params;
+      // No signatures, we create it using the defined parameters
+      params = resolve_help_text(*parent, name + "_PARAM");
+
+      parse_function_parameters(params, &signature);
+    } else if (signatures.size() > 1) {
+      signature = "(...)";
+    } else {
+      signature = signatures[0];
+    }
   }
 
   return signature;
@@ -1412,14 +1601,17 @@ std::vector<std::string> Help_manager::get_member_brief(Help_topic *member) {
 }
 
 std::string Help_manager::format_member_list(
-    const std::vector<Help_topic *> &topics, size_t lpadding) {
+    const std::vector<Help_topic *> &topics, size_t lpadding,
+    bool do_signatures,
+    std::function<std::string(Help_topic *)> format_name_cb) {
   std::vector<std::string> descriptions;
   for (auto member : topics) {
-    std::string description(SECTION_PADDING, ' ');
-    description += member->get_name(m_mode);
+    std::string description(format_name_cb ? 0 : SECTION_PADDING, ' ');
+    description +=
+        format_name_cb ? format_name_cb(member) : member->get_name(m_mode);
 
     // If it is a function we need to retrieve the signature
-    if (member->is_function()) {
+    if (do_signatures && member->is_function()) {
       std::string name = member->get_base_name();
       auto chain_definition =
           resolve_help_text(*member->m_parent, name + "_CHAINED");
@@ -1443,7 +1635,7 @@ std::string Help_manager::format_member_list(
     // Members could now be objects, briefs need to be retrieved
     // accordingly
     std::vector<std::string> help_text;
-    if (member->is_object())
+    if (member->is_object() || member->is_class())
       help_text = get_topic_brief(member);
     else
       help_text = get_member_brief(member);
@@ -1493,8 +1685,15 @@ void Help_manager::add_childs_section(const std::vector<Help_topic *> &childs,
 }
 
 void Help_manager::add_name_section(const Help_topic &topic,
-                                    std::vector<std::string> *sections) {
-  std::string dname = topic.get_name(m_mode);
+                                    std::vector<std::string> *sections,
+                                    cli::Shell_cli_mapper *cli) {
+  std::string dname;
+  if (cli) {
+    dname = shcore::from_camel_case_to_dashes(topic.get_base_name());
+  } else {
+    dname = topic.get_name(m_mode);
+  }
+
   std::string formatted;
   std::vector<std::string> brief;
 
@@ -1676,9 +1875,73 @@ void Help_manager::add_member_section(const std::string &title,
                                       const Help_topic &parent,
                                       std::vector<std::string> *sections,
                                       size_t padding) {
-  std::vector<std::string> details;
-  details = resolve_help_text(parent, tag);
+  auto details = resolve_help_text(parent, tag);
   add_section_data(title, &details, sections, padding);
+}
+
+void Help_manager::add_cli_options_section(
+    const std::string &tag, const Help_topic &parent,
+    const std::vector<std::pair<std::string, std::string>> &pdata,
+    std::vector<std::string> *sections, size_t padding,
+    cli::Shell_cli_mapper *cli) {
+  if (!cli->options().empty()) {
+    auto option_data = parse_cli_option_data(resolve_help_text(parent, tag));
+    std::vector<std::string> options_details;
+
+    for (size_t index = 0; index < cli->metadata()->signature.size(); index++) {
+      const auto &param = cli->metadata()->signature[index];
+      const auto &param_code = cli->metadata()->param_codes[index];
+
+      // Only parameters with named options
+      if (cli->has_argument_options(param->name)) {
+        if (param_code == 'C') {
+          // NO-OP: Connection options are not being included to avoid making it
+          // spammy.
+        } else if (param_code == 'D') {
+          auto validator = param->validator<Option_validator>();
+          const auto &allowed_list = validator->allowed();
+          for (const auto &allowed : allowed_list) {
+            std::string option_detail = format_cli_option(allowed);
+
+            auto param_data = option_data.find(allowed->name);
+            if (param_data != option_data.end()) {
+              std::vector<std::string> brief{param_data->second};
+              option_detail += "\n";
+              option_detail += format_help_text(
+                  &brief, MAX_HELP_WIDTH, padding + ITEM_DESC_PADDING, true);
+            }
+            options_details.push_back(option_detail);
+          }
+        } else {
+          std::string option_detail = format_cli_option(param);
+
+          for (const auto &param_data : pdata) {
+            if (param_data.first == param->name) {
+              if (!param_data.second.empty()) {
+                std::vector<std::string> brief{param_data.second};
+
+                // The option type is not needed on the description as it is
+                // already displayed in the syntax.
+                brief[0] = strip_param_type(brief[0]);
+                option_detail += "\n";
+                option_detail += format_help_text(
+                    &brief, MAX_HELP_WIDTH, padding + ITEM_DESC_PADDING, true);
+              }
+              break;
+            }
+          }
+          options_details.push_back(option_detail);
+        }
+      }
+    }
+
+    if (!options_details.empty()) {
+      std::string section = mysqlshdk::textui::bold("OPTIONS");
+      section += HEADER_CONTENT_SEPARATOR;
+      section += shcore::str_join(options_details, "\n\n");
+      sections->push_back(section);
+    }
+  }
 }
 
 void Help_manager::add_section(const std::string &title, const std::string &tag,
@@ -1689,19 +1952,20 @@ void Help_manager::add_section(const std::string &title, const std::string &tag,
   add_section_data(title, &details, sections, padding, insert_blank_lines);
 }
 
-std::string Help_manager::format_function_help(const Help_topic &function) {
+std::string Help_manager::format_function_help(const Help_topic &function,
+                                               cli::Shell_cli_mapper *cli) {
   std::string name = function.get_base_name();
   std::vector<std::string> sections;
 
   // Brief Description
-  add_name_section(function, &sections);
+  add_name_section(function, &sections, cli);
 
   auto chain_definition =
       resolve_help_text(*function.m_parent, name + "_CHAINED");
 
   std::string additional_help;
   if (chain_definition.empty()) {
-    add_simple_function_help(function, &sections);
+    add_simple_function_help(function, &sections, cli);
   } else {
     add_chained_function_help(function, &sections);
   }
@@ -1865,7 +2129,8 @@ std::string Help_manager::format_help_text(std::vector<std::string> *lines,
 }
 
 std::string Help_manager::get_help(const Help_topic &topic,
-                                   const Help_options &options) {
+                                   const Help_options &options,
+                                   cli::Shell_cli_mapper *cli) {
   switch (topic.m_type) {
     case Topic_type::CATEGORY:
     case Topic_type::TOPIC:
@@ -1877,7 +2142,7 @@ std::string Help_manager::get_help(const Help_topic &topic,
       return format_object_help(topic, options);
     }
     case Topic_type::FUNCTION: {
-      return format_function_help(topic);
+      return format_function_help(topic, cli);
     }
     case Topic_type::PROPERTY: {
       return format_property_help(topic);

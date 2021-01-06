@@ -641,7 +641,7 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": True, "dd
 # * The current throughput in bytes written per second.
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
-rc = testutil.call_mysqlsh([uri, "--py", "-e", 'util.dump_schemas(["{0}"], "'.format(types_schema) + test_output_relative + '", { "showProgress": True })'])
+rc = testutil.call_mysqlsh([uri, "--", "util", "dump-schemas", types_schema, "--outputUrl", test_output_relative, "--showProgress", "true"])
 EXPECT_EQ(0, rc)
 EXPECT_TRUE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_MATCHES(re.compile(r'\d+ thds dumping - \d+% \(\d+\.?\d*[TGMK]? rows / ~\d+\.?\d*[TGMK]? rows\), \d+\.?\d*[TGMK]? rows?/s, \d+\.?\d* [TGMK]?B/s', re.MULTILINE))
@@ -649,7 +649,7 @@ EXPECT_STDOUT_MATCHES(re.compile(r'\d+ thds dumping - \d+% \(\d+\.?\d*[TGMK]? ro
 #@<> WL13807: WL13804-FR5.2.2 - If the `showProgress` option is not given, a default value of `true` must be used instead if shell is used interactively. Otherwise, it is set to `false`.
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
-rc = testutil.call_mysqlsh([uri, "--py", "-e", 'util.dump_schemas(["{0}"], "'.format(types_schema) + test_output_relative + '")'])
+rc = testutil.call_mysqlsh([uri, "--", "util", "dump-schemas", types_schema, "--outputUrl", test_output_relative])
 EXPECT_EQ(0, rc)
 EXPECT_TRUE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_NOT_CONTAINS("rows/s")

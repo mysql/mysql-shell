@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -172,10 +172,10 @@ Options::Options(std::shared_ptr<mysqlsh::Shell_options> options)
   for (const auto &opt : options->get_named_options())
     add_property(opt + "|" + opt);
 
-  expose("set", &Options::set, "option_name", "value");
-  expose("setPersist", &Options::set_persist, "option_name", "value");
-  expose("unset", &Options::unset, "option_name");
-  expose("unsetPersist", &Options::unset_persist, "option_name");
+  expose("set", &Options::set, "option_name", "value")->cli(false);
+  expose("setPersist", &Options::set_persist, "option_name", "value")->cli();
+  expose("unset", &Options::unset, "option_name")->cli(false);
+  expose("unsetPersist", &Options::unset_persist, "option_name")->cli();
 }
 
 REGISTER_HELP_FUNCTION(set, options);

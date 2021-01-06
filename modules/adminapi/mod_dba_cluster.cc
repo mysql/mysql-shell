@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -98,35 +98,43 @@ bool Cluster::operator==(const Object_bridge &other) const {
 
 void Cluster::init() {
   add_property("name", "getName");
-  expose("addInstance", &Cluster::add_instance, "instanceDef", "?options");
-  expose("rejoinInstance", &Cluster::rejoin_instance, "instanceDef",
-         "?options");
-  expose("removeInstance", &Cluster::remove_instance, "instanceDef",
-         "?options");
-  expose("describe", &Cluster::describe);
-  expose("status", &Cluster::status, "?options");
-  expose("dissolve", &Cluster::dissolve, "?options");
+  expose("addInstance", &Cluster::add_instance, "instance", "?options")->cli();
+  expose("rejoinInstance", &Cluster::rejoin_instance, "instance", "?options")
+      ->cli();
+  expose("removeInstance", &Cluster::remove_instance, "instance", "?options")
+      ->cli();
+  expose("describe", &Cluster::describe)->cli();
+  expose("status", &Cluster::status, "?options")->cli();
+  expose("dissolve", &Cluster::dissolve, "?options")->cli();
   expose("resetRecoveryAccountsPassword",
-         &Cluster::reset_recovery_accounts_password, "?options");
-  expose("checkInstanceState", &Cluster::check_instance_state, "instanceDef");
-  expose("setupAdminAccount", &Cluster::setup_admin_account, "user",
-         "?options");
+         &Cluster::reset_recovery_accounts_password, "?options")
+      ->cli();
+  expose("checkInstanceState", &Cluster::check_instance_state, "instance")
+      ->cli();
+  expose("setupAdminAccount", &Cluster::setup_admin_account, "user", "?options")
+      ->cli();
   expose("setupRouterAccount", &Cluster::setup_router_account, "user",
-         "?options");
-  expose("rescan", &Cluster::rescan, "?options");
+         "?options")
+      ->cli();
+  expose("rescan", &Cluster::rescan, "?options")->cli();
   expose("forceQuorumUsingPartitionOf",
-         &Cluster::force_quorum_using_partition_of, "instanceDef", "?password");
-  expose("disconnect", &Cluster::disconnect);
+         &Cluster::force_quorum_using_partition_of, "instance", "?password")
+      ->cli();
+  expose("disconnect", &Cluster::disconnect)->cli(false);
   expose("switchToSinglePrimaryMode", &Cluster::switch_to_single_primary_mode,
-         "?instanceDef");
+         "?instance")
+      ->cli();
   expose("switchToMultiPrimaryMode", &Cluster::switch_to_multi_primary_mode);
-  expose("setPrimaryInstance", &Cluster::set_primary_instance, "instanceDef");
-  expose("options", &Cluster::options, "?options");
-  expose("setOption", &Cluster::set_option, "option", "value");
-  expose("setInstanceOption", &Cluster::set_instance_option, "instanceDef",
-         "option", "value");
-  expose("listRouters", &Cluster::list_routers, "?options");
-  expose("removeRouterMetadata", &Cluster::remove_router_metadata, "routerDef");
+  expose("setPrimaryInstance", &Cluster::set_primary_instance, "instance")
+      ->cli();
+  expose("options", &Cluster::options, "?options")->cli();
+  expose("setOption", &Cluster::set_option, "option", "value")->cli();
+  expose("setInstanceOption", &Cluster::set_instance_option, "instance",
+         "option", "value")
+      ->cli();
+  expose("listRouters", &Cluster::list_routers, "?options")->cli();
+  expose("removeRouterMetadata", &Cluster::remove_router_metadata, "router")
+      ->cli();
 }
 
 // Documentation of the getName function

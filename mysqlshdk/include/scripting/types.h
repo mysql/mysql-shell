@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -381,6 +381,14 @@ inline Dictionary_t make_dict(K &&key, V &&value, Arg &&... args) {
 }
 
 inline Array_t make_array() { return std::make_shared<Value::Array_type>(); }
+
+template <typename... Arg>
+inline Array_t make_array(Arg &&... args) {
+  auto array = make_array();
+  (void)std::initializer_list<int>{
+      (array->emplace_back(std::forward<Arg>(args)), 0)...};
+  return array;
+}
 
 class SHCORE_PUBLIC Exception : public shcore::Error {
   std::shared_ptr<Value::Map_type> _error;

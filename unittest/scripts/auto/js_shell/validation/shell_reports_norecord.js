@@ -845,7 +845,7 @@ SYNTAX
       shell.reports.ths_list_no_options_no_arguments(session)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
+      session: Object - A Session object to be used to execute the report.
 
 DESCRIPTION
       This is a 'list' type report.
@@ -863,9 +863,9 @@ SYNTAX
       shell.reports.ths_list_options_no_arguments(session, argv, options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 0 arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 0 arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'list' type report.
@@ -874,11 +874,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -896,8 +896,8 @@ SYNTAX
       shell.reports.ths_list_no_options_one_argument(session, argv)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1 argument.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1 argument.
 
 DESCRIPTION
       This is a 'list' type report.
@@ -915,8 +915,8 @@ SYNTAX
       shell.reports.ths_list_no_options_unbound_arguments(session[, argv])
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects any number of arguments.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects any number of arguments.
 
 DESCRIPTION
       This is a 'list' type report.
@@ -934,8 +934,8 @@ SYNTAX
       shell.reports.ths_list_no_options_range_of_arguments(session, argv)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-2 arguments.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-2 arguments.
 
 DESCRIPTION
       This is a 'list' type report.
@@ -954,8 +954,8 @@ SYNTAX
       argv)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-* arguments.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-* arguments.
 
 DESCRIPTION
       This is a 'list' type report.
@@ -973,9 +973,9 @@ SYNTAX
       shell.reports.ths_list_options_one_argument(session, argv, options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1 argument.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1 argument.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'list' type report.
@@ -984,11 +984,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1006,9 +1006,9 @@ SYNTAX
       shell.reports.ths_list_options_unbound_arguments(session, argv, options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects any number of arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects any number of arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'list' type report.
@@ -1017,11 +1017,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1039,9 +1039,9 @@ SYNTAX
       shell.reports.ths_list_options_range_of_arguments(session, argv, options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-2 arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-2 arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'list' type report.
@@ -1050,11 +1050,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1073,9 +1073,9 @@ SYNTAX
       options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-2 arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-2 arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'list' type report.
@@ -1086,11 +1086,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1109,9 +1109,9 @@ SYNTAX
       options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-* arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-* arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'list' type report.
@@ -1120,11 +1120,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1142,7 +1142,7 @@ SYNTAX
       shell.reports.ths_report_no_options_no_arguments(session)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
+      session: Object - A Session object to be used to execute the report.
 
 DESCRIPTION
       This is a 'report' type report.
@@ -1160,9 +1160,9 @@ SYNTAX
       shell.reports.ths_report_options_no_arguments(session, argv, options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 0 arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 0 arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'report' type report.
@@ -1171,11 +1171,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1193,8 +1193,8 @@ SYNTAX
       shell.reports.ths_report_no_options_one_argument(session, argv)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1 argument.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1 argument.
 
 DESCRIPTION
       This is a 'report' type report.
@@ -1212,8 +1212,8 @@ SYNTAX
       shell.reports.ths_report_no_options_unbound_arguments(session[, argv])
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects any number of arguments.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects any number of arguments.
 
 DESCRIPTION
       This is a 'report' type report.
@@ -1231,8 +1231,8 @@ SYNTAX
       shell.reports.ths_report_no_options_range_of_arguments(session, argv)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-2 arguments.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-2 arguments.
 
 DESCRIPTION
       This is a 'report' type report.
@@ -1251,8 +1251,8 @@ SYNTAX
       argv)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-* arguments.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-* arguments.
 
 DESCRIPTION
       This is a 'report' type report.
@@ -1270,9 +1270,9 @@ SYNTAX
       shell.reports.ths_report_options_one_argument(session, argv, options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1 argument.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1 argument.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'report' type report.
@@ -1281,11 +1281,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1304,9 +1304,9 @@ SYNTAX
       options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects any number of arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects any number of arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'report' type report.
@@ -1315,11 +1315,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1338,9 +1338,9 @@ SYNTAX
       options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-2 arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-2 arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'report' type report.
@@ -1349,11 +1349,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1372,9 +1372,9 @@ SYNTAX
       argv, options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-2 arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-2 arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'report' type report.
@@ -1385,11 +1385,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1408,9 +1408,9 @@ SYNTAX
       argv, options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-* arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-* arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'report' type report.
@@ -1419,11 +1419,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1441,7 +1441,7 @@ SYNTAX
       shell.reports.ths_print_no_options_no_arguments(session)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
+      session: Object - A Session object to be used to execute the report.
 
 DESCRIPTION
       This is a 'print' type report.
@@ -1459,9 +1459,9 @@ SYNTAX
       shell.reports.ths_print_options_no_arguments(session, argv, options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 0 arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 0 arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'print' type report.
@@ -1470,11 +1470,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1492,8 +1492,8 @@ SYNTAX
       shell.reports.ths_print_no_options_one_argument(session, argv)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1 argument.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1 argument.
 
 DESCRIPTION
       This is a 'print' type report.
@@ -1511,8 +1511,8 @@ SYNTAX
       shell.reports.ths_print_no_options_unbound_arguments(session[, argv])
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects any number of arguments.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects any number of arguments.
 
 DESCRIPTION
       This is a 'print' type report.
@@ -1530,8 +1530,8 @@ SYNTAX
       shell.reports.ths_print_no_options_range_of_arguments(session, argv)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-2 arguments.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-2 arguments.
 
 DESCRIPTION
       This is a 'print' type report.
@@ -1550,8 +1550,8 @@ SYNTAX
       argv)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-* arguments.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-* arguments.
 
 DESCRIPTION
       This is a 'print' type report.
@@ -1569,9 +1569,9 @@ SYNTAX
       shell.reports.ths_print_options_one_argument(session, argv, options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1 argument.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1 argument.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'print' type report.
@@ -1580,11 +1580,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1602,9 +1602,9 @@ SYNTAX
       shell.reports.ths_print_options_unbound_arguments(session, argv, options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects any number of arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects any number of arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'print' type report.
@@ -1613,11 +1613,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1636,9 +1636,9 @@ SYNTAX
       options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-2 arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-2 arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'print' type report.
@@ -1647,11 +1647,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1670,9 +1670,9 @@ SYNTAX
       options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-2 arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-2 arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'print' type report.
@@ -1683,11 +1683,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -1706,9 +1706,9 @@ SYNTAX
       options)
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 1-* arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 1-* arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'print' type report.
@@ -1717,11 +1717,11 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - one String. Option with default type.
-      - two (required) String. Option with "string" type.
-      - three Bool. Option with "bool" type.
-      - four Integer. Option with "integer" type.
-      - five Float. Option with "float" type.
+      - one: String - Option with default type.
+      - two: String (required) - Option with "string" type.
+      - three: Bool - Option with "bool" type.
+      - four: Integer - Option with "integer" type.
+      - five: Float - Option with "float" type.
 
       The one option accepts the following values: a, b, c.
 
@@ -3475,9 +3475,9 @@ SYNTAX
       shell.reports.valid_examples_report(session[, argv][, options])
 
 WHERE
-      session: Object. A Session object to be used to execute the report.
-      argv: Array. Extra arguments. Report expects 0-3 arguments.
-      options: Dictionary. Options expected by the report.
+      session: Object - A Session object to be used to execute the report.
+      argv: Array - Extra arguments. Report expects 0-3 arguments.
+      options: Dictionary - Options expected by the report.
 
 DESCRIPTION
       This is a 'print' type report.
@@ -3486,10 +3486,10 @@ DESCRIPTION
 
       The options parameter accepts the following options:
 
-      - opt String.
-      - switch Bool.
-      - idx Integer.
-      - precision Float.
+      - opt: String.
+      - switch: Bool.
+      - idx: Integer.
+      - precision: Float.
 
 EXAMPLES
       valid_examples_report(session, ["1"], {})

@@ -219,7 +219,7 @@ shell.register_global("mySecondGlobal", obj2, {"brief": "User defined global obj
                                                     "The reason for this is because this object was registered as global right after it's creation"]
                                         })
 
-#@ Request the second object help [USE:The function is added to the object help again]
+#@ Request the second object help
 \? mySecondGlobal
 
 

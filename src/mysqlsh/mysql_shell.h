@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -136,8 +136,10 @@ class Mysql_shell : public mysqlsh::Base_shell {
   std::string _last_active_schema;
 
  private:
-  std::shared_ptr<mysqlsh::dba::Cluster> create_default_cluster_object();
-  std::shared_ptr<mysqlsh::dba::ReplicaSet> create_default_replicaset_object();
+  std::shared_ptr<mysqlsh::dba::Cluster> create_default_cluster_object(
+      bool for_help = false);
+  std::shared_ptr<mysqlsh::dba::ReplicaSet> create_default_replicaset_object(
+      bool for_help = false);
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Cmdline_shell, check_password_history_linenoise);

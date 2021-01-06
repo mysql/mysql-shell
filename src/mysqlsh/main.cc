@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,8 @@
 #include "modules/mod_utils.h"
 #include "modules/util/json_importer.h"
 #include "mysqlsh/cmdline_shell.h"
+#include "mysqlshdk/include/shellcore/interrupt_helper.h"
+#include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/libs/oci/oci.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
@@ -32,8 +34,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "shellcore/interrupt_helper.h"
-#include "shellcore/shell_init.h"
+#include "mysqlshdk/shellcore/shell_cli_mapper.h"
 #ifdef HAVE_PYTHON
 #include "mysqlshdk/include/scripting/python_context.h"
 #endif
@@ -203,15 +204,18 @@ int execute_import_command(mysqlsh::Command_line_shell *shell,
   });
 
   try {
-    shcore::Document_reader_options roptions;
+    shcore::cli::Shell_cli_mapper mapper;
+    for (auto &option : import_opts) {
+      mapper.add_cmdline_argument(option);
+    }
 
     shcore::Dictionary_t options = shcore::make_dict();
-    for (auto &option : import_opts)
-      shcore::Shell_cli_operation::add_option(options, option);
+    for (const auto &arg : mapper.get_cmdline_args()) {
+      options->set(arg.option, arg.value);
+    }
 
-    shcore::Option_unpacker unpacker(options);
-    mysqlsh::unpack_json_import_flags(&unpacker, &roptions);
-    unpacker.end();
+    shcore::Document_reader_options roptions;
+    shcore::Document_reader_options::options().unpack(options, &roptions);
 
     importer.load_from(roptions);
   } catch (...) {
@@ -697,7 +701,7 @@ int main(int argc, char **argv) {
 
       const auto shell_cli_operation = shell_options->get_shell_cli_operation();
 
-      if (shell_cli_operation && !shell_cli_operation->empty()) {
+      if (shell_cli_operation) {
         try {
           shell->print_result(shell_cli_operation->execute());
         } catch (const std::invalid_argument &e) {

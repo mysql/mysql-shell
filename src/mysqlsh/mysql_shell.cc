@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -507,23 +507,6 @@ Mysql_shell::Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
   set_global_object("util", _global_util,
                     shcore::IShell_core::all_scripting_modes());
 
-  auto shell_cli_operation = cmdline_options->get_shell_cli_operation();
-  if (shell_cli_operation) {
-    shell_cli_operation->register_provider("dba",
-                                           [this]() { return _global_dba; });
-    shell_cli_operation->register_provider("shell",
-                                           [this]() { return _global_shell; });
-    shell_cli_operation->register_provider(
-        "cluster", [this]() { return create_default_cluster_object(); });
-    shell_cli_operation->register_provider(
-        "rs", [this]() { return create_default_replicaset_object(); });
-    shell_cli_operation->register_provider("util",
-                                           [this]() { return _global_util; });
-    shell_cli_operation->register_provider("shell.options", [this]() {
-      return _global_shell->get_shell_options();
-    });
-  }
-
   // dummy initialization
   _global_shell->set_session_global({});
 
@@ -643,6 +626,61 @@ void Mysql_shell::finish_init() {
   File_list plugins;
   get_plugins(&plugins);
   load_files(plugins, "plugins");
+
+  auto shell_cli_operation = m_shell_options.get()->get_shell_cli_operation();
+  if (shell_cli_operation) {
+    auto providers = shell_cli_operation->get_provider();
+
+    providers->register_provider("dba", _global_dba);
+    providers->register_provider("cluster", [this](bool for_help) {
+      return create_default_cluster_object(for_help);
+    });
+    providers->register_provider("rs", [this](bool for_help) {
+      return create_default_replicaset_object(for_help);
+    });
+    providers->register_provider("util", _global_util);
+    auto shell_provider = providers->register_provider("shell", _global_shell);
+    shell_provider->register_provider("options",
+                                      _global_shell->get_shell_options());
+
+    // Callback to recursively register CLI enabled plugin objects
+    std::function<void(shcore::cli::Provider * parent,
+                       const std::shared_ptr<Extensible_object> &)>
+        register_providers;
+
+    register_providers = [&register_providers](
+                             shcore::cli::Provider *parent,
+                             const std::shared_ptr<Extensible_object> &object) {
+      // If the object is CLI enabled, registers it as a provider
+      if (object->cli_enabled()) {
+        auto new_provider =
+            parent->register_provider(object->get_name(), object);
+
+        // Iterates over the object childrens to register CLI enabled objects
+        // recursively
+        auto child_names = object->get_members();
+        for (const auto &name : child_names) {
+          auto child = object->get_member(name);
+          if (child.type == shcore::Value_type::Object) {
+            auto child_object = child.as_object<Extensible_object>();
+
+            if (child_object) {
+              register_providers(new_provider.get(), child_object);
+            }
+          }
+        }
+      }
+    };
+
+    // Iterates over the global extensible objects to register anything that is
+    // CLI enabled as a provider
+    auto global_object_names = _shell->get_global_objects(interactive_mode());
+    for (const auto &name : global_object_names) {
+      auto extension_object =
+          _shell->get_global(name).as_object<Extensible_object>();
+      if (extension_object) register_providers(providers, extension_object);
+    }
+  }
 }
 
 void Mysql_shell::load_files(const File_list &file_list,
@@ -1127,16 +1165,20 @@ void Mysql_shell::init_extra_globals() {
 }
 
 std::shared_ptr<mysqlsh::dba::Cluster>
-Mysql_shell::create_default_cluster_object() {
+Mysql_shell::create_default_cluster_object(bool for_help) {
   if (!m_default_cluster) {
-    const auto &default_cluster = options().default_cluster;
-    mysqlshdk::utils::nullable<std::string> name;
+    if (for_help) {
+      m_default_cluster = std::make_shared<mysqlsh::dba::Cluster>(nullptr);
+    } else {
+      const auto &default_cluster = options().default_cluster;
+      mysqlshdk::utils::nullable<std::string> name;
 
-    if (!default_cluster.empty()) {
-      name = default_cluster;
+      if (!default_cluster.empty()) {
+        name = default_cluster;
+      }
+
+      m_default_cluster = _global_dba->get_cluster(name);
     }
-
-    m_default_cluster = _global_dba->get_cluster(name);
     set_global_object("cluster", m_default_cluster,
                       shcore::IShell_core::all_scripting_modes());
   }
@@ -1145,9 +1187,14 @@ Mysql_shell::create_default_cluster_object() {
 }
 
 std::shared_ptr<mysqlsh::dba::ReplicaSet>
-Mysql_shell::create_default_replicaset_object() {
+Mysql_shell::create_default_replicaset_object(bool for_help) {
   if (!m_default_replicaset) {
-    m_default_replicaset = _global_dba->get_replica_set();
+    if (for_help) {
+      m_default_replicaset =
+          std::make_shared<mysqlsh::dba::ReplicaSet>(nullptr);
+    } else {
+      m_default_replicaset = _global_dba->get_replica_set();
+    }
     set_global_object("rs", m_default_replicaset,
                       shcore::IShell_core::all_scripting_modes());
   }

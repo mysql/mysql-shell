@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -170,9 +170,6 @@ establish_mysql_session(const Connection_options &options,
  */
 Connection_options SHCORE_PUBLIC get_classic_connection_options(
     const std::shared_ptr<mysqlshdk::db::ISession> &session);
-
-void unpack_json_import_flags(shcore::Option_unpacker *unpacker,
-                              shcore::Document_reader_options *options);
 
 /**
  * Converts SQL values from a row into shcore::Values.
