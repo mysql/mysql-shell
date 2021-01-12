@@ -7,9 +7,9 @@ EXPECT_STDERR_EMPTY()
 //@<> Invalid dropMetadataSchema call
 EXPECT_THROWS(function () { dba.dropMetadataSchema(1,2,3,4,5) }, "Dba.dropMetadataSchema: Invalid number of arguments, expected 0 to 1 but got 5")
 EXPECT_THROWS(function () { dba.dropMetadataSchema("Whatever") }, "Dba.dropMetadataSchema: Argument #1 is expected to be a map")
-EXPECT_THROWS(function () { dba.dropMetadataSchema({not_valid:true}) }, "Dba.dropMetadataSchema: Invalid options: not_valid")
-EXPECT_THROWS(function () { dba.dropMetadataSchema({force:"NotABool"}) }, "Dba.dropMetadataSchema: Option 'force' Bool expected, but value is String")
-EXPECT_THROWS(function () { dba.dropMetadataSchema({clearReadOnly:"NotABool"}) }, "Dba.dropMetadataSchema: Option 'clearReadOnly' Bool expected, but value is String")
+EXPECT_THROWS(function () { dba.dropMetadataSchema({not_valid:true}) }, "Dba.dropMetadataSchema: Argument #1: Invalid options: not_valid")
+EXPECT_THROWS(function () { dba.dropMetadataSchema({force:"NotABool"}) }, "Dba.dropMetadataSchema: Argument #1: Option 'force' Bool expected, but value is String")
+EXPECT_THROWS(function () { dba.dropMetadataSchema({clearReadOnly:"NotABool"}) }, "Dba.dropMetadataSchema: Argument #1: Option 'clearReadOnly' Bool expected, but value is String")
 
 
 //@<> drop metadata: no user response

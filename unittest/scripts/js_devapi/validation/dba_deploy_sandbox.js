@@ -16,10 +16,10 @@ Instance localhost:<<<__mysql_sandbox_port1>>> successfully deployed and started
 Use shell.connect('root@localhost:<<<__mysql_sandbox_port1>>>') to connect to the instance.
 
 //@ BUG#28624006: Deploy sandbox with non-existing dir
-||Dba.deploySandboxInstance: The sandbox dir path '<<<__sandbox_dir>>>invalid' is not valid: it does not exist. (ArgumentError)
+||Dba.deploySandboxInstance: Argument #2: The sandbox dir path '<<<__sandbox_dir>>>invalid' is not valid: it does not exist. (ArgumentError)
 
 //@ BUG#28624006: Deploy sandbox with file instead of directory
-||Dba.deploySandboxInstance: The sandbox dir path '<<<file>>>' is not valid: it is not a directory. (ArgumentError)
+||Dba.deploySandboxInstance: Argument #2: The sandbox dir path '<<<file>>>' is not valid: it is not a directory. (ArgumentError)
 
 //@ Finalization
 ||

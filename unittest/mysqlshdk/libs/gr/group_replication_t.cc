@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -190,7 +190,7 @@ TEST_F(Group_replication_test, create_recovery_user) {
   EXPECT_FALSE(res.has_grant_option());
 
   // Create a recovery user with a random password.
-  auto password = mysqlshdk::utils::nullable<std::string>();
+  auto password = mysqlshdk::null_string();
   auto creds = mysqlshdk::gr::create_recovery_user("test_gr_user", *m_instance,
                                                    {"%"}, password);
   // Check replication user (now it exist and it has no missing privileges).
@@ -208,7 +208,7 @@ TEST_F(Group_replication_test, create_recovery_user) {
   EXPECT_NE(static_cast<bool>(creds.password), static_cast<bool>(password));
 
   // Drop user and recreate it with a given password
-  password = mysqlshdk::utils::nullable<std::string>("password");
+  password = mysqlshdk::null_string("password");
   creds = mysqlshdk::gr::create_recovery_user("test_gr_user", *m_instance,
                                               {"%"}, password);
   // Check replication user (now it exist and it has no missing privileges).
@@ -378,7 +378,7 @@ TEST_F(Group_replication_test, start_stop_gr) {
   EXPECT_EQ(state_res, Member_state::OFFLINE);
 
   // Clean up (restore initial server state).
-  if (!(*gr_group_name).empty())
+  if (!gr_group_name->empty())
     // NOTE: The group_name cannot be set with an empty value.
     m_instance->set_sysvar("group_replication_group_name", *gr_group_name,
                            Var_qualifier::GLOBAL);
@@ -472,7 +472,7 @@ TEST_F(Group_replication_test, is_running_gr_auto_rejoin) {
 }
 
 TEST_F(Group_replication_test, get_all_configurations) {
-  std::map<std::string, mysqlshdk::utils::nullable<std::string>> res =
+  std::map<std::string, mysqlshdk::null_string> res =
       mysqlshdk::gr::get_all_configurations(*m_instance);
 
   // NOTE: Only auto_increment variables are returned if GR is not configured.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,10 +27,13 @@
 #include <string>
 #include <vector>
 #include "modules/mod_common.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/version.h"
-#include "scripting/types.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -42,6 +45,15 @@ struct Async_replication_options {
   };
 
   Async_replication_options() : target(NONE) {}
+
+  static const shcore::Option_pack_def<Async_replication_options> &options() {
+    static const auto opts =
+        shcore::Option_pack_def<Async_replication_options>();
+
+    // TODO(someone): Options to be added here eventually
+
+    return opts;
+  }
 
   explicit Async_replication_options(Unpack_target t) : target(t) {}
 

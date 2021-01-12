@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+/* Copyright (c) 2017, 2021, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -58,9 +58,10 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
   auto dba = shell_env.get_global<mysqlsh::dba::Dba>("dba");
 
   shcore::Argument_list args;
-  shcore::Dictionary_t options = shcore::make_dict();
-  options->emplace("memberSslMode", "REQUIRED");
-  options->emplace("gtidSetIsComplete", true);
+  shcore::Option_pack_ref<mysqlsh::dba::Create_cluster_options> options;
+  options->gr_options.ssl_mode = "REQUIRED";
+  options->clone_options.gtid_set_is_complete = true;
+
   _cluster =
       dba->create_cluster("sample", options).as_object<mysqlsh::dba::Cluster>();
   _cluster->add_instance(mysqlshdk::db::Connection_options{

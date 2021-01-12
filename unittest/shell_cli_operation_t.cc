@@ -1086,7 +1086,7 @@ TEST_F(Test_cli_integration_api_options, all) {
                        "myUrl");
 
   /** The DBA Object **/
-  TEST_API_CLI_OPTIONS(mysqlsh::dba::Deploy_instance_options, "dba",
+  TEST_API_CLI_OPTIONS(mysqlsh::dba::Deploy_sandbox_options, "dba",
                        "deploy-sandbox-instance", "3310");
 }
 }  // namespace cli

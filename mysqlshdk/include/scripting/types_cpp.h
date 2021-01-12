@@ -270,9 +270,41 @@ class IOption_pack_def {
  *   return opts;
  * }
  */
+
+enum class Option_extract_mode {
+  CASE_SENSITIVE = 1 << 0,    // Allows data type conversion
+  CASE_INSENSITIVE = 1 << 1,  // Allows data type conversion
+  EXACT = 1 << 2              // Restricts data type conversion
+};
+
+enum class Option_scope { GLOBAL, CLI_DISABLED };
+
 template <typename C>
 class Option_pack_def : public IOption_pack_def {
  public:
+  template <typename T>
+  Option_pack_def<C> &optional(
+      const std::string &name,
+      std::function<void(C *instance, T value)> callback,
+      const std::string &sname = "",
+      Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
+                  Param_flag::Optional);
+
+    m_unpack_callbacks.emplace_back(
+        [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
+                                             C *instance) {
+          mysqlshdk::utils::nullable<T> value;
+
+          get_optional(unpacker, extract_mode, name, &value);
+
+          if (!value.is_null()) {
+            callback(instance, *value);
+          }
+        });
+    return *this;
+  }
   /**
    * Allows defining an optional option for the pack, using a member attribute
    * as the target location for the unpacked value.
@@ -283,15 +315,17 @@ class Option_pack_def : public IOption_pack_def {
    * @param cmd_line: whether the option is valid for CLI integration
    */
   template <typename T>
-  Option_pack_def<C> &optional(const std::string &name, T C::*var,
-                               const std::string &sname = "",
-                               bool cmd_line = true) {
-    add_option<T>(name, sname, cmd_line, Param_flag::Optional);
+  Option_pack_def<C> &optional(
+      const std::string &name, T C::*var, const std::string &sname = "",
+      Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
+                  Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, var](shcore::Option_unpacker *unpacker, C *instance) {
-          // this is where the magic happens
-          unpacker->optional(name.c_str(), &((*instance).*var));
+        [name, var, extract_mode, this](shcore::Option_unpacker *unpacker,
+                                        C *instance) {
+          get_optional(unpacker, extract_mode, name, &((*instance).*var));
         });
     return *this;
   }
@@ -307,18 +341,21 @@ class Option_pack_def : public IOption_pack_def {
    * @param cmd_line: whether the option is valid for CLI integration
    */
   template <typename T>
-  Option_pack_def<C> &optional(const std::string &name, T C::*var,
-                               const std::map<std::string, T> &mapping,
-                               const std::string &sname = "",
-                               bool cmd_line = true) {
-    add_option<std::string>(name, sname, cmd_line, Param_flag::Optional);
+  Option_pack_def<C> &optional(
+      const std::string &name, T C::*var,
+      const std::map<std::string, T> &mapping, const std::string &sname = "",
+      Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    add_option<std::string>(name, sname, option_scope == Option_scope::GLOBAL,
+                            Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, var, mapping, this](shcore::Option_unpacker *unpacker,
-                                   C *instance) {
+        [name, var, mapping, extract_mode, this](
+            shcore::Option_unpacker *unpacker, C *instance) {
           // this is where the magic happens
-          mysqlshdk::utils::nullable<std::string> value;
-          unpacker->optional(name.c_str(), &value);
+          mysqlshdk::null_string value;
+
+          get_optional(unpacker, extract_mode, name, &value);
 
           if (!value.is_null()) {
             (*instance).*var = get_enum_value(name, *value, mapping);
@@ -345,17 +382,22 @@ class Option_pack_def : public IOption_pack_def {
    * data type.
    */
   template <typename T>
-  Option_pack_def<C> &optional(const std::string &name,
-                               void (C::*callback)(const std::string &,
-                                                   const T &),
-                               const std::string &sname = "",
-                               bool cmd_line = true) {
-    add_option<T>(name, sname, cmd_line, Param_flag::Optional);
+  Option_pack_def<C> &optional(
+      const std::string &name,
+      void (C::*callback)(const std::string &, const T &),
+      const std::string &sname = "",
+      Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
+                  Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, callback](shcore::Option_unpacker *unpacker, C *instance) {
+        [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
+                                             C *instance) {
           mysqlshdk::utils::nullable<T> value;
-          unpacker->optional(name.c_str(), &value);
+
+          get_optional(unpacker, extract_mode, name, &value);
+
           if (!value.is_null()) {
             ((*instance).*callback)(name, *value);
           }
@@ -365,16 +407,22 @@ class Option_pack_def : public IOption_pack_def {
   }
 
   template <typename T>
-  Option_pack_def<C> &optional(const std::string &name,
-                               void (C::*callback)(const std::string &option,
-                                                   T value),
-                               const std::string &sname = "",
-                               bool cmd_line = true) {
-    add_option<T>(name, sname, cmd_line, Param_flag::Optional);
+  Option_pack_def<C> &optional(
+      const std::string &name,
+      void (C::*callback)(const std::string &option, T value),
+      const std::string &sname = "",
+      Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
+                  Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, callback](shcore::Option_unpacker *unpacker, C *instance) {
+        [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
+                                             C *instance) {
           mysqlshdk::utils::nullable<T> value;
+
+          get_optional(unpacker, extract_mode, name, &value);
+
           unpacker->optional(name.c_str(), &value);
           if (!value.is_null()) {
             ((*instance).*callback)(name, *value);
@@ -402,16 +450,21 @@ class Option_pack_def : public IOption_pack_def {
    * data type.
    */
   template <typename T>
-  Option_pack_def<C> &optional(const std::string &name,
-                               void (C::*callback)(const T &),
-                               const std::string &sname = "",
-                               bool cmd_line = true) {
-    add_option<T>(name, sname, cmd_line, Param_flag::Optional);
+  Option_pack_def<C> &optional(
+      const std::string &name, void (C::*callback)(const T &),
+      const std::string &sname = "",
+      Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
+                  Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, callback](shcore::Option_unpacker *unpacker, C *instance) {
+        [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
+                                             C *instance) {
           mysqlshdk::utils::nullable<T> value;
-          unpacker->optional(name.c_str(), &value);
+
+          get_optional(unpacker, extract_mode, name, &value);
+
           if (!value.is_null()) {
             ((*instance).*callback)(*value);
           }
@@ -421,16 +474,21 @@ class Option_pack_def : public IOption_pack_def {
   }
 
   template <typename T>
-  Option_pack_def<C> &optional(const std::string &name,
-                               void (C::*callback)(T value),
-                               const std::string &sname = "",
-                               bool cmd_line = true) {
-    add_option<T>(name, sname, cmd_line, Param_flag::Optional);
+  Option_pack_def<C> &optional(
+      const std::string &name, void (C::*callback)(T value),
+      const std::string &sname = "",
+      Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
+                  Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, callback](shcore::Option_unpacker *unpacker, C *instance) {
+        [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
+                                             C *instance) {
           mysqlshdk::utils::nullable<T> value;
-          unpacker->optional(name.c_str(), &value);
+
+          get_optional(unpacker, extract_mode, name, &value);
+
           if (!value.is_null()) {
             ((*instance).*callback)(*value);
           }
@@ -470,7 +528,7 @@ class Option_pack_def : public IOption_pack_def {
         [name, var, mapping, this](shcore::Option_unpacker *unpacker,
                                    C *instance) {
           // this is where the magic happens
-          mysqlshdk::utils::nullable<std::string> value;
+          mysqlshdk::null_string value;
           unpacker->required(name.c_str(), &value);
 
           if (!value.is_null()) {
@@ -625,6 +683,22 @@ class Option_pack_def : public IOption_pack_def {
   }
 
   template <typename T>
+  void get_optional(Option_unpacker *unpacker, Option_extract_mode extract_mode,
+                    const std::string &name, T *value) {
+    switch (extract_mode) {
+      case Option_extract_mode::CASE_INSENSITIVE:
+        unpacker->optional_ci(name.c_str(), value);
+        break;
+      case Option_extract_mode::CASE_SENSITIVE:
+        unpacker->optional(name.c_str(), value);
+        break;
+      case Option_extract_mode::EXACT:
+        unpacker->optional_exact(name.c_str(), value);
+        break;
+    }
+  }
+
+  template <typename T>
   void add_option(const std::string &name, const std::string &sname,
                   bool cmd_line, shcore::Param_flag flag) {
     m_option_md.push_back(std::make_shared<shcore::Parameter>(
@@ -734,7 +808,7 @@ class SHCORE_PUBLIC Cpp_function : public Function_base {
     Metadata(const Metadata &) = delete;
     std::string name[2];
     Raw_signature signature;
-    mysqlshdk::utils::nullable<bool> cli_enabled;
+    mysqlshdk::null_bool cli_enabled;
 
     std::vector<std::pair<std::string, Value_type>> param_types;
     std::string param_codes;

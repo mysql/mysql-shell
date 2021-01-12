@@ -179,21 +179,6 @@ DESCRIPTION
       - Update the server variable.
       - Restart the server.
 
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the instance parameter is empty.
-      - If the instance definition is invalid.
-      - If the instance definition is a connection dictionary but empty.
-
-      RuntimeError in the following scenarios:
-
-      - If the instance accounts are invalid.
-      - If the instance is offline.
-      - If the instance is already part of a Replication Group.
-      - If the instance is already part of an InnoDB Cluster.
-      - If the given the instance cannot be used for Group Replication.
-
 //@<OUT> Configure Instance
 NAME
       configureInstance - Validates and configures an instance for MySQL InnoDB
@@ -228,14 +213,14 @@ DESCRIPTION
         account.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled.
+      - restart: boolean value used to indicate that a remote restart of the
+        target instance should be performed to finalize the operation.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
         Shell wizard mode.
       - applierWorkerThreads: Number of threads used for applying replicated
         transactions. The default value is 4.
-      - restart: boolean value used to indicate that a remote restart of the
-        target instance should be performed to finalize the operation.
 
       If the outputMycnfPath option is used, only that file is updated and
       mycnfPath is treated as read-only.
@@ -261,31 +246,6 @@ DESCRIPTION
       - Current Value: the current value for the invalid configuration
         variable.
       - Required Value: the required value for the configuration variable.
-
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If 'interactive' is disabled and the instance parameter is empty.
-      - If the instance definition is invalid.
-      - If the instance definition is a connection dictionary but empty.
-      - If the instance definition is a connection dictionary but any option is
-        invalid.
-      - If 'interactive' mode is disabled and the instance definition is
-        missing the password.
-      - If 'interactive' mode is enabled and the provided password is empty.
-      - If the clusterAdminPassword is provided and clusterAdmin is not
-        provided.
-      - If the clusterAdminPassword is provided but the clusterAdmin account
-        already exists.
-
-      RuntimeError in the following scenarios:
-
-      - If the configuration file path is required but not provided or wrong.
-      - If the instance accounts are invalid.
-      - If the instance is offline.
-      - If the instance is already part of a Replication Group.
-      - If the instance is already part of an InnoDB Cluster.
-      - If the given instance cannot be used for Group Replication.
 
 //@<OUT> Configure Local Instance
 NAME
@@ -322,6 +282,8 @@ DESCRIPTION
         account.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled.
+      - restart: boolean value used to indicate that a remote restart of the
+        target instance should be performed to finalize the operation.
       - interactive: boolean value used to disable/enable the wizards in the
         command execution, i.e. prompts and confirmations will be provided or
         not according to the value set. The default value is equal to MySQL
@@ -351,29 +313,6 @@ DESCRIPTION
       - Current Value: the current value for the invalid configuration
         variable.
       - Required Value: the required value for the configuration variable.
-
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the instance parameter is empty.
-      - If the instance definition is invalid.
-      - If the instance definition is a connection dictionary but empty.
-      - If the instance definition is a connection dictionary but any option is
-        invalid.
-      - If the instance definition is missing the password.
-      - If the provided password is empty.
-      - If the clusterAdminPassword is provided and clusterAdmin is not
-        provided.
-      - If the clusterAdminPassword is provided but the clusterAdmin account
-        already exists.
-      - If the configuration file path is required but not provided or wrong.
-
-      RuntimeError in the following scenarios:
-
-      - If the instance accounts are invalid.
-      - If the instance is offline.
-      - If the instance is already part of a Replication Group.
-      - If the given instance cannot be used for Group Replication.
 
 //@<OUT> Configure ReplicaSet Instance
 NAME
@@ -493,6 +432,8 @@ DESCRIPTION
         state action.
       - memberWeight: integer value with a percentage weight for automatic
         primary election on failover.
+      - consistency: string value indicating the consistency guarantees that
+        the cluster provides.
       - failoverConsistency: string value indicating the consistency guarantees
         that the cluster provides.
       - expelTimeout: integer value to define the time period in seconds that
@@ -703,32 +644,6 @@ DESCRIPTION
       ATTENTION: The ipWhitelist option will be removed in a future release.
                  Please use the ipAllowlist option instead.
 
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-      - If the Metadata update operation failed.
-
-      ArgumentError in the following scenarios:
-
-      - If the Cluster name is empty.
-      - If the Cluster name is not valid.
-      - If the options contain an invalid attribute.
-      - If adoptFromGR is true and the memberSslMode option is used.
-      - If the value for the memberSslMode option is not one of the allowed.
-      - If adoptFromGR is true and the multiPrimary option is used.
-      - If the value for the ipWhitelist, groupName, localAddress, groupSeeds,
-        exitStateAction or consistency options is empty.
-      - If the value for the expelTimeout is not in the range: [0, 3600]
-
-      RuntimeError in the following scenarios:
-
-      - If the value for the groupName, localAddress, groupSeeds,
-        exitStateAction, memberWeight, consistency, expelTimeout or
-        autoRejoinTries options is not valid for Group Replication.
-      - If the current connection cannot be used for Group Replication.
-      - If disableClone is not supported on the target instance.
-
 //@<OUT> Create ReplicaSet
 NAME
       createReplicaSet - Creates a MySQL InnoDB ReplicaSet.
@@ -848,12 +763,6 @@ DESCRIPTION
 
       If the instance is not located on the used path an error will occur.
 
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the options contain an invalid attribute.
-      - If the port value is < 1024 or > 65535.
-
 //@<OUT> Deploy Sandbox
 NAME
       deploySandboxInstance - Creates a new MySQL Server instance on localhost.
@@ -900,17 +809,6 @@ DESCRIPTION
       ignoreSslError option to false to ensure the new instance is deployed
       with SSL support.
 
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the options contain an invalid attribute.
-      - If the root password is missing on the options.
-      - If the port value is < 1024 or > 65535.
-
-      RuntimeError in the following scenarios:
-
-      - If SSL support can be provided and ignoreSslError: false.
-
 //@<OUT> Drop Metadata
 NAME
       dropMetadataSchema - Drops the Metadata Schema.
@@ -930,15 +828,6 @@ DESCRIPTION
       - force: boolean, confirms that the drop operation must be executed.
       - clearReadOnly: boolean value used to confirm that super_read_only must
         be disabled
-
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-
-      RuntimeError in the following scenarios:
-
-      - If the current connection cannot be used for Group Replication.
 
 //@<OUT> Get Cluster
 NAME
@@ -964,22 +853,6 @@ DESCRIPTION
       The options dictionary accepts the connectToPrimary option, which
       defaults to true and indicates the shell to automatically connect to the
       primary member of the cluster.
-
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-      - If the Metadata update operation failed.
-
-      ArgumentError in the following scenarios:
-
-      - If the Cluster name is empty.
-      - If the Cluster name is invalid.
-      - If the Cluster does not exist.
-
-      RuntimeError in the following scenarios:
-
-      - If the current connection cannot be used for Group Replication.
 
 //@<OUT> Get ReplicaSet
 NAME
@@ -1036,12 +909,6 @@ DESCRIPTION
 
       If the instance is not located on the used path an error will occur.
 
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the options contain an invalid attribute.
-      - If the port value is < 1024 or > 65535.
-
 //@<OUT> Reboot Cluster
 NAME
       rebootClusterFromCompleteOutage - Brings a cluster back ONLINE when all
@@ -1061,6 +928,7 @@ RETURNS
 DESCRIPTION
       The options dictionary can contain the next values:
 
+      - user: The user used for the instances sessions required operations.
       - password: The password used for the instances sessions required
         operations.
       - removeInstances: The list of instances to be removed from the cluster.
@@ -1086,22 +954,6 @@ DESCRIPTION
       cluster.
 
       If name is not specified, the default cluster will be returned.
-
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-
-      ArgumentError in the following scenarios:
-
-      - If the Cluster name is empty.
-      - If the Cluster name is not valid.
-      - If the options contain an invalid attribute.
-
-      RuntimeError in the following scenarios:
-
-      - If the Cluster does not exist on the Metadata.
-      - If some instance of the Cluster belongs to a Replication Group.
 
 //@<OUT> Start Sandbox
 NAME
@@ -1132,12 +984,6 @@ DESCRIPTION
 
       If the instance is not located on the used path an error will occur.
 
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the options contain an invalid attribute.
-      - If the port value is < 1024 or > 65535.
-
 //@<OUT> Stop Sandbox
 NAME
       stopSandboxInstance - Stops a running MySQL Server instance on localhost.
@@ -1166,13 +1012,6 @@ DESCRIPTION
       %userprofile%\MySQL\mysql-sandboxes on Windows systems.
 
       If the instance is not located on the used path an error will occur.
-
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the options contain an invalid attribute.
-      - If the root password is missing on the options.
-      - If the port value is < 1024 or > 65535.
 
 //@<OUT> Upgrade Metadata
 NAME
@@ -1228,11 +1067,3 @@ DESCRIPTION
       this function ended unexpectedly, this function will restore the metadata
       to the state it was before the failed upgrade operation.
 
-EXCEPTIONS
-      RuntimeError in the following scenarios:
-
-      - A global session is not available.
-      - A global session is available but the target instance does not have the
-        metadata installed.
-      - The installed metadata is a newer version than the one supported by the
-        Shell.

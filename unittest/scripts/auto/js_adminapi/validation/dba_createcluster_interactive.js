@@ -70,7 +70,7 @@ one server failure.
 ||Option 'memberWeight' Integer expected, but value is String (TypeError)
 ||Option 'memberWeight' is expected to be of type Integer, but is Bool (TypeError)
 ||Option 'memberWeight' Integer expected, but value is String (TypeError)
-||Dba.createCluster: Option 'memberWeight' is expected to be of type Integer, but is Float (TypeError)
+||Dba.createCluster: Argument #2: Option 'memberWeight' is expected to be of type Integer, but is Float (TypeError)
 
 
 //@ WL#11032: Create cluster specifying a valid value for memberWeight (integer) {VER(>=5.7.20)}
@@ -86,8 +86,8 @@ one server failure.
 ||Option 'consistency' not supported on target server version: '<<<__version>>>'
 
 //@ WL#12067: Create cluster errors using consistency option {VER(>=8.0.14)}
-||Invalid value for consistency, string value cannot be empty.
-||Invalid value for consistency, string value cannot be empty.
+||Invalid value for 'consistency', string value cannot be empty.
+||Invalid value for 'consistency', string value cannot be empty.
 ||Unable to set value ':' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of ':'
 ||Unable to set value 'AB' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of 'AB'
 ||Unable to set value '10' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of '10'

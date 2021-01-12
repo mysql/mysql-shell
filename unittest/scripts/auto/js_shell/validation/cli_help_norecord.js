@@ -197,9 +197,6 @@ OPTIONS
 --configPath=<str>
             Full path to MySQL server configuration file.
 
---password=<str>
-            The password to be used on the connection.
-
 //@<OUT> CLI util configure-oci --help
 NAME
       configure-oci - Wizard to create a valid configuration for the OCI SDK.

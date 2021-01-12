@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,9 +27,10 @@
 #include <string>
 #include <vector>
 #include "modules/mod_common.h"
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/version.h"
-#include "scripting/types.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -61,14 +62,41 @@ struct Clone_options {
 
   Unpack_target target;
 
-  mysqlshdk::utils::nullable<bool> disable_clone;
+  mysqlshdk::null_bool disable_clone;
   bool gtid_set_is_complete = false;
   mysqlshdk::utils::nullable<Member_recovery_method> recovery_method;
   std::string recovery_method_str_invalid;
-  mysqlshdk::utils::nullable<std::string> clone_donor;
+  mysqlshdk::null_string clone_donor;
 
  private:
   void do_unpack(shcore::Option_unpacker *unpacker);
+};
+
+struct Create_cluster_clone_options : public Clone_options {
+  static const shcore::Option_pack_def<Create_cluster_clone_options> &options();
+  Create_cluster_clone_options()
+      : Clone_options(Unpack_target::CREATE_CLUSTER) {}
+
+  void set_gtid_set_is_complete(bool value);
+  void set_disable_clone(bool value);
+};
+
+struct Join_cluster_clone_options : public Clone_options {
+  explicit Join_cluster_clone_options(
+      Unpack_target t = Unpack_target::JOIN_CLUSTER)
+      : Clone_options(t) {}
+  static const shcore::Option_pack_def<Join_cluster_clone_options> &options();
+
+  void set_recovery_method(const std::string &value);
+};
+
+struct Join_replicaset_clone_options : public Join_cluster_clone_options {
+  Join_replicaset_clone_options()
+      : Join_cluster_clone_options(Unpack_target::JOIN_REPLICASET) {}
+  static const shcore::Option_pack_def<Join_replicaset_clone_options>
+      &options();
+
+  void set_clone_donor(const std::string &value);
 };
 
 }  // namespace dba

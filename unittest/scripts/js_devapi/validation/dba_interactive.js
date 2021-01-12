@@ -6,7 +6,7 @@
 ||Dba.createCluster: Invalid number of arguments, expected 1 to 2 but got 4
 ||Dba.createCluster: Argument #1 is expected to be a string
 ||Dba.createCluster: The Cluster name cannot be empty
-||Dba.createCluster: Invalid options: another, invalid
+||Dba.createCluster: Argument #2: Invalid options: another, invalid
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.

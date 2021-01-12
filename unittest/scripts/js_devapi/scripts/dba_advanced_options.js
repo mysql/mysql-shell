@@ -49,7 +49,7 @@ session.runSql('SET @@GLOBAL.group_replication_group_seeds = ""');
 
 //@<> Create cluster errors using groupName option
 // FR3-TS-1-2
-EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {groupName: ""}); }, "Dba.createCluster: Invalid value for groupName, string value cannot be empty", "ArgumentError");
+EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {groupName: ""}); }, "Invalid value for groupName, string value cannot be empty", "ArgumentError");
 
 // FR3-TS-1-3
 if (__version_num >= 80021) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,8 @@
 
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
@@ -45,8 +47,8 @@ void validate_group_name_option(std::string group_name) {
   // set the group name when not specified)
   group_name = shcore::str_strip(group_name);
   if (group_name.empty())
-    throw shcore::Exception::argument_error(
-        "Invalid value for groupName, string value cannot be empty.");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.", kGroupName));
 }
 
 const char *kMemberSSLModeAuto = "AUTO";
@@ -62,9 +64,8 @@ void validate_ssl_instance_options(std::string ssl_mode) {
   if (kMemberSSLModeValues.count(ssl_mode) == 0) {
     std::string valid_values = shcore::str_join(kMemberSSLModeValues, ",");
     throw shcore::Exception::argument_error(
-        "Invalid value for memberSslMode option. "
-        "Supported values: " +
-        valid_values + ".");
+        shcore::str_format("Invalid value for %s option. Supported values: %s.",
+                           kMemberSslMode, valid_values.c_str()));
   }
 }
 
@@ -83,13 +84,14 @@ void validate_local_address_option(std::string local_address) {
 
   local_address = shcore::str_strip(local_address);
   if (local_address.empty())
-    throw shcore::Exception::argument_error(
-        "Invalid value for localAddress, string value cannot be empty.");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.", kLocalAddress));
   if (local_address.compare(":") == 0)
-    throw shcore::Exception::argument_error(
-        "Invalid value for localAddress. If ':' is specified then at least a "
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s. If ':' is specified then at least a "
         "non-empty host or port must be specified: '<host>:<port>' or "
-        "'<host>:' or ':<port>'.");
+        "'<host>:' or ':<port>'.",
+        kLocalAddress));
 }
 
 /**
@@ -101,18 +103,19 @@ void validate_local_address_option(std::string local_address) {
  */
 void validate_exit_state_action_supported(
     const mysqlshdk::utils::Version &version, std::string exit_state_action) {
+  // TODO(rennox): Remove the empty validation
   exit_state_action = shcore::str_strip(exit_state_action);
 
   if (exit_state_action.empty())
-    throw shcore::Exception::argument_error(
-        "Invalid value for exitStateAction, string value cannot be empty.");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.",
+        kExitStateAction));
 
   if (!is_option_supported(version, kExitStateAction,
                            k_global_cluster_supported_options)) {
-    throw shcore::Exception::runtime_error(
-        "Option 'exitStateAction' not supported on target server "
-        "version: '" +
-        version.get_full() + "'");
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Option '%s' not supported on target server version: '%s'",
+        kExitStateAction, version.get_full().c_str()));
   }
 }
 
@@ -124,21 +127,21 @@ void validate_exit_state_action_supported(
  * @throw RuntimeError if the value is not supported on the target instance
  * @throw argument_error if the value provided is empty
  */
-void validate_consistency_supported(
-    const mysqlshdk::utils::Version &version,
-    const mysqlshdk::utils::nullable<std::string> &consistency) {
+void validate_consistency_supported(const mysqlshdk::utils::Version &version,
+                                    const mysqlshdk::null_string &consistency) {
+  // TODO(rennox): Remove the empty validation
   if (!consistency.is_null()) {
     if (shcore::str_strip(*consistency).empty()) {
       throw shcore::Exception::argument_error(
-          "Invalid value for consistency, string value cannot be "
-          "empty.");
+          shcore::str_format("Invalid value for %s, string value cannot be "
+                             "empty.",
+                             kConsistency));
     }
     if (!is_option_supported(version, kConsistency,
                              k_global_cluster_supported_options)) {
-      throw std::runtime_error(
-          "Option 'consistency' not supported on target server "
-          "version: '" +
-          version.get_full() + "'");
+      throw std::runtime_error(shcore::str_format(
+          "Option '%s' not supported on target server version: '%s'",
+          kConsistency, version.get_full().c_str()));
     }
   }
 }
@@ -158,16 +161,16 @@ void validate_expel_timeout_supported(
     const mysqlshdk::utils::nullable<std::int64_t> &expel_timeout) {
   if (!expel_timeout.is_null()) {
     if ((*expel_timeout) < 0 || (*expel_timeout) > 3600) {
-      throw shcore::Exception::argument_error(
-          "Invalid value for expelTimeout, integer value must be in the range: "
-          "[0, 3600]");
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Invalid value for %s, integer value must be in the range: "
+          "[0, 3600]",
+          kExpelTimeout));
     }
     if (!is_option_supported(version, kExpelTimeout,
                              k_global_cluster_supported_options)) {
-      throw std::runtime_error(
-          "Option 'expelTimeout' not supported on target server "
-          "version: '" +
-          version.get_full() + "'");
+      throw std::runtime_error(shcore::str_format(
+          "Option '%s' not supported on target server version: '%s'",
+          kExpelTimeout, version.get_full().c_str()));
     }
   }
 }
@@ -185,10 +188,9 @@ void validate_auto_rejoin_tries_supported(
   // server version is >= 8.0.16.
   if (!is_option_supported(version, kAutoRejoinTries,
                            k_global_cluster_supported_options)) {
-    throw shcore::Exception::runtime_error(
-        "Option 'autoRejoinTries' not supported on target server "
-        "version: '" +
-        version.get_full() + "'");
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Option '%s' not supported on target server version: '%s'",
+        kAutoRejoinTries, version.get_full().c_str()));
   }
 }
 
@@ -207,10 +209,9 @@ void validate_member_weight_supported(
 
   if (!is_option_supported(version, kMemberWeight,
                            k_global_cluster_supported_options)) {
-    throw shcore::Exception::runtime_error(
-        "Option 'memberWeight' not supported on target server "
-        "version: '" +
-        version.get_full() + "'");
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Option '%s' not supported on target server version: '%s'",
+        kMemberWeight, version.get_full().c_str()));
   }
 }
 
@@ -225,8 +226,8 @@ void validate_group_seeds_option(const mysqlshdk::utils::Version &version,
                                  const std::string &group_seeds) {
   const std::string group_seeds_strip = shcore::str_strip(group_seeds);
   if (group_seeds_strip.empty())
-    throw shcore::Exception::argument_error(
-        "Invalid value for groupSeeds, string value cannot be empty.");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.", kGroupSeeds));
 
   const auto group_seeds_list = shcore::str_split(group_seeds_strip, ",");
   std::vector<std::string> unsupported_addresses;
@@ -278,9 +279,9 @@ void validate_ip_whitelist_option(const mysqlshdk::utils::Version &version,
 
   // Validate if the ipWhiteList value is not empty
   if (shcore::str_strip(ip_whitelist).empty())
-    throw shcore::Exception::argument_error("Invalid value for " +
-                                            ip_allowlist_option_name +
-                                            ": string value cannot be empty.");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s: string value cannot be empty.",
+        ip_allowlist_option_name.c_str()));
 
   // Iterate over the ipWhitelist values
   const std::vector<std::string> ip_whitelist_list =
@@ -309,30 +310,29 @@ void validate_ip_whitelist_option(const mysqlshdk::utils::Version &version,
     if (!cidr.is_null()) {
       // Check if value is an hostname: hostname/cidr is not allowed
       if (is_hostname)
-        throw shcore::Exception::argument_error(
-            "Invalid value for " + ip_allowlist_option_name + " '" + hostname +
-            "': CIDR notation can only be used with IPv4 or IPv6 addresses.");
+        throw shcore::Exception::argument_error(shcore::str_format(
+            "Invalid value for %s '%s': CIDR notation can only be used with "
+            "IPv4 or IPv6 addresses.",
+            ip_allowlist_option_name.c_str(), hostname.c_str()));
 
       if ((*cidr < 1) || (*cidr > 128))
-        throw shcore::Exception::argument_error(
-            "Invalid value for " + ip_allowlist_option_name + " '" + hostname +
-            "': subnet value in CIDR notation is not valid.");
+        throw shcore::Exception::argument_error(shcore::str_format(
+            "Invalid value for %s '%s': subnet value in CIDR notation is not "
+            "valid.",
+            ip_allowlist_option_name.c_str(), hostname.c_str()));
 
       if (*cidr > 32) {
         if (!supports_ipv6)
-          throw shcore::Exception::argument_error(
-              "Invalid value for " + ip_allowlist_option_name + " '" +
-              hostname +
-              "': subnet value "
-              "in CIDR notation is not supported"
-              " (version >= 8.0.14 required for IPv6 support).");
+          throw shcore::Exception::argument_error(shcore::str_format(
+              "Invalid value for %s '%s': subnet value in CIDR notation is not "
+              "supported (version >= 8.0.14 required for IPv6 support).",
+              ip_allowlist_option_name.c_str(), hostname.c_str()));
 
         if (!is_ipv6)
-          throw shcore::Exception::argument_error(
-              "Invalid value for " + ip_allowlist_option_name + " '" +
-              hostname +
-              "': subnet value in CIDR notation is not supported for IPv4 "
-              "addresses.");
+          throw shcore::Exception::argument_error(shcore::str_format(
+              "Invalid value for %s '%s': subnet value in CIDR notation is not "
+              "supported for IPv4 addresses.",
+              ip_allowlist_option_name.c_str(), hostname.c_str()));
       }
     }
     // Do not try to resolve the hostname. Even if we can resolve it, there is
@@ -340,16 +340,16 @@ void validate_ip_whitelist_option(const mysqlshdk::utils::Version &version,
     // and the instance where we are running the ngshell.
 
     if (is_hostname && !hostnames_supported) {
-      throw shcore::Exception::argument_error(
-          "Invalid value for " + ip_allowlist_option_name + " '" + hostname +
-          "': hostnames are not supported (version >= 8.0.4 required for "
-          "hostname support).");
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Invalid value for %s '%s': hostnames are not supported (version >= "
+          "8.0.4 required for hostname support).",
+          ip_allowlist_option_name.c_str(), hostname.c_str()));
     } else {
       if (!supports_ipv6 && is_ipv6) {
-        throw shcore::Exception::argument_error(
-            "Invalid value for " + ip_allowlist_option_name + " '" + hostname +
-            "': IPv6 not supported (version >= 8.0.14 required for IPv6 "
-            "support).");
+        throw shcore::Exception::argument_error(shcore::str_format(
+            "Invalid value for %s '%s': IPv6 not supported (version >= 8.0.14 "
+            "required for IPv6 support).",
+            ip_allowlist_option_name.c_str(), hostname.c_str()));
       }
     }
     // either an IPv4 address, a supported IPv6 or an hostname
@@ -544,5 +544,182 @@ void Group_replication_options::read_option_values(
   }
 }
 
+const shcore::Option_pack_def<Join_group_replication_options>
+    &Join_group_replication_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Join_group_replication_options>()
+          .optional(kMemberSslMode,
+                    &Join_group_replication_options::set_ssl_mode)
+          .optional(kIpAllowlist,
+                    &Join_group_replication_options::set_ip_allowlist)
+          .optional(kIpWhitelist,
+                    &Join_group_replication_options::set_ip_allowlist)
+          .optional(kLocalAddress,
+                    &Join_group_replication_options::set_local_address)
+          .optional(kGroupSeeds,
+                    &Join_group_replication_options::set_group_seeds)
+          .optional(kExitStateAction,
+                    &Join_group_replication_options::set_exit_state_action)
+          .optional(kMemberWeight,
+                    &Join_group_replication_options::set_member_weight, "",
+                    shcore::Option_extract_mode::EXACT)
+          .optional(kConsistency,
+                    &Join_group_replication_options::set_consistency)
+          .optional(kFailoverConsistency,
+                    &Join_group_replication_options::set_consistency)
+          .optional(kExpelTimeout,
+                    &Join_group_replication_options::set_expel_timeout, "",
+                    shcore::Option_extract_mode::EXACT)
+          .optional(kAutoRejoinTries,
+                    &Join_group_replication_options::set_auto_rejoin_tries);
+
+  return opts;
+}
+
+void Join_group_replication_options::set_ssl_mode(const std::string &value) {
+  ssl_mode = shcore::str_upper(value);
+  if (kMemberSSLModeValues.count(*ssl_mode) == 0) {
+    std::string valid_values = shcore::str_join(kMemberSSLModeValues, ",");
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for %s option. Supported values: %s.",
+                           kMemberSslMode, valid_values.c_str()));
+  }
+}
+
+void Join_group_replication_options::set_ip_allowlist(
+    const std::string &option, const std::string &value) {
+  if (option == kIpWhitelist) {
+    handle_deprecated_option(kIpWhitelist, kIpAllowlist,
+                             !ip_allowlist.is_null(), true);
+  }
+  ip_allowlist = value;
+  ip_allowlist_option_name = option;
+}
+
+void Join_group_replication_options::set_local_address(
+    const std::string &value) {
+  local_address = shcore::str_strip(value);
+
+  if (local_address->empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.", kLocalAddress));
+  if ((*local_address).compare(":") == 0)
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for %s. If ':' is specified then at "
+                           "least a non-empty host or port must be specified: "
+                           "'<host>:<port>' or '<host>:' or ':<port>'.",
+                           kLocalAddress));
+}
+
+void Join_group_replication_options::set_exit_state_action(
+    const std::string &value) {
+  exit_state_action = shcore::str_strip(value);
+
+  if (exit_state_action->empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.",
+        kExitStateAction));
+}
+
+void Join_group_replication_options::set_member_weight(int64_t value) {
+  member_weight = value;
+}
+
+void Join_group_replication_options::set_consistency(const std::string &option,
+                                                     const std::string &value) {
+  auto stripped_value = shcore::str_strip(value);
+
+  if (stripped_value.empty()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s', string value cannot be empty.",
+        option.c_str()));
+  }
+
+  if (option == kFailoverConsistency) {
+    handle_deprecated_option(kFailoverConsistency, kConsistency,
+                             !consistency.is_null(), false);
+  }
+
+  consistency = stripped_value;
+}
+
+void Join_group_replication_options::set_group_seeds(const std::string &value) {
+  const std::string group_seeds_strip = shcore::str_strip(value);
+  if (group_seeds_strip.empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.", kGroupSeeds));
+
+  group_seeds = value;
+}
+
+void Join_group_replication_options::set_expel_timeout(int64_t value) {
+  if (value < 0 || value > 3600) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, integer value must be in the range: [0, 3600]",
+        kExpelTimeout));
+  }
+
+  expel_timeout = value;
+}
+
+void Join_group_replication_options::set_auto_rejoin_tries(int64_t value) {
+  auto_rejoin_tries = value;
+}
+
+const shcore::Option_pack_def<Create_group_replication_options>
+    &Create_group_replication_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Create_group_replication_options>()
+          .include<Join_group_replication_options>()
+          .optional(kGroupName,
+                    &Create_group_replication_options::set_group_name)
+          .optional(
+              kManualStartOnBoot,
+              &Create_group_replication_options::set_manual_start_on_boot);
+
+  return opts;
+}
+
+void Create_group_replication_options::set_group_name(
+    const std::string &value) {
+  group_name = shcore::str_strip(value);
+
+  if (group_name->empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.", kGroupName));
+}
+
+void Create_group_replication_options::set_manual_start_on_boot(bool value) {
+  manual_start_on_boot = value;
+}
+
+const shcore::Option_pack_def<Rejoin_group_replication_options>
+    &Rejoin_group_replication_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Rejoin_group_replication_options>()
+          .optional(kMemberSslMode,
+                    &Rejoin_group_replication_options::set_ssl_mode)
+          .optional(kIpWhitelist,
+                    &Rejoin_group_replication_options::set_ip_allowlist)
+          .optional(kIpAllowlist,
+                    &Rejoin_group_replication_options::set_ip_allowlist);
+
+  return opts;
+}
+
+void Rejoin_group_replication_options::set_ssl_mode(const std::string &value) {
+  ssl_mode = shcore::str_upper(value);
+  if (kMemberSSLModeValues.count(*ssl_mode) == 0) {
+    std::string valid_values = shcore::str_join(kMemberSSLModeValues, ",");
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for %s option. Supported values: %s.",
+                           kMemberSslMode, valid_values.c_str()));
+  }
+}
+
+void Rejoin_group_replication_options::set_ip_allowlist(
+    const std::string &value) {
+  ip_allowlist = value;
+}
 }  // namespace dba
 }  // namespace mysqlsh

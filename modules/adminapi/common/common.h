@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -192,6 +192,29 @@ constexpr const char kManualStartOnBoot[] = "manualStartOnBoot";
 constexpr const char kDisableClone[] = "disableClone";
 constexpr const char kTags[] = "tags";
 constexpr const char kGtidSetIsComplete[] = "gtidSetIsComplete";
+constexpr const char kAdoptFromAR[] = "adoptFromAR";
+constexpr const char kDryRun[] = "dryRun";
+constexpr const char kInstanceLabel[] = "instanceLabel";
+constexpr const char kSandboxDir[] = "sandboxDir";
+constexpr const char kPortX[] = "portx";
+constexpr const char kAllowRootFrom[] = "allowRootFrom";
+constexpr const char kIgnoreSslError[] = "ignoreSslError";
+constexpr const char kMysqldOptions[] = "mysqldOptions";
+constexpr const char kMyCnfPath[] = "mycnfPath";
+constexpr const char kVerifyMyCnf[] = "verifyMyCnf";
+constexpr const char kOutputMycnfPath[] = "outputMycnfPath";
+constexpr const char kInteractive[] = "interactive";
+constexpr const char kClusterAdmin[] = "clusterAdmin";
+constexpr const char kClusterAdminPassword[] = "clusterAdminPassword";
+constexpr const char kRestart[] = "restart";
+constexpr const char kClearReadOnly[] = "clearReadOnly";
+constexpr const char kApplierWorkerThreads[] = "applierWorkerThreads";
+constexpr const char kMultiPrimary[] = "multiPrimary";
+constexpr const char kMultiMaster[] = "multiMaster";
+constexpr const char kForce[] = "force";
+constexpr const char kAdoptFromGR[] = "adoptFromGR";
+constexpr const char kRemoveInstances[] = "removeInstances";
+constexpr const char kRejoinInstances[] = "rejoinInstances";
 
 constexpr const int k_group_replication_members_limit = 9;
 
@@ -362,7 +385,7 @@ bool SHCORE_PUBLIC validate_cluster_group_name(
     const mysqlshdk::mysql::IInstance &instance, const std::string &group_name);
 
 bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
-                              mysqlshdk::utils::nullable<bool> clear_read_only,
+                              mysqlshdk::null_bool clear_read_only,
                               bool interactive);
 
 enum class Instance_rejoinability {
@@ -461,9 +484,8 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
  * if it is already being used.
  */
 std::string resolve_gr_local_address(
-    const mysqlshdk::utils::nullable<std::string> &local_address,
-    const std::string &report_host, int port, bool check_if_busy,
-    bool quiet = false);
+    const mysqlshdk::null_string &local_address, const std::string &report_host,
+    int port, bool check_if_busy, bool quiet = false);
 
 struct Instance_gtid_info {
   std::string server;
@@ -538,6 +560,22 @@ std::vector<std::string> create_router_grants(
     const std::string &username,
     const mysqlshdk::utils::Version &metadata_version);
 
+/*
+ * Standard warning/error generation in case a deprecated option in favor of
+ * other option
+ *
+ * @param deprecated_name name of the deprecated option.
+ * @param new_name name of the new option
+ * @param new_set boolean indicating if an option with the new name was already
+ * provided
+ * @param fall_back_to_new_option boolean value, defines the type of warning to
+ * be printed when old option is used:
+ * - true: indicates the new option will be set instead.
+ * - false: suggest the new option should be used instead.
+ */
+void handle_deprecated_option(const std::string &deprecated_name,
+                              const std::string &new_name, bool new_set = false,
+                              bool fall_back_to_new_option = false);
 }  // namespace dba
 }  // namespace mysqlsh
 

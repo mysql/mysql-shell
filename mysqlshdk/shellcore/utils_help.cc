@@ -1901,16 +1901,19 @@ void Help_manager::add_cli_options_section(
           auto validator = param->validator<Option_validator>();
           const auto &allowed_list = validator->allowed();
           for (const auto &allowed : allowed_list) {
-            std::string option_detail = format_cli_option(allowed);
+            // Only options that are enabled for CLI
+            if (allowed->cmd_line_enabled) {
+              std::string option_detail = format_cli_option(allowed);
 
-            auto param_data = option_data.find(allowed->name);
-            if (param_data != option_data.end()) {
-              std::vector<std::string> brief{param_data->second};
-              option_detail += "\n";
-              option_detail += format_help_text(
-                  &brief, MAX_HELP_WIDTH, padding + ITEM_DESC_PADDING, true);
+              auto param_data = option_data.find(allowed->name);
+              if (param_data != option_data.end()) {
+                std::vector<std::string> brief{param_data->second};
+                option_detail += "\n";
+                option_detail += format_help_text(
+                    &brief, MAX_HELP_WIDTH, padding + ITEM_DESC_PADDING, true);
+              }
+              options_details.push_back(option_detail);
             }
-            options_details.push_back(option_detail);
           }
         } else {
           std::string option_detail = format_cli_option(param);

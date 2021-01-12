@@ -181,47 +181,11 @@ static std::map<std::string, Op_data> Operations_text{
 }  // namespace sandbox
 
 namespace {
-
-const std::set<std::string> kStopInstanceOpts = {"sandboxDir", "password"};
-const std::set<std::string> kDefaultLocalInstanceOpts = {"sandboxDir"};
-
 void validate_port(int port, const std::string &name) {
   if (port < 1024 || port > 65535)
     throw shcore::Exception::argument_error(
         "Invalid value for '" + name +
         "': Please use a valid TCP port number >= 1024 and <= 65535");
-}
-
-std::string get_sandbox_dir(shcore::Argument_map *opt_map = nullptr) {
-  std::string sandbox_dir =
-      mysqlsh::current_shell_options()->get().sandbox_directory;
-
-  if (opt_map) {
-    if (opt_map->has_key("sandboxDir")) {
-      sandbox_dir = opt_map->string_at("sandboxDir");
-
-      // NOTE this validation is not done if the sandbox dir is the one
-      // At the shell options, is that intentional?
-      if (!shcore::is_folder(sandbox_dir))
-        throw shcore::Exception::argument_error(
-            "The sandbox dir path '" + sandbox_dir + "' is not valid: it " +
-            (shcore::path_exists(sandbox_dir) ? "is not a directory"
-                                              : "does not exist") +
-            ".");
-    }
-  }
-
-  return sandbox_dir;
-}
-
-void validate_sandbox_dir(const std::string &sandbox_dir) {
-  if (!shcore::is_folder(sandbox_dir)) {
-    throw shcore::Exception::argument_error(
-        "The sandbox dir path '" + sandbox_dir + "' is not valid: it " +
-        (shcore::path_exists(sandbox_dir) ? "is not a directory"
-                                          : "does not exist") +
-        ".");
-  }
 }
 
 void throw_instance_op_error(const shcore::Array_t &errors) {
@@ -237,7 +201,6 @@ void throw_instance_op_error(const shcore::Array_t &errors) {
     throw shcore::Exception::runtime_error(shcore::str_join(str_errors, "\n"));
   }
 }
-
 }  // namespace
 
 using mysqlshdk::db::uri::formats::only_transport;
@@ -619,8 +582,6 @@ void Dba::init() {
   expose("deploySandboxInstance", &Dba::deploy_sandbox_instance, "port",
          "?options")
       ->cli();
-  // TODO(rennox): The sandbox operations must be moved to export() and the
-  // correct option definitions must be added just as the deploy operation
   expose("startSandboxInstance", &Dba::start_sandbox_instance, "port",
          "?options")
       ->cli();
@@ -842,18 +803,6 @@ error will be raised.
 The options dictionary accepts the connectToPrimary option,
 which defaults to true and indicates the shell to automatically
 connect to the primary member of the cluster.
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-@li If the Metadata update operation failed.
-
-@throw ArgumentError in the following scenarios:
-@li If the Cluster name is empty.
-@li If the Cluster name is invalid.
-@li If the Cluster does not exist.
-
-@throw RuntimeError in the following scenarios:
-@li If the current connection cannot be used for Group Replication.
 )*");
 /**
  * $(DBA_GETCLUSTER_BRIEF)
@@ -866,7 +815,7 @@ Cluster Dba::getCluster(String name, Dictionary options) {}
 Cluster Dba::get_cluster(str name, dict options) {}
 #endif
 std::shared_ptr<Cluster> Dba::get_cluster(
-    const mysqlshdk::utils::nullable<std::string> &cluster_name,
+    const mysqlshdk::null_string &cluster_name,
     const shcore::Dictionary_t &options) const {
   // TODO(alfredo) - suggest running dba.diagnose() in case it's a dead
   // cluster that needs reboot
@@ -1006,64 +955,6 @@ std::shared_ptr<Cluster> Dba::get_cluster(
   return std::make_shared<mysqlsh::dba::Cluster>(cluster);
 }
 
-void Dba::verify_create_cluster_deprecations(
-    const shcore::Dictionary_t &options) {
-  auto console = mysqlsh::current_console();
-
-  // Verify the deprecation of failoverConsistency
-  if (options->has_key(kFailoverConsistency)) {
-    if (options->has_key(kConsistency)) {
-      throw shcore::Exception::argument_error(
-          "Cannot use the failoverConsistency and consistency options "
-          "simultaneously. The failoverConsistency option is deprecated, "
-          "please use the consistency option instead.");
-    } else {
-      console->print_warning(
-          "The failoverConsistency option is deprecated. "
-          "Please use the consistency option instead.");
-      console->print_info();
-    }
-  }
-
-  // Verify deprecation of multiMaster
-  if (options->has_key("multiMaster")) {
-    if (options->has_key("multiPrimary")) {
-      throw shcore::Exception::argument_error(
-          "Cannot use the multiMaster and multiPrimary options "
-          "simultaneously. The multiMaster option is deprecated, please use "
-          "the multiPrimary option instead.");
-    } else {
-      console->print_warning(
-          "The multiMaster option is deprecated. "
-          "Please use the multiPrimary option instead.");
-      console->print_info();
-    }
-  }
-
-  // Verify deprecation of clearReadOnly
-  if (options->has_key("clearReadOnly")) {
-    console->print_warning(
-        "The clearReadOnly option is deprecated. The super_read_only mode is "
-        "now automatically cleared.");
-    console->print_info();
-  }
-
-  // Verify deprecation of ipWhitelist
-  if (options->has_key(kIpWhitelist)) {
-    if (options->has_key(kIpAllowlist)) {
-      throw shcore::Exception::argument_error(
-          "Cannot use the ipWhitelist and ipAllowlist options "
-          "simultaneously. The ipWhitelist option is deprecated, "
-          "please use the ipAllowlist option instead.");
-    } else {
-      console->print_warning(
-          "The ipWhitelist option is deprecated in favor of ipAllowlist. "
-          "ipAllowlist will be set instead.");
-      console->print_info();
-    }
-  }
-}
-
 REGISTER_HELP_FUNCTION(createCluster, dba);
 REGISTER_HELP_FUNCTION_TEXT(DBA_CREATECLUSTER, R"*(
 Creates a MySQL InnoDB cluster.
@@ -1104,6 +995,7 @@ cluster instances will automatically start and rejoin when MySQL starts,
 otherwise it must be started manually.
 ${CLUSTER_OPT_EXIT_STATE_ACTION}
 ${CLUSTER_OPT_MEMBER_WEIGHT}
+${CLUSTER_OPT_CONSISTENCY}
 ${CLUSTER_OPT_FAILOVER_CONSISTENCY}
 ${CLUSTER_OPT_EXPEL_TIMEOUT}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES}
@@ -1210,28 +1102,6 @@ Please use the consistency option instead.
 
 @attention The ipWhitelist option will be removed in a future release.
 Please use the ipAllowlist option instead.
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-@li If the Metadata update operation failed.
-
-@throw ArgumentError in the following scenarios:
-@li If the Cluster name is empty.
-@li If the Cluster name is not valid.
-@li If the options contain an invalid attribute.
-@li If adoptFromGR is true and the memberSslMode option is used.
-@li If the value for the memberSslMode option is not one of the allowed.
-@li If adoptFromGR is true and the multiPrimary option is used.
-@li If the value for the ipWhitelist, groupName, localAddress, groupSeeds,
-exitStateAction or consistency options is empty.
-@li If the value for the expelTimeout is not in the range: [0, 3600]
-
-@throw RuntimeError in the following scenarios:
-@li If the value for the groupName, localAddress, groupSeeds, exitStateAction,
-memberWeight, consistency, expelTimeout or autoRejoinTries options is
-not valid for Group Replication.
-@li If the current connection cannot be used for Group Replication.
-@li If disableClone is not supported on the target instance.
 )*");
 
 /**
@@ -1245,41 +1115,10 @@ Cluster Dba::createCluster(String name, Dictionary options) {}
 #elif DOXYGEN_PY
 Cluster Dba::create_cluster(str name, dict options) {}
 #endif
-shcore::Value Dba::create_cluster(const std::string &cluster_name,
-                                  const shcore::Dictionary_t &options) {
-  Group_replication_options gr_options(Group_replication_options::CREATE);
-  Clone_options clone_options(Clone_options::CREATE_CLUSTER);
-  bool adopt_from_gr = false;
-  mysqlshdk::utils::nullable<bool> multi_primary;
-  bool force = false;
-  mysqlshdk::utils::nullable<bool> clear_read_only;
-  bool interactive = current_shell_options()->get().wizards;
+shcore::Value Dba::create_cluster(
+    const std::string &cluster_name,
+    const shcore::Option_pack_ref<Create_cluster_options> &options) {
   std::string instance_label;
-
-  // Get optional options.
-  if (options) {
-    // Retrieves optional options if exists
-    Unpack_options(options)
-        .unpack(&gr_options)
-        .unpack(&clone_options)
-        .optional("multiPrimary", &multi_primary)
-        .optional("multiMaster", &multi_primary)
-        .optional("force", &force)
-        .optional("adoptFromGR", &adopt_from_gr)
-        .optional("clearReadOnly", &clear_read_only)
-        .optional("interactive", &interactive)
-        .end();
-
-    // Verify deprecated options
-    verify_create_cluster_deprecations(options);
-
-    // Set the right value for ip_allowlist_option_name
-    if (options->has_key(kIpWhitelist)) {
-      gr_options.ip_allowlist_option_name = kIpWhitelist;
-    } else {
-      gr_options.ip_allowlist_option_name = kIpAllowlist;
-    }
-  }
 
   std::shared_ptr<MetadataStorage> metadata;
   std::shared_ptr<Instance> group_server;
@@ -1334,9 +1173,12 @@ shcore::Value Dba::create_cluster(const std::string &cluster_name,
   // Create the cluster
   {
     // Create the add_instance command and execute it.
-    Create_cluster op_create_cluster(group_server, cluster_name, gr_options,
-                                     clone_options, multi_primary,
-                                     adopt_from_gr, force, interactive);
+    // TODO(anyone) This operation should receive an options object instead of
+    // individual parameters.
+    Create_cluster op_create_cluster(
+        group_server, cluster_name, options->gr_options, options->clone_options,
+        options->multi_primary, options->adopt_from_gr, options->force,
+        options->interactive);
 
     // Always execute finish when leaving "try catch".
     auto finally = shcore::on_leave_scope(
@@ -1363,12 +1205,6 @@ The options dictionary may contain the following options:
 @li force: boolean, confirms that the drop operation must be executed.
 @li clearReadOnly: boolean value used to confirm that super_read_only must be
 disabled
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-
-@throw RuntimeError in the following scenarios:
-@li If the current connection cannot be used for Group Replication.
 )*");
 
 /**
@@ -1382,18 +1218,8 @@ Undefined Dba::dropMetadataSchema(Dictionary options) {}
 None Dba::drop_metadata_schema(dict options) {}
 #endif
 
-void Dba::drop_metadata_schema(const shcore::Dictionary_t &options) {
-  mysqlshdk::utils::nullable<bool> force;
-  mysqlshdk::utils::nullable<bool> clear_read_only;
-
-  // Map with the options
-  if (options) {
-    Unpack_options(options)
-        .optional("force", &force)
-        .optional("clearReadOnly", &clear_read_only)
-        .end();
-  }
-
+void Dba::drop_metadata_schema(
+    const shcore::Option_pack_ref<Drop_metadata_schema_options> &options) {
   auto instance = connect_to_target_member();
   auto state = check_function_preconditions("Dba.dropMetadataSchema", instance);
   auto metadata = std::make_shared<MetadataStorage>(instance);
@@ -1425,6 +1251,8 @@ void Dba::drop_metadata_schema(const shcore::Dictionary_t &options) {
 
   auto console = current_console();
 
+  mysqlshdk::null_bool force = options->force;
+
   if (force.is_null() && interactive &&
       console->confirm("Are you sure you want to remove the Metadata?",
                        mysqlsh::Prompt_answer::NO) ==
@@ -1437,7 +1265,7 @@ void Dba::drop_metadata_schema(const shcore::Dictionary_t &options) {
     // NOTE: this is left for last to avoid setting super_read_only to true
     // and right before some execution failure of the command leaving the
     // instance in an incorrect state
-    validate_super_read_only(*instance, clear_read_only, interactive);
+    validate_super_read_only(*instance, options->clear_read_only, interactive);
 
     metadata::uninstall(instance);
     if (interactive) {
@@ -1500,19 +1328,6 @@ The note can be one of the following:
 @li Update the config file.
 @li Update the server variable.
 @li Restart the server.
-
-
-@throw ArgumentError in the following scenarios:
-@li If the instance parameter is empty.
-@li If the instance definition is invalid.
-@li If the instance definition is a connection dictionary but empty.
-
-@throw RuntimeError in the following scenarios:
-@li If the instance accounts are invalid.
-@li If the instance is offline.
-@li If the instance is already part of a Replication Group.
-@li If the instance is already part of an InnoDB Cluster.
-@li If the given the instance cannot be used for Group Replication.
 )*");
 
 /**
@@ -1528,35 +1343,24 @@ JSON Dba::check_instance_configuration(InstanceDef instance, dict options) {}
 #endif
 shcore::Value Dba::check_instance_configuration(
     const mysqlshdk::utils::nullable<Connection_options> &instance_def_,
-    const shcore::Dictionary_t &options) {
+    const shcore::Option_pack_ref<Check_instance_configuration_options>
+        &options) {
   auto instance_def = instance_def_;
   const auto has_co = instance_def && instance_def->has_data();
 
-  if (has_co) {
-    set_password_from_map(instance_def.operator->(), options);
+  if (has_co && !options->password.is_null()) {
+    auto connection_options = instance_def.operator->();
+    connection_options->clear_password();
+    connection_options->set_password(*options->password);
   }
 
   shcore::Value ret_val;
   std::shared_ptr<Instance> instance;
-  bool interactive = current_shell_options()->get().wizards;
-  std::string mycnf_path;
-
-  if (options) {
-    // instance_def is optional, password is used when unpacking options to
-    // avoid errors when instance_def is not given
-    std::string password;
-
-    // Retrieves optional options if exists or leaves empty so the default is
-    // set afterwards
-    Unpack_options(options)
-        .optional("mycnfPath", &mycnf_path)
-        .optional("verifyMyCnf", &mycnf_path)
-        .optional("interactive", &interactive)
-        .optional_ci("password", &password)
-        .end();
-  }
 
   // Establish the session to the target instance
+  bool interactive =
+      options->interactive.get_safe(current_shell_options()->get().wizards);
+
   if (has_co) {
     instance = Instance::connect(*instance_def, interactive);
   } else {
@@ -1572,7 +1376,7 @@ shcore::Value Dba::check_instance_configuration(
   instance->close_session();
 
   // Call the API
-  Check_instance op_check_instance{coptions, mycnf_path};
+  Check_instance op_check_instance{coptions, options->mycnf_path};
 
   op_check_instance.prepare();
   ret_val = op_check_instance.execute();
@@ -1728,31 +1532,12 @@ ReplicaSet Dba::createReplicaSet(String name, Dictionary options) {}
 #elif DOXYGEN_PY
 ReplicaSet Dba::create_replica_set(str name, dict options) {}
 #endif
-shcore::Value Dba::create_replica_set(const std::string &full_rs_name,
-                                      const shcore::Dictionary_t &options) {
-  bool adopt = false;
-  bool dry_run = false;
+shcore::Value Dba::create_replica_set(
+    const std::string &full_rs_name,
+    const shcore::Option_pack_ref<Create_replicaset_options> &options) {
   auto console = mysqlsh::current_console();
-  bool interactive = current_shell_options()->get().wizards;
-  bool gtid_set_is_complete = false;
-  std::string instance_label;
-  Async_replication_options ar_options;
   Global_topology_type topology_type =
       Global_topology_type::SINGLE_PRIMARY_TREE;
-
-  Unpack_options(options)
-      .unpack(&ar_options)
-      // .optional("interactive", &interactive)
-      .optional("adoptFromAR", &adopt)
-      .optional("dryRun", &dry_run)
-      .optional("instanceLabel", &instance_label)
-      .optional(kGtidSetIsComplete, &gtid_set_is_complete)
-      .end();
-
-  if (adopt && !instance_label.empty()) {
-    throw shcore::Exception::argument_error(
-        "instanceLabel option not allowed when adoptFromAR:true");
-  }
 
   std::shared_ptr<Instance> target_server = connect_to_target_member();
   try {
@@ -1779,11 +1564,14 @@ shcore::Value Dba::create_replica_set(const std::string &full_rs_name,
 
   Instance_pool::Auth_options auth_opts;
   auth_opts.get(target_server->get_connection_options());
-  Scoped_instance_pool ipool(interactive, auth_opts);
+  Scoped_instance_pool ipool(options->interactive, auth_opts);
 
+  // TODO(anyone): The create function should receivet he options object rather
+  // than individual parameters.
   auto cluster = Replica_set_impl::create(
-      full_rs_name, topology_type, target_server, instance_label, ar_options,
-      adopt, dry_run, gtid_set_is_complete);
+      full_rs_name, topology_type, target_server, options->instance_label,
+      options->ar_options, options->adopt, options->dry_run,
+      options->gtid_set_is_complete);
 
   console->print_info(
       "ReplicaSet object successfully created for " + target_server->descr() +
@@ -1796,25 +1584,9 @@ shcore::Value Dba::create_replica_set(const std::string &full_rs_name,
 }
 
 void Dba::exec_instance_op(const std::string &function, int port,
-                           const shcore::Dictionary_t &options,
+                           const std::string &sandbox_dir,
                            const std::string &password) {
-  shcore::Value mycnf_options;
-
-  std::string sandbox_dir;
   validate_port(port, "port");
-
-  if (options) {
-    // Verification of invalid attributes on the instance commands
-    shcore::Argument_map opt_map(*options);
-
-    sandbox_dir = get_sandbox_dir(&opt_map);
-
-    if (function != "stop") {
-      opt_map.ensure_keys({}, kDefaultLocalInstanceOpts, "the instance data");
-    }
-  } else {
-    sandbox_dir = get_sandbox_dir();
-  }
 
   bool interactive = current_shell_options()->get().wizards;
 
@@ -1843,17 +1615,7 @@ void Dba::exec_instance_op(const std::string &function, int port,
   }
 
   if (rc != 0) {
-    std::vector<std::string> str_errors;
-    if (errors) {
-      for (auto error : *errors) {
-        auto data = error.as_map();
-        auto error_type = data->get_string("type");
-        auto error_text = data->get_string("msg");
-        str_errors.push_back(error_type + ": " + error_text);
-      }
-    }
-
-    throw shcore::Exception::runtime_error(shcore::str_join(str_errors, "\n"));
+    throw_instance_op_error(errors);
   } else if (interactive) {
     console->println();
     console->println("Instance localhost:" + std::to_string(port) +
@@ -1900,13 +1662,6 @@ or @%userprofile@%\\MySQL\\mysql-sandboxes on Windows systems.
 SSL support is added by default if not already available for the new instance,
 but if it fails to be added then the error is ignored. Set the ignoreSslError
 option to false to ensure the new instance is deployed with SSL support.
-
-@throw ArgumentError in the following scenarios:
-@li If the options contain an invalid attribute.
-@li If the root password is missing on the options.
-@li If the port value is < 1024 or > 65535.
-@throw RuntimeError in the following scenarios:
-@li If SSL support can be provided and ignoreSslError: false.
 )*");
 
 /**
@@ -1920,27 +1675,20 @@ Instance Dba::deploySandboxInstance(Integer port, Dictionary options) {}
 Instance Dba::deploy_sandbox_instance(int port, dict options) {}
 #endif
 void Dba::deploy_sandbox_instance(
-    int port, const shcore::Option_pack_ref<Deploy_instance_options> &options) {
+    int port, const shcore::Option_pack_ref<Deploy_sandbox_options> &options) {
   validate_port(port, "port");
 
-  const Deploy_instance_options &opts = *options;
+  const Deploy_sandbox_options &opts = *options;
 
   if (!opts.xport.is_null()) {
     validate_port(*opts.xport, "portx");
   }
 
-  auto sandbox_dir = mysqlsh::current_shell_options()->get().sandbox_directory;
-
-  if (!opts.sandbox_dir.is_null()) {
-    sandbox_dir = *opts.sandbox_dir;
-
-    validate_sandbox_dir(sandbox_dir);
-  }
-
-  mysqlshdk::utils::nullable<std::string> password = opts.password;
+  mysqlshdk::null_string password = opts.password;
   bool interactive = current_shell_options()->get().wizards;
   auto console = mysqlsh::current_console();
-  std::string path = shcore::path::join_path(sandbox_dir, std::to_string(port));
+  std::string path =
+      shcore::path::join_path(options->sandbox_dir, std::to_string(port));
 
   if (interactive) {
     console->println(
@@ -1974,7 +1722,7 @@ void Dba::deploy_sandbox_instance(
 
   shcore::Array_t errors;
   int rc = _provisioning_interface.create_sandbox(
-      port, opts.xport.get_safe(0), sandbox_dir, *password,
+      port, opts.xport.get_safe(0), options->sandbox_dir, *password,
       shcore::Value(opts.mysqld_options), true, opts.ignore_ssl_error, 0, "",
       &errors);
 
@@ -2055,10 +1803,6 @@ specified it will use:
 or @%userprofile@%\\MySQL\\mysql-sandboxes on Windows systems.
 
 If the instance is not located on the used path an error will occur.
-
-@throw ArgumentError in the following scenarios:
-@li If the options contain an invalid attribute.
-@li If the port value is < 1024 or > 65535.
 )*");
 
 /**
@@ -2071,9 +1815,9 @@ Undefined Dba::deleteSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::delete_sandbox_instance(int port, dict options) {}
 #endif
-void Dba::delete_sandbox_instance(int port,
-                                  const shcore::Dictionary_t &options) {
-  exec_instance_op("delete", port, options);
+void Dba::delete_sandbox_instance(
+    int port, const shcore::Option_pack_ref<Common_sandbox_options> &options) {
+  exec_instance_op("delete", port, options->sandbox_dir);
 }
 
 REGISTER_HELP_FUNCTION(killSandboxInstance, dba);
@@ -2097,10 +1841,6 @@ specified it will use:
 or @%userprofile@%\\MySQL\\mysql-sandboxes on Windows systems.
 
 If the instance is not located on the used path an error will occur.
-
-@throw ArgumentError in the following scenarios:
-@li If the options contain an invalid attribute.
-@li If the port value is < 1024 or > 65535.
 )*");
 
 /**
@@ -2113,8 +1853,9 @@ Undefined Dba::killSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::kill_sandbox_instance(int port, dict options) {}
 #endif
-void Dba::kill_sandbox_instance(int port, const shcore::Dictionary_t &options) {
-  exec_instance_op("kill", port, options);
+void Dba::kill_sandbox_instance(
+    int port, const shcore::Option_pack_ref<Common_sandbox_options> &options) {
+  exec_instance_op("kill", port, options->sandbox_dir);
 }
 
 REGISTER_HELP_FUNCTION(stopSandboxInstance, dba);
@@ -2139,11 +1880,6 @@ specified it will use:
 or @%userprofile@%\\MySQL\\mysql-sandboxes on Windows systems.
 
 If the instance is not located on the used path an error will occur.
-
-@throw ArgumentError in the following scenarios:
-@li If the options contain an invalid attribute.
-@li If the root password is missing on the options.
-@li If the port value is < 1024 or > 65535.
 )*");
 
 /**
@@ -2156,24 +1892,13 @@ Undefined Dba::stopSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::stop_sandbox_instance(int port, dict options) {}
 #endif
-void Dba::stop_sandbox_instance(int port, const shcore::Dictionary_t &options) {
+void Dba::stop_sandbox_instance(
+    int port, const shcore::Option_pack_ref<Stop_sandbox_options> &options) {
   std::string sandbox_dir;
 
   validate_port(port, "port");
 
-  mysqlshdk::utils::nullable<std::string> password;
-
-  if (options) {
-    shcore::Argument_map opt_map(*options);
-
-    opt_map.ensure_keys({}, kStopInstanceOpts, "the instance data");
-
-    if (opt_map.has_key("password")) password = opt_map.string_at("password");
-
-    sandbox_dir = get_sandbox_dir(&opt_map);
-  } else {
-    sandbox_dir = get_sandbox_dir();
-  }
+  mysqlshdk::null_string password = options->password;
 
   bool interactive = current_shell_options()->get().wizards;
   auto console = mysqlsh::current_console();
@@ -2217,7 +1942,7 @@ void Dba::stop_sandbox_instance(int port, const shcore::Dictionary_t &options) {
     }
   }
 
-  exec_instance_op("stop", port, options, *password);
+  exec_instance_op("stop", port, options->sandbox_dir, *password);
 }
 
 REGISTER_HELP_FUNCTION(startSandboxInstance, dba);
@@ -2241,10 +1966,6 @@ specified it will use:
 or @%userprofile@%\\MySQL\\mysql-sandboxes on Windows systems.
 
 If the instance is not located on the used path an error will occur.
-
-@throw ArgumentError in the following scenarios:
-@li If the options contain an invalid attribute.
-@li If the port value is < 1024 or > 65535.
 )*");
 
 /**
@@ -2257,55 +1978,27 @@ Undefined Dba::startSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::start_sandbox_instance(int port, dict options) {}
 #endif
-void Dba::start_sandbox_instance(int port,
-                                 const shcore::Dictionary_t &options) {
-  exec_instance_op("start", port, options);
+void Dba::start_sandbox_instance(
+    int port, const shcore::Option_pack_ref<Common_sandbox_options> &options) {
+  exec_instance_op("start", port, options->sandbox_dir);
 }
 
 void Dba::do_configure_instance(
     const mysqlshdk::db::Connection_options &instance_def_,
-    const shcore::Dictionary_t &options, bool local,
-    Cluster_type cluster_type) {
+    const Configure_instance_options &options) {
   shcore::Value ret_val;
   auto instance_def = instance_def_;
 
-  if (instance_def.has_data()) {
-    set_password_from_map(&instance_def, options);
+  if (instance_def.has_data() && !options.password.is_null()) {
+    instance_def.clear_password();
+    instance_def.set_password(*options.password);
   }
 
   std::shared_ptr<Instance> target_instance;
 
-  std::string mycnf_path, output_mycnf_path, cluster_admin;
-  mysqlshdk::utils::nullable<std::string> cluster_admin_password;
-  mysqlshdk::utils::nullable<bool> clear_read_only;
-  bool interactive = current_shell_options()->get().wizards;
-  mysqlshdk::utils::nullable<bool> restart;
-  mysqlshdk::utils::nullable<int64_t> slave_parallel_workers;
-
   Cluster_check_info state;
-
-  // Retrieves optional options if exists or leaves empty so the default
-  // is set afterwards
-  Unpack_options unpacker(options);
-
-  unpacker.optional("clusterAdmin", &cluster_admin)
-      .optional("clusterAdminPassword", &cluster_admin_password)
-      .optional("restart", &restart)
-      .optional("interactive", &interactive);
-
-  if (!local) {
-    unpacker.optional("applierWorkerThreads", &slave_parallel_workers);
-  }
-
-  if (cluster_type == Cluster_type::GROUP_REPLICATION) {
-    unpacker.optional("mycnfPath", &mycnf_path)
-        .optional("outputMycnfPath", &output_mycnf_path)
-        .optional("clearReadOnly", &clear_read_only);
-  } else {
-    clear_read_only = true;
-  }
-
-  unpacker.end();
+  bool interactive =
+      options.interactive.get_safe(current_shell_options()->get().wizards);
 
   // Establish the session to the target instance
   if (instance_def.has_data()) {
@@ -2315,12 +2008,12 @@ void Dba::do_configure_instance(
   }
 
   // Check the function preconditions
-  if (cluster_type == Cluster_type::ASYNC_REPLICATION) {
+  if (options.cluster_type == Cluster_type::ASYNC_REPLICATION) {
     state = check_function_preconditions("Dba.configureReplicaSetInstance",
                                          target_instance);
   } else {
     state = check_function_preconditions(
-        local ? "Dba.configureLocalInstance" : "Dba.configureInstance",
+        options.local ? "Dba.configureLocalInstance" : "Dba.configureInstance",
         target_instance);
   }
 
@@ -2350,16 +2043,21 @@ void Dba::do_configure_instance(
 
   {
     // Call the API
+    // TODO(rennox): The configure instance operations should be refactored to
+    // use the Configure_instance_options rather than passing it's attributes
     std::unique_ptr<Configure_instance> op_configure_instance;
-    if (local) {
+    if (options.local) {
       op_configure_instance.reset(new Configure_local_instance(
-          target_instance, mycnf_path, output_mycnf_path, cluster_admin,
-          cluster_admin_password, clear_read_only, interactive, restart));
+          target_instance, options.mycnf_path, options.output_mycnf_path,
+          options.cluster_admin, options.cluster_admin_password,
+          options.clear_read_only, interactive, options.restart));
     } else {
       op_configure_instance.reset(new Configure_instance(
-          target_instance, mycnf_path, output_mycnf_path, cluster_admin,
-          cluster_admin_password, clear_read_only, interactive, restart,
-          slave_parallel_workers, cluster_type, state.source_type));
+          target_instance, options.mycnf_path, options.output_mycnf_path,
+          options.cluster_admin, options.cluster_admin_password,
+          options.clear_read_only, interactive, options.restart,
+          options.slave_parallel_workers, options.cluster_type,
+          state.source_type));
     }
 
     // Prepare and execute the operation.
@@ -2393,25 +2091,6 @@ instance was successfully configured for InnoDB Cluster usage or if it was
 already valid for InnoDB Cluster usage.
 
 ${CONFIGURE_INSTANCE_COMMON_DETAILS_2}
-
-@throw ArgumentError in the following scenarios:
-@li If the instance parameter is empty.
-@li If the instance definition is invalid.
-@li If the instance definition is a connection dictionary but empty.
-@li If the instance definition is a connection dictionary but any option is
-invalid.
-@li If the instance definition is missing the password.
-@li If the provided password is empty.
-@li If the clusterAdminPassword is provided and clusterAdmin is not provided.
-@li If the clusterAdminPassword is provided but the clusterAdmin account already
-exists.
-@li If the configuration file path is required but not provided or wrong.
-
-@throw RuntimeError in the following scenarios:
-@li If the instance accounts are invalid.
-@li If the instance is offline.
-@li If the instance is already part of a Replication Group.
-@li If the given instance cannot be used for Group Replication.
 )*");
 
 /**
@@ -2427,10 +2106,10 @@ None Dba::configure_local_instance(InstanceDef instance, dict options) {}
 #endif
 void Dba::configure_local_instance(
     const mysqlshdk::utils::nullable<Connection_options> &instance_def,
-    const shcore::Dictionary_t &options) {
+    const shcore::Option_pack_ref<Configure_cluster_local_instance_options>
+        &options) {
   return do_configure_instance(
-      instance_def ? *instance_def : Connection_options{}, options, true,
-      Cluster_type::GROUP_REPLICATION);
+      instance_def ? *instance_def : Connection_options{}, *options);
 }
 
 REGISTER_HELP_FUNCTION(configureInstance, dba);
@@ -2451,8 +2130,6 @@ ${TOPIC_CONNECTION_MORE_INFO}
 
 ${CONFIGURE_INSTANCE_COMMON_OPTIONS}
 ${OPT_APPLIERWORKERTHREADS}
-@li restart: boolean value used to indicate that a remote restart of the target
-instance should be performed to finalize the operation.
 
 ${CONFIGURE_INSTANCE_COMMON_DETAILS_1}
 
@@ -2460,27 +2137,6 @@ This function reviews the instance configuration to identify if it is valid for
 usage in group replication and cluster. An exception is thrown if not.
 
 ${CONFIGURE_INSTANCE_COMMON_DETAILS_2}
-
-@throw ArgumentError in the following scenarios:
-@li If 'interactive' is disabled and the instance parameter is empty.
-@li If the instance definition is invalid.
-@li If the instance definition is a connection dictionary but empty.
-@li If the instance definition is a connection dictionary but any option is
-invalid.
-@li If 'interactive' mode is disabled and the instance definition is missing
-the password.
-@li If 'interactive' mode is enabled and the provided password is empty.
-@li If the clusterAdminPassword is provided and clusterAdmin is not provided.
-@li If the clusterAdminPassword is provided but the clusterAdmin account already
-exists.
-
-@throw RuntimeError in the following scenarios:
-@li If the configuration file path is required but not provided or wrong.
-@li If the instance accounts are invalid.
-@li If the instance is offline.
-@li If the instance is already part of a Replication Group.
-@li If the instance is already part of an InnoDB Cluster.
-@li If the given instance cannot be used for Group Replication.
 )*");
 
 REGISTER_HELP_TOPIC_TEXT(CONFIGURE_INSTANCE_COMMON_OPTIONS, R"*(
@@ -2494,6 +2150,8 @@ file of the instance.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
 @li clearReadOnly: boolean value used to confirm that super_read_only must be
 disabled.
+@li restart: boolean value used to indicate that a remote restart of the target
+instance should be performed to finalize the operation.
 ${OPT_INTERACTIVE}
 )*");
 
@@ -2533,9 +2191,10 @@ None Dba::configure_instance(InstanceDef instance, dict options) {}
 #endif
 void Dba::configure_instance(
     const mysqlshdk::utils::nullable<Connection_options> &instance_def,
-    const shcore::Dictionary_t &options) {
+    const shcore::Option_pack_ref<Configure_cluster_instance_options>
+        &options) {
   do_configure_instance(instance_def ? *instance_def : Connection_options{},
-                        options, false, Cluster_type::GROUP_REPLICATION);
+                        *options);
 }
 
 REGISTER_HELP_FUNCTION(configureReplicaSetInstance, dba);
@@ -2601,10 +2260,10 @@ None Dba::configure_replica_set_instance(InstanceDef instance, dict options) {}
 #endif
 void Dba::configure_replica_set_instance(
     const mysqlshdk::utils::nullable<Connection_options> &instance_def,
-    const shcore::Dictionary_t &options) {
+    const shcore::Option_pack_ref<Configure_replicaset_instance_options>
+        &options) {
   return do_configure_instance(
-      instance_def ? *instance_def : Connection_options{}, options, false,
-      Cluster_type::ASYNC_REPLICATION);
+      instance_def ? *instance_def : Connection_options{}, *options);
 }
 
 REGISTER_HELP_FUNCTION(rebootClusterFromCompleteOutage, dba);
@@ -2619,6 +2278,7 @@ this function.
 
 The options dictionary can contain the next values:
 
+@li user: The user used for the instances sessions required operations.
 @li password: The password used for the instances sessions required operations.
 @li removeInstances: The list of instances to be removed from the cluster.
 @li rejoinInstances: The list of instances to be rejoined to the cluster.
@@ -2641,18 +2301,6 @@ On success, the restored cluster object is returned by the function.
 The current session must be connected to a former instance of the cluster.
 
 If name is not specified, the default cluster will be returned.
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-
-@throw ArgumentError in the following scenarios:
-@li If the Cluster name is empty.
-@li If the Cluster name is not valid.
-@li If the options contain an invalid attribute.
-
-@throw RuntimeError in the following scenarios:
-@li If the Cluster does not exist on the Metadata.
-@li If some instance of the Cluster belongs to a Replication Group.
 )*");
 
 /**
@@ -2669,8 +2317,8 @@ Cluster Dba::reboot_cluster_from_complete_outage(str clusterName,
 #endif
 
 std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
-    const mysqlshdk::utils::nullable<std::string> &cluster_name,
-    const shcore::Dictionary_t &options) {
+    const mysqlshdk::null_string &cluster_name,
+    const shcore::Option_pack_ref<Reboot_cluster_options> &options) {
   std::shared_ptr<MetadataStorage> metadata;
   std::shared_ptr<Instance> target_instance;
   // The cluster is completely dead, so we can't find the primary anyway...
@@ -2681,7 +2329,6 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
   std::string instance_session_address;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
-  shcore::Array_t remove_instances_ref, rejoin_instances_ref;
   std::vector<std::string> remove_instances_list, rejoin_instances_list,
       instances_lists_intersection, instances_to_skip_gtid_check;
 
@@ -2691,29 +2338,18 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   // These session options are taken as base options for further operations
   auto current_session_options = target_instance->get_connection_options();
 
+  if (!options->user.is_null()) {
+    current_session_options.clear_user();
+    current_session_options.set_user(*(options->user));
+  }
+
+  if (!options->password.is_null()) {
+    current_session_options.clear_password();
+    current_session_options.set_password(*(options->password));
+  }
+
   // Get the current session instance address
   instance_session_address = current_session_options.as_uri(only_transport());
-
-  if (options) {
-    mysqlsh::set_user_from_map(&current_session_options, options);
-    mysqlsh::set_password_from_map(&current_session_options, options);
-
-    mysqlshdk::utils::nullable<bool> clear_read_only;
-
-    Unpack_options(options)
-        .optional("removeInstances", &remove_instances_ref)
-        .optional("rejoinInstances", &rejoin_instances_ref)
-        .optional("clearReadOnly", &clear_read_only)
-        .end();
-
-    if (clear_read_only) {
-      std::string warn_msg =
-          "The clearReadOnly option is deprecated. The super_read_only mode is "
-          "now automatically cleared.";
-      console->print_warning(warn_msg);
-      console->println();
-    }
-  }
 
   Instance_pool::Auth_options auth_opts;
   auth_opts.get(target_instance->get_connection_options());
@@ -2727,38 +2363,34 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   // Check if removeInstances and/or rejoinInstances are specified
   // And if so add them to simple vectors so the check for types is done
   // before moving on in the function logic
-  if (remove_instances_ref) {
-    if (!remove_instances_ref->empty() && rebooting_old_version) {
+  if (!options->remove_instances.empty() && rebooting_old_version) {
+    throw shcore::Exception::argument_error(
+        "removeInstances option can not be used if the metadata version is "
+        "lower than " +
+        metadata::current_version().get_base() + ". Metadata version is " +
+        md_version.get_base());
+  }
+  for (const auto &value : options->remove_instances) {
+    // Check if seed instance is present on the list
+    if (value == instance_session_address)
       throw shcore::Exception::argument_error(
-          "removeInstances option can not be used if the metadata version is "
-          "lower than " +
-          metadata::current_version().get_base() + ". Metadata version is " +
-          md_version.get_base());
-    }
-    for (auto value : *remove_instances_ref.get()) {
-      // Check if seed instance is present on the list
-      if (value.get_string() == instance_session_address)
-        throw shcore::Exception::argument_error(
-            "The current session instance cannot be used on the "
-            "'removeInstances' list.");
+          "The current session instance cannot be used on the "
+          "'removeInstances' list.");
 
-      remove_instances_list.push_back(value.get_string());
+    remove_instances_list.push_back(value);
 
-      // The user wants to explicitly remove the instance from the cluster, so
-      // it must be skipped on the GTID check
-      instances_to_skip_gtid_check.push_back(value.get_string());
-    }
+    // The user wants to explicitly remove the instance from the cluster, so
+    // it must be skipped on the GTID check
+    instances_to_skip_gtid_check.push_back(value);
   }
 
-  if (rejoin_instances_ref) {
-    for (auto value : *rejoin_instances_ref.get()) {
-      // Check if seed instance is present on the list
-      if (value.get_string() == instance_session_address)
-        throw shcore::Exception::argument_error(
-            "The current session instance cannot be used on the "
-            "'rejoinInstances' list.");
-      rejoin_instances_list.push_back(value.get_string());
-    }
+  for (const auto &value : options->rejoin_instances) {
+    // Check if seed instance is present on the list
+    if (value == instance_session_address)
+      throw shcore::Exception::argument_error(
+          "The current session instance cannot be used on the "
+          "'rejoinInstances' list.");
+    rejoin_instances_list.push_back(value);
   }
 
   // Check if there is an intersection of the two lists.
@@ -2867,28 +2499,29 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
     // Ensure that all of the instances specified on the 'rejoinInstances'
     // list exist on the Metadata Schema and are valid
-    if (rejoin_instances_ref) {
-      for (const auto &value : rejoin_instances_list) {
-        std::string md_address = value;
+    for (const auto &value : rejoin_instances_list) {
+      std::string md_address = value;
 
-        try {
-          auto instance_def = shcore::get_connection_options(value, false);
+      try {
+        auto instance_def = shcore::get_connection_options(value, false);
 
-          // Get the instance metadata address (reported host).
-          md_address = mysqlsh::dba::get_report_host_address(
-              instance_def, current_session_options);
-        } catch (const std::exception &e) {
-          std::string error(e.what());
-          throw shcore::Exception::argument_error(
-              "Invalid value '" + value + "' for 'rejoinInstances': " + error);
-        }
-
-        if (!cluster_impl->contains_instance_with_address(md_address))
-          throw shcore::Exception::runtime_error(
-              "The instance '" + value + "' does not belong to the cluster: '" +
-              cluster_impl->get_name() + "'.");
+        // Get the instance metadata address (reported host).
+        md_address = mysqlsh::dba::get_report_host_address(
+            instance_def, current_session_options);
+      } catch (const std::exception &e) {
+        std::string error(e.what());
+        throw shcore::Exception::argument_error(
+            "Invalid value '" + value + "' for 'rejoinInstances': " + error);
       }
-    } else if (interactive || rebooting_old_version) {
+
+      if (!cluster_impl->contains_instance_with_address(md_address))
+        throw shcore::Exception::runtime_error(
+            "The instance '" + value + "' does not belong to the cluster: '" +
+            cluster_impl->get_name() + "'.");
+    }
+
+    if (options->rejoin_instances.empty() &&
+        (interactive || rebooting_old_version)) {
       for (const auto &value : instances) {
         std::string instance_address = value.first.endpoint;
         std::string instance_status = value.second;
@@ -2904,14 +2537,12 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
         }
         // If the instance is part of the remove_instances list we skip this
         // instance
-        if (remove_instances_ref) {
-          auto it = std::find_if(remove_instances_list.begin(),
-                                 remove_instances_list.end(),
-                                 [&instance_address](std::string val) {
-                                   return val == instance_address;
-                                 });
-          if (it != remove_instances_list.end()) continue;
-        }
+        auto it = std::find_if(remove_instances_list.begin(),
+                               remove_instances_list.end(),
+                               [&instance_address](std::string val) {
+                                 return val == instance_address;
+                               });
+        if (it != remove_instances_list.end()) continue;
 
         // When rebooting old version there's no option to modify, instances are
         // included in the cluster right away
@@ -2937,29 +2568,30 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
     // Ensure that all of the instances specified on the 'removeInstances'
     // list exist on the Metadata Schema and are valid
-    if (remove_instances_ref) {
-      for (const auto &value : remove_instances_list) {
-        std::string md_address = value;
+    for (const auto &value : remove_instances_list) {
+      std::string md_address = value;
 
-        try {
-          auto instance_def = shcore::get_connection_options(value, false);
+      try {
+        auto instance_def = shcore::get_connection_options(value, false);
 
-          // Get the instance metadata address (reported host).
-          md_address = mysqlsh::dba::get_report_host_address(
-              instance_def, current_session_options);
-        } catch (const std::exception &e) {
-          std::string error(e.what());
-          throw shcore::Exception::argument_error(
-              "Invalid value '" + value + "' for 'removeInstances': " + error);
-        }
-
-        if (!cluster_impl->contains_instance_with_address(md_address))
-          throw shcore::Exception::runtime_error(
-              "The instance '" + value + "' does not belong to the cluster: '" +
-              cluster_impl->get_name() + "'.");
+        // Get the instance metadata address (reported host).
+        md_address = mysqlsh::dba::get_report_host_address(
+            instance_def, current_session_options);
+      } catch (const std::exception &e) {
+        std::string error(e.what());
+        throw shcore::Exception::argument_error(
+            "Invalid value '" + value + "' for 'removeInstances': " + error);
       }
-      // When rebooting old version there's no option to remove instances
-    } else if (interactive && !rebooting_old_version) {
+
+      if (!cluster_impl->contains_instance_with_address(md_address))
+        throw shcore::Exception::runtime_error(
+            "The instance '" + value + "' does not belong to the cluster: '" +
+            cluster_impl->get_name() + "'.");
+    }
+
+    // When rebooting old version there's no option to remove instances
+    if (options->remove_instances.empty() && interactive &&
+        !rebooting_old_version) {
       for (const auto &value : instances) {
         std::string instance_address = value.first.endpoint;
         std::string instance_status = value.second;
@@ -2970,7 +2602,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
         // If the instance is part of the rejoin_instances list we skip this
         // instance
-        if (rejoin_instances_ref) {
+        if (!options->rejoin_instances.empty()) {
           auto it = std::find_if(rejoin_instances_list.begin(),
                                  rejoin_instances_list.end(),
                                  [&instance_address](std::string val) {
@@ -3002,7 +2634,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   // 5.2 If the current session instance doesn't have the GTID
   // superset, error out with that information and including on the message the
   // instance with the GTID superset
-  validate_instances_gtid_reboot_cluster(cluster, options, *target_instance,
+  validate_instances_gtid_reboot_cluster(cluster, *options, *target_instance,
                                          instances_to_skip_gtid_check);
 
   // 6. Set the current session instance as the seed instance of the Cluster
@@ -3061,7 +2693,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     // group.
     try {
       if (mysqlshdk::gr::is_protocol_upgrade_required(
-              *target_instance, mysqlshdk::utils::nullable<std::string>(),
+              *target_instance, mysqlshdk::null_string(),
               &gr_protocol_version_to_upgrade)) {
         mysqlshdk::gr::set_group_protocol_version(
             *target_instance, gr_protocol_version_to_upgrade);
@@ -3213,8 +2845,7 @@ Dba::validate_instances_status_reboot_cluster(
  * message the instance with the GTID superset
  */
 void Dba::validate_instances_gtid_reboot_cluster(
-    std::shared_ptr<Cluster> cluster,
-    const shcore::Value::Map_type_ref &options,
+    std::shared_ptr<Cluster> cluster, const Reboot_cluster_options &options,
     const mysqlshdk::mysql::IInstance &target_instance,
     const std::vector<std::string> &instances_to_skip) {
   auto console = current_console();
@@ -3228,9 +2859,14 @@ void Dba::validate_instances_gtid_reboot_cluster(
   // get the current session information
   auto current_session_options = target_instance.get_connection_options();
 
-  if (options) {
-    mysqlsh::set_user_from_map(&current_session_options, options);
-    mysqlsh::set_password_from_map(&current_session_options, options);
+  if (!options.user.is_null()) {
+    current_session_options.clear_user();
+    current_session_options.set_user(*(options.user));
+  }
+
+  if (!options.password.is_null()) {
+    current_session_options.clear_password();
+    current_session_options.set_password(*(options.password));
   }
 
   std::vector<Instance_gtid_info> instance_gtids;
@@ -3354,13 +2990,6 @@ which point you can stop the upgrade to resume later.
 If the installed metadata is not available because a previous call to this
 function ended unexpectedly, this function will restore the metadata to the
 state it was before the failed upgrade operation.
-
-@throw RuntimeError in the following scenarios:
-@li A global session is not available.
-@li A global session is available but the target instance does not have the
-metadata installed.
-@li The installed metadata is a newer version than the one supported by the
-Shell.
 )*");
 /**
  * $(DBA_UPGRADEMETADATA_BRIEF)
@@ -3372,18 +3001,8 @@ Undefined Dba::upgradeMetadata(Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::upgrade_metadata(dict options) {}
 #endif
-void Dba::upgrade_metadata(const shcore::Dictionary_t &options) {
-  bool dry_run = false;
-  bool interactive = current_shell_options()->get().wizards;
-
-  if (options) {
-    // Retrieves optional options if exists
-    Unpack_options(options)
-        .optional("dryRun", &dry_run)
-        .optional("interactive", &interactive)
-        .end();
-  }
-
+void Dba::upgrade_metadata(
+    const shcore::Option_pack_ref<Upgrade_metadata_options> &options) {
   auto instance = connect_to_target_member();
 
   auto state = check_function_preconditions("Dba.upgradeMetadata", instance);
@@ -3392,7 +3011,7 @@ void Dba::upgrade_metadata(const shcore::Dictionary_t &options) {
   // The pool is initialized with the metadata using the current session
   Instance_pool::Auth_options auth_opts;
   auth_opts.get(instance->get_connection_options());
-  Scoped_instance_pool ipool(interactive, auth_opts);
+  Scoped_instance_pool ipool(options->interactive, auth_opts);
   ipool->set_metadata(metadata);
 
   // If it happens we are on a RO instance, we update the metadata to make it
@@ -3410,7 +3029,7 @@ void Dba::upgrade_metadata(const shcore::Dictionary_t &options) {
     }
   }
 
-  Upgrade_metadata op_upgrade(metadata, interactive, dry_run);
+  Upgrade_metadata op_upgrade(metadata, options->interactive, options->dry_run);
 
   auto finally =
       shcore::on_leave_scope([&op_upgrade]() { op_upgrade.finish(); });

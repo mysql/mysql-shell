@@ -6,7 +6,7 @@
 
 //@# Bad options (should fail)
 ||Dba.createReplicaSet: Argument #1 is expected to be a string (TypeError)
-||Dba.createReplicaSet: instanceLabel option not allowed when adoptFromAR:true (ArgumentError)
+||Dba.createReplicaSet: Argument #2 instanceLabel option not allowed when adoptFromAR:true (ArgumentError)
 ||Dba.createReplicaSet: An open session is required to perform this operation. (RuntimeError)
 
 //@# adopt with InnoDB cluster (should fail)

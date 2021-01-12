@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -79,6 +79,7 @@ file(GLOB api_module_SOURCES
       "mod_mysql_constants.cc"
       "adminapi/dba_utils.cc"
       "adminapi/mod_dba.cc"
+      "adminapi/mod_dba_options.cc"
       "adminapi/mod_dba_replica_set.cc"
       "adminapi/mod_dba_cluster.cc"
       "adminapi/common/metadata_storage.cc"

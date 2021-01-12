@@ -45,7 +45,7 @@ The instance cluster settings were successfully persisted.
 
 //@ Dba.rebootClusterFromCompleteOutage errors
 ||Dba.rebootClusterFromCompleteOutage: The MySQL instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB Cluster and is reachable.
-||Dba.rebootClusterFromCompleteOutage: Invalid options: invalidOpt
+||Dba.rebootClusterFromCompleteOutage: Argument #2: Invalid options: invalidOpt
 
 //@ Dba.rebootClusterFromCompleteOutage error unreachable server cannot be on the rejoinInstances list
 ||Dba.rebootClusterFromCompleteOutage: The following instances: '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' were specified in the rejoinInstances list but are not reachable.

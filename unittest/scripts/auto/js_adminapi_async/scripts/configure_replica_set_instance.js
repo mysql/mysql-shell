@@ -85,7 +85,6 @@ testutil.expectPrompt("Do you want to perform the required configuration changes
 testutil.expectPrompt("Do you want to restart the instance after configuring it?", "n");
 
 EXPECT_EQ("root@localhost", session.runSql("SELECT group_concat(concat(user,'@',host)) FROM mysql.user WHERE user='root'").fetchOne()[0]);
-
 dba.configureReplicaSetInstance(__sandbox_uri1);
 
 EXPECT_EQ("root@%,root@localhost", session.runSql("SELECT group_concat(concat(user,'@',host)) FROM mysql.user WHERE user='root' ORDER BY host").fetchOne()[0]);

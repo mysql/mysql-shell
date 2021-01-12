@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -683,7 +683,7 @@ bool validate_cluster_group_name(const mysqlshdk::mysql::IInstance &instance,
  * @returns true if super_read_only was disabled
  */
 bool validate_super_read_only(const mysqlshdk::mysql::IInstance &instance,
-                              mysqlshdk::utils::nullable<bool> clear_read_only,
+                              mysqlshdk::null_bool clear_read_only,
                               bool interactive) {
   int super_read_only = *instance.get_sysvar_bool("super_read_only");
   bool super_read_only_changed = false;
@@ -1005,7 +1005,7 @@ bool prompt_super_read_only(const mysqlshdk::mysql::IInstance &instance,
 
   // Get the status of super_read_only in order to verify if we need to
   // prompt the user to disable it
-  mysqlshdk::utils::nullable<bool> super_read_only =
+  mysqlshdk::null_bool super_read_only =
       instance.get_sysvar_bool("super_read_only");
 
   // If super_read_only is not null and enabled
@@ -1296,8 +1296,7 @@ std::unique_ptr<mysqlshdk::config::Config> create_server_config(
   auto cfg = std::make_unique<mysqlshdk::config::Config>();
 
   // Get the capabilities to use set persist by the server.
-  mysqlshdk::utils::nullable<bool> can_set_persist =
-      instance->is_set_persist_supported();
+  mysqlshdk::null_bool can_set_persist = instance->is_set_persist_supported();
 
   // Add server configuration handler depending on SET PERSIST support.
   cfg->add_handler(
@@ -1369,7 +1368,7 @@ void add_config_file_handler(mysqlshdk::config::Config *cfg,
 }
 
 std::string resolve_gr_local_address(
-    const mysqlshdk::utils::nullable<std::string> &local_address,
+    const mysqlshdk::null_string &local_address,
     const std::string &raw_report_host, int port, bool check_if_busy,
     bool quiet) {
   assert(!raw_report_host.empty());  // First we need to get the report host.
@@ -1727,5 +1726,37 @@ void execute_script(const std::shared_ptr<Instance> &group_server,
       });
 }
 
+void handle_deprecated_option(const std::string &deprecated_name,
+                              const std::string &new_name, bool already_set,
+                              bool fall_back_to_new_option) {
+  // This function is meant to be used with options that are deprecated in favor
+  // of other options.
+  assert(!deprecated_name.empty());
+  assert(!new_name.empty());
+
+  auto console = current_console();
+  if (already_set) {
+    // If the value is already set (the new name was already read) then errors
+    // out
+    throw shcore::Exception::argument_error(
+        "Cannot use the " + deprecated_name + " and " + new_name +
+        " options simultaneously. The " + deprecated_name +
+        " option is deprecated, please use the " + new_name +
+        " option instead.");
+  } else {
+    // Otherwise just prints a warning
+    if (fall_back_to_new_option) {
+      console->print_warning("The " + deprecated_name +
+                             " option is deprecated in favor of " + new_name +
+                             ". " + new_name + " will be set instead.");
+    } else {
+      console->print_warning("The " + deprecated_name +
+                             " option is deprecated. "
+                             "Please use the " +
+                             new_name + " option instead.");
+    }
+    console->print_info();
+  }
+}
 }  // namespace dba
 }  // namespace mysqlsh

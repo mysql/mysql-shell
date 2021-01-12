@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,8 @@
 #include <vector>
 #include "adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/common.h"
+#include "mysqlshdk/include/scripting/type_info/custom.h"
+#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
@@ -63,27 +65,23 @@ void validate_clone_supported(const mysqlshdk::utils::Version &version,
                 {"",
                  mysqlshdk::mysql::k_mysql_clone_plugin_initial_version,
                  {}}}})) {
-        throw shcore::Exception::runtime_error(
-            "Option '" + option +
-            "' not supported on target server "
-            "version: '" +
-            version.get_full() + "'");
+        throw shcore::Exception::runtime_error(shcore::str_format(
+            "Option '%s' not supported on target server version: '%s'",
+            option.c_str(), version.get_full().c_str()));
       }
       break;
     case Clone_options::JOIN_CLUSTER:
     case Clone_options::JOIN_REPLICASET:
       if (version < mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
         if (cluster) {
-          throw shcore::Exception::runtime_error(
-              "Option '" + option +
-              "' not supported on target cluster. One or more members have a "
-              "non-supported version: '" +
-              version.get_full() + "'");
+          throw shcore::Exception::runtime_error(shcore::str_format(
+              "Option '%s' not supported on target cluster. One or more "
+              "members have a non-supported version: '%s'",
+              option.c_str(), version.get_full().c_str()));
         } else {
-          throw shcore::Exception::runtime_error(
-              "Option '" + option +
-              "' not supported on target server version: '" +
-              version.get_full() + "'");
+          throw shcore::Exception::runtime_error(shcore::str_format(
+              "Option '%s' not supported on target server version: '%s'",
+              option.c_str(), version.get_full().c_str()));
         }
       }
       break;
@@ -103,19 +101,19 @@ void validate_clone_supported(const mysqlshdk::utils::Version &version,
 void validate_clone_donor_option(std::string clone_donor) {
   clone_donor = shcore::str_strip(clone_donor);
   if (clone_donor.empty()) {
-    throw shcore::Exception::argument_error(
-        "Invalid value for cloneDonor, string value cannot be empty.");
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.", kCloneDonor));
   }
 
   if (clone_donor[0] == '[')
     throw shcore::Exception::argument_error(
-        "IPv6 addresses not supported for cloneDonor");
+        shcore::str_format("IPv6 addresses not supported for %s", kCloneDonor));
 
   try {
     mysqlshdk::utils::split_host_and_port(clone_donor);
   } catch (const std::invalid_argument &e) {
     throw shcore::Exception::argument_error(
-        std::string("Invalid value for cloneDonor: ") + e.what());
+        shcore::str_format("Invalid value for %s: %s", kCloneDonor, e.what()));
   }
 }
 }  // namespace
@@ -184,8 +182,8 @@ void Clone_options::check_option_values(
   // "regular" or "clone" - recovery_method_std_invalis is not empty
   if (!recovery_method_str_invalid.empty()) {
     throw shcore::Exception::argument_error(
-        std::string("Invalid value for option ") + kRecoveryMethod + ": " +
-        recovery_method_str_invalid);
+        shcore::str_format("Invalid value for option %s: %s", kRecoveryMethod,
+                           recovery_method_str_invalid.c_str()));
   }
 
   // If cloneDonor was set and recoveryMethod not or not set to 'clone',
@@ -193,14 +191,14 @@ void Clone_options::check_option_values(
   if (!clone_donor.is_null()) {
     if (!recovery_method.is_null()) {
       if (*recovery_method != Member_recovery_method::CLONE) {
-        throw shcore::Exception::argument_error(
-            std::string("Option ") + kCloneDonor + " only allowed if option " +
-            kRecoveryMethod + " is set to 'clone'.");
+        throw shcore::Exception::argument_error(shcore::str_format(
+            "Option %s only allowed if option %s is set to 'clone'.",
+            kCloneDonor, kRecoveryMethod));
       }
     } else {
-      throw shcore::Exception::argument_error(
-          std::string("Option ") + kCloneDonor + " only allowed if option " +
-          kRecoveryMethod + " is used and set to 'clone'.");
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Option %s only allowed if option %s is used and set to 'clone'.",
+          kCloneDonor, kRecoveryMethod));
     }
   }
 
@@ -212,6 +210,80 @@ void Clone_options::check_option_values(
   // Finally, if recoveryMethod wasn't set, set the default value of AUTO
   if (recovery_method.is_null()) {
     recovery_method = Member_recovery_method::AUTO;
+  }
+}
+
+const shcore::Option_pack_def<Create_cluster_clone_options>
+    &Create_cluster_clone_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Create_cluster_clone_options>()
+          .optional(kDisableClone,
+                    &Create_cluster_clone_options::set_disable_clone)
+          .optional(kGtidSetIsComplete,
+                    &Create_cluster_clone_options::set_gtid_set_is_complete);
+
+  return opts;
+}
+
+void Create_cluster_clone_options::set_disable_clone(bool value) {
+  disable_clone = value;
+}
+
+void Create_cluster_clone_options::set_gtid_set_is_complete(bool value) {
+  gtid_set_is_complete = value;
+}
+
+const shcore::Option_pack_def<Join_cluster_clone_options>
+    &Join_cluster_clone_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Join_cluster_clone_options>().optional(
+          kRecoveryMethod, &Join_cluster_clone_options::set_recovery_method);
+
+  return opts;
+}
+
+void Join_cluster_clone_options::set_recovery_method(const std::string &value) {
+  // Validate recoveryMethod
+  if (shcore::str_caseeq(value, "auto")) {
+    recovery_method = Member_recovery_method::AUTO;
+  } else if (shcore::str_caseeq(value, "clone")) {
+    recovery_method = Member_recovery_method::CLONE;
+  } else if (shcore::str_caseeq(value, "incremental")) {
+    recovery_method = Member_recovery_method::INCREMENTAL;
+  } else {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for option %s: %s", kRecoveryMethod, value.c_str()));
+  }
+}
+
+const shcore::Option_pack_def<Join_replicaset_clone_options>
+    &Join_replicaset_clone_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Join_replicaset_clone_options>()
+          .include<Join_cluster_clone_options>()
+          .optional(kCloneDonor,
+                    &Join_replicaset_clone_options::set_clone_donor);
+
+  return opts;
+}
+
+void Join_replicaset_clone_options::set_clone_donor(const std::string &value) {
+  clone_donor = shcore::str_strip(value);
+
+  if (clone_donor->empty()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.", kCloneDonor));
+  }
+
+  if ((*clone_donor)[0] == '[')
+    throw shcore::Exception::argument_error(
+        shcore::str_format("IPv6 addresses not supported for %s", kCloneDonor));
+
+  try {
+    mysqlshdk::utils::split_host_and_port(*clone_donor);
+  } catch (const std::invalid_argument &e) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for %s: %s", kCloneDonor, e.what()));
   }
 }
 

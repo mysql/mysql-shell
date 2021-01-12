@@ -196,7 +196,7 @@ Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port
 ||Dba.configureLocalInstance: Cancelled (RuntimeError)
 
 //@ Interactive_dba_configure_local_instance read_only_invalid_flag_value
-||Dba.configureLocalInstance: Option 'clearReadOnly' Bool expected, but value is String
+||Dba.configureLocalInstance: Argument #2: Option 'clearReadOnly' Bool expected, but value is String
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 8.0 {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...

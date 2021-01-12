@@ -1,6 +1,6 @@
 
 //@<ERR> WL#12011: FR2-04 - invalid value for interactive option.
-Dba.createCluster: Option 'interactive' Bool expected, but value is String (TypeError)
+Dba.createCluster: Argument #2: Option 'interactive' Bool expected, but value is String (TypeError)
 
 //@<OUT> WL#12011: FR2-01 - interactive = true.
 A new InnoDB cluster will be created on instance 'localhost:<<<__mysql_sandbox_port1>>>'.
@@ -192,8 +192,8 @@ group_replication_start_on_boot = ON
 ||Option 'consistency' not supported on target server version: '<<<__version>>>'
 
 //@ WL#12067: Create cluster errors using consistency option {VER(>=8.0.14)}
-||Invalid value for consistency, string value cannot be empty.
-||Invalid value for consistency, string value cannot be empty.
+||Invalid value for 'consistency', string value cannot be empty.
+||Invalid value for 'consistency', string value cannot be empty.
 ||Unable to set value ':' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of ':'
 ||Unable to set value 'AB' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of 'AB'
 ||Unable to set value '10' for 'consistency': Variable 'group_replication_consistency' can't be set to the value of '10'
@@ -406,10 +406,10 @@ one server failure.
 |mysql_innodb_cluster_11111, %|
 
 //@ WL#13208: TS_FR1_2 validate errors for disableClone (only boolean values).
-||Dba.createCluster: Option 'disableClone' Bool expected, but value is String (TypeError)
-||Dba.createCluster: Option 'disableClone' Bool expected, but value is String (TypeError)
-||Dba.createCluster: Option 'disableClone' is expected to be of type Bool, but is Array (TypeError)
-||Dba.createCluster: Option 'disableClone' is expected to be of type Bool, but is Map (TypeError)
+||Dba.createCluster: Argument #2: Option 'disableClone' Bool expected, but value is String (TypeError)
+||Dba.createCluster: Argument #2: Option 'disableClone' Bool expected, but value is String (TypeError)
+||Dba.createCluster: Argument #2: Option 'disableClone' is expected to be of type Bool, but is Array (TypeError)
+||Dba.createCluster: Argument #2: Option 'disableClone' is expected to be of type Bool, but is Map (TypeError)
 
 //@ WL#13208: TS_FR1_3 validate default for disableClone is false.
 ||

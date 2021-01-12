@@ -35,43 +35,18 @@
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/mod_dba_options.h"
 #include "modules/adminapi/mod_dba_replica_set.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "modules/mod_common.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/db/session.h"
-#include "scripting/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_options.h"
 
 namespace mysqlsh {
 namespace dba {
-struct Deploy_instance_options {
-  static const shcore::Option_pack_def<Deploy_instance_options> &options() {
-    static shcore::Option_pack_def<Deploy_instance_options> opts;
-
-    if (opts.empty()) {
-      opts.optional("portx", &Deploy_instance_options::xport)
-          .optional("sandboxDir", &Deploy_instance_options::sandbox_dir)
-          .optional("password", &Deploy_instance_options::password)
-          .optional("allowRootFrom", &Deploy_instance_options::allow_root_from)
-          .optional("ignoreSslError",
-                    &Deploy_instance_options::ignore_ssl_error)
-          .optional("mysqldOptions", &Deploy_instance_options::mysqld_options);
-    }
-
-    return opts;
-  }
-
-  mysqlshdk::utils::nullable<int> xport;
-  mysqlshdk::utils::nullable<std::string> sandbox_dir;
-  mysqlshdk::utils::nullable<std::string> password;
-  std::string allow_root_from{"%"};
-  bool ignore_ssl_error = false;
-  shcore::Array_t mysqld_options;
-};
-
 /**
  * \ingroup AdminAPI
  * $(DBA_BRIEF)
@@ -163,65 +138,75 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   void do_configure_instance(
       const mysqlshdk::db::Connection_options &instance_def_,
-      const shcore::Dictionary_t &options, bool local,
-      Cluster_type cluster_type);
+      const Configure_instance_options &options);
 
  public:  // Exported public methods
   shcore::Value check_instance_configuration(
       const mysqlshdk::utils::nullable<Connection_options> &instance_def = {},
-      const shcore::Dictionary_t &options = {});
+      const shcore::Option_pack_ref<Check_instance_configuration_options>
+          &options = {});
   // create and start
   void deploy_sandbox_instance(
       int port,
-      const shcore::Option_pack_ref<Deploy_instance_options> &options = {});
-  void stop_sandbox_instance(int port,
-                             const shcore::Dictionary_t &options = {});
-  void delete_sandbox_instance(int port,
-                               const shcore::Dictionary_t &options = {});
-  void kill_sandbox_instance(int port,
-                             const shcore::Dictionary_t &options = {});
-  void start_sandbox_instance(int port,
-                              const shcore::Dictionary_t &options = {});
+      const shcore::Option_pack_ref<Deploy_sandbox_options> &options = {});
+  void stop_sandbox_instance(
+      int port,
+      const shcore::Option_pack_ref<Stop_sandbox_options> &options = {});
+  void delete_sandbox_instance(
+      int port,
+      const shcore::Option_pack_ref<Common_sandbox_options> &options = {});
+  void kill_sandbox_instance(
+      int port,
+      const shcore::Option_pack_ref<Common_sandbox_options> &options = {});
+  void start_sandbox_instance(
+      int port,
+      const shcore::Option_pack_ref<Common_sandbox_options> &options = {});
 
   void configure_local_instance(
       const mysqlshdk::utils::nullable<Connection_options> &instance_def = {},
-      const shcore::Dictionary_t &options = {});
+      const shcore::Option_pack_ref<Configure_cluster_local_instance_options>
+          &options = {});
 
   void configure_instance(
       const mysqlshdk::utils::nullable<Connection_options> &instance_def = {},
-      const shcore::Dictionary_t &options = {});
+      const shcore::Option_pack_ref<Configure_cluster_instance_options>
+          &options = {});
 
   void configure_replica_set_instance(
       const mysqlshdk::utils::nullable<Connection_options> &instance_def = {},
-      const shcore::Dictionary_t &options = {});
+      const shcore::Option_pack_ref<Configure_replicaset_instance_options>
+          &options = {});
 
-  shcore::Value create_cluster(const std::string &cluster_name,
-                               const shcore::Dictionary_t &options);
-  void upgrade_metadata(const shcore::Dictionary_t &options);
+  shcore::Value create_cluster(
+      const std::string &cluster_name,
+      const shcore::Option_pack_ref<Create_cluster_options> &options = {});
+  void upgrade_metadata(
+      const shcore::Option_pack_ref<Upgrade_metadata_options> &options);
 
   std::shared_ptr<Cluster> get_cluster(
-      const mysqlshdk::utils::nullable<std::string> &cluster_name = {},
+      const mysqlshdk::null_string &cluster_name = {},
       const shcore::Dictionary_t &options = {}) const;
-  void drop_metadata_schema(const shcore::Dictionary_t &args);
+  void drop_metadata_schema(
+      const shcore::Option_pack_ref<Drop_metadata_schema_options> &options);
 
   std::shared_ptr<Cluster> reboot_cluster_from_complete_outage(
-      const mysqlshdk::utils::nullable<std::string> &cluster_name = {},
-      const shcore::Dictionary_t &options = {});
+      const mysqlshdk::null_string &cluster_name = {},
+      const shcore::Option_pack_ref<Reboot_cluster_options> &options = {});
 
   std::vector<std::pair<Instance_metadata, std::string>>
   validate_instances_status_reboot_cluster(
       Cluster_impl *cluster,
       const mysqlshdk::mysql::IInstance &target_instance);
   void validate_instances_gtid_reboot_cluster(
-      std::shared_ptr<Cluster> cluster,
-      const shcore::Value::Map_type_ref &options,
+      std::shared_ptr<Cluster> cluster, const Reboot_cluster_options &options,
       const mysqlshdk::mysql::IInstance &target_instance,
       const std::vector<std::string> &instances_to_skip);
 
   // ReplicaSets
 
-  shcore::Value create_replica_set(const std::string &full_rs_name,
-                                   const shcore::Dictionary_t &options);
+  shcore::Value create_replica_set(
+      const std::string &full_rs_name,
+      const shcore::Option_pack_ref<Create_replicaset_options> &options);
 
   std::shared_ptr<ReplicaSet> get_replica_set();
   std::shared_ptr<Replica_set_impl> get_replica_set(
@@ -238,10 +223,8 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   ProvisioningInterface _provisioning_interface;
 
   void exec_instance_op(const std::string &function, int port,
-                        const shcore::Dictionary_t &options,
+                        const std::string &sandbox_dir,
                         const std::string &password = "");
-
-  void verify_create_cluster_deprecations(const shcore::Dictionary_t &options);
 };
 }  // namespace dba
 }  // namespace mysqlsh

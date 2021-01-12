@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -79,7 +79,9 @@ const shcore::Option_pack_def<Upgrade_check_options>
           .optional("outputFormat", &Upgrade_check_options::output_format)
           .optional("targetVersion", &Upgrade_check_options::set_target_version)
           .optional("configPath", &Upgrade_check_options::config_path)
-          .optional("password", &Upgrade_check_options::password, "", false);
+          .optional("password", &Upgrade_check_options::password, "",
+                    shcore::Option_extract_mode::CASE_SENSITIVE,
+                    shcore::Option_scope::CLI_DISABLED);
 
   return opts;
 }
