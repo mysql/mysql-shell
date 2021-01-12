@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,6 +46,8 @@ class Config_editor_invoker {
   void erase_port(const Entry &entry);
 
   void erase_socket(const Entry &entry);
+
+  std::string version();
 
  private:
   std::string invoke(const std::vector<std::string> &args,

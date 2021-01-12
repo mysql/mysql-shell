@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/utils/version.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils/shell_test_wrapper.h"
@@ -824,6 +825,11 @@ class Config_editor_invoker {
 
   void clear() { invoke({"reset"}); }
 
+  mysqlshdk::utils::Version version() const {
+    return mysqlshdk::utils::Version{
+        shcore::str_split(invoke({"--version"}), " ", -1, true)[2]};
+  }
+
   std::string invoke(const std::vector<std::string> &args,
                      bool uses_terminal = false,
                      const std::string &password = "") const {
@@ -1197,20 +1203,25 @@ void test_available_helpers() {
     }                                                                         \
     Config_editor_invoker invoker;                                            \
     invoker.clear();                                                          \
+    const auto quoted =                                                       \
+        invoker.version() >= mysqlshdk::utils::Version(8, 0, 24);             \
+    const auto host = [&quoted](const std::string &h) {                       \
+      return "host = " + (quoted ? shcore::quote_string(h, '"') : h);         \
+    };                                                                        \
     STORE_AND_CHECK("user@[::1]", "one");                                     \
     auto output = invoker.invoke({"print", "--all"});                         \
-    EXPECT_THAT(output, ::testing::HasSubstr("host = ::1"));                  \
+    EXPECT_THAT(output, ::testing::HasSubstr(host("::1")));                   \
     invoker.clear();                                                          \
     STORE_AND_CHECK("user@[fe80::850a:5a7c:6ab7:aec4]:4321", "two");          \
     output = invoker.invoke({"print", "--all"});                              \
     EXPECT_THAT(output,                                                       \
-                ::testing::HasSubstr("host = fe80::850a:5a7c:6ab7:aec4"));    \
+                ::testing::HasSubstr(host("fe80::850a:5a7c:6ab7:aec4")));     \
     EXPECT_THAT(output, ::testing::HasSubstr("port = 4321"));                 \
     invoker.clear();                                                          \
     STORE_AND_CHECK("user@[fe80::850a:5a7c:6ab7:aec4%25enp0s3]", "three");    \
     output = invoker.invoke({"print", "--all"});                              \
     EXPECT_THAT(output, ::testing::HasSubstr(                                 \
-                            "host = fe80::850a:5a7c:6ab7:aec4%enp0s3"));      \
+                            host("fe80::850a:5a7c:6ab7:aec4%enp0s3")));       \
     invoker.clear();                                                          \
   }
 

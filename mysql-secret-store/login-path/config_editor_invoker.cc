@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -96,6 +96,11 @@ void Config_editor_invoker::erase_socket(const Entry &entry) {
   args.emplace_back("--login-path=" + entry.name);
 
   invoke(args);
+}
+
+std::string Config_editor_invoker::version() {
+  // get the version string, split around spaces, version should be third
+  return shcore::str_split(invoke({"--version"}), " ", -1, true)[2];
 }
 
 std::string Config_editor_invoker::invoke(const std::vector<std::string> &args,

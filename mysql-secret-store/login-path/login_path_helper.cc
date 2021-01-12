@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 using mysql::secret_store::common::get_helper_exception;
 using mysql::secret_store::common::Helper_exception;
@@ -60,7 +61,7 @@ std::vector<Entry> parse_ini(const std::string &ini) {
       } else {
         const auto pos = line.find(" = ");
         const auto option = line.substr(0, pos);
-        const auto value = line.substr(pos + 3);
+        const auto value = shcore::unquote_string(line.substr(pos + 3), '"');
 
         if (option == "user") {
           result.back().user = value;
@@ -136,20 +137,25 @@ Login_path_helper::Login_path_helper()
 void Login_path_helper::check_requirements() { m_invoker.validate(); }
 
 void Login_path_helper::store(const common::Secret &secret) {
+  using mysqlshdk::utils::Version;
+
   // my_load_defaults will replace \* combinations with *, need to quote it
-  const auto s = shcore::quote_string(secret.secret, '"');
+  // in 8.0.24, mysql_config_editor will quote the string, but it still does not
+  // escape the backslash characters
+  const auto s = Version(m_invoker.version()) < Version(8, 0, 24)
+                     ? shcore::quote_string(secret.secret, '"')
+                     : shcore::str_replace(secret.secret, "\\", "\\\\");
 
   // mysql_config_editor reads the password to a fixed-size buffer of 80
   // characters. This buffer has to hold the password and a terminating
   // null character, hence length is limited to 79 characters. Due to a bug,
   // passwords longer than 78 characters are not null-terminated, so we're
-  // setting 78 as the upper limit. Secret is quoted (always adding at least
-  // two characters) leaving 76 characters for user input.
+  // setting 78 as the upper limit.
   if (s.length() > 78) {
     throw Helper_exception{
-        "The login-path helper cannot store secrets longer than 76 "
-        "characters. Please keep in mind that all '\\' and '\"' characters"
-        "are prepended with '\\', decreasing available space."};
+        "The login-path helper cannot store secrets longer than 78 "
+        "characters. Please keep in mind that all '\\' characters are "
+        "prepended with '\\', decreasing available space."};
   }
 
   m_invoker.store(to_entry(secret.id), s);
