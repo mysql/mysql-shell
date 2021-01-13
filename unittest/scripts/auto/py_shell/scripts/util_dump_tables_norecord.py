@@ -813,8 +813,8 @@ EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "showPro
 
 # WL13804: WL13807-FR4.12.1 - If the `chunking` option is set to `true` and the index column cannot be selected automatically as described in FR3.1, the data must to written to a single dump file. A warning should be displayed to the user.
 # WL13804: WL13807-FR3.1 - For each table dumped, its index column (name of the column used to order the data and perform the chunking) must be selected automatically as the first column used in the primary key, or if there is no primary key, as the first column used in the first unique index. If the table to be dumped does not contain a primary key and does not contain an unique index, the index column will not be defined.
-EXPECT_STDOUT_CONTAINS("NOTE: Could not select a column to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_non_unique))
-EXPECT_STDOUT_CONTAINS("NOTE: Could not select a column to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_no_index))
+EXPECT_STDOUT_CONTAINS("NOTE: Could not select columns to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_non_unique))
+EXPECT_STDOUT_CONTAINS("NOTE: Could not select columns to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_no_index))
 
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".tsv.zst")))
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".tsv.zst")))
@@ -1960,7 +1960,7 @@ session.run_sql("CREATE TABLE !.! (id INT);", [ tested_schema, tested_table ])
 session.run_sql("INSERT INTO !.! VALUES (1), (2), (3);", [ tested_schema, tested_table ])
 
 EXPECT_SUCCESS(tested_schema, [tested_table], test_output_absolute, { "chunking": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS("NOTE: Could not select a column to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(tested_schema, tested_table))
+EXPECT_STDOUT_CONTAINS("NOTE: Could not select columns to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(tested_schema, tested_table))
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(tested_schema, tested_table) + ".tsv.zst")))
 
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
@@ -2233,6 +2233,32 @@ def decreasing_gaps():
 test_bug_32602325(decreasing_gaps())
 
 #@<> BUG#32602325 cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
+#@<> composite non-integer key - setup
+tested_schema = "test_schema"
+tested_table = "char_hashes_4"
+items = 10000
+
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("""CREATE TABLE !.! (
+  `md5_1` varchar(8) NOT NULL,
+  `md5_2` varchar(8) NOT NULL,
+  `md5_3` varchar(8) GENERATED ALWAYS AS (substr(md5(email), 17, 8)) VIRTUAL NOT NULL,
+  `md5_4` varchar(8) GENERATED ALWAYS AS (substr(md5(email), 25, 8)) STORED NOT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  UNIQUE KEY `pk` (`md5_1`,`md5_2`,`md5_3`,`md5_4`)
+);""", [ tested_schema, tested_table ])
+session.run_sql(f"""INSERT INTO !.! (`md5_1`,`md5_2`, `email`) VALUES {",".join([f"('{md5sum(email)[0:8]}', '{md5sum(email)[8:16]}', '{email}')" for email in [random_email() for i in range(items)]])};""", [ tested_schema, tested_table ])
+session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+
+#@<> composite non-integer key - test
+EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "bytesPerChunk": "128k", "compression": "none", "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"Data dump for table `{tested_schema}`.`{tested_table}` will be chunked using columns `md5_1`, `md5_2`, `md5_3`, `md5_4`")
+CHECK_OUTPUT_SANITY(test_output_absolute, 55000, 10)
+TEST_LOAD(tested_schema, tested_table, True)
+
+#@<> composite non-integer key - cleanup
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
 #@<> Cleanup

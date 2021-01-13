@@ -1256,7 +1256,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
 
     if (opt_mysqlaas || opt_create_invisible_pks || opt_ignore_missing_pks) {
       if (m_cache) {
-        has_pk = m_cache->schemas.at(db).tables.at(table).index.primary;
+        has_pk = m_cache->schemas.at(db).tables.at(table).index.primary();
       } else {
         result = query_log_and_throw(shcore::sqlformat(
             "SELECT COUNT(*) FROM information_schema.statistics WHERE "

@@ -37,6 +37,8 @@ namespace tests {
 
 namespace {
 
+using mysqlshdk::utils::Version;
+
 void verify(const Instance_cache &cache, const std::string &name,
             const Instance_cache::Schema &expected) {
   const auto it = cache.schemas.find(name);
@@ -1151,7 +1153,7 @@ TEST_F(Instance_cache_test, table_columns) {
     m_session->execute("CREATE SCHEMA first;");
     m_session->execute(
         "CREATE TABLE first.one ("
-        "c0 INT, "
+        "c0 INT NOT NULL, "
         "gen INT GENERATED ALWAYS AS (c0 + 1) VIRTUAL, "
         "c1 CHAR(32) "
         ");");
@@ -1181,7 +1183,9 @@ TEST_F(Instance_cache_test, table_columns) {
         "c21 DOUBLE UNSIGNED, "
         "c22 DATE, "
         "c23 TIME, "
-        "c24 TIMESTAMP, "
+        // explicitly set to NULL to avoid problems with
+        // explicit_defaults_for_timestamp
+        "c24 TIMESTAMP NULL, "
         "c25 DATETIME, "
         "c26 YEAR, "
         "c27 TINYBLOB, "
@@ -1218,37 +1222,80 @@ TEST_F(Instance_cache_test, table_columns) {
         "CREATE TABLE second.three ("
         "c0 INT, "
         "gen INT GENERATED ALWAYS AS (c0 + 2) STORED, "
-        "c1 TINYBLOB "
+        "c1 TINYBLOB NULL"
         ");");
+
+    if (_target_server_version >= Version(8, 0, 13)) {
+      // EXTRA == DEFAULT_GENERATED
+      m_session->execute(
+          "CREATE TABLE second.four ("
+          "c0 FLOAT DEFAULT (RAND() * RAND())"
+          ");");
+    }
+
+    if (_target_server_version >= Version(8, 0, 23)) {
+      // INVISIBLE + GENERATED
+      m_session->execute(
+          "CREATE TABLE second.five ("
+          "c0 INT NOT NULL INVISIBLE, "
+          "gen INT GENERATED ALWAYS AS (c0 + 1) VIRTUAL INVISIBLE, "
+          "c1 CHAR(32)"
+          ");");
+      m_session->execute(
+          "CREATE TABLE second.six ("
+          "c0 INT INVISIBLE, "
+          "gen INT GENERATED ALWAYS AS (c0 + 2) STORED INVISIBLE, "
+          "c1 CHAR(32)"
+          ");");
+    }
   }
 
   {
+    using mysqlshdk::db::Type;
     SCOPED_TRACE("test table columns");
 
     const auto cache =
         Instance_cache_builder(m_session, {}, {}, {}, {}).build();
 
-    const auto validate = [&cache](const std::string &schema,
-                                   const std::string &table,
-                                   const std::vector<bool> &expected) {
+    const auto validate = [this, &cache](const std::string &schema,
+                                         const std::string &table,
+                                         const std::vector<bool> &csv_unsafe,
+                                         const std::vector<bool> &nullable) {
       SCOPED_TRACE("testing table " + schema + "." + table);
 
-      const auto &actual = cache.schemas.at(schema).tables.at(table).columns;
-      const auto size = expected.size();
+      const auto &table_info = cache.schemas.at(schema).tables.at(table);
+      const auto &actual = table_info.all_columns;
+      const auto size = csv_unsafe.size();
+      const auto types = m_session->queryf(
+          "SELECT " +
+              shcore::str_join(actual, ",",
+                               [](const auto &c) { return c.quoted_name; }) +
+              " FROM !.! LIMIT 0;",
+          schema, table);
 
       ASSERT_EQ(size, actual.size());
+      ASSERT_EQ(size, nullable.size());
+      ASSERT_EQ(size, types->get_metadata().size());
 
-      for (std::size_t i = 0; i < size; ++i) {
-        const auto column = "c" + std::to_string(i);
+      for (std::size_t i = 0, idx = 0; i < size; ++i) {
+        const auto column =
+            actual[i].generated ? "gen" : "c" + std::to_string(idx);
 
         SCOPED_TRACE("checking column " + column);
 
         EXPECT_EQ(column, actual[i].name);
-        EXPECT_EQ(expected[i], actual[i].csv_unsafe);
+        EXPECT_EQ(shcore::quote_identifier(column), actual[i].quoted_name);
+        EXPECT_EQ(csv_unsafe[i], actual[i].csv_unsafe);
+        EXPECT_EQ(nullable[i], actual[i].nullable);
+        EXPECT_EQ(types->get_metadata()[i].get_type(), actual[i].type);
+
+        if (!actual[i].generated) {
+          EXPECT_EQ(table_info.columns[idx++], &actual[i]);
+        }
       }
     };
 
-    validate("first", "one", {false, false});
+    validate("first", "one", {false, false, false}, {false, true, true});
     validate("first", "two",
              {
                  false,  // c0 TINYINT
@@ -1306,8 +1353,74 @@ TEST_F(Instance_cache_test, table_columns) {
                  true,   // c52 MULTILINESTRING
                  true,   // c53 MULTIPOLYGON
                  true,   // c54 GEOMETRYCOLLECTION
+             },
+             {
+                 true,  // c0 TINYINT
+                 true,  // c1 TINYINT UNSIGNED
+                 true,  // c2 SMALLINT
+                 true,  // c3 SMALLINT UNSIGNED
+                 true,  // c4 MEDIUMINT
+                 true,  // c5 MEDIUMINT UNSIGNED
+                 true,  // c6 INT
+                 true,  // c7 INT UNSIGNED
+                 true,  // c8 INTEGER
+                 true,  // c9 INTEGER UNSIGNED
+                 true,  // c10 BIGINT
+                 true,  // c11 BIGINT UNSIGNED
+                 true,  // c12 DECIMAL(2,1)
+                 true,  // c13 DECIMAL(2,1) UNSIGNED
+                 true,  // c14 NUMERIC(64,30)
+                 true,  // c15 NUMERIC(64,30) UNSIGNED
+                 true,  // c16 REAL
+                 true,  // c17 REAL UNSIGNED
+                 true,  // c18 FLOAT
+                 true,  // c19 FLOAT UNSIGNED
+                 true,  // c20 DOUBLE
+                 true,  // c21 DOUBLE UNSIGNED
+                 true,  // c22 DATE
+                 true,  // c23 TIME
+                 true,  // c24 TIMESTAMP
+                 true,  // c25 DATETIME
+                 true,  // c26 YEAR
+                 true,  // c27 TINYBLOB
+                 true,  // c28 BLOB
+                 true,  // c29 MEDIUMBLOB
+                 true,  // c30 LONGBLOB
+                 true,  // c31 TINYTEXT
+                 true,  // c32 TEXT
+                 true,  // c33 MEDIUMTEXT
+                 true,  // c34 LONGTEXT
+                 true,  // c35 TINYTEXT BINARY
+                 true,  // c36 TEXT BINARY
+                 true,  // c37 MEDIUMTEXT BINARY
+                 true,  // c38 LONGTEXT BINARY
+                 true,  // c39 CHAR(32)
+                 true,  // c40 VARCHAR(32)
+                 true,  // c41 BINARY(32)
+                 true,  // c42 VARBINARY(32)
+                 true,  // c43 BIT(64)
+                 true,  // c44 ENUM('v1','v2','v3')
+                 true,  // c45 SET('v1','v2','v3')
+                 true,  // c46 JSON
+                 true,  // c47 GEOMETRY
+                 true,  // c48 POINT
+                 true,  // c49 LINESTRING
+                 true,  // c50 POLYGON
+                 true,  // c51 MULTIPOINT
+                 true,  // c52 MULTILINESTRING
+                 true,  // c53 MULTIPOLYGON
+                 true,  // c54 GEOMETRYCOLLECTION
              });
-    validate("second", "three", {false, true});
+    validate("second", "three", {false, false, true}, {true, true, true});
+
+    if (_target_server_version >= Version(8, 0, 13)) {
+      validate("second", "four", {false}, {true});
+    }
+
+    if (_target_server_version >= Version(8, 0, 23)) {
+      validate("second", "five", {false, false, false}, {false, true, true});
+      validate("second", "six", {false, false, false}, {true, true, true});
+    }
   }
 }
 
@@ -1357,11 +1470,111 @@ TEST_F(Instance_cache_test, table_indexes) {
         "id INT, data INT, hash INT, "
         "INDEX (hash)"
         ");");
+    // shorter index is used
     m_session->execute(
         "CREATE TABLE third.eight ("
         "id INT, data INT, hash INT, "
         "UNIQUE INDEX b (data, hash), "
         "UNIQUE INDEX a (hash)"
+        ");");
+    m_session->execute(
+        "CREATE TABLE third.nine ("
+        "id INT, data INT, hash INT, "
+        "UNIQUE INDEX a (data, hash), "
+        "UNIQUE INDEX b (hash)"
+        ");");
+    // shorter index is used even though it's not an integer
+    m_session->execute(
+        "CREATE TABLE third.ten ("
+        "id INT, data INT, hash VARCHAR(32), "
+        "UNIQUE INDEX b (data, hash), "
+        "UNIQUE INDEX a (hash)"
+        ");");
+    m_session->execute(
+        "CREATE TABLE third.eleven ("
+        "id INT, data INT, hash VARCHAR(32), "
+        "UNIQUE INDEX a (data, hash), "
+        "UNIQUE INDEX b (hash)"
+        ");");
+    // PK is used even though unique index is shorter
+    m_session->execute(
+        "CREATE TABLE third.twelve ("
+        "id INT, data INT, hash INT, "
+        "PRIMARY KEY (data, hash), "
+        "UNIQUE INDEX a (id)"
+        ");");
+    // integer-based index is used
+    m_session->execute(
+        "CREATE TABLE third.thirteen ("
+        "id INT, data INT, hash VARCHAR(32), "
+        "UNIQUE INDEX b (data), "
+        "UNIQUE INDEX a (hash)"
+        ");");
+    m_session->execute(
+        "CREATE TABLE third.fourteen ("
+        "id INT, data INT, hash VARCHAR(32), "
+        "UNIQUE INDEX a (data), "
+        "UNIQUE INDEX b (hash)"
+        ");");
+    m_session->execute(
+        "CREATE TABLE third.fifteen ("
+        "id INT, data INT, hash VARCHAR(32), "
+        "UNIQUE INDEX b (data, hash), "
+        "UNIQUE INDEX a (id, data)"
+        ");");
+    m_session->execute(
+        "CREATE TABLE third.sixteen ("
+        "id INT, data INT, hash VARCHAR(32), "
+        "UNIQUE INDEX a (data, hash), "
+        "UNIQUE INDEX b (id, data)"
+        ");");
+    // generated index
+    m_session->execute(
+        "CREATE TABLE third.seventeen ("
+        "data INT, gen INT GENERATED ALWAYS AS (data + 2) STORED, "
+        "PRIMARY KEY (gen)"
+        ");");
+    m_session->execute(
+        "CREATE TABLE third.eighteen ("
+        "data INT, gen INT GENERATED ALWAYS AS (data + 2) STORED, "
+        "UNIQUE INDEX a (gen)"
+        ");");
+    // NOT NULL index is used
+    m_session->execute(
+        "CREATE TABLE third.nineteen ("
+        "id INT NOT NULL, data INT, hash VARCHAR(32), "
+        "UNIQUE INDEX b (data), "
+        "UNIQUE INDEX a (id)"
+        ");");
+    m_session->execute(
+        "CREATE TABLE third.twenty ("
+        "id INT NOT NULL, data INT, hash VARCHAR(32), "
+        "UNIQUE INDEX a (data), "
+        "UNIQUE INDEX b (id)"
+        ");");
+    m_session->execute(
+        "CREATE TABLE third.`twenty-one` ("
+        "id INT NOT NULL, data VARCHAR(32), hash VARCHAR(32) NOT NULL, "
+        "UNIQUE INDEX b (data), "
+        "UNIQUE INDEX a (hash)"
+        ");");
+    m_session->execute(
+        "CREATE TABLE third.`twenty-two` ("
+        "id INT NOT NULL, data VARCHAR(32), hash VARCHAR(32) NOT NULL, "
+        "UNIQUE INDEX a (data), "
+        "UNIQUE INDEX b (hash)"
+        ");");
+    m_session->execute(
+        "CREATE TABLE third.`twenty-three` ("
+        "id INT NOT NULL, data VARCHAR(32), hash VARCHAR(32) NOT NULL, "
+        "UNIQUE INDEX b (id, data), "
+        "UNIQUE INDEX a (id, hash)"
+        ");");
+    m_session->execute(
+        "CREATE TABLE third.`twenty-four` ("
+        "id INT, data VARCHAR(32), hash VARCHAR(32) NOT NULL, "
+        "UNIQUE INDEX a (id, data), "
+        "UNIQUE INDEX b (id, hash)"
         ");");
   }
 
@@ -1371,36 +1584,53 @@ TEST_F(Instance_cache_test, table_indexes) {
     const auto cache =
         Instance_cache_builder(m_session, {}, {}, {}, {}).build();
 
-    const auto validate = [&cache](const std::string &schema,
-                                   const std::string &table,
-                                   const Instance_cache::Index &expected) {
-      SCOPED_TRACE("testing table " + schema + "." + table);
+    const auto validate =
+        [&cache](const std::string &schema, const std::string &table,
+                 const std::vector<std::string> &expected_columns,
+                 bool expected_primary) {
+          SCOPED_TRACE("testing table " + schema + "." + table);
 
-      const auto &actual = cache.schemas.at(schema).tables.at(table).index;
-      const auto size = expected.columns.size();
+          const auto &actual = cache.schemas.at(schema).tables.at(table).index;
+          const auto size = expected_columns.size();
 
-      ASSERT_EQ(size, actual.columns.size());
+          ASSERT_EQ(size, actual.columns().size());
 
-      EXPECT_EQ(expected.primary, actual.primary);
+          EXPECT_EQ(expected_primary, actual.primary());
 
-      for (std::size_t i = 0; i < size; ++i) {
-        EXPECT_EQ(expected.columns[i], actual.columns[i]);
-      }
-    };
+          for (std::size_t i = 0; i < size; ++i) {
+            EXPECT_EQ(expected_columns[i], actual.columns()[i]->name);
+          }
+        };
 
-    validate("first", "one", {{"id", "hash"}, true});
-    validate("second", "two", {{"id", "hash"}, true});
-    validate("second", "three", {{"id", "hash"}, true});
-    validate("second", "four", {{"data", "hash"}, false});
-    validate("third", "five", {{"id", "hash"}, true});
-    validate("third", "six", {{"data", "hash"}, false});
-    validate("third", "seven", {{}, false});
-    validate("third", "eight", {{"hash"}, false});
+    validate("first", "one", {"id", "hash"}, true);
+    validate("second", "two", {"id", "hash"}, true);
+    validate("second", "three", {"id", "hash"}, true);
+    validate("second", "four", {"data", "hash"}, false);
+    validate("third", "five", {"id", "hash"}, true);
+    validate("third", "six", {"data", "hash"}, false);
+    validate("third", "seven", {}, false);
+    validate("third", "eight", {"hash"}, false);
+    validate("third", "nine", {"hash"}, false);
+    validate("third", "ten", {"hash"}, false);
+    validate("third", "eleven", {"hash"}, false);
+    validate("third", "twelve", {"data", "hash"}, true);
+    validate("third", "thirteen", {"data"}, false);
+    validate("third", "fourteen", {"data"}, false);
+    validate("third", "fifteen", {"id", "data"}, false);
+    validate("third", "sixteen", {"id", "data"}, false);
+    validate("third", "seventeen", {"gen"}, true);
+    validate("third", "eighteen", {"gen"}, false);
+    validate("third", "nineteen", {"id"}, false);
+    validate("third", "twenty", {"id"}, false);
+    validate("third", "twenty-one", {"hash"}, false);
+    validate("third", "twenty-two", {"hash"}, false);
+    validate("third", "twenty-three", {"id", "hash"}, false);
+    validate("third", "twenty-four", {"id", "hash"}, false);
   }
 }
 
 TEST_F(Instance_cache_test, table_histograms) {
-  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 0)) {
+  if (_target_server_version < Version(8, 0, 0)) {
     SKIP_TEST("This test requires running against MySQL server version 8.0");
   }
 

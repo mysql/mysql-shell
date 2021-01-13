@@ -43,24 +43,45 @@ namespace dump {
 struct Instance_cache {
   struct Column {
     std::string name;
+    std::string quoted_name;
     bool csv_unsafe = false;
+    bool generated = false;
+    bool nullable = true;
+    mysqlshdk::db::Type type = mysqlshdk::db::Type::Null;
   };
 
-  struct Index {
-    inline bool valid() const noexcept { return !columns.empty(); }
+  class Index final {
+   public:
+    Index() = default;
 
-    inline const std::string &first_column() const {
-      if (!valid()) {
-        throw std::logic_error("Trying to access invalid index");
-      }
+    Index(const Index &) = default;
+    Index(Index &&) = default;
 
-      return columns.front();
-    }
+    Index &operator=(const Index &) = default;
+    Index &operator=(Index &&) = default;
 
-    std::string order_by() const;
+    ~Index() = default;
 
-    std::vector<std::string> columns;
-    bool primary = false;
+    inline bool valid() const noexcept { return !m_columns.empty(); }
+
+    inline const std::vector<Column *> &columns() const { return m_columns; }
+
+    inline const std::string &columns_sql() const { return m_columns_sql; }
+
+    inline bool primary() const { return m_primary; }
+
+    void reset();
+
+    void add_column(Column *column);
+
+    void set_primary(bool primary);
+
+   private:
+    std::vector<Column *> m_columns;
+
+    std::string m_columns_sql;
+
+    bool m_primary = false;
   };
 
   struct Histogram {
@@ -75,7 +96,8 @@ struct Instance_cache {
     std::string create_options;
     std::string comment;
     Index index;
-    std::vector<Column> columns;
+    std::vector<Column *> columns;
+    std::vector<Column> all_columns;
     std::vector<Histogram> histograms;
     std::vector<std::string> triggers;  // order of triggers is important
   };
