@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1025,14 +1025,13 @@ void Dumper::do_run() {
   rethrow();
 
 #ifndef NDEBUG
-  if (mysqlshdk::utils::Version(m_cache.server_version) <
-          mysqlshdk::utils::Version(8, 0, 21) ||
-      !m_options.dump_users()) {
+  using mysqlshdk::utils::Version;
+  const auto server_version = Version(m_cache.server_version);
+
+  if (server_version < Version(8, 0, 21) ||
+      server_version > Version(8, 0, 23) || !m_options.dump_users()) {
     // SHOW CREATE USER auto-commits transaction in some 8.0 versions, we don't
     // check if transaction is still open in such case if users were dumped
-
-    // this bug is tracked as BUG#32123671, once it is fixed version check above
-    // should be updated
     assert_transaction_is_open(session());
   }
 #endif  // !NDEBUG
