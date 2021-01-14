@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -496,7 +496,7 @@ Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
       // For Not Found generates a custom message as the one for the get()
       // doesn't make much sense
       throw shcore::Exception::runtime_error(
-          "Failed opening object '" + m_object->m_name +
+          "Failed opening object '" + m_object->full_path() +
           "' in READ mode: " + Response_error(error.code()).format());
     } else {
       throw shcore::Exception::runtime_error(error.format());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -227,6 +227,12 @@ void Load_dump_options::set_session(
   }
   if (!m_target.has(mysqlshdk::db::kNetWriteTimeout)) {
     m_target.set(mysqlshdk::db::kNetWriteTimeout, timeout);
+  }
+
+  // set size of max packet (~size of 1 row) we can send to server
+  if (!m_target.has(mysqlshdk::db::kMaxAllowedPacket)) {
+    const auto k_one_gb = "1073741824";
+    m_target.set(mysqlshdk::db::kMaxAllowedPacket, k_one_gb);
   }
 
   m_target_server_version = mysqlshdk::utils::Version(

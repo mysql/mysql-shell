@@ -1,23 +1,25 @@
-/* Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
-
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License, version 2.0,
- as published by the Free Software Foundation.
-
- This program is also distributed with certain software (including
- but not limited to OpenSSL) that is licensed under separate terms, as
- designated in a particular file or component or in included license
- documentation.  The authors of MySQL hereby grant you an additional
- permission to link the program and your derivative works with the
- separately licensed software that they have included with MySQL.
- This program is distributed in the hope that it will be useful,  but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
- the GNU General Public License, version 2.0, for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
+/*
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #include "unittest/mysqlshdk/libs/oci/oci_tests.h"
 
@@ -107,19 +109,19 @@ TEST_F(Oci_os_tests, file_errors) {
 
   Oci_options options{get_options()};
   Bucket bucket(options);
-  Directory root(options, "");
+  Directory root(options, "prefix");
 
   auto file = root.file("sample.txt");
 
   // Attempt to rename unexisting file
-  EXPECT_THROW_LIKE(
-      file->rename("other.txt"), shcore::Exception,
-      "Failed to rename object 'sample.txt' to 'other.txt': Not Found (404)");
+  EXPECT_THROW_LIKE(file->rename("other.txt"), shcore::Exception,
+                    "Failed to rename object 'prefix/sample.txt' to "
+                    "'prefix/other.txt': Not Found (404)");
 
   // Attempt to open unexisting file for read
-  EXPECT_THROW_LIKE(
-      file->open(Mode::READ), shcore::Exception,
-      "Failed opening object 'sample.txt' in READ mode: Not Found (404)");
+  EXPECT_THROW_LIKE(file->open(Mode::READ), shcore::Exception,
+                    "Failed opening object 'prefix/sample.txt' in READ mode: "
+                    "Not Found (404)");
 }
 
 TEST_F(Oci_os_tests, file_write_simple_upload) {
