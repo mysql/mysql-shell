@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,41 +63,41 @@ TEST(Process_launcher, windows_cmdline_join) {
   {
     const char *argv[] = {"python.exe", nullptr};
     EXPECT_EQ("python.exe", Process_launcher::make_windows_cmdline(argv));
-    SCOPED_TRACE("");
+    SCOPED_TRACE("check_argv");
     check_argv(argv, Process_launcher::make_windows_cmdline(argv));
   }
   {
     const char *argv[] = {"python.exe", "bla", nullptr};
     EXPECT_EQ("python.exe bla", Process_launcher::make_windows_cmdline(argv));
-    SCOPED_TRACE("");
+    SCOPED_TRACE("check_argv");
     check_argv(argv, Process_launcher::make_windows_cmdline(argv));
   }
   {
     const char *argv[] = {"python.exe", "foo bar", nullptr};
     EXPECT_EQ("python.exe \"foo bar\"",
               Process_launcher::make_windows_cmdline(argv));
-    SCOPED_TRACE("");
+    SCOPED_TRACE("check_argv");
     check_argv(argv, Process_launcher::make_windows_cmdline(argv));
   }
   {
     const char *argv[] = {"python.exe", "foo", "bar", nullptr};
     EXPECT_EQ("python.exe foo bar",
               Process_launcher::make_windows_cmdline(argv));
-    SCOPED_TRACE("");
+    SCOPED_TRACE("check_argv");
     check_argv(argv, Process_launcher::make_windows_cmdline(argv));
   }
   {
     const char *argv[] = {"python.exe", "f\"o", "\"bar", nullptr};
     EXPECT_EQ("python.exe \"f\\\"o\" \"\\\"bar\"",
               Process_launcher::make_windows_cmdline(argv));
-    SCOPED_TRACE("");
+    SCOPED_TRACE("check_argv");
     check_argv(argv, Process_launcher::make_windows_cmdline(argv));
   }
   {
     const char *argv[] = {"python.exe", "f\"o", "c:\\foo\\bar\\", nullptr};
     EXPECT_EQ("python.exe \"f\\\"o\" c:\\foo\\bar\\",
               Process_launcher::make_windows_cmdline(argv));
-    SCOPED_TRACE("");
+    SCOPED_TRACE("check_argv");
     check_argv(argv, Process_launcher::make_windows_cmdline(argv));
   }
   {
@@ -105,8 +105,23 @@ TEST(Process_launcher, windows_cmdline_join) {
                           "\\\\\\x",    "\"", nullptr};
     EXPECT_EQ("python.exe \\ \"\\\\\\\"\" \\\\x \\\\\\x \"\\\"\"",
               Process_launcher::make_windows_cmdline(argv));
-    SCOPED_TRACE("");
+    SCOPED_TRACE("check_argv");
+    check_argv(argv, Process_launcher::make_windows_cmdline(argv));
+  }
+  {
+    const char *argv[] = {"python.exe", "f\\\"o", nullptr};
+    EXPECT_EQ("python.exe \"f\\\\\\\"o\"",
+              Process_launcher::make_windows_cmdline(argv));
+    SCOPED_TRACE("check_argv");
+    check_argv(argv, Process_launcher::make_windows_cmdline(argv));
+  }
+  {
+    const char *argv[] = {"python.exe", "f\"o\\", nullptr};
+    EXPECT_EQ("python.exe \"f\\\"o\\\\\"",
+              Process_launcher::make_windows_cmdline(argv));
+    SCOPED_TRACE("check_argv");
     check_argv(argv, Process_launcher::make_windows_cmdline(argv));
   }
 }
+
 }  // namespace shcore

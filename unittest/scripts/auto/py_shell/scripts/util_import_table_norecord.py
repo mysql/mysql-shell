@@ -254,7 +254,9 @@ old_cs_client = session.run_sql("SELECT @@session.character_set_client").fetch_o
 old_cs_connection = session.run_sql("SELECT @@session.character_set_connection").fetch_one()[0]
 old_cs_results = session.run_sql("SELECT @@session.character_set_results").fetch_one()[0]
 
-target_table = 'citięs'
+# non-ASCII character has to have the UTF-8 representation which consists of bytes which correspond to non-capital Unicode letters,
+# because on Windows capital letters will be converted to small letters, resulting in invalid UTF-8 sequence, messing up with reported errors
+target_table = 'citi→s'
 if __version_num < 80000:
     target_character_set = 'utf8mb4'
 else:

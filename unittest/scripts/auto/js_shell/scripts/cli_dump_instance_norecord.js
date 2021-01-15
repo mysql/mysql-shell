@@ -115,3 +115,5 @@ WIPE_OUTPUT()
 //@<> Cleanup
 session.runSql(`drop schema \`${schema}\``);
 session.close()
+
+testutil.destroySandbox(__mysql_sandbox_port1);

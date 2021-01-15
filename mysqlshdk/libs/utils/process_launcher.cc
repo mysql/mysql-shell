@@ -1,23 +1,25 @@
-/* Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License, version 2.0,
-   as published by the Free Software Foundation.
-
-   This program is also distributed with certain software (including
-   but not limited to OpenSSL) that is licensed under separate terms, as
-   designated in a particular file or component or in included license
-   documentation.  The authors of MySQL hereby grant you an additional
-   permission to link the program and your derivative works with the
-   separately licensed software that they have included with MySQL.
-   This program is distributed in the hope that it will be useful,  but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
-   the GNU General Public License, version 2.0, for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software Foundation, Inc.,
-   51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
+/*
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
@@ -271,26 +273,31 @@ std::string Process::make_windows_cmdline(const char *const *argv) {
         // after them from when they don't
         int nbackslashes = 0;
         while (*s == '\\') {
-          nbackslashes++;
-          s++;
+          ++nbackslashes;
+          ++s;
         }
         if (nbackslashes > 0) {
-          if (*(s + 1) == '"' || *(s + 1) == '\0') {
+          // we've moved past backslashes and stopped at first non-backslash
+          if (*s == '"' || *s == '\0') {
             // if backslashes appear before a ", they need to be escaped
-            // if a backslsh appears before the end of the string
-            // the next char will be the final ", so we also need to escape
-            // them
+            //
+            // if backslashes appear before the end of the string, the next
+            // char will be the final ", so we also need to escape them
             cmd.append(nbackslashes * 2, '\\');
           } else {
-            // otherwise, just add them as singles
+            // otherwise, just add them as is
             cmd.append(nbackslashes, '\\');
           }
         }
         // if a quote appears, we have to escape it
         if (*s == '"') {
           cmd.append("\\\"");
-        } else {
+        } else if (*s) {
           cmd.push_back(*s);
+        } else if (nbackslashes > 0) {
+          // there were backslashes at the end of string
+          // we're currently at NULL character, need to step back
+          --s;
         }
       }
       cmd.push_back('"');

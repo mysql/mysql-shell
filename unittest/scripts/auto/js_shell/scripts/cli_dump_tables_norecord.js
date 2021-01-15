@@ -6,7 +6,7 @@ function callMysqlsh(additional_args) {
 
 shell.connect(__mysqluripwd)
 
-schema = "wl14297-TSFR_5_1_1";
+schema = "wl14297-tsfr_5_1_1";
 //testutil.rmdir(schema, true);
 tables = ['table_a', 'table_b', 'table_c', 'table_d', 'table_e']
 session.runSql(`drop schema if exists \`${schema}\``);
@@ -17,14 +17,14 @@ for (index in tables) {
 }
 
 // All of the tests should contain the same content on the dump
-// at wl14297-TSFR_5_1_1/wl14297-TSFR_5_1_1.json
+// at wl14297-tsfr_5_1_1/wl14297-tsfr_5_1_1.json
 function validate() {
-    EXPECT_STDOUT_CONTAINS("Writing DDL for table `wl14297-TSFR_5_1_1`.`table_a`");
-    EXPECT_STDOUT_CONTAINS("Writing DDL for table `wl14297-TSFR_5_1_1`.`table_b`");
-    EXPECT_STDOUT_CONTAINS("Writing DDL for table `wl14297-TSFR_5_1_1`.`table_c`");
-    EXPECT_STDOUT_CONTAINS("Data dump for table `wl14297-TSFR_5_1_1`.`table_a` will be written to 1 file");
-    EXPECT_STDOUT_CONTAINS("Data dump for table `wl14297-TSFR_5_1_1`.`table_b` will be written to 1 file");
-    EXPECT_STDOUT_CONTAINS("Data dump for table `wl14297-TSFR_5_1_1`.`table_c` will be written to 1 file");
+    EXPECT_STDOUT_CONTAINS("Writing DDL for table `wl14297-tsfr_5_1_1`.`table_a`");
+    EXPECT_STDOUT_CONTAINS("Writing DDL for table `wl14297-tsfr_5_1_1`.`table_b`");
+    EXPECT_STDOUT_CONTAINS("Writing DDL for table `wl14297-tsfr_5_1_1`.`table_c`");
+    EXPECT_STDOUT_CONTAINS("Data dump for table `wl14297-tsfr_5_1_1`.`table_a` will be written to 1 file");
+    EXPECT_STDOUT_CONTAINS("Data dump for table `wl14297-tsfr_5_1_1`.`table_b` will be written to 1 file");
+    EXPECT_STDOUT_CONTAINS("Data dump for table `wl14297-tsfr_5_1_1`.`table_c` will be written to 1 file");
     WIPE_OUTPUT();
 }
 //@<> CLI import table - WL14297 - TSFR_5_1_1 - 1
