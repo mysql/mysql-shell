@@ -896,6 +896,8 @@ int main(int argc, char **argv) {
   }
 
   std::string mysqld_path_variables;
+  mysqlsh::Scoped_ssh_manager ssh_manager(
+      std::make_shared<mysqlshdk::ssh::Ssh_manager>());
   mysqlsh::Scoped_logger sclogger(setup_logger());
   if (!listing_tests) {
     setup_test_environment();

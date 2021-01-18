@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,8 +57,10 @@ void test() {
 }  // namespace secret_store
 }  // namespace mysql
 
-int main() {
-  mysql::secret_store::api::link::test();
+int main(int argc, char *[]) {
+  if (123456 == argc) {
+    mysql::secret_store::api::link::test();
+  }
 
   return 0;
 }

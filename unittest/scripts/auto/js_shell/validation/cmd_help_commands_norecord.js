@@ -21,11 +21,13 @@ DESCRIPTION
       - --mc, --mysql: create a classic MySQL protocol session (default port
         3306)
       - --mx, --mysqlx: create an X protocol session (default port 33060)
+      - --ssh <SSHURI>: create an SSH tunnel to use as a gateway for db
+        connection. This requires that db port is specified in advance.
 
       If TYPE is omitted, automatic protocol detection is done, unless the
       protocol is given in the URI.
 
-      URI format is: [user[:password]@]hostname[:port]
+      URI and SSHURI format is: [user[:password]@]hostname[:port]
 
 EXAMPLE
       \connect --mx root@localhost

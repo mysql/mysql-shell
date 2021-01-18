@@ -120,6 +120,7 @@ DESCRIPTION
 
       Base Connection Options
 
+      - uri: a URI string.
       - scheme: the protocol to be used on the connection.
       - user: the MySQL user name to be used on the connection.
       - dbUser: alias for user.
@@ -131,8 +132,20 @@ DESCRIPTION
         sockets.
       - schema: the schema to be selected once the connection is done.
 
+      SSH Tunnel Connection Options
+
+      - ssh: a SSHURI string used when SSH tunnel is required.
+      - ssh-password: the password the be used on the SSH connection.
+      - ssh-identity-file: the key file to be used on the SSH connection.
+      - ssh-identity-file-password: the SSH key file password.
+      - ssh-config-file: the SSH configuration file, default is the value of
+        shell.options['ssh.configFile']
+
       ATTENTION: The dbUser and dbPassword options are will be removed in a
                  future release.
+
+      ATTENTION: The connection options have precedence over options specified
+                 in the connection options uri
 
       The connection options are case insensitive and can only be defined once.
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -71,7 +71,7 @@ class SHCORE_PUBLIC Nullable_options {
   bool has_default(const std::string &name) const;
   std::string get_default(const std::string &name) const;
   void remove(const std::string &name);
-  void clear_value(const std::string &name);
+  void clear_value(const std::string &name, bool secure = false);
   const std::string &get_value(const std::string &name) const;
 
   size_t size() const { return _options.size(); }

@@ -64,11 +64,19 @@ constexpr const char kHost[] = "host";
 constexpr const char kPort[] = "port";
 constexpr const char kSocket[] = "socket";
 constexpr const char kScheme[] = "scheme";
+// schema in mysql uri is actually a path in generic URI
+// so this two will point to the exact same place then
+constexpr const char kPath[] = "schema";
 constexpr const char kSchema[] = "schema";
 constexpr const char kUser[] = "user";
 constexpr const char kDbUser[] = "dbUser";
 constexpr const char kPassword[] = "password";
 constexpr const char kDbPassword[] = "dbPassword";
+constexpr const char kSshRemoteHost[] = "ssh-remote-host";
+constexpr const char kSshPassword[] = "ssh-password";
+constexpr const char kSshIdentityFile[] = "ssh-identity-file";
+constexpr const char kSshIdentityFilePassword[] = "ssh-identity-file-password";
+constexpr const char kSshConfigFile[] = "ssh-config-file";
 constexpr const char kSslCa[] = "ssl-ca";
 constexpr const char kSslCaPath[] = "ssl-capath";
 constexpr const char kSslCert[] = "ssl-cert";
@@ -94,6 +102,8 @@ constexpr const char kNetBufferLength[] = "net-buffer-length";
 constexpr const char kMaxAllowedPacket[] = "max-allowed-packet";
 constexpr const char kMysqlPluginDir[] = "mysql-plugin-dir";
 constexpr const char kConnectionAttributes[] = "connection-attributes";
+constexpr const char kUri[] = "uri";
+constexpr const char kSsh[] = "ssh";
 
 constexpr const char kSslModeDisabled[] = "disabled";
 constexpr const char kSslModePreferred[] = "preferred";
@@ -110,35 +120,42 @@ constexpr char kAuthMethodLdapSasl[] = "authentication_ldap_sasl_client";
 constexpr char kAuthMethodKerberos[] = "authentication_kerberos_client";
 constexpr char kAuthMethodOci[] = "authentication_oci_client";
 
-const std::set<std::string> connection_attributes = {kHost,
-                                                     kPort,
-                                                     kSocket,
-                                                     kScheme,
-                                                     kSchema,
-                                                     kUser,
-                                                     kDbUser,
-                                                     kPassword,
-                                                     kDbPassword,
-                                                     kSslCa,
-                                                     kSslCaPath,
-                                                     kSslCert,
-                                                     kSslKey,
-                                                     kSslCrl,
-                                                     kSslCrlPath,
-                                                     kSslCipher,
-                                                     kSslTlsVersion,
-                                                     kSslTlsCiphersuites,
-                                                     kSslMode,
-                                                     kAuthMethod,
-                                                     kGetServerPublicKey,
-                                                     kServerPublicKeyPath,
-                                                     kConnectTimeout,
-                                                     kNetReadTimeout,
-                                                     kNetWriteTimeout,
-                                                     kCompression,
-                                                     kCompressionAlgorithms,
-                                                     kCompressionLevel,
-                                                     kConnectionAttributes};
+const std::set<std::string> db_connection_attributes = {kUri,
+                                                        kHost,
+                                                        kPort,
+                                                        kSocket,
+                                                        kScheme,
+                                                        kSchema,
+                                                        kUser,
+                                                        kDbUser,
+                                                        kPassword,
+                                                        kDbPassword,
+                                                        kSslCa,
+                                                        kSslCaPath,
+                                                        kSslCert,
+                                                        kSslKey,
+                                                        kSslCrl,
+                                                        kSslCrlPath,
+                                                        kSslCipher,
+                                                        kSslTlsVersion,
+                                                        kSslTlsCiphersuites,
+                                                        kSslMode,
+                                                        kAuthMethod,
+                                                        kGetServerPublicKey,
+                                                        kServerPublicKeyPath,
+                                                        kConnectTimeout,
+                                                        kNetReadTimeout,
+                                                        kNetWriteTimeout,
+                                                        kCompression,
+                                                        kCompressionAlgorithms,
+                                                        kCompressionLevel,
+                                                        kConnectionAttributes};
+
+const std::set<std::string> ssh_uri_connection_attributes = {
+    kSsh, kSshConfigFile, kSshIdentityFile, kSshIdentityFilePassword,
+    kSshPassword};
+
+std::set<std::string> connection_attributes();
 
 const std::set<std::string> uri_connection_attributes = {kSslCa,
                                                          kSslCaPath,

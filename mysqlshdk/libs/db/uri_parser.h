@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,8 +31,11 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/ssh/ssh_connection_options.h"
 #include "mysqlshdk/libs/utils/base_tokenizer.h"
+#include "mysqlshdk/libs/utils/connection.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
 #include "scripting/types.h"
 
@@ -58,8 +61,12 @@ namespace uri {
 using mysqlshdk::utils::nullable_options::Comparison_mode;
 class SHCORE_PUBLIC Uri_parser {
  public:
-  Uri_parser();
+  explicit Uri_parser(bool devapi = true);
   mysqlshdk::db::Connection_options parse(
+      const std::string &input,
+      Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
+
+  mysqlshdk::ssh::Ssh_connection_options parse_ssh_uri(
       const std::string &input,
       Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
 
@@ -68,8 +75,10 @@ class SHCORE_PUBLIC Uri_parser {
   std::string _input;
   shcore::BaseTokenizer _tokenizer;
   std::map<std::string, std::pair<size_t, size_t>> _chunks;
+  void preprocess(const std::string &input);
+  std::set<std::string> m_allowed_schemes;
 
-  void parse_scheme();
+  std::string parse_scheme();
   void parse_userinfo();
   void parse_target();
   void parse_host();

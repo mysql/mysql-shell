@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,8 +24,10 @@
 #ifndef MYSQLSHDK_LIBS_DB_URI_ENCODER_H_
 #define MYSQLSHDK_LIBS_DB_URI_ENCODER_H_
 
+#include <set>
 #include <string>
 #include <vector>
+
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/libs/utils/base_tokenizer.h"
@@ -35,7 +37,10 @@ namespace db {
 namespace uri {
 class SHCORE_PUBLIC Uri_encoder {
  public:
+  explicit Uri_encoder(bool devapi = true);
   std::string encode_uri(const Connection_options &info,
+                         Tokens_mask format = formats::full_no_password());
+  std::string encode_uri(const ssh::Ssh_connection_options &info,
                          Tokens_mask format = formats::full_no_password());
   std::string encode_scheme(const std::string &data);
   std::string encode_socket(const std::string &socket);
@@ -53,6 +58,7 @@ class SHCORE_PUBLIC Uri_encoder {
 
  private:
   shcore::BaseTokenizer _tokenizer;
+  std::set<std::string> m_allowed_schemes;
   std::string process(const std::string &data);
 };
 }  // namespace uri

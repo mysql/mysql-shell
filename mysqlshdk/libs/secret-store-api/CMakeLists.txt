@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2018, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -48,9 +48,9 @@ if(WITH_TESTS)
     ${CMAKE_SOURCE_DIR}/mysqlshdk/libs/utils/dtoa.cc
   )
 
-  add_executable(mysql-secret-store-api-link-test ${link_test_SRC})
+  add_shell_executable(link-test-mysql-secret-store-api ${link_test_SRC} TRUE)
 
-  target_link_libraries(mysql-secret-store-api-link-test
+  target_link_libraries(link-test-mysql-secret-store-api
     mysql-secret-store-api
   )
 endif()

@@ -1137,8 +1137,7 @@ void Util::import_table_files(
         "A classic protocol session is required to perform this operation.");
   }
 
-  opt.set_base_session(std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(
-      shell_session->get_core_session()));
+  opt.set_base_session(shell_session->get_core_session());
 
   opt.validate();
 

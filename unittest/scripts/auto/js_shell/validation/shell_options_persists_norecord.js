@@ -330,6 +330,8 @@
  sandboxDir                      <<<_defaultSandboxDir>>>
  showColumnTypeInfo              false
  showWarnings                    true
+ ssh.bufferSize                  10240
+ ssh.configFile                  ""
  useWizards                      true
  verbose                         0
 
@@ -364,6 +366,8 @@
  sandboxDir                      <<<_defaultSandboxDir>>> (Compiled default)
  showColumnTypeInfo              false (Compiled default)
  showWarnings                    true (Compiled default)
+ ssh.bufferSize                  10240 (Compiled default)
+ ssh.configFile                  "" (Compiled default)
  useWizards                      true (Compiled default)
  verbose                         0 (Compiled default)
 
@@ -475,6 +479,8 @@
  sandboxDir                      <<<_defaultSandboxDir>>>
  showColumnTypeInfo              false
  showWarnings                    true
+ ssh.bufferSize                  10240
+ ssh.configFile                  ""
  useWizards                      true
  verbose                         0
 
@@ -510,5 +516,27 @@ Switching to SQL mode... Commands end with ;
  sandboxDir                      <<<_defaultSandboxDir>>> (Compiled default)
  showColumnTypeInfo              false (Compiled default)
  showWarnings                    true (Compiled default)
+ ssh.bufferSize                  10240 (Compiled default)
+ ssh.configFile                  "" (Compiled default)
  useWizards                      true (Compiled default)
  verbose                         0 (Compiled default)
+
+//@<OUT> Verify options persistence WL#14246 TSFR_10_5
+/path/config
+10250
+{
+    "ssh.configFile": "/path/config",
+    "ssh.bufferSize": "10250"
+}
+
+10240
+
+//@<OUT> Verify options persistence WL#14246 TSFR_10_6
+/path/config
+10250
+{
+    "ssh.configFile": "/path/config",
+    "ssh.bufferSize": "10250"
+}
+
+10240

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 
 #include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/utils/connection.h"
 #include "mysqlshdk/libs/utils/options.h"
 
 namespace mysql {
@@ -65,11 +66,15 @@ class Credential_manager : public NotificationObserver {
 
   void set_helper(const std::string &helper);
 
-  bool get_password(mysqlshdk::db::Connection_options *options) const;
+  bool get_password(mysqlshdk::IConnection *options) const;
 
-  bool save_password(const mysqlshdk::db::Connection_options &options);
+  bool save_password(const mysqlshdk::IConnection &options);
 
-  bool remove_password(const mysqlshdk::db::Connection_options &options);
+  bool remove_password(const mysqlshdk::IConnection &options);
+
+  bool get_credential(const std::string &url, std::string *credential) const;
+
+  bool should_save_password(const std::string &url);
 
   // shell API
 
@@ -86,8 +91,6 @@ class Credential_manager : public NotificationObserver {
  private:
   Credential_manager();
   ~Credential_manager() = default;
-
-  bool should_save_password(const std::string &url);
 
   void add_ignore_filter(const std::string &filter);
 

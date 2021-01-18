@@ -211,6 +211,11 @@ TEST_P(Auto_script_py, run_and_check) {
   exec_and_out_equals("__script_file = '" + GetParam() + "'");
 
   set_config_folder("auto/" + folder);
+
+  // To allow handling python modules on the path of the scripts
+  execute("import sys");
+  execute("sys.path.append('" + _scripts_home + "')");
+
   validate_interactive(name);
 }
 
@@ -232,7 +237,9 @@ std::vector<std::string> find_py_tests(const std::string &subdir,
   std::vector<std::string> filtered;
 
   for (const auto &s : tests) {
-    if (shcore::str_endswith(s, ext)) filtered.emplace_back(subdir + "/" + s);
+    // We let files starting with underscore as modules
+    if (shcore::str_endswith(s, ext) && s[0] != '_')
+      filtered.emplace_back(subdir + "/" + s);
   }
 
   return filtered;

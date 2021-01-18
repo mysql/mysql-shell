@@ -61,7 +61,10 @@ TEST_F(Instance_test, get_session) {
 }
 
 TEST_F(Instance_test, get_sysvar_string_existing_variable) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   mysqlshdk::mysql::Instance instance(_session);
@@ -97,12 +100,16 @@ TEST_F(Instance_test, get_sysvar_string_existing_variable) {
   EXPECT_FALSE(char_set_server.is_null());
   EXPECT_STREQ("latin1", (*char_set_server).c_str());
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_sysvar_string_unexisting_variable) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   session
@@ -124,12 +131,16 @@ TEST_F(Instance_test, get_sysvar_string_unexisting_variable) {
   // The value was not modified
   EXPECT_TRUE(server_uuid.is_null());
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -176,12 +187,16 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
   EXPECT_FALSE(sql_warnings.is_null());
   EXPECT_FALSE(*sql_warnings);
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_sysvar_boolean_unexisting_variable) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   session
@@ -203,12 +218,16 @@ TEST_F(Instance_test, get_sysvar_boolean_unexisting_variable) {
   // The value was not modified
   EXPECT_TRUE(sql_warnings.is_null());
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_sysvar_boolean_invalid_variable) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   session
@@ -225,12 +244,16 @@ TEST_F(Instance_test, get_sysvar_boolean_invalid_variable) {
   mysqlshdk::mysql::Instance instance(_session);
   EXPECT_ANY_THROW(instance.get_sysvar_bool("server_uuid"));
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_sysvar_int_existing_variable) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -279,12 +302,16 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
   EXPECT_FALSE(wait_timeout.is_null());
   EXPECT_EQ(28800, *wait_timeout);
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_sysvar_int_unexisting_variable) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   session
@@ -306,12 +333,16 @@ TEST_F(Instance_test, get_sysvar_int_unexisting_variable) {
   // The value was not modified
   EXPECT_TRUE(server_id.is_null());
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_sysvar_int_invalid_variable) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   session
@@ -328,12 +359,16 @@ TEST_F(Instance_test, get_sysvar_int_invalid_variable) {
   mysqlshdk::mysql::Instance instance(_session);
   EXPECT_ANY_THROW(instance.get_sysvar_int("server_uuid"));
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_sysvar_invalid_qualifier) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   mysqlshdk::mysql::Instance instance(_session);
@@ -360,12 +395,16 @@ TEST_F(Instance_test, get_sysvar_invalid_qualifier) {
                               mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY),
       std::runtime_error);
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, set_sysvar) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -670,12 +709,16 @@ TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, execute("RESET PERSIST sql_log_off"));
   session.execute("RESET PERSIST sql_log_off");
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, set_sysvar_default) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
   // Test set_sysvar_default with different scopes (GLOBAL and SESSION).
@@ -772,12 +815,16 @@ TEST_F(Instance_test, set_sysvar_default) {
   EXPECT_CALL(session, execute("RESET PERSIST lc_messages"));
   session.execute("RESET PERSIST lc_messages");
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_system_variables) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   session
@@ -802,12 +849,16 @@ TEST_F(Instance_test, get_system_variables) {
   EXPECT_FALSE(variables["server_uuid"].is_null());
   EXPECT_TRUE(variables["unexisting_variable"].is_null());
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, install_plugin_win) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -825,12 +876,16 @@ TEST_F(Instance_test, install_plugin_win) {
       "INSTALL PLUGIN `validate_password` SONAME 'validate_password.dll'");
   instance.install_plugin("validate_password");
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, install_plugin_lin) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -864,12 +919,16 @@ TEST_F(Instance_test, install_plugin_lin) {
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(instance.install_plugin("validate_password"),
                std::runtime_error);
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_plugin_status) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -903,12 +962,16 @@ TEST_F(Instance_test, get_plugin_status) {
   res = instance.get_plugin_status("validate_password");
   ASSERT_TRUE(res.is_null());
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, uninstall_plugin) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   mysqlshdk::mysql::Instance instance(_session);
@@ -921,12 +984,16 @@ TEST_F(Instance_test, uninstall_plugin) {
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(instance.uninstall_plugin("validate_password"),
                std::runtime_error);
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, create_user) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -991,12 +1058,16 @@ TEST_F(Instance_test, create_user) {
   EXPECT_THROW(
       instance.create_user("dba_user", "dba_host", "dba_pwd", dba_priv),
       std::exception);
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_user_privileges_user_does_not_exist) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   // Check non existing user.
@@ -1019,12 +1090,16 @@ TEST_F(Instance_test, get_user_privileges_user_does_not_exist) {
 
   EXPECT_FALSE(up->user_exists());
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_user_privileges_user_exists) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   // user with some privileges
@@ -1053,12 +1128,16 @@ TEST_F(Instance_test, get_user_privileges_user_exists) {
 
   EXPECT_TRUE(up->user_exists());
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, drop_user) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -1089,12 +1168,16 @@ TEST_F(Instance_test, drop_user) {
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(instance.drop_user("dba_user", "dba_host"), std::exception);
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_system_variables_like) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -1172,12 +1255,16 @@ TEST_F(Instance_test, get_system_variables_like) {
       "Invalid variable scope to get variables value, only GLOBAL and SESSION "
       "is supported.");
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, is_set_persist_supported) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -1223,12 +1310,16 @@ TEST_F(Instance_test, is_set_persist_supported) {
   res = instance_57.is_set_persist_supported();
   EXPECT_TRUE(res.is_null());
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, get_persisted_value) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
+  const mysqlshdk::db::Connection_options opts;
+  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -1254,12 +1345,14 @@ TEST_F(Instance_test, get_persisted_value) {
   EXPECT_FALSE(res.is_null());
   EXPECT_STREQ("ON", (*res).c_str());
 
-  EXPECT_CALL(session, close());
+  EXPECT_CALL(session, do_close());
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->close();
 }
 
 TEST_F(Instance_test, suppress_binary_log) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -1273,7 +1366,8 @@ TEST_F(Instance_test, suppress_binary_log) {
 }
 
 TEST_F(Instance_test, get_fence_sysvars) {
-  EXPECT_CALL(session, connect(_connection_options));
+  EXPECT_CALL(session, do_connect(_connection_options));
+  EXPECT_CALL(session, is_open()).WillOnce(Return(false));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 

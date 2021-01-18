@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -72,6 +72,8 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
 
   std::string uri(mysqlshdk::db::uri::Tokens_mask format =
                       mysqlshdk::db::uri::formats::full_no_password()) const;
+
+  std::string ssh_uri() const;
 
   virtual SessionType session_type() const = 0;
 

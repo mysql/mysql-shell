@@ -10,6 +10,7 @@ validate_members(classicSession, [
   'close',
   'commit',
   'get_uri',
+  'get_ssh_uri',
   'help',
   'is_open',
   'query',
@@ -17,6 +18,7 @@ validate_members(classicSession, [
   'run_sql',
   'start_transaction',
   'uri',
+  'ssh_uri',
   '_get_socket_fd'])
 
 #@ ClassicSession: accessing Schemas

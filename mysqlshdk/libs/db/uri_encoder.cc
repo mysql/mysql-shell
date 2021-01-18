@@ -34,9 +34,37 @@ namespace mysqlshdk {
 namespace db {
 namespace uri {
 
+Uri_encoder::Uri_encoder(bool devapi) {
+  m_allowed_schemes = {"mysql", "mysqlx"};
+  if (!devapi) {
+    m_allowed_schemes.emplace("file");
+    m_allowed_schemes.emplace("ssh");
+  }
+}
+
 std::string Uri_encoder::encode_uri(const Connection_options &info,
                                     Tokens_mask format) {
   std::string ret_val;
+  if (info.has_scheme() &&
+      info.get_scheme() == "file") {  // this is the simplest use case
+    if (format.is_set(Tokens::Scheme))
+      ret_val.append(encode_scheme(info.get_scheme())).append(":/");
+
+    if (format.is_set(Tokens::Transport)) {
+      if (info.has_host()) ret_val.append(encode_host(info.get_host()));
+
+      if (info.has_path()) {
+        if ((info.has_host() || info.get_path()[1] == ':') &&
+            info.get_path()[0] != '/')
+          ret_val.append("/");
+        if (info.get_path()[0] == '/') ret_val.pop_back();
+
+        ret_val.append(info.get_path());
+      }
+    }
+    return ret_val;
+  }
+
   if (format.is_set(Tokens::Scheme) && info.has_scheme())
     ret_val.append(encode_scheme(info.get_scheme())).append("://");
 
@@ -114,6 +142,40 @@ std::string Uri_encoder::encode_uri(const Connection_options &info,
   return ret_val;
 }
 
+std::string Uri_encoder::encode_uri(const ssh::Ssh_connection_options &info,
+                                    Tokens_mask format) {
+  if (format.is_set(Tokens::Schema) || format.is_set(Tokens::Query)) {
+    throw std::invalid_argument(
+        "encode_uri doesn't support Tokens::Schema and Tokens::Query");
+  }
+
+  std::string ret_val;
+  if (format.is_set(Tokens::Scheme) && info.has_scheme())
+    ret_val.append(encode_scheme(info.get_scheme())).append("://");
+
+  bool has_user_info = false;
+  if (format.is_set(Tokens::User) && info.has_user()) {
+    has_user_info = true;
+    ret_val.append(encode_userinfo(info.get_user()));
+  }
+
+  if (!ret_val.empty() && has_user_info) ret_val.append("@");
+
+  if (format.is_set(Tokens::Transport)) {
+    if (info.has_host())
+      ret_val.append(encode_host(info.get_host()));
+    else
+      ret_val.append("localhost");
+
+    if (info.has_port())
+      ret_val.append(":").append(encode_port(std::to_string(info.get_port())));
+
+    if (format.is_set(Tokens::Schema) && info.has_path())
+      ret_val.append(info.get_path());
+  }
+  return ret_val;
+}
+
 std::string Uri_encoder::encode_scheme(const std::string &data) {
   std::string ret_val;
 
@@ -150,11 +212,15 @@ std::string Uri_encoder::encode_scheme(const std::string &data) {
 
   // Validate on unique supported schema formats
   // In the future we may support additional stuff, like extensions
-  if (ret_val != "mysql" && ret_val != "mysqlx")
+  if (m_allowed_schemes.find(ret_val) == m_allowed_schemes.end()) {
     throw std::invalid_argument(
         shcore::str_format("Invalid scheme [%s], "
-                           "supported schemes include: mysql, mysqlx",
-                           data.c_str()));
+                           "supported schemes include: %s",
+                           data.c_str(),
+                           shcore::str_join(m_allowed_schemes.begin(),
+                                            m_allowed_schemes.end(), ", ")
+                               .c_str()));
+  }
 
   return ret_val;
 }

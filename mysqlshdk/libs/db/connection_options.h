@@ -36,6 +36,8 @@
 #include "mysqlshdk/include/shellcore/ishell_core.h"
 #include "mysqlshdk/libs/db/ssl_options.h"
 #include "mysqlshdk/libs/db/uri_common.h"
+#include "mysqlshdk/libs/ssh/ssh_connection_options.h"
+#include "mysqlshdk/libs/utils/connection.h"
 #include "mysqlshdk/libs/utils/nullable_options.h"
 
 namespace mysqlsh {
@@ -55,14 +57,12 @@ using Mfa_passwords = std::array<std::optional<std::string>, 3>;
 constexpr int k_default_mysql_port = 3306;
 constexpr int k_default_mysql_x_port = 33060;
 
-class SHCORE_PUBLIC Connection_options final {
+class SHCORE_PUBLIC Connection_options : public IConnection {
  public:
   explicit Connection_options(
       Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
-  explicit Connection_options(
-      const std::string &uri,
-      Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
-
+  Connection_options(const std::string &uri,
+                     Comparison_mode mode = Comparison_mode::CASE_INSENSITIVE);
   Connection_options(const Connection_options &other) = default;
   Connection_options(Connection_options &&other) = default;
 
@@ -73,15 +73,15 @@ class SHCORE_PUBLIC Connection_options final {
 
   void set_login_options_from(const Connection_options &options);
   void set_ssl_options(const Ssl_options &options);
-
-  const std::string &get_scheme() const { return get_value(kScheme); }
-  const std::string &get_user() const { return get_value(kUser); }
-  const std::string &get_password() const;
-  const std::string &get_host() const { return get_value(kHost); }
+  void set_ssh_options(const ssh::Ssh_connection_options &options);
   const std::string &get_schema() const { return get_value(kSchema); }
   const std::string &get_socket() const { return get_value(kSocket); }
   const std::string &get_pipe() const { return get_value(kSocket); }
-  int get_port() const;
+  int get_port() const override;
+  int get_target_port() const;
+
+  const std::string &get_password() const override;
+
   Transport_type get_transport_type() const;
   const std::string &get_compression() const {
     return m_extra_options.get_value(kCompression);
@@ -97,17 +97,20 @@ class SHCORE_PUBLIC Connection_options final {
   const Ssl_options &get_ssl_options() const { return m_ssl_options; }
   Ssl_options &get_ssl_options() { return m_ssl_options; }
 
-  const std::vector<std::string> &get_warnings() const { return m_warnings; }
+  const ssh::Ssh_connection_options &get_ssh_options() const {
+    return m_ssh_options;
+  }
 
-  bool has_data() const;
-  bool has_scheme() const { return has_value(kScheme); }
-  bool has_user() const { return has_value(kUser); }
-  bool has_password() const {
+  ssh::Ssh_connection_options &get_ssh_options_handle(int fallback_port = 0);
+
+  const std::vector<std::string> &get_warnings() const { return m_warnings; }
+  bool has_password() const override {
     return has_value(kPassword) || m_mfa_passwords[0].has_value();
   }
+
   bool has_mfa_passwords() const;
-  bool has_host() const { return has_value(kHost); }
-  bool has_port() const { return !m_port.is_null(); }
+
+  bool has_data() const override;
   bool has_schema() const { return has_value(kSchema); }
   bool has_socket() const { return has_value(kSocket); }
   bool has_pipe() const { return has_value(kSocket); }
@@ -118,14 +121,12 @@ class SHCORE_PUBLIC Connection_options final {
   }
   bool has_compression_level() const { return !m_compress_level.is_null(); }
 
-  bool has(const std::string &name) const;
-  bool has_value(const std::string &name) const;
+  bool has(const std::string &name) const override;
+  bool has_value(const std::string &name) const override;
+  bool has_ssh_options() const;
 
-  void set_scheme(const std::string &scheme) { _set_fixed(kScheme, scheme); }
-  void set_user(const std::string &user) { _set_fixed(kUser, user); }
-  void set_password(const std::string &pwd) { _set_fixed(kPassword, pwd); }
-  void set_host(const std::string &host);
-  void set_port(int port);
+  void set_host(const std::string &host) override;
+  void set_port(int port) override;
   void set_schema(const std::string &schema) { _set_fixed(kSchema, schema); }
   void set_socket(const std::string &socket);
   void set_pipe(const std::string &pipe);
@@ -143,12 +144,9 @@ class SHCORE_PUBLIC Connection_options final {
   void set(const std::string &attribute, const std::string &value);
   void set_unchecked(const std::string &name, const char *value = nullptr);
 
-  void clear_scheme() { clear_value(kScheme); }
-  void clear_user() { clear_value(kUser); }
-  void clear_password() { clear_value(kPassword); }
+  void clear_host() override;
+  void clear_port() override;
   void clear_mfa_passwords();
-  void clear_host();
-  void clear_port();
   void clear_schema() { clear_value(kSchema); }
   void clear_socket();
   void clear_pipe();
@@ -161,14 +159,13 @@ class SHCORE_PUBLIC Connection_options final {
   bool operator==(const Connection_options &other) const;
   bool operator!=(const Connection_options &other) const;
 
-  std::string as_uri(
-      uri::Tokens_mask format = uri::formats::full_no_password()) const;
+  std::string as_uri(uri::Tokens_mask format =
+                         uri::formats::full_no_password()) const override;
 
   std::string uri_endpoint() const {
     return as_uri(uri::formats::only_transport());
   }
 
-  Comparison_mode get_mode() const { return m_mode; }
   const Nullable_options &get_extra_options() const { return m_extra_options; }
   bool is_connection_attributes_enabled() const {
     return m_enable_connection_attributes;
@@ -189,7 +186,8 @@ class SHCORE_PUBLIC Connection_options final {
    * - uses localhost if host is not specified and transport type is not
    *   specified or it's TCP.
    */
-  void set_default_connection_data();
+
+  void set_default_data() override;
 
   void set_plugins_dir();
 
@@ -206,23 +204,15 @@ class SHCORE_PUBLIC Connection_options final {
   std::string get_iname(const std::string &name) const;
   bool is_extra_option(const std::string &option);
   bool is_bool_value(const std::string &value);
-  inline const std::string &get_value(const std::string &option) const {
-    return m_options.get_value(option);
-  }
-  inline void clear_value(const std::string &option) {
-    return m_options.clear_value(option);
-  }
 
   void raise_connection_type_error(const std::string &source);
   void check_compression_conflicts();
 
-  nullable<int> m_port;
   nullable<Transport_type> m_transport_type;
   nullable<int64_t> m_compress_level;
 
-  Comparison_mode m_mode;
-  Nullable_options m_options;
   Ssl_options m_ssl_options;
+  ssh::Ssh_connection_options m_ssh_options;
   Nullable_options m_extra_options;
   bool m_enable_connection_attributes;
   Nullable_options m_connection_attributes;

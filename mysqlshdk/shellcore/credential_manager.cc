@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -102,11 +102,16 @@ std::unique_ptr<Helper_interface> get_helper(const std::string &helper) {
   return get_helper(get_helper_by_name(get_helper_name(helper)));
 }
 
-std::string get_url(const Connection_options &options) {
-  return options.as_uri(mysqlshdk::db::uri::formats::user_transport());
+std::string get_url(const mysqlshdk::IConnection &options) {
+  auto tokens = mysqlshdk::db::uri::formats::user_transport();
+  if (options.has_scheme() &&
+      (options.get_scheme() == "file" || options.get_scheme() == "ssh")) {
+    tokens.set(mysqlshdk::db::uri::Tokens::Scheme);
+  }
+  return options.as_uri(tokens);
 }
 
-Secret_spec get_secret_spec(const Connection_options &options) {
+Secret_spec get_secret_spec(const mysqlshdk::IConnection &options) {
   return {Secret_type::PASSWORD, get_url(options)};
 }
 
@@ -289,7 +294,7 @@ std::vector<std::string> Credential_manager::list_credential_helpers() const {
   return helpers;
 }
 
-bool Credential_manager::get_password(Connection_options *options) const {
+bool Credential_manager::get_password(mysqlshdk::IConnection *options) const {
   if (m_helper) {
     std::string password;
     bool ret = m_helper->get(get_secret_spec(*options), &password);
@@ -310,7 +315,7 @@ bool Credential_manager::get_password(Connection_options *options) const {
   }
 }
 
-bool Credential_manager::save_password(const Connection_options &options) {
+bool Credential_manager::save_password(const mysqlshdk::IConnection &options) {
   if (m_helper && should_save_password(get_url(options))) {
     bool ret =
         m_helper->store(get_secret_spec(options), options.get_password());
@@ -326,7 +331,8 @@ bool Credential_manager::save_password(const Connection_options &options) {
   }
 }
 
-bool Credential_manager::remove_password(const Connection_options &options) {
+bool Credential_manager::remove_password(
+    const mysqlshdk::IConnection &options) {
   if (m_helper) {
     bool ret = m_helper->erase(get_secret_spec(options));
 
@@ -339,6 +345,24 @@ bool Credential_manager::remove_password(const Connection_options &options) {
   } else {
     return false;
   }
+}
+
+bool Credential_manager::get_credential(const std::string &url,
+                                        std::string *credential) const {
+  if (!m_helper) {
+    throw Exception::runtime_error(
+        "Cannot get the credential, current credential helper is invalid");
+  }
+
+  bool ret = m_helper->get({Secret_type::PASSWORD, url}, credential);
+  if (!ret) {
+    auto error = m_helper->get_last_error();
+    if (k_no_such_secret_error != error) {
+      mysqlsh::current_console()->print_error(
+          "Failed to retrieve the password: " + error);
+    }
+  }
+  return ret;
 }
 
 void Credential_manager::store_credential(const std::string &url,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,8 +29,8 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
+#include "mysqlshdk/libs/ssh/ssh_manager.h"
 #include "mysqlshdk/libs/utils/logger.h"
-
 namespace mysqlsh {
 
 template <typename T>
@@ -57,6 +57,7 @@ using Scoped_console = Global_scoped_object<mysqlsh::IConsole>;
 using Scoped_shell_options = Global_scoped_object<mysqlsh::Shell_options>;
 using Scoped_interrupt = Global_scoped_object<shcore::Interrupts>;
 using Scoped_logger = Global_scoped_object<shcore::Logger>;
+using Scoped_ssh_manager = Global_scoped_object<mysqlshdk::ssh::Ssh_manager>;
 
 namespace detail {
 
@@ -71,14 +72,16 @@ std::thread spawn_scoped_thread(Function &&f, Args &&... args) {
   auto thd_current_shell_opts = mysqlsh::current_shell_options(true);
   auto thd_current_interrupt = shcore::current_interrupt(true);
   auto thd_current_console = mysqlsh::current_console(true);
+  auto thd_current_ssh_manager = mysqlshdk::ssh::current_ssh_manager(true);
   return std::thread(
       [f = decay_copy(std::forward<Function>(f)), thd_current_logger,
-       thd_current_shell_opts, thd_current_interrupt,
-       thd_current_console](const std::decay_t<Args> &... a) {
+       thd_current_shell_opts, thd_current_interrupt, thd_current_console,
+       thd_current_ssh_manager](const std::decay_t<Args> &... a) {
         mysqlsh::Scoped_logger logger(thd_current_logger);
         mysqlsh::Scoped_shell_options shell_opts(thd_current_shell_opts);
         mysqlsh::Scoped_interrupt interrupt(thd_current_interrupt);
         mysqlsh::Scoped_console console(thd_current_console);
+        mysqlsh::Scoped_ssh_manager ssh_manager(thd_current_ssh_manager);
         f(a...);
       },
       std::forward<Args>(args)...);

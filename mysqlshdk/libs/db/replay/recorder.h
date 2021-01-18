@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,14 +52,15 @@ class Recorder_mysql : public mysql::Session {
 
   Recorder_mysql();
 
-  void connect(const mysqlshdk::db::Connection_options &data) override;
-
   std::shared_ptr<IResult> querys(const char *sql, size_t length,
                                   bool buffered) override;
 
   void executes(const char *sql, size_t length) override;
 
-  void close() override;
+ protected:
+  void do_connect(const mysqlshdk::db::Connection_options &data) override;
+
+  void do_close() override;
 
  private:
   std::unique_ptr<Trace_writer> _trace;
@@ -73,14 +74,10 @@ class Recorder_mysqlx : public mysqlx::Session {
 
   Recorder_mysqlx();
 
-  void connect(const mysqlshdk::db::Connection_options &data) override;
-
   std::shared_ptr<IResult> querys(const char *sql, size_t length,
                                   bool buffered) override;
 
   void executes(const char *sql, size_t length) override;
-
-  void close() override;
 
   std::shared_ptr<IResult> execute_stmt(
       const std::string &ns, const std::string &stmt,
@@ -105,6 +102,11 @@ class Recorder_mysqlx : public mysqlx::Session {
       const ::Mysqlx::Crud::Find & /*msg*/) override {
     throw std::logic_error("not implemented for recording");
   }
+
+ protected:
+  void do_connect(const mysqlshdk::db::Connection_options &data) override;
+
+  void do_close() override;
 
  private:
   std::unique_ptr<Trace_writer> _trace;

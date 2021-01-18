@@ -100,6 +100,12 @@ shell.help("listCredentials")
 //@ Help on listCredentials, \? [USE:Help on listCredentials]
 \? listCredentials
 
+//@ Help on listSshConnections
+shell.help("listSshConnections")
+
+//@ Help on listSshConnections, \? [USE:Help on listSshConnections]
+\? listSshConnections
+
 //@ Help on Log
 shell.help("log")
 

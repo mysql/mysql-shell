@@ -268,12 +268,17 @@ class User_privileges_test : public tests::Shell_base_test {
 
     const auto connection_options = shcore::get_connection_options(_mysql_uri);
 
-    EXPECT_CALL(*m_session, connect(connection_options));
+    EXPECT_CALL(*m_session, do_connect(connection_options));
+    EXPECT_CALL(*m_session, is_open()).WillOnce(Return(false));
     m_session->connect(connection_options);
   }
 
   void TearDown() override {
-    EXPECT_CALL(*m_session, close());
+    EXPECT_CALL(*m_session, do_close());
+    const mysqlshdk::db::Connection_options opts;
+    EXPECT_CALL(*m_session, get_connection_options())
+        .WillOnce(testing::ReturnRef(opts));
+    EXPECT_CALL(*m_session, is_open()).WillOnce(Return(false));
     m_session->close();
   }
 

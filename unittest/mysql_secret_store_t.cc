@@ -353,8 +353,12 @@ class Shell_api_tester : public Helper_tester {
 
     EXPECT_TRUE(list(&specs));
     expect_no_error();
-    auto normalized = mysqlsh::Connection_options{url}.as_uri(
-        mysqlshdk::db::uri::formats::user_transport());
+    auto copts = mysqlsh::Connection_options{url};
+    auto tokens = mysqlshdk::db::uri::formats::user_transport();
+    if (copts.has_scheme() &&
+        (copts.get_scheme() == "ssh" || copts.get_scheme() == "file"))
+      tokens.set(mysqlshdk::db::uri::Tokens::Scheme);
+    auto normalized = copts.as_uri(tokens);
     return specs.end() !=
            std::find(specs.begin(), specs.end(),
                      Secret_spec{Secret_type::PASSWORD, normalized});
@@ -1000,6 +1004,8 @@ void test_available_helpers() {
     op(URL_WITH_SOCKET, "three");                                           \
     op("user@host:33060", "five");                                          \
     op("user@host:33060", "six");                                           \
+    op("ssh://user@host.com:22", "test");                                   \
+    op("file:/user/host/com", "test");                                      \
     if (GetParam() == "login-path") {                                       \
       op("user@host:55555",                                                 \
          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"   \

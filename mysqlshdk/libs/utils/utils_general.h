@@ -44,6 +44,7 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/ishell_core.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/ssh/ssh_connection_options.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
@@ -141,6 +142,9 @@ std::string SHCORE_PUBLIC to_string(OperatingSystem os_type);
 bool SHCORE_PUBLIC is_valid_identifier(const std::string &name);
 mysqlshdk::db::Connection_options SHCORE_PUBLIC
 get_connection_options(const std::string &uri, bool set_defaults = true);
+mysqlshdk::ssh::Ssh_connection_options SHCORE_PUBLIC
+get_ssh_connection_options(const std::string &uri, bool set_defaults = true,
+                           const std::string &config_path = "");
 void SHCORE_PUBLIC update_connection_data(
     mysqlshdk::db::Connection_options *connection_options,
     const std::string &user, const char *password, const std::string &host,
@@ -263,9 +267,6 @@ std::string SHCORE_PUBLIC str_subvars(
           return shcore::get_member_name(var, shcore::current_naming_style());
         },
     const std::string &var_begin = "<<<", const std::string &var_end = ">>>");
-
-void clear_buffer(char *buffer, size_t size);
-void clear_buffer(std::string *buffer);
 
 void SHCORE_PUBLIC sleep_ms(uint32_t ms);
 

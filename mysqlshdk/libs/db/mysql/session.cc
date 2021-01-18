@@ -54,10 +54,23 @@ FI_DEFINE(mysql, [](const mysqlshdk::utils::FI::Args &args) {
 
 //-------------------------- Session Implementation ----------------------------
 void Session_impl::throw_on_connection_fail() {
-  auto exception = mysqlshdk::db::Error(
-      mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+  unsigned int code = mysql_errno(_mysql);
+
+  auto exception =
+      mysqlshdk::db::Error(mysql_error(_mysql), code, mysql_sqlstate(_mysql));
   DBUG_LOG("sql", mysql_thread_id(_mysql) << ": ERROR: " << exception.format());
+
   close();
+
+  // When the connection is done through SSH tunnel and the tunnel fails to
+  // open, this error is received from the server
+  if (code == CR_SERVER_LOST &&
+      _connection_options.get_ssh_options().has_data()) {
+    throw mysqlshdk::db::Error(
+        shcore::str_format("Error opening MySQL session through SSH tunnel: %s",
+                           exception.what()),
+        code);
+  }
   throw exception;
 }
 
@@ -248,24 +261,25 @@ void Session_impl::connect(
     }
   }
 
-  if (!mysql_real_connect(
-          _mysql,
-          _connection_options.has_host()
-              ? _connection_options.get_host().c_str()
-              : NULL,
-          _connection_options.has_user()
-              ? _connection_options.get_user().c_str()
-              : NULL,
-          NULL,
-          _connection_options.has_schema()
-              ? _connection_options.get_schema().c_str()
-              : NULL,
-          _connection_options.has_port() ? _connection_options.get_port() : 0,
-          _connection_options.has_socket() &&
-                  !_connection_options.get_socket().empty()
-              ? _connection_options.get_socket().c_str()
-              : NULL,
-          flags)) {
+  const char *host = _connection_options.has_host() &&
+                             !_connection_options.get_ssh_options().has_data()
+                         ? _connection_options.get_host().c_str()
+                         : nullptr;
+
+  if (!mysql_real_connect(_mysql, host,
+                          _connection_options.has_user()
+                              ? _connection_options.get_user().c_str()
+                              : NULL,
+                          NULL,
+                          _connection_options.has_schema()
+                              ? _connection_options.get_schema().c_str()
+                              : NULL,
+                          _connection_options.get_target_port(),
+                          _connection_options.has_socket() &&
+                                  !_connection_options.get_socket().empty()
+                              ? _connection_options.get_socket().c_str()
+                              : NULL,
+                          flags)) {
     throw_on_connection_fail();
   }
   DBUG_LOG("sql", get_thread_id()

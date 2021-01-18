@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -109,6 +109,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Undefined deleteCredential(String url);
   Undefined deleteAllCredentials();
   List listCredentials();
+  List listSshConnections();
   Undefined enablePager();
   Undefined disablePager();
   Undefined registerReport(String name, String type, Function report,
@@ -141,6 +142,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   None delete_all_credentials();
   list list_credentials();
   ShellContextWrapper create_context(dict options);
+  list list_ssh_connections();
   None enable_pager();
   None disable_pager();
   None register_report(str name, str type, Function report, dict description);
@@ -158,6 +160,8 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   void delete_credential(const std::string &url);
   void delete_all_credentials();
   shcore::Array_t list_credentials();
+
+  shcore::Array_t list_ssh_connections();
 
   std::shared_ptr<mysqlsh::ShellBaseSession> set_session_global(
       const std::shared_ptr<mysqlsh::ShellBaseSession> &session);

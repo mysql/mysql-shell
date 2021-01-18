@@ -177,17 +177,10 @@ class SHCORE_PUBLIC Session : public ISession,
 
   static std::shared_ptr<Session> create();
 
-  void connect(const mysqlshdk::db::Connection_options &data) override {
-    _impl->connect(data);
-    _impl->setup_default_character_set();
-  }
-
   const mysqlshdk::db::Connection_options &get_connection_options()
       const override {
     return _impl->get_connection_options();
   }
-
-  void close() override { _impl->close(); }
 
   uint64_t get_connection_id() const override { return _impl->get_thread_id(); }
 
@@ -266,7 +259,7 @@ class SHCORE_PUBLIC Session : public ISession,
     return _impl->_mysql->get_protocol().get_connection().get_socket_fd();
   }
 
-  ~Session() { close(); }
+  ~Session() override { close(); }
 
   void enable_notices(const std::vector<GlobalNotice::Type> &types) {
     _impl->enable_notices(types);
@@ -282,6 +275,13 @@ class SHCORE_PUBLIC Session : public ISession,
 
  protected:
   Session() { _impl.reset(new XSession_impl()); }
+
+  void do_connect(const mysqlshdk::db::Connection_options &data) override {
+    _impl->connect(data);
+    _impl->setup_default_character_set();
+  }
+
+  void do_close() override { _impl->close(); }
 
  private:
   std::shared_ptr<XSession_impl> _impl;

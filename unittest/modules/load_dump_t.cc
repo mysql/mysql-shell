@@ -244,7 +244,7 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
           ++m_session_count;
 
           auto mock = std::make_shared<testing::Mock_mysql_session>();
-          EXPECT_CALL(*mock, connect(_)).Times(1);
+          EXPECT_CALL(*mock, do_connect(_)).Times(1);
           EXPECT_CALL(*mock, executes(_, _)).Times(AtLeast(0));
           EXPECT_CALL(*mock, execute(_)).Times(AtLeast(0));
           EXPECT_CALL(*mock, get_connection_options())

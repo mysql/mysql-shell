@@ -50,6 +50,7 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -243,12 +244,16 @@ REGISTER_HELP(
 REGISTER_HELP(CMD_CONNECT_DETAIL2,
               "@li <b>--mx</b>, <b>--mysqlx</b>: create an X protocol session "
               "(default port 33060)");
+REGISTER_HELP(CMD_CONNECT_DETAIL3,
+              "@li <b>--ssh <SSHURI></b>: create an SSH tunnel to use as a "
+              "gateway for db connection. This requires that db port is "
+              "specified in advance.");
 REGISTER_HELP(
-    CMD_CONNECT_DETAIL3,
+    CMD_CONNECT_DETAIL4,
     "If TYPE is omitted, automatic protocol detection is done, unless the "
     "protocol is given in the URI.");
-REGISTER_HELP(CMD_CONNECT_DETAIL4,
-              "URI format is: [user[:password]@]hostname[:port]");
+REGISTER_HELP(CMD_CONNECT_DETAIL5,
+              "URI and SSHURI format is: [user[:password]@]hostname[:port]");
 REGISTER_HELP(CMD_CONNECT_EXAMPLE, "<b>\\connect --mx</b> root@localhost");
 REGISTER_HELP(
     CMD_CONNECT_EXAMPLE_DESC,
@@ -905,7 +910,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
   bool interactive = options().interactive && shell_global_session &&
                      !get_options()->get_shell_cli_operation();
 
-  connection_options.set_default_connection_data();
+  connection_options.set_default_data();
   if (!connection_options.has_compression() &&
       get_options()->get().default_compress)
     connection_options.set_compression(mysqlshdk::db::kCompressionPreferred);
@@ -1255,19 +1260,46 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
   // Holds the argument index for the target to which the session will be
   // established
   size_t target_index = 1;
+  std::size_t ssh_pos = 0;
+  for (auto it = args.begin(); it != args.end(); it++) {
+    if (it->compare("--ssh") == 0) {
+      std::size_t index = std::distance(args.begin(), it);
+      ssh_pos = index;
+    }
+  }
 
-  if (args.size() > 1 && args.size() < 4) {
-    if (args.size() == 3) {
-      std::string arg_2 = args[2];
+  auto args_copy = args;
+  if (ssh_pos != 0) {
+    if (ssh_pos == args.size() - 1) {
+      throw std::invalid_argument("--ssh requires an SSHURI");
+    } else {
+      // we have to consume our arguments so the rest of the code is still valid
+      args_copy.erase(args_copy.begin() + ssh_pos,
+                      args_copy.begin() + (ssh_pos + 2));
+
+      options.ssh.uri = args[++ssh_pos];
+      try {
+        options.ssh.uri_data =
+            shcore::get_ssh_connection_options(options.ssh.uri, false);
+      } catch (const std::invalid_argument & /*error*/) {
+        throw std::invalid_argument(
+            std::string("--ssh option expects SSHURI, got ") + options.ssh.uri);
+      }
+    }
+  }
+
+  if (args_copy.size() > 1 && args_copy.size() < 4) {
+    if (args_copy.size() == 3) {
+      std::string arg_2 = args_copy[2];
       arg_2 = shcore::str_strip(arg_2);
 
       if (!arg_2.empty()) {
         target_index++;
-        options.uri = args[target_index];
+        options.uri = args_copy[target_index];
       }
     }
 
-    std::string arg = args[1];
+    std::string arg = args_copy[1];
     arg = shcore::str_strip(arg);
 
     if (arg.empty()) {
@@ -1291,10 +1323,10 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
     } else if (!arg.compare("--mysql") || !arg.compare("--mc")) {
       options.session_type = mysqlsh::SessionType::Classic;
     } else {
-      if (args.size() == 3) {
+      if (args_copy.size() == 3) {
         error = true;
       } else {
-        options.uri = args[target_index];
+        options.uri = args_copy[target_index];
       }
     }
 
@@ -1318,7 +1350,9 @@ bool Mysql_shell::cmd_connect(const std::vector<std::string> &args) {
   } else {
     error = true;
   }
-  if (error) print_diag("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  if (error || options.uri.empty())
+    print_diag(
+        "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
 
   return true;
 }
@@ -1890,6 +1924,14 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
 
     while (!ret_val && attempts > 0) {
       try {
+        const auto &ssh_data = co.get_ssh_options();
+        // we need to increment port usage and decrement it later cause during
+        // reconnect, the decrement will be called, so tunnel would be lost
+        mysqlshdk::ssh::current_ssh_manager()->port_usage_increment(ssh_data);
+
+        shcore::Scoped_callback scoped([&ssh_data] {
+          mysqlshdk::ssh::current_ssh_manager()->port_usage_decrement(ssh_data);
+        });
         session->connect(co);
         ret_val = true;
       } catch (const shcore::Exception &e) {
@@ -1971,6 +2013,7 @@ void Mysql_shell::add_devapi_completions() {
 
   registry->add_completable_type("Session",
                                  {{"uri", "", false},
+                                  {"sshUri", "", false},
                                   {"defaultSchema", "Schema", true},
                                   {"currentSchema", "Schema", true},
                                   {"close", "", true},
@@ -1981,6 +2024,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"getDefaultSchema", "Schema", true},
                                   {"getSchema", "Schema", true},
                                   {"getSchemas", "", true},
+                                  {"getSshUri", "", true},
                                   {"getUri", "", true},
                                   {"help", "", true},
                                   {"isOpen", "", true},
@@ -2400,6 +2444,7 @@ void Mysql_shell::add_devapi_completions() {
                                  {{"close", "", true},
                                   {"commit", "ClassicResult", true},
                                   {"getUri", "", true},
+                                  {"getSshUri", "", true},
                                   {"help", "", true},
                                   {"isOpen", "", true},
                                   {"rollback", "ClassicResult", true},
@@ -2407,6 +2452,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"query", "ClassicResult", true},
                                   {"startTransaction", "ClassicResult", true},
                                   {"uri", "", false},
+                                  {"sshUri", "", false},
                                   {"_getSocketFd", "", true}});
 
   registry->add_completable_type("ClassicResult",

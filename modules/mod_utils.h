@@ -43,6 +43,9 @@ using mysqlshdk::db::Connection_options;
 
 Connection_options SHCORE_PUBLIC get_connection_options(const shcore::Value &v);
 
+mysqlshdk::ssh::Ssh_connection_options get_ssh_options(
+    const shcore::Dictionary_t &instance_def);
+
 /*
  * Unpack an options dictionary.
  *

@@ -388,7 +388,10 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
 
   xcl::XError err;
 
-  std::string host = data.has_host() ? data.get_host() : "localhost";
+  std::string host = _connection_options.has_host() &&
+                             !_connection_options.get_ssh_options().has_data()
+                         ? _connection_options.get_host().c_str()
+                         : "localhost";
 
   DBUG_LOG("sqlall", "CONNECT: " << data.uri_endpoint());
 
@@ -408,7 +411,7 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
 #endif
   } else {
     err =
-        _mysql->connect(host.c_str(), data.has_port() ? data.get_port() : 0,
+        _mysql->connect(host.c_str(), _connection_options.get_target_port(),
                         data.has_user() ? data.get_user().c_str() : "",
                         data.has_password() ? data.get_password().c_str() : "",
                         data.has_schema() ? data.get_schema().c_str() : "");
@@ -439,6 +442,14 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
       connection_data.set(kConnectionAttributes, "false");
       connect(connection_data);
       return;
+    } else if (err.error() == CR_SERVER_GONE_ERROR &&
+               _connection_options.get_ssh_options().has_data()) {
+      // When the connection is done through SSH tunnel and the tunnel fails to
+      // open, this error is received from the server
+      store_error_and_throw(
+          Error(shcore::str_format("Error MySQL Session through SSH tunnel: %s",
+                                   err.what()),
+                err.error()));
     } else {
       if (!xproto_errors.empty()) {
         auto e = xproto_errors.back();

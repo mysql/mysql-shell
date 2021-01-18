@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,6 +42,16 @@ const std::string &MapSslModeNameToValue::get_value(int value) {
   auto index = value >= 1 && value <= 5 ? value : 0;
 
   return ssl_modes[index];
+}
+
+std::set<std::string> connection_attributes() {
+  std::set<std::string> merged_attributes;
+  std::set_union(db_connection_attributes.begin(),
+                 db_connection_attributes.end(),
+                 ssh_uri_connection_attributes.begin(),
+                 ssh_uri_connection_attributes.end(),
+                 std::inserter(merged_attributes, merged_attributes.begin()));
+  return merged_attributes;
 }
 
 }  // namespace db

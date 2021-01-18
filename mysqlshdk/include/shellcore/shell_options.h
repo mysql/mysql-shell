@@ -67,8 +67,10 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <vector>
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/ssh/ssh_connection_options.h"
 #include "mysqlshdk/libs/utils/options.h"
 #include "mysqlshdk/shellcore/shell_cli_operation.h"
 #include "shellcore/ishell_core.h"
@@ -78,6 +80,21 @@ namespace mysqlsh {
 class Shell_options : public shcore::Options {
  public:
   enum class Quiet_start { NOT_SET, SUPRESS_BANNER, SUPRESS_INFO };
+
+#ifdef _WIN32
+  using ssize_t = __int64;
+#endif  // _WIN32
+
+  struct Ssh_settings {
+    std::string known_hosts_file;
+    std::string identity_file;
+    std::string config_file;
+    int timeout = 10;
+    unsigned int buffer_size = 10240;
+    std::string uri;
+    std::string pwd;
+    mysqlshdk::ssh::Ssh_connection_options uri_data;
+  };
   struct Storage {
     shcore::IShell_core::Mode initial_mode = shcore::IShell_core::Mode::None;
     std::string run_file;
@@ -96,6 +113,7 @@ class Shell_options : public shcore::Options {
     std::string connect_timeout_cmdline;
     std::string compress;
     std::string compress_algorithms;
+
     mysqlshdk::utils::nullable<int64_t> compress_level;
     mysqlshdk::db::Mfa_passwords mfa_passwords;
 
@@ -105,6 +123,7 @@ class Shell_options : public shcore::Options {
     mysqlshdk::db::Ssl_options ssl_options;
 
     std::string uri;
+    Ssh_settings ssh;
 
     std::string result_format;
     std::string wrap_json;
@@ -258,6 +277,7 @@ class Shell_options : public shcore::Options {
   void check_port_socket_conflicts();
   void check_result_format();
   void check_file_execute_conflicts();
+  void check_ssh_conflicts();
 
   /**
    * --import option require default schema to be provided in connection

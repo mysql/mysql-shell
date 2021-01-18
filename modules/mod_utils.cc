@@ -23,6 +23,7 @@
 
 #include "modules/mod_utils.h"
 
+#include <map>
 #include <string>
 #include <utility>
 
@@ -88,11 +89,40 @@ Connection_options get_connection_options(
   Connection_options ret_val;
 
   connection_map.ensure_keys(
-      mandatory, mysqlshdk::db::connection_attributes, "connection options",
+      mandatory, mysqlshdk::db::connection_attributes(), "connection options",
       ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE);
 
+  // First we load uri if possible, so we can override it later with explicit
+  // options.
   for (auto &option : *instance_def) {
-    if (ret_val.compare(option.first, mysqlshdk::db::kHost) == 0) {
+    if (ret_val.compare(option.first, mysqlshdk::db::kUri) == 0) {
+      ret_val = Connection_options(connection_map.string_at(option.first));
+      break;
+    }
+  }
+
+  bool (*fn_pt)(const std::string &a, const std::string &b);
+  if (ret_val.get_mode() == mysqlshdk::db::Comparison_mode::CASE_SENSITIVE) {
+    fn_pt = [](const std::string &a, const std::string &b) {
+      return a.compare(b) < 0;
+    };
+  } else {
+    fn_pt = [](const std::string &a, const std::string &b) {
+      return shcore::str_casecmp(a, b) < 0;
+    };
+  }
+
+  auto customset = std::set<std::string, decltype(fn_pt)>(fn_pt);
+
+  customset.insert(mysqlshdk::db::ssh_uri_connection_attributes.begin(),
+                   mysqlshdk::db::ssh_uri_connection_attributes.end());
+
+  for (auto &option : *instance_def) {
+    if (customset.find(option.first) != customset.end()) {
+      continue;  // those will be handled in different place
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kUri) == 0) {
+      continue;  // those were already handled
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kHost) == 0) {
       const auto &host = connection_map.string_at(option.first);
 
       if (host.empty()) {
@@ -149,6 +179,13 @@ Connection_options get_connection_options(
     }
   }
 
+  // The ssh has to be set as the last step cause we need the host and port to
+  // be set, otherwise we can't use the tunneling.
+  auto ssh_data = get_ssh_options(instance_def);
+  // don't use has_data here as there's no remote_host yet in the
+  // ssh_connection_options, those will be set inside of the set_ssh_options.
+  if (ssh_data.has_host()) ret_val.set_ssh_options(ssh_data);
+
   for (const auto &warning : ret_val.get_warnings())
     mysqlsh::current_console()->print_warning(warning);
   ret_val.clear_warnings();
@@ -168,6 +205,40 @@ Connection_options get_connection_options(const shcore::Value &v) {
         "Invalid connection options, expected either a URI or a Connection "
         "Options Dictionary");
   }
+}
+
+mysqlshdk::ssh::Ssh_connection_options get_ssh_options(
+    const shcore::Dictionary_t &instance_def) {
+  if (instance_def == nullptr || instance_def->size() == 0) {
+    throw std::invalid_argument("Invalid SSH options, no options provided.");
+  }
+
+  shcore::Argument_map connection_map(*instance_def);
+  mysqlshdk::ssh::Ssh_connection_options ssh_config;
+
+  for (auto &option : *instance_def) {
+    if (ssh_config.compare(option.first, mysqlshdk::db::kSsh) == 0) {
+      ssh_config = mysqlshdk::ssh::Ssh_connection_options(
+          connection_map.string_at(option.first));
+    } else if (ssh_config.compare(option.first,
+                                  mysqlshdk::db::kSshConfigFile) == 0) {
+      ssh_config.clear_config_file();
+      ssh_config.set_config_file(connection_map.string_at(option.first));
+    } else if (ssh_config.compare(option.first,
+                                  mysqlshdk::db::kSshIdentityFile) == 0) {
+      ssh_config.clear_key_file();
+      ssh_config.set_key_file(connection_map.string_at(option.first));
+    } else if (ssh_config.compare(option.first,
+                                  mysqlshdk::db::kSshIdentityFilePassword) ==
+               0) {
+      ssh_config.set_key_file_password(connection_map.string_at(option.first));
+    } else if (ssh_config.compare(option.first, mysqlshdk::db::kSshPassword) ==
+               0) {
+      ssh_config.set_password(connection_map.string_at(option.first));
+    }
+  }
+
+  return ssh_config;
 }
 
 void SHCORE_PUBLIC set_password_from_map(Connection_options *options,
@@ -424,6 +495,9 @@ std::shared_ptr<mysqlshdk::db::ISession> create_session(
     return true;
   });
 
+  log_info("About to connect to MySQL at: %s",
+           connection_options.as_uri().c_str());
+
   auto session = create_and_connect(connection_options);
 
   if (cancelled) throw shcore::cancelled("Cancelled");
@@ -456,7 +530,12 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
   try {
     Connection_options copy = options;
 
-    copy.set_default_connection_data();
+    copy.set_default_data();
+
+    auto &ssh = copy.get_ssh_options_handle();
+    if (ssh.has_data()) {
+      mysqlshdk::ssh::current_ssh_manager()->create_tunnel(&ssh);
+    }
 
     if (!copy.has_password() && copy.has_user()) {
       if (shcore::Credential_manager::get().get_password(&copy)) {
@@ -536,7 +615,6 @@ Connection_options get_classic_connection_options(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   // copy the connection options
   auto co = session->get_connection_options();
-
   // switch from X protocol to classic
   if (SessionType::Classic != co.get_session_type()) {
     co.clear_scheme();
@@ -554,6 +632,10 @@ Connection_options get_classic_connection_options(
 
       co.clear_port();
       co.set_port(row->get_int(0));
+
+      // if we're here, we clear up local port, so establish session will find
+      // the correct ssh tunnel or make a new one
+      co.get_ssh_options_handle().clear_local_port();
     } else {
       // if we're here then socket was used
       const auto result =

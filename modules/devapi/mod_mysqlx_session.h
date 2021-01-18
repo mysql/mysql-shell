@@ -75,6 +75,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
  public:
 #if DOXYGEN_JS
   String uri;            //!< $(SESSION_GETURI_BRIEF)
+  String sshUri;         //!< $(SESSION_GETSSHURI_BRIEF)
   Schema defaultSchema;  //!< $(SESSION_GETDEFAULTSCHEMA_BRIEF)
   Schema currentSchema;  //!< $(SESSION_GETCURRENTSCHEMA_BRIEF)
 
@@ -85,6 +86,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   Schema setCurrentSchema(String name);
   List getSchemas();
   String getUri();
+  String getSshUri();
   Undefined close();
   Undefined setFetchWarnings(Boolean enable);
   Result startTransaction();
@@ -103,6 +105,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
  private:
 #elif DOXYGEN_PY
   str uri;                //!< $(SESSION_GETURI_BRIEF)
+  str ssh_uri;            //!< $(SESSION_GETSSHURI_BRIEF)
   Schema default_schema;  //!< $(SESSION_GETDEFAULTSCHEMA_BRIEF)
   Schema current_schema;  //!< $(SESSION_GETCURRENTSCHEMA_BRIEF)
 
@@ -113,6 +116,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   Schema set_current_schema(str name);
   list get_schemas();
   str get_uri();
+  str get_ssh_uri();
   None close();
   None set_fetch_warnings(bool enable);
   Result start_transaction();

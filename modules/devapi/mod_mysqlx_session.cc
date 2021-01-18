@@ -132,6 +132,7 @@ void Session::init() {
   expose("releaseSavepoint", &Session::release_savepoint, "name");
   expose("rollbackTo", &Session::rollback_to, "name");
   add_property("uri", "getUri");
+  add_property("sshUri", "getSshUri");
   add_property("defaultSchema", "getDefaultSchema");
   add_property("currentSchema", "getCurrentSchema");
 
@@ -1045,6 +1046,13 @@ std::shared_ptr<shcore::Object_bridge> Session::create(
                                      mysqlshdk::db::kSslModeRequired);
   }
 
+  // before creating a normal session we need to establish ssh if needed:
+  co.set_default_data();
+  auto &ssh = co.get_ssh_options_handle(mysqlshdk::db::k_default_mysql_x_port);
+  if (ssh.has_data()) {
+    mysqlshdk::ssh::current_ssh_manager()->create_tunnel(&ssh);
+  }
+
   const auto session = std::make_shared<Session>();
   session->connect(co);
 
@@ -1152,6 +1160,30 @@ Retrieves the URI for the current session.
  *
  * $(SESSION_GETURI)
  */
+#if DOXYGEN_JS
+String Session::getSshUri() {}
+#elif DOXYGEN_PY
+str Session::get_ssh_uri() {}
+#endif
+
+REGISTER_HELP_PROPERTY(sshUri, Session);
+REGISTER_HELP(SESSION_SSHURI_BRIEF, "${SESSION_GETSSHURI_BRIEF}");
+REGISTER_HELP_FUNCTION(getSshUri, Session);
+REGISTER_HELP_FUNCTION_TEXT(SESSION_GETSSHURI, R"*(
+Retrieves the SSH URI for the current session.
+
+@return A string representing the SSH connection data.
+)*");
+/**
+ * $(SESSION_GETSSHURI_BRIEF)
+ *
+ * $(SESSION_GETSSHURI)
+ */
+#if DOXYGEN_JS
+String Session::getSshUri() {}
+#elif DOXYGEN_PY
+str Session::get_ssh_uri() {}
+#endif
 
 Value Session::get_member(const std::string &prop) const {
   Value ret_val;
@@ -1165,6 +1197,8 @@ Value Session::get_member(const std::string &prop) const {
 
   if (prop == "uri") {
     ret_val = shcore::Value(uri());
+  } else if (prop == "sshUri") {
+    ret_val = shcore::Value(ssh_uri());
   } else if (prop == "defaultSchema") {
     if (_connection_options.has_schema()) {
       ret_val =

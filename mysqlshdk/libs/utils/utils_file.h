@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -98,6 +98,7 @@ bool SHCORE_PUBLIC iterdir(const std::string &path,
                            const std::function<bool(const std::string &)> &fun);
 
 void SHCORE_PUBLIC check_file_writable_or_throw(const std::string &filename);
+void SHCORE_PUBLIC check_file_readable_or_throw(const std::string &filename);
 int SHCORE_PUBLIC make_file_readonly(const std::string &path);
 int SHCORE_PUBLIC ch_mod(const std::string &path, int mode);
 int SHCORE_PUBLIC set_user_only_permissions(const std::string &path);
@@ -105,6 +106,22 @@ int SHCORE_PUBLIC set_user_only_permissions(const std::string &path);
 std::string SHCORE_PUBLIC get_absolute_path(const std::string &file_path,
                                             const std::string &base_dir = "");
 
+/**
+ * Verifies access permissions of a file.
+ *
+ * On Unix systems it throws if file's permissions differ from 600.
+ * On Windows it throws if file can be accessed by Everyone group.
+ *
+ * @param file_name File to be verified.
+ *
+ * @throws std::exception File access rights are too permissive or
+ *                        an error occurred.
+ * @throws std::system_error OS and/or filesystem doesn't support file
+ *                           permissions.
+ */
+
+void SHCORE_PUBLIC
+check_file_access_rights_to_open(const std::string &file_name);
 /**
  * Calculate a temporary file path based on a given file_path.
  *

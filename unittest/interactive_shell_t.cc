@@ -753,53 +753,99 @@ TEST_F(Interactive_shell_test, shell_function_connect_auto) {
 
 TEST_F(Interactive_shell_test, shell_command_connect_no_parameters) {
   execute("\\connect");
-  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect   ");
-  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
   output_handler.wipe_all();
 }
 
 TEST_F(Interactive_shell_test, shell_command_connect_conflicts) {
   execute("\\connect --mx --mc " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect --mysqlx --mc " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect --mx --mysql " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect --mysql --mysqlx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect --mc --mx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect --mc --mysqlx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect -ma --mysqlx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect --mx -ma " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect --mysql -ma " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
   output_handler.wipe_all();
 
   execute("\\connect -ma --mc " + _uri);
-  MY_EXPECT_STDERR_CONTAINS("\\connect [--mx|--mysqlx|--mc|--mysql] <URI>\n");
+  MY_EXPECT_STDERR_CONTAINS(
+      "\\connect [--mx|--mysqlx|--mc|--mysql] [--ssh <sshuri>] <URI>\n");
+  output_handler.wipe_all();
+
+  execute("\\connect --ssh root@example.com localhost");
+  MY_EXPECT_STDERR_CONTAINS(
+      "Host and port for database are required in advance when using SSH "
+      "tunneling functionality\n");
+  output_handler.wipe_all();
+
+  execute("\\connect --ssh --mx " + _uri);
+  MY_EXPECT_STDERR_CONTAINS(
+      "Failed to resolve hostname --mx (Name or service not known)");
+  output_handler.wipe_all();
+
+  execute("\\connect --ssh --mysql " + _uri);
+  MY_EXPECT_STDERR_CONTAINS(
+      "Failed to resolve hostname --mysql (Name or service not known)");
+  output_handler.wipe_all();
+
+  // No port is specified and default port can not be determined given
+  // the connection parameters
+  execute("\\connect --ssh root@example.com root@example.com");
+  MY_EXPECT_STDERR_CONTAINS(
+      "Host and port for database are required in advance when using SSH "
+      "tunneling functionality\n");
+  output_handler.wipe_all();
+
+  // No port is specified BUT default port can be determined given
+  // the connection parameters (scheme is given)
+  execute("\\connect --ssh root@example.com --mysql root@example.com");
+  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to 'root@example.com'");
+  MY_EXPECT_STDOUT_CONTAINS("Opening SSH tunnel to example.com:22...");
+  // Not validating a specific error since they vary depending on where the test
+  // is executed
+  MY_EXPECT_STDERR_CONTAINS("Cannot open SSH Tunnel:");
   output_handler.wipe_all();
 }
 

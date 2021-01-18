@@ -48,14 +48,10 @@ class Replayer_mysql : public mysql::Session {
 
   Replayer_mysql();
 
-  void connect(const mysqlshdk::db::Connection_options &data) override;
-
   std::shared_ptr<IResult> querys(const char *sql, size_t length,
                                   bool buffered) override;
 
   void executes(const char *sql, size_t length) override;
-
-  void close() override;
 
   bool is_open() const override;
 
@@ -70,6 +66,11 @@ class Replayer_mysql : public mysql::Session {
       const override;
 
   ~Replayer_mysql();
+
+ protected:
+  void do_connect(const mysqlshdk::db::Connection_options &data) override;
+
+  void do_close() override;
 
  private:
   std::unique_ptr<Replayer_impl> _impl;
@@ -116,14 +117,10 @@ class Replayer_mysqlx : public mysqlx::Session {
 
   Replayer_mysqlx();
 
-  void connect(const mysqlshdk::db::Connection_options &data) override;
-
   std::shared_ptr<IResult> querys(const char *sql, size_t length,
                                   bool buffered) override;
 
   void executes(const char *sql, size_t length) override;
-
-  void close() override;
 
   bool is_open() const override;
 
@@ -160,6 +157,11 @@ class Replayer_mysqlx : public mysqlx::Session {
   }
 
   ~Replayer_mysqlx();
+
+ protected:
+  void do_connect(const mysqlshdk::db::Connection_options &data) override;
+
+  void do_close() override;
 
  private:
   std::unique_ptr<Replayer_impl> _impl;

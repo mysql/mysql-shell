@@ -1,10 +1,10 @@
 {
   "classes" : {
     "schema": {
-      "text": "[%host%%xprotocol%%ssltext%/%schema%]"
+      "text": "[%transport%%xprotocol%%ssltext%/%schema%]"
     },
     "noschema": {
-      "text": "[%host%%xprotocol%%ssltext%]"
+      "text": "[%transport%%xprotocol%%ssltext%]"
     },
     "nohost": {
     },
@@ -20,6 +20,22 @@
         },
         "if_true" : "production",
         "if_false" : ""
+    },
+    "target" : {
+      "match" : {
+        "pattern": "%socket%",
+        "value": ""
+      },
+      "if_true": "%host%:%port%",
+      "if_false": "localhost"
+    },
+    "transport" : {
+      "match" : {
+        "pattern": "%ssh_host%",
+        "value": ""
+      },
+      "if_true": "%target%",
+      "if_false": "%ssh_host% > %target%"
     },
     "xprotocol": {
       "match": {

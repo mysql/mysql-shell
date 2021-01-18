@@ -21,17 +21,11 @@
     },
     "disconnected": {
     },
-    "host" : {
-      "text": "%transport%"
-    },
     "hostx" : {
       "text": "%transport%+"
     },
     "hostc" : {
       "text": "%transport%"
-    },
-    "SSLhost" : {
-      "text": "%transport% ssl"
     },
     "SSLhostx" : {
       "text": "%transport%+ ssl"
@@ -55,13 +49,21 @@
         "if_true" : "production",
         "if_false" : ""
     },
-    "transport" : {
+    "target" : {
         "match" : {
           "pattern": "%socket%",
           "value": ""
         },
         "if_true": "%host%:%port%",
         "if_false": "localhost"
+    },
+    "transport" : {
+      "match" : {
+        "pattern": "%ssh_host%",
+        "value": ""
+      },
+      "if_true": "%target%",
+      "if_false": "%ssh_host% > %target%"
     }
   },
   "symbols" : {

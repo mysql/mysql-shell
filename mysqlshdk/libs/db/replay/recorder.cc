@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,13 +54,13 @@ std::function<std::string(const std::string &value)>
 
 Recorder_mysql::Recorder_mysql() {}
 
-void Recorder_mysql::connect(const mysqlshdk::db::Connection_options &data) {
+void Recorder_mysql::do_connect(const mysqlshdk::db::Connection_options &data) {
   _trace.reset(Trace_writer::create(new_recording_path("mysql_trace")));
 
   try {
     if (data.has_port()) _port = data.get_port();
     _trace->serialize_connect(data, "classic");
-    super::connect(data);
+    super::do_connect(data);
     std::map<std::string, std::string> info;
     if (const char *s = get_ssl_cipher()) info["ssl_cipher"] = s;
     if (const char *s = get_connection_info()) info["connection_info"] = s;
@@ -108,18 +108,18 @@ void Recorder_mysql::executes(const char *sql, size_t length) {
   querys(sql, length, true);
 }
 
-void Recorder_mysql::close() {
+void Recorder_mysql::do_close() {
   try {
     if (_trace && !_closed) {
       _closed = true;
       _trace->serialize_close();
-      super::close();
+      super::do_close();
       _trace->serialize_ok();
       _trace.reset();
 
       if (on_recorder_close_hook) on_recorder_close_hook(shared_from_this());
     } else {
-      super::close();
+      super::do_close();
     }
   } catch (db::Error &e) {
     if (_trace) {
@@ -135,12 +135,13 @@ void Recorder_mysql::close() {
 
 Recorder_mysqlx::Recorder_mysqlx() {}
 
-void Recorder_mysqlx::connect(const mysqlshdk::db::Connection_options &data) {
+void Recorder_mysqlx::do_connect(
+    const mysqlshdk::db::Connection_options &data) {
   _trace.reset(Trace_writer::create(new_recording_path("mysqlx_trace")));
   try {
     if (data.has_port()) _port = data.get_port();
     _trace->serialize_connect(data, "x");
-    super::connect(data);
+    super::do_connect(data);
     std::map<std::string, std::string> info;
     if (const char *s = get_ssl_cipher()) info["ssl_cipher"] = s;
     info["connection_info"] = get_connection_info();
@@ -198,18 +199,18 @@ void Recorder_mysqlx::executes(const char *sql, size_t length) {
   querys(sql, length, true);
 }
 
-void Recorder_mysqlx::close() {
+void Recorder_mysqlx::do_close() {
   try {
     if (_trace && !_closed) {
       _closed = true;
       _trace->serialize_close();
-      super::close();
+      super::do_close();
       _trace->serialize_ok();
       _trace.reset();
 
       if (on_recorder_close_hook) on_recorder_close_hook(shared_from_this());
     } else {
-      super::close();
+      super::do_close();
     }
   } catch (db::Error &e) {
     if (_trace) {

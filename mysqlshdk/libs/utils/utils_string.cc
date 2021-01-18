@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,11 +36,37 @@
 // Starting with Windows 8: MultiByteToWideChar is declared in Stringapiset.h.
 // Before Windows 8, it was declared in Winnls.h.
 #include <Stringapiset.h>
+#include <shlwapi.h>
 #else
 #include <cwchar>
 #endif
 
+#include "include/mysh_config.h"
+
 namespace shcore {
+
+void clear_buffer(char *buffer, size_t size) {
+#ifdef _WIN32
+  SecureZeroMemory(buffer, size);
+#else
+#if defined HAVE_EXPLICIT_BZERO
+  explicit_bzero(buffer, size);
+#elif defined HAVE_MEMSET_S
+  memset_s(buffer, size, '\0', size);
+#else
+  volatile char *p = buffer;
+  while (size--) {
+    *p++ = '\0';
+  }
+#endif
+#endif
+}
+
+void clear_buffer(std::string *buffer) {
+  assert(buffer);
+  clear_buffer(&(*buffer)[0], buffer->capacity());
+  buffer->clear();
+}
 
 constexpr const char k_idchars[] =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_01234567890";
@@ -602,6 +628,14 @@ std::string get_random_string(size_t size, const char *source) {
   }
 
   return data;
+}
+
+const char *str_casestr(const char *haystack, const char *needle) {
+#ifdef _WIN32
+  return StrStrIA(haystack, needle);
+#else
+  return strcasestr(haystack, needle);
+#endif
 }
 
 }  // namespace shcore

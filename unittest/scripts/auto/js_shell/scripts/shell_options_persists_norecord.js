@@ -413,6 +413,27 @@ shell.options.unset(InvalidOption)
 \option --list --show-origin
 \js
 
+//@ Verify options persistence WL#14246 TSFR_10_5
+\option --persist ssh.configFile=/path/config
+\option --persist ssh.bufferSize=10250
+\option ssh.configFile
+\option ssh.bufferSize
+os.loadTextFile(options_file);
+\option --unset --persist ssh.configFile
+\option --unset --persist ssh.bufferSize
+\option ssh.configFile
+\option ssh.bufferSize
+
+//@ Verify options persistence WL#14246 TSFR_10_6
+shell.options.setPersist("ssh.configFile", "/path/config");
+shell.options.setPersist("ssh.bufferSize", 10250);
+shell.options["ssh.configFile"]
+shell.options["ssh.bufferSize"]
+os.loadTextFile(options_file);
+shell.options.unsetPersist("ssh.configFile")
+shell.options.unsetPersist("ssh.bufferSize")
+shell.options["ssh.configFile"]
+shell.options["ssh.bufferSize"]
 
 var user_path = testutil.getUserConfigPath()
 

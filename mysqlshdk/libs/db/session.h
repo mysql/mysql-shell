@@ -95,7 +95,7 @@ class SHCORE_PUBLIC ISession {
     connect(mysqlshdk::db::Connection_options(uri));
   }
 
-  virtual void connect(const mysqlshdk::db::Connection_options &data) = 0;
+  void connect(const mysqlshdk::db::Connection_options &data);
 
   virtual uint64_t get_connection_id() const = 0;
 
@@ -176,7 +176,7 @@ class SHCORE_PUBLIC ISession {
   }
 
   // Disconnection
-  virtual void close() = 0;
+  void close();
 
   virtual bool is_open() const = 0;
 
@@ -224,6 +224,10 @@ class SHCORE_PUBLIC ISession {
       m_ansi_quotes_enabled = false;
     }
   }
+
+ protected:
+  virtual void do_connect(const mysqlshdk::db::Connection_options &data) = 0;
+  virtual void do_close() = 0;
 
  private:
   template <typename T>

@@ -1,4 +1,4 @@
-# Copyright (c) 2019, 2020 Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2019, 2021 Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -38,7 +38,7 @@ set(rest_SOURCES
 add_convenience_library(rest ${rest_SOURCES} COMPILE_DEFINITIONS "${CURL_DEFINITIONS}")
 
 include_directories(SYSTEM ${CURL_INCLUDE_DIR})
-target_link_libraries(rest ${CURL_LIBRARY})
+target_link_libraries(rest ssh ${CURL_LIBRARY})
 
 if (WIN32)
   target_link_libraries(rest Crypt32)

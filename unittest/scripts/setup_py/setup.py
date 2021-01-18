@@ -40,6 +40,12 @@ def create_root_from_anywhere(session):
   session.run_sql("GRANT ALL ON *.* to root@'%' WITH GRANT OPTION")
   session.run_sql("SET SQL_LOG_BIN=1")
 
+def has_ssh_environment():
+  import os
+  if "SSH_URI" in os.environ and "MYSQL_OVER_SSH_URI" in os.environ and "SSH_USER_URI" in os.environ:
+    return True
+  return False
+
 def has_oci_environment(context):
   if context not in ['OS', 'MDS']:
     return False
@@ -350,7 +356,6 @@ def ensure_plugin_disabled(plugin_name, session):
     if is_installed:
         session.run_sql("UNINSTALL PLUGIN " + plugin_name + ";")
 
-
 # Starting 8.0.24 the client lib started reporting connection error using
 # host:port format, previous versions used just the host.
 #
@@ -395,3 +400,106 @@ def random_email():
 
 def md5sum(s):
   return hashlib.md5(s.encode("utf-8")).hexdigest()
+
+import queue
+import threading
+import time
+import re
+class Docker_manipulator:
+  def __init__(self, docker_name, data_path):
+    self.data_path = data_path
+    self.dockerfile = os.path.join(self.data_path, docker_name, "Dockerfile")
+    self.docker_name = docker_name
+    self.docker_image_name = "mysql-sshd-shell-{}".format(docker_name)
+
+    if not os.path.exists(self.dockerfile):
+      testutil.fail("The Dockerfile is missing for {}".format(docker_name))
+
+    self.hash = self.__get_hash()
+    import docker
+    self.client = docker.from_env()
+    self.container = None
+
+  def __get_hash(self):
+    import hashlib
+    with open(self.dockerfile, "rb") as f:
+      return hashlib.sha256(f.read()).hexdigest();
+
+  def __pre_run_check(self):
+    # before runnig it check if there's already such container if so, kill it and start again
+    try:
+      print("About to find old container")
+      c = self.client.containers.get(self.docker_name)
+      if c.status == "running":
+        c.kill()
+      self.client.containers.prune()
+      print("Old container found and removed")
+    except:
+      # this should be fine as containers.get will throw when container is not found
+      pass
+
+    try:
+      print("Checking image tag")
+      self.img = self.client.images.get(self.docker_image_name)
+      if self.img.attrs.get("ContainerConfig").get("Labels").get("hash") != self.hash:
+        self.client.images.remove(image=self.img.id, force=True)
+        print("Old image found which is outdated, removed")
+    except Exception as e:
+      pass
+
+  def __build_and_run(self):
+    try:
+      self.img
+    except:
+      self.img = self.client.images.build(path=os.path.join(
+        self.data_path, self.docker_name), tag=self.docker_image_name,
+        labels = {"hash": self.hash})[0]
+      print("Build new docker image")
+
+    self.container = self.client.containers.run(image=self.img.id, detach=True, name=self.docker_name,
+                            environment=["MYSQL_ROOT_PASSWORD=sandbox"], ports={"2222/tcp": 2222})
+    print("Started new container")
+
+  def log_watcher(self, log_fetcher):
+    while True:
+      try:
+        self._queue.put_nowait(log_fetcher.next())
+      except:
+        break
+
+  def run(self):
+    self._queue = queue.Queue(10)
+    self.__pre_run_check()
+    self.__build_and_run()
+
+    log_iter = self.container.logs(stream=True)
+    watcher = threading.Thread(target = self.log_watcher, args=(log_iter,))
+    watcher.start()
+
+    while True:
+      if self.client.containers.get(self.container.id).status == "running":
+        break
+      else:
+        time.sleep(1)
+
+    while True:
+      try:
+        line = self._queue.get(block=True, timeout=10)
+        match = re.search(br"port: ([0-9]{4})\s MySQL Community Server - GPL", line)
+        if match:
+          print("Found port: {:g}".format(match.groups()[0]))
+          log_iter.close()
+          break
+      except Exception as e:
+        break
+    print("Waiting for container to fully start")
+    log_iter.close()
+    watcher.join()
+    print("Container is ready")
+
+  def cleanup(self, remove_image = False):
+    if self.container is not None:
+      self.container.kill()  # kill the container
+      self.client.containers.prune()  # the python client.images.build leave a mess, clean it
+      if remove_image:
+        self.client.images.remove(image=self.img.id, force=True)

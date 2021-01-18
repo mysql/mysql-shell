@@ -37,6 +37,10 @@
 
 namespace shcore {
 
+void clear_buffer(char *buffer, size_t size);
+
+void clear_buffer(std::string *buffer);
+
 /** Convert a copy of an ASCII string to uppercase and return */
 inline std::string str_upper(const std::string &s) {
   std::string r(s);
@@ -188,6 +192,7 @@ bool str_iendswith(const std::string &s, const std::string &suffix,
   return str_iendswith(s, suffix) ||
          str_iendswith(s, std::forward<T>(suffixes)...);
 }
+const char *str_casestr(const char *haystack, const char *needle);
 
 /** Return position of the first difference in the strings or npos if they're
  * the same */

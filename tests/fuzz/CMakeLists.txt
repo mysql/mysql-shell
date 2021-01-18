@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -23,7 +23,6 @@ function(add_fuzz_test fuzz_target)
   message(STATUS "target=${fuzz_target}, srcs=${ARGN}")
 
   add_shell_executable("${fuzz_target}" "${ARGN}" TRUE)
-
   TARGET_INCLUDE_DIRECTORIES("${fuzz_target}" PRIVATE
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/mysqlshdk/include
@@ -33,6 +32,7 @@ function(add_fuzz_test fuzz_target)
   # link libraries, but then we lose information about code coverage in
   # uri_parser.cc
   # target_link_libraries(fuzz_uri_parser db shellcore-minimal)
+  target_link_libraries(fuzz_uri_parser ssh)
   LIBFUZZER_ADD_TEST(fuzz_uri_parser
     INITIAL_CORPUS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../corpus/fuzz_uri_parser)
 endfunction()

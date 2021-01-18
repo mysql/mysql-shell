@@ -50,26 +50,21 @@ std::string to_string(Transport_type type) {
   return "Unknown";
 }
 
-namespace {
-static constexpr const char *fixed_str_list[] = {kHost,   kSocket, kScheme,
-                                                 kSchema, kUser,   kPassword};
-}
-
 Connection_options::Connection_options(Comparison_mode mode)
-    : m_mode(mode),
-      m_options(m_mode, "connection"),
+    : IConnection("connection", mode),
       m_ssl_options(m_mode),
+      m_ssh_options(m_mode),
       m_extra_options(m_mode),
       m_enable_connection_attributes(true),
       m_connection_attributes(m_mode) {
-  for (auto o : fixed_str_list) m_options.set(o, nullptr, Set_mode::CREATE);
+  for (auto o : {kSocket}) m_options.set(o, nullptr, Set_mode::CREATE);
 }
 
 Connection_options::Connection_options(const std::string &uri,
                                        Comparison_mode mode)
     : Connection_options(mode) {
   try {
-    uri::Uri_parser parser;
+    uri::Uri_parser parser(false);
     *this = parser.parse(uri, m_options.get_mode());
   } catch (const std::invalid_argument &error) {
     std::string msg = "Invalid URI: ";
@@ -126,11 +121,43 @@ const std::string &Connection_options::get_password() const {
                                         : get_value(kPassword);
 }
 
-bool Connection_options::has_data() const {
-  for (auto o : fixed_str_list) {
-    if (has_value(o)) return true;
+void Connection_options::set_ssh_options(
+    const mysqlshdk::ssh::Ssh_connection_options &options) {
+  m_ssh_options = options;
+}
+
+ssh::Ssh_connection_options &Connection_options::get_ssh_options_handle(
+    int fallback_port) {
+  if (m_ssh_options.has_data()) {
+    int mysql_port = fallback_port;
+    if (!m_port.is_null()) {
+      mysql_port = *m_port;
+    } else if (has_scheme()) {
+      if (get_scheme() == "mysql") {
+        mysql_port = k_default_mysql_port;
+      } else if (get_scheme() == "mysqlx") {
+        mysql_port = k_default_mysql_x_port;
+      }
+    }
+
+    if (has_host() && mysql_port != 0) {
+      m_ssh_options.clear_remote_host();
+      m_ssh_options.clear_remote_port();
+
+      m_ssh_options.set_remote_host(get_host());
+      m_ssh_options.set_remote_port(mysql_port);
+    } else {
+      throw std::invalid_argument(
+          "Host and port for database are required in advance when using "
+          "SSH tunneling functionality");
+    }
   }
-  return false;
+
+  return m_ssh_options;
+}
+
+bool Connection_options::has_data() const {
+  return IConnection::has_data() || has_value(kSocket);
 }
 
 void Connection_options::_set_fixed(const std::string &key,
@@ -299,7 +326,6 @@ bool Connection_options::is_bool_value(const std::string &value) {
 void Connection_options::set(const std::string &name,
                              const std::string &value) {
   const std::string iname = get_iname(name);
-
   if (name != iname)
     m_warnings.emplace_back("'" + name +
                             "' connection option is deprecated, use '" + iname +
@@ -407,6 +433,10 @@ bool Connection_options::has_value(const std::string &name) const {
   return false;
 }
 
+bool Connection_options::has_ssh_options() const {
+  return m_ssh_options.has_data();
+}
+
 int Connection_options::get_port() const {
   if (m_port.is_null()) {
     throw std::invalid_argument(
@@ -414,6 +444,21 @@ int Connection_options::get_port() const {
   }
 
   return *m_port;
+}
+
+/**
+ * This function is used to determine the port to be used to create the MySQL
+ * connection, i.e if through SSH tunnels returns the tunnel local port,
+ * otherwise the configured port in the connection data.
+ */
+int Connection_options::get_target_port() const {
+  int port = 0;
+  if (m_ssh_options.has_data()) {
+    port = m_ssh_options.get_local_port();
+  } else if (has_port()) {
+    port = get_port();
+  }
+  return port;
 }
 
 Transport_type Connection_options::get_transport_type() const {
@@ -500,7 +545,7 @@ void Connection_options::remove(const std::string &name) {
 
 std::string Connection_options::as_uri(
     mysqlshdk::db::uri::Tokens_mask format) const {
-  Uri_encoder encoder;
+  Uri_encoder encoder(false);
   return encoder.encode_uri(*this, format);
 }
 
@@ -531,7 +576,7 @@ mysqlsh::SessionType Connection_options::get_session_type() const {
   }
 }
 
-void Connection_options::set_default_connection_data() {
+void Connection_options::set_default_data() {
   // Default values
   if (!has_user() && !is_auth_method(mysqlshdk::db::kAuthMethodKerberos)) {
     // The system user is not used with kerberos to trigger the client lib
@@ -554,6 +599,10 @@ void Connection_options::set_default_connection_data() {
     set_scheme("mysql");
   }
 #endif  // _WIN32
+
+  if (m_ssh_options.has_data()) {
+    m_ssh_options.set_default_data();
+  }
 }
 
 void Connection_options::set_plugins_dir() {

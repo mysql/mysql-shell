@@ -138,9 +138,13 @@ const std::string &Nullable_options::get_value(const std::string &name) const {
   return *_options.at(name);
 }
 
-void Nullable_options::clear_value(const std::string &name) {
+void Nullable_options::clear_value(const std::string &name, bool secure) {
   if (!has(name)) throw_invalid_option(name);
 
+  if (secure && has_value(name)) {
+    std::string *str = _options.at(name).operator->();
+    shcore::clear_buffer(str);
+  }
   _options.at(name).reset();
 }
 

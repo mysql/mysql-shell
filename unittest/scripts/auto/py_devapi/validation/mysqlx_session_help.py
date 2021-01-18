@@ -24,6 +24,9 @@ PROPERTIES
       default_schema
             Retrieves the Schema configured as default for the session.
 
+      ssh_uri
+            Retrieves the SSH URI for the current session.
+
       uri
             Retrieves the URI for the current session.
 
@@ -54,6 +57,9 @@ FUNCTIONS
 
       get_schemas()
             Retrieves the Schemas available on the session.
+
+      get_ssh_uri()
+            Retrieves the SSH URI for the current session.
 
       get_uri()
             Retrieves the URI for the current session.

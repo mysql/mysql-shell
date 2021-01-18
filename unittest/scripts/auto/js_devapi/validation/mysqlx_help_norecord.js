@@ -841,6 +841,9 @@ PROPERTIES
       defaultSchema
             Retrieves the Schema configured as default for the session.
 
+      sshUri
+            Retrieves the SSH URI for the current session.
+
       uri
             Retrieves the URI for the current session.
 
@@ -871,6 +874,9 @@ FUNCTIONS
 
       getSchemas()
             Retrieves the Schemas available on the session.
+
+      getSshUri()
+            Retrieves the SSH URI for the current session.
 
       getUri()
             Retrieves the URI for the current session.

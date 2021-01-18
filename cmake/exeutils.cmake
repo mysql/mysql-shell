@@ -1,4 +1,4 @@
-# Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2019, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -30,9 +30,23 @@ function(add_shell_executable)
 
   if(BUNDLED_OPENSSL AND NOT WIN32)
     target_link_libraries("${ARGV0}"
-      "-L${CRYPTO_DIRECTORY}"
       "-L${OPENSSL_DIRECTORY}"
     )
+    if(NOT APPLE)
+      target_link_libraries("${ARGV0}"
+        "-Wl,-rpath-link,${OPENSSL_DIRECTORY}"
+      )
+    endif()
+    if(NOT CRYPTO_DIRECTORY STREQUAL OPENSSL_DIRECTORY)
+      target_link_libraries("${ARGV0}"
+        "-L${CRYPTO_DIRECTORY}"
+      )
+      if(NOT APPLE)
+        target_link_libraries("${ARGV0}"
+          "-Wl,-rpath-link,${CRYPTO_DIRECTORY}"
+        )
+      endif()
+    endif()
   endif()
 
   if(NOT ARGV2)
@@ -59,10 +73,18 @@ function(add_shell_executable)
                 $<TARGET_FILE:${ARGV0}>
       )
     endif()
-  elseif(NOT WIN32)
-    if(BUNDLED_OPENSSL OR BUNDLED_SHARED_PYTHON)
-      set_property(TARGET "${ARGV0}" PROPERTY INSTALL_RPATH "\$ORIGIN/../${INSTALL_LIBDIR}")
-      set_property(TARGET "${ARGV0}" PROPERTY PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
+    if(BUNDLED_SSH_DIR)
+      get_target_property(_SSH_LIBRARY_LOCATION ssh LOCATION)
+      get_filename_component(_SSH_LIBRARY_NAME ${_SSH_LIBRARY_LOCATION} NAME)
+      add_custom_command(TARGET "${ARGV0}" POST_BUILD
+        COMMAND install_name_tool -change
+                "${_SSH_LIBRARY_NAME}" "@loader_path/../${INSTALL_LIBDIR}/${_SSH_LIBRARY_NAME}"
+                $<TARGET_FILE:${ARGV0}>)
     endif()
+  elseif(NOT WIN32)
+  if(BUNDLED_OPENSSL OR BUNDLED_SHARED_PYTHON OR BUNDLED_SSH_DIR)
+    set_property(TARGET "${ARGV0}" PROPERTY INSTALL_RPATH "\$ORIGIN/../${INSTALL_LIBDIR}")
+    set_property(TARGET "${ARGV0}" PROPERTY PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
+  endif()
   endif()
 endfunction()

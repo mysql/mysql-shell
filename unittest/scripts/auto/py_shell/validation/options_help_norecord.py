@@ -70,6 +70,11 @@ DESCRIPTION
       - verbose: 0..4, verbose output level. If >0, additional output that may
         help diagnose issues is printed to the screen. Larger values mean more
         verbose. Default is 0.
+      - ssh.configFile string path default empty, custom path for SSH
+        configuration. If not defined the standard SSH paths will be used
+        (~/.ssh/config).
+      - ssh.bufferSize integer default 10240 bytes, used for tunnel data
+        transfer
 
       The resultFormat option supports the following values to modify the
       format of printed query results:

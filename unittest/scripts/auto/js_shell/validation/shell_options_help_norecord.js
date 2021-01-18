@@ -68,6 +68,9 @@
  history.autoSave           Shell's history autosave.
  history.maxSize            Shell's history maximum size
  history.sql.ignorePattern  Shell's history ignore list.
+ history.sql.syslog         Log filtered interactive commands to the system
+                            log. Filtering of commands depends on the patterns
+                            supplied via histignore option.
 
 //@<OUT> verbose output
  verbose  Enable diagnostic message output to the console: 0 - display no

@@ -125,6 +125,7 @@ Supported variables are:
     %uri% - URI of the connected session
     %user% - username of the connected session
     %host% - hostname of the connected session
+    %ssh_host% - hostname of the SSH tunnel server or ""
     %port% - port or socket path of the connected session
     %schema% - default schema of the SQL session
     %ssl% - SSL if SSL is enabled for the connected session

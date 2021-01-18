@@ -59,6 +59,9 @@ FUNCTIONS
       listCredentials()
             Retrieves a list of all URLs stored by the configured helper.
 
+      listSshConnections()
+            Retrieves a list of all active SSH tunnels.
+
       log(level, message)
             Logs an entry to the shell's log file.
 
@@ -168,6 +171,11 @@ DESCRIPTION
       - verbose: 0..4, verbose output level. If >0, additional output that may
         help diagnose issues is printed to the screen. Larger values mean more
         verbose. Default is 0.
+      - ssh.configFile string path default empty, custom path for SSH
+        configuration. If not defined the standard SSH paths will be used
+        (~/.ssh/config).
+      - ssh.bufferSize integer default 10240 bytes, used for tunnel data
+        transfer
 
       The resultFormat option supports the following values to modify the
       format of printed query results:
@@ -432,6 +440,7 @@ DESCRIPTION
 
       Base Connection Options
 
+      - uri: a URI string.
       - scheme: the protocol to be used on the connection.
       - user: the MySQL user name to be used on the connection.
       - dbUser: alias for user.
@@ -443,8 +452,20 @@ DESCRIPTION
         sockets.
       - schema: the schema to be selected once the connection is done.
 
+      SSH Tunnel Connection Options
+
+      - ssh: a SSHURI string used when SSH tunnel is required.
+      - ssh-password: the password the be used on the SSH connection.
+      - ssh-identity-file: the key file to be used on the SSH connection.
+      - ssh-identity-file-password: the SSH key file password.
+      - ssh-config-file: the SSH configuration file, default is the value of
+        shell.options['ssh.configFile']
+
       ATTENTION: The dbUser and dbPassword options are will be removed in a
                  future release.
+
+      ATTENTION: The connection options have precedence over options specified
+                 in the connection options uri
 
       The connection options are case insensitive and can only be defined once.
 
@@ -537,6 +558,7 @@ DESCRIPTION
 
       Base Connection Options
 
+      - uri: a URI string.
       - scheme: the protocol to be used on the connection.
       - user: the MySQL user name to be used on the connection.
       - dbUser: alias for user.
@@ -548,8 +570,20 @@ DESCRIPTION
         sockets.
       - schema: the schema to be selected once the connection is done.
 
+      SSH Tunnel Connection Options
+
+      - ssh: a SSHURI string used when SSH tunnel is required.
+      - ssh-password: the password the be used on the SSH connection.
+      - ssh-identity-file: the key file to be used on the SSH connection.
+      - ssh-identity-file-password: the SSH key file password.
+      - ssh-config-file: the SSH configuration file, default is the value of
+        shell.options['ssh.configFile']
+
       ATTENTION: The dbUser and dbPassword options are will be removed in a
                  future release.
+
+      ATTENTION: The connection options have precedence over options specified
+                 in the connection options uri
 
       The connection options are case insensitive and can only be defined once.
 
@@ -715,6 +749,16 @@ EXCEPTIONS
 
       - if configured credential helper is invalid.
       - if listing the URLs fails.
+
+//@<OUT> Help on listSshConnections
+NAME
+      listSshConnections - Retrieves a list of all active SSH tunnels.
+
+SYNTAX
+      shell.listSshConnections()
+
+RETURNS
+      A list of active SSH tunnel connections.
 
 //@<OUT> Help on Log
 NAME
@@ -1097,6 +1141,7 @@ The following options are also valid when a dictionary is used:
 
 Base Connection Options
 
+- uri: a URI string.
 - scheme: the protocol to be used on the connection.
 - user: the MySQL user name to be used on the connection.
 - dbUser: alias for user.
@@ -1107,8 +1152,20 @@ Base Connection Options
 - socket: the socket file name to be used on a connection through unix sockets.
 - schema: the schema to be selected once the connection is done.
 
+SSH Tunnel Connection Options
+
+- ssh: a SSHURI string used when SSH tunnel is required.
+- ssh-password: the password the be used on the SSH connection.
+- ssh-identity-file: the key file to be used on the SSH connection.
+- ssh-identity-file-password: the SSH key file password.
+- ssh-config-file: the SSH configuration file, default is the value of
+  shell.options['ssh.configFile']
+
 ATTENTION: The dbUser and dbPassword options are will be removed in a future
            release.
+
+ATTENTION: The connection options have precedence over options specified in the
+           connection options uri
 
 The connection options are case insensitive and can only be defined once.
 
@@ -1357,6 +1414,7 @@ The following options are also valid when a dictionary is used:
 
 Base Connection Options
 
+- uri: a URI string.
 - scheme: the protocol to be used on the connection.
 - user: the MySQL user name to be used on the connection.
 - dbUser: alias for user.
@@ -1367,8 +1425,20 @@ Base Connection Options
 - socket: the socket file name to be used on a connection through unix sockets.
 - schema: the schema to be selected once the connection is done.
 
+SSH Tunnel Connection Options
+
+- ssh: a SSHURI string used when SSH tunnel is required.
+- ssh-password: the password the be used on the SSH connection.
+- ssh-identity-file: the key file to be used on the SSH connection.
+- ssh-identity-file-password: the SSH key file password.
+- ssh-config-file: the SSH configuration file, default is the value of
+  shell.options['ssh.configFile']
+
 ATTENTION: The dbUser and dbPassword options are will be removed in a future
            release.
+
+ATTENTION: The connection options have precedence over options specified in the
+           connection options uri
 
 The connection options are case insensitive and can only be defined once.
 

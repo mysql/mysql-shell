@@ -1,0 +1,11 @@
+Host example
+     HostName example.com
+     User exampleUser
+     Port 1234
+     UserKnownHostsFile /tmp/example/known_hosts
+     IdentityFile <<IdentityFile>>
+
+Host exampleNoKey
+     HostName example-no-key.com
+     User exampleUserNoKey
+     UserKnownHostsFile /tmp/example/known_hosts_no_key

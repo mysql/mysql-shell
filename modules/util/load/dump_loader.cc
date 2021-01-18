@@ -1002,9 +1002,7 @@ Dump_loader::Dump_loader(const Load_dump_options &options)
 Dump_loader::~Dump_loader() {}
 
 std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
-  auto session = mysqlshdk::db::mysql::Session::create();
-
-  session->connect(m_options.connection_options());
+  auto session = establish_session(m_options.connection_options(), false);
 
   // Set timeouts to larger values since worker threads may get stuck
   // downloading data for some time before they have a chance to get back to
@@ -1047,7 +1045,7 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
              should_create_pks());
   }
 
-  return session;
+  return std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(session);
 }
 
 std::string Dump_loader::filter_user_script_for_mds(const std::string &script) {

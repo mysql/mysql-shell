@@ -23,18 +23,20 @@
 #ifndef _MYSQL_SHELL_
 #define _MYSQL_SHELL_
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
-#include "scripting/types.h"
-#include "shellcore/base_shell.h"
-#include "shellcore/shell_core.h"
-#include "shellcore/shell_options.h"
 
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_cluster_set.h"
 #include "modules/mod_sys.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/ssh/ssh_manager.h"
+#include "scripting/types.h"
+#include "shellcore/base_shell.h"
+#include "shellcore/shell_core.h"
+#include "shellcore/shell_options.h"
 
 namespace mysqlsh {
 class Shell;  // from modules
@@ -135,6 +137,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
   std::shared_ptr<mysqlsh::dba::Cluster> m_default_cluster;
   std::shared_ptr<mysqlsh::dba::ClusterSet> m_default_clusterset;
   std::shared_ptr<mysqlsh::dba::ReplicaSet> m_default_replicaset;
+  std::shared_ptr<mysqlshdk::ssh::Ssh_manager> m_ssh_manager;
 
   /// Last schema set by the user via \use command.
   std::string _last_active_schema;

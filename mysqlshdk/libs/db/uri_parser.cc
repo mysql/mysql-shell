@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -74,9 +74,15 @@ const std::map<char, char> kUriHexLiterals = {
     {'D', 13}, {'E', 14}, {'F', 15}, {'a', 10}, {'b', 11}, {'c', 12},
     {'d', 13}, {'e', 14}, {'f', 15}};
 
-Uri_parser::Uri_parser() : _data(nullptr) {}
+Uri_parser::Uri_parser(bool devapi) : _data(nullptr) {
+  m_allowed_schemes = {"mysql", "mysqlx"};
+  if (!devapi) {
+    m_allowed_schemes.emplace("file");
+    m_allowed_schemes.emplace("ssh");
+  }
+}
 
-void Uri_parser::parse_scheme() {
+std::string Uri_parser::parse_scheme() {
   if (_chunks.find(URI_SCHEME) != _chunks.end()) {
     // Does schema parsing based on RFC3986
     _tokenizer.reset();
@@ -111,14 +117,18 @@ void Uri_parser::parse_scheme() {
 
     // Validate on unique supported schema formats
     // In the future we may support additional stuff, like extensions
-    if (scheme != "mysql" && scheme != "mysqlx")
+    if (m_allowed_schemes.find(scheme) == m_allowed_schemes.end()) {
       throw std::invalid_argument(
           shcore::str_format("Invalid scheme [%s], supported schemes "
-                             "include: mysql, mysqlx",
-                             scheme.c_str()));
-
-    _data->set_scheme(scheme);
+                             "include: %s",
+                             scheme.c_str(),
+                             shcore::str_join(m_allowed_schemes.begin(),
+                                              m_allowed_schemes.end(), ", ")
+                                 .c_str()));
+    }
+    return scheme;
   }
+  return "";
 }
 
 void Uri_parser::parse_userinfo() {
@@ -167,18 +177,25 @@ void Uri_parser::parse_target() {
                input_contains("(.", start) || input_contains("(/", start)) {
       auto offset = start;
       {
-        // When it starts with / the symbol is skipped and rest is parsed
-        // as unencoded value
+        std::string scheme = "";
+        if (_data->has_scheme()) scheme = _data->get_scheme();
         std::string socket;
-        if (_input[start] == '/') {
+        if (_input[start] == '/' && scheme == "file") {
+          // it means there was no target for file which is possible and it
+          // means it's localhost
+          _data->set_host("localhost");
+          return;
+        } else if (_input[start] == '/') {
+          // When it starts with / the symbol is skipped and rest is parsed
+          // as unencoded value
           socket = "/";
           start++;
           offset++;
         }
-
-        socket += parse_value({start, end}, &offset, "");
-
-        _data->set_socket(socket);
+        if (scheme != "file") {
+          socket += parse_value({start, end}, &offset, "");
+          _data->set_socket(socket);
+        }
       }
 
       if (offset <= end)
@@ -530,12 +547,24 @@ void Uri_parser::parse_path() {
   if (_chunks.find(URI_PATH) != _chunks.end()) {
     _tokenizer.reset();
     _tokenizer.set_allow_spaces(false);
-    _tokenizer.set_simple_tokens(":@");
+    _tokenizer.set_simple_tokens(":@/");
     _tokenizer.set_complex_token("pct-encoded", {"%", HEXDIG, HEXDIG});
     _tokenizer.set_complex_token("unreserved", UNRESERVED);
     _tokenizer.set_complex_token("sub-delims", SUBDELIMITERS);
 
+#ifdef _WIN32
+    // on Windows we have to replace the \ with /, we do this only for file
+    // scheme
+    if (_data->get_scheme() == "file") {
+      std::replace(_input.begin() + _chunks[URI_PATH].first,
+                   _input.begin() + _chunks[URI_PATH].second, '\\', '/');
+      _tokenizer.set_input(_input);
+    }
+#endif
+
     _tokenizer.process(_chunks[URI_PATH]);
+
+    // In generic URI there's PATH which becomes SCHEMA in MySQL URI
 
     std::string schema;
     while (_tokenizer.tokens_available()) {
@@ -762,14 +791,10 @@ std::string Uri_parser::parse_encoded_value(
   return value;
 }
 
-Connection_options Uri_parser::parse(const std::string &input,
-                                     Comparison_mode mode) {
-  Connection_options data(mode);
-
-  _data = &data;
-
+void Uri_parser::preprocess(const std::string &input) {
   _input = input;
   _tokenizer.set_input(input);
+  _chunks.clear();
 
   // Starts by splitting the major components
   // 1) Trims from the input the scheme component if found
@@ -779,15 +804,24 @@ Connection_options Uri_parser::parse(const std::string &input,
   size_t first_char = 0;
   size_t last_char = input.size() - 1;
 
-  size_t position = input.find("://");
+  size_t position = input.find(":/");
   if (position != std::string::npos) {
     if (position) {
       _chunks[URI_SCHEME] = {0, position - 1};
-      first_char = position + 3;
+      if (position + 3 <= input.size()) {
+        if (input[position + 2] == '/')
+          first_char = position + 3;
+        else
+          first_char = position + 2;
+      }
     } else {
       throw std::invalid_argument("Scheme is missing");
     }
   }
+
+  // We need to parse scheme ASAP as some parts of uri depends on that
+  auto scheme = parse_scheme();
+  if (!scheme.empty()) _data->set_scheme(scheme);
 
   // 2) Trims from the input the userinfo component if found
   // It is safe to look for the first @ symbol since before the
@@ -811,6 +845,39 @@ Connection_options Uri_parser::parse(const std::string &input,
     last_char = position - 1;
   }
 
+  // 3.1) A special case for the file scheme.
+  // it actually can be in form:
+  // file:/
+  // file://
+  // file:///
+  // where all three forms are perfectly valid.
+  // but for our use case we will support only the very basic one which is
+  // file:/
+
+  if (scheme == "file") {
+    // we have to set the position to be fixed otherwise the file:// would also
+    // match which is something we don't want to setting it to fixed 6 means
+    // it's the first character after file:/
+    first_char = 6;
+    if (input[first_char] == '/') {
+      std::string msg = "Unexpected data [";
+      msg.push_back(input[first_char]);
+      msg += "] at position " + std::to_string(first_char);
+      throw std::invalid_argument(msg);
+    }
+
+#ifdef _WIN32
+    // on Windows we care about everything after /  as we will do a conversion
+    // later
+    size_t first = first_char;
+#else
+    // on other system we have to consume first / as this is absolute path
+    size_t first = first_char - 1;
+#endif
+    _chunks[URI_PATH] = {first, last_char};
+    return;
+  }
+
   // 4) Gotta find the path component if any, path component starts with /
   //    but if the target is a socket it may also start with / so we need to
   //    find the right / defining a path component
@@ -818,11 +885,11 @@ Connection_options Uri_parser::parse(const std::string &input,
   // first_char points to the beginning of the target definition
   // so if / is on the first position it is not the path but the socket
   // definition
+
   position = input.rfind("/", last_char);
 
   if (position != std::string::npos && position > first_char) {
     bool has_path = false;
-
     // If the / is found at the second position, it could also be a socket
     // definition in the form of: (/path/to/socket)
     // So we need to ensure the found / is after the closing ) in this case
@@ -851,14 +918,51 @@ Connection_options Uri_parser::parse(const std::string &input,
     _chunks[URI_TARGET] = {first_char, last_char};
   else
     throw std::invalid_argument("Invalid address");
+}
 
-  parse_scheme();
+Connection_options Uri_parser::parse(const std::string &input,
+                                     Comparison_mode mode) {
+  Connection_options data(mode);
+  _data = &data;
+  preprocess(input);
   parse_userinfo();
   parse_target();
   parse_path();
   parse_query();
-
   return data;
+}
+
+mysqlshdk::ssh::Ssh_connection_options Uri_parser::parse_ssh_uri(
+    const std::string &input, Comparison_mode mode) {
+  auto parsed_connection = parse(input, mode);
+  Connection_options cleaned_uri(parsed_connection);
+  cleaned_uri.clear_scheme();
+  cleaned_uri.clear_host();
+  cleaned_uri.clear_user();
+  cleaned_uri.clear_port();
+  if (cleaned_uri.has_data())
+    throw std::invalid_argument(
+        "Invalid SSH URI given, only user, host, port can be used");
+  if (!parsed_connection.has_host())  // Host is mandatory for ssh
+    throw std::invalid_argument("Invalid SSH URI given, host is mandatory");
+  mysqlshdk::ssh::Ssh_connection_options ssh_config;
+  ssh_config.set_host(parsed_connection.get_host());
+  try {
+    ssh_config.set_password(parsed_connection.get_password());
+  } catch (const std::invalid_argument &) {
+    // no op it can be null
+  }
+  try {
+    ssh_config.set_user(parsed_connection.get_user());
+  } catch (const std::invalid_argument &) {
+    // no op it can be null
+  }
+  try {
+    ssh_config.set_port(parsed_connection.get_port());
+  } catch (const std::invalid_argument &) {
+    // it can be null we don't care as by default we're set with 22
+  }
+  return ssh_config;
 }
 
 bool Uri_parser::input_contains(const std::string &what, size_t index) {

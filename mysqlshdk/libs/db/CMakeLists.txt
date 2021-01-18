@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -21,6 +21,7 @@
 
 set(db_SOURCE
     session.h
+    session.cc
     result.h
     row.h
     column.cc
@@ -63,4 +64,4 @@ ENDIF()
 add_convenience_library(db ${db_SOURCE})
 ADD_STAN_TARGET(db ${db_SOURCE})
 
-target_link_libraries(db utils)
+target_link_libraries(db utils shellssh)

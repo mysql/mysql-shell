@@ -189,12 +189,6 @@ class SHCORE_PUBLIC Session : public ISession,
 
   static std::shared_ptr<Session> create();
 
-  void connect(
-      const mysqlshdk::db::Connection_options &connection_options) override {
-    _impl->connect(connection_options);
-    _impl->setup_default_character_set();
-  }
-
   const mysqlshdk::db::Connection_options &get_connection_options()
       const override {
     return _impl->get_connection_options();
@@ -209,7 +203,6 @@ class SHCORE_PUBLIC Session : public ISession,
     _impl->execute(sql, len);
   }
 
-  void close() override { _impl->close(); }
   const char *get_ssl_cipher() const override {
     return _impl->get_ssl_cipher();
   }
@@ -285,12 +278,18 @@ class SHCORE_PUBLIC Session : public ISession,
     return _impl->_mysql->net.fd;
   }
 
-  ~Session() override {
-    if (_impl) _impl->close();
-  }
+  ~Session() override { close(); }
 
  protected:
   Session() { _impl.reset(new Session_impl()); }
+
+  void do_connect(
+      const mysqlshdk::db::Connection_options &connection_options) override {
+    _impl->connect(connection_options);
+    _impl->setup_default_character_set();
+  }
+
+  void do_close() override { _impl->close(); }
 
  private:
   std::shared_ptr<Session_impl> _impl;

@@ -40,6 +40,8 @@
 using mysql::secret_store::common::get_helper_exception;
 using mysql::secret_store::common::Helper_exception;
 using mysql::secret_store::common::Helper_exception_code;
+using mysql::secret_store::common::k_scheme_name_file;
+using mysql::secret_store::common::k_scheme_name_ssh;
 
 namespace mysql {
 namespace secret_store {
@@ -48,7 +50,6 @@ namespace login_path {
 namespace {
 
 constexpr auto k_secret_type_password = "password";
-
 std::vector<Entry> parse_ini(const std::string &ini) {
   // mysql_config_editor has very structured output, so parsing is simplified
   std::vector<Entry> result;
@@ -57,7 +58,14 @@ std::vector<Entry> parse_ini(const std::string &ini) {
     for (const auto &line : shcore::str_split(ini, "\r\n", -1, true)) {
       if (line[0] == '[') {
         result.emplace_back();
-        result.back().name = line.substr(1, line.length() - 2);
+        auto name = line.substr(1, line.length() - 2);
+        auto scheme = name.substr(0, 6);
+        if (scheme == "ssh://") {
+          result.back().scheme = k_scheme_name_ssh;
+        } else if (scheme == "file:/") {
+          result.back().scheme = k_scheme_name_file;
+        }
+        result.back().name = std::move(name);
       } else {
         const auto pos = line.find(" = ");
         const auto option = line.substr(0, pos);
@@ -94,7 +102,6 @@ void validate_secret_type(const common::Secret_id &id) {
 std::string get_url(const Entry &entry, bool encode) {
   if (encode) {
     mysqlshdk::db::Connection_options options;
-
     if (!entry.user.empty()) {
       options.set_user(entry.user);
     }
@@ -108,8 +115,29 @@ std::string get_url(const Entry &entry, bool encode) {
       options.set_socket(entry.socket);
     }
 
+    if (entry.scheme == k_scheme_name_file ||
+        entry.scheme == k_scheme_name_ssh) {
+      try {
+        // if we're here, it should be safe to parse this, otherwise we do
+        // nothing and fallback to the old code.
+        mysqlshdk::db::Connection_options tmp_opts(entry.name);
+        auto tokens = mysqlshdk::db::uri::formats::user_transport();
+        tokens.set(mysqlshdk::db::uri::Tokens::Scheme);
+        return tmp_opts.as_uri((tokens));
+      } catch (...) {
+        // no op we do nothing here, just fallback to the default handling as it
+        // looks like name is something we can't handle
+      }
+    }
+
     return options.as_uri(mysqlshdk::db::uri::formats::user_transport());
+
   } else {
+    // for those two, we don't change the name
+    if (entry.scheme == k_scheme_name_file ||
+        entry.scheme == k_scheme_name_ssh) {
+      return entry.name;
+    }
     // URLs which are not encoded are used as an internal detail and help
     // to identify entries which were not created by us. Such entries can have
     // both socket and port set, which means Connection_options cannot be used.
@@ -122,10 +150,26 @@ std::string get_url(const Entry &entry, bool encode) {
 
 std::string get_encoded_url(const Entry &entry) { return get_url(entry, true); }
 
-std::string get_name(const Entry &entry) {
+std::string clean_name(const std::string &name) {
   // name is used as a section name in an INI file, cannot contain [] characters
-  return shcore::str_replace(
-      shcore::str_replace(get_url(entry, false), "[", "%5B"), "]", "%5D");
+  return shcore::str_replace(shcore::str_replace(name, "[", "%5B"), "]", "%5D");
+}
+
+std::string get_name(const Entry &entry) {
+  return clean_name(get_url(entry, false));
+}
+
+std::string get_name(mysqlshdk::IConnection *connection, const Entry &entry) {
+  assert(connection != nullptr);
+  std::string name;
+  if (entry.scheme == k_scheme_name_file || entry.scheme == k_scheme_name_ssh) {
+    auto tokens = mysqlshdk::db::uri::formats::user_transport();
+    tokens.set(mysqlshdk::db::uri::Tokens::Scheme);
+    name = connection->as_uri(tokens);
+  } else {
+    name = get_url(entry, false);
+  }
+  return clean_name(name);
 }
 
 }  // namespace
@@ -309,6 +353,9 @@ Entry Login_path_helper::to_entry(const common::Secret_id &secret) const {
 
   mysqlshdk::db::Connection_options options{secret.url};
 
+  if (options.has_scheme()) {
+    entry.scheme = options.get_scheme();
+  }
   if (options.has_user()) {
     entry.user = options.get_user();
   }
@@ -322,7 +369,7 @@ Entry Login_path_helper::to_entry(const common::Secret_id &secret) const {
     entry.socket = options.get_socket();
   }
 
-  entry.name = get_name(entry);
+  entry.name = get_name(&options, entry);
 
   return entry;
 }

@@ -181,7 +181,8 @@ Replayer_mysql::Replayer_mysql() { _impl.reset(new Replayer_impl()); }
 
 Replayer_mysql::~Replayer_mysql() {}
 
-void Replayer_mysql::connect(const mysqlshdk::db::Connection_options &data_) {
+void Replayer_mysql::do_connect(
+    const mysqlshdk::db::Connection_options &data_) {
   _impl->set_trace(new Trace(next_replay_path("mysql_trace")));
 
   mysqlshdk::db::Connection_options data(data_);
@@ -212,7 +213,7 @@ void Replayer_mysql::executes(const char *sql, size_t length) {
   querys(sql, length, true);
 }
 
-void Replayer_mysql::close() { _impl->close(); }
+void Replayer_mysql::do_close() { _impl->close(); }
 
 bool Replayer_mysql::is_open() const { return _impl->is_open(); }
 
@@ -262,7 +263,8 @@ Replayer_mysqlx::Replayer_mysqlx() { _impl.reset(new Replayer_impl()); }
 
 Replayer_mysqlx::~Replayer_mysqlx() {}
 
-void Replayer_mysqlx::connect(const mysqlshdk::db::Connection_options &data_) {
+void Replayer_mysqlx::do_connect(
+    const mysqlshdk::db::Connection_options &data_) {
   _impl->set_trace(new Trace(next_replay_path("mysqlx_trace")));
 
   mysqlshdk::db::Connection_options data(data_);
@@ -310,7 +312,7 @@ void Replayer_mysqlx::executes(const char *sql, size_t length) {
   querys(sql, length, true);
 }
 
-void Replayer_mysqlx::close() { _impl->close(); }
+void Replayer_mysqlx::do_close() { _impl->close(); }
 
 bool Replayer_mysqlx::is_open() const { return _impl->is_open(); }
 

@@ -29,6 +29,7 @@
 #include <iostream>
 #include <limits>
 
+#include "modules/mod_utils.h"
 #include "mysqlshdk/libs/db/uri_common.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
@@ -101,6 +102,30 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
   if (no_password && !target_server.has_password()) {
     target_server.set_password("");
   }
+  if (!ssh.uri.empty()) {
+    if (target_server.has_socket())
+      throw std::invalid_argument(
+          "Socket connections through SSH are not supported");
+
+    auto ssh_dict = shcore::make_dict();
+    if (!ssh.identity_file.empty()) {
+      (*ssh_dict)[mysqlshdk::db::kSshIdentityFile] =
+          shcore::Value(ssh.identity_file);
+    }
+
+    if (!ssh.config_file.empty()) {
+      (*ssh_dict)[mysqlshdk::db::kSshConfigFile] =
+          shcore::Value(ssh.config_file);
+    }
+
+    (*ssh_dict)[mysqlshdk::db::kSsh] = shcore::Value(ssh.uri);
+    if (!ssh.pwd.empty()) {
+      (*ssh_dict)[mysqlshdk::db::kSshPassword] = shcore::Value(ssh.pwd);
+    }
+
+    auto ssh_options = mysqlsh::get_ssh_options(ssh_dict);
+    target_server.set_ssh_options(ssh_options);
+  }
 
   if (is_mfa()) {
     if (target_server.has_scheme() && target_server.get_scheme() == "mysqlx")
@@ -170,7 +195,6 @@ Shell_options::Shell_options(int argc, char **argv,
           .handle_command_line_input(opt_name, value);
     };
   };
-
   // clang-format off
   add_startup_options()
     (&print_cmd_line_helper, false,
@@ -185,6 +209,43 @@ Shell_options::Shell_options(int argc, char **argv,
     (cmdline("-f", "--file=<file>"), "Specify a file to process in batch mode. "
         "Any options specified after this are used as arguments of the "
         "processed file.")
+    (cmdline("--ssh=<value>"), "Make SSH tunnel connection using"
+        "Uniform Resource Identifier. "
+        "Format: [user[:pass]@]host[:port]")
+    (&storage.ssh.identity_file, "", cmdline("--ssh-identity-file=<file>"),
+        "File from which the private key for public key authentication is "
+        "read.",
+        [](const std::string &value, Source) {
+        if (shcore::str_caseeq(value.c_str(), "null", 4))
+          return std::string();
+
+        auto path = shcore::path::expand_user(value);
+        if (!shcore::is_file(path)) {
+          throw std::invalid_argument("ssh-identity-file requires existing "
+              "file.");
+        }
+        shcore::check_file_readable_or_throw(path);
+        shcore::check_file_access_rights_to_open(path);
+        return value;
+      });
+
+  add_named_options()
+    (&storage.ssh.config_file, "", "ssh.configFile",
+      cmdline("--ssh-config-file=<file>"), "Specify a custom path for SSH "
+      "configuration.",
+      [](const std::string &value, Source) {
+         auto path = shcore::path::expand_user(value);
+         if (shcore::is_file(path)) {
+           shcore::check_file_readable_or_throw(path);
+           shcore::check_file_access_rights_to_open(path);
+         }
+         return value;
+      })
+    (&storage.ssh.buffer_size, 10240, "ssh.bufferSize",
+    "Set buffer size in bytes for data transfer, default is 10240 (10Kb)",
+      shcore::opts::Range<int>(0, std::numeric_limits<int>::max()));
+
+  add_startup_options()
     (cmdline("--uri=<value>"), "Connect to Uniform Resource Identifier. "
         "Format: [user[:pass]@]host[:port][/db]")
     (&storage.host, "", cmdline("-h", "--host=<name>"),
@@ -405,7 +466,7 @@ Shell_options::Shell_options(int argc, char **argv,
           storage.full_interactive = true;
         } else {
           throw std::invalid_argument(
-                    "Value for --interactive if any, must be full\n");
+                    "Value for --interactive if any, must be full");
         }
       });
 
@@ -661,6 +722,7 @@ Shell_options::Shell_options(int argc, char **argv,
     check_socket_conflicts();
     check_port_socket_conflicts();
     check_file_execute_conflicts();
+    check_ssh_conflicts();
     check_import_options();
     check_result_format();
     // Calls connection options to validate the rest of the options
@@ -827,6 +889,20 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
     }
 
     iterator->next();
+  } else if ("--ssh" == option) {
+    handle_missing_value(iterator);
+
+    storage.ssh.uri = iterator->value();
+    storage.ssh.uri_data =
+        shcore::get_ssh_connection_options(storage.ssh.uri, false);
+    if (storage.ssh.uri_data.has_password()) {
+      const auto value = iterator->value();
+      const auto nopwd_uri =
+          hide_password_in_uri(value, storage.ssh.uri_data.get_user());
+      strncpy(const_cast<char *>(value), nopwd_uri.c_str(), strlen(value) + 1);
+    }
+
+    iterator->next();
   } else if ("--password" == option || "-p" == option ||
              "--dbpassword" == option || "--password1" == option) {
     // Note that in any connection attempt, password prompt will be done if
@@ -847,7 +923,7 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
       if ("--dbpassword" == option) {
         // Deprecated handler is not going to be invoked, need to inform the
         // user that --dbpassword should not longer be used.
-        // Console is not available lat this time, need to use stdout.
+        // Console is not available at this time, need to use stdout.
         std::cout << "WARNING: The --dbpassword option has been deprecated, "
                      "please use --password instead."
                   << std::endl;
@@ -1066,6 +1142,15 @@ void Shell_options::check_password_conflicts() {
     }
   }
 
+  if (!storage.ssh.pwd.empty() && storage.ssh.uri_data.has_password()) {
+    if (storage.ssh.pwd != storage.ssh.uri_data.get_password()) {
+      const auto error =
+          "Conflicting options: provided SSH password differs from the "
+          "password in the SSH-URI.";
+      throw std::runtime_error(error);
+    }
+  }
+
   if (storage.no_password && storage.prompt_password) {
     const auto error =
         "Conflicting options: --password and --no-password option cannot be "
@@ -1193,6 +1278,19 @@ void Shell_options::check_file_execute_conflicts() {
         "time.");
   }
   // note: --file and --pym are impossible because both consume remaining args
+}
+
+void Shell_options::check_ssh_conflicts() {
+  if (!storage.ssh.uri.empty() && !storage.connection_options().has_data()) {
+    throw std::runtime_error(
+        "SSH tunnel can't be started because DB URI is missing");
+  }
+
+  if (!storage.ssh.uri.empty() &&
+      (!storage.sock.is_null() || uri_data.has_socket())) {
+    throw std::runtime_error(
+        "Socket connections through SSH are not supported");
+  }
 }
 
 void Shell_options::check_result_format() {

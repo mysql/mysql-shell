@@ -920,6 +920,14 @@ ENDIF()
 ### Handle User Options
 ###
 
+if(BUNDLED_SSH_DIR)
+  set(libssh_DIR ${BUNDLED_SSH_DIR})
+endif()
+
+find_package(libssh 0.9.2 REQUIRED)
+
+message(STATUS "Found libssh: ${libssh_VERSION}, using config: ${libssh_CONFIG}")
+
 if(HAVE_V8)
   find_library(V8_LIB v8_monolith
                PATHS ${V8_LIB_DIR}

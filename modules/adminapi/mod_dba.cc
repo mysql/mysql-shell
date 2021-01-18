@@ -682,6 +682,9 @@ shcore::Value Dba::get_member(const std::string &prop) const {
   return ret_val;
 }
 
+constexpr const char INNODB_SSH_NOT_SUPPORTED[] =
+    "InnoDB cluster functionality is not available through SSH tunneling";
+
 /*
   Open a classic session to the instance the shell is connected to.
   If the shell's session is X protocol, it will query it for the classic
@@ -691,8 +694,10 @@ std::shared_ptr<Instance> Dba::connect_to_target_member() const {
   DBUG_TRACE;
 
   auto active_shell_session = get_active_shell_session();
-
   if (active_shell_session) {
+    if (active_shell_session->get_connection_options().has_ssh_options()) {
+      throw shcore::Exception::logic_error(INNODB_SSH_NOT_SUPPORTED);
+    }
     return Instance::connect(
         get_classic_connection_options(active_shell_session), false);
   }
@@ -717,6 +722,8 @@ void Dba::connect_to_target_group(
   if (!target_member) {
     target_member = connect_to_target_member();
     owns_target_member_session = true;
+  } else if (target_member->get_connection_options().has_ssh_options()) {
+    throw shcore::Exception::logic_error(INNODB_SSH_NOT_SUPPORTED);
   }
   if (!target_member) {
     throw shcore::Exception::logic_error(
@@ -1538,6 +1545,8 @@ shcore::Value Dba::check_instance_configuration(
 
   // Establish the session to the target instance
   if (has_co) {
+    if (instance_def->has_ssh_options())
+      throw shcore::Exception::logic_error(INNODB_SSH_NOT_SUPPORTED);
     instance = Instance::connect(*instance_def, options->interactive());
   } else {
     instance = connect_to_target_member();
@@ -2324,6 +2333,8 @@ void Dba::do_configure_instance(
 
   // Establish the session to the target instance
   if (instance_def.has_data()) {
+    if (instance_def.has_ssh_options())
+      throw shcore::Exception::logic_error(INNODB_SSH_NOT_SUPPORTED);
     target_instance = Instance::connect(instance_def, options.interactive());
   } else {
     target_instance = connect_to_target_member();

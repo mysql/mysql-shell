@@ -40,6 +40,8 @@
 #include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils_connection.h"
+#include "mysqlshdk/libs/ssh/ssh_common.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -187,6 +189,7 @@ void Shell::init() {
   expose("deleteCredential", &Shell::delete_credential, "url")->cli();
   expose("deleteAllCredentials", &Shell::delete_all_credentials)->cli();
   expose("listCredentials", &Shell::list_credentials)->cli();
+  expose("listSshConnections", &Shell::list_ssh_connections)->cli(false);
   expose("enablePager", &Shell::enable_pager)->cli(false);
   expose("disablePager", &Shell::disable_pager)->cli(false);
   expose("registerReport", &Shell::register_report, "name", "type", "report",
@@ -452,7 +455,6 @@ REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC2,
               "@li A dictionary with the connection options");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC3, "${TOPIC_URI}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC4, "${TOPIC_CONNECTION_OPTIONS}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC5, "${TOPIC_CONNECTION_DATA_DETAILS}");
 
 REGISTER_HELP(TOPIC_CONNECTION_DATA, "${TOPIC_CONNECTION_DATA_BASIC}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA1, "${TOPIC_CONNECTION_MORE_INFO}");
@@ -469,50 +471,6 @@ $(TOPIC_URI)
 $(TOPIC_URI1)
 
 $(TOPIC_CONNECTION_OPTIONS)
-
-$(TOPIC_CONNECTION_OPTIONS1)
-
-$(TOPIC_URI_CONNECTION_OPTIONS)
-$(TOPIC_URI_CONNECTION_OPTIONS1)
-$(TOPIC_URI_CONNECTION_OPTIONS2)
-$(TOPIC_URI_CONNECTION_OPTIONS3)
-$(TOPIC_URI_CONNECTION_OPTIONS4)
-$(TOPIC_URI_CONNECTION_OPTIONS5)
-$(TOPIC_URI_CONNECTION_OPTIONS6)
-$(TOPIC_URI_CONNECTION_OPTIONS7)
-$(TOPIC_URI_CONNECTION_OPTIONS8)
-$(TOPIC_URI_CONNECTION_OPTIONS9)
-$(TOPIC_URI_CONNECTION_OPTIONS10)
-$(TOPIC_URI_CONNECTION_OPTIONS11)
-$(TOPIC_URI_CONNECTION_OPTIONS12)
-$(TOPIC_URI_CONNECTION_OPTIONS13)
-$(TOPIC_URI_CONNECTION_OPTIONS14)
-$(TOPIC_URI_CONNECTION_OPTIONS15)
-$(TOPIC_URI_CONNECTION_OPTIONS16)
-$(TOPIC_URI_CONNECTION_OPTIONS17)
-$(TOPIC_URI_CONNECTION_OPTIONS18)
-$(TOPIC_URI_CONNECTION_OPTIONS19)
-
-$(TOPIC_URI_CONNECTION_OPTIONS20)
-
-
-$(TOPIC_DICT_CONNECTION_OPTIONS)
-
-$(TOPIC_DICT_CONNECTION_OPTIONS1)
-$(TOPIC_DICT_CONNECTION_OPTIONS2)
-$(TOPIC_DICT_CONNECTION_OPTIONS3)
-$(TOPIC_DICT_CONNECTION_OPTIONS4)
-$(TOPIC_DICT_CONNECTION_OPTIONS5)
-$(TOPIC_DICT_CONNECTION_OPTIONS6)
-$(TOPIC_DICT_CONNECTION_OPTIONS7)
-$(TOPIC_DICT_CONNECTION_OPTIONS8)
-$(TOPIC_DICT_CONNECTION_OPTIONS9)
-
-$(TOPIC_DICT_CONNECTION_OPTIONS10)
-
-$(TOPIC_CONNECTION_DATA_DETAILS)
-
-$(TOPIC_CONNECTION_DATA_DETAILS1)
 )*");
 
 REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO,
@@ -529,120 +487,76 @@ REGISTER_HELP(TOPIC_URI1,
               "[scheme://][user[:password]@]<host[:port]|socket>[/schema]"
               "[?option=value&option=value...]");
 
-// These lines group the description of ALL the available connection options
-REGISTER_HELP(TOPIC_CONNECTION_OPTIONS, "<b>Connection Options</b>");
-REGISTER_HELP(TOPIC_CONNECTION_OPTIONS1,
-              "The following options are valid for use either in a URI or in a "
-              "dictionary:");
-REGISTER_HELP(TOPIC_CONNECTION_OPTIONS2, "${TOPIC_URI_CONNECTION_OPTIONS}");
-REGISTER_HELP(
-    TOPIC_CONNECTION_OPTIONS3,
-    "The following options are also valid when a dictionary is used:");
-REGISTER_HELP(TOPIC_CONNECTION_OPTIONS4, "${TOPIC_DICT_CONNECTION_OPTIONS}");
-
-// These lines group the connection options available for URI
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS,
-              "@li ssl-mode: The SSL mode to be used in the connection.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS1,
-              "@li ssl-ca: The path to the X509 certificate authority file in "
-              "PEM format.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS2,
-              "@li ssl-capath: The path to the directory that contains the "
-              "X509 certificate authority files in PEM format.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS3,
-              "@li ssl-cert: The path to the SSL public key certificate file "
-              "in PEM format.");
-REGISTER_HELP(
-    TOPIC_URI_CONNECTION_OPTIONS4,
-    "@li ssl-key: The path to the SSL private key file in PEM format.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS5,
-              "@li ssl-crl: The path to file that contains certificate "
-              "revocation lists.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS6,
-              "@li ssl-crlpath: The path of directory that contains "
-              "certificate revocation list files.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS7,
-              "@li ssl-cipher: The list of permissible encryption ciphers for "
-              "connections that use TLS protocols up through TLSv1.2.");
-REGISTER_HELP(
-    TOPIC_URI_CONNECTION_OPTIONS8,
-    "@li tls-version: List of protocols permitted for secure connections.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS9,
-              "@li tls-ciphers: List of TLS v1.3 ciphers to use.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS10,
-              "@li auth-method: Authentication method.");
-REGISTER_HELP(
-    TOPIC_URI_CONNECTION_OPTIONS11,
-    "@li get-server-public-key: Request public key from the server required "
-    "for RSA key pair-based password exchange. Use when connecting to MySQL "
-    "8.0 servers with classic MySQL sessions with SSL mode DISABLED.");
-REGISTER_HELP(
-    TOPIC_URI_CONNECTION_OPTIONS12,
-    "@li server-public-key-path: The path name to a file containing a "
-    "client-side copy of the public key required by the server for RSA key "
-    "pair-based password exchange. Use when connecting to MySQL 8.0 servers "
-    "with classic MySQL sessions with SSL mode DISABLED.");
-REGISTER_HELP(
-    TOPIC_URI_CONNECTION_OPTIONS13,
-    "@li connect-timeout: The connection timeout in milliseconds. If not "
-    "provided a default timeout of 10 seconds will be used. Specifying a value "
-    "of 0 disables the connection timeout.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS14,
-              "@li compression: Enable compression in client/server protocol.");
-REGISTER_HELP(
-    TOPIC_URI_CONNECTION_OPTIONS15,
-    "@li compression-algorithms: Use compression algorithm in server/client "
-    "protocol.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS16,
-              "@li compression-level: Use this compression level in the "
-              "client/server protocol.");
-REGISTER_HELP(
-    TOPIC_URI_CONNECTION_OPTIONS17,
-    "@li connection-attributes: List of connection attributes to be "
-    "registered at the PERFORMANCE_SCHEMA connection attributes tables.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS18,
-              "@li local-infile: Enable/disable LOAD DATA LOCAL INFILE.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS19,
-              "@li net-buffer-length: The buffer size for TCP/IP and socket "
-              "communication.");
-REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS20,
-              "When these options are defined in a URI, their values must be "
-              "URL encoded.");
-
 // These lines group the connection options available for dictionary
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS, "<b>Base Connection Options</b>");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS1,
-              "@li scheme: the protocol to be used on the connection.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS2,
-              "@li user: the MySQL user name to be used on the connection.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS3, "@li dbUser: alias for user.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS4,
-              "@li password: the password to be used on the connection.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS5,
-              "@li dbPassword: same as password.");
-REGISTER_HELP(
-    TOPIC_DICT_CONNECTION_OPTIONS6,
-    "@li host: the hostname or IP address to be used on the connection.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS7,
-              "@li port: the port to be used in a TCP connection.");
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS8,
-              "@li socket: the socket file name to be used on a connection "
-              "through unix sockets.");
-REGISTER_HELP(
-    TOPIC_DICT_CONNECTION_OPTIONS9,
-    "@li schema: the schema to be selected once the connection is done.");
+REGISTER_HELP_TOPIC(Connection Types, TOPIC, TOPIC_CONNECTION_OPTIONS, Contents,
+                    ALL);
+REGISTER_HELP_TOPIC_TEXT(TOPIC_CONNECTION_OPTIONS, R"*(
+<b>Connection Options</b>
 
-REGISTER_HELP(TOPIC_DICT_CONNECTION_OPTIONS10,
-              "@attention The dbUser and dbPassword options are will be "
-              "removed in a future release.");
-// The rest of the lines provide additional details related to the connection
-// option definition
-REGISTER_HELP(TOPIC_CONNECTION_DATA_DETAILS,
-              "The connection options are case insensitive and can only be "
-              "defined once.");
-REGISTER_HELP(
-    TOPIC_CONNECTION_DATA_DETAILS1,
-    "If an option is defined more than once, an error will be generated.");
+The following options are valid for use either in a URI or in a dictionary:
+
+@li ssl-mode: The SSL mode to be used in the connection.
+@li ssl-ca: The path to the X509 certificate authority file in PEM format.
+@li ssl-capath: The path to the directory that contains the X509 certificate authority
+files in PEM format.
+@li ssl-cert: The path to the SSL public key certificate file in PEM format.
+@li ssl-key: The path to the SSL private key file in PEM format.
+@li ssl-crl: The path to file that contains certificate revocation lists.
+@li ssl-crlpath: The path of directory that contains certificate revocation list files.
+@li ssl-cipher: The list of permissible encryption ciphers for connections that
+use TLS protocols up through TLSv1.2.
+@li tls-version: List of protocols permitted for secure connections.
+@li tls-ciphers: List of TLS v1.3 ciphers to use.
+@li auth-method: Authentication method.
+@li get-server-public-key: Request public key from the server required for
+RSA key pair-based password exchange. Use when connecting to MySQL 8.0
+servers with classic MySQL sessions with SSL mode DISABLED.
+@li server-public-key-path: The path name to a file containing a
+client-side copy of the public key required by the server for RSA key
+pair-based password exchange. Use when connecting to MySQL 8.0 servers
+with classic MySQL sessions with SSL mode DISABLED.
+@li connect-timeout: The connection timeout in milliseconds. If not provided a
+default timeout of 10 seconds will be used. Specifying a value of 0 disables the
+connection timeout.
+@li compression: Enable compression in client/server protocol.
+@li compression-algorithms: Use compression algorithm in server/client protocol.
+@li compression-level: Use this compression level in the client/server protocol.
+@li connection-attributes: List of connection attributes to be registered at the
+PERFORMANCE_SCHEMA connection attributes tables.
+@li local-infile: Enable/disable LOAD DATA LOCAL INFILE.
+@li net-buffer-length: The buffer size for TCP/IP and socket communication.
+
+When these options are defined in a URI, their values must be URL encoded.
+
+The following options are also valid when a dictionary is used:
+
+<b>Base Connection Options</b>
+@li uri: a URI string.
+@li scheme: the protocol to be used on the connection.
+@li user: the MySQL user name to be used on the connection.
+@li dbUser: alias for user.
+@li password: the password to be used on the connection.
+@li dbPassword: same as password.
+@li host: the hostname or IP address to be used on the connection.
+@li port: the port to be used in a TCP connection.
+@li socket: the socket file name to be used on a connection through unix sockets.
+@li schema: the schema to be selected once the connection is done.
+
+<b>SSH Tunnel Connection Options</b>
+@li ssh: a SSHURI string used when SSH tunnel is required.
+@li ssh-password: the password the be used on the SSH connection.
+@li ssh-identity-file: the key file to be used on the SSH connection.
+@li ssh-identity-file-password: the SSH key file password.
+@li ssh-config-file: the SSH configuration file, default is the value of shell.options['ssh.configFile']
+
+@attention The dbUser and dbPassword options are will be removed in a future release.
+
+@attention The connection options have precedence over options specified in the connection options uri
+
+The connection options are case insensitive and can only be defined once.
+
+If an option is defined more than once, an error will be generated.
+)*");
 
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL, "${TOPIC_CONNECTION_TYPES}");
 REGISTER_HELP(TOPIC_CONNECTION_DATA_ADDITIONAL1,
@@ -1483,6 +1397,38 @@ shcore::Array_t Shell::list_credentials() {
   return ret_val;
 }
 
+REGISTER_HELP_FUNCTION(listSshConnections, shell);
+REGISTER_HELP(SHELL_LISTSSHCONNECTIONS_BRIEF,
+              "Retrieves a list of all active SSH tunnels.");
+REGISTER_HELP(SHELL_LISTSSHCONNECTIONS_RETURNS,
+              "@returns A list of active SSH tunnel connections.");
+
+/**
+ * $(SHELL_LISTSSHCONNECTIONS_BRIEF)
+ *
+ * $(SHELL_LISTSSHCONNECTIONS_RETURNS)
+ */
+#if DOXYGEN_JS
+List Shell::listSshConnections() {}
+#elif DOXYGEN_PY
+list Shell::list_ssh_connections() {}
+#endif
+shcore::Array_t Shell::list_ssh_connections() {
+  shcore::Array_t ret_val = shcore::make_array();
+  for (const auto &it :
+       mysqlshdk::ssh::current_ssh_manager()->list_active_tunnels()) {
+    auto time_created = std::chrono::system_clock::to_time_t(it.time_created);
+    ret_val->emplace_back(shcore::make_dict(
+        "uri",
+        it.connection.as_uri(mysqlshdk::db::uri::formats::user_transport()),
+        "timeCreated", mysqlshdk::utils::isotime(&time_created), "remote",
+        it.connection.get_remote_host() + ":" +
+            std::to_string(it.connection.get_remote_port())));
+  }
+
+  return ret_val;
+}
+
 REGISTER_HELP_FUNCTION(enablePager, shell);
 REGISTER_HELP(SHELL_ENABLEPAGER_BRIEF,
               "Enables pager specified in <b>shell.options.pager</b> for the "
@@ -2155,5 +2101,4 @@ int Shell::dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
                           format.empty() ? "table" : format, false, false);
   return dumper.dump("row", false, false);
 }
-
 }  // namespace mysqlsh

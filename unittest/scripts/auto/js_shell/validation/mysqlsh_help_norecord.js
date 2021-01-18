@@ -24,6 +24,12 @@ Usage: mysqlsh [OPTIONS] [URI]
   -f, --file=<file>               Specify a file to process in batch mode. Any
                                   options specified after this are used as
                                   arguments of the processed file.
+  --ssh=<value>                   Make SSH tunnel connection usingUniform
+                                  Resource Identifier. Format:
+                                  [user[:pass]@]host[:port]
+  --ssh-identity-file=<file>      File from which the private key for public
+                                  key authentication is read.
+  --ssh-config-file=<file>        Specify a custom path for SSH configuration.
   --uri=<value>                   Connect to Uniform Resource Identifier.
                                   Format: [user[:pass]@]host[:port][/db]
   -h, --host=<name>               Connect to host.

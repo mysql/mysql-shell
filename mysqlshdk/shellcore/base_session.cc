@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/shell_core.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/ssh/ssh_manager.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -121,12 +122,31 @@ std::string ShellBaseSession::uri(
   return _connection_options.as_uri(format);
 }
 
+std::string ShellBaseSession::ssh_uri() const {
+  if (_connection_options.get_ssh_options().has_data()) {
+    return _connection_options.get_ssh_options().as_uri(
+        mysqlshdk::db::uri::formats::no_schema_no_query());
+  }
+  return "";
+}
+
 std::string ShellBaseSession::get_default_schema() {
   return _connection_options.has_schema() ? _connection_options.get_schema()
                                           : "";
 }
 
-void ShellBaseSession::reconnect() { connect(_connection_options); }
+void ShellBaseSession::reconnect() {
+  const auto &ssh_data = _connection_options.get_ssh_options();
+
+  // we need to increment port usage and decrement it later cause during
+  // reconnect, the decrement will be called, so tunnel would be lost
+  mysqlshdk::ssh::current_ssh_manager()->port_usage_increment(ssh_data);
+
+  shcore::Scoped_callback scoped([ssh_data] {
+    mysqlshdk::ssh::current_ssh_manager()->port_usage_decrement(ssh_data);
+  });
+  connect(_connection_options);
+}
 
 std::string ShellBaseSession::sub_query_placeholders(
     const std::string &query, const shcore::Array_t &args) {

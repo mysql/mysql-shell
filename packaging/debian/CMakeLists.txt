@@ -141,6 +141,12 @@ message(STATUS "OS code name    : ${CODENAME}")
 set(EXTRA_CMAKE_OPTS)
 set(DEB_BUILD_DEPS)
 set(DEB_DEPS)
+if(BUNDLED_SSH_DIR)
+  list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_SSH_DIR=${BUNDLED_SSH_DIR}")
+else()
+  list(APPEND DEB_BUILD_DEPS "libssh-dev (>=0.9.2)")
+  list(APPEND DEB_DEPS "libssh (>=0.9.2)")
+endif()
 
 if(WITH_SSL)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_SSL=${WITH_SSL}")
@@ -211,6 +217,7 @@ endif()
 
 string(REPLACE ";" " "  EXTRA_CMAKE_OPTS "${EXTRA_CMAKE_OPTS}")
 string(REPLACE ";" ", " DEB_BUILD_DEPS   "${DEB_BUILD_DEPS}")
+string(REPLACE ";" ", " DEB_DEPS         "${DEB_DEPS}")
 
 # ----------------------------------------------------------------------
 # Copy this directory and process the .in files
@@ -268,5 +275,13 @@ if (BUNDLED_PYTHON_DIR)
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "# For python bundle
 usr/lib/mysqlsh/include
-usr/lib/mysqlsh/libpython*.so*")
+usr/lib/mysqlsh/libpython*.so*
+")
+endif()
+
+if (BUNDLED_SSH_DIR)
+file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"# For libssh bundle
+usr/lib/mysqlsh/libssh*.so*
+")
 endif()

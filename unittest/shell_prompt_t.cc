@@ -1150,9 +1150,9 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_nocolor) {
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
 #ifdef HAVE_V8
-  EXPECT_PROMPT("MySQL [" + _host + "+ ssl/mysql] JS> ");
+  EXPECT_PROMPT("MySQL [" + _host + ":" + _port + "+ ssl/mysql] JS> ");
 #else
-  EXPECT_PROMPT("MySQL [" + _host + "+ ssl/mysql] Py> ");
+  EXPECT_PROMPT("MySQL [" + _host + ":" + _port + "+ ssl/mysql] Py> ");
 #endif
 
   shcore::unsetenv("MYSQLSH_PROMPT_THEME");
@@ -1304,11 +1304,11 @@ TEST_F(Shell_prompt_exe, bug28314383_js) {
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL [" + _host +
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL [" + _host + ":" + _port +
                                 "+ ssl/mysql] JS> session.close();\n"
                                 "MySQL JS> \\connect " +
                                 _uri + "?ssl-mode=REQUIRED\n");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL [" + _host +
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL [" + _host + ":" + _port +
                                 "+ ssl] JS> session.close();\n"
                                 "MySQL JS> Bye!");
 
@@ -1337,11 +1337,11 @@ TEST_F(Shell_prompt_exe, bug28314383_py) {
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL [" + _host +
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL [" + _host + ":" + _port +
                                 "+ ssl/mysql] Py> session.close();\n"
                                 "MySQL Py> \\connect " +
                                 _uri + "?ssl-mode=REQUIRED\n");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL [" + _host +
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("MySQL [" + _host + ":" + _port +
                                 "+ ssl] Py> session.close();\n"
                                 "MySQL Py> Bye!");
 

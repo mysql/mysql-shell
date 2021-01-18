@@ -33,6 +33,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/libs/ssh/ssh_manager.h"
 #include "scripting/lang_base.h"
 #include "scripting/object_factory.h"
 #include "scripting/proxy_object.h"
@@ -84,6 +85,7 @@ void ClassicSession::init() {
   // this, _1)));
 
   add_property("uri", "getUri");
+  add_property("sshUri", "getSshUri");
 
   expose("close", &ClassicSession::close);
   expose("runSql", &ClassicSession::run_sql, "query", "?args");
@@ -271,6 +273,25 @@ String ClassicSession::getUri() {}
 str ClassicSession::get_uri() {}
 #endif
 
+REGISTER_HELP_PROPERTY(sshUri, ClassicSession);
+REGISTER_HELP_FUNCTION(getSshUri, ClassicSession);
+REGISTER_HELP(CLASSICSESSION_SSHURI_BRIEF, "${CLASSICSESSION_GETSSHURI_BRIEF}");
+REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_GETSSHURI, R"*(
+Retrieves the SSH URI for the current session.
+
+@return A string representing the SSH connection data.
+)*");
+/**
+ * $(CLASSICSESSION_GETSSHURI_BRIEF)
+ *
+ * $(CLASSICSESSION_GETSSHURI)
+ */
+#if DOXYGEN_JS
+String ClassicSession::getSshUri() {}
+#elif DOXYGEN_PY
+str ClassicSession::get_ssh_uri() {}
+#endif
+
 Value ClassicSession::get_member(const std::string &prop) const {
   // Retrieves the member first from the parent
   Value ret_val;
@@ -283,6 +304,8 @@ Value ClassicSession::get_member(const std::string &prop) const {
 
   if (prop == "uri") {
     ret_val = shcore::Value(uri());
+  } else if (prop == "sshUri") {
+    ret_val = shcore::Value(ssh_uri());
   } else {
     ret_val = ShellBaseSession::get_member(prop);
   }
@@ -317,6 +340,13 @@ std::shared_ptr<shcore::Object_bridge> ClassicSession::create(
       !co.has_value(mysqlshdk::db::kSslCa) &&
       !co.has_value(mysqlshdk::db::kSslCaPath)) {
     co.get_ssl_options().set_mode(mysqlshdk::db::Ssl_mode::Required);
+  }
+
+  // before creating a normal session we need to establish ssh if needed:
+  co.set_default_data();
+  auto &ssh = co.get_ssh_options_handle(mysqlshdk::db::k_default_mysql_port);
+  if (ssh.has_data()) {
+    mysqlshdk::ssh::current_ssh_manager()->create_tunnel(&ssh);
   }
 
   const auto session = std::make_shared<ClassicSession>();

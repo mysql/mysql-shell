@@ -160,7 +160,7 @@ class Import_table_options : public Import_table_option_pack {
   Import_table_options() = default;
   explicit Import_table_options(const Import_table_option_pack &pack);
   void set_base_session(
-      const std::shared_ptr<mysqlshdk::db::mysql::Session> &session) {
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
     m_base_session = session;
   }
 
@@ -180,7 +180,7 @@ class Import_table_options : public Import_table_option_pack {
   std::string target_import_info() const;
 
  private:
-  std::shared_ptr<mysqlshdk::db::mysql::Session> m_base_session;
+  std::shared_ptr<mysqlshdk::db::ISession> m_base_session;
   std::unique_ptr<mysqlshdk::storage::IFile> m_file_handle;
 };
 

@@ -277,7 +277,8 @@ void Base_shell::update_prompt_variables() {
     _prompt_variables["system_user"] = shcore::get_system_user();
 
     if (session && session->is_open()) {
-      mysqlshdk::db::Connection_options options(session->uri());
+      const mysqlshdk::db::Connection_options &options(
+          session->get_connection_options());
       std::string socket;
       std::string port;
 
@@ -287,6 +288,13 @@ void Base_shell::update_prompt_variables() {
       _prompt_variables["user"] = options.has_user() ? options.get_user() : "";
       _prompt_variables["host"] =
           options.has_host() ? options.get_host() : "localhost";
+
+      const auto &ssh = options.get_ssh_options();
+      if (ssh.has_data()) {
+        _prompt_variables["ssh_host"] = ssh.get_host();
+      } else {
+        _prompt_variables["ssh_host"] = "";
+      }
 
       if (session->get_member("__connection_info").descr().find("TCP") !=
           std::string::npos) {

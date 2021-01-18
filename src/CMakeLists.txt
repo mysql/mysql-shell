@@ -57,6 +57,7 @@ ENDIF()
 
 ADD_CONVENIENCE_LIBRARY(shellfe ${mysh_SRC})
 ADD_STAN_TARGET(shellfe ${mysh_SRC})
+target_link_libraries(shellfe ssh)
 
 set(mysqlsh_SRC
   mysqlsh/main.cc
@@ -101,6 +102,7 @@ target_link_libraries(mysqlsh
     shellfe
     api_modules
     mysqlshdk-static
+    ssh
     ${GCOV_LDFLAGS}
     ${MYSQLX_LIBRARIES}
     ${PROTOBUF_LIBRARIES}
@@ -337,3 +339,33 @@ IF(HAVE_PYTHON)
     ENDIF()
   endif()
 ENDIF(HAVE_PYTHON)
+
+IF(BUNDLED_SSH_DIR)
+  GET_TARGET_PROPERTY(_SSH_LIBRARY_LOCATION ssh LOCATION)
+  GET_FILENAME_COMPONENT(_SSH_LIBRARY_DIR ${_SSH_LIBRARY_LOCATION} DIRECTORY)
+  IF(WIN32)
+    FILE(GLOB_RECURSE _SSH_LIBRARIES "${_SSH_LIBRARY_DIR}/*.dll")
+  ELSEIF(APPLE)
+    FILE(GLOB_RECURSE _SSH_LIBRARY "${_SSH_LIBRARY_DIR}/libssh.dylib")
+    SET_BUNDLED_OPEN_SSL("${_SSH_LIBRARY}")
+    FILE(GLOB_RECURSE _SSH_LIBRARIES "${_SSH_LIBRARY_DIR}/*.dylib")
+  ELSE()
+    FILE(GLOB_RECURSE _SSH_LIBRARIES "${_SSH_LIBRARY_DIR}/*.so*")
+  ENDIF()
+  IF(NOT _SSH_LIBRARIES)
+    MESSAGE(FATAL_ERROR "Could not find the bundled libssh libraries")
+  ENDIF()
+  IF(WIN32)
+    FOREACH(_SSH_DLL IN LISTS _SSH_LIBRARIES)
+      INSTALL(FILES "${_SSH_DLL}" DESTINATION ${INSTALL_BINDIR} COMPONENT main)
+      GET_FILENAME_COMPONENT(_SSH_DLL_NAME "${_SSH_DLL}" NAME)
+
+      # Copy the libraries to the build dir (for running tests in build tree)
+      ADD_CUSTOM_COMMAND(TARGET mysqlsh POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_SSH_DLL}"
+                    "$<TARGET_FILE_DIR:mysqlsh>/${_SSH_DLL_NAME}")
+    ENDFOREACH()
+  ELSE()
+    INSTALL(FILES ${_SSH_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" COMPONENT main)
+  ENDIF()
+ENDIF()

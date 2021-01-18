@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,9 +28,10 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <random>
 #include <stdexcept>
-
+#include <type_traits>
 #include "utils/utils_general.h"
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
@@ -195,7 +196,7 @@ std::string get_binary_path() {
     if (path_size == 0 || last_error == ERROR_INSUFFICIENT_BUFFER) {
       throw std::runtime_error(
           "get_binary_folder: GetModuleFileName failed with error " +
-          get_error(last_error) + "\n");
+          get_error(last_error));
     } else {
       // on success path_size does not include terminated null character
       exe_path = shcore::wide_to_utf8(path, path_size);
@@ -203,7 +204,7 @@ std::string get_binary_path() {
   } else {
     throw std::runtime_error(
         "get_binary_folder: GetModuleHandle failed with error " +
-        get_last_error() + "\n");
+        get_last_error());
   }
 #else
 #ifdef __APPLE__
@@ -218,11 +219,10 @@ std::string get_binary_path() {
       exe_path.assign(real_path);
     } else {
       throw std::runtime_error(str_format(
-          "get_binary_folder: Readlink failed with error %d\n", errno));
+          "get_binary_folder: Readlink failed with error %d", errno));
     }
   } else {
-    throw std::runtime_error(
-        "get_binary_folder: _NSGetExecutablePath failed.\n");
+    throw std::runtime_error("get_binary_folder: _NSGetExecutablePath failed.");
   }
 
 #else
@@ -234,8 +234,8 @@ std::string get_binary_path() {
   if (path && getcwd(cwd, PATH_MAX)) {
     exe_path = shcore::path::join_path(cwd, path);
   } else {
-    throw std::runtime_error(str_format(
-        "get_binary_folder: Realpath failed with error %d\n", errno));
+    throw std::runtime_error(
+        str_format("get_binary_folder: Realpath failed with error %d", errno));
   }
 #else
 #ifdef __linux__
@@ -245,8 +245,8 @@ std::string get_binary_path() {
     path[len] = '\0';
     exe_path.assign(path);
   } else {
-    throw std::runtime_error(str_format(
-        "get_binary_folder: Readlink failed with error %d\n", errno));
+    throw std::runtime_error(
+        str_format("get_binary_folder: Readlink failed with error %d", errno));
   }
 #endif
 #endif
@@ -972,6 +972,36 @@ void check_file_writable_or_throw(const std::string &filename) {
   }
 }
 
+/*
+ * Check if the file has read permissions.
+ *
+ * @param filename the full path of the file to be checked
+ *
+ * Throws an exception with the reason if the file is not found or cannot be
+ * read.
+ */
+void SHCORE_PUBLIC check_file_readable_or_throw(const std::string &filename) {
+  if (is_file(filename)) {
+    std::ifstream ifs;
+#ifdef _WIN32
+    const auto wide_filename = utf8_to_wide(filename);
+    ifs.open(wide_filename, std::ofstream::in);
+#else
+    ifs.open(filename.c_str(), std::ofstream::in);
+#endif
+    std::string error = shcore::errno_to_string(errno);
+    // If it could open the file, it's readable
+    if (ifs.is_open()) {
+      ifs.close();
+    } else {
+      throw std::runtime_error("Unable to open file '" + filename +
+                               "': " + error);
+    }
+  } else {
+    throw std::runtime_error("Path '" + filename + "' is not a file'");
+  }
+}
+
 /**
  * Changes access attributes to a file to be read only.
  * @param path The path to the file to be made read only.
@@ -1158,6 +1188,192 @@ std::string get_absolute_path(const std::string &file_path,
     return path::normalize(long_path(shcore::path::join_path(
         base_dir.empty() ? path::getcwd() : base_dir, file_path)));
   }
+}
+
+#ifdef _WIN32
+
+namespace {
+
+using Security_descriptor_t =
+    std::unique_ptr<std::remove_pointer_t<PSECURITY_DESCRIPTOR>,
+                    decltype(&LocalFree)>;
+
+Security_descriptor_t get_security_descriptor(const std::string &file_name) {
+  static constexpr SECURITY_INFORMATION kReqInfo = DACL_SECURITY_INFORMATION;
+
+  const auto wide_file_name = utf8_to_wide(file_name);
+  PSECURITY_DESCRIPTOR sec_desc = nullptr;
+  const auto ret_val =
+      GetNamedSecurityInfoW(wide_file_name.c_str(), SE_FILE_OBJECT, kReqInfo,
+                            nullptr, nullptr, nullptr, nullptr, &sec_desc);
+
+  if (ret_val != ERROR_SUCCESS) {
+    throw std::system_error(ret_val, std::system_category(),
+                            "GetNamedSecurityInfo() failed (" + file_name +
+                                "): " + std::to_string(ret_val));
+  }
+
+  return {sec_desc, &LocalFree};
+}
+
+std::unique_ptr<SID, decltype(&free)> create_sid() {
+  DWORD sid_size = SECURITY_MAX_SID_SIZE;
+
+  std::unique_ptr<SID, decltype(&free)> everyone_sid(
+      static_cast<SID *>(malloc(sid_size)), &free);
+
+  if (CreateWellKnownSid(WinWorldSid, nullptr, everyone_sid.get(), &sid_size) ==
+      FALSE) {
+    throw std::system_error(
+        std::error_code(GetLastError(), std::system_category()),
+        "CreateWellKnownSid() failed");
+  }
+
+  return everyone_sid;
+}
+/**
+ * Verifies permissions of an access ACE entry.
+ *
+ * @param[in] access_ace Access ACE entry.
+ *
+ * @throw std::exception Everyone has access to the ACE access entry or
+ *                        an error occurred.
+ */
+void check_ace_access_rights(ACCESS_ALLOWED_ACE *access_ace, SID *esid) {
+  SID *sid = reinterpret_cast<SID *>(&access_ace->SidStart);
+
+  if (EqualSid(sid, esid)) {
+    if (access_ace->Mask & (FILE_EXECUTE)) {
+      throw std::system_error(make_error_code(std::errc::permission_denied),
+                              "Expected no 'Execute' for 'Everyone'.");
+    }
+    if (access_ace->Mask &
+        (FILE_WRITE_DATA | FILE_WRITE_EA | FILE_WRITE_ATTRIBUTES)) {
+      throw std::system_error(make_error_code(std::errc::permission_denied),
+                              "Expected no 'Write' for 'Everyone'.");
+    }
+    if (access_ace->Mask &
+        (FILE_READ_DATA | FILE_READ_EA | FILE_READ_ATTRIBUTES)) {
+      throw std::system_error(make_error_code(std::errc::permission_denied),
+                              "Expected no 'Read' for 'Everyone'.");
+    }
+  }
+}
+
+/**
+ * Verifies access permissions in a DACL.
+ *
+ * @param[in] dacl DACL to be verified.
+ *
+ * @throw std::exception DACL contains an ACL entry that grants full access to
+ *                        Everyone or an error occurred.
+ */
+void check_acl_access_rights(ACL *dacl) {
+  ACL_SIZE_INFORMATION dacl_size_info;
+
+  if (GetAclInformation(dacl, &dacl_size_info, sizeof(dacl_size_info),
+                        AclSizeInformation) == FALSE) {
+    throw std::system_error(
+        std::error_code(GetLastError(), std::system_category()),
+        "GetAclInformation() failed");
+  }
+
+  auto everyone_sid = create_sid();
+
+  for (DWORD ace_idx = 0; ace_idx < dacl_size_info.AceCount; ++ace_idx) {
+    LPVOID ace = nullptr;
+
+    if (GetAce(dacl, ace_idx, &ace) == FALSE) {
+      throw std::system_error(
+          std::error_code(GetLastError(), std::system_category()),
+          "GetAce() failed");
+    }
+
+    if (static_cast<ACE_HEADER *>(ace)->AceType == ACCESS_ALLOWED_ACE_TYPE)
+      check_ace_access_rights(static_cast<ACCESS_ALLOWED_ACE *>(ace),
+                              everyone_sid.get());
+  }
+}
+
+/**
+ * Verifies access permissions in a security descriptor.
+ *
+ * @param[in] sec_desc Security descriptor to be verified.
+ *
+ * @throw std::exception Security descriptor grants full access to
+ *                        Everyone or an error occurred.
+ */
+void check_security_descriptor_access_rights(
+    const Security_descriptor_t &sec_desc) {
+  BOOL dacl_present;
+  ACL *dacl;
+  BOOL dacl_defaulted;
+
+  if (GetSecurityDescriptorDacl(sec_desc.get(), &dacl_present, &dacl,
+                                &dacl_defaulted) == FALSE) {
+    throw std::system_error(
+        std::error_code(GetLastError(), std::system_category()),
+        "GetSecurityDescriptorDacl() failed");
+  }
+
+  if (!dacl_present) {
+    // No DACL means: no access allowed. Which is fine.
+    return;
+  }
+
+  if (!dacl) {
+    // Empty DACL means: all access allowed.
+    throw std::system_error(make_error_code(std::errc::permission_denied),
+                            "Expected access denied for 'Everyone'.");
+  }
+
+  check_acl_access_rights(dacl);
+}
+}  // namespace
+
+#endif  // _WIN32
+
+void check_file_access_rights_to_open(const std::string &file_name) {
+#ifdef _WIN32
+  Security_descriptor_t sec_descr{nullptr, &LocalFree};
+  try {
+    sec_descr = get_security_descriptor(file_name);
+  } catch (const std::system_error &) {
+    // that means that the system does not support ACL, in that case nothing
+    // really to check
+    return;
+  }
+  try {
+    check_security_descriptor_access_rights(sec_descr);
+  } catch (const std::system_error &e) {
+    if (e.code() == std::errc::permission_denied) {
+      throw std::system_error(
+          e.code(),
+          "'" + file_name + "' has insecure permissions. " + e.what());
+    } else {
+      throw;
+    }
+  } catch (...) {
+    throw;
+  }
+#else
+  struct stat status;
+
+  if (stat(file_name.c_str(), &status) != 0) {
+    if (errno == ENOENT) return;
+    throw std::system_error(errno, std::generic_category(),
+                            "stat() failed for " + file_name + "'");
+  }
+
+  static constexpr mode_t kFullAccessMask = (S_IRWXU | S_IRWXG | S_IRWXO);
+  static constexpr mode_t kRequiredAccessMask = (S_IRUSR | S_IWUSR);
+
+  if ((status.st_mode & kFullAccessMask) != kRequiredAccessMask) {
+    throw std::system_error(
+        make_error_code(std::errc::permission_denied),
+        "'" + file_name + "' has insecure permissions. Expected u+rw only");
+  }
+#endif  // _WIN32
 }
 
 std::string get_tempfile_path(const std::string &cnf_path) {

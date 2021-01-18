@@ -125,9 +125,36 @@ void Logger::detach_log_hook(Log_hook hook) {
   }
 }
 
+void Logger::attach_log_level_hook(Log_level_hook hook, void *user_data) {
+  if (hook) {
+    m_level_hook_list.emplace_back(hook, user_data);
+  } else {
+    throw std::invalid_argument(
+        "Logger::attach_log_level_hook: Null hook pointer");
+  }
+}
+
+void Logger::detach_log_level_hook(Log_level_hook hook) {
+  if (hook) {
+    m_level_hook_list.remove_if(
+        [hook](const std::tuple<Log_level_hook, void *> &i) {
+          return std::get<0>(i) == hook;
+        });
+  } else {
+    throw std::invalid_argument(
+        "Logger::detach_log_level_hook: Null hook pointer");
+  }
+}
+
 bool Logger::log_allowed() const { return m_dont_log == 0; }
 
-void Logger::set_log_level(LOG_LEVEL log_level) { m_log_level = log_level; }
+void Logger::set_log_level(LOG_LEVEL log_level) {
+  m_log_level = log_level;
+
+  for (const auto &f : m_level_hook_list) {
+    std::get<0>(f)(m_log_level, std::get<1>(f));
+  }
+}
 
 void Logger::assert_logger_initialized() {
   if (current_logger().get() == nullptr) {

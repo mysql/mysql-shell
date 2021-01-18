@@ -641,6 +641,8 @@ int main(int argc, char **argv) {
   int ret_val = 0;
   Interrupt_helper sighelper;
 
+  mysqlsh::Scoped_ssh_manager ssh_manager(
+      std::make_shared<mysqlshdk::ssh::Ssh_manager>());
   mysqlsh::Scoped_interrupt interrupt_handler(
       shcore::Interrupts::create(&sighelper));
 

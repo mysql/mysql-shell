@@ -1,4 +1,4 @@
-# Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2017, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -39,6 +39,7 @@ ADD_SUBDIRECTORY(libs/secret-store-api)
 ADD_SUBDIRECTORY(libs/rest)
 ADD_SUBDIRECTORY(libs/storage)
 ADD_SUBDIRECTORY(libs/oci)
+ADD_SUBDIRECTORY(libs/ssh)
 ADD_SUBDIRECTORY(scripting)
 ADD_SUBDIRECTORY(shellcore)
 
@@ -53,6 +54,7 @@ ADD_SUBDIRECTORY(shellcore)
 merge_convenience_libraries(mysqlshdk-static
     utils
     db
+    shellssh
     mysql
     config
     mysql-secret-store-api

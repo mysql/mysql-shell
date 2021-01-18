@@ -129,8 +129,10 @@ class SHCORE_PUBLIC ClassicSession
   void kill_query() override;
 
 #if DOXYGEN_JS
-  String uri;  //!< $(CLASSICSESSION_GETURI_BRIEF)
+  String uri;     //!< $(CLASSICSESSION_GETURI_BRIEF)
+  String sshUri;  //!< $(CLASSICSESSION_GETSSHURI_BRIEF)
   String getUri();
+  String getSshUri();
   ClassicResult runSql(String query, Array args = []);
   ClassicResult query(String query, Array args = []);
   Undefined close();
@@ -139,8 +141,10 @@ class SHCORE_PUBLIC ClassicSession
   ClassicResult rollback();
   Bool isOpen();
 #elif DOXYGEN_PY
-  str uri;  //!< Same as get_uri()
+  str uri;      //!< Same as get_uri()
+  str ssh_uri;  //!< Same as get_ssh_uri()
   str get_uri();
+  str get_ssh_uri();
   ClassicResult run_sql(str query, list args = []);
   ClassicResult query(str query, list args = []);
   None close();

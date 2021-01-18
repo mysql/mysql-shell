@@ -62,6 +62,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/textui/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/gr/group_replication_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/innodbcluster/*.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/libs/ssh/*.cc"
         "${PROJECT_SOURCE_DIR}/unittest/mysqlshdk/scripting/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/*.cc"

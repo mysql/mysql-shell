@@ -681,6 +681,7 @@ TEST_F(Completer_frontend, js_shell) {
                                        "help()",
                                        "listCredentialHelpers()",
                                        "listCredentials()",
+                                       "listSshConnections()",
                                        "log()",
                                        "openSession()",
                                        "options",
@@ -753,9 +754,10 @@ TEST_F(Completer_frontend, js_devapi) {
 
   EXPECT_AFTER_TAB("session.createS", "session.createSchema()");
   EXPECT_AFTER_TAB("session.st", "session.startTransaction()");
-  EXPECT_AFTER_TAB_TAB("session.get",
-                       strv({"getCurrentSchema()", "getDefaultSchema()",
-                             "getSchema()", "getSchemas()", "getUri()"}));
+  EXPECT_AFTER_TAB_TAB(
+      "session.get",
+      strv({"getCurrentSchema()", "getDefaultSchema()", "getSchema()",
+            "getSchemas()", "getSshUri()", "getUri()"}));
 
   EXPECT_AFTER_TAB("session.sql", "session.sql()");
   EXPECT_AFTER_TAB("session.sql('sele\t", "session.sql('sele");
@@ -779,9 +781,10 @@ TEST_F(Completer_frontend, js_devapi) {
   EXPECT_AFTER_TAB("session.sql(mkquery(\"\")).e",
                    "session.sql(mkquery(\"\")).execute()");
 
-  EXPECT_AFTER_TAB_TAB("session.get",
-                       strv({"getCurrentSchema()", "getDefaultSchema()",
-                             "getSchema()", "getSchemas()", "getUri()"}));
+  EXPECT_AFTER_TAB_TAB(
+      "session.get",
+      strv({"getCurrentSchema()", "getDefaultSchema()", "getSchema()",
+            "getSchemas()", "getSshUri()", "getUri()"}));
   EXPECT_AFTER_TAB("session.getC", "session.getCurrentSchema()");
 
   // TS_FR5.1_X01
@@ -1198,6 +1201,7 @@ TEST_F(Completer_frontend, py_shell) {
                                        "help()",
                                        "list_credential_helpers()",
                                        "list_credentials()",
+                                       "list_ssh_connections()",
                                        "log()",
                                        "open_session()",
                                        "options",
@@ -1282,9 +1286,10 @@ TEST_F(Completer_frontend, py_devapi) {
 
   EXPECT_AFTER_TAB("session.create_s", "session.create_schema()");
   EXPECT_AFTER_TAB("session.st", "session.start_transaction()");
-  EXPECT_AFTER_TAB_TAB("session.get_",
-                       strv({"get_current_schema()", "get_default_schema()",
-                             "get_schema()", "get_schemas()", "get_uri()"}));
+  EXPECT_AFTER_TAB_TAB(
+      "session.get_",
+      strv({"get_current_schema()", "get_default_schema()", "get_schema()",
+            "get_schemas()", "get_ssh_uri()", "get_uri()"}));
 
   EXPECT_AFTER_TAB("session.sql", "session.sql()");
   EXPECT_AFTER_TAB("session.sql('sele\t", "session.sql('sele");
@@ -1308,9 +1313,10 @@ TEST_F(Completer_frontend, py_devapi) {
   EXPECT_AFTER_TAB("session.sql(mkquery(\"\")).e",
                    "session.sql(mkquery(\"\")).execute()");
 
-  EXPECT_AFTER_TAB_TAB("session.get_",
-                       strv({"get_current_schema()", "get_default_schema()",
-                             "get_schema()", "get_schemas()", "get_uri()"}));
+  EXPECT_AFTER_TAB_TAB(
+      "session.get_",
+      strv({"get_current_schema()", "get_default_schema()", "get_schema()",
+            "get_schemas()", "get_ssh_uri()", "get_uri()"}));
   EXPECT_AFTER_TAB("session.get_c", "session.get_current_schema()");
 
   // TS_FR5.1_X01

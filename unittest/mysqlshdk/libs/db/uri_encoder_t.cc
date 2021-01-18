@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020 Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2021 Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -22,15 +22,17 @@
 #include <gtest_clean.h>
 #include <stdexcept>
 #include "mysqlshdk/libs/db/uri_encoder.h"
+#include "mysqlshdk/libs/db/uri_parser.h"
 
 using mysqlshdk::db::uri::ALPHANUMERIC;
 using mysqlshdk::db::uri::DELIMITERS;
 using mysqlshdk::db::uri::DIGIT;
 using mysqlshdk::db::uri::HEXDIG;
 using mysqlshdk::db::uri::SUBDELIMITERS;
+using mysqlshdk::db::uri::Tokens;
 using mysqlshdk::db::uri::UNRESERVED;
 using mysqlshdk::db::uri::Uri_encoder;
-
+using mysqlshdk::db::uri::Uri_parser;
 namespace testing {
 
 #define MY_EXPECT_THROW(e, m, c)         \
@@ -263,4 +265,80 @@ TEST(Uri_encoder, encode_values) {
   EXPECT_EQ("[]", encoder.encode_values({}, true));
 }
 
+TEST(Uri_encoder, encode_uri) {
+  Uri_encoder encoder(false);
+  mysqlshdk::ssh::Ssh_connection_options ssh;
+  ssh.set_host("example.com");
+  ssh.set_user("user");
+  ssh.set_password("password");
+  ssh.set_port(22);
+
+  EXPECT_EQ("ssh://user@example.com:22",
+            encoder.encode_uri(
+                ssh, mysqlshdk::db::uri::formats::no_schema_no_query()));
+
+  mysqlshdk::db::uri::Tokens_mask tm(Tokens::Scheme);
+  tm.set(Tokens::User)
+      .set(Tokens::Password)
+      .set(Tokens::Transport)
+      .set(Tokens::Schema);
+
+  MY_EXPECT_THROW(std::invalid_argument,
+                  "encode_uri doesn't support Tokens::Schema and Tokens::Query",
+                  encoder.encode_uri(ssh, tm));
+
+  tm.unset(Tokens::Schema);
+  tm.set(Tokens::Query);
+  MY_EXPECT_THROW(std::invalid_argument,
+                  "encode_uri doesn't support Tokens::Schema and Tokens::Query",
+                  encoder.encode_uri(ssh, tm));
+
+  ssh.clear_user();
+  ssh.clear_password();
+  EXPECT_EQ("ssh://example.com:22",
+            encoder.encode_uri(
+                ssh, mysqlshdk::db::uri::formats::no_schema_no_query()));
+
+  ssh.clear_host();
+  EXPECT_EQ("ssh://localhost:22",
+            encoder.encode_uri(
+                ssh, mysqlshdk::db::uri::formats::no_schema_no_query()));
+
+  ssh.set_user("user");
+  ssh.set_password("password");
+  EXPECT_EQ("ssh://user@localhost:22",
+            encoder.encode_uri(
+                ssh, mysqlshdk::db::uri::formats::no_schema_no_query()));
+
+  ssh.clear_port();
+  EXPECT_EQ("ssh://user@localhost",
+            encoder.encode_uri(
+                ssh, mysqlshdk::db::uri::formats::no_schema_no_query()));
+
+  ssh.clear_password();
+  EXPECT_EQ("ssh://user@localhost",
+            encoder.encode_uri(
+                ssh, mysqlshdk::db::uri::formats::no_schema_no_query()));
+
+  ssh.clear_user();
+  ssh.set_password("password");
+  EXPECT_EQ("ssh://localhost",
+            encoder.encode_uri(
+                ssh, mysqlshdk::db::uri::formats::no_schema_no_query()));
+}
+
+TEST(Uri_encoder, encode_file_uri) {
+  Uri_parser parser(false);
+  mysqlshdk::db::Connection_options data =
+      parser.parse("file:/sample/file/path");
+
+  mysqlshdk::db::uri::Tokens_mask tm(Tokens::Scheme);
+  tm.set(Tokens::Transport);
+
+  Uri_encoder encoder(false);
+  EXPECT_EQ("file:/sample/file/path", encoder.encode_uri(data, tm));
+
+  tm.unset(Tokens::Transport);
+  EXPECT_EQ("file:/", encoder.encode_uri(data, tm));
+}
 }  // namespace testing

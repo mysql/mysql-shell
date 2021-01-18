@@ -465,8 +465,26 @@ void Shell_core_test_wrapper::enable_testutil() {
         }
       },
       [this]() -> void {
-        EXPECT_EQ(0, output_handler.prompts.size());
-        EXPECT_EQ(0, output_handler.passwords.size());
+        {
+          std::vector<std::string> prompts;
+          for (const auto &prompt : output_handler.prompts) {
+            prompts.push_back(shcore::str_format("PROMPT: '%s' [%s]",
+                                                 prompt.first.c_str(),
+                                                 prompt.second.c_str()));
+          }
+          SCOPED_TRACE(shcore::str_join(prompts, "\n").c_str());
+          EXPECT_EQ(0, output_handler.prompts.size());
+        }
+        {
+          std::vector<std::string> passwords;
+          for (const auto &password : output_handler.passwords) {
+            passwords.push_back(shcore::str_format("PROMPT: '%s' [%s]",
+                                                   password.first.c_str(),
+                                                   password.second.c_str()));
+          }
+          SCOPED_TRACE(shcore::str_join(passwords, "\n").c_str());
+          EXPECT_EQ(0, output_handler.passwords.size());
+        }
       },
       [this]() -> void { output_handler.wipe_all(); });
 

@@ -1,0 +1,9 @@
+Host dev
+    HostName 127.0.0.1
+    User testuser
+    Port 2222
+
+Host prod
+     HostName 127.0.0.1
+     User root
+     Port 2222

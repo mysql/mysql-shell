@@ -86,9 +86,8 @@ class Mock_session : public mysqlshdk::db::ISession,
  public:
   Mock_session();
   MOCK_METHOD1(
-      connect,
+      do_connect,
       void(const mysqlshdk::db::Connection_options &connection_options));
-
   // Execution
   std::shared_ptr<mysqlshdk::db::IResult> querys(const char *sql, size_t len,
                                                  bool buffered) override {
@@ -112,13 +111,12 @@ class Mock_session : public mysqlshdk::db::ISession,
   // Error handling
   MOCK_CONST_METHOD0(get_last_error, mysqlshdk::db::Error *());
 
-  // Disconnection
-  MOCK_METHOD0(close, void());
-
   Mock_session &expect_query(const std::string &query) {
     Mock_session_common::do_expect_query(query);
     return *this;
   }
+  // Disconnection
+  MOCK_METHOD0(do_close, void());
 
   void expect_query(const Fake_result_data &data) {
     expect_query(data.sql).then_return({data});

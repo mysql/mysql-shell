@@ -9,12 +9,14 @@ validateMembers(classicSession, [
     'close',
     'commit',
     'getUri',
+    'getSshUri',
     'help',
     'isOpen',
     'startTransaction',
     'query',
     'rollback',
     'runSql',
+    'sshUri',
     'uri',
     '_getSocketFd'])
 

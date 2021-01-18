@@ -67,6 +67,7 @@ class SHCORE_PUBLIC Logger final {
   };
 
   using Log_hook = void (*)(const Log_entry &entry, void *);
+  using Log_level_hook = void (*)(LOG_LEVEL level, void *);
 
   Logger(const Logger &) = delete;
   Logger(Logger &&) = delete;
@@ -79,6 +80,9 @@ class SHCORE_PUBLIC Logger final {
   void attach_log_hook(Log_hook hook, void *hook_data = nullptr,
                        bool catch_all = false);
   void detach_log_hook(Log_hook hook);
+
+  void attach_log_level_hook(Log_level_hook hook, void *hook_data = nullptr);
+  void detach_log_level_hook(Log_level_hook hook);
 
   bool log_allowed() const;
 
@@ -148,6 +152,7 @@ class SHCORE_PUBLIC Logger final {
   std::ofstream m_log_file;
   std::string m_log_file_name;
   std::list<std::tuple<Log_hook, void *, bool>> m_hook_list;
+  std::list<std::tuple<Log_level_hook, void *>> m_level_hook_list;
 
   std::list<std::string> m_log_context;
 

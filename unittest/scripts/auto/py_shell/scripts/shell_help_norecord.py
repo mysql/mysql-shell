@@ -115,6 +115,15 @@ shell.help('list_credentials')
 #@ global help for list_credentials [USE:shell.list_credentials]
 \help Shell.list_credentials
 
+#@ shell.list_ssh_connections
+shell.help('list_ssh_connections')
+
+#@ global ? for list_ssh_connections [USE:shell.list_ssh_connections]
+\? Shell.list_ssh_connections
+
+#@ global help for list_ssh_connections [USE:shell.list_ssh_connections]
+\help Shell.list_ssh_connections
+
 #@ shell.log
 shell.help('log')
 

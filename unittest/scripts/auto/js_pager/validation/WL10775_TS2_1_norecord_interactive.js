@@ -64,6 +64,9 @@ DESCRIPTION
       Provides facilities to execute queries.
 
 PROPERTIES
+      sshUri
+            Retrieves the SSH URI for the current session.
+
       uri
             Retrieves the URI for the current session.
 
@@ -75,6 +78,9 @@ FUNCTIONS
       commit()
             Commits all the operations executed after a call to
             startTransaction().
+
+      getSshUri()
+            Retrieves the SSH URI for the current session.
 
       getUri()
             Retrieves the URI for the current session.

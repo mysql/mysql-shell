@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -37,6 +37,10 @@ set(fuzz_uri_parser_SRC
     "${PROJECT_SOURCE_DIR}/mysqlshdk/libs/utils/dtoa.cc"
     "${PROJECT_SOURCE_DIR}/mysqlshdk/libs/db/ssl_options.cc"
     "${PROJECT_SOURCE_DIR}/mysqlshdk/libs/db/uri_encoder.cc"
+    "${PROJECT_SOURCE_DIR}/mysqlshdk/libs/ssh/ssh_connection_options.cc"
+    "${PROJECT_SOURCE_DIR}/mysqlshdk/libs/ssh/ssh_session_options.cc"
+    "${PROJECT_SOURCE_DIR}/mysqlshdk/libs/ssh/ssh_common.cc"
+    "${PROJECT_SOURCE_DIR}/mysqlshdk/libs/storage/utils.cc"
     "${PROJECT_SOURCE_DIR}/mysqlshdk/libs/utils/logger.cc"
     "${PROJECT_SOURCE_DIR}/mysqlshdk/shellcore/scoped_contexts.cc"
     "${PROJECT_SOURCE_DIR}/mysqlshdk/shellcore/interrupt_handler.cc"

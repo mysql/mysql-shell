@@ -902,7 +902,7 @@ void Cluster::force_quorum_using_partition_of(
     instance_def.set_port(mysqlshdk::db::k_default_mysql_port);
   }
 
-  instance_def.set_default_connection_data();
+  instance_def.set_default_data();
 
   bool interactive = current_shell_options()->get().wizards;
 

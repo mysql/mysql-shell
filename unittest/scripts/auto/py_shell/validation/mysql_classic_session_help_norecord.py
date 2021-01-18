@@ -10,6 +10,9 @@ DESCRIPTION
       Provides facilities to execute queries.
 
 PROPERTIES
+      ssh_uri
+            Retrieves the SSH URI for the current session.
+
       uri
             Retrieves the URI for the current session.
 
@@ -21,6 +24,9 @@ FUNCTIONS
       commit()
             Commits all the operations executed after a call to
             start_transaction().
+
+      get_ssh_uri()
+            Retrieves the SSH URI for the current session.
 
       get_uri()
             Retrieves the URI for the current session.
@@ -107,7 +113,7 @@ RETURNS
 
 DESCRIPTION
       Returns true if the session is still open and false otherwise.
-      
+
       NOTE: This function may return true if connection is lost.
 
 #@<OUT> session.query

@@ -61,6 +61,7 @@ errno_t memset_s(void *__s, rsize_t __smax, int __c, rsize_t __n);
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "shellcore/utils_help.h"
@@ -179,9 +180,21 @@ mysqlshdk::db::Connection_options get_connection_options(const std::string &uri,
                                                          bool set_defaults) {
   mysqlshdk::db::Connection_options connection_options(uri);
 
-  if (set_defaults) connection_options.set_default_connection_data();
+  if (set_defaults) connection_options.set_default_data();
 
   return connection_options;
+}
+
+mysqlshdk::ssh::Ssh_connection_options get_ssh_connection_options(
+    const std::string &uri, bool set_defaults, const std::string &config_path) {
+  mysqlshdk::ssh::Ssh_connection_options config(uri);
+  if (!config_path.empty()) {
+    config.set_config_file(config_path);
+  }
+
+  if (set_defaults) config.set_default_data();
+
+  return config;
 }
 
 /**
@@ -1253,29 +1266,6 @@ bool match_glob(const std::string &pattern, const std::string &s,
 const char *get_long_version() {
   return "Ver " MYSH_FULL_VERSION " for " SYSTEM_TYPE " on " MACHINE_TYPE
          " - for MySQL " LIBMYSQL_VERSION " (" MYSQL_COMPILATION_COMMENT ")";
-}
-
-void clear_buffer(char *buffer, size_t size) {
-#ifdef _WIN32
-  SecureZeroMemory(buffer, size);
-#else
-#if defined HAVE_EXPLICIT_BZERO
-  explicit_bzero(buffer, size);
-#elif defined HAVE_MEMSET_S
-  memset_s(buffer, size, '\0', size);
-#else
-  volatile char *p = buffer;
-  while (size--) {
-    *p++ = '\0';
-  }
-#endif
-#endif
-}
-
-void clear_buffer(std::string *buffer) {
-  assert(buffer);
-  clear_buffer(&(*buffer)[0], buffer->capacity());
-  buffer->clear();
 }
 
 #ifdef _WIN32
