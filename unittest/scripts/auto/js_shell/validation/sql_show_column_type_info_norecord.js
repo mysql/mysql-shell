@@ -2280,8 +2280,8 @@ Table:     `t`
 Org_table: `t`
 Type:      Bytes
 DbType:    BLOB
-Collation: latin1_swedish_ci (8)
-Length:    255
+Collation: utf8mb4_general_ci (45)
+Length:    1020
 Decimals:  0
 Flags:     BLOB
 
@@ -2308,8 +2308,8 @@ Table:     `t`
 Org_table: `t`
 Type:      Bytes
 DbType:    BLOB
-Collation: latin1_swedish_ci (8)
-Length:    65535
+Collation: utf8mb4_general_ci (45)
+Length:    262140
 Decimals:  0
 Flags:     BLOB
 
@@ -2336,8 +2336,8 @@ Table:     `t`
 Org_table: `t`
 Type:      Bytes
 DbType:    BLOB
-Collation: latin1_swedish_ci (8)
-Length:    16777215
+Collation: utf8mb4_general_ci (45)
+Length:    67108860
 Decimals:  0
 Flags:     BLOB
 
@@ -2364,7 +2364,7 @@ Table:     `t`
 Org_table: `t`
 Type:      Bytes
 DbType:    BLOB
-Collation: latin1_swedish_ci (8)
+Collation: utf8mb4_general_ci (45)
 Length:    4294967295
 Decimals:  0
 Flags:     BLOB
@@ -2378,8 +2378,8 @@ Table:     `t`
 Org_table: `t`
 Type:      Enum
 DbType:    STRING
-Collation: latin1_swedish_ci (8)
-Length:    1
+Collation: utf8mb4_general_ci (45)
+Length:    4
 Decimals:  0
 Flags:     ENUM
 
@@ -2392,8 +2392,8 @@ Table:     `t`
 Org_table: `t`
 Type:      Set
 DbType:    STRING
-Collation: latin1_swedish_ci (8)
-Length:    5
+Collation: utf8mb4_general_ci (45)
+Length:    20
 Decimals:  0
 Flags:     SET
 
@@ -2448,8 +2448,8 @@ Table:     `t`
 Org_table: `t`
 Type:      String
 DbType:    STRING
-Collation: latin1_swedish_ci (8)
-Length:    10
+Collation: utf8mb4_general_ci (45)
+Length:    40
 Decimals:  0
 Flags:
 
@@ -2462,8 +2462,8 @@ Table:     `t`
 Org_table: `t`
 Type:      String
 DbType:    VAR_STRING
-Collation: latin1_swedish_ci (8)
-Length:    20
+Collation: utf8mb4_general_ci (45)
+Length:    80
 Decimals:  0
 Flags:
 

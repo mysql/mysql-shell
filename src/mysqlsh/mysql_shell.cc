@@ -52,6 +52,7 @@
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/oci/oci.h"
+#include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "mysqlshdk/shellcore/shell_console.h"
@@ -879,6 +880,9 @@ void Mysql_shell::print_connection_message(
 std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     const mysqlshdk::db::Connection_options &connection_options_,
     bool recreate_schema, bool shell_global_session) {
+  FI_SUPPRESS(mysql);
+  FI_SUPPRESS(mysqlx);
+
   mysqlshdk::db::Connection_options connection_options(connection_options_);
   for (const auto &warning : connection_options.get_warnings())
     mysqlsh::current_console()->print_warning(warning);

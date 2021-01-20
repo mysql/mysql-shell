@@ -1,23 +1,25 @@
-/* Copyright (c) 2017, 2020, Oracle and/or its affiliates.
-
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License, version 2.0,
- as published by the Free Software Foundation.
-
- This program is also distributed with certain software (including
- but not limited to OpenSSL) that is licensed under separate terms, as
- designated in a particular file or component or in included license
- documentation.  The authors of MySQL hereby grant you an additional
- permission to link the program and your derivative works with the
- separately licensed software that they have included with MySQL.
- This program is distributed in the hope that it will be useful,  but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
- the GNU General Public License, version 2.0, for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
+/*
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -817,8 +819,9 @@ TEST_F(Instance_test, install_plugin_win) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"version_compile_os", "Win64"}}}});
-  EXPECT_CALL(session, execute("INSTALL PLUGIN `validate_password` SONAME "
-                               "'validate_password.dll'"));
+  EXPECT_EXECUTE_CALL(
+      session,
+      "INSTALL PLUGIN `validate_password` SONAME 'validate_password.dll'");
   instance.install_plugin("validate_password");
 
   EXPECT_CALL(session, close());
@@ -839,8 +842,9 @@ TEST_F(Instance_test, install_plugin_lin) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"version_compile_os", "linux-glibc2.5"}}}});
-  EXPECT_CALL(session, execute("INSTALL PLUGIN `validate_password` SONAME "
-                               "'validate_password.so'"));
+  EXPECT_EXECUTE_CALL(
+      session,
+      "INSTALL PLUGIN `validate_password` SONAME 'validate_password.so'");
   instance.install_plugin("validate_password");
 
   // Second install fails because plugin is already installed.
@@ -852,8 +856,9 @@ TEST_F(Instance_test, install_plugin_lin) {
                      {"Variable_name", "Value"},
                      {Type::String, Type::String},
                      {{"version_compile_os", "linux-glibc2.5"}}}});
-  EXPECT_CALL(session, execute("INSTALL PLUGIN `validate_password` SONAME "
-                               "'validate_password.so'"))
+  EXPECT_EXECUTE_CALL(
+      session,
+      "INSTALL PLUGIN `validate_password` SONAME 'validate_password.so'")
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(instance.install_plugin("validate_password"),
@@ -906,11 +911,11 @@ TEST_F(Instance_test, uninstall_plugin) {
   _session->connect(_connection_options);
 
   mysqlshdk::mysql::Instance instance(_session);
-  EXPECT_CALL(session, execute("UNINSTALL PLUGIN `validate_password`"));
+  EXPECT_EXECUTE_CALL(session, "UNINSTALL PLUGIN `validate_password`");
   instance.uninstall_plugin("validate_password");
 
   // Second uninstall fails because plugin was already uninstalled.
-  EXPECT_CALL(session, execute("UNINSTALL PLUGIN `validate_password`"))
+  EXPECT_EXECUTE_CALL(session, "UNINSTALL PLUGIN `validate_password`")
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(instance.uninstall_plugin("validate_password"),
@@ -925,31 +930,33 @@ TEST_F(Instance_test, create_user) {
   mysqlshdk::mysql::Instance instance(_session);
 
   // Create database and tables for test (GRANT for non existing objects fail).
-  EXPECT_CALL(session, execute("CREATE DATABASE test_db"));
+  EXPECT_EXECUTE_CALL(session, "CREATE DATABASE test_db");
   _session->execute("CREATE DATABASE test_db");
-  EXPECT_CALL(session, execute("CREATE TABLE test_db.t1 (c1 INT)"));
+  EXPECT_EXECUTE_CALL(session, "CREATE TABLE test_db.t1 (c1 INT)");
   _session->execute("CREATE TABLE test_db.t1 (c1 INT)");
-  EXPECT_CALL(session, execute("CREATE TABLE test_db.t2 (c1 INT)"));
+  EXPECT_EXECUTE_CALL(session, "CREATE TABLE test_db.t2 (c1 INT)");
   _session->execute("CREATE TABLE test_db.t2 (c1 INT)");
-  EXPECT_CALL(session, execute("CREATE DATABASE test_db2"));
+  EXPECT_EXECUTE_CALL(session, "CREATE DATABASE test_db2");
   _session->execute("CREATE DATABASE test_db2");
-  EXPECT_CALL(session, execute("CREATE TABLE test_db2.t1 (c1 INT)"));
+  EXPECT_EXECUTE_CALL(session, "CREATE TABLE test_db2.t1 (c1 INT)");
   _session->execute("CREATE TABLE test_db2.t1 (c1 INT)");
 
   // Create user with SELECT, INSERT, UPDATE on test_db.* and DELETE on
   // test_db.t1.
-  EXPECT_CALL(
+  EXPECT_EXECUTE_CALL(session,
+                      "CREATE USER IF NOT EXISTS 'test_user'@'test_host' "
+                      "IDENTIFIED BY /*((*/ 'test_pwd' /*))*/");
+  EXPECT_EXECUTE_CALL(
       session,
-      execute("CREATE USER IF NOT EXISTS 'test_user'@'test_host' IDENTIFIED "
-              "BY /*((*/ 'test_pwd' /*))*/"));
-  EXPECT_CALL(session, execute("GRANT SELECT, INSERT, UPDATE ON test_db.* "
-                               "TO 'test_user'@'test_host'"));
-  EXPECT_CALL(session,
-              execute("GRANT DELETE ON test_db.t1 TO 'test_user'@'test_host'"));
-  EXPECT_CALL(session, execute("GRANT ALTER,DROP ON test_db.t2 "
-                               "TO 'test_user'@'test_host' WITH GRANT OPTION"));
-  EXPECT_CALL(session, execute("GRANT SELECT ON test_db2.* "
-                               "TO 'test_user'@'test_host' WITH GRANT OPTION"));
+      "GRANT SELECT, INSERT, UPDATE ON test_db.* TO 'test_user'@'test_host'");
+  EXPECT_EXECUTE_CALL(session,
+                      "GRANT DELETE ON test_db.t1 TO 'test_user'@'test_host'");
+  EXPECT_EXECUTE_CALL(session,
+                      "GRANT ALTER,DROP ON test_db.t2 TO "
+                      "'test_user'@'test_host' WITH GRANT OPTION");
+  EXPECT_EXECUTE_CALL(session,
+                      "GRANT SELECT ON test_db2.* TO 'test_user'@'test_host' "
+                      "WITH GRANT OPTION");
   std::vector<std::tuple<std::string, std::string, bool>> test_priv = {
       std::make_tuple("SELECT, INSERT, UPDATE", "test_db.*", false),
       std::make_tuple("DELETE", "test_db.t1", false),
@@ -957,31 +964,27 @@ TEST_F(Instance_test, create_user) {
       std::make_tuple("SELECT", "test_db2.*", true)};
   instance.create_user("test_user", "test_host", "test_pwd", test_priv);
   // Create user with ALL on *.* WITH GRANT OPTION.
-  EXPECT_CALL(
-      session,
-      execute("CREATE USER IF NOT EXISTS 'dba_user'@'dba_host' IDENTIFIED "
-              "BY /*((*/ 'dba_pwd' /*))*/"));
-  EXPECT_CALL(
-      session,
-      execute("GRANT ALL ON *.* TO 'dba_user'@'dba_host' WITH GRANT OPTION"));
+  EXPECT_EXECUTE_CALL(session,
+                      "CREATE USER IF NOT EXISTS 'dba_user'@'dba_host' "
+                      "IDENTIFIED BY /*((*/ 'dba_pwd' /*))*/");
+  EXPECT_EXECUTE_CALL(
+      session, "GRANT ALL ON *.* TO 'dba_user'@'dba_host' WITH GRANT OPTION");
   std::vector<std::tuple<std::string, std::string, bool>> dba_priv = {
       std::make_tuple("ALL", "*.*", true)};
   instance.create_user("dba_user", "dba_host", "dba_pwd", dba_priv);
 
   // Second create users fail because they already exist.
-  EXPECT_CALL(
-      session,
-      execute("CREATE USER IF NOT EXISTS 'test_user'@'test_host' IDENTIFIED "
-              "BY /*((*/ 'test_pwd' /*))*/"))
+  EXPECT_EXECUTE_CALL(session,
+                      "CREATE USER IF NOT EXISTS 'test_user'@'test_host' "
+                      "IDENTIFIED BY /*((*/ 'test_pwd' /*))*/")
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(
       instance.create_user("test_user", "test_host", "test_pwd", test_priv),
       std::exception);
-  EXPECT_CALL(
-      session,
-      execute("CREATE USER IF NOT EXISTS 'dba_user'@'dba_host' IDENTIFIED "
-              "BY /*((*/ 'dba_pwd' /*))*/"))
+  EXPECT_EXECUTE_CALL(session,
+                      "CREATE USER IF NOT EXISTS 'dba_user'@'dba_host' "
+                      "IDENTIFIED BY /*((*/ 'dba_pwd' /*))*/")
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(
@@ -1126,28 +1129,28 @@ TEST_F(Instance_test, drop_user) {
   mysqlshdk::mysql::Instance instance(_session);
 
   // DROP table and database previously created in test create_user.
-  EXPECT_CALL(session, execute("DROP TABLE test_db.t1"));
+  EXPECT_EXECUTE_CALL(session, "DROP TABLE test_db.t1");
   _session->execute("DROP TABLE test_db.t1");
-  EXPECT_CALL(session, execute("DROP TABLE test_db.t2"));
+  EXPECT_EXECUTE_CALL(session, "DROP TABLE test_db.t2");
   _session->execute("DROP TABLE test_db.t2");
-  EXPECT_CALL(session, execute("DROP DATABASE test_db"));
+  EXPECT_EXECUTE_CALL(session, "DROP DATABASE test_db");
   _session->execute("DROP DATABASE test_db");
-  EXPECT_CALL(session, execute("DROP TABLE test_db2.t1"));
+  EXPECT_EXECUTE_CALL(session, "DROP TABLE test_db2.t1");
   _session->execute("DROP TABLE test_db2.t1");
-  EXPECT_CALL(session, execute("DROP DATABASE test_db2"));
+  EXPECT_EXECUTE_CALL(session, "DROP DATABASE test_db2");
   _session->execute("DROP DATABASE test_db2");
 
   // Drop users previously created in test create_user.
-  EXPECT_CALL(session, execute("DROP USER 'test_user'@'test_host'"));
+  EXPECT_EXECUTE_CALL(session, "DROP USER 'test_user'@'test_host'");
   instance.drop_user("test_user", "test_host");
-  EXPECT_CALL(session, execute("DROP USER 'dba_user'@'dba_host'"));
+  EXPECT_EXECUTE_CALL(session, "DROP USER 'dba_user'@'dba_host'");
   instance.drop_user("dba_user", "dba_host");
   // Second drop user fails because user does not exist.
-  EXPECT_CALL(session, execute("DROP USER 'test_user'@'test_host'"))
+  EXPECT_EXECUTE_CALL(session, "DROP USER 'test_user'@'test_host'")
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(instance.drop_user("test_user", "test_host"), std::exception);
-  EXPECT_CALL(session, execute("DROP USER 'dba_user'@'dba_host'"))
+  EXPECT_EXECUTE_CALL(session, "DROP USER 'dba_user'@'dba_host'")
       .Times(1)
       .WillRepeatedly(Throw(std::exception()));
   EXPECT_THROW(instance.drop_user("dba_user", "dba_host"), std::exception);
@@ -1326,12 +1329,12 @@ TEST_F(Instance_test, suppress_binary_log) {
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
-  EXPECT_CALL(session, execute("SET SESSION sql_log_bin=0"));
+  EXPECT_EXECUTE_CALL(session, "SET SESSION sql_log_bin=0");
   instance.suppress_binary_log(true);
   instance.suppress_binary_log(true);
 
   instance.suppress_binary_log(false);
-  EXPECT_CALL(session, execute("SET SESSION sql_log_bin=1"));
+  EXPECT_EXECUTE_CALL(session, "SET SESSION sql_log_bin=1");
   instance.suppress_binary_log(false);
 }
 

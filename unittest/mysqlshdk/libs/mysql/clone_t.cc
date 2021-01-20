@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -112,7 +112,7 @@ TEST_F(Clone_test, plugin_installation) {
                        {Type::String, Type::String},
                        {{"super_read_only", "OFF"}}}});
 
-    EXPECT_CALL(*mock_session, execute("UNINSTALL PLUGIN `clone`"));
+    EXPECT_EXECUTE_CALL(*mock_session, "UNINSTALL PLUGIN `clone`");
 
     bool res = mysqlshdk::mysql::uninstall_clone_plugin(instance, nullptr);
     EXPECT_TRUE(res);
@@ -133,7 +133,7 @@ TEST_F(Clone_test, plugin_installation) {
                        {Type::String, Type::String},
                        {{"super_read_only", "OFF"}}}});
 
-    EXPECT_CALL(*mock_session, execute("UNINSTALL PLUGIN `clone`"));
+    EXPECT_EXECUTE_CALL(*mock_session, "UNINSTALL PLUGIN `clone`");
 
     bool res = mysqlshdk::mysql::uninstall_clone_plugin(instance, nullptr);
     EXPECT_TRUE(res);

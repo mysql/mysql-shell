@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
@@ -122,7 +123,13 @@ void Shell_sql::kill_query(uint64_t conn_id,
 
 static inline bool ansi_quotes_enabled(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-  return session ? session->ansi_quotes_enabled() : false;
+  if (session) {
+    FI_SUPPRESS(mysql);
+    FI_SUPPRESS(mysqlx);
+    return session->ansi_quotes_enabled();
+  } else {
+    return false;
+  }
 }
 
 bool Shell_sql::process_sql(const char *query_str, size_t query_len,

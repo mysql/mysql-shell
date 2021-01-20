@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -464,6 +464,10 @@ void Load_data_worker::execute(
     fi.prog_mutex = &m_output_mutex;
     fi.user_interrupt = &m_interrupt;
     fi.max_rate = m_opt.max_rate();
+
+    // this sets the character_set_database and collation_database server
+    // variables to the values the schema has
+    session->executef("USE !;", m_opt.schema());
 
     // clear the SQL mode
     session->execute("SET SQL_MODE = '';");

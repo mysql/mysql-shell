@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -476,6 +476,22 @@ std::string Session::escape_string(const char *buffer, size_t len) const {
       mysql_real_escape_string_quote(_impl->_mysql, &res[0], buffer, len, '\'');
   res.resize(l);
   return res;
+}
+
+void Session_impl::setup_default_character_set() {
+  // libmysqlclient 8.0 by default is using 'utf8mb4' character set for the new
+  // connections, however when negotiating the connection details it sends the
+  // collation name, not the character set name
+  //
+  // since we're linked against the 8.0 version of libmysqlclient, the collation
+  // that corresponds to 'utf8mb4' is 'utf8mb4_0900_ai_ci', which is not known
+  // to the 5.7 servers
+  //
+  // if server receives a collation it does not know, it falls back to the
+  // compiled-in default, which in case of 5.7 server is 'latin1'
+  if (get_server_version() < mysqlshdk::utils::Version(8, 0, 0)) {
+    execute("SET NAMES 'utf8mb4';");
+  }
 }
 
 std::function<std::shared_ptr<Session>()> g_session_factory;

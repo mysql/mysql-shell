@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,8 @@
 
 #include <mysql.h>
 #include <mysqld_error.h>
+
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <set>
@@ -62,6 +64,8 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   std::shared_ptr<IResult> query(const char *sql, size_t len, bool buffered);
   void execute(const char *sql, size_t len);
+
+  inline void execute(const char *sql) { execute(sql, ::strlen(sql)); }
 
   void start_transaction();
   void commit();
@@ -152,6 +156,9 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
                                    bool lazy_fetch = true);
   bool setup_ssl(const mysqlshdk::db::Ssl_options &ssl_options) const;
   void throw_on_connection_fail();
+
+  void setup_default_character_set();
+
   std::string _uri;
   MYSQL *_mysql = nullptr;
   std::shared_ptr<MYSQL_RES> _prev_result;
@@ -179,6 +186,7 @@ class SHCORE_PUBLIC Session : public ISession,
   void connect(
       const mysqlshdk::db::Connection_options &connection_options) override {
     _impl->connect(connection_options);
+    _impl->setup_default_character_set();
   }
 
   const mysqlshdk::db::Connection_options &get_connection_options()

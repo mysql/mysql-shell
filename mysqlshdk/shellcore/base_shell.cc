@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 
 #include <tuple>
 
+#include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "shellcore/base_session.h"
@@ -251,6 +252,9 @@ void Base_shell::request_prompt_variables_update(bool clear_cache) {
 }
 
 void Base_shell::update_prompt_variables() {
+  FI_SUPPRESS(mysql);
+  FI_SUPPRESS(mysqlx);
+
   if (Prompt_variables_update_type::CLEAR_CACHE == m_pending_update) {
     _prompt_variables.clear();
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -227,6 +228,35 @@ class FI {
 
   // reset state of all traps, which resets the onetime flag and match_counter
   static void reset_traps(const std::string &type = "");
+
+ private:
+  friend class FI_suppress;
+
+  // ignore all traps of the given type
+  static void pause_traps(const std::string &type = "");
+
+  // stop ignoring all traps of the given type
+  static void resume_traps(const std::string &type = "");
+
+  static std::mutex s_mutex;
+};
+
+class FI_suppress final {
+ public:
+  explicit FI_suppress(const std::string &type = "") : m_type(type) {
+    FI::pause_traps(m_type);
+  }
+
+  FI_suppress(const FI_suppress &) = delete;
+  FI_suppress(FI_suppress &&) = delete;
+
+  FI_suppress &operator=(const FI_suppress &) = delete;
+  FI_suppress &operator=(FI_suppress &&) = delete;
+
+  ~FI_suppress() { FI::resume_traps(m_type); }
+
+ private:
+  std::string m_type;
 };
 
 #ifdef NDEBUG
@@ -235,6 +265,14 @@ class FI {
 
 #define FI_TRIGGER_TRAP(id, args) \
   do {                            \
+  } while (0)
+
+#define FI_SUPPRESS(type) \
+  do {                    \
+  } while (0)
+
+#define FI_SUPPRESS_ALL() \
+  do {                    \
   } while (0)
 
 #else
@@ -247,6 +285,11 @@ class FI {
   do {                                                       \
     mysqlshdk::utils::FI::trigger_trap(g_##type##_fi, args); \
   } while (0)
+
+#define FI_SUPPRESS(type) \
+  mysqlshdk::utils::FI_suppress __fi_suppress_##type{STRINGIFY(type)};
+
+#define FI_SUPPRESS_ALL() mysqlshdk::utils::FI_suppress __fi_suppress_all;
 
 #endif
 

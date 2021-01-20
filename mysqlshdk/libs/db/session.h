@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #ifndef MYSQLSHDK_LIBS_DB_SESSION_H_
 #define MYSQLSHDK_LIBS_DB_SESSION_H_
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -97,14 +98,21 @@ class SHCORE_PUBLIC ISession {
   virtual mysqlshdk::utils::Version get_server_version() const = 0;
 
   // Execution
-  virtual std::shared_ptr<IResult> query(const std::string &sql,
-                                         bool buffered = false) {
+  inline std::shared_ptr<IResult> query(const std::string &sql,
+                                        bool buffered = false) {
     return querys(sql.data(), sql.length(), buffered);
   }
 
-  virtual void execute(const std::string &sql) {
+  inline std::shared_ptr<IResult> query(const char *sql,
+                                        bool buffered = false) {
+    return querys(sql, ::strlen(sql), buffered);
+  }
+
+  inline void execute(const std::string &sql) {
     executes(sql.data(), sql.length());
   }
+
+  inline void execute(const char *sql) { executes(sql, ::strlen(sql)); }
 
   virtual std::shared_ptr<IResult> querys(const char *sql, size_t len,
                                           bool buffered = false) = 0;

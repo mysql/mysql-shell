@@ -35,6 +35,7 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -449,6 +450,9 @@ void password_prompt(Connection_options *options) {
 std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     const Connection_options &options, bool prompt_for_password,
     bool prompt_in_loop) {
+  FI_SUPPRESS(mysql);
+  FI_SUPPRESS(mysqlx);
+
   try {
     Connection_options copy = options;
 

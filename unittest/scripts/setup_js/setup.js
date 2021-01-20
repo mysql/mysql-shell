@@ -788,27 +788,6 @@ function __split_trim_join(text) {
   return {'str': s.join(needle), 'array': s};
 }
 
-function __make_multiline_diff(expected, actual) {
-  const needle = '\n';
-  const idx = actual.indexOf(expected[0]);
-
-  if (idx < 0) {
-    expected[0] += '<yellow><------ INCONSISTENCY</yellow>';
-  } else {
-    for (var i = 0; i < expected.length; ++i) {
-      if (idx + i >= actual.length) {
-        expected[i] += '<yellow><------ MISSING</yellow>';
-        break;
-      } else if (expected[i] !== actual[idx + i]) {
-        expected[i] += '<yellow><------ INCONSISTENCY</yellow>';
-        break;
-      }
-    }
-  }
-
-  return expected.join(needle);
-}
-
 function __check_wildcard_match(expected, actual) {
   if (0 === expected.length) {
     return expected == actual;
@@ -938,7 +917,7 @@ function EXPECT_OUTPUT_CONTAINS_MULTILINE(t) {
 
   if (!out_result.matches && !err_result.matches) {
     const context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text.str + "\n<yellow>Actual stdout:</yellow> " + out.str + "\n<yellow>Actual stderr:</yellow> " + err.str + "\n<yellow>Diff with stdout:</yellow>\n" + out_result.diff + "\n<yellow>Diff with stderr:</yellow>\n" + err_result.diff;
-     testutil.fail(context);
+    testutil.fail(context);
   }
 }
 
@@ -962,7 +941,8 @@ function EXPECT_STDERR_CONTAINS_MULTILINE(t) {
 
   if (!err_result.matches) {
     const context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text.str + "\n<yellow>Actual stdout:</yellow> " + out.str + "\n<yellow>Actual stderr:</yellow> " + err.str + "\n<yellow>Diff with stderr:</yellow>\n" + err_result.diff;
-   }
+    testutil.fail(context);
+  }
 }
 
 function EXPECT_OUTPUT_MATCHES(re) {

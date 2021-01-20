@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #ifndef MYSQLSHDK_LIBS_DB_MYSQLX_SESSION_H_
 #define MYSQLSHDK_LIBS_DB_MYSQLX_SESSION_H_
 
+#include <cstring>
 #include <memory>
 #include <set>
 #include <string>
@@ -70,6 +71,8 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
   std::shared_ptr<IResult> query(const char *sql, size_t len,
                                  bool buffered = false);
   void execute(const char *sql, size_t len);
+
+  inline void execute(const char *sql) { execute(sql, ::strlen(sql)); }
 
   void close();
 
@@ -117,6 +120,8 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
 
   Error *get_last_error() const { return m_last_error.get(); }
 
+  void setup_default_character_set();
+
   std::unique_ptr<xcl::XSession> _mysql;
   std::string _ssl_cipher;
   std::string _connection_info;
@@ -143,6 +148,7 @@ class SHCORE_PUBLIC Session : public ISession,
 
   void connect(const mysqlshdk::db::Connection_options &data) override {
     _impl->connect(data);
+    _impl->setup_default_character_set();
   }
 
   const mysqlshdk::db::Connection_options &get_connection_options()

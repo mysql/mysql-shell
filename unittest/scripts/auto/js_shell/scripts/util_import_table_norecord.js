@@ -163,12 +163,7 @@ EXPECT_THROWS(function () {
 //@<> Ensure that non_existing_schema does not exists
 session.runSql("DROP SCHEMA IF EXISTS non_existing_schema");
 
-//@<> Throw on unknown database on 5.7.24+ {VER(>=5.7.24) && VER(<8.0)}
-EXPECT_THROWS(function () {
-    util.importTable(__import_data_path + '/world_x_cities.dump', { schema: 'non_existing_schema', table: 'cities' });
-}, "Table 'non_existing_schema.cities' doesn't exist");
-
-//@<> Throw on unknown database {VER(<5.7.24) || VER(>=8.0)}
+//@<> Throw on unknown database
 session.runSql("DROP SCHEMA IF EXISTS non_existing_schema");
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/world_x_cities.dump', { schema: 'non_existing_schema', table: 'cities' });

@@ -141,11 +141,7 @@ EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.cs
 #@<> Ensure that non_existing_schema does not exists
 session.run_sql("DROP SCHEMA IF EXISTS non_existing_schema")
 
-#@<> Throw on unknown database on 5.7.24+ {VER(>=5.7.24) and VER(<8.0)}
-EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "schema": 'non_existing_schema', "table": 'cities' }),
-    "Table 'non_existing_schema.cities' doesn't exist")
-
-#@<> Throw on unknown database {VER(<5.7.24) or VER(>=8.0)}
+#@<> Throw on unknown database
 session.run_sql("DROP SCHEMA IF EXISTS non_existing_schema")
 EXPECT_THROWS(lambda: util.import_table(__import_data_path + '/world_x_cities.dump', { "schema": 'non_existing_schema', "table": 'cities' }),
     "Unknown database 'non_existing_schema'")
@@ -257,10 +253,7 @@ old_cs_results = session.run_sql("SELECT @@session.character_set_results").fetch
 # non-ASCII character has to have the UTF-8 representation which consists of bytes which correspond to non-capital Unicode letters,
 # because on Windows capital letters will be converted to small letters, resulting in invalid UTF-8 sequence, messing up with reported errors
 target_table = 'citi→s'
-if __version_num < 80000:
-    target_character_set = 'utf8mb4'
-else:
-    target_character_set = 'latin1'
+target_character_set = 'latin1'
 
 session.run_sql("SET NAMES ?", [ target_character_set ])
 session.run_sql("CREATE TABLE !.! LIKE !.!;", [ target_schema, target_table, target_schema, 'cities' ])

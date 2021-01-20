@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -65,6 +65,12 @@ class Fault_injector {
 
     if (g_debug_fi) fprintf(stderr, "FI: Trigger '%s' trap\n", m_name.c_str());
 
+    if (m_paused) {
+      if (g_debug_fi)
+        fprintf(stderr, "FI: Trigger '%s' is paused\n", m_name.c_str());
+      return;
+    }
+
     for (auto &trap : m_traps) {
       if (trap.conds.match(&trap, trigger_options)) {
         const auto &trap_options = trap.options;
@@ -93,11 +99,25 @@ class Fault_injector {
     }
   }
 
+  void pause() {
+    ++m_paused;
+    if (g_debug_fi && 1 == m_paused)
+      fprintf(stderr, "FI: Trigger '%s' paused\n", m_name.c_str());
+  }
+
+  void resume() {
+    assert(m_paused > 0);
+    --m_paused;
+    if (g_debug_fi && 0 == m_paused)
+      fprintf(stderr, "FI: Trigger '%s' resumed\n", m_name.c_str());
+  }
+
  private:
   std::string m_name;
   std::function<void(const FI::Args &)> m_inject;
 
   std::list<FI::Trap> m_traps;
+  int m_paused = 0;
 };
 
 static std::unique_ptr<std::vector<Fault_injector>> g_fault_injectors;
@@ -225,9 +245,13 @@ bool FI::Conditions::match(Trap *injector,
 
 // ----------------------------------------------------------------------------
 
+std::mutex FI::s_mutex;
+
 FI::Type_id FI::add_injector(
     const std::string &type,
     const std::function<void(const Args &)> &injector) {
+  const std::lock_guard<std::mutex> lock{s_mutex};
+
   if (g_debug_fi) fprintf(stderr, "FI: Add handler for '%s'\n", type.c_str());
 
   if (!g_fault_injectors)
@@ -239,6 +263,8 @@ FI::Type_id FI::add_injector(
 }
 
 void FI::trigger_trap(Type_id type, const Trap_options &input) {
+  const std::lock_guard<std::mutex> lock{s_mutex};
+
   if (type > 0) {
     assert(g_fault_injectors && type <= g_fault_injectors->size());
 
@@ -251,6 +277,8 @@ void FI::set_trap(const std::string &type, const Conditions &conds,
 #ifdef NDEBUG
   throw std::logic_error("FI not enabled in this build");
 #endif
+  const std::lock_guard<std::mutex> lock{s_mutex};
+
   bool flag = false;
 
   for (auto &fi : *g_fault_injectors) {
@@ -263,6 +291,8 @@ void FI::set_trap(const std::string &type, const Conditions &conds,
 }
 
 void FI::clear_traps(const std::string &type) {
+  const std::lock_guard<std::mutex> lock{s_mutex};
+
   bool flag = false;
 
   for (auto &fi : *g_fault_injectors) {
@@ -275,11 +305,41 @@ void FI::clear_traps(const std::string &type) {
 }
 
 void FI::reset_traps(const std::string &type) {
+  const std::lock_guard<std::mutex> lock{s_mutex};
+
   bool flag = false;
 
   for (auto &fi : *g_fault_injectors) {
     if (type.empty() || fi.name() == type) {
       fi.reset();
+      flag = true;
+    }
+  }
+  if (!flag) throw std::invalid_argument("No injection handler named " + type);
+}
+
+void FI::pause_traps(const std::string &type) {
+  const std::lock_guard<std::mutex> lock{s_mutex};
+
+  bool flag = false;
+
+  for (auto &fi : *g_fault_injectors) {
+    if (type.empty() || fi.name() == type) {
+      fi.pause();
+      flag = true;
+    }
+  }
+  if (!flag) throw std::invalid_argument("No injection handler named " + type);
+}
+
+void FI::resume_traps(const std::string &type) {
+  const std::lock_guard<std::mutex> lock{s_mutex};
+
+  bool flag = false;
+
+  for (auto &fi : *g_fault_injectors) {
+    if (type.empty() || fi.name() == type) {
+      fi.resume();
       flag = true;
     }
   }

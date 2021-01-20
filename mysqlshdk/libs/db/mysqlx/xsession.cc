@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -746,6 +746,15 @@ void XSession_impl::store_error_and_throw(const Error &error,
   }
   m_last_error.reset(new Error(error));
   throw error;
+}
+
+void XSession_impl::setup_default_character_set() {
+  const auto version = get_server_version();
+
+  if (version >= mysqlshdk::utils::Version(8, 0, 0) &&
+      version < mysqlshdk::utils::Version(8, 0, 20)) {
+    execute("SET @@SESSION.collation_connection = 'utf8mb4_0900_ai_ci';");
+  }
 }
 
 std::function<std::shared_ptr<Session>()> g_session_factory;

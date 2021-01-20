@@ -31,6 +31,44 @@ validateMembers(mySession, [
     'releaseSavepoint',
     'rollbackTo'])
 
+//@<> BUG#30516645 character sets should be set to utf8mb4
+mySession.runSql("SHOW SESSION VARIABLES LIKE 'character\\_set\\_%'");
+
+EXPECT_STDOUT_CONTAINS_MULTILINE(`+--------------------------+-[[*]]+
+| Variable_name            | Value [[*]]|
++--------------------------+-[[*]]+
+| character_set_client     | utf8mb4 [[*]]|
+| character_set_connection | utf8mb4 [[*]]|
+| character_set_database   | [[*]]|
+| character_set_filesystem | [[*]]|
+| character_set_results    | utf8mb4 [[*]]|
+| character_set_server     | [[*]]|
+| character_set_system     | [[*]]|
++--------------------------+-[[*]]+`);
+
+//@<> BUG#30516645 colations should be set to expected value
+const expected_collation = testutil.versionCheck(__version, "<", "8.0.0") ? 'utf8mb4_general_ci' : 'utf8mb4_0900_ai_ci';
+
+mySession.runSql("SHOW SESSION VARIABLES LIKE 'collation\\_%'");
+
+EXPECT_STDOUT_CONTAINS_MULTILINE(`+----------------------+--------------------+
+| Variable_name        | Value              |
++----------------------+--------------------+
+| collation_connection | ${expected_collation} |
+| collation_database   | [[*]]|
+| collation_server     | [[*]]|
++----------------------+--------------------+`);
+
+//@<> BUG#30516645 this query should not throw
+mySession.runSql("SELECT * FROM (SELECT VARIABLE_VALUE FROM performance_schema.session_variables WHERE VARIABLE_NAME IN ('collation_connection') UNION ALL SELECT CAST(NULL as CHAR(32))) as c;");
+
+EXPECT_STDOUT_CONTAINS_MULTILINE(`+--------------------+
+| VARIABLE_VALUE     |
++--------------------+
+| ${expected_collation} |
+| NULL               |
++--------------------+`);
+
 //@ Session: accessing Schemas
 var schemas = mySession.getSchemas();
 print(getSchemaFromList(schemas, 'mysql'));
