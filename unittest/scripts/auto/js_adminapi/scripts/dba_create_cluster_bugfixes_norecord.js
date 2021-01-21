@@ -9,8 +9,8 @@ var __sandbox_dir = testutil.getSandboxPath();
 //NOTE: Can not use testutil.deploySandbox here as it will reuse a pre-generated data file that is not
 //      compatible with the innodb_page_size used on this test, so we need clean sandboxes generated
 //      with the required page size
-dba.deploySandboxInstance(__mysql_sandbox_port1, {allowRootFrom:"%", mysqldOptions: ["innodb_page_size=4k", "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
-dba.deploySandboxInstance(__mysql_sandbox_port2, {allowRootFrom:"%", mysqldOptions: ["innodb_page_size=8k", "report_host="+hostname], password: 'root', sandboxDir:__sandbox_dir});
+dba.deploySandboxInstance(__mysql_sandbox_port1, {allowRootFrom: "%", mysqldOptions: ["innodb_page_size=4k", "report_host="+hostname], password: 'root', sandboxDir: __sandbox_dir});
+dba.deploySandboxInstance(__mysql_sandbox_port2, {allowRootFrom: "%", mysqldOptions: ["innodb_page_size=8k", "report_host="+hostname], password: 'root', sandboxDir: __sandbox_dir});
 EXPECT_STDERR_EMPTY();
 
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
