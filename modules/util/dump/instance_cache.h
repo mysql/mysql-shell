@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,7 @@
 
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -97,7 +98,10 @@ struct Instance_cache {
   std::string user;
   std::string hostname;
   std::string server;
-  std::string server_version;
+  mysqlshdk::utils::Version server_version;
+  bool server_is_5_6 = false;
+  bool server_is_5_7 = false;
+  bool server_is_8_0 = false;
   std::string gtid_executed;
   std::unordered_map<std::string, Schema> schemas;
   std::vector<shcore::Account> users;
@@ -150,6 +154,8 @@ class Instance_cache_builder final {
                      const Schema_objects &excluded);
 
   void fetch_metadata();
+
+  void fetch_version();
 
   void fetch_server_metadata();
 

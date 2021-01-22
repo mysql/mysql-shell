@@ -186,10 +186,10 @@ INSERT INTO t_set  VALUES ('v1,v1,v2', '');
 INSERT INTO t_set  VALUES ('', '');
 INSERT INTO t_set  VALUES (NULL, NULL);
 
-CREATE TABLE t_json (jdoc JSON);
-INSERT INTO t_json VALUES('{"char": "varchar", "binary": "varbinary"}');
-INSERT INTO t_json VALUES('{"çhár": "varçhár", "çínary": "çarbínary"}');
-INSERT INTO t_json VALUES('["abc", 10, null, true, false]');
+/*!50708 CREATE TABLE t_json (jdoc JSON) */;
+/*!50708 INSERT INTO t_json VALUES('{"char": "varchar", "binary": "varbinary"}') */;
+/*!50708 INSERT INTO t_json VALUES('{"çhár": "varçhár", "çínary": "çarbínary"}') */;
+/*!50708 INSERT INTO t_json VALUES('["abc", 10, null, true, false]') */;
 
 CREATE TABLE t_geom (g GEOMETRY);
 INSERT INTO t_geom VALUES (ST_GeomFromText('POINT(1 1)'));

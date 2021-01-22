@@ -1453,7 +1453,8 @@ EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relat
 EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {0}".format(__mysh_version))
 
 if __version_num < 80000:
-    EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first. You can check for potential upgrade issues using util.check_for_server_upgrade().")
+    EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first.")
+    EXPECT_STDOUT_CONTAINS("NOTE: You can check for potential upgrade issues using util.check_for_server_upgrade().")
 
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("ERROR: User '{0}'@'localhost' is granted restricted privilege: {1} (fix this with 'strip_restricted_grants' compatibility option)".format(test_user, test_privilege))

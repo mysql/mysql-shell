@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -75,13 +75,21 @@ int Version::parse_token(const std::string &data) {
   return value;
 }
 
-std::string Version::get_base() const {
+std::string Version::get_short() const {
   std::string ret_val = std::to_string(_major);
 
   if (_minor) {
     ret_val.append(".").append(std::to_string(*_minor));
+  }
 
-    if (_patch) ret_val.append(".").append(std::to_string(*_patch));
+  return ret_val;
+}
+
+std::string Version::get_base() const {
+  std::string ret_val = get_short();
+
+  if (_minor && _patch) {
+    ret_val.append(".").append(std::to_string(*_patch));
   }
 
   return ret_val;

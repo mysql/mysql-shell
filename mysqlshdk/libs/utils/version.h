@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,7 +31,7 @@ namespace mysqlshdk {
 namespace utils {
 /**
  * Class to handle versions following the MySQL Standard which is
- * \<major\>.\<minor\>.\<patch\>[-more]
+ * \<major\>.\<minor\>.\<patch\>[-extra]
  */
 class Version {
  public:
@@ -40,12 +40,40 @@ class Version {
   Version(int major, int minor, int patch)
       : _major(major), _minor(minor), _patch(patch) {}
 
+  /**
+   * Returns the major version.
+   */
   int get_major() const { return _major; }
+
+  /**
+   * Returns the minor version, or 0 if not present.
+   */
   int get_minor() const { return _minor ? *_minor : 0; }
+
+  /**
+   * Returns the patch version, or 0 if not present.
+   */
   int get_patch() const { return _patch ? *_patch : 0; }
+
+  /**
+   * Returns the extra part of the version string, or an empty string if not
+   * present.
+   */
   std::string get_extra() const { return _extra ? *_extra : ""; }
 
+  /**
+   * Returns the version string in format \<major\>.\<minor\>.
+   */
+  std::string get_short() const;
+
+  /**
+   * Returns the version string in format \<major\>.\<minor\>.\<patch\>.
+   */
   std::string get_base() const;
+
+  /**
+   * Returns the version string in format \<major\>.\<minor\>.\<patch\>[-extra].
+   */
   std::string get_full() const;
 
   bool operator<(const Version &other) const;

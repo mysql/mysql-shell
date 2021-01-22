@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,7 +32,6 @@
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/libs/utils/version.h"
 
 #include "modules/util/dump/schema_dumper.h"
 
@@ -131,6 +130,8 @@ Instance_cache_builder::Instance_cache_builder(
     const Objects &excluded_schemas, const Schema_objects &excluded_tables,
     bool include_metadata)
     : m_session(session) {
+  fetch_version();
+
   filter_schemas(included_schemas, excluded_schemas);
   filter_tables(included_tables, excluded_tables);
 
@@ -342,6 +343,26 @@ void Instance_cache_builder::fetch_metadata() {
   fetch_table_histograms();
 }
 
+void Instance_cache_builder::fetch_version() {
+  const auto result = m_session->query("SELECT @@GLOBAL.VERSION;");
+
+  if (const auto row = result->fetch_one()) {
+    using mysqlshdk::utils::Version;
+
+    m_cache.server_version = Version(row->get_string(0));
+
+    if (m_cache.server_version < Version(5, 7, 0)) {
+      m_cache.server_is_5_6 = true;
+    } else if (m_cache.server_version < Version(8, 0, 0)) {
+      m_cache.server_is_5_7 = true;
+    } else {
+      m_cache.server_is_8_0 = true;
+    }
+  } else {
+    throw std::runtime_error("Failed to fetch version of the server.");
+  }
+}
+
 void Instance_cache_builder::fetch_server_metadata() {
   const auto &co = m_session->get_connection_options();
 
@@ -354,16 +375,6 @@ void Instance_cache_builder::fetch_server_metadata() {
       m_cache.server = row->get_string(0);
     } else {
       m_cache.server = co.has_host() ? co.get_host() : "localhost";
-    }
-  }
-
-  {
-    const auto result = m_session->query("SELECT @@GLOBAL.VERSION;");
-
-    if (const auto row = result->fetch_one()) {
-      m_cache.server_version = row->get_string(0);
-    } else {
-      m_cache.server_version = "unknown";
     }
   }
 
@@ -484,9 +495,7 @@ void Instance_cache_builder::fetch_table_indexes() {
 }
 
 void Instance_cache_builder::fetch_table_histograms() {
-  using mysqlshdk::utils::Version;
-
-  if (!m_has_tables || Version(m_cache.server_version) < Version(8, 0, 0)) {
+  if (!m_has_tables || !m_cache.server_is_8_0) {
     return;
   }
 

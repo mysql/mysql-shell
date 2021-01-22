@@ -70,8 +70,10 @@
 
 namespace mysqlsh {
 namespace dump {
+
 using mysqlshdk::storage::Mode;
 using mysqlshdk::storage::backend::Memory_file;
+using mysqlshdk::utils::Version;
 
 namespace {
 
@@ -501,6 +503,8 @@ class Dumper::Table_worker final {
       std::string chunk_id;
       using step_t = decltype(min);
 
+      const auto rows_idx = m_dumper->m_cache.server_is_5_6 ? 8 : 9;
+
       const auto next_step =
           estimated_chunks < 2
               ? std::function<step_t(const step_t, const step_t)>(
@@ -508,7 +512,7 @@ class Dumper::Table_worker final {
               // using the default capture [&] below results in problems with
               // GCC 5.4.0 (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80543)
               : [&table, &rows_per_chunk, &accuracy, &chunk_id, &max, &index,
-                 &order_by, this](const auto from, const auto step) {
+                 &order_by, &rows_idx, this](const auto from, const auto step) {
                   int retry = 0;
                   auto middle = from;
 
@@ -536,7 +540,7 @@ class Dumper::Table_worker final {
                                       order_by + " " + comment,
                                   table.schema, table.name, index, from, middle)
                               ->fetch_one()
-                              ->get_uint(9);
+                              ->get_uint(rows_idx);
 
                       if (rows > rows_per_chunk) {
                         right = middle;
@@ -1025,7 +1029,6 @@ void Dumper::do_run() {
   rethrow();
 
 #ifndef NDEBUG
-  using mysqlshdk::utils::Version;
   const auto server_version = Version(m_cache.server_version);
 
   if (server_version < Version(8, 0, 21) ||
@@ -1299,10 +1302,14 @@ void Dumper::assert_transaction_is_open(
 
 void Dumper::lock_instance() {
   if (m_options.consistent_dump() && !m_instance_locked) {
-    auto console = current_console();
+    const auto console = current_console();
 
     console->print_info("Locking instance for backup");
-    if (session()->get_server_version() >= mysqlshdk::utils::Version(8, 0, 0)) {
+
+    // cache might not be available here, query the session for version
+    const auto version = session()->get_server_version();
+
+    if (version >= Version(8, 0, 0)) {
       try {
         session()->execute("LOCK INSTANCE FOR BACKUP;");
       } catch (const shcore::Error &e) {
@@ -1311,10 +1318,11 @@ void Dumper::lock_instance() {
         throw;
       }
     } else {
-      console->print_note(
-          "Backup lock is not supported in MySQL 5.7 and DDL changes will not "
-          "be blocked. The dump may fail with an error or not be completely "
-          "consistent if schema changes are made while dumping.");
+      console->print_note("Backup lock is not supported in MySQL " +
+                          version.get_short() +
+                          " and DDL changes will not be blocked. The dump may "
+                          "fail with an error or not be completely consistent "
+                          "if schema changes are made while dumping.");
     }
 
     m_instance_locked = true;
@@ -1405,13 +1413,17 @@ void Dumper::validate_mds() const {
     console->print_info(
         "Checking for compatibility with MySQL Database Service " + version);
 
-    if (session()->get_server_version() < mysqlshdk::utils::Version(8, 0, 0)) {
-      console->print_note(
-          "MySQL Server 5.7 detected, please consider upgrading to 8.0 first. "
-          "You can check for potential upgrade issues using util." +
-          shcore::get_member_name("checkForServerUpgrade",
-                                  shcore::current_naming_style()) +
-          "().");
+    if (!m_cache.server_is_8_0) {
+      console->print_note("MySQL Server " + m_cache.server_version.get_short() +
+                          " detected, please consider upgrading to 8.0 first.");
+
+      if (m_cache.server_is_5_7) {
+        console->print_note(
+            "You can check for potential upgrade issues using util." +
+            shcore::get_member_name("checkForServerUpgrade",
+                                    shcore::current_naming_style()) +
+            "().");
+      }
     }
 
     bool fixed = false;
@@ -1984,7 +1996,8 @@ void Dumper::write_dump_started_metadata() const {
   doc.AddMember(StringRef("user"), ref(m_cache.user), a);
   doc.AddMember(StringRef("hostname"), ref(m_cache.hostname), a);
   doc.AddMember(StringRef("server"), ref(m_cache.server), a);
-  doc.AddMember(StringRef("serverVersion"), ref(m_cache.server_version), a);
+  doc.AddMember(StringRef("serverVersion"),
+                {m_cache.server_version.get_full().c_str(), a}, a);
   doc.AddMember(StringRef("gtidExecuted"), ref(m_cache.gtid_executed), a);
   doc.AddMember(StringRef("gtidExecutedInconsistent"),
                 is_gtid_executed_inconsistent(), a);
