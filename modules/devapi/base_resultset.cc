@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -70,7 +70,7 @@ std::vector<std::string> ShellBaseResult::get_members() const {
 
 void ShellBaseResult::dump() {
   auto result = get_result();
-
+  if (result == nullptr) return;
   result->buffer();
 
   Resultset_dumper dumper(result);

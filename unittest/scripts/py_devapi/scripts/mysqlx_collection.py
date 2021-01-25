@@ -236,6 +236,14 @@ print("Final Document Count: %d" % count)
 schema.drop_collection('count_collection')
 collection.count()
 
+#@<OUT> BUG32377134 Add empty list of document crash MySQL Shell
+collection = schema.create_collection('batch_posts')
+collection.add([{"_id": "001"}, {"_id": "002"}])
+collection.add([{"_id": "003"}])
+collection.add({"_id": "004"})
+collection.add([])
+collection.find().sort(["_id"])
+
 # Closes the session
 mySession.drop_schema('py_shell_test')
 mySession.close()

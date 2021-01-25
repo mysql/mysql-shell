@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -415,9 +415,9 @@ satisfy this requirement.
  * $(RESULT_GETGENERATEDIDS)
  */
 #if DOXYGEN_JS
-List Result::getGeneratedIds(){};
+List Result::getGeneratedIds() {}
 #elif DOXYGEN_PY
-list Result::get_generated_ids(){};
+list Result::get_generated_ids() {}
 #endif
 const std::vector<std::string> Result::get_generated_ids() const {
   if (_result)
@@ -576,9 +576,9 @@ shcore::Value RowResult::get_member(const std::string &prop) const {
     }
 
     ret_val = shcore::Value(array);
-  } else if (prop == "columns")
+  } else if (prop == "columns") {
     ret_val = shcore::Value(get_columns());
-  else {
+  } else {
     ret_val = BaseResult::get_member(prop);
   }
   return ret_val;

@@ -235,6 +235,14 @@ println ("Final Document Count: " + count);
 schema.dropCollection('count_collection');
 collection.count();
 
+//@<OUT> BUG32377134 Add empty list of document crash MySQL Shell
+var collection = schema.createCollection('batch_posts');
+collection.add([{_id: "001"}, {_id: "002"}]);
+collection.add([{_id: "003"}]);
+collection.add({_id: "004"});
+collection.add([]);
+collection.find().sort(["_id"]);
+
 // Closes the session
 mySession.dropSchema('js_shell_test');
 mySession.close();

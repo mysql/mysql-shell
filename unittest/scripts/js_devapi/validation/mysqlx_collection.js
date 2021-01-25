@@ -218,3 +218,21 @@
 
 //@ WL12412-TS2_1: Count throws error on unexisting collection
 ||Collection.count: Table 'js_shell_test.count_collection' doesn't exist (MYSQLSH 1146)
+
+//@<OUT> BUG32377134 Add empty list of document crash MySQL Shell
+Records: 2  Duplicates: 0  Warnings: 0
+Query OK, 1 item affected ([[*]])
+Query OK, 1 item affected ([[*]])
+{
+    "_id": "001"
+}
+{
+    "_id": "002"
+}
+{
+    "_id": "003"
+}
+{
+    "_id": "004"
+}
+4 documents in set ([[*]])

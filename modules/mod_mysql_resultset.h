@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,10 +24,11 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _MOD_RESULT_H_
-#define _MOD_RESULT_H_
+#ifndef MODULES_MOD_MYSQL_RESULTSET_H_
+#define MODULES_MOD_MYSQL_RESULTSET_H_
 
 #include <list>
+#include <memory>
 #include <string>
 #include <vector>
 #include "modules/devapi/base_resultset.h"
@@ -148,7 +149,7 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
 
   shcore::Value::Array_type_ref get_columns() const;
 
-  virtual mysqlshdk::db::IResult *get_result() const { return _result.get(); };
+  virtual mysqlshdk::db::IResult *get_result() const { return _result.get(); }
   virtual std::shared_ptr<std::vector<std::string>> get_column_names() const {
     return _column_names;
   }
@@ -161,4 +162,4 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
 }  // namespace mysql
 }  // namespace mysqlsh
 
-#endif
+#endif  // MODULES_MOD_MYSQL_RESULTSET_H_

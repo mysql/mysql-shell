@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -562,7 +562,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
         mysqlshdk::utils::format_seconds(_result->get_execution_time()));
 
   if (prop == "autoIncrementValue")
-    return shcore::Value((int)_result->get_auto_increment_value());
+    return shcore::Value(_result->get_auto_increment_value());
 
   if (prop == "info") return shcore::Value(_result->get_info());
 

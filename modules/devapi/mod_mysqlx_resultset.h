@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -93,7 +93,7 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
   str get_execution_time();
 #endif
 
-  virtual mysqlshdk::db::IResult *get_result() const { return _result.get(); };
+  virtual mysqlshdk::db::IResult *get_result() const { return _result.get(); }
 
  protected:
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> _result;
