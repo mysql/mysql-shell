@@ -102,6 +102,7 @@ const base_status_templ_80 = {
         "topology": {
             "": {
                 "address": "",
+                "memberRole": "",
                 "mode": "",
                 "readReplicas": {},
                 "replicationLag": "",
@@ -126,6 +127,7 @@ const base_status_templ_57 = {
         "topology": {
             "": {
                 "address": "",
+                "memberRole": "",
                 "mode": "",
                 "readReplicas": {},
                 "role": "",

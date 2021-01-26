@@ -59,6 +59,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully elected as
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -67,6 +68,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully elected as
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -75,6 +77,7 @@ The instance 'localhost:<<<__mysql_sandbox_port3>>>' was successfully elected as
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",

@@ -166,45 +166,6 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
     }
 }
 
-//@<OUT> Cluster: status1
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Multi-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
-
 //@ Cluster: removeInstance
 ||
 
@@ -227,37 +188,6 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
         ],
         "topologyMode": "Multi-Primary"
     }
-}
-
-//@<OUT> Cluster: status2
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Multi-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@ Cluster: remove_instance 3
@@ -345,45 +275,6 @@ Adding instance to the cluster...
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port2+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
-//@<OUT> Cluster: status: success
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Multi-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
-
 //@ Disable group_replication_start_on_boot if version >= 8.0.11 {VER(>=8.0.11)}
 ||
 
@@ -410,41 +301,3 @@ WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' cannot persist Gr
 Rejoining instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to cluster 'devCluster'...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully rejoined to the cluster.
 
-//@<OUT> Cluster: status for rejoin: success
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Multi-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}

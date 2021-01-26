@@ -41,12 +41,15 @@ function has_new_rpl_users(rows) {
 
 shell.connect(__sandbox_uri1);
 
-//@<OUT> create cluster
+// Create cluster
 var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 
-cluster.status();
+//@<> Check status
+var status = cluster.status();
+EXPECT_EQ(1, Object.keys(status["defaultReplicaSet"]["topology"]).length)
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
 
 //@ Add instance 2
 cluster.addInstance(__sandbox_uri2);
@@ -204,8 +207,14 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 //Regression for BUG#27344040: dba.rebootClusterFromCompleteOutage() should not create new user
 print(has_new_rpl_users(rpl_users_rows) + "\n");
 
-//@<OUT> cluster status after reboot
-cluster.status();
+//@<> cluster status after reboot
+var status = cluster.status();
+EXPECT_EQ(2, Object.keys(status["defaultReplicaSet"]["topology"]).length)
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
+
 cluster.disconnect();
 session.close();
 

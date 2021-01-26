@@ -2,31 +2,14 @@
 
 // The AdminAPI doesn't take the group_replication_group_name value of nodes
 // into account when making modifications to the cluster.
-
 // This can lead to some wrong/incorrect results.
 
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
-testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.snapshotSandboxConf(__mysql_sandbox_port3);
+// Create a 3 member cluster
+var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3]);
 testutil.touch(testutil.getSandboxLogPath(__mysql_sandbox_port1));
 testutil.touch(testutil.getSandboxLogPath(__mysql_sandbox_port2));
 testutil.touch(testutil.getSandboxLogPath(__mysql_sandbox_port3));
-
-// Create a 3 member cluster
-shell.connect(__sandbox_uri1);
-var cluster = dba.createCluster("clus", {gtidSetIsComplete: true});
-
-cluster.addInstance(__sandbox_uri2);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
-cluster.addInstance(__sandbox_uri3);
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
-
-//@<OUT> Cluster state
-cluster.status();
+var cluster = scene.cluster;
 
 //@ Remove the persisted group_replication_start_on_boot and group_replication_group_name {VER(>=8.0.11)}
 var s3 = mysql.getSession(__sandbox_uri3);
@@ -42,8 +25,11 @@ testutil.removeFromSandboxConf(__mysql_sandbox_port3, "group_replication_start_o
 testutil.changeSandboxConf(__mysql_sandbox_port3, "group_replication_group_name", "fd4b70e8-5cb1-11e7-a68b-b86b230042b9");
 testutil.startSandbox(__mysql_sandbox_port3);
 
-//@<OUT> Should have 2 members ONLINE and one missing
-cluster.status();
+//@<> Should have 2 members ONLINE and one missing
+var status = cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
 
 testutil.expectPrompt("Would you like to remove it from the cluster metadata? [Y/n]: ", "n");
 //@ Rescan
@@ -59,7 +45,7 @@ shell.connect(__sandbox_uri1);
 session.runSql("update mysql_innodb_cluster_metadata.clusters set attributes = JSON_SET(attributes, '$.group_replication_group_name', 'fd4b70e8-5cb1-11e7-a68b-b86b230042b0')");
 
 //@# check error
-dba.getCluster("clus");
+dba.getCluster("cluster");
 
 //@ Cleanup
 session.close();

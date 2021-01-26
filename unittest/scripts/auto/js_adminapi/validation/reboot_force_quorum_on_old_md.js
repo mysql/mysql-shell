@@ -10,26 +10,28 @@ ${*}
 Rejoining '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' to the cluster.
 ${*}
 {
-    "clusterName": "sample", 
+    "clusterName": "sample",
     "defaultReplicaSet": {
-        "name": "default", 
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>", 
+        "name": "default",
+        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
 ${*}
-        "status": "OK_NO_TOLERANCE", 
-        "statusText": "Cluster is NOT tolerant to any failures.", 
+        "status": "OK_NO_TOLERANCE",
+        "statusText": "Cluster is NOT tolerant to any failures.",
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>", 
-                "mode": "R/W", 
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
+                "mode": "R/W",
 ${*}
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>", 
-                "mode": "R/O", 
+                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
+                "mode": "R/O",
 ${*}
             }
-        }, 
+        },
         "topologyMode": "Single-Primary"
-    }, 
+    },
     "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
@@ -44,7 +46,7 @@ NOTE: After the upgrade, this InnoDB Cluster/ReplicaSet can no longer be managed
 
 The grants for the MySQL Router accounts that were created automatically when bootstrapping need to be updated to match the new metadata version's requirements.
 NOTE: No automatically created Router accounts were found.
-WARNING: If MySQL Routers have been bootstrapped using custom accounts, their grants can not be updated during the metadata upgrade, they have to be updated using the setupRouterAccount function. 
+WARNING: If MySQL Routers have been bootstrapped using custom accounts, their grants can not be updated during the metadata upgrade, they have to be updated using the setupRouterAccount function.
 For additional information use: \? setupRouterAccount
 
 Upgrading metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' from version 1.0.1 to version 2.0.0.

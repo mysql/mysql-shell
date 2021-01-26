@@ -39,24 +39,36 @@ print_instances_count_for_gr();
 // WL#11862 - FR1_3
 cluster.removeInstance('@localhost:' + __mysql_sandbox_port2);
 
-//@<OUT> Cluster status
-cluster.status();
+//@<> Cluster status
+var status = cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
 
 //@<> Remove instance failure due to wrong credentials
 // WL#11862 - FR1_2, FR2_2
 cluster.removeInstance({Host: hostname, PORT: __mysql_sandbox_port2, User: "foo", PassWord: "bar"});
 
-//@<OUT> Cluster status after remove failed
+//@<> Cluster status after remove failed
 // WL#11862 - FR1_2
-cluster.status();
+var status = cluster.status();
+EXPECT_EQ(2, Object.keys(status["defaultReplicaSet"]["topology"]).length)
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
+
 
 //@<> Removing instance
 // WL#11862 - FR1_1, FR2_1
 cluster.removeInstance('root:root@localhost:' + __mysql_sandbox_port2);
 
-//@<OUT> Cluster status after removal
+//@<> Cluster status after removal
 // WL#11862 - FR1_1
-cluster.status();
+var status = cluster.status();
+EXPECT_EQ(1, Object.keys(status["defaultReplicaSet"]["topology"]).length)
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
 
 //@ recovery account status after removal (WL#12773 FR2)
 shell.dumpRows(session.runSql("SELECT user,host FROM mysql.user WHERE user like 'mysql_inno%'"), "tabbed");
@@ -229,8 +241,12 @@ testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 testutil.stopSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
-//@<OUT> Cluster status after instance on port2 is stopped
-cluster.status();
+//@<> Cluster status after instance on port2 is stopped
+var status = cluster.status();
+EXPECT_EQ(3, Object.keys(status["defaultReplicaSet"]["topology"]).length)
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
 
 //@ Error removing stopped instance on port2
 // Regression for BUG#24916064 : CAN NOT REMOVE STOPPED SERVER FROM A CLUSTER
@@ -252,8 +268,10 @@ cluster.removeInstance(__hostname_uri3, {interactive: false, force: false});
 // WL#11862 - FR4_5
 cluster.removeInstance(__hostname_uri3, {interactive: false, force: true});
 
-//@<OUT> Cluster status after removal of instance on port2 and port3
-cluster.status();
+//@<> Cluster status after removal of instance on port2 and port3
+var status = cluster.status();
+EXPECT_EQ(1, Object.keys(status["defaultReplicaSet"]["topology"]).length)
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
 
 //@ Remove instances post actions since remove when unreachable (ensure they do not rejoin cluster)
 // NOTE: This is not enough for server version >= 8.0.11 because persisted variables take precedence.

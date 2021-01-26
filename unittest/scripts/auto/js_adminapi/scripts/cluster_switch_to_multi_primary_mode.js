@@ -67,8 +67,19 @@ var session = scene.session
 //@<OUT> WL#12052: Switch to multi-primary mode {VER(>=8.0.13)}
 cluster.switchToMultiPrimaryMode()
 
-//@<OUT> WL#12052: Check cluster status after changing to multi-primary {VER(>=8.0.13)}
-cluster.status()
+//@<> WL#12052: Check cluster status after changing to multi-primary {VER(>=8.0.13)}
+var status = cluster.status();
+EXPECT_EQ("Multi-Primary", status["defaultReplicaSet"]["topologyMode"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
+EXPECT_EQ("PRIMARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["memberRole"])
+EXPECT_EQ("PRIMARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["memberRole"])
+EXPECT_EQ("PRIMARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["memberRole"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["mode"])
+
 
 // F2.1.2 - The auto-increment settings should be updated accordingly in all
 // cluster members to auto_increment_increment = n and auto_increment_offset = 1 + server_id % n.
@@ -133,8 +144,18 @@ EXPECT_OUTPUT_CONTAINS("Instance '"+hostname+":"+__mysql_sandbox_port3+"' remain
 EXPECT_OUTPUT_CONTAINS("The cluster successfully switched to Multi-Primary mode.");
 
 
-//@<OUT> WL#12052: Check cluster status after changing to multi-primary no-op {VER(>=8.0.13)}
-cluster.status()
+//@<> WL#12052: Check cluster status after changing to multi-primary no-op {VER(>=8.0.13)}
+var status = cluster.status();
+EXPECT_EQ("Multi-Primary", status["defaultReplicaSet"]["topologyMode"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
+EXPECT_EQ("PRIMARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["memberRole"])
+EXPECT_EQ("PRIMARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["memberRole"])
+EXPECT_EQ("PRIMARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["memberRole"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["mode"])
 
 //@ WL#12052: Finalization
 scene.destroy();

@@ -11,40 +11,16 @@
 // 'group_replication_group_name' and leading to a failure on forceQuorum
 // cleanup_sandboxes(true);
 
-//@ Initialization
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
-testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.snapshotSandboxConf(__mysql_sandbox_port3);
-var cnf_path2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-var cnf_path3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
-
-shell.connect(__sandbox_uri1);
-
-//@<OUT> create cluster
-var cluster = dba.createCluster('dev', {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
-
-cluster.status();
-
-//@ Add instance 2
-testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
-cluster.addInstance(__sandbox_uri2);
-
-// Waiting for the second added instance to become online
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
-//@ Add instance 3
-cluster.addInstance(__sandbox_uri3);
-
-// Waiting for the third added instance to become online
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+//@<> Initialization
+var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3], {memberSslMode: 'REQUIRED', gtidSetIsComplete: true});
+var cluster = scene.cluster;
 
 //@<> forceQuorumUsingPartitionOf() must not be allowed on cluster with quorum
 // Regression for BUG#27508698: forceQuorumUsingPartitionOf() on cluster with quorum should be forbidden
-cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root', user:'root'});
+EXPECT_THROWS(function() {cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root', user:'root'});}, `Cluster.forceQuorumUsingPartitionOf: The cluster has quorum according to instance 'localhost:${__mysql_sandbox_port1}'`)
+EXPECT_STDOUT_CONTAINS("ERROR: Cannot perform operation on an healthy cluster because it can only be used to restore a cluster from quorum loss.");
 
-//@ Disable group_replication_start_on_boot on second instance {VER(>=8.0.11)}
+//@<> Disable group_replication_start_on_boot on second instance {VER(>=8.0.11)}
 // If we don't set the start_on_boot variable to OFF, it is possible that instance 2 will
 // be still trying to join the cluster from the moment it was started again until
 // the cluster is unlocked after the forceQuorumUsingPartitionOf command
@@ -52,12 +28,12 @@ var s2 = mysql.getSession({host:localhost, port: __mysql_sandbox_port2, user: 'r
 s2.runSql("SET PERSIST group_replication_start_on_boot = 0");
 s2.close();
 
-//@ Disable group_replication_start_on_boot on second instance {VER(<8.0.11)}
+//@<> Disable group_replication_start_on_boot on second instance {VER(<8.0.11)}
 var s2 = mysql.getSession({host:localhost, port: __mysql_sandbox_port2, user: 'root', password: 'root'});
 s2.runSql("SET GLOBAL group_replication_start_on_boot = 0");
 s2.close();
 
-//@ Disable group_replication_start_on_boot on third instance {VER(>=8.0.11)}
+//@<> Disable group_replication_start_on_boot on third instance {VER(>=8.0.11)}
 // If we don't set the start_on_boot variable to OFF, it is possible that instance 3 will
 // be still trying to join the cluster from the moment it was started again until
 // the cluster is unlocked after the forceQuorumUsingPartitionOf command
@@ -65,37 +41,41 @@ var s3 = mysql.getSession({host:localhost, port: __mysql_sandbox_port3, user: 'r
 s3.runSql("SET PERSIST group_replication_start_on_boot = 0");
 s3.close();
 
-//@ Disable group_replication_start_on_boot on third instance {VER(<8.0.11)}
+//@<> Disable group_replication_start_on_boot on third instance {VER(<8.0.11)}
 var s3 = mysql.getSession({host:localhost, port: __mysql_sandbox_port3, user: 'root', password: 'root'});
 s3.runSql("SET GLOBAL group_replication_start_on_boot = 0");
 s3.close();
 
-//@ Kill instance 2
-dba.configureLocalInstance(__sandbox_uri2, {mycnfPath: cnf_path2});
+//@<> Kill instance 2
 testutil.killSandbox(__mysql_sandbox_port2);
 
 // Since the cluster has quorum, the instance will be kicked off the
 // Cluster going OFFLINE->UNREACHABLE->(MISSING)
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 
-//@ Kill instance 3
-dba.configureLocalInstance(__sandbox_uri3, {mycnfPath: cnf_path3});
+//@<> Kill instance 3
 testutil.killSandbox(__mysql_sandbox_port3);
 
 // Waiting for the third added instance to become unreachable
 // Will remain unreachable since there's no quorum to kick it off
 testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
 
-//@ Start instance 2
+//@<> Start instance 2
 testutil.startSandbox(__mysql_sandbox_port2);
 
-//@ Start instance 3
+//@<> Start instance 3
 testutil.startSandbox(__mysql_sandbox_port3);
 
-//@<OUT> Cluster status
-cluster.status();
+//@<> Cluster status
+var status = cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("UNREACHABLE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["mode"])
 
-//@ Disconnect and reconnect to instance
+//@<> Disconnect and reconnect to instance
 // Regression for BUG#27148943: getCluster() should warn when connected to member with no quorum
 cluster.disconnect();
 session.close();
@@ -112,32 +92,61 @@ cluster.forceQuorumUsingPartitionOf("");
 cluster.forceQuorumUsingPartitionOf(1, "");
 cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port2, password:'root', user:'root'});
 
-//@ Cluster.forceQuorumUsingPartitionOf success
-cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, password:'root', user:'root'});
+//@<> enable interactive mode
+shell.options.useWizards=true;
 
-//@<OUT> Cluster status after force quorum
-cluster.status();
+//@<OUT> Cluster.forceQuorumUsingPartitionOf success intractive
+testutil.expectPassword(`Please provide the password for 'root@localhost:${__mysql_sandbox_port1}': `, "root");
+cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root'});
 
-//@ Rejoin instance 2
+//@<> disable interactive mode
+shell.options.useWizards=false;
+
+//@<> Cluster.forceQuorumUsingPartitionOf success noninteractive
+cluster.rejoinInstance(__sandbox_uri2);
+cluster.rejoinInstance(__sandbox_uri3);
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
+scene.make_no_quorum([__mysql_sandbox_port1]);
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port3);
+cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root', password:'root'});
+
+//@<> Cluster status after force quorum
+var status = cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"], "Status for sandbox 1 is invalid")
+EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"], "Status for sandbox 1 is invalid")
+EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"], "Status for sandbox 1 is invalid")
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"], "Mode for sandbox 1 is invalid")
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"], "Mode for sandbox 2 is invalid")
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["mode"], "Mode for sandbox 3 is invalid")
+
+//@<> Rejoin instance 2
 cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', user:'root'}, {memberSslMode: 'REQUIRED'});
 
 // Waiting for the second rejoined instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@ Rejoin instance 3
+//@<> Rejoin instance 3
 cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root', user:'root'}, {memberSslMode: 'REQUIRED'});
 
 // Waiting for the third rejoined instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@<OUT> Cluster status after rejoins
-cluster.status();
+//@<> Cluster status after rejoins
+var status = cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["mode"])
 
-//@ STOP group_replication on instance where forceQuorumUsingPartitionOf() was executed.
+//@<> STOP group_replication on instance where forceQuorumUsingPartitionOf() was executed.
 // Regression for BUG#28064621: group_replication_force_members should be unset after forcing quorum
 session.runSql('STOP group_replication');
 
-//@ Start group_replication on instance the same instance succeeds because group_replication_force_members is empty.
+//@<> Start group_replication on instance the same instance succeeds because group_replication_force_members is empty.
 // Regression for BUG#28064621: group_replication_force_members should be unset after forcing quorum
 session.runSql('START group_replication');
 
@@ -168,7 +177,7 @@ shell.dumpRows(session.runSql("SELECT * FROM performance_schema.replication_grou
 
 // --- END --- BUG#30739252 : race condition in forcequorum
 
-//@ Finalization
+//@<> Finalization
 //  Will close opened sessions and delete the sandboxes ONLY if this test was executed standalone
 session.close();
 cluster.disconnect();

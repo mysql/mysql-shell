@@ -152,46 +152,6 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
     }
 }
 
-//@<OUT> Cluster: status1
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
-
 //@<ERR> Cluster: removeInstance errors
 Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0 (ArgumentError)
 Cluster.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
@@ -221,38 +181,6 @@ Cluster.removeInstance: Metadata for instance <<<__host>>>:<<<__mysql_port>>> no
         ],
         "topologyMode": "Single-Primary"
     }
-}
-
-//@<OUT> Cluster: status2
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
 }
 
 //@<OUT> Cluster: dissolve error: not empty
@@ -375,46 +303,6 @@ WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist co
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added to the cluster.
 
-//@<OUT> Cluster: status: success
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "z2nd_sandbox": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "z3rd_sandbox": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
-
 //@# Dba: kill instance 3
 ||
 
@@ -442,46 +330,6 @@ WARNING: Option 'memberSslMode' is deprecated for this operation and it will be 
 Rejoining instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' to cluster 'devCluster'...
 <<<(__version_num>=80011) ? "NOTE: Cancelling active GR auto-initialization at "+hostname+":"+__mysql_sandbox_port3+"\n":""\>>>
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully rejoined to the cluster.
-
-//@<OUT> Cluster: status for rejoin: success
-{
-    "clusterName": "devCluster",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK",
-        "statusText": "Cluster is ONLINE and can tolerate up to ONE failure.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "z2nd_sandbox": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "z3rd_sandbox": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> Cluster: final dissolve
 The cluster still has the following registered instances:

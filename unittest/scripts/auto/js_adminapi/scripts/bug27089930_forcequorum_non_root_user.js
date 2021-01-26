@@ -31,8 +31,11 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.addInstance(admin_user_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@<OUT> Show cluster status, all online.
-cluster.status();
+//@<> Show cluster status, all online.
+var status = cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
 
 //@ Kill instance 2
 testutil.killSandbox(__mysql_sandbox_port2);
@@ -49,8 +52,12 @@ testutil.waitMemberState(__mysql_sandbox_port3, "UNREACHABLE");
 //@ Cluster.forceQuorumUsingPartitionOf success
 cluster.forceQuorumUsingPartitionOf(admin_user_uri1);
 
-//@<OUT> Show cluster status.
-cluster.status();
+//@<> Show cluster status.
+var status = cluster.status();
+EXPECT_EQ("OK_NO_TOLERANCE", status["defaultReplicaSet"]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
 
 // Clean-up deployed instances.
 session.close();

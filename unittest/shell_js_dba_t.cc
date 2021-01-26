@@ -484,26 +484,6 @@ TEST_F(Shell_js_dba_tests, configure_local_instance_errors) {
   validate_interactive("dba_configure_local_instance_errors.js");
 }
 
-TEST_F(Shell_js_dba_tests, cluster_force_quorum) {
-  _options->wizards = false;
-  reset_replayable_shell();
-
-  validate_interactive("dba_cluster_force_quorum.js");
-}
-
-TEST_F(Shell_js_dba_tests, cluster_force_quorum_interactive) {
-  _options->interactive = true;
-  reset_replayable_shell();
-
-  //@ Cluster.forceQuorumUsingPartitionOf error interactive
-  output_handler.passwords.push_back({"*", "root"});
-
-  //@ Cluster.forceQuorumUsingPartitionOf success
-  output_handler.passwords.push_back({"*", "root"});
-
-  validate_interactive("dba_cluster_force_quorum_interactive.js");
-}
-
 TEST_F(Shell_js_dba_tests, reboot_cluster) {
   _options->wizards = false;
   reset_replayable_shell();
@@ -598,13 +578,6 @@ TEST_F(Shell_js_dba_tests, rpl_filter_check_no_interactive) {
 
   // Validate test script.
   validate_interactive("dba_rpl_filter_check_no_interactive.js");
-}
-
-TEST_F(Shell_js_dba_tests, dba_cluster_change_topology_type) {
-  _options->wizards = false;
-  reset_replayable_shell();
-
-  validate_interactive("dba_cluster_change_topology_type.js");
 }
 
 TEST_F(Shell_js_dba_tests, dba_cluster_rpl_user_password) {

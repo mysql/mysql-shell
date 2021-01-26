@@ -42,6 +42,7 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -50,6 +51,7 @@
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -79,6 +81,7 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -87,6 +90,7 @@
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -123,6 +127,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -311,6 +316,7 @@ false
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -319,6 +325,7 @@ false
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -327,6 +334,7 @@ false
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -420,6 +428,7 @@ Cluster.removeInstance: Metadata for instance <<<hostname>>>:<<<__mysql_sandbox_
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",

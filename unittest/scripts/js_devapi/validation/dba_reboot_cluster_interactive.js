@@ -1,30 +1,6 @@
 //@ Initialization
 ||
 
-//@<OUT> create cluster
-{
-    "clusterName": "dev",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
-
 //@ Add instance 2
 ||
 
@@ -56,37 +32,6 @@ The instance cluster settings were successfully persisted.
 //@ Dba.rebootClusterFromCompleteOutage success
 |The cluster was successfully rebooted.|
 
-//@<OUT> cluster status after reboot
-{
-    "clusterName": "dev",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 //@ Rescan cluster to add instance 3 back to metadata {VER(>=8.0.11)}
 ||
 

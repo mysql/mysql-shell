@@ -608,9 +608,11 @@ void Status::feed_member_info(
     (*dict)["fenceSysVars"] = shcore::Value(fence_array);
 
     (*dict)["memberId"] = shcore::Value(member.uuid);
-    (*dict)["memberRole"] =
-        shcore::Value(mysqlshdk::gr::to_string(member.role));
   }
+
+  // memberRole instance Role as reported by GR (Primary/Secondary)
+  (*dict)["memberRole"] = shcore::Value(mysqlshdk::gr::to_string(member.role));
+
   if ((!m_extended.is_null() && *m_extended >= 1) ||
       member.state != self_state) {
     // memberState is from the point of view of the member itself

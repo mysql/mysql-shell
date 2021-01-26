@@ -71,8 +71,13 @@ shell.dumpRows(session2.runSql("SELECT user,host FROM mysql.user WHERE user like
 shell.dumpRows(session2.runSql("SELECT instance_name,attributes FROM mysql_innodb_cluster_metadata.instances ORDER BY instance_id"), "tabbed");
 shell.dumpRows(session2.runSql("SELECT user_name as recovery_user FROM mysql.slave_master_info WHERE channel_name='group_replication_recovery'"), "tabbed");
 
-//@<OUT> Check cluster status - success
-cluster.status();
+//@<> Check cluster status - success
+var status = cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
+
 
 // To simulate an existing unmanaged replication group we simply drop the
 // metadata schema
@@ -105,8 +110,13 @@ shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user
 
 //@<OUT> Create cluster adopting from GR - use 'adoptFromGR' option
 var cluster = dba.createCluster('testCluster', {adoptFromGR: true});
-//@<OUT> Check cluster status - success - 'adoptFromGR'
-cluster.status();
+//@<> Check cluster status - success - 'adoptFromGR'
+var status = cluster.status();
+EXPECT_EQ("testCluster", status["clusterName"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
 
 // Dismantle the cluster
 cluster.dissolve({force: true})
@@ -140,8 +150,13 @@ shell.connect({scheme:'mysql', host: hostname, port: __mysql_sandbox_port1, user
 
 //@<OUT> Create cluster adopting from multi-primary GR - use 'adoptFromGR' option
 var cluster = dba.createCluster('testCluster', {adoptFromGR: true, force: true});
-//@<OUT> Check cluster status - success - adopt from multi-primary
-cluster.status();
+//@<> Check cluster status - success - adopt from multi-primary
+var status = cluster.status();
+EXPECT_EQ("testCluster", status["clusterName"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
 
 //@ dissolve the cluster
 cluster.dissolve({force: true});

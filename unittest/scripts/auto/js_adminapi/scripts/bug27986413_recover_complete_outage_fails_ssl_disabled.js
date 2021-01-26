@@ -1,30 +1,6 @@
-//@ Deploy sandboxes
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
-testutil.snapshotSandboxConf(__mysql_sandbox_port1);
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
-testutil.snapshotSandboxConf(__mysql_sandbox_port2);
-testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
-testutil.snapshotSandboxConf(__mysql_sandbox_port3);
-var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
-var mycnf2 = testutil.getSandboxConfPath(__mysql_sandbox_port2);
-var mycnf3 = testutil.getSandboxConfPath(__mysql_sandbox_port3);
-
-//@ Deploy cluster with ssl disabled
-shell.connect(__sandbox_uri1);
-var c = dba.createCluster("C",  {"memberSslMode": "DISABLED", gtidSetIsComplete: true});
-c.addInstance(__sandbox_uri2);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-c.addInstance(__sandbox_uri3);
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
-session.close();
-
-//@<OUT> Check cluster status before reboot
-c.status();
-
-//@<OUT> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port1, {mycnfPath: mycnf1});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port2, {mycnfPath: mycnf2});
-dba.configureLocalInstance('root:root@localhost:' + __mysql_sandbox_port3, {mycnfPath: mycnf3});
+//@<> Deploy cluster with ssl disabled
+var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3], {"memberSslMode": "DISABLED", gtidSetIsComplete: true});
+var c = scene.cluster;
 
 //@<> Reset gr_start_on_boot on all instances
 disable_auto_rejoin(__mysql_sandbox_port1);
@@ -51,14 +27,20 @@ shell.connect(__sandbox_uri1);
 var uri2 = localhost + ":" + __mysql_sandbox_port2;
 var uri3 = localhost + ":" + __mysql_sandbox_port3;
 var uri1 = localhost + ":" + __mysql_sandbox_port1;
-c = dba.rebootClusterFromCompleteOutage("C", {rejoinInstances: [uri2, uri3]});
+c = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [uri2, uri3]});
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 session.close();
 
-//@<OUT> Check cluster status after reboot
-c.status();
+//@<> Check cluster status after reboot
+var status = c.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
+EXPECT_EQ("PRIMARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["memberRole"])
+EXPECT_EQ("SECONDARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["memberRole"])
+EXPECT_EQ("SECONDARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["memberRole"])
 
 //@<> Reset persisted gr_start_on_boot on all instances 2 {VER(>=8.0.11)}
 disable_auto_rejoin(__mysql_sandbox_port1);
@@ -82,13 +64,19 @@ testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ Reboot cluster from complete outage using another member
 shell.connect(__sandbox_uri2);
-c = dba.rebootClusterFromCompleteOutage("C", {rejoinInstances: [uri1, uri3]});
+c = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [uri1, uri3]});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@<OUT> Check cluster status after reboot 2
-c.status();
+//@<> Check cluster status after reboot 2
+var status = c.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
+EXPECT_EQ("SECONDARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["memberRole"])
+EXPECT_EQ("PRIMARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["memberRole"])
+EXPECT_EQ("SECONDARY", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["memberRole"])
 
 //@ Destroy sandboxes
 c.disconnect();

@@ -16,7 +16,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);
 var clusterSession = session;
 
-//@<OUT> create cluster
+// create cluster
 var cluster = dba.createCluster('dev', {memberSslMode:'REQUIRED', gtidSetIsComplete: true});
 
 testutil.waitMemberState(__mysql_sandbox_port1, "ONLINE");
@@ -25,7 +25,10 @@ session.close();
 // session is stored on the cluster object so changing the global session should not affect cluster operations
 shell.connect(__sandbox_uri2);
 
-cluster.status();
+//@<> create cluster
+var status = cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
 
 //@ Add instance 2
 cluster.addInstance(__sandbox_uri2);
@@ -108,8 +111,12 @@ cluster = dba.rebootClusterFromCompleteOutage("dev", {clearReadOnly: true});
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@<OUT> cluster status after reboot
-cluster.status();
+//@<> cluster status after reboot
+var status = cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
 
 // Start instance 3
 testutil.startSandbox(__mysql_sandbox_port3);
@@ -167,7 +174,7 @@ cluster = dba.rebootClusterFromCompleteOutage("dev", {removeInstances: [uri2, ur
 
 // TODO(alfredo) - reboot should internally wait for sro to be cleared, but it doesn't right now, so we keep checking for up to 3s
 i = 30;
-while(i>0) { 
+while(i>0) {
   get_sysvar(session, "super_read_only");
   i--;
   os.sleep(0.1);

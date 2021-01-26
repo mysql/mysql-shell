@@ -48,6 +48,7 @@ group_replication_start_on_boot = ON
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -194,6 +195,7 @@ group_replication_start_on_boot = ON
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -240,6 +242,7 @@ group_replication_start_on_boot = ON
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -248,6 +251,7 @@ group_replication_start_on_boot = ON
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -275,6 +279,7 @@ group_replication_start_on_boot = ON
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -283,6 +288,7 @@ group_replication_start_on_boot = ON
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -335,6 +341,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -343,6 +350,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -507,6 +515,7 @@ group_replication_start_on_boot = ON
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -515,6 +524,7 @@ group_replication_start_on_boot = ON
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -537,6 +547,7 @@ ONLINE
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -545,6 +556,7 @@ ONLINE
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -626,6 +638,7 @@ group_replication_start_on_boot = ON
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -634,6 +647,7 @@ group_replication_start_on_boot = ON
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -642,6 +656,7 @@ group_replication_start_on_boot = ON
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -666,6 +681,7 @@ ONLINE
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -674,6 +690,7 @@ ONLINE
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -682,6 +699,7 @@ ONLINE
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -817,6 +835,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -825,6 +844,7 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",

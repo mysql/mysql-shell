@@ -16,38 +16,6 @@
 //@ Failure: remove_instance - invalid uri
 ||Invalid URI: Missing user information
 
-//@<OUT> Cluster status
-{
-    "clusterName": "dev",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
-
 //@<ERR> Remove instance failure due to wrong credentials
 Cluster.removeInstance: Could not open connection to '[[*]]:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@'[[*]]' (using password: YES) (MySQL Error 1045)
 
@@ -55,38 +23,6 @@ Cluster.removeInstance: Could not open connection to '[[*]]:<<<__mysql_sandbox_p
 // NOTE: Do not use @<ERR> because it matches the whole line but result after
 // 'foo' is not deterministic: @'hostanme' or @'hostname_ip' can appear.
 ||Cluster.removeInstance: Could not open connection to '[[*]]:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'
-
-//@<OUT> Cluster status after remove failed
-{
-    "clusterName": "dev",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "R/O",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> Removing instance
 The instance will be removed from the InnoDB cluster. Depending on the instance
@@ -98,31 +34,6 @@ Instance 'localhost:<<<__mysql_sandbox_port2>>>' is attempting to leave the clus
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.
-
-
-//@<OUT> Cluster status after removal
-{
-    "clusterName": "dev",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@<OUT> recovery account status after removal (WL#12773 FR2)
 user	host
@@ -297,46 +208,6 @@ false
 //@ Stop instance on port3
 ||
 
-//@<OUT> Cluster status after instance on port2 is stopped
-{
-    "clusterName": "dev",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures. 2 members are not active.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            },
-            "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "mode": "n/a",
-                "readReplicas": {},
-                "role": "HA",
-                "shellConnectError": "[[*]]",
-                "status": "(MISSING)"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
-
 //@<> Error removing stopped instance on port2
 |WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])|
 |ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.|
@@ -368,30 +239,6 @@ start a new session to the Metadata Storage R/W instance.
 <<<(__version_num<80011)?"WARNING: Instance '"+hostname+":"+__mysql_sandbox_port1+"' cannot persist configuration since MySQL version "+__version+" does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configureLocalInstance() command locally to persist the changes.\n":""\>>>
 
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully removed from the cluster.
-
-//@<OUT> Cluster status after removal of instance on port2 and port3
-{
-    "clusterName": "dev",
-    "defaultReplicaSet": {
-        "name": "default",
-        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-        "ssl": "REQUIRED",
-        "status": "OK_NO_TOLERANCE",
-        "statusText": "Cluster is NOT tolerant to any failures.",
-        "topology": {
-            "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
-                "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-                "mode": "R/W",
-                "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
-                "role": "HA",
-                "status": "ONLINE",
-                "version": "[[*]]"
-            }
-        },
-        "topologyMode": "Single-Primary"
-    },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"
-}
 
 //@ Remove instances post actions since remove when unreachable (ensure they do not rejoin cluster)
 ||

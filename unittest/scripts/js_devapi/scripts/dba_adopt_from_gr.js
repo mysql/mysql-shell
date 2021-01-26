@@ -63,8 +63,13 @@ shell.dumpRows(session2.runSql("SELECT user,host FROM mysql.user WHERE user like
 shell.dumpRows(session2.runSql("SELECT instance_name,attributes FROM mysql_innodb_cluster_metadata.instances ORDER BY instance_id"), "tabbed");
 shell.dumpRows(session2.runSql("SELECT user_name as recovery_user_name FROM mysql.slave_master_info WHERE channel_name='group_replication_recovery'"), "tabbed");
 
-//@<OUT> Check cluster status
-cluster.status();
+//@<> Check cluster status
+var status = cluster.status();
+EXPECT_EQ("testCluster", status["clusterName"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
 
 //@ dissolve the cluster
 cluster.dissolve({force: true});

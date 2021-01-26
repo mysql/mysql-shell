@@ -86,8 +86,15 @@ Cluster.addInstance(__sandbox_uri3);
 //@<OUT> Cluster: describe1
 Cluster.describe();
 
-//@<OUT> Cluster: status1
-Cluster.status();
+//@<> Cluster: status1
+var status = Cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["mode"])
+
 
 //@ Cluster: removeInstance errors
 Cluster.removeInstance();
@@ -103,8 +110,12 @@ Cluster.removeInstance({host: "localhost", port:__mysql_sandbox_port2});
 //@<OUT> Cluster: describe2
 Cluster.describe();
 
-//@<OUT> Cluster: status2
-Cluster.status();
+//@<> Cluster: status2
+var status = Cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["mode"])
 
 //@<OUT> Cluster: dissolve error: not empty
 // WL11889 FR2_01: prompt to confirm dissolve in interactive mode.
@@ -129,8 +140,14 @@ Cluster.addInstance(__sandbox_uri3, {'label': 'z3rd_sandbox'});
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
-//@<OUT> Cluster: status: success
-Cluster.status();
+//@<> Cluster: status: success
+var status = Cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"]["z2nd_sandbox"]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"]["z3rd_sandbox"]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"]["z2nd_sandbox"]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"]["z3rd_sandbox"]["mode"])
 
 // Rejoin tests
 
@@ -161,8 +178,14 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 // Verify if the cluster is OK
 
-//@<OUT> Cluster: status for rejoin: success
-Cluster.status();
+//@<> Cluster: status for rejoin: success
+var status = Cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"]["z2nd_sandbox"]["status"])
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"]["z3rd_sandbox"]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"]["z2nd_sandbox"]["mode"])
+EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"]["z3rd_sandbox"]["mode"])
 
 //@<OUT> Cluster: final dissolve
 // WL11889 FR2_01: prompt to confirm dissolve in interactive mode.

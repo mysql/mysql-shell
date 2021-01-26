@@ -207,6 +207,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -215,6 +216,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -223,6 +225,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -264,6 +267,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -272,6 +276,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -280,6 +285,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -304,6 +310,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -315,6 +322,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
                 "instanceErrors": [
                     "WARNING: Instance is NOT a PRIMARY but super_read_only option is OFF."
                 ],
+                "memberRole": "SECONDARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -323,6 +331,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -347,6 +356,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -355,6 +365,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
             },
             "zzLabel": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -379,6 +390,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -387,6 +399,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -395,6 +408,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
             },
             "zzLabel": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -419,6 +433,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -427,6 +442,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -435,6 +451,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
             },
             "zzLabel": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -459,6 +476,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -467,6 +485,7 @@ Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match 
             },
             "zzLabel": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",

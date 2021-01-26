@@ -59,6 +59,7 @@
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<(__version_num>=80011) ?  "\n                \"replicationLag\": [[*]],":"">>>
                 "role": "HA",
@@ -67,7 +68,8 @@
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
-                "memberState": "(MISSING)", 
+                "memberRole": "SECONDARY",
+                "memberState": "(MISSING)",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",

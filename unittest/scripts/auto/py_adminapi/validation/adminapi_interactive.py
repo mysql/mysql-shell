@@ -487,6 +487,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -495,6 +496,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -503,6 +505,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -533,6 +536,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -541,6 +545,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -577,6 +582,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -585,6 +591,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -593,6 +600,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -632,6 +640,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -640,6 +649,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -648,6 +658,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -678,6 +689,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -686,6 +698,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -694,7 +707,8 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
-                "memberState": "(MISSING)", 
+                "memberRole": "SECONDARY",
+                "memberState": "(MISSING)",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -728,6 +742,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -736,6 +751,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -744,6 +760,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "n/a",
                 "readReplicas": {},
                 "role": "HA",
@@ -774,6 +791,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -782,6 +800,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -790,6 +809,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -838,6 +858,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -846,6 +867,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -854,6 +876,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port3>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -890,6 +913,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
         "topology": {
             "<<<hostname>>>:<<<__mysql_sandbox_port1>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
+                "memberRole": "PRIMARY",
                 "mode": "R/W",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
@@ -898,6 +922,7 @@ WARNING: To avoid a split-brain scenario, ensure that all other members of the c
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
+                "memberRole": "SECONDARY",
                 "mode": "R/O",
                 "readReplicas": {},<<<"\n                \"replicationLag\": [[*]]," if (__version_num>=80011) else "">>>
                 "role": "HA",
