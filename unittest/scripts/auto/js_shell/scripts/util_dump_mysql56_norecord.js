@@ -10,7 +10,16 @@ testutil.mkdir(__tmp_dir+"/ldtest");
 
 shell.connect(__mysql56_uri);
 
-session.runSql("drop schema if exists sakila");
+// Cleanup any leftover database
+session.runSql("set foreign_key_checks=0");
+var databases = session.runSql("show databases").fetchAll()
+for(index in databases) {
+    if (!['mysql', 'sys', 'information_schema', 'performance_schema'].includes(databases[index][0])) {
+        print("deleting " + databases[index][0]);
+        session.runSql("drop schema " + databases[index][0]);
+    }
+}
+session.runSql("set foreign_key_checks=1");
 
 testutil.importData(__mysql56_uri, __data_path+"/sql/sakila-schema.sql"); // sakila
 testutil.importData(__mysql56_uri, __data_path+"/sql/sakila-data.sql", "sakila"); // sakila
