@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -266,8 +266,8 @@ INCLUDE(CheckFunctionExists)
 include(curl)
 MYSQL_CHECK_CURL()
 
-IF (WITH_OCI AND NOT HAVE_PYTHON)
-  MESSAGE(FATAL_ERROR "WITH_OCI should not be used when python is not available.")
+IF (PYTHON_DEPS AND NOT HAVE_PYTHON)
+  MESSAGE(FATAL_ERROR "PYTHON_DEPS should not be used when python is not available.")
 ENDIF()
 
 IF(BUNDLED_OPENSSL_DIR)
@@ -517,6 +517,15 @@ SET(INSTALL_SHAREDIR "share/mysqlsh")
 SET(INSTALL_DOCDIR "share/mysqlsh/Docs")
 
 ##
+## Binary location
+##
+IF(MSVC)
+  SET(CONFIG_BINARY_DIR "${CMAKE_BINARY_DIR}/$<CONFIG>")
+ELSE()
+  SET(CONFIG_BINARY_DIR "${CMAKE_BINARY_DIR}")
+ENDIF()
+
+##
 ## Configure style system detection
 ##
 INCLUDE(configure.cmake)
@@ -667,25 +676,26 @@ if(WIN32)
 endif()
 
 ##
-## Prepares the OCI SDK when needed
+## Prepares the python dependencies
 ###
-IF(WITH_OCI)
-  FILE(TO_CMAKE_PATH ${WITH_OCI} OCI_SDK)
-  ADD_CUSTOM_COMMAND(OUTPUT oci_sdk_bundle
-      COMMAND ${CMAKE_COMMAND} -E copy_directory ${OCI_SDK}/ ${CMAKE_BINARY_DIR}/${INSTALL_SHAREDIR}/oci_sdk
-      COMMENT "Bundling OCI SDK from ${WITH_OCI}"
-  )
-  ADD_CUSTOM_TARGET(oci_sdk ALL DEPENDS oci_sdk_bundle)
 
-  INSTALL(DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_SHAREDIR}/oci_sdk/ COMPONENT main DESTINATION ${INSTALL_SHAREDIR}/oci_sdk)
-  ADD_DEFINITIONS(-DWITH_OCI)
+IF(PYTHON_DEPS)
+
+  IF (NOT WIN32 AND NOT BUNDLED_PYTHON_DIR)
+    # PYTHON_DEPS_PATH will cause the shell initialization to explicitly add the
+    # bundled packages to the PYTHONPATH.
+    # Only needed on this case, as when WIN32 or BUNDLED_PYTHON_DIR they are
+    # automatically loaded by the site.py logic
+    ADD_DEFINITIONS(-DPYTHON_DEPS_PATH="lib/python${PYTHONLIBS_MAJOR_MINOR}/site-packages")
+  ENDIF()
+
+  ADD_DEFINITIONS(-DPYTHON_DEPS)
 
   IF(BUNDLED_OPENSSL_DIR AND APPLE)
-    FILE(GLOB_RECURSE OCI_OPEN_SSL_LIBRARIES ${OCI_SDK}/cryptography*.egg/cryptography/hazmat/bindings/_openssl*.so)
+    FILE(GLOB_RECURSE OCI_OPEN_SSL_LIBRARIES ${PYTHON_DEPS_PATH}/cryptography*.egg/cryptography/hazmat/bindings/_openssl*.so)
     SET_BUNDLED_OPEN_SSL("${OCI_OPEN_SSL_LIBRARIES}")
   ENDIF()
 ENDIF()
-
 
 IF(WITH_TESTS)
   ###
@@ -699,6 +709,7 @@ ENDIF()
 ### Build Projects
 ###
 
+ADD_SUBDIRECTORY(plugins/external)
 ADD_SUBDIRECTORY(python)
 ADD_SUBDIRECTORY(mysqlshdk)
 ADD_SUBDIRECTORY(modules)

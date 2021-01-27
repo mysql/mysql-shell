@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -205,8 +205,8 @@ if(WITH_GMOCK)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_GMOCK=${WITH_GMOCK}")
 endif()
 
-if(WITH_OCI)
-  list(APPEND EXTRA_CMAKE_OPTS "-DWITH_OCI=${WITH_OCI}")
+if(PYTHON_DEPS)
+  list(APPEND EXTRA_CMAKE_OPTS "-DPYTHON_DEPS=${PYTHON_DEPS}")
 endif()
 
 string(REPLACE ";" " "  EXTRA_CMAKE_OPTS "${EXTRA_CMAKE_OPTS}")
@@ -252,16 +252,20 @@ usr/share/mysqlsh/README     usr/share/doc/mysqlsh
 usr/share/mysqlsh/Docs/INFO_SRC     usr/share/mysqlsh/Docs
 usr/share/mysqlsh/Docs/INFO_BIN     usr/share/mysqlsh/Docs
 usr/share/mysqlsh/prompt/*   usr/share/mysqlsh/prompt
-usr/share/mysqlsh/oci_sdk/*   usr/share/mysqlsh/oci_sdk
 usr/share/mysqlsh/upgrade_checker.msg
 usr/lib/mysqlsh/plugins
 usr/lib/mysqlsh/python-packages
 ")
 
+if (BUNDLED_PYTHON_DIR OR PYTHON_DEPS)
+file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"usr/lib/mysqlsh/lib/*   usr/lib/mysqlsh/lib
+")
+endif()
+
 if (BUNDLED_PYTHON_DIR)
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "# For python bundle
 usr/lib/mysqlsh/include
-usr/lib/mysqlsh/lib
 usr/lib/mysqlsh/libpython*.so*")
 endif()

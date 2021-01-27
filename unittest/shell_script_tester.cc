@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+/* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -1655,10 +1655,10 @@ void Shell_script_tester::set_defaults() {
   def_var("__user_config_path",
           shcore::quote_string(shcore::get_user_config_path(), '\''));
 
-#ifdef WITH_OCI
-  def_var("__with_oci", "1");
+#ifdef PYTHON_DEPS
+  def_var("__python_deps", "1");
 #else
-  def_var("__with_oci", "0");
+  def_var("__python_deps", "0");
 #endif
 
 #ifdef NDEBUG

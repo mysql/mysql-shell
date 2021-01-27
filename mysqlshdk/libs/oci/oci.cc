@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,58 +62,9 @@ std::shared_ptr<shcore::Python_context> get_python_context(
 
   return python;
 }
-
-void register_oci_sdk(const std::shared_ptr<shcore::Python_context> &python) {
-  std::string oci_sdk_path;
-  oci_sdk_path = shcore::path::join_path(shcore::get_mysqlx_home_path(),
-                                         "share", "mysqlsh", "oci_sdk");
-  if (!shcore::is_folder(oci_sdk_path))
-    throw std::runtime_error("SDK not found at " + oci_sdk_path +
-                             ", shell installation likely invalid.");
-
-  std::vector<std::string> code;
-  code.push_back("import sys");
-
-#ifdef _WIN32
-  auto path = shcore::str_replace(oci_sdk_path, "\\", "\\\\");
-#else
-  auto path = oci_sdk_path;
-#endif
-  code.push_back("sys.path.insert(0, '" + path + "')");
-
-  auto eggs = shcore::listdir(oci_sdk_path);
-  for (const auto &egg : eggs) {
-    if (shcore::str_iendswith(egg.c_str(), ".egg")) {
-      path = shcore::path::join_path(oci_sdk_path, egg);
-#ifdef _WIN32
-      path = shcore::str_replace(path, "\\", "\\\\");
-#endif
-      code.push_back("sys.path.insert(0, '" + path + "')");
-    }
-  }
-
-  if (!python->raw_execute(code))
-    throw std::runtime_error(
-        "Error enabling the OCI SDK: Failed setting up dependencies.");
-}
-
 }  // namespace
 
 namespace oci {
-
-void init(const std::shared_ptr<shcore::Shell_core> &shell) {
-  try {
-    // Ensure Python context is initialized
-    shell->init_py();
-
-    // Gets the python context to execute all the operations
-    auto python = get_python_context(shell);
-
-    register_oci_sdk(python);
-  } catch (const std::runtime_error &err) {
-    mysqlsh::current_console()->print_error(err.what());
-  }
-}
 
 void load_profile(const std::string &user_profile,
                   const std::shared_ptr<shcore::Shell_core> &shell) {

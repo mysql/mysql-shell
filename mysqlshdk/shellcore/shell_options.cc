@@ -578,6 +578,7 @@ Shell_options::Shell_options(int argc, char **argv,
 #endif
         storage.dbug_options = value ? value : "";
       })
+#ifdef PYTHON_DEPS
     (
       cmdline("--oci[=<profile>]"),
       "Starts the shell ready to work with OCI. "
@@ -593,6 +594,7 @@ Shell_options::Shell_options(int argc, char **argv,
           storage.initial_mode = shcore::IShell_core::Mode::Python;
 #endif
       })
+#endif
 ;  // <-- Note this is on purpose: Mark the termination of the option definition.
   // clang-format on
 

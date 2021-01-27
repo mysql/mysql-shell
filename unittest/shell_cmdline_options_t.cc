@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2021, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -1450,7 +1450,7 @@ TEST_F(Shell_cmdline_options, invalid_connect_timeout) {
   }
 }
 
-#ifdef WITH_OCI
+#ifdef PYTHON_DEPS
 TEST_F(Shell_cmdline_options, conflicts_oci) {
   auto error =
       "Conflicting options: --oci can not be used unless initial mode is "

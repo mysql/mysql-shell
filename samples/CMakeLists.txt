@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -19,19 +19,12 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-SET(PROMPT_SAMPLES
-    prompt/README.prompt
-    prompt/prompt_16.json
-    prompt/prompt_256.json
-    prompt/prompt_dbl_256.json
-    prompt/prompt_256inv.json
-    prompt/prompt_dbl_256pl.json
-    prompt/prompt_256pl.json
-    prompt/prompt_dbl_256pl+aw.json
-    prompt/prompt_256pl+aw.json
-    prompt/prompt_classic.json
-    prompt/prompt_nocolor.json
+add_custom_command(OUTPUT copy_prompt_files
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/prompt ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/prompt
+    COMMENT "Copying prompt files"
 )
 
-INSTALL(FILES ${PROMPT_SAMPLES}
-  DESTINATION ${INSTALL_SHAREDIR}/prompt/ COMPONENT main)
+add_custom_target(prompt_files ALL DEPENDS copy_prompt_files)
+
+install(DIRECTORY ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/prompt COMPONENT main DESTINATION ${INSTALL_SHAREDIR})

@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -201,11 +201,36 @@ endif()
 
 ### Bundling of Python runtime if needed
 IF(HAVE_PYTHON)
+  # Scans the python deps to re-create the easy-install.pth, so the modules are
+  # automatically loaded on the target python
+  IF(PYTHON_DEPS)
+    FILE(TO_CMAKE_PATH ${PYTHON_DEPS} PYTHON_DEPS_PATH)
+    FILE(GLOB PYTHON_DEP_LIST "${PYTHON_DEPS_PATH}/*")
+    SET(PTH_PYTHON_DEP_LIST "")
+    FOREACH(PYTHON_DEP ${PYTHON_DEP_LIST})
+      GET_FILENAME_COMPONENT(PTH_DEP_NAME ${PYTHON_DEP} NAME)
+      IF (NOT PTH_DEP_NAME STREQUAL "easy-install.pth")
+        LIST(APPEND PTH_PYTHON_DEP_LIST "./${PTH_DEP_NAME}")
+      ENDIF()
+    ENDFOREACH(PYTHON_DEP)
+
+    STRING(REPLACE ";" "\n" PTH_FILE_CONTENT "${PTH_PYTHON_DEP_LIST}")
+    FILE(WRITE ${PYTHON_DEPS_PATH}/easy-install.pth "${PTH_FILE_CONTENT}")
+
+    IF(BUNDLED_OPENSSL_DIR AND APPLE)
+      FILE(GLOB_RECURSE OCI_OPEN_SSL_LIBRARIES ${PYTHON_DEPS_PATH}/cryptography*.egg/cryptography/hazmat/bindings/_openssl*.so)
+      SET_BUNDLED_OPEN_SSL("${OCI_OPEN_SSL_LIBRARIES}")
+    ENDIF()
+  ENDIF()
+
   if(WIN32)
     remove_definitions(-DUNICODE)
     IF(PYTHON_LIBRARY_PATH)
       INSTALL(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}" COMPONENT main)
       INSTALL(DIRECTORY "${PYTHON_DLLS_PATH}" DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}" COMPONENT main)
+      IF(PYTHON_DEPS)
+        INSTALL(DIRECTORY "${PYTHON_DEPS_PATH}/" DESTINATION "lib/Python${PYTHONLIBS_MAJOR_MINOR}/Lib/site-packages" COMPONENT main)
+      ENDIF()
     ENDIF()
 
     # This should be there for both MD and non MD windows builds
@@ -227,10 +252,17 @@ IF(HAVE_PYTHON)
     # Copy the Python runtime
     add_custom_command(TARGET mysqlsh PRE_BUILD
                       COMMAND ${CMAKE_COMMAND} -E copy_directory
-                      "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/lib)
+                      "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/Lib)
     add_custom_command(TARGET mysqlsh PRE_BUILD
                       COMMAND ${CMAKE_COMMAND} -E copy_directory
                       "${PYTHON_DLLS_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs)
+    # Copy the Python dependencies
+    IF(PYTHON_DEPS)
+      add_custom_command(TARGET mysqlsh PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                        "${PYTHON_DEPS_PATH}/"
+                        $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/Lib/site-packages)
+    ENDIF()
     # Copy sqlite3 shared library
     FIND_FILE(PYTHON_SQLITE3_SHARED
       NAMES
@@ -249,6 +281,11 @@ IF(HAVE_PYTHON)
               PATTERN "lib/python${PYTHONLIBS_MAJOR_MINOR}/test" EXCLUDE)
     INSTALL(FILES "${BUNDLED_PYTHON_DIR}/include/${PYTHON_INCLUDE_DIR_NAME}/pyconfig.h"
             DESTINATION "${INSTALL_LIBDIR}/include/${PYTHON_INCLUDE_DIR_NAME}" COMPONENT main)
+    IF(PYTHON_DEPS)
+      INSTALL(DIRECTORY "${PYTHON_DEPS_PATH}/"
+        DESTINATION "${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/site-packages" COMPONENT main)
+    ENDIF()
+
 
     FILE(GLOB PYTHON_OPEN_SSL_LIBRARIES ${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/lib-dynload/_ssl*.so)
     SET_BUNDLED_OPEN_SSL("${PYTHON_OPEN_SSL_LIBRARIES}")
@@ -258,6 +295,13 @@ IF(HAVE_PYTHON)
                         COMMAND ${CMAKE_COMMAND} -E copy_directory
                       "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}"
                       "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}")
+    IF(PYTHON_DEPS)
+      add_custom_command(TARGET mysqlsh PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                        "${PYTHON_DEPS_PATH}/"
+                        "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/site-packages")
+    ENDIF()
+
 
     if(BUNDLED_SHARED_PYTHON)
       if(APPLE)
@@ -276,5 +320,16 @@ IF(HAVE_PYTHON)
         COMMAND ${CMAKE_COMMAND} -E copy "${_PYTHON_SHARED_LIB}"
                   "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/.")
     endif()
+  else()
+    IF(PYTHON_DEPS)
+      INSTALL(DIRECTORY ${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib
+        DESTINATION "${INSTALL_LIBDIR}"
+        COMPONENT main)
+
+      add_custom_command(TARGET mysqlsh PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                        "${PYTHON_DEPS_PATH}"
+                        "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}/site-packages")
+    ENDIF()
   endif()
 ENDIF(HAVE_PYTHON)

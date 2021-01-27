@@ -1,4 +1,4 @@
-# Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2018, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -22,24 +22,12 @@
 file(GLOB UPGRADE_CHECKER_RESOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/upgrade_checker/upgrade_checker.msg)
 
-IF(MSVC)
 add_custom_command(OUTPUT upgrade_checker_msg
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}
     DEPENDS ${UPGRADE_CHECKER_RESOURCES}
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/upgrade_checker/upgrade_checker.msg ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/upgrade_checker/upgrade_checker.msg ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}
 )
-ELSE()
-add_custom_command(OUTPUT upgrade_checker_msg
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/share/mysqlsh
-    DEPENDS ${UPGRADE_CHECKER_RESOURCES}
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/upgrade_checker/upgrade_checker.msg ${CMAKE_BINARY_DIR}/share/mysqlsh
-)
-ENDIF()
 
 add_custom_target(uc_res ALL DEPENDS upgrade_checker_msg)
 
-IF(MSVC)
-  install(PROGRAMS ${CMAKE_BINARY_DIR}/$<CONFIG>/share/mysqlsh/upgrade_checker.msg COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
-ELSE()
-  install(PROGRAMS ${CMAKE_BINARY_DIR}/share/mysqlsh/upgrade_checker.msg COMPONENT main DESTINATION ${INSTALL_SHAREDIR})
-ENDIF()
+install(PROGRAMS ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/upgrade_checker.msg COMPONENT main DESTINATION ${INSTALL_SHAREDIR})

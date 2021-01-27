@@ -612,11 +612,8 @@ Mysql_shell::Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
 Mysql_shell::~Mysql_shell() { DEBUG_OBJ_DEALLOC(Mysql_shell); }
 
 void Mysql_shell::finish_init() {
-#ifdef WITH_OCI
-  // The registration of the OCI SDK should be done all the time
-  // so the user can import oci
-  mysqlsh::oci::init(shell_context());
-#endif
+  // Python needs to be initialized in case there are python start files/plugins
+  shell_context()->init_py();
   Base_shell::finish_init();
 
   File_list startup_files;

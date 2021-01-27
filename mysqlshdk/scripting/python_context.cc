@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -393,6 +393,23 @@ Python_context::Python_context(bool redirect_stdio) : _types(this) {
         add_path(shcore::path::join_path(python_packages_path, path));
       }
     }
+
+#ifdef PYTHON_DEPS_PATH
+    // When python is bundled with the shell, the 3rd party dependencies are
+    // included on the site-packages folder and so automatically added to the
+    // PYTHONPATH.
+    // When python is not bundled, PYTHON_DEPS_PATH contains the folder where
+    // they are included on the shell package, adding to PYTHONPATH has to be
+    // done here.
+    python_packages_path =
+        shcore::path::join_path(shcore::get_library_folder(), PYTHON_DEPS_PATH);
+
+    for (const auto &path : shcore::listdir(python_packages_path)) {
+      if (!shcore::str_iendswith(path, ".pth")) {
+        add_path(shcore::path::join_path(python_packages_path, path));
+      }
+    }
+#endif
   }
 
   // register shell module

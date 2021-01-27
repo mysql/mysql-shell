@@ -1,4 +1,4 @@
-#@{__with_oci==1}
+#@{__python_deps==1}
 import os
 
 oci_folder = '.oci';

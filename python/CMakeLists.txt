@@ -1,4 +1,4 @@
-# Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2017, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -19,29 +19,14 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-IF(MSVC)
 add_custom_command(OUTPUT copy_python_extensions
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/mysqlsh
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/packages ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/mysqlsh/python-packages
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/plugins ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/mysqlsh/plugins
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/packages ${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}/python-packages
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/plugins ${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}/plugins
     COMMENT "Copying Python extensions"
 )
-ELSE()
-add_custom_command(OUTPUT copy_python_extensions
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/lib/mysqlsh
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/packages ${CMAKE_BINARY_DIR}/lib/mysqlsh/python-packages
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/plugins ${CMAKE_BINARY_DIR}/lib/mysqlsh/plugins
-    COMMENT "Copying Python extensions"
-)
-ENDIF()
 
 add_custom_target(python_extensions ALL DEPENDS copy_python_extensions)
 
-IF(MSVC)
-  install(DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/mysqlsh/python-packages COMPONENT main DESTINATION ${INSTALL_LIBDIR})
-  install(DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/lib/mysqlsh/plugins COMPONENT main DESTINATION ${INSTALL_LIBDIR})
-ELSE()
-  install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/mysqlsh/python-packages COMPONENT main DESTINATION ${INSTALL_LIBDIR})
-  install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/mysqlsh/plugins COMPONENT main DESTINATION ${INSTALL_LIBDIR})
-ENDIF()
-
+install(DIRECTORY ${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}/python-packages COMPONENT main DESTINATION ${INSTALL_LIBDIR})
+install(DIRECTORY ${CONFIG_BINARY_DIR}/${INSTALL_LIBDIR}/plugins COMPONENT main DESTINATION ${INSTALL_LIBDIR})

@@ -987,7 +987,7 @@ shell.add_extension_object_member(global_obj, "common_%s", global_function)
   delete_user_plugin("multi_plugins");
 }
 
-#ifdef WITH_OCI
+#ifdef PYTHON_DEPS
 // This test emulates a plugins that uses the oci
 TEST_F(Mysqlsh_plugin_test, oci_and_paramiko_plugin) {
   // Creates oci-paramiko plugin initialization file

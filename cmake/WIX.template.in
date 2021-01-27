@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-  Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+  Copyright (c) 2016, 2021, Oracle and/or its affiliates.
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License, version 2.0,
@@ -102,7 +102,7 @@
         <?if "1" = "@CPACK_WIX_WITH_PYTHON@" ?>
         <SetProperty
             Id="CleanupPycPython"
-            Value="&quot;[SystemFolder]cmd.exe&quot; /c del /s /q /f &quot;[CM_DP_main.lib.@CPACK_WIX_PYTHON_DIR@.Lib]*.pyc&quot; &quot;[CM_DP_main.lib.@CPACK_WIX_PYTHON_DIR@.Lib]*.pyo&quot;"
+            Value="&quot;[SystemFolder]cmd.exe&quot; /c del /s /q /f &quot;[CM_DP_main.lib]*.pyc&quot; &quot;[CM_DP_main.lib]*.pyo&quot;"
             Before="CleanupPycPython"
             Sequence="execute" />
         <CustomAction
@@ -115,39 +115,11 @@
             Impersonate="no" />
         <SetProperty
             Id="CleanupCachePython"
-            Value="&quot;[SystemFolder]cmd.exe&quot; /c FOR /d /r &quot;[CM_DP_main.lib.@CPACK_WIX_PYTHON_DIR@.Lib]&quot; %d IN (&quot;__pycache__&quot;) DO @IF EXIST &quot;%d&quot; rd /s /q &quot;%d&quot;"
+            Value="&quot;[SystemFolder]cmd.exe&quot; /c FOR /d /r &quot;[CM_DP_main.lib]&quot; %d IN (&quot;__pycache__&quot;) DO @IF EXIST &quot;%d&quot; rd /s /q &quot;%d&quot;"
             Before="CleanupCachePython"
             Sequence="execute" />
         <CustomAction
             Id="CleanupCachePython"
-            BinaryKey="WixCA"
-            DllEntry="CAQuietExec"
-            Execute="deferred"
-            Return="ignore"
-            HideTarget="no"
-            Impersonate="no" />
-        <?endif?>
-        <?if "1" = "@CPACK_WIX_WITH_OCI@" ?>
-        <SetProperty
-            Id="CleanupPycOCI"
-            Value="&quot;[SystemFolder]cmd.exe&quot; /c del /s /q /f &quot;[CM_DP_main.share.mysqlsh.oci_sdk]*.pyc&quot; &quot;[CM_DP_main.share.mysqlsh.oci_sdk]*.pyo&quot;"
-            Before="CleanupPycOCI"
-            Sequence="execute" />
-        <CustomAction
-            Id="CleanupPycOCI"
-            BinaryKey="WixCA"
-            DllEntry="CAQuietExec"
-            Execute="deferred"
-            Return="ignore"
-            HideTarget="no"
-            Impersonate="no" />
-        <SetProperty
-            Id="CleanupCacheOCI"
-            Value="&quot;[SystemFolder]cmd.exe&quot; /c FOR /d /r &quot;[CM_DP_main.share.mysqlsh.oci_sdk]&quot; %d IN (&quot;__pycache__&quot;) DO @IF EXIST &quot;%d&quot; rd /s /q &quot;%d&quot;"
-            Before="CleanupPycOCI"
-            Sequence="execute" />
-        <CustomAction
-            Id="CleanupCacheOCI"
             BinaryKey="WixCA"
             DllEntry="CAQuietExec"
             Execute="deferred"
@@ -162,14 +134,6 @@
                 REMOVE="ALL"
             </Custom>
             <Custom Action="CleanupCachePython" Before="RemoveFiles">
-                REMOVE="ALL"
-            </Custom>
-            <?endif?>
-            <?if "1" = "@CPACK_WIX_WITH_OCI@" ?>
-            <Custom Action="CleanupPycOCI" Before="CleanupCacheOCI">
-                REMOVE="ALL"
-            </Custom>
-            <Custom Action="CleanupCacheOCI" Before="RemoveFiles">
                 REMOVE="ALL"
             </Custom>
             <?endif?>

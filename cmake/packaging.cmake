@@ -1,4 +1,4 @@
-# Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2015, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -86,9 +86,6 @@ if(WIN32)
   if(HAVE_PYTHON)
     set(CPACK_WIX_WITH_PYTHON "1")
     set(CPACK_WIX_PYTHON_DIR "Python${PYTHONLIBS_MAJOR_MINOR}")
-  endif()
-  if(WITH_OCI)
-    set(CPACK_WIX_WITH_OCI "1")
   endif()
   set(CPACK_WIX_EXTENSIONS "WixUtilExtension.dll")
 else()

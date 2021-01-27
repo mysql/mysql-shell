@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -160,8 +160,8 @@ cmake .. \
     -DENABLE_DOWNLOADS=1 \
     -DWITH_TESTS=ON \
 %endif
-%if 0%{?with_oci:1}
-    -DWITH_OCI=%{with_oci} \
+%if 0%{?python_deps:1}
+    -DPYTHON_DEPS=%{python_deps} \
 %endif
 %if 0%{?with_mysql_source:1}
     -DMYSQL_SOURCE_DIR="%{with_mysql_source}" \
@@ -208,9 +208,6 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_bindir}/mysqlsh
 %{_bindir}/mysql-secret-store-login-path
 %{_datadir}/mysqlsh/prompt/*
-%if 0%{?with_oci:1}
-%{_datadir}/mysqlsh/oci_sdk/*
-%endif
 %{_datadir}/mysqlsh/upgrade_checker.msg
 %{_datadir}/mysqlsh/Docs/INFO_SRC
 %{_datadir}/mysqlsh/Docs/INFO_BIN
@@ -220,15 +217,20 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %endif
 %if 0%{?bundled_python:1}
 %{_prefix}/lib/mysqlsh/include/python*
-%{_prefix}/lib/mysqlsh/lib/python*
 %if 0%{?bundled_shared_python:1}
 %{_prefix}/lib/mysqlsh/libpython*
 %endif
+%endif
+%if 0%{?python_deps:1}%{?bundled_python:1}
+%{_prefix}/lib/mysqlsh/lib/python*
 %endif
 %{_prefix}/lib/mysqlsh/plugins/*
 %{_prefix}/lib/mysqlsh/python-packages/*
 
 %changelog
+* Tue Jan 26 2021 Rene Ramirez <j.rene.ramirez@oracle.com> - 8.0.24
+- Relocating python dependencies to the embedded site-packages folder
+
 * Thu May 16 2019 Balasubramanian Kandasamy <balasubramanian.kandasamy@oracle.com> - 8.0.17-1
 - Enable debug binaries for sles12 and opensuse15
 
