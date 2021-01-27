@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -160,25 +160,38 @@ void Import_table_option_pack::set_filenames(
 
 void Import_table_option_pack::set_decode_columns(
     const shcore::Dictionary_t &decode_columns) {
-  if (decode_columns) {
-    for (const auto &it : *decode_columns) {
-      if (it.second.type != shcore::Null) {
-        auto transformation = it.second.descr();
-        if (shcore::str_caseeq(transformation, std::string{"UNHEX"}) ||
-            shcore::str_caseeq(transformation, std::string{"FROM_BASE64"})) {
-          m_decode_columns[it.first] = shcore::str_upper(transformation);
-        } else {
-          // Try to initially validate user input, i.e. check if
-          // brackets are balanced in provided user input.
-          if (!transformation_validation(transformation)) {
-            throw std::runtime_error(
-                "Invalid SQL expression in decodeColumns option "
-                "for column '" +
-                it.first + "'");
-          }
-          m_decode_columns[it.first] = std::move(transformation);
+  if (!decode_columns) {
+    return;
+  }
+
+  for (const auto &it : *decode_columns) {
+    if (it.second.type != shcore::Null) {
+      auto transformation = it.second.descr();
+      if (shcore::str_caseeq(transformation, std::string{"UNHEX"}) ||
+          shcore::str_caseeq(transformation, std::string{"FROM_BASE64"})) {
+        m_decode_columns[it.first] = shcore::str_upper(transformation);
+      } else {
+        // Try to initially validate user input, i.e. check if
+        // brackets are balanced in provided user input.
+        if (!transformation_validation(transformation)) {
+          throw std::runtime_error(
+              "Invalid SQL expression in decodeColumns option "
+              "for column '" +
+              it.first + "'");
         }
+        m_decode_columns[it.first] = std::move(transformation);
       }
+    }
+  }
+
+  if (!m_decode_columns.empty()) {
+    if (!m_columns) {
+      throw std::runtime_error(
+          "The 'columns' option is required when 'decodeColumns' is set.");
+    }
+    if (m_columns->empty()) {
+      throw std::runtime_error(
+          "The 'columns' option must be a non-empty list.");
     }
   }
 }

@@ -631,6 +631,34 @@ id	bool_not0	bool_not1	not0	not1	a_or_b	not_set	null_set
 table
 `);
 
+//@<> decodeColums option requires columns option to be set
+EXPECT_THROWS(function () {
+    util.importTable(os.path.join(__import_data_path, 'numbers.tsv'), {
+        schema: target_schema, table: 't_numbers',
+        decodeColumns: {
+            "a": "@1",
+            "b": "@2",
+            "sum": "@1 + @2",
+            "pow": "pow(@1, @2)",
+            "mul": "@1 * @2"
+        }
+    });
+}, "Util.importTable: Argument #2: The 'columns' option is required when 'decodeColumns' is set.");
+
+EXPECT_THROWS(function () {
+    util.importTable(os.path.join(__import_data_path, 'numbers.tsv'), {
+        schema: target_schema, table: 't_numbers',
+        columns: [],
+        decodeColumns: {
+            "a": "@1",
+            "b": "@2",
+            "sum": "@1 + @2",
+            "pow": "pow(@1, @2)",
+            "mul": "@1 * @2"
+        }
+    });
+}, "Util.importTable: Argument #2: The 'columns' option must be a non-empty list.");
+
 //@<> Teardown
 session.runSql("DROP SCHEMA IF EXISTS " + target_schema);
 session.close();

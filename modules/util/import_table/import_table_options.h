@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -130,7 +130,6 @@ class Import_table_option_pack {
   std::string m_bytes_per_chunk;
   shcore::Array_t m_columns;
   std::map<std::string, std::string> m_decode_columns;
-  shcore::Dictionary_t m_decode_columns_dict;
   bool m_replace_duplicates = false;
   std::string m_max_rate;
   bool m_show_progress = isatty(fileno(stdout)) ? true : false;

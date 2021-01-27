@@ -1041,7 +1041,7 @@ values: default, csv, tsv, json or csv-unix.
 @li <b>decodeColumns</b>: map (default: not set) - a map between columns names
 and SQL expressions to be applied on the loaded
 data. Column value captured in 'columns' by integer is available as user
-variable '@@i', where `i` is that integer.
+variable '@@i', where `i` is that integer. Requires 'columns' to be set.
 @li <b>characterSet</b>: string (default: not set) -
 Interpret the information in the input file using this character set
 encoding. characterSet set to "binary" specifies "no conversion". If not set,

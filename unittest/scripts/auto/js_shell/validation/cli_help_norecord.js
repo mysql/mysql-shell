@@ -725,7 +725,7 @@ OPTIONS
             A map between columns names and SQL expressions to be applied on
             the loaded data. Column value captured in 'columns' by integer is
             available as user variable '@i', where `i` is that integer.
-            Default: not set.
+            Requires 'columns' to be set. Default: not set.
 
 --characterSet=<str>
             Interpret the information in the input file using this character

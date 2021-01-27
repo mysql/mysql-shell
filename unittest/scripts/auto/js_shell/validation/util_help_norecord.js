@@ -1353,7 +1353,7 @@ DESCRIPTION
       - decodeColumns: map (default: not set) - a map between columns names and
         SQL expressions to be applied on the loaded data. Column value captured
         in 'columns' by integer is available as user variable '@i', where `i`
-        is that integer.
+        is that integer. Requires 'columns' to be set.
       - characterSet: string (default: not set) - Interpret the information in
         the input file using this character set encoding. characterSet set to
         "binary" specifies "no conversion". If not set, the server will use the

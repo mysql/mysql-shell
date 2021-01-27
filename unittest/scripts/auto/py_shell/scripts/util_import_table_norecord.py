@@ -276,6 +276,41 @@ session.run_sql("SET @@session.character_set_connection = ?", [ old_cs_connectio
 session.run_sql("SET @@session.character_set_results = ?", [ old_cs_results ])
 session.run_sql("SET GLOBAL SQL_MODE=?", [original_global_sqlmode])
 
+#@<> User defined operations
+session.run_sql("CREATE TABLE IF NOT EXISTS `t_numbers` ("+
+    "`a` integer," +
+    "`b` integer," +
+    "`sum` integer," +
+    "`pow` integer," +
+    "`mul` integer" +
+  ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4")
+
+#@<> decodeColums option requires columns option to be set
+EXPECT_THROWS(lambda:
+    util.import_table(os.path.join(__import_data_path, 'numbers.tsv'), {
+        "schema": target_schema, "table": 't_numbers',
+        "decodeColumns": {
+            "a": "@1",
+            "b": "@2",
+            "sum": "@1 + @2",
+            "pow": "pow(@1, @2)",
+            "mul": "@1 * @2"
+        }
+    }), "Util.import_table: Argument #2: The 'columns' option is required when 'decodeColumns' is set.");
+
+EXPECT_THROWS(lambda:
+    util.import_table(os.path.join(__import_data_path, 'numbers.tsv'), {
+        "schema": target_schema, "table": 't_numbers',
+        "columns": [],
+        "decodeColumns": {
+            "a": "@1",
+            "b": "@2",
+            "sum": "@1 + @2",
+            "pow": "pow(@1, @2)",
+            "mul": "@1 * @2"
+        }
+    }), "Util.import_table: Argument #2: The 'columns' option must be a non-empty list.");
+
 #@<> Teardown
 session.run_sql("DROP SCHEMA IF EXISTS " + target_schema)
 session.close()
