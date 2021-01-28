@@ -1880,7 +1880,7 @@ affected by the provided options:
 @li sandboxDir: path where the new instance will be deployed.
 @li password: password for the MySQL root user on the new instance.
 @li allowRootFrom: create remote root account, restricted to the given address
-pattern (eg %).
+pattern (default: %).
 @li ignoreSslError: Ignore errors when adding SSL support for the new instance,
 by default: true.
 @li mysqldOptions: List of MySQL configuration options to write to the my.cnf
@@ -1938,48 +1938,11 @@ void Dba::deploy_sandbox_instance(
   }
 
   mysqlshdk::utils::nullable<std::string> password = opts.password;
-
-  // create root@<addr> if needed
-  // Valid values:
-  // allowRootFrom: address
-  // allowRootFrom: %
-  // allowRootFrom: null (that is, disable the option)
-  std::string remote_root;
-  if (!opts.allow_root_from.is_null()) remote_root = *opts.allow_root_from;
-
   bool interactive = current_shell_options()->get().wizards;
   auto console = mysqlsh::current_console();
   std::string path = shcore::path::join_path(sandbox_dir, std::to_string(port));
 
   if (interactive) {
-    // TODO(anyone): This default value was being set on the interactive
-    // layer, for that reason is kept here only if interactive, to avoid
-    // changes in behavior. This should be fixed at BUG#27369121."
-    //
-    // When this is fixed search for the following test chunk:
-    // "//@ Deploy instances (with specific innodb_page_size)."
-    // The allowRootFrom:"%" option was added there to make this test pass
-    // after the removal of the Interactive wrappers.
-    //
-    // The only reason the test was passing before was because of a BUG on the
-    // test framework that was meant to execute the script in NON interative
-    // mode.
-    //
-    // Debugging the test it effectively had options.wizards = false,
-    // however the Interactive Wrappers were in place which means this
-    // function was getting allowRootFrom="%" even the test was not in
-    // interactive mode.
-    //
-    // I tried reproducing the chunk using the shell and it effectively fails
-    // as expected, rather than succeeding as the test suite claimed.
-    //
-    // Funny thing is that the BUG in the test suite gets fixed with the
-    // removal of the Interactive wrappers.
-    //
-    // The test mentioned above must be also revisited when BUG#27369121 is
-    // addressed.
-    if (remote_root.empty()) remote_root = "%";
-
     console->println(
         "A new MySQL sandbox instance will be created on this host in \n" +
         path +
@@ -2017,15 +1980,21 @@ void Dba::deploy_sandbox_instance(
 
   if (rc != 0) throw_instance_op_error(errors);
 
-  if (!remote_root.empty()) {
+  // Create root@<allowRootFrom> account
+  // Default:
+  //   allowRootFrom: %
+  // Valid values:
+  //   allowRootFrom: address
+  //   allowRootFrom: %
+  if (!opts.allow_root_from.empty()) {
     std::string uri = "root@localhost:" + std::to_string(port);
     mysqlshdk::db::Connection_options instance_def(uri);
     instance_def.set_password(*password);
 
     std::shared_ptr<Instance> instance = Instance::connect(instance_def);
 
-    log_info("Creating root@%s account for sandbox %i", remote_root.c_str(),
-             port);
+    log_info("Creating root@%s account for sandbox %i",
+             opts.allow_root_from.c_str(), port);
     instance->execute("SET sql_log_bin = 0");
     {
       std::string pwd;
@@ -2033,14 +2002,14 @@ void Dba::deploy_sandbox_instance(
 
       shcore::sqlstring create_user(
           "CREATE USER root@? IDENTIFIED BY /*((*/ ? /*))*/", 0);
-      create_user << remote_root << pwd;
+      create_user << opts.allow_root_from << pwd;
       create_user.done();
       instance->execute(create_user);
     }
     {
       shcore::sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION",
                               0);
-      grant << remote_root;
+      grant << opts.allow_root_from;
       grant.done();
       instance->execute(grant);
     }

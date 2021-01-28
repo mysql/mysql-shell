@@ -862,7 +862,7 @@ DESCRIPTION
       - sandboxDir: path where the new instance will be deployed.
       - password: password for the MySQL root user on the new instance.
       - allowRootFrom: create remote root account, restricted to the given
-        address pattern (eg %).
+        address pattern (default: %).
       - ignoreSslError: Ignore errors when adding SSL support for the new
         instance, by default: true.
       - mysqldOptions: List of MySQL configuration options to write to the

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,7 +67,7 @@ struct Deploy_instance_options {
   mysqlshdk::utils::nullable<int> xport;
   mysqlshdk::utils::nullable<std::string> sandbox_dir;
   mysqlshdk::utils::nullable<std::string> password;
-  mysqlshdk::utils::nullable<std::string> allow_root_from;
+  std::string allow_root_from{"%"};
   bool ignore_ssl_error = false;
   shcore::Array_t mysqld_options;
 };

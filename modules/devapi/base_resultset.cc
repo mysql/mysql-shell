@@ -277,7 +277,7 @@ std::string &Row::append_descr(std::string &s_out, int indent,
   std::string nl = (indent >= 0) ? "\n" : "";
   s_out += "[";
   for (size_t index = 0; index < value_array.size(); index++) {
-    if (index > 0) s_out += ",";
+    if (index > 0) s_out += ", ";
 
     s_out += nl;
 
