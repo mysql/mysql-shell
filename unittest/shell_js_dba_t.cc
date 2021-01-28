@@ -277,8 +277,6 @@ TEST_F(Shell_js_dba_tests, interactive_deploy_instance) {
   _options->interactive = true;
   reset_shell();
   output_handler.set_log_level(shcore::Logger::LOG_WARNING);
-  // Create remote root account
-  output_handler.prompts.push_back({"*", "no"});
   // BUG 26830224
   // Please enter a MySQL root password for the new instance:
   output_handler.passwords.push_back({"*", "root"});

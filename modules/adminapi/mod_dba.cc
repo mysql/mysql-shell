@@ -1952,21 +1952,40 @@ void Dba::deploy_sandbox_instance(
   std::string path = shcore::path::join_path(sandbox_dir, std::to_string(port));
 
   if (interactive) {
+    // TODO(anyone): This default value was being set on the interactive
+    // layer, for that reason is kept here only if interactive, to avoid
+    // changes in behavior. This should be fixed at BUG#27369121."
+    //
+    // When this is fixed search for the following test chunk:
+    // "//@ Deploy instances (with specific innodb_page_size)."
+    // The allowRootFrom:"%" option was added there to make this test pass
+    // after the removal of the Interactive wrappers.
+    //
+    // The only reason the test was passing before was because of a BUG on the
+    // test framework that was meant to execute the script in NON interative
+    // mode.
+    //
+    // Debugging the test it effectively had options.wizards = false,
+    // however the Interactive Wrappers were in place which means this
+    // function was getting allowRootFrom="%" even the test was not in
+    // interactive mode.
+    //
+    // I tried reproducing the chunk using the shell and it effectively fails
+    // as expected, rather than succeeding as the test suite claimed.
+    //
+    // Funny thing is that the BUG in the test suite gets fixed with the
+    // removal of the Interactive wrappers.
+    //
+    // The test mentioned above must be also revisited when BUG#27369121 is
+    // addressed.
+    if (remote_root.empty()) remote_root = "%";
+
     console->println(
         "A new MySQL sandbox instance will be created on this host in \n" +
         path +
         "\n\nWarning: Sandbox instances are only suitable for deploying and "
         "\nrunning on your local machine for testing purposes and are not "
         "\naccessible from external networks.\n");
-
-    if (remote_root.empty()) {
-      if (console->confirm("Do you want to create remote root account (root@%) "
-                           "for the new instance?",
-                           mysqlsh::Prompt_answer::NO) ==
-          mysqlsh::Prompt_answer::YES) {
-        remote_root = "%";
-      }
-    }
 
     if (password.is_null()) {
       std::string answer;

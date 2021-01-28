@@ -9,7 +9,7 @@ Warning: Sandbox instances are only suitable for deploying and
 running on your local machine for testing purposes and are not
 accessible from external networks.
 
-Do you want to create remote root account (root@%) for the new instance? [y/N]: Please enter a MySQL root password for the new instance:
+Please enter a MySQL root password for the new instance:
 Deploying new MySQL instance...
 
 Instance localhost:<<<__mysql_sandbox_port1>>> successfully deployed and started.
