@@ -88,59 +88,52 @@ rc = dba.getCluster();
 
 //@<> addInstance on REPLICA Cluster with PRIMARY unavailable
 EXPECT_THROWS(function(){ rc.addInstance(__sandbox_uri4); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
 
 //@<> removeInstance on REPLICA Cluster with PRIMARY unavailable
 EXPECT_THROWS(function(){ rc.removeInstance(__sandbox_uri4); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
 
 //@<> rejoinInstance on REPLICA Cluster with PRIMARY unavailable
 EXPECT_THROWS(function(){ rc.rejoinInstance(__sandbox_uri4); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
 
 //@<> rescan on REPLICA Cluster with PRIMARY unavailable
 EXPECT_THROWS(function(){ rc.rescan(); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
 
 //@<> setOption on REPLICA Cluster with PRIMARY unavailable
 EXPECT_THROWS(function(){ rc.setOption("memberWeight", 50); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
 
 //@<> setInstanceOption on REPLICA Cluster with PRIMARY unavailable
 EXPECT_THROWS(function(){ rc.setInstanceOption(__sandbox_uri2, "memberWeight", 25); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
 
 //@<> setupAdminAccount on REPLICA Cluster with PRIMARY unavailable
 EXPECT_THROWS(function(){ rc.setupAdminAccount("cadmin@'%'", {password:"boo"}); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
 
 //@<> setupRouterAccount on REPLICA Cluster with PRIMARY unavailable
 EXPECT_THROWS(function(){ rc.setupRouterAccount("router@'%'", {password:"boo"}); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
 
 //@<> resetRecoveryAccountsPasswords on REPLICA Cluster with PRIMARY unavailable
 EXPECT_THROWS(function(){ rc.resetRecoveryAccountsPassword(); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
-
 
 // ClusterSet topology changes are allowed only if the PRIMARY Cluster is available:
 // - createReplicaCluster()
 // - removeCluster()
-// - TODO: setPrimaryCluster()
-// - TODO: rejoinCluster()
+// - setPrimaryCluster()
+// - rejoinCluster()
 
 //@<> createReplicaCluster() with PRIMARY unavailable
 cs = dba.getClusterSet();
 EXPECT_THROWS(function(){ cs.createReplicaCluster(__sandbox_uri4, "replica2"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
 
 //@<> removeCluster() with PRIMARY unavailable
 EXPECT_THROWS(function(){ cs.removeCluster("replica"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
 
 // Topology changes on a REPLICA cluster must be allowed IFF the Cluster and the PRIMARY Cluster are OK.
 EXPECT_THROWS(function(){ rc.setPrimaryInstance(__sandbox_uri4); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
+
+//@<> setPrimaryCluster should fail without a primary
+EXPECT_THROWS(function(){ cs.setPrimaryCluster("replica2"); }, "Could not connect to any ONLINE member of Primary Cluster 'cluster'");
+
+//@<> rejoinCluster on a replica should fail without a primary
+EXPECT_THROWS(function(){ cs.rejoinCluster("replica2"); }, "Could not connect to any ONLINE member of Primary Cluster 'cluster'");
 
 //@<> Rebooting from complete outage a REPLICA Cluster when PRIMARY is OFFLINE should not be blocked
 

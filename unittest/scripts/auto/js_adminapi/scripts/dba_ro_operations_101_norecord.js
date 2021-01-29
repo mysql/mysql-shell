@@ -48,7 +48,10 @@ testutil.wipeAllOutput();
 normalize_cluster_options(c.options());
 
 //@ Get Cluster from slave
-shell.connect(__sandbox_uri2)
+shell.connect(__sandbox_uri2);
+
+testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
+
 var c = dba.getCluster();
 
 //@ Status from slave  [USE:Status from master]

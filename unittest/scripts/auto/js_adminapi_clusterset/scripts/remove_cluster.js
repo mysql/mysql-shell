@@ -207,7 +207,7 @@ session4.runSql("stop group_replication");
 
 EXPECT_OUTPUT_CONTAINS("");
 
-EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51016: Could not find any available member in group");
+EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable:");
 
 //@<> Remove OFFLINE cluster + force
 clusterset.removeCluster("replicacluster", {force:1});
@@ -221,7 +221,7 @@ replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster
 
 session4.runSql("shutdown");
 
-EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51015: Could not connect to any member of group");
+EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51014: Could not connect to a PRIMARY member of cluster 'replicacluster'");
 
 //@<> Remove unreachable cluster + force
 clusterset.removeCluster("replicacluster", {force:1});
@@ -247,12 +247,12 @@ testutil.killSandbox(__mysql_sandbox_port6);
 shell.connect(__sandbox_uri4);
 testutil.waitMemberState(__mysql_sandbox_port6, "UNREACHABLE");
 
-EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51016: Could not find any available member in group ");
+EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51011: Cluster 'replicacluster' has no quorum'");
 
 //@<> Remove NO_QUORUM cluster + force (should still fail) {false}
 // TODO enable it back after wl11894
 // we can't remove a NO_QUORUM cluster because STOP REPLICA and most things will just freeze
-EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51016: Could not find any available member in group ");
+EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51011: Cluster 'replicacluster' has no quorum'");
 
 //@<> temporary recovery until test above is fixed
 replicacluster.forceQuorumUsingPartitionOf(__sandbox_uri4);

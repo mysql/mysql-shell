@@ -34,6 +34,7 @@ set(mysql_SOURCE
     plugin.cc
     lock_service.cc
     gtid_utils.cc
+    binlog_utils.cc
 )
 
 add_convenience_library(mysql ${mysql_SOURCE})

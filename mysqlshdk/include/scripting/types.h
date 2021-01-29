@@ -26,8 +26,10 @@
 
 #include "types_common.h"
 
+#include <algorithm>
 #include <cassert>
 #include <iterator>
+#include <list>
 #include <map>
 #include <memory>
 #include <set>
@@ -358,14 +360,15 @@ struct SHCORE_PUBLIC Value {
     return type == shcore::Null ? nullptr : *value.array;
   }
 
-  std::vector<std::string> to_string_vector() const {
-    std::vector<std::string> vec;
+  template <class C>
+  C to_string_container() const {
+    C vec;
     check_type(Array);
     auto arr = as_array();
-    vec.reserve(arr->size());
-    for (const Value &v : *arr) {
-      vec.push_back(v.get_string());
-    }
+
+    std::transform(arr->begin(), arr->end(), std::inserter<C>(vec, vec.end()),
+                   [](const shcore::Value &v) { return v.get_string(); });
+
     return vec;
   }
 
@@ -657,7 +660,16 @@ struct value_type_for_native<std::vector<std::string>> {
   static const Value_type type = Array;
 
   static std::vector<std::string> extract(const Value &value) {
-    return value.to_string_vector();
+    return value.to_string_container<std::vector<std::string>>();
+  }
+};
+
+template <>
+struct value_type_for_native<std::list<std::string>> {
+  static const Value_type type = Array;
+
+  static std::list<std::string> extract(const Value &value) {
+    return value.to_string_container<std::list<std::string>>();
   }
 };
 
@@ -666,9 +678,7 @@ struct value_type_for_native<std::set<std::string>> {
   static const Value_type type = Array;
 
   static std::set<std::string> extract(const Value &value) {
-    auto v = value.to_string_vector();
-    return {std::make_move_iterator(v.begin()),
-            std::make_move_iterator(v.end())};
+    return value.to_string_container<std::set<std::string>>();
   }
 };
 
@@ -677,9 +687,7 @@ struct value_type_for_native<std::unordered_set<std::string>> {
   static const Value_type type = Array;
 
   static std::unordered_set<std::string> extract(const Value &value) {
-    auto v = value.to_string_vector();
-    return {std::make_move_iterator(v.begin()),
-            std::make_move_iterator(v.end())};
+    return value.to_string_container<std::unordered_set<std::string>>();
   }
 };
 

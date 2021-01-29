@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -892,6 +892,8 @@ std::string Command_line_shell::history_file(shcore::Shell_core::Mode mode) {
 
 void Command_line_shell::pre_command_loop() {
   display_info(m_default_cluster, "cluster", "cluster");
+  display_info(m_default_clusterset, "clusterset", "clusterset");
+
   // information about replicaset name is displayed by the dba
   display_info(m_default_replicaset, "rs", "replicaset", false);
 }

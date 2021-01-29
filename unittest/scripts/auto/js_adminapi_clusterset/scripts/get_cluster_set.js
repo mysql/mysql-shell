@@ -6,7 +6,7 @@
 //@<> INCLUDE clusterset_utils.inc
 
 //@<> Setup
-var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2]);
+var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2], {manualStartOnBoot:1});
 var session = scene.session
 var cluster = scene.cluster
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
@@ -114,7 +114,7 @@ scene.make_no_quorum([__mysql_sandbox_port1]);
 
 shell.connect(__sandbox_uri3);
 EXPECT_NO_THROWS(function() {clusterset = dba.getClusterSet(); });
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
+EXPECT_OUTPUT_CONTAINS("WARNING: The PRIMARY Cluster lost the quorum, topology changes will not be allowed");
 EXPECT_OUTPUT_CONTAINS("NOTE: To restore the Cluster and ClusterSet operations, restore the quorum on the PRIMARY Cluster using forceQuorumUsingPartitionOf()");
 EXPECT_NE(clusterset, null);
 
@@ -149,12 +149,29 @@ shell.connect(__sandbox_uri5);
 EXPECT_NO_THROWS(function() {clusterset = dba.getClusterSet(); });
 EXPECT_OUTPUT_CONTAINS("WARNING: Cluster 'replica_to_invalidate' was INVALIDATED and must be removed from the ClusterSet.");
 
+// The information should be obtained from the new primary
+s = clusterset.status();
+EXPECT_EQ("cluster", s["primaryCluster"]);
+
 //@<> cluster.getClusterSet() from an invalidated Cluster must print a warning
 EXPECT_NO_THROWS(function() {clusterset = rc_to_invalidate.getClusterSet(); });
 EXPECT_OUTPUT_CONTAINS("WARNING: Cluster 'replica_to_invalidate' was INVALIDATED and must be removed from the ClusterSet.");
 
+// The information should be obtained from the new primary
+s = clusterset.status();
+EXPECT_EQ("cluster", s["primaryCluster"]);
+
 //@<> dba.getCluster() from an instance that belongs to an invalidated Cluster must print a warning
 EXPECT_NO_THROWS(function() {invalidate_cluster = dba.getCluster(); });
+EXPECT_OUTPUT_CONTAINS("WARNING: Cluster 'replica_to_invalidate' was INVALIDATED and must be removed from the ClusterSet.");
+
+//@<> dba.getCluster(name) from an instance that belongs to an invalidated Cluster must print a warning
+EXPECT_NO_THROWS(function() {invalidate_cluster = dba.getCluster("replica_to_invalidate"); });
+EXPECT_OUTPUT_CONTAINS("WARNING: Cluster 'replica_to_invalidate' was INVALIDATED and must be removed from the ClusterSet.");
+
+//@<> dba.getCluster(name) from an instance that belongs to the primary Cluster must print a warning
+shell.connect(__sandbox_uri1);
+EXPECT_NO_THROWS(function() {invalidate_cluster = dba.getCluster("replica_to_invalidate"); });
 EXPECT_OUTPUT_CONTAINS("WARNING: Cluster 'replica_to_invalidate' was INVALIDATED and must be removed from the ClusterSet.");
 
 // The operation must work even if the PRIMARY cluster is not reachable, as long as
@@ -197,14 +214,11 @@ EXPECT_NO_THROWS(function() {replica = dba.getCluster(); });
 EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replica' appears to have been removed from the ClusterSet 'domain', however its own metadata copy wasn't properly updated during the removal");
 EXPECT_NE(replica, null);
 EXPECT_EQ(replica.status()["groupInformationSourceMember"], __endpoint3);
+replica.status();
 EXPECT_EQ(replica.status()["metadataServer"], undefined); // undefined means the same as groupInformationSourceMember
 
 //@<> dba.getClusterSet() on a instance that belongs to a Cluster that is no longer a ClusterSet member but its Metadata indicates that is
-EXPECT_THROWS_TYPE(function() {dba.getClusterSet(); }, "The cluster 'replica' is not a part of the ClusterSet 'domain'" , "MYSQLSH");
-EXPECT_OUTPUT_CONTAINS("ERROR: The Cluster 'replica' appears to have been removed from the ClusterSet 'domain', however its own metadata copy wasn't properly updated during the removal");
-
-//@<> cluster.getClusterSet() on a Cluster that is no longer a ClusterSet member but its Metadata indicates that is
-EXPECT_THROWS_TYPE(function() {replica.getClusterSet(); }, "The cluster 'replica' is not a part of the ClusterSet 'domain'" , "MYSQLSH");
+EXPECT_THROWS_TYPE(function() {dba.getClusterSet();}, "Cluster is not part of a ClusterSet" , "MYSQLSH");
 EXPECT_OUTPUT_CONTAINS("ERROR: The Cluster 'replica' appears to have been removed from the ClusterSet 'domain', however its own metadata copy wasn't properly updated during the removal");
 
 //@<> dba.getCluster() on a Cluster member of a ClusterSet that group_replication_group_name does not match the Metadata
@@ -213,6 +227,10 @@ var bogus_group_name = "bbbbbbbb-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = JSON_SET(attributes, '$.group_replication_group_name', ?)", [bogus_group_name]);
 
 EXPECT_THROWS_TYPE(function(){dba.getCluster()}, `Unable to get an InnoDB cluster handle. The instance '${hostname}:${__mysql_sandbox_port1}' may belong to a different cluster from the one registered in the Metadata since the value of 'group_replication_group_name' does not match the one registered in the Metadata: possible split-brain scenario. Please retry while connected to another member of the cluster.`, "RuntimeError");
+
+// Restore the group_replication_group_name value in the Metadata
+//var current_group_name = session.runSql("SELECT @@group_replication_group_name").fetchOne()[0];
+//session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = JSON_SET(attributes, '$.group_replication_group_name', ?)", [current_group_name]);
 
 //@<> Cleanup
 scene.destroy();

@@ -11,6 +11,7 @@ var session = scene.session
 var cluster = scene.cluster
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port5, "root", {report_host: hostname});
 
 cs = cluster.createClusterSet("domain");
 
@@ -131,6 +132,15 @@ cs.removeCluster("newcluster");
 replicacluster.addInstance(__sandbox_uri4);
 
 
+//@<> Remove instance from cluster and add to another one
+// the instance will have view change GTIDs from the old cluster that don't exist in the primary
+replicacluster.removeInstance(__sandbox_uri4);
+
+c3 = cs.createReplicaCluster(__sandbox_uri5, "cluster3", {recoveryMethod:"incremental"});
+c3.addInstance(__sandbox_uri4);
+
+c3.removeInstance(__sandbox_uri4);
+
 // <Cluster>.rejoinInstance() must verify the value of skip_slave_start and enabled it if necessary and if the cluster belongs to a ClusterSet
 
 //@<> rejoinInstance on a primary cluster
@@ -208,3 +218,4 @@ EXPECT_OUTPUT_NOT_CONTAINS("Updating group_replication_view_change_uuid in the C
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port3);
 testutil.destroySandbox(__mysql_sandbox_port4);
+testutil.destroySandbox(__mysql_sandbox_port5);

@@ -30,6 +30,7 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_resultset_dumper.h"
+#include "unittest/test_utils/sandboxes.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "utils/utils_string.h"

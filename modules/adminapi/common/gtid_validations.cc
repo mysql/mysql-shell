@@ -29,6 +29,7 @@
 #include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/clone.h"
+#include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/textui/textui.h"
 
@@ -251,9 +252,14 @@ void check_gtid_consistency_and_recoverability(
   *gtid_set_diverged = false;
 
   // Get the gtid state in regards to the cluster_session
-  mysqlshdk::mysql::Replica_gtid_state state =
-      mysqlshdk::mysql::check_replica_gtid_state(
-          *donor_instance, *target_instance, nullptr, &errant_gtid_set);
+  mysqlshdk::mysql::Replica_gtid_state state;
+
+  if (cluster_type == Cluster_type::REPLICATED_CLUSTER)
+    state = check_replica_group_gtid_state(*donor_instance, *target_instance,
+                                           nullptr, &errant_gtid_set);
+  else
+    state = mysqlshdk::mysql::check_replica_gtid_state(
+        *donor_instance, *target_instance, nullptr, &errant_gtid_set);
 
   switch (state) {
     case mysqlshdk::mysql::Replica_gtid_state::NEW:
@@ -531,6 +537,35 @@ Member_recovery_method validate_instance_recovery(
   }
 
   return recovery_method;
+}
+
+mysqlshdk::mysql::Replica_gtid_state check_replica_group_gtid_state(
+    const mysqlshdk::mysql::IInstance &source,
+    const mysqlshdk::mysql::IInstance &replica, std::string *out_missing_gtids,
+    std::string *out_errant_gtids) {
+  using mysqlshdk::mysql::Gtid_set;
+  auto s_vc =
+      source.get_sysvar_string("group_replication_view_change_uuid").get_safe();
+  auto r_vc = replica.get_sysvar_string("group_replication_view_change_uuid")
+                  .get_safe();
+
+  auto filter_vcle = [&replica](Gtid_set gtid,
+                                const std::string &view_change_uuid) {
+    return gtid.subtract(gtid.get_gtids_from(view_change_uuid), replica);
+  };
+
+  // Note: always query GTID_EXECUTED from the replica first to avoid races
+  auto r_gtid = filter_vcle(
+      filter_vcle(Gtid_set::from_gtid_executed(replica), r_vc), s_vc);
+
+  auto s_gtid = filter_vcle(
+      filter_vcle(Gtid_set::from_gtid_executed(source), s_vc), r_vc);
+  auto s_purged =
+      filter_vcle(filter_vcle(Gtid_set::from_gtid_purged(source), s_vc), r_vc);
+
+  return check_replica_gtid_state(source, s_gtid.str(), s_purged.str(),
+                                  r_gtid.str(), out_missing_gtids,
+                                  out_errant_gtids);
 }
 
 }  // namespace dba

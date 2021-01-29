@@ -11,6 +11,9 @@
     "defaultReplicaSet": {
         "GRProtocolVersion": "[[*]]",
         "groupName": "<<<gr_uuid>>>",
+?{VER(>=8.0.26)}
+        "groupViewChangeUuid": "[[*]]",
+?{}
         "groupViewId": "[[*]]",
         "name": "default",
         "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",

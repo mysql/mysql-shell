@@ -42,6 +42,11 @@
 namespace mysqlsh {
 namespace dba {
 
+constexpr const char *kNotifyClusterSetPrimaryChanged =
+    "CLUSTER_SET_PRIMARY_CHANGED";
+
+constexpr const char *kNotifyDataClusterSetId = "CLUSTER_SET_ID";
+
 struct Instance_metadata {
   Cluster_id cluster_id;
   Instance_id id = 0;
@@ -118,52 +123,9 @@ class Cluster_impl;
 class Cluster_set_impl;
 class Replica_set_impl;
 
-class Cached_metadata_base {
- public:
-  Cached_metadata_base(const Cached_metadata_base &) = delete;
-
-  void invalidate();
-
-  bool is_valid() const;
-
-  /*
-   Associates the validity of this cache value to the given MetadataStorage
-   object. The cache item will become invalid when that object is deleted or
-   invalidated, as well as when invalidate() is called on the cached value
-   itself.
-   */
-  void track(const std::shared_ptr<MetadataStorage> &owner);
-
- protected:
-  Cached_metadata_base() {}
-
- private:
-  friend class MetadataStorage;
-
-  std::weak_ptr<MetadataStorage> m_owner;
-};
-
-template <typename C>
-class Cached_metadata : public Cached_metadata_base {
- public:
-  Cached_metadata() : Cached_metadata_base() {}
-  Cached_metadata(const Cached_metadata &) = delete;
-
-  void operator=(C &&value) { _value = std::move(value); }
-
-  C &operator*() {
-    if (!is_valid()) throw std::logic_error("refresh needed");
-    return _value;
-  }
-
-  C *operator->() {
-    if (!is_valid()) throw std::logic_error("refresh needed");
-    return &_value;
-  }
-
- private:
-  C _value;
-};
+inline uint32_t cluster_set_view_id_generation(uint64_t id) {
+  return (id >> 32);
+}
 
 #if DOXYGEN_CPP
 /**
@@ -183,9 +145,6 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   explicit MetadataStorage(const Instance &instance);
 
   virtual ~MetadataStorage();
-
-  // invalidate the whole MetadataStorage object instance
-  void invalidate();
 
   bool is_valid() const;
 
@@ -255,13 +214,13 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
                                 const std::string &attribute,
                                 const shcore::Value &value);
 
-  void update_clusterset_attribute(const Cluster_set_id &clusterset_id,
-                                   const std::string &attribute,
-                                   const shcore::Value &value);
+  void update_cluster_set_attribute(const Cluster_set_id &clusterset_id,
+                                    const std::string &attribute,
+                                    const shcore::Value &value);
 
-  bool query_clusterset_attribute(const Cluster_set_id &clusterset_id,
-                                  const std::string &attribute,
-                                  shcore::Value *out_value) const;
+  bool query_cluster_set_attribute(const Cluster_set_id &clusterset_id,
+                                   const std::string &attribute,
+                                   shcore::Value *out_value) const;
 
   bool query_instance_attribute(const std::string &uuid,
                                 const std::string &attribute,
@@ -367,16 +326,20 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
                                            Cluster_metadata *out_cluster) const;
 
   bool get_cluster_for_cluster_name(const std::string &name,
-                                    Cluster_metadata *out_cluster) const;
+                                    Cluster_metadata *out_cluster,
+                                    bool allow_invalidated = false) const;
 
   bool get_cluster_set_member_for_cluster_name(
-      const std::string &name, Cluster_set_member_metadata *out_cluster) const;
+      const std::string &name, Cluster_set_member_metadata *out_cluster,
+      bool allow_invalidated = false) const;
 
-  std::vector<Cluster_metadata> get_all_clusters();
+  std::vector<Cluster_metadata> get_all_clusters(
+      bool include_invalidated = false);
 
-  bool get_cluster_set(
-      const Cluster_set_id &cs_id, Cluster_set_metadata *out_cs,
-      std::vector<Cluster_set_member_metadata> *out_cs_members) const;
+  bool get_cluster_set(const Cluster_set_id &cs_id, bool allow_invalidated,
+                       Cluster_set_metadata *out_cs,
+                       std::vector<Cluster_set_member_metadata> *out_cs_members,
+                       uint64_t *out_view_id = nullptr) const;
 
   bool get_cluster_set_member(const Cluster_id &cluster_id,
                               Cluster_set_member_metadata *out_cs_member) const;
@@ -544,7 +507,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   bool check_cluster_set(Instance *target_instance = nullptr,
                          uint64_t *out_view_id = nullptr,
-                         std::string *out_cs_domain_name = nullptr) const;
+                         std::string *out_cs_domain_name = nullptr,
+                         Cluster_set_id *out_cluster_set_id = nullptr) const;
 
   bool supports_cluster_set() const;
 
@@ -637,6 +601,8 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   std::string get_table_tags(const std::string &tablename,
                              const std::string &uuid_column_name,
                              const std::string &uuid) const;
+
+  bool cluster_sets_supported() const;
 
   friend class Transaction;
 

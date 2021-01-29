@@ -4,6 +4,9 @@ The following objects provide command line operations:
    cluster
       Represents an InnoDB cluster.
 
+   clusterset
+      Represents an InnoDB ClusterSet.
+
    customObj
       Dummy global object
 

@@ -171,6 +171,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("getSandboxConfPath", &Testutils::get_sandbox_conf_path, "port");
   expose("getSandboxLogPath", &Testutils::get_sandbox_log_path, "port");
   expose("getSandboxPath", &Testutils::get_sandbox_path, "?port", "?filename");
+  expose("readGeneralLog", &Testutils::read_general_log, "?port",
+         "?afterTimestamp");
 
   expose("isTcpPortListening", &Testutils::is_tcp_port_listening, "host",
          "port");
@@ -1300,11 +1302,18 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
         std::cerr << "Unable to deploy boilerplate sandbox\n";
         abort();
       }
-      handle_remote_root_user(rootpass, port, create_remote_root);
     } else {
       prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
       deploy_sandbox_from_boilerplate(port, my_cnf_options, false, mysqld_path);
-      handle_remote_root_user(rootpass, port, create_remote_root);
+    }
+
+    {
+      auto session = connect_to_sandbox(port);
+      handle_remote_root_user(rootpass, session.get(), create_remote_root);
+
+      _general_log_files[port] = session->query("select @@general_log_file")
+                                     ->fetch_one_or_throw()
+                                     ->get_string(0);
     }
   }
 }
@@ -1350,12 +1359,19 @@ void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
         std::cerr << "Unable to deploy boilerplate sandbox\n";
         abort();
       }
-      handle_remote_root_user(rootpass, port, create_remote_root);
     } else {
       prepare_sandbox_boilerplate(rootpass, port, mysqld_path);
       wait_sandbox_dead(port);
       deploy_sandbox_from_boilerplate(port, my_cnf_opts, true, mysqld_path);
-      handle_remote_root_user(rootpass, port, create_remote_root);
+    }
+
+    {
+      auto session = connect_to_sandbox(port);
+      handle_remote_root_user(rootpass, session.get(), create_remote_root);
+
+      _general_log_files[port] = session->query("select @@general_log_file")
+                                     ->fetch_one_or_throw()
+                                     ->get_string(0);
     }
   }
 }
@@ -1666,6 +1682,73 @@ void Testutils::wait_sandbox_dead(int port) {
     shcore::sleep_ms(500);
   }
   log_info("Finished waiting");
+}
+
+shcore::Array_t Testutils::read_general_log(
+    int port, const std::string &starting_timestamp) {
+  if (_skip_server_interaction)
+    throw std::logic_error("read_general_log() can only be in _norecord tests");
+
+  auto parse_log_line =
+      [](std::string line,
+         shcore::Dictionary_t last_entry) -> shcore::Dictionary_t {
+    // timestamp
+    if (line.size() < 27 || line[10] != 'T' || line[26] != 'Z')
+      goto continued_line;
+
+    {
+      auto parts = shcore::str_split(line, "\t", 2);
+      if (parts.size() < 2) goto continued_line;
+
+      std::string timestamp = parts[0];
+
+      auto pid_and_cmd = shcore::str_split(shcore::str_strip(parts[1]), " ", 1);
+
+      // pid
+      uint64_t pid = std::stoull(pid_and_cmd[0]);
+
+      // check if Query
+      if (pid_and_cmd[1] != "Query") {
+        // ignore anything not a query
+        return nullptr;
+      }
+
+      return shcore::make_dict("sql", shcore::Value(parts[2]), "timestamp",
+                               shcore::Value(timestamp), "pid",
+                               shcore::Value(pid));
+    }
+  continued_line:
+    // append continuation
+    if (last_entry) {
+      (*last_entry)["sql"] =
+          shcore::Value((*last_entry)["sql"].as_string() + line);
+    }
+    return nullptr;
+  };
+
+  std::ifstream f(_general_log_files[port]);
+  if (!f.good())
+    throw std::runtime_error(_general_log_files[port] + ": " + strerror(errno));
+
+  shcore::Array_t result = shcore::make_array();
+  shcore::Dictionary_t last_entry = nullptr;
+  while (!f.eof()) {
+    std::string line;
+    std::getline(f, line);
+
+    auto entry = parse_log_line(line, last_entry);
+    if (entry) {
+      std::string entry_ts = entry->at("timestamp").as_string();
+
+      if (starting_timestamp.empty() || starting_timestamp < entry_ts) {
+        result->push_back(shcore::Value(entry));
+      }
+      last_entry = entry;
+    }
+  }
+  f.close();
+
+  return result;
 }
 
 void Testutils::wait_sandbox_alive(const shcore::Value &port_or_uri) {
@@ -3074,14 +3157,10 @@ void Testutils::handle_sandbox_encryption(const std::string &path) const {
   shcore::ch_mod(path, 0750);
 }
 
-void Testutils::handle_remote_root_user(const std::string &rootpass, int port,
+void Testutils::handle_remote_root_user(const std::string &rootpass,
+                                        mysqlshdk::db::ISession *session,
                                         bool create_remote_root) const {
   // Connect to sandbox using default root@localhost account.
-  auto session = mysqlshdk::db::mysql::Session::create();
-  auto options = mysqlshdk::db::Connection_options("root@localhost");
-  options.set_port(port);
-  options.set_password(rootpass);
-  session->connect(options);
 
   // Create root user to allow access using other hostnames, otherwise only
   // access through 'localhost' will be allowed leading to access denied
@@ -3109,8 +3188,6 @@ void Testutils::handle_remote_root_user(const std::string &rootpass, int port,
     session->execute("DROP USER IF EXISTS 'root'@'%'");
     session->execute("SET sql_log_bin = 1");
   }
-
-  session->close();
 }
 
 void Testutils::prepare_sandbox_boilerplate(const std::string &rootpass,
@@ -3687,8 +3764,10 @@ int Testutils::call_mysqlsh(const shcore::Array_t &args,
                             const shcore::Array_t &env,
                             const std::string &executable_path) {
   return call_mysqlsh_c(
-      shcore::Value(args).to_string_vector(), std_input,
-      env ? shcore::Value(env).to_string_vector() : std::vector<std::string>{},
+      shcore::Value(args).to_string_container<std::vector<std::string>>(),
+      std_input,
+      env ? shcore::Value(env).to_string_container<std::vector<std::string>>()
+          : std::vector<std::string>{},
       executable_path);
 }
 
@@ -3810,8 +3889,10 @@ int Testutils::call_mysqlsh_async(const shcore::Array_t &args,
                                   const shcore::Array_t &env,
                                   const std::string &executable_path) {
   return call_mysqlsh_c_async(
-      shcore::Value(args).to_string_vector(), std_input,
-      env ? shcore::Value(env).to_string_vector() : std::vector<std::string>{},
+      shcore::Value(args).to_string_container<std::vector<std::string>>(),
+      std_input,
+      env ? shcore::Value(env).to_string_container<std::vector<std::string>>()
+          : std::vector<std::string>{},
       executable_path);
 }
 

@@ -205,6 +205,40 @@ const extended_1_status_templ_8023 = {
     "metadataVersion": ""
 };
 
+const extended_1_status_templ_8026 = {
+    "clusterName": "",
+    "defaultReplicaSet": {
+        "GRProtocolVersion": "",
+        "name": "",
+        "groupName": "",
+        "groupViewId": "",
+        "groupViewChangeUuid": "",
+        "primary": "",
+        "ssl": "",
+        "status": "",
+        "statusText": "",
+        "topology": {
+            "": {
+                "address": "",
+                "fenceSysVars": [],
+                "memberId": "",
+                "memberRole": "",
+                "memberState": "",
+                "mode": "",
+                "readReplicas": {},
+                "replicationLag": "",
+                "role": "",
+                "applierWorkerThreads": 4,
+                "status": "",
+                "version": __version
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": "",
+    "metadataVersion": ""
+};
+
 const extended_1_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
@@ -285,6 +319,50 @@ const extended_2_status_templ_8023 = {
         "name": "",
         "groupName": "",
         "groupViewId": "",
+        "primary": "",
+        "ssl": "",
+        "status": "",
+        "statusText": "",
+        "topology": {
+            "": {
+                "address": "",
+                "fenceSysVars": [],
+                "memberId": "",
+                "memberRole": "",
+                "memberState": "",
+                "mode": "",
+                "readReplicas": {},
+                "role": "",
+                "applierWorkerThreads": 4,
+                "status": "",
+                "transactions": {
+                    "appliedCount": 0,
+                    "checkedCount": 0,
+                    "committedAllMembers": "",
+                    "conflictsDetectedCount": 0,
+                    "inApplierQueueCount": 0,
+                    "inQueueCount": 0,
+                    "lastConflictFree": "",
+                    "proposedCount": 0,
+                    "rollbackCount": 0
+                },
+                "version": __version
+            }
+        },
+        "topologyMode": "Single-Primary"
+    },
+    "groupInformationSourceMember": "",
+    "metadataVersion": ""
+};
+
+const extended_2_status_templ_8026 = {
+    "clusterName": "",
+    "defaultReplicaSet": {
+        "GRProtocolVersion": "",
+        "name": "",
+        "groupName": "",
+        "groupViewId": "",
+        "groupViewChangeUuid": "",
         "primary": "",
         "ssl": "",
         "status": "",
@@ -529,6 +607,9 @@ const full_status_templ_8023 = {
     "metadataVersion": ""
 };
 
+var full_status_templ_8026 = full_status_templ_8023;
+full_status_templ_8026["defaultReplicaSet"]["groupViewChangeUuid"] = "";
+
 const full_status_templ_57 = {
     "clusterName": "",
     "defaultReplicaSet": {
@@ -717,8 +798,11 @@ EXPECT_EQ(testutil.getInstalledMetadataVersion(), metadata_version);
 //@<> WL#13084 - TSF4_2: verify status result with extended:1 for 8.0 {VER(>=8.0) && VER(<8.0.23)}
 json_check(stat, extended_1_status_templ_80);
 
-//@<> WL#13084 - TSF4_2: verify status result with extended:1 for 8.0 {VER(>=8.0.23)}
+//@<> WL#13084 - TSF4_2: verify status result with extended:1 for 8.0 {VER(>=8.0.23) && VER(<8.0.26)}
 json_check(stat, extended_1_status_templ_8023);
+
+//@<> WL#13084 - TSF4_2: verify status result with extended:1 for 8.0 {VER(>=8.0.26)}
+json_check(stat, extended_1_status_templ_8026);
 
 //@<> WL#13084 - TSF4_2: verify status result with extended:1 for 5.7 {VER(<8.0)}
 json_check(stat, extended_1_status_templ_57);
@@ -737,8 +821,11 @@ var stat = cluster.status({extended:2});
 //@<> WL#13084 - TSF4_3: verify status result with extended:2 for 8.0 {VER(>=8.0) && VER(<8.0.23)}
 json_check(stat, extended_2_status_templ_80, [], ["replicationLag"]);
 
-//@<> WL#13084 - TSF4_3: verify status result with extended:2 for 8.0 {VER(>=8.0.23)}
+//@<> WL#13084 - TSF4_3: verify status result with extended:2 for 8.0 {VER(>=8.0.23) && VER(<8.0.26)}
 json_check(stat, extended_2_status_templ_8023, [], ["replicationLag"]);
+
+//@<> WL#13084 - TSF4_3: verify status result with extended:2 for 8.0 {VER(>=8.0.26)}
+json_check(stat, extended_2_status_templ_8026, [], ["replicationLag"]);
 
 //@<> WL#13084 - TSF4_3: verify status result with extended:2 for 5.7 {VER(<8.0)}
 json_check(stat, extended_2_status_templ_57);
@@ -765,8 +852,11 @@ var stat = cluster.status({extended:2, queryMembers:false});
 //@<> 8.0 execution 2 {VER(>=8.0) && VER(<8.0.23)}
 json_check(stat, extended_2_status_templ_80, [], ["replicationLag"]);
 
-//@<> 8.0 execution 2 {VER(>=8.0.23)}
+//@<> 8.0 execution 2 {VER(>=8.0.23) && VER(<8.0.26)}
 json_check(stat, extended_2_status_templ_8023, [], ["replicationLag"]);
+
+//@<> 8.0 execution 2 {VER(>=8.0.26)}
+json_check(stat, extended_2_status_templ_8026, [], ["replicationLag"]);
 
 //@<> 5.7 execution 2 {VER(<8.0)}
 json_check(stat, extended_2_status_templ_57);
@@ -793,9 +883,13 @@ json_check(stat, base_status_templ_57);
 var stat = cluster.status({extended: 3});
 json_check(stat, full_status_templ_80);
 
-//@<> F3- queryMembers (deprecated and replaced by extended: 3) for 8.0 {VER(>=8.0.23)}
+//@<> F3- queryMembers (deprecated and replaced by extended: 3) for 8.0 {VER(>=8.0.23) && VER(<8.0.26)}
 var stat = cluster.status({extended: 3});
 json_check(stat, full_status_templ_8023);
+
+//@<> F3- queryMembers (deprecated and replaced by extended: 3) for 8.0 {VER(>=8.0.26)}
+var stat = cluster.status({extended: 3});
+json_check(stat, full_status_templ_8026);
 
 //@<> F3- queryMembers (deprecated and replaced by extended: 3) for 5.7 {VER(<8.0)}
 var stat = cluster.status({extended: 3});
@@ -857,10 +951,15 @@ var stat = cluster.status({extended:2});
 var allowed_unexpected = ["recovery", "recoveryStatusText", "replicationLag", "instanceErrors"];
 json_check(stat, extended_2_status_templ_80, [], allowed_unexpected);
 
-//@<> F7- Check that recovery stats are there 8.0.23 - extended 2 {VER(>=8.0.23)}
+//@<> F7- Check that recovery stats are there 8.0.23 - extended 2 {VER(>=8.0.23) && VER(<8.0.26)}
 var stat = cluster.status({extended:2});
 var allowed_unexpected = ["recovery", "recoveryStatusText", "replicationLag", "instanceErrors"];
 json_check(stat, extended_2_status_templ_8023, [], allowed_unexpected);
+
+//@<> F7- Check that recovery stats are there 8.0.23 - extended 2 {VER(>=8.0.26)}
+var stat = cluster.status({extended:2});
+var allowed_unexpected = ["recovery", "recoveryStatusText", "replicationLag", "instanceErrors"];
+json_check(stat, extended_2_status_templ_8026, [], allowed_unexpected);
 
 //@<> F7- Check that recovery stats are there 8.0 - extended 3 {VER(>=8.0)}
 var stat = cluster.status({extended:3});

@@ -47,14 +47,6 @@ struct Wait_recovery_option {
   int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
 };
 
-struct Timeout_option {
-  static const shcore::Option_pack_def<Timeout_option> &options();
-
-  void set_timeout(int value);
-
-  int sync_timeout = 0;
-};
-
 struct Rejoin_instance_options : public Wait_recovery_option,
                                  public Timeout_option,
                                  public Interactive_option {

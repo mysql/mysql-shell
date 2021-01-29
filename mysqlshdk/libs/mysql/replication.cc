@@ -806,6 +806,22 @@ Gtid_set_relation compare_gtid_sets(const mysqlshdk::mysql::IInstance &server,
   }
 }
 
+std::string to_string(Replica_gtid_state state) {
+  switch (state) {
+    case Replica_gtid_state::NEW:
+      return "NEW";
+    case Replica_gtid_state::IDENTICAL:
+      return "IDENTICAL";
+    case Replica_gtid_state::RECOVERABLE:
+      return "RECOVERABLE";
+    case Replica_gtid_state::IRRECOVERABLE:
+      return "IRRECOVERABLE";
+    case Replica_gtid_state::DIVERGED:
+      return "DIVERGED";
+  }
+  throw std::logic_error("internal error");
+}
+
 Replica_gtid_state check_replica_gtid_state(
     const mysqlshdk::mysql::IInstance &master,
     const mysqlshdk::mysql::IInstance &slave, std::string *out_missing_gtids,

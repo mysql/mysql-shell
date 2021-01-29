@@ -104,6 +104,8 @@ function inject_applier_error(master, slave) {
 }
 
 function inject_errant_gtid(slave) {
+    slave.runSql("set @gtid_before=@@gtid_executed");
+
     // Force the slave to have a transaction that doesn't exist in the master
     slave.runSql("SET GLOBAL super_read_only=0");
     var before = slave.runSql("select @@gtid_executed").fetchOne()[0];
@@ -162,15 +164,25 @@ function invalidate_cluster(cluster, pcluster) {
   session.runSql("call mysql_innodb_cluster_metadata.v2_cs_primary_changed(?, ?, '{}')", [csid, c1id]);
   session.runSql("call mysql_innodb_cluster_metadata.v2_cs_add_invalidated_member(?, ?)", [csid, c2id]);
   session.runSql("commit");
+
+  session.close();
+}
+
+function delete_last_view(session) {
+  session.runSql("begin");
+  view_id = session.runSql("select max(view_id) from mysql_innodb_cluster_metadata.clusterset_views").fetchOne()[0];
+  session.runSql("delete from mysql_innodb_cluster_metadata.clusterset_members where view_id=?", [view_id]);
+  session.runSql("delete from mysql_innodb_cluster_metadata.clusterset_views where view_id=?", [view_id]);
+  session.runSql("commit");
 }
 
 function CHECK_GTID_CONSISTENT(master_session, replica_session) {
-  var row = replica_session.runSql("select @@gtid_executed, @@group_replication_view_change_uuid").fetchOne();
+  var row = replica_session.runSql("select @@gtid_executed, @@group_replication_view_change_uuid, @@group_replication_group_name").fetchOne();
   var view_uuid = row[1];
   var replica_gtid = filter_gtids_from(row[0], view_uuid);
   var master_gtid = master_session.runSql("select @@gtid_executed").fetchOne()[0];
   var diff = master_session.runSql("select gtid_subtract(?, ?)", [replica_gtid, master_gtid]).fetchOne()[0];
-  EXPECT_EQ("", diff, "gtid_subtract(replica, master)"+"   replica="+replica_gtid+"  master="+master_gtid);
+  EXPECT_EQ("", diff, `gtid_subtract(replica, master)   replica=${replica_gtid} group_name=${row[2]} view_uuid=${row[1]} master=${master_gtid}`);
 }
 
 function CHECK_ROUTER_OPTIONS_REMOVED_CLUSTER(session) {
@@ -592,6 +604,8 @@ function CHECK_INVALIDATED_CLUSTER(uris, pcluster, cluster) {
   var row = session.runSql("select * from mysql_innodb_cluster_metadata.v2_cs_members where cluster_name = ?", [cluster.name]).fetchOne();
   EXPECT_NE(null, row, cluster.name+".md");
   EXPECT_EQ(1, row["invalidated"], cluster.name+".md.invalidated");
+
+  session.close();
 
   // check that getting a handle of the invalidated cluster errors out
   if (uris.length > 0) {

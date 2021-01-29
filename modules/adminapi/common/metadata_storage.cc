@@ -91,30 +91,34 @@ const char *get_router_query(const mysqlshdk::utils::Version &md_version) {
 }
 
 static constexpr const char *k_select_cluster_metadata_2_1_0 =
-    R"*(SELECT * FROM (
+    R"*(SELECT c.* FROM (
 SELECT cluster_type, primary_mode, cluster_id, cluster_name,
-      description, NULL as group_name, async_topology_type, NULL as clusterset_id
+      description, NULL as group_name, async_topology_type,
+      NULL as clusterset_id, 0 as invalidated
 FROM mysql_innodb_cluster_metadata.v2_ar_clusters
 UNION ALL
-SELECT cluster_type, primary_mode, cluster_id, cluster_name,
-      description, group_name, NULL as async_topology_type, clusterset_id
-FROM mysql_innodb_cluster_metadata.v2_gr_clusters
+SELECT c.cluster_type, c.primary_mode, c.cluster_id, c.cluster_name,
+      c.description, c.group_name, NULL as async_topology_type, c.clusterset_id,
+      coalesce(cv.invalidated, 0) as invalidated
+FROM mysql_innodb_cluster_metadata.v2_gr_clusters c
+  LEFT JOIN mysql_innodb_cluster_metadata.v2_cs_members cv
+  ON c.cluster_id = cv.cluster_id
 ) as c)*";
 
 static constexpr const char *k_select_cluster_metadata_2_0_0 =
-    R"*(SELECT * FROM (
+    R"*(SELECT c.* FROM (
 SELECT cluster_type, primary_mode, cluster_id, cluster_name,
-      description, NULL as group_name, async_topology_type
+      description, NULL as group_name, async_topology_type, 0 as invalidated
 FROM mysql_innodb_cluster_metadata.v2_ar_clusters
 UNION ALL
 SELECT cluster_type, primary_mode, cluster_id, cluster_name,
-      description, group_name, NULL as async_topology_type
+      description, group_name, NULL as async_topology_type, 0 as invalidated
 FROM mysql_innodb_cluster_metadata.v2_gr_clusters
 ) as c)*";
 
 static constexpr const char *k_select_cluster_metadata_1_0_1 =
     R"*(SELECT r.topology_type, c.cluster_id, c.cluster_name, c.description,
- r.attributes->>'$.group_replication_group_name' as group_name
+ r.attributes->>'$.group_replication_group_name' as group_name, 0 as invalidated
  FROM mysql_innodb_cluster_metadata.clusters c
  JOIN mysql_innodb_cluster_metadata.replicasets r
   ON c.cluster_id = r.cluster_id)*";
@@ -273,18 +277,6 @@ static const mysqlshdk::utils::Version k_json_merge_deprecated_version =
 
 }  // namespace
 
-void Cached_metadata_base::invalidate() { m_owner.reset(); }
-
-bool Cached_metadata_base::is_valid() const {
-  auto owner = m_owner.lock();
-  return (owner && owner->is_valid());
-}
-
-void Cached_metadata_base::track(
-    const std::shared_ptr<MetadataStorage> &owner) {
-  m_owner = owner;
-}
-
 MetadataStorage::MetadataStorage(const std::shared_ptr<Instance> &instance)
     : m_md_server(instance), m_owns_md_server(true) {
   log_debug("Metadata operations will use %s", instance->descr().c_str());
@@ -325,12 +317,10 @@ bool MetadataStorage::check_version(
   return false;
 }
 
-void MetadataStorage::invalidate() { m_md_server.reset(); }
-
 bool MetadataStorage::is_valid() const {
   if (m_md_server) {
     if (m_md_server->get_session() && m_md_server->get_session()->is_open()) {
-      return true;
+      return m_md_state != mysqlsh::dba::metadata::State::NONEXISTING;
     }
   }
 
@@ -591,7 +581,7 @@ void MetadataStorage::update_cluster_attribute(const Cluster_id &cluster_id,
   }
 }
 
-void MetadataStorage::update_clusterset_attribute(
+void MetadataStorage::update_cluster_set_attribute(
     const Cluster_set_id &clusterset_id, const std::string &attribute,
     const shcore::Value &value) {
   shcore::sqlstring query;
@@ -621,7 +611,7 @@ void MetadataStorage::update_clusterset_attribute(
   execute_sql(query);
 }
 
-bool MetadataStorage::query_clusterset_attribute(
+bool MetadataStorage::query_cluster_set_attribute(
     const Cluster_set_id &clusterset_id, const std::string &attribute,
     shcore::Value *out_value) const {
   auto result = execute_sql(
@@ -640,7 +630,8 @@ bool MetadataStorage::query_clusterset_attribute(
   return false;
 }
 
-std::vector<Cluster_metadata> MetadataStorage::get_all_clusters() {
+std::vector<Cluster_metadata> MetadataStorage::get_all_clusters(
+    bool include_invalidated) {
   std::vector<Cluster_metadata> l;
 
   if (real_version() != metadata::kNotInstalled) {
@@ -654,7 +645,8 @@ std::vector<Cluster_metadata> MetadataStorage::get_all_clusters() {
     auto result = execute_sqlf(query);
 
     while (auto row = result->fetch_one_named()) {
-      l.push_back(unserialize_cluster_metadata(row, m_real_md_version));
+      if (include_invalidated || row.get_int("invalidated", 0) == 0)
+        l.push_back(unserialize_cluster_metadata(row, m_real_md_version));
     }
   }
 
@@ -693,7 +685,8 @@ bool MetadataStorage::get_cluster_for_server_uuid(
 }
 
 bool MetadataStorage::get_cluster_for_cluster_name(
-    const std::string &name, Cluster_metadata *out_cluster) const {
+    const std::string &name, Cluster_metadata *out_cluster,
+    bool allow_invalidated) const {
   std::string domain_name;
   std::string cluster_name;
   parse_fully_qualified_cluster_name(name, &domain_name, nullptr,
@@ -706,7 +699,11 @@ bool MetadataStorage::get_cluster_for_cluster_name(
       get_cluster_query(real_version()) + " WHERE c.cluster_name = ?",
       cluster_name);
   if (auto row = result->fetch_one_named()) {
-    *out_cluster = unserialize_cluster_metadata(row, m_md_version);
+    if (allow_invalidated || row.get_int("invalidated", 0) == 0)
+      *out_cluster = unserialize_cluster_metadata(row, m_md_version);
+    else
+      throw shcore::Exception("Cluster '" + name + "' is invalidated",
+                              SHERR_DBA_ASYNC_MEMBER_INVALIDATED);
     return true;
   }
 
@@ -2195,6 +2192,10 @@ MetadataStorage::get_routers_using_cluster_as_target(
 
 // ----------------------------------------------------------------------------
 
+bool MetadataStorage::cluster_sets_supported() const {
+  return real_version() >= mysqlshdk::utils::Version(2, 1, 0);
+}
+
 namespace {
 Cluster_set_member_metadata unserialize_clusterset_member_metadata(
     const mysqlshdk::db::Row_ref_by_name &row) {
@@ -2210,8 +2211,10 @@ Cluster_set_member_metadata unserialize_clusterset_member_metadata(
 }  // namespace
 
 bool MetadataStorage::get_cluster_set(
-    const Cluster_set_id &cs_id, Cluster_set_metadata *out_cs,
-    std::vector<Cluster_set_member_metadata> *out_cs_members) const {
+    const Cluster_set_id &cs_id, bool allow_invalidated,
+    Cluster_set_metadata *out_cs,
+    std::vector<Cluster_set_member_metadata> *out_cs_members,
+    uint64_t *out_view_id) const {
   Cluster_id cluster_id;
 
   auto result = execute_sqlf(
@@ -2232,7 +2235,8 @@ bool MetadataStorage::get_cluster_set(
           " FROM mysql_innodb_cluster_metadata.v2_cs_members m"
           " JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
           "  ON c.cluster_id = m.cluster_id"
-          " WHERE m.clusterset_id = ?",
+          " WHERE m.clusterset_id = ?" +
+              std::string(allow_invalidated ? "" : " AND m.invalidated = 0"),
           cs_id);
 
       while (auto mrow = result->fetch_one_named()) {
@@ -2241,6 +2245,10 @@ bool MetadataStorage::get_cluster_set(
         cmd.cluster = unserialize_cluster_metadata(mrow, m_md_version);
 
         out_cs_members->emplace_back(std::move(cmd));
+
+        if (out_view_id) {
+          *out_view_id = mrow.get_uint("view_id");
+        }
       }
     }
     return true;
@@ -2250,39 +2258,30 @@ bool MetadataStorage::get_cluster_set(
 }
 
 bool MetadataStorage::get_cluster_set_member_for_cluster_name(
-    const std::string &name, Cluster_set_member_metadata *out_cluster) const {
+    const std::string &name, Cluster_set_member_metadata *out_cluster,
+    bool allow_invalidated) const {
   bool ret_val = false;
 
-  try {
-    auto result = execute_sqlf(
-        "SELECT c.*, m.view_id, m.member_role, m.master_cluster_id,"
-        "  m.invalidated"
-        " FROM mysql_innodb_cluster_metadata.v2_cs_members m"
-        " JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
-        "  ON c.cluster_id = m.cluster_id"
-        " WHERE c.cluster_name = ?",
-        name);
+  auto result = execute_sqlf(
+      "SELECT c.*, m.view_id, m.member_role, m.master_cluster_id,"
+      "  m.invalidated"
+      " FROM mysql_innodb_cluster_metadata.v2_cs_members m"
+      " JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
+      "  ON c.cluster_id = m.cluster_id"
+      " WHERE c.cluster_name = ?",
+      name);
 
-    auto mrow = result->fetch_one_named();
-    if (out_cluster && mrow) {
-      *out_cluster = unserialize_clusterset_member_metadata(mrow);
-      out_cluster->cluster = unserialize_cluster_metadata(mrow, m_md_version);
+  auto mrow = result->fetch_one_named();
+  if (out_cluster && mrow) {
+    *out_cluster = unserialize_clusterset_member_metadata(mrow);
+    out_cluster->cluster = unserialize_cluster_metadata(mrow, m_md_version);
 
-      ret_val = true;
+    if (out_cluster->invalidated && !allow_invalidated) {
+      throw shcore::Exception("Cluster '" + name + "' is invalidated",
+                              SHERR_DBA_ASYNC_MEMBER_INVALIDATED);
     }
-  } catch (const shcore::Error &e) {
-    // ER_BAD_FIELD_ERROR Would be raised if metadata schema is not 2.1.0
-    // ER_BAD_DB_ERROR Would be raised in a metadata upgrade failure in which
-    // case the state doesn't really matter
-    // ER_NO_SUCH_TABLE Would be raised with 5.7 servers
-    if (e.code() != ER_BAD_FIELD_ERROR && e.code() != ER_BAD_DB_ERROR &&
-        e.code() != ER_NO_SUCH_TABLE) {
-      log_error("Error getting ClusterSet Metadata: %s", e.what());
 
-      throw shcore::Exception::runtime_error(
-          "Unable get the Metadata for the ClusterSet to which the Cluster '" +
-          name + "' belongs to");
-    }
+    ret_val = true;
   }
 
   return ret_val;
@@ -2291,42 +2290,26 @@ bool MetadataStorage::get_cluster_set_member_for_cluster_name(
 bool MetadataStorage::get_cluster_set_member(
     const Cluster_id &cluster_id,
     Cluster_set_member_metadata *out_cs_member) const {
-  bool ret_val = false;
+  if (!cluster_sets_supported()) return false;
 
-  try {
-    auto result = execute_sqlf(
-        "SELECT c.*, m.view_id, m.member_role, m.master_cluster_id,"
-        "  m.invalidated"
-        " FROM mysql_innodb_cluster_metadata.v2_cs_members m"
-        " JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
-        "  ON c.cluster_id = m.cluster_id"
-        " WHERE c.cluster_id = ?",
-        cluster_id);
+  auto result = execute_sqlf(
+      "SELECT c.*, m.view_id, m.member_role, m.master_cluster_id,"
+      "  m.invalidated"
+      " FROM mysql_innodb_cluster_metadata.v2_cs_members m"
+      " JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
+      "  ON c.cluster_id = m.cluster_id"
+      " WHERE c.cluster_id = ?",
+      cluster_id);
 
-    auto mrow = result->fetch_one_named();
-    if (out_cs_member && mrow) {
-      *out_cs_member = unserialize_clusterset_member_metadata(mrow);
-      out_cs_member->cluster = unserialize_cluster_metadata(mrow, m_md_version);
+  auto mrow = result->fetch_one_named();
+  if (out_cs_member && mrow) {
+    *out_cs_member = unserialize_clusterset_member_metadata(mrow);
+    out_cs_member->cluster = unserialize_cluster_metadata(mrow, m_md_version);
 
-      ret_val = true;
-    }
-  } catch (const shcore::Error &e) {
-    // ER_BAD_FIELD_ERROR Would be raised if metadata schema is not 2.1.0
-    // ER_BAD_DB_ERROR Would be raised in a metadata upgrade failure in which
-    // case the state doesn't really matter
-    // ER_NO_SUCH_TABLE Would be raised with 5.7 servers
-    if (e.code() != ER_BAD_FIELD_ERROR && e.code() != ER_BAD_DB_ERROR &&
-        e.code() != ER_NO_SUCH_TABLE) {
-      log_error("Error getting ClusterSet Metadata: %s", e.what());
-
-      throw shcore::Exception::runtime_error(
-          "Unable get the Metadata for the ClusterSet to which the Cluster "
-          "with id '" +
-          cluster_id + "' belongs to");
-    }
+    return true;
   }
 
-  return ret_val;
+  return false;
 }
 
 void MetadataStorage::cleanup_for_cluster(Cluster_id cluster_id) {
@@ -2483,12 +2466,14 @@ bool MetadataStorage::check_metadata(mysqlshdk::utils::Version *out_version,
   return false;
 }
 
-bool MetadataStorage::check_cluster_set(Instance *target_instance,
-                                        uint64_t *out_view_id,
-                                        std::string *out_cs_domain_name) const {
+bool MetadataStorage::check_cluster_set(
+    Instance *target_instance, uint64_t *out_view_id,
+    std::string *out_cs_domain_name, Cluster_set_id *out_cluster_set_id) const {
   bool ret_val = false;
 
-  if (m_md_version < mysqlshdk::utils::Version(2, 1, 0)) return false;
+  if (!cluster_sets_supported()) {
+    return false;
+  }
 
   auto target = target_instance ? target_instance : m_md_server.get();
 
@@ -2508,16 +2493,19 @@ bool MetadataStorage::check_cluster_set(Instance *target_instance,
 
     if (ret_val) csid = row->get_string(0);
 
-    if (out_cs_domain_name && ret_val) {
+    if (ret_val && (out_cs_domain_name || out_cluster_set_id)) {
       result = execute_sqlf(
-          "SELECT domain_name"
+          "SELECT domain_name, clusterset_id"
           " FROM mysql_innodb_cluster_metadata.clustersets"
           " WHERE clusterset_id = ?",
           row->get_as_string(0));
 
       auto domain_name = result->fetch_one();
 
-      *out_cs_domain_name = domain_name->get_as_string(0);
+      if (out_cs_domain_name)
+        *out_cs_domain_name = domain_name->get_as_string(0);
+      if (out_cluster_set_id)
+        *out_cluster_set_id = domain_name->get_as_string(1);
     }
   } catch (const shcore::Error &e) {
     // ER_BAD_FIELD_ERROR Would be raised if metadata schema is not 2.1.0
@@ -2534,18 +2522,18 @@ bool MetadataStorage::check_cluster_set(Instance *target_instance,
           "Unable to determine if the instance '" + instance_address +
           "' belongs to a ClusterSet");
     }
+  }
 
-    if (out_view_id) {
-      auto result = m_md_server->queryf(
-          "SELECT MAX(view_id)"
-          " FROM mysql_innodb_cluster_metadata.clusterset_views"
-          " WHERE clusterset_id = ?",
-          csid);
-      if (auto row = result->fetch_one()) {
-        *out_view_id = row->get_uint(0);
-      } else {
-        *out_view_id = 0;
-      }
+  if (out_view_id) {
+    auto result = m_md_server->queryf(
+        "SELECT MAX(view_id)"
+        " FROM mysql_innodb_cluster_metadata.clusterset_views"
+        " WHERE clusterset_id = ?",
+        csid);
+    if (auto row = result->fetch_one()) {
+      *out_view_id = row->get_uint(0, 0);
+    } else {
+      *out_view_id = 0;
     }
   }
 

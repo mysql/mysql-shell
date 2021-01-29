@@ -101,6 +101,56 @@ function run_nolog(session, query) {
     session.runSql("set session sql_log_bin=1");
 }
 
+function genlog_last_timestamp(port) {
+    var logs = testutil.readGeneralLog(port);
+    if (logs) {
+      return logs[logs.length-1]["timestamp"];
+    }
+    return null;
+}
+
+function genlog_filter_reads(logs, pattern) {
+    var out = [];
+    for (log of logs) {
+      sql = log["sql"];
+      if (pattern === undefined) {
+        if (sql.match(/select.*from.*/i) ||
+            sql.match(/(show|begin|start transaction|rollback|.*@@hostname|.*@@server_uuid|select.*gtid)/i) ||
+            sql.match(/set (session|@)/i)) {
+        } else {
+          out.push(log);
+        }
+      } else {
+        if (sql.match(pattern)) {
+        } else {
+          out.push(log);
+        }
+      }
+    }
+    return out;
+}
+
+function prepare_genlog_nop_check(port) {
+  return {port:port, ts:genlog_last_timestamp(port)};
+}
+
+function EXPECT_GENLOG_NOP(state, extra_filter) {
+  var logs = testutil.readGeneralLog(state["port"], state["ts"]);
+  logs = genlog_filter_reads(logs);
+  if (extra_filter) {
+    logs = genlog_filter_reads(logs, extra_filter);
+  }
+  EXPECT_EQ([], logs);
+}
+
+function EXPECT_DRYRUN(fun, port, extra_filter) {
+  if (__test_execution_mode != 'replay')
+    var state = prepare_genlog_nop_check(port);
+  fun();
+  if (__test_execution_mode != 'replay')
+    EXPECT_GENLOG_NOP(state, extra_filter);
+}
+
 var kGrantsForPerformanceSchema = ["GRANT SELECT ON `performance_schema`.`replication_applier_configuration` TO `admin`@`%` WITH GRANT OPTION",
 "GRANT SELECT ON `performance_schema`.`replication_applier_status_by_coordinator` TO `admin`@`%` WITH GRANT OPTION",
 "GRANT SELECT ON `performance_schema`.`replication_applier_status_by_worker` TO `admin`@`%` WITH GRANT OPTION",
@@ -676,6 +726,19 @@ function EXPECT_EQ(expected, actual, note) {
   }
 }
 
+function EXPECT_EQ_ONEOF(expected, actual, note) {
+  if (note === undefined)
+    note = "";
+
+  for (var e of expected) {
+    if (repr(e) == repr(actual))
+      return;
+  }
+
+  var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> " + note + "\n\t<yellow>Actual: </yellow> " + repr(actual) + "\n\t<yellow>Expected (one of):</yellow> " + repr(expected);
+  testutil.fail(context);
+}
+
 function EXPECT_GT(value1, value2, note) {
   if (note === undefined)
     note = "";
@@ -898,6 +961,15 @@ function EXPECT_OUTPUT_CONTAINS_ONE_OF(text) {
         context += "<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
         testutil.fail(context);
     }
+}
+
+function EXPECT_OUTPUT_NOT_CONTAINS(text) {
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  if (out.indexOf(text) >= 0 || err.indexOf(text) >= 0) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Output unexpectedly contains:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
+  }
 }
 
 function EXPECT_STDOUT_CONTAINS(text) {

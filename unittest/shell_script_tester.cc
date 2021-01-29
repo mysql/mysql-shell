@@ -329,6 +329,15 @@ void Shell_script_tester::SetUp() {
 }
 
 void Shell_script_tester::TearDown() {
+  if (!_skip_sandbox_check) {
+    // check for leftover sandboxes
+    for (int i = 0; i < tests::sandbox::k_num_ports; i++) {
+      EXPECT_FALSE(shcore::is_folder(
+          testutil->get_sandbox_path(_mysql_sandbox_ports[i])))
+          << "Sandbox left behind port=" << _mysql_sandbox_ports[i];
+    }
+  }
+
   Crud_test_wrapper::TearDown();
 
   if (_options->trace_protocol) {

@@ -299,6 +299,8 @@ enum class Replica_gtid_state {
   DIVERGED        // GTID sets have diverged
 };
 
+std::string to_string(Replica_gtid_state state);
+
 /**
  * Checks the transaction state of a replica in relation to another instance
  * (its master).

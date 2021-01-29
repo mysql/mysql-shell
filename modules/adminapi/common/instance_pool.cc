@@ -62,6 +62,10 @@ std::shared_ptr<mysqlshdk::db::ISession> connect_session(
   } catch (const shcore::Exception &e) {
     if (CR_VERSION_ERROR == e.code() ||
         (CR_SERVER_LOST == e.code() &&
+         // TODO(alfredo) - when connection timeout is enabled, the error
+         // returned for a timeout seems to be this too. This error handling
+         // should probably be removed from here and the connect timeout setting
+         // should be moved from connect_raw to this function
          0 == strcmp("Lost connection to MySQL server at 'waiting for initial "
                      "communication packet', system error: 110",
                      e.what()))) {
@@ -209,7 +213,8 @@ void Instance::log_sql(const std::string &sql) const {
 
 void Instance::log_sql_error(const shcore::Error &e) const {
   if (current_shell_options()->get().dba_log_sql > 0) {
-    log_info("%s: -> %s", descr().c_str(), e.format().c_str());
+    log_info("%s: -> %s", get_connection_options().uri_endpoint().c_str(),
+             e.format().c_str());
   }
 }
 
@@ -431,6 +436,16 @@ struct Instance_pool::Metadata_cache {
     // not supposed to happen
     throw std::logic_error("internal error");
   }
+
+  const std::string &get_cluster_name(const std::string &group_name) const {
+    for (const auto &c : clusters) {
+      if (c.group_name == group_name) return c.cluster_name;
+    }
+    throw shcore::Exception(
+        "Could not find metadata for cluster with group_name '" + group_name +
+            "'",
+        SHERR_DBA_METADATA_MISSING);
+  }
 };
 
 Instance_pool::Instance_pool(bool allow_password_prompt)
@@ -539,9 +554,19 @@ void Instance_pool::refresh_metadata_cache() {
   DBUG_TRACE;
   if (!m_metadata) throw std::logic_error("metadata object not set");
 
-  log_debug("Refreshing metadata cache");
+  log_debug("Refreshing metadata cache from %s",
+            m_metadata->get_md_server()->descr().c_str());
   m_mdcache->instances = m_metadata->get_all_instances();
-  m_mdcache->clusters = m_metadata->get_all_clusters();
+  m_mdcache->clusters = m_metadata->get_all_clusters(true);
+
+  for (const auto &i : m_mdcache->instances) {
+    log_debug("I) %s %s", i.label.c_str(), i.endpoint.c_str());
+  }
+
+  for (const auto &i : m_mdcache->clusters) {
+    log_debug("C) %s %s", i.group_name.c_str(), i.cluster_name.c_str());
+  }
+  log_debug("DONE!");
 }
 
 std::shared_ptr<Instance> Instance_pool::adopt(
@@ -645,30 +670,6 @@ std::shared_ptr<Instance> Instance_pool::connect_unchecked(
   }
 }
 
-std::shared_ptr<Instance> Instance_pool::connect_primary_master_for_member(
-    const std::string &server_uuid) {
-  DBUG_TRACE;
-
-  std::string my_group_name;
-  std::vector<Cluster_metadata> replicasets;
-
-  if (!m_metadata) throw std::logic_error("Metadata object required");
-
-  const Instance_metadata *md = m_mdcache->get_instance_with_uuid(server_uuid);
-
-  const Cluster_metadata *cluster_md =
-      m_mdcache->try_get_cluster(md->cluster_id);
-
-  if (cluster_md && cluster_md->type == Cluster_type::ASYNC_REPLICATION) {
-    return connect_async_cluster_primary(cluster_md->cluster_id);
-  } else {
-    throw std::logic_error("internal error");
-  }
-
-  throw shcore::Exception("No PRIMARY node found",
-                          SHERR_DBA_ACTIVE_CLUSTER_NOT_FOUND);
-}
-
 std::shared_ptr<Instance> Instance_pool::connect_async_cluster_primary(
     Cluster_id cluster_id) {
   const Instance_metadata *md = m_mdcache->get_cluster_primary(cluster_id);
@@ -733,42 +734,68 @@ std::shared_ptr<Instance> Instance_pool::connect_group_primary(
     const std::string &group_name) {
   DBUG_TRACE;
   std::vector<std::string> candidates;
-  // first try to find someone that was the primary last time we saw it
-  for (const auto &i : m_mdcache->instances) {
-    if (i.group_name == group_name) {
-      if (m_recent_primaries.find(i.uuid) != m_recent_primaries.end()) {
-        // instance was a PRIMARY last time we saw it, try using it as a
-        // starting point to find the current PRIMARY
-        auto instance = try_connect_primary_through_member(i.uuid);
+
+  try {
+    // first try to find someone that was the primary last time we saw it
+    for (const auto &i : m_mdcache->instances) {
+      if (i.group_name == group_name) {
+        if (m_recent_primaries.find(i.uuid) != m_recent_primaries.end()) {
+          // instance was a PRIMARY last time we saw it, try using it as a
+          // starting point to find the current PRIMARY
+          try {
+            auto instance = try_connect_primary_through_member(i.uuid);
+            if (instance) {
+              return instance;
+            }
+          } catch (const shcore::Exception &e) {
+            log_warning("Could not connect to %s: %s", i.endpoint.c_str(),
+                        e.format().c_str());
+
+            candidates.push_back(i.uuid);
+          }
+        } else {
+          candidates.push_back(i.uuid);
+        }
+      }
+    }
+
+    if (candidates.empty()) {
+      const auto &cname = m_mdcache->get_cluster_name(group_name);
+
+      log_warning(
+          "Could not find any members in metadata for cluster '%s', group_name "
+          "%s",
+          cname.c_str(), group_name.c_str());
+
+      throw shcore::Exception(
+          "No managed members found for cluster '" + cname + "'",
+          SHERR_DBA_METADATA_MISSING);
+    }
+
+    // we don't know any possible primaries, so just try everyone one by one
+    for (const auto &uuid : candidates) {
+      try {
+        auto instance = try_connect_primary_through_member(uuid);
         if (instance) {
           return instance;
         }
-      } else {
-        candidates.push_back(i.uuid);
+      } catch (const shcore::Exception &err) {
+        if (err.code() != SHERR_DBA_GROUP_REPLICATION_NOT_RUNNING) throw;
       }
     }
-  }
-
-  if (candidates.empty()) {
-    log_warning("Could not find any members in metadata for group_name %s",
-                group_name.c_str());
-
-    throw shcore::Exception(
-        "No managed members found for the requested group_name",
-        SHERR_DBA_METADATA_MISSING);
-  }
-
-  // we don't know any possible primaries, so just try everyone one by one
-  for (const auto &uuid : candidates) {
-    auto instance = try_connect_primary_through_member(uuid);
-    if (instance) {
-      return instance;
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
+      throw shcore::Exception("Cluster '" +
+                                  m_mdcache->get_cluster_name(group_name) +
+                                  "' has no quorum",
+                              SHERR_DBA_GROUP_HAS_NO_QUORUM);
     }
+    throw;
   }
   // there are no primaries anywhere
-  throw shcore::Exception(
-      "Could not connect to a PRIMARY member of group " + group_name,
-      SHERR_DBA_GROUP_HAS_NO_PRIMARY);
+  throw shcore::Exception("Could not connect to a PRIMARY member of cluster '" +
+                              m_mdcache->get_cluster_name(group_name) + "'",
+                          SHERR_DBA_GROUP_HAS_NO_PRIMARY);
 }
 
 std::shared_ptr<Instance> Instance_pool::connect_group_secondary(
@@ -807,7 +834,8 @@ std::shared_ptr<Instance> Instance_pool::connect_group_secondary(
 
       if (!single_primary) {
         throw shcore::Exception::runtime_error(
-            "Target cluster is configured for multi-primary mode and has no "
+            "Target cluster '" + m_mdcache->get_cluster_name(group_name) +
+            "' is configured for multi-primary mode and has no "
             "SECONDARY members");
       }
     }
@@ -816,11 +844,13 @@ std::shared_ptr<Instance> Instance_pool::connect_group_secondary(
   if (num_reachable == 0)
     throw shcore::Exception(
         "Could not connect to any SECONDARY member of the target InnoDB "
-        "cluster",
+        "cluster '" +
+            m_mdcache->get_cluster_name(group_name) + "'",
         SHERR_DBA_GROUP_UNREACHABLE);
 
   throw shcore::Exception(
-      "Could not find any SECONDARY member in the target InnoDB cluster",
+      "Could not find any SECONDARY member in the target InnoDB cluster '" +
+          m_mdcache->get_cluster_name(group_name) + "'",
       SHERR_DBA_GROUP_UNAVAILABLE);
 }
 
@@ -828,6 +858,7 @@ std::shared_ptr<Instance> Instance_pool::connect_group_member(
     const std::string &group_name) {
   DBUG_TRACE;
   int num_reachable = 0;
+  bool seen_no_quorum = false;
 
   for (const auto &i : m_mdcache->instances) {
     if (i.group_name == group_name) {
@@ -848,6 +879,9 @@ std::shared_ptr<Instance> Instance_pool::connect_group_member(
       } catch (const shcore::Exception &e) {
         instance->release();
         log_warning("%s: %s", i.endpoint.c_str(), e.what());
+        if (e.code() == SHERR_DBA_GROUP_MEMBER_NOT_IN_QUORUM) {
+          seen_no_quorum = true;
+        }
         continue;
       }
       return instance;
@@ -855,13 +889,19 @@ std::shared_ptr<Instance> Instance_pool::connect_group_member(
   }
 
   if (num_reachable == 0)
-    throw shcore::Exception(
-        "Could not connect to any member of group " + group_name,
-        SHERR_DBA_GROUP_UNREACHABLE);
+    throw shcore::Exception("Could not connect to any member of cluster '" +
+                                m_mdcache->get_cluster_name(group_name) + "'",
+                            SHERR_DBA_GROUP_UNREACHABLE);
 
-  throw shcore::Exception(
-      "Could not find any available member in group " + group_name,
-      SHERR_DBA_GROUP_UNAVAILABLE);
+  if (seen_no_quorum)
+    throw shcore::Exception("Cluster '" +
+                                m_mdcache->get_cluster_name(group_name) +
+                                "' has no quorum",
+                            SHERR_DBA_GROUP_HAS_NO_QUORUM);
+
+  throw shcore::Exception("Could not find any available member in cluster '" +
+                              m_mdcache->get_cluster_name(group_name) + "'",
+                          SHERR_DBA_GROUP_UNAVAILABLE);
 }
 
 std::shared_ptr<Instance>
@@ -963,7 +1003,7 @@ Instance_pool::try_connect_cluster_primary_with_fallback(
     if (num_offline == num_total)
       *out_cluster_availability = Cluster_availability::OFFLINE;
     else
-      *out_cluster_availability = Cluster_availability::UNREACHABLE;
+      *out_cluster_availability = Cluster_availability::SOME_UNREACHABLE;
   }
 
   if (best != secondary && secondary) secondary->release();

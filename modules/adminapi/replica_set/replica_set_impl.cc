@@ -338,7 +338,7 @@ void Replica_set_impl::create(const std::string &instance_label, bool dry_run) {
   console->print_info();
 
   log_info("Unfencing PRIMARY %s", m_cluster_server->descr().c_str());
-  if (!dry_run) unfence_instance(m_cluster_server.get());
+  if (!dry_run) unfence_instance(m_cluster_server.get(), true);
 
   // target is the primary
   m_primary_master = m_cluster_server;
@@ -410,7 +410,7 @@ void Replica_set_impl::adopt(Global_topology_manager *topology,
   std::shared_ptr<Instance> primary_instance = primary_instance_scoped;
 
   log_info("Unfencing PRIMARY %s", primary_instance->descr().c_str());
-  if (!dry_run) unfence_instance(primary_instance.get());
+  if (!dry_run) unfence_instance(primary_instance.get(), true);
 
   // target is the primary
   m_primary_master = m_cluster_server;
@@ -891,10 +891,13 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
       // To avoid this situation, we must stop the slave and reset the
       // replication channels.
       remove_channel(target_instance.get(), k_replicaset_channel_name, dry_run);
+      reset_channel(target_instance.get(), k_replicaset_channel_name, true,
+                    dry_run);
     }
 
     if (!dry_run) {
-      async_rejoin_replica(active_primary, target_instance.get(), ar_options);
+      async_rejoin_replica(active_primary, target_instance.get(),
+                           k_replicaset_channel_name, ar_options);
 
       console->print_info(
           "** Waiting for rejoined instance to synchronize with PRIMARY...");
@@ -1581,7 +1584,8 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
   try {
     console->print_info("* Promoting " + new_master->descr() +
                         " to a PRIMARY...");
-    async_force_primary(new_master.get(), ar_options, dry_run);
+    async_force_primary(new_master.get(), k_replicaset_channel_name, ar_options,
+                        dry_run);
     console->print_info();
 
     // MD update has to happen after the failover, since there's no PRIMARY
@@ -1607,7 +1611,8 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
         // Restart replication on the promoted instance and re-enable read-only,
         // i.e., revert all previous changes from async_force_primary().
         Scoped_instance target(ipool->connect_unchecked(promoted));
-        undo_async_force_primary(target.get(), dry_run);
+        undo_async_force_primary(target.get(), k_replicaset_channel_name,
+                                 dry_run);
         // fence_instance(target.get());
 
         invalidate_handle();

@@ -32,6 +32,7 @@
 #include "shellcore/shell_options.h"
 
 #include "modules/adminapi/mod_dba.h"
+#include "modules/adminapi/mod_dba_cluster_set.h"
 #include "modules/mod_sys.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 
@@ -132,6 +133,7 @@ class Mysql_shell : public mysqlsh::Base_shell {
   std::shared_ptr<mysqlsh::Os> m_global_js_os;
 
   std::shared_ptr<mysqlsh::dba::Cluster> m_default_cluster;
+  std::shared_ptr<mysqlsh::dba::ClusterSet> m_default_clusterset;
   std::shared_ptr<mysqlsh::dba::ReplicaSet> m_default_replicaset;
 
   /// Last schema set by the user via \use command.
@@ -139,6 +141,8 @@ class Mysql_shell : public mysqlsh::Base_shell {
 
  private:
   std::shared_ptr<mysqlsh::dba::Cluster> create_default_cluster_object(
+      bool for_help = false);
+  std::shared_ptr<mysqlsh::dba::ClusterSet> create_default_clusterset_object(
       bool for_help = false);
   std::shared_ptr<mysqlsh::dba::ReplicaSet> create_default_replicaset_object(
       bool for_help = false);

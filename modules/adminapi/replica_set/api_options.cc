@@ -58,22 +58,6 @@ void Wait_recovery_option::set_wait_recovery(int value) {
   wait_recovery = value;
 }
 
-const shcore::Option_pack_def<Timeout_option> &Timeout_option::options() {
-  static const auto opts = shcore::Option_pack_def<Timeout_option>().optional(
-      kTimeout, &Timeout_option::sync_timeout);
-
-  return opts;
-}
-
-void Timeout_option::set_timeout(int value) {
-  if (value < 0) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("%s option must be >= 0", kTimeout));
-  }
-
-  sync_timeout = value;
-}
-
 const shcore::Option_pack_def<Rejoin_instance_options>
     &Rejoin_instance_options::options() {
   static const auto opts =

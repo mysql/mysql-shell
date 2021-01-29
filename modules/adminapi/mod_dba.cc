@@ -809,7 +809,7 @@ void Dba::connect_to_target_group(
       std::vector<Cluster_set_member_metadata> cs_members;
       Cluster_metadata primary_cluster;
       if (!out_metadata->get()->get_cluster_set(cluster_md.cluster_set_id,
-                                                nullptr, &cs_members)) {
+                                                false, nullptr, &cs_members)) {
         throw std::runtime_error("Metadata not found");
       }
 
@@ -996,7 +996,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     }
 
     auto cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
-                               metadata, group_server);
+                               metadata, group_server, false, true);
 
     // Check if the target Cluster is invalidated
     if (cluster->impl()->is_cluster_set_member() &&
@@ -1051,6 +1051,8 @@ std::shared_ptr<Cluster> Dba::get_cluster(
               "', however its own metadata copy wasn't properly updated during "
               "the removal");
 
+          cluster->impl()->set_cluster_set_remove_pending(true);
+
           return cluster;
         }
       }
@@ -1062,7 +1064,8 @@ std::shared_ptr<Cluster> Dba::get_cluster(
 
 std::shared_ptr<Cluster> Dba::get_cluster(
     const char *name, std::shared_ptr<MetadataStorage> metadata,
-    std::shared_ptr<Instance> group_server, bool reboot_cluster) const {
+    std::shared_ptr<Instance> group_server, bool reboot_cluster,
+    bool allow_invalidated) const {
   Cluster_metadata target_cm;
   Cluster_metadata group_server_cm;
 
@@ -1077,7 +1080,8 @@ std::shared_ptr<Cluster> Dba::get_cluster(
   if (!name) {
     target_cm = group_server_cm;
   } else {
-    if (!metadata->get_cluster_for_cluster_name(name, &target_cm)) {
+    if (!metadata->get_cluster_for_cluster_name(name, &target_cm,
+                                                allow_invalidated)) {
       throw shcore::Exception(
           shcore::str_format("The cluster with the name '%s' does not exist.",
                              name),
@@ -1808,8 +1812,8 @@ std::shared_ptr<ClusterSet> Dba::get_cluster_set() {
                             SHERR_DBA_METADATA_MISSING);
   }
 
-  auto cluster =
-      get_cluster(cluster_md.cluster_name.c_str(), metadata, target_server);
+  auto cluster = get_cluster(cluster_md.cluster_name.c_str(), metadata,
+                             target_server, false, true);
 
   // Check if the target Cluster is invalidated
   if (cluster->impl()->is_invalidated()) {
@@ -1831,10 +1835,20 @@ std::shared_ptr<ClusterSet> Dba::get_cluster_set() {
                                    "', however its own metadata copy wasn't "
                                    "properly updated during the removal");
 
-    throw shcore::Exception("The cluster '" + cluster_md.cluster_name +
-                                "' is not a part of the ClusterSet '" +
-                                cs->get_name() + "'",
+    throw shcore::Exception("Cluster is not part of a ClusterSet",
                             SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET);
+  }
+
+  for (;;) {
+    cs->connect_primary();
+
+    Instance_pool::Auth_options auth_opts;
+    auth_opts.get(cs->get_cluster_server()->get_connection_options());
+    Scoped_instance_pool ipool(cs->get_metadata_storage(), false, auth_opts);
+
+    if (!cs->reconnect_target_if_invalidated()) {
+      break;
+    }
   }
 
   return std::make_shared<mysqlsh::dba::ClusterSet>(cs);

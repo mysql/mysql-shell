@@ -69,6 +69,7 @@ class Testutils : public mysqlsh::Extensible_object {
   String getSandboxConfPath(Integer port);
   String getSandboxLogPath(Integer port);
   String getSandboxPath(Integer port, String name);
+  List readGeneralLog(Integer port, String startingTimestamp = "");
   String getShellLogPath();
 #ifndef ENABLE_SESSION_RECORDING
   Array fetchDbaSqlLog(Boolean flush);
@@ -136,6 +137,7 @@ class Testutils : public mysqlsh::Extensible_object {
   str get_sandbox_conf_path(int port);
   str get_sandbox_log_path(int port);
   str get_sandbox_path(int port, str name);
+  list read_general_log(int port, str startingTimestamp = "");
   str get_shell_log_path();
 #ifndef ENABLE_SESSION_RECORDING
   list fetch_dba_sql_log(bool flush);
@@ -273,6 +275,9 @@ class Testutils : public mysqlsh::Extensible_object {
 
   std::string get_current_metadata_version_string();
   std::string get_installed_metadata_version_string();
+
+  shcore::Array_t read_general_log(int port,
+                                   const std::string &starting_timestamp = "");
 
  public:
   // InnoDB cluster routines
@@ -434,6 +439,7 @@ class Testutils : public mysqlsh::Extensible_object {
   std::string _mysqlsh_path;
   mysqlsh::dba::ProvisioningInterface _mp;
   std::map<int, std::string> _passwords;
+  std::map<int, std::string> _general_log_files;
   std::map<int, std::unique_ptr<Slower_thread>> _slower_threads;
   std::string _sandbox_dir;
   std::string _sandbox_snapshot_dir;
@@ -463,7 +469,8 @@ class Testutils : public mysqlsh::Extensible_object {
                                      int timeout) const;
 
   void handle_sandbox_encryption(const std::string &path) const;
-  void handle_remote_root_user(const std::string &rootpass, int port,
+  void handle_remote_root_user(const std::string &rootpass,
+                               mysqlshdk::db::ISession *session,
                                bool create_remote_root = true) const;
   void prepare_sandbox_boilerplate(const std::string &rootpass, int port,
                                    const std::string &mysqld_path);

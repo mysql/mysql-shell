@@ -25,63 +25,43 @@
 }
 
 //@<OUT> describe()
-
-
-//@# after switchover
-|"clusters": {|
-|    "cluster1": {|
-|        "clusterRole": "PRIMARY", |
-|        "globalStatus": "OK", |
-|        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>"|
-|    }, |
-|    "cluster2": {|
-|        "clusterRole": "REPLICA", |
-|        "clusterSetReplicationStatus": "OK", |
-|        "globalStatus": "OK"|
-|    }, |
-|    "cluster3": {|
-|        "clusterRole": "REPLICA", |
-|        "clusterSetReplicationStatus": "OK", |
-|        "globalStatus": "OK"|
-|    }|
-|}, |
-|"primaryCluster": "cluster2", |
-|"clusters": {|
-|    "cluster1": {|
-|        "clusterRole": "REPLICA", |
-|        "clusterSetReplicationStatus": "OK", |
-|        "globalStatus": "OK", |
-|    }, |
-|    "cluster2": {|
-|        "clusterRole": "PRIMARY", |
-|        "globalStatus": "OK"|
-|        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port3>>>"|
-|    }, |
-|    "cluster3": {|
-|        "clusterRole": "REPLICA", |
-|        "clusterSetReplicationStatus": "OK", |
-|        "globalStatus": "OK"|
-|    }|
-|}, |
-|"primaryCluster": "cluster1", |
-|"clusters": {|
-|    "cluster1": {|
-|        "clusterRole": "PRIMARY", |
-|        "globalStatus": "OK", |
-|        "primary": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"|
-|    }, |
-|    "cluster2": {|
-|        "clusterRole": "REPLICA", |
-|        "clusterSetReplicationStatus": "OK", |
-|        "globalStatus": "OK"|
-|    }, |
-|    "cluster3": {|
-|        "clusterRole": "REPLICA", |
-|        "clusterSetReplicationStatus": "OK", |
-|        "globalStatus": "OK"|
-|    }|
-|}, |
-|"primaryCluster": "cluster1", |
+{
+    "clusters": {
+        "cluster1": {
+            "clusterRole": "PRIMARY", 
+            "topology": [
+                {
+                    "address": "<<<__address1h>>>", 
+                    "label": "<<<__address1h>>>"
+                }
+            ]
+        }, 
+        "cluster2": {
+            "clusterRole": "REPLICA", 
+            "topology": [
+                {
+                    "address": "<<<__address4h>>>", 
+                    "label": "<<<__address4h>>>"
+                }, 
+                {
+                    "address": "<<<__address5h>>>", 
+                    "label": "<<<__address5h>>>"
+                }
+            ]
+        }, 
+        "cluster3": {
+            "clusterRole": "REPLICA", 
+            "topology": [
+                {
+                    "address": "<<<__address6h>>>", 
+                    "label": "<<<__address6h>>>"
+                }
+            ]
+        }
+    }, 
+    "domainName": "cs", 
+    "primaryCluster": "cluster1"
+}
 
 //@<OUT> Extended 1
 {

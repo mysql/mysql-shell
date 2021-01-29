@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -51,6 +52,7 @@ enum class Member_op_action { ADD_INSTANCE, REJOIN_INSTANCE };
  * @param target_instance Instance object that points to the target instance
  * @param check_recoverable Function pointer to the function that determines
  * whether an instance can recover from the cluster or not
+ * @param check_replica_gtid_state
  * @param opt_recovery_method Member_recovery_method that points to the recovery
  * method set in 'recoveryMethod'
  * @param gtid_set_is_complete boolean value indicating if the GTID-set was
@@ -69,6 +71,11 @@ Member_recovery_method validate_instance_recovery(
     const std::function<bool(mysqlshdk::mysql::IInstance *)> &check_recoverable,
     Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
     bool interactive, bool clone_disabled = false);
+
+mysqlshdk::mysql::Replica_gtid_state check_replica_group_gtid_state(
+    const mysqlshdk::mysql::IInstance &source,
+    const mysqlshdk::mysql::IInstance &replica, std::string *out_missing_gtids,
+    std::string *out_errant_gtids);
 
 }  // namespace dba
 }  // namespace mysqlsh

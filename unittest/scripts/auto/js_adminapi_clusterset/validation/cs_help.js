@@ -31,14 +31,25 @@ FUNCTIONS
       disconnect()
             Disconnects all internal sessions used by the ClusterSet object.
 
+      forcePrimaryCluster(clusterName[, options])
+            Performs a failover of the PRIMARY Cluster of the ClusterSet.
+
       getName()
             Returns the domain name of the clusterset.
 
       help([member])
             Provides help about this class and it's members
 
+      rejoinCluster(clusterName[, options])
+            Rejoin an invalidated Cluster back to the ClusterSet and update
+            replication.
+
       removeCluster(clusterName[, options])
             Removes a Replica cluster from a ClusterSet.
+
+      setPrimaryCluster(clusterName[, options])
+            Performs a safe switchover of the PRIMARY Cluster of the
+            ClusterSet.
 
       status([options])
             Describe the status of the ClusterSet.
@@ -361,6 +372,197 @@ DESCRIPTION
       - dryRun: boolean if true, all validations and steps for removing a
         the Cluster from the ClusterSet are executed, but no changes are
         actually made. An exception will be thrown when finished.
+
+//@<OUT> ClusterSet.setPrimaryCluster
+NAME
+      setPrimaryCluster - Performs a safe switchover of the PRIMARY Cluster of
+                          the ClusterSet.
+
+SYNTAX
+      <ClusterSet>.setPrimaryCluster(clusterName[, options])
+
+WHERE
+      clusterName: Name of the REPLICA cluster to be promoted.
+      options: Dictionary with additional parameters described below.
+
+RETURNS
+      Nothing
+
+DESCRIPTION
+      This command will perform a safe switchover of the PRIMARY Cluster of a
+      ClusterSet. The current PRIMARY will be demoted to a REPLICA Cluster,
+      while the promoted Cluster will be made the PRIMARY Cluster. All other
+      REPLICA Clusters will be updated to replicate from the new PRIMARY.
+
+      During the switchover, the promoted Cluster will be synchronized with the
+      old PRIMARY, ensuring that all transactions present in the PRIMARY are
+      applied before the topology change is commited. The current PRIMARY
+      instance is also locked with 'FLUSH TABLES WITH READ LOCK' in order to
+      prevent changes during the switch. If either of these operations take too
+      long or fails, the switch will be aborted.
+
+      For a switchover to be possible, all instances of the target Cluster must
+      be reachable from the shell and have consistent transaction sets with the
+      current PRIMARY Cluster. If the PRIMARY Cluster is not available and
+      cannot be restored, a failover must be performed instead, using
+      <ClusterSet>.forcePrimaryCluster().
+
+      The switchover will be canceled if there are REPLICA Clusters that are
+      unreachable or unavailable. To continue, they must either be restored or
+      invalidated by including their name in the 'invalidateReplicaClusters'
+      option. Invalidated REPLICA Clusters must be either removed from the
+      Cluster or restored and rejoined, using removeCluster() or
+      rejoinCluster().
+
+      Additionally, if any available REPLICA Cluster has members that are not
+      ONLINE and/or reachable, these members will not be in a properly
+      configured state even after being restored and rejoined. To ensure
+      failover works correctly, rejoinCluster() must be called on the Cluster
+      once these members are rejoined.
+
+      Options
+
+      The following options may be given:
+
+      - dryRun: if true, will perform checks and log operations that would be
+        performed, but will not execute them. The operations that would be
+        performed can be viewed by enabling verbose output in the shell.
+      - timeout: integer value to set the maximum number of seconds to wait for
+        the synchronization of the Cluster.
+      - invalidateReplicaClusters: list of names of REPLICA Clusters that are
+        unreachable or unavailable that are to be invalidated during the
+        switchover.
+
+//@<OUT> ClusterSet.forcePrimaryCluster
+NAME
+      forcePrimaryCluster - Performs a failover of the PRIMARY Cluster of the
+                            ClusterSet.
+
+SYNTAX
+      <ClusterSet>.forcePrimaryCluster(clusterName[, options])
+
+WHERE
+      clusterName: Name of the REPLICA cluster to be promoted.
+      options: Dictionary with additional parameters described below.
+
+RETURNS
+      Nothing
+
+DESCRIPTION
+      This command will perform a failover of the PRIMARY Cluster of a
+      ClusterSet. The target cluster is promoted to the new PRIMARY Cluster
+      while the previous PRIMARY Cluster is invalidated. The previous PRIMARY
+      Cluster is presumed unavailable by the Shell, but if that is not the
+      case, it is recommended that instances of that Cluster are taken down to
+      avoid or minimize inconsistencies.
+
+      The failover will be canceled if there are REPLICA Clusters that are
+      unreachable or unavailable. To continue, they must either be restored or
+      invalidated by including their name in the 'invalidateReplicaClusters'
+      option.
+
+      Additionally, if any available REPLICA Cluster has members that are not
+      ONLINE and/or reachable, these members will not be in a properly
+      configured state even after being restored and rejoined. To ensure
+      failover works correctly, rejoinCluster() must be called on the Cluster
+      once these members are rejoined.
+
+      Note that because a failover may result in loss of transactions, it is
+      always preferrable that the PRIMARY Cluster is restored.
+
+      Aftermath of a Failover
+
+      If a failover is the only viable option to recover from an outage, the
+      following must be considered:
+
+      - The topology of the ClusterSet, including a record of "who is the
+        primary", is stored in the ClusterSet itself. In a failover, the
+        metadata is updated to reflect the new topology and the invalidation of
+        the old primary. However, if the invalidated primary is still ONLINE
+        somewhere, the copy of the metadata held there will will remain
+        outdated and inconsistent with the actual topology. MySQL Router
+        instances that can connect to the new PRIMARY Cluster will be able to
+        tell which topology is the correct one, but those instances that can
+        only connect to the invalid Cluster will behave as if nothing changed.
+        If applications can still update the database through such Router
+        instances, there will be a "Split-Brain" and the database will become
+        inconsistent.
+      - An invalidated PRIMARY Cluster that is later restored can only be
+        rejoined if its GTID set has not diverged relative to the rest of the
+        ClusterSet.
+      - A diverged invalidated Cluster can only be removed from the ClusterSet.
+        Recovery and reconciliation of transactions that only exist in that
+        Cluster can only be done manually.
+      - Because regular Asynchronous Replication is used between PRIMARY and
+        REPLICA Clusters, any transactions at the PRIMARY that were not yet
+        replicated at the time of the failover will be lost. Even if the
+        original PRIMARY Cluster is restored at some point, these transactions
+        would have to be recovered and reconciled manually.
+
+      Thus, the recommended course of action in event of an outage is to always
+      restore the PRIMARY Cluster if at all possible, even if a failover may be
+      faster and easier in the short term.
+
+      Options
+
+      The following options may be given:
+
+      - dryRun: if true, will perform checks and log operations that would be
+        performed, but will not execute them. The operations that would be
+        performed can be viewed by enabling verbose output in the shell.
+      - invalidateReplicaClusters: list of names of REPLICA Clusters that are
+        unreachable or unavailable that are to be invalidated during the
+        failover.
+
+//@<OUT> ClusterSet.rejoinCluster
+NAME
+      rejoinCluster - Rejoin an invalidated Cluster back to the ClusterSet and
+                      update replication.
+
+SYNTAX
+      <ClusterSet>.rejoinCluster(clusterName[, options])
+
+WHERE
+      clusterName: Name of the Cluster to be rejoined.
+      options: Dictionary with additional parameters described below.
+
+RETURNS
+      Nothing
+
+DESCRIPTION
+      Rejoins a Cluster that was invalidated as part of a failover or
+      switchover, if possible. This can also be used to update replication
+      channel in REPLICA Clusters, if it does not have the expected state,
+      source and settings.
+
+      The PRIMARY Cluster of the ClusterSet must be reachable and available
+      during the operation.
+
+      Pre-Requisites
+
+      The following pre-requisites are expected for Clusters rejoined to a
+      ClusterSet. They will be automatically checked by rejoinCluster(), which
+      will stop if any issues are found.
+
+      - The target Cluster must belong to the ClusterSet metadata and be
+        reachable.
+      - The target Cluster must not be an active member of the ClusterSet.
+      - The target Cluster must not be holding any Metadata or InnoDB
+        transaction lock.
+      - The target Cluster's transaction set must not contain transactions
+        that don't exist in the PRIMARY Cluster.
+      - The target Cluster's transaction set must not be missing transactions
+        that have been purged from the PRIMARY Cluster.
+      - The target Cluster's executed transaction set (GTID_EXECUTED) must not
+        be empty.
+
+      Options
+
+      The following options may be given:
+
+      - dryRun: if true, will perform checks and log operations that would be
+        performed, but will not execute them. The operations that would be
+        performed can be viewed by enabling verbose output in the shell.
 
 //@<OUT> Status
 NAME

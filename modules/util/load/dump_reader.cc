@@ -139,7 +139,8 @@ Dump_reader::Status Dump_reader::open() {
     m_contents.mds_compatibility = md->get_bool("mdsCompatibility");
 
   if (md->has_key("compatibilityOptions")) {
-    const auto options = md->at("compatibilityOptions").to_string_vector();
+    const auto options = md->at("compatibilityOptions")
+                             .to_string_container<std::vector<std::string>>();
 
     m_contents.create_invisible_pks =
         std::find(options.begin(), options.end(), "create_invisible_pks") !=

@@ -123,8 +123,8 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   std::shared_ptr<Cluster> get_cluster(
       const char *name, std::shared_ptr<MetadataStorage> metadata,
-      std::shared_ptr<Instance> group_server,
-      bool reboot_cluster = false) const;
+      std::shared_ptr<Instance> group_server, bool reboot_cluster = false,
+      bool allow_invalidated = false) const;
 
   void do_configure_instance(
       const mysqlshdk::db::Connection_options &instance_def_,

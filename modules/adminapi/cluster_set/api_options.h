@@ -41,25 +41,22 @@ struct Create_cluster_set_options {
   Cluster_ssl_mode ssl_mode;
 };
 
-struct Create_replica_cluster_options : public Interactive_option {
+struct Create_replica_cluster_options : public Interactive_option,
+                                        public Timeout_option {
   static const shcore::Option_pack_def<Create_replica_cluster_options>
       &options();
   void set_recovery_verbosity(int value);
-  void set_timeout(int value);
 
   Cluster_set_group_replication_options gr_options;
   Create_replica_cluster_clone_options clone_options;
   bool dry_run = false;
   int recovery_verbosity = isatty(STDOUT_FILENO) ? 2 : 1;
-  int timeout = 0;
 };
 
-struct Remove_cluster_options {
+struct Remove_cluster_options : public Timeout_option {
   static const shcore::Option_pack_def<Remove_cluster_options> &options();
-  void set_timeout(int value);
 
   bool dry_run = false;
-  int timeout = 0;
   mysqlshdk::null_bool force;
 };
 
@@ -68,6 +65,36 @@ struct Status_options {
   void set_extended(uint64_t value);
 
   uint64_t extended = 0;  // By default 0 (false).
+};
+
+struct Invalidate_replica_clusters_option {
+  static const shcore::Option_pack_def<Invalidate_replica_clusters_option>
+      &options();
+
+  void set_list_option(const std::string &option, const shcore::Value &value);
+
+  std::list<std::string> invalidate_replica_clusters;
+};
+
+struct Set_primary_cluster_options : public Invalidate_replica_clusters_option,
+                                     public Timeout_option {
+  static const shcore::Option_pack_def<Set_primary_cluster_options> &options();
+
+  bool dry_run = false;
+};
+
+struct Force_primary_cluster_options
+    : public Invalidate_replica_clusters_option {
+  static const shcore::Option_pack_def<Force_primary_cluster_options>
+      &options();
+
+  bool dry_run = false;
+};
+
+struct Rejoin_cluster_options {
+  static const shcore::Option_pack_def<Rejoin_cluster_options> &options();
+
+  bool dry_run = false;
 };
 
 }  // namespace clusterset

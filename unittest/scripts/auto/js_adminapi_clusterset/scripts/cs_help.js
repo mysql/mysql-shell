@@ -40,6 +40,15 @@ cs.help("removeCluster");
 //@ RemoveCluster \? [USE:RemoveCluster]
 \? ClusterSet.removeCluster
 
+//@ ClusterSet.setPrimaryCluster
+\? ClusterSet.setPrimaryCluster
+
+//@ ClusterSet.forcePrimaryCluster
+\? ClusterSet.forcePrimaryCluster
+
+//@ ClusterSet.rejoinCluster
+\? ClusterSet.rejoinCluster
+
 //@ Status
 cs.help("status");
 

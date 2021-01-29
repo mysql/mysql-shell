@@ -313,8 +313,16 @@ shcore::Dictionary_t cluster_set_status(Cluster_set_impl *cluster_set,
 
     std::vector<Cluster_set_member_metadata> clusters;
 
-    cluster_set->get_metadata_storage()->get_cluster_set(cluster_set->get_id(),
-                                                         nullptr, &clusters);
+    cluster_set->get_metadata_storage()->get_cluster_set(
+        cluster_set->get_id(), true, nullptr, &clusters);
+
+    // ensure the primary cluster is the last in the list, so that
+    // GTID_EXECUTED we query to compare between clusters is the freshest
+    std::sort(clusters.begin(), clusters.end(),
+              [](const Cluster_set_member_metadata &a,
+                 const Cluster_set_member_metadata &b) {
+                return a.primary_cluster < b.primary_cluster;
+              });
 
     // ensure the primary cluster is the last in the list, so that
     // GTID_EXECUTED we query to compare between clusters is the freshest
@@ -486,7 +494,7 @@ shcore::Dictionary_t cluster_set_describe(Cluster_set_impl *cluster_set) {
   std::vector<Cluster_set_member_metadata> clusters;
 
   cluster_set->get_primary_cluster()->get_metadata_storage()->get_cluster_set(
-      cluster_set->get_id(), &cset, &clusters);
+      cluster_set->get_id(), true, &cset, &clusters);
 
   // Populate each Cluster with its description
   for (const auto &cluster_md : clusters) {

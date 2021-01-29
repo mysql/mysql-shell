@@ -349,7 +349,7 @@ void ReplicaSet::add_instance(
       [&]() {
         impl()->add_instance(instance_def, options->ar_options,
                              options->clone_options, options->instance_label,
-                             progress_style, options->sync_timeout,
+                             progress_style, options->timeout,
                              options->interactive(), options->dry_run);
         return shcore::Value();
       },
@@ -477,7 +477,7 @@ void ReplicaSet::rejoin_instance(
   execute_with_pool(
       [&]() {
         impl()->rejoin_instance(instance_def, options->clone_options,
-                                progress_style, options->sync_timeout,
+                                progress_style, options->timeout,
                                 options->interactive(), options->dry_run);
         return shcore::Value();
       },

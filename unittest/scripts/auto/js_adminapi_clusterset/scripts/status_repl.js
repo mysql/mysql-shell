@@ -366,3 +366,4 @@ EXPECT_EQ(["WARNING: Replication channel from the Primary Cluster is missing"], 
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);
+testutil.destroySandbox(__mysql_sandbox_port4);

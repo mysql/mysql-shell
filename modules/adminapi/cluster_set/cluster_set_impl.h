@@ -38,7 +38,9 @@
 #include "modules/adminapi/common/global_topology_manager.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/gtid_utils.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -48,7 +50,7 @@ constexpr const int k_cluster_set_master_connect_retry = 3;
 constexpr const int k_cluster_set_master_retry_count = 10;
 
 // ClusterSet SSL Mode
-constexpr const char k_clusterset_attribute_ssl_mode[] =
+constexpr const char k_cluster_set_attribute_ssl_mode[] =
     "opt_clusterSetReplicationSslMode";
 
 class Cluster_set_impl : public Base_cluster_impl,
@@ -74,9 +76,14 @@ class Cluster_set_impl : public Base_cluster_impl,
       const clusterset::Create_replica_cluster_options &options);
   void remove_cluster(const std::string &cluster_name,
                       const clusterset::Remove_cluster_options &options);
-  void rejoin_cluster(const std::string &cluster_name, bool dry_run);
-  void set_primary_cluster(const std::string &cluster, bool dry_run = false);
-  void force_primary_cluster(const std::string &cluster);
+  void rejoin_cluster(const std::string &cluster_name,
+                      const clusterset::Rejoin_cluster_options &options);
+  void set_primary_cluster(
+      const std::string &cluster,
+      const clusterset::Set_primary_cluster_options &options);
+  void force_primary_cluster(
+      const std::string &cluster,
+      const clusterset::Force_primary_cluster_options &options);
   shcore::Value status(int extended);
   shcore::Value describe();
 
@@ -94,6 +101,7 @@ class Cluster_set_impl : public Base_cluster_impl,
   void disconnect() override;
 
   mysqlsh::dba::Instance *connect_primary();
+  bool reconnect_target_if_invalidated();
 
   mysqlsh::dba::Instance *acquire_primary(
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
@@ -101,8 +109,13 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
 
+  std::list<std::shared_ptr<Cluster_impl>> connect_all_clusters(
+      uint32_t read_timeout, bool skip_primary_cluster,
+      std::list<Cluster_id> *inout_unreachable);
+
   std::shared_ptr<Cluster_impl> get_cluster(const std::string &name,
-                                            bool allow_unavailable = false);
+                                            bool allow_unavailable = false,
+                                            bool allow_invalidated = false);
 
   mysqlshdk::mysql::Auth_options create_cluster_replication_user(
       Instance *cluster_primary, bool dry_run);
@@ -111,6 +124,9 @@ class Cluster_set_impl : public Base_cluster_impl,
       Cluster_impl *cluster, const mysqlshdk::mysql::Auth_options &repl_user);
 
   void drop_cluster_replication_user(Cluster_impl *cluster);
+
+  mysqlshdk::mysql::Auth_options refresh_cluster_replication_user(
+      const std::string &user, bool dry_run);
 
   Member_recovery_method validate_instance_recovery(
       Member_op_action op_action, mysqlshdk::mysql::IInstance *target_instance,
@@ -136,14 +152,27 @@ class Cluster_set_impl : public Base_cluster_impl,
                             const std::string &option,
                             const shcore::Value &value) override;
 
+  void inject_view_change_gtids(mysqlshdk::mysql::IInstance *primary,
+                                mysqlshdk::mysql::IInstance *group_instance);
+
+  void check_clusters_available(
+      const std::list<std::string> &invalidate_clusters,
+      std::list<Cluster_id> *inout_unreachable);
+  bool check_cluster_available(const std::string &cluster_name);
+
+  void verify_primary_cluster_not_recoverable();
+  void check_gtid_set_most_recent(
+      Instance *promoted,
+      const std::list<std::shared_ptr<Cluster_impl>> &clusters);
+
  public:
-  void promote_to_primary(Instance *instance, bool dry_run);
+  void promote_to_primary(Cluster_impl *cluster, bool preserve_channel,
+                          bool dry_run);
+  void delete_async_channel(Cluster_impl *cluster, bool dry_run);
 
-  void demote_from_primary(Instance *instance, Instance *new_primary,
+  void demote_from_primary(Cluster_impl *cluster, Instance *new_primary,
+                           const Async_replication_options &repl_options,
                            bool dry_run);
-
-  void swap_primary(Instance *demoted, Instance *promoted,
-                    const Async_replication_options &ar_options, bool dry_run);
 
   void update_replica(Cluster_impl *replica, Instance *master,
                       const Async_replication_options &ar_options,
@@ -156,7 +185,7 @@ class Cluster_set_impl : public Base_cluster_impl,
   void remove_replica(Instance *instance, bool dry_run);
 
   void update_replica_settings(Instance *instance, Instance *new_primary,
-                               bool dry_run);
+                               bool is_primary, bool dry_run);
 
   void remove_replica_settings(Instance *instance, bool dry_run);
 
@@ -170,11 +199,31 @@ class Cluster_set_impl : public Base_cluster_impl,
       const Cluster_set_member_metadata &cluster_md,
       bool allow_unavailable = false);
 
+  void reconcile_view_change_gtids(
+      mysqlshdk::mysql::IInstance *replica,
+      const mysqlshdk::mysql::Gtid_set &missing_view_gtids = {});
+
  private:
   Cluster_set_member_metadata get_primary_cluster_metadata() const;
 
+  Cluster_set_member_metadata get_cluster_metadata(
+      const Cluster_id &cluster_id) const;
+
   std::pair<std::string, std::string> get_cluster_repl_account(
       Cluster_impl *cluster) const;
+
+  void validate_rejoin(Cluster_impl *rejoining_cluster,
+                       mysqlshdk::mysql::IInstance *rejoining_primary,
+                       mysqlshdk::mysql::IInstance *primary,
+                       bool *out_refresh_only);
+
+  void check_transaction_set_recoverable(
+      mysqlshdk::mysql::IInstance *replica,
+      mysqlshdk::mysql::IInstance *primary,
+      std::string *out_missing_view_gtids = nullptr) const;
+
+  void primary_instance_did_change(
+      const std::shared_ptr<Instance> &new_primary);
 
   Global_topology_type m_topology_type;
   std::shared_ptr<Cluster_impl> m_primary_cluster;

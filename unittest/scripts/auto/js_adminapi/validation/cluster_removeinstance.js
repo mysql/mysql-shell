@@ -8,18 +8,18 @@
 ||
 
 //@# removeInstance() while the instance is down - force and wrong address (should fail)
-|NOTE: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port2)>>>' ([[*]])|
+|NOTE: MySQL Error 20|
 |ERROR: The instance localhost:<<<__mysql_sandbox_port2>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.|
 ||Metadata for instance localhost:<<<__mysql_sandbox_port2>>> not found (MYSQLSH 51104)
 
 //@# removeInstance() while the instance is down - no force and correct address (should fail)
-|WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])|
+|WARNING: MySQL Error 20|
 |ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.|
 |To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.|
 ||Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
 
 //@# removeInstance() while the instance is down - force and correct address
-|NOTE: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])|
+|NOTE: MySQL Error 20|
 |NOTE: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and it will only be removed from the metadata. Please take any necessary actions to ensure the instance will not rejoin the cluster if brought back online.|
 |The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully removed from the cluster.|
 

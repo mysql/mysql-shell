@@ -43,6 +43,7 @@
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
+#include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 
@@ -73,7 +74,8 @@ using Instance_md_and_gr_member =
 class Cluster_set_impl;
 class ClusterSet;
 
-class Cluster_impl : public Base_cluster_impl {
+class Cluster_impl : public Base_cluster_impl,
+                     public shcore::NotificationObserver {
  public:
   friend class Cluster;
 
@@ -428,6 +430,14 @@ class Cluster_impl : public Base_cluster_impl {
   bool is_invalidated() const;
   bool is_primary_cluster() const;
 
+  void invalidate_clusterset_metadata_cache();
+
+  void refresh_metadata_session();
+
+  void set_cluster_set_remove_pending(bool flag) {
+    m_cs_md_remove_pending = flag;
+  }
+
   /**
    * Reset the password for the Cluster's replication account in use for the
    * ClusterSet replication channel
@@ -435,6 +445,7 @@ class Cluster_impl : public Base_cluster_impl {
    * @return A mysqlshdk::mysql::Auth_options with the username and the newly
    * generated password
    */
+  // XXX removethis
   mysqlshdk::mysql::Auth_options refresh_clusterset_replication_user();
 
  protected:
@@ -453,6 +464,10 @@ class Cluster_impl : public Base_cluster_impl {
 
   std::weak_ptr<Cluster_set_impl> m_cluster_set;
 
+  void handle_notification(const std::string &name,
+                           const shcore::Object_bridge_ref &sender,
+                           shcore::Value::Map_type_ref data) override;
+
   std::string m_group_name;
   mysqlshdk::gr::Topology_mode m_topology_type =
       mysqlshdk::gr::Topology_mode::NONE;
@@ -460,6 +475,8 @@ class Cluster_impl : public Base_cluster_impl {
   Cluster_availability m_availability = Cluster_availability::ONLINE;
 
   mutable Cluster_set_member_metadata m_cs_md;
+  // cluster was removed from clusterset but local MD is not caught up
+  bool m_cs_md_remove_pending = false;
 };
 
 }  // namespace dba

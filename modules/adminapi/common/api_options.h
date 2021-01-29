@@ -37,6 +37,14 @@
 namespace mysqlsh {
 namespace dba {
 
+struct Timeout_option {
+  static const shcore::Option_pack_def<Timeout_option> &options();
+
+  void set_timeout(int value);
+
+  int timeout = 0;
+};
+
 struct Interactive_option {
   static const shcore::Option_pack_def<Interactive_option> &options();
   bool interactive() const;

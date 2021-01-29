@@ -642,6 +642,9 @@ void Mysql_shell::finish_init() {
       providers->register_provider("rs", [this](bool for_help) {
         return create_default_replicaset_object(for_help);
       });
+      providers->register_provider("clusterset", [this](bool for_help) {
+        return create_default_clusterset_object(for_help);
+      });
       providers->register_provider("util", _global_util);
       auto shell_provider =
           providers->register_provider("shell", _global_shell);
@@ -1195,6 +1198,22 @@ Mysql_shell::create_default_cluster_object(bool for_help) {
   }
 
   return m_default_cluster;
+}
+
+std::shared_ptr<mysqlsh::dba::ClusterSet>
+Mysql_shell::create_default_clusterset_object(bool for_help) {
+  if (!m_default_clusterset) {
+    if (for_help) {
+      m_default_clusterset =
+          std::make_shared<mysqlsh::dba::ClusterSet>(nullptr);
+    } else {
+      m_default_clusterset = _global_dba->get_cluster_set();
+    }
+    set_global_object("clusterset", m_default_clusterset,
+                      shcore::IShell_core::all_scripting_modes());
+  }
+
+  return m_default_clusterset;
 }
 
 std::shared_ptr<mysqlsh::dba::ReplicaSet>

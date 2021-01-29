@@ -68,8 +68,9 @@ enum class Cluster_availability {
   ONLINE_NO_PRIMARY,  // Cluster has quorum but we can't connect to the PRIMARY
   NO_QUORUM,          // No quorum found
   OFFLINE,            // ALL members reachable but OFFLINE
-  UNREACHABLE         // Can't determine status because at least 1 member is
+  SOME_UNREACHABLE,   // Can't determine status because at least 1 member is
                       // unreachable and the reachable ones are not ONLINE
+  UNREACHABLE  // Can't determine status because could not connect to any member
 };
 
 std::string to_string(Cluster_availability type);

@@ -315,8 +315,7 @@ shcore::Value Create_cluster_set::execute() {
     // NOTE: No need to handle a failure with the undo_list in here since all
     // the tasks done in the promotion are just to ensure the right member
     // actions are set.
-    cs->promote_to_primary(m_cluster->get_primary_master().get(),
-                           m_options.dry_run);
+    cs->promote_to_primary(m_cluster, false, m_options.dry_run);
 
     if (!m_options.dry_run) {
       // Enable skip_replica_start

@@ -73,6 +73,8 @@ std::string to_string(Cluster_availability type) {
       return "NO_QUORUM";
     case Cluster_availability::OFFLINE:
       return "OFFLINE";
+    case Cluster_availability::SOME_UNREACHABLE:
+      return "OFFLINE";
     case Cluster_availability::UNREACHABLE:
       return "UNREACHABLE";
   }

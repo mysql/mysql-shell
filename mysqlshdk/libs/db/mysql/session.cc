@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include <cmath>
+#include <regex>
 #include <sstream>
 #include <vector>
 
@@ -402,11 +403,28 @@ std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
   });
 
   DBUG_EXECUTE_IF("sql_test_error", {
-    static int count = std::stoi(getenv("TEST_SQL_UNTIL_CRASH"));
-    if (--count < 1) {
-      fprintf(stderr, "%s SQL statements executed, will throw now\n",
-              getenv("TEST_SQL_UNTIL_CRASH"));
-      throw mysqlshdk::db::Error("Injected error", CR_UNKNOWN_ERROR);
+    static int filter_set = -1;
+    static std::regex filter;
+    if (filter_set < 0) {
+      const char *pat = getenv("TEST_SQL_UNTIL_CRASH_IF");
+      if (pat) {
+        filter = std::regex(pat, std::regex_constants::icase |
+                                     std::regex_constants::ECMAScript);
+        filter_set = 1;
+      } else {
+        filter_set = 0;
+      }
+    }
+
+    if (filter_set == 0 || (filter_set > 0 && std::regex_match(sql, filter))) {
+      static int count = std::stoi(getenv("TEST_SQL_UNTIL_CRASH"));
+      if (--count == 0) {
+        fprintf(stderr, "%s SQL statements executed, will throw now\n",
+                getenv("TEST_SQL_UNTIL_CRASH"));
+        throw mysqlshdk::db::Error(
+            "Injected error when about to execute '" + std::string(sql) + "'",
+            CR_UNKNOWN_ERROR);
+      }
     }
   });
 

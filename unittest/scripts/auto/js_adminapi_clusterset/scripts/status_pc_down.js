@@ -147,7 +147,11 @@ EXPECT_LT(0, cluster1(s)["transactionSet"].length);
 
 EXPECT_EQ("NOT_OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster2(s)["status"]);
+if (cluster2(s)["clusterSetReplicationStatus"] == "OK") {
+EXPECT_EQ("Connecting to source", cluster2(s)["clusterSetReplication"]["receiverThreadState"]);
+} else {
 EXPECT_EQ("ERROR", cluster2(s)["clusterSetReplicationStatus"]);
+}
 EXPECT_LT(0, cluster2(s)["transactionSet"].length);
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
@@ -304,17 +308,19 @@ EXPECT_EQ(null, s["globalPrimaryInstance"]);
 EXPECT_EQ(null, cluster1(s)["primary"]);
 EXPECT_EQ("UNKNOWN", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
-EXPECT_EQ(["ERROR: Could not connect to any ONLINE members but there are unreachable instances that could still be ONLINE."], cluster1(s)["clusterErrors"]);
+EXPECT_EQ(["ERROR: Cluster members are reachable but they\'re all OFFLINE."], cluster1(s)["clusterErrors"]);
 
 EXPECT_EQ("UNKNOWN", cluster2(s)["globalStatus"]);
 EXPECT_EQ("UNKNOWN", cluster2(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ(["ERROR: Could not connect to any ONLINE members but there are unreachable instances that could still be ONLINE."], cluster2(s)["clusterErrors"]);
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
+if (cluster3(s)["clusterSetReplicationStatus"] == "OK") {
+EXPECT_EQ("Connecting to source", cluster3(s)["clusterSetReplication"]["receiverThreadState"]);
+} else {
 EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
-
-testutil.waitForReplConnectionError(__mysql_sandbox_port6, "clusterset_replication");
+}
 
 s = cs.status({extended:1});
 EXPECT_EQ("UNAVAILABLE", s["status"]);
@@ -330,7 +336,12 @@ EXPECT_EQ("UNKNOWN", cluster2(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ("UNREACHABLE", cluster2(s)["status"]);
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
-// EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+if (cluster3(s)["clusterSetReplicationStatus"] == "OK") {
+EXPECT_EQ("Connecting to source", cluster3(s)["clusterSetReplication"]["receiverThreadState"]);
+} else {
+EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
+}
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 
 

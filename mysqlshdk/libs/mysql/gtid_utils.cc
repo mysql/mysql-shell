@@ -93,11 +93,14 @@ Gtid_set &Gtid_set::add(const Gtid_range &range) {
 Gtid_set Gtid_set::get_gtids_from(const std::string &uuid) const {
   mysqlshdk::mysql::Gtid_set matches;
 
-  enumerate_ranges([&matches, uuid](const mysqlshdk::mysql::Gtid_range &range) {
-    if (std::get<0>(range) == uuid) {
-      matches.add(range);
-    }
-  });
+  if (!uuid.empty()) {
+    enumerate_ranges(
+        [&matches, uuid](const mysqlshdk::mysql::Gtid_range &range) {
+          if (std::get<0>(range) == uuid) {
+            matches.add(range);
+          }
+        });
+  }
 
   return matches;
 }

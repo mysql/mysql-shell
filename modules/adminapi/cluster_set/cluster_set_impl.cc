@@ -36,7 +36,10 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/dba/create_cluster.h"
 #include "modules/adminapi/replica_set/replica_set_status.h"
+#include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/libs/mysql/async_replication.h"
+#include "mysqlshdk/libs/mysql/binlog_utils.h"
+#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/shellcore/shell_console.h"
@@ -115,7 +118,6 @@ Cluster_set_impl::create_cluster_replication_user(Instance *cluster_primary,
   log_info("Creating async replication account '%s'@'%%' for new cluster at %s",
            repl_user.c_str(), cluster_primary->descr().c_str());
 
-  // auto primary = get_primary_master();
   auto primary = get_metadata_storage()->get_md_server();
 
   mysqlshdk::mysql::Auth_options repl_account;
@@ -193,6 +195,36 @@ void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster) {
   }
 }
 
+mysqlshdk::mysql::Auth_options
+Cluster_set_impl::refresh_cluster_replication_user(const std::string &user,
+                                                   bool dry_run) {
+  auto primary = get_primary_master();
+
+  mysqlshdk::mysql::Auth_options creds;
+
+  creds.user = user;
+
+  try {
+    auto console = mysqlsh::current_console();
+
+    log_info("Resetting password for %s@%% at %s", creds.user.c_str(),
+             primary->descr().c_str());
+    // re-create replication with a new generated password
+    if (!dry_run) {
+      std::string repl_password;
+      mysqlshdk::mysql::set_random_password(*primary, creds.user, {"%"},
+                                            &repl_password);
+      creds.password = repl_password;
+    }
+  } catch (const std::exception &e) {
+    throw shcore::Exception::runtime_error(shcore::str_format(
+        "Error while resetting password for replication account: %s",
+        e.what()));
+  }
+
+  return creds;
+}
+
 std::shared_ptr<Cluster_impl> Cluster_set_impl::get_primary_cluster() const {
   return m_primary_cluster;
 }
@@ -201,12 +233,13 @@ Cluster_set_member_metadata Cluster_set_impl::get_primary_cluster_metadata()
     const {
   std::vector<Cluster_set_member_metadata> cs_members;
 
-  if (!m_metadata_storage->get_cluster_set(m_id, nullptr, &cs_members)) {
+  if (!m_metadata_storage->get_cluster_set(m_id, false, nullptr, &cs_members)) {
     throw std::runtime_error("Metadata not found");
   }
 
   for (const auto &m : cs_members) {
     if (m.primary_cluster) {
+      log_debug("Primary cluster is %s", m.cluster.cluster_name.c_str());
       return m;
     }
   }
@@ -227,8 +260,116 @@ mysqlsh::dba::Instance *Cluster_set_impl::connect_primary() {
 
   m_primary_cluster = get_cluster_object(primary_cluster, true);
 
+  m_metadata_storage = m_primary_cluster->get_metadata_storage();
+
   m_primary_master = m_primary_cluster->get_primary_master();
   return m_primary_master.get();
+}
+
+bool Cluster_set_impl::reconnect_target_if_invalidated() {
+  // Connect to all REPLICA Clusters and ensure none of them have a higher
+  // view_id generation than the global primary (which would it was
+  // invalidated). If a higher view_id generation is found, the cluster_server
+  // and MD object are replaced with it.
+
+  // The current clusterset topology must be discoverable even when
+  // getClusterSet() is called from an instance of an invalidated cluster, IFF
+  // there is at least one available member of the current topology
+  // that was also in the topology at the time of the invalidation.
+
+  Cluster_set_metadata cs;
+  std::vector<Cluster_set_member_metadata> cs_members;
+
+  uint64_t primary_view_id;
+
+  if (!m_metadata_storage->get_cluster_set(m_id, false, &cs, &cs_members,
+                                           &primary_view_id)) {
+    throw std::runtime_error("Metadata not found");
+  }
+
+  log_debug(
+      "Checking if primary cluster %s (id=%s, view_id_generation=%x) has the "
+      "most recent clusterset metadata",
+      get_primary_cluster()->get_name().c_str(), cs.id.c_str(),
+      cluster_set_view_id_generation(primary_view_id));
+
+  auto ipool = current_ipool();
+
+  std::shared_ptr<Instance> best_candidate;
+  std::shared_ptr<MetadataStorage> best_candidate_md;
+  uint32_t best_candidate_generation = 0;
+
+  for (const auto &m : cs_members) {
+    if (!m.primary_cluster && !m.invalidated) {
+      // Can't use get_cluster_object(), because we need the MD object to point
+      // to itself and not the primary cluster
+
+      Cluster_availability availability;
+
+      auto group_server = ipool->try_connect_cluster_primary_with_fallback(
+          m.cluster.cluster_id, &availability);
+
+      if (group_server) {
+        auto md = std::make_shared<MetadataStorage>(group_server);
+        uint64_t view_id = 0;
+        Cluster_set_id csid;
+
+        if (md->check_cluster_set(group_server.get(), &view_id, nullptr,
+                                  &csid)) {
+          log_debug("Metadata copy at %s has view_id=%x, csid=%s",
+                    group_server->descr().c_str(),
+                    cluster_set_view_id_generation(view_id), cs.id.c_str());
+
+          if (csid != cs.id.c_str()) {
+            current_console()->print_note(
+                shcore::str_format("Metadata at instance %s is not consistent "
+                                   "with the clusterSet.",
+                                   group_server->descr().c_str()));
+          } else if (cluster_set_view_id_generation(view_id) >
+                     cluster_set_view_id_generation(primary_view_id)) {
+            current_console()->print_note(shcore::str_format(
+                "Instance %s has more recent metadata than %s (generation %x "
+                "vs %x), which suggests %s has been invalidated",
+                group_server->descr().c_str(),
+                get_primary_master()->descr().c_str(),
+                cluster_set_view_id_generation(view_id),
+                cluster_set_view_id_generation(primary_view_id),
+                get_primary_cluster()->get_name().c_str()));
+
+            if (cluster_set_view_id_generation(view_id) >
+                best_candidate_generation) {
+              best_candidate = group_server;
+              best_candidate_md = md;
+              best_candidate_generation =
+                  cluster_set_view_id_generation(view_id);
+            }
+          }
+        } else {
+          current_console()->print_note(
+              shcore::str_format("Metadata at instance %s is not consistent "
+                                 "with the clusterSet.",
+                                 group_server->descr().c_str()));
+        }
+      }
+    }
+  }
+
+  if (best_candidate) {
+    current_console()->print_note(shcore::str_format(
+        "Cluster %s appears to have been invalidated, reconnecting to %s.",
+        get_primary_cluster()->get_name().c_str(),
+        best_candidate->descr().c_str()));
+
+    m_cluster_server = best_candidate;
+    m_metadata_storage = best_candidate_md;
+
+    m_primary_cluster.reset();
+    m_primary_master.reset();
+
+    return true;
+  }
+
+  return false;
 }
 
 namespace {
@@ -248,6 +389,13 @@ void check_cluster_online(Cluster_impl *cluster) {
       throw shcore::Exception("All members of " + role + " '" +
                                   cluster->get_name() + "' are OFFLINE",
                               SHERR_DBA_GROUP_OFFLINE);
+
+    case Cluster_availability::SOME_UNREACHABLE:
+      throw shcore::Exception(
+          "All reachable members of " + role + " '" + cluster->get_name() +
+              "' are OFFLINE, but there are some unreachable members that "
+              "could be ONLINE",
+          SHERR_DBA_GROUP_OFFLINE);
 
     case Cluster_availability::NO_QUORUM:
       throw shcore::Exception("Could not connect to an ONLINE member of " +
@@ -284,13 +432,15 @@ void Cluster_set_impl::release_primary(mysqlsh::dba::Instance *) {
 }
 
 std::shared_ptr<Cluster_impl> Cluster_set_impl::get_cluster(
-    const std::string &name, bool allow_unavailable) {
-  if (m_primary_cluster->get_name() == name) return m_primary_cluster;
+    const std::string &name, bool allow_unavailable, bool allow_invalidated) {
+  if (m_primary_cluster && name == m_primary_cluster->get_name()) {
+    return m_primary_cluster;
+  }
 
   Cluster_set_member_metadata cluster_md;
 
   if (!m_metadata_storage->get_cluster_set_member_for_cluster_name(
-          name, &cluster_md)) {
+          name, &cluster_md, allow_invalidated)) {
     throw shcore::Exception(
         shcore::str_format("The cluster with the name '%s' does not exist.",
                            name.c_str()),
@@ -314,10 +464,7 @@ std::shared_ptr<Cluster_impl> Cluster_set_impl::get_cluster(
 
 std::shared_ptr<Cluster_impl> Cluster_set_impl::get_cluster_object(
     const Cluster_set_member_metadata &cluster_md, bool allow_unavailable) {
-  if (m_primary_cluster &&
-      cluster_md.cluster.group_name == m_primary_cluster->get_group_name()) {
-    return m_primary_cluster;
-  }
+  auto md = get_metadata_storage();
 
   auto ipool = current_ipool();
   try {
@@ -331,23 +478,23 @@ std::shared_ptr<Cluster_impl> Cluster_set_impl::get_cluster_object(
         group_server->steal();
 
         if (cluster_md.primary_cluster && !cluster_md.invalidated)
-          m_metadata_storage = std::make_shared<MetadataStorage>(group_server);
+          md = std::make_shared<MetadataStorage>(group_server);
       }
 
       return std::make_shared<Cluster_impl>(shared_from_this(),
                                             cluster_md.cluster, group_server,
-                                            m_metadata_storage, availability);
+                                            md, availability);
     } else {
       auto group_server =
-          ipool->connect_group_member(cluster_md.cluster.group_name);
+          ipool->connect_group_primary(cluster_md.cluster.group_name);
 
       group_server->steal();
       if (cluster_md.primary_cluster && !cluster_md.invalidated)
-        m_metadata_storage = std::make_shared<MetadataStorage>(group_server);
+        md = std::make_shared<MetadataStorage>(group_server);
 
-      return std::make_shared<Cluster_impl>(
-          shared_from_this(), cluster_md.cluster, group_server,
-          m_metadata_storage, Cluster_availability::ONLINE);
+      return std::make_shared<Cluster_impl>(shared_from_this(),
+                                            cluster_md.cluster, group_server,
+                                            md, Cluster_availability::ONLINE);
     }
   } catch (const shcore::Exception &e) {
     if (allow_unavailable) {
@@ -355,9 +502,9 @@ std::shared_ptr<Cluster_impl> Cluster_set_impl::get_cluster_object(
           "Could not connect to any member of cluster '" +
           cluster_md.cluster.cluster_name + "': " + e.format());
 
-      return std::make_shared<Cluster_impl>(
-          shared_from_this(), cluster_md.cluster, nullptr,
-          get_metadata_storage(), Cluster_availability::UNREACHABLE);
+      return std::make_shared<Cluster_impl>(shared_from_this(),
+                                            cluster_md.cluster, nullptr, md,
+                                            Cluster_availability::UNREACHABLE);
     }
     throw;
   }
@@ -415,6 +562,7 @@ Cluster_channel_status Cluster_set_impl::get_replication_channel_status(
       return Cluster_channel_status::MISSING;
     }
   }
+
   return Cluster_channel_status::UNKNOWN;
 }
 
@@ -467,7 +615,9 @@ Cluster_global_status Cluster_set_impl::get_cluster_global_status(
   if (cluster->is_invalidated()) {
     ret = Cluster_global_status::INVALIDATED;
   } else if (cluster->cluster_availability() ==
-             Cluster_availability::UNREACHABLE) {
+                 Cluster_availability::UNREACHABLE ||
+             cluster->cluster_availability() ==
+                 Cluster_availability::SOME_UNREACHABLE) {
     ret = Cluster_global_status::UNKNOWN;
   } else if (cluster->cluster_availability() ==
                  Cluster_availability::NO_QUORUM ||
@@ -574,6 +724,7 @@ bool Cluster_set_impl::check_gtid_consistency(Cluster_impl *cluster) const {
   my_gtid_set.subtract(my_gtid_set.get_gtids_from(my_view_change_uuid),
                        *cluster->get_cluster_server());
 
+  // always query GTID_EXECUTED from source after replica
   auto source_gtid_set =
       mysqlshdk::mysql::Gtid_set::from_gtid_executed(*get_primary_master());
 
@@ -599,8 +750,8 @@ Async_replication_options Cluster_set_impl::get_clusterset_replication_options()
 
   // Get the ClusterSet configured SSL mode
   shcore::Value ssl_mode;
-  get_metadata_storage()->query_clusterset_attribute(
-      get_id(), k_clusterset_attribute_ssl_mode, &ssl_mode);
+  get_metadata_storage()->query_cluster_set_attribute(
+      get_id(), k_cluster_set_attribute_ssl_mode, &ssl_mode);
 
   std::string ssl_mode_str = ssl_mode.as_string();
   repl_options.ssl_mode = to_cluster_ssl_mode(ssl_mode_str);
@@ -612,24 +763,74 @@ Async_replication_options Cluster_set_impl::get_clusterset_replication_options()
   return repl_options;
 }
 
+std::list<std::shared_ptr<Cluster_impl>> Cluster_set_impl::connect_all_clusters(
+    uint32_t read_timeout, bool skip_primary_cluster,
+    std::list<Cluster_id> *inout_unreachable) {
+  // Connect to the PRIMARY of each cluster
+  std::vector<Cluster_set_member_metadata> cs_members;
+
+  if (!m_metadata_storage->get_cluster_set(m_id, false, nullptr, &cs_members)) {
+    throw std::runtime_error("MD not found");
+  }
+
+  auto console = current_console();
+  std::list<std::shared_ptr<Cluster_impl>> r;
+
+  (void)read_timeout;
+  for (const auto &m : cs_members) {
+    if ((m.primary_cluster && skip_primary_cluster) || m.invalidated) {
+      continue;
+    }
+
+    // don't try connecting again to clusters that are known to be unreachable
+    if (inout_unreachable &&
+        std::find_if(inout_unreachable->begin(), inout_unreachable->end(),
+                     [m](const Cluster_id &id) {
+                       return m.cluster.cluster_id == id;
+                     }) != inout_unreachable->end()) {
+      continue;
+    }
+
+    std::shared_ptr<Cluster_impl> cluster;
+
+    try {
+      cluster = get_cluster_object(m);
+
+      cluster->acquire_primary();
+
+      r.emplace_back(cluster);
+    } catch (const shcore::Error &e) {
+      console->print_error("Could not connect to PRIMARY of cluster " +
+                           m.cluster.cluster_name + ": " + e.format());
+      if (inout_unreachable) {
+        inout_unreachable->emplace_back(m.cluster.cluster_id);
+      } else {
+        throw shcore::Exception(
+            "Cluster " + m.cluster.cluster_name + " is not reachable",
+            SHERR_DBA_ASYNC_MEMBER_UNREACHABLE);
+      }
+    }
+  }
+  return r;
+}
+
 Member_recovery_method Cluster_set_impl::validate_instance_recovery(
     Member_op_action op_action, mysqlshdk::mysql::IInstance *target_instance,
     Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
     bool interactive) {
   auto donor_instance = get_primary_master();
-  auto check_recoverable =
-      [donor_instance](mysqlshdk::mysql::IInstance *tgt_instance) {
-        // Get the gtid state in regards to the donor
-        mysqlshdk::mysql::Replica_gtid_state state =
-            mysqlshdk::mysql::check_replica_gtid_state(
-                *donor_instance, *tgt_instance, nullptr, nullptr);
+  auto check_recoverable = [donor_instance](
+                               mysqlshdk::mysql::IInstance *tgt_instance) {
+    // Get the gtid state in regards to the donor
+    mysqlshdk::mysql::Replica_gtid_state state = check_replica_group_gtid_state(
+        *donor_instance, *tgt_instance, nullptr, nullptr);
 
-        if (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
-          return true;
-        } else {
-          return false;
-        }
-      };
+    if (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
+      return true;
+    } else {
+      return false;
+    }
+  };
 
   Member_recovery_method recovery_method =
       mysqlsh::dba::validate_instance_recovery(
@@ -710,9 +911,10 @@ void Cluster_set_impl::remove_cluster(
     // NOTE: This will throw an exception if the Cluster does not exist in the
     // metadata
     try {
-      target_cluster = get_cluster(cluster_name);
+      target_cluster = get_cluster(cluster_name, false, true);
     } catch (const shcore::Exception &e) {
-      if (e.code() == SHERR_DBA_METADATA_MISSING) {
+      if (e.code() == SHERR_DBA_METADATA_MISSING ||
+          e.code() == SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET) {
         console->print_error(shcore::str_format(
             "The Cluster '%s' does not exist or does not belong to the "
             "ClusterSet.",
@@ -720,7 +922,7 @@ void Cluster_set_impl::remove_cluster(
         throw;
       } else {
         if (options.force) {
-          target_cluster = get_cluster(cluster_name, true);
+          target_cluster = get_cluster(cluster_name, true, true);
 
           console->print_warning(
               "The target Cluster's Primary instance is unavailable so the "
@@ -1118,12 +1320,12 @@ void Cluster_set_impl::remove_cluster(
 
 void Cluster_set_impl::update_replica_settings(Instance *instance,
                                                Instance *new_primary,
-                                               bool dry_run) {
+                                               bool is_primary, bool dry_run) {
   try {
     bool enabled;
 
     log_info(
-        "Checking Group Action mysql_disable_super_read_obly_if_primary %s",
+        "Checking Group Action mysql_disable_super_read_only_if_primary %s",
         instance->descr().c_str());
     if (!dry_run) {
       if (mysqlshdk::gr::get_member_action_status(
@@ -1186,17 +1388,19 @@ void Cluster_set_impl::update_replica_settings(Instance *instance,
       delete_managed_connection_failover(
           *instance, k_clusterset_async_channel_name, dry_run);
 
-      // Setup the new managed connection failover
-      add_managed_connection_failover(*instance, *new_primary,
-                                      k_clusterset_async_channel_name, "",
-                                      dry_run);
+      if (is_primary) {
+        // Setup the new managed connection failover
+        add_managed_connection_failover(*instance, *new_primary,
+                                        k_clusterset_async_channel_name, "",
+                                        dry_run);
+      }
     } catch (...) {
       log_error("Error setting up connection failover at %s: %s",
                 instance->descr().c_str(), format_active_exception().c_str());
       throw;
     }
   }
-}  // namespace dba
+}
 
 void Cluster_set_impl::remove_replica_settings(Instance *instance,
                                                bool dry_run) {
@@ -1259,87 +1463,91 @@ void Cluster_set_impl::ensure_replica_settings(Cluster_impl *replica,
       });
 }
 
-void Cluster_set_impl::promote_to_primary(Instance *instance, bool dry_run) {
+void Cluster_set_impl::delete_async_channel(Cluster_impl *cluster,
+                                            bool dry_run) {
+  cluster->execute_in_members(
+      {mysqlshdk::gr::Member_state::ONLINE},
+      cluster->get_cluster_server()->get_connection_options(), {},
+      [=](const std::shared_ptr<Instance> &instance,
+          const mysqlshdk::gr::Member &) {
+        try {
+          reset_channel(instance.get(), k_clusterset_async_channel_name, true,
+                        dry_run);
+        } catch (const shcore::Exception &e) {
+          if (e.code() != ER_SLAVE_CHANNEL_DOES_NOT_EXIST) {
+            throw;
+          }
+        }
+        return true;
+      });
+}
+
+void Cluster_set_impl::promote_to_primary(Cluster_impl *cluster,
+                                          bool preserve_channel, bool dry_run) {
+  auto primary = cluster->get_cluster_server();
+
+  log_info("Promoting cluster %s (primary=%s)", cluster->get_name().c_str(),
+           primary->descr().c_str());
+
+  stop_channel(primary.get(), k_clusterset_async_channel_name, true, dry_run);
+
+  // Stop the channel but don't delete it yet, since we need to be able to
+  // revert in case something goes wrong, without knowing the password of
+  // the replication user
+  if (!preserve_channel) {
+    delete_async_channel(cluster, dry_run);
+  }
+
+  // Unfence the primary. member_action changes need to have SRO=off
+  if (!dry_run) {
+    unfence_instance(primary.get(), false);
+  }
+
   // Reset ClusterSet related configurations first:
   //  - Enable super_read_only management
-  //  - Stop and reset the ClusterSet replication channel
   //  - Delete the managed connection failover configuration
-  remove_replica_settings(instance, dry_run);
+  remove_replica_settings(primary.get(), dry_run);
 
-  // Ensure GR action 'mysql_start_failover_channels_if_primary' is enabled
-  // to ensure the automatic connection failover for receiver failure.
-  // NOTE: This is not needed on PRIMARY Clusters and won't have any effect,
-  // but we should set it during the creation of the PRIMARY cluster to
-  // avoid having to deal with it during switchover/failovers.
-  try {
-    bool enabled;
-
-    if (!mysqlshdk::gr::get_member_action_status(
-            *instance, mysqlshdk::gr::k_gr_start_failover_channels_if_primary,
-            &enabled) ||
-        !enabled) {
-      log_info(
-          "Enabling Group Action mysql_start_failover_channels_if_primary");
-      if (!dry_run) {
-        mysqlshdk::gr::enable_member_action(
-            *instance, mysqlshdk::gr::k_gr_start_failover_channels_if_primary,
-            mysqlshdk::gr::k_gr_member_action_after_primary_election);
-      }
-    } else {
-      log_info("Already enabled");
-    }
-  } catch (...) {
-    log_error(
-        "Error enabling automatic connection failover for receiver failure "
-        "handling at %s: %s",
-        instance->descr().c_str(), format_active_exception().c_str());
-    throw;
+  if (!dry_run) {
+    // notify that the primary cluster of the clusterset changed
+    shcore::ShellNotifications::get()->notify(
+        kNotifyClusterSetPrimaryChanged, nullptr,
+        shcore::make_dict(kNotifyDataClusterSetId, get_id()));
   }
 }
 
-void Cluster_set_impl::demote_from_primary(Instance *instance,
-                                           Instance *new_primary,
-                                           bool dry_run) {
-  update_replica_settings(instance, new_primary, dry_run);
-}
+void Cluster_set_impl::demote_from_primary(
+    Cluster_impl *cluster, Instance *new_primary,
+    const Async_replication_options &repl_options, bool dry_run) {
+  auto cluster_primary = cluster->get_cluster_server();
 
-void Cluster_set_impl::swap_primary(Instance *demoted, Instance *promoted,
-                                    const Async_replication_options &ar_options,
-                                    bool dry_run) {
-  auto console = current_console();
+  log_info("Demoting %s from primary", cluster_primary->descr().c_str());
 
-  try {
-    // First, promote the new primary by stopping slave, unfencing it and
-    // making the old primary a slave of the new one.
-    // Topology changes are reverted on exception.
-    async_swap_primary(demoted, promoted, k_clusterset_async_channel_name,
-                       ar_options, nullptr, dry_run);
-  } catch (...) {
-    console->print_error("Error changing replication source: " +
-                         format_active_exception());
+  // create async channel on all secondaries, update member actions
+  cluster->execute_in_members(
+      {mysqlshdk::gr::Member_state::ONLINE,
+       mysqlshdk::gr::Member_state::RECOVERING},
+      new_primary->get_connection_options(), {},
+      [=](const std::shared_ptr<Instance> &instance,
+          const mysqlshdk::gr::Member &) {
+        if (cluster_primary->get_uuid() != instance->get_uuid()) {
+          async_create_channel(instance.get(), new_primary,
+                               k_clusterset_async_channel_name, repl_options,
+                               dry_run);
+          update_replica_settings(cluster_primary.get(), new_primary, false,
+                                  dry_run);
+        }
+        return true;
+      });
 
-    console->print_note("Reverting replication changes");
-
-    throw shcore::Exception("Error during switchover",
-                            SHERR_DBA_SWITCHOVER_ERROR);
-  }
-
-  // Clear replication configs from the promoted instance. Do it after
-  // everything is done, to make reverting easier.
-  try {
-    reset_channel(promoted, k_clusterset_async_channel_name, true, dry_run);
-  } catch (...) {
-    // Failure to reset slave is not fatal
-    console->print_warning("Error resetting replication configurations at " +
-                           promoted->descr() + ": " +
-                           format_active_exception());
-  }
+  update_replica(cluster_primary.get(), new_primary, repl_options, true,
+                 dry_run);
 }
 
 void Cluster_set_impl::update_replica(
     Cluster_impl *replica, Instance *master,
     const Async_replication_options &ar_options, bool dry_run) {
-  auto primary_uuid = replica->get_primary_master()->get_uuid();
+  auto primary_uuid = replica->get_cluster_server()->get_uuid();
 
   replica->execute_in_members(
       {mysqlshdk::gr::Member_state::ONLINE}, master->get_connection_options(),
@@ -1357,6 +1565,8 @@ void Cluster_set_impl::update_replica(
     Instance *replica, Instance *master,
     const Async_replication_options &ar_options, bool primary_instance,
     bool dry_run) {
+  log_info("Updating replication source at %s", replica->descr().c_str());
+
   auto console = current_console();
   auto repl_options = ar_options;
 
@@ -1372,16 +1582,19 @@ void Cluster_set_impl::update_replica(
                          repl_options, primary_instance ? true : false,
                          dry_run);
 
-    log_info("PRIMARY changed for instance %s", replica->descr().c_str());
+    log_info("Replication source changed for %sinstance %s",
+             (primary_instance ? "primary " : ""), replica->descr().c_str());
   } catch (...) {
-    console->print_error("Error changing replication source: " +
-                         format_active_exception());
+    console->print_error("Error updating replication source for " +
+                         replica->descr() + ": " + format_active_exception());
 
-    throw shcore::Exception("Error during switchover",
-                            SHERR_DBA_SWITCHOVER_ERROR);
+    throw shcore::Exception(
+        "Could not update replication source of " + replica->descr(),
+        SHERR_DBA_SWITCHOVER_ERROR);
   }
 
-  if (primary_instance) update_replica_settings(replica, master, dry_run);
+  if (primary_instance)
+    update_replica_settings(replica, master, primary_instance, dry_run);
 }
 
 void Cluster_set_impl::remove_replica(Instance *instance, bool dry_run) {
@@ -1404,9 +1617,11 @@ void Cluster_set_impl::record_in_metadata(
   Cluster_set_id csid = metadata->create_cluster_set_record(
       this, seed_cluster_id, shcore::make_dict());
 
+  m_id = csid;
+
   // Record the ClusterSet SSL mode in the Metadata
-  metadata->update_clusterset_attribute(
-      csid, k_clusterset_attribute_ssl_mode,
+  metadata->update_cluster_set_attribute(
+      csid, k_cluster_set_attribute_ssl_mode,
       shcore::Value(to_string(m_options.ssl_mode)));
 
   // Migrate Router registered in the Cluster to the ClusterSet
@@ -1427,6 +1642,762 @@ shcore::Value Cluster_set_impl::describe() {
   check_preconditions("describe");
 
   return shcore::Value(clusterset::cluster_set_describe(this));
+}
+
+void Cluster_set_impl::set_primary_cluster(
+    const std::string &cluster_name,
+    const clusterset::Set_primary_cluster_options &options) {
+  auto console = current_console();
+
+  shcore::Scoped_callback_list undo_list;
+
+  console->print_info("Switching the primary cluster of the clusterset to '" +
+                      cluster_name + "'");
+  if (options.dry_run)
+    console->print_note("dryRun enabled, no changes will be made");
+
+  auto primary = acquire_primary();
+  auto release_primary_ =
+      shcore::on_leave_scope([this, primary]() { release_primary(primary); });
+
+  auto primary_cluster = get_primary_cluster();
+  std::shared_ptr<Cluster_impl> promoted_cluster;
+  try {
+    promoted_cluster = get_cluster(cluster_name);
+  } catch (const shcore::Exception &e) {
+    console->print_error("Cluster '" + cluster_name +
+                         "' cannot be promoted: " + e.format());
+    throw;
+  }
+
+  if (promoted_cluster == primary_cluster) {
+    throw shcore::Exception(
+        "Cluster '" + cluster_name + "' is already the PRIMARY cluster",
+        SHERR_DBA_TARGET_ALREADY_PRIMARY);
+  }
+
+  promoted_cluster->acquire_primary();
+  auto promoted = promoted_cluster->get_cluster_server();
+
+  log_info(
+      "Switchover primary_cluster=%s primary_instance=%s "
+      "promoted_cluster=%s promoted_instance=%s",
+      primary_cluster->get_name().c_str(), primary->descr().c_str(),
+      promoted_cluster->get_name().c_str(), promoted->descr().c_str());
+
+  // if there any unreachable clusters we collect them in this list, which will
+  // be used by connect_all_clusters() for skipping clusters
+  std::list<Cluster_id> unreachable;
+
+  console->print_info("* Verifying clusterset status");
+  check_clusters_available(options.invalidate_replica_clusters, &unreachable);
+
+  std::list<std::shared_ptr<Cluster_impl>> clusters(
+      connect_all_clusters(0, false, &unreachable));
+  auto release_cluster_primaries = shcore::on_leave_scope([&clusters] {
+    for (auto &c : clusters) c->release_primary();
+  });
+
+  // another set of connections for locks
+  // get triggered before server-side timeouts
+  std::list<std::shared_ptr<Cluster_impl>> lock_clusters(
+      connect_all_clusters(options.timeout + 5, false, &unreachable));
+  auto release_lock_primaries =
+      shcore::on_leave_scope([this, &lock_clusters, options] {
+        for (auto &c : lock_clusters) {
+          if (!options.dry_run && options.timeout > 0) {
+            c->get_cluster_server()->set_sysvar_default(
+                "lock_wait_timeout", mysqlshdk::mysql::Var_qualifier::SESSION);
+          }
+          c->release_primary();
+        }
+        get_primary_master()->set_sysvar_default(
+            "lock_wait_timeout", mysqlshdk::mysql::Var_qualifier::SESSION);
+      });
+  std::list<std::shared_ptr<Instance>> lock_instances;
+  for (auto &c : lock_clusters) {
+    if (!options.dry_run && options.timeout > 0) {
+      c->get_cluster_server()->set_sysvar(
+          "lock_wait_timeout", static_cast<int64_t>(options.timeout),
+          mysqlshdk::mysql::Var_qualifier::SESSION);
+    }
+
+    lock_instances.emplace_back(c->get_primary_master());
+  }
+  get_primary_master()->set_sysvar("lock_wait_timeout",
+                                   static_cast<int64_t>(options.timeout),
+                                   mysqlshdk::mysql::Var_qualifier::SESSION);
+
+  std::string missing_view_change_gtids;
+
+  check_transaction_set_recoverable(promoted.get(), primary,
+                                    &missing_view_change_gtids);
+  console->print_info();
+
+  if (!missing_view_change_gtids.empty()) {
+    console->print_info("* Reconciling internally generated GTIDs");
+    if (!options.dry_run)
+      reconcile_view_change_gtids(
+          promoted.get(),
+          mysqlshdk::mysql::Gtid_set::from_string(missing_view_change_gtids));
+    console->print_info();
+  }
+
+  // Get the current settings for the ClusterSet replication channel
+  Async_replication_options ar_options = get_clusterset_replication_options();
+
+  console->print_info("* Refreshing replication account of demoted cluster");
+  // Re-generate a new password for the master being demoted.
+  ar_options.repl_credentials = refresh_cluster_replication_user(
+      get_cluster_repl_account(primary_cluster.get()).first, options.dry_run);
+
+  console->print_info("* Synchronizing transaction backlog at " +
+                      promoted->descr());
+  if (!options.dry_run) {
+    sync_transactions(*promoted, k_clusterset_async_channel_name,
+                      options.timeout);
+  }
+  console->print_info();
+
+  try {
+    console->print_info("* Updating metadata");
+
+    // Update the metadata with the state the replicaset is supposed to be in
+    log_info("Updating metadata at %s",
+             m_metadata_storage->get_md_server()->descr().c_str());
+    if (!options.dry_run) {
+      m_metadata_storage->record_cluster_set_primary_switch(
+          get_id(), promoted_cluster->get_id(), unreachable);
+
+      undo_list.push_front([=]() {
+        m_metadata_storage->record_cluster_set_primary_switch(
+            get_id(), primary_cluster->get_id(), {});
+      });
+
+      for (const auto &c : options.invalidate_replica_clusters) {
+        console->print_note(
+            "Cluster '" + c +
+            "' was INVALIDATED and no longer part of the clusterset.");
+      }
+    }
+    console->print_info();
+
+    console->print_info("* Updating topology");
+
+    // Do the actual switchover:
+    // - stop/delete channel from primary of promoted
+    // - create channel in all members of demoted
+    // - enable failover at primary of demoted
+    // - start replica at demoted
+
+    undo_list.push_front([this, primary_cluster, options]() {
+      promote_to_primary(primary_cluster.get(), false, options.dry_run);
+    });
+    demote_from_primary(primary_cluster.get(), promoted.get(), ar_options,
+                        options.dry_run);
+
+    // update settings other than credentials in members of remaining replica
+    // clusters
+    ar_options.repl_credentials = {};
+
+    {
+      // Synchronize all slaves and lock all instances.
+      Global_locks global_locks;
+      try {
+        global_locks.acquire(lock_instances, primary->get_uuid(),
+                             options.timeout, options.dry_run);
+      } catch (const std::exception &e) {
+        console->print_error(
+            shcore::str_format("An error occurred while preparing "
+                               "instances for a PRIMARY switch: %s",
+                               e.what()));
+        throw;
+      }
+
+      console->print_info(
+          "* Synchronizing remaining transactions at promoted primary");
+      if (!options.dry_run) {
+        sync_transactions(*promoted, k_clusterset_async_channel_name,
+                          options.timeout);
+      }
+      console->print_info();
+    }
+
+    undo_list.push_front(
+        [this, promoted_cluster, primary, ar_options, options]() {
+          demote_from_primary(promoted_cluster.get(), primary, ar_options,
+                              options.dry_run);
+        });
+    promote_to_primary(promoted_cluster.get(), true, options.dry_run);
+
+    console->print_info("* Updating replica clusters");
+    for (const auto &replica : clusters) {
+      if (promoted_cluster->get_name() != replica->get_name() &&
+          primary_cluster->get_name() != replica->get_name()) {
+        undo_list.push_front([this, replica, primary, ar_options, options,
+                              console]() {
+          try {
+            update_replica(replica.get(), primary, ar_options, options.dry_run);
+          } catch (...) {
+            console->print_error("Could not revert changes to " +
+                                 replica->get_name() + ": " +
+                                 format_active_exception());
+          }
+        });
+
+        update_replica(replica.get(), promoted.get(), ar_options,
+                       options.dry_run);
+
+        log_info("PRIMARY changed for cluster %s", replica->get_name().c_str());
+      }
+    }
+
+    // reset replication channel from the promoted primary after revert isn't
+    // needed anymore
+    delete_async_channel(promoted_cluster.get(), options.dry_run);
+  } catch (...) {
+    current_console()->print_info(
+        "* Could not complete operation, attempting to revert changes...");
+    try {
+      undo_list.call();
+    } catch (...) {
+      current_console()->print_error("Could not revert changes: " +
+                                     format_active_exception());
+    }
+    throw;
+  }
+
+  undo_list.cancel();
+
+  console->print_info("Cluster '" + promoted_cluster->get_name() +
+                      "' was promoted to PRIMARY of the clusterset. The "
+                      "PRIMARY instance is '" +
+                      promoted->descr() + "'");
+  console->print_info();
+
+  if (options.dry_run) {
+    console->print_info("dryRun finished.");
+    console->print_info();
+  }
+}
+
+void Cluster_set_impl::reconcile_view_change_gtids(
+    mysqlshdk::mysql::IInstance *replica,
+    const mysqlshdk::mysql::Gtid_set &missing_view_gtids) {
+  using mysqlshdk::mysql::Gtid_set;
+  auto primary = get_primary_master();
+
+  Gtid_set gtid_set = missing_view_gtids;
+  if (gtid_set.empty()) {
+    Gtid_set primary_gtid_set = Gtid_set::from_gtid_executed(*primary);
+    std::string view_change_uuid =
+        *replica->get_sysvar_string("group_replication_view_change_uuid");
+
+    gtid_set =
+        Gtid_set::from_gtid_executed(*replica).get_gtids_from(view_change_uuid);
+
+    gtid_set.subtract(primary_gtid_set, *replica);
+  }
+
+  log_info(
+      "Group of instance %s has %s GTIDs generated by group view changes that "
+      "were purged and will be artificially reconciled: %s",
+      replica->descr().c_str(), std::to_string(gtid_set.count()).c_str(),
+      gtid_set.str().c_str());
+
+  inject_gtid_set(*primary, gtid_set);
+}
+
+void Cluster_set_impl::check_clusters_available(
+    const std::list<std::string> &invalidate_clusters,
+    std::list<Cluster_id> *inout_unreachable) {
+  auto console = current_console();
+  size_t num_unavailable_clusters = 0;
+
+  std::vector<Cluster_set_member_metadata> clusters;
+  m_metadata_storage->get_cluster_set(get_id(), true, nullptr, &clusters);
+
+  // check for any invalid cluster names in invalidReplicaClusters
+  for (const auto &name : invalidate_clusters) {
+    if (std::find_if(clusters.begin(), clusters.end(),
+                     [name](const Cluster_set_member_metadata &c) {
+                       return c.cluster.cluster_name == name;
+                     }) == clusters.end()) {
+      throw shcore::Exception::argument_error(
+          "Invalid cluster name '" + name +
+          "' in option invalidateReplicaClusters");
+    }
+  }
+
+  for (const auto &cluster_md : clusters) {
+    if (cluster_md.invalidated) continue;
+
+    if (std::find(inout_unreachable->begin(), inout_unreachable->end(),
+                  cluster_md.cluster.cluster_id) == inout_unreachable->end()) {
+      console->print_info("** Checking cluster " +
+                          cluster_md.cluster.cluster_name);
+      if (!check_cluster_available(cluster_md.cluster.cluster_name)) {
+        inout_unreachable->emplace_back(cluster_md.cluster.cluster_id);
+
+        if (std::find(invalidate_clusters.begin(), invalidate_clusters.end(),
+                      cluster_md.cluster.cluster_name) !=
+            invalidate_clusters.end()) {
+          console->print_note("Cluster '" + cluster_md.cluster.cluster_name +
+                              "' will be INVALIDATED as requested");
+        } else {
+          num_unavailable_clusters++;
+        }
+      } else {
+        console->print_info("  Cluster '" + cluster_md.cluster.cluster_name +
+                            "' is available");
+        if (std::find(invalidate_clusters.begin(), invalidate_clusters.end(),
+                      cluster_md.cluster.cluster_name) !=
+            invalidate_clusters.end()) {
+          console->print_error("Cluster '" + cluster_md.cluster.cluster_name +
+                               "' is available and cannot be INVALIDATED");
+          throw shcore::Exception::argument_error(
+              "Invalid value for option invalidateReplicaClusters");
+        }
+      }
+    }
+  }
+
+  if (num_unavailable_clusters > 0) {
+    console->print_error(shcore::str_format(
+        "Operation cannot be completed because %zi of %zi "
+        "clusters are not available. Please correct these "
+        "issues before proceeding. If you'd like to "
+        "INVALIDATE these clusters and continue anyway, "
+        "add the cluster name to the 'invalidateReplicaClusters' option.",
+        num_unavailable_clusters, clusters.size()));
+
+    throw shcore::Exception("One or more replica clusters are unavailable",
+                            SHERR_DBA_UNAVAILABLE_REPLICA_CLUSTERS);
+  }
+}
+
+bool Cluster_set_impl::check_cluster_available(
+    const std::string &cluster_name) {
+  auto console = current_console();
+
+  std::shared_ptr<Cluster_impl> cluster;
+  try {
+    cluster = get_cluster(cluster_name);
+  } catch (...) {
+    console->print_warning("Could not get a handle to cluster '" +
+                           cluster_name + "': " + format_active_exception());
+    return false;
+  }
+
+  // check that the cluster has quorum and its primary is reachable
+  try {
+    cluster->acquire_primary();
+    cluster->release_primary();
+  } catch (...) {
+    console->print_warning("Error in cluster '" + cluster_name +
+                           "': " + format_active_exception());
+
+    return false;
+  }
+  return true;
+}
+
+void Cluster_set_impl::verify_primary_cluster_not_recoverable() {
+  auto console = current_console();
+
+  auto primary_cluster = get_primary_cluster();
+
+  switch (primary_cluster->cluster_availability()) {
+    case Cluster_availability::ONLINE_NO_PRIMARY:
+    case Cluster_availability::ONLINE:
+      console->print_error("The PRIMARY cluster '" +
+                           primary_cluster->get_name() +
+                           "' is still available and has quorum.");
+
+      throw shcore::Exception("PRIMARY cluster '" +
+                                  primary_cluster->get_name() +
+                                  "' is still available",
+                              SHERR_DBA_CLUSTER_PRIMARY_STILL_AVAILABLE);
+
+    case Cluster_availability::NO_QUORUM:
+      console->print_error(
+          "The PRIMARY cluster '" + primary_cluster->get_name() +
+          "' has reachable members that can be used to restore it using the "
+          "cluster.<<<forceQuorumUsingPartitionOf>>>() command.");
+
+      throw shcore::Exception(
+          "PRIMARY cluster '" + primary_cluster->get_name() +
+              "' is in state NO_QUORUM but can still be restored",
+          SHERR_DBA_CLUSTER_STILL_RESTORABLE);
+
+    case Cluster_availability::OFFLINE:
+    case Cluster_availability::SOME_UNREACHABLE:
+      console->print_error(
+          "Instances of the PRIMARY cluster '" + primary_cluster->get_name() +
+          "' are reachable but OFFLINE. Use the "
+          "dba.<<<rebootClusterFromCompleteOutage>>>() command to restore it.");
+
+      throw shcore::Exception(
+          "PRIMARY cluster '" + primary_cluster->get_name() +
+              "' is in state OFFLINE but can still be restored",
+          SHERR_DBA_CLUSTER_STILL_RESTORABLE);
+
+    case Cluster_availability::UNREACHABLE:
+      console->print_info("None of the instances of the PRIMARY cluster '" +
+                          primary_cluster->get_name() + "' could be reached.");
+      break;
+  }
+}
+
+void Cluster_set_impl::check_gtid_set_most_recent(
+    Instance *promoted,
+    const std::list<std::shared_ptr<Cluster_impl>> &clusters) {
+  auto get_filtered_gtid_set =
+      [](mysqlshdk::mysql::IInstance *instance,
+         mysqlshdk::mysql::Gtid_set *out_view_changes) {
+        auto gtid_set =
+            mysqlshdk::mysql::Gtid_set::from_gtid_executed(*instance);
+
+        std::string uuid =
+            instance->get_sysvar_string("group_replication_view_change_uuid")
+                .get_safe();
+
+        auto view_changes = gtid_set.get_gtids_from(uuid);
+        if (out_view_changes) *out_view_changes = view_changes;
+        return gtid_set.subtract(view_changes, *instance);
+      };
+
+  mysqlshdk::mysql::Gtid_set promoted_view_changes;
+  auto promoted_gtid_set =
+      get_filtered_gtid_set(promoted, &promoted_view_changes);
+
+  auto console = current_console();
+
+  bool up_to_date = true;
+
+  for (auto i : clusters) {
+    auto primary = i->get_cluster_server();
+    auto gtid_set = get_filtered_gtid_set(primary.get(), nullptr);
+
+    gtid_set.subtract(promoted_view_changes, *promoted);
+
+    if (!promoted_gtid_set.contains(gtid_set, *promoted)) {
+      console->print_note("Cluster " + i->get_name() +
+                          " has a more up-to-date GTID set");
+
+      promoted_gtid_set.subtract(gtid_set, *promoted);
+
+      console->print_info(
+          "The following GTIDs are missing from the target cluster: " +
+          promoted_gtid_set.str());
+
+      up_to_date = false;
+    }
+  }
+
+  if (!up_to_date) {
+    console->print_error(
+        "The selected target cluster is not the most up-to-date cluster "
+        "available for failover.");
+    throw shcore::Exception("Target cluster is behind other candidates",
+                            SHERR_DBA_BADARG_INSTANCE_OUTDATED);
+  }
+}
+
+void Cluster_set_impl::primary_instance_did_change(
+    const std::shared_ptr<Instance> &new_primary) {
+  if (m_primary_master) m_primary_master->release();
+  m_primary_master.reset();
+
+  if (new_primary) {
+    m_primary_master = new_primary;
+    new_primary->retain();
+
+    m_metadata_storage = std::make_shared<MetadataStorage>(new_primary);
+  }
+}
+
+void Cluster_set_impl::force_primary_cluster(
+    const std::string &cluster_name,
+    const clusterset::Force_primary_cluster_options &options) {
+  auto console = current_console();
+  int lock_timeout = current_shell_options()->get().dba_gtid_wait_timeout;
+
+  console->print_info("Failing-over primary cluster of the clusterset to '" +
+                      cluster_name + "'");
+
+  console->print_info("* Verifying primary cluster status");
+  connect_primary();
+  verify_primary_cluster_not_recoverable();
+
+  std::shared_ptr<Cluster_impl> promoted_cluster;
+  try {
+    promoted_cluster = get_cluster(cluster_name);
+  } catch (const shcore::Exception &e) {
+    console->print_error("Could not reach cluster '" + cluster_name +
+                         "': " + e.format());
+    throw;
+  }
+
+  if (promoted_cluster->is_primary_cluster()) {
+    throw shcore::Exception(
+        "Target cluster '" + cluster_name + "' is the current PRIMARY",
+        SHERR_DBA_TARGET_ALREADY_PRIMARY);
+  }
+
+  auto promoted = promoted_cluster->get_cluster_server();
+
+  // if there any unreachable clusters we collect them in this list, which will
+  // be used by connect_all_clusters() for skipping clusters
+  std::list<Cluster_id> unreachable;
+
+  // skip checking the current primary
+  unreachable.push_back(get_primary_cluster_metadata().cluster.cluster_id);
+
+  console->print_info("* Verifying clusterset status");
+  check_clusters_available(options.invalidate_replica_clusters, &unreachable);
+
+  std::list<std::shared_ptr<Cluster_impl>> clusters(
+      connect_all_clusters(0, false, &unreachable));
+  auto release_cluster_primaries = shcore::on_leave_scope([&clusters] {
+    for (auto &c : clusters) c->release_primary();
+  });
+
+  // another set of connections for locks
+  // get triggered before server-side timeouts
+  std::list<std::shared_ptr<Cluster_impl>> lock_clusters(
+      connect_all_clusters(lock_timeout + 5, false, &unreachable));
+  auto release_lock_primaries = shcore::on_leave_scope([&lock_clusters] {
+    for (auto &c : lock_clusters) c->release_primary();
+  });
+  std::list<std::shared_ptr<Instance>> lock_instances;
+  for (auto &c : lock_clusters) {
+    lock_instances.emplace_back(c->get_primary_master());
+  }
+
+  console->print_info(
+      "** Checking whether target cluster has the most recent GTID set");
+  check_gtid_set_most_recent(promoted.get(), lock_clusters);
+
+  if (lock_timeout > 0) {
+    promoted->set_sysvar("lock_wait_timeout",
+                         static_cast<int64_t>(lock_timeout),
+                         mysqlshdk::mysql::Var_qualifier::SESSION);
+  }
+  auto restore_lock_wait_timeout = shcore::on_leave_scope([promoted,
+                                                           lock_timeout]() {
+    if (lock_timeout > 0) {
+      try {
+        if (promoted)
+          promoted->set_sysvar_default(
+              "lock_wait_timeout", mysqlshdk::mysql::Var_qualifier::SESSION);
+      } catch (...) {
+        log_info("Could not restore lock_wait_timeout: %s",
+                 format_active_exception().c_str());
+      }
+    }
+  });
+
+  console->print_info("* Promoting cluster '" + promoted_cluster->get_name() +
+                      "'");
+
+  Async_replication_options ar_options;
+
+  promote_to_primary(promoted_cluster.get(), false, options.dry_run);
+
+  // This will update the MD object to use the new primary
+  if (!options.dry_run) {
+    primary_instance_did_change(promoted_cluster->get_primary_master());
+  }
+
+  console->print_info("* Updating metadata");
+
+  // Update the metadata with the state the replicaset is supposed to be in
+  log_info("Updating metadata at %s",
+           m_metadata_storage->get_md_server()->descr().c_str());
+  if (!options.dry_run) {
+    m_metadata_storage->record_cluster_set_primary_failover(
+        get_id(), promoted_cluster->get_id(), unreachable);
+
+    for (const auto &c : options.invalidate_replica_clusters) {
+      console->print_note(
+          "Cluster '" + c +
+          "' was INVALIDATED and is no longer part of the clusterset.");
+    }
+  }
+  console->print_info();
+
+  for (const auto &replica : clusters) {
+    if (replica->get_id() != promoted_cluster->get_id()) {
+      update_replica(replica.get(), promoted.get(), ar_options,
+                     options.dry_run);
+
+      log_info("PRIMARY changed for cluster %s", replica->get_name().c_str());
+    }
+  }
+
+  console->print_info("PRIMARY cluster failed-over to '" +
+                      promoted_cluster->get_name() +
+                      "'. The PRIMARY instance is '" + promoted->descr() + "'");
+  console->print_info(
+      "Former PRIMARY cluster was INVALIDATED, transactions that were not yet "
+      "replicated may be lost.");
+  console->print_info();
+
+  if (options.dry_run) {
+    console->print_info("dryRun finished.");
+    console->print_info();
+  }
+}
+
+void Cluster_set_impl::check_transaction_set_recoverable(
+    mysqlshdk::mysql::IInstance *replica, mysqlshdk::mysql::IInstance *primary,
+    std::string *out_missing_view_gtids) const {
+  std::string errant_gtids;
+  std::string missing_gtids;
+  auto state = check_replica_group_gtid_state(*primary, *replica,
+                                              &missing_gtids, &errant_gtids);
+
+  log_info("GTID check between %s and %s result=%s missing=%s errant=%s",
+           replica->descr().c_str(), primary->descr().c_str(),
+           mysqlshdk::mysql::to_string(state).c_str(), missing_gtids.c_str(),
+           errant_gtids.c_str());
+
+  if (state == mysqlshdk::mysql::Replica_gtid_state::DIVERGED) {
+    if (out_missing_view_gtids) *out_missing_view_gtids = missing_gtids;
+
+    if (!errant_gtids.empty()) {
+      current_console()->print_info(shcore::str_format(
+          "%s has the following errant transactions not present at %s: %s",
+          replica->descr().c_str(), primary->descr().c_str(),
+          errant_gtids.c_str()));
+      throw shcore::Exception(
+          "Errant transactions detected at " + replica->descr(),
+          SHERR_DBA_DATA_ERRANT_TRANSACTIONS);
+    }
+  } else if (state == mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
+    current_console()->print_error(
+        shcore::str_format("The following transactions were purged from %s and "
+                           "not present at %s: %s",
+                           primary->descr().c_str(), replica->descr().c_str(),
+                           missing_gtids.c_str()));
+
+    throw shcore::Exception(
+        "Cluster is unable to recover one or more transactions that have been "
+        "purged from the PRIMARY cluster",
+        SHERR_DBA_DATA_RECOVERY_NOT_POSSIBLE);
+  }
+}
+
+void Cluster_set_impl::validate_rejoin(
+    Cluster_impl *rejoining_cluster,
+    mysqlshdk::mysql::IInstance *rejoining_primary,
+    mysqlshdk::mysql::IInstance *primary, bool *out_refresh_only) {
+  auto console = current_console();
+
+  // check if the cluster is invalidated
+  if (!rejoining_cluster->is_invalidated()) {
+    console->print_note("Cluster '" + rejoining_cluster->get_name() +
+                        "' is not invalidated");
+    *out_refresh_only = true;
+  } else {
+    console->print_note("Cluster '" + rejoining_cluster->get_name() +
+                        "' is invalidated");
+    *out_refresh_only = false;
+  }
+
+  // check gtid set
+  try {
+    check_transaction_set_recoverable(rejoining_primary, primary, nullptr);
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_DATA_RECOVERY_NOT_POSSIBLE) {
+      console->print_error(
+          "Cluster '" + rejoining_cluster->get_name() +
+          "' cannot be rejoined because it's missing transactions that have "
+          "been purged from the binary log of '" +
+          primary->descr() + "'");
+      console->print_info(
+          "The cluster must be re-provisioned with clone or some other "
+          "method.");
+    } else if (e.code() == SHERR_DBA_DATA_ERRANT_TRANSACTIONS) {
+      console->print_error(
+          "Cluster '" + rejoining_cluster->get_name() +
+          "' cannot be rejoined because it contains transactions that are not "
+          "present in the rest of the clusterset.");
+    }
+    throw;
+  }
+}
+
+void Cluster_set_impl::rejoin_cluster(
+    const std::string &cluster_name,
+    const clusterset::Rejoin_cluster_options &options) {
+  auto console = current_console();
+
+  console->print_info("Rejoining cluster '" + cluster_name +
+                      "' to the clusterset");
+
+  auto primary = acquire_primary();
+  auto release_primary_ =
+      shcore::on_leave_scope([this, primary]() { release_primary(primary); });
+
+  auto primary_cluster = get_primary_cluster();
+  std::shared_ptr<Cluster_impl> rejoining_cluster;
+  try {
+    rejoining_cluster = get_cluster(cluster_name, false, true);
+  } catch (const shcore::Exception &e) {
+    console->print_error("Could not reach cluster '" + cluster_name +
+                         "': " + e.format());
+    throw;
+  }
+
+  auto rejoining_primary = rejoining_cluster->get_primary_master();
+
+  bool refresh_only = false;
+
+  validate_rejoin(rejoining_cluster.get(), rejoining_primary.get(), primary,
+                  &refresh_only);
+
+  mysqlsh::dba::Async_replication_options ar_options =
+      get_clusterset_replication_options();
+
+  if (refresh_only) {
+    // update replica clusters if the primary is the one being "rejoined"
+    if (rejoining_cluster->get_id() == primary_cluster->get_id()) {
+    } else {
+      console->print_info("* Refreshing replication settings");
+
+      ar_options.repl_credentials = refresh_cluster_replication_user(
+          get_cluster_repl_account(rejoining_cluster.get()).first,
+          options.dry_run);
+
+      update_replica(rejoining_cluster.get(), primary, ar_options,
+                     options.dry_run);
+    }
+  } else {
+    console->print_info("* Updating metadata");
+    if (!options.dry_run)
+      get_metadata_storage()->record_cluster_set_member_rejoined(
+          get_id(), rejoining_cluster->get_id(), primary_cluster->get_id());
+    console->print_info();
+
+    console->print_info("* Rejoining cluster");
+
+    // configure as a replica
+    ar_options.repl_credentials = refresh_cluster_replication_user(
+        get_cluster_repl_account(rejoining_cluster.get()).first,
+        options.dry_run);
+
+    update_replica(rejoining_cluster.get(), primary, ar_options,
+                   options.dry_run);
+  }
+
+  console->print_info();
+
+  rejoining_cluster->invalidate_clusterset_metadata_cache();
+
+  console->print_info("Cluster '" + cluster_name +
+                      "' was rejoined to the clusterset");
 }
 
 }  // namespace dba

@@ -306,6 +306,41 @@ static Value do_test(const Argument_list &args) {
   return Value::Null();
 }
 
+TEST(ValueTests, to_string_container) {
+  Value arr(Value::new_array());
+
+  arr.as_array()->push_back(Value("one"));
+  arr.as_array()->push_back(Value("2"));
+  arr.as_array()->push_back(Value("3.4"));
+
+  std::vector<std::string> v =
+      arr.to_string_container<std::vector<std::string>>();
+  EXPECT_EQ(3, v.size());
+  EXPECT_EQ("one", v[0]);
+  EXPECT_EQ("2", v[1]);
+  EXPECT_EQ("3.4", v[2]);
+
+  std::list<std::string> l = arr.to_string_container<std::list<std::string>>();
+
+  auto li = l.begin();
+  EXPECT_EQ(3, l.size());
+  EXPECT_EQ("one", *li++);
+  EXPECT_EQ("2", *li++);
+  EXPECT_EQ("3.4", *li++);
+
+  std::set<std::string> s = arr.to_string_container<std::set<std::string>>();
+
+  auto si = s.begin();
+  EXPECT_EQ(3, s.size());
+  EXPECT_EQ("2", *si++);
+  EXPECT_EQ("3.4", *si++);
+  EXPECT_EQ("one", *si++);
+
+  arr.as_array()->push_back(Value(123));
+  EXPECT_THROW(arr.to_string_container<std::vector<std::string>>(),
+               std::exception);
+}
+
 TEST(Functions, function_wrappers) {
   std::shared_ptr<Function_base> f(Cpp_function::create(
       "test", do_test, {{"test_index", Integer}, {"test_arg", String}}));

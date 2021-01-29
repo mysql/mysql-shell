@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2021, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,8 @@ class Api_connections : public Shell_js_script_tester {
  public:
   virtual void SetUp() {
     if (_sb_port == 0) FAIL() << "No MySQL Server available for test.";
+
+    _skip_sandbox_check = true;
 
     enable_debug();
     Shell_js_script_tester::SetUp();

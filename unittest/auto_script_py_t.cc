@@ -176,6 +176,8 @@ TEST_P(Auto_script_py, run_and_check) {
   _options->wizards =
       strstr(GetParam().c_str(), "_interactive.") ? true : false;
 
+  SCOPED_TRACE(GetParam());
+
   std::string folder;
   std::string name;
   std::tie(folder, name) = shcore::str_partition(GetParam(), "/");

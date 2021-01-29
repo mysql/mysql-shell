@@ -140,7 +140,7 @@ void Global_locks::sync_and_lock_all(
   // instead of blocking.
   if (!dry_run) m_master->execute("SET global super_read_only=1");
 
-  m_master->execute("FLUSH BINARY LOGS");
+  if (!dry_run) m_master->execute("FLUSH BINARY LOGS");
 
   // 3 - synchronize and lock all slaves (in parallel)
   // Sync slaves to master once again and acquire lock

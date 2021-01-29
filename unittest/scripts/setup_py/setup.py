@@ -94,15 +94,35 @@ def EXPECT_LE(expected, actual, note=""):
     context = "Tested values not as expected: "+note+"\n\t"+str(expected)+" (expected) <= "+str(actual)+" (actual)"
     testutil.fail(context)
 
-def EXPECT_TRUE(value, context=""):
-  if not value:
-    if not len(context):
-      context = "Tested value expected to be true but is false"
+def EXPECT_LT(expected, actual, note=""):
+  if expected >= actual:
+    context = "Tested values not as expected: "+note+"\n\t"+str(expected)+" (expected) < "+str(actual)+" (actual)"
     testutil.fail(context)
 
-def EXPECT_FALSE(value):
+def EXPECT_BETWEEN(expected_from, expected_to, actual, note=""):
+  if expected_from >= actual >= expected_to:
+    context = "Tested value not as expected: "+note+f"\n\t{expected_from} >= {actual} >= {expected_to}"
+    testutil.fail(context)
+
+def EXPECT_NOT_BETWEEN(expected_from, expected_to, actual, note=""):
+  if expected_from >= actual >= expected_to:
+    pass
+  else:
+    context = "Tested value not as expected: "+note+f"\n\tNOT ({expected_from} >= {actual} >= {expected_to})"
+    testutil.fail(context)
+
+def EXPECT_TRUE(value, note=""):
+  if not value:
+    context = f"Tested value '{value}' expected to be true but is false"
+    if note:
+        context += ": "+note
+    testutil.fail(context)
+
+def EXPECT_FALSE(value, note=""):
   if value:
-    context = "Tested value expected to be false but is true"
+    context = f"Tested value '{value}' expected to be false but is true"
+    if note:
+        context += ": "+note
     testutil.fail(context)
 
 def EXPECT_THROWS(func, etext):

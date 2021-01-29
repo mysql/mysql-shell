@@ -414,7 +414,7 @@ const Node *Global_topology::get_primary_master_node() const {
   }
 
   throw shcore::Exception("The global topology has no valid PRIMARY defined",
-                          SHERR_DBA_ACTIVE_CLUSTER_UNDEFINED);
+                          SHERR_DBA_PRIMARY_CLUSTER_UNDEFINED);
 }
 
 void Global_topology::check_gtid_consistency(bool use_configured_primary) {

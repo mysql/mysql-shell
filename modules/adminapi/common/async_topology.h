@@ -72,11 +72,13 @@ void async_add_replica(mysqlshdk::mysql::IInstance *primary,
  *
  * @param primary Instance object for the replicaset PRIMARY.
  * @param target Instance object for the target replica to rejoin.
+ * @param channel_name The replication channel name
  * @param rpl_options Async_replication_options object with the replication
  *                    user credentials to use to rejoin the target instance.
  */
 void async_rejoin_replica(mysqlshdk::mysql::IInstance *primary,
                           mysqlshdk::mysql::IInstance *target,
+                          const std::string &channel_name,
                           const Async_replication_options &rpl_options);
 
 /**
@@ -105,6 +107,7 @@ void async_swap_primary(mysqlshdk::mysql::IInstance *current_primary,
  * Promotes a secondary to primary, when the primary is unavailable.
  */
 void async_force_primary(mysqlshdk::mysql::IInstance *promoted,
+                         const std::string &channel_name,
                          const Async_replication_options &repl_options,
                          bool dry_run);
 
@@ -112,21 +115,24 @@ void async_force_primary(mysqlshdk::mysql::IInstance *promoted,
  * Revert the change performed by async_force_primary().
  *
  * @param promoted Instance that was going to be promoted.
+ * @param channel_name The replication channel name
  * @param dry_run bool indicate if dry run is being performed.
  */
 void undo_async_force_primary(mysqlshdk::mysql::IInstance *promoted,
-                              bool dry_run);
+                              const std::string &channel_name, bool dry_run);
 
-bool async_check_primary(mysqlshdk::mysql::IInstance *slave,
-                         mysqlshdk::mysql::IInstance *new_master,
-                         const std::string &channel_name,
-                         const Async_replication_options &repl_options);
+void async_create_channel(mysqlshdk::mysql::IInstance *target,
+                          mysqlshdk::mysql::IInstance *primary,
+                          const std::string &channel_name,
+                          const Async_replication_options &repl_options,
+                          bool dry_run);
 
 void async_change_primary(mysqlshdk::mysql::IInstance *target,
                           mysqlshdk::mysql::IInstance *primary,
                           const std::string &channel_name,
                           const Async_replication_options &repl_options,
                           bool start_replica, bool dry_run);
+
 /**
  * Change the primary of one or more secondary instances.
  *
@@ -140,12 +146,6 @@ void async_change_primary(
     mysqlshdk::mysql::IInstance *old_primary,
     shcore::Scoped_callback_list *undo_list, bool dry_run);
 
-void async_change_primary(mysqlshdk::mysql::IInstance *replica,
-                          mysqlshdk::mysql::IInstance *primary,
-                          const std::string &channel_name,
-                          const Async_replication_options &repl_options,
-                          bool dry_run);
-
 void wait_apply_retrieved_trx(mysqlshdk::mysql::IInstance *instance,
                               int timeout_sec);
 
@@ -157,14 +157,17 @@ void wait_all_apply_retrieved_trx(
 
 void fence_instance(mysqlshdk::mysql::IInstance *instance);
 
-void unfence_instance(mysqlshdk::mysql::IInstance *instance);
+void unfence_instance(mysqlshdk::mysql::IInstance *instance, bool persist);
 
 void reset_channel(mysqlshdk::mysql::IInstance *instance,
                    const std::string &channel_name = "",
                    bool reset_credentials = false, bool dry_run = false);
 
-bool stop_channel(mysqlshdk::mysql::IInstance *instance,
-                  const std::string &channel_name, bool safe, bool dry_run);
+enum class Stop_channel_result { NOT_EXIST, NOT_RUNNING, STOPPED };
+
+Stop_channel_result stop_channel(mysqlshdk::mysql::IInstance *instance,
+                                 const std::string &channel_name, bool safe,
+                                 bool dry_run);
 
 void start_channel(mysqlshdk::mysql::IInstance *instance,
                    const std::string &channel_name = "", bool dry_run = false);

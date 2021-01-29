@@ -34,6 +34,7 @@
 #include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/instance_monitoring.h"
+#include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
 #include "mysql/clone.h"
@@ -620,8 +621,8 @@ void Create_replica_cluster::prepare() {
 
   // Get the ClusterSet configured SSL mode
   shcore::Value ssl_mode;
-  m_cluster_set->get_metadata_storage()->query_clusterset_attribute(
-      m_cluster_set->get_id(), k_clusterset_attribute_ssl_mode, &ssl_mode);
+  m_cluster_set->get_metadata_storage()->query_cluster_set_attribute(
+      m_cluster_set->get_id(), k_cluster_set_attribute_ssl_mode, &ssl_mode);
 
   std::string ssl_mode_str = ssl_mode.as_string();
   m_ssl_mode = to_cluster_ssl_mode(ssl_mode_str);

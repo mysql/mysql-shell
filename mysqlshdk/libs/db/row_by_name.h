@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,6 +47,8 @@ class Field_names {
   Field_names() {}
 
   inline void add(const std::string &name) {
+    if (has_field(name)) throw std::invalid_argument("duplicate field " + name);
+
     uint32_t idx = static_cast<uint32_t>(m_fields.size());
     m_fields[name] = idx;
   }

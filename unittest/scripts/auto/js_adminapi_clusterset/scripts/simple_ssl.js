@@ -19,9 +19,30 @@ function CHECK_ASYNC_CHANNEL_SSL(session, ssl_mode) {
   EXPECT_NE(null, row, "channel configured");
 
   if (ssl_mode == "REQUIRED") {
-    EXPECT_EQ(1, row["Enabled_ssl"]);
+    EXPECT_EQ(1, row["Enabled_ssl"], "Enabled_SSL");
   } else if (ssl_mode == "DISABLED") {
-    EXPECT_EQ(0, row["Enabled_ssl"]);
+    EXPECT_EQ(0, row["Enabled_ssl"], "Enabled_SSL");
+  } else {
+    EXPECT_FALSE("bad ssl_mode "+ssl_mode);
+  }
+}
+
+function CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session, cluster_name, ssl_mode) {
+  var repl_user = session.runSql("select attributes->>'$.replicationAccountUser' from mysql_innodb_cluster_metadata.clusters where cluster_name=?", [cluster_name]).fetchOne()[0];
+
+  var row = session.runSql("select * from performance_schema.threads where processlist_command='Binlog Dump GTID' and processlist_user=?", [repl_user]).fetchOne();
+  println(row);
+  EXPECT_NE(null, row, "binlog dump thread exists");
+  thread_id = row[0];
+
+  var status = session.runSql("select * from performance_schema.status_by_thread where thread_id=? and variable_name='Ssl_cipher'", [thread_id]).fetchOne();
+  EXPECT_NE(null, status, "thread status exists");
+  println("SSL status for ", cluster_name, "=", status);
+
+  if (ssl_mode == "REQUIRED") {
+    EXPECT_NE("", status[2], "session SSL status");
+  } else if (ssl_mode == "DISABLED") {
+    EXPECT_EQ("", status[2], "session SSL status");
   } else {
     EXPECT_FALSE("bad ssl_mode "+ssl_mode);
   }
@@ -40,15 +61,37 @@ c2 = cs.createReplicaCluster(__sandbox_uri4, "cluster2", {recoveryMethod:"increm
 c3 = cs.createReplicaCluster(__sandbox_uri5, "cluster3", {recoveryMethod:"clone"});
 session5 = mysql.getSession(__sandbox_uri5);
 
-// TODO add another instance to a replica
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session1, "cluster2", "REQUIRED");
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session1, "cluster3", "REQUIRED");
 
 CHECK_ASYNC_CHANNEL_SSL(session4, "REQUIRED");
 CHECK_ASYNC_CHANNEL_SSL(session5, "REQUIRED");
 
-// TODO switch primary and check again
+//@<> replicas should follow primary after promoting instance2 in cluster
+c.setPrimaryInstance(__sandbox_uri2);
+uuid = session2.runSql("select @@server_uuid").fetchOne()[0];
+
+// wait for replicas to reconnect
+wait_channel_ready(session4, "clusterset_replication", uuid);
+wait_channel_ready(session5, "clusterset_replication", uuid);
+
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session2, "cluster2", "REQUIRED");
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session2, "cluster3", "REQUIRED");
+
+CHECK_ASYNC_CHANNEL_SSL(session4, "REQUIRED");
+CHECK_ASYNC_CHANNEL_SSL(session5, "REQUIRED");
+
+
+//@<> after promoting cluster2 - default required
+cs.setPrimaryCluster("cluster2");
+
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session4, "cluster", "REQUIRED");
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session4, "cluster3", "REQUIRED");
+
+CHECK_ASYNC_CHANNEL_SSL(session1, "REQUIRED");
+CHECK_ASYNC_CHANNEL_SSL(session5, "REQUIRED");
 
 //@<> Create clusterset with SSL mode DISABLED
-
 reset_instance(session1);
 reset_instance(session2);
 reset_instance(session4);
@@ -62,12 +105,23 @@ c2 = cs.createReplicaCluster(__sandbox_uri4, "cluster2", {recoveryMethod:"increm
 c3 = cs.createReplicaCluster(__sandbox_uri5, "cluster3", {recoveryMethod:"clone"});
 session5 = mysql.getSession(__sandbox_uri5);
 
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session1, "cluster2", "DISABLED");
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session1, "cluster3", "DISABLED");
+
 CHECK_ASYNC_CHANNEL_SSL(session4, "DISABLED");
 CHECK_ASYNC_CHANNEL_SSL(session5, "DISABLED");
 
-// TODO switch primary and check again
+//@<> after promoting cluster2 - disabled
+cs.setPrimaryCluster("cluster2");
 
-//@<> Create replica clusters, check SSL mode also DISABLED
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session4, "cluster", "DISABLED");
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session4, "cluster3", "DISABLED");
+
+CHECK_ASYNC_CHANNEL_SSL(session, "DISABLED");
+CHECK_ASYNC_CHANNEL_SSL(session5, "DISABLED");
+
+
+//@<> explicitly REQUIRED ssl mode
 
 reset_instance(session1);
 reset_instance(session2);
@@ -82,15 +136,20 @@ c2 = cs.createReplicaCluster(__sandbox_uri4, "cluster2", {recoveryMethod:"increm
 c3 = cs.createReplicaCluster(__sandbox_uri5, "cluster3", {recoveryMethod:"clone"});
 session5 = mysql.getSession(__sandbox_uri5);
 
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session1, "cluster2", "REQUIRED");
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session1, "cluster3", "REQUIRED");
+
 CHECK_ASYNC_CHANNEL_SSL(session4, "REQUIRED");
 CHECK_ASYNC_CHANNEL_SSL(session5, "REQUIRED");
 
-// TODO switch primary and check again
+//@<> after promoting cluster2 - REQUIRED
+cs.setPrimaryCluster("cluster2");
 
-//@<> Create clusterset with SSL mode REQUIRED
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session4, "cluster", "REQUIRED");
+CHECK_ASYNC_CHANNEL_SSL_AT_SOURCE(session4, "cluster3", "REQUIRED");
 
-//@<> Create replica clusters, check SSL mode also REQUIRED
-
+CHECK_ASYNC_CHANNEL_SSL(session, "REQUIRED");
+CHECK_ASYNC_CHANNEL_SSL(session5, "REQUIRED");
 
 
 //@<> Cleanup

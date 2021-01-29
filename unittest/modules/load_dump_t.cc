@@ -168,13 +168,13 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
             mock->expect_query(
                     "SELECT schema_name FROM information_schema.schemata WHERE "
                     "schema_name in ('stackoverflow')")
-                .then({""});
+                .then({"a"});
 
             if (Version(m_version) >= Version(8, 0, 13) &&
                 !m_create_invisible_pks) {
               mock->expect_query(
                       "show variables like 'sql_require_primary_key';")
-                  .then({"", ""})
+                  .then({"a", "b"})
                   .add_row({"sql_require_primary_key", "1"});
             }
 
@@ -182,10 +182,10 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
                     "SELECT VARIABLE_VALUE = 'OFF' FROM "
                     "performance_schema.global_status WHERE variable_name = "
                     "'Innodb_redo_log_enabled'")
-                .then({""});
+                .then({"a"});
 
             mock->expect_query("SHOW GLOBAL VARIABLES LIKE 'local_infile'")
-                .then({"", ""})
+                .then({"a", "b"})
                 .add_row({"local_infile", "1"});
           }
 
@@ -243,7 +243,7 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
         .then({""});
 
     mock_main_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'local_infile'")
-        .then({"", ""})
+        .then({"a", "b"})
         .add_row({"local_infile", "1"});
     return std::static_pointer_cast<mysqlshdk::db::ISession>(mock_main_session);
   }

@@ -100,7 +100,7 @@ void ClusterSet::init() {
          "?options")
       ->cli();
   expose("forcePrimaryCluster", &ClusterSet::force_primary_cluster,
-         "?clusterName", "?options")
+         "clusterName", "?options")
       ->cli();
   expose("status", &ClusterSet::status, "?options")->cli();
   expose("describe", &ClusterSet::describe)->cli();
@@ -114,7 +114,9 @@ void ClusterSet::assert_valid(const std::string &function_name) {
   if (!m_impl->get_cluster_server()) {
     throw shcore::Exception::runtime_error(
         "The ClusterSet object is disconnected. Please use "
-        "dba.<<<getClusterSet>>>() to obtain a fresh handle.");
+        "dba." +
+        get_function_name("getClusterSet", false) +
+        "() to obtain a fresh handle.");
   }
 }
 
@@ -369,8 +371,10 @@ shcore::Value ClusterSet::create_replica_cluster(
     progress_style = Recovery_progress_style::PROGRESSBAR;
   }
 
-  return impl()->create_replica_cluster(instance_def, cluster_name,
-                                        progress_style, *options);
+  auto res = impl()->create_replica_cluster(instance_def, cluster_name,
+                                            progress_style, *options);
+
+  return res;
 }
 
 // Documentation of the removeCluster function
@@ -475,6 +479,8 @@ str status(dict options);
 #endif
 shcore::Value ClusterSet::status(
     const shcore::Option_pack_ref<clusterset::Status_options> &options) {
+  assert_valid("status");
+
   impl()->connect_primary();
 
   Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
@@ -525,6 +531,8 @@ String describe();
 str describe();
 #endif
 shcore::Value ClusterSet::describe() {
+  assert_valid("describe");
+
   impl()->connect_primary();
 
   Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
@@ -534,5 +542,238 @@ shcore::Value ClusterSet::describe() {
   return shcore::Value(impl()->describe());
 }
 
+REGISTER_HELP_FUNCTION(setPrimaryCluster, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_SETPRIMARYCLUSTER, R"*(
+Performs a safe switchover of the PRIMARY Cluster of the ClusterSet.
+
+@param clusterName Name of the REPLICA cluster to be promoted.
+@param options optional Dictionary with additional parameters described below.
+
+@returns Nothing
+
+This command will perform a safe switchover of the PRIMARY Cluster
+of a ClusterSet. The current PRIMARY will be demoted to a REPLICA
+Cluster, while the promoted Cluster will be made the PRIMARY Cluster.
+All other REPLICA Clusters will be updated to replicate from the new
+PRIMARY.
+
+During the switchover, the promoted Cluster will be synchronized with
+the old PRIMARY, ensuring that all transactions present in the PRIMARY
+are applied before the topology change is commited. The current PRIMARY
+instance is also locked with 'FLUSH TABLES WITH READ LOCK' in order to prevent
+changes during the switch. If either of these operations take too long or fails,
+the switch will be aborted.
+
+For a switchover to be possible, all instances of the target
+Cluster must be reachable from the shell and have consistent transaction
+sets with the current PRIMARY Cluster. If the PRIMARY Cluster is not
+available and cannot be restored, a failover must be performed instead, using
+<ClusterSet>.<<<forcePrimaryCluster>>>().
+
+The switchover will be canceled if there are REPLICA Clusters that
+are unreachable or unavailable. To continue, they must either be restored or
+invalidated by including their name in the 'invalidateReplicaClusters' option.
+Invalidated REPLICA Clusters must be either removed from the Cluster or restored
+and rejoined, using <<<removeCluster>>>() or <<<rejoinCluster>>>().
+
+Additionally, if any available REPLICA Cluster has members that are not ONLINE
+and/or reachable, these members will not be in a properly configured state even
+after being restored and rejoined. To ensure failover works correctly, 
+<<<rejoinCluster>>>() must be called on the Cluster once these members are
+rejoined.
+
+<b>Options</b>
+
+The following options may be given:
+
+@li dryRun: if true, will perform checks and log operations that would be
+performed, but will not execute them. The operations that would be
+performed can be viewed by enabling verbose output in the shell.
+@li timeout: integer value to set the maximum number of seconds to wait
+for the synchronization of the Cluster.
+@li invalidateReplicaClusters: list of names of REPLICA Clusters that are
+unreachable or unavailable that are to be invalidated during the switchover.
+)*");
+/**
+ * $(CLUSTERSET_SETPRIMARYCLUSTER_BRIEF)
+ *
+ * $(CLUSTERSET_SETPRIMARYCLUSTER)
+ */
+#if DOXYGEN_JS
+Undefined setPrimaryCluster(String clusterName, Dictionary options);
+#elif DOXYGEN_PY
+None set_primary_cluster(str clusterName, dict options);
+#endif
+void ClusterSet::set_primary_cluster(
+    const std::string &cluster_name,
+    const shcore::Option_pack_ref<clusterset::Set_primary_cluster_options>
+        &options) {
+  assert_valid("setPrimaryCluster");
+
+  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
+                                   current_shell_options()->get().wizards,
+                                   impl()->default_admin_credentials());
+
+  impl()->set_primary_cluster(cluster_name, *options);
+}
+
+REGISTER_HELP_FUNCTION(forcePrimaryCluster, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_FORCEPRIMARYCLUSTER, R"*(
+Performs a failover of the PRIMARY Cluster of the ClusterSet.
+
+@param clusterName Name of the REPLICA cluster to be promoted.
+@param options optional Dictionary with additional parameters described below.
+
+@returns Nothing
+
+This command will perform a failover of the PRIMARY Cluster
+of a ClusterSet. The target cluster is promoted to the new PRIMARY Cluster
+while the previous PRIMARY Cluster is invalidated. The previous PRIMARY Cluster
+is presumed unavailable by the Shell, but if that is not the case, it is
+recommended that instances of that Cluster are taken down to avoid or minimize
+inconsistencies.
+
+The failover will be canceled if there are REPLICA Clusters that
+are unreachable or unavailable. To continue, they must either be restored or
+invalidated by including their name in the 'invalidateReplicaClusters' option.
+
+Additionally, if any available REPLICA Cluster has members that are not ONLINE
+and/or reachable, these members will not be in a properly configured state even
+after being restored and rejoined. To ensure failover works correctly, 
+<<<rejoinCluster>>>() must be called on the Cluster once these members are
+rejoined.
+
+Note that because a failover may result in loss of transactions, it is always
+preferrable that the PRIMARY Cluster is restored.
+
+<b>Aftermath of a Failover</b>
+
+If a failover is the only viable option to recover from an outage, the following
+must be considered:
+
+@li The topology of the ClusterSet, including a record of "who is the primary",
+is stored in the ClusterSet itself. In a failover, the metadata is updated to
+reflect the new topology and the invalidation of the old primary.
+However, if the invalidated primary is still ONLINE somewhere, the copy of the
+metadata held there will will remain outdated and inconsistent with the actual
+topology. MySQL Router instances that can connect to the new PRIMARY Cluster
+will be able to tell which topology is the correct one, but those instances
+that can only connect to the invalid Cluster will behave as if nothing changed.
+If applications can still update the database through such Router instances,
+there will be a "Split-Brain" and the database will become inconsistent.
+
+@li An invalidated PRIMARY Cluster that is later restored can only be rejoined
+if its GTID set has not diverged relative to the rest of the ClusterSet.
+
+@li A diverged invalidated Cluster can only be removed from the ClusterSet.
+Recovery and reconciliation of transactions that only exist in that Cluster
+can only be done manually.
+
+@li Because regular Asynchronous Replication is used between PRIMARY and
+REPLICA Clusters, any transactions at the PRIMARY that were not yet replicated
+at the time of the failover will be lost. Even if the original PRIMARY Cluster
+is restored at some point, these transactions would have to be recovered
+and reconciled manually.
+
+Thus, the recommended course of action in event of an outage is to always
+restore the PRIMARY Cluster if at all possible, even if a failover may be faster
+and easier in the short term.
+
+<b>Options</b>
+
+The following options may be given:
+
+@li dryRun: if true, will perform checks and log operations that would be
+performed, but will not execute them. The operations that would be
+performed can be viewed by enabling verbose output in the shell.
+@li invalidateReplicaClusters: list of names of REPLICA Clusters that are
+unreachable or unavailable that are to be invalidated during the failover.
+)*");
+/**
+ * $(CLUSTERSET_FORCEPRIMARYCLUSTER_BRIEF)
+ *
+ * $(CLUSTERSET_FORCEPRIMARYCLUSTER)
+ */
+#if DOXYGEN_JS
+Undefined forcePrimaryCluster(String clusterName, Dictionary options);
+#elif DOXYGEN_PY
+None force_primary_cluster(str clusterName, dict options);
+#endif
+void ClusterSet::force_primary_cluster(
+    const std::string &cluster_name,
+    const shcore::Option_pack_ref<clusterset::Force_primary_cluster_options>
+        &options) {
+  assert_valid("forcePrimaryCluster");
+
+  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
+                                   current_shell_options()->get().wizards,
+                                   impl()->default_admin_credentials());
+
+  impl()->force_primary_cluster(cluster_name, *options);
+}
+
+REGISTER_HELP_FUNCTION(rejoinCluster, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_REJOINCLUSTER, R"*(
+Rejoin an invalidated Cluster back to the ClusterSet and update replication.
+
+@param clusterName Name of the Cluster to be rejoined.
+@param options optional Dictionary with additional parameters described below.
+
+@returns Nothing
+
+Rejoins a Cluster that was invalidated as part of a failover or switchover,
+if possible. This can also be used to update replication channel in REPLICA
+Clusters, if it does not have the expected state, source and settings.
+
+The PRIMARY Cluster of the ClusterSet must be reachable and
+available during the operation.
+
+<b>Pre-Requisites</b>
+
+The following pre-requisites are expected for Clusters rejoined to a
+ClusterSet. They will be automatically checked by rejoinCluster(), which
+will stop if any issues are found.
+
+@li The target Cluster must belong to the ClusterSet metadata and be reachable.
+@li The target Cluster must not be an active member of the ClusterSet.
+@li The target Cluster must not be holding any Metadata or InnoDB
+  transaction lock.
+@li The target Cluster's transaction set must not contain transactions
+  that don't exist in the PRIMARY Cluster.
+@li The target Cluster's transaction set must not be missing transactions
+  that have been purged from the PRIMARY Cluster.
+@li The target Cluster's executed transaction set (GTID_EXECUTED) must not
+  be empty.
+
+<b>Options</b>
+
+The following options may be given:
+
+@li dryRun: if true, will perform checks and log operations that would be
+  performed, but will not execute them. The operations that would be
+  performed can be viewed by enabling verbose output in the shell.
+)*");
+/**
+ * $(CLUSTERSET_REJOINCLUSTER_BRIEF)
+ *
+ * $(CLUSTERSET_REJOINCLUSTER)
+ */
+#if DOXYGEN_JS
+Undefined rejoinCluster(String clusterName, Dictionary options);
+#elif DOXYGEN_PY
+None rejoin_cluster(str clusterName, dict options);
+#endif
+void ClusterSet::rejoin_cluster(
+    const std::string &cluster_name,
+    const shcore::Option_pack_ref<clusterset::Rejoin_cluster_options>
+        &options) {
+  assert_valid("rejoinCluster");
+
+  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
+                                   current_shell_options()->get().wizards,
+                                   impl()->default_admin_credentials());
+
+  impl()->rejoin_cluster(cluster_name, *options);
+}
 }  // namespace dba
 }  // namespace mysqlsh

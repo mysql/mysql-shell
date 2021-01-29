@@ -576,7 +576,7 @@ void Star_global_topology_manager::validate_active_unavailable() {
           "perform a failover.");
 
       throw shcore::Exception("PRIMARY still reachable",
-                              SHERR_DBA_ACTIVE_CLUSTER_STILL_REACHABLE);
+                              SHERR_DBA_PRIMARY_CLUSTER_STILL_REACHABLE);
 
     case topology::Node_status::ONLINE:
     case topology::Node_status::OFFLINE:  // PRIMARY can't be OFFLINE
@@ -587,7 +587,7 @@ void Star_global_topology_manager::validate_active_unavailable() {
           "Use <<<setPrimaryInstance>>>() to safely switch the PRIMARY.");
 
       throw shcore::Exception("PRIMARY still available",
-                              SHERR_DBA_ACTIVE_CLUSTER_STILL_AVAILABLE);
+                              SHERR_DBA_PRIMARY_CLUSTER_STILL_AVAILABLE);
 
     case topology::Node_status::UNREACHABLE:
     case topology::Node_status::INVALIDATED:

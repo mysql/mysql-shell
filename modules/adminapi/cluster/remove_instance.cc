@@ -446,6 +446,16 @@ shcore::Value Remove_instance::execute() {
       "invalid. If so, please start a new session to the Metadata Storage R/W "
       "instance.");
 
+  // If this is a replica in a clusterset, ensure view change GTIDs are
+  // replicated to the PRIMARY. This is so that view changes GTIDs left in the
+  // removed instance don't look like errant transactions if they're added to
+  // a different replica cluster
+  if (m_cluster->is_cluster_set_member() && !m_cluster->is_primary_cluster()) {
+    auto cs = m_cluster->get_cluster_set();
+
+    cs->reconcile_view_change_gtids(m_cluster->get_cluster_server().get());
+  }
+
   if (m_target_instance) {
     // Remove recovery user being used by the target instance from the
     // primary. NOTE: This operation MUST be performed before leave-cluster

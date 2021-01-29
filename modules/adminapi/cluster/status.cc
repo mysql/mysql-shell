@@ -1018,6 +1018,7 @@ shcore::Array_t group_diagnostics(
                         "until it's restored."));
       break;
     case Cluster_availability::OFFLINE:
+    case Cluster_availability::SOME_UNREACHABLE:
       issues->push_back(shcore::Value(
           "ERROR: Cluster members are reachable but they're all OFFLINE."));
       break;
@@ -1377,6 +1378,8 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
   auto group_instance = m_cluster.get_cluster_server();
   bool gr_running =
       m_cluster.cluster_availability() != Cluster_availability::OFFLINE &&
+      m_cluster.cluster_availability() !=
+          Cluster_availability::SOME_UNREACHABLE &&
       m_cluster.cluster_availability() != Cluster_availability::UNREACHABLE;
 
   std::string topology_mode =
@@ -1402,6 +1405,11 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
 
   if ((!m_extended.is_null() && *m_extended >= 1)) {
     (*ret)["groupName"] = shcore::Value(m_cluster.get_group_name());
+    if (group_instance &&
+        group_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 26))
+      (*ret)["groupViewChangeUuid"] =
+          shcore::Value(*group_instance->get_sysvar_string(
+              "group_replication_view_change_uuid"));
     (*ret)["GRProtocolVersion"] =
         protocol_version ? shcore::Value(protocol_version.get_full())
                          : shcore::Value::Null();

@@ -33,6 +33,7 @@
 
 #include "mysql/instance.h"
 #include "mysqlshdk/libs/config/config.h"
+#include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -521,6 +522,7 @@ bool get_member_action_status(const mysqlshdk::mysql::IInstance &instance,
  * @returns nothing
  */
 void reset_member_actions(const mysqlshdk::mysql::IInstance &instance);
+
 }  // namespace gr
 }  // namespace mysqlshdk
 

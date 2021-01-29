@@ -37,6 +37,22 @@
 namespace mysqlsh {
 namespace dba {
 
+const shcore::Option_pack_def<Timeout_option> &Timeout_option::options() {
+  static const auto opts = shcore::Option_pack_def<Timeout_option>().optional(
+      kTimeout, &Timeout_option::set_timeout);
+
+  return opts;
+}
+
+void Timeout_option::set_timeout(int value) {
+  if (value < 0) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("%s option must be >= 0", kTimeout));
+  }
+
+  timeout = value;
+}
+
 const shcore::Option_pack_def<Interactive_option>
     &Interactive_option::options() {
   static const auto opts =

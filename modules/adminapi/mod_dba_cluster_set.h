@@ -92,32 +92,37 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
       const std::string &instance_def, const std::string &cluster_name,
       const shcore::Option_pack_ref<clusterset::Create_replica_cluster_options>
           &options = {});
+
   void remove_cluster(const std::string &cluster_name,
                       const shcore::Option_pack_ref<
                           clusterset::Remove_cluster_options> &options = {});
-  void rejoin_cluster(const std::string & /*cluster_name*/,
-                      const shcore::Dictionary_t & /*options*/) {
-    throw std::logic_error("Not implemented yet");
-  }
-  void set_primary_cluster(const std::string & /*cluster_name*/,
-                           const shcore::Dictionary_t & /*options*/) {
-    throw std::logic_error("Not implemented yet");
-  }
-  void force_primary_cluster(const std::string & /*cluster_name*/,
-                             const shcore::Dictionary_t & /*options*/) {
-    throw std::logic_error("Not implemented yet");
-  }
+
+  void set_primary_cluster(
+      const std::string &cluster_name,
+      const shcore::Option_pack_ref<clusterset::Set_primary_cluster_options>
+          &options = {});
+
+  void force_primary_cluster(
+      const std::string &cluster_name,
+      const shcore::Option_pack_ref<clusterset::Force_primary_cluster_options>
+          &options);
+
+  void rejoin_cluster(
+      const std::string &cluster_name,
+      const shcore::Option_pack_ref<clusterset::Rejoin_cluster_options>
+          &options);
+
   shcore::Value status(
       const shcore::Option_pack_ref<clusterset::Status_options> &options);
   shcore::Value describe();
+
+  std::shared_ptr<Cluster_set_impl> impl() const { return m_impl; }
 
  protected:
   void init();
 
  private:
   std::shared_ptr<Cluster_set_impl> m_impl;
-
-  std::shared_ptr<Cluster_set_impl> impl() const { return m_impl; }
 
   void assert_valid(const std::string &function_name);
 };

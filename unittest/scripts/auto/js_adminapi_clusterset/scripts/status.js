@@ -81,18 +81,6 @@ EXPECT_THROWS(function(){cs.status(123)}, "");
 //@# describe()
 cs.describe();
 
-
-// TODO(alfredo) enable after 12805
-//@ after switchover {false}
-cs.setPrimaryCluster("cluster2");
-cs.status();
-cs.setPrimaryCluster("cluster1");
-cs.status();
-c1.setPrimaryInstance(__sandbox_uri2);
-cs.status();
-
-c1.setPrimaryInstance(__sandbox_uri1);
-
 //@ Extended 1
 
 function CHECK_EXTENDED_1(s) {
@@ -492,8 +480,6 @@ delete_last_view(session1);
 
 shell.connect(__sandbox_uri4);
 c2 = dba.rebootClusterFromCompleteOutage();
-// XXX workaround for reboot not setting SRO
-session.runSql("set global super_read_only=1"); 
 
 // wait for MD to be replicated to the RC (otherwise rejoin may still think its INVALIDATED)
 // maybe the precond check should be using the primary instead, tho
@@ -548,46 +534,6 @@ EXPECT_OUTPUT_CONTAINS("WARNING: Cluster 'cluster2' was INVALIDATED and must be 
 cs.describe();
 
 delete_last_view(session1);
-
-// Post Failover
-
-// TODO(alfredo) - requires wl12805
-
-//@<> from valid cluster {false}
-cs.setPrimaryCluster("cluster3");
-
-session6.runSql("shutdown");
-
-cs.forcePrimaryCluster("cluster1");
-
-shell.connect(__sandbox_uri1);
-cs = dba.getClusterSet();
-
-cs.status();
-
-cs.status({extended:1});
-
-//@<> from valid cluster while invalid cluster is back {false}
-testutil.startSandbox(__mysql_sandbox_port6);
-shell.connect(__sandbox_uri6);
-c3 = dba.rebootClusterFromCompleteOutage();
-
-shell.connect(__sandbox_uri4);
-cs = dba.getClusterSet();
-
-cs.status();
-
-cs.status({extended:1});
-
-//@<> from the invalidated cluster {false}
-
-shell.connect(__sandbox_uri6);
-cs = dba.getClusterSet();
-
-cs.status();
-
-cs.status({extended:1});
-
 
 //@<> Destroy
 testutil.destroySandbox(__mysql_sandbox_port1);

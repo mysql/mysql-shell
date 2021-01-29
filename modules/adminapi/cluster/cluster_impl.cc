@@ -100,6 +100,8 @@ Cluster_impl::Cluster_impl(
   m_description = metadata.description;
   m_group_name = metadata.group_name;
   m_primary_master = group_server;
+
+  observe_notification(kNotifyClusterSetPrimaryChanged);
 }
 
 Cluster_impl::Cluster_impl(
@@ -116,6 +118,8 @@ Cluster_impl::Cluster_impl(
 
   assert(topology_type == mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY ||
          topology_type == mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
+
+  observe_notification(kNotifyClusterSetPrimaryChanged);
 }
 
 Cluster_impl::~Cluster_impl() {}
@@ -1385,6 +1389,7 @@ Cluster_status Cluster_impl::cluster_status(int *out_num_failures_tolerated,
         return Cluster_status::OFFLINE;
       case Cluster_availability::NO_QUORUM:
         return Cluster_status::NO_QUORUM;
+      case Cluster_availability::SOME_UNREACHABLE:
       case Cluster_availability::UNREACHABLE:
         return Cluster_status::UNKNOWN;
     }
@@ -1449,6 +1454,8 @@ Cluster_status Cluster_impl::cluster_status(int *out_num_failures_tolerated,
 }
 
 shcore::Value Cluster_impl::cluster_status(int64_t extended) {
+  refresh_metadata_session();
+
   // Create the Cluster_status command and execute it.
   cluster::Status op_status(*this, extended);
   // Always execute finish when leaving "try catch".
@@ -1514,6 +1521,11 @@ shcore::Value Cluster_impl::create_cluster_set(
 
 std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set(
     bool print_warnings) {
+  if (m_cs_md_remove_pending) {
+    throw shcore::Exception("Cluster is not part of a ClusterSet",
+                            SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET);
+  }
+
   if (auto ptr = m_cluster_set.lock()) return ptr;
 
   // NOTE: The operation must work even if the PRIMARY cluster is not reachable,
@@ -1526,7 +1538,7 @@ std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set(
   auto metadata = get_metadata_storage();
 
   // Get the ClusterSet metadata handle
-  if (!metadata->get_cluster_set(cluster_md.cluster_set_id, &cset_md,
+  if (!metadata->get_cluster_set(cluster_md.cluster_set_id, false, &cset_md,
                                  nullptr)) {
     throw shcore::Exception("No metadata found for the ClusterSet that " +
                                 get_cluster_server()->descr() + " belongs to.",
@@ -1562,36 +1574,6 @@ std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set(
             "<<<forceQuorumUsingPartitionOf>>>()");
       }
     }
-  }
-
-  auto pc = cs->get_primary_cluster();
-
-  if (!pc || pc->cluster_availability() != Cluster_availability::ONLINE) {
-    auto console = current_console();
-
-    console->print_warning(
-        "Could not connect to any member of the PRIMARY Cluster, topology "
-        "changes will not be allowed");
-    console->print_note(
-        "To restore the Cluster and ClusterSet operations, a forced failover "
-        "must be performed using <<<forcePrimaryCluster>>>()");
-  }
-
-  // Check if the target Cluster still belongs to the ClusterSet
-  Cluster_set_member_metadata cluster_member_md;
-  if (!cs->get_metadata_storage()->get_cluster_set_member(cluster_id,
-                                                          &cluster_member_md)) {
-    current_console()->print_warning("The Cluster '" + cluster_md.cluster_name +
-                                     "' appears to have been removed from "
-                                     "the ClusterSet '" +
-                                     cs->get_name() + "'.");
-  }
-
-  // Check if the target Cluster is invalidated
-  if (cluster_member_md.invalidated) {
-    mysqlsh::current_console()->print_warning(
-        "Cluster '" + cluster_md.cluster_name +
-        "' was INVALIDATED and must be removed from the ClusterSet.");
   }
 
   // Return a handle (Cluster_set_impl) to the ClusterSet the target Cluster
@@ -2220,6 +2202,7 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
     return m_cluster_server.get();
   }
 
+  // Ensure m_cluster_server points to the PRIMARY of the group
   try {
     primary_url = find_primary_member_uri(m_cluster_server, false, nullptr);
 
@@ -2256,36 +2239,36 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
 
   // Check if the Cluster belongs to a ClusterSet
   if (is_cluster_set_member()) {
-    if (!is_primary_cluster() || is_invalidated()) {
-      auto cs = get_cluster_set(true);
+    auto cs = get_cluster_set(true);
 
-      if (auto cs_primary_master = cs->get_primary_master()) {
-        // Check if the ClusterSet Primary is different than the Cluster's one
-        auto cs_primary_master_url =
-            cs_primary_master->get_connection_options().uri_endpoint();
+    if (auto cs_primary_master = cs->get_primary_master()) {
+      // Check if the ClusterSet Primary is different than the Cluster's one
+      auto cs_primary_master_url =
+          cs_primary_master->get_connection_options().uri_endpoint();
 
-        // The ClusterSet Primary is different, establish a connection to it to
-        // set it as the Cluster's primary
-        if (!m_primary_master ||
-            m_primary_master->get_connection_options().uri_endpoint() !=
-                cs_primary_master_url) {
-          mysqlshdk::db::Connection_options copts(cs_primary_master_url);
-          log_info("Connecting to %s...", cs_primary_master_url.c_str());
-          copts.set_login_options_from(
-              cs_primary_master->get_connection_options());
+      // The ClusterSet Primary is different, establish a connection to it to
+      // set it as the Cluster's primary
+      if (!m_primary_master ||
+          m_primary_master->get_connection_options().uri_endpoint() !=
+              cs_primary_master_url) {
+        mysqlshdk::db::Connection_options copts(cs_primary_master_url);
+        log_info("Connecting to %s...", cs_primary_master_url.c_str());
+        copts.set_login_options_from(
+            cs_primary_master->get_connection_options());
 
-          m_primary_master = Instance::connect(copts);
-
-          m_metadata_storage =
-              std::make_shared<MetadataStorage>(m_primary_master);
-        }
-      } else {
-        // If there's no global primary master, the PRIMARY Cluster is down
-        m_primary_master = nullptr;
+        m_primary_master = Instance::connect(copts);
       }
+    } else {
+      // If there's no global primary master, the PRIMARY Cluster is down
+      m_primary_master = nullptr;
     }
   } else {
     log_debug("Cluster does not belong to a ClusterSet");
+  }
+
+  if (m_primary_master &&
+      m_metadata_storage->get_md_server() != m_primary_master) {
+    m_metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
   }
 
   return m_primary_master.get();
@@ -2299,6 +2282,17 @@ Cluster_metadata Cluster_impl::get_metadata() const {
         SHERR_DBA_METADATA_MISSING);
   }
   return cmd;
+}
+
+void Cluster_impl::refresh_metadata_session() {
+  if (is_cluster_set_member()) {
+    try {
+      acquire_primary();
+    } catch (...) {
+      log_warning("Could not acquire PRIMARY: %s",
+                  format_active_exception().c_str());
+    }
+  }
 }
 
 void Cluster_impl::release_primary(mysqlsh::dba::Instance *primary) {
@@ -2567,6 +2561,8 @@ const Cluster_set_member_metadata &Cluster_impl::get_clusterset_metadata()
 }
 
 bool Cluster_impl::is_cluster_set_member(const std::string &cs_id) const {
+  if (m_cs_md_remove_pending) return false;
+
   bool is_member = !get_clusterset_metadata().cluster_set_id.empty();
 
   if (is_member && !cs_id.empty()) {
@@ -2574,6 +2570,10 @@ bool Cluster_impl::is_cluster_set_member(const std::string &cs_id) const {
   }
 
   return is_member;
+}
+
+void Cluster_impl::invalidate_clusterset_metadata_cache() {
+  m_cs_md.cluster_set_id.clear();
 }
 
 bool Cluster_impl::is_invalidated() const {
@@ -2586,6 +2586,14 @@ bool Cluster_impl::is_primary_cluster() const {
   if (!is_cluster_set_member()) throw std::logic_error("internal error");
 
   return get_clusterset_metadata().primary_cluster;
+}
+
+void Cluster_impl::handle_notification(const std::string &name,
+                                       const shcore::Object_bridge_ref &,
+                                       shcore::Value::Map_type_ref) {
+  if (name == kNotifyClusterSetPrimaryChanged) {
+    invalidate_clusterset_metadata_cache();
+  }
 }
 
 }  // namespace dba

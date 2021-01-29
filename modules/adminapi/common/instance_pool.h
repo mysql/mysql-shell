@@ -296,6 +296,8 @@ class Instance_pool {
   std::shared_ptr<Instance> connect_cluster_member_of(
       const std::shared_ptr<Instance> &instance);
 
+  void refresh_metadata_cache();
+
  private:
   std::shared_ptr<MetadataStorage> m_metadata;
 
@@ -310,15 +312,10 @@ class Instance_pool {
   void return_instance(Instance *instance);
   std::shared_ptr<Instance> forget_instance(Instance *instance);
 
-  void refresh_metadata_cache();
-
   std::string label_for_server_uuid(const std::string &uuid);
 
   std::shared_ptr<Instance> try_connect_primary_through_member(
       const std::string &member_uuid);
-
-  std::shared_ptr<Instance> connect_primary_master_for_member(
-      const std::string &server_uuid);
 
   void set_auth_opts(const Auth_options &auth,
                      mysqlshdk::db::Connection_options *opts);

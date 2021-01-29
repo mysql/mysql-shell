@@ -7,6 +7,9 @@ The following objects provide command line operations:
    cluster
       Represents an InnoDB cluster.
 
+   clusterset
+      Represents an InnoDB ClusterSet.
+
    dba
       InnoDB cluster and replicaset management functions.
 

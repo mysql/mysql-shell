@@ -906,7 +906,7 @@ Cluster_global_status Precondition_checker::get_cluster_global_state() {
   if (m_metadata->get_cluster_for_server_uuid(m_group_server->get_uuid(),
                                               &cluster_md) &&
       !cluster_md.cluster_set_id.empty() &&
-      m_metadata->get_cluster_set(cluster_md.cluster_set_id, &cset_md,
+      m_metadata->get_cluster_set(cluster_md.cluster_set_id, false, &cset_md,
                                   nullptr)) {
     Cluster_impl cluster(cluster_md, m_group_server, m_metadata,
                          Cluster_availability::ONLINE);

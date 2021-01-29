@@ -35,6 +35,8 @@ namespace clusterset {
 const std::set<std::string> kClusterSetReplicationSslModeValues = {
     kClusterSSLModeAuto, kClusterSSLModeRequired, kClusterSSLModeDisabled};
 
+constexpr const char *kInvalidateReplicaClusters = "invalidateReplicaClusters";
+
 const shcore::Option_pack_def<Create_cluster_set_options>
     &Create_cluster_set_options::options() {
   static const auto opts =
@@ -65,23 +67,14 @@ const shcore::Option_pack_def<Create_replica_cluster_options>
   static const auto opts =
       shcore::Option_pack_def<Create_replica_cluster_options>()
           .include<Interactive_option>()
+          .include<Timeout_option>()
           .optional(kDryRun, &Create_replica_cluster_options::dry_run)
           .optional(kRecoveryVerbosity,
                     &Create_replica_cluster_options::set_recovery_verbosity)
-          .optional(kTimeout, &Create_replica_cluster_options::set_timeout)
           .include(&Create_replica_cluster_options::gr_options)
           .include(&Create_replica_cluster_options::clone_options);
 
   return opts;
-}
-
-void Create_replica_cluster_options::set_timeout(int value) {
-  if (value < 0) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("%s option must be >= 0", kTimeout));
-  }
-
-  timeout = value;
 }
 
 void Create_replica_cluster_options::set_recovery_verbosity(int value) {
@@ -100,20 +93,11 @@ const shcore::Option_pack_def<Remove_cluster_options>
     &Remove_cluster_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Remove_cluster_options>()
+          .include<Timeout_option>()
           .optional(kDryRun, &Remove_cluster_options::dry_run)
-          .optional(kTimeout, &Remove_cluster_options::set_timeout)
           .optional(kForce, &Remove_cluster_options::force);
 
   return opts;
-}
-
-void Remove_cluster_options::set_timeout(int value) {
-  if (value < 0) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("%s option must be >= 0", kTimeout));
-  }
-
-  timeout = value;
 }
 
 const shcore::Option_pack_def<Status_options> &Status_options::options() {
@@ -134,6 +118,66 @@ void Status_options::set_extended(uint64_t value) {
   }
 
   extended = value;
+}
+
+const shcore::Option_pack_def<Invalidate_replica_clusters_option>
+    &Invalidate_replica_clusters_option::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Invalidate_replica_clusters_option>().optional(
+          kInvalidateReplicaClusters,
+          &Invalidate_replica_clusters_option::set_list_option);
+
+  return opts;
+}
+
+void Invalidate_replica_clusters_option::set_list_option(
+    const std::string &option, const shcore::Value &value) {
+  assert(option == kInvalidateReplicaClusters);
+
+  if (value.type == shcore::Value_type::Array) {
+    auto array = value.as_array();
+    if (array->empty()) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "The list for '%s' option cannot be empty.", option.c_str()));
+    }
+
+    invalidate_replica_clusters =
+        value.to_string_container<std::list<std::string>>();
+
+  } else {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "The '%s' option must be a list of strings.", option.c_str()));
+  }
+}
+
+const shcore::Option_pack_def<Set_primary_cluster_options>
+    &Set_primary_cluster_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Set_primary_cluster_options>()
+          .include<Invalidate_replica_clusters_option>()
+          .include<Timeout_option>()
+          .optional(kDryRun, &Set_primary_cluster_options::dry_run);
+
+  return opts;
+}
+
+const shcore::Option_pack_def<Force_primary_cluster_options>
+    &Force_primary_cluster_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Force_primary_cluster_options>()
+          .include<Invalidate_replica_clusters_option>()
+          .optional(kDryRun, &Force_primary_cluster_options::dry_run);
+
+  return opts;
+}
+
+const shcore::Option_pack_def<Rejoin_cluster_options>
+    &Rejoin_cluster_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Rejoin_cluster_options>().optional(
+          kDryRun, &Rejoin_cluster_options::dry_run);
+
+  return opts;
 }
 
 }  // namespace clusterset

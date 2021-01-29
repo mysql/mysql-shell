@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/libs/mysql/async_replication.h"
 
+#include <mysqld_error.h>
 #include <tuple>
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -172,23 +173,33 @@ bool stop_replication_safe(mysqlshdk::mysql::IInstance *instance,
   std::string replica_term =
       mysqlshdk::mysql::get_replica_keyword(instance->get_version());
 
-  while (timeout_sec-- >= 0) {
-    instance->executef("STOP " + replica_term + " FOR CHANNEL ?", channel_name);
+  try {
+    while (timeout_sec-- >= 0) {
+      instance->executef("STOP " + replica_term + " FOR CHANNEL ?",
+                         channel_name);
 
-    auto n = instance->queryf_one_string(
-        1, "0", "SHOW STATUS LIKE 'Slave_open_temp_tables'");
+      auto n = instance->queryf_one_string(
+          1, "0", "SHOW STATUS LIKE 'Slave_open_temp_tables'");
 
-    if (n == "0") return true;
+      if (n == "0") return true;
 
-    log_warning(
-        "Slave_open_tables has unexpected value %s at %s (unsupported SBR in "
-        "use?)",
-        n.c_str(), instance->descr().c_str());
+      log_warning(
+          "Slave_open_tables has unexpected value %s at %s (unsupported SBR in "
+          "use?)",
+          n.c_str(), instance->descr().c_str());
 
-    instance->executef("START " + replica_term + " FOR CHANNEL ?",
-                       channel_name);
+      instance->executef("START " + replica_term + " FOR CHANNEL ?",
+                         channel_name);
 
-    shcore::sleep_ms(1000);
+      shcore::sleep_ms(1000);
+    }
+  } catch (const shcore::Exception &e) {
+    if (e.code() == ER_SLAVE_CHANNEL_DOES_NOT_EXIST) {
+      log_info("Trying to stop non-existing channel '%s', ignoring...",
+               channel_name.c_str());
+      return true;
+    }
+    throw;
   }
 
   return false;

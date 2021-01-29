@@ -1884,7 +1884,8 @@ Cluster_check_info get_cluster_check_info(const MetadataStorage &metadata,
     state.source_type = get_instance_type(metadata, group_instance);
   } catch (const shcore::Exception &e) {
     if (mysqlshdk::db::is_server_connection_error(e.code())) {
-      throw;
+      throw shcore::Exception::mysql_error_with_code(
+          group_instance->descr() + ": " + e.what(), e.code());
     } else {
       log_warning("Error detecting GR instance: %s", e.what());
       state.source_type = TargetType::Unknown;
