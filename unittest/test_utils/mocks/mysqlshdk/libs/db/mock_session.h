@@ -83,6 +83,7 @@ class Mock_session_common {
 class Mock_session : public mysqlshdk::db::ISession,
                      public Mock_session_common {
  public:
+  Mock_session();
   MOCK_METHOD1(
       connect,
       void(const mysqlshdk::db::Connection_options &connection_options));
@@ -116,6 +117,10 @@ class Mock_session : public mysqlshdk::db::ISession,
   Mock_session &expect_query(const std::string &query) {
     Mock_session_common::do_expect_query(query);
     return *this;
+  }
+
+  void expect_query(const Fake_result_data &data) {
+    expect_query(data.sql).then_return({data});
   }
 
   std::string escape_string(const std::string &s) const override;

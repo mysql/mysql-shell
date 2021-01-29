@@ -77,17 +77,24 @@ class Base_cluster_impl {
 
   void set_target_server(const std::shared_ptr<Instance> &instance);
 
-  std::shared_ptr<Instance> get_target_server() const {
-    return m_target_server;
+  std::shared_ptr<Instance> get_cluster_server() const {
+    return m_cluster_server;
   }
 
   std::shared_ptr<Instance> get_primary_master() const {
     return m_primary_master;
   }
 
-  Cluster_check_info check_preconditions(
+  //  - In standalone Cluster it will return the primary member
+  //  - In ClusterSet it will return the primary member of the primary
+  //  cluster
+  virtual std::shared_ptr<Instance> get_global_primary_master() const {
+    return m_primary_master;
+  }
+
+  virtual Cluster_check_info check_preconditions(
       const std::string &function_name,
-      FunctionAvailability *custom_func_avail = nullptr);
+      Function_availability *custom_func_avail = nullptr);
 
   std::shared_ptr<MetadataStorage> get_metadata_storage() const {
     return m_metadata_storage;
@@ -102,10 +109,6 @@ class Base_cluster_impl {
       const std::string &skip_lock_uuid = "") = 0;
 
   virtual void release_primary(mysqlsh::dba::Instance *primary = nullptr) = 0;
-
-  std::string get_replication_user_name(
-      mysqlshdk::mysql::IInstance *target_instance,
-      const std::string &user_prefix) const;
 
   virtual void disconnect();
 
@@ -140,10 +143,6 @@ class Base_cluster_impl {
    */
   shcore::Value get_cluster_tags() const;
 
-  virtual std::list<Scoped_instance> connect_all_members(
-      uint32_t read_timeout, bool skip_primary,
-      std::list<Instance_metadata> *out_unreachable) = 0;
-
  public:
   /*
    * Synchronize transactions on target instance.
@@ -175,7 +174,7 @@ class Base_cluster_impl {
    * @param show_tls_deprecation if true, prints warning when tls-version
    * connection option is set to deprecated TLS versions.
    *
-   * A URL is allowed, if it matches that of m_target_server.
+   * A URL is allowed, if it matches that of m_cluster_server.
    * @return instance object owned by ipool
    */
   std::shared_ptr<Instance> connect_target_instance(
@@ -191,9 +190,15 @@ class Base_cluster_impl {
   Cluster_id m_id;
   std::string m_cluster_name;
   std::string m_description;
-  // Session to a member of the group so we can query its status and other
-  // stuff from pfs
-  std::shared_ptr<Instance> m_target_server;
+
+  // Session to the primary member of the Cluster/ReplicaSet upon the
+  // initialization of the corresponding objects
+  std::shared_ptr<Instance> m_cluster_server;
+
+  // Session to the primary instance
+  // NOTE: In standalone Clusters it's the primary member of the Cluster, but if
+  // the Cluster belongs to a ClusterSet, it's the primary member of the primary
+  // Cluster
   std::shared_ptr<Instance> m_primary_master;
 
   std::shared_ptr<MetadataStorage> m_metadata_storage;
@@ -234,6 +239,10 @@ class Base_cluster_impl {
   std::tuple<std::string, std::string, shcore::Value>
   validate_set_option_namespace(const std::string &option,
                                 const shcore::Value &value) const;
+
+  std::string get_replication_user_name(
+      mysqlshdk::mysql::IInstance *target_instance,
+      const std::string &user_prefix) const;
 };
 
 }  // namespace dba

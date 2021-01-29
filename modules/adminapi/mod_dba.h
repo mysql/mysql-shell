@@ -36,6 +36,7 @@
 #include "modules/adminapi/common/provisioning_interface.h"
 #include "modules/adminapi/dba/api_options.h"
 #include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/mod_dba_cluster_set.h"
 #include "modules/adminapi/mod_dba_replica_set.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "modules/mod_common.h"
@@ -68,6 +69,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   Instance deploySandboxInstance(Integer port, Dictionary options);
   Undefined dropMetadataSchema(Dictionary options);
   Cluster getCluster(String name, Dictionary options);
+  ClusterSet getClusterSet();
   ReplicaSet getReplicaSet();
   Undefined killSandboxInstance(Integer port, Dictionary options);
   Cluster rebootClusterFromCompleteOutage(String clusterName,
@@ -88,6 +90,7 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   Instance deploy_sandbox_instance(int port, dict options);
   None drop_metadata_schema(dict options);
   Cluster get_cluster(str name, dict options);
+  ClusterSet get_cluster_set();
   ReplicaSet get_replica_set();
   None kill_sandbox_instance(int port, dict options);
   Cluster reboot_cluster_from_complete_outage(str clusterName, dict options);
@@ -107,20 +110,6 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   virtual void set_member(const std::string &prop, shcore::Value value);
   virtual shcore::Value get_member(const std::string &prop) const;
 
-  // NOTE: BUG#30628479 is applicable to all the API functions and the root
-  // cause is that several instances of the MetadataStorage class are created
-  // during a function execution. To solve this, all the API functions should
-  // create a single instance of the MetadataStorage class and pass it down
-  // through the chain call. In other words, the following function should be
-  // deprecated in favor of the version below.
-  Cluster_check_info check_preconditions(
-      std::shared_ptr<Instance> target_instance,
-      const std::string &function_name) const;
-
-  Cluster_check_info check_preconditions(
-      std::shared_ptr<MetadataStorage> metadata,
-      const std::string &function_name) const;
-
   virtual std::shared_ptr<mysqlshdk::db::ISession> get_active_shell_session()
       const;
 
@@ -134,7 +123,8 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   std::shared_ptr<Cluster> get_cluster(
       const char *name, std::shared_ptr<MetadataStorage> metadata,
-      std::shared_ptr<Instance> group_server) const;
+      std::shared_ptr<Instance> group_server,
+      bool reboot_cluster = false) const;
 
   void do_configure_instance(
       const mysqlshdk::db::Connection_options &instance_def_,
@@ -212,6 +202,9 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
   std::shared_ptr<Replica_set_impl> get_replica_set(
       const std::shared_ptr<MetadataStorage> &metadata,
       const std::shared_ptr<Instance> &target_server);
+
+  // ClusterSet
+  std::shared_ptr<ClusterSet> get_cluster_set();
 
  protected:
   shcore::IShell_core *_shell_core = nullptr;

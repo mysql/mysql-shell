@@ -472,17 +472,17 @@ void validate_performance_schema_enabled(
   }
 }
 
-InstanceType::Type ensure_instance_not_belong_to_cluster(
+TargetType::Type ensure_instance_not_belong_to_cluster(
     const mysqlshdk::mysql::IInstance &instance,
     const std::shared_ptr<Instance> &cluster_instance,
     bool *out_already_member) {
-  InstanceType::Type type = mysqlsh::dba::get_gr_instance_type(instance);
+  TargetType::Type type = mysqlsh::dba::get_gr_instance_type(instance);
 
   if (out_already_member) *out_already_member = false;
 
-  if (type != InstanceType::Standalone &&
-      type != InstanceType::StandaloneWithMetadata &&
-      type != InstanceType::StandaloneInMetadata) {
+  if (type != TargetType::Standalone &&
+      type != TargetType::StandaloneWithMetadata &&
+      type != TargetType::StandaloneInMetadata) {
     // Retrieves the new instance UUID
     std::string uuid = instance.get_uuid();
 
@@ -494,16 +494,18 @@ InstanceType::Type ensure_instance_not_belong_to_cluster(
                      [&uuid](const mysqlshdk::gr::Member &member) {
                        return member.uuid == uuid;
                      }) != members.end()) {
-      if (type == InstanceType::InnoDBCluster) {
+      if (type == TargetType::InnoDBCluster ||
+          type == TargetType::InnoDBClusterSet) {
         log_debug("Instance '%s' already managed by InnoDB cluster",
                   instance.descr().c_str());
         if (out_already_member) {
           // don't throw exception if out_already_member is given
           *out_already_member = true;
         } else {
-          throw shcore::Exception::runtime_error(
+          throw shcore::Exception(
               "The instance '" + instance.descr() +
-              "' is already part of this InnoDB cluster");
+                  "' is already part of this InnoDB cluster",
+              SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER);
         }
       } else {
         if (out_already_member) {
@@ -521,7 +523,8 @@ InstanceType::Type ensure_instance_not_belong_to_cluster(
         }
       }
     } else {
-      if (type == InstanceType::InnoDBCluster) {
+      if (type == TargetType::InnoDBCluster ||
+          type == TargetType::InnoDBClusterSet) {
         // Check if instance is running auto-rejoin and warn user.
         if (mysqlshdk::gr::is_running_gr_auto_rejoin(instance)) {
           throw shcore::Exception::runtime_error(

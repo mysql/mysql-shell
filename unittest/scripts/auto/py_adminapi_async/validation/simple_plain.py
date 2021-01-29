@@ -139,7 +139,7 @@ NOTE: The target instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' has not been p
 Incremental state recovery selected through the recoveryMethod option
 
 * Updating topology
-** Configuring 127.0.0.1:<<<__mysql_sandbox_port2>>> to replicate from 127.0.0.1:<<<__mysql_sandbox_port1>>>
+** Changing replication source of 127.0.0.1:<<<__mysql_sandbox_port2>>> to 127.0.0.1:<<<__mysql_sandbox_port1>>>
 ** Waiting for new instance to synchronize with PRIMARY...
 
 The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.
@@ -164,7 +164,7 @@ This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port2>>>
 Incremental state recovery selected through the recoveryMethod option
 
 * Updating topology
-** Configuring 127.0.0.1:<<<__mysql_sandbox_port2>>> to replicate from 127.0.0.1:<<<__mysql_sandbox_port1>>>
+** Changing replication source of 127.0.0.1:<<<__mysql_sandbox_port2>>> to 127.0.0.1:<<<__mysql_sandbox_port1>>>
 ** Waiting for new instance to synchronize with PRIMARY...
 
 The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.
@@ -195,7 +195,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 ** Acquiring global lock at SECONDARIES
 
 * Updating replication topology
-** Configuring 127.0.0.1:<<<__mysql_sandbox_port1>>> to replicate from 127.0.0.1:<<<__mysql_sandbox_port3>>>
+** Changing replication source of 127.0.0.1:<<<__mysql_sandbox_port1>>> to 127.0.0.1:<<<__mysql_sandbox_port3>>>
 ** Changing replication source of 127.0.0.1:<<<__mysql_sandbox_port2>>> to 127.0.0.1:<<<__mysql_sandbox_port3>>>
 
 127.0.0.1:<<<__mysql_sandbox_port3>>> was promoted to PRIMARY.

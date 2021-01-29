@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,7 +34,7 @@
 
 namespace mysqlsh {
 namespace dba {
-InstanceType::Type get_gr_instance_type(
+TargetType::Type get_gr_instance_type(
     const mysqlshdk::mysql::IInstance &instance);
 
 void get_port_and_datadir(const mysqlshdk::mysql::IInstance &instance,
@@ -42,7 +42,7 @@ void get_port_and_datadir(const mysqlshdk::mysql::IInstance &instance,
 
 Cluster_check_info get_replication_group_state(
     const mysqlshdk::mysql::IInstance &connection,
-    InstanceType::Type source_type);
+    TargetType::Type source_type);
 
 std::vector<std::string> get_peer_seeds(
     const mysqlshdk::mysql::IInstance &instance,

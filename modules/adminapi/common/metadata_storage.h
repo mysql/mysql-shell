@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_COMMON_METADATA_STORAGE_H_
 #define MODULES_ADMINAPI_COMMON_METADATA_STORAGE_H_
 
+#include <list>
 #include <map>
 #include <memory>
 #include <string>
@@ -31,10 +32,12 @@
 #include <vector>
 
 #include "modules/adminapi/common/cluster_types.h"
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/utils.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -64,10 +67,14 @@ struct Instance_metadata {
 struct Cluster_metadata {
   Cluster_type type = Cluster_type::GROUP_REPLICATION;
 
+  Cluster_set_id cluster_set_id;
+
   Cluster_id cluster_id;
   std::string cluster_name;
   std::string description;
   bool enabled = true;
+
+  std::string full_cluster_name() const { return cluster_name; }
 
   // GR specific
   std::string group_name;
@@ -77,8 +84,22 @@ struct Cluster_metadata {
 
   // AR specific
   Global_topology_type async_topology_type = Global_topology_type::NONE;
+};
 
-  std::string full_cluster_name() const { return cluster_name; }
+struct Cluster_set_member_metadata {
+  Cluster_metadata cluster;
+
+  Cluster_set_id cluster_set_id;
+  Cluster_id master_cluster_id;
+
+  bool primary_cluster = false;
+  bool invalidated = false;
+};
+
+struct Cluster_set_metadata {
+  Cluster_set_id id;
+
+  std::string domain_name;
 };
 
 struct Router_metadata {
@@ -94,7 +115,55 @@ struct Router_metadata {
 };
 
 class Cluster_impl;
+class Cluster_set_impl;
 class Replica_set_impl;
+
+class Cached_metadata_base {
+ public:
+  Cached_metadata_base(const Cached_metadata_base &) = delete;
+
+  void invalidate();
+
+  bool is_valid() const;
+
+  /*
+   Associates the validity of this cache value to the given MetadataStorage
+   object. The cache item will become invalid when that object is deleted or
+   invalidated, as well as when invalidate() is called on the cached value
+   itself.
+   */
+  void track(const std::shared_ptr<MetadataStorage> &owner);
+
+ protected:
+  Cached_metadata_base() {}
+
+ private:
+  friend class MetadataStorage;
+
+  std::weak_ptr<MetadataStorage> m_owner;
+};
+
+template <typename C>
+class Cached_metadata : public Cached_metadata_base {
+ public:
+  Cached_metadata() : Cached_metadata_base() {}
+  Cached_metadata(const Cached_metadata &) = delete;
+
+  void operator=(C &&value) { _value = std::move(value); }
+
+  C &operator*() {
+    if (!is_valid()) throw std::logic_error("refresh needed");
+    return _value;
+  }
+
+  C *operator->() {
+    if (!is_valid()) throw std::logic_error("refresh needed");
+    return &_value;
+  }
+
+ private:
+  C _value;
+};
 
 #if DOXYGEN_CPP
 /**
@@ -114,6 +183,11 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   explicit MetadataStorage(const Instance &instance);
 
   virtual ~MetadataStorage();
+
+  // invalidate the whole MetadataStorage object instance
+  void invalidate();
+
+  bool is_valid() const;
 
   /**
    * Checks that the metadata schema exists in the target session.
@@ -142,6 +216,29 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   virtual Cluster_id create_async_cluster_record(Replica_set_impl *cluster,
                                                  bool adopted);
 
+  /**
+   * Deletes any unrelated records that a Cluster's Metadata may have
+   *
+   * This function ensures that any unrelated entry on the target Cluster's
+   * Metadata is removed:
+   *
+   *  - All clusterset_members
+   *  - All clusterset_views
+   *  - Any instance that does not belong to the Cluster
+   *  - Any other cluster entry in the clusters table
+   *  - Any clusterset entry in the clustersets tables
+   *
+   * Useful in scenarios on which a Cluster is removed from a ClusterSet but, as
+   * designed, the Cluster becomes an independent entity with its own metadata
+   *
+   * @param cluster_id The target Cluster ID
+   */
+  void cleanup_for_cluster(Cluster_id cluster_id);
+
+  Cluster_set_id create_cluster_set_record(
+      Cluster_set_impl *cs, Cluster_id seed_cluster_id,
+      shcore::Dictionary_t seed_attributes);
+
   Instance_id insert_instance(const Instance_metadata &instance);
   void update_instance(const Instance_metadata &instance);
   void remove_instance(const std::string &instance_address);
@@ -152,15 +249,23 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   bool query_cluster_attribute(const Cluster_id &cluster_id,
                                const std::string &attribute,
-                               shcore::Value *out_value);
+                               shcore::Value *out_value) const;
 
   void update_cluster_attribute(const Cluster_id &cluster_id,
                                 const std::string &attribute,
                                 const shcore::Value &value);
 
+  void update_clusterset_attribute(const Cluster_set_id &clusterset_id,
+                                   const std::string &attribute,
+                                   const shcore::Value &value);
+
+  bool query_clusterset_attribute(const Cluster_set_id &clusterset_id,
+                                  const std::string &attribute,
+                                  shcore::Value *out_value) const;
+
   bool query_instance_attribute(const std::string &uuid,
                                 const std::string &attribute,
-                                shcore::Value *out_value);
+                                shcore::Value *out_value) const;
 
   void update_instance_attribute(const std::string &uuid,
                                  const std::string &attribute,
@@ -233,6 +338,13 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
       const std::string &instance_uuid,
       const std::string &recovery_account_user);
 
+  void update_cluster_repl_account(const Cluster_id &cluster_id,
+                                   const std::string &repl_account_user,
+                                   const std::string &repl_account_host);
+
+  std::pair<std::string, std::string> get_cluster_repl_account(
+      const Cluster_id &cluster_id) const;
+
   /**
    * Fetch from the metadata list of server uuids
    * with recovery account information.
@@ -243,20 +355,28 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   std::map<std::string, std::string> get_instances_with_recovery_accounts(
       const Cluster_id &cluster_id) const;
 
-  bool is_recovery_account_unique(const std::string &recovery_account_user);
+  bool is_recovery_account_unique(const std::string &recovery_account_user,
+                                  bool clusterset_account = false);
 
   virtual bool is_instance_on_cluster(const Cluster_id &cluster_id,
                                       const std::string &address);
 
   bool get_cluster(const Cluster_id &cluster_id, Cluster_metadata *out_cluster);
 
-  bool get_cluster_for_server_uuid(const std::string &server_uuid,
-                                   Cluster_metadata *out_cluster);
+  virtual bool get_cluster_for_server_uuid(const std::string &server_uuid,
+                                           Cluster_metadata *out_cluster) const;
 
   bool get_cluster_for_cluster_name(const std::string &name,
                                     Cluster_metadata *out_cluster);
 
   std::vector<Cluster_metadata> get_all_clusters();
+
+  bool get_cluster_set(
+      const Cluster_set_id &cs_id, Cluster_set_metadata *out_cs,
+      std::vector<Cluster_set_member_metadata> *out_cs_members) const;
+
+  bool get_cluster_set_member(const Cluster_id &cluster_id,
+                              Cluster_set_member_metadata *out_cs_member) const;
 
   /**
    * Checks if the given instance label is unique in the specified replica
@@ -317,7 +437,9 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   /**
    * Get the internal metadata session/instance object.
    */
-  std::shared_ptr<Instance> get_md_server() const { return m_md_server; }
+  virtual std::shared_ptr<Instance> get_md_server() const {
+    return m_md_server;
+  }
 
  public:
   /**
@@ -328,6 +450,34 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
    */
   bool remove_router(const std::string &router_def);
 
+  /**
+   * Sets a target-cluster for all Routers of a Cluster
+   *
+   * @param cluster_id The target Cluster ID
+   * @param target_cluster The target-cluster value to be set
+   */
+  void set_target_cluster_for_all_routers(const Cluster_id &cluster_id,
+                                          const std::string &target_cluster);
+
+  /**
+   * Migrates all Routers of a Cluster to a ClusterSet
+   *
+   * @param cluster_id The target Cluster ID
+   * @param cluster_set_id The target clusterSet ID to be set
+   */
+  void migrate_routers_to_clusterset(const Cluster_id &cluster_id,
+                                     const Cluster_set_id &cluster_set_id);
+
+  /**
+   * Gets all routers using a Cluster as Target Cluster
+   *
+   * @param target_cluster_group_name The target Cluster
+   * group_replication_group_name
+   * @return a list of Router_metadata with the obtained Routers
+   */
+  std::vector<Router_metadata> get_routers_using_cluster_as_target(
+      const Cluster_id &cluster_id);
+
   // Async cluster view operations
   Instance_id record_async_member_added(const Instance_metadata &member);
   void record_async_member_rejoined(const Instance_metadata &member);
@@ -337,6 +487,22 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void record_async_primary_forced_switch(
       Instance_id new_primary_id, const std::list<Instance_id> &invalidated);
 
+  // ClusterSet operations
+  void record_cluster_set_member_added(
+      const Cluster_set_member_metadata &cluster);
+  void record_cluster_set_member_removed(const Cluster_set_id &cs_id,
+                                         const Cluster_id &cluster_id);
+  void record_cluster_set_member_rejoined(const Cluster_set_id &cs_id,
+                                          const Cluster_id &cluster_id,
+                                          const Cluster_id &master_cluster_id);
+  void record_cluster_set_primary_switch(
+      const Cluster_set_id &cs_id, const Cluster_id &new_primary_id,
+      const std::list<Cluster_id> &invalidated);
+  void record_cluster_set_primary_failover(
+      const Cluster_set_id &cs_id, const Cluster_id &cluster_id,
+      const std::list<Cluster_id> &invalidated);
+
+ public:
   mysqlsh::dba::metadata::State get_state() { return m_md_state; }
 
   void invalidate_cached() {
@@ -370,6 +536,13 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
     return m_md_state;
   }
 
+  bool check_metadata(mysqlshdk::utils::Version *out_version = nullptr,
+                      Cluster_type *out_type = nullptr) const;
+
+  bool check_cluster_set(Instance *target_instance = nullptr) const;
+
+  bool supports_cluster_set() const;
+
   /**
    * Try to acquire an exclusive lock on the metadata.
    *
@@ -394,7 +567,9 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   class Transaction {
    public:
-    explicit Transaction(const std::shared_ptr<MetadataStorage> &md) : _md(md) {
+    explicit Transaction(const std::shared_ptr<MetadataStorage> &md,
+                         bool check_for_auto_commits = false)
+        : _md(md), m_check_for_auto_commits(check_for_auto_commits) {
       md->execute_sql("START TRANSACTION");
     }
 
@@ -408,6 +583,12 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
     void rollback() {
       if (_md) {
+#ifndef NDEBUG
+        if (m_check_for_auto_commits) {
+          mysqlshdk::mysql::assert_transaction_is_open(
+              _md->get_md_server()->get_session());
+        }
+#endif
         auto tmp = _md;
         _md.reset();
         tmp->execute_sql("ROLLBACK");
@@ -416,6 +597,13 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
     void commit() {
       if (_md) {
+#ifndef NDEBUG
+        if (m_check_for_auto_commits) {
+          mysqlshdk::mysql::assert_transaction_is_open(
+              _md->get_md_server()->get_session());
+        }
+#endif
+
         auto tmp = _md;
         _md.reset();
         tmp->execute_sql("COMMIT");
@@ -424,10 +612,14 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
    private:
     std::shared_ptr<MetadataStorage> _md;
+#ifdef __clang__
+    [[maybe_unused]] bool m_check_for_auto_commits = false;
+#else
+    bool m_check_for_auto_commits = false;
+#endif
   };
 
  private:
-  uint32_t inc_view_failover_counter(uint32_t view_id) const;
   void begin_acl_change_record(const Cluster_id &cluster_id,
                                const char *operation, uint32_t *out_aclvid,
                                uint32_t *last_aclvid);
@@ -462,12 +654,13 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
 
   Cluster_metadata unserialize_cluster_metadata(
       const mysqlshdk::db::Row_ref_by_name &record,
-      const mysqlshdk::utils::Version &version);
+      const mysqlshdk::utils::Version &version) const;
 
   Instance_metadata unserialize_instance(
       const mysqlshdk::db::Row_ref_by_name &row,
       mysqlshdk::utils::Version *mdver_in = nullptr) const;
 };
+
 }  // namespace dba
 }  // namespace mysqlsh
 

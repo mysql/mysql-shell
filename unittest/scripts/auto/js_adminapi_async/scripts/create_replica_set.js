@@ -28,7 +28,7 @@ dba.createReplicaSet("my cluster");
 dba.createReplicaSet("my:::cluster");
 dba.createReplicaSet("my:::clus/ter");
 // BUG#30466874: dba.create_cluster - cluster name can have 82 characters
-dba.createReplicaSet("_1234567890::_1234567890123456789012345678901");
+dba.createReplicaSet("_1234567890::_1234567890123456789012345678901234567890123456789012345678901234");
 // BUG#30466809 : dba.create_cluster("::") - cluster name cannot be empty
 dba.createReplicaSet("::");
 

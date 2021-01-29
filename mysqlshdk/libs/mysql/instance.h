@@ -99,6 +99,7 @@ class IInstance {
   virtual std::string get_canonical_address() const = 0;
 
   virtual const std::string &get_uuid() const = 0;
+  virtual uint32_t get_id() const = 0;
   virtual const std::string &get_group_name() const = 0;
   virtual const std::string &get_version_compile_os() const = 0;
   virtual const std::string &get_version_compile_machine() const = 0;
@@ -243,6 +244,7 @@ class Instance : public IInstance {
   int get_canonical_port() const override;
 
   const std::string &get_uuid() const override;
+  uint32_t get_id() const override;
   const std::string &get_group_name() const override;
   const std::string &get_version_compile_os() const override;
   const std::string &get_version_compile_machine() const override;
@@ -360,6 +362,7 @@ class Instance : public IInstance {
   mutable std::string m_version_compile_os;
   mutable std::string m_version_compile_machine;
   mutable std::string m_uuid;
+  mutable mysqlshdk::utils::nullable<uint32_t> m_id;
   mutable std::string m_group_name;
   mutable std::string m_hostname;
   mutable int m_port = 0;

@@ -33,8 +33,10 @@
 
 #include "modules/adminapi/cluster/api_options.h"
 #include "modules/adminapi/cluster/cluster_impl.h"
+#include "modules/adminapi/cluster_set/api_options.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
+#include "modules/adminapi/mod_dba_cluster_set.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
@@ -51,6 +53,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   String name;  //!< $(CLUSTER_GETNAME_BRIEF)
   Undefined addInstance(InstanceDef instance, Dictionary options);
   Dictionary checkInstanceState(InstanceDef instance);
+  ClusterSet createClusterSet(String domainName, Dictionary options);
+  ClusterSet getClusterSet();
   String describe();
   Undefined disconnect();
   Undefined dissolve(Dictionary options);
@@ -76,6 +80,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   str name;  //!< $(CLUSTER_GETNAME_BRIEF)
   None add_instance(InstanceDef instance, dict options);
   dict check_instance_state(InstanceDef instance);
+  ClusterSet create_cluster_set(str domainName, dict options);
+  ClusterSet get_cluster_set();
   str describe();
   None disconnect();
   None dissolve(dict options);
@@ -172,6 +178,14 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void set_instance_option(const Connection_options &instance_def,
                            const std::string &option,
                            const shcore::Value &value);
+
+  // ClusterSet
+  shcore::Value create_cluster_set(
+      const std::string &domain_name,
+      const shcore::Option_pack_ref<clusterset::Create_cluster_set_options>
+          &options);
+
+  std::shared_ptr<ClusterSet> get_cluster_set();
 
  protected:
   // Used shell options

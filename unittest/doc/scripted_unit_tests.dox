@@ -58,6 +58,9 @@ logged in user on system.
 @li \a __sandbox_uri1 = URI for the first sandbox.
 @li \a __sandbox_uri2 = URI for the second sandbox.
 @li \a __sandbox_uri3 = URI for the third sandbox.
+@li \a __sandbox_uri4 = URI for the fourth sandbox.
+@li \a __sandbox_uri5 = URI for the fifth sandbox.
+@li \a __sandbox_uri6 = URI for the sixth sandbox.
 @li \a localhost: 'localhost'";
 @li \a hostname_ip: TBD
 @li \a testutil: An instance of the

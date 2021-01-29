@@ -106,6 +106,15 @@ dba.help('get_replica_set')
 #@ global help for get_replica_set[USE:dba.get_replica_set]
 \help dba.get_replica_set
 
+#@ dba.get_cluster_set
+dba.help('get_cluster_set')
+
+#@ global ? for get_cluster_set[USE:dba.get_cluster_set]
+\? dba.get_cluster_set
+
+#@ global help for get_cluster_set[USE:dba.get_cluster_set]
+\help dba.get_cluster_set
+
 #@ dba.help
 dba.help('help')
 

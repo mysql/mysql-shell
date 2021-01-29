@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,11 +61,11 @@ class Global_topology_manager {
   virtual void validate_switch_primary(
       mysqlshdk::mysql::IInstance *master,
       mysqlshdk::mysql::IInstance *promoted,
-      const std::list<Scoped_instance> &instances) = 0;
+      const std::list<std::shared_ptr<Instance>> &instances) = 0;
 
   virtual void validate_force_primary(
       mysqlshdk::mysql::IInstance *master,
-      const std::list<Scoped_instance> &instances) = 0;
+      const std::list<std::shared_ptr<Instance>> &instances) = 0;
 
   virtual Global_topology_type get_topology_type() const = 0;
 

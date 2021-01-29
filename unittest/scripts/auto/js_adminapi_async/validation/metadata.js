@@ -2,7 +2,7 @@
 ||
 
 //@# create replicaset (should fail)
-||Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.0.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
+||Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.1.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
 
 //@ Merge schema from different sources (cluster then rs)
 ||
@@ -55,7 +55,7 @@ mysql_server_uuid: <<<uuid2>>>
 |       "primary": "127.0.0.1:<<<__mysql_sandbox_port1>>>",|
 
 //@# Check sb1.getReplicaSet() with mixed metadata (should fail)
-||This function is not available through a session to an instance already in an InnoDB cluster
+||This function is not available through a session to an instance already in an InnoDB Cluster
 
 //@# Check sb2.getCluster() with mixed metadata (should fail)
 ||This function is not available through a session to an instance that is a member of an InnoDB ReplicaSet
@@ -96,4 +96,4 @@ mysql_server_uuid: <<<uuid2>>>
 |       "primary": "127.0.0.1:<<<__mysql_sandbox_port2>>>",|
 
 //@# Check sb2.getReplicaSet() with mixed metadata again (should fail)
-||This function is not available through a session to an instance already in an InnoDB cluster
+||This function is not available through a session to an instance already in an InnoDB Cluster

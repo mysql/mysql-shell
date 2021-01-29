@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,9 +37,9 @@
 namespace mysqlsh {
 namespace dba {
 
-InstanceType::Type get_gr_instance_type(
+TargetType::Type get_gr_instance_type(
     const mysqlshdk::mysql::IInstance &instance) {
-  InstanceType::Type ret_val = InstanceType::Standalone;
+  TargetType::Type ret_val = TargetType::Standalone;
 
   std::string query(
       "select count(*) "
@@ -55,7 +55,7 @@ InstanceType::Type get_gr_instance_type(
       if (row->get_int(0) != 0) {
         log_debug("Instance type check: %s: GR is active",
                   instance.descr().c_str());
-        ret_val = InstanceType::GroupReplication;
+        ret_val = TargetType::GroupReplication;
       } else {
         log_debug("Instance type check: %s: GR is not active",
                   instance.descr().c_str());
@@ -71,7 +71,7 @@ InstanceType::Type get_gr_instance_type(
     // SELECT command denied to user 'test_user'@'localhost' for table
     // 'replication_group_members' (MySQL Error 1142)
     if (e.code() == ER_TABLEACCESS_DENIED_ERROR) {
-      ret_val = InstanceType::Unknown;
+      ret_val = TargetType::Unknown;
     } else if (error.code() != ER_NO_SUCH_TABLE) {  // Tables doesn't exists
       throw shcore::Exception::mysql_error_with_code(error.what(),
                                                      error.code());
@@ -80,7 +80,7 @@ InstanceType::Type get_gr_instance_type(
 
   // The server is part of a Replication Group
   // Let's see if it is registered in the Metadata Store
-  if (ret_val == InstanceType::GroupReplication) {
+  if (ret_val == TargetType::GroupReplication) {
     // In Metadata schema versions higher than 1.0.1
     // instances.mysql_server_uuid uses the collation ascii_general_ci which
     // then when doing comparisons with the sysvar @@server_uuid will results
@@ -101,7 +101,7 @@ InstanceType::Type get_gr_instance_type(
         if (row->get_int(0) != 0) {
           log_debug("Instance type check: %s: Metadata record found",
                     instance.descr().c_str());
-          ret_val = InstanceType::InnoDBCluster;
+          ret_val = TargetType::InnoDBCluster;
         } else {
           log_debug("Instance type check: %s: Metadata record not found",
                     instance.descr().c_str());
@@ -130,7 +130,7 @@ InstanceType::Type get_gr_instance_type(
     if (row && row->get_string(0) == schema) {
       log_debug("Instance type check: %s: Metadata found",
                 instance.descr().c_str());
-      ret_val = InstanceType::StandaloneWithMetadata;
+      ret_val = TargetType::StandaloneWithMetadata;
 
       // In Metadata schema versions higher than 1.0.1
       // instances.mysql_server_uuid uses the collation ascii_general_ci which
@@ -151,7 +151,7 @@ InstanceType::Type get_gr_instance_type(
         if (row->get_int(0) != 0) {
           log_debug("Instance type check: %s: instance is in Metadata",
                     instance.descr().c_str());
-          ret_val = InstanceType::StandaloneInMetadata;
+          ret_val = TargetType::StandaloneInMetadata;
         } else {
           log_debug("Instance type check: %s: instance is not in Metadata",
                     instance.descr().c_str());
@@ -184,7 +184,7 @@ void get_port_and_datadir(const mysqlshdk::mysql::IInstance &instance,
 // been validated to be NOT Standalone
 Cluster_check_info get_replication_group_state(
     const mysqlshdk::mysql::IInstance &connection,
-    InstanceType::Type source_type) {
+    TargetType::Type source_type) {
   Cluster_check_info ret_val;
 
   // Sets the source instance type
@@ -198,7 +198,7 @@ Cluster_check_info get_replication_group_state(
   bool is_primary = false;
 
   if (!mysqlshdk::gr::get_group_information(
-          connection, &member_state, &member_id, &group_name,
+          connection, &member_state, &member_id, &group_name, nullptr,
           &single_primary_mode, &has_quorum, &is_primary)) {
     // GR not running (shouldn't happen)
     member_state = mysqlshdk::gr::Member_state::OFFLINE;

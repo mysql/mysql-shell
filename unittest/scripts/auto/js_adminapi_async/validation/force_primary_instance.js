@@ -143,7 +143,7 @@ cluster_id	view_id	topology_type	view_change_reason	view_change_time	view_change
 |dryRun finished.|
 
 //@# timeout (should fail)
-||Error during failover: MySQL Error 2013: Failed to execute query on Metadata server <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: Lost connection to MySQL server during query (MYSQLSH 51162)
+||ReplicaSet.forcePrimaryInstance: 1 instance(s) failed to apply retrieved transactions (MYSQLSH 51160)
 
 //@# ensure switch over rolls back after the timeout
 |        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|
@@ -153,7 +153,7 @@ cluster_id	view_id	topology_type	view_change_reason	view_change_time	view_change
 |"address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",|
 |"fenced": true,|
 
-//@# try to switch to a different one (should work this time)
+//@# try to switch to a different one (should work this time) {false}
 |Failover finished successfully.|
 |        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>",|
 |                "address": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|

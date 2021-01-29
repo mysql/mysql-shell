@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 
 #include <list>
 #include <string>
+#include <vector>
 
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/libs/mysql/instance.h"
@@ -39,17 +40,18 @@ namespace dba {
 // Assumes validations, metadata updates and account management are handled
 // outside.
 
-struct Scoped_instance;
-
 /**
  * Adds a prepared instance as a replica of the given primary.
  *
+ * channel_name - The replication channel name
  * repl_options - AR options, including repl credentials
+ * fence_slave - if true, sets SUPER_READ_ONLY at the slave end
  */
 void async_add_replica(mysqlshdk::mysql::IInstance *primary,
                        mysqlshdk::mysql::IInstance *target,
+                       const std::string &channel_name,
                        const Async_replication_options &repl_options,
-                       bool dry_run);
+                       bool fence_slave, bool dry_run);
 
 /**
  * Rejoins a replica to replicaset.
@@ -73,15 +75,17 @@ void async_rejoin_replica(mysqlshdk::mysql::IInstance *primary,
 /**
  * Removes a replica from the replicaset.
  */
-void async_remove_replica(mysqlshdk::mysql::IInstance *target, bool dry_run);
+void async_remove_replica(mysqlshdk::mysql::IInstance *target,
+                          const std::string &channel_name, bool dry_run);
 
 /**
  * Promotes a secondary to primary.
  */
-void async_set_primary(mysqlshdk::mysql::IInstance *current_primary,
-                       mysqlshdk::mysql::IInstance *promoted,
-                       const Async_replication_options &repl_options,
-                       shcore::Scoped_callback_list *undo_list, bool dry_run);
+void async_swap_primary(mysqlshdk::mysql::IInstance *current_primary,
+                        mysqlshdk::mysql::IInstance *promoted,
+                        const std::string &channel_name,
+                        const Async_replication_options &repl_options,
+                        shcore::Scoped_callback_list *undo_list, bool dry_run);
 
 /**
  * Promotes a secondary to primary, when the primary is unavailable.
@@ -99,23 +103,28 @@ void async_force_primary(mysqlshdk::mysql::IInstance *promoted,
 void undo_async_force_primary(mysqlshdk::mysql::IInstance *promoted,
                               bool dry_run);
 
+void async_change_primary(mysqlshdk::mysql::Instance *target,
+                          mysqlshdk::mysql::IInstance *primary,
+                          const std::string &channel_name,
+                          const Async_replication_options &repl_options,
+                          bool dry_run);
 /**
  * Change the primary of one or more secondary instances.
  *
- * Reuses the same credentials as currently in use.
+ * Reuses the same credentials as currently in use, unless given in repl_options
  */
-void async_change_primary(mysqlshdk::mysql::IInstance *primary,
-                          const std::list<Scoped_instance> &secondaries,
-                          const Async_replication_options &repl_options,
-                          mysqlshdk::mysql::IInstance *old_primary,
-                          shcore::Scoped_callback_list *undo_list,
-                          bool dry_run);
+void async_change_primary(
+    mysqlshdk::mysql::IInstance *primary,
+    const std::list<std::shared_ptr<Instance>> &secondaries,
+    const Async_replication_options &repl_options,
+    mysqlshdk::mysql::IInstance *old_primary,
+    shcore::Scoped_callback_list *undo_list, bool dry_run);
 
 void wait_apply_retrieved_trx(mysqlshdk::mysql::IInstance *instance,
                               int timeout_sec);
 
 void wait_all_apply_retrieved_trx(
-    std::list<Scoped_instance> *out_instances, int timeout_sec,
+    std::list<std::shared_ptr<Instance>> *out_instances, int timeout_sec,
     bool invalidate_error_instances,
     std::vector<Instance_metadata> *out_instances_md,
     std::list<Instance_id> *out_invalidate_ids);
@@ -125,11 +134,40 @@ void fence_instance(mysqlshdk::mysql::IInstance *instance);
 void unfence_instance(mysqlshdk::mysql::IInstance *instance);
 
 void reset_channel(mysqlshdk::mysql::IInstance *instance,
-                   bool reset_credentials, bool dry_run);
+                   const std::string &channel_name = "",
+                   bool reset_credentials = false, bool dry_run = false);
 
 void stop_channel(mysqlshdk::mysql::IInstance *instance,
-                  const std::string &channel_name = "", bool dry_run = false);
+                  const std::string &channel_name, bool safe, bool dry_run);
 
+void start_channel(mysqlshdk::mysql::IInstance *instance,
+                   const std::string &channel_name = "", bool dry_run = false);
+
+void remove_channel(mysqlshdk::mysql::IInstance *instance,
+                    const std::string &channel_name, bool dry_run);
+
+void add_managed_connection_failover(
+    const mysqlshdk::mysql::IInstance &target_instance,
+    const mysqlshdk::mysql::IInstance &source, const std::string &channel_name,
+    const std::string &network_namespace, bool dry_run = false,
+    int64_t primary_weight = 80, int64_t secondary_weight = 60);
+
+void delete_managed_connection_failover(
+    const mysqlshdk::mysql::IInstance &target_instance,
+    const std::string &channel_name, bool dry_run = false);
+
+void create_clone_recovery_user_nobinlog(
+    mysqlshdk::mysql::IInstance *target_instance,
+    const mysqlshdk::mysql::Auth_options &donor_account, bool dry_run);
+
+void drop_clone_recovery_user_nobinlog(
+    mysqlshdk::mysql::IInstance *target_instance,
+    const mysqlshdk::mysql::Auth_options &account);
+
+void refresh_target_connections(mysqlshdk::mysql::IInstance *recipient);
+
+void cleanup_clone_recovery(mysqlshdk::mysql::IInstance *recipient,
+                            const mysqlshdk::mysql::Auth_options &clone_user);
 }  // namespace dba
 }  // namespace mysqlsh
 

@@ -212,7 +212,6 @@ The instance '<<<member_address2>>>' was successfully added to the cluster metad
 A new instance '<<<member_address3>>>' was discovered in the cluster.
 
 
-
 //@<OUT> WL10644 - TSF2_4: Rescan with addInstances:"auto" and interactive:true.
 Rescanning the cluster...
 
@@ -243,7 +242,6 @@ The instance '<<<member_address2>>>' was successfully added to the cluster metad
 A new instance '<<<member_address3>>>' was discovered in the cluster.
 Adding instance to the cluster metadata...
 The instance '<<<member_address3>>>' was successfully added to the cluster metadata.
-
 
 
 

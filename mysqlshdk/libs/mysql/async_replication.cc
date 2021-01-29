@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,9 +35,10 @@ void change_master(mysqlshdk::mysql::IInstance *instance,
                    const std::string &master_host, int master_port,
                    const std::string &channel_name,
                    const Auth_options &credentials,
+                   const mysqlsh::dba::Cluster_ssl_mode &ssl_mode,
                    const mysqlshdk::utils::nullable<int> master_connect_retry,
                    const mysqlshdk::utils::nullable<int> master_retry_count,
-                   const mysqlshdk::utils::nullable<int> master_delay) {
+                   const mysqlshdk::utils::nullable<bool> auto_failover) {
   log_info(
       "Setting up async source for channel '%s' of %s to %s:%i (user "
       "%s)",
@@ -54,15 +55,34 @@ void change_master(mysqlshdk::mysql::IInstance *instance,
         instance->get_version());
 
     std::string options;
-    if (!master_retry_count.is_null())
+    if (ssl_mode != mysqlsh::dba::Cluster_ssl_mode::NONE) {
+      bool enable_ssl = false;
+
+      if (ssl_mode == mysqlsh::dba::Cluster_ssl_mode::REQUIRED) {
+        enable_ssl = true;
+      } else if (ssl_mode == mysqlsh::dba::Cluster_ssl_mode::VERIFY_CA ||
+                 ssl_mode == mysqlsh::dba::Cluster_ssl_mode::VERIFY_IDENTITY) {
+        throw shcore::Exception::argument_error("Unsupported Cluster SSL-mode");
+      }
+
+      options.append(", " + source_term +
+                     "_SSL=" + std::to_string(enable_ssl ? 1 : 0));
+    }
+
+    if (!master_retry_count.is_null()) {
       options.append(", " + source_term +
                      "_RETRY_COUNT=" + std::to_string(*master_retry_count));
-    if (!master_connect_retry.is_null())
+    }
+
+    if (!master_connect_retry.is_null()) {
       options.append(", " + source_term +
                      "_CONNECT_RETRY=" + std::to_string(*master_connect_retry));
-    if (!master_delay.is_null())
-      options.append(", " + source_term +
-                     "_DELAY=" + std::to_string(*master_delay));
+    }
+
+    if (!auto_failover.is_null()) {
+      options.append(", SOURCE_CONNECTION_AUTO_FAILOVER=" +
+                     std::to_string(*auto_failover));
+    }
 
     instance->executef("CHANGE " + source_term_cmd +
                            " TO /*!80011 get_master_public_key=1, */"
@@ -214,6 +234,38 @@ void stop_replication_applier(mysqlshdk::mysql::IInstance *instance,
       "STOP " + mysqlshdk::mysql::get_replica_keyword(instance->get_version()) +
           " SQL_THREAD FOR CHANNEL ?",
       channel_name);
+}
+
+void change_replication_credentials(const mysqlshdk::mysql::IInstance &instance,
+                                    const std::string &rpl_user,
+                                    const std::string &rpl_pwd,
+                                    const std::string &repl_channel) {
+  std::string source_term_cmd =
+      mysqlshdk::mysql::get_replication_source_keyword(instance.get_version(),
+                                                       true);
+
+  std::string source_term =
+      mysqlshdk::mysql::get_replication_source_keyword(instance.get_version());
+
+  std::string change_master_stmt_fmt = "CHANGE " + source_term_cmd + " TO " +
+                                       source_term + "_USER = /*(*/ ? /*)*/, " +
+                                       source_term +
+                                       "_PASSWORD = /*((*/ ? /*))*/ "
+                                       "FOR CHANNEL ?";
+  shcore::sqlstring change_master_stmt =
+      shcore::sqlstring(change_master_stmt_fmt.c_str(), 0);
+  change_master_stmt << rpl_user;
+  change_master_stmt << rpl_pwd;
+  change_master_stmt << repl_channel;
+  change_master_stmt.done();
+
+  try {
+    instance.execute(change_master_stmt);
+  } catch (const std::exception &err) {
+    throw std::runtime_error{"Cannot set replication user to '" + rpl_user +
+                             "'. Error executing CHANGE " + source_term +
+                             " statement: " + err.what()};
+  }
 }
 
 }  // namespace mysql

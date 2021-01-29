@@ -23,7 +23,7 @@ one server failure.
 #@<OUT> Upgrades the metadata, no registered routers
 InnoDB Cluster Metadata Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.0.0.
+The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -34,19 +34,21 @@ NOTE: No automatically created Router accounts were found.
 WARNING: If MySQL Routers have been bootstrapped using custom accounts, their grants can not be updated during the metadata upgrade, they have to be updated using the setup_router_account function.
 For additional information use: \? setup_router_account
 
-Upgrading metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' from version 1.0.1 to version 2.0.0.
+Upgrading metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' from version 1.0.1 to version 2.1.0.
+Upgrade will require 2 steps
 Creating backup of the metadata schema...
-Step 1 of 1: upgrading from 1.0.1 to 2.0.0...
+Step 1 of 2: upgrading from 1.0.1 to 2.0.0...
+Step 2 of 2: upgrading from 2.0.0 to 2.1.0...
 Removing metadata backup...
-Upgrade process successfully finished, metadata schema is now on version 2.0.0
+Upgrade process successfully finished, metadata schema is now on version 2.1.0
 
 #@<OUT> Upgrades the metadata, up to date
-NOTE: Installed metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is up to date (version 2.0.0).
+NOTE: Installed metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is up to date (version 2.1.0).
 
 #@<OUT> Upgrades the metadata, interactive off, error
 InnoDB Cluster Metadata Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.0.0.
+The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -68,7 +70,7 @@ An upgrade of all cluster router instances is required. All router installations
 #@<OUT> Upgrades the metadata, upgrade done by unregistering 10 routers and no router accounts
 InnoDB Cluster Metadata Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.0.0.
+The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -102,16 +104,18 @@ There are 10 Routers to upgrade. Please upgrade them and select Continue once th
   3) Abort the operation.
   4) Help
 
-Please select an option: Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]: Upgrading metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' from version 1.0.1 to version 2.0.0.
+Please select an option: Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]: Upgrading metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' from version 1.0.1 to version 2.1.0.
+Upgrade will require 2 steps
 Creating backup of the metadata schema...
-Step 1 of 1: upgrading from 1.0.1 to 2.0.0...
+Step 1 of 2: upgrading from 1.0.1 to 2.0.0...
+Step 2 of 2: upgrading from 2.0.0 to 2.1.0...
 Removing metadata backup...
-Upgrade process successfully finished, metadata schema is now on version 2.0.0
+Upgrade process successfully finished, metadata schema is now on version 2.1.0
 
 #@<OUT> Upgrades the metadata, upgrade done by unregistering more than 10 routers with router accounts
 InnoDB Cluster Metadata Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.0.0.
+The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -146,16 +150,18 @@ There are 11 Routers to upgrade. Please upgrade them and select Continue once th
   3) Abort the operation.
   4) Help
 
-Please select an option: Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]: Upgrading metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' from version 1.0.1 to version 2.0.0.
+Please select an option: Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]: Upgrading metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' from version 1.0.1 to version 2.1.0.
+Upgrade will require 2 steps
 Creating backup of the metadata schema...
-Step 1 of 1: upgrading from 1.0.1 to 2.0.0...
+Step 1 of 2: upgrading from 1.0.1 to 2.0.0...
+Step 2 of 2: upgrading from 2.0.0 to 2.1.0...
 Removing metadata backup...
-Upgrade process successfully finished, metadata schema is now on version 2.0.0
+Upgrade process successfully finished, metadata schema is now on version 2.1.0
 
-#@<OUT> Test Migration from 1.0.1 to 2.0.0
+#@<OUT> Test Migration from 1.0.1 to 2.1.0
 InnoDB Cluster Metadata Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.0.0.
+The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -181,8 +187,10 @@ There is 1 Router to upgrade. Please upgrade it and select Continue once it is r
   3) Abort the operation.
   4) Help
 
-Please select an option: Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]: Upgrading metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' from version 1.0.1 to version 2.0.0.
+Please select an option: Unregistering a Router implies it will not be used in the Cluster, do you want to continue? [y/N]: Upgrading metadata at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' from version 1.0.1 to version 2.1.0.
+Upgrade will require 2 steps
 Creating backup of the metadata schema...
-Step 1 of 1: upgrading from 1.0.1 to 2.0.0...
+Step 1 of 2: upgrading from 1.0.1 to 2.0.0...
+Step 2 of 2: upgrading from 2.0.0 to 2.1.0...
 Removing metadata backup...
-Upgrade process successfully finished, metadata schema is now on version 2.0.0
+Upgrade process successfully finished, metadata schema is now on version 2.1.0

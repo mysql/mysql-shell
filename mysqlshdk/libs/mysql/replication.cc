@@ -487,8 +487,6 @@ bool get_channel_info(const mysqlshdk::mysql::IInstance &instance,
         channel_name);
     if (auto row = result->fetch_one_named()) {
       unserialize_channel_relay_log_info(row, out_relay_log_info);
-    } else {
-      return false;
     }
   }
 

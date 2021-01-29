@@ -170,6 +170,24 @@ cluster.help("resetRecoveryAccountsPassword")
 //@ resetRecoveryAccountsPassword, \help [USE:resetRecoveryAccountsPassword]
 \help cluster.resetRecoveryAccountsPassword
 
+//@ createClusterSet
+cluster.help("createClusterSet")
+
+//@ createClusterSet, \? [USE:createClusterSet]
+\? cluster.createClusterSet
+
+//@ createClusterSet, \help [USE:createClusterSet]
+\help cluster.createClusterSet
+
+//@ getClusterSet
+cluster.help("getClusterSet")
+
+//@ getClusterSet, \? [USE:getClusterSet]
+\? cluster.getClusterSet
+
+//@ getClusterSet, \help [USE:getClusterSet]
+\help cluster.getClusterSet
+
 //@<> Finalization
 cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);

@@ -2402,14 +2402,15 @@ bool Testutils::wait_member_transactions(int dest_port, int source_port) {
   // Must get the value of the 'gtid_executed' variable with GLOBAL scope to get
   // the GTID of ALL transactions, otherwise only a set of transactions written
   // to the cache in the current session might be returned.
-  std::string gtid_set = source->query("select @@global.gtid_executed")
-                             ->fetch_one()
-                             ->get_string(0);
+  std::string gtid_set =
+      source->query("SELECT REPLACE(@@GLOBAL.GTID_EXECUTED,'\n','')")
+          ->fetch_one()
+          ->get_string(0);
 
   std::shared_ptr<mysqlshdk::db::ISession> dest;
   dest = connect_to_sandbox(dest_port);
 
-  auto result = dest->queryf("select WAIT_FOR_EXECUTED_GTID_SET(?, ?)",
+  auto result = dest->queryf("SELECT WAIT_FOR_EXECUTED_GTID_SET(?, ?)",
                              gtid_set, k_wait_member_timeout);
   auto row = result->fetch_one();
   // NOTE: WAIT_FOR_EXECUTED_GTID_SET() does not return NULL like

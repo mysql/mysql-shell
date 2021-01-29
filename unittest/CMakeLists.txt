@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -66,9 +66,10 @@ if(WITH_TESTS)
         "${CMAKE_SOURCE_DIR}/unittest/*_t.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/test_utils/mocks/mysqlshdk/libs/*/*.cc"
+        "${CMAKE_SOURCE_DIR}/unittest/test_utils/mocks/modules/adminapi/common/*.cc"
         "${CMAKE_SOURCE_DIR}/unittest/*/*_t.cc")
 
-    set(mysqlsh_tests_SRC
+set(mysqlsh_tests_SRC
         ${mysqlsh_tests_SRC}
         "${PROJECT_SOURCE_DIR}/unittest/modules/mysql_connection_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/mod_utils_t.cc"
@@ -77,7 +78,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_common_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_cluster_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_sql_t.cc"
-        "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/mod_dba_preconditions_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/preconditions_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/common/clone_handling_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/adminapi/common/metadata_management_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/modules/devapi/mod_mysqlx_collection_find_t.cc"

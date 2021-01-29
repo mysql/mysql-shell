@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/cluster_set/api_options.h"
 #include "modules/adminapi/common/api_options.h"
 #include "modules/adminapi/common/async_replication_options.h"
 #include "modules/adminapi/common/clone_options.h"
@@ -120,6 +121,7 @@ struct Create_cluster_options : public Force_interactive_options {
   bool adopt_from_gr = false;
   mysqlshdk::null_bool multi_primary;
   mysqlshdk::null_bool clear_read_only;
+  bool dry_run = false;
 };
 
 struct Create_replicaset_options : public Interactive_option {

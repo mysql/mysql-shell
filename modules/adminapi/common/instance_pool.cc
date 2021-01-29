@@ -689,7 +689,7 @@ void Instance_pool::check_group_member(
   bool has_quorum;
 
   if (!mysqlshdk::gr::get_group_information(
-          instance, &member_state, out_member_id, out_group_name,
+          instance, &member_state, out_member_id, out_group_name, nullptr,
           out_single_primary_mode, &has_quorum, out_is_primary)) {
     throw shcore::Exception(
         "Group Replication is not running at instance " + instance.descr(),
@@ -883,10 +883,14 @@ std::shared_ptr<Instance> Instance_pool::try_connect_primary_through_member(
       // info from the candidate member
       members =
           mysqlshdk::gr::get_members(*instance, &single_primary, &has_quorum);
-    } catch (...) {
+    } catch (const std::exception &e) {
       instance->release();
-      throw;
+      throw shcore::Exception(
+          "Group replication does not seem to be active in instance '" +
+              instance->descr() + "': " + e.what() + ".",
+          SHERR_DBA_GROUP_REPLICATION_NOT_RUNNING);
     }
+
     if (has_quorum) {
       for (const auto &m : members) {
         if (m.uuid == member_uuid) {
@@ -1042,9 +1046,9 @@ std::shared_ptr<Instance_pool> current_ipool() {
   return g_ipool_storage.get();
 }
 
-void get_instance_lock_shared(const std::list<Scoped_instance> &instances,
-                              unsigned int timeout,
-                              const std::string &skip_uuid) {
+void get_instance_lock_shared(
+    const std::list<std::shared_ptr<Instance>> &instances, unsigned int timeout,
+    const std::string &skip_uuid) {
   shcore::Scoped_callback_list revert_list;
   bool skip_warn = false;
   for (const auto &instance : instances) {
@@ -1071,9 +1075,9 @@ void get_instance_lock_shared(const std::list<Scoped_instance> &instances,
   revert_list.cancel();
 }
 
-void get_instance_lock_exclusive(const std::list<Scoped_instance> &instances,
-                                 unsigned int timeout,
-                                 const std::string &skip_uuid) {
+void get_instance_lock_exclusive(
+    const std::list<std::shared_ptr<Instance>> &instances, unsigned int timeout,
+    const std::string &skip_uuid) {
   shcore::Scoped_callback_list revert_list;
   bool skip_warn = false;
   for (const auto &instance : instances) {
@@ -1100,8 +1104,9 @@ void get_instance_lock_exclusive(const std::list<Scoped_instance> &instances,
   revert_list.cancel();
 }
 
-void release_instance_lock(const std::list<Scoped_instance> &instances,
-                           const std::string &skip_uuid) {
+void release_instance_lock(
+    const std::list<std::shared_ptr<Instance>> &instances,
+    const std::string &skip_uuid) {
   for (const auto &instance : instances) {
     // Skip the instance with the given UUID (if not empty).
     if (!skip_uuid.empty() && instance->get_uuid() == skip_uuid) {

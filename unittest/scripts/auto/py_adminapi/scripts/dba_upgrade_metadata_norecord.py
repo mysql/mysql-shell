@@ -92,7 +92,7 @@ EXPECT_STDOUT_CONTAINS("GRANT SELECT ON `performance_schema`.`global_variables`"
 EXPECT_STDOUT_CONTAINS("GRANT SELECT ON `performance_schema`.`replication_group_member_stats`")
 EXPECT_STDOUT_CONTAINS("GRANT SELECT ON `performance_schema`.`replication_group_members`")
 
-#@ Test Migration from 1.0.1 to 2.0.0
+#@ Test Migration from 1.0.1 to 2.1.0
 set_metadata_1_0_1()
 test_session = mysql.get_session(__sandbox_uri1)
 

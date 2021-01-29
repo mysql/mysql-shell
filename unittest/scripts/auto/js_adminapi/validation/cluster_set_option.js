@@ -19,9 +19,9 @@ Cluster.setOption: There is no quorum to perform the operation (MYSQLSH 51011)
 ||
 
 //@ WL#11465: setOption clusterName with invalid value for cluster-name
-||Cluster name may only contain alphanumeric characters or '_', and may not start with a number (0_a)
-||_1234567890::_1234567890123456789012345678901: The Cluster name can not be greater than 40 characters. (ArgumentError)
-||Cluster name may only contain alphanumeric characters or '_', and may not start with a number (::) (ArgumentError)
+||Cluster name may only contain alphanumeric characters, '_', '-', or '.' and may not start with a number (0_a)
+||_1234567890::_1234567890123456789012345678901234567890123456789012345678901234: The Cluster name can not be greater than 63 characters. (ArgumentError)
+||Cluster name may only contain alphanumeric characters, '_', '-', or '.' and may not start with a number (::) (ArgumentError)
 
 //@<OUT> WL#11465: setOption clusterName
 Setting the value of 'clusterName' to 'newName' in the Cluster ...

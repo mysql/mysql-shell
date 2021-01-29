@@ -260,7 +260,7 @@
 
 //@ SP - Connect with --replicaset, expect error {VER(>8.0.0)}
 |Option --replicaset requires a session to a member of an InnoDB ReplicaSet.|
-|This function is not available through a session to an instance already in an InnoDB cluster|
+|This function is not available through a session to an instance already in an InnoDB Cluster|
 
 //@ SP - Connect with --replicaset, expect error {VER(<8.0.0)}
 |Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is |
@@ -284,7 +284,7 @@
 //@ SP - Connect with --replicaset + --redirect-primary 1, expect error {VER(>8.0.0)}
 |NOTE: --redirect-primary ignored because target is already a PRIMARY|
 |Option --replicaset requires a session to a member of an InnoDB ReplicaSet.|
-|This function is not available through a session to an instance already in an InnoDB cluster|
+|This function is not available through a session to an instance already in an InnoDB Cluster|
 
 //@ SP - Connect with --replicaset + --redirect-primary 1, expect error {VER(<8.0.0)}
 |Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is |
@@ -292,7 +292,7 @@
 //@ SP - Connect with --replicaset + --redirect-primary 2, expect error {VER(>8.0.0)}
 |Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port1>>>)...|
 |Option --replicaset requires a session to a member of an InnoDB ReplicaSet.|
-|This function is not available through a session to an instance already in an InnoDB cluster|
+|This function is not available through a session to an instance already in an InnoDB Cluster|
 
 //@ SP - Connect with --replicaset + --redirect-primary 2, expect error {VER(<8.0.0)}
 |Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is |
@@ -300,7 +300,7 @@
 //@ SP - Connect with --replicaset + --redirect-secondary 1, expect error {VER(>8.0.0)}
 |Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_port2>>>)...|
 |Option --replicaset requires a session to a member of an InnoDB ReplicaSet.|
-|This function is not available through a session to an instance already in an InnoDB cluster|
+|This function is not available through a session to an instance already in an InnoDB Cluster|
 
 //@ SP - Connect with --replicaset + --redirect-secondary 1, expect error {VER(<8.0.0)}
 |Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is |
@@ -308,7 +308,7 @@
 //@ SP - Connect with --replicaset + --redirect-secondary 2, expect error {VER(>8.0.0)}
 |NOTE: --redirect-secondary ignored because target is already a SECONDARY|
 |Option --replicaset requires a session to a member of an InnoDB ReplicaSet.|
-|This function is not available through a session to an instance already in an InnoDB cluster|
+|This function is not available through a session to an instance already in an InnoDB Cluster|
 
 //@ SP - Connect with --replicaset + --redirect-secondary 2, expect error {VER(<8.0.0)}
 |Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is |
@@ -345,7 +345,7 @@
 //@ SPX - Connect with --replicaset + --redirect-primary 2, expect error {VER(>8.0.0)}
 |Reconnecting to the PRIMARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_x_port1>>>)...|
 |Option --replicaset requires a session to a member of an InnoDB ReplicaSet.|
-|This function is not available through a session to an instance already in an InnoDB cluster|
+|This function is not available through a session to an instance already in an InnoDB Cluster|
 
 //@ SPX - Connect with --replicaset + --redirect-primary 2, expect error {VER(<8.0.0)}
 |Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is |
@@ -353,7 +353,7 @@
 //@ SPX - Connect with --replicaset + --redirect-secondary 1, expect error {VER(>8.0.0)}
 |Reconnecting to the SECONDARY instance of an InnoDB cluster (<<<hostname>>>:<<<__mysql_sandbox_x_port2>>>)...|
 |Option --replicaset requires a session to a member of an InnoDB ReplicaSet.|
-|This function is not available through a session to an instance already in an InnoDB cluster|
+|This function is not available through a session to an instance already in an InnoDB Cluster|
 
 //@ SPX - Connect with --replicaset + --redirect-secondary 1, expect error {VER(<8.0.0)}
 |Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is |

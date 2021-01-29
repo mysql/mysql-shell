@@ -752,16 +752,24 @@ function EXPECT_ARRAY_NOT_CONTAINS(expected, actual) {
   }
 }
 
-function EXPECT_TRUE(value) {
+function EXPECT_TRUE(value, note) {
+  if (note === undefined)
+    note = "";
+  else
+    note = ": "+note;
   if (!value) {
-    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested value expected to be true but is false</red>";
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested value expected to be true but is false</red>"+note;
     testutil.fail(context);
   }
 }
 
-function EXPECT_FALSE(value) {
+function EXPECT_FALSE(value, note) {
+  if (note === undefined)
+    note = "";
+  else
+    note = ": "+note;
   if (value) {
-    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested value expected to be false but is true</red>";
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested value expected to be false but is true</red>"+note;
     testutil.fail(context);
   }
 }

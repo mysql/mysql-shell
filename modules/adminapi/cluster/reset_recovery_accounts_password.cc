@@ -169,7 +169,7 @@ shcore::Value Reset_recovery_accounts_password::execute() {
   auto console = mysqlsh::current_console();
   std::string user;
   std::vector<std::string> hosts;
-  std::string primary_rpr = m_cluster.get_target_server()->descr();
+  std::string primary_rpr = m_cluster.get_cluster_server()->descr();
 
   for (const auto &instance : m_online_instances) {
     std::string instance_repr = instance->descr();
@@ -197,7 +197,7 @@ shcore::Value Reset_recovery_accounts_password::execute() {
     for (const auto &host : hosts) {
       log_debug("Changing the password for recovery user '%s'@'%s' on '%s'",
                 user.c_str(), host.c_str(), primary_rpr.c_str());
-      m_cluster.get_target_server()->set_user_password(user, host, password);
+      m_cluster.get_cluster_server()->set_user_password(user, host, password);
     }
 
     // do a change master on the instance to user the new replication account

@@ -48,7 +48,7 @@ class Configure_local_instance : public Configure_instance {
   shcore::Value execute() override;
 
  private:
-  InstanceType::Type m_instance_type;
+  TargetType::Type m_instance_type;
 };
 
 }  // namespace dba

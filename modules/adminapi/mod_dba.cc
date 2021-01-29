@@ -53,8 +53,6 @@
 #include "modules/adminapi/dba/create_cluster.h"
 #include "modules/adminapi/dba/upgrade_metadata.h"
 #include "modules/adminapi/dba_utils.h"
-#include "modules/adminapi/mod_dba_cluster.h"
-#include "modules/adminapi/mod_dba_replica_set.h"
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_shell.h"
 #include "modules/mod_utils.h"
@@ -434,9 +432,12 @@ For more information about the <b>dba</b> object use: \\? dba
 
 In the AdminAPI, an InnoDB cluster is represented as an instance of the
 <b>Cluster</b> class, while replicasets are represented as an instance
-of the <b>ReplicaSet</b> class.
+of the <b>ReplicaSet</b> class, and ClusterSets are represented as an
+instance of the <b>ClusterSet</b> class.
 
 For more information about the <b>Cluster</b> class use: \\? Cluster
+
+For more information about the <b>ClusterSet</b> class use: \\? ClusterSet
 
 For more information about the <b>ReplicaSet</b> class use: \\? ReplicaSet
 
@@ -607,6 +608,7 @@ void Dba::init() {
   expose("createReplicaSet", &Dba::create_replica_set, "name", "?options")
       ->cli();
   expose("getReplicaSet", &Dba::get_replica_set)->cli(false);
+  expose("getClusterSet", &Dba::get_cluster_set)->cli(false);
 }
 
 void Dba::set_member(const std::string &prop, shcore::Value value) {
@@ -716,10 +718,11 @@ void Dba::connect_to_target_group(
     target_member = connect_to_target_member();
     owns_target_member_session = true;
   }
-  if (!target_member)
+  if (!target_member) {
     throw shcore::Exception::logic_error(
         "The shell must be connected to a member of the InnoDB cluster being "
         "managed");
+  }
 
   if (connect_to_primary) {
     std::string primary_uri = find_primary_member_uri(target_member, false);
@@ -772,9 +775,102 @@ void Dba::connect_to_target_group(
 
   if (out_group_server) *out_group_server = target_member;
 
-  // Metadata is always stored in the group, so for now the session can be
-  // shared
-  if (out_metadata) out_metadata->reset(new MetadataStorage(target_member));
+  // Check if the metadataStorage doesn't have an open session and create it if
+  // necessary
+  if (out_metadata &&
+      (!out_metadata->get() || !out_metadata->get()->is_valid())) {
+    *out_metadata = std::make_shared<MetadataStorage>(target_member);
+  }
+
+  // Check if we need to reset the MetadataStorage to use the Primary member
+  bool is_md_connected_to_primary =
+      out_metadata->get()->get_md_server()->get_connection_options().as_uri() ==
+      target_member->get_connection_options().as_uri();
+
+  if (connect_to_primary && !is_md_connected_to_primary) {
+    *out_metadata = std::make_shared<MetadataStorage>(target_member);
+  }
+
+  // Check if the target instance has MD schema
+  mysqlshdk::utils::Version md_version;
+  bool has_md_schema = out_metadata->get()->check_version(&md_version);
+
+  // Check if the target member belongs to a ClusterSet and get the connection
+  // to the primary instance of the primary cluster
+  if (out_metadata && has_md_schema &&
+      md_version >= mysqlshdk::utils::Version(2, 1, 0)) {
+    Cluster_metadata cluster_md;
+    out_metadata->get()->get_cluster_for_server_uuid(target_member->get_uuid(),
+                                                     &cluster_md);
+
+    // IF the cluster is part of a ClusterSet
+    // Get the primary cluster
+    if (!cluster_md.cluster_set_id.empty() && connect_to_primary) {
+      std::vector<Cluster_set_member_metadata> cs_members;
+      Cluster_metadata primary_cluster;
+      if (!out_metadata->get()->get_cluster_set(cluster_md.cluster_set_id,
+                                                nullptr, &cs_members)) {
+        throw std::runtime_error("Metadata not found");
+      }
+
+      for (const auto &m : cs_members) {
+        if (m.primary_cluster) {
+          primary_cluster = m.cluster;
+          break;
+        }
+      }
+
+      // Check if the MD server we're connected to is the PRIMARY Cluster.
+      // If not, we need to establish a session to the primary member of the
+      // PRIMARY cluster
+      if (out_metadata->get()->get_md_server()->get_group_name() !=
+          primary_cluster.group_name) {
+        Scoped_instance_pool ipool(
+            *out_metadata, current_shell_options()->get().wizards,
+            Instance_pool::Auth_options(
+                target_member->get_connection_options()));
+
+        try {
+          std::shared_ptr<Instance> primary_instance(
+              ipool->connect_group_primary(primary_cluster.group_name));
+
+          primary_instance->steal();
+
+          out_metadata->reset(new MetadataStorage(primary_instance));
+        } catch (const shcore::Exception &e) {
+          auto console = current_console();
+          log_error(
+              "Could not connect to any member of the PRIMARY Cluster: %s",
+              e.what());
+
+          if (e.code() == SHERR_DBA_GROUP_HAS_NO_PRIMARY ||
+              e.code() == SHERR_DBA_GROUP_REPLICATION_NOT_RUNNING) {
+            console->print_warning(
+                "Could not connect to any member of PRIMARY Cluster '" +
+                primary_cluster.cluster_name +
+                "', topology changes will not be allowed on the InnoDB Cluster "
+                "'" +
+                cluster_md.cluster_name + "'");
+          } else if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
+            console->print_warning("The PRIMARY Cluster '" +
+                                   primary_cluster.cluster_name +
+                                   "' lost the quorum, topology changes will "
+                                   "not be allowed on the InnoDB Cluster "
+                                   "'" +
+                                   cluster_md.cluster_name + "'");
+            console->print_note(
+                "To restore the Cluster and ClusterSet operations, restore the "
+                "quorum on the PRIMARY Cluster using "
+                "<<<forceQuorumUsingPartitionOf>>>()");
+          } else {
+            throw;
+          }
+        } catch (const mysqlshdk::db::Error &) {
+          throw;
+        }
+      }
+    }
+  }
 }
 
 std::shared_ptr<mysqlshdk::db::ISession> Dba::get_active_shell_session() const {
@@ -817,15 +913,19 @@ Cluster Dba::get_cluster(str name, dict options) {}
 std::shared_ptr<Cluster> Dba::get_cluster(
     const mysqlshdk::null_string &cluster_name,
     const shcore::Dictionary_t &options) const {
-  // TODO(alfredo) - suggest running dba.diagnose() in case it's a dead
-  // cluster that needs reboot
   try {
     bool connect_to_primary = true;
     bool fallback_to_anything = true;
 
     auto target_member = connect_to_target_member();
 
-    check_function_preconditions("Dba.getCluster", target_member);
+    std::shared_ptr<MetadataStorage> metadata;
+
+    if (target_member) {
+      metadata = std::make_shared<MetadataStorage>(target_member);
+    }
+
+    check_function_preconditions("Dba.getCluster", metadata, target_member);
 
     if (options) {
       Unpack_options(options)
@@ -835,7 +935,6 @@ std::shared_ptr<Cluster> Dba::get_cluster(
       if (options->has_key("connectToPrimary")) fallback_to_anything = false;
     }
 
-    std::shared_ptr<MetadataStorage> metadata;
     std::shared_ptr<Instance> group_server;
     auto console = mysqlsh::current_console();
 
@@ -866,6 +965,10 @@ std::shared_ptr<Cluster> Dba::get_cluster(
         throw;
       }
     }
+
+    Scoped_instance_pool ipool(
+        metadata, current_shell_options()->get().wizards,
+        Instance_pool::Auth_options(group_server->get_connection_options()));
 
     if (current_shell_options()->get().wizards) {
       auto state = get_cluster_check_info(*metadata);
@@ -910,7 +1013,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
 
 std::shared_ptr<Cluster> Dba::get_cluster(
     const char *name, std::shared_ptr<MetadataStorage> metadata,
-    std::shared_ptr<Instance> group_server) const {
+    std::shared_ptr<Instance> group_server, bool reboot_cluster) const {
   Cluster_metadata target_cm;
   Cluster_metadata group_server_cm;
 
@@ -933,11 +1036,25 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     }
   }
 
+  // check whether the instance we're connected to is a member of the named
+  // group, otherwise connect to one
+  if ((target_cm.group_name != group_server->get_group_name()) &&
+      !reboot_cluster) {
+    log_debug(
+        "Target instance %s not a member of %s, opening new connection...",
+        group_server->descr().c_str(), target_cm.cluster_name.c_str());
+
+    auto ipool = current_ipool();
+    group_server = ipool->connect_group_member(target_cm.group_name);
+    metadata = std::make_shared<MetadataStorage>(group_server);
+    group_server->steal();
+  }
+
   auto cluster =
       std::make_shared<Cluster_impl>(target_cm, group_server, metadata);
 
   // Verify if the current session instance group_replication_group_name
-  // value differs from the one registered in the Metadata
+  // value differs from the one registered in the Metadata for that instance
   if (!validate_cluster_group_name(*group_server, cluster->get_group_name())) {
     std::string nice_error =
         "Unable to get an InnoDB cluster handle. "
@@ -1124,8 +1241,8 @@ shcore::Value Dba::create_cluster(
     const shcore::Option_pack_ref<Create_cluster_options> &options) {
   std::string instance_label;
 
-  std::shared_ptr<MetadataStorage> metadata;
   std::shared_ptr<Instance> group_server;
+  std::shared_ptr<MetadataStorage> metadata;
 
   // We're in createCluster(), so there's no metadata yet, but the metadata
   // object can already exist now to hold a session
@@ -1137,17 +1254,16 @@ shcore::Value Dba::create_cluster(
   // Check preconditions.
   Cluster_check_info state;
   try {
-    state = check_function_preconditions("Dba.createCluster", group_server);
+    state = check_function_preconditions("Dba.createCluster", metadata,
+                                         group_server);
   } catch (const shcore::Exception &e) {
-    std::string error(e.what());
-    if (error.find("already in an InnoDB cluster") != std::string::npos) {
+    if (e.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER) {
       /*
        * For V1.0 we only support one single Cluster. That one shall be the
        * default Cluster. We must check if there's already a Default Cluster
        * assigned, and if so thrown an exception. And we must check if there's
        * already one Cluster on the MD and if so assign it to Default
        */
-
       std::string nice_error =
           get_function_name("createCluster") +
           ": Unable to create cluster. The instance '" + group_server->descr() +
@@ -1155,8 +1271,7 @@ shcore::Value Dba::create_cluster(
           "dba." +
           get_function_name("getCluster", false) + "() to access it.";
       throw shcore::Exception::runtime_error(nice_error);
-    } else if (error.find("instance belongs to that metadata") !=
-               std::string::npos) {
+    } else if (e.code() == SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE) {
       // BUG#29271400:
       // createCluster() should not be allowed in instance with metadata
       std::string nice_error =
@@ -1220,8 +1335,14 @@ None Dba::drop_metadata_schema(dict options) {}
 void Dba::drop_metadata_schema(
     const shcore::Option_pack_ref<Drop_metadata_schema_options> &options) {
   auto instance = connect_to_target_member();
-  auto state = check_function_preconditions("Dba.dropMetadataSchema", instance);
-  auto metadata = std::make_shared<MetadataStorage>(instance);
+  std::shared_ptr<MetadataStorage> metadata;
+
+  if (instance) {
+    metadata = std::make_shared<MetadataStorage>(instance);
+  }
+
+  auto state = check_function_preconditions("Dba.dropMetadataSchema", metadata,
+                                            instance);
 
   bool interactive = current_shell_options()->get().wizards;
 
@@ -1229,7 +1350,7 @@ void Dba::drop_metadata_schema(
   // Replica Set, and only for online members that are either RW or RO, however
   // if it is RO we need to get to a primary instance to perform the operation
   if (state.source_state == ManagedInstance::OnlineRO) {
-    if (state.source_type == InstanceType::InnoDBCluster) {
+    if (state.source_type == TargetType::InnoDBCluster) {
       connect_to_target_group({}, &metadata, nullptr, true);
     } else {
       Instance_pool::Auth_options auth_opts;
@@ -1355,6 +1476,7 @@ shcore::Value Dba::check_instance_configuration(
 
   shcore::Value ret_val;
   std::shared_ptr<Instance> instance;
+  std::shared_ptr<MetadataStorage> metadata;
 
   // Establish the session to the target instance
   if (has_co) {
@@ -1363,7 +1485,12 @@ shcore::Value Dba::check_instance_configuration(
     instance = connect_to_target_member();
   }
 
-  check_preconditions(instance, "checkInstanceConfiguration");
+  if (instance) {
+    metadata = std::make_shared<MetadataStorage>(instance);
+  }
+
+  check_function_preconditions("Dba.checkInstanceConfiguration", metadata,
+                               instance);
 
   // Get the Connection_options
   Connection_options coptions = instance->get_connection_options();
@@ -1409,11 +1536,15 @@ ReplicaSet Dba::get_replica_set() {}
 std::shared_ptr<ReplicaSet> Dba::get_replica_set() {
   const auto console = mysqlsh::current_console();
   const auto target_server = connect_to_target_member();
+  std::shared_ptr<MetadataStorage> metadata;
 
-  check_function_preconditions("Dba.getReplicaSet", target_server);
+  if (target_server) {
+    metadata = std::make_shared<MetadataStorage>(target_server);
+  }
 
-  const auto rs = get_replica_set(
-      std::make_shared<MetadataStorage>(target_server), target_server);
+  check_function_preconditions("Dba.getReplicaSet", metadata, target_server);
+
+  const auto rs = get_replica_set(metadata, target_server);
 
   console->print_info("You are connected to a member of replicaset '" +
                       rs->get_name() + "'.");
@@ -1424,8 +1555,6 @@ std::shared_ptr<ReplicaSet> Dba::get_replica_set() {
 std::shared_ptr<Replica_set_impl> Dba::get_replica_set(
     const std::shared_ptr<MetadataStorage> &metadata,
     const std::shared_ptr<Instance> &target_server) {
-  auto console = mysqlsh::current_console();
-
   Cluster_metadata target_server_cm;
 
   if (!metadata->get_cluster_for_server_uuid(target_server->get_uuid(),
@@ -1537,8 +1666,15 @@ shcore::Value Dba::create_replica_set(
       Global_topology_type::SINGLE_PRIMARY_TREE;
 
   std::shared_ptr<Instance> target_server = connect_to_target_member();
+  std::shared_ptr<MetadataStorage> metadata;
+
+  if (target_server) {
+    metadata = std::make_shared<MetadataStorage>(target_server);
+  }
+
   try {
-    check_function_preconditions("Dba.createReplicaSet", target_server);
+    check_function_preconditions("Dba.createReplicaSet", metadata,
+                                 target_server);
   } catch (const shcore::Exception &e) {
     if (e.code() == SHERR_DBA_BADARG_INSTANCE_MANAGED_IN_CLUSTER) {
       throw shcore::Exception("Unable to create replicaset. The instance '" +
@@ -1575,6 +1711,70 @@ shcore::Value Dba::create_replica_set(
 
   return shcore::Value(std::make_shared<ReplicaSet>(cluster));
 }
+
+REGISTER_HELP_FUNCTION(getClusterSet, dba);
+REGISTER_HELP_FUNCTION_TEXT(DBA_GETCLUSTERSET, R"*(
+Returns an object representing a ClusterSet.
+
+@returns The ClusterSet object to which the current session belongs to.
+
+The returned object is identical to the one returned by
+<<<createClusterSet>>>() and can be used to manage the ClusterSet.
+
+The function will work regardless of whether the active session is established
+to an instance that belongs to a PRIMARY or a REPLICA Cluster, but its copy of
+the metadata is expected to be up-to-date.
+
+This function will also work if the PRIMARY Cluster is unreachable or
+unavailable, although ClusterSet change operations will not be possible, except
+for failover with <<<forcePrimaryCluster>>>().
+)*");
+/**
+ * $(DBA_GETCLUSTERSET_BRIEF)
+ *
+ * $(DBA_GETCLUSTERSET)
+ */
+#if DOXYGEN_JS
+ReplicaSet Dba::getClusterSet() {}
+#elif DOXYGEN_PY
+ReplicaSet Dba::get_cluster_set() {}
+#endif
+std::shared_ptr<ClusterSet> Dba::get_cluster_set() {
+  const auto target_server = connect_to_target_member();
+
+  std::shared_ptr<MetadataStorage> metadata;
+
+  if (target_server) {
+    metadata = std::make_shared<MetadataStorage>(target_server);
+  }
+
+  check_function_preconditions("Dba.getClusterSet", metadata, target_server);
+
+  // Validate if the target instance is a member of an InnoDB Cluster
+  Cluster_metadata cluster_md;
+  if (!metadata->get_cluster_for_server_uuid(target_server->get_uuid(),
+                                             &cluster_md)) {
+    throw shcore::Exception("No metadata found for " + target_server->descr() +
+                                " (" + target_server->get_uuid() + ")",
+                            SHERR_DBA_METADATA_MISSING);
+  }
+
+  auto cluster =
+      get_cluster(cluster_md.cluster_name.c_str(), metadata, target_server);
+
+  // Check if the target Cluster is invalidated
+  if (cluster->impl()->is_invalidated()) {
+    mysqlsh::current_console()->print_warning(
+        "Cluster '" + cluster->impl()->get_name() +
+        "' was INVALIDATED and must be removed from the ClusterSet.");
+  }
+
+  auto cs = cluster->impl()->get_cluster_set(true);
+
+  return std::make_shared<mysqlsh::dba::ClusterSet>(cs);
+}
+
+// -----
 
 void Dba::exec_instance_op(const std::string &function, int port,
                            const std::string &sandbox_dir,
@@ -1988,6 +2188,7 @@ void Dba::do_configure_instance(
   }
 
   std::shared_ptr<Instance> target_instance;
+  std::shared_ptr<MetadataStorage> metadata;
 
   Cluster_check_info state;
 
@@ -1999,14 +2200,18 @@ void Dba::do_configure_instance(
     target_instance = connect_to_target_member();
   }
 
+  if (target_instance) {
+    metadata = std::make_shared<MetadataStorage>(target_instance);
+  }
+
   // Check the function preconditions
   if (options.cluster_type == Cluster_type::ASYNC_REPLICATION) {
     state = check_function_preconditions("Dba.configureReplicaSetInstance",
-                                         target_instance);
+                                         metadata, target_instance);
   } else {
     state = check_function_preconditions(
         options.local ? "Dba.configureLocalInstance" : "Dba.configureInstance",
-        target_instance);
+        metadata, target_instance);
   }
 
   auto warnings_callback = [](const std::string &sql, int code,
@@ -2310,7 +2515,8 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   // thus this instance will be used as the primary
   connect_to_target_group({}, &metadata, &target_instance, false);
 
-  check_preconditions(metadata, "rebootClusterFromCompleteOutage");
+  check_function_preconditions("Dba.rebootClusterFromCompleteOutage", metadata,
+                               target_instance);
 
   std::string instance_session_address;
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
@@ -2417,7 +2623,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
   try {
     cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
-                          metadata, target_instance);
+                          metadata, target_instance, true);
   } catch (const shcore::Error &e) {
     // If the GR plugin is not installed, we can get this error.
     // In that case, we install the GR plugin and retry.
@@ -2429,7 +2635,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
                                                       nullptr);
 
       cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
-                            metadata, target_instance);
+                            metadata, target_instance, true);
     } else {
       throw;
     }
@@ -2674,27 +2880,6 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   return cluster;
 }
 
-Cluster_check_info Dba::check_preconditions(
-    std::shared_ptr<Instance> target_instance,
-    const std::string &function_name) const {
-  try {
-    return check_function_preconditions("Dba." + function_name,
-                                        target_instance);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
-  return Cluster_check_info{};
-}
-
-Cluster_check_info Dba::check_preconditions(
-    std::shared_ptr<MetadataStorage> metadata,
-    const std::string &function_name) const {
-  try {
-    return check_function_preconditions("Dba." + function_name, metadata);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(function_name));
-  return Cluster_check_info{};
-}
-
 static void validate_instance_belongs_to_cluster(
     const mysqlshdk::mysql::IInstance &instance,
     const std::string & /* gr_group_name */,
@@ -2705,12 +2890,12 @@ static void validate_instance_belongs_to_cluster(
   // option like update_mismatched_group_name to be set to ignore the
   // validation error and adopt the new group name
 
-  InstanceType::Type type = get_gr_instance_type(instance);
+  TargetType::Type type = get_gr_instance_type(instance);
 
   std::string member_session_address = instance.descr();
 
   switch (type) {
-    case InstanceType::InnoDBCluster: {
+    case TargetType::InnoDBCluster: {
       std::string err_msg = "The MySQL instance '" + member_session_address +
                             "' belongs to an InnoDB Cluster and is reachable.";
       // Check if quorum is lost to add additional instructions to users.
@@ -2721,21 +2906,26 @@ static void validate_instance_belongs_to_cluster(
       throw shcore::Exception::runtime_error(err_msg);
     }
 
-    case InstanceType::GroupReplication:
+    case TargetType::GroupReplication:
       throw shcore::Exception::runtime_error(
           "The MySQL instance '" + member_session_address +
           "' belongs to a GR group that is not managed as an "
           "InnoDB cluster. ");
 
-    case InstanceType::AsyncReplicaSet:
+    case TargetType::AsyncReplicaSet:
       throw shcore::Exception::runtime_error(
           "The MySQL instance '" + member_session_address +
           "' belongs to an InnoDB ReplicaSet. ");
 
-    case InstanceType::Standalone:
-    case InstanceType::StandaloneWithMetadata:
-    case InstanceType::StandaloneInMetadata:
-    case InstanceType::Unknown:
+    case TargetType::InnoDBClusterSet:
+      throw shcore::Exception::runtime_error(
+          "The MySQL instance '" + member_session_address +
+          "' belongs to an InnoDB ClusterSet. ");
+
+    case TargetType::Standalone:
+    case TargetType::StandaloneWithMetadata:
+    case TargetType::StandaloneInMetadata:
+    case TargetType::Unknown:
       // We only want to check whether the status if InnoDBCluster or
       // GroupReplication to stop and thrown an exception
       break;
@@ -2959,9 +3149,14 @@ None Dba::upgrade_metadata(dict options) {}
 void Dba::upgrade_metadata(
     const shcore::Option_pack_ref<Upgrade_metadata_options> &options) {
   auto instance = connect_to_target_member();
+  std::shared_ptr<MetadataStorage> metadata;
 
-  auto state = check_function_preconditions("Dba.upgradeMetadata", instance);
-  auto metadata = std::make_shared<MetadataStorage>(instance);
+  if (instance) {
+    metadata = std::make_shared<MetadataStorage>(instance);
+  }
+
+  auto state =
+      check_function_preconditions("Dba.upgradeMetadata", metadata, instance);
 
   // The pool is initialized with the metadata using the current session
   Instance_pool::Auth_options auth_opts;
@@ -2972,7 +3167,7 @@ void Dba::upgrade_metadata(
   // If it happens we are on a RO instance, we update the metadata to make it
   // use a session to the PRIMARY of the IDC/RSET
   if (state.source_state == ManagedInstance::OnlineRO) {
-    if (state.source_type == InstanceType::InnoDBCluster) {
+    if (state.source_type == TargetType::InnoDBCluster) {
       connect_to_target_group({}, &metadata, nullptr, true);
     } else {
       auto rs = get_replica_set(metadata, instance);

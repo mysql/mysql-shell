@@ -14,7 +14,7 @@
 //@# Dba_preconditions_standalone, create_cluster_succeeds
 // Create Cluster is allowed on standalone instance, the precondition
 // validation passes
-||Cluster name may only contain alphanumeric characters or '_', and may not start with a number
+||Cluster name may only contain alphanumeric characters, '_', '-', or '.' and may not start with a number (1nvalidName)
 
 
 //@# Dba_preconditions_standalone, drop_metadata_schema_fails
@@ -43,7 +43,7 @@
 //@# Dba_preconditions_unmanaged_gr, create_cluster_fails
 // Create Cluster is allowed on standalone instance, the precondition
 // validation passes
-||Cluster name may only contain alphanumeric characters or '_', and may not start with a number
+||Cluster name may only contain alphanumeric characters, '_', '-', or '.' and may not start with a number (1nvalidName)
 
 //@# Dba_preconditions_unmanaged_gr, create_cluster_adopt_needed
 ||Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true (MYSQLSH 51315)
@@ -73,7 +73,7 @@
 ||This function is not available through a session to a standalone instance (metadata exists, instance does not belong to that metadata, and GR is not active)
 
 //@ Dba_preconditions_standalone_with_metadata, create_cluster_succeeds
-||Cluster name may only contain alphanumeric characters or '_', and may not start with a number
+||Cluster name may only contain alphanumeric characters, '_', '-', or '.' and may not start with a number (1nvalidName)
 
 //@ Dba_preconditions_standalone_with_metadata, reboot_cluster_from_complete_outage_fails
 ||This function is not available through a session to a standalone instance (metadata exists, instance does not belong to that metadata, and GR is not active)

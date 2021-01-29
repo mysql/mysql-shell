@@ -502,7 +502,7 @@ std::list<const Node *> Server_global_topology::get_slave_nodes(
 }
 
 const topology::Server *Server_global_topology::find_failover_candidate(
-    const std::list<Scoped_instance> &candidates) const {
+    const std::list<std::shared_ptr<dba::Instance>> &candidates) const {
   size_t best_gtid_set_size = 0;
   const topology::Server *best_server = nullptr;
   auto console = current_console();
@@ -513,7 +513,7 @@ const topology::Server *Server_global_topology::find_failover_candidate(
     // NOTE: Use the current (up-to-date) GTID_EXECUTED set and not the one
     //       "cached" by the Server_global_topology object which might not
     //       include the GTIDs applied from the relay log during the operation.
-    std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(c);
+    std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*c);
 
     if (!gtid_set.empty()) {
       console->print_info(g->label + " has GTID set " + gtid_set);

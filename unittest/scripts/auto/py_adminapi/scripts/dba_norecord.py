@@ -10,6 +10,7 @@ validate_members(dba, [
     'deploy_sandbox_instance',
     'drop_metadata_schema',
     'get_cluster',
+    'get_cluster_set',
     'get_replica_set',
     'help',
     'kill_sandbox_instance',

@@ -62,21 +62,23 @@ extern mysqlshdk::db::replay::Mode g_test_recording_mode;
     }                                                                  \
   }
 
-#define EXPECT_THROW_LIKE(expr, exc, msg)                                     \
-  try {                                                                       \
-    expr;                                                                     \
-    ADD_FAILURE() << "Expected exception of type " #exc << " but got none\n"; \
-  } catch (exc & e) {                                                         \
-    if (std::string(e.what()).find(msg) == std::string::npos) {               \
-      ADD_FAILURE() << "Expected exception with message: " << msg             \
-                    << "\nbut got: " << e.what() << "\n";                     \
-    }                                                                         \
-  } catch (std::exception & e) {                                              \
-    ADD_FAILURE() << "Expected exception of type " #exc << " but got "        \
-                  << typeid(e).name() << ": " << e.what() << "\n";            \
-  } catch (...) {                                                             \
-    ADD_FAILURE() << "Expected exception of type " #exc                       \
-                  << " but got another\n";                                    \
+#define EXPECT_THROW_LIKE(expr, exc, msg)                                 \
+  try {                                                                   \
+    expr;                                                                 \
+    ADD_FAILURE() << "Expected exception of type " #exc                   \
+                  << "\nwith message: " << msg << "\nbut got none\n";     \
+  } catch (exc & e) {                                                     \
+    if (std::string(e.what()).find(msg) == std::string::npos) {           \
+      ADD_FAILURE() << "Expected exception with message: " << msg         \
+                    << "\nbut got: " << e.what() << "\n";                 \
+    }                                                                     \
+  } catch (std::exception & e) {                                          \
+    ADD_FAILURE() << "Expected exception of type " #exc                   \
+                  << "\nwith message: " << msg << "\nbut got "            \
+                  << typeid(e).name() << ": " << e.what() << "\n";        \
+  } catch (...) {                                                         \
+    ADD_FAILURE() << "Expected exception of type " #exc                   \
+                  << "\n with message: " << msg << "\nbut got another\n"; \
   }
 
 #define EXPECT_EXECUTE_CALL(obj, query) \

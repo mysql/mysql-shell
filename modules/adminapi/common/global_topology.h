@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -265,7 +265,7 @@ class Server_global_topology : public Global_topology {
   void show_raw() const override;
 
   const topology::Server *find_failover_candidate(
-      const std::list<Scoped_instance> &candidates) const;
+      const std::list<std::shared_ptr<dba::Instance>> &candidates) const;
 
  private:
   void load_server_state(Server *server, mysqlsh::dba::Instance *conn,

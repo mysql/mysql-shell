@@ -30,7 +30,6 @@
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/dba/api_options.h"
-#include "modules/adminapi/mod_dba.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/config/config.h"
@@ -41,7 +40,12 @@ namespace dba {
 
 class Create_cluster : public Command_interface {
  public:
-  Create_cluster(std::shared_ptr<Instance> target_instance,
+  Create_cluster(const std::shared_ptr<Instance> &target_instance,
+                 const std::string &cluster_name,
+                 const Create_cluster_options &options);
+
+  Create_cluster(const std::shared_ptr<MetadataStorage> &metadata,
+                 const std::shared_ptr<Instance> &target_instance,
                  const std::string &cluster_name,
                  const Create_cluster_options &options);
 
@@ -109,6 +113,7 @@ class Create_cluster : public Command_interface {
   void finish() override;
 
  private:
+  std::shared_ptr<MetadataStorage> m_metadata;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   const std::string m_cluster_name;
   Create_cluster_options m_options;

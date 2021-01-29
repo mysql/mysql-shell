@@ -45,7 +45,7 @@ testutil.startSandbox(__mysql_sandbox_port2);
 c.addInstance(__sandbox_uri2);
 
 //@<> Remove instance with an unresolvable hostname
-// Bug #31632606	REMOVEINSTANCE() WITH FORCE DOESN'T WORK IF ADDRESS IS NO LONGER RESOLVABLE
+// Bug #31632606  REMOVEINSTANCE() WITH FORCE DOESN'T WORK IF ADDRESS IS NO LONGER RESOLVABLE
 
 // hack the metadata adding an invalid hostname to simulate an instance that was added
 // but is no longer resolvable at the time it's removed

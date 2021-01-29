@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,11 +55,11 @@ class Star_global_topology_manager : public Global_topology_manager {
   void validate_switch_primary(
       mysqlshdk::mysql::IInstance *master,
       mysqlshdk::mysql::IInstance *promoted,
-      const std::list<Scoped_instance> &instances) override;
+      const std::list<std::shared_ptr<Instance>> &instances) override;
 
   void validate_force_primary(
       mysqlshdk::mysql::IInstance *master,
-      const std::list<Scoped_instance> &instances) override;
+      const std::list<std::shared_ptr<Instance>> &instances) override;
 
  private:
   void validate_active_unavailable();

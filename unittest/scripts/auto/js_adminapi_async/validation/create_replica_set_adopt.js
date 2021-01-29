@@ -34,10 +34,10 @@
 ||Access denied; you need (at least one of) the SUPER, REPLICATION CLIENT privilege(s) for this operation (MYSQLSH 1227)
 
 //@# adopt with existing old metadata, belongs to other (should fail)
-||Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.0.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
+||Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.1.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
 
 //@# indirect adopt with existing old metadata, belongs to other (should fail)
-||Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.0.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
+||Operation not allowed. The installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.1.0. Upgrade the metadata to execute this operation. See \? dba.upgradeMetadata for additional details. (RuntimeError)
 
 //@# replication filters (should fail)
 ||127.0.0.1:<<<__mysql_sandbox_port1>>>: instance has global replication filters configured, but they are not supported in InnoDB ReplicaSets. (MYSQLSH 51150)

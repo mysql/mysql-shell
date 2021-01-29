@@ -53,7 +53,7 @@ namespace dba {
 
 Configure_instance::Configure_instance(
     const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-    const Configure_instance_options &options, InstanceType::Type instance_type)
+    const Configure_instance_options &options, TargetType::Type instance_type)
     : m_target_instance(target_instance),
       m_options(options),
       m_instance_type(instance_type) {}
@@ -620,11 +620,10 @@ void Configure_instance::prepare() {
 
   // If the instance already belongs to an InnoDB Cluster or ReplicaSet the
   // function can only be used to set a new value for applierWorkerThreads
-  if (m_instance_type == InstanceType::InnoDBCluster ||
-      m_instance_type == InstanceType::AsyncReplicaSet) {
-    std::string cluster_type = m_instance_type == InstanceType::InnoDBCluster
-                                   ? "Cluster"
-                                   : "ReplicaSet";
+  if (m_instance_type == TargetType::InnoDBCluster ||
+      m_instance_type == TargetType::AsyncReplicaSet) {
+    std::string cluster_type =
+        m_instance_type == TargetType::InnoDBCluster ? "Cluster" : "ReplicaSet";
 
     console->print_info("The instance '" + m_target_instance->descr() +
                         "' belongs to an InnoDB " + cluster_type + ".");
@@ -703,8 +702,8 @@ void Configure_instance::prepare() {
   //
   // Skip the check if the instance is already a member of an InnoDB Cluster or
   // ReplicaSet
-  if (m_instance_type != InstanceType::InnoDBCluster &&
-      m_instance_type != InstanceType::AsyncReplicaSet) {
+  if (m_instance_type != TargetType::InnoDBCluster &&
+      m_instance_type != TargetType::AsyncReplicaSet) {
     check_lock_service();
   }
 
@@ -856,11 +855,11 @@ shcore::Value Configure_instance::execute() {
     if (m_set_applier_worker_threads) {
       m_cfg->apply();
 
-      if (m_instance_type == InstanceType::InnoDBCluster ||
-          m_instance_type == InstanceType::AsyncReplicaSet) {
-        std::string cluster_type =
-            m_instance_type == InstanceType::InnoDBCluster ? "Cluster"
-                                                           : "ReplicaSet";
+      if (m_instance_type == TargetType::InnoDBCluster ||
+          m_instance_type == TargetType::AsyncReplicaSet) {
+        std::string cluster_type = m_instance_type == TargetType::InnoDBCluster
+                                       ? "Cluster"
+                                       : "ReplicaSet";
 
         console->print_warning(
             "The changes on the value of " +

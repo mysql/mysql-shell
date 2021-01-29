@@ -44,8 +44,8 @@ namespace dba {
 Configure_local_instance::Configure_local_instance(
     const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
     const Configure_instance_options &options)
-    : Configure_instance(target_instance, options, InstanceType::Type::Unknown),
-      m_instance_type(InstanceType::Unknown) {}
+    : Configure_instance(target_instance, options, TargetType::Type::Unknown),
+      m_instance_type(TargetType::Unknown) {}
 
 Configure_local_instance::~Configure_local_instance() {}
 
@@ -80,7 +80,7 @@ void Configure_local_instance::prepare() {
   // This function should be deprecated.
 
   // Parameters validation for the case we only need to persist GR options
-  if (m_instance_type == InstanceType::InnoDBCluster) {
+  if (m_instance_type == TargetType::InnoDBCluster) {
     auto console = mysqlsh::current_console();
 
     console->println("The instance '" + m_target_instance->descr() +
@@ -122,7 +122,7 @@ shcore::Value Configure_local_instance::execute() {
   auto console = mysqlsh::current_console();
 
   // Execute the configure local instance operation
-  if (m_instance_type == InstanceType::InnoDBCluster) {
+  if (m_instance_type == TargetType::InnoDBCluster) {
     if (m_target_instance->get_version() >= mysqlshdk::utils::Version(8, 0, 5))
       return {};
     console->print_info("Persisting the cluster settings...");

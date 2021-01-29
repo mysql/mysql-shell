@@ -71,6 +71,7 @@ void validate_clone_supported(const mysqlshdk::utils::Version &version,
       }
       break;
     case Clone_options::JOIN_CLUSTER:
+    case Clone_options::CREATE_REPLICA_CLUSTER:
     case Clone_options::JOIN_REPLICASET:
       if (version < mysqlshdk::mysql::k_mysql_clone_plugin_initial_version) {
         if (cluster) {
@@ -111,7 +112,7 @@ void Clone_options::check_option_values(
       cluster->execute_in_members(
           {mysqlshdk::gr::Member_state::ONLINE,
            mysqlshdk::gr::Member_state::RECOVERING},
-          cluster->get_target_server()->get_connection_options(), {},
+          cluster->get_cluster_server()->get_connection_options(), {},
           [&trg](const std::shared_ptr<Instance> &instance) {
             validate_clone_supported(instance->get_version(),
                                      std::string(kRecoveryMethod) + "=clone",
@@ -125,6 +126,40 @@ void Clone_options::check_option_values(
   // Finally, if recoveryMethod wasn't set, set the default value of AUTO
   if (recovery_method.is_null()) {
     recovery_method = Member_recovery_method::AUTO;
+  }
+}
+
+void Clone_options::set_clone_donor(const std::string &value) {
+  clone_donor = shcore::str_strip(value);
+
+  if (clone_donor->empty()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.", kCloneDonor));
+  }
+
+  if ((*clone_donor)[0] == '[')
+    throw shcore::Exception::argument_error(
+        shcore::str_format("IPv6 addresses not supported for %s", kCloneDonor));
+
+  try {
+    mysqlshdk::utils::split_host_and_port(*clone_donor);
+  } catch (const std::invalid_argument &e) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for %s: %s", kCloneDonor, e.what()));
+  }
+
+  // If cloneDonor was set and recoveryMethod not or not set to 'clone',
+  // error out
+  if (!recovery_method.is_null()) {
+    if (*recovery_method != Member_recovery_method::CLONE) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Option %s only allowed if option %s is set to 'clone'.", kCloneDonor,
+          kRecoveryMethod));
+    }
+  } else {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Option %s only allowed if option %s is used and set to 'clone'.",
+        kCloneDonor, kRecoveryMethod));
   }
 }
 
@@ -182,38 +217,15 @@ const shcore::Option_pack_def<Join_replicaset_clone_options>
   return opts;
 }
 
-void Join_replicaset_clone_options::set_clone_donor(const std::string &value) {
-  clone_donor = shcore::str_strip(value);
+const shcore::Option_pack_def<Create_replica_cluster_clone_options>
+    &Create_replica_cluster_clone_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Create_replica_cluster_clone_options>()
+          .include<Join_cluster_clone_options>()
+          .optional(kCloneDonor,
+                    &Create_replica_cluster_clone_options::set_clone_donor);
 
-  if (clone_donor->empty()) {
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s, string value cannot be empty.", kCloneDonor));
-  }
-
-  if ((*clone_donor)[0] == '[')
-    throw shcore::Exception::argument_error(
-        shcore::str_format("IPv6 addresses not supported for %s", kCloneDonor));
-
-  try {
-    mysqlshdk::utils::split_host_and_port(*clone_donor);
-  } catch (const std::invalid_argument &e) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value for %s: %s", kCloneDonor, e.what()));
-  }
-
-  // If cloneDonor was set and recoveryMethod not or not set to 'clone',
-  // error out
-  if (!recovery_method.is_null()) {
-    if (*recovery_method != Member_recovery_method::CLONE) {
-      throw shcore::Exception::argument_error(shcore::str_format(
-          "Option %s only allowed if option %s is set to 'clone'.", kCloneDonor,
-          kRecoveryMethod));
-    }
-  } else {
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Option %s only allowed if option %s is used and set to 'clone'.",
-        kCloneDonor, kRecoveryMethod));
-  }
+  return opts;
 }
 
 }  // namespace dba

@@ -16,6 +16,7 @@ var Cluster = dba.getCluster('devCluster');
 
 validateMembers(Cluster, [
   'name',
+  'getClusterSet',
   'getName',
   'addInstance',
   'removeInstance',
@@ -38,7 +39,8 @@ validateMembers(Cluster, [
   'setOption',
   'setInstanceOption',
   'setupAdminAccount',
-  'setupRouterAccount'
+  'setupRouterAccount',
+  'createClusterSet'
 ])
 
 //@ Cluster: addInstance errors

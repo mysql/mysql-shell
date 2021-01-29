@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -435,11 +435,13 @@ void Upgrade_metadata::upgrade_router_users() {
           "GRANT UPDATE, INSERT, DELETE ON "
           "mysql_innodb_cluster_metadata.routers TO "};
 
-      // When migrating to version 2.0.0 this dummy view is required to enable
-      // giving the router users the  right permissions, it will be updated to
-      // the correct view once the upgrade is done
+      // When migrating to version 2.0.0 or 2.1.0 this dummy view is required to
+      // enable giving the router users the  right permissions, it will be
+      // updated to the correct view once the upgrade is done
       if (mysqlsh::dba::metadata::current_version() ==
-          mysqlshdk::utils::Version(2, 0, 0)) {
+              mysqlshdk::utils::Version(2, 0, 0) ||
+          mysqlsh::dba::metadata::current_version() ==
+              mysqlshdk::utils::Version(2, 1, 0)) {
         m_target_instance->execute(
             "CREATE OR REPLACE VIEW mysql_innodb_cluster_metadata.v2_routers "
             "AS "

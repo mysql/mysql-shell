@@ -40,6 +40,7 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/replication.h"
+#include "mysqlshdk/libs/utils/enumset.h"
 #include "scripting/lang_base.h"
 #include "scripting/types.h"
 
@@ -68,7 +69,7 @@ struct MissingInstanceInfo {
   std::string endpoint;
 };
 
-namespace InstanceType {
+namespace TargetType {
 enum Type {
   Standalone = 1 << 0,
   GroupReplication = 1 << 1,
@@ -76,9 +77,10 @@ enum Type {
   StandaloneWithMetadata = 1 << 3,
   StandaloneInMetadata = 1 << 4,
   AsyncReplicaSet = 1 << 5,
-  Unknown = 1 << 6
+  InnoDBClusterSet = 1 << 6,
+  Unknown = 1 << 7
 };
-}  // namespace InstanceType
+}  // namespace TargetType
 
 namespace ManagedInstance {
 enum State {
@@ -110,19 +112,26 @@ using State = mysqlshdk::utils::Enum_set<States, States::Dead>;
 
 enum class MDS_actions { NONE, NOTE, WARN, RAISE_ERROR };
 
-struct Metadata_validations {
+struct Metadata_state_action {
   metadata::States state;
   MDS_actions action;
 };
 
+typedef mysqlshdk::utils::Enum_set<Cluster_global_status,
+                                   Cluster_global_status::UNKNOWN>
+    Cluster_global_status_mask;
+
 // Note that this structure may be initialized using initializer
 // lists, so the order of the fields is very important
-struct FunctionAvailability {
+struct Function_availability {
   mysqlshdk::utils::Version min_version;
   int instance_config_state;
   ReplicationQuorum::State cluster_status;
   int instance_status;
-  std::vector<Metadata_validations> metadata_validations;
+  std::vector<Metadata_state_action> metadata_state_actions = {};
+  // Defines the global state in which the operation is allowed
+  // Empty indicates the operation is not allowed for instances in a cluster set
+  Cluster_global_status_mask cluster_set_state = {};
 };
 
 struct Cluster_check_info {
@@ -134,7 +143,7 @@ struct Cluster_check_info {
   ReplicationQuorum::State quorum;
 
   // The configuration type of the instance from which the data was consulted
-  InstanceType::Type source_type;
+  TargetType::Type source_type;
 
   // The state of the instance from which the data was consulted
   ManagedInstance::State source_state;
@@ -143,6 +152,12 @@ struct Cluster_check_info {
 class cancel_sync : public std::exception {};
 
 class MetadataStorage;
+
+// Maximum Cluster Name length
+constexpr const int k_cluster_name_max_length = 63;
+
+constexpr const char k_cluster_name_allowed_chars[] =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-";
 
 void SHCORE_PUBLIC parse_fully_qualified_cluster_name(
     const std::string &name, std::string *out_domain,
@@ -155,6 +170,9 @@ void SHCORE_PUBLIC validate_label(const std::string &lavel);
 // Default names
 constexpr const char k_default_domain_partition_name[] = "default";
 constexpr const char k_default_domain_name[] = "mydb";
+constexpr const char *k_replicaset_channel_name = "";
+constexpr const char *k_clusterset_async_channel_name =
+    "clusterset_replication";
 
 // TODO(alfredo) - all server configuration constants and general functions
 // should be moved to repl_config.h
@@ -217,6 +235,7 @@ constexpr const char kAddInstances[] = "addInstances";
 constexpr const char kRemoveInstances[] = "removeInstances";
 constexpr const char kRejoinInstances[] = "rejoinInstances";
 constexpr const char kWaitRecovery[] = "waitRecovery";
+constexpr const char kRecoveryVerbosity[] = "recoveryProgress";
 constexpr const char kLabel[] = "label";
 constexpr const char kExtended[] = "extended";
 constexpr const char kQueryMembers[] = "queryMembers";
@@ -227,6 +246,8 @@ constexpr const char kUpgradeCommProtocol[] = "upgradeCommProtocol";
 constexpr const char kAll[] = "all";
 constexpr const char kTimeout[] = "timeout";
 constexpr const char kInvalidateErrorInstances[] = "invalidateErrorInstances";
+constexpr const char kClusterSetReplicationSslMode[] =
+    "clusterSetReplicationSslMode";
 
 constexpr const int k_group_replication_members_limit = 9;
 
@@ -341,11 +362,28 @@ enum class Recovery_progress_style { NOWAIT, NOINFO, TEXTUAL, PROGRESSBAR };
 std::string get_mysqlprovision_error_string(
     const shcore::Value::Array_type_ref &errors);
 
-extern const char *kMemberSSLModeAuto;
-extern const char *kMemberSSLModeRequired;
-extern const char *kMemberSSLModeDisabled;
-extern const char *kMemberSSLModeVerifyCA;
-extern const char *kMemberSSLModeVerifyIdentity;
+// Cluster-wise SSL-modes
+enum class Cluster_ssl_mode {
+  AUTO,
+  DISABLED,
+  REQUIRED,
+  VERIFY_CA,
+  VERIFY_IDENTITY,
+  NONE
+};
+
+constexpr const char *kClusterSSLModeAuto = "AUTO";
+constexpr const char *kClusterSSLModeDisabled = "DISABLED";
+constexpr const char *kClusterSSLModeRequired = "REQUIRED";
+constexpr const char *kClusterSSLModeVerifyCA = "VERIFY_CA";
+constexpr const char *kClusterSSLModeVerifyIdentity = "VERIFY_IDENTITY";
+
+const std::set<std::string> kClusterSSLModeValues = {
+    kClusterSSLModeAuto, kClusterSSLModeDisabled, kClusterSSLModeRequired,
+    kClusterSSLModeVerifyCA, kClusterSSLModeVerifyIdentity};
+
+std::string to_string(Cluster_ssl_mode ssl_mode);
+Cluster_ssl_mode to_cluster_ssl_mode(const std::string &ssl_mode);
 
 /**
  * Check if a setting is supported on the target instance
@@ -380,11 +418,13 @@ bool is_option_supported(
 void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
                                   Cluster_type cluster_type);
 
-void resolve_cluster_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
-                              mysqlshdk::null_string *member_ssl_mode);
+mysqlshdk::db::nullable<Cluster_ssl_mode> resolve_ssl_mode(
+    const mysqlshdk::mysql::IInstance &instance,
+    const Cluster_ssl_mode &ssl_mode, bool *have_ssl);
+
 void resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
                                const mysqlshdk::mysql::IInstance &pinstance,
-                               mysqlshdk::null_string *member_ssl_mode);
+                               Cluster_ssl_mode *member_ssl_mode);
 
 std::vector<NewInstanceInfo> get_newly_discovered_instances(
     const mysqlshdk::mysql::IInstance &group_server,
@@ -588,6 +628,35 @@ std::vector<std::string> create_router_grants(
 void handle_deprecated_option(const std::string &deprecated_name,
                               const std::string &new_name, bool new_set = false,
                               bool fall_back_to_new_option = false);
+
+/**
+ * Returns the Type of instance represented by the indicated address.
+ *
+ * If the address is not provided, the check will be done using m_md_server
+ *
+ * @param  metadata        The MetadataStorage object
+ * @param  target_instance The target instance
+ * @return                 An TargetType::Type representing the instance type
+ */
+TargetType::Type get_instance_type(const MetadataStorage &metadata,
+                                   Instance *target_instance = nullptr);
+
+/**
+ * TODO
+ *
+ * @param  metadata           The MetadataStorage object
+ * @param  group_server       A pointer to the Instance that shall be used to
+ * obtain the Cluster status info. If null, the Metadata session will be used
+ * @param  skip_version_check Boolean value to indicate whether the version
+ * check should be skipped or not
+ *
+ * @return                    A struct of type Cluster_check_info with the
+ * Cluster state information
+ */
+Cluster_check_info get_cluster_check_info(const MetadataStorage &metadata,
+                                          Instance *group_server = nullptr,
+                                          bool skip_version_check = true);
+
 }  // namespace dba
 }  // namespace mysqlsh
 

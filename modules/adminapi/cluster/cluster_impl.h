@@ -37,6 +37,7 @@
 #include "shellcore/shell_options.h"
 
 #include "modules/adminapi/cluster/api_options.h"
+#include "modules/adminapi/cluster_set/api_options.h"
 #include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
@@ -69,6 +70,9 @@ struct Cluster_metadata;
 using Instance_md_and_gr_member =
     std::pair<Instance_metadata, mysqlshdk::gr::Member>;
 
+class Cluster_set_impl;
+class ClusterSet;
+
 class Cluster_impl : public Base_cluster_impl {
  public:
   friend class Cluster;
@@ -97,7 +101,7 @@ class Cluster_impl : public Base_cluster_impl {
                        const bool interactive);
   shcore::Value describe();
   shcore::Value options(const bool all);
-  shcore::Value status(uint64_t extended);
+  shcore::Value status(int64_t extended);
   shcore::Value list_routers(bool only_upgrade_required) override;
   void force_quorum_using_partition_of(const Connection_options &instance_def,
                                        const bool interactive);
@@ -109,6 +113,12 @@ class Cluster_impl : public Base_cluster_impl {
   shcore::Value check_instance_state(const Connection_options &instance_def);
   void reset_recovery_password(const mysqlshdk::null_bool &force,
                                const bool interactive);
+  shcore::Value create_cluster_set(
+      const std::string &domain_name,
+      const clusterset::Create_cluster_set_options &options);
+
+  std::shared_ptr<Cluster_set_impl> get_cluster_set(
+      bool print_warnings = false);
 
   // Class functions
   void sanity_check() const;
@@ -136,6 +146,8 @@ class Cluster_impl : public Base_cluster_impl {
 
   const std::string &get_group_name() const { return m_group_name; }
 
+  const std::string get_view_change_uuid() const;
+
   Cluster_type get_type() const override {
     return Cluster_type::GROUP_REPLICATION;
   }
@@ -159,16 +171,20 @@ class Cluster_impl : public Base_cluster_impl {
 
   bool contains_instance_with_address(const std::string &host_port) const;
 
-  std::list<Scoped_instance> connect_all_members(
-      uint32_t, bool, std::list<Instance_metadata> *) override {
-    throw std::logic_error("not implemented");
-  }
-
   mysqlsh::dba::Instance *acquire_primary(
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
       const std::string &skip_lock_uuid = "") override;
 
+  Cluster_metadata get_metadata() const;
+
+  std::shared_ptr<Instance> get_global_primary_master() const override {
+    return m_metadata_storage->get_md_server();
+  }
+
   void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
+
+  Cluster_status cluster_status(int *out_num_failures_tolerated = nullptr,
+                                int *out_num_failures = nullptr) const;
 
   void setup_admin_account(const std::string &username, const std::string &host,
                            const Setup_account_options &options) override;
@@ -182,9 +198,13 @@ class Cluster_impl : public Base_cluster_impl {
    * The version information is obtained from available (ONLINE and RECOVERING)
    * members, ignoring not available instances.
    *
+   * @param out_instances_addresses canonical addresses of the instances with
+   * the lowest version
+   *
    * @return Version object of the lowest instance version in the cluster.
    */
-  mysqlshdk::utils::Version get_lowest_instance_version() const;
+  mysqlshdk::utils::Version get_lowest_instance_version(
+      std::vector<std::string> *out_instances_addresses = nullptr) const;
 
   /**
    * Determine the replication(recovery) user being used by the target instance.
@@ -378,6 +398,14 @@ class Cluster_impl : public Base_cluster_impl {
   void validate_rejoin_gtid_consistency(
       const mysqlshdk::mysql::IInstance &target_instance);
 
+ public:
+  // clusterset related methods
+  const Cluster_set_member_metadata &get_clusterset_metadata() const;
+
+  bool is_clusterset_member(const std::string &cs_id = "") const;
+  bool is_invalidated() const;
+  bool is_primary_cluster() const;
+
  protected:
   void _set_option(const std::string &option,
                    const shcore::Value &value) override;
@@ -395,6 +423,8 @@ class Cluster_impl : public Base_cluster_impl {
   std::string m_group_name;
   mysqlshdk::gr::Topology_mode m_topology_type =
       mysqlshdk::gr::Topology_mode::NONE;
+
+  mutable Cluster_set_member_metadata m_cs_md;
 };
 
 }  // namespace dba

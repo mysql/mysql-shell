@@ -172,9 +172,9 @@ TEST_F(Group_replication_test, plugin_installation) {
   }
 }
 
-TEST_F(Group_replication_test, generate_group_name) {
-  std::string name1 = mysqlshdk::gr::generate_group_name(*m_instance);
-  std::string name2 = mysqlshdk::gr::generate_group_name(*m_instance);
+TEST_F(Group_replication_test, generate_uuid) {
+  std::string name1 = mysqlshdk::gr::generate_uuid(*m_instance);
+  std::string name2 = mysqlshdk::gr::generate_uuid(*m_instance);
   // Generated group names must be different.
   EXPECT_STRNE(name1.c_str(), name2.c_str());
 }
@@ -228,7 +228,7 @@ TEST_F(Group_replication_test, create_recovery_user) {
 
 TEST_F(Group_replication_test, start_stop_gr) {
   // Beside the start_group_replication() and stop_group_replication()
-  // functions, the functions is_member() and get_member_state() are also
+  // functions, the function get_member_state() is also
   // tested here since the test scenario is the same, in order to avoid
   // additional execution time to run similar test cases.
   // NOTE: START and STOP GROUP_REPLICATION is slow.
@@ -296,10 +296,6 @@ TEST_F(Group_replication_test, start_stop_gr) {
   }
 
   // Test: member is not part of any group, state must be MISSING.
-  bool res = mysqlshdk::gr::is_member(*m_instance);
-  EXPECT_FALSE(res);
-  res = mysqlshdk::gr::is_member(*m_instance, "not_the_group_name");
-  EXPECT_FALSE(res);
   Member_state state_res = mysqlshdk::gr::get_member_state(*m_instance);
   EXPECT_EQ(state_res, Member_state::MISSING);
 
@@ -317,7 +313,7 @@ TEST_F(Group_replication_test, start_stop_gr) {
       m_instance->get_sysvar_string("group_replication_local_address");
 
   // Set GR variable to start GR.
-  std::string group_name = mysqlshdk::gr::generate_group_name(*m_instance);
+  std::string group_name = mysqlshdk::gr::generate_uuid(*m_instance);
   m_instance->set_sysvar("group_replication_group_name", group_name,
                          Var_qualifier::GLOBAL);
   std::string local_address = "localhost:13013";
@@ -333,10 +329,6 @@ TEST_F(Group_replication_test, start_stop_gr) {
   EXPECT_FALSE(*read_only);
 
   // Test: member is part of GR group, state must be RECOVERING or ONLINE.
-  res = mysqlshdk::gr::is_member(*m_instance);
-  EXPECT_TRUE(res);
-  res = mysqlshdk::gr::is_member(*m_instance, group_name);
-  EXPECT_TRUE(res);
   state_res = mysqlshdk::gr::get_member_state(*m_instance);
   if (state_res == Member_state::ONLINE ||
       state_res == Member_state::RECOVERING)
@@ -370,10 +362,6 @@ TEST_F(Group_replication_test, start_stop_gr) {
   m_instance->set_sysvar("read_only", false, Var_qualifier::GLOBAL);
 
   // Test: member is still part of the group, but its state is OFFLINE.
-  res = mysqlshdk::gr::is_member(*m_instance);
-  EXPECT_TRUE(res);
-  res = mysqlshdk::gr::is_member(*m_instance, group_name);
-  EXPECT_TRUE(res);
   state_res = mysqlshdk::gr::get_member_state(*m_instance);
   EXPECT_EQ(state_res, Member_state::OFFLINE);
 
@@ -1316,20 +1304,36 @@ TEST_F(Group_replication_test, is_active_member) {
 
   mock_session
       ->expect_query(
-          "SELECT Member_state "
+          "SELECT count(*) "
           "FROM performance_schema.replication_group_members "
-          "WHERE Member_host = 'localhost' AND Member_port = 3306 "
-          "AND Member_state NOT IN ('OFFLINE', 'UNREACHABLE')")
-      .then_return({{"", {"Member_state"}, {Type::String}, {}}});
+          "WHERE MEMBER_HOST = 'localhost' AND MEMBER_PORT = 3306 "
+          "AND MEMBER_STATE NOT IN ('OFFLINE', 'UNREACHABLE')")
+      .then_return({{"", {"count(*)"}, {Type::String}, {{"0"}}}});
+
+  mock_session->expect_query(
+      {"SELECT COALESCE(@@report_host, @@hostname),  "
+       "COALESCE(@@report_port, @@port)",
+       {"Host", "Port"},
+       {mysqlshdk::db::Type::String, mysqlshdk::db::Type::Integer},
+       {{"mock@localhost", "3306"}}});
+
   EXPECT_FALSE(mysqlshdk::gr::is_active_member(instance, "localhost", 3306));
 
   mock_session
       ->expect_query(
-          "SELECT Member_state "
+          "SELECT count(*) "
           "FROM performance_schema.replication_group_members "
-          "WHERE Member_host = 'localhost' AND Member_port = 3306 "
-          "AND Member_state NOT IN ('OFFLINE', 'UNREACHABLE')")
-      .then_return({{"", {"Member_state"}, {Type::String}, {{"ONLINE"}}}});
+          "WHERE MEMBER_HOST = 'localhost' AND MEMBER_PORT = 3306 "
+          "AND MEMBER_STATE NOT IN ('OFFLINE', 'UNREACHABLE')")
+      .then_return({{"", {"count(*)"}, {Type::String}, {{"1"}}}});
+
+  mock_session->expect_query(
+      {"SELECT COALESCE(@@report_host, @@hostname),  "
+       "COALESCE(@@report_port, @@port)",
+       {"Host", "Port"},
+       {mysqlshdk::db::Type::String, mysqlshdk::db::Type::Integer},
+       {{"mock@localhost", "3306"}}});
+
   EXPECT_TRUE(mysqlshdk::gr::is_active_member(instance, "localhost", 3306));
 }
 

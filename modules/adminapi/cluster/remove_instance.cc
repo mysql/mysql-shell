@@ -145,7 +145,7 @@ bool Remove_instance::prompt_to_force_remove() {
 void Remove_instance::check_protocol_upgrade_possible() {
   // Get the instance server_uuid
   mysqlshdk::utils::nullable<std::string> server_uuid;
-  std::shared_ptr<Instance> group_instance = m_cluster->get_target_server();
+  std::shared_ptr<Instance> group_instance = m_cluster->get_cluster_server();
 
   // Determine which instance shall be used to determine if an upgrade is
   // possible and afterwards to perform the upgrade.
@@ -202,7 +202,8 @@ void Remove_instance::prepare() {
 
   // Get instance login information from the cluster session if missing.
   if (!m_instance_cnx_opts.has_user() || !m_instance_cnx_opts.has_password()) {
-    std::shared_ptr<Instance> cluster_instance = m_cluster->get_target_server();
+    std::shared_ptr<Instance> cluster_instance =
+        m_cluster->get_cluster_server();
     Connection_options cluster_cnx_opt =
         cluster_instance->get_connection_options();
 
@@ -553,7 +554,7 @@ shcore::Value Remove_instance::execute() {
   // in create_config_object() when it tries to query members from an
   // instance that's not in the group anymore.
   if (!m_target_instance || m_target_instance->get_uuid() !=
-                                m_cluster->get_target_server()->get_uuid()) {
+                                m_cluster->get_cluster_server()->get_uuid()) {
     try {
       // Update the cluster members (group_seed variable) and remove the
       // replication user from the instance being removed from the primary

@@ -35,15 +35,6 @@
 namespace mysqlsh {
 namespace dba {
 
-const char *kMemberSSLModeAuto = "AUTO";
-const char *kMemberSSLModeRequired = "REQUIRED";
-const char *kMemberSSLModeDisabled = "DISABLED";
-const char *kMemberSSLModeVerifyCA = "VERIFY_CA";
-const char *kMemberSSLModeVerifyIdentity = "VERIFY_IDENTITY";
-const std::set<std::string> kMemberSSLModeValues = {
-    kMemberSSLModeAuto, kMemberSSLModeDisabled, kMemberSSLModeRequired,
-    kMemberSSLModeVerifyCA, kMemberSSLModeVerifyIdentity};
-
 /**
  * Validate the value specified for the localAddress option.
  *
@@ -421,8 +412,9 @@ void Group_replication_options::read_option_values(
     group_name = instance.get_sysvar_string("group_replication_group_name");
   }
 
-  if (ssl_mode.is_null()) {
-    ssl_mode = instance.get_sysvar_string("group_replication_ssl_mode");
+  if (ssl_mode == Cluster_ssl_mode::NONE) {
+    ssl_mode = to_cluster_ssl_mode(
+        instance.get_sysvar_string("group_replication_ssl_mode").get_safe());
   }
 
   if (group_seeds.is_null()) {
@@ -479,6 +471,70 @@ void Group_replication_options::read_option_values(
   }
 }
 
+void Group_replication_options::set_local_address(const std::string &value) {
+  local_address = shcore::str_strip(value);
+
+  if (local_address->empty()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.", kLocalAddress));
+  }
+
+  if ((*local_address).compare(":") == 0) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for %s. If ':' is specified then at "
+                           "least a non-empty host or port must be specified: "
+                           "'<host>:<port>' or '<host>:' or ':<port>'.",
+                           kLocalAddress));
+  }
+}
+
+void Group_replication_options::set_exit_state_action(
+    const std::string &value) {
+  exit_state_action = shcore::str_strip(value);
+
+  if (exit_state_action->empty()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, string value cannot be empty.",
+        kExitStateAction));
+  }
+}
+
+void Group_replication_options::set_member_weight(int64_t value) {
+  member_weight = value;
+}
+
+void Group_replication_options::set_auto_rejoin_tries(int64_t value) {
+  auto_rejoin_tries = value;
+}
+
+void Group_replication_options::set_expel_timeout(int64_t value) {
+  if (value < 0 || value > 3600) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, integer value must be in the range: [0, 3600]",
+        kExpelTimeout));
+  }
+
+  expel_timeout = value;
+}
+
+void Group_replication_options::set_consistency(const std::string &option,
+                                                const std::string &value) {
+  auto stripped_value = shcore::str_strip(value);
+
+  if (stripped_value.empty()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s', string value cannot be empty.",
+        option.c_str()));
+  }
+
+  if (option == kFailoverConsistency) {
+    handle_deprecated_option(kFailoverConsistency, kConsistency,
+                             !consistency.is_null(), false);
+  }
+
+  consistency = stripped_value;
+}
+
 const shcore::Option_pack_def<Rejoin_group_replication_options>
     &Rejoin_group_replication_options::options() {
   static const auto opts =
@@ -496,10 +552,8 @@ const shcore::Option_pack_def<Rejoin_group_replication_options>
 }
 
 void Rejoin_group_replication_options::set_ssl_mode(const std::string &value) {
-  ssl_mode = shcore::str_upper(value);
-
-  if (kMemberSSLModeValues.count(*ssl_mode) == 0) {
-    std::string valid_values = shcore::str_join(kMemberSSLModeValues, ",");
+  if (kClusterSSLModeValues.count(shcore::str_upper(value)) == 0) {
+    std::string valid_values = shcore::str_join(kClusterSSLModeValues, ",");
     throw shcore::Exception::argument_error(
         shcore::str_format("Invalid value for %s option. Supported values: %s.",
                            kMemberSslMode, valid_values.c_str()));
@@ -515,6 +569,9 @@ void Rejoin_group_replication_options::set_ssl_mode(const std::string &value) {
         kMemberSslMode));
     console->print_info();
   }
+
+  // Set the ssl-mode
+  ssl_mode = to_cluster_ssl_mode(value);
 }
 
 void Rejoin_group_replication_options::set_ip_allowlist(
@@ -539,47 +596,18 @@ const shcore::Option_pack_def<Join_group_replication_options>
       shcore::Option_pack_def<Join_group_replication_options>()
           .include<Rejoin_group_replication_options>()
           .optional(kLocalAddress,
-                    &Join_group_replication_options::set_local_address)
+                    &Group_replication_options::set_local_address)
           .optional(kGroupSeeds,
                     &Join_group_replication_options::set_group_seeds)
           .optional(kExitStateAction,
-                    &Join_group_replication_options::set_exit_state_action)
+                    &Group_replication_options::set_exit_state_action)
           .optional(kMemberWeight,
-                    &Join_group_replication_options::set_member_weight, "",
+                    &Group_replication_options::set_member_weight, "",
                     shcore::Option_extract_mode::EXACT)
           .optional(kAutoRejoinTries,
-                    &Join_group_replication_options::set_auto_rejoin_tries);
+                    &Group_replication_options::set_auto_rejoin_tries);
 
   return opts;
-}
-
-void Join_group_replication_options::set_local_address(
-    const std::string &value) {
-  local_address = shcore::str_strip(value);
-
-  if (local_address->empty())
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s, string value cannot be empty.", kLocalAddress));
-  if ((*local_address).compare(":") == 0)
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value for %s. If ':' is specified then at "
-                           "least a non-empty host or port must be specified: "
-                           "'<host>:<port>' or '<host>:' or ':<port>'.",
-                           kLocalAddress));
-}
-
-void Join_group_replication_options::set_exit_state_action(
-    const std::string &value) {
-  exit_state_action = shcore::str_strip(value);
-
-  if (exit_state_action->empty())
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s, string value cannot be empty.",
-        kExitStateAction));
-}
-
-void Join_group_replication_options::set_member_weight(int64_t value) {
-  member_weight = value;
 }
 
 void Join_group_replication_options::set_group_seeds(const std::string &value) {
@@ -591,8 +619,26 @@ void Join_group_replication_options::set_group_seeds(const std::string &value) {
   group_seeds = value;
 }
 
-void Join_group_replication_options::set_auto_rejoin_tries(int64_t value) {
-  auto_rejoin_tries = value;
+const shcore::Option_pack_def<Cluster_set_group_replication_options>
+    &Cluster_set_group_replication_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Cluster_set_group_replication_options>()
+          .include<Rejoin_group_replication_options>()
+          .optional(kLocalAddress,
+                    &Group_replication_options::set_local_address)
+          .optional(kExitStateAction,
+                    &Group_replication_options::set_exit_state_action)
+          .optional(kMemberWeight,
+                    &Group_replication_options::set_member_weight, "",
+                    shcore::Option_extract_mode::EXACT)
+          .optional(kConsistency, &Group_replication_options::set_consistency)
+          .optional(kExpelTimeout,
+                    &Group_replication_options::set_expel_timeout, "",
+                    shcore::Option_extract_mode::EXACT)
+          .optional(kAutoRejoinTries,
+                    &Group_replication_options::set_auto_rejoin_tries);
+
+  return opts;
 }
 
 const shcore::Option_pack_def<Create_group_replication_options>
@@ -628,34 +674,6 @@ void Create_group_replication_options::set_group_name(
 
 void Create_group_replication_options::set_manual_start_on_boot(bool value) {
   manual_start_on_boot = value;
-}
-
-void Create_group_replication_options::set_consistency(
-    const std::string &option, const std::string &value) {
-  auto stripped_value = shcore::str_strip(value);
-
-  if (stripped_value.empty()) {
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for '%s', string value cannot be empty.",
-        option.c_str()));
-  }
-
-  if (option == kFailoverConsistency) {
-    handle_deprecated_option(kFailoverConsistency, kConsistency,
-                             !consistency.is_null(), false);
-  }
-
-  consistency = stripped_value;
-}
-
-void Create_group_replication_options::set_expel_timeout(int64_t value) {
-  if (value < 0 || value > 3600) {
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s, integer value must be in the range: [0, 3600]",
-        kExpelTimeout));
-  }
-
-  expel_timeout = value;
 }
 
 }  // namespace dba

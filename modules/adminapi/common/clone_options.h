@@ -41,10 +41,11 @@ enum class Member_recovery_method { AUTO, INCREMENTAL, CLONE };
 
 struct Clone_options {
   enum Unpack_target {
-    NONE,            // none
-    CREATE_CLUSTER,  // only disableClone
-    JOIN_CLUSTER,    // all but disableClone
-    JOIN_REPLICASET  // ReplicaSet only options
+    NONE,                   // none
+    CREATE_CLUSTER,         // only disableClone
+    JOIN_CLUSTER,           // all but disableClone
+    JOIN_REPLICASET,        // ReplicaSet only options
+    CREATE_REPLICA_CLUSTER  // same as JOIN_CLUSTER
   };
 
   Clone_options() : target(NONE) {}
@@ -60,6 +61,8 @@ struct Clone_options {
   void check_option_values(const mysqlshdk::utils::Version &version,
                            const Cluster_impl *cluster = nullptr);
 
+  void set_clone_donor(const std::string &value);
+
   Unpack_target target;
 
   mysqlshdk::null_bool disable_clone;
@@ -67,15 +70,6 @@ struct Clone_options {
   mysqlshdk::utils::nullable<Member_recovery_method> recovery_method;
   std::string recovery_method_str_invalid;
   mysqlshdk::null_string clone_donor;
-};
-
-struct Create_cluster_clone_options : public Clone_options {
-  static const shcore::Option_pack_def<Create_cluster_clone_options> &options();
-  Create_cluster_clone_options()
-      : Clone_options(Unpack_target::CREATE_CLUSTER) {}
-
-  void set_gtid_set_is_complete(bool value);
-  void set_disable_clone(bool value);
 };
 
 struct Join_cluster_clone_options : public Clone_options {
@@ -93,7 +87,39 @@ struct Join_replicaset_clone_options : public Join_cluster_clone_options {
   static const shcore::Option_pack_def<Join_replicaset_clone_options>
       &options();
 
-  void set_clone_donor(const std::string &value);
+  void set_clone_donor(const std::string &value) {
+    Clone_options::set_clone_donor(value);
+  }
+};
+
+struct Create_replica_cluster_clone_options
+    : public Join_cluster_clone_options {
+  Create_replica_cluster_clone_options()
+      : Join_cluster_clone_options(Unpack_target::CREATE_REPLICA_CLUSTER) {}
+  static const shcore::Option_pack_def<Create_replica_cluster_clone_options>
+      &options();
+
+  void set_clone_donor(const std::string &value) {
+    Clone_options::set_clone_donor(value);
+  }
+};
+
+struct Create_cluster_clone_options : public Clone_options {
+  static const shcore::Option_pack_def<Create_cluster_clone_options> &options();
+  Create_cluster_clone_options()
+      : Clone_options(Unpack_target::CREATE_CLUSTER) {}
+
+  void set_gtid_set_is_complete(bool value);
+  void set_disable_clone(bool value);
+
+  Create_cluster_clone_options &operator=(
+      const Create_replica_cluster_clone_options &options) {
+    recovery_method = options.recovery_method;
+    clone_donor = options.clone_donor;
+    gtid_set_is_complete = options.gtid_set_is_complete;
+
+    return *this;
+  }
 };
 
 }  // namespace dba

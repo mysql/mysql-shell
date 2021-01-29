@@ -184,5 +184,4 @@ function inject_empty_trx(session, trx_gtid) {
     session.runSql("BEGIN");
     session.runSql("COMMIT");
     session.runSql("SET GTID_NEXT='AUTOMATIC'");
-
 }

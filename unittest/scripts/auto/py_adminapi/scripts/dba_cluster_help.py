@@ -225,6 +225,24 @@ c.help('reset_recovery_accounts_password')
 #@ global help for reset_recovery_accounts_password[USE:cluster.reset_recovery_accounts_password]
 \help cluster.reset_recovery_accounts_password
 
+#@ cluster.create_cluster_set
+c.help('create_cluster_set')
+
+#@ global ? for create_cluster_set[USE:cluster.create_cluster_set]
+\? cluster.create_cluster_set
+
+#@ global help for create_cluster_set[USE:cluster.create_cluster_set]
+\help cluster.create_cluster_set
+
+#@ cluster.get_cluster_set
+c.help('get_cluster_set')
+
+#@ global ? for get_cluster_set[USE:cluster.get_cluster_set]
+\? cluster.get_cluster_set
+
+#@ global help for get_cluster_set[USE:cluster.get_cluster_set]
+\help cluster.get_cluster_set
+
 c.disconnect()
 
 testutil.destroy_sandbox(__mysql_sandbox_port1);

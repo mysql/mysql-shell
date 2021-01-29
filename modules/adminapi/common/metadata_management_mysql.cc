@@ -57,9 +57,10 @@ namespace dba {
 namespace metadata {
 
 // Must be kept up-to-date with the latest version of the metadata schema
-constexpr const char k_metadata_schema_version[] = "2.0.0";
+constexpr const char k_metadata_schema_version[] = "2.1.0";
 // Must be kept up-to-date with the list of all schema versions ever released
-constexpr const char *k_metadata_schema_version_history[] = {"1.0.1", "2.0.0"};
+constexpr const char *k_metadata_schema_version_history[] = {"1.0.1", "2.0.0",
+                                                             "2.1.0"};
 
 namespace {
 constexpr char kMetadataSchemaPreviousName[] =
@@ -324,11 +325,38 @@ void upgrade_101_200(const std::shared_ptr<Instance> &group_server) {
             .c_str());
   }
 
-  execute_script(group_server,
-                 scripts::get_metadata_upgrade_script(
-                     mysqlshdk::utils::Version(k_metadata_schema_version)),
-                 "While upgrading Metadata schema");
+  execute_script(
+      group_server,
+      scripts::get_metadata_upgrade_script(mysqlshdk::utils::Version("2.0.0")),
+      "While upgrading Metadata schema");
 }
+
+void upgrade_200_210(const std::shared_ptr<Instance> &group_server) {
+  DBUG_EXECUTE_IF("dba_FAIL_metadata_upgrade_at_UPGRADING", {
+    throw std::logic_error(
+        "Debug emulation of failed metadata upgrade "
+        "UPGRADING.");
+  });
+  auto result = group_server->queryf("SELECT COUNT(*) FROM !.!",
+                                     kMetadataSchemaName, "clusters");
+
+  auto row = result->fetch_one();
+
+  int count = row->get_int(0);
+  if (count > 1) {
+    throw std::runtime_error(
+        shcore::str_format("Inconsistent Metadata: unexpected number of "
+                           "registered clusters: %d",
+                           count)
+            .c_str());
+  }
+
+  execute_script(
+      group_server,
+      scripts::get_metadata_upgrade_script(mysqlshdk::utils::Version("2.1.0")),
+      "While upgrading Metadata schema");
+}
+
 }  // namespace steps
 
 struct Step {
@@ -339,6 +367,7 @@ struct Step {
 
 const Step k_steps[] = {
     {Version(1, 0, 1), Version(2, 0, 0), &steps::upgrade_101_200},
+    {Version(2, 0, 0), Version(2, 1, 0), &steps::upgrade_200_210},
     {kNotInstalled, kNotInstalled, nullptr}};
 
 bool get_lock(const std::shared_ptr<Instance> &instance) {

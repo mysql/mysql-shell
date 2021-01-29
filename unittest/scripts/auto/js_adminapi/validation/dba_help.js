@@ -73,6 +73,9 @@ FUNCTIONS
       getCluster([name][, options])
             Retrieves a cluster from the Metadata Store.
 
+      getClusterSet()
+            Returns an object representing a ClusterSet.
+
       getReplicaSet()
             Returns an object representing a ReplicaSet.
 
@@ -881,6 +884,28 @@ DESCRIPTION
       up-to-date. This function will also work if the PRIMARY is unreachable or
       unavailable, although replicaset change operations will not be possible,
       except for forcePrimaryInstance().
+
+//@<OUT> Get ClusterSet
+NAME
+      getClusterSet - Returns an object representing a ClusterSet.
+
+SYNTAX
+      dba.getClusterSet()
+
+RETURNS
+      The ClusterSet object to which the current session belongs to.
+
+DESCRIPTION
+      The returned object is identical to the one returned by
+      createClusterSet() and can be used to manage the ClusterSet.
+
+      The function will work regardless of whether the active session is
+      established to an instance that belongs to a PRIMARY or a REPLICA
+      Cluster, but its copy of the metadata is expected to be up-to-date.
+
+      This function will also work if the PRIMARY Cluster is unreachable or
+      unavailable, although ClusterSet change operations will not be possible,
+      except for failover with forcePrimaryCluster().
 
 //@<OUT> Help
 NAME

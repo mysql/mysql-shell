@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -452,7 +452,7 @@ void validate_transaction_sets_for_switch_primary(
 void Star_global_topology_manager::validate_switch_primary(
     mysqlshdk::mysql::IInstance *master,
     mysqlshdk::mysql::IInstance * /*promoted*/,
-    const std::list<Scoped_instance> &instances) {
+    const std::list<std::shared_ptr<Instance>> &instances) {
   auto console = mysqlsh::current_console();
 
   console->print_info("** Checking async replication topology...");
@@ -473,7 +473,7 @@ void Star_global_topology_manager::validate_switch_primary(
 
 void Star_global_topology_manager::validate_force_primary(
     mysqlshdk::mysql::IInstance *master,
-    const std::list<Scoped_instance> &instances) {
+    const std::list<std::shared_ptr<Instance>> &instances) {
   auto console = mysqlsh::current_console();
 
   // active is not available
@@ -497,11 +497,12 @@ void Star_global_topology_manager::validate_force_primary(
 
     // NOTE: Use the latest GTID_EXECUTED set (after catching up with received
     // trx), not the initially "cached" set by Global_topology.
-    std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(valid_inst);
+    std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*valid_inst);
     if (!gtid_set.empty()) {
       gtid_info.emplace_back(Instance_gtid_info{inst->label, gtid_set});
-      if (inst->get_primary_member()->uuid == master->get_uuid())
+      if (inst->get_primary_member()->uuid == master->get_uuid()) {
         promoted_node = inst;
+      }
     }
   }
   if (!promoted_node) throw std::logic_error("internal error");
@@ -525,20 +526,22 @@ void Star_global_topology_manager::validate_force_primary(
   if (!ok) {
     std::string candidates;
     for (const auto &i : gtid_info) {
-      if (!candidates.empty())
+      if (!candidates.empty()) {
         candidates.append(", ").append(i.server);
-      else
+      } else {
         candidates = i.server;
+      }
     }
 
-    if (gtid_info.size() == 1)
+    if (gtid_info.size() == 1) {
       console->print_error(candidates +
                            " is more up-to-date than the selected instance "
                            "and should be used for promotion instead.");
-    else
+    } else {
       console->print_error(candidates +
                            " are more up-to-date than the selected instance "
                            "and should be used for promotion instead.");
+    }
     throw shcore::Exception("Target instance is behind others",
                             SHERR_DBA_BADARG_INSTANCE_OUTDATED);
   }

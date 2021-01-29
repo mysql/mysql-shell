@@ -54,17 +54,19 @@ Base_cluster_impl::Base_cluster_impl(
     const std::string &cluster_name, std::shared_ptr<Instance> group_server,
     std::shared_ptr<MetadataStorage> metadata_storage)
     : m_cluster_name(cluster_name),
-      m_target_server(group_server),
+      m_cluster_server(group_server),
       m_metadata_storage(metadata_storage) {
-  m_target_server->retain();
+  if (m_cluster_server) {
+    m_cluster_server->retain();
 
-  m_admin_credentials.get(group_server->get_connection_options());
+    m_admin_credentials.get(m_cluster_server->get_connection_options());
+  }
 }
 
 Base_cluster_impl::~Base_cluster_impl() {
-  if (m_target_server) {
-    m_target_server->release();
-    m_target_server.reset();
+  if (m_cluster_server) {
+    m_cluster_server->release();
+    m_cluster_server.reset();
   }
 
   if (m_primary_master) {
@@ -74,9 +76,9 @@ Base_cluster_impl::~Base_cluster_impl() {
 }
 
 void Base_cluster_impl::disconnect() {
-  if (m_target_server) {
-    m_target_server->release();
-    m_target_server.reset();
+  if (m_cluster_server) {
+    m_cluster_server->release();
+    m_cluster_server.reset();
   }
 
   if (m_primary_master) {
@@ -90,22 +92,25 @@ void Base_cluster_impl::disconnect() {
 }
 
 void Base_cluster_impl::target_server_invalidated() {
-  if (m_target_server && m_primary_master) {
-    m_target_server->release();
-    m_target_server = m_primary_master;
-    m_target_server->retain();
+  if (m_cluster_server && m_primary_master) {
+    m_cluster_server->release();
+    m_cluster_server = m_primary_master;
+    m_cluster_server->retain();
   } else {
     // find some other server to connect to?
   }
 }
 
 Cluster_check_info Base_cluster_impl::check_preconditions(
-    const std::string &function_name, FunctionAvailability *custom_func_avail) {
+    const std::string &function_name,
+    Function_availability *custom_func_avail) {
+  log_debug("Checking '%s' preconditions.", function_name.c_str());
+
   // Makes sure the metadata state is re-loaded on each API call
   m_metadata_storage->invalidate_cached();
   return check_function_preconditions(
       api_class(get_type()) + "." + function_name, get_metadata_storage(),
-      custom_func_avail);
+      get_cluster_server(), custom_func_avail);
 }
 
 bool Base_cluster_impl::get_gtid_set_is_complete() const {
@@ -119,12 +124,7 @@ bool Base_cluster_impl::get_gtid_set_is_complete() const {
 void Base_cluster_impl::sync_transactions(
     const mysqlshdk::mysql::IInstance &target_instance,
     const std::string &channel_name, int timeout) const {
-  // NOTE: These lines can be removed once Cluster_impl starts using
-  // acquire_primary()
-  auto master = m_primary_master;
-  if (!master) master = m_target_server;
-
-  assert(master);
+  auto master = get_global_primary_master();
 
   std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*master);
 
@@ -150,10 +150,10 @@ void Base_cluster_impl::set_target_server(
     const std::shared_ptr<Instance> &instance) {
   disconnect();
 
-  m_target_server = instance;
-  m_target_server->retain();
+  m_cluster_server = instance;
+  m_cluster_server->retain();
 
-  m_metadata_storage = std::make_shared<MetadataStorage>(m_target_server);
+  m_metadata_storage = std::make_shared<MetadataStorage>(m_cluster_server);
 }
 
 std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
@@ -167,7 +167,7 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
 std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
     const mysqlshdk::db::Connection_options &instance_def, bool print_error,
     bool allow_account_override, bool show_tls_deprecation) {
-  assert(m_target_server);
+  assert(m_cluster_server);
 
   // Once an instance is part of the cluster, it must accept the same
   // credentials used in the cluster object. But while it's being added, it can
@@ -182,7 +182,7 @@ std::shared_ptr<Instance> Base_cluster_impl::connect_target_instance(
   // * user:pwd@host:port  no extra checks
   auto ipool = current_ipool();
 
-  const auto &main_opts(m_target_server->get_connection_options());
+  const auto &main_opts(m_cluster_server->get_connection_options());
 
   // default to copying credentials and all other connection params from the
   // main session
@@ -321,9 +321,9 @@ void Base_cluster_impl::setup_account_common(
   // contain unsupported grants.
 
   // The pool is initialized with the metadata using the current session
-  auto metadata = std::make_shared<MetadataStorage>(get_target_server());
+  auto metadata = std::make_shared<MetadataStorage>(get_cluster_server());
   Instance_pool::Auth_options auth_opts;
-  auth_opts.get(get_target_server()->get_connection_options());
+  auth_opts.get(get_cluster_server()->get_connection_options());
   Scoped_instance_pool ipool(options.interactive(), auth_opts);
   ipool->set_metadata(metadata);
 
@@ -406,7 +406,7 @@ void Base_cluster_impl::set_instance_option(const std::string &instance_def,
 
   // Initialize pool with the metadata
   Instance_pool::Auth_options auth_opts;
-  auth_opts.get(get_target_server()->get_connection_options());
+  auth_opts.get(get_cluster_server()->get_connection_options());
   Scoped_instance_pool ipool(false, auth_opts);
   ipool->set_metadata(get_metadata_storage());
 
@@ -429,9 +429,9 @@ void Base_cluster_impl::set_instance_option(const std::string &instance_def,
 
 void Base_cluster_impl::set_option(const std::string &option,
                                    const shcore::Value &value) {
-  FunctionAvailability custom_func_avail = {
+  Function_availability custom_func_avail = {
       k_min_gr_version,
-      InstanceType::InnoDBCluster,
+      TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
       ReplicationQuorum::State(ReplicationQuorum::States::Normal),
       ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
       {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}}};
@@ -441,7 +441,7 @@ void Base_cluster_impl::set_option(const std::string &option,
   std::tie(opt_namespace, opt, val) =
       validate_set_option_namespace(option, value);
 
-  FunctionAvailability *custom_precondition{nullptr};
+  Function_availability *custom_precondition{nullptr};
   if (!opt_namespace.empty() && get_type() == Cluster_type::GROUP_REPLICATION) {
     custom_precondition = &custom_func_avail;
   }
@@ -449,7 +449,7 @@ void Base_cluster_impl::set_option(const std::string &option,
 
   // Initialize pool with the metadata
   Instance_pool::Auth_options auth_opts;
-  auth_opts.get(get_target_server()->get_connection_options());
+  auth_opts.get(get_cluster_server()->get_connection_options());
   Scoped_instance_pool ipool(false, auth_opts);
   ipool->set_metadata(get_metadata_storage());
 

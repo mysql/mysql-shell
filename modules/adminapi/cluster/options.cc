@@ -47,7 +47,7 @@ Options::~Options() {}
  * m_member_connect_errors
  */
 void Options::connect_to_members() {
-  auto group_server = m_cluster.get_target_server();
+  auto group_server = m_cluster.get_cluster_server();
 
   mysqlshdk::db::Connection_options group_session_copts(
       group_server->get_connection_options());
@@ -86,7 +86,7 @@ void Options::connect_to_members() {
 shcore::Array_t Options::collect_global_options() {
   shcore::Array_t array = shcore::make_array();
 
-  auto group_instance = m_cluster.get_target_server();
+  auto group_instance = m_cluster.get_cluster_server();
 
   for (const auto &cfg : k_global_options) {
     shcore::Dictionary_t option = shcore::make_dict();

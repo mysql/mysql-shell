@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,8 +66,8 @@ void wait_pending_master_transactions(const std::string &master_gtid_set,
  * the sync operations may timeout too early.
  */
 void Global_locks::sync_and_lock_all(
-    const std::list<Scoped_instance> &instances, const std::string &master_uuid,
-    uint32_t gtid_sync_timeout, bool dry_run) {
+    const std::list<std::shared_ptr<Instance>> &instances,
+    const std::string &master_uuid, uint32_t gtid_sync_timeout, bool dry_run) {
   auto console = current_console();
 
   // NOTE: Set the master and list of slaves, otherwise UNLOCK TABLES is never
@@ -87,7 +87,7 @@ void Global_locks::sync_and_lock_all(
   // Set list of slaves (removing the master to avoid unlocking the same
   // instance twice later).
   m_slaves = instances;
-  m_slaves.remove_if([this](const Scoped_instance &i) {
+  m_slaves.remove_if([this](const std::shared_ptr<Instance> &i) {
     return i->get_uuid() == m_master->get_uuid();
   });
 
@@ -102,7 +102,7 @@ void Global_locks::sync_and_lock_all(
       instances.begin(), instances.end(),
       // Execute a gtid sync in parallel and return an error or null
       [master_uuid, master_gtid_set,
-       gtid_sync_timeout](const Scoped_instance &inst) {
+       gtid_sync_timeout](const std::shared_ptr<Instance> &inst) {
         if (master_uuid != inst->get_uuid())
           wait_pending_master_transactions(master_gtid_set, inst.get(),
                                            gtid_sync_timeout);
@@ -176,9 +176,9 @@ void Global_locks::sync_and_lock_all(
   }
 }
 
-void Global_locks::acquire(const std::list<Scoped_instance> &instances,
-                           const std::string &master_uuid,
-                           uint32_t gtid_sync_timeout, bool dry_run) {
+void Global_locks::acquire(
+    const std::list<std::shared_ptr<Instance>> &instances,
+    const std::string &master_uuid, uint32_t gtid_sync_timeout, bool dry_run) {
   current_console()->print_info("* Acquiring locks in replicaset instances");
 
   sync_and_lock_all(instances, master_uuid, gtid_sync_timeout, dry_run);

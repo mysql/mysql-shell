@@ -6,8 +6,10 @@
 
 var uuid1 = "5ef81566-9395-11e9-87e9-111111111111";
 var uuid2 = "5ef81566-9395-11e9-87e9-222222222222";
-testutil.deploySandbox(__mysql_sandbox_port1, "root", {server_uuid: uuid1, server_id:11});
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {server_uuid: uuid2, server_id:22});
+var id1 = 11;
+var id2 = 22;
+testutil.deploySandbox(__mysql_sandbox_port1, "root", {server_uuid: uuid1, server_id: id1});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {server_uuid: uuid2, server_id: id2});
 
 var s1 = mysql.getSession(__sandbox_uri1);
 var s2 = mysql.getSession(__sandbox_uri2);

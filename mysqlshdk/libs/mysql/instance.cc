@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -116,6 +116,13 @@ const std::string &Instance::get_uuid() const {
     m_uuid = queryf_one_string(0, "", "SELECT @@server_uuid");
   }
   return m_uuid;
+}
+
+uint32_t Instance::get_id() const {
+  if (m_id.is_null()) {
+    m_id = queryf_one_int(0, 0, "SELECT @@server_id");
+  }
+  return *m_id;
 }
 
 const std::string &Instance::get_group_name() const {

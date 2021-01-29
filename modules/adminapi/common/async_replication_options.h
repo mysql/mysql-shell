@@ -26,6 +26,7 @@
 
 #include <string>
 #include <vector>
+#include "modules/adminapi/common/common.h"
 #include "modules/mod_common.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -64,6 +65,8 @@ struct Async_replication_options {
   mysqlshdk::utils::nullable<int> master_connect_retry;
   mysqlshdk::utils::nullable<int> master_retry_count;
   mysqlshdk::utils::nullable<int> master_delay;
+  Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::NONE;
+  mysqlshdk::utils::nullable<bool> auto_failover;
 };
 
 }  // namespace dba

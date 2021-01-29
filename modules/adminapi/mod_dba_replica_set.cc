@@ -174,7 +174,7 @@ void ReplicaSet::assert_valid(const std::string &option_name) const {
           name + "' on a dissolved replicaset");
     }
   }
-  if (!impl()->get_target_server() || !impl()->get_metadata_storage()) {
+  if (!impl()->get_cluster_server() || !impl()->get_metadata_storage()) {
     throw shcore::Exception::runtime_error(
         "The replicaset object is disconnected. Please use "
         "dba.<<<getReplicaSet>>>() to obtain a new object.");
@@ -804,9 +804,12 @@ shcore::Dictionary_t ReplicaSet::list_routers(
   // Throw an error if the cluster has already been dissolved
   assert_valid("listRouters");
 
+  auto target_instance = m_impl->get_cluster_server();
+  auto metadata = m_impl->get_metadata_storage();
+
   // Throw an error if the cluster has already been dissolved
-  check_function_preconditions("ReplicaSet.listRouters",
-                               m_impl->get_target_server());
+  check_function_preconditions("ReplicaSet.listRouters", metadata,
+                               target_instance);
 
   auto ret_val = m_impl->list_routers(options->only_upgrade_required);
 
@@ -845,15 +848,16 @@ void ReplicaSet::remove_router_metadata(const std::string &router_def) {
   // Throw an error if the replicaset has already been dissolved
   assert_valid("removeRouterMetadata");
 
+  auto target_instance = m_impl->get_cluster_server();
+  auto metadata = m_impl->get_metadata_storage();
+
   // Throw an error if the cluster has already been dissolved
-  check_function_preconditions("ReplicaSet.removeRouterMetadata",
-                               m_impl->get_target_server());
+  check_function_preconditions("ReplicaSet.removeRouterMetadata", metadata,
+                               target_instance);
 
   // Initialized Instance pool with the metadata from the current session.
-  auto metadata =
-      std::make_shared<MetadataStorage>(m_impl->get_target_server());
   Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
   Scoped_instance_pool ipool(interactive, auth_opts);
   ipool->set_metadata(metadata);
 

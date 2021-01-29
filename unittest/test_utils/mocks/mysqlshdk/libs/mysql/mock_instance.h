@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,6 +42,7 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
   MOCK_CONST_METHOD0(get_canonical_hostname, std::string());
   MOCK_CONST_METHOD0(get_canonical_port, int());
   MOCK_CONST_METHOD0(get_canonical_address, std::string());
+  MOCK_CONST_METHOD0(get_id, uint32_t());
   MOCK_CONST_METHOD0(get_uuid, const std::string &());
   MOCK_CONST_METHOD0(get_group_name, const std::string &());
   MOCK_CONST_METHOD0(get_version_compile_os, const std::string &());

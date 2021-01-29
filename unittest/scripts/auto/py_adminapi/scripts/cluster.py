@@ -14,6 +14,7 @@ validate_members(cluster, [
     'dissolve',
     'disconnect',
     'force_quorum_using_partition_of',
+    'get_cluster_set',
     'get_name',
     'help',
     'list_routers',
@@ -31,7 +32,8 @@ validate_members(cluster, [
     'set_option',
     'set_instance_option',
     'switch_to_multi_primary_mode',
-    'switch_to_single_primary_mode'
+    'switch_to_single_primary_mode',
+    'create_cluster_set'
     ])
 
 cluster.disconnect()

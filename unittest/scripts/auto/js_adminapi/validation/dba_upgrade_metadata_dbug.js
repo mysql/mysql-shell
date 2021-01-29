@@ -1,7 +1,7 @@
 //@<OUT> Upgrades the metadata, interactive options simulating unregister (no upgrade performed)
 InnoDB Cluster Metadata Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.0.0.
+The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 
@@ -76,7 +76,7 @@ Please select an option: The metadata upgrade has been aborted.
 //@<OUT> Upgrades the metadata, interactive options simulating upgrade (no upgrade performed)
 InnoDB Cluster Metadata Upgrade
 
-The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.0.0.
+The cluster you are connected to is using an outdated metadata schema version 1.0.1 and needs to be upgraded to 2.1.0.
 
 Without doing this upgrade, no AdminAPI calls except read only operations will be allowed.
 

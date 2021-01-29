@@ -7,6 +7,10 @@ The following operations are available at 'cluster':
    check-instance-state
       Verifies the instance gtid state in relation to the cluster.
 
+   create-cluster-set
+      Creates a MySQL InnoDB ClusterSet from an existing standalone InnoDB
+      Cluster.
+
    describe
       Describe the structure of the cluster.
 

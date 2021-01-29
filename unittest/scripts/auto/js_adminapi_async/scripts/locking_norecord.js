@@ -340,7 +340,7 @@ rs.rejoinInstance(__sandbox_uri2);
 testutil.getExclusiveLock(session1, lock_metadata, lock_name);
 // WL#13540: NFR1
 cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0];
-session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, '', 'mysqlrouter', 'routerhost', '8.0.19', '2019-01-01 11:22:33', NULL, ?, NULL)", [cluster_id]);
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, '', 'mysqlrouter', 'routerhost', '8.0.19', '2019-01-01 11:22:33', NULL, ?, NULL, NULL)", [cluster_id]);
 rs.removeRouterMetadata("routerhost");
 // Release locks on instance 1.
 testutil.releaseLocks(session1, lock_metadata);

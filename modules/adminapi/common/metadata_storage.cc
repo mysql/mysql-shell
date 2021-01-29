@@ -26,9 +26,13 @@
 #include <mysql.h>
 #include <mysqld_error.h>
 
+#include <list>
+
 #include "modules/adminapi/cluster/cluster_impl.h"
+#include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
+#include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/debug.h"
@@ -86,7 +90,18 @@ const char *get_router_query(const mysqlshdk::utils::Version &md_version) {
     return k_list_routers;
 }
 
-static constexpr const char *k_select_cluster_metadata =
+static constexpr const char *k_select_cluster_metadata_2_1_0 =
+    R"*(SELECT * FROM (
+SELECT cluster_type, primary_mode, cluster_id, cluster_name,
+      description, NULL as group_name, async_topology_type, NULL as clusterset_id
+FROM mysql_innodb_cluster_metadata.v2_ar_clusters
+UNION ALL
+SELECT cluster_type, primary_mode, cluster_id, cluster_name,
+      description, group_name, NULL as async_topology_type, clusterset_id
+FROM mysql_innodb_cluster_metadata.v2_gr_clusters
+) as c)*";
+
+static constexpr const char *k_select_cluster_metadata_2_0_0 =
     R"*(SELECT * FROM (
 SELECT cluster_type, primary_mode, cluster_id, cluster_name,
       description, NULL as group_name, async_topology_type
@@ -105,10 +120,13 @@ static constexpr const char *k_select_cluster_metadata_1_0_1 =
   ON c.cluster_id = r.cluster_id)*";
 
 std::string get_cluster_query(const mysqlshdk::utils::Version &md_version) {
-  if (md_version.get_major() == 1)
+  if (md_version.get_major() == 1) {
     return k_select_cluster_metadata_1_0_1;
-  else
-    return k_select_cluster_metadata;
+  } else if (md_version.get_major() == 2 && md_version.get_minor() == 0) {
+    return k_select_cluster_metadata_2_0_0;
+  } else {
+    return k_select_cluster_metadata_2_1_0;
+  }
 }
 
 constexpr const char *k_base_instance_query =
@@ -138,10 +156,11 @@ constexpr const char *k_base_instance_query_1_0_1 =
     "   ON r.replicaset_id = i.replicaset_id";
 
 std::string get_instance_query(const mysqlshdk::utils::Version &md_version) {
-  if (md_version.get_major() == 1)
+  if (md_version.get_major() == 1) {
     return k_base_instance_query_1_0_1;
-  else
+  } else {
     return k_base_instance_query;
+  }
 }
 
 // In Metadata schema versions higher than 1.0.1
@@ -149,7 +168,7 @@ std::string get_instance_query(const mysqlshdk::utils::Version &md_version) {
 // then when doing comparisons with the sysvar @@server_uuid will results
 // in an illegal mix of collations. For that reason, we must do the right
 // cast of @@server_uuid to ascii_general_ci
-constexpr const char *k_all_online_check_query =
+constexpr const char *k_all_online_check_query_2_0_0 =
     "SELECT (SELECT COUNT(*) "
     "FROM !.instances "
     "WHERE cluster_id = (SELECT cluster_id "
@@ -168,12 +187,25 @@ constexpr const char *k_all_online_check_query_1_0_1 =
     "FROM performance_schema.replication_group_members "
     "WHERE member_state = 'ONLINE') as all_online";
 
+constexpr const char *k_all_online_check_query =
+    "SELECT (SELECT COUNT(*) "
+    "FROM !.instances "
+    "WHERE cluster_id = (SELECT cluster_id FROM !.instances "
+    "WHERE mysql_server_uuid = @@server_uuid)) "
+    "= (SELECT count(*) FROM performance_schema.replication_group_members "
+    "WHERE member_state = 'ONLINE') as all_online";
+
 std::string get_all_online_check_query(
     const mysqlshdk::utils::Version &md_version) {
-  if (md_version.get_major() == 1)
+  if (md_version.get_major() == 1) {
     return k_all_online_check_query_1_0_1;
-  else
-    return k_all_online_check_query;
+  } else {
+    if (md_version.get_minor() == 0) {
+      return k_all_online_check_query_2_0_0;
+    } else {
+      return k_all_online_check_query;
+    }
+  }
 }
 
 constexpr const char *k_base_instance_in_cluster_query =
@@ -241,10 +273,21 @@ static const mysqlshdk::utils::Version k_json_merge_deprecated_version =
 
 }  // namespace
 
+void Cached_metadata_base::invalidate() { m_owner.reset(); }
+
+bool Cached_metadata_base::is_valid() const {
+  auto owner = m_owner.lock();
+  return (owner && owner->is_valid());
+}
+
+void Cached_metadata_base::track(
+    const std::shared_ptr<MetadataStorage> &owner) {
+  m_owner = owner;
+}
+
 MetadataStorage::MetadataStorage(const std::shared_ptr<Instance> &instance)
     : m_md_server(instance), m_owns_md_server(true) {
   log_debug("Metadata operations will use %s", instance->descr().c_str());
-
   instance->retain();
 }
 
@@ -263,13 +306,32 @@ bool MetadataStorage::check_version(
   if (m_md_state == mysqlsh::dba::metadata::State::NONEXISTING ||
       m_md_state == mysqlsh::dba::metadata::State::FAILED_UPGRADE ||
       m_md_state == mysqlsh::dba::metadata::State::UPGRADING) {
-    m_md_state = mysqlsh::dba::metadata::check_installed_schema_version(
-        m_md_server, &m_md_version, &m_real_md_version, &m_md_version_schema);
+    try {
+      m_md_state = mysqlsh::dba::metadata::check_installed_schema_version(
+          m_md_server, &m_md_version, &m_real_md_version, &m_md_version_schema);
+    } catch (const shcore::Exception &e) {
+      throw shcore::Exception::mysql_error_with_code(
+          shcore::str_format("Error querying metadata server at %s: %s",
+                             m_md_server->descr().c_str(), e.what()),
+          e.code());
+    }
   }
 
   if (m_md_version != mysqlsh::dba::metadata::kNotInstalled) {
     if (out_version) *out_version = m_md_version;
     return true;
+  }
+
+  return false;
+}
+
+void MetadataStorage::invalidate() { m_md_server.reset(); }
+
+bool MetadataStorage::is_valid() const {
+  if (m_md_server) {
+    if (m_md_server->get_session() && m_md_server->get_session()->is_open()) {
+      return true;
+    }
   }
 
   return false;
@@ -419,7 +481,7 @@ std::shared_ptr<mysqlshdk::db::IResult> MetadataStorage::execute_sql(
 
 Cluster_metadata MetadataStorage::unserialize_cluster_metadata(
     const mysqlshdk::db::Row_ref_by_name &row,
-    const mysqlshdk::utils::Version &version) {
+    const mysqlshdk::utils::Version &version) const {
   Cluster_metadata rs;
   std::string topology_type_md;
 
@@ -429,6 +491,11 @@ Cluster_metadata MetadataStorage::unserialize_cluster_metadata(
     rs.type = Cluster_type::GROUP_REPLICATION;
   } else {
     rs.cluster_id = row.get_string("cluster_id");
+
+    if (row.has_field("clusterset_id") && !row.is_null("clusterset_id")) {
+      rs.cluster_set_id = row.get_string("clusterset_id");
+    }
+
     topology_type_md = row.get_string("primary_mode", "");
 
     if (row.get_string("cluster_type") == "ar") {
@@ -437,7 +504,8 @@ Cluster_metadata MetadataStorage::unserialize_cluster_metadata(
       rs.type = Cluster_type::GROUP_REPLICATION;
     }
 
-    if (!row.is_null("async_topology_type")) {
+    if (row.has_field("async_topology_type") &&
+        !row.is_null("async_topology_type")) {
       rs.async_topology_type =
           to_topology_type(row.get_string("async_topology_type"));
     }
@@ -477,7 +545,7 @@ bool MetadataStorage::get_cluster(const Cluster_id &cluster_id,
 
 bool MetadataStorage::query_cluster_attribute(const Cluster_id &cluster_id,
                                               const std::string &attribute,
-                                              shcore::Value *out_value) {
+                                              shcore::Value *out_value) const {
   auto result = execute_sql(
       shcore::sqlstring("SELECT attributes->'$." + attribute +
                             "' FROM mysql_innodb_cluster_metadata.clusters"
@@ -523,6 +591,55 @@ void MetadataStorage::update_cluster_attribute(const Cluster_id &cluster_id,
   }
 }
 
+void MetadataStorage::update_clusterset_attribute(
+    const Cluster_set_id &clusterset_id, const std::string &attribute,
+    const shcore::Value &value) {
+  shcore::sqlstring query;
+
+  if (value) {
+    query = shcore::sqlstring(
+        "UPDATE mysql_innodb_cluster_metadata.clustersets"
+        " SET attributes = json_set(attributes, '$." +
+            attribute +
+            "', CAST(? as JSON))"
+            " WHERE clusterset_id = ?",
+        0);
+
+    query << value.repr() << clusterset_id;
+  } else {
+    query = shcore::sqlstring(
+        "UPDATE mysql_innodb_cluster_metadata.clustersets"
+        " SET attributes = json_remove(attributes, '$." +
+            attribute +
+            "')"
+            " WHERE clusterset_id = ?",
+        0);
+    query << clusterset_id;
+  }
+
+  query.done();
+  execute_sql(query);
+}
+
+bool MetadataStorage::query_clusterset_attribute(
+    const Cluster_set_id &clusterset_id, const std::string &attribute,
+    shcore::Value *out_value) const {
+  auto result = execute_sql(
+      shcore::sqlstring("SELECT attributes->'$." + attribute +
+                            "' FROM mysql_innodb_cluster_metadata.clustersets"
+                            " WHERE clusterset_id=?",
+                        0)
+      << clusterset_id);
+
+  if (auto row = result->fetch_one()) {
+    if (!row->is_null(0)) {
+      *out_value = shcore::Value::parse(row->get_as_string(0));
+      return true;
+    }
+  }
+  return false;
+}
+
 std::vector<Cluster_metadata> MetadataStorage::get_all_clusters() {
   std::vector<Cluster_metadata> l;
 
@@ -545,7 +662,7 @@ std::vector<Cluster_metadata> MetadataStorage::get_all_clusters() {
 }
 
 bool MetadataStorage::get_cluster_for_server_uuid(
-    const std::string &server_uuid, Cluster_metadata *out_cluster) {
+    const std::string &server_uuid, Cluster_metadata *out_cluster) const {
   std::shared_ptr<mysqlshdk::db::IResult> result;
 
   std::string query = get_cluster_query(real_version());
@@ -707,7 +824,7 @@ void MetadataStorage::update_instance(const Instance_metadata &instance) {
 
 bool MetadataStorage::query_instance_attribute(const std::string &uuid,
                                                const std::string &attribute,
-                                               shcore::Value *out_value) {
+                                               shcore::Value *out_value) const {
   auto result = execute_sql(
       shcore::sqlstring("SELECT attributes->'$." + attribute +
                             "' FROM mysql_innodb_cluster_metadata.instances"
@@ -909,6 +1026,60 @@ void MetadataStorage::remove_instance_recovery_account(
   }
 }
 
+void MetadataStorage::update_cluster_repl_account(
+    const Cluster_id &cluster_id, const std::string &repl_account_user,
+    const std::string &repl_account_host) {
+  shcore::sqlstring query;
+
+  if (!repl_account_user.empty()) {
+    query = shcore::sqlstring(
+        "UPDATE mysql_innodb_cluster_metadata.clusters"
+        " SET attributes = json_set(COALESCE(attributes, '{}'),"
+        "  '$.replicationAccountUser', ?,"
+        "  '$.replicationAccountHost', ?)"
+        " WHERE cluster_id = ?",
+        0);
+    query << repl_account_user;
+    query << repl_account_host;
+
+  } else {
+    // if repl_account user is empty, clear existing recovery attributes
+    // of the instance from the metadata.
+    query = shcore::sqlstring(
+        "UPDATE mysql_innodb_cluster_metadata.clusters"
+        " SET attributes = json_remove(attributes,"
+        "  '$.replicationAccountUser', '$.replicationAccountHost')"
+        " WHERE cluster_id = ?",
+        0);
+  }
+
+  query << cluster_id;
+  query.done();
+
+  execute_sql(query);
+}
+
+std::pair<std::string, std::string> MetadataStorage::get_cluster_repl_account(
+    const Cluster_id &cluster_id) const {
+  shcore::sqlstring query = shcore::sqlstring{
+      "SELECT (attributes->>'$.replicationAccountUser') as replication_user,"
+      " (attributes->>'$.replicationAccountHost') as replication_host"
+      " FROM mysql_innodb_cluster_metadata.clusters "
+      " WHERE cluster_id = ?",
+      0};
+  query << cluster_id;
+  query.done();
+  std::string recovery_user, recovery_host;
+
+  auto res = execute_sql(query);
+  auto row = res->fetch_one();
+  if (row) {
+    recovery_user = row->get_string(0, "");
+    recovery_host = row->get_string(1, "");
+  }
+  return std::make_pair(recovery_user, recovery_host);
+}
+
 std::map<std::string, std::string>
 MetadataStorage::get_instances_with_recovery_accounts(
     const Cluster_id &cluster_id) const {
@@ -929,15 +1100,24 @@ MetadataStorage::get_instances_with_recovery_accounts(
 }
 
 bool MetadataStorage::is_recovery_account_unique(
-    const std::string &recovery_account_user) {
+    const std::string &recovery_account_user, bool clusterset_account) {
   shcore::sqlstring query;
 
   if (!recovery_account_user.empty()) {
-    query = shcore::sqlstring(
-        "SELECT COUNT(*) as count FROM "
-        "mysql_innodb_cluster_metadata.instances "
-        "WHERE attributes->'$.recoveryAccountUser' = ?",
-        0);
+    if (!clusterset_account) {
+      query = shcore::sqlstring(
+          "SELECT COUNT(*) as count FROM "
+          "mysql_innodb_cluster_metadata.instances "
+          "WHERE attributes->'$.recoveryAccountUser' = ?",
+          0);
+    } else {
+      query = shcore::sqlstring(
+          "SELECT COUNT(*) as count FROM "
+          "mysql_innodb_cluster_metadata.clusters "
+          "WHERE attributes->'$.replicationAccountUser' = ?",
+          0);
+    }
+
     query << recovery_account_user;
     query.done();
 
@@ -1138,20 +1318,24 @@ Instance_metadata MetadataStorage::unserialize_instance(
     instance.master_uuid = row.get_string("master_member_id", "");
     instance.primary_master = row.get_string("member_role", "") == "PRIMARY";
     if (row.is_null("member_role") &&
-        (!row.has_field("group_name") || row.is_null("group_name")))
+        (!row.has_field("group_name") || row.is_null("group_name"))) {
       instance.invalidated = true;
+    }
   }
 
   instance.id = row.get_uint("instance_id");
 
-  if (row.has_field("group_name"))
+  if (row.has_field("group_name")) {
     instance.group_name = row.get_string("group_name", "");
+  }
+
   instance.uuid = row.get_string("mysql_server_uuid", "");
   instance.label = row.get_string("label", "");
   instance.endpoint = row.get_string("endpoint", "");
   instance.xendpoint = row.get_string("xendpoint", "");
-  if (row.has_field("grendpoint"))
+  if (row.has_field("grendpoint")) {
     instance.grendpoint = row.get_string("grendpoint", "");
+  }
 
   instance.server_id = row.get_uint("server_id", 0);
 
@@ -1467,6 +1651,7 @@ Cluster_id MetadataStorage::create_async_cluster_record(
   return cluster_id;
 }
 
+namespace {
 /**
  * Increment failover (leftmost) sub-counter for Metadata view ID.
  *
@@ -1484,12 +1669,13 @@ Cluster_id MetadataStorage::create_async_cluster_record(
  * @param counter
  * @return
  */
-uint32_t MetadataStorage::inc_view_failover_counter(uint32_t view_id) const {
+uint32_t inc_view_failover_counter(uint32_t view_id) {
   uint32_t res = view_id >> 16;
   res += 1;
   res <<= 16;
   return res;
 }
+}  // namespace
 
 void MetadataStorage::begin_acl_change_record(const Cluster_id &cluster_id,
                                               const char *operation,
@@ -1955,6 +2141,348 @@ bool MetadataStorage::remove_router(const std::string &router_def) {
       return false;
     }
   }
+}
+
+void MetadataStorage::set_target_cluster_for_all_routers(
+    const Cluster_id &cluster_id, const std::string &target_cluster) {
+  shcore::sqlstring query(
+      "UPDATE mysql_innodb_cluster_metadata.routers"
+      " SET options = json_set(options, '$.targetCluster', ?)"
+      " WHERE cluster_id = ?",
+      0);
+
+  query << target_cluster << cluster_id;
+  query.done();
+  execute_sql(query);
+}
+
+void MetadataStorage::migrate_routers_to_clusterset(
+    const Cluster_id &cluster_id, const Cluster_set_id &cluster_set_id) {
+  shcore::sqlstring query(
+      "UPDATE mysql_innodb_cluster_metadata.routers"
+      " SET clusterset_id = ?, cluster_id = NULL "
+      " WHERE cluster_id = ?",
+      0);
+
+  query << cluster_set_id << cluster_id;
+  query.done();
+  execute_sql(query);
+}
+
+std::vector<Router_metadata>
+MetadataStorage::get_routers_using_cluster_as_target(
+    const std::string &target_cluster_group_name) {
+  std::vector<Router_metadata> ret_val;
+  std::string query(get_router_query(real_version()));
+
+  std::shared_ptr<mysqlshdk::db::IResult> result;
+
+  if (m_md_version.get_major() >= 2 && m_md_version.get_minor() >= 1 &&
+      !target_cluster_group_name.empty()) {
+    query.append(" WHERE r.options->>'$.targetCluster' = ?");
+    result = execute_sqlf(query, target_cluster_group_name);
+  } else {
+    throw std::logic_error(
+        "Operation not support on Metadata schema versions < 2.1.0");
+  }
+
+  while (auto row = result->fetch_one_named()) {
+    auto router = unserialize_router(row);
+    ret_val.push_back(router);
+  }
+  return ret_val;
+}
+
+// ----------------------------------------------------------------------------
+
+namespace {
+Cluster_set_member_metadata unserialize_clusterset_member_metadata(
+    const mysqlshdk::db::Row_ref_by_name &row) {
+  Cluster_set_member_metadata csmd;
+
+  csmd.cluster_set_id = row.get_string("clusterset_id", "");
+  csmd.master_cluster_id = row.get_string("master_cluster_id", "");
+  csmd.primary_cluster = row.get_string("member_role", "") == "PRIMARY";
+  csmd.invalidated = row.get_int("invalidated", 0);
+
+  return csmd;
+}
+}  // namespace
+
+bool MetadataStorage::get_cluster_set(
+    const Cluster_set_id &cs_id, Cluster_set_metadata *out_cs,
+    std::vector<Cluster_set_member_metadata> *out_cs_members) const {
+  Cluster_id cluster_id;
+
+  auto result = execute_sqlf(
+      "SELECT clusterset_id, domain_name"
+      " FROM mysql_innodb_cluster_metadata.clustersets"
+      " WHERE clusterset_id = ?",
+      cs_id);
+  if (auto row = result->fetch_one_named()) {
+    if (out_cs) {
+      out_cs->id = row.get_string("clusterset_id");
+      out_cs->domain_name = row.get_string("domain_name");
+    }
+
+    if (out_cs_members) {
+      result = execute_sqlf(
+          "SELECT c.*, m.view_id, m.member_role, m.master_cluster_id,"
+          "  m.invalidated"
+          " FROM mysql_innodb_cluster_metadata.v2_cs_members m"
+          " JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
+          "  ON c.cluster_id = m.cluster_id"
+          " WHERE m.clusterset_id = ?",
+          cs_id);
+
+      while (auto mrow = result->fetch_one_named()) {
+        Cluster_set_member_metadata cmd =
+            unserialize_clusterset_member_metadata(mrow);
+        cmd.cluster = unserialize_cluster_metadata(mrow, m_md_version);
+
+        out_cs_members->emplace_back(std::move(cmd));
+      }
+    }
+    return true;
+  }
+
+  return false;
+}
+
+bool MetadataStorage::get_cluster_set_member(
+    const Cluster_id &cluster_id,
+    Cluster_set_member_metadata *out_cs_member) const {
+  bool ret_val = false;
+
+  try {
+    auto result = execute_sqlf(
+        "SELECT c.*, m.view_id, m.member_role, m.master_cluster_id,"
+        "  m.invalidated"
+        " FROM mysql_innodb_cluster_metadata.v2_cs_members m"
+        " JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
+        "  ON c.cluster_id = m.cluster_id"
+        " WHERE c.cluster_id = ?",
+        cluster_id);
+
+    auto mrow = result->fetch_one_named();
+    if (out_cs_member && mrow) {
+      *out_cs_member = unserialize_clusterset_member_metadata(mrow);
+      out_cs_member->cluster = unserialize_cluster_metadata(mrow, m_md_version);
+
+      ret_val = true;
+    }
+  } catch (const shcore::Error &e) {
+    // ER_BAD_FIELD_ERROR Would be raised if metadata schema is not 2.1.0
+    // ER_BAD_DB_ERROR Would be raised in a metadata upgrade failure in which
+    // case the state doesn't really matter
+    // ER_NO_SUCH_TABLE Would be raised with 5.7 servers
+    if (e.code() != ER_BAD_FIELD_ERROR && e.code() != ER_BAD_DB_ERROR &&
+        e.code() != ER_NO_SUCH_TABLE) {
+      log_error("Error getting ClusterSet Metadata: %s", e.what());
+
+      throw shcore::Exception::runtime_error(
+          "Unable get the Metadata for the ClusterSet to which the Cluster "
+          "with id '" +
+          cluster_id + "' belongs to");
+    }
+  }
+
+  return ret_val;
+}
+
+void MetadataStorage::cleanup_for_cluster(Cluster_id cluster_id) {
+  // truncate clusterset_views tables
+  execute_sqlf("DELETE FROM mysql_innodb_cluster_metadata.clusterset_members");
+  execute_sqlf("DELETE FROM mysql_innodb_cluster_metadata.clusterset_views");
+
+  // delete instances from other clusters
+  execute_sqlf(
+      "DELETE FROM mysql_innodb_cluster_metadata.instances"
+      " WHERE cluster_id <> ?",
+      cluster_id);
+
+  // delete clusters
+  execute_sqlf(
+      "DELETE FROM mysql_innodb_cluster_metadata.clusters"
+      " WHERE cluster_id <> ?",
+      cluster_id);
+
+  // delete clustersets
+  execute_sqlf("DELETE FROM mysql_innodb_cluster_metadata.clustersets");
+}
+
+Cluster_set_id MetadataStorage::create_cluster_set_record(
+    Cluster_set_impl *clusterset, Cluster_id seed_cluster_id,
+    shcore::Dictionary_t seed_attributes) {
+  get_lock_exclusive();
+
+  // Always release locks at the end, when leaving the function scope.
+  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
+
+  Transaction tx(shared_from_this());
+
+  execute_sqlf(
+      "CALL mysql_innodb_cluster_metadata.v2_cs_created(?, ?, ?, @_cs_id)",
+      clusterset->get_name(), seed_cluster_id,
+      shcore::Value(seed_attributes).json());
+
+  Cluster_set_id cs_id =
+      execute_sqlf("select @_cs_id")->fetch_one()->get_string(0, "");
+  clusterset->set_id(cs_id);
+
+  tx.commit();
+
+  return cs_id;
+}
+
+void MetadataStorage::record_cluster_set_member_added(
+    const Cluster_set_member_metadata &cluster) {
+  // Acquire required lock on the Metadata (try at most during 60 sec).
+  get_lock_exclusive();
+
+  // Always release locks at the end, when leaving the function scope.
+  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
+
+  Transaction tx(shared_from_this());
+
+  execute_sqlf(
+      "CALL mysql_innodb_cluster_metadata.v2_cs_member_added(?, ?, ?, '{}')",
+      cluster.cluster_set_id, cluster.cluster.cluster_id,
+      cluster.master_cluster_id);
+
+  tx.commit();
+}
+
+void MetadataStorage::record_cluster_set_member_removed(
+    const Cluster_set_id &cs_id, const Cluster_id &cluster_id) {
+  // Acquire required lock on the Metadata (try at most during 60 sec).
+  get_lock_exclusive();
+
+  // Always release locks at the end, when leaving the function scope.
+  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
+
+  execute_sqlf("CALL mysql_innodb_cluster_metadata.v2_cs_member_removed(?, ?)",
+               cs_id, cluster_id);
+}
+
+void MetadataStorage::record_cluster_set_member_rejoined(
+    const Cluster_set_id &cs_id, const Cluster_id &cluster_id,
+    const Cluster_id &master_cluster_id) {
+  // Acquire required lock on the Metadata (try at most during 60 sec).
+  get_lock_exclusive();
+
+  // Always release locks at the end, when leaving the function scope.
+  auto finally = shcore::on_leave_scope([this]() { release_lock(); });
+
+  Transaction tx(shared_from_this());
+
+  execute_sqlf(
+      "CALL mysql_innodb_cluster_metadata.v2_cs_member_rejoined(?, ?, ?, '{}')",
+      cs_id, cluster_id, master_cluster_id);
+
+  tx.commit();
+}
+
+void MetadataStorage::record_cluster_set_primary_switch(
+    const Cluster_set_id &cs_id, const Cluster_id &new_primary_id,
+    const std::list<Cluster_id> &invalidated) {
+  Transaction tx(shared_from_this());
+
+  execute_sqlf(
+      "CALL mysql_innodb_cluster_metadata.v2_cs_primary_changed(?, ?, "
+      "'{}')",
+      cs_id, new_primary_id);
+
+  for (const auto &c : invalidated) {
+    execute_sqlf(
+        "CALL mysql_innodb_cluster_metadata.v2_cs_add_invalidated_member(?, ?)",
+        cs_id, c);
+  }
+
+  tx.commit();
+}
+
+void MetadataStorage::record_cluster_set_primary_failover(
+    const Cluster_set_id &cs_id, const Cluster_id &cluster_id,
+    const std::list<Cluster_id> &invalidated) {
+  Transaction tx(shared_from_this());
+
+  execute_sqlf(
+      "CALL mysql_innodb_cluster_metadata.v2_cs_primary_force_changed(?, ?, "
+      "'{}')",
+      cs_id, cluster_id);
+
+  for (const auto &c : invalidated) {
+    execute_sqlf(
+        "CALL mysql_innodb_cluster_metadata.v2_cs_add_invalidated_member(?, ?)",
+        cs_id, c);
+  }
+
+  tx.commit();
+}
+
+bool MetadataStorage::check_metadata(mysqlshdk::utils::Version *out_version,
+                                     Cluster_type *out_type) const {
+  if (check_version(out_version)) {
+    auto target_server = get_md_server();
+    log_debug("Instance type check: %s: Metadata version %s found",
+              target_server->descr().c_str(), out_version->get_full().c_str());
+
+    if (!check_instance_type(target_server->get_uuid(), *out_version,
+                             out_type)) {
+      *out_type = Cluster_type::NONE;
+      log_debug("Instance %s is not managed",
+                target_server->get_uuid().c_str());
+    } else {
+      log_debug("Instance %s is managed for %s",
+                target_server->get_uuid().c_str(),
+                to_string(*out_type).c_str());
+    }
+
+    return true;
+  }
+  return false;
+}
+
+bool MetadataStorage::check_cluster_set(Instance *target_instance) const {
+  bool ret_val = false;
+
+  auto target = target_instance ? target_instance : m_md_server.get();
+
+  auto instance_address = target->get_canonical_address();
+  try {
+    auto result = m_md_server->queryf(
+        "SELECT clusterset_id from mysql_innodb_cluster_metadata.clusters c, "
+        "mysql_innodb_cluster_metadata.instances i WHERE "
+        "c.cluster_id=i.cluster_id AND i.address = ?",
+        instance_address);
+
+    auto row = result->fetch_one();
+
+    ret_val = row && !row->is_null(0);
+  } catch (const shcore::Error &e) {
+    // ER_BAD_FIELD_ERROR Would be raised if metadata schema is not 2.1.0
+    // ER_BAD_DB_ERROR Would be raised in a metadata upgrade failure in which
+    // case the state doesn't really matter
+    // ER_NO_SUCH_TABLE Would be raised with 5.7 servers
+    if (e.code() != ER_BAD_FIELD_ERROR && e.code() != ER_BAD_DB_ERROR &&
+        e.code() != ER_NO_SUCH_TABLE) {
+      log_error(
+          "Error while verifying if instance '%s' belongs to a ClusterSet: "
+          "%s",
+          instance_address.c_str(), e.what());
+
+      throw shcore::Exception::runtime_error(
+          "Unable to determine if the instance '" + instance_address +
+          "' belongs to a ClusterSet");
+    }
+  }
+
+  return ret_val;
+}
+
+bool MetadataStorage::supports_cluster_set() const {
+  return real_version() >= mysqlshdk::utils::Version(2, 1, 0);
 }
 
 }  // namespace dba

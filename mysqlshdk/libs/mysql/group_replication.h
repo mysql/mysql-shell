@@ -53,6 +53,12 @@ static constexpr const char k_gr_applier_channel[] =
     "group_replication_applier";
 static constexpr const char k_gr_recovery_channel[] =
     "group_replication_recovery";
+static constexpr const char k_gr_disable_super_read_only_if_primary[] =
+    "mysql_disable_super_read_only_if_primary";
+static constexpr const char k_gr_member_action_after_primary_election[] =
+    "AFTER_PRIMARY_ELECTION";
+static constexpr const char k_gr_start_failover_channels_if_primary[] =
+    "mysql_start_failover_channels_if_primary";
 
 /**
  * Enumeration of the supported states for Group Replication members.
@@ -117,9 +123,6 @@ enum class Gr_seeds_change_type {
 };
 
 // Function to check membership and state.
-bool is_member(const mysqlshdk::mysql::IInstance &instance);
-bool is_member(const mysqlshdk::mysql::IInstance &instance,
-               const std::string &group_name);
 Member_state get_member_state(const mysqlshdk::mysql::IInstance &instance);
 std::vector<Member> get_members(const mysqlshdk::mysql::IInstance &instance,
                                 bool *out_single_primary_mode = nullptr,
@@ -136,6 +139,7 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
                            Member_state *out_member_state,
                            std::string *out_member_id = nullptr,
                            std::string *out_group_name = nullptr,
+                           std::string *out_group_view_change_uuid = nullptr,
                            bool *out_single_primary_mode = nullptr,
                            bool *out_has_quorum = nullptr,
                            bool *out_is_primary = nullptr);
@@ -222,21 +226,20 @@ bool uninstall_group_replication_plugin(
     mysqlshdk::config::Config *config);
 
 void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
-                             const bool bootstrap,
-                             const uint16_t read_only_timeout = 900);
+                             const bool bootstrap);
 void stop_group_replication(const mysqlshdk::mysql::IInstance &instance);
 
 /**
- * Generate a UUID to use for the group name.
+ * Generate a UUID to use for the group name / view change uuid
  *
  * The UUID is generated from the target instance (MySQL server) using the
  * UUID() SQL function.
  *
  * @param instance target instance used to generate the UUID.
  *
- * @return A string with a new UUID to be used for the group name.
+ * @return A string with a new UUID to be used,
  */
-std::string generate_group_name(const mysqlshdk::mysql::IInstance &instance);
+std::string generate_uuid(const mysqlshdk::mysql::IInstance &instance);
 
 // Function to manage the replication (recovery) user for GR.
 mysql::User_privileges_result check_replication_user(
@@ -254,6 +257,12 @@ mysql::User_privileges_result check_replication_user(
  * @param hosts list of hosts that will be used for the user creation.
  * @param password password to be used for the account.
  *        If null a random password is assigned.
+ * @param clone_supportes boolean flag to indicate whether clone is supported or
+ * not to determine if the set of grants required to manage clone are to be
+ * given
+ * @param auto_failover boolean flag to indicate whether the account will be
+ * used for automatic connection failover (clusterSet) or not, to determine if
+ * the set of grants required for it are to be given
  * @return a Auth_options object with information about the created user
  * @throw std::runtime error if the replication user already exists on the
  * target instance with any of the given hosts or if an error occurs with the
@@ -263,7 +272,7 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
     const std::string &username, const mysqlshdk::mysql::IInstance &primary,
     const std::vector<std::string> &hosts,
     const mysqlshdk::utils::nullable<std::string> &password,
-    bool clone_supported = false);
+    bool clone_supported = false, bool auto_failover = false);
 
 std::string get_recovery_user(const mysqlshdk::mysql::IInstance &instance);
 
@@ -279,21 +288,25 @@ bool is_group_replication_delayed_starting(
     const mysqlshdk::mysql::IInstance &instance);
 
 /**
- * Check if the specified instance address corresponds to an active member from
+ * Check if the specified instance corresponds to an active member from
  * the perspective of the given instance.
  *
  * The instance is considered active if it belongs to the group and it is not
  * OFFLINE or UNREACHABLE.
  *
+ * By default, the instance UUID is used for the verification. If the host and
+ * port are provided, those are used instead and the check is performed from the
+ * point of view of the instance session.
+ *
  * @param instance Instance to use to perform the check.
- * @param host string with the host of the instance to check.
- * @param port int with the port of the instance to check.
+ * @param host optional string with the host of the instance to check.
+ * @param port optional int with the port of the instance to check.
  *
  * @return a boolean value indicating if the instance is an active member of the
  *         Group Replication group (true) or not (false).
  */
 bool is_active_member(const mysqlshdk::mysql::IInstance &instance,
-                      const std::string &host, const int port);
+                      const std::string &host = "", const int port = 0);
 
 /**
  * Update auto-increment setting based on the GR mode.
@@ -460,6 +473,54 @@ Group_member_recovery_status detect_recovery_status(
 bool is_endpoint_supported_by_gr(const std::string &endpoint,
                                  const mysqlshdk::utils::Version &version);
 
+/**
+ * Disable a Group Replication member action
+ *
+ * @param instance Instance to run the operations.
+ * @param name The name of the action
+ * @param state On which stage the action is triggered
+ *
+ * @returns nothing
+ */
+void disable_member_action(const mysqlshdk::mysql::IInstance &instance,
+                           const std::string &action_name,
+                           const std::string &stage);
+
+/**
+ * Enable a Group Replication member action
+ *
+ * @param instance Instance to run the operations.
+ * @param name The name of the action
+ * @param state On which stage the action is triggered
+ *
+ * @returns nothing
+ */
+void enable_member_action(const mysqlshdk::mysql::IInstance &instance,
+                          const std::string &action_name,
+                          const std::string &stage);
+
+/**
+ * Get a Group Replication member action status
+ *
+ * @param instance Instance to run the operations.
+ * @param name The name of the action
+ * @param out_enabled true if action exists and is enabled, false if it exists
+ * and is disabled, undefined if the action doesn't exist
+ *
+ * @returns true if the action exists, false otherwise
+ */
+bool get_member_action_status(const mysqlshdk::mysql::IInstance &instance,
+                              const std::string &action_name,
+                              bool *out_enabled);
+
+/**
+ * Reset all Group Replication member actions configuration
+ *
+ * @param instance Instance to run the operations.
+ *
+ * @returns nothing
+ */
+void reset_member_actions(const mysqlshdk::mysql::IInstance &instance);
 }  // namespace gr
 }  // namespace mysqlshdk
 

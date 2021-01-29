@@ -27,6 +27,7 @@
 #include <memory>
 #include <string>
 
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/db/session.h"
 
@@ -87,7 +88,7 @@ bool ensure_gtid_no_errants(const mysqlshdk::mysql::IInstance &master,
  * createCluster()/addInstance()/rejoinInstance()
  */
 void ensure_certificates_set(const mysqlshdk::mysql::IInstance &instance,
-                             const mysqlshdk::null_string &ssl_mode);
+                             const Cluster_ssl_mode &ssl_mode);
 
 /**
  * Check if an upgrade of the protocol is possible

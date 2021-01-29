@@ -53,7 +53,7 @@ void Switch_to_single_primary_mode::prepare() {
   //   - Ensure instance belong to cluster;
   if (m_instance_cnx_opts.has_data()) {
     m_instance_cnx_opts.set_login_options_from(
-        m_cluster->get_target_server()->get_connection_options());
+        m_cluster->get_cluster_server()->get_connection_options());
 
     std::string target_instance_address = m_instance_cnx_opts.as_uri(
         mysqlshdk::db::uri::formats::only_transport());

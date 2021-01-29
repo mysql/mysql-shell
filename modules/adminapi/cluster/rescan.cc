@@ -99,7 +99,7 @@ void Rescan::validate_list_duplicates() const {
 void Rescan::ensure_unavailable_instances_not_auto_rejoining(
     std::vector<MissingInstanceInfo> &unavailable_instances) const {
   mysqlshdk::db::Connection_options group_conn_opt =
-      m_cluster->get_target_server()->get_connection_options();
+      m_cluster->get_cluster_server()->get_connection_options();
 
   auto console = mysqlsh::current_console();
   auto it = unavailable_instances.begin();
@@ -140,7 +140,8 @@ std::vector<std::string> Rescan::detect_invalid_members(
         "Checking if the instance '%s' is %san active member of the group.",
         instance_address.c_str(), check_type);
 
-    std::shared_ptr<Instance> cluster_instance = m_cluster->get_target_server();
+    std::shared_ptr<Instance> cluster_instance =
+        m_cluster->get_cluster_server();
 
     if (mysqlshdk::gr::is_active_member(*cluster_instance, cnx_opt.get_host(),
                                         cnx_opt.get_port()) != is_active) {
@@ -200,7 +201,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
   (*cluster_map)["name"] = shcore::Value(m_cluster->get_name());
 
   std::vector<NewInstanceInfo> newly_discovered_instances_list =
-      get_newly_discovered_instances(*m_cluster->get_target_server(),
+      get_newly_discovered_instances(*m_cluster->get_cluster_server(),
                                      m_cluster->get_metadata_storage(),
                                      m_cluster->get_id());
 
@@ -241,7 +242,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
   shcore::Value unavailable_instances_result;
 
   std::vector<MissingInstanceInfo> unavailable_instances_list =
-      get_unavailable_instances(*m_cluster->get_target_server(),
+      get_unavailable_instances(*m_cluster->get_cluster_server(),
                                 m_cluster->get_metadata_storage(),
                                 m_cluster->get_id());
 
@@ -291,7 +292,7 @@ shcore::Value::Map_type_ref Rescan::get_rescan_report() const {
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
   std::string gr_primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-      *m_cluster->get_target_server(), nullptr);
+      *m_cluster->get_cluster_server(), nullptr);
 
   // Check if the topology mode match and report needed change in the metadata.
   if (gr_primary_uuid.empty() &&
@@ -353,7 +354,7 @@ void Rescan::add_instance_to_metadata(
     // It is assumed that the same login options of the cluster can be
     // used to connect to the instance, if no login (user) was provided.
     cnx_opts.set_login_options_from(
-        m_cluster->get_target_server()->get_connection_options());
+        m_cluster->get_cluster_server()->get_connection_options());
   }
 
   m_cluster->add_metadata_for_instance(cnx_opts);
@@ -374,7 +375,7 @@ void Rescan::update_metadata_for_instance(
     // It is assumed that the same login options of the cluster can be
     // used to connect to the instance, if no login (user) was provided.
     cnx_opts.set_login_options_from(
-        m_cluster->get_target_server()->get_connection_options());
+        m_cluster->get_cluster_server()->get_connection_options());
   }
 
   m_cluster->update_metadata_for_instance(cnx_opts);
@@ -526,7 +527,7 @@ void Rescan::update_metadata_for_instances(
 void Rescan::upgrade_comm_protocol() {
   auto console = mysqlsh::current_console();
 
-  std::shared_ptr<Instance> cluster_instance = m_cluster->get_target_server();
+  std::shared_ptr<Instance> cluster_instance = m_cluster->get_cluster_server();
 
   mysqlshdk::utils::Version gr_protocol_version_to_upgrade;
 
@@ -598,7 +599,7 @@ shcore::Value Rescan::execute() {
   // This calls ensures all of the instances have server_id as instance
   // attribute, including the case were rescan is executed and no new/updated
   // instances were found
-  m_cluster->ensure_metadata_has_server_id(*m_cluster->get_target_server());
+  m_cluster->ensure_metadata_has_server_id(*m_cluster->get_cluster_server());
 
   // Print warning about not used instances in removeInstances.
   std::vector<std::string> not_used_remove_instances;

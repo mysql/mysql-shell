@@ -47,7 +47,7 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
                    public shcore::Cpp_object_bridge {
  public:
 #if DOXYGEN_JS
-  String name;  //!< $(ASYNCREPLICASET_GETNAME_BRIEF)
+  String name;  //!< $(REPLICASET_GETNAME_BRIEF)
   Undefined addInstance(String instance, Dictionary options);
   String describe();
   Undefined disconnect();

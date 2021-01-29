@@ -25,6 +25,7 @@
 #define MODULES_ADMINAPI_CLUSTER_API_OPTIONS_H_
 
 #include <string>
+#include <vector>
 
 #include "modules/adminapi/common/api_options.h"
 #include "modules/adminapi/common/async_replication_options.h"

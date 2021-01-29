@@ -28,10 +28,14 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/accounts.h"
+#include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/mod_dba_cluster.h"
+#include "modules/adminapi/mod_dba_cluster_set.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -135,6 +139,10 @@ void Cluster::init() {
   expose("listRouters", &Cluster::list_routers, "?options")->cli();
   expose("removeRouterMetadata", &Cluster::remove_router_metadata, "router")
       ->cli();
+  expose("createClusterSet", &Cluster::create_cluster_set, "domainName",
+         "?options")
+      ->cli();
+  expose("getClusterSet", &Cluster::get_cluster_set)->cli(false);
 }
 
 // Documentation of the getName function
@@ -196,7 +204,7 @@ void Cluster::assert_valid(const std::string &option_name) const {
                                              name + "' on a dissolved cluster");
     }
   }
-  if (!m_impl->get_target_server()) {
+  if (!m_impl->get_cluster_server()) {
     throw shcore::Exception::runtime_error(
         "The cluster object is disconnected. Please use dba." +
         get_function_name("getCluster", false) +
@@ -336,7 +344,7 @@ void Cluster::add_instance(
   }
 
   Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
   Scoped_instance_pool ipool(options->interactive(), auth_opts);
 
   // Validate the label value.
@@ -443,7 +451,7 @@ void Cluster::rejoin_instance(
   m_impl->check_preconditions("rejoinInstance");
 
   Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
   Scoped_instance_pool ipool(options->interactive(), auth_opts);
 
   // Rejoin the Instance to the Cluster
@@ -509,7 +517,7 @@ void Cluster::remove_instance(
   assert_valid("removeInstance");
 
   Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
   Scoped_instance_pool ipool(options->interactive(), auth_opts);
 
   // Remove the Instance from the Cluster
@@ -697,7 +705,7 @@ void Cluster::dissolve(
   assert_valid("dissolve");
 
   Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
   Scoped_instance_pool ipool(options->interactive(), auth_opts);
 
   m_impl->dissolve(options->force, options->interactive());
@@ -807,7 +815,7 @@ void Cluster::rescan(
   assert_valid("rescan");
 
   Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
   Scoped_instance_pool ipool(false, auth_opts);
 
   m_impl->rescan(*options);
@@ -946,7 +954,7 @@ shcore::Value Cluster::check_instance_state(
   assert_valid("checkInstanceState");
 
   Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
   Scoped_instance_pool ipool(false, auth_opts);
 
   return m_impl->check_instance_state(instance_def);
@@ -1214,9 +1222,12 @@ shcore::Dictionary_t Cluster::list_routers(
   // Throw an error if the cluster has already been dissolved
   assert_valid("listRouters");
 
+  auto target_instance = m_impl->get_cluster_server();
+  auto metadadata = m_impl->get_metadata_storage();
+
   // Throw an error if the cluster has already been dissolved
-  check_function_preconditions("Cluster.listRouters",
-                               m_impl->get_target_server());
+  check_function_preconditions("Cluster.listRouters", metadadata,
+                               target_instance);
 
   auto ret_val = m_impl->list_routers(options->only_upgrade_required);
 
@@ -1253,12 +1264,15 @@ void Cluster::remove_router_metadata(const std::string &router_def) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("removeRouterMetadata");
 
+  auto target_instance = m_impl->get_cluster_server();
+  auto metadadata = m_impl->get_metadata_storage();
+
   // Throw an error if the cluster has already been dissolved
-  check_function_preconditions("Cluster.removeRouterMetadata",
-                               m_impl->get_target_server());
+  check_function_preconditions("Cluster.removeRouterMetadata", metadadata,
+                               target_instance);
 
   Instance_pool::Auth_options auth_opts;
-  auth_opts.get(m_impl->get_target_server()->get_connection_options());
+  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
   Scoped_instance_pool ipool(false, auth_opts);
 
   m_impl->acquire_primary();
@@ -1404,6 +1418,135 @@ void Cluster::setup_router_account(
   std::tie(username, host) = validate_account_name(user);
 
   m_impl->setup_router_account(username, host, *options);
+}
+
+REGISTER_HELP_FUNCTION(createClusterSet, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_CREATECLUSTERSET, R"*(
+Creates a MySQL InnoDB ClusterSet from an existing standalone InnoDB Cluster.
+
+@param domainName An identifier for the ClusterSet's logical dataset.
+@param options Optional dictionary with additional parameters described below.
+
+@returns The created ClusterSet object.
+
+Creates a ClusterSet object from an existing cluster, with the given data
+domain name.
+
+Several checks and validations are performed to ensure that the target Cluster
+complies with the requirements for ClusterSets and if so, the Metadata schema
+will be updated to create the new ClusterSet and the target Cluster becomes
+the PRIMARY cluster of the ClusterSet.
+
+<b>InnoDB ClusterSet</b>
+
+A ClusterSet is composed of a single PRIMARY InnoDB Cluster that can have one
+or more replica InnoDB Clusters that replicate from the PRIMARY using
+asynchronous replication.
+
+ClusterSets allow InnoDB Cluster deployments to achieve fault-tolerance at
+a whole Data Center / region or geographic location, by creating REPLICA clusters
+in different locations (Data Centers), ensuring Disaster Recovery is possible.
+
+If the PRIMARY InnoDB Cluster becomes completely unavailable, it's possible to
+promote a REPLICA of that cluster to take over its duties with minimal downtime
+or data loss.
+
+All Cluster operations are available at each individual member (cluster) of the
+ClusterSet. The AdminAPI ensures all updates are performed at the PRIMARY and
+controls the command availability depending on the individual status of each
+Cluster.
+
+Please note that InnoDB ClusterSets don't have the same consistency and data
+loss guarantees as InnoDB Clusters. To read more about ClusterSets, see \?
+ClusterSet or refer to the MySQL manual.
+
+<b>Pre-requisites</b>
+
+The following is a non-exhaustive list of requirements to create a ClusterSet:
+
+@li The target cluster must not already be part of a ClusterSet.
+@li MySQL 8.0.27 or newer.
+@li The target cluster's Metadata schema version is 2.1.0 or newer.
+@li Unmanaged replication channels are not allowed.
+
+<b>Options</b>
+
+The options dictionary can contain the following values:
+
+@li dryRun: boolean if true, all validations and steps for creating a
+ClusterSet are executed, but no changes are actually made. An
+exception will be thrown when finished.
+@li clusterSetReplicationSslMode: SSL mode for the ClusterSet replication channels.
+
+The clusterSetReplicationSslMode option supports the following values:
+
+@li REQUIRED: if used, SSL (encryption) will be enabled for the ClusterSet
+replication channels.
+@li DISABLED: if used, SSL (encryption) will be disabled for the ClusterSet
+replication channels.
+@li AUTO: if used, SSL (encryption) will be enabled if supported by the
+instance, otherwise disabled.
+
+If clusterSetReplicationSslMode is not specified AUTO will be used by default.
+)*");
+
+/**
+ * $(CLUSTER_CREATECLUSTERSET_BRIEF)
+ *
+ * $(CLUSTER_CREATECLUSTERSET)
+ */
+#if DOXYGEN_JS
+ClusterSet Cluster::createClusterSet(String domainName, Dictionary options) {}
+#elif DOXYGEN_PY
+ClusterSet Cluster::create_cluster_set(str domainName, dict options) {}
+#endif
+shcore::Value Cluster::create_cluster_set(
+    const std::string &domain_name,
+    const shcore::Option_pack_ref<clusterset::Create_cluster_set_options>
+        &options) {
+  return m_impl->create_cluster_set(domain_name, *options);
+}
+
+REGISTER_HELP_FUNCTION(getClusterSet, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_GETCLUSTERSET, R"*(
+Returns an object representing a ClusterSet.
+
+@returns The ClusterSet object to which the current cluster belongs to.
+
+The returned object is identical to the one returned by
+<<<createClusterSet>>>() and can be used to manage the ClusterSet.
+
+The function will work regardless of whether the target cluster is a
+PRIMARY or a REPLICA Cluster, but its copy of the metadata is expected
+to be up-to-date.
+
+This function will also work if the PRIMARY Cluster is unreachable or
+unavailable, although ClusterSet change operations will not be possible, except
+for failover with <<<forcePrimaryCluster>>>().
+)*");
+/**
+ * $(CLUSTER_GETCLUSTERSET_BRIEF)
+ *
+ * $(CLUSTER_GETCLUSTERSET)
+ */
+#if DOXYGEN_JS
+ReplicaSet Cluster::getClusterSet() {}
+#elif DOXYGEN_PY
+ReplicaSet Cluster::get_cluster_set() {}
+#endif
+std::shared_ptr<ClusterSet> Cluster::get_cluster_set() {
+  m_impl->check_preconditions("getClusterSet");
+
+  // Check if the target Cluster is invalidated
+  if (m_impl->is_invalidated()) {
+    mysqlsh::current_console()->print_warning(
+        "Cluster '" + m_impl->get_name() +
+        "' was INVALIDATED and must be removed from the ClusterSet.");
+  }
+
+  auto cs = m_impl->get_cluster_set();
+
+  return std::make_shared<mysqlsh::dba::ClusterSet>(cs);
 }
 
 }  // namespace dba

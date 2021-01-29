@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/common.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/nullable.h"
@@ -39,9 +40,10 @@ void change_master(mysqlshdk::mysql::IInstance *instance,
                    const std::string &master_host, int master_port,
                    const std::string &channel_name,
                    const Auth_options &credentials,
+                   const mysqlsh::dba::Cluster_ssl_mode &ssl_mode,
                    const mysqlshdk::utils::nullable<int> master_connect_retry,
                    const mysqlshdk::utils::nullable<int> master_retry_count,
-                   const mysqlshdk::utils::nullable<int> master_delay);
+                   const mysqlshdk::utils::nullable<bool> auto_failover);
 
 void change_master_host_port(mysqlshdk::mysql::IInstance *instance,
                              const std::string &master_host, int master_port,
@@ -79,6 +81,20 @@ void start_replication_applier(mysqlshdk::mysql::IInstance *instance,
 
 void stop_replication_applier(mysqlshdk::mysql::IInstance *instance,
                               const std::string &channel_name);
+
+/**
+ * Change the replication credentials in a specific replication channel
+ *
+ * @param instance Target instance to execute the changes (must be a source in a
+ * replication topology)
+ * @param rpl_user New username to be used in the channel
+ * @param rpl_pwd New password to be used in the channel
+ * @param repl_channel Name of the replication channel to be changed
+ */
+void change_replication_credentials(const mysqlshdk::mysql::IInstance &instance,
+                                    const std::string &rpl_user,
+                                    const std::string &rpl_pwd,
+                                    const std::string &repl_channel);
 
 }  // namespace mysql
 }  // namespace mysqlshdk

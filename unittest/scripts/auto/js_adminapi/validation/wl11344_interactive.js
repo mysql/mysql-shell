@@ -11,6 +11,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 //@ FR1-TS-01 reboot instance {VER(>=8.0.12)}
 ||
@@ -39,6 +42,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 {
     "clusterName": "C",
     "defaultReplicaSet": {
@@ -114,6 +120,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' belongs to an InnoDB cluster.
 Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.
@@ -162,6 +171,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 
 //@ FR1-TS-7 reboot instance 1 {VER(>=8.0.12)}
@@ -191,6 +203,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 {
     "clusterName": "ClusterName",
     "defaultReplicaSet": {
@@ -234,6 +249,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 //@ FR2-TS-1 stop instance 2 {VER(>=8.0.12)}
 ||
@@ -395,6 +413,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
@@ -415,6 +436,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 
 //@ FR2-TS-4 TEARDOWN {VER(>=8.0.12)}
@@ -435,6 +459,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
@@ -455,6 +482,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' belongs to an InnoDB cluster.
 Calling this function on a cluster member is only required for MySQL versions 8.0.4 or earlier.
 
@@ -477,6 +507,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 //@ FR2-TS-5 TEARDOWN {VER(>=8.0.12)}
 ||
@@ -512,6 +545,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = ON
@@ -526,6 +562,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = OFF
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 (MISSING)
 {
     "clusterName": "ClusterName",
@@ -611,6 +650,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 //@FR2-TS-9 Add instance 3 and wait for it to be online {VER(>=8.0.12)}
 ||
@@ -629,6 +671,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
@@ -643,6 +688,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
@@ -655,6 +703,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 (MISSING)
 (MISSING)
 {
@@ -763,6 +814,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
@@ -775,6 +829,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 //@ FR5-TS-1 TEARDOWN {VER(>=8.0.12)}
 ||
@@ -796,6 +853,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 The instance will be removed from the InnoDB cluster. Depending on the instance
 being the Seed or not, the Metadata session might become invalid. If so, please
 start a new session to the Metadata Storage R/W instance.
@@ -818,6 +878,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 group_replication_consistency = EVENTUAL
 group_replication_bootstrap_group = OFF
@@ -833,6 +896,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
@@ -845,6 +911,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 //@ FR5-TS-4 TEARDOWN {VER(>=8.0.12)}
 ||
@@ -918,6 +987,9 @@ group_replication_recovery_use_ssl = ON
 group_replication_single_primary_mode = ON
 group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
+?{VER(>=8.0.25)}
+group_replication_view_change_uuid = <<<__gr_view_change_uuid>>>
+?{}
 
 //@ Check if Cluster dissolve will reset persisted variables TEARDOWN {VER(>=8.0.12)}
 ||

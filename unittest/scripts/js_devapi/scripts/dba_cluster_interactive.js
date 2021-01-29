@@ -30,6 +30,7 @@ var localhost = desc.defaultReplicaSet.topology[0].label.split(':')[0];
 //@<> Cluster: validating members
 validateMembers(Cluster, [
   'name',
+  'getClusterSet',
   'getName',
   'addInstance',
   'removeInstance',
@@ -52,7 +53,8 @@ validateMembers(Cluster, [
   'setOption',
   'setInstanceOption',
   'setupAdminAccount',
-  'setupRouterAccount'
+  'setupRouterAccount',
+  'createClusterSet'
 ])
 
 //@ Cluster: addInstance errors

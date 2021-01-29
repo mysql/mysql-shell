@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,9 @@
 #ifndef MODULES_ADMINAPI_COMMON_ASYNC_UTILS_H_
 #define MODULES_ADMINAPI_COMMON_ASYNC_UTILS_H_
 
+#include <list>
+#include <string>
+
 #include "modules/adminapi/common/instance_pool.h"
 
 namespace mysqlsh {
@@ -36,16 +39,16 @@ namespace dba {
  */
 class Global_locks {
  public:
-  void acquire(const std::list<Scoped_instance> &instances,
+  void acquire(const std::list<std::shared_ptr<Instance>> &instances,
                const std::string &master_uuid, uint32_t gtid_sync_timeout,
                bool dry_run);
   ~Global_locks();
 
  private:
-  Scoped_instance m_master;
-  std::list<Scoped_instance> m_slaves;
+  std::shared_ptr<Instance> m_master;
+  std::list<std::shared_ptr<Instance>> m_slaves;
 
-  void sync_and_lock_all(const std::list<Scoped_instance> &instances,
+  void sync_and_lock_all(const std::list<std::shared_ptr<Instance>> &instances,
                          const std::string &master_uuid,
                          uint32_t gtid_sync_timeout, bool dry_run);
 };

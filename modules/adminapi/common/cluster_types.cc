@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,23 @@
 namespace mysqlsh {
 namespace dba {
 
+std::string to_string(Cluster_set_global_status state) {
+  switch (state) {
+    case Cluster_set_global_status::HEALTHY:
+      return "HEALTHY";
+
+    case Cluster_set_global_status::AVAILABLE:
+      return "AVAILABLE";
+
+    case Cluster_set_global_status::UNAVAILABLE:
+      return "UNAVAILABLE";
+
+    case Cluster_set_global_status::UNKNOWN:
+      return "UNKNOWN";
+  }
+  throw std::logic_error("internal error");
+}
+
 std::string to_string(Cluster_type type) {
   switch (type) {
     case Cluster_type::NONE:
@@ -39,6 +56,88 @@ std::string to_string(Cluster_type type) {
 
     case Cluster_type::ASYNC_REPLICATION:
       return "ASYNC-REPLICATION";
+
+    case Cluster_type::REPLICATED_CLUSTER:
+      return "REPLICATED-CLUSTER";
+  }
+  throw std::logic_error("internal error");
+}
+
+std::string to_string(Cluster_status state) {
+  std::string ret_val;
+
+  switch (state) {
+    case Cluster_status::OK:
+      ret_val = "OK";
+      break;
+    case Cluster_status::OK_PARTIAL:
+      ret_val = "OK_PARTIAL";
+      break;
+    case Cluster_status::OK_NO_TOLERANCE:
+      ret_val = "OK_NO_TOLERANCE";
+      break;
+    case Cluster_status::OK_NO_TOLERANCE_PARTIAL:
+      ret_val = "OK_NO_TOLERANCE_PARTIAL";
+      break;
+    case Cluster_status::NO_QUORUM:
+      ret_val = "NO_QUORUM";
+      break;
+    case Cluster_status::UNKNOWN:
+      ret_val = "UNKNOWN";
+      break;
+  }
+  return ret_val;
+}
+
+Cluster_status to_cluster_status(const std::string &s) {
+  if (s == "OK")
+    return Cluster_status::OK;
+  else if (s == "OK_PARTIAL")
+    return Cluster_status::OK_PARTIAL;
+  else if (s == "OK_NO_TOLERANCE")
+    return Cluster_status::OK_NO_TOLERANCE;
+  else if (s == "OK_NO_TOLERANCE_PARTIAL")
+    return Cluster_status::OK_NO_TOLERANCE_PARTIAL;
+  else if (s == "NO_QUORUM")
+    return Cluster_status::NO_QUORUM;
+  else if (s == "UNKNOWN")
+    return Cluster_status::UNKNOWN;
+  else
+    throw std::invalid_argument("Invalid value " + s);
+}
+
+std::string to_string(Cluster_global_status status) {
+  switch (status) {
+    case Cluster_global_status::OK:
+      return "OK";
+    case Cluster_global_status::OK_NOT_REPLICATING:
+      return "OK_NOT_REPLICATING";
+    case Cluster_global_status::OK_NOT_CONSISTENT:
+      return "OK_NOT_CONSISTENT";
+    case Cluster_global_status::OK_MISCONFIGURED:
+      return "OK_MISCONFIGURED";
+    case Cluster_global_status::NOT_OK:
+      return "NOT_OK";
+    case Cluster_global_status::INVALIDATED:
+      return "INVALIDATED";
+    case Cluster_global_status::UNKNOWN:
+      return "UKNOWN";
+  }
+  throw std::logic_error("internal error");
+}
+
+std::string to_string(Cluster_channel_status status) {
+  switch (status) {
+    case Cluster_channel_status::OK:
+      return "OK";
+    case Cluster_channel_status::STOPPED:
+      return "STOPPED";
+    case Cluster_channel_status::ERROR:
+      return "ERROR";
+    case Cluster_channel_status::NOT_CONFIGURED:
+      return "NOT_CONFIGURED";
+    case Cluster_channel_status::UNKNOWN:
+      return "UNKNOWN";
   }
   throw std::logic_error("internal error");
 }
@@ -95,6 +194,31 @@ std::string to_display_string(Cluster_type type, Display_form form) {
 
         case Display_form::API_CLASS:
           return "ReplicaSet";
+      }
+      break;
+
+    case Cluster_type::REPLICATED_CLUSTER:
+      switch (form) {
+        case Display_form::THING_FULL:
+          return "InnoDB ClusterSet";
+
+        case Display_form::A_THING_FULL:
+          return "an InnoDB ClusterSet";
+
+        case Display_form::THINGS_FULL:
+          return "InnoDB ClusterSets";
+
+        case Display_form::THING:
+          return "clusterset";
+
+        case Display_form::A_THING:
+          return "a clusterset";
+
+        case Display_form::THINGS:
+          return "clustersets";
+
+        case Display_form::API_CLASS:
+          return "ClusterSet";
       }
       break;
   }

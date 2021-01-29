@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/mod_common.h"
 #include "mysqlshdk/include/scripting/types.h"
@@ -39,10 +40,12 @@ namespace dba {
 
 struct Group_replication_options {
   enum Unpack_target {
-    NONE,    // none
-    CREATE,  // all options OK
-    JOIN,    // all but group_name
-    REJOIN   // only memberSslMode and ipWhitelist
+    NONE,                    // none
+    CREATE,                  // all options OK
+    CREATE_REPLICA_CLUSTER,  // all but group_name, group_seeds,
+                             // manual_start_on_boot
+    JOIN,                    // all but group_name
+    REJOIN                   // only memberSslMode and ipWhitelist
   };
 
   Group_replication_options() : target(NONE) {}
@@ -61,13 +64,21 @@ struct Group_replication_options {
    */
   void read_option_values(const mysqlshdk::mysql::IInstance &instance);
 
+  void set_local_address(const std::string &value);
+  void set_exit_state_action(const std::string &value);
+  void set_member_weight(int64_t value);
+  void set_auto_rejoin_tries(int64_t value);
+  void set_expel_timeout(int64_t value);
+  void set_consistency(const std::string &option, const std::string &value);
+
   Unpack_target target;
 
   mysqlshdk::utils::nullable<mysqlshdk::mysql::Auth_options>
       recovery_credentials;
 
   mysqlshdk::null_string group_name;
-  mysqlshdk::null_string ssl_mode;
+  mysqlshdk::null_string view_change_uuid;
+  Cluster_ssl_mode ssl_mode = Cluster_ssl_mode::NONE;
   mysqlshdk::null_string ip_allowlist;
   mysqlshdk::null_string local_address;
   mysqlshdk::null_string group_seeds;
@@ -98,11 +109,16 @@ struct Join_group_replication_options
   static const shcore::Option_pack_def<Join_group_replication_options>
       &options();
 
-  void set_local_address(const std::string &value);
-  void set_exit_state_action(const std::string &value);
-  void set_member_weight(int64_t value);
   void set_group_seeds(const std::string &value);
-  void set_auto_rejoin_tries(int64_t value);
+};
+
+struct Cluster_set_group_replication_options
+    : public Rejoin_group_replication_options {
+  explicit Cluster_set_group_replication_options(
+      Unpack_target t = Unpack_target::CREATE_REPLICA_CLUSTER)
+      : Rejoin_group_replication_options(t) {}
+  static const shcore::Option_pack_def<Cluster_set_group_replication_options>
+      &options();
 };
 
 struct Create_group_replication_options
@@ -111,10 +127,17 @@ struct Create_group_replication_options
       : Join_group_replication_options(Unpack_target::CREATE) {}
   static const shcore::Option_pack_def<Create_group_replication_options>
       &options();
+
   void set_group_name(const std::string &value);
   void set_manual_start_on_boot(bool value);
-  void set_consistency(const std::string &option, const std::string &value);
-  void set_expel_timeout(int64_t value);
+
+  void set_consistency(const std::string &option, const std::string &value) {
+    Group_replication_options::set_consistency(option, value);
+  }
+
+  void set_expel_timeout(int64_t value) {
+    Group_replication_options::set_expel_timeout(value);
+  }
 };
 
 }  // namespace dba

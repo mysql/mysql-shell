@@ -105,7 +105,7 @@ var cluster = scene.cluster
 
 //@ WL#11465: setOption clusterName with invalid value for cluster-name
 cluster.setOption("clusterName", "0_a");
-cluster.setOption("clusterName", "_1234567890::_1234567890123456789012345678901");
+cluster.setOption("clusterName", "_1234567890::_1234567890123456789012345678901234567890123456789012345678901234");
 cluster.setOption("clusterName", "::");
 
 //@<OUT> WL#11465: setOption clusterName

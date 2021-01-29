@@ -118,23 +118,27 @@ class Replica_set_impl : public Base_cluster_impl {
                             const std::string &host,
                             const Setup_account_options &options) override;
 
-  std::list<Scoped_instance> connect_all_members(
+  std::list<std::shared_ptr<Instance>> connect_all_members(
       uint32_t read_timeout, bool skip_primary,
-      std::list<Instance_metadata> *out_unreachable) override;
+      std::list<Instance_metadata> *out_unreachable);
 
   mysqlsh::dba::Instance *acquire_primary(
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
       const std::string &skip_lock_uuid = "") override;
 
-  void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
+  Cluster_metadata get_metadata() const;
 
-  mysqlshdk::mysql::Auth_options create_replication_user(
-      mysqlshdk::mysql::IInstance *slave, bool dry_run);
+  void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
 
   mysqlshdk::mysql::Auth_options refresh_replication_user(
       mysqlshdk::mysql::IInstance *slave, bool dry_run);
 
-  void drop_replication_user(mysqlshdk::mysql::IInstance *slave);
+  void drop_replication_user(mysqlshdk::mysql::IInstance *slave,
+                             const std::string &prefix);
+
+  mysqlshdk::mysql::Auth_options create_replication_user(
+      mysqlshdk::mysql::IInstance *slave, const std::string &prefix,
+      bool dry_run, mysqlshdk::mysql::IInstance *master = nullptr);
 
  private:
   void _set_option(const std::string &option,
@@ -171,16 +175,15 @@ class Replica_set_impl : public Base_cluster_impl {
                               const std::string &instance_label,
                               Instance_id master_id, bool is_primary);
 
-  void do_set_primary_instance(Instance *master, Instance *new_master,
-                               const std::list<Scoped_instance> &instances,
-                               const Async_replication_options &ar_options,
-                               bool dry_run);
+  void do_set_primary_instance(
+      Instance *master, Instance *new_master,
+      const std::list<std::shared_ptr<Instance>> &instances,
+      const Async_replication_options &ar_options, bool dry_run);
 
   std::shared_ptr<Global_topology_manager> setup_topology_manager(
       topology::Server_global_topology **out_topology = nullptr,
       bool deep = false);
 
-  Cluster_metadata get_metadata() const;
   std::vector<Instance_metadata> get_instances_from_metadata() const;
 
   const topology::Server *check_target_member(
@@ -189,7 +192,7 @@ class Replica_set_impl : public Base_cluster_impl {
 
   void check_replication_applier_errors(
       topology::Server_global_topology *srv_topology,
-      std::list<Scoped_instance> *out_online_instances,
+      std::list<std::shared_ptr<Instance>> *out_online_instances,
       bool invalidate_error_instances,
       std::vector<Instance_metadata> *out_instances_md,
       std::list<Instance_id> *out_invalidate_ids) const;
@@ -206,8 +209,6 @@ class Replica_set_impl : public Base_cluster_impl {
 
   void revert_topology_changes(mysqlshdk::mysql::IInstance *target_server,
                                bool remove_user, bool dry_run);
-
-  void refresh_target_connections(mysqlshdk::mysql::IInstance *recipient);
 
   void handle_clone(const std::shared_ptr<mysqlsh::dba::Instance> &recipient,
                     const Clone_options &clone_options,

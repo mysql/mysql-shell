@@ -72,7 +72,13 @@ inline bool set_string(shcore::Dictionary_t dict, const std::string &prop,
     if (row.is_null(field)) {
       (*dict)[prop] = shcore::Value::Null();
     } else {
-      (*dict)[prop] = shcore::Value(row.get_string(field));
+      std::string field_str = row.get_string(field);
+
+      // Strip any newline from the string, especially important for GTID-sets
+      field_str.erase(std::remove(field_str.begin(), field_str.end(), '\n'),
+                      field_str.end());
+
+      (*dict)[prop] = shcore::Value(field_str);
     }
     return true;
   }
@@ -107,7 +113,7 @@ Status::Status(const Cluster_impl &cluster,
 Status::~Status() {}
 
 void Status::connect_to_members() {
-  auto group_server = m_cluster.get_target_server();
+  auto group_server = m_cluster.get_cluster_server();
 
   mysqlshdk::db::Connection_options group_session_copts(
       group_server->get_connection_options());
@@ -231,7 +237,7 @@ const Instance_metadata *Status::instance_with_uuid(const std::string &uuid) {
 
 Member_stats_map Status::query_member_stats() {
   Member_stats_map stats;
-  auto group_instance = m_cluster.get_target_server();
+  auto group_instance = m_cluster.get_cluster_server();
 
   auto member_stats = group_instance->query(
       "SELECT * FROM performance_schema.replication_group_member_stats");
@@ -1053,7 +1059,7 @@ shcore::Dictionary_t Status::get_topology(
       log_debug("Instance %s with uuid=%s found in group but not in MD",
                 mdi.md.address.c_str(), m.uuid.c_str());
 
-      auto group_instance = m_cluster.get_target_server();
+      auto group_instance = m_cluster.get_cluster_server();
 
       mysqlshdk::db::Connection_options opts(mdi.md.endpoint);
       mysqlshdk::db::Connection_options group_session_copts(
@@ -1281,7 +1287,7 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
   shcore::Dictionary_t tmp = shcore::make_dict();
   shcore::Dictionary_t ret = shcore::make_dict();
 
-  auto group_instance = m_cluster.get_target_server();
+  auto group_instance = m_cluster.get_cluster_server();
 
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
@@ -1401,7 +1407,7 @@ shcore::Value Status::get_default_replicaset_status() {
   //
   // If that's the case, a warning must be added to the resulting JSON object
   {
-    auto group_instance = m_cluster.get_target_server();
+    auto group_instance = m_cluster.get_cluster_server();
 
     auto state = get_replication_group_state(
         *group_instance, get_gr_instance_type(*group_instance));
@@ -1434,20 +1440,20 @@ shcore::Value Status::execute() {
   // Gets the metadata version
   if (!m_extended.is_null() && *m_extended >= 1) {
     auto version = mysqlsh::dba::metadata::installed_version(
-        m_cluster.get_target_server());
+        m_cluster.get_cluster_server());
     (*dict)["metadataVersion"] = shcore::Value(version.get_base());
   }
 
   // Iterate all replicasets and get the status for each one
 
-  std::string addr = m_cluster.get_target_server()->get_canonical_address();
+  std::string addr = m_cluster.get_cluster_server()->get_canonical_address();
   (*dict)["groupInformationSourceMember"] = shcore::Value(addr);
 
   auto md_server = m_cluster.get_metadata_storage()->get_md_server();
 
   // metadata server, if its a different one
   if (md_server &&
-      md_server->get_uuid() != m_cluster.get_target_server()->get_uuid()) {
+      md_server->get_uuid() != m_cluster.get_cluster_server()->get_uuid()) {
     (*dict)["metadataServer"] =
         shcore::Value(md_server->get_canonical_address());
   }

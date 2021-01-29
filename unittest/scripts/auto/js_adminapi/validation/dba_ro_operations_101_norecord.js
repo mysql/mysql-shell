@@ -3,7 +3,7 @@
 
 
 //@ Get Cluster from master
-|WARNING: No cluster change operations can be executed because the installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.0.0. Upgrade the metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.|
+|WARNING: No cluster change operations can be executed because the installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.1.0. Upgrade the metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.|
 
 //@<OUT> Status from master
 {
@@ -93,7 +93,14 @@ ${*}
                                 "originalCommitToEndTime": [[*]],
                                 "retries": 0,
                                 "startTimestamp": "[[*]]",
+?{}
+?{VER(>=8.0.17) && VER(<8.0.25)}
                                 "transaction": "<<<gr_uuid>>>:[[*]]"
+?{}
+?{VER(>=8.0.25)}
+                                "transaction": "<<<gr_view_change_uuid>>>:[[*]]"
+?{}
+?{VER(>=8.0.17)}
                             },
 ?{}
 ?{VER(<8.0.17)}
@@ -447,7 +454,7 @@ ${*}
 }
 
 //@ Get Cluster from slave
-|WARNING: No cluster change operations can be executed because the installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.0.0. Upgrade the metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.|
+|WARNING: No cluster change operations can be executed because the installed metadata version 1.0.1 is lower than the version required by Shell which is version 2.1.0. Upgrade the metadata to remove this restriction. See \? dba.upgradeMetadata for additional details.|
 
 //@ Finalization
 ||

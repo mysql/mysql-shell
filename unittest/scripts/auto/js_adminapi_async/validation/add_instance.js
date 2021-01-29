@@ -264,7 +264,7 @@
 |* Checking async replication topology...|
 |* Checking transaction state of the instance...|
 |* Updating topology|
-|** Configuring <<<__endpoint_uri2>>> to replicate from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
+|** Changing replication source of <<<__endpoint_uri2>>> to <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
 |** Waiting for new instance to synchronize with PRIMARY...|
 |The instance '<<<__endpoint_uri2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 |dryRun finished.|
@@ -275,7 +275,7 @@
 |* Checking async replication topology...|
 |* Checking transaction state of the instance...|
 |* Updating topology|
-|** Configuring <<<__endpoint_uri2>>> to replicate from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
+|** Changing replication source of <<<__endpoint_uri2>>> to <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>|
 |** Waiting for new instance to synchronize with PRIMARY...|
 |The instance '<<<__endpoint_uri2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 |dryRun finished.|

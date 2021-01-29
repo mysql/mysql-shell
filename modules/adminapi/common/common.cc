@@ -43,6 +43,7 @@
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -64,6 +65,28 @@ namespace dba {
 namespace {
 constexpr const char kSandboxDatadir[] = "sandboxdata";
 constexpr uint16_t k_max_port = 65535;
+
+/**
+ * Validates the session used to manage the group.
+ *
+ * Checks if the given session is valid for use with AdminAPI.
+ *
+ * @param instance A group session to validate.
+ *
+ * @throws shcore::Exception::runtime_error if session is not valid.
+ */
+void validate_gr_session(
+    const std::shared_ptr<mysqlshdk::db::ISession> &group_session) {
+  // TODO(alfredo) - this check seems too extreme, this only matters in the
+  // target instance (and only for some operations) and this function can get
+  // called on other members
+  if (mysqlshdk::gr::is_group_replication_delayed_starting(
+          mysqlsh::dba::Instance(group_session)))
+    throw shcore::Exception::runtime_error(
+        "Cannot perform operation while group replication is "
+        "starting up");
+}
+
 }  // namespace
 
 namespace ClusterStatus {
@@ -93,6 +116,48 @@ std::string describe(Status state) {
   return ret_val;
 }
 }  // namespace ClusterStatus
+
+std::string to_string(Cluster_ssl_mode ssl_mode) {
+  std::string ret_val;
+
+  switch (ssl_mode) {
+    case Cluster_ssl_mode::AUTO:
+      ret_val = kClusterSSLModeAuto;
+      break;
+    case Cluster_ssl_mode::DISABLED:
+      ret_val = kClusterSSLModeDisabled;
+      break;
+    case Cluster_ssl_mode::REQUIRED:
+      ret_val = kClusterSSLModeRequired;
+      break;
+    case Cluster_ssl_mode::VERIFY_CA:
+      ret_val = kClusterSSLModeVerifyCA;
+      break;
+    case Cluster_ssl_mode::VERIFY_IDENTITY:
+      ret_val = kClusterSSLModeVerifyIdentity;
+      break;
+    case Cluster_ssl_mode::NONE:
+      ret_val = "NONE";
+      break;
+  }
+  return ret_val;
+}
+
+Cluster_ssl_mode to_cluster_ssl_mode(const std::string &mode) {
+  if (shcore::str_casecmp("AUTO", mode) == 0) {
+    return Cluster_ssl_mode::AUTO;
+  } else if (shcore::str_casecmp("DISABLED", mode) == 0) {
+    return Cluster_ssl_mode::DISABLED;
+  } else if (shcore::str_casecmp("REQUIRED", mode) == 0) {
+    return Cluster_ssl_mode::REQUIRED;
+  } else if (shcore::str_casecmp("VERIFY_CA", mode) == 0) {
+    return Cluster_ssl_mode::VERIFY_CA;
+  } else if (shcore::str_casecmp("VERIFY_IDENTITY", mode) == 0) {
+    return Cluster_ssl_mode::VERIFY_IDENTITY;
+  } else {
+    throw std::runtime_error("Unsupported Cluster SSL-mode: " + mode);
+  }
+}
 
 std::string get_mysqlprovision_error_string(
     const shcore::Value::Array_type_ref &errors) {
@@ -206,8 +271,7 @@ void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
 }
 
 /**
- * Determines the value to use on the cluster for the SSL mode
- * based on:
+ * Resolves the SSL mode based on:
  * - The instance having SSL available
  * - The instance having require_secure_transport ON
  * - The memberSslMode option given by the user
@@ -225,51 +289,38 @@ void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
  *   - If SSL mode is not supported and member_ssl_mode is REQUIRED, VERIFY_CA
  *     or VERIFY_IDENTITY
  */
-void resolve_cluster_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
-                              mysqlshdk::null_string *member_ssl_mode) {
-  std::string member_ssl_mode_value = member_ssl_mode->get_safe();
-  std::string have_ssl = *instance.get_sysvar_string("have_ssl");
-  bool require_secure_transport =
-      *instance.get_sysvar_bool("require_secure_transport");
+mysqlshdk::db::nullable<Cluster_ssl_mode> resolve_ssl_mode(
+    const mysqlshdk::mysql::IInstance &instance,
+    const Cluster_ssl_mode &ssl_mode, bool *have_ssl) {
+  mysqlshdk::db::nullable<Cluster_ssl_mode> resolved_ssl_mode;
+  std::string have_ssl_str = *instance.get_sysvar_string("have_ssl");
 
   // The instance supports SSL
-  if (!shcore::str_casecmp(have_ssl.c_str(), "YES")) {
-    // memberSslMode is DISABLED but instance requires SSL
-    if (member_ssl_mode_value == dba::kMemberSSLModeDisabled &&
-        require_secure_transport) {
-      throw shcore::Exception::argument_error(
-          "The instance '" + instance.descr() +
-          "' requires secure connections, to create the "
-          "cluster either turn off require_secure_transport or use the "
-          "memberSslMode option with 'REQUIRED', 'VERIFY_CA' or "
-          "'VERIFY_IDENTITY' value.");
-    } else if (member_ssl_mode_value == dba::kMemberSSLModeAuto ||
-               member_ssl_mode_value.empty()) {
-      // memberSslMode when set to AUTO and SSL is supported, then REQUIRED is
+  if (!shcore::str_casecmp(have_ssl_str.c_str(), "YES")) {
+    if (have_ssl) *have_ssl = true;
+
+    if (ssl_mode == Cluster_ssl_mode::AUTO ||
+        ssl_mode == Cluster_ssl_mode::NONE) {
+      // sslMode when set to AUTO and SSL is supported, then REQUIRED is
       // used
-      *member_ssl_mode = dba::kMemberSSLModeRequired;
-    } else if (member_ssl_mode_value == dba::kMemberSSLModeVerifyCA ||
-               member_ssl_mode_value == dba::kMemberSSLModeVerifyIdentity) {
-      // memberSslMode is VERIFY_CA or VERIFY_IDENTITY
-      // verify the certificates
-      ensure_certificates_set(instance, *member_ssl_mode);
+      resolved_ssl_mode = Cluster_ssl_mode::REQUIRED;
+    } else {
+      resolved_ssl_mode = ssl_mode;
     }
   } else {  // The instance does not support SSL
-    // memberSslMode is REQUIRED, VERIFY_CA or VERIFY_IDENTITY
-    if (member_ssl_mode_value == dba::kMemberSSLModeRequired ||
-        member_ssl_mode_value == dba::kMemberSSLModeVerifyCA ||
-        member_ssl_mode_value == dba::kMemberSSLModeVerifyIdentity) {
-      throw shcore::Exception::argument_error(
-          "The instance '" + instance.descr() +
-          "' does not have SSL enabled, to create the "
-          "cluster either use an instance with SSL enabled, remove the "
-          "memberSslMode option or use it with any of 'AUTO' or 'DISABLED'.");
+    if (have_ssl) *have_ssl = false;
+    // sslMode is either not defined, DISABLED or AUTO
+    if (ssl_mode != Cluster_ssl_mode::REQUIRED &&
+        ssl_mode != Cluster_ssl_mode::VERIFY_CA &&
+        ssl_mode != Cluster_ssl_mode::VERIFY_IDENTITY) {
+      resolved_ssl_mode = Cluster_ssl_mode::DISABLED;
     } else {
-      // memberSslMode is either not defined, DISABLED or AUTO
-      *member_ssl_mode = dba::kMemberSSLModeDisabled;
+      resolved_ssl_mode = ssl_mode;
     }
   }
-}  // namespace dba
+
+  return resolved_ssl_mode;
+}
 
 /**
  * Determines the value to use on the instance for the SSL mode
@@ -298,19 +349,19 @@ void resolve_cluster_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
  */
 void resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
                                const mysqlshdk::mysql::IInstance &pinstance,
-                               mysqlshdk::null_string *member_ssl_mode) {
-  std::string member_ssl_mode_value = member_ssl_mode->get_safe();
+                               Cluster_ssl_mode *member_ssl_mode) {
+  assert(member_ssl_mode);
 
   // Get how memberSslMode was configured on the cluster
-  std::string gr_ssl_mode =
-      *pinstance.get_sysvar_string("group_replication_ssl_mode");
+  Cluster_ssl_mode gr_ssl_mode = to_cluster_ssl_mode(
+      *pinstance.get_sysvar_string("group_replication_ssl_mode"));
 
   // The cluster REQUIRES SSL
-  if (gr_ssl_mode == dba::kMemberSSLModeRequired ||
-      gr_ssl_mode == dba::kMemberSSLModeVerifyCA ||
-      gr_ssl_mode == dba::kMemberSSLModeVerifyIdentity) {
+  if (gr_ssl_mode == Cluster_ssl_mode::REQUIRED ||
+      gr_ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
+      gr_ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY) {
     // memberSslMode is DISABLED
-    if (member_ssl_mode_value == dba::kMemberSSLModeDisabled) {
+    if (*member_ssl_mode == Cluster_ssl_mode::DISABLED) {
       throw shcore::Exception::runtime_error(
           "The cluster has SSL (encryption) enabled. "
           "To add the instance '" +
@@ -332,23 +383,23 @@ void resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
           "again, otherwise it can only be added to a cluster with SSL "
           "disabled.");
     } else {
-      // memberSslMode AUTO or empty gets set to the Cluster SslMode
-      if (member_ssl_mode_value == dba::kMemberSSLModeAuto ||
-          member_ssl_mode_value.empty()) {
+      // memberSslMode AUTO
+      if (*member_ssl_mode == Cluster_ssl_mode::AUTO ||
+          *member_ssl_mode == Cluster_ssl_mode::NONE) {
         *member_ssl_mode = gr_ssl_mode;
-      } else if (member_ssl_mode_value == dba::kMemberSSLModeVerifyCA ||
-                 member_ssl_mode_value == dba::kMemberSSLModeVerifyIdentity) {
+      } else if (*member_ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
+                 *member_ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY) {
         // memberSslMode is VERIFY_CA or VERIFY_IDENTITY
         // verify the certificates
         ensure_certificates_set(instance, *member_ssl_mode);
       }
     }
     // The cluster has SSL DISABLED
-  } else if (gr_ssl_mode == dba::kMemberSSLModeDisabled) {
+  } else if (gr_ssl_mode == Cluster_ssl_mode::DISABLED) {
     // memberSslMode is REQUIRED, VERIFY_CA or VERIFY_IDENTITY
-    if (member_ssl_mode_value == dba::kMemberSSLModeRequired ||
-        member_ssl_mode_value == dba::kMemberSSLModeVerifyCA ||
-        member_ssl_mode_value == dba::kMemberSSLModeVerifyIdentity) {
+    if (*member_ssl_mode == Cluster_ssl_mode::REQUIRED ||
+        *member_ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
+        *member_ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY) {
       throw shcore::Exception::runtime_error(
           "The cluster has SSL (encryption) disabled. "
           "To add the instance '" +
@@ -371,7 +422,7 @@ void resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
           "on the cluster.");
     }
 
-    *member_ssl_mode = dba::kMemberSSLModeDisabled;
+    *member_ssl_mode = Cluster_ssl_mode::DISABLED;
   }
 }
 
@@ -503,8 +554,9 @@ void parse_fully_qualified_cluster_name(const std::string &name,
  * [domain[/partition]::]clusterGroup
  *
  * Each component must be:
- * non-empty and no greater than 40 characters long and start with an alphabetic
- * or '_' character and just contain alphanumeric or the '_' character.
+ * non-empty and no greater than 63 characters long and start with an alphabetic
+ * or '_' character and just contain alphanumeric or the characters '_', '-' or
+ * '.'.
  *
  * @param name of the cluster
  * @param cluster_type indicates what the name is intended for
@@ -512,9 +564,21 @@ void parse_fully_qualified_cluster_name(const std::string &name,
  */
 void SHCORE_PUBLIC validate_cluster_name(const std::string &name,
                                          Cluster_type cluster_type) {
-  std::string what = cluster_type == Cluster_type::ASYNC_REPLICATION
-                         ? "ReplicaSet"
-                         : "Cluster";
+  std::string what;
+
+  switch (cluster_type) {
+    case Cluster_type::GROUP_REPLICATION:
+      what = "Cluster";
+      break;
+    case Cluster_type::ASYNC_REPLICATION:
+      what = "ReplicaSet";
+      break;
+    case Cluster_type::REPLICATED_CLUSTER:
+      what = "ClusterSet";
+      break;
+    case Cluster_type::NONE:
+      throw shcore::Exception::logic_error("Unknown Cluster_type.");
+  }
 
   if (!name.empty()) {
     std::string domain;
@@ -523,47 +587,51 @@ void SHCORE_PUBLIC validate_cluster_name(const std::string &name,
 
     parse_fully_qualified_cluster_name(name, &domain, &partition, &group);
 
-    if (domain.length() > 40) {
+    if (domain.length() > k_cluster_name_max_length) {
       throw shcore::Exception::argument_error(
           domain + ": The " + what +
-          " domain name can not be greater than 40 characters.");
+          " domain name can not be greater than 63 characters.");
     }
-    if (partition.length() > 40) {
+    if (partition.length() > k_cluster_name_max_length) {
       throw shcore::Exception::argument_error(
           partition + ": The " + what +
-          " domain partition name can not be greater than 40 "
+          " domain partition name can not be greater than 63 "
           "characters.");
     }
-    if (group.length() > 40) {
+    if (group.length() > k_cluster_name_max_length) {
       throw shcore::Exception::argument_error(
           group + ": The " + what +
-          " name can not be greater than 40 characters.");
+          " name can not be greater than 63 characters.");
     }
 
     if (!domain.empty()) {
-      if (mysqlshdk::utils::span_keyword(domain, 0) != domain.length()) {
+      if (mysqlshdk::utils::span_keyword(
+              domain, 0, k_cluster_name_allowed_chars) != domain.length()) {
         throw shcore::Exception::argument_error(
             "" + what +
-            " name may only contain alphanumeric characters or "
-            "'_', and may not start with a number (" +
+            " name may only contain alphanumeric characters, '_', '-', or '.' "
+            "and may not start with a number (" +
             domain + ")");
       }
     }
     if (!partition.empty()) {
-      if (mysqlshdk::utils::span_keyword(partition, 0) != partition.length()) {
+      if (mysqlshdk::utils::span_keyword(partition, 0,
+                                         k_cluster_name_allowed_chars) !=
+          partition.length()) {
         throw shcore::Exception::argument_error(
             "" + what +
-            " name may only contain alphanumeric characters or "
-            "'_', and may not start with a number (" +
+            " name may only contain alphanumeric characters, '_', '-', or '.' "
+            "and may not start with a number (" +
             partition + ")");
       }
     }
     if (!group.empty()) {
-      if (mysqlshdk::utils::span_keyword(group, 0) != group.length()) {
+      if (mysqlshdk::utils::span_keyword(
+              group, 0, k_cluster_name_allowed_chars) != group.length()) {
         throw shcore::Exception::argument_error(
             "" + what +
-            " name may only contain alphanumeric characters or "
-            "'_', and may not start with a number (" +
+            " name may only contain alphanumeric characters, '_', '-', or '.' "
+            "and may not start with a number (" +
             group + ")");
       }
     } else {
@@ -1760,5 +1828,145 @@ void handle_deprecated_option(const std::string &deprecated_name,
     console->print_info();
   }
 }
+
+TargetType::Type get_instance_type(const MetadataStorage &metadata,
+                                   Instance *target_instance) {
+  mysqlshdk::utils::Version md_version;
+  Cluster_type cluster_type;
+  bool has_metadata = false;
+  bool gr_active;
+
+  auto target_server =
+      target_instance ? target_instance : metadata.get_md_server().get();
+
+  try {
+    has_metadata = metadata.check_metadata(&md_version, &cluster_type);
+
+    gr_active = mysqlshdk::gr::is_active_member(*target_server);
+  } catch (const shcore::Error &error) {
+    auto e =
+        shcore::Exception::mysql_error_with_code(error.what(), error.code());
+
+    log_warning("Error querying GR member state: %s: %i %s",
+                target_server->descr().c_str(), error.code(), error.what());
+
+    if (error.code() == ER_NO_SUCH_TABLE) {
+      gr_active = false;
+    } else if (error.code() == ER_TABLEACCESS_DENIED_ERROR) {
+      throw std::runtime_error(
+          "Unable to detect target instance state. Please check account "
+          "privileges.");
+    } else {
+      throw shcore::Exception::mysql_error_with_code(error.what(),
+                                                     error.code());
+    }
+  }
+
+  if (has_metadata) {
+    if (cluster_type == Cluster_type::GROUP_REPLICATION && gr_active) {
+      return TargetType::InnoDBCluster;
+    } else if (cluster_type == Cluster_type::GROUP_REPLICATION && !gr_active) {
+      // InnoDB cluster but with GR stopped
+      return TargetType::StandaloneInMetadata;
+    } else if (gr_active) {
+      // GR running but instance is not in the metadata, could be:
+      // - member was added to the cluster by hand
+      // - UUID of member changed
+      // - MD in the group belongs to a different cluster
+      // - others
+      if (cluster_type != Cluster_type::NONE) {
+        log_warning(
+            "Instance %s is running Group Replication, but does not belong "
+            "to a InnoDB cluster",
+            target_server->descr().c_str());
+      }
+
+      return TargetType::GroupReplication;
+    } else {
+      if (cluster_type == Cluster_type::ASYNC_REPLICATION) {
+        return TargetType::AsyncReplicaSet;
+      }
+
+      return TargetType::StandaloneWithMetadata;
+    }
+  } else {
+    if (gr_active) return TargetType::GroupReplication;
+  }
+
+  return TargetType::Standalone;
+}
+
+Cluster_check_info get_cluster_check_info(const MetadataStorage &metadata,
+                                          Instance *group_server,
+                                          bool skip_version_check) {
+  Cluster_check_info state;
+
+  auto group_instance =
+      group_server ? group_server : metadata.get_md_server().get();
+
+  // Retrieves the instance configuration type from the perspective of the
+  // active session
+  try {
+    state.source_type = get_instance_type(metadata, group_instance);
+  } catch (const shcore::Exception &e) {
+    if (mysqlshdk::db::is_server_connection_error(e.code())) {
+      throw;
+    } else {
+      log_warning("Error detecting GR instance: %s", e.what());
+      state.source_type = TargetType::Unknown;
+    }
+  }
+
+  // If it is a GR instance, validates the instance state
+  if (state.source_type == TargetType::GroupReplication ||
+      state.source_type == TargetType::InnoDBCluster) {
+    validate_gr_session(group_instance->get_session());
+
+    // Retrieves the instance cluster statues from the perspective of the
+    // active session
+    state = get_replication_group_state(*group_instance, state.source_type);
+
+    // On IDC we want to also determine whether the quorum is just Normal or
+    // if All the instances are ONLINE
+    if (state.source_type == TargetType::InnoDBCluster) {
+      if (state.quorum == ReplicationQuorum::States::Normal) {
+        try {
+          if (metadata.check_all_members_online()) {
+            state.quorum |= ReplicationQuorum::States::All_online;
+          }
+        } catch (const shcore::Error &e) {
+          log_error(
+              "Error while verifying all members in InnoDB Cluster are ONLINE: "
+              "%s",
+              e.what());
+          throw;
+        }
+      }
+
+      if (metadata.check_cluster_set(group_instance)) {
+        state.source_type = TargetType::InnoDBClusterSet;
+      }
+    }
+  } else if (state.source_type == TargetType::AsyncReplicaSet) {
+    auto instance = metadata.get_instance_by_uuid(group_instance->get_uuid());
+    if (instance.primary_master) {
+      state.source_state = ManagedInstance::OnlineRW;
+    } else {
+      state.source_state = ManagedInstance::OnlineRO;
+    }
+
+    state.quorum = ReplicationQuorum::States::Normal;
+  } else {
+    state.quorum = ReplicationQuorum::States::Normal;
+    state.source_state = ManagedInstance::Offline;
+  }
+
+  if (!skip_version_check) {
+    state.source_version = group_instance->get_version();
+  }
+
+  return state;
+}
+
 }  // namespace dba
 }  // namespace mysqlsh

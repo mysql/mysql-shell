@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,6 +37,10 @@ struct Status_options {
 shcore::Dictionary_t replica_set_status(
     const topology::Server_global_topology &topology,
     const Status_options &opts);
+
+shcore::Dictionary_t channel_status(const topology::Server &server,
+                                    const topology::Instance &instance,
+                                    const Status_options &opts);
 
 }  // namespace dba
 }  // namespace mysqlsh

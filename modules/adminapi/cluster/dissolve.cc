@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -241,7 +241,7 @@ void Dissolve::prepare() {
 
   // Get cluster session to use the same authentication credentials for all
   // cluster instances.
-  std::shared_ptr<Instance> cluster_instance = m_cluster->get_target_server();
+  std::shared_ptr<Instance> cluster_instance = m_cluster->get_cluster_server();
 
   // Determine the primary (if it exists), in order to be the last to be
   // removed from the cluster. Only for single primary mode.
@@ -307,7 +307,6 @@ void Dissolve::remove_instance(const std::string &instance_address,
   try {
     // Stop Group Replication and reset (persist) GR variables.
     mysqlsh::dba::leave_cluster(*m_available_instances[instance_index]);
-
   } catch (const std::exception &err) {
     auto console = mysqlsh::current_console();
 
@@ -334,6 +333,17 @@ void Dissolve::remove_instance(const std::string &instance_address,
 shcore::Value Dissolve::execute() {
   std::shared_ptr<MetadataStorage> metadata = m_cluster->get_metadata_storage();
   auto console = mysqlsh::current_console();
+
+  // Disable super_read_only mode if it is enabled.
+  bool super_read_only = m_cluster->get_cluster_server()
+                             ->get_sysvar_bool("super_read_only")
+                             .get_safe();
+  if (super_read_only) {
+    log_info(
+        "Disabling super_read_only mode on instance '%s' to run dissolve().",
+        m_cluster->get_cluster_server()->descr().c_str());
+    m_cluster->get_cluster_server()->set_sysvar("super_read_only", false);
+  }
 
   // JOB: Remove replication accounts used for recovery of GR.
   // Note: This operation MUST be performed before leave-cluster to ensure

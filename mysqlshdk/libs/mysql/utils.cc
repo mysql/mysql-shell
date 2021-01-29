@@ -258,6 +258,8 @@ void drop_all_accounts_for_user(const IInstance &instance,
   }
 
   if (!accounts.empty()) {
+    log_debug("Dropping user account '%s' at '%s'", accounts.c_str(),
+              instance.descr().c_str());
     instance.execute("DROP USER IF EXISTS " + accounts);
   }
 }

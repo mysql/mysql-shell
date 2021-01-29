@@ -50,13 +50,6 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/uuid_gen.h"
 
-namespace {
-const char *kErrorReadOnlyTimeout =
-    "Timeout waiting for super_read_only to be "
-    "unset after call to start Group "
-    "Replication plugin.";
-}  // namespace
-
 namespace mysqlshdk {
 namespace gr {
 
@@ -151,61 +144,6 @@ Topology_mode to_topology_mode(const std::string &mode) {
     return Topology_mode::MULTI_PRIMARY;
   else
     throw std::runtime_error("Unsupported Group Replication mode: " + mode);
-}
-
-/**
- * Verify if the specified server instance is already a member of a GR group.
- *
- * NOTE: the instance might be a member of a GR group but not be active (e.g.,
- *       OFFLINE).
- *
- * @param instance session object to connect to the target instance.
- *
- * @return A boolean value indicating if the specified instance already belongs
- *         to a GR group.
- */
-bool is_member(const mysqlshdk::mysql::IInstance &instance) {
-  std::string is_member_stmt =
-      "SELECT group_name "
-      "FROM performance_schema.replication_connection_status "
-      "WHERE channel_name = 'group_replication_applier'";
-  auto resultset = instance.query(is_member_stmt);
-  auto row = resultset->fetch_one();
-  if (row && !row->get_string(0).empty())
-    return true;
-  else
-    return false;
-}
-
-/**
- * Verify if the specified server instance is already a member of the specified
- * GR group.
- *
- * NOTE: the instance might be a member of a GR group but not be active (e.g.,
- *       OFFLINE).
- *
- * @param instance session object to connect to the target instance.
- * @param group_name string with the name of the GR group to check.
- *
- * @return A boolean value indicating if the specified instance already belongs
- *          to the specified GR group.
- */
-bool is_member(const mysqlshdk::mysql::IInstance &instance,
-               const std::string &group_name) {
-  std::string is_member_stmt_fmt =
-      "SELECT group_name "
-      "FROM performance_schema.replication_connection_status "
-      "WHERE channel_name = 'group_replication_applier' AND group_name = ?";
-  shcore::sqlstring is_member_stmt =
-      shcore::sqlstring(is_member_stmt_fmt.c_str(), 0);
-  is_member_stmt << group_name;
-  is_member_stmt.done();
-  auto resultset = instance.query(is_member_stmt);
-  auto row = resultset->fetch_one();
-  if (row)
-    return true;
-  else
-    return false;
 }
 
 /**
@@ -455,11 +393,14 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
                            Member_state *out_member_state,
                            std::string *out_member_id,
                            std::string *out_group_name,
+                           std::string *out_group_view_change_uuid,
                            bool *out_single_primary_mode, bool *out_has_quorum,
                            bool *out_is_primary) {
   try {
     std::shared_ptr<db::IResult> result(instance.query(
         "SELECT @@group_replication_group_name group_name, "
+        "NULLIF(CONCAT(''/*!80025, @@group_replication_view_change_uuid*/), "
+        "'') group_view_change_uuid, "
         " @@group_replication_single_primary_mode single_primary, "
         " @@server_uuid, "
         " member_state, "
@@ -479,14 +420,16 @@ bool get_group_information(const mysqlshdk::mysql::IInstance &instance,
     const db::IRow *row = result->fetch_one();
     if (row && !row->is_null(0)) {
       if (out_group_name) *out_group_name = row->get_string(0);
-      if (!row->is_null(1) && out_single_primary_mode)
-        *out_single_primary_mode = (row->get_int(1) != 0);
-      if (out_member_id) *out_member_id = row->get_string(2);
+      if (!row->is_null(1) && out_group_view_change_uuid)
+        *out_group_view_change_uuid = row->get_string(1);
+      if (!row->is_null(2) && out_single_primary_mode)
+        *out_single_primary_mode = (row->get_int(2) != 0);
+      if (out_member_id) *out_member_id = row->get_string(3);
       if (out_member_state)
-        *out_member_state = to_member_state(row->get_string(3));
+        *out_member_state = to_member_state(row->get_string(4));
       if (out_has_quorum)
-        *out_has_quorum = row->is_null(4) ? false : row->get_int(4) != 0;
-      if (out_is_primary) *out_is_primary = row->get_int(5, 0);
+        *out_has_quorum = row->is_null(5) ? false : row->get_int(5) != 0;
+      if (out_is_primary) *out_is_primary = row->get_int(6, 0);
       return true;
     }
     return false;
@@ -726,17 +669,9 @@ void change_recovery_credentials(const mysqlshdk::mysql::IInstance &instance,
  *                  is set and unset, respectively at the begin and end of
  *                  the operation, and the function wait for SUPER READ ONLY
  *                  to be unset on the instance.
- * @param read_only_timeout integer value with the timeout value in seconds
- *                          to wait for SUPER READ ONLY to be disabled
- *                          for a bootstrap server. By default the value is
- *                          900 seconds (i.e., 15 minutes).
- *
- * @throw std::runtime_error if SUPER READ ONLY is still enabled for the
- *        bootstrap server after the given 'read_only_timeout'.
  */
 void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
-                             const bool bootstrap,
-                             const uint16_t read_only_timeout) {
+                             const bool bootstrap) {
   if (bootstrap)
     instance.set_sysvar("group_replication_bootstrap_group", true,
                         mysqlshdk::mysql::Var_qualifier::GLOBAL);
@@ -757,19 +692,6 @@ void start_group_replication(const mysqlshdk::mysql::IInstance &instance,
   if (bootstrap) {
     instance.set_sysvar("group_replication_bootstrap_group", false,
                         mysqlshdk::mysql::Var_qualifier::GLOBAL);
-    // Wait for SUPER READ ONLY to be OFF.
-    // Required for MySQL versions < 5.7.20.
-    mysqlshdk::utils::nullable<bool> read_only = instance.get_sysvar_bool(
-        "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-    uint16_t waiting_time = 0;
-    while (*read_only && waiting_time < read_only_timeout) {
-      shcore::sleep_ms(1000);
-      waiting_time += 1;
-      read_only = instance.get_sysvar_bool(
-          "super_read_only", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-    }
-    // Throw an error is SUPPER READ ONLY is ON.
-    if (*read_only) throw std::runtime_error(kErrorReadOnlyTimeout);
   }
 }
 
@@ -782,7 +704,7 @@ void stop_group_replication(const mysqlshdk::mysql::IInstance &instance) {
   instance.execute("STOP GROUP_REPLICATION");
 }
 
-std::string generate_group_name(const mysqlshdk::mysql::IInstance &instance) {
+std::string generate_uuid(const mysqlshdk::mysql::IInstance &instance) {
   // Generate a UUID on the MySQL server.
   std::string get_uuid_stmt = "SELECT UUID()";
   auto resultset = instance.query(get_uuid_stmt);
@@ -816,7 +738,7 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
     const std::string &username, const mysqlshdk::mysql::IInstance &primary,
     const std::vector<std::string> &hosts,
     const mysqlshdk::utils::nullable<std::string> &password,
-    bool clone_supported) {
+    bool clone_supported, bool auto_failover) {
   mysqlshdk::mysql::Auth_options creds;
   assert(!hosts.empty());
   assert(!username.empty());
@@ -829,6 +751,10 @@ mysqlshdk::mysql::Auth_options create_recovery_user(
     grants = {std::make_tuple("REPLICATION SLAVE, BACKUP_ADMIN", "*.*", false)};
   } else {
     grants = {std::make_tuple("REPLICATION SLAVE", "*.*", false)};
+  }
+
+  if (auto_failover) {
+    grants.push_back(std::make_tuple("SELECT", "performance_schema.*", false));
   }
 
   try {
@@ -913,22 +839,56 @@ bool is_group_replication_delayed_starting(
 
 bool is_active_member(const mysqlshdk::mysql::IInstance &instance,
                       const std::string &host, const int port) {
-  std::string is_active_member_stmt_fmt =
-      "SELECT Member_state "
-      "FROM performance_schema.replication_group_members "
-      "WHERE Member_host = ? AND Member_port = ? "
-      "AND Member_state NOT IN ('OFFLINE', 'UNREACHABLE')";
-  shcore::sqlstring is_active_member_stmt =
-      shcore::sqlstring(is_active_member_stmt_fmt.c_str(), 0);
-  is_active_member_stmt << host;
-  is_active_member_stmt << port;
-  is_active_member_stmt.done();
-  auto resultset = instance.query(is_active_member_stmt);
-  auto row = resultset->fetch_one();
-  if (row)
-    return true;
-  else
-    return false;
+  bool ret_val = false;
+  shcore::sqlstring is_active_member_stmt;
+
+  if (!host.empty() && port != 0) {
+    std::string is_active_member_stmt_fmt =
+        "SELECT count(*) "
+        "FROM performance_schema.replication_group_members "
+        "WHERE MEMBER_HOST = ? AND MEMBER_PORT = ? "
+        "AND MEMBER_STATE NOT IN ('OFFLINE', 'UNREACHABLE')";
+    is_active_member_stmt =
+        shcore::sqlstring(is_active_member_stmt_fmt.c_str(), 0);
+    is_active_member_stmt << host;
+    is_active_member_stmt << port;
+    is_active_member_stmt.done();
+
+  } else {
+    std::string is_active_member_stmt_fmt =
+        "select count(*) "
+        "FROM performance_schema.replication_group_members "
+        "WHERE MEMBER_ID = @@server_uuid AND MEMBER_STATE NOT "
+        "IN ('OFFLINE', 'UNREACHABLE')";
+    is_active_member_stmt =
+        shcore::sqlstring(is_active_member_stmt_fmt.c_str(), 0);
+    is_active_member_stmt.done();
+  }
+
+  try {
+    auto result = instance.query(is_active_member_stmt);
+    auto row = result->fetch_one();
+    if (row) {
+      if (row->get_int(0) != 0) {
+        log_debug("Instance type check: %s: GR is active",
+                  instance.descr().c_str());
+        ret_val = true;
+      } else {
+        log_debug("Instance type check: %s: GR is installed but not active",
+                  instance.descr().c_str());
+      }
+    }
+  } catch (const mysqlshdk::db::Error &e) {
+    if (e.code() == ER_UNKNOWN_SYSTEM_VARIABLE) {
+      log_warning("Group replication not started (MySQL error: %s (%i)",
+                  e.what(), e.code());
+    } else {
+      log_warning("Error checking if Group Replication is active: %s (%i)",
+                  e.what(), e.code());
+      throw;
+    }
+  }
+  return ret_val;
 }
 
 void update_auto_increment(mysqlshdk::config::Config *config,
@@ -1262,11 +1222,99 @@ bool is_endpoint_supported_by_gr(const std::string &endpoint,
     // no guarantee that name resolution is the same across cluster instances
     // and the instance where we are running the ngshell.
     return true;
-
   } catch (const std::invalid_argument &error) {
     throw shcore::Exception::argument_error(
         shcore::str_format("Invalid address format: '%s'", endpoint.c_str()));
   }
+}
+
+namespace {
+void execute_member_action_udf(const mysqlshdk::mysql::IInstance &instance,
+                               const std::string &query,
+                               const std::string &reason) {
+  // Get the value of super_read_only to disable it if enabled.
+  // Changing a GR member action configuration is only possible with
+  // super_read_only disabled.
+  bool super_read_only = instance.get_sysvar_bool("super_read_only").get_safe();
+
+  if (super_read_only) {
+    log_info(
+        "Disabling super_read_only mode on instance '%s' to '%s' a Group "
+        "Replication member action configuration.",
+        reason.c_str(), instance.descr().c_str());
+    instance.set_sysvar("super_read_only", false);
+  }
+
+  shcore::on_leave_scope reset_super_read_only([&instance, super_read_only]() {
+    if (super_read_only) {
+      log_info("Restoring super_read_only mode on instance '%s'",
+               instance.descr().c_str());
+      instance.set_sysvar("super_read_only", true);
+    }
+  });
+
+  try {
+    log_debug("Executing UDF: %s", query.c_str());
+    instance.query(query);
+  } catch (const mysqlshdk::db::Error &error) {
+    throw shcore::Exception::mysql_error_with_code_and_state(
+        error.what(), error.code(), error.sqlstate());
+  }
+}
+}  // namespace
+
+void disable_member_action(const mysqlshdk::mysql::IInstance &instance,
+                           const std::string &action_name,
+                           const std::string &stage) {
+  shcore::sqlstring query = shcore::sqlstring(
+      "SELECT group_replication_disable_member_action(?, ?)", false);
+
+  query << action_name;
+  query << stage;
+  query.done();
+
+  execute_member_action_udf(instance, query, "change");
+}
+
+void enable_member_action(const mysqlshdk::mysql::IInstance &instance,
+                          const std::string &action_name,
+                          const std::string &stage) {
+  shcore::sqlstring query = shcore::sqlstring(
+      "SELECT group_replication_enable_member_action(?, ?)", false);
+
+  query << action_name;
+  query << stage;
+  query.done();
+
+  execute_member_action_udf(instance, query.str(), "change");
+}
+
+bool get_member_action_status(const mysqlshdk::mysql::IInstance &instance,
+                              const std::string &action_name,
+                              bool *out_enabled) {
+  shcore::sqlstring query = shcore::sqlstring(
+      "SELECT enabled FROM performance_schema.replication_group_member_actions "
+      "WHERE name = ?",
+      0);
+
+  query << action_name;
+  query.done();
+
+  auto resultset = instance.query(query);
+  auto row = resultset->fetch_one();
+
+  if (row) {
+    if (out_enabled) *out_enabled = row->get_int(0);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void reset_member_actions(const mysqlshdk::mysql::IInstance &instance) {
+  std::string query = "SELECT group_replication_reset_member_actions()";
+
+  execute_member_action_udf(instance, query, "reset");
 }
 
 }  // namespace gr

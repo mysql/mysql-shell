@@ -163,7 +163,7 @@ You are connected to a member of replicaset 'myrs'.
 |This instance reports its own address as 127.0.0.1:<<<__mysql_sandbox_port2>>>|
 |127.0.0.1:<<<__mysql_sandbox_port2>>>: Instance configuration is suitable.|
 |NOTE: The target instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' has not been pre-provisioned (GTID set is empty). The Shell is unable to decide whether replication can completely recover its state.|
-|** Configuring 127.0.0.1:<<<__mysql_sandbox_port2>>> to replicate from 127.0.0.1:<<<__mysql_sandbox_port1>>>|
+|** Changing replication source of 127.0.0.1:<<<__mysql_sandbox_port2>>> to 127.0.0.1:<<<__mysql_sandbox_port1>>>|
 |The instance '127.0.0.1:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from 127.0.0.1:<<<__mysql_sandbox_port1>>>.|
 
 //@# addInstance (clone) {VER(>=8.0.17)}
@@ -199,7 +199,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 ** Acquiring global lock at SECONDARIES
 
 * Updating replication topology
-** Configuring 127.0.0.1:<<<__mysql_sandbox_port1>>> to replicate from 127.0.0.1:<<<__mysql_sandbox_port3>>>
+** Changing replication source of 127.0.0.1:<<<__mysql_sandbox_port1>>> to 127.0.0.1:<<<__mysql_sandbox_port3>>>
 ** Changing replication source of 127.0.0.1:<<<__mysql_sandbox_port2>>> to 127.0.0.1:<<<__mysql_sandbox_port3>>>
 
 127.0.0.1:<<<__mysql_sandbox_port3>>> was promoted to PRIMARY.

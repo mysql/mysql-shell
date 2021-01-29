@@ -223,9 +223,11 @@ For more information about the dba object use: \? dba
 
 In the AdminAPI, an InnoDB cluster is represented as an instance of the Cluster
 class, while replicasets are represented as an instance of the ReplicaSet
-class.
+class, and ClusterSets are represented as an instance of the ClusterSet class.
 
 For more information about the Cluster class use: \? Cluster
+
+For more information about the ClusterSet class use: \? ClusterSet
 
 For more information about the ReplicaSet class use: \? ReplicaSet
 
@@ -297,6 +299,7 @@ OBJECTS
 
 CLASSES
  - Cluster    Represents an InnoDB cluster.
+ - ClusterSet Represents an InnoDB ClusterSet.
  - ReplicaSet Represents an InnoDB ReplicaSet.
 
 #@<OUT> Help on shell commands

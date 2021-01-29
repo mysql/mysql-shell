@@ -60,7 +60,7 @@ EXPECT_THROWS(function () { dba.upgradeMetadata() }, `Installed metadata at '${h
 //@<> upgradeMetadata, installed version is unknown
 set_metadata_version(major, minor, -1)
 var installed_version = testutil.getInstalledMetadataVersion();
-EXPECT_THROWS(function () { dba.upgradeMetadata() }, `Installed metadata at '${hostname}:${__mysql_sandbox_port1}' has an unknown version (2.0.-1), upgrading this version of the metadata is not supported.`);
+EXPECT_THROWS(function () { dba.upgradeMetadata() }, `Installed metadata at '${hostname}:${__mysql_sandbox_port1}' has an unknown version (2.1.-1), upgrading this version of the metadata is not supported.`);
 
 //@<> Downgrading to version 1.0.1 for the following tests
 other_session = mysql.getSession(__sandbox_uri1);
@@ -198,7 +198,7 @@ EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."global_variables"'
 EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_member_stats"')
 EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_members"')
 
-//@ Test Migration from 1.0.1 to 2.0.0
+//@ Test Migration from 1.0.1 to 2.1.0
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 test_session = mysql.getSession(__sandbox_uri1)
 
@@ -208,7 +208,7 @@ testutil.expectPrompt("Unregistering a Router implies it will not be used in the
 dba.upgradeMetadata({interactive:true})
 
 
-//@<> WL13386-TSNFR1_14 Test Migration from 1.0.1 to 2.0.0, Data Verification
+//@<> WL13386-TSNFR1_14 Test Migration from 1.0.1 to 2.1.0, Data Verification
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 // Marks the router as up to date, we are interested in all data migration verification
 test_session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET attributes=JSON_OBJECT('version','8.0.19')");

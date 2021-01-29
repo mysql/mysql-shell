@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_MYSQL_UTILS_H_
 #define MYSQLSHDK_LIBS_MYSQL_UTILS_H_
 
+#include <mysqld_error.h>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -129,6 +130,22 @@ bool query_server_errors(const mysql::IInstance &instance,
                          const std::string &end_time,
                          const std::vector<std::string> &subsystems,
                          const std::function<void(const Error_log_entry &)> &f);
+
+inline void assert_transaction_is_open(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  try {
+    // if there's an active transaction, this will throw
+    session->execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+    // no exception -> transaction is not active
+    assert(false);
+  } catch (const mysqlshdk::db::Error &e) {
+    // make sure correct error is reported
+    assert(e.code() == ER_CANT_CHANGE_TX_CHARACTERISTICS);
+  } catch (...) {
+    // any other exception means that something else went wrong
+    assert(false);
+  }
+}
 
 }  // namespace mysql
 }  // namespace mysqlshdk

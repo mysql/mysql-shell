@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -268,6 +268,11 @@ INSTANTIATE_TEST_SUITE_P(Admin_api_async, Auto_script_js,
                          testing::ValuesIn(find_js_tests("js_adminapi_async",
                                                          ".js")),
                          fmt_param);
+
+INSTANTIATE_TEST_SUITE_P(
+    Admin_api_clusterset, Auto_script_js,
+    testing::ValuesIn(find_js_tests("js_adminapi_clusterset", ".js")),
+    fmt_param);
 
 INSTANTIATE_TEST_SUITE_P(Shell_scripted, Auto_script_js,
                          testing::ValuesIn(find_js_tests("js_shell", ".js")),

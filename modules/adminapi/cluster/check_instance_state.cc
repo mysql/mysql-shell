@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,24 +54,24 @@ Check_instance_state::~Check_instance_state() {}
  */
 void Check_instance_state::ensure_instance_valid_gr_state() {
   // Get the instance GR state
-  InstanceType::Type instance_type = get_gr_instance_type(*m_target_instance);
+  TargetType::Type instance_type = get_gr_instance_type(*m_target_instance);
 
-  if (instance_type != InstanceType::Standalone) {
+  if (instance_type != TargetType::Standalone) {
     std::string error = "The instance '" + m_target_instance->descr();
 
-    // No need to verify if the state is InstanceType::InnoDBCluster because
+    // No need to verify if the state is TargetType::InnoDBCluster because
     // that has been verified in ensure_instance_not_belong_to_cluster
 
-    if (instance_type == InstanceType::GroupReplication) {
+    if (instance_type == TargetType::GroupReplication) {
       error +=
           "' belongs to a Group Replication group that is not managed as an "
           "InnoDB cluster.";
-    } else if (instance_type == InstanceType::StandaloneWithMetadata) {
+    } else if (instance_type == TargetType::StandaloneWithMetadata) {
       error +=
           "' is a standalone instance but is part of a different InnoDB "
           "Cluster (metadata exists, instance does not belong to that "
           "metadata, and Group Replication is not active).";
-    } else if (instance_type == InstanceType::StandaloneInMetadata) {
+    } else if (instance_type == TargetType::StandaloneInMetadata) {
       error +=
           "' is a standalone instance but is part of a different InnoDB "
           "Cluster (metadata exists, instance belongs to that metadata, but "
@@ -98,7 +98,7 @@ void Check_instance_state::ensure_instance_valid_gr_state() {
  * GTID state in relation to the cluster
  */
 shcore::Dictionary_t Check_instance_state::collect_instance_state() {
-  std::shared_ptr<Instance> cluster_instance = m_cluster.get_target_server();
+  std::shared_ptr<Instance> cluster_instance = m_cluster.get_cluster_server();
 
   // Check the gtid state in regards to the cluster_session
   mysqlshdk::mysql::Replica_gtid_state state =

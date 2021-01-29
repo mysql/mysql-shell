@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -103,7 +103,7 @@ void Set_option::check_disable_clone_support() {
   log_debug("Checking of disableClone is not supported by all cluster members");
 
   // Get all cluster instances
-  auto members = mysqlshdk::gr::get_members(*m_cluster->get_target_server());
+  auto members = mysqlshdk::gr::get_members(*m_cluster->get_cluster_server());
 
   size_t bad_count = 0;
 
@@ -156,7 +156,7 @@ void Set_option::connect_all_members() {
   // Get cluster session to use the same authentication credentials for all
   // cluster instances.
   Connection_options cluster_cnx_opt =
-      m_cluster->get_target_server()->get_connection_options();
+      m_cluster->get_cluster_server()->get_connection_options();
 
   auto console = mysqlsh::current_console();
 
@@ -221,7 +221,7 @@ void Set_option::ensure_option_supported_all_members_cluster() {
 
 void Set_option::prepare() {
   // Verify user privileges to execute operation;
-  ensure_user_privileges(*m_cluster->get_target_server());
+  ensure_user_privileges(*m_cluster->get_cluster_server());
 
   // Validate if the option is valid
   ensure_option_valid();

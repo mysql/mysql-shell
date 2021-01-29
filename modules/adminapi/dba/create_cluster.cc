@@ -34,6 +34,7 @@
 #include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/common/validations.h"
@@ -51,10 +52,19 @@
 namespace mysqlsh {
 namespace dba {
 
-Create_cluster::Create_cluster(std::shared_ptr<Instance> target_instance,
+Create_cluster::Create_cluster(const std::shared_ptr<Instance> &target_instance,
                                const std::string &cluster_name,
                                const Create_cluster_options &options)
     : m_target_instance(target_instance),
+      m_cluster_name(cluster_name),
+      m_options(options) {}
+
+Create_cluster::Create_cluster(const std::shared_ptr<MetadataStorage> &metadata,
+                               const std::shared_ptr<Instance> &target_instance,
+                               const std::string &cluster_name,
+                               const Create_cluster_options &options)
+    : m_metadata(metadata),
+      m_target_instance(target_instance),
       m_cluster_name(cluster_name),
       m_options(options) {}
 
@@ -73,9 +83,9 @@ void Create_cluster::validate_create_cluster_options() {
   }
 
   // Get the instance GR state
-  InstanceType::Type instance_type = get_gr_instance_type(*m_target_instance);
+  TargetType::Type instance_type = get_gr_instance_type(*m_target_instance);
 
-  if (instance_type == mysqlsh::dba::InstanceType::GroupReplication &&
+  if (instance_type == mysqlsh::dba::TargetType::GroupReplication &&
       !m_options.adopt_from_gr) {
     if (m_options.interactive()) {
       if (console->confirm(
@@ -93,7 +103,8 @@ void Create_cluster::validate_create_cluster_options() {
           SHERR_DBA_BADARG_INSTANCE_ALREADY_IN_GR);
   }
 
-  if (m_options.adopt_from_gr && !m_options.gr_options.ssl_mode.is_null()) {
+  if (m_options.adopt_from_gr &&
+      m_options.gr_options.ssl_mode != Cluster_ssl_mode::NONE) {
     throw shcore::Exception::argument_error(
         "Cannot use memberSslMode option if adoptFromGR is set to true.");
   }
@@ -106,7 +117,7 @@ void Create_cluster::validate_create_cluster_options() {
   }
 
   if (m_options.adopt_from_gr &&
-      instance_type != InstanceType::GroupReplication) {
+      instance_type != TargetType::GroupReplication) {
     throw shcore::Exception::argument_error(
         "The adoptFromGR option is set to true, but there is no replication "
         "group to adopt");
@@ -155,15 +166,52 @@ void Create_cluster::validate_create_cluster_options() {
  * instance).
  */
 void Create_cluster::resolve_ssl_mode() {
-  // Set SSL Mode to AUTO by default (not defined).
-  if (m_options.gr_options.ssl_mode.is_null()) {
-    m_options.gr_options.ssl_mode = dba::kMemberSSLModeAuto;
+  bool have_ssl;
+  bool require_secure_transport =
+      m_target_instance->get_sysvar_bool("require_secure_transport").get_safe();
+
+  auto resolved_ssl_mode = mysqlsh::dba::resolve_ssl_mode(
+      *m_target_instance, m_options.gr_options.ssl_mode, &have_ssl);
+
+  if (resolved_ssl_mode.is_null()) {
+    throw std::logic_error("Unable to resolve SSL mode");
   }
 
-  resolve_cluster_ssl_mode(*m_target_instance, &m_options.gr_options.ssl_mode);
+  if (have_ssl) {
+    // sslMode is DISABLED but instance requires SSL
+    if (m_options.gr_options.ssl_mode == Cluster_ssl_mode::DISABLED &&
+        require_secure_transport) {
+      throw shcore::Exception::argument_error(
+          "The instance '" + m_target_instance->descr() +
+          "' requires secure connections, to create the "
+          "cluster either turn off require_secure_transport or use the "
+          "memberSslMode option with 'REQUIRED', 'VERIFY_CA' or "
+          "'VERIFY_IDENTITY' value.");
+    }
+
+    // sslMode is VERIFY_CA or VERIFY_IDENTITY, verify the certificates
+    if (m_options.gr_options.ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
+        m_options.gr_options.ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY) {
+      ensure_certificates_set(*m_target_instance,
+                              m_options.gr_options.ssl_mode);
+    }
+  } else {  // The instance does not support SSL
+    // sslMode is REQUIRED, VERIFY_CA or VERIFY_IDENTITY
+    if (m_options.gr_options.ssl_mode == Cluster_ssl_mode::REQUIRED ||
+        m_options.gr_options.ssl_mode == Cluster_ssl_mode::VERIFY_CA ||
+        m_options.gr_options.ssl_mode == Cluster_ssl_mode::VERIFY_IDENTITY) {
+      throw shcore::Exception::argument_error(
+          "The instance '" + m_target_instance->descr() +
+          "' does not have SSL enabled, to create the "
+          "cluster either use an instance with SSL enabled, remove the "
+          "memberSslMode option or use it with any of 'AUTO' or 'DISABLED'.");
+    }
+  }
+
+  m_options.gr_options.ssl_mode = resolved_ssl_mode.get_safe();
 
   log_info("SSL mode used to configure the cluster: '%s'",
-           m_options.gr_options.ssl_mode->c_str());
+           to_string(m_options.gr_options.ssl_mode).c_str());
 }
 
 void Create_cluster::prepare() {
@@ -285,7 +333,13 @@ void Create_cluster::prepare() {
       // Generate the GR group name (if needed).
       if (m_options.gr_options.group_name.is_null()) {
         m_options.gr_options.group_name =
-            mysqlshdk::gr::generate_group_name(*m_target_instance);
+            mysqlshdk::gr::generate_uuid(*m_target_instance);
+      }
+
+      // Generate the GR view-change UUID
+      if (m_target_instance->get_version() >= k_min_cs_version) {
+        m_options.gr_options.view_change_uuid =
+            mysqlshdk::gr::generate_uuid(*m_target_instance);
       }
     }
 
@@ -329,9 +383,9 @@ void Create_cluster::log_used_gr_options() {
   log_info("Using Group Replication single primary mode: %s",
            *m_options.multi_primary ? "FALSE" : "TRUE");
 
-  if (!m_options.gr_options.ssl_mode.is_null()) {
+  if (m_options.gr_options.ssl_mode != Cluster_ssl_mode::NONE) {
     log_info("Using Group Replication SSL mode: %s",
-             m_options.gr_options.ssl_mode->c_str());
+             to_string(m_options.gr_options.ssl_mode).c_str());
   }
 
   if (!m_options.gr_options.group_name.is_null()) {
@@ -428,7 +482,7 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
   std::set<std::string> old_users;
 
   cluster->execute_in_members(
-      {}, cluster->get_target_server()->get_connection_options(), {},
+      {}, cluster->get_cluster_server()->get_connection_options(), {},
       [&](const std::shared_ptr<Instance> &target) {
         old_users.insert(mysqlshdk::gr::get_recovery_user(*target));
 
@@ -452,7 +506,7 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
       log_info("Removing old replication user '%s'", old_user.c_str());
       try {
         mysqlshdk::mysql::drop_all_accounts_for_user(
-            *cluster->get_target_server(), old_user);
+            *cluster->get_cluster_server(), old_user);
       } catch (const std::exception &e) {
         console->print_warning(
             "Error dropping old recovery accounts for user " + old_user + ": " +
@@ -513,7 +567,10 @@ shcore::Value Create_cluster::execute() {
   // Make sure the GR plugin is installed (only installed if needed).
   // NOTE: An error is issued if it fails to be installed (e.g., DISABLED).
   //       Disable read-only temporarily to install the plugin if needed.
-  mysqlshdk::gr::install_group_replication_plugin(*m_target_instance, nullptr);
+  if (!m_options.dry_run) {
+    mysqlshdk::gr::install_group_replication_plugin(*m_target_instance,
+                                                    nullptr);
+  }
 
   if (*m_options.multi_primary && !m_options.adopt_from_gr) {
     log_info(
@@ -530,7 +587,7 @@ shcore::Value Create_cluster::execute() {
     console->print_info("Adding Seed Instance...");
 
     if (!m_options.adopt_from_gr) {
-      if (m_retrying) {
+      if (m_retrying && !m_options.dry_run) {
         // If we're retrying, make sure GR is stopped
         console->print_note("Stopping GR started by a previous failed attempt");
         mysqlshdk::gr::stop_group_replication(*m_target_instance);
@@ -578,12 +635,16 @@ shcore::Value Create_cluster::execute() {
 
     undo_list.push_front([this]() { metadata::uninstall(m_target_instance); });
 
-    // Create the Metadata Schema.
-    prepare_metadata_schema();
+    std::shared_ptr<MetadataStorage> metadata;
+    if (!m_metadata) {
+      // Create the Metadata Schema.
+      prepare_metadata_schema();
+      metadata = std::make_shared<MetadataStorage>(m_target_instance);
+    } else {
+      metadata = m_metadata;
+    }
 
     // Create the cluster and insert it into the Metadata.
-    std::shared_ptr<MetadataStorage> metadata =
-        std::make_shared<MetadataStorage>(m_target_instance);
 
     std::string domain_name;
     std::string cluster_name;
@@ -624,6 +685,12 @@ shcore::Value Create_cluster::execute() {
     metadata->update_cluster_attribute(cluster_impl->get_id(),
                                        k_cluster_attribute_default,
                                        shcore::Value::True());
+
+    if (!m_options.gr_options.view_change_uuid.is_null()) {
+      metadata->update_cluster_attribute(
+          cluster_impl->get_id(), "group_replication_view_change_uuid",
+          shcore::Value(m_options.gr_options.view_change_uuid.get_safe()));
+    }
 
     // Insert instance into the metadata.
     if (m_options.adopt_from_gr) {

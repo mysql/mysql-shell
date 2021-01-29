@@ -76,6 +76,12 @@ dba.help('getReplicaSet');
 //@ Get ReplicaSet, \? [USE: Get ReplicaSet]
 \? getReplicaSet
 
+//@ Get ClusterSet
+dba.help('getClusterSet');
+
+//@ Get ClusterSet, \? [USE: Get ClusterSet]
+\? dba.getClusterSet
+
 //@ Help
 dba.help('help');
 

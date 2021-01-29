@@ -46,6 +46,7 @@
 #include "modules/adminapi/cluster/status.h"
 #include "modules/adminapi/cluster/switch_to_multi_primary_mode.h"
 #include "modules/adminapi/cluster/switch_to_single_primary_mode.h"
+#include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/accounts.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
@@ -84,6 +85,7 @@ Cluster_impl::Cluster_impl(
   m_id = metadata.cluster_id;
   m_description = metadata.description;
   m_group_name = metadata.group_name;
+  m_primary_master = group_server;
 }
 
 Cluster_impl::Cluster_impl(
@@ -114,7 +116,7 @@ void Cluster_impl::verify_topology_type_change() const {
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
 
   std::string gr_primary_uuid =
-      mysqlshdk::gr::get_group_primary_uuid(*get_target_server(), nullptr);
+      mysqlshdk::gr::get_group_primary_uuid(*get_cluster_server(), nullptr);
 
   // Check if the topology type matches the real settings used by the
   // cluster instance, otherwise an error is issued.
@@ -147,7 +149,7 @@ void Cluster_impl::validate_rejoin_gtid_consistency(
   // Get the gtid state in regards to the cluster_session
   mysqlshdk::mysql::Replica_gtid_state state =
       mysqlshdk::mysql::check_replica_gtid_state(
-          *get_target_server(), target_instance, nullptr, &errant_gtid_set);
+          *get_cluster_server(), target_instance, nullptr, &errant_gtid_set);
 
   if (state == mysqlshdk::mysql::Replica_gtid_state::NEW) {
     console->print_info();
@@ -218,7 +220,7 @@ void Cluster_impl::adopt_from_gr() {
   auto console = mysqlsh::current_console();
 
   auto newly_discovered_instances_list(get_newly_discovered_instances(
-      *get_target_server(), get_metadata_storage(), get_id()));
+      *get_cluster_server(), get_metadata_storage(), get_id()));
 
   // Add all instances to the cluster metadata
   for (NewInstanceInfo &instance : newly_discovered_instances_list) {
@@ -331,7 +333,7 @@ void Cluster_impl::execute_in_members(
 mysqlshdk::db::Connection_options Cluster_impl::pick_seed_instance() const {
   bool single_primary;
   std::string primary_uuid = mysqlshdk::gr::get_group_primary_uuid(
-      *get_target_server(), &single_primary);
+      *get_cluster_server(), &single_primary);
   if (single_primary) {
     if (!primary_uuid.empty()) {
       Instance_metadata info =
@@ -339,7 +341,7 @@ mysqlshdk::db::Connection_options Cluster_impl::pick_seed_instance() const {
 
       mysqlshdk::db::Connection_options coptions(info.endpoint);
       mysqlshdk::db::Connection_options group_session_target(
-          get_target_server()->get_connection_options());
+          get_cluster_server()->get_connection_options());
 
       coptions.set_login_options_from(group_session_target);
 
@@ -349,14 +351,14 @@ mysqlshdk::db::Connection_options Cluster_impl::pick_seed_instance() const {
         "Unable to determine a suitable peer instance to join the group");
   } else {
     // instance we're connected to should be OK if we're multi-master
-    return get_target_server()->get_connection_options();
+    return get_cluster_server()->get_connection_options();
   }
 }
 
 void Cluster_impl::validate_variable_compatibility(
     const mysqlshdk::mysql::IInstance &target_instance,
     const std::string &var_name) const {
-  auto cluster_inst = get_target_server();
+  auto cluster_inst = get_cluster_server();
   auto instance_val = target_instance.get_sysvar_string(var_name).get_safe();
   auto cluster_val = cluster_inst->get_sysvar_string(var_name).get_safe();
   std::string instance_address =
@@ -404,7 +406,7 @@ std::string Cluster_impl::get_cluster_group_seeds(
     const std::shared_ptr<Instance> &target_instance) const {
   // Get connection option for the metadata.
 
-  std::shared_ptr<Instance> cluster_instance = get_target_server();
+  std::shared_ptr<Instance> cluster_instance = get_cluster_server();
   Connection_options cluster_cnx_opt =
       cluster_instance->get_connection_options();
 
@@ -480,7 +482,7 @@ std::vector<Instance_metadata> Cluster_impl::get_instances(
   } else {
     std::vector<Instance_metadata> res;
     std::vector<mysqlshdk::gr::Member> members(
-        mysqlshdk::gr::get_members(*get_target_server()));
+        mysqlshdk::gr::get_members(*get_cluster_server()));
 
     for (const auto &i : all_instances) {
       auto m = std::find_if(members.begin(), members.end(),
@@ -524,7 +526,7 @@ void Cluster_impl::ensure_metadata_has_recovery_accounts() {
     auto console = mysqlsh::current_console();
 
     execute_in_members(
-        {}, get_target_server()->get_connection_options(), {},
+        {}, get_cluster_server()->get_connection_options(), {},
         [this, &console,
          &endpoints](const std::shared_ptr<Instance> &instance) {
           std::string recovery_user =
@@ -591,7 +593,7 @@ std::shared_ptr<mysqlsh::dba::Instance> Cluster_impl::get_online_instance(
 
   // Get the cluster connection credentials to use to connect to instances.
   mysqlshdk::db::Connection_options cluster_cnx_opts =
-      get_target_server()->get_connection_options();
+      get_cluster_server()->get_connection_options();
 
   for (const auto &instance : instances) {
     // Skip instance with the provided UUID exception (if specified).
@@ -636,7 +638,7 @@ void Cluster_impl::validate_server_uuid(
 
   // Get connection option for the metadata.
 
-  std::shared_ptr<Instance> cluster_instance = get_target_server();
+  std::shared_ptr<Instance> cluster_instance = get_cluster_server();
   Connection_options cluster_cnx_opt =
       cluster_instance->get_connection_options();
 
@@ -663,7 +665,7 @@ void Cluster_impl::validate_server_id(
   uint32_t server_id = target_instance.get_server_id();
 
   // Get connection option for the metadata.
-  std::shared_ptr<Instance> cluster_instance = get_target_server();
+  std::shared_ptr<Instance> cluster_instance = get_cluster_server();
   Connection_options cluster_cnx_opt =
       cluster_instance->get_connection_options();
 
@@ -686,7 +688,7 @@ std::vector<Instance_md_and_gr_member> Cluster_impl::get_instances_with_state()
   std::vector<std::pair<Instance_metadata, mysqlshdk::gr::Member>> ret;
 
   std::vector<mysqlshdk::gr::Member> members(
-      mysqlshdk::gr::get_members(*get_target_server()));
+      mysqlshdk::gr::get_members(*get_cluster_server()));
 
   std::vector<Instance_metadata> md(get_instances());
 
@@ -739,7 +741,7 @@ std::unique_ptr<mysqlshdk::config::Config> Cluster_impl::create_config_object(
       Connection_options instance_cnx_opts =
           shcore::get_connection_options(instance_def.first.endpoint, false);
       instance_cnx_opts.set_login_options_from(
-          get_target_server()->get_connection_options());
+          get_cluster_server()->get_connection_options());
 
       // Try to connect to instance.
       log_debug("Connecting to instance '%s'",
@@ -859,7 +861,7 @@ void Cluster_impl::query_group_wide_option_values(
   // group_replication_member_expel_timeout is the same.
   execute_in_members({mysqlshdk::gr::Member_state::ONLINE,
                       mysqlshdk::gr::Member_state::RECOVERING},
-                     get_target_server()->get_connection_options(), skip_list,
+                     get_cluster_server()->get_connection_options(), skip_list,
                      [&gr_consistency, &gr_member_expel_timeout](
                          const std::shared_ptr<Instance> &instance) {
                        {
@@ -1231,7 +1233,71 @@ shcore::Value Cluster_impl::describe() {
   return op_describe.execute();
 }
 
-shcore::Value Cluster_impl::status(uint64_t extended) {
+Cluster_status Cluster_impl::cluster_status(int *out_num_failures_tolerated,
+                                            int *out_num_failures) const {
+  assert(m_primary_master);
+
+  auto target = m_primary_master;
+
+  shcore::Dictionary_t dict = shcore::make_dict();
+
+  bool single_primary = false;
+  bool has_quorum = false;
+
+  // If the primary went OFFLINE for some reason, we must use the target
+  // instance to obtain the group membership info.
+  //
+  // A possible scenario on which that occur is when the primary is
+  // auto-rejoining. other members may not have noticed yet so they still
+  // consider it as the primary from their point of view. However, the instance
+  // itself is still OFFLINE so the group membership information cannot be
+  // queried.
+  if (!mysqlshdk::gr::is_active_member(*target) ||
+      mysqlshdk::gr::is_running_gr_auto_rejoin(*target) ||
+      mysqlshdk::gr::is_group_replication_delayed_starting(*target)) {
+    target = get_cluster_server();
+  }
+
+  std::vector<mysqlshdk::gr::Member> members(mysqlshdk::gr::get_members(
+      *target, &single_primary, &has_quorum, nullptr));
+
+  int num_online = 0;
+  for (const auto &m : members) {
+    if (m.state == mysqlshdk::gr::Member_state::ONLINE) {
+      num_online++;
+    }
+  }
+
+  int total_members =
+      static_cast<int>(m_metadata_storage->get_cluster_size(get_id()));
+  int number_of_failures_tolerated = num_online > 0 ? (num_online - 1) / 2 : 0;
+
+  if (out_num_failures_tolerated) {
+    *out_num_failures_tolerated = number_of_failures_tolerated;
+  }
+  if (out_num_failures) *out_num_failures = total_members - num_online;
+
+  if (!has_quorum) {
+    return Cluster_status::NO_QUORUM;
+  } else {
+    if (total_members > num_online) {
+      // partial, some members are not online
+      if (number_of_failures_tolerated == 0) {
+        return Cluster_status::OK_NO_TOLERANCE_PARTIAL;
+      } else {
+        return Cluster_status::OK_PARTIAL;
+      }
+    } else {
+      if (number_of_failures_tolerated == 0) {
+        return Cluster_status::OK_NO_TOLERANCE;
+      } else {
+        return Cluster_status::OK;
+      }
+    }
+  }
+}
+
+shcore::Value Cluster_impl::status(int64_t extended) {
   // Throw an error if the cluster has already been dissolved
   check_preconditions("status");
 
@@ -1267,6 +1333,90 @@ void Cluster_impl::reset_recovery_password(const mysqlshdk::null_bool &force,
   op_reset.prepare();
   // Execute the reset_recovery_accounts_password command.
   op_reset.execute();
+}
+
+shcore::Value Cluster_impl::create_cluster_set(
+    const std::string &domain_name,
+    const clusterset::Create_cluster_set_options &options) {
+  try {
+    check_preconditions("createClusterSet");
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
+      // NOTE: This overrides the original quorum error, it was implemented this
+      // way in Create_cluster_set operation
+      current_console()->print_error(
+          "Target cluster status is 'NO_QUORUM' which is not valid for "
+          "InnoDB ClusterSet.");
+      throw shcore::Exception("Invalid Cluster status: NO_QUORUM.",
+                              SHERR_DBA_CLUSTER_STATUS_INVALID);
+    } else {
+      throw;
+    }
+  }
+
+  return Cluster_set_impl::create_cluster_set(this, domain_name, options);
+}
+
+std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set(
+    bool print_warnings) {
+  // TODO(miguel): The function must obtain the most up-to-date Metadata copy to
+  // validate if the target cluster is still a valid member cluster, otherwise
+  // print a warning and recommend the user to remove it.
+  //
+  //    To validate if the target cluster is still a valid member, the function
+  //    must do a metadata view check to look for the copy with the highest
+  //    view_id.
+
+  // NOTE: The operation must work even if the PRIMARY cluster is not reachable,
+  // as long as the target instance is a reachable member of an InnoDB Cluster
+  // that is part of a ClusterSet.
+  Cluster_metadata cluster_md = get_metadata();
+
+  Cluster_set_metadata cset_md;
+  auto metadata = get_metadata_storage();
+
+  // Get the ClusterSet metadata handle
+  if (!metadata->get_cluster_set(cluster_md.cluster_set_id, &cset_md,
+                                 nullptr)) {
+    throw shcore::Exception("No metadata found for the ClusterSet that " +
+                                get_cluster_server()->descr() + " belongs to.",
+                            SHERR_DBA_METADATA_MISSING);
+  }
+
+  std::shared_ptr<Cluster_set_impl> cs = std::make_shared<Cluster_set_impl>(
+      cset_md, get_cluster_server(), metadata);
+
+  // Acquire primary
+  try {
+    cs->acquire_primary();
+  } catch (const shcore::Exception &e) {
+    auto console = current_console();
+    if (e.code() == SHERR_DBA_GROUP_HAS_NO_PRIMARY ||
+        e.code() == SHERR_DBA_GROUP_REPLICATION_NOT_RUNNING) {
+      log_warning("Could not connect to any member of the PRIMARY Cluster: %s",
+                  e.what());
+      if (print_warnings) {
+        console->print_warning(
+            "Could not connect to any member of the PRIMARY Cluster, topology "
+            "changes will not be allowed");
+      }
+    } else if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
+      log_warning("PRIMARY Cluster doesn't have quorum: %s", e.what());
+      if (print_warnings) {
+        console->print_warning(
+            "The PRIMARY Cluster lost the quorum, topology changes will "
+            "not be allowed");
+        console->print_note(
+            "To restore the Cluster and ClusterSet operations, restore the "
+            "quorum on the PRIMARY Cluster using "
+            "<<<forceQuorumUsingPartitionOf>>>()");
+      }
+    }
+  }
+
+  // Return a handle (Cluster_set_impl) to the ClusterSet the target Cluster
+  // belongs to
+  return cs;
 }
 
 void Cluster_impl::setup_admin_account(const std::string &username,
@@ -1413,9 +1563,9 @@ void Cluster_impl::force_quorum_using_partition_of(
 
   auto instance_type = get_gr_instance_type(*target_instance);
 
-  if (instance_type != InstanceType::Standalone &&
-      instance_type != InstanceType::StandaloneWithMetadata &&
-      instance_type != InstanceType::StandaloneInMetadata) {
+  if (instance_type != TargetType::Standalone &&
+      instance_type != TargetType::StandaloneWithMetadata &&
+      instance_type != TargetType::StandaloneInMetadata) {
     state = get_replication_group_state(*target_instance, instance_type);
 
     if (state.source_state != ManagedInstance::OnlineRW &&
@@ -1585,6 +1735,18 @@ bool Cluster_impl::get_manual_start_on_boot_option() const {
   return false;
 }
 
+const std::string Cluster_impl::get_view_change_uuid() const {
+  shcore::Value view_change_uuid;
+
+  if (m_metadata_storage->query_cluster_attribute(
+          get_id(), "group_replication_view_change_uuid", &view_change_uuid)) {
+    return view_change_uuid.as_string();
+  }
+
+  // default empty
+  return "";
+}
+
 shcore::Value Cluster_impl::check_instance_state(
     const Connection_options &instance_def) {
   check_preconditions("checkInstanceState");
@@ -1667,27 +1829,38 @@ void Cluster_impl::set_primary_instance(
   op_set_primary_instance.execute();
 }
 
-mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version() const {
+mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version(
+    std::vector<std::string> *out_instances_addresses) const {
+  std::string current_instance_address;
   // Get the server version of the current cluster instance and initialize
   // the lowest cluster session.
-  mysqlshdk::utils::Version lowest_version = get_target_server()->get_version();
+  mysqlshdk::utils::Version lowest_version =
+      get_cluster_server()->get_version();
 
   // Get address of the cluster instance to skip it in the next step.
   std::string cluster_instance_address =
-      get_target_server()->get_canonical_address();
+      get_cluster_server()->get_canonical_address();
 
   // Get the lowest server version from the available cluster instances.
-  execute_in_members(
-      {mysqlshdk::gr::Member_state::ONLINE,
-       mysqlshdk::gr::Member_state::RECOVERING},
-      get_target_server()->get_connection_options(), {cluster_instance_address},
-      [&lowest_version](const std::shared_ptr<Instance> &instance) {
-        mysqlshdk::utils::Version version = instance->get_version();
-        if (version < lowest_version) {
-          lowest_version = version;
-        }
-        return true;
-      });
+  execute_in_members({mysqlshdk::gr::Member_state::ONLINE,
+                      mysqlshdk::gr::Member_state::RECOVERING},
+                     get_cluster_server()->get_connection_options(),
+                     {cluster_instance_address},
+                     [&lowest_version, &out_instances_addresses](
+                         const std::shared_ptr<Instance> &instance) {
+                       mysqlshdk::utils::Version version =
+                           instance->get_version();
+
+                       if (version < lowest_version) {
+                         lowest_version = version;
+
+                         if (out_instances_addresses) {
+                           out_instances_addresses->push_back(
+                               instance->get_canonical_address());
+                         }
+                       }
+                       return true;
+                     });
 
   return lowest_version;
 }
@@ -1702,7 +1875,7 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
   log_info("Creating recovery account '%s'@'%%' for instance '%s'",
            recovery_user.c_str(), target->descr().c_str());
 
-  auto primary = get_primary_master();
+  auto primary = get_global_primary_master();
 
   // Check if the replication user already exists and delete it if it does,
   // before creating it again.
@@ -1740,7 +1913,7 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
   assert(target);
   auto console = current_console();
 
-  auto primary = get_primary_master();
+  auto primary = get_global_primary_master();
 
   std::string recovery_user;
   std::vector<std::string> recovery_user_hosts;
@@ -1832,14 +2005,29 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
   auto console = current_console();
 
   if (!m_primary_master) {
-    m_primary_master = m_target_server;
+    m_primary_master = m_cluster_server;
+    m_metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
   }
+
   std::string uuid = m_primary_master->get_uuid();
-  std::string primary_uuid;
   std::string primary_url;
 
+  // Get the Metadata state and return right away if the Metadata is
+  // nonexisting, upgrading, or the setup failed
+  //
+  // TODO(anyone) In such scenarios, there will be a double-check for the
+  // Metadata state. This should be refactored.
+  metadata::State md_state = m_metadata_storage->state();
+
+  if (md_state == metadata::State::FAILED_SETUP ||
+      md_state == metadata::State::FAILED_UPGRADE ||
+      md_state == metadata::State::NONEXISTING ||
+      md_state == metadata::State::UPGRADING) {
+    return m_primary_master.get();
+  }
+
   try {
-    primary_url = find_primary_member_uri(m_primary_master, false, nullptr);
+    primary_url = find_primary_member_uri(m_cluster_server, false, nullptr);
 
     if (primary_url.empty()) {
       // Shouldn't happen, because validation for PRIMARY is done first
@@ -1854,14 +2042,55 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
 
       m_metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
     }
-
-    return m_primary_master.get();
   } catch (...) {
     console->print_error("A connection to the PRIMARY instance at " +
                          primary_url +
                          " could not be established to perform this action.");
     throw;
   }
+
+  // Check if the Cluster belongs to a ClusterSet
+  if (is_clusterset_member()) {
+    auto cs = get_cluster_set(true);
+
+    if (cs->get_primary_master()) {
+      // Check if the ClusterSet Primary is different than the Cluster's one
+      auto cs_primary_master_url =
+          cs->get_primary_master()->get_connection_options().uri_endpoint();
+
+      // The ClusterSet Primary is different, establish a connection to it to
+      // set it as the Cluster's primary
+      if (m_primary_master->get_connection_options().uri_endpoint() !=
+          cs_primary_master_url) {
+        mysqlshdk::db::Connection_options copts(cs_primary_master_url);
+        log_info("Connecting to %s...", cs_primary_master_url.c_str());
+        copts.set_login_options_from(
+            m_primary_master->get_connection_options());
+
+        m_primary_master = Instance::connect(copts);
+
+        m_metadata_storage =
+            std::make_shared<MetadataStorage>(m_primary_master);
+      }
+    } else {
+      // If there's no global primary master, the PRIMARY Cluster is down
+      m_primary_master = nullptr;
+    }
+  } else {
+    log_debug("Cluster does not belong to a ClusterSet");
+  }
+
+  return m_primary_master.get();
+}
+
+Cluster_metadata Cluster_impl::get_metadata() const {
+  Cluster_metadata cmd;
+  if (!get_metadata_storage()->get_cluster(get_id(), &cmd)) {
+    throw shcore::Exception(
+        "Cluster metadata could not be loaded for " + get_name(),
+        SHERR_DBA_METADATA_MISSING);
+  }
+  return cmd;
 }
 
 void Cluster_impl::release_primary(mysqlsh::dba::Instance *primary) {
@@ -1898,7 +2127,7 @@ Cluster_impl::get_replication_user(
                unrecorded_recovery_user.c_str());
       // old accounts were created for several hostnames
       recovery_user_hosts = mysqlshdk::mysql::get_all_hostnames_for_user(
-          *(get_target_server()), unrecorded_recovery_user);
+          *(get_cluster_server()), unrecorded_recovery_user);
       recovery_user = unrecorded_recovery_user;
     } else if (shcore::str_beginswith(
                    unrecorded_recovery_user,
@@ -1932,7 +2161,7 @@ std::shared_ptr<Instance> Cluster_impl::get_session_to_cluster_instance(
       shcore::get_connection_options(instance_address, false);
   // Use the password from the cluster session.
   Connection_options cluster_cnx_opt =
-      get_target_server()->get_connection_options();
+      get_cluster_server()->get_connection_options();
   instance_cnx_opts.set_login_options_from(cluster_cnx_opt);
 
   log_debug("Connecting to instance '%s'", instance_address.c_str());
@@ -2001,7 +2230,7 @@ size_t Cluster_impl::setup_clone_plugin(bool enable_clone) {
               throw;
             }
 
-            auto primary = get_primary_master();
+            auto primary = get_global_primary_master();
 
             // Add the BACKUP_ADMIN grant to the instance's recovery account
             // since it may not be there if the instance was added to a cluster
@@ -2118,6 +2347,37 @@ void Cluster_impl::_set_option(const std::string &option,
 
   // Execute Set_instance_option operations.
   op_cluster_set_option->execute();
+}
+
+const Cluster_set_member_metadata &Cluster_impl::get_clusterset_metadata()
+    const {
+  if (m_cs_md.cluster_set_id.empty()) {
+    m_cs_md.cluster_set_id.clear();
+    m_metadata_storage->get_cluster_set_member(get_id(), &m_cs_md);
+  }
+  return m_cs_md;
+}
+
+bool Cluster_impl::is_clusterset_member(const std::string &cs_id) const {
+  bool is_member = !get_clusterset_metadata().cluster_set_id.empty();
+
+  if (is_member && !cs_id.empty()) {
+    is_member = get_clusterset_metadata().cluster_set_id == cs_id;
+  }
+
+  return is_member;
+}
+
+bool Cluster_impl::is_invalidated() const {
+  if (!is_clusterset_member()) throw std::logic_error("internal error");
+
+  return get_clusterset_metadata().invalidated;
+}
+
+bool Cluster_impl::is_primary_cluster() const {
+  if (!is_clusterset_member()) throw std::logic_error("internal error");
+
+  return get_clusterset_metadata().primary_cluster;
 }
 
 }  // namespace dba

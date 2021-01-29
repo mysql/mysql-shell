@@ -213,13 +213,19 @@ inline size_t span_quoted_sql_identifier_dquote(const std::string &s,
   return p;
 }
 
-inline size_t span_keyword(const std::string &s, size_t offset) {
+inline size_t span_keyword(
+    const std::string &s, size_t offset,
+    const char keyword_chars[] = internal::k_keyword_chars) {
   assert(!s.empty());
   assert(offset < s.length());
 
   if (std::isalpha(s[offset]) || s[offset] == '_') {
-    size_t p = s.find_first_not_of(internal::k_keyword_chars, offset + 1);
+    size_t p;
+
+    p = s.find_first_not_of(keyword_chars, offset + 1);
+
     if (p == std::string::npos) p = s.length();
+
     return p;
   } else {
     return offset;

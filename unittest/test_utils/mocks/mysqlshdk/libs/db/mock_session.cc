@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,9 @@
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
 
 namespace testing {
+Mock_session::Mock_session() {
+  ON_CALL(*this, is_open()).WillByDefault(Return(true));
+}
 
 void Mock_session_common::do_expect_query(const std::string &query) {
   _last_query = _queries.size();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -245,6 +245,11 @@ INSTANTIATE_TEST_SUITE_P(Admin_api_async, Auto_script_py,
                          testing::ValuesIn(find_py_tests("py_adminapi_async",
                                                          ".py")),
                          fmt_param);
+
+INSTANTIATE_TEST_SUITE_P(
+    Admin_api_clusterset, Auto_script_py,
+    testing::ValuesIn(find_py_tests("py_adminapi_clusterset", ".py")),
+    fmt_param);
 
 INSTANTIATE_TEST_SUITE_P(Shell_scripted, Auto_script_py,
                          testing::ValuesIn(find_py_tests("py_shell", ".py")),

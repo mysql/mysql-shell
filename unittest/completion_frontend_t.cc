@@ -720,16 +720,26 @@ TEST_F(Completer_frontend, js_adminapi) {
   CHECK_OBJECT_COMPLETIONS("dba");
 
   // TS_FR5.2_C02, TS_FR5.2_X02
-  EXPECT_AFTER_TAB_TAB(
-      "dba.",
-      strv({"checkInstanceConfiguration()", "configureInstance()",
-            "configureLocalInstance()", "configureReplicaSetInstance()",
-            "createCluster()", "createReplicaSet()", "deleteSandboxInstance()",
-            "deploySandboxInstance()", "dropMetadataSchema()", "getCluster()",
-            "getReplicaSet()", "help()", "killSandboxInstance()",
-            "rebootClusterFromCompleteOutage()", "session",
-            "startSandboxInstance()", "stopSandboxInstance()",
-            "upgradeMetadata()", "verbose"}));
+  EXPECT_AFTER_TAB_TAB("dba.", strv({"checkInstanceConfiguration()",
+                                     "configureInstance()",
+                                     "configureLocalInstance()",
+                                     "configureReplicaSetInstance()",
+                                     "createCluster()",
+                                     "createReplicaSet()",
+                                     "deleteSandboxInstance()",
+                                     "deploySandboxInstance()",
+                                     "dropMetadataSchema()",
+                                     "getCluster()",
+                                     "getClusterSet()",
+                                     "getReplicaSet()",
+                                     "help()",
+                                     "killSandboxInstance()",
+                                     "rebootClusterFromCompleteOutage()",
+                                     "session",
+                                     "startSandboxInstance()",
+                                     "stopSandboxInstance()",
+                                     "upgradeMetadata()",
+                                     "verbose"}));
   EXPECT_AFTER_TAB("dba.depl", "dba.deploySandboxInstance()");
 }
 
@@ -1241,17 +1251,26 @@ TEST_F(Completer_frontend, py_adminapi) {
   CHECK_OBJECT_COMPLETIONS("dba");
 
   // TS_FR5.2_C02, TS_FR5.2_X02
-  EXPECT_AFTER_TAB_TAB(
-      "dba.",
-      strv({"check_instance_configuration()", "configure_instance()",
-            "configure_local_instance()", "configure_replica_set_instance()",
-            "create_cluster()", "create_replica_set()",
-            "delete_sandbox_instance()", "deploy_sandbox_instance()",
-            "drop_metadata_schema()", "get_cluster()", "get_replica_set()",
-            "help()", "kill_sandbox_instance()",
-            "reboot_cluster_from_complete_outage()", "session",
-            "start_sandbox_instance()", "stop_sandbox_instance()",
-            "upgrade_metadata()", "verbose"}));
+  EXPECT_AFTER_TAB_TAB("dba.", strv({"check_instance_configuration()",
+                                     "configure_instance()",
+                                     "configure_local_instance()",
+                                     "configure_replica_set_instance()",
+                                     "create_cluster()",
+                                     "create_replica_set()",
+                                     "delete_sandbox_instance()",
+                                     "deploy_sandbox_instance()",
+                                     "drop_metadata_schema()",
+                                     "get_cluster()",
+                                     "get_cluster_set()",
+                                     "get_replica_set()",
+                                     "help()",
+                                     "kill_sandbox_instance()",
+                                     "reboot_cluster_from_complete_outage()",
+                                     "session",
+                                     "start_sandbox_instance()",
+                                     "stop_sandbox_instance()",
+                                     "upgrade_metadata()",
+                                     "verbose"}));
   EXPECT_AFTER_TAB("dba.depl", "dba.deploy_sandbox_instance()");
 }
 

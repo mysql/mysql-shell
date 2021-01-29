@@ -7,9 +7,11 @@ metadata_1_0_1_file = "metadata_1_0_1.sql";
 var allowlist = "127.0.0.1," + hostname_ip;
 var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2], {ipAllowlist: allowlist, gtidSetIsComplete: true});
 var status = scene.cluster.status({extended:2});
+var session = scene.session;
 var topology = status.defaultReplicaSet.topology;
 var instances = dir(topology);
 var gr_uuid = status.defaultReplicaSet.groupName;
+var gr_view_change_uuid = session.runSql("SELECT NULLIF(CONCAT(''/*!80025, @@group_replication_view_change_uuid*/), '')").fetchOne()[0];
 var uuid1 = topology[instances[0]].memberId;
 var uuid2 = topology[instances[1]].memberId;
 

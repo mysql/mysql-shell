@@ -19,9 +19,9 @@
 ||Cannot use the multiMaster and multiPrimary options simultaneously. The multiMaster option is deprecated, please use the multiPrimary option instead.
 ||Cannot use the multiMaster and multiPrimary options simultaneously. The multiMaster option is deprecated, please use the multiPrimary option instead.
 ||Invalid value for ipWhitelist: string value cannot be empty.
-||Cluster name may only contain alphanumeric characters or '_', and may not start with a number (#) (ArgumentError)
-||_1234567890::_1234567890123456789012345678901: The Cluster name can not be greater than 40 characters. (ArgumentError)
-||Cluster name may only contain alphanumeric characters or '_', and may not start with a number (::) (ArgumentError)
+||Cluster name may only contain alphanumeric characters, '_', '-', or '.' and may not start with a number (#) (ArgumentError)
+||_1234567890::_1234567890123456789012345678901234567890123456789012345678901234: The Cluster name can not be greater than 63 characters. (ArgumentError)
+||Cluster name may only contain alphanumeric characters, '_', '-', or '.' and may not start with a number (::) (ArgumentError)
 
 //@ Dba: createCluster with ANSI_QUOTES success
 |Current sql_mode is: ANSI_QUOTES|

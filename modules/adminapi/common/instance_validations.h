@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,7 +61,7 @@ std::vector<mysqlshdk::mysql::Invalid_config> validate_configuration(
 void validate_performance_schema_enabled(
     const mysqlshdk::mysql::IInstance &instance);
 
-InstanceType::Type ensure_instance_not_belong_to_cluster(
+TargetType::Type ensure_instance_not_belong_to_cluster(
     const mysqlshdk::mysql::IInstance &instance,
     const std::shared_ptr<Instance> &cluster_instance,
     bool *out_already_member = nullptr);

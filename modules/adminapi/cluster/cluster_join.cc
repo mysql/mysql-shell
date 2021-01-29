@@ -212,16 +212,11 @@ void Cluster_join::validate_local_address_ip_compatibility(
  * is used for new instance joining it.
  */
 void Cluster_join::resolve_ssl_mode() {
-  // Set SSL Mode to AUTO by default (not defined).
-  if (m_gr_opts.ssl_mode.is_null()) {
-    m_gr_opts.ssl_mode = dba::kMemberSSLModeAuto;
-  }
-
   if (m_primary_instance) {
     resolve_instance_ssl_mode(*m_target_instance, *m_primary_instance,
                               &m_gr_opts.ssl_mode);
     log_info("SSL mode used to configure the instance: '%s'",
-             m_gr_opts.ssl_mode->c_str());
+             to_string(m_gr_opts.ssl_mode).c_str());
   }
 }
 
@@ -331,7 +326,7 @@ void Cluster_join::refresh_target_connections() {
               m_target_instance->get_connection_options());
         } catch (const shcore::Error &ie) {
           auto cluster_coptions =
-              m_cluster->get_target_server()->get_connection_options();
+              m_cluster->get_cluster_server()->get_connection_options();
 
           if (ie.code() == ER_ACCESS_DENIED_ERROR &&
               m_target_instance->get_connection_options().get_user() !=
@@ -432,7 +427,7 @@ Member_recovery_method Cluster_join::check_recovery_method(
     return recoverable;
   };
 
-  std::shared_ptr<Instance> donor_instance = m_cluster->get_target_server();
+  std::shared_ptr<Instance> donor_instance = m_cluster->get_cluster_server();
 
   auto recovery_method = mysqlsh::dba::validate_instance_recovery(
       Cluster_type::GROUP_REPLICATION, Member_op_action::ADD_INSTANCE,
@@ -594,6 +589,7 @@ void ensure_not_auto_rejoining(Instance *instance) {
                       instance->descr());
   mysqlshdk::gr::stop_group_replication(*instance);
 }
+
 }  // namespace
 
 bool Cluster_join::check_rejoinable(bool *out_uuid_mistmatch) {
@@ -666,7 +662,7 @@ void Cluster_join::prepare_reboot() {
   // Make sure the target instance does not already belong to a different
   // cluster.
   mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-      *m_target_instance, m_cluster->get_target_server(), &m_already_member);
+      *m_target_instance, m_cluster->get_cluster_server(), &m_already_member);
 
   check_instance_configuration(checks::Check_type::BOOTSTRAP);
 }
@@ -684,8 +680,8 @@ void Cluster_join::prepare_join(
   // Unless it's our cluster, in that case we keep adding it since it
   // may be a retry.
   if (mysqlsh::dba::checks::ensure_instance_not_belong_to_cluster(
-          *m_target_instance, m_cluster->get_target_server(),
-          &m_already_member) == InstanceType::InnoDBCluster) {
+          *m_target_instance, m_cluster->get_cluster_server(),
+          &m_already_member) == TargetType::InnoDBCluster) {
     throw shcore::Exception::runtime_error(
         "The instance '" + m_target_instance->descr() +
         "' is already part of this InnoDB cluster");
@@ -734,7 +730,7 @@ bool Cluster_join::handle_replication_user() {
 void Cluster_join::clean_replication_user() {
   if (m_gr_opts.recovery_credentials &&
       !m_gr_opts.recovery_credentials->user.empty()) {
-    auto primary = m_cluster->get_target_server();
+    auto primary = m_cluster->get_cluster_server();
     log_debug("Dropping recovery user '%s'@'%%' at instance '%s'.",
               m_gr_opts.recovery_credentials->user.c_str(),
               primary->descr().c_str());
@@ -846,7 +842,7 @@ void Cluster_join::wait_recovery(const std::string &join_begin_time,
   try {
     auto post_clone_auth = m_target_instance->get_connection_options();
     post_clone_auth.set_login_options_from(
-        m_cluster->get_target_server()->get_connection_options());
+        m_cluster->get_cluster_server()->get_connection_options());
 
     monitor_gr_recovery_status(
         m_target_instance->get_connection_options(), post_clone_auth,

@@ -64,7 +64,7 @@ The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
 ** Acquiring global lock at SECONDARIES
 
 * Updating replication topology
-** Configuring <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> to replicate from <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
+** Changing replication source of <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> to <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
 ** Changing replication source of <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> to <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
 
 <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was promoted to PRIMARY.
@@ -168,7 +168,7 @@ The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.
 ** Acquiring global lock at SECONDARIES
 
 * Updating replication topology
-** Configuring <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> to replicate from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
+** Changing replication source of <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> to <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
 ** Changing replication source of <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> to <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
 
 <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> was promoted to PRIMARY.

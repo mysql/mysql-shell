@@ -27,6 +27,7 @@
 #include <list>
 #include <memory>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "modules/adminapi/common/cluster_types.h"
@@ -95,6 +96,7 @@ class Instance : public mysqlshdk::mysql::Instance {
 
   void prepare_session();
 
+ public:
   /**
    * Try to acquire a shared lock on the instance.
    *
@@ -168,6 +170,23 @@ class Instance : public mysqlshdk::mysql::Instance {
   int ensure_lock_service_udfs_installed(bool skip_fail_install_warn);
   int get_lock(mysqlshdk::mysql::Lock_mode mode, unsigned int timeout = 0,
                bool skip_fail_install_warn = false);
+};
+
+class Scoped_instance_list {
+ public:
+  explicit Scoped_instance_list(std::list<std::shared_ptr<Instance>> &&l)
+      : m_list(std::move(l)) {}
+
+  ~Scoped_instance_list() {
+    for (const auto &i : m_list) {
+      i->release();
+    }
+  }
+
+  const std::list<std::shared_ptr<Instance>> &list() const { return m_list; }
+
+ private:
+  std::list<std::shared_ptr<Instance>> m_list;
 };
 
 struct Scoped_instance {
@@ -356,12 +375,12 @@ std::shared_ptr<Instance_pool> current_ipool();
 template <class InputIter>
 std::list<shcore::Dictionary_t> execute_in_parallel(
     InputIter begin, InputIter end,
-    std::function<void(const Scoped_instance &instance)> fn) {
+    std::function<void(const std::shared_ptr<Instance> &instance)> fn) {
   std::list<shcore::Dictionary_t> errors;
 
   mysqlshdk::utils::map_reduce<bool, shcore::Dictionary_t>(
       begin, end,
-      [&fn](const Scoped_instance &inst) -> shcore::Dictionary_t {
+      [&fn](const std::shared_ptr<Instance> &inst) -> shcore::Dictionary_t {
         mysqlsh::Mysql_thread thdinit;
 
         try {
@@ -411,9 +430,9 @@ std::list<shcore::Dictionary_t> execute_in_parallel(
  * @throw shcore::Exception if the lock cannot be acquired or any other error
  *        occur when trying to obtain the lock.
  */
-void get_instance_lock_shared(const std::list<Scoped_instance> &instances,
-                              unsigned int timeout = 0,
-                              const std::string &skip_uuid = "");
+void get_instance_lock_shared(
+    const std::list<std::shared_ptr<Instance>> &instances,
+    unsigned int timeout = 0, const std::string &skip_uuid = "");
 
 /**
  * Try to acquire an exclusive lock on all the given instances.
@@ -432,9 +451,9 @@ void get_instance_lock_shared(const std::list<Scoped_instance> &instances,
  * @throw shcore::Exception if the lock cannot be acquired or any other error
  *        occur when trying to obtain the lock.
  */
-void get_instance_lock_exclusive(const std::list<Scoped_instance> &instances,
-                                 unsigned int timeout = 0,
-                                 const std::string &skip_uuid = "");
+void get_instance_lock_exclusive(
+    const std::list<std::shared_ptr<Instance>> &instances,
+    unsigned int timeout = 0, const std::string &skip_uuid = "");
 
 /**
  * Release all instance locks for all the given instances.
@@ -444,8 +463,9 @@ void get_instance_lock_exclusive(const std::list<Scoped_instance> &instances,
  *        released). By default "", no instance skipped.
  *
  */
-void release_instance_lock(const std::list<Scoped_instance> &instances,
-                           const std::string &skip_uuid = "");
+void release_instance_lock(
+    const std::list<std::shared_ptr<Instance>> &instances,
+    const std::string &skip_uuid = "");
 
 }  // namespace dba
 }  // namespace mysqlsh

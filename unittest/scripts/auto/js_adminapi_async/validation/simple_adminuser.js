@@ -64,7 +64,7 @@ NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' has no
 Incremental state recovery selected through the recoveryMethod option
 
 * Updating topology
-** Configuring <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> to replicate from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
+** Changing replication source of <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> to <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
 ** Waiting for new instance to synchronize with PRIMARY...
 
 The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
@@ -90,7 +90,7 @@ This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_po
 Incremental state recovery selected through the recoveryMethod option
 
 * Updating topology
-** Configuring <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> to replicate from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
+** Changing replication source of <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> to <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>
 ** Waiting for new instance to synchronize with PRIMARY...
 
 The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
@@ -121,7 +121,7 @@ The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.
 ** Acquiring global lock at SECONDARIES
 
 * Updating replication topology
-** Configuring <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> to replicate from <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>
+** Changing replication source of <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> to <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>
 ** Changing replication source of <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> to <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>
 
 <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> was promoted to PRIMARY.

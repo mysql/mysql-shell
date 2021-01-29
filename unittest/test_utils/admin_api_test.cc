@@ -59,7 +59,7 @@ void Admin_api_test::SetUpSampleCluster(const char *context) {
 
   shcore::Argument_list args;
   shcore::Option_pack_ref<mysqlsh::dba::Create_cluster_options> options;
-  options->gr_options.ssl_mode = "REQUIRED";
+  options->gr_options.ssl_mode = mysqlsh::dba::to_cluster_ssl_mode("REQUIRED");
   options->clone_options.gtid_set_is_complete = true;
 
   _cluster =

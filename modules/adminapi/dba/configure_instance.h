@@ -48,7 +48,7 @@ class Configure_instance : public Command_interface {
   Configure_instance(
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
       const Configure_instance_options &options,
-      InstanceType::Type instance_type);
+      TargetType::Type instance_type);
   ~Configure_instance();
 
   void prepare() override;
@@ -119,7 +119,7 @@ class Configure_instance : public Command_interface {
   std::vector<mysqlshdk::mysql::Invalid_config> m_invalid_cfgs;
 
  private:
-  InstanceType::Type m_instance_type;
+  TargetType::Type m_instance_type;
 };
 
 }  // namespace dba

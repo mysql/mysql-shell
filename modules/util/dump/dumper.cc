@@ -1738,9 +1738,8 @@ void Dumper::start_transaction(
 void Dumper::assert_transaction_is_open(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
 #ifdef NDEBUG
-  // no-op
   (void)session;
-#else   // !NDEBUG
+#else  // !NDEBUG
   if (m_options.consistent_dump() && !m_options.is_dry_run()) {
     try {
       // if there's an active transaction, this will throw
@@ -1755,7 +1754,7 @@ void Dumper::assert_transaction_is_open(
       assert(false);
     }
   }
-#endif  // !NDEBUG
+#endif
 }
 
 void Dumper::lock_instance() {

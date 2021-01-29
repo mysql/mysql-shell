@@ -23,6 +23,7 @@ validateMembers(dba, [
     'dropMetadataSchema',
     'getCluster',
     'getReplicaSet',
+    'getClusterSet',
     'help',
     'killSandboxInstance',
     'rebootClusterFromCompleteOutage',
@@ -51,7 +52,7 @@ dba.createCluster('devCluster', {multiPrimary:false, multiMaster: false});
 dba.createCluster('devCluster', {multiPrimary:true, multiMaster: false});
 dba.createCluster('devCluster', {ipWhitelist: "  "});
 dba.createCluster('#');
-dba.createCluster("_1234567890::_1234567890123456789012345678901");
+dba.createCluster("_1234567890::_1234567890123456789012345678901234567890123456789012345678901234");
 dba.createCluster("::");
 
 //@ Dba: createCluster with ANSI_QUOTES success

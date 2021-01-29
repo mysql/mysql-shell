@@ -30,12 +30,12 @@ EXPECT_STDERR_EMPTY()
 
 //@<> Upgrades the metadata, up to date
 dba.upgradeMetadata({interactive:true})
-EXPECT_OUTPUT_CONTAINS(`NOTE: Installed metadata at '${hostname}:${__mysql_sandbox_port1}' is up to date (version 2.0.0).`);
+EXPECT_OUTPUT_CONTAINS(`NOTE: Installed metadata at '${hostname}:${__mysql_sandbox_port1}' is up to date (version 2.1.0).`);
 
 //@<> Upgrades the metadata from slave, up to date
 shell.connect(__sandbox_uri2)
 dba.upgradeMetadata({interactive:true})
-EXPECT_OUTPUT_CONTAINS(`NOTE: Installed metadata at '${hostname}:${__mysql_sandbox_port1}' is up to date (version 2.0.0).`);
+EXPECT_OUTPUT_CONTAINS(`NOTE: Installed metadata at '${hostname}:${__mysql_sandbox_port1}' is up to date (version 2.1.0).`);
 
 //@<> Cleanup
 session.close();
