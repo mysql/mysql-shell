@@ -772,10 +772,10 @@ WIPE_OUTPUT();
 
 \show threads -A -o tid,cid --where "(tid = <<<__test_ids.tid>>> OR cid = <<<__test_ids.cid>>>) AND NOT (tid = <<<__session_ids.tid>>> OR cid = <<<__session_ids.cid>>>)"
 
-EXPECT_STDOUT_CONTAINS(__test_ids.tid);
-EXPECT_STDOUT_CONTAINS(__test_ids.cid);
-EXPECT_STDOUT_NOT_CONTAINS(__session_ids.tid);
-EXPECT_STDOUT_NOT_CONTAINS(__session_ids.cid);
+EXPECT_STDOUT_CONTAINS(" "+__test_ids.tid+" ");
+EXPECT_STDOUT_CONTAINS(" "+__test_ids.cid+" ");
+EXPECT_STDOUT_NOT_CONTAINS(" "+__session_ids.tid+" ");
+EXPECT_STDOUT_NOT_CONTAINS(" "+__session_ids.cid+" ");
 EXPECT_STDERR_EMPTY();
 
 EXPECT_EQ(1, count_rows());

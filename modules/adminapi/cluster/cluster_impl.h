@@ -77,9 +77,16 @@ class Cluster_impl : public Base_cluster_impl {
  public:
   friend class Cluster;
 
+  Cluster_impl(const std::shared_ptr<Cluster_set_impl> &cluster_set,
+               const Cluster_metadata &metadata,
+               const std::shared_ptr<Instance> &group_server,
+               const std::shared_ptr<MetadataStorage> &metadata_storage,
+               Cluster_availability availability);
+
   Cluster_impl(const Cluster_metadata &metadata,
                const std::shared_ptr<Instance> &group_server,
-               const std::shared_ptr<MetadataStorage> &metadata_storage);
+               const std::shared_ptr<MetadataStorage> &metadata_storage,
+               Cluster_availability availability);
 
   Cluster_impl(const std::string &cluster_name, const std::string &group_name,
                const std::shared_ptr<Instance> &group_server,
@@ -119,6 +126,8 @@ class Cluster_impl : public Base_cluster_impl {
 
   std::shared_ptr<Cluster_set_impl> get_cluster_set(
       bool print_warnings = false);
+
+  Cluster_availability cluster_availability() const { return m_availability; }
 
   // Class functions
   void sanity_check() const;
@@ -177,11 +186,10 @@ class Cluster_impl : public Base_cluster_impl {
 
   Cluster_metadata get_metadata() const;
 
-  std::shared_ptr<Instance> get_global_primary_master() const override {
-    return m_metadata_storage->get_md_server();
-  }
-
   void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
+
+  shcore::Value cluster_status(int64_t extended);
+  shcore::Value cluster_describe();
 
   Cluster_status cluster_status(int *out_num_failures_tolerated = nullptr,
                                 int *out_num_failures = nullptr) const;
@@ -443,9 +451,13 @@ class Cluster_impl : public Base_cluster_impl {
  private:
   void verify_topology_type_change() const;
 
+  std::weak_ptr<Cluster_set_impl> m_cluster_set;
+
   std::string m_group_name;
   mysqlshdk::gr::Topology_mode m_topology_type =
       mysqlshdk::gr::Topology_mode::NONE;
+
+  Cluster_availability m_availability = Cluster_availability::ONLINE;
 
   mutable Cluster_set_member_metadata m_cs_md;
 };

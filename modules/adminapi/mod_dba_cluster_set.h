@@ -107,10 +107,9 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
                              const shcore::Dictionary_t & /*options*/) {
     throw std::logic_error("Not implemented yet");
   }
-  shcore::Value status(const shcore::Dictionary_t & /*options*/) {
-    throw std::logic_error("Not implemented yet");
-  }
-  shcore::Value describe() { throw std::logic_error("Not implemented yet"); }
+  shcore::Value status(
+      const shcore::Option_pack_ref<clusterset::Status_options> &options);
+  shcore::Value describe();
 
  protected:
   void init();

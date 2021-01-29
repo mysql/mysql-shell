@@ -370,6 +370,26 @@ std::vector<Replication_channel> get_incoming_channels(
   return channels;
 }
 
+std::vector<std::string> get_incoming_channel_names(
+    const mysqlshdk::mysql::IInstance &instance, bool include_stopped) {
+  const char *q_all =
+      "SELECT channel_name"
+      " FROM performance_schema.replication_connection_status";
+  const char *q =
+      "SELECT channel_name"
+      " FROM performance_schema.replication_connection_status"
+      " WHERE service_state <> 'OFF'";
+
+  std::vector<std::string> names;
+
+  auto res = instance.query(include_stopped ? q_all : q);
+  while (auto row = res->fetch_one()) {
+    names.emplace_back(row->get_string(0));
+  }
+
+  return names;
+}
+
 bool get_channel_status(const mysqlshdk::mysql::IInstance &instance,
                         const std::string &channel_name,
                         Replication_channel *out_channel) {
@@ -582,10 +602,10 @@ Replication_channel::Status Replication_channel::status() const {
     }
   }
 
+  if (receiver.last_error.code != 0) {
+    return CONNECTION_ERROR;
+  }
   if (receiver.state == Receiver::OFF) {
-    if (receiver.last_error.code != 0) {
-      return CONNECTION_ERROR;
-    }
     if (applier_off) return OFF;
     return RECEIVER_OFF;
   } else if (receiver.state == Receiver::CONNECTING) {

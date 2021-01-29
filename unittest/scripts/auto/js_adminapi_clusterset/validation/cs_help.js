@@ -25,6 +25,9 @@ FUNCTIONS
             Creates a new InnoDB Cluster that is a Replica of the Primary
             Cluster.
 
+      describe()
+            Describe the structure of the ClusterSet.
+
       disconnect()
             Disconnects all internal sessions used by the ClusterSet object.
 
@@ -37,6 +40,8 @@ FUNCTIONS
       removeCluster(clusterName[, options])
             Removes a Replica cluster from a ClusterSet.
 
+      status([options])
+            Describe the status of the ClusterSet.
 
 //@<OUT> Name
 NAME
@@ -119,6 +124,9 @@ DESCRIPTION
         verbosity level.
       - cloneDonor: host:port of an existing member of the PRIMARY cluster to
         clone from. IPv6 addresses are not supported for this option.
+      - manualStartOnBoot: boolean (default false). If false, Group Replication
+        in cluster instances will automatically start and rejoin when MySQL
+        starts, otherwise it must be started manually.
       - memberSslMode: SSL mode used to configure the security state of the
         communication between the InnoDB Cluster members.
       - ipAllowlist: The list of hosts allowed to connect to the instance for
@@ -353,3 +361,81 @@ DESCRIPTION
       - dryRun: boolean if true, all validations and steps for removing a
         the Cluster from the ClusterSet are executed, but no changes are
         actually made. An exception will be thrown when finished.
+
+//@<OUT> Status
+NAME
+      status - Describe the status of the ClusterSet.
+
+SYNTAX
+      <ClusterSet>.status([options])
+
+WHERE
+      options: Dictionary with additional parameters described below.
+
+RETURNS
+      A JSON object describing the status of the ClusterSet and its members.
+
+DESCRIPTION
+      This function describes the status of the ClusterSet including its
+      members (Clusters).
+
+      The function will gather state information from each member of the
+      ClusterSet and the replication channel of it to produce a status report
+      of the ClusterSet as a whole.
+
+      Options
+
+      The following options may be given to control the amount of information
+      gathered and returned.
+
+      - extended: verbosity level of the command output. Default is 0.
+
+      Option 'extended' may have the following values:
+
+      - 0: regular level of details. Only basic information about the status of
+        the ClusterSet and Cluster members.
+      - 1: includes basic information about the status of each cluster,
+        information about each cluster member role and state as reported by
+        Group Replication, and information about the ClusterSet Replication
+        channel.
+      - 2: includes the list of the fenced system variables, applier worker
+        threads, member ID, etc. The information about the ClusterSet
+        Replication channel is extended to include information about the
+        applier queue size, applier queue GTID set, coordinator state, etc.
+      - 3: includes important replication related configuration settings, such
+        as replication delay, heartbeat delay, retry count and connection retry
+        for the ClusterSet replication channel.
+
+//@<OUT> Describe
+NAME
+      describe - Describe the structure of the ClusterSet.
+
+SYNTAX
+      <ClusterSet>.describe()
+
+RETURNS
+      A JSON object describing the structure of the ClusterSet.
+
+DESCRIPTION
+      This function describes the status of the ClusterSet including its
+      members (Clusters).
+
+      This function describes the structure of the ClusterSet including all its
+      information and Clusters belonging to it.
+
+      The returned JSON object contains the following attributes:
+
+      - domainName: The ClusterSet domain name
+      - primaryCluster: The current primary Cluster of the ClusterSet
+      - clusters: the list of members of the ClusterSet
+
+      The clusters JSON object contains the following attributes:
+
+      - clusterRole: The role of the Cluster
+      - a list of dictionaries describing each instance belonging to the
+        Cluster.
+
+      Each instance dictionary contains the following attributes:
+
+      - address: the instance address in the form of host:port
+      - label: the instance name identifier

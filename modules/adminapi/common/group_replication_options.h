@@ -129,7 +129,6 @@ struct Create_group_replication_options
       &options();
 
   void set_group_name(const std::string &value);
-  void set_manual_start_on_boot(bool value);
 
   void set_consistency(const std::string &option, const std::string &value) {
     Group_replication_options::set_consistency(option, value);

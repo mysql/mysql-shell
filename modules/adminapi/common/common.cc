@@ -89,34 +89,6 @@ void validate_gr_session(
 
 }  // namespace
 
-namespace ClusterStatus {
-std::string describe(Status state) {
-  std::string ret_val;
-
-  switch (state) {
-    case OK:
-      ret_val = "OK";
-      break;
-    case OK_PARTIAL:
-      ret_val = "OK_PARTIAL";
-      break;
-    case OK_NO_TOLERANCE:
-      ret_val = "OK_NO_TOLERANCE";
-      break;
-    case NO_QUORUM:
-      ret_val = "NO_QUORUM";
-      break;
-    case ERROR:
-      ret_val = "ERROR";
-      break;
-    case UNKNOWN:
-      ret_val = "UNKNOWN";
-      break;
-  }
-  return ret_val;
-}
-}  // namespace ClusterStatus
-
 std::string to_string(Cluster_ssl_mode ssl_mode) {
   std::string ret_val;
 
@@ -1889,7 +1861,6 @@ TargetType::Type get_instance_type(const MetadataStorage &metadata,
       if (cluster_type == Cluster_type::ASYNC_REPLICATION) {
         return TargetType::AsyncReplicaSet;
       }
-
       return TargetType::StandaloneWithMetadata;
     }
   } else {

@@ -91,7 +91,13 @@ function get_socket_path(session, uri = undefined) {
 
 function run_nolog(session, query) {
     session.runSql("set session sql_log_bin=0");
-    session.runSql(query);
+    if (type(query) == "String") {
+      session.runSql(query);
+    } else {
+      for (var s of query) {
+        session.runSql(s);
+      }
+    }
     session.runSql("set session sql_log_bin=1");
 }
 
@@ -537,6 +543,8 @@ var __address1 = "127.0.0.1:" + __mysql_sandbox_port1;
 var __address2 = "127.0.0.1:" + __mysql_sandbox_port2;
 var __address3 = "127.0.0.1:" + __mysql_sandbox_port3;
 var __address4 = "127.0.0.1:" + __mysql_sandbox_port4;
+var __address5 = "127.0.0.1:" + __mysql_sandbox_port5;
+var __address6 = "127.0.0.1:" + __mysql_sandbox_port6;
 
 // Address that appear in raw sandboxes, that show the real hostname
 var __address1r = __mysql_host + ":" + __mysql_sandbox_port1;
@@ -545,6 +553,13 @@ var __address3r = __mysql_host + ":" + __mysql_sandbox_port3;
 var __address4r = __mysql_host + ":" + __mysql_sandbox_port4;
 var __address5r = __mysql_host + ":" + __mysql_sandbox_port5;
 var __address6r = __mysql_host + ":" + __mysql_sandbox_port6;
+
+var __address1h = hostname + ":" + __mysql_sandbox_port1;
+var __address2h = hostname + ":" + __mysql_sandbox_port2;
+var __address3h = hostname + ":" + __mysql_sandbox_port3;
+var __address4h = hostname + ":" + __mysql_sandbox_port4;
+var __address5h = hostname + ":" + __mysql_sandbox_port5;
+var __address6h = hostname + ":" + __mysql_sandbox_port6;
 
 var CLUSTER_ADMIN = "AdminUser";
 var CLUSTER_ADMIN_PWD = "AdminUserPwd";
@@ -666,6 +681,15 @@ function EXPECT_GT(value1, value2, note) {
     note = "";
   if (value1 <= value2) {
     var context = "<b>Context:</b> " + __test_context + "\n<red>EXPECT_GT failed:</red> " + note + "\n\t"+repr(value1)+" expected to be > "+repr(value2)+" but isn't.";
+    testutil.fail(context);
+  }
+}
+
+function EXPECT_LT(value1, value2, note) {
+  if (note === undefined)
+    note = "";
+  if (value1 >= value2) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>EXPECT_LT failed:</red> " + note + "\n\t"+repr(value1)+" expected to be < "+repr(value2)+" but isn't.";
     testutil.fail(context);
   }
 }

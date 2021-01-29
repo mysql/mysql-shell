@@ -29,6 +29,9 @@
                 "memberState": "ONLINE",
                 "mode": "R/W",
                 "readReplicas": {},
+?{VER(>=8.0.11)}
+                "replicationLag": null,
+?{}
                 "role": "HA",
                 "status": "ONLINE",
                 "transactions": {
@@ -130,6 +133,9 @@ ${*}
                 "memberState": "ONLINE",
                 "mode": "R/O",
                 "readReplicas": {},
+?{VER(>=8.0.11)}
+                "replicationLag": [[*]],
+?{}
                 "role": "HA",
                 "status": "ONLINE",
                 "transactions": {

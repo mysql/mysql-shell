@@ -561,12 +561,7 @@ std::shared_ptr<Instance> Instance_pool::connect_unchecked(
     }
   }
 
-  auto session =
-      connect_session(opts, m_allow_password_prompt, show_tls_deprecation);
-  auto instance =
-      add_leased_instance(std::make_shared<Instance>(this, session));
-  instance->prepare_session();
-  return instance;
+  return Instance::connect(opts, m_allow_password_prompt, show_tls_deprecation);
 }
 
 std::shared_ptr<Instance> Instance_pool::connect_unchecked_endpoint(
@@ -696,7 +691,7 @@ void Instance_pool::check_group_member(
         SHERR_DBA_GROUP_REPLICATION_NOT_RUNNING);
   }
 
-  if (!has_quorum) {
+  if (!has_quorum && member_state != mysqlshdk::gr::Member_state::OFFLINE) {
     throw shcore::Exception("Member " +
                                 label_for_server_uuid(instance.get_uuid()) +
                                 " is not part of a majority group",
@@ -869,6 +864,119 @@ std::shared_ptr<Instance> Instance_pool::connect_group_member(
       SHERR_DBA_GROUP_UNAVAILABLE);
 }
 
+std::shared_ptr<Instance>
+Instance_pool::try_connect_cluster_primary_with_fallback(
+    const Cluster_id &cluster_id,
+    Cluster_availability *out_cluster_availability) {
+  DBUG_TRACE;
+
+  refresh_metadata_cache();
+
+  auto cluster_md = m_mdcache->try_get_cluster(cluster_id);
+  if (!cluster_md) {
+    assert(0);
+    throw shcore::Exception("Could not find metadata for Cluster",
+                            SHERR_DBA_METADATA_MISSING);
+  }
+
+  std::shared_ptr<Instance> best;
+
+  std::shared_ptr<Instance> secondary;
+  std::shared_ptr<Instance> not_in_quorum;
+  std::shared_ptr<Instance> not_online;
+
+  int num_offline = 0;
+  int num_total = 0;
+  for (const auto &i : m_mdcache->instances) {
+    if (i.group_name != cluster_md->group_name) continue;
+
+    num_total++;
+
+    std::shared_ptr<Instance> instance;
+
+    try {
+      instance = connect_unchecked_uuid(i.uuid);
+    } catch (const shcore::Exception &e) {
+      log_warning("%s: %s", i.endpoint.c_str(), e.format().c_str());
+      // client errors are expected for non-running servers etc, but server
+      // side errors are not
+      if (e.code() > CR_ERROR_LAST) {
+        current_console()->print_warning("While connecting to " + i.endpoint +
+                                         ": " + e.format());
+      }
+      continue;
+    }
+
+    try {
+      bool is_single_primary = false;
+      bool is_primary = false;
+      check_group_member(*instance, true, nullptr, nullptr, &is_single_primary,
+                         &is_primary);
+
+      if (!is_single_primary || is_primary) {
+        *out_cluster_availability = Cluster_availability::ONLINE;
+        best = instance;
+        break;
+      } else {
+        if (!secondary)
+          secondary = instance;
+        else
+          instance->release();
+      }
+    } catch (const shcore::Exception &e) {
+      switch (e.code()) {
+        case SHERR_DBA_GROUP_REPLICATION_NOT_RUNNING:
+        case SHERR_DBA_GROUP_MEMBER_NOT_ONLINE:
+          num_offline++;
+
+          if (!not_online)
+            not_online = instance;
+          else
+            instance->release();
+          break;
+        case SHERR_DBA_GROUP_MEMBER_NOT_IN_QUORUM:
+          if (!not_in_quorum)
+            not_in_quorum = instance;
+          else
+            instance->release();
+          break;
+        default:
+          assert(0);
+          current_console()->print_error(
+              "Unexpected error checking membership status of " + i.endpoint +
+              ":" + e.format());
+          break;
+      }
+    }
+  }
+
+  if (!best && secondary) {
+    best = secondary;
+    *out_cluster_availability = Cluster_availability::ONLINE_NO_PRIMARY;
+  }
+  if (!best && not_in_quorum) {
+    best = not_in_quorum;
+    *out_cluster_availability = Cluster_availability::NO_QUORUM;
+  }
+  if (!best && not_online) {
+    best = not_online;
+    if (num_offline == num_total)
+      *out_cluster_availability = Cluster_availability::OFFLINE;
+    else
+      *out_cluster_availability = Cluster_availability::UNREACHABLE;
+  }
+
+  if (best != secondary && secondary) secondary->release();
+  if (best != not_in_quorum && not_in_quorum) not_in_quorum->release();
+  if (best != not_online && not_online) not_online->release();
+
+  if (!best) {
+    *out_cluster_availability = Cluster_availability::UNREACHABLE;
+  }
+
+  return best;
+}
+
 std::shared_ptr<Instance> Instance_pool::try_connect_primary_through_member(
     const std::string &member_uuid) {
   DBUG_TRACE;
@@ -885,10 +993,11 @@ std::shared_ptr<Instance> Instance_pool::try_connect_primary_through_member(
           mysqlshdk::gr::get_members(*instance, &single_primary, &has_quorum);
     } catch (const std::exception &e) {
       instance->release();
-      throw shcore::Exception(
-          "Group replication does not seem to be active in instance '" +
-              instance->descr() + "': " + e.what() + ".",
-          SHERR_DBA_GROUP_REPLICATION_NOT_RUNNING);
+      if (shcore::str_beginswith(
+              e.what(), "Group replication does not seem to be active"))
+        throw shcore::Exception(e.what(),
+                                SHERR_DBA_GROUP_REPLICATION_NOT_RUNNING);
+      throw;
     }
 
     if (has_quorum) {
@@ -921,13 +1030,14 @@ std::shared_ptr<Instance> Instance_pool::try_connect_primary_through_member(
           SHERR_DBA_GROUP_HAS_NO_QUORUM);
     }
 
-    // member_uuid is probably either out of the group or in a partition with
-    // no quorum
+    // member_uuid is probably either out of the group or in a partition
+    // with no quorum
     instance->release();
 
     return {};
   } catch (const shcore::Error &err) {
-    // ignore any DB connect errors that could be due to lack of availability
+    // ignore any DB connect errors that could be due to lack of
+    // availability
     if (err.code() >= CR_MIN_ERROR && err.code() <= CR_MAX_ERROR) {
       return {};
     }

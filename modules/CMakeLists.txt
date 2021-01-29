@@ -125,6 +125,7 @@ file(GLOB api_module_SOURCES
       "adminapi/cluster_set/api_options.cc"
       "adminapi/cluster_set/cluster_set_impl.cc"
       "adminapi/cluster_set/create_replica_cluster.cc"
+      "adminapi/cluster_set/status.cc"
       "adminapi/replica_set/api_options.cc"
       "adminapi/replica_set/replica_set_impl.cc"
       "adminapi/replica_set/replica_set_status.cc"

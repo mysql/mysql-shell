@@ -124,7 +124,7 @@ bool Base_cluster_impl::get_gtid_set_is_complete() const {
 void Base_cluster_impl::sync_transactions(
     const mysqlshdk::mysql::IInstance &target_instance,
     const std::string &channel_name, int timeout) const {
-  auto master = get_global_primary_master();
+  auto master = get_primary_master();
 
   std::string gtid_set = mysqlshdk::mysql::get_executed_gtid_set(*master);
 

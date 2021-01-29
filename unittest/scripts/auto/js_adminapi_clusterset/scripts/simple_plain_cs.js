@@ -50,11 +50,11 @@ var cs;
 EXPECT_NO_THROWS(function() {cs = cluster.getClusterSet(); });
 EXPECT_NE(cs, null);
 
-// status()
-// TODO
+//@<> status()
+cs.status();
 
-// describe()
-// TODO
+//@<> describe()
+cs.describe();
 
 //@ createReplicaCluster() - incremental recovery
 // SRO might be set in the instance so we must ensure the proper handling of it in createReplicaCluster.

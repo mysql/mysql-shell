@@ -63,6 +63,22 @@ std::string to_string(Cluster_type type) {
   throw std::logic_error("internal error");
 }
 
+std::string to_string(Cluster_availability type) {
+  switch (type) {
+    case Cluster_availability::ONLINE:
+      return "ONLINE";
+    case Cluster_availability::ONLINE_NO_PRIMARY:
+      return "ONLINE_NO_PRIMARY";
+    case Cluster_availability::NO_QUORUM:
+      return "NO_QUORUM";
+    case Cluster_availability::OFFLINE:
+      return "OFFLINE";
+    case Cluster_availability::UNREACHABLE:
+      return "UNREACHABLE";
+  }
+  throw std::logic_error("internal error");
+}
+
 std::string to_string(Cluster_status state) {
   std::string ret_val;
 

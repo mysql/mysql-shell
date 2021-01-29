@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -125,7 +125,8 @@ class Status : public Command_interface {
   shcore::Value applier_status(const mysqlshdk::db::Row_ref_by_name &row);
 
   void collect_basic_local_status(shcore::Dictionary_t dict,
-                                  const mysqlsh::dba::Instance &instance);
+                                  const mysqlsh::dba::Instance &instance,
+                                  bool is_primary);
 
   void collect_local_status(shcore::Dictionary_t dict,
                             const mysqlsh::dba::Instance &instance,

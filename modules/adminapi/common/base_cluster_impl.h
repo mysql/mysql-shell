@@ -85,13 +85,6 @@ class Base_cluster_impl {
     return m_primary_master;
   }
 
-  //  - In standalone Cluster it will return the primary member
-  //  - In ClusterSet it will return the primary member of the primary
-  //  cluster
-  virtual std::shared_ptr<Instance> get_global_primary_master() const {
-    return m_primary_master;
-  }
-
   virtual Cluster_check_info check_preconditions(
       const std::string &function_name,
       Function_availability *custom_func_avail = nullptr);

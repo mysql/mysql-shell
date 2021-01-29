@@ -116,6 +116,27 @@ void Remove_cluster_options::set_timeout(int value) {
   timeout = value;
 }
 
+const shcore::Option_pack_def<Status_options> &Status_options::options() {
+  static const auto opts = shcore::Option_pack_def<Status_options>().optional(
+      kExtended, &Status_options::set_extended);
+
+  return opts;
+}
+
+void Status_options::set_extended(uint64_t value) {
+  // Validate extended option UInteger [0, 3] or Boolean.
+  if (value > 3) {
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value '%" PRIu64
+                           "' for option '%s'. It must be an integer in the "
+                           "range [0, 3].",
+                           value, kExtended));
+  }
+
+  extended = value;
+}
+
 }  // namespace clusterset
 }  // namespace dba
+
 }  // namespace mysqlsh

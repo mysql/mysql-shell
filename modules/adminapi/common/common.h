@@ -336,12 +336,6 @@ struct Instance_definition {
   bool operator==(const Instance_definition &other) const = delete;
 };
 
-namespace ClusterStatus {
-enum Status { OK, OK_PARTIAL, OK_NO_TOLERANCE, NO_QUORUM, ERROR, UNKNOWN };
-
-std::string describe(Status state);
-}  // namespace ClusterStatus
-
 enum class ConfigureInstanceAction {
   UPDATE_SERVER_AND_CONFIG_DYNAMIC,  // "server_update+config_update" - no
                                      // restart

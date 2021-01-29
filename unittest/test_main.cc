@@ -35,6 +35,7 @@
 #include <clocale>
 #include <fstream>
 #include <iostream>
+#include <set>
 
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/textui/textui.h"
@@ -69,6 +70,7 @@ int g_test_default_verbosity = 0;
 bool g_test_fail_early = false;
 int g_test_color_output = 0;
 bool g_bp = false;
+std::set<int> g_break;
 
 // Default trace set (MySQL version) to be used for replay mode
 mysqlshdk::utils::Version g_target_server_version = Version("8.0.16");
@@ -873,6 +875,8 @@ int main(int argc, char **argv) {
       tdb_step = true;
       g_test_trace_scripts = 1;
       g_test_fail_early = true;
+    } else if (shcore::str_beginswith(argv[index], "--break=")) {
+      g_break.insert(std::stod(strchr(argv[index], '=') + 1));
     } else if (strcmp(argv[index], "--profile-scripts") == 0 ||
                strcmp(argv[index], "-p") == 0) {
       g_profile_test_scripts = 1;

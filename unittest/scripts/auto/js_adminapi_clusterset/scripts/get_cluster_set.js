@@ -114,7 +114,7 @@ scene.make_no_quorum([__mysql_sandbox_port1]);
 
 shell.connect(__sandbox_uri3);
 EXPECT_NO_THROWS(function() {clusterset = dba.getClusterSet(); });
-EXPECT_OUTPUT_CONTAINS("WARNING: The PRIMARY Cluster lost the quorum, topology changes will not be allowed");
+EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
 EXPECT_OUTPUT_CONTAINS("NOTE: To restore the Cluster and ClusterSet operations, restore the quorum on the PRIMARY Cluster using forceQuorumUsingPartitionOf()");
 EXPECT_NE(clusterset, null);
 
@@ -164,7 +164,6 @@ shell.connect(__sandbox_uri3);
 
 //@<> dba.getClusterSet() from a member of the replica cluster with the primary cluster down
 EXPECT_NO_THROWS(function() {clusterset = dba.getClusterSet(); });
-EXPECT_OUTPUT_CONTAINS("WARNING: Could not connect to any member of the PRIMARY Cluster, topology changes will not be allowed");
 EXPECT_NE(clusterset, null);
 
 //@<> dba.getCluster() from a member of the replica cluster with the primary cluster down

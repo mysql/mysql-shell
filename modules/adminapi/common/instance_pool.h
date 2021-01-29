@@ -282,6 +282,10 @@ class Instance_pool {
   // Connect to any member within a quorum of the replicaset
   std::shared_ptr<Instance> connect_group_member(const std::string &group_name);
 
+  std::shared_ptr<Instance> try_connect_cluster_primary_with_fallback(
+      const Cluster_id &cluster_id,
+      Cluster_availability *out_cluster_availability);
+
   void check_group_member(const mysqlshdk::mysql::IInstance &instance,
                           bool allow_recovering,
                           std::string *out_member_id = nullptr,

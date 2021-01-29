@@ -63,6 +63,17 @@ enum class Cluster_type {
 
 std::string to_string(Cluster_type type);
 
+enum class Cluster_availability {
+  ONLINE,             // Cluster has quorum
+  ONLINE_NO_PRIMARY,  // Cluster has quorum but we can't connect to the PRIMARY
+  NO_QUORUM,          // No quorum found
+  OFFLINE,            // ALL members reachable but OFFLINE
+  UNREACHABLE         // Can't determine status because at least 1 member is
+                      // unreachable and the reachable ones are not ONLINE
+};
+
+std::string to_string(Cluster_availability type);
+
 enum class Cluster_status {
   OK,                       // All members ONLINE, >=3 members
   OK_PARTIAL,               // >=3 members ONLINE, some other members down
@@ -78,6 +89,10 @@ enum class Cluster_status {
 std::string to_string(Cluster_status state);
 Cluster_status to_cluster_status(const std::string &s);
 
+// Any of the OK_ global statuses mean the cluster can be used for their
+// purpose, although there are no guarantees for consistency or freshness.
+// In concrete, the OK_ statuses must match what the Router determines as
+// suitable for routing.
 enum class Cluster_global_status {
   OK,  // If it's a Primary, it must have any of the OK_* status. If a Replica,
        // any of the OK_* status plus the Replication Channel status must be OK

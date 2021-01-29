@@ -106,9 +106,12 @@ function inject_applier_error(master, slave) {
 function inject_errant_gtid(slave) {
     // Force the slave to have a transaction that doesn't exist in the master
     slave.runSql("SET GLOBAL super_read_only=0");
+    var before = slave.runSql("select @@gtid_executed").fetchOne()[0];
     // Dropping a DB that does not exists is enough to create a new trx.
     slave.runSql("DROP SCHEMA IF EXISTS errant_trx_db");
+    var gtid = slave.runSql("select gtid_subtract(@@gtid_executed, ?)", [before]).fetchOne()[0];
     slave.runSql("SET GLOBAL super_read_only=1");
+    return gtid;
 }
 
 function inject_purged_gtids(master) {
@@ -149,10 +152,11 @@ function ensure_cs_replication_channel_ready(replica_uri, master_port) {
 
 function invalidate_cluster(cluster, pcluster) {
   var session = mysql.getSession("mysql://root:root@"+pcluster.status()["defaultReplicaSet"]["primary"]);
+  var cluster_name = type(cluster) == "String" ? cluster : cluster.name;
 
   var csid = session.runSql("select clusterset_id from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0];
-  var c1id = session.runSql("select cluster_id from mysql_innodb_cluster_metadata.clusters where cluster_name='cluster'").fetchOne()[0];
-  var c2id = session.runSql("select cluster_id from mysql_innodb_cluster_metadata.clusters where cluster_name='"+cluster.name+"'").fetchOne()[0];
+  var c1id = session.runSql("select cluster_id from mysql_innodb_cluster_metadata.clusters where cluster_name=?", [pcluster.name]).fetchOne()[0];
+  var c2id = session.runSql("select cluster_id from mysql_innodb_cluster_metadata.clusters where cluster_name=?", [cluster_name]).fetchOne()[0];
 
   session.runSql("start transaction");
   session.runSql("call mysql_innodb_cluster_metadata.v2_cs_primary_changed(?, ?, '{}')", [csid, c1id]);

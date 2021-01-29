@@ -38,6 +38,7 @@
 #include "modules/adminapi/common/global_topology_manager.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "mysqlshdk/libs/mysql/gtid_utils.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -50,7 +51,8 @@ constexpr const int k_cluster_set_master_retry_count = 10;
 constexpr const char k_clusterset_attribute_ssl_mode[] =
     "opt_clusterSetReplicationSslMode";
 
-class Cluster_set_impl : public Base_cluster_impl {
+class Cluster_set_impl : public Base_cluster_impl,
+                         public std::enable_shared_from_this<Cluster_set_impl> {
  public:
   static shcore::Value create_cluster_set(
       Cluster_impl *cluster, const std::string &domain_name,
@@ -91,18 +93,16 @@ class Cluster_set_impl : public Base_cluster_impl {
 
   void disconnect() override;
 
+  mysqlsh::dba::Instance *connect_primary();
+
   mysqlsh::dba::Instance *acquire_primary(
       mysqlshdk::mysql::Lock_mode mode = mysqlshdk::mysql::Lock_mode::NONE,
       const std::string &skip_lock_uuid = "") override;
 
   void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
 
-  std::list<std::shared_ptr<Instance>> connect_all_members(
-      uint32_t read_timeout, bool skip_primary,
-      std::list<Cluster_id> *out_unreachable);
-
-  std::shared_ptr<Cluster_impl> get_cluster(
-      const std::string &name, bool allow_unavailable = false) const;
+  std::shared_ptr<Cluster_impl> get_cluster(const std::string &name,
+                                            bool allow_unavailable = false);
 
   mysqlshdk::mysql::Auth_options create_cluster_replication_user(
       Instance *cluster_primary, bool dry_run);
@@ -117,8 +117,6 @@ class Cluster_set_impl : public Base_cluster_impl {
       Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
       bool interactive);
 
-  std::shared_ptr<Instance> get_global_primary_master() const override;
-
   std::vector<Cluster_metadata> get_clusters() const;
 
   Cluster_channel_status get_replication_channel_status(
@@ -127,6 +125,8 @@ class Cluster_set_impl : public Base_cluster_impl {
   Cluster_global_status get_cluster_global_status(Cluster_impl *cluster) const;
 
   Async_replication_options get_clusterset_replication_options() const;
+
+  bool check_gtid_consistency(Cluster_impl *cluster) const;
 
  protected:
   void _set_option(const std::string &option,
@@ -166,11 +166,12 @@ class Cluster_set_impl : public Base_cluster_impl {
       const Cluster_id &seed_cluster_id,
       const clusterset::Create_cluster_set_options &m_options);
 
- private:
-  Cluster_metadata get_primary_cluster_metadata() const;
-
   std::shared_ptr<Cluster_impl> get_cluster_object(
-      const Cluster_metadata &cluster_md, bool allow_unavailable = false) const;
+      const Cluster_set_member_metadata &cluster_md,
+      bool allow_unavailable = false);
+
+ private:
+  Cluster_set_member_metadata get_primary_cluster_metadata() const;
 
   std::pair<std::string, std::string> get_cluster_repl_account(
       Cluster_impl *cluster) const;

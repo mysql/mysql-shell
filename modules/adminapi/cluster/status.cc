@@ -113,23 +113,14 @@ Status::Status(const Cluster_impl &cluster,
 Status::~Status() {}
 
 void Status::connect_to_members() {
-  auto group_server = m_cluster.get_cluster_server();
-
-  mysqlshdk::db::Connection_options group_session_copts(
-      group_server->get_connection_options());
+  auto ipool = current_ipool();
 
   for (const auto &inst : m_instances) {
-    mysqlshdk::db::Connection_options opts(inst.endpoint);
-    if (opts.uri_endpoint() == group_session_copts.uri_endpoint()) {
-      m_member_sessions[inst.endpoint] = group_server;
-    } else {
-      opts.set_login_options_from(group_session_copts);
-
-      try {
-        m_member_sessions[inst.endpoint] = Instance::connect(opts);
-      } catch (const shcore::Error &e) {
-        m_member_connect_errors[inst.endpoint] = e.format();
-      }
+    try {
+      m_member_sessions[inst.endpoint] =
+          ipool->connect_unchecked_endpoint(inst.endpoint);
+    } catch (const shcore::Error &e) {
+      m_member_connect_errors[inst.endpoint] = e.format();
     }
   }
 }
@@ -175,11 +166,11 @@ shcore::Dictionary_t Status::check_group_status(
   size_t number_of_failures_tolerated =
       quorum_size > 0 ? (quorum_size - 1) / 2 : 0;
 
-  ClusterStatus::Status rs_status;
+  Cluster_status rs_status;
   std::string desc_status;
 
   if (online_count == 0) {
-    rs_status = ClusterStatus::ERROR;
+    rs_status = Cluster_status::ERROR;
     if (has_quorum)
       desc_status = "There are no ONLINE members in the cluster.";
     else
@@ -187,19 +178,23 @@ shcore::Dictionary_t Status::check_group_status(
                     instance.descr() +
                     "' and no ONLINE members that can be used to restore it.";
   } else if (!has_quorum) {
-    rs_status = ClusterStatus::NO_QUORUM;
+    rs_status = Cluster_status::NO_QUORUM;
     desc_status = "Cluster has no quorum as visible from '" + instance.descr() +
                   "' and cannot process write transactions.";
   } else {
-    if (number_of_failures_tolerated == 0) {
-      rs_status = ClusterStatus::OK_NO_TOLERANCE;
+    if (m_cluster.is_cluster_set_member() && m_cluster.is_invalidated()) {
+      rs_status = Cluster_status::INVALIDATED;
+
+      desc_status = "Cluster was invalidated by the ClusterSet it belongs to.";
+    } else if (number_of_failures_tolerated == 0) {
+      rs_status = Cluster_status::OK_NO_TOLERANCE;
 
       desc_status = "Cluster is NOT tolerant to any failures.";
     } else {
       if (missing_from_group > 0 || total_in_group != quorum_size) {
-        rs_status = ClusterStatus::OK_PARTIAL;
+        rs_status = Cluster_status::OK_PARTIAL;
       } else {
-        rs_status = ClusterStatus::OK;
+        rs_status = Cluster_status::OK;
       }
 
       if (number_of_failures_tolerated == 1) {
@@ -223,7 +218,7 @@ shcore::Dictionary_t Status::check_group_status(
   }
 
   (*dict)["statusText"] = shcore::Value(desc_status);
-  (*dict)["status"] = shcore::Value(ClusterStatus::describe(rs_status));
+  (*dict)["status"] = shcore::Value(to_string(rs_status));
 
   return dict;
 }
@@ -239,17 +234,24 @@ Member_stats_map Status::query_member_stats() {
   Member_stats_map stats;
   auto group_instance = m_cluster.get_cluster_server();
 
-  auto member_stats = group_instance->query(
-      "SELECT * FROM performance_schema.replication_group_member_stats");
+  if (group_instance) {
+    try {
+      auto member_stats = group_instance->query(
+          "SELECT * FROM performance_schema.replication_group_member_stats");
 
-  while (auto row = member_stats->fetch_one_named()) {
-    std::string channel = row.get_string("CHANNEL_NAME");
-    if (channel == "group_replication_applier") {
-      stats[row.get_string("MEMBER_ID")].second =
-          mysqlshdk::db::Row_by_name(row);
-    } else if (channel == "group_replication_recovery") {
-      stats[row.get_string("MEMBER_ID")].first =
-          mysqlshdk::db::Row_by_name(row);
+      while (auto row = member_stats->fetch_one_named()) {
+        std::string channel = row.get_string("CHANNEL_NAME");
+        if (channel == "group_replication_applier") {
+          stats[row.get_string("MEMBER_ID")].second =
+              mysqlshdk::db::Row_by_name(row);
+        } else if (channel == "group_replication_recovery") {
+          stats[row.get_string("MEMBER_ID")].first =
+              mysqlshdk::db::Row_by_name(row);
+        }
+      }
+    } catch (const mysqlshdk::db::Error &e) {
+      throw shcore::Exception::mysql_error_with_code(
+          group_instance->descr() + ": " + e.what(), e.code());
     }
   }
 
@@ -394,8 +396,9 @@ shcore::Value Status::applier_status(
  * Similar to collect_local_status(), but only includes basic/important
  * stats that should be displayed in the default output.
  */
-void Status::collect_basic_local_status(
-    shcore::Dictionary_t dict, const mysqlsh::dba::Instance &instance) {
+void Status::collect_basic_local_status(shcore::Dictionary_t dict,
+                                        const mysqlsh::dba::Instance &instance,
+                                        bool is_primary) {
   using mysqlshdk::utils::Version;
 
   auto version = instance.get_version();
@@ -409,34 +412,65 @@ void Status::collect_basic_local_status(
   std::string sql;
 
   if (version >= Version(8, 0, 0)) {
-    sql = "SELECT ";
-    sql +=
-        "IF(c.LAST_QUEUED_TRANSACTION=''"
-        " OR c.LAST_QUEUED_TRANSACTION=a.LAST_APPLIED_TRANSACTION"
-        " OR a.LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP <"
-        "  a.LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP,"
-        "NULL, " TSDIFF("LAST_APPLIED_TRANSACTION", "ORIGINAL_COMMIT_TIMESTAMP",
-                        "END_APPLY_TIMESTAMP") ")";
-    sql += " AS LAST_ORIGINAL_COMMIT_TO_END_APPLY_TIME";
-    sql +=
-        " FROM performance_schema.replication_applier_status_by_worker a"
-        " JOIN performance_schema.replication_connection_status c"
-        "   ON a.channel_name = c.channel_name"
-        " WHERE a.channel_name = 'group_replication_applier'";
+    if (m_cluster.is_cluster_set_member()) {
+      // PRIMARY of PC has no relevant replication lag info
+      // PRIMARY of RC shows lag from clusterset_replication channel
+      // SECONDARY members show replication from gr_applier channel
+      std::string channel_name;
 
-    // this can return multiple rows per channel for
-    // multi-threaded applier, otherwise just one. If MT, we also
-    // get stuff in the coordinator table
-    auto result = instance.query(sql);
-    auto row = result->fetch_one_named();
-    if (row) {
-      std::string lag =
-          row.get_string("LAST_ORIGINAL_COMMIT_TO_END_APPLY_TIME", "");
-
-      if (!lag.empty() && lag != "00:00:00.000000") {
-        (*dict)["replicationLag"] = shcore::Value(lag);
+      if (is_primary) {
+        if (!m_cluster.is_primary_cluster()) {
+          channel_name = k_clusterset_async_channel_name;
+        }
       } else {
-        (*dict)["replicationLag"] = shcore::Value::Null();
+        channel_name = mysqlshdk::gr::k_gr_applier_channel;
+      }
+
+      if (!channel_name.empty()) {
+        mysqlshdk::mysql::Replication_channel channel;
+
+        if (mysqlshdk::mysql::get_channel_status(instance, channel_name,
+                                                 &channel)) {
+          dict->set("replicationLagFromOriginalSource",
+                    shcore::Value(channel.repl_lag_from_original));
+          dict->set("replicationLagFromImmediateSource",
+                    shcore::Value(channel.repl_lag_from_immediate));
+        } else {
+          dict->set("replicationLagFromOriginalSource", shcore::Value::Null());
+          dict->set("replicationLagFromImmediateSource", shcore::Value::Null());
+        }
+      }
+    } else {
+      sql = "SELECT ";
+      sql +=
+          "IF(c.LAST_QUEUED_TRANSACTION=''"
+          " OR c.LAST_QUEUED_TRANSACTION=a.LAST_APPLIED_TRANSACTION"
+          " OR a.LAST_APPLIED_TRANSACTION_END_APPLY_TIMESTAMP <"
+          "  a.LAST_APPLIED_TRANSACTION_ORIGINAL_COMMIT_TIMESTAMP,"
+          "NULL, " TSDIFF("LAST_APPLIED_TRANSACTION",
+                          "ORIGINAL_COMMIT_TIMESTAMP",
+                          "END_APPLY_TIMESTAMP") ")";
+      sql += " AS LAST_ORIGINAL_COMMIT_TO_END_APPLY_TIME";
+      sql +=
+          " FROM performance_schema.replication_applier_status_by_worker a"
+          " JOIN performance_schema.replication_connection_status c"
+          "   ON a.channel_name = c.channel_name"
+          " WHERE a.channel_name = 'group_replication_applier'";
+
+      // this can return multiple rows per channel for
+      // multi-threaded applier, otherwise just one. If MT, we also
+      // get stuff in the coordinator table
+      auto result = instance.query(sql);
+      auto row = result->fetch_one_named();
+      if (row) {
+        std::string lag =
+            row.get_string("LAST_ORIGINAL_COMMIT_TO_END_APPLY_TIME", "");
+
+        if (!lag.empty() && lag != "00:00:00.000000") {
+          (*dict)["replicationLag"] = shcore::Value(lag);
+        } else {
+          (*dict)["replicationLag"] = shcore::Value::Null();
+        }
       }
     }
   }
@@ -780,52 +814,87 @@ struct Instance_metadata_info {
   std::string actual_server_uuid;
 };
 
+void check_parallel_appliers(
+    shcore::Array_t issues, const mysqlshdk::utils::Version &instance_version,
+    const Parallel_applier_options &parallel_applier_options) {
+  auto current_values =
+      parallel_applier_options.get_current_settings(instance_version);
+  auto required_values =
+      parallel_applier_options.get_required_values(instance_version);
+
+  for (const auto &setting : required_values) {
+    std::string current_value = current_values[std::get<0>(setting)].get_safe();
+
+    if (!current_value.empty() && current_value != std::get<1>(setting)) {
+      issues->push_back(shcore::Value(
+          "NOTE: The required parallel-appliers settings are not enabled "
+          "on the instance. Use dba.configureInstance() to fix it."));
+      break;
+    }
+  }
+}
+
+void check_channel_error(shcore::Array_t issues,
+                         const std::string &channel_label,
+                         const mysqlshdk::mysql::Replication_channel &channel) {
+  using mysqlshdk::mysql::Replication_channel;
+
+  switch (channel.status()) {
+    case Replication_channel::OFF:
+    case Replication_channel::ON:
+    case Replication_channel::RECEIVER_OFF:
+    case Replication_channel::APPLIER_OFF:
+    case Replication_channel::CONNECTING:
+      break;
+    case Replication_channel::CONNECTION_ERROR:
+      issues->push_back(shcore::Value(
+          "ERROR: " + channel_label +
+          " channel receiver stopped with an error: " +
+          mysqlshdk::mysql::to_string(channel.receiver.last_error)));
+      break;
+    case Replication_channel::APPLIER_ERROR:
+      for (const auto &a : channel.appliers) {
+        if (a.last_error.code != 0) {
+          issues->push_back(
+              shcore::Value("ERROR: " + channel_label +
+                            " channel applier stopped with an error: " +
+                            mysqlshdk::mysql::to_string(a.last_error)));
+          break;
+        }
+      }
+      break;
+  }
+}
+
+void check_unrecognized_channels(shcore::Array_t issues, Instance *instance,
+                                 bool is_cluster_set_member) {
+  if (instance) {
+    auto channels =
+        mysqlshdk::mysql::get_incoming_channel_names(*instance, false);
+    for (const std::string &name : channels) {
+      if (!(name == mysqlshdk::gr::k_gr_applier_channel ||
+            name == mysqlshdk::gr::k_gr_recovery_channel ||
+            (is_cluster_set_member && name == k_clusterset_async_channel_name)))
+        issues->push_back(shcore::Value(
+            "ERROR: Unrecognized replication channel '" + name +
+            "' found. Unmanaged repliication channels are not supported."));
+    }
+  }
+}
+
 shcore::Array_t instance_diagnostics(
+    Instance *instance, const Cluster_impl *cluster,
     const Instance_metadata_info &instance_md,
     const mysqlshdk::mysql::Replication_channel &recovery_channel,
     const mysqlshdk::mysql::Replication_channel &applier_channel,
     const mysqlshdk::utils::nullable<bool> &super_read_only,
-    mysqlshdk::gr::Member_state state, mysqlshdk::gr::Member_state self_state,
-    mysqlshdk::gr::Member_role role,
-    const mysqlshdk::utils::Version &instance_version,
-    Parallel_applier_options parallel_applier_options) {
-  using mysqlshdk::mysql::Replication_channel;
-
-  auto check_channel_error = [](shcore::Array_t issues,
-                                const std::string &channel_label,
-                                const Replication_channel &channel) {
-    switch (channel.status()) {
-      case Replication_channel::OFF:
-      case Replication_channel::ON:
-      case Replication_channel::RECEIVER_OFF:
-      case Replication_channel::APPLIER_OFF:
-      case Replication_channel::CONNECTING:
-        break;
-      case Replication_channel::CONNECTION_ERROR:
-        issues->push_back(shcore::Value(
-            "ERROR: " + channel_label +
-            " channel receiver stopped with an error: " +
-            mysqlshdk::mysql::to_string(channel.receiver.last_error)));
-        break;
-      case Replication_channel::APPLIER_ERROR:
-        for (const auto &a : channel.appliers) {
-          if (a.last_error.code != 0) {
-            issues->push_back(
-                shcore::Value("ERROR: " + channel_label +
-                              " channel applier stopped with an error: " +
-                              mysqlshdk::mysql::to_string(a.last_error)));
-            break;
-          }
-        }
-        break;
-    }
-  };
-
+    const mysqlshdk::gr::Member &minfo, mysqlshdk::gr::Member_state self_state,
+    const Parallel_applier_options &parallel_applier_options) {
   shcore::Array_t issues = shcore::make_array();
 
   // split-brain
-  if ((state == mysqlshdk::gr::Member_state::UNREACHABLE ||
-       state == mysqlshdk::gr::Member_state::MISSING) &&
+  if ((minfo.state == mysqlshdk::gr::Member_state::UNREACHABLE ||
+       minfo.state == mysqlshdk::gr::Member_state::MISSING) &&
       (self_state == mysqlshdk::gr::Member_state::ONLINE ||
        self_state == mysqlshdk::gr::Member_state::RECOVERING)) {
     issues->push_back(shcore::Value(
@@ -833,10 +902,19 @@ shcore::Array_t instance_diagnostics(
         "but has state " +
         to_string(self_state)));
   }
-  // SECONDARY that's not SRO
-  if (role == mysqlshdk::gr::Member_role::SECONDARY &&
+  // SECONDARY (or PRIMARY of replica cluster) that's not SRO
+  if (cluster->is_cluster_set_member() &&
+      !(minfo.role == mysqlshdk::gr::Member_role::PRIMARY &&
+        cluster->is_primary_cluster()) &&
       self_state != mysqlshdk::gr::Member_state::RECOVERING &&
       !super_read_only.is_null() && !*super_read_only) {
+    issues->push_back(shcore::Value(
+        "WARNING: Instance is NOT the global PRIMARY but super_read_only "
+        "option is OFF. Errant transactions and inconsistencies may be "
+        "accidentally introduced."));
+  } else if (minfo.role == mysqlshdk::gr::Member_role::SECONDARY &&
+             self_state != mysqlshdk::gr::Member_state::RECOVERING &&
+             !super_read_only.is_null() && !*super_read_only) {
     issues->push_back(
         shcore::Value("WARNING: Instance is NOT a PRIMARY but super_read_only "
                       "option is OFF."));
@@ -844,6 +922,9 @@ shcore::Array_t instance_diagnostics(
 
   check_channel_error(issues, "GR Recovery", recovery_channel);
   check_channel_error(issues, "GR Applier", applier_channel);
+
+  check_unrecognized_channels(issues, instance,
+                              cluster->is_cluster_set_member());
 
   if (self_state == mysqlshdk::gr::Member_state::OFFLINE) {
     issues->push_back(shcore::Value("NOTE: group_replication is stopped."));
@@ -871,23 +952,15 @@ shcore::Array_t instance_diagnostics(
   // Check if parallel-appliers are not configured. The requirement was
   // introduced in 8.0.23 so only check if the version is equal or higher to
   // that.
+  mysqlshdk::utils::Version instance_version;
+  if (minfo.version.empty()) {
+    if (instance) instance_version = instance->get_version();
+  } else {
+    instance_version = mysqlshdk::utils::Version(minfo.version);
+  }
+
   if (instance_version >= mysqlshdk::utils::Version(8, 0, 23)) {
-    auto current_values =
-        parallel_applier_options.get_current_settings(instance_version);
-    auto required_values =
-        parallel_applier_options.get_required_values(instance_version);
-
-    for (const auto &setting : required_values) {
-      std::string current_value =
-          current_values[std::get<0>(setting)].get_safe();
-
-      if (!current_value.empty() && current_value != std::get<1>(setting)) {
-        issues->push_back(shcore::Value(
-            "NOTE: The required parallel-appliers settings are not enabled "
-            "on the instance. Use dba.configureInstance() to fix it."));
-        break;
-      }
-    }
+    check_parallel_appliers(issues, instance_version, parallel_applier_options);
   }
 
   return issues;
@@ -929,12 +1002,34 @@ void check_comm_protocol_upgrade_possible(
 }
 
 shcore::Array_t group_diagnostics(
+    const Cluster_impl *cluster,
     const std::vector<mysqlshdk::gr::Member> &member_info,
     const mysqlshdk::utils::Version &protocol_version) {
   shcore::Array_t issues = shcore::make_array();
 
-  if (protocol_version)
+  if (protocol_version && !member_info.empty())
     check_comm_protocol_upgrade_possible(issues, member_info, protocol_version);
+
+  switch (cluster->cluster_availability()) {
+    case Cluster_availability::NO_QUORUM:
+      issues->push_back(
+          shcore::Value("ERROR: Could not find ONLINE members forming a "
+                        "quorum. Cluster will be unable to perform updates "
+                        "until it's restored."));
+      break;
+    case Cluster_availability::OFFLINE:
+      issues->push_back(shcore::Value(
+          "ERROR: Cluster members are reachable but they're all OFFLINE."));
+      break;
+    case Cluster_availability::UNREACHABLE:
+      issues->push_back(shcore::Value(
+          "ERROR: Could not connect to any ONLINE members but "
+          "there are unreachable instances that could still be ONLINE."));
+      break;
+    case Cluster_availability::ONLINE:
+    case Cluster_availability::ONLINE_NO_PRIMARY:
+      break;
+  }
 
   return issues;
 }
@@ -1001,6 +1096,7 @@ shcore::Array_t validate_instance_recovery_user(
 
 shcore::Dictionary_t Status::get_topology(
     const std::vector<mysqlshdk::gr::Member> &member_info) {
+  using mysqlshdk::gr::Member_role;
   using mysqlshdk::gr::Member_state;
   using mysqlshdk::mysql::Replication_channel;
 
@@ -1156,10 +1252,10 @@ shcore::Dictionary_t Status::get_topology(
         if (*m_extended >= 3) {
           collect_local_status(member, *instance,
                                minfo.state == Member_state::RECOVERING);
-        } else {
-          if (minfo.state == Member_state::ONLINE)
-            collect_basic_local_status(member, *instance);
         }
+        if (minfo.state == Member_state::ONLINE)
+          collect_basic_local_status(member, *instance,
+                                     minfo.role == Member_role::PRIMARY);
 
         shcore::Value recovery_info;
         if (minfo.state == Member_state::RECOVERING) {
@@ -1233,18 +1329,9 @@ shcore::Dictionary_t Status::get_topology(
     feed_member_info(member, minfo, super_read_only, fence_sysvars, self_state,
                      auto_rejoin);
 
-    mysqlshdk::utils::Version instance_version;
-
-    // If there's no version info, set it as zero.
-    if (!minfo.version.empty()) {
-      instance_version = mysqlshdk::utils::Version(minfo.version);
-    } else {
-      instance_version = mysqlshdk::utils::Version(0, 0, 0);
-    }
-
     shcore::Array_t issues = instance_diagnostics(
-        inst, recovery_channel, applier_channel, super_read_only, minfo.state,
-        self_state, minfo.role, instance_version, parallel_applier_options);
+        instance.get(), &m_cluster, inst, recovery_channel, applier_channel,
+        super_read_only, minfo, self_state, parallel_applier_options);
 
     auto ret_val = validate_instance_recovery_user(
         instance, endpoints, inst.actual_server_uuid, self_state);
@@ -1288,84 +1375,97 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
   shcore::Dictionary_t ret = shcore::make_dict();
 
   auto group_instance = m_cluster.get_cluster_server();
-
-  // Get the primary UUID value to determine GR mode:
-  // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
-  std::string gr_primary_uuid =
-      mysqlshdk::gr::get_group_primary_uuid(*group_instance, nullptr);
+  bool gr_running =
+      m_cluster.cluster_availability() != Cluster_availability::OFFLINE &&
+      m_cluster.cluster_availability() != Cluster_availability::UNREACHABLE;
 
   std::string topology_mode =
-      !gr_primary_uuid.empty()
-          ? mysqlshdk::gr::to_string(
-                mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY)
-          : mysqlshdk::gr::to_string(
-                mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
+      mysqlshdk::gr::to_string(m_cluster.get_cluster_topology_type());
 
   // Set Cluster name
   (*ret)["name"] = shcore::Value("default");
   (*ret)["topologyMode"] = shcore::Value(topology_mode);
 
   mysqlshdk::utils::Version protocol_version;
-  try {
-    protocol_version =
-        mysqlshdk::gr::get_group_protocol_version(*group_instance);
-  } catch (const shcore::Exception &e) {
-    if (e.code() == ER_CANT_INITIALIZE_UDF)
-      log_warning("Can't get protocol version from %s: %s",
-                  group_instance->descr().c_str(), e.format().c_str());
-    else
-      throw;
+  if (group_instance && gr_running) {
+    try {
+      protocol_version =
+          mysqlshdk::gr::get_group_protocol_version(*group_instance);
+    } catch (const shcore::Exception &e) {
+      if (e.code() == ER_CANT_INITIALIZE_UDF)
+        log_warning("Can't get protocol version from %s: %s",
+                    group_instance->descr().c_str(), e.format().c_str());
+      else
+        throw;
+    }
   }
 
   if ((!m_extended.is_null() && *m_extended >= 1)) {
     (*ret)["groupName"] = shcore::Value(m_cluster.get_group_name());
-    (*ret)["GRProtocolVersion"] = shcore::Value(protocol_version.get_full());
+    (*ret)["GRProtocolVersion"] =
+        protocol_version ? shcore::Value(protocol_version.get_full())
+                         : shcore::Value::Null();
   }
 
-  auto ssl_mode = group_instance->get_sysvar_string(
-      "group_replication_ssl_mode", mysqlshdk::mysql::Var_qualifier::GLOBAL);
-  if (ssl_mode) {
-    (*ret)["ssl"] = shcore::Value(*ssl_mode);
-  } else {
-    (*ret)["ssl"] = shcore::Value::Null();
+  auto ssl_mode = group_instance ? *group_instance->get_sysvar_string(
+                                       "group_replication_ssl_mode",
+                                       mysqlshdk::mysql::Var_qualifier::GLOBAL)
+                                 : "";
+  if (!ssl_mode.empty()) {
+    (*ret)["ssl"] = shcore::Value(ssl_mode);
   }
 
   bool single_primary;
   std::string view_id;
   bool has_quorum;
-  std::vector<mysqlshdk::gr::Member> member_info(mysqlshdk::gr::get_members(
-      *group_instance, &single_primary, &has_quorum, &view_id));
+  std::vector<mysqlshdk::gr::Member> member_info;
 
-  tmp = check_group_status(*group_instance, member_info, has_quorum);
-  (*ret)["statusText"] = shcore::Value(tmp->get_string("statusText"));
-  (*ret)["status"] = shcore::Value(tmp->get_string("status"));
-  if (!m_extended.is_null() && *m_extended >= 1)
-    (*ret)["groupViewId"] = shcore::Value(view_id);
+  if (group_instance && gr_running) {
+    member_info = mysqlshdk::gr::get_members(*group_instance, &single_primary,
+                                             &has_quorum, &view_id);
 
-  std::shared_ptr<Instance> primary_instance;
-  {
-    if (single_primary) {
-      // In single primary mode we need to add the "primary" field
-      (*ret)["primary"] = shcore::Value("?");
-      for (const auto &member : member_info) {
-        if (member.role == mysqlshdk::gr::Member_role::PRIMARY) {
-          const Instance_metadata *primary = instance_with_uuid(member.uuid);
-          if (primary) {
-            auto s = m_member_sessions.find(primary->endpoint);
-            if (s != m_member_sessions.end()) {
-              primary_instance = s->second;
+    tmp = check_group_status(*group_instance, member_info, has_quorum);
+    (*ret)["statusText"] = shcore::Value(tmp->get_string("statusText"));
+    (*ret)["status"] = shcore::Value(tmp->get_string("status"));
+    if (!m_extended.is_null() && *m_extended >= 1)
+      (*ret)["groupViewId"] = shcore::Value(view_id);
+
+    std::shared_ptr<Instance> primary_instance;
+    {
+      if (single_primary) {
+        // In single primary mode we need to add the "primary" field
+        (*ret)["primary"] = shcore::Value("?");
+        for (const auto &member : member_info) {
+          if (member.role == mysqlshdk::gr::Member_role::PRIMARY) {
+            const Instance_metadata *primary = instance_with_uuid(member.uuid);
+            if (primary) {
+              auto s = m_member_sessions.find(primary->endpoint);
+              if (s != m_member_sessions.end()) {
+                primary_instance = s->second;
+              }
+              (*ret)["primary"] = shcore::Value(primary->endpoint);
             }
-            (*ret)["primary"] = shcore::Value(primary->endpoint);
+            break;
           }
-          break;
         }
       }
     }
+  } else {
+    if (m_cluster.cluster_availability() == Cluster_availability::OFFLINE) {
+      (*ret)["status"] = shcore::Value("OFFLINE");
+      (*ret)["statusText"] =
+          shcore::Value("All members of the group are OFFLINE");
+    } else {
+      (*ret)["status"] = shcore::Value("UNREACHABLE");
+      (*ret)["statusText"] =
+          shcore::Value("Could not connect to any ONLINE members");
+    }
   }
+
   (*ret)["topology"] = shcore::Value(get_topology(member_info));
 
-  if (!m_member_sessions.empty()) {
-    auto issues = group_diagnostics(member_info, protocol_version);
+  {
+    auto issues = group_diagnostics(&m_cluster, member_info, protocol_version);
 
     if (issues && !issues->empty())
       (*ret)["clusterErrors"] = shcore::Value(issues);
@@ -1377,7 +1477,7 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
 void Status::prepare() {
   // Sanity check: Verify if the topology type changed and issue an error if
   // needed.
-  m_cluster.sanity_check();
+  if (m_cluster.get_cluster_server()) m_cluster.sanity_check();
 
   m_instances = m_cluster.get_instances();
 
@@ -1394,6 +1494,7 @@ shcore::Value Status::get_default_replicaset_status() {
 
   replicaset_dict = collect_replicaset_status();
 
+  // TODO(alfredo) - this needs to be reviewed, probably not necessary
   // Check if the Cluster group session is established to an instance with
   // a state different than
   //   - Online R/W
@@ -1406,9 +1507,9 @@ shcore::Value Status::get_default_replicaset_status() {
   //   - ERROR
   //
   // If that's the case, a warning must be added to the resulting JSON object
-  {
-    auto group_instance = m_cluster.get_cluster_server();
+  auto group_instance = m_cluster.get_cluster_server();
 
+  if (group_instance) {
     auto state = get_replication_group_state(
         *group_instance, get_gr_instance_type(*group_instance));
 
@@ -1437,23 +1538,26 @@ shcore::Value Status::execute() {
   // Get the default replicaSet options
   (*dict)["defaultReplicaSet"] = shcore::Value(get_default_replicaset_status());
 
-  // Gets the metadata version
-  if (!m_extended.is_null() && *m_extended >= 1) {
-    auto version = mysqlsh::dba::metadata::installed_version(
-        m_cluster.get_cluster_server());
-    (*dict)["metadataVersion"] = shcore::Value(version.get_base());
+  if (m_cluster.get_cluster_server()) {
+    // Gets the metadata version
+    if (!m_extended.is_null() && *m_extended >= 1) {
+      auto version = mysqlsh::dba::metadata::installed_version(
+          m_cluster.get_cluster_server());
+      (*dict)["metadataVersion"] = shcore::Value(version.get_base());
+    }
+
+    // Iterate all replicasets and get the status for each one
+
+    std::string addr = m_cluster.get_cluster_server()->get_canonical_address();
+    (*dict)["groupInformationSourceMember"] = shcore::Value(addr);
   }
-
-  // Iterate all replicasets and get the status for each one
-
-  std::string addr = m_cluster.get_cluster_server()->get_canonical_address();
-  (*dict)["groupInformationSourceMember"] = shcore::Value(addr);
 
   auto md_server = m_cluster.get_metadata_storage()->get_md_server();
 
   // metadata server, if its a different one
   if (md_server &&
-      md_server->get_uuid() != m_cluster.get_cluster_server()->get_uuid()) {
+      (!m_cluster.get_cluster_server() ||
+       md_server->get_uuid() != m_cluster.get_cluster_server()->get_uuid())) {
     (*dict)["metadataServer"] =
         shcore::Value(md_server->get_canonical_address());
   }

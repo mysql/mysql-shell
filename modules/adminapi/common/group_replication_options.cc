@@ -631,6 +631,9 @@ const shcore::Option_pack_def<Cluster_set_group_replication_options>
           .optional(kMemberWeight,
                     &Group_replication_options::set_member_weight, "",
                     shcore::Option_extract_mode::EXACT)
+          .optional(
+              kManualStartOnBoot,
+              &Cluster_set_group_replication_options::manual_start_on_boot)
           .optional(kConsistency, &Group_replication_options::set_consistency)
           .optional(kExpelTimeout,
                     &Group_replication_options::set_expel_timeout, "",
@@ -649,7 +652,7 @@ const shcore::Option_pack_def<Create_group_replication_options>
           .optional(kGroupName,
                     &Create_group_replication_options::set_group_name)
           .optional(kManualStartOnBoot,
-                    &Create_group_replication_options::set_manual_start_on_boot)
+                    &Create_group_replication_options::manual_start_on_boot)
           .optional(kConsistency,
                     &Create_group_replication_options::set_consistency)
           .optional(kFailoverConsistency,
@@ -670,10 +673,6 @@ void Create_group_replication_options::set_group_name(
   if (group_name->empty())
     throw shcore::Exception::argument_error(shcore::str_format(
         "Invalid value for %s, string value cannot be empty.", kGroupName));
-}
-
-void Create_group_replication_options::set_manual_start_on_boot(bool value) {
-  manual_start_on_boot = value;
 }
 
 }  // namespace dba

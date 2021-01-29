@@ -77,6 +77,8 @@ Cluster_join::Cluster_join(
   // the group_seeds value provided by the user.
   m_gr_opts.check_option_values(m_target_instance->get_version());
 
+  m_gr_opts.manual_start_on_boot = m_cluster->get_manual_start_on_boot_option();
+
   // Validate the Clone options.
   m_clone_opts.check_option_values(m_target_instance->get_version());
 }
@@ -407,8 +409,7 @@ void Cluster_join::configure_cluster_set_member() {
 
     // Update the credentials on all cluster members
     m_cluster->execute_in_members(
-        {}, m_cluster->get_global_primary_master()->get_connection_options(),
-        {},
+        {}, m_cluster->get_primary_master()->get_connection_options(), {},
         [&](const std::shared_ptr<Instance> &target,
             const mysqlshdk::gr::Member &) {
           async_update_replica_credentials(
@@ -418,7 +419,7 @@ void Cluster_join::configure_cluster_set_member() {
 
     // Setup the replication channel at the target instance but do not start
     // it since that's handled by Group Replication
-    async_add_replica(m_cluster->get_global_primary_master().get(),
+    async_add_replica(m_cluster->get_primary_master().get(),
                       m_target_instance.get(), k_clusterset_async_channel_name,
                       ar_options, true, false, false);
   }

@@ -532,7 +532,7 @@ shcore::Value Remove_instance::execute() {
           "* Waiting for the Cluster to synchronize with the PRIMARY "
           "Cluster...");
 
-      m_cluster->sync_transactions(*m_cluster->get_global_primary_master(),
+      m_cluster->sync_transactions(*m_cluster->get_primary_master(),
                                    k_clusterset_async_channel_name, 0);
 
       auto cs = m_cluster->get_cluster_set();

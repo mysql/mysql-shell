@@ -221,6 +221,9 @@ bool get_channel_info(const mysqlshdk::mysql::IInstance &instance,
 std::vector<Replication_channel> get_incoming_channels(
     const mysqlshdk::mysql::IInstance &instance);
 
+std::vector<std::string> get_incoming_channel_names(
+    const mysqlshdk::mysql::IInstance &instance, bool include_stopped);
+
 /**
  * Returns list of all replication slaves from the given instance.
  */

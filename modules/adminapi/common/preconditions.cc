@@ -908,7 +908,8 @@ Cluster_global_status Precondition_checker::get_cluster_global_state() {
       !cluster_md.cluster_set_id.empty() &&
       m_metadata->get_cluster_set(cluster_md.cluster_set_id, &cset_md,
                                   nullptr)) {
-    Cluster_impl cluster(cluster_md, m_group_server, m_metadata);
+    Cluster_impl cluster(cluster_md, m_group_server, m_metadata,
+                         Cluster_availability::ONLINE);
     auto finally_primary =
         shcore::on_leave_scope([&cluster]() { cluster.release_primary(); });
 

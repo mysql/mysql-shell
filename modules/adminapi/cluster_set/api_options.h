@@ -63,6 +63,13 @@ struct Remove_cluster_options {
   mysqlshdk::null_bool force;
 };
 
+struct Status_options {
+  static const shcore::Option_pack_def<Status_options> &options();
+  void set_extended(uint64_t value);
+
+  uint64_t extended = 0;  // By default 0 (false).
+};
+
 }  // namespace clusterset
 }  // namespace dba
 }  // namespace mysqlsh

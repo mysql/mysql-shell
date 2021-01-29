@@ -38,7 +38,7 @@ cluster.help("checkInstanceState")
 cluster.help("describe")
 
 //@ Describe, \? [USE:Describe]
-\? describe
+\? cluster.describe
 
 //@ Disconnect
 cluster.help("disconnect")

@@ -461,6 +461,7 @@ const full_status_templ_8023 = {
                 "memberState": "",
                 "mode": "",
                 "readReplicas": {},
+                "replicationLag": null,
                 "role": "",
                 "applierWorkerThreads": 4,
                 "status": "",

@@ -31,12 +31,26 @@ namespace dba {
 
 namespace {
 
+std::vector<mysqlshdk::gr::Member> get_members(
+    const mysqlshdk::mysql::IInstance &instance, bool *out_single_primary_mode,
+    bool *out_has_quorum = nullptr, std::string *out_group_view_id = nullptr) {
+  try {
+    return mysqlshdk::gr::get_members(instance, out_single_primary_mode,
+                                      out_has_quorum, out_group_view_id);
+  } catch (const std::runtime_error &e) {
+    if (shcore::str_beginswith(e.what(),
+                               "Group replication does not seem to be active"))
+      throw shcore::Exception(e.what(),
+                              SHERR_DBA_GROUP_REPLICATION_NOT_RUNNING);
+    throw;
+  }
+}
+
 std::string find_cluster_member_uri_of_role(
     const std::shared_ptr<Instance> &instance, mysqlshdk::gr::Member_role role,
     bool *out_single_primary) {
   bool has_quorum = false;
-  const auto members =
-      mysqlshdk::gr::get_members(*instance, out_single_primary, &has_quorum);
+  const auto members = get_members(*instance, out_single_primary, &has_quorum);
 
   if (!has_quorum) {
     throw shcore::Exception("Group has no quorum",
@@ -191,8 +205,7 @@ std::shared_ptr<mysqlsh::dba::Instance> get_primary_member_from_group(
   bool has_quorum = false;
 
   // Get all members of the group
-  const auto members =
-      mysqlshdk::gr::get_members(*instance, nullptr, &has_quorum);
+  const auto members = get_members(*instance, nullptr, &has_quorum);
 
   if (!has_quorum) {
     throw shcore::Exception("Group has no quorum",

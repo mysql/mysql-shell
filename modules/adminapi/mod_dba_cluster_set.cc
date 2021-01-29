@@ -229,6 +229,9 @@ auto, clone or incremental. Default is auto.
 level.
 @li cloneDonor: host:port of an existing member of the PRIMARY cluster to
 clone from. IPv6 addresses are not supported for this option.
+@li manualStartOnBoot: boolean (default false). If false, Group Replication in
+cluster instances will automatically start and rejoin when MySQL starts,
+otherwise it must be started manually.
 @li memberSslMode: SSL mode used to configure the security state of the
 communication between the InnoDB Cluster members.
 @li ipAllowlist: The list of hosts allowed to connect to the instance for
@@ -420,6 +423,115 @@ void ClusterSet::remove_cluster(
                                    impl()->default_admin_credentials());
 
   impl()->remove_cluster(cluster_name, *options);
+}
+
+// Documentation of the status function
+REGISTER_HELP_FUNCTION(status, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_STATUS, R"*(
+Describe the status of the ClusterSet.
+
+@param options optional Dictionary with additional parameters described below.
+
+@returns A JSON object describing the status of the ClusterSet and its members.
+
+This function describes the status of the ClusterSet including its
+members (Clusters).
+
+The function will gather state information from each member of the
+ClusterSet and the replication channel of it to produce a status
+report of the ClusterSet as a whole.
+
+<b>Options</b>
+
+The following options may be given to control the amount of information
+gathered and returned.
+
+@li extended: verbosity level of the command output. Default is 0.
+
+Option 'extended' may have the following values:
+
+@li 0: regular level of details. Only basic information about the status
+of the ClusterSet and Cluster members.
+@li 1: includes basic information about the status of each cluster, information
+about each cluster member role and state as reported by Group
+Replication, and information about the ClusterSet Replication channel.
+@li 2: includes the list of the fenced system variables, applier worker
+threads, member ID, etc. The information about the ClusterSet
+Replication channel is extended to include information about the applier
+queue size, applier queue GTID set, coordinator state, etc.
+@li 3: includes important replication related configuration settings, such
+as replication delay, heartbeat delay, retry count and connection retry
+for the ClusterSet replication channel.
+)*");
+/**
+ * $(CLUSTERSET_STATUS_BRIEF)
+ *
+ * $(CLUSTERSET_STATUS)
+ */
+#if DOXYGEN_JS
+String status(Dictionary options);
+#elif DOXYGEN_PY
+str status(dict options);
+#endif
+shcore::Value ClusterSet::status(
+    const shcore::Option_pack_ref<clusterset::Status_options> &options) {
+  impl()->connect_primary();
+
+  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
+                                   current_shell_options()->get().wizards,
+                                   impl()->default_admin_credentials());
+
+  return shcore::Value(impl()->status(options->extended));
+}
+
+// Documentation of the describe function
+REGISTER_HELP_FUNCTION(describe, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_DESCRIBE, R"*(
+Describe the structure of the ClusterSet.
+
+@returns A JSON object describing the structure of the ClusterSet.
+
+This function describes the status of the ClusterSet including its
+members (Clusters).
+
+This function describes the structure of the ClusterSet including all its
+information and Clusters belonging to it.
+
+The returned JSON object contains the following attributes:
+
+@li domainName: The ClusterSet domain name
+@li primaryCluster: The current primary Cluster of the ClusterSet
+@li clusters: the list of members of the ClusterSet
+
+The clusters JSON object contains the following attributes:
+
+@li clusterRole: The role of the Cluster
+@li a list of dictionaries describing each instance belonging to
+the Cluster.
+
+Each instance dictionary contains the following attributes:
+
+@li address: the instance address in the form of host:port
+@li label: the instance name identifier
+)*");
+/**
+ * $(CLUSTERSET_DESCRIBE_BRIEF)
+ *
+ * $(CLUSTERSET_DESCRIBE)
+ */
+#if DOXYGEN_JS
+String describe();
+#elif DOXYGEN_PY
+str describe();
+#endif
+shcore::Value ClusterSet::describe() {
+  impl()->connect_primary();
+
+  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
+                                   current_shell_options()->get().wizards,
+                                   impl()->default_admin_credentials());
+
+  return shcore::Value(impl()->describe());
 }
 
 }  // namespace dba

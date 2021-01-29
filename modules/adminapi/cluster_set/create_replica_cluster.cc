@@ -76,6 +76,8 @@ Create_replica_cluster::prepare_create_cluster_options() {
   options->gr_options.expel_timeout = m_options.gr_options.expel_timeout;
   options->gr_options.auto_rejoin_tries =
       m_options.gr_options.auto_rejoin_tries;
+  options->gr_options.manual_start_on_boot =
+      m_options.gr_options.manual_start_on_boot;
 
   Create_cluster_clone_options no_clone_options;
 

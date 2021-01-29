@@ -197,8 +197,8 @@ shcore::Value Reset_recovery_accounts_password::execute() {
     for (const auto &host : hosts) {
       log_debug("Changing the password for recovery user '%s'@'%s' on '%s'",
                 user.c_str(), host.c_str(), primary_rpr.c_str());
-      m_cluster.get_global_primary_master()->set_user_password(user, host,
-                                                               password);
+      m_cluster.get_metadata_storage()->get_md_server()->set_user_password(
+          user, host, password);
     }
 
     // do a change master on the instance to user the new replication account

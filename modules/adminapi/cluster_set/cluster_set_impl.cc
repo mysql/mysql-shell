@@ -30,6 +30,7 @@
 #include "modules/adminapi/cluster/create_cluster_set.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/cluster_set/create_replica_cluster.h"
+#include "modules/adminapi/cluster_set/status.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/async_utils.h"
 #include "modules/adminapi/common/dba_errors.h"
@@ -96,12 +97,6 @@ shcore::Value Cluster_set_impl::create_cluster_set(
   return op_create_cluster_set.execute();
 }
 
-std::shared_ptr<Instance> Cluster_set_impl::get_global_primary_master() const {
-  // Metadata server will be pointing to the primary member of the primary
-  // cluster
-  return get_metadata_storage()->get_md_server();
-}
-
 std::pair<std::string, std::string> Cluster_set_impl::get_cluster_repl_account(
     Cluster_impl *cluster) const {
   return get_metadata_storage()->get_cluster_repl_account(cluster->get_id());
@@ -120,7 +115,8 @@ Cluster_set_impl::create_cluster_replication_user(Instance *cluster_primary,
   log_info("Creating async replication account '%s'@'%%' for new cluster at %s",
            repl_user.c_str(), cluster_primary->descr().c_str());
 
-  auto primary = get_global_primary_master();
+  // auto primary = get_primary_master();
+  auto primary = get_metadata_storage()->get_md_server();
 
   mysqlshdk::mysql::Auth_options repl_account;
 
@@ -147,7 +143,8 @@ void Cluster_set_impl::record_cluster_replication_user(
 void Cluster_set_impl::drop_cluster_replication_user(Cluster_impl *cluster) {
   auto console = current_console();
 
-  auto primary = get_global_primary_master();
+  // auto primary = get_primary_master();
+  auto primary = get_metadata_storage()->get_md_server();
 
   std::string repl_user;
   std::string repl_user_host;
@@ -200,7 +197,8 @@ std::shared_ptr<Cluster_impl> Cluster_set_impl::get_primary_cluster() const {
   return m_primary_cluster;
 }
 
-Cluster_metadata Cluster_set_impl::get_primary_cluster_metadata() const {
+Cluster_set_member_metadata Cluster_set_impl::get_primary_cluster_metadata()
+    const {
   std::vector<Cluster_set_member_metadata> cs_members;
 
   if (!m_metadata_storage->get_cluster_set(m_id, nullptr, &cs_members)) {
@@ -209,64 +207,90 @@ Cluster_metadata Cluster_set_impl::get_primary_cluster_metadata() const {
 
   for (const auto &m : cs_members) {
     if (m.primary_cluster) {
-      return m.cluster;
+      return m;
     }
   }
 
   throw std::runtime_error("No primary cluster found");
 }
 
-mysqlsh::dba::Instance *Cluster_set_impl::acquire_primary(
-    mysqlshdk::mysql::Lock_mode /*mode*/,
-    const std::string & /*skip_lock_uuid*/) {
-  Cluster_metadata primary_cluster(get_primary_cluster_metadata());
+/**
+ * Connect to PRIMARY of PRIMARY Cluster
+ */
+mysqlsh::dba::Instance *Cluster_set_impl::connect_primary() {
+  Cluster_set_member_metadata primary_cluster(get_primary_cluster_metadata());
 
-  // Check if the MD server we're connected to is the PRIMARY
-  if (m_metadata_storage->get_md_server()->get_group_name() ==
-      primary_cluster.group_name) {
-    m_metadata_storage->get_md_server()->retain();
+  Scoped_instance_pool ipool(
+      m_metadata_storage, current_shell_options()->get().wizards,
+      Instance_pool::Auth_options(
+          get_cluster_server()->get_connection_options()));
 
-    m_primary_cluster = std::make_shared<Cluster_impl>(
-        primary_cluster, m_metadata_storage->get_md_server(),
-        m_metadata_storage);
-  } else {
-    Scoped_instance_pool ipool(
-        m_metadata_storage, current_shell_options()->get().wizards,
-        Instance_pool::Auth_options(
-            get_cluster_server()->get_connection_options()));
-
-    std::shared_ptr<Instance> primary_instance(
-        ipool->connect_group_primary(primary_cluster.group_name));
-
-    primary_instance->steal();
-
-    m_metadata_storage = std::make_shared<MetadataStorage>(primary_instance);
-
-    // Create a Cluster object for the primary cluster
-    m_primary_cluster = std::make_shared<Cluster_impl>(
-        primary_cluster, primary_instance, m_metadata_storage);
-  }
+  m_primary_cluster = get_cluster_object(primary_cluster, true);
 
   m_primary_master = m_primary_cluster->get_primary_master();
-
   return m_primary_master.get();
 }
 
-void Cluster_set_impl::release_primary(mysqlsh::dba::Instance *primary) {
-  m_primary_cluster->release_primary(primary);
-  m_primary_cluster = nullptr;
+namespace {
+void check_cluster_online(Cluster_impl *cluster) {
+  std::string role =
+      cluster->is_primary_cluster() ? "Primary Cluster" : "Cluster";
+
+  switch (cluster->cluster_availability()) {
+    case Cluster_availability::ONLINE:
+      break;
+    case Cluster_availability::ONLINE_NO_PRIMARY:
+      throw shcore::Exception("Could not connect to PRIMARY of " + role + " '" +
+                                  cluster->get_name() + "'",
+                              SHERR_DBA_CLUSTER_PRIMARY_UNAVAILABLE);
+
+    case Cluster_availability::OFFLINE:
+      throw shcore::Exception("All members of " + role + " '" +
+                                  cluster->get_name() + "' are OFFLINE",
+                              SHERR_DBA_GROUP_OFFLINE);
+
+    case Cluster_availability::NO_QUORUM:
+      throw shcore::Exception("Could not connect to an ONLINE member of " +
+                                  role + " '" + cluster->get_name() +
+                                  "' within quorum",
+                              SHERR_DBA_GROUP_HAS_NO_QUORUM);
+
+    case Cluster_availability::UNREACHABLE:
+      throw shcore::Exception("Could not connect to any ONLINE member of " +
+                                  role + " '" + cluster->get_name() + "'",
+                              SHERR_DBA_GROUP_UNREACHABLE);
+  }
+}
+}  // namespace
+
+/**
+ * Connect to PRIMARY of PRIMARY Cluster, throw exception if not possible
+ */
+mysqlsh::dba::Instance *Cluster_set_impl::acquire_primary(
+    mysqlshdk::mysql::Lock_mode /*mode*/,
+    const std::string & /*skip_lock_uuid*/) {
+  auto primary = connect_primary();
+  {
+    auto primary_cluster = get_primary_cluster();
+    assert(primary_cluster);
+
+    check_cluster_online(primary_cluster.get());
+  }
+  return primary;
+}
+
+void Cluster_set_impl::release_primary(mysqlsh::dba::Instance *) {
   m_primary_master.reset();
 }
 
 std::shared_ptr<Cluster_impl> Cluster_set_impl::get_cluster(
-    const std::string &name, bool allow_unavailable) const {
-  if (m_primary_cluster && name == m_primary_cluster->get_name()) {
-    return m_primary_cluster;
-  }
+    const std::string &name, bool allow_unavailable) {
+  if (m_primary_cluster->get_name() == name) return m_primary_cluster;
 
-  Cluster_metadata cluster_md;
+  Cluster_set_member_metadata cluster_md;
 
-  if (!m_metadata_storage->get_cluster_for_cluster_name(name, &cluster_md)) {
+  if (!m_metadata_storage->get_cluster_set_member_for_cluster_name(
+          name, &cluster_md)) {
     throw shcore::Exception(
         shcore::str_format("The cluster with the name '%s' does not exist.",
                            name.c_str()),
@@ -283,32 +307,57 @@ std::shared_ptr<Cluster_impl> Cluster_set_impl::get_cluster(
         SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET);
   }
 
+  if (cluster && !allow_unavailable) check_cluster_online(cluster.get());
+
   return cluster;
 }
 
 std::shared_ptr<Cluster_impl> Cluster_set_impl::get_cluster_object(
-    const Cluster_metadata &cluster_md, bool allow_unavailable) const {
+    const Cluster_set_member_metadata &cluster_md, bool allow_unavailable) {
   if (m_primary_cluster &&
-      cluster_md.group_name == m_primary_cluster->get_group_name()) {
+      cluster_md.cluster.group_name == m_primary_cluster->get_group_name()) {
     return m_primary_cluster;
   }
 
   auto ipool = current_ipool();
   try {
-    auto group_server = ipool->connect_group_member(cluster_md.group_name);
+    if (allow_unavailable) {
+      Cluster_availability availability;
 
-    group_server->steal();
+      auto group_server = ipool->try_connect_cluster_primary_with_fallback(
+          cluster_md.cluster.cluster_id, &availability);
 
-    return std::make_shared<Cluster_impl>(cluster_md, group_server,
-                                          get_metadata_storage());
+      if (group_server) {
+        group_server->steal();
+
+        if (cluster_md.primary_cluster && !cluster_md.invalidated)
+          m_metadata_storage = std::make_shared<MetadataStorage>(group_server);
+      }
+
+      return std::make_shared<Cluster_impl>(shared_from_this(),
+                                            cluster_md.cluster, group_server,
+                                            m_metadata_storage, availability);
+    } else {
+      auto group_server =
+          ipool->connect_group_member(cluster_md.cluster.group_name);
+
+      group_server->steal();
+      if (cluster_md.primary_cluster && !cluster_md.invalidated)
+        m_metadata_storage = std::make_shared<MetadataStorage>(group_server);
+
+      return std::make_shared<Cluster_impl>(
+          shared_from_this(), cluster_md.cluster, group_server,
+          m_metadata_storage, Cluster_availability::ONLINE);
+    }
   } catch (const shcore::Exception &e) {
     if (allow_unavailable) {
       current_console()->print_warning(
           "Could not connect to any member of cluster '" +
-          cluster_md.cluster_name + "': " + e.format());
+          cluster_md.cluster.cluster_name + "': " + e.format());
 
-      return std::make_shared<Cluster_impl>(cluster_md, nullptr,
-                                            get_metadata_storage());
+      return std::make_shared<Cluster_impl>(
+          shared_from_this(), cluster_md.cluster, nullptr,
+          get_metadata_storage(), Cluster_availability::UNREACHABLE);
     }
     throw;
   }
@@ -344,12 +393,14 @@ Cluster_channel_status Cluster_set_impl::get_replication_channel_status(
           auto primary = get_primary_master();
           auto primary_cluster = get_primary_cluster();
 
-          if (primary && primary_cluster) {
-            if (channel.source_uuid != primary->get_uuid()) {
+          if (primary && primary_cluster &&
+              primary_cluster->cluster_availability() ==
+                  Cluster_availability::ONLINE) {
+            if (channel.source_uuid != primary->get_uuid())
               return Cluster_channel_status::MISCONFIGURED;
-            }
           }
           return Cluster_channel_status::OK;
+          break;
         }
 
         case mysqlshdk::mysql::Replication_channel::OFF:
@@ -415,6 +466,13 @@ Cluster_global_status Cluster_set_impl::get_cluster_global_status(
 
   if (cluster->is_invalidated()) {
     ret = Cluster_global_status::INVALIDATED;
+  } else if (cluster->cluster_availability() ==
+             Cluster_availability::UNREACHABLE) {
+    ret = Cluster_global_status::UNKNOWN;
+  } else if (cluster->cluster_availability() ==
+                 Cluster_availability::NO_QUORUM ||
+             cluster->cluster_availability() == Cluster_availability::OFFLINE) {
+    ret = Cluster_global_status::NOT_OK;
   } else {
     try {
       // Acquire the primary first
@@ -422,13 +480,6 @@ Cluster_global_status Cluster_set_impl::get_cluster_global_status(
     } catch (const shcore::Exception &e) {
       if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
         ret = Cluster_global_status::NOT_OK;
-      } else {
-        throw;
-      }
-    } catch (const std::exception &e) {
-      if (shcore::str_beginswith(
-              e.what(), "Group replication does not seem to be active")) {
-        return Cluster_global_status::NOT_OK;
       } else {
         throw;
       }
@@ -463,19 +514,13 @@ Cluster_global_status Cluster_set_impl::get_cluster_global_status(
         }
       } else {  // it's a replica cluster
         // check if the primary cluster is unavailable
-        auto primary_cluster = get_primary_cluster();
-
-        if (!primary_cluster) {
-          return Cluster_global_status::NOT_OK;
-        }
-
-        auto primary_status = get_cluster_global_status(primary_cluster.get());
+        auto primary_status =
+            get_cluster_global_status(get_primary_cluster().get());
 
         if (primary_status == Cluster_global_status::NOT_OK ||
             primary_status == Cluster_global_status::UNKNOWN ||
-            primary_status == Cluster_global_status::INVALIDATED) {
+            primary_status == Cluster_global_status::INVALIDATED)
           return Cluster_global_status::NOT_OK;
-        }
 
         if (cl_status == Cluster_status::NO_QUORUM ||
             cl_status == Cluster_status::OFFLINE ||
@@ -508,7 +553,44 @@ Cluster_global_status Cluster_set_impl::get_cluster_global_status(
     }
   }
 
+  // if the cluster is OK, check consistency
+  if (ret == Cluster_global_status::OK && !cluster->is_primary_cluster()) {
+    if (!check_gtid_consistency(cluster)) {
+      ret = Cluster_global_status::OK_NOT_CONSISTENT;
+    }
+  }
+
   return ret;
+}
+
+bool Cluster_set_impl::check_gtid_consistency(Cluster_impl *cluster) const {
+  assert(get_primary_master());
+
+  auto my_gtid_set = mysqlshdk::mysql::Gtid_set::from_gtid_executed(
+      *cluster->get_cluster_server());
+  auto my_view_change_uuid = *cluster->get_cluster_server()->get_sysvar_string(
+      "group_replication_view_change_uuid");
+
+  my_gtid_set.subtract(my_gtid_set.get_gtids_from(my_view_change_uuid),
+                       *cluster->get_cluster_server());
+
+  auto source_gtid_set =
+      mysqlshdk::mysql::Gtid_set::from_gtid_executed(*get_primary_master());
+
+  auto errants = my_gtid_set;
+  errants.subtract(source_gtid_set, *cluster->get_cluster_server());
+
+  if (!errants.empty()) {
+    log_warning(
+        "Cluster %s has errant transactions: source=%s source_gtids=%s "
+        "replica=%s replica_gtids=%s errants=%s",
+        cluster->get_name().c_str(), get_primary_master()->descr().c_str(),
+        source_gtid_set.str().c_str(),
+        cluster->get_cluster_server()->descr().c_str(),
+        my_gtid_set.str().c_str(), errants.str().c_str());
+  }
+
+  return errants.empty();
 }
 
 Async_replication_options Cluster_set_impl::get_clusterset_replication_options()
@@ -528,49 +610,6 @@ Async_replication_options Cluster_set_impl::get_clusterset_replication_options()
   repl_options.master_retry_count = k_cluster_set_master_retry_count;
 
   return repl_options;
-}
-
-std::list<std::shared_ptr<Instance>> Cluster_set_impl::connect_all_members(
-    uint32_t read_timeout, bool skip_primary,
-    std::list<Cluster_id> *out_unreachable) {
-  // Connect to the PRIMARY of each cluster
-  std::vector<Cluster_set_member_metadata> cs_members;
-
-  if (!m_metadata_storage->get_cluster_set(m_id, nullptr, &cs_members)) {
-    throw std::runtime_error("Metadata not found");
-  }
-
-  auto console = current_console();
-  std::list<std::shared_ptr<Instance>> r;
-  auto ipool = current_ipool();
-
-  (void)read_timeout;
-
-  for (const auto &m : cs_members) {
-    if ((m.primary_cluster && skip_primary) || m.invalidated) {
-      continue;
-    }
-
-    auto cluster = get_cluster_object(m.cluster);
-    try {
-      cluster->acquire_primary();
-      auto pool = current_ipool();
-      r.emplace_back(cluster->get_primary_master());
-      r.back()->retain();
-      cluster->release_primary();
-    } catch (const shcore::Error &e) {
-      console->print_error("Could not connect to PRIMARY of cluster " +
-                           m.cluster.cluster_name + ": " + e.format());
-      if (out_unreachable) {
-        out_unreachable->push_back(m.cluster.cluster_id);
-      } else {
-        throw shcore::Exception(
-            "Cluster " + m.cluster.cluster_name + " is not reachable",
-            SHERR_DBA_ASYNC_MEMBER_UNREACHABLE);
-      }
-    }
-  }
-  return r;
 }
 
 Member_recovery_method Cluster_set_impl::validate_instance_recovery(
@@ -847,14 +886,15 @@ void Cluster_set_impl::remove_cluster(
 
         // Revert the replication account handling
         undo_list.push_front([=, &skip_replication_user_undo_step]() {
+          auto primary = get_metadata_storage()->get_md_server();
+
           // NOTE: skip if the primary cluster is offline or the flag to skip
           // it is enabled
-          if (target_cluster->get_primary_master() ||
-              !skip_replication_user_undo_step) {
+          if (primary || !skip_replication_user_undo_step) {
             log_info("Revert: Creating replication account at '%s'",
-                     get_global_primary_master()->descr().c_str());
-            auto repl_credentials = create_cluster_replication_user(
-                get_global_primary_master().get(), options.dry_run);
+                     primary->descr().c_str());
+            auto repl_credentials =
+                create_cluster_replication_user(primary.get(), options.dry_run);
 
             // Update the credentials on the primary and restart the channel
             // otherwise the channel will be broken
@@ -885,7 +925,9 @@ void Cluster_set_impl::remove_cluster(
             { throw std::logic_error("debug"); });
 
         // Sync again to catch-up the drop user and metadata update
-        if (target_cluster->get_primary_master() && options.timeout >= 0) {
+        if (target_cluster->cluster_availability() ==
+                Cluster_availability::ONLINE &&
+            options.timeout >= 0) {
           try {
             sync_transactions(*target_cluster->get_cluster_server(),
                               {k_clusterset_async_channel_name},
@@ -916,7 +958,9 @@ void Cluster_set_impl::remove_cluster(
       // channel to use in the revert process in case of a failure
       auto ar_options = get_clusterset_replication_options();
 
-      if (target_cluster->get_primary_master()) {
+      if (target_cluster->get_primary_master() &&
+          target_cluster->cluster_availability() ==
+              Cluster_availability::ONLINE) {
         // Call the primitive to remove the replica, ensuring:
         //  - super_read_only management is enabled
         //  - the ClusterSet replication channel is stopped and reset
@@ -946,8 +990,8 @@ void Cluster_set_impl::remove_cluster(
           ar_channel_options.repl_credentials = repl_credentials;
 
           update_replica(target_cluster->get_cluster_server().get(),
-                         get_global_primary_master().get(), ar_channel_options,
-                         true, options.dry_run);
+                         get_primary_master().get(), ar_channel_options, true,
+                         options.dry_run);
         });
       } else {
         // If the target cluster is OFFLINE, check if there are reachable
@@ -989,9 +1033,8 @@ void Cluster_set_impl::remove_cluster(
             undo_list.push_front([=, &skip_replication_user_undo_step]() {
               skip_replication_user_undo_step = true;
               log_info("Revert: Re-adding Cluster as Replica");
-              update_replica(reachable_member.get(),
-                             get_global_primary_master().get(), ar_options,
-                             false, options.dry_run);
+              update_replica(reachable_member.get(), get_primary_master().get(),
+                             ar_options, false, options.dry_run);
 
               log_info("Revert: Enabling skip_replica_start");
               reachable_member->set_sysvar(
@@ -1011,7 +1054,9 @@ void Cluster_set_impl::remove_cluster(
                       { throw std::logic_error("debug"); });
 
       // Disable skip_replica_start
-      if (!options.dry_run && target_cluster->get_primary_master()) {
+      if (!options.dry_run && target_cluster->get_cluster_server() &&
+          target_cluster->cluster_availability() ==
+              Cluster_availability::ONLINE) {
         log_info("Persisting skip_replica_start=0 across the cluster...");
 
         auto config =
@@ -1332,7 +1377,6 @@ void Cluster_set_impl::update_replica(
     console->print_error("Error changing replication source: " +
                          format_active_exception());
 
-    // XXX this error isn't very useful
     throw shcore::Exception("Error during switchover",
                             SHERR_DBA_SWITCHOVER_ERROR);
   }
@@ -1371,6 +1415,18 @@ void Cluster_set_impl::record_in_metadata(
       "the ClusterSet");
   get_metadata_storage()->migrate_routers_to_clusterset(seed_cluster_id,
                                                         get_id());
+}
+
+shcore::Value Cluster_set_impl::status(int extended) {
+  check_preconditions("status");
+
+  return shcore::Value(clusterset::cluster_set_status(this, extended));
+}
+
+shcore::Value Cluster_set_impl::describe() {
+  check_preconditions("describe");
+
+  return shcore::Value(clusterset::cluster_set_describe(this));
 }
 
 }  // namespace dba

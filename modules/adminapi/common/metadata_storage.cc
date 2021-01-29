@@ -693,7 +693,7 @@ bool MetadataStorage::get_cluster_for_server_uuid(
 }
 
 bool MetadataStorage::get_cluster_for_cluster_name(
-    const std::string &name, Cluster_metadata *out_cluster) {
+    const std::string &name, Cluster_metadata *out_cluster) const {
   std::string domain_name;
   std::string cluster_name;
   parse_fully_qualified_cluster_name(name, &domain_name, nullptr,
@@ -2249,6 +2249,45 @@ bool MetadataStorage::get_cluster_set(
   return false;
 }
 
+bool MetadataStorage::get_cluster_set_member_for_cluster_name(
+    const std::string &name, Cluster_set_member_metadata *out_cluster) const {
+  bool ret_val = false;
+
+  try {
+    auto result = execute_sqlf(
+        "SELECT c.*, m.view_id, m.member_role, m.master_cluster_id,"
+        "  m.invalidated"
+        " FROM mysql_innodb_cluster_metadata.v2_cs_members m"
+        " JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
+        "  ON c.cluster_id = m.cluster_id"
+        " WHERE c.cluster_name = ?",
+        name);
+
+    auto mrow = result->fetch_one_named();
+    if (out_cluster && mrow) {
+      *out_cluster = unserialize_clusterset_member_metadata(mrow);
+      out_cluster->cluster = unserialize_cluster_metadata(mrow, m_md_version);
+
+      ret_val = true;
+    }
+  } catch (const shcore::Error &e) {
+    // ER_BAD_FIELD_ERROR Would be raised if metadata schema is not 2.1.0
+    // ER_BAD_DB_ERROR Would be raised in a metadata upgrade failure in which
+    // case the state doesn't really matter
+    // ER_NO_SUCH_TABLE Would be raised with 5.7 servers
+    if (e.code() != ER_BAD_FIELD_ERROR && e.code() != ER_BAD_DB_ERROR &&
+        e.code() != ER_NO_SUCH_TABLE) {
+      log_error("Error getting ClusterSet Metadata: %s", e.what());
+
+      throw shcore::Exception::runtime_error(
+          "Unable get the Metadata for the ClusterSet to which the Cluster '" +
+          name + "' belongs to");
+    }
+  }
+
+  return ret_val;
+}
+
 bool MetadataStorage::get_cluster_set_member(
     const Cluster_id &cluster_id,
     Cluster_set_member_metadata *out_cs_member) const {
@@ -2445,10 +2484,15 @@ bool MetadataStorage::check_metadata(mysqlshdk::utils::Version *out_version,
 }
 
 bool MetadataStorage::check_cluster_set(Instance *target_instance,
+                                        uint64_t *out_view_id,
                                         std::string *out_cs_domain_name) const {
   bool ret_val = false;
 
+  if (m_md_version < mysqlshdk::utils::Version(2, 1, 0)) return false;
+
   auto target = target_instance ? target_instance : m_md_server.get();
+
+  std::string csid;
 
   auto instance_address = target->get_canonical_address();
   try {
@@ -2461,6 +2505,8 @@ bool MetadataStorage::check_cluster_set(Instance *target_instance,
     auto row = result->fetch_one();
 
     ret_val = row && !row->is_null(0);
+
+    if (ret_val) csid = row->get_string(0);
 
     if (out_cs_domain_name && ret_val) {
       result = execute_sqlf(
@@ -2481,13 +2527,25 @@ bool MetadataStorage::check_cluster_set(Instance *target_instance,
     if (e.code() != ER_BAD_FIELD_ERROR && e.code() != ER_BAD_DB_ERROR &&
         e.code() != ER_NO_SUCH_TABLE) {
       log_error(
-          "Error while verifying if instance '%s' belongs to a ClusterSet: "
-          "%s",
+          "Error while verifying if instance '%s' belongs to a ClusterSet: %s",
           instance_address.c_str(), e.what());
 
       throw shcore::Exception::runtime_error(
           "Unable to determine if the instance '" + instance_address +
           "' belongs to a ClusterSet");
+    }
+
+    if (out_view_id) {
+      auto result = m_md_server->queryf(
+          "SELECT MAX(view_id)"
+          " FROM mysql_innodb_cluster_metadata.clusterset_views"
+          " WHERE clusterset_id = ?",
+          csid);
+      if (auto row = result->fetch_one()) {
+        *out_view_id = row->get_uint(0);
+      } else {
+        *out_view_id = 0;
+      }
     }
   }
 

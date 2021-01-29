@@ -113,11 +113,11 @@ class Precondition_checker {
   std::shared_ptr<Instance> m_group_server;
 };
 
-// NOTE: BUG#30628479 is applicable to all the API functions and the root cause
-// is that several instances of the Metadata class are created during a function
-// execution.
-// To solve this, all the API functions should create a single instance of the
-// Metadata class and pass it down through the chain call.
+// NOTE: BUG#30628479 is applicable to all the API functions and the root
+// cause is that several instances of the Metadata class are created during a
+// function execution. To solve this, all the API functions should create a
+// single instance of the Metadata class and pass it down through the chain
+// call.
 Cluster_check_info check_function_preconditions(
     const std::string &function_name,
     const std::shared_ptr<MetadataStorage> &metadata,

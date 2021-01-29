@@ -78,11 +78,24 @@ namespace mysqlsh {
 namespace dba {
 
 Cluster_impl::Cluster_impl(
+    const std::shared_ptr<Cluster_set_impl> &cluster_set,
     const Cluster_metadata &metadata,
     const std::shared_ptr<Instance> &group_server,
-    const std::shared_ptr<MetadataStorage> &metadata_storage)
+    const std::shared_ptr<MetadataStorage> &metadata_storage,
+    Cluster_availability availability)
+    : Cluster_impl(metadata, group_server, metadata_storage, availability) {
+  m_cluster_set = cluster_set;
+}
+
+Cluster_impl::Cluster_impl(
+    const Cluster_metadata &metadata,
+    const std::shared_ptr<Instance> &group_server,
+    const std::shared_ptr<MetadataStorage> &metadata_storage,
+    Cluster_availability availability)
     : Base_cluster_impl(metadata.cluster_name, group_server, metadata_storage),
-      m_topology_type(metadata.cluster_topology_type) {
+      m_topology_type(metadata.cluster_topology_type),
+      m_availability(availability),
+      m_cs_md() {
   m_id = metadata.cluster_id;
   m_description = metadata.description;
   m_group_name = metadata.group_name;
@@ -107,12 +120,18 @@ Cluster_impl::Cluster_impl(
 
 Cluster_impl::~Cluster_impl() {}
 
-void Cluster_impl::sanity_check() const { verify_topology_type_change(); }
+void Cluster_impl::sanity_check() const {
+  if (m_availability == Cluster_availability::ONLINE)
+    verify_topology_type_change();
+}
 
 /*
  * Verify if the topology type changed and issue an error if needed.
  */
 void Cluster_impl::verify_topology_type_change() const {
+  // TODO(alfredo) - this should be replaced by a clusterErrors node in
+  // cluster.status(), along with other cluster level diag msgs
+
   // Get the primary UUID value to determine GR mode:
   // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
 
@@ -1315,8 +1334,8 @@ Cluster_impl::refresh_clusterset_replication_user() {
 
     // Change the replication user to use the newly generated password
     std::string repl_password;
-    mysqlshdk::mysql::set_random_password(*get_global_primary_master(),
-                                          creds.user, {"%"}, &repl_password);
+    mysqlshdk::mysql::set_random_password(*get_primary_master(), creds.user,
+                                          {"%"}, &repl_password);
     creds.password = repl_password;
   } catch (const std::exception &e) {
     throw shcore::Exception::runtime_error(shcore::str_format(
@@ -1332,6 +1351,10 @@ shcore::Value Cluster_impl::describe() {
 
   check_preconditions("describe");
 
+  return cluster_describe();
+}
+
+shcore::Value Cluster_impl::cluster_describe() {
   // Create the Cluster_describe command and execute it.
   cluster::Describe op_describe(*this);
   // Always execute finish when leaving "try catch".
@@ -1345,7 +1368,27 @@ shcore::Value Cluster_impl::describe() {
 
 Cluster_status Cluster_impl::cluster_status(int *out_num_failures_tolerated,
                                             int *out_num_failures) const {
-  assert(m_cluster_server);
+  int total_members =
+      static_cast<int>(m_metadata_storage->get_cluster_size(get_id()));
+
+  if (!m_primary_master) {
+    if (out_num_failures_tolerated) *out_num_failures_tolerated = 0;
+    if (out_num_failures) *out_num_failures = total_members;
+
+    switch (cluster_availability()) {
+      case Cluster_availability::ONLINE:
+      case Cluster_availability::ONLINE_NO_PRIMARY:
+        // this can happen if we're in a clusterset and didn't acquire the
+        // global primary
+        break;
+      case Cluster_availability::OFFLINE:
+        return Cluster_status::OFFLINE;
+      case Cluster_availability::NO_QUORUM:
+        return Cluster_status::NO_QUORUM;
+      case Cluster_availability::UNREACHABLE:
+        return Cluster_status::UNKNOWN;
+    }
+  }
 
   auto target = get_cluster_server();
 
@@ -1378,8 +1421,6 @@ Cluster_status Cluster_impl::cluster_status(int *out_num_failures_tolerated,
     }
   }
 
-  int total_members =
-      static_cast<int>(m_metadata_storage->get_cluster_size(get_id()));
   int number_of_failures_tolerated = num_online > 0 ? (num_online - 1) / 2 : 0;
 
   if (out_num_failures_tolerated) {
@@ -1407,10 +1448,7 @@ Cluster_status Cluster_impl::cluster_status(int *out_num_failures_tolerated,
   }
 }
 
-shcore::Value Cluster_impl::status(int64_t extended) {
-  // Throw an error if the cluster has already been dissolved
-  check_preconditions("status");
-
+shcore::Value Cluster_impl::cluster_status(int64_t extended) {
   // Create the Cluster_status command and execute it.
   cluster::Status op_status(*this, extended);
   // Always execute finish when leaving "try catch".
@@ -1419,6 +1457,13 @@ shcore::Value Cluster_impl::status(int64_t extended) {
   op_status.prepare();
   // Execute Cluster_status operations.
   return op_status.execute();
+}
+
+shcore::Value Cluster_impl::status(int64_t extended) {
+  // Throw an error if the cluster has already been dissolved
+  check_preconditions("status");
+
+  return cluster_status(extended);
 }
 
 shcore::Value Cluster_impl::list_routers(bool only_upgrade_required) {
@@ -1469,6 +1514,8 @@ shcore::Value Cluster_impl::create_cluster_set(
 
 std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set(
     bool print_warnings) {
+  if (auto ptr = m_cluster_set.lock()) return ptr;
+
   // NOTE: The operation must work even if the PRIMARY cluster is not reachable,
   // as long as the target instance is a reachable member of an InnoDB Cluster
   // that is part of a ClusterSet.
@@ -1515,6 +1562,36 @@ std::shared_ptr<Cluster_set_impl> Cluster_impl::get_cluster_set(
             "<<<forceQuorumUsingPartitionOf>>>()");
       }
     }
+  }
+
+  auto pc = cs->get_primary_cluster();
+
+  if (!pc || pc->cluster_availability() != Cluster_availability::ONLINE) {
+    auto console = current_console();
+
+    console->print_warning(
+        "Could not connect to any member of the PRIMARY Cluster, topology "
+        "changes will not be allowed");
+    console->print_note(
+        "To restore the Cluster and ClusterSet operations, a forced failover "
+        "must be performed using <<<forcePrimaryCluster>>>()");
+  }
+
+  // Check if the target Cluster still belongs to the ClusterSet
+  Cluster_set_member_metadata cluster_member_md;
+  if (!cs->get_metadata_storage()->get_cluster_set_member(cluster_id,
+                                                          &cluster_member_md)) {
+    current_console()->print_warning("The Cluster '" + cluster_md.cluster_name +
+                                     "' appears to have been removed from "
+                                     "the ClusterSet '" +
+                                     cs->get_name() + "'.");
+  }
+
+  // Check if the target Cluster is invalidated
+  if (cluster_member_md.invalidated) {
+    mysqlsh::current_console()->print_warning(
+        "Cluster '" + cluster_md.cluster_name +
+        "' was INVALIDATED and must be removed from the ClusterSet.");
   }
 
   // Return a handle (Cluster_set_impl) to the ClusterSet the target Cluster
@@ -1618,11 +1695,11 @@ void Cluster_impl::force_quorum_using_partition_of(
   std::string instance_address =
       instance_def.as_uri(mysqlshdk::db::uri::formats::only_transport());
 
-  // TODO(miguel): test if there's already quorum and add a 'force' option to be
-  // used if so
+  // TODO(miguel): test if there's already quorum and add a 'force' option to
+  // be used if so
 
-  // TODO(miguel): test if the instance if part of the current cluster, for the
-  // scenario of restoring a cluster quorum from another
+  // TODO(miguel): test if the instance if part of the current cluster, for
+  // the scenario of restoring a cluster quorum from another
 
   try {
     log_info("Opening a new session to the partition instance %s",
@@ -1788,8 +1865,8 @@ void Cluster_impl::force_quorum_using_partition_of(
 
   if (interactive) {
     console->println(
-        "The InnoDB cluster was successfully restored using the partition from "
-        "the instance '" +
+        "The InnoDB cluster was successfully restored using the partition "
+        "from the instance '" +
         instance_def.as_uri(mysqlshdk::db::uri::formats::user_transport()) +
         "'.");
     console->println();
@@ -1894,7 +1971,8 @@ void Cluster_impl::switch_to_single_primary_mode(
     op_switch_to_single_primary_mode.finish();
   });
 
-  // Prepare the Switch_to_single_primary_mode command execution (validations).
+  // Prepare the Switch_to_single_primary_mode command execution
+  // (validations).
   op_switch_to_single_primary_mode.prepare();
 
   // Execute Switch_to_single_primary_mode operation.
@@ -1986,7 +2064,10 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
   log_info("Creating recovery account '%s'@'%%' for instance '%s'",
            recovery_user.c_str(), target->descr().c_str());
 
-  auto primary = get_global_primary_master();
+  // When in a clusterset, this needs to happen at the global primary,
+  // but during replica creation, acquiring the global primary from cluster
+  // is tricky, so take a shortcut for now...
+  auto primary = get_metadata_storage()->get_md_server();
 
   // Check if the replication user already exists and delete it if it does,
   // before creating it again.
@@ -2000,8 +2081,8 @@ mysqlshdk::mysql::Auth_options Cluster_impl::create_replication_user(
     primary->drop_user(recovery_user, "%");
   }
 
-  // Check if clone is available on ALL cluster members, to avoid a failing SQL
-  // query because BACKUP_ADMIN is not supported
+  // Check if clone is available on ALL cluster members, to avoid a failing
+  // SQL query because BACKUP_ADMIN is not supported
   bool clone_available_all_members = false;
 
   mysqlshdk::utils::Version lowest_version = get_lowest_instance_version();
@@ -2024,7 +2105,7 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
   assert(target);
   auto console = current_console();
 
-  auto primary = get_global_primary_master();
+  auto primary = get_primary_master();
 
   std::string recovery_user;
   std::vector<std::string> recovery_user_hosts;
@@ -2048,9 +2129,9 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
     }
   } else {
     /*
-      Since clone copies all the data, including mysql.slave_master_info (where
-      the CHANGE MASTER credentials are stored) an instance may be using the
-      info stored in the donor's mysql.slave_master_info.
+      Since clone copies all the data, including mysql.slave_master_info
+      (where the CHANGE MASTER credentials are stored) an instance may be
+      using the info stored in the donor's mysql.slave_master_info.
 
       To avoid such situation, we re-issue the CHANGE MASTER query after
       clone to ensure the right account is used. However, if the monitoring
@@ -2058,9 +2139,9 @@ void Cluster_impl::drop_replication_user(mysqlshdk::mysql::IInstance *target) {
 
       The approach to tackle this issue is to store the donor recovery account
       in the target instance MD.instances table before doing the new CHANGE
-      and only update it to the right account after a successful CHANGE MASTER.
-      With this approach we can ensure that the account is not removed if it is
-      being used.
+      and only update it to the right account after a successful CHANGE
+      MASTER. With this approach we can ensure that the account is not removed
+      if it is being used.
 
       As so were we must query the Metadata to check whether the
       recovery user of that instance is registered for more than one instance
@@ -2157,9 +2238,6 @@ mysqlsh::dba::Instance *Cluster_impl::acquire_primary(
 
       m_metadata_storage = std::make_shared<MetadataStorage>(m_primary_master);
     } else {
-      // Retain the MD session
-      m_metadata_storage->get_md_server()->retain();
-
       if (!m_primary_master) {
         m_primary_master = m_cluster_server;
         m_metadata_storage =
@@ -2267,8 +2345,8 @@ Cluster_impl::get_replication_user(
       throw shcore::Exception::metadata_error(
           "The replication recovery account in use by '" +
           target_instance.descr() +
-          "' is not stored in the metadata. Use cluster.rescan() to update the "
-          "metadata.");
+          "' is not stored in the metadata. Use cluster.rescan() to update "
+          "the metadata.");
     } else {
       // account not created by InnoDB cluster
       throw shcore::Exception::runtime_error(
@@ -2360,11 +2438,11 @@ size_t Cluster_impl::setup_clone_plugin(bool enable_clone) {
               throw;
             }
 
-            auto primary = get_global_primary_master();
+            auto primary = get_primary_master();
 
             // Add the BACKUP_ADMIN grant to the instance's recovery account
-            // since it may not be there if the instance was added to a cluster
-            // non-supporting clone
+            // since it may not be there if the instance was added to a
+            // cluster non-supporting clone
             for (const auto &host : recovery_user_hosts) {
               shcore::sqlstring grant("GRANT BACKUP_ADMIN ON *.* TO ?@?", 0);
               grant << recovery_user;

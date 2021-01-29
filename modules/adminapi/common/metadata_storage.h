@@ -367,7 +367,10 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
                                            Cluster_metadata *out_cluster) const;
 
   bool get_cluster_for_cluster_name(const std::string &name,
-                                    Cluster_metadata *out_cluster);
+                                    Cluster_metadata *out_cluster) const;
+
+  bool get_cluster_set_member_for_cluster_name(
+      const std::string &name, Cluster_set_member_metadata *out_cluster) const;
 
   std::vector<Cluster_metadata> get_all_clusters();
 
@@ -540,6 +543,7 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
                       Cluster_type *out_type = nullptr) const;
 
   bool check_cluster_set(Instance *target_instance = nullptr,
+                         uint64_t *out_view_id = nullptr,
                          std::string *out_cs_domain_name = nullptr) const;
 
   bool supports_cluster_set() const;

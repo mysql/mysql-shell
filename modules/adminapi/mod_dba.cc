@@ -1042,7 +1042,7 @@ std::shared_ptr<Cluster> Dba::get_cluster(
                         metadata_at_target, group_server);
 
         std::string cs_domain_name;
-        if (metadata_at_target->check_cluster_set(target_member.get(),
+        if (metadata_at_target->check_cluster_set(target_member.get(), nullptr,
                                                   &cs_domain_name)) {
           console->print_warning(
               "The Cluster '" + cluster->impl()->get_name() +
@@ -1099,8 +1099,8 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     group_server->steal();
   }
 
-  auto cluster =
-      std::make_shared<Cluster_impl>(target_cm, group_server, metadata);
+  auto cluster = std::make_shared<Cluster_impl>(
+      target_cm, group_server, metadata, Cluster_availability::ONLINE);
 
   // Verify if the current session instance group_replication_group_name
   // value differs from the one registered in the Metadata for that instance

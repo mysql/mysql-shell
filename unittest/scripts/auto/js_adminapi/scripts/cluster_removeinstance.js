@@ -122,7 +122,7 @@ c.addInstance(__sandbox_uri2);
 testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE,(MISSING)");
 EXPECT_THROWS(function() { c.removeInstance(__sandbox_uri2); }, "Metadata for instance <<<__sandbox2>>> not found", "MYSQLSH");
-EXPECT_OUTPUT_CONTAINS_ONE_OF(["WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port2)>>>'","WARNING: MySQL Error 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 104"]);
+EXPECT_OUTPUT_CONTAINS_ONE_OF(["WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port2)>>>'","WARNING: MySQL Error 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error:"]);
 EXPECT_OUTPUT_CONTAINS("ERROR: The instance <<<__sandbox2>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.");
 
 //@ removeInstance() while the instance is down - force and wrong address (should fail)

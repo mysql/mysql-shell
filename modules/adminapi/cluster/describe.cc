@@ -73,19 +73,7 @@ shcore::Dictionary_t Describe::collect_replicaset_description() {
   // Get and set the topology mode from the Metadata
   auto group_instance = m_cluster.get_cluster_server();
 
-  // Get the primary UUID value to determine GR mode:
-  // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
-  std::string gr_primary_uuid =
-      mysqlshdk::gr::get_group_primary_uuid(*group_instance, nullptr);
-
-  std::string topology_mode =
-      !gr_primary_uuid.empty()
-          ? mysqlshdk::gr::to_string(
-                mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY)
-          : mysqlshdk::gr::to_string(
-                mysqlshdk::gr::Topology_mode::MULTI_PRIMARY);
-
-  (*ret)["topologyMode"] = shcore::Value(topology_mode);
+  (*ret)["topologyMode"] = shcore::Value(m_cluster.get_topology_type());
 
   // Get and set the topology (all instances)
   (*ret)["topology"] = shcore::Value(get_topology());
@@ -113,9 +101,8 @@ shcore::Value Describe::get_default_replicaset_description() {
   //   - ERROR
   //
   // If that's the case, a warning must be added to the resulting JSON object
-  {
-    auto group_instance = m_cluster.get_cluster_server();
 
+  if (auto group_instance = m_cluster.get_cluster_server()) {
     auto state = get_replication_group_state(
         *group_instance, get_gr_instance_type(*group_instance));
 

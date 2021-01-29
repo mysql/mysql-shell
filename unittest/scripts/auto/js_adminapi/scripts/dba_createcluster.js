@@ -73,7 +73,12 @@ session.runSql("set global group_replication_single_primary_mode=0");
 session.runSql("set global group_replication_enforce_update_everywhere_checks=1");
 
 c = dba.createCluster("test", {manualStartOnBoot:true});
-var start_on_boot = session.runSql("select @@group_replication_start_on_boot").fetchOne()[0];
+start_on_boot = session.runSql("select @@group_replication_start_on_boot").fetchOne()[0];
+EXPECT_EQ(0, start_on_boot);
+
+c.addInstance(__sandbox_uri2, {recoveryMethod:"incremental"});
+session2 = mysql.getSession(__sandbox_uri2);
+start_on_boot = session2.runSql("select @@group_replication_start_on_boot").fetchOne()[0];
 EXPECT_EQ(0, start_on_boot);
 
 c.dissolve();

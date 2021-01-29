@@ -620,6 +620,10 @@ shcore::Value Cluster::status(
   // Throw an error if the cluster has already been dissolved
   assert_valid("status");
 
+  Instance_pool::Auth_options auth_opts;
+  auth_opts.get(m_impl->get_cluster_server()->get_connection_options());
+  Scoped_instance_pool ipool(false, auth_opts);
+
   return m_impl->status(options->extended);
 }
 
