@@ -17,13 +17,15 @@ shell.connect(__sandbox_uri1)
 var cluster = dba.createCluster('sample');
 cluster.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
 var server_uuid1 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
+var server_id1 = session.runSql("SELECT @@server_id").fetchOne()[0];
 var group_name = session.runSql("SELECT @@group_replication_group_name").fetchOne()[0];
 
 shell.connect(__sandbox_uri2)
 var server_uuid2 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
+var server_id2 = session.runSql("SELECT @@server_id").fetchOne()[0];
 
 // Replace the metadata with one of version 1.0.1
-prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [server_uuid1,server_uuid2]);
+prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [[server_uuid1, server_id1], [server_uuid2, server_id2]]);
 shell.connect(__sandbox_uri1)
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.routers");

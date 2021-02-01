@@ -25,8 +25,8 @@ function update_var(file, variable, val) {
   return file.replace(re, val);
 }
 
-function create_instance_record(id, hostport, uuid) {
-  return `(${id},1,1,'${uuid}','${hostport}','HA',NULL,'{\"mysqlX\":\"${hostport}0\",\"grLocal\":\"${hostport}1\",\"mysqlClassic\":\"${hostport}\"}','{\"recoveryAccountHost\":\"%\",\"recoveryAccountUser\":\"mysql_innodb_cluster_15662\"}',NULL,NULL)`;
+function create_instance_record(id, hostport, uuid, server_id) {
+  return `(${id},1,1,'${uuid}','${hostport}','HA',NULL,'{\"mysqlX\":\"${hostport}0\",\"grLocal\":\"${hostport}1\",\"mysqlClassic\":\"${hostport}\"}','{\"server_id\":${server_id},\"recoveryAccountHost\":\"%\",\"recoveryAccountUser\":\"mysql_innodb_cluster_15662\"}',NULL,NULL)`;
 }
 
 function prepare_1_0_1_metadata_from_template(file, replication_group_id, instances, topology = "pm", schema = "mysql_innodb_cluster_metadata") {
@@ -43,7 +43,7 @@ function prepare_1_0_1_metadata_from_template(file, replication_group_id, instan
   instance_records = []
   for(index in instances) {
     hostport = `${hostname}:${ports[index]}`;
-    instance_records.push(create_instance_record(parseInt(index) + 1, hostport, instances[index]))
+    instance_records.push(create_instance_record(parseInt(index) + 1, hostport, instances[index][0], instances[index][1]))
   }
 
   var s6 = update_var(s5, "__instances__", instance_records.join(","));
