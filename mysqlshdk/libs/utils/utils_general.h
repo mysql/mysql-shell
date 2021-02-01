@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,6 +43,7 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/ishell_core.h"
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
 
@@ -281,10 +282,13 @@ lexical_cast(const S &data) {
   ss >> t;
   if (ss.fail()) {
     if (std::is_same<T, bool>::value) {
-      ss.clear();
-      ss >> std::boolalpha >> t;
+      const auto &str = ss.str();
+      if (shcore::str_caseeq(str, "true"))
+        return true;
+      else if (shcore::str_caseeq(str, "false"))
+        return false;
     }
-    if (ss.fail()) throw std::invalid_argument("Unable to perform conversion.");
+    throw std::invalid_argument("Unable to perform conversion.");
   } else if (!ss.eof()) {
     throw std::invalid_argument("Conversion did not consume whole input.");
   }

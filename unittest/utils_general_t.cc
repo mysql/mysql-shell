@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -432,7 +432,13 @@ TEST(utils_general, lexical_cast) {
   EXPECT_EQ(12345, lexical_cast<int>("12345"));
   EXPECT_EQ(12345, lexical_cast<unsigned>("12345"));
   EXPECT_TRUE(lexical_cast<bool>("true"));
+  EXPECT_TRUE(lexical_cast<bool>("TRUE"));
+  EXPECT_TRUE(lexical_cast<bool>("True"));
+  EXPECT_TRUE(lexical_cast<bool>("truE"));
   EXPECT_TRUE(lexical_cast<bool>("1"));
+  EXPECT_FALSE(lexical_cast<bool>("false"));
+  EXPECT_FALSE(lexical_cast<bool>("FALSE"));
+  EXPECT_FALSE(lexical_cast<bool>("False"));
   EXPECT_FALSE(lexical_cast<bool>("false"));
   EXPECT_FALSE(lexical_cast<bool>(0));
   EXPECT_EQ(123.123, lexical_cast<double>("123.123"));
@@ -441,6 +447,9 @@ TEST(utils_general, lexical_cast) {
 
   EXPECT_THROW(lexical_cast<bool>(12345), std::invalid_argument);
   EXPECT_THROW(lexical_cast<bool>("tru"), std::invalid_argument);
+  EXPECT_THROW(lexical_cast<bool>("TRU"), std::invalid_argument);
+  EXPECT_THROW(lexical_cast<bool>("falze"), std::invalid_argument);
+  EXPECT_THROW(lexical_cast<bool>("FALS"), std::invalid_argument);
   EXPECT_THROW(lexical_cast<int>(123.45), std::invalid_argument);
   EXPECT_THROW(lexical_cast<double>("12345f"), std::invalid_argument);
   EXPECT_THROW(lexical_cast<unsigned>("-12345"), std::invalid_argument);
