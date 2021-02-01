@@ -16,7 +16,7 @@ function set_upgrading_state(state) {
 /**
  * This function creates a scenario where an upgrade is interrupted in the middle,
  * this means the following is true:
- * 
+ *
  * - MD schema_version is set to upgrading version: 0.0.0
  * - There is a MD schema backup
  */
@@ -61,8 +61,9 @@ shell.connect(__sandbox_uri1);
 dba.createCluster('sample');
 var group_name = session.runSql("SELECT @@group_replication_group_name").fetchOne()[0];
 var server_uuid = session.runSql("SELECT @@server_uuid").fetchOne()[0];
+var server_id = session.runSql("SELECT @@server_id").fetchOne()[0];
 
-prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [server_uuid]);
+prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [[server_uuid, server_id]]);
 
 //@<> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);

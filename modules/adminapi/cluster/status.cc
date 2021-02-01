@@ -843,16 +843,21 @@ shcore::Array_t instance_diagnostics(
         shcore::Value("ERROR: group_replication has stopped with an error."));
   }
 
-  if (instance_md.actual_server_uuid != instance_md.md.uuid)
+  if (instance_md.actual_server_uuid != instance_md.md.uuid) {
     issues->push_back(
         shcore::Value("WARNING: server_uuid for instance has changed from "
                       "its last known value. Use cluster.rescan() to update "
                       "the metadata."));
-  else if (instance_md.md.cluster_id.empty() &&
-           self_state != mysqlshdk::gr::Member_state::RECOVERING)
+  } else if (instance_md.md.cluster_id.empty() &&
+             self_state != mysqlshdk::gr::Member_state::RECOVERING) {
     issues->push_back(
         shcore::Value("WARNING: Instance is not managed by InnoDB cluster. Use "
                       "cluster.rescan() to repair."));
+  } else if (instance_md.md.server_id == 0) {
+    issues->push_back(shcore::Value(
+        "NOTE: instance server_id is not registered in the metadata. Use "
+        "cluster.rescan() to update the metadata."));
+  }
 
   // Check if parallel-appliers are not configured. The requirement was
   // introduced in 8.0.23 so only check if the version is equal or higher to
