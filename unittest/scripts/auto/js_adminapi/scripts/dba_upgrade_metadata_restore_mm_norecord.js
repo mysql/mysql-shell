@@ -62,9 +62,8 @@ var cluster = dba.createCluster('sample');
 cluster.switchToMultiPrimaryMode()
 var group_name = session.runSql("SELECT @@group_replication_group_name").fetchOne()[0];
 var server_uuid = session.runSql("SELECT @@server_uuid").fetchOne()[0];
-var server_id = session.runSql("SELECT @@server_id").fetchOne()[0];
 
-prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [[server_uuid, server_id]], "mm");
+prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [server_uuid], "mm");
 
 //@ Verify Cluster Status
 load_metadata(__sandbox_uri1, metadata_1_0_1_file)

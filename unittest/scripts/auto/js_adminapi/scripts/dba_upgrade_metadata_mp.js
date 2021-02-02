@@ -21,11 +21,9 @@ cluster.addInstance(__sandbox_uri2, {recoveryMethod:'incremental'});
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 cluster.switchToMultiPrimaryMode()
 var server_uuid1 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
-var server_id1 = session.runSql("SELECT @@server_id").fetchOne()[0];
 var group_name = session.runSql("SELECT @@group_replication_group_name").fetchOne()[0];
 shell.connect(__sandbox_uri2)
 var server_uuid2 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
-var server_id2 = session.runSql("SELECT @@server_id").fetchOne()[0];
 shell.connect(__sandbox_uri1)
 
 var current_version = testutil.getCurrentMetadataVersion();
@@ -35,7 +33,7 @@ var major = parseInt(version[0]);
 var minor = parseInt(version[1]);
 var patch = parseInt(version[2]);
 
-prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [[server_uuid1, server_id1], [server_uuid2, server_id2]],"mm");
+prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [server_uuid1,server_uuid2], "mm");
 
 EXPECT_STDERR_EMPTY();
 

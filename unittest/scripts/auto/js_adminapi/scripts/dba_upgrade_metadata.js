@@ -23,15 +23,12 @@ EXPECT_THROWS(function(){dba.upgradeMetadata()}, "An open session is required to
 // Session to be used through all the AAPI calls
 shell.connect(__sandbox_uri2)
 var server_uuid2 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
-var server_id2 = session.runSql("SELECT @@server_id").fetchOne()[0];
 shell.connect(__sandbox_uri3)
 var server_uuid3 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
-var server_id3 = session.runSql("SELECT @@server_id").fetchOne()[0];
 
 //@<> upgradeMetadata on a standalone instance
 shell.connect(__sandbox_uri1)
 var server_uuid1 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
-var server_id1 = session.runSql("SELECT @@server_id").fetchOne()[0];
 EXPECT_THROWS(function(){dba.upgradeMetadata()}, "This function is not available through a session to a standalone instance")
 
 //@ Creates the sample cluster
@@ -50,7 +47,7 @@ var major = parseInt(version[0]);
 var minor = parseInt(version[1]);
 var patch = parseInt(version[2]);
 
-prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [[server_uuid1, server_id1], [server_uuid2, server_id2], [server_uuid3, server_id3]]);
+prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [server_uuid1,server_uuid2,server_uuid3]);
 
 //@<> upgradeMetadata, installed version is greater than current version
 set_metadata_version(major, minor, patch + 1)

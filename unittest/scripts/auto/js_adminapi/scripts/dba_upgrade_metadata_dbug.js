@@ -33,12 +33,11 @@ var patch = parseInt(version[2]);
 var cluster = dba.createCluster('sample')
 var group_name = session.runSql("SELECT @@group_replication_group_name").fetchOne()[0];
 var server_uuid = session.runSql("SELECT @@server_uuid").fetchOne()[0];
-var server_id = session.runSql("SELECT @@server_id").fetchOne()[0];
 
 //NOTE: This template schema is a 1.0.1 schema with registered outdated routers.
 //      The following tests tweak this schema to match the required conditions
 //      for each scenario being tested.
-prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [[server_uuid, server_id]]);
+prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [server_uuid]);
 
 //@<> persist GR configuration settings for 5.7 servers {VER(<8.0.11)}
 var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);

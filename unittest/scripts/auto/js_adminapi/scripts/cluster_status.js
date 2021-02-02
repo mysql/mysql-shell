@@ -256,23 +256,6 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 var stat = cluster.status();
 println(stat);
 
-// BUG#32226871: MISSING INFORMATION ABOUT METADATA NOT INCLUDING SERVER_ID ON UPGRADE SCENARIO
-// If a cluster member with a version >= 8.0.23 doesn't have the server_id registered in the
-// metadata that information must be included in 'instanceErrors'
-
-//@<> BUG#32226871: preparation (remove server_id to simulate the upgrade) {VER(>=8.0.23)}
-session.runSql(`UPDATE mysql_innodb_cluster_metadata.instances set attributes=JSON_REMOVE(attributes, '$.server_id') WHERE address= '${hostname}:${__mysql_sandbox_port2}'`);
-
-//@<> BUG#32226871: instanceErrors must report server_id {VER(>=8.0.23)}
-EXPECT_EQ(cluster.status()["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port2]["instanceErrors"][0],
-                "NOTE: instance server_id is not registered in the metadata. Use cluster.rescan() to update the metadata.");
-
-//@<> BUG#32226871: fix with cluster.rescan() {VER(>=8.0.23)}
-cluster.rescan()
-
-//@<> BUG#32226871: status should be fine now (no instanceErrors regarding server_id) {VER(>=8.0.23)}
-EXPECT_FALSE("instanceErrors" in cluster.status()["defaultReplicaSet"]["topology"][hostname+":"+__mysql_sandbox_port2])
-
 //@<> WL#13084 - TSF4_5: extended: 0 is the default (same as with no options).
 var ext_0_status = cluster.status({extended: 0});
 EXPECT_EQ(ext_0_status, stat);
