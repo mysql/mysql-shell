@@ -1,3 +1,4 @@
+#@ {not real_host_is_loopback}
 
 #@<> Snapshot File Name {VER(<8.0.0)}
 snapshot_file = 'metadata-1.0.1-5.7.27-snapshot.sql'
