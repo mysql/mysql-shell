@@ -27,19 +27,19 @@ rs.addInstance(__sandbox_uri2);
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
 //@<> WL#13788 argument errors of ReplicaSet.setInstanceOption TSFR2_5
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:tagname")}, "ReplicaSet.setInstanceOption: Invalid number of arguments, expected 3 but got 2", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:invalid_symbol#", 123)}, "ReplicaSet.setInstanceOption: 'invalid_symbol#' is not a valid tag identifier.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_invalid_builtin", 123)}, "ReplicaSet.setInstanceOption: '_invalid_builtin' is not a valid built-in tag.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "unsupported_namespace:invalid_symbol#", 123)}, "ReplicaSet.setInstanceOption: Namespace 'unsupported_namespace' not supported.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, ":invalid_symbol#", 123)}, "ReplicaSet.setInstanceOption: ':invalid_symbol#' is not a valid identifier.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:", 123)}, "ReplicaSet.setInstanceOption: 'tag:' is not a valid identifier.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "not_a_tag", 123)}, "ReplicaSet.setInstanceOption: Option 'not_a_tag' not supported.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:tagname")}, "Invalid number of arguments, expected 3 but got 2", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:invalid_symbol#", 123)}, "'invalid_symbol#' is not a valid tag identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_invalid_builtin", 123)}, "'_invalid_builtin' is not a valid built-in tag.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "unsupported_namespace:invalid_symbol#", 123)}, "Namespace 'unsupported_namespace' not supported.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, ":invalid_symbol#", 123)}, "':invalid_symbol#' is not a valid identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:", 123)}, "'tag:' is not a valid identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "not_a_tag", 123)}, "Option 'not_a_tag' not supported.", "ArgumentError");
 
 //@<> WL#13788 Built-in tag values are validated and throw error if value cannot be converted to expected type - TSFR2_6
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", "123")}, "ReplicaSet.setInstanceOption: Built-in tag '_hidden' is expected to be of type Bool, but is String", "TypeError");
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", [true])}, "ReplicaSet.setInstanceOption: Built-in tag '_hidden' is expected to be of type Bool, but is Array", "TypeError");
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", "invalid")}, "ReplicaSet.setInstanceOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", [123])}, "ReplicaSet.setInstanceOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is Array", "TypeError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", "123")}, "Built-in tag '_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", [true])}, "Built-in tag '_hidden' is expected to be of type Bool, but is Array", "TypeError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", "invalid")}, "Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", [123])}, "Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is Array", "TypeError");
 
 //@<> WL#13788 Validate replicaSet.options shows values about the tags set via setInstanceOption - TSFR2_7
 // we are using the output of replicaSet.options to validate the tag was set.
@@ -65,11 +65,11 @@ EXPECT_TRUE(get_tags_for_instance(rs, __endpoint2)["test_bool"] === true);
 
 //@<> WL#13788: setInstanceOption must not allow setting tags for an instance if it is unreachable.
 testutil.stopSandbox(__mysql_sandbox_port2, {wait:1});
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", false)}, "ReplicaSet.setInstanceOption: Could not open connection to '" + __sandbox2 + "': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port2)>>>'", "MySQL Error");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri2, "tag:_hidden", false)}, "Could not open connection to '" + __sandbox2 + "': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port2)>>>'", "MySQL Error");
 
 //@<> WL#13788 setInstanceOption must not allow settings tags for an instance that doesn't belong to the replicaSet.
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
-EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri3, "tag:_hidden", false)}, "ReplicaSet.setInstanceOption: The instance '" + __sandbox3 + "' does not belong to the ReplicaSet.", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){rs.setInstanceOption(__sandbox_uri3, "tag:_hidden", false)}, "The instance '" + __sandbox3 + "' does not belong to the ReplicaSet.", "RuntimeError");
 testutil.destroySandbox(__mysql_sandbox_port3);
 
 //@<> WL#13788 use setOption to set built-in tags and check that they are saved correctly TSFR2_4

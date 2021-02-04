@@ -49,12 +49,6 @@ struct Group_replication_options {
 
   explicit Group_replication_options(Unpack_target t) : target(t) {}
 
-  template <typename Unpacker>
-  Unpacker &unpack(Unpacker *options) {
-    do_unpack(options);
-    return *options;
-  }
-
   void check_option_values(const mysqlshdk::utils::Version &version);
 
   /**
@@ -85,25 +79,29 @@ struct Group_replication_options {
   mysqlshdk::null_bool manual_start_on_boot;
 
   std::string ip_allowlist_option_name;
-
- private:
-  void do_unpack(shcore::Option_unpacker *unpacker);
 };
 
-struct Join_group_replication_options : public Group_replication_options {
-  explicit Join_group_replication_options(Unpack_target t = Unpack_target::JOIN)
+struct Rejoin_group_replication_options : public Group_replication_options {
+  explicit Rejoin_group_replication_options(
+      Unpack_target t = Unpack_target::REJOIN)
       : Group_replication_options(t) {}
-  static const shcore::Option_pack_def<Join_group_replication_options>
+  static const shcore::Option_pack_def<Rejoin_group_replication_options>
       &options();
 
   void set_ssl_mode(const std::string &value);
   void set_ip_allowlist(const std::string &option, const std::string &value);
+};
+struct Join_group_replication_options
+    : public Rejoin_group_replication_options {
+  explicit Join_group_replication_options(Unpack_target t = Unpack_target::JOIN)
+      : Rejoin_group_replication_options(t) {}
+  static const shcore::Option_pack_def<Join_group_replication_options>
+      &options();
+
   void set_local_address(const std::string &value);
   void set_exit_state_action(const std::string &value);
   void set_member_weight(int64_t value);
-  void set_consistency(const std::string &option, const std::string &value);
   void set_group_seeds(const std::string &value);
-  void set_expel_timeout(int64_t value);
   void set_auto_rejoin_tries(int64_t value);
 };
 
@@ -115,16 +113,8 @@ struct Create_group_replication_options
       &options();
   void set_group_name(const std::string &value);
   void set_manual_start_on_boot(bool value);
-};
-
-struct Rejoin_group_replication_options : public Group_replication_options {
-  Rejoin_group_replication_options()
-      : Group_replication_options(Unpack_target::REJOIN) {}
-  static const shcore::Option_pack_def<Rejoin_group_replication_options>
-      &options();
-
-  void set_ssl_mode(const std::string &value);
-  void set_ip_allowlist(const std::string &value);
+  void set_consistency(const std::string &option, const std::string &value);
+  void set_expel_timeout(int64_t value);
 };
 
 }  // namespace dba

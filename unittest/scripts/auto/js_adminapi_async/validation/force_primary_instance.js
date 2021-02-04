@@ -2,35 +2,35 @@
 ||
 
 //@# bad parameters (should fail)
-||ReplicaSet.forcePrimaryInstance: Argument #1 is expected to be a string (TypeError)
-||ReplicaSet.forcePrimaryInstance: Argument #2 is expected to be a map (TypeError)
-||ReplicaSet.forcePrimaryInstance: Invalid number of arguments, expected 0 to 2 but got 3 (ArgumentError)
-||ReplicaSet.forcePrimaryInstance: Invalid options: badOption (ArgumentError)
-||ReplicaSet.forcePrimaryInstance: Argument #1 is expected to be a string (TypeError)
-||ReplicaSet.forcePrimaryInstance: Argument #2 is expected to be a map (TypeError)
-||ReplicaSet.forcePrimaryInstance: Argument #1 is expected to be a string (TypeError)
+||Argument #1 is expected to be a string (TypeError)
+||Argument #2 is expected to be a map (TypeError)
+||Invalid number of arguments, expected 0 to 2 but got 3 (ArgumentError)
+||Invalid options: badOption (ArgumentError)
+||Argument #1 is expected to be a string (TypeError)
+||Argument #2 is expected to be a map (TypeError)
+||Argument #1 is expected to be a string (TypeError)
 
 //@# disconnected rs object (should fail)
-||ReplicaSet.forcePrimaryInstance: The replicaset object is disconnected. Please use dba.getReplicaSet() to obtain a new object. (RuntimeError)
+||The replicaset object is disconnected. Please use dba.getReplicaSet() to obtain a new object. (RuntimeError)
 
 //@# auto-promote while there's only a primary (should fail)
-||ReplicaSet.forcePrimaryInstance: Could not find a suitable candidate to failover to (MYSQLSH 51129)
+||Could not find a suitable candidate to failover to (MYSQLSH 51129)
 
 //@# primary still available (should fail)
-||ReplicaSet.forcePrimaryInstance: PRIMARY still available (MYSQLSH 51116)
+||PRIMARY still available (MYSQLSH 51116)
 
 //@# primary promoted (should fail)
-||ReplicaSet.forcePrimaryInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is already the PRIMARY (MYSQLSH 51128)
+||<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is already the PRIMARY (MYSQLSH 51128)
 
 //@# stop primary and failover with bad handle (should fail)
-||ReplicaSet.forcePrimaryInstance: Failed to execute query on Metadata server <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Lost connection to MySQL server during query (MySQL Error 2013)
+||Failed to execute query on Metadata server <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Lost connection to MySQL server during query (MySQL Error 2013)
 
 //@# promoted isn't member (should fail)
-||ReplicaSet.forcePrimaryInstance: Target instance localhost:<<<__mysql_sandbox_port3>>> is not a managed instance. (MYSQLSH 51300)
+||Target instance localhost:<<<__mysql_sandbox_port3>>> is not a managed instance. (MYSQLSH 51300)
 
 //@# promoted doesn't exist (should fail)
 |ERROR: Unable to connect to the target instance 'localhost:<<<__mysql_sandbox_port3>>>1'. Please verify the connection settings, make sure the instance is available and try again.|
-||ReplicaSet.forcePrimaryInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>1': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', "" + __mysql_sandbox_port3 + "1")>>>'
+||Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>1': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', "" + __mysql_sandbox_port3 + "1")>>>'
 
 //@# check state of instances after switch
 |Failover finished successfully.|
@@ -89,7 +89,7 @@ cluster_id	view_id	topology_type	view_change_reason	view_change_time	view_change
 |Failover finished successfully.|
 
 //@# promote another one right after (should fail)
-||ReplicaSet.forcePrimaryInstance: PRIMARY still available (MYSQLSH 51116)
+||PRIMARY still available (MYSQLSH 51116)
 
 //@# normal promotion
 |<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> was promoted to PRIMARY.|
@@ -143,7 +143,7 @@ cluster_id	view_id	topology_type	view_change_reason	view_change_time	view_change
 |dryRun finished.|
 
 //@# timeout (should fail)
-||ReplicaSet.forcePrimaryInstance: Error during failover: MySQL Error 2013: Failed to execute query on Metadata server <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: Lost connection to MySQL server during query (MYSQLSH 51162)
+||Error during failover: MySQL Error 2013: Failed to execute query on Metadata server <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: Lost connection to MySQL server during query (MYSQLSH 51162)
 
 //@# ensure switch over rolls back after the timeout
 |        "primary": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>",|
@@ -178,7 +178,7 @@ cluster_id	view_id	topology_type	view_change_reason	view_change_time	view_change
 ||
 
 //@# a different secondary is down (should fail)
-||ReplicaSet.forcePrimaryInstance: One or more instances are unreachable
+||One or more instances are unreachable
 
 //@# a different secondary is down with invalidateErrorInstances
 |<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> was force-promoted to PRIMARY.|

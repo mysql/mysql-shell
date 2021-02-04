@@ -909,7 +909,7 @@ Dba.rebootClusterFromCompleteOutage: The instance '<<<hostname>>>:<<<__mysql_san
 |<<<hostname>>>:<<<__mysql_sandbox_port2>>> was restored.|
 
 //@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying current session is not the most up to date
-||Dba.rebootClusterFromCompleteOutage: The active session instance (<<<hostname>>>:<<<__mysql_sandbox_port1>>>) isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. (RuntimeError)
+||The active session instance (<<<hostname>>>:<<<__mysql_sandbox_port1>>>) isn't the most updated in comparison with the ONLINE instances of the Cluster's metadata. Please use the most up to date instance: '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. (RuntimeError)
 
 //@ BUG30501978 - Reboot cluster from complete outage fails with informative message saying there is a gtid mismatch
 ||Conflicting transaction sets between <<<hostname>>>:<<<__mysql_sandbox_port1>>> and <<<hostname>>>:<<<__mysql_sandbox_port2>>>

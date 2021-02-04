@@ -53,9 +53,9 @@ EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {groupName: ""}); }, "
 
 // FR3-TS-1-3
 if (__version_num >= 80021) {
-  EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {groupName: "abc"}); }, "Dba.createCluster: Unable to set value 'abc' for 'groupName': The group_replication_group_name is not a valid UUID", "RuntimeError");
+  EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {groupName: "abc"}); }, "Unable to set value 'abc' for 'groupName': The group_replication_group_name is not a valid UUID", "RuntimeError");
 } else {
-  EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {groupName: "abc"}); }, "Dba.createCluster: Unable to set value 'abc' for 'groupName': The group name is not a valid UUID", "RuntimeError");
+  EXPECT_THROWS_TYPE(function() { dba.createCluster('test', {groupName: "abc"}); }, "Unable to set value 'abc' for 'groupName': The group name is not a valid UUID", "RuntimeError");
 }
 
 //@ Create cluster specifying :<valid_port> for localAddress (FR1-TS-1-2)

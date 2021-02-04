@@ -21,11 +21,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MODULES_ADMINAPI_MOD_DBA_OPTIONS_H_
-#define MODULES_ADMINAPI_MOD_DBA_OPTIONS_H_
+#ifndef MODULES_ADMINAPI_DBA_API_OPTIONS_H_
+#define MODULES_ADMINAPI_DBA_API_OPTIONS_H_
 
 #include <string>
 
+#include "modules/adminapi/common/api_options.h"
 #include "modules/adminapi/common/async_replication_options.h"
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
@@ -59,17 +60,15 @@ struct Deploy_sandbox_options : public Stop_sandbox_options {
   shcore::Array_t mysqld_options;
 };
 
-struct Check_instance_configuration_options {
-  Check_instance_configuration_options();
+struct Check_instance_configuration_options
+    : public Password_interactive_options {
   static const shcore::Option_pack_def<Check_instance_configuration_options>
       &options();
 
   std::string mycnf_path;
-  mysqlshdk::null_bool interactive;
-  mysqlshdk::null_string password;
 };
 
-struct Configure_instance_options {
+struct Configure_instance_options : public Password_interactive_options {
   static const shcore::Option_pack_def<Configure_instance_options> &options();
 
   bool local = false;
@@ -78,12 +77,10 @@ struct Configure_instance_options {
   std::string cluster_admin;
   mysqlshdk::null_string cluster_admin_password;
   mysqlshdk::null_bool restart;
-  mysqlshdk::null_bool interactive;
   mysqlshdk::utils::nullable<int64_t> slave_parallel_workers;
   std::string mycnf_path;
   std::string output_mycnf_path;
   mysqlshdk::null_bool clear_read_only;
-  mysqlshdk::null_string password;
 };
 
 struct Configure_cluster_local_instance_options
@@ -112,7 +109,7 @@ struct Configure_replicaset_instance_options
   void set_slave_parallel_workers(int64_t value);
 };
 
-struct Create_cluster_options {
+struct Create_cluster_options : public Force_interactive_options {
   static const shcore::Option_pack_def<Create_cluster_options> &options();
   void set_multi_primary(const std::string &option, bool value);
   void set_clear_read_only(bool value);
@@ -121,18 +118,15 @@ struct Create_cluster_options {
   Create_cluster_clone_options clone_options;
   bool adopt_from_gr = false;
   mysqlshdk::null_bool multi_primary;
-  bool force = false;
   mysqlshdk::null_bool clear_read_only;
-  bool interactive = current_shell_options()->get().wizards;
 };
 
-struct Create_replicaset_options {
+struct Create_replicaset_options : public Interactive_option {
   static const shcore::Option_pack_def<Create_replicaset_options> &options();
   void set_instance_label(const std::string &optionvalue);
 
   bool adopt = false;
   bool dry_run = false;
-  bool interactive;
   bool gtid_set_is_complete = false;
   std::string instance_label;
   // TODO(rennox): This is here but is not really used (options never set)
@@ -159,14 +153,12 @@ struct Reboot_cluster_options {
   mysqlshdk::null_string password;
 };
 
-struct Upgrade_metadata_options {
-  Upgrade_metadata_options();
+struct Upgrade_metadata_options : public Interactive_option {
   static const shcore::Option_pack_def<Upgrade_metadata_options> &options();
 
-  bool interactive;
   bool dry_run = false;
 };
 
 }  // namespace dba
 }  // namespace mysqlsh
-#endif  // MODULES_ADMINAPI_MOD_DBA_OPTIONS_H_
+#endif  // MODULES_ADMINAPI_DBA_API_OPTIONS_H_

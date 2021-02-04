@@ -49,7 +49,7 @@ rs.removeRouterMetadata("routerhost1");
 rs.removeRouterMetadata("routerhost1::r2");
 rs.removeRouterMetadata("routerhost2::system");
 
-EXPECT_THROWS(function(){rs.removeRouterMetadata("routerhost1");}, "ReplicaSet.removeRouterMetadata: Invalid router instance 'routerhost1'");
+EXPECT_THROWS(function(){rs.removeRouterMetadata("routerhost1");}, "Invalid router instance 'routerhost1'");
 
 //@ MD2 - listRouters() after removed routers
 rs.listRouters();

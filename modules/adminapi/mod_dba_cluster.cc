@@ -204,37 +204,6 @@ void Cluster::assert_valid(const std::string &option_name) const {
   }
 }
 
-void Cluster::verify_add_rejoin_deprecations(
-    const shcore::Dictionary_t &options) {
-  auto console = mysqlsh::current_console();
-
-  // Show deprecation message for memberSslMode option if if applies.
-  if (options->has_key(kMemberSslMode)) {
-    console->print_warning(
-        "Option 'memberSslMode' is deprecated for this operation and it will "
-        "be removed in a future release. This option is not needed because the "
-        "SSL mode is automatically obtained from the cluster. Please do not "
-        "use it here.");
-    console->print_info();
-  }
-
-  // Verify deprecation of ipWhitelist
-  if (options->has_key(kIpWhitelist)) {
-    if (options->has_key(kIpAllowlist)) {
-      throw shcore::Exception::argument_error(
-          "Cannot use the ipWhitelist and ipAllowlist options "
-          "simultaneously. The ipWhitelist option is deprecated, "
-          "please use the ipAllowlist option instead.");
-    } else {
-      // Set the internal option name
-      console->print_warning(
-          "The ipWhitelist option is deprecated in favor of ipAllowlist. "
-          "ipAllowlist will be set instead.");
-      console->print_info();
-    }
-  }
-}
-
 REGISTER_HELP_FUNCTION(addInstance, Cluster);
 REGISTER_HELP_FUNCTION_TEXT(CLUSTER_ADDINSTANCE, R"*(
 Adds an Instance to the cluster.
@@ -340,30 +309,6 @@ ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 
 @attention The ipWhitelist option will be removed in a future release.
 Please use the ipAllowlist option instead.
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-@li If the Metadata update operation failed.
-
-@throw ArgumentError in the following scenarios:
-@li If the instance parameter is empty.
-@li If the instance definition is invalid.
-@li If the instance definition is a connection dictionary but empty.
-@li If the value for the memberSslMode option is not one of the allowed:
-"AUTO", "DISABLED", "REQUIRED".
-@li If the value for the ipWhitelist, localAddress, groupSeeds, or
-exitStateAction options is empty.
-@li If the instance definition cannot be used for Group Replication.
-@li If the value for the waitRecovery option is not in the range [0, 3].
-
-@throw RuntimeError in the following scenarios:
-@li If the instance accounts are invalid.
-@li If the instance is not in bootstrapped state.
-@li If the SSL mode specified is not compatible with the one used in the
-cluster.
-@li If the value for the localAddress, groupSeeds, exitStateAction,
-memberWeight or autoRejoinTries options is not valid for Group Replication.
-@li If the value of recoveryMethod is not auto and it cannot be used.
 )*");
 
 /**
@@ -376,61 +321,28 @@ Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
 None Cluster::add_instance(InstanceDef instance, dict options) {}
 #endif
-void Cluster::add_instance(const Connection_options &instance_def_,
-                           const shcore::Dictionary_t &options) {
+void Cluster::add_instance(
+    const Connection_options &instance_def_,
+    const shcore::Option_pack_ref<cluster::Add_instance_options> &options) {
   auto instance_def = instance_def_;
-  set_password_from_map(&instance_def, options);
 
-  // Throw an error if the cluster has already been dissolved
-  assert_valid("addInstance");
-
-  Group_replication_options gr_options(Group_replication_options::JOIN);
-  Clone_options clone_options(Clone_options::JOIN_CLUSTER);
-  mysqlshdk::utils::nullable<std::string> label;
-  int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
-  bool interactive = current_shell_options()->get().wizards;
-
-  // Get optional options.
-  if (options) {
-    // Retrieves optional options if exists
-    Unpack_options(options)
-        .unpack(&gr_options)
-        .unpack(&clone_options)
-        .optional("interactive", &interactive)
-        .optional("label", &label)
-        .optional("waitRecovery", &wait_recovery)
-        .end();
-
-    verify_add_rejoin_deprecations(options);
-
-    // Set the right value for ip_allowlist_option_name
-    if (options->has_key(kIpWhitelist)) {
-      gr_options.ip_allowlist_option_name = kIpWhitelist;
-    } else {
-      gr_options.ip_allowlist_option_name = kIpAllowlist;
-    }
-  }
-
-  // Validate waitRecovery option UInteger [0, 3]
-  if (wait_recovery > 3) {
-    throw shcore::Exception::argument_error(
-        "Invalid value '" + std::to_string(wait_recovery) +
-        "' for option 'waitRecovery'. It must be an integer in the range [0, "
-        "3].");
+  if (!options->password.is_null()) {
+    instance_def.clear_password();
+    instance_def.set_password(*(options->password));
   }
 
   Instance_pool::Auth_options auth_opts;
   auth_opts.get(m_impl->get_target_server()->get_connection_options());
-  Scoped_instance_pool ipool(interactive, auth_opts);
+  Scoped_instance_pool ipool(options->interactive(), auth_opts);
 
   // Validate the label value.
-  if (!label.is_null()) {
-    mysqlsh::dba::validate_label(*label);
+  if (!options->label.is_null()) {
+    mysqlsh::dba::validate_label(*(options->label));
 
     if (!m_impl->get_metadata_storage()->is_instance_label_unique(
-            m_impl->get_id(), *label)) {
+            m_impl->get_id(), *(options->label))) {
       throw shcore::Exception::argument_error(
-          "An instance with label '" + *label +
+          "An instance with label '" + *(options->label) +
           "' is already part of this InnoDB cluster");
     }
   }
@@ -438,19 +350,18 @@ void Cluster::add_instance(const Connection_options &instance_def_,
   // Init progress_style
   Recovery_progress_style progress_style;
 
-  if (wait_recovery == 0) {
+  if (options->wait_recovery == 0) {
     progress_style = Recovery_progress_style::NOWAIT;
-  } else if (wait_recovery == 1) {
+  } else if (options->wait_recovery == 1) {
     progress_style = Recovery_progress_style::NOINFO;
-  } else if (wait_recovery == 2) {
+  } else if (options->wait_recovery == 2) {
     progress_style = Recovery_progress_style::TEXTUAL;
   } else {
     progress_style = Recovery_progress_style::PROGRESSBAR;
   }
 
   // Add the Instance to the Cluster
-  m_impl->add_instance(instance_def, gr_options, clone_options, label,
-                       progress_style, interactive);
+  m_impl->add_instance(instance_def, *options, progress_style);
 }
 
 REGISTER_HELP_FUNCTION(rejoinInstance, Cluster);
@@ -495,23 +406,6 @@ ${CLUSTER_OPT_IP_ALLOWLIST_EXTRA}
 
 @attention The ipWhitelist option will be removed in a future release.
 Please use the ipAllowlist option instead.
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-@li If the Metadata update operation failed.
-
-@throw ArgumentError in the following scenarios:
-@li If the value for the memberSslMode option is not one of the allowed:
-"AUTO", "DISABLED", "REQUIRED".
-@li If the instance definition cannot be used for Group Replication.
-
-@throw RuntimeError in the following scenarios:
-@li If the instance does not exist.
-@li If the instance accounts are invalid.
-@li If the instance is not in bootstrapped state.
-@li If the SSL mode specified is not compatible with the one used in the
-cluster.
-@li If the instance is an active member of the cluster.
 )*");
 
 /**
@@ -525,46 +419,28 @@ Dictionary Cluster::rejoinInstance(InstanceDef instance, Dictionary options) {}
 Dict Cluster::rejoin_instance(InstanceDef instance, dict options) {}
 #endif
 
-void Cluster::rejoin_instance(const Connection_options &instance_def_,
-                              const shcore::Dictionary_t &options) {
+void Cluster::rejoin_instance(
+    const Connection_options &instance_def_,
+    const shcore::Option_pack_ref<cluster::Rejoin_instance_options> &options) {
   auto instance_def = instance_def_;
-  set_password_from_map(&instance_def, options);
+
+  if (!options->password.is_null()) {
+    instance_def.clear_password();
+    instance_def.set_password(*(options->password));
+  }
 
   // Throw an error if the cluster has already been dissolved
   assert_valid("rejoinInstance");
 
-  Group_replication_options gr_options(Group_replication_options::REJOIN);
-  bool interactive = current_shell_options()->get().wizards;
-  const auto console = current_console();
-
   m_impl->check_preconditions("rejoinInstance");
-
-  // SSL Mode AUTO by default
-  gr_options.ssl_mode = mysqlsh::dba::kMemberSSLModeAuto;
-
-  // Retrieves the options
-  if (options) {
-    Unpack_options(options)
-        .unpack(&gr_options)
-        .optional("interactive", &interactive)
-        .end();
-
-    verify_add_rejoin_deprecations(options);
-
-    // Set the right value for ip_allowlist_option_name
-    if (options->has_key(kIpWhitelist)) {
-      gr_options.ip_allowlist_option_name = kIpWhitelist;
-    } else {
-      gr_options.ip_allowlist_option_name = kIpAllowlist;
-    }
-  }
 
   Instance_pool::Auth_options auth_opts;
   auth_opts.get(m_impl->get_target_server()->get_connection_options());
-  Scoped_instance_pool ipool(interactive, auth_opts);
+  Scoped_instance_pool ipool(options->interactive(), auth_opts);
 
   // Rejoin the Instance to the Cluster
-  m_impl->rejoin_instance(instance_def, gr_options, interactive, false);
+  m_impl->rejoin_instance(instance_def, options->gr_options,
+                          options->interactive(), false);
 }
 
 REGISTER_HELP_FUNCTION(removeInstance, Cluster);
@@ -598,21 +474,6 @@ a cluster. This allows to remove from the metadata an instance than can no
 longer be recovered. Otherwise, the instance must be brought back ONLINE and
 removed without the force option to avoid errors trying to add it back to a
 cluster.
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-@li If the Metadata update operation failed.
-
-@throw ArgumentError in the following scenarios:
-@li If the instance parameter is empty.
-@li If the instance definition is invalid.
-@li If the instance definition is a connection dictionary but empty.
-@li If the instance definition cannot be used for Group Replication.
-
-@throw RuntimeError in the following scenarios:
-@li If the instance accounts are invalid.
-@li If an error occurs when trying to remove the instance (e.g., instance is
-not reachable).
 )*");
 
 /**
@@ -626,31 +487,25 @@ Undefined Cluster::removeInstance(InstanceDef instance, Dictionary options) {}
 None Cluster::remove_instance(InstanceDef instance, dict options) {}
 #endif
 
-void Cluster::remove_instance(const Connection_options &instance_def_,
-                              const shcore::Dictionary_t &options) {
+void Cluster::remove_instance(
+    const Connection_options &instance_def_,
+    const shcore::Option_pack_ref<cluster::Remove_instance_options> &options) {
   auto instance_def = instance_def_;
-  set_password_from_map(&instance_def, options);
+
+  if (!options->password.is_null()) {
+    instance_def.clear_password();
+    instance_def.set_password(*(options->password));
+  }
 
   // Throw an error if the cluster has already been dissolved
   assert_valid("removeInstance");
 
-  mysqlshdk::utils::nullable<bool> force;
-  bool interactive = current_shell_options()->get().wizards;
-
-  // Get optional options.
-  if (options) {
-    Unpack_options(options)
-        .optional("force", &force)
-        .optional("interactive", &interactive)
-        .end();
-  }
-
   Instance_pool::Auth_options auth_opts;
   auth_opts.get(m_impl->get_target_server()->get_connection_options());
-  Scoped_instance_pool ipool(interactive, auth_opts);
+  Scoped_instance_pool ipool(options->interactive(), auth_opts);
 
   // Remove the Instance from the Cluster
-  m_impl->remove_instance(instance_def, force, interactive);
+  m_impl->remove_instance(instance_def, options->force, options->interactive());
 }
 
 REGISTER_HELP_FUNCTION(describe, Cluster);
@@ -680,12 +535,6 @@ Each instance dictionary contains the following attributes:
 @li label: the instance name identifier
 @li role: the instance role
 @li version: the instance version (only available for instances >= 8.0.11)
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-@throw RuntimeError in the following scenarios:
-@li If the InnoDB Cluster topology mode does not match the current Group Replication configuration.
-@li If the InnoDB Cluster name is not registered in the Metadata.
 )*");
 
 /**
@@ -737,13 +586,6 @@ The extended option supports Integer or Boolean values:
 @li 3: includes more detailed stats about the replication machinery of each
        cluster member;
 @li Boolean: equivalent to assign either 0 (false) or 1 (true).
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-@throw RuntimeError in the following scenarios:
-@li If the InnoDB Cluster topology mode does not match the current Group
-    Replication configuration.
-@li If the InnoDB Cluster name is not registered in the Metadata.
 )*");
 
 /**
@@ -757,47 +599,12 @@ String Cluster::status(Dictionary options) {}
 str Cluster::status(dict options) {}
 #endif
 
-shcore::Value Cluster::status(const shcore::Dictionary_t &options) {
+shcore::Value Cluster::status(
+    const shcore::Option_pack_ref<cluster::Status_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("status");
 
-  mysqlshdk::utils::nullable<bool> query_members;
-  uint64_t extended = 0;  // By default 0 (false).
-
-  // Retrieves optional options
-  // NOTE: Booleans are accepted as UInteger: false = 0, true = 1;
-  Unpack_options(options)
-      .optional("extended", &extended)
-      .optional("queryMembers", &query_members)
-      .end();
-
-  // Validate extended option UInteger [0, 3] or Boolean.
-  if (extended > 3) {
-    throw shcore::Exception::argument_error(
-        "Invalid value '" + std::to_string(extended) +
-        "' for option 'extended'. It must be an integer in the range [0, 3].");
-  }
-
-  // The queryMembers option is deprecated.
-  if (!query_members.is_null()) {
-    auto console = mysqlsh::current_console();
-
-    std::string specific_value = (*query_members) ? " with value 3" : "";
-    console->print_warning(
-        "The 'queryMembers' option is deprecated. "
-        "Please use the 'extended' option" +
-        specific_value + " instead.");
-    console->println();
-
-    // Currently, the queryMembers option overrides the extended option when
-    // set to true. Thus, this behaviour is maintained until the option is
-    // removed.
-    if (*query_members) {
-      extended = 3;
-    }
-  }
-
-  return m_impl->status(extended);
+  return m_impl->status(options->extended);
 }
 
 REGISTER_HELP_FUNCTION(options, Cluster);
@@ -814,9 +621,6 @@ information gathered and returned.
 
 @li all: if true, includes information about all group_replication system
 variables.
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
 )*");
 
 /**
@@ -830,15 +634,12 @@ String Cluster::options(Dictionary options) {}
 str Cluster::options(dict options) {}
 #endif
 
-shcore::Value Cluster::options(const shcore::Dictionary_t &options) {
+shcore::Value Cluster::options(
+    const shcore::Option_pack_ref<cluster::Options_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("options");
 
-  bool all = false;
-  // Retrieves optional options
-  Unpack_options(options).optional("all", &all).end();
-
-  return m_impl->options(all);
+  return m_impl->options(options->all);
 }
 
 REGISTER_HELP_FUNCTION(dissolve, Cluster);
@@ -869,10 +670,6 @@ from the metadata, including instances than can no longer be recovered.
 Otherwise, the instances must be brought back ONLINE and the cluster dissolved
 without the force option to avoid errors trying to reuse the instances and add
 them back to a cluster.
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-@li If the Metadata update operation failed.
 )*");
 
 /**
@@ -886,28 +683,16 @@ Undefined Cluster::dissolve(Dictionary options) {}
 None Cluster::dissolve(dict options) {}
 #endif
 
-void Cluster::dissolve(const shcore::Dictionary_t &options) {
+void Cluster::dissolve(
+    const shcore::Option_pack_ref<Force_interactive_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("dissolve");
 
-  mysqlshdk::utils::nullable<bool> force;
-  bool interactive;
-
-  interactive = current_shell_options()->get().wizards;
-
-  // Get optional options.
-  if (options) {
-    Unpack_options(options)
-        .optional("force", &force)
-        .optional("interactive", &interactive)
-        .end();
-  }
-
   Instance_pool::Auth_options auth_opts;
   auth_opts.get(m_impl->get_target_server()->get_connection_options());
-  Scoped_instance_pool ipool(interactive, auth_opts);
+  Scoped_instance_pool ipool(options->interactive(), auth_opts);
 
-  m_impl->dissolve(force, interactive);
+  m_impl->dissolve(options->force, options->interactive());
 
   // Set the flag, marking this cluster instance as invalid.
   invalidate();
@@ -940,10 +725,6 @@ if really needed when instances are permanently not available (no longer
 reachable) or never going to be reused again in a cluster. Prefer to bring the
 non available instances back ONLINE or remove them from the cluster if they will
 no longer be used.
-
-@throw RuntimeError in the following scenarios:
-@li If some cluster instance is not ONLINE and force option not used or set to false.
-@li If the recovery user account was not created by InnoDB Cluster.
 )*");
 
 /**
@@ -958,23 +739,12 @@ None Cluster::reset_recovery_accounts_password(dict options) {}
 #endif
 
 void Cluster::reset_recovery_accounts_password(
-    const shcore::Dictionary_t &options) {
+    const shcore::Option_pack_ref<Force_interactive_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("resetRecoveryAccountsPassword");
 
-  mysqlshdk::utils::nullable<bool> force;
-  bool interactive = current_shell_options()->get().wizards;
-
-  // Get optional options.
-  if (options) {
-    Unpack_options(options)
-        .optional("force", &force)
-        .optional("interactive", &interactive)
-        .end();
-  }
-
   // Reset the recovery passwords.
-  m_impl->reset_recovery_password(force, interactive);
+  m_impl->reset_recovery_password(options->force, options->interactive());
 }
 
 REGISTER_HELP_FUNCTION(rescan, Cluster);
@@ -1010,24 +780,6 @@ options in order to automatically add or remove the instances in the metadata,
 without having to explicitly specify them.
 
 @attention The updateTopologyMode option will be removed in a future release.
-
-@throw ArgumentError in the following scenarios:
-@li If the value for `addInstances` or `removeInstance` is empty.
-@li If the value for `addInstances` or `removeInstance` is invalid.
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-@li If the Metadata update operation failed.
-
-@throw LogicError in the following scenarios:
-@li If the cluster does not exist.
-
-@throw RuntimeError in the following scenarios:
-@li If all the ReplicaSet instances of any ReplicaSet are offline.
-@li If an instance specified for `addInstances` is not an active member of the
-replication group.
-@li If an instance specified for `removeInstances` is an active member of the
-replication group.
 )*");
 
 /**
@@ -1040,116 +792,15 @@ Undefined Cluster::rescan(Dictionary options) {}
 #elif DOXYGEN_PY
 None Cluster::rescan(dict options) {}
 #endif
-
-namespace {
-void unpack_auto_instances_list(
-    mysqlsh::Unpack_options *opts_unpack, const std::string &option_name,
-    bool *out_auto,
-    std::vector<mysqlshdk::db::Connection_options> *instances_list) {
-  // Extract value for addInstances, it can be a string "auto" or a list.
-  shcore::Array_t instances_array;
-  try {
-    // Try to extract the "auto" string.
-    mysqlshdk::utils::nullable<std::string> auto_option_str;
-    opts_unpack->optional(option_name.c_str(), &auto_option_str);
-
-    // Validate if "auto" was specified (case insensitive).
-    if (!auto_option_str.is_null() &&
-        shcore::str_casecmp(*auto_option_str, "auto") == 0) {
-      *out_auto = true;
-    } else if (!auto_option_str.is_null()) {
-      throw shcore::Exception::argument_error(
-          "Option '" + option_name +
-          "' only accepts 'auto' as a valid string "
-          "value, otherwise a list of instances is expected.");
-    }
-  } catch (const shcore::Exception &err) {
-    // Try to extract a list of instances (will fail with a TypeError when
-    // trying to read it as a string previously).
-    if (std::string(err.type()).compare("TypeError") == 0) {
-      opts_unpack->optional(option_name.c_str(), &instances_array);
-    } else {
-      throw;
-    }
-  }
-
-  if (instances_array) {
-    if (instances_array.get()->empty()) {
-      throw shcore::Exception::argument_error("The list for '" + option_name +
-                                              "' option cannot be empty.");
-    }
-
-    // Process values from addInstances list (must be valid connection data).
-    for (const shcore::Value &value : *instances_array.get()) {
-      try {
-        auto cnx_opt = mysqlsh::get_connection_options(value);
-
-        if (cnx_opt.get_host().empty()) {
-          throw shcore::Exception::argument_error("host cannot be empty.");
-        }
-
-        if (!cnx_opt.has_port()) {
-          throw shcore::Exception::argument_error("port is missing.");
-        }
-
-        instances_list->emplace_back(std::move(cnx_opt));
-      } catch (const std::exception &err) {
-        std::string error(err.what());
-        throw shcore::Exception::argument_error(
-            "Invalid value '" + value.descr() + "' for '" + option_name +
-            "' option: " + error);
-      }
-    }
-  }
-}
-}  // namespace
-
-void Cluster::rescan(const shcore::Dictionary_t &options) {
+void Cluster::rescan(
+    const shcore::Option_pack_ref<cluster::Rescan_options> &options) {
   assert_valid("rescan");
-
-  bool interactive, auto_add_instance = false, auto_remove_instance = false;
-  mysqlshdk::utils::nullable<bool> update_topology_mode;
-  std::vector<mysqlshdk::db::Connection_options> add_instances_list,
-      remove_instances_list;
-
-  interactive = current_shell_options()->get().wizards;
-
-  // Get optional options.
-  if (options) {
-    shcore::Array_t add_instances_array, remove_instances_array;
-
-    auto opts_unpack = Unpack_options(options);
-    opts_unpack.optional("updateTopologyMode", &update_topology_mode)
-        .optional("interactive", &interactive);
-
-    // The updateTopologyMode option is deprecated.
-    // BUG#29330769: UPDATETOPOLOGYMODE SHOULD DEFAULT TO TRUE
-    if (!update_topology_mode.is_null()) {
-      auto console = mysqlsh::current_console();
-      std::string warn_msg =
-          "The updateTopologyMode option is deprecated. The topology-mode is "
-          "now automatically updated.";
-      console->print_info(warn_msg);
-      console->print_info();
-    }
-
-    // Extract value for addInstances, it can be a string "auto" or a list.
-    unpack_auto_instances_list(&opts_unpack, "addInstances", &auto_add_instance,
-                               &add_instances_list);
-
-    // Extract value for removeInstances, it can be a string "auto" or a list.
-    unpack_auto_instances_list(&opts_unpack, "removeInstances",
-                               &auto_remove_instance, &remove_instances_list);
-
-    opts_unpack.end();
-  }
 
   Instance_pool::Auth_options auth_opts;
   auth_opts.get(m_impl->get_target_server()->get_connection_options());
   Scoped_instance_pool ipool(false, auth_opts);
 
-  m_impl->rescan(auto_add_instance, auto_remove_instance, add_instances_list,
-                 remove_instances_list, interactive);
+  m_impl->rescan(*options);
 }
 
 REGISTER_HELP_FUNCTION(disconnect, Cluster);
@@ -1199,19 +850,6 @@ in the network, but not accessible from your location.
 
 When this function is used, all the members that are ONLINE from the point of
 view of the given instance definition will be added to the group.
-
-@throw ArgumentError in the following scenarios:
-@li If the instance parameter is empty.
-@li If the instance definition cannot be used for Group Replication.
-
-@throw RuntimeError in the following scenarios:
-@li If the instance does not exist on the Metadata.
-@li If the instance is not on the ONLINE state.
-@li If the instance does is not an active member of a replication group.
-@li If there are no ONLINE instances visible from the given one.
-
-@throw LogicError in the following scenarios:
-@li If the cluster does not exist.
 )*");
 
 /**
@@ -1280,20 +918,6 @@ executed GTIDs of the cluster instances
 of the cluster instances
 @li lost_transactions: if the instance has more executed GTIDs than the
 executed GTIDs of the cluster instances
-
-@throw ArgumentError in the following scenarios:
-@li If the 'instance' parameter is empty.
-@li If the 'instance' parameter is invalid.
-@li If the 'instance' definition is a connection dictionary but empty.
-
-@throw RuntimeError in the following scenarios:
-@li If the 'instance' is unreachable/offline.
-@li If the 'instance' is a cluster member.
-@li If the 'instance' belongs to a Group Replication group that is not managed
-as an InnoDB cluster.
-@li If the 'instance' is a standalone instance but is part of a different
-InnoDB Cluster.
-@li If the 'instance' has an unknown state.
 )*");
 
 /**
@@ -1339,16 +963,6 @@ that shall become the new primary.
 If the instance definition is not provided, the new primary will be the
 instance with the highest member weight (and the lowest UUID in case of a tie
 on member weight).
-
-@throw ArgumentError in the following scenarios:
-@li If the instance parameter is empty.
-@li If the instance definition is invalid.
-
-@throw RuntimeError in the following scenarios:
-@li If 'instance' does not refer to a cluster member.
-@li If any of the cluster members has a version < 8.0.13.
-@li If the cluster has no visible quorum.
-@li If any of the cluster members is not ONLINE.
 )*");
 
 /**
@@ -1378,11 +992,6 @@ Switches the cluster to multi-primary mode.
 
 This function changes a cluster running in single-primary mode to multi-primary
 mode.
-
-@throw RuntimeError in the following scenarios:
-@li If any of the cluster members has a version < 8.0.13.
-@li If the cluster has no visible quorum.
-@li If any of the cluster members is not ONLINE.
 )*");
 
 /**
@@ -1420,17 +1029,6 @@ ${TOPIC_CONNECTION_MORE_INFO}
 
 The instance definition is mandatory and is the identifier of the cluster
 member that shall become the new primary.
-
-@throw ArgumentError in the following scenarios:
-@li If the instance parameter is empty.
-@li If the instance definition is invalid.
-
-@throw RuntimeError in the following scenarios:
-@li If the cluster is in multi-primary mode.
-@li If 'instance' does not refer to a cluster member.
-@li If any of the cluster members has a version < 8.0.13.
-@li If the cluster has no visible quorum.
-@li If any of the cluster members is not ONLINE.
 )*");
 
 /**
@@ -1493,19 +1091,6 @@ ${CLUSTER_OPT_EXPEL_TIMEOUT_EXTRA}
 ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 
 ${NAMESPACE_TAG_DETAIL_CLUSTER}
-
-@throw ArgumentError in the following scenarios:
-@li If the 'option' parameter is empty.
-@li If the 'value' parameter is empty.
-@li If the 'option' parameter is invalid.
-
-@throw RuntimeError in the following scenarios:
-@li If any of the cluster members do not support the configuration option
-passed in 'option'.
-@li If the value passed in 'option' is not valid for Group Replication.
-@li If the cluster has no visible quorum.
-@li If setting a Group Replication option and any of the cluster members
-is not ONLINE.
 )*");
 
 /**
@@ -1560,21 +1145,6 @@ ${CLUSTER_OPT_AUTO_REJOIN_TRIES_EXTRA}
 ${NAMESPACE_TAG_DETAIL_CLUSTER}
 
 ${NAMESPACE_TAG_INSTANCE_DETAILS_EXTRA}
-
-@throw ArgumentError in the following scenarios:
-@li If the 'instance' parameter is empty.
-@li If the 'instance' parameter is invalid.
-@li If the 'instance' definition is a connection dictionary but empty.
-@li If the 'option' parameter is empty.
-@li If the 'value' parameter is empty.
-@li If the 'option' parameter is invalid.
-
-@throw RuntimeError in the following scenarios:
-@li If 'instance' does not refer to a cluster member.
-@li If the cluster has no visible quorum.
-@li If 'instance' is unreachable/offline.
-@li If 'instance' does not support the configuration option passed in 'option'.
-@li If the value passed in 'option' is not valid for Group Replication.
 )*");
 
 /**
@@ -1617,13 +1187,6 @@ The options dictionary may contain the following attributes:
 @li onlyUpgradeRequired: boolean, enables filtering so only router instances
 that support older version of the Metadata Schema and require upgrade are
 included.
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-@throw RuntimeError in the following scenarios:
-@li If the InnoDB Cluster topology mode does not match the current Group
-    Replication configuration.
-@li If the InnoDB Cluster name is not registered in the Metadata.
 )*");
 
 /**
@@ -1637,21 +1200,15 @@ String Cluster::listRouters(Dictionary options) {}
 str Cluster::list_routers(dict options) {}
 #endif
 shcore::Dictionary_t Cluster::list_routers(
-    const shcore::Dictionary_t &options) {
+    const shcore::Option_pack_ref<List_routers_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("listRouters");
-
-  bool only_upgrade_required = false;
 
   // Throw an error if the cluster has already been dissolved
   check_function_preconditions("Cluster.listRouters",
                                m_impl->get_target_server());
 
-  Unpack_options(options)
-      .optional("onlyUpgradeRequired", &only_upgrade_required)
-      .end();
-
-  auto ret_val = m_impl->list_routers(only_upgrade_required);
+  auto ret_val = m_impl->list_routers(options->only_upgrade_required);
 
   return ret_val.as_map();
 }
@@ -1671,9 +1228,6 @@ be used to clean up such instances that no longer exist.
 
 The Cluster.<<<listRouters>>>() function may be used to list registered router
 instances, including their identifier.
-
-@throw ArgumentError in the following scenarios:
-@li if router_def is not a registered router instance
 )*");
 /**
  * $(CLUSTER_REMOVEROUTERMETADATA_BRIEF)
@@ -1749,14 +1303,6 @@ interactive prompts that help the user through the account setup process.
 
 The update option must be enabled to allow updating an existing account's
 privileges and/or password.
-
-@throw RuntimeError in the following scenarios:
-@li The user account name does not exist on the Cluster and update is True.
-@li The user account name does not exist on the Cluster and no password was
-provided.
-@li The user account name exists on the Cluster and update is False.
-@li The account used to grant the privileges to the admin user doesn't have the
-necessary privileges.
 )*");
 
 /**
@@ -1770,33 +1316,17 @@ Undefined Cluster::setupAdminAccount(String user, Dictionary options) {}
 None Cluster::setup_admin_account(str user, dict options) {}
 #endif
 
-void Cluster::setup_admin_account(const std::string &user,
-                                  const shcore::Dictionary_t &options) {
+void Cluster::setup_admin_account(
+    const std::string &user,
+    const shcore::Option_pack_ref<Setup_account_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("setupAdminAccount");
-
-  // set default values for dictionary options
-  bool dry_run = false;
-  bool interactive = current_shell_options()->get().wizards;
-  bool update = false;
-  mysqlshdk::utils::nullable<std::string> password;
 
   // split user into user/host
   std::string username, host;
   std::tie(username, host) = validate_account_name(user);
 
-  // Get optional options.
-  if (options) {
-    Unpack_options(options)
-        .optional("dryRun", &dry_run)
-        .optional("interactive", &interactive)
-        .optional("update", &update)
-        .optional("password", &password)
-        .end();
-  }
-
-  m_impl->setup_admin_account(username, host, interactive, update, dry_run,
-                              password);
+  m_impl->setup_admin_account(username, host, *options);
 }
 
 REGISTER_HELP_FUNCTION(setupRouterAccount, Cluster);
@@ -1841,14 +1371,6 @@ interactive prompts that help the user through the account setup process.
 
 The update option must be enabled to allow updating an existing account's
 privileges and/or password.
-
-@throw RuntimeError in the following scenarios:
-@li The user account name does not exist on the Cluster and update is True.
-@li The user account name does not exist on the Cluster and no password was
-provided.
-@li The user account name exists on the Cluster and update is False.
-@li The account used to grant the privileges to the router user doesn't have the
-necessary privileges.
 )*");
 
 /**
@@ -1861,33 +1383,17 @@ Undefined Cluster::setupRouterAccount(String user, Dictionary options) {}
 #elif DOXYGEN_PY
 None Cluster::setup_router_account(str user, dict options) {}
 #endif
-void Cluster::setup_router_account(const std::string &user,
-                                   const shcore::Dictionary_t &options) {
+void Cluster::setup_router_account(
+    const std::string &user,
+    const shcore::Option_pack_ref<Setup_account_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("setupRouterAccount");
-
-  // set default values for dictionary options
-  bool dry_run = false;
-  bool interactive = current_shell_options()->get().wizards;
-  bool update = false;
-  mysqlshdk::utils::nullable<std::string> password;
 
   // split user into user/host
   std::string username, host;
   std::tie(username, host) = validate_account_name(user);
 
-  // Get optional options.
-  if (options) {
-    Unpack_options(options)
-        .optional("dryRun", &dry_run)
-        .optional("interactive", &interactive)
-        .optional("update", &update)
-        .optional("password", &password)
-        .end();
-  }
-
-  m_impl->setup_router_account(username, host, interactive, update, dry_run,
-                               password);
+  m_impl->setup_router_account(username, host, *options);
 }
 
 }  // namespace dba

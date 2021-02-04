@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 
 #include "scripting/types.h"
 
+#include "modules/adminapi/common/api_options.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
@@ -110,15 +111,13 @@ class Base_cluster_impl {
 
   virtual shcore::Value list_routers(bool only_upgrade_required);
 
-  virtual void setup_admin_account(
-      const std::string &username, const std::string &host, bool interactive,
-      bool update, bool dry_run,
-      const mysqlshdk::utils::nullable<std::string> &password);
+  virtual void setup_admin_account(const std::string &username,
+                                   const std::string &host,
+                                   const Setup_account_options &options);
 
-  virtual void setup_router_account(
-      const std::string &username, const std::string &host, bool interactive,
-      bool update, bool dry_run,
-      const mysqlshdk::utils::nullable<std::string> &password);
+  virtual void setup_router_account(const std::string &username,
+                                    const std::string &host,
+                                    const Setup_account_options &options);
 
   void set_instance_tag(const std::string &instance_def,
                         const std::string &option, const shcore::Value &value);
@@ -200,11 +199,10 @@ class Base_cluster_impl {
 
   enum class Setup_account_type { ADMIN, ROUTER };
 
-  void setup_account_common(
-      const std::string &username, const std::string &host, bool interactive,
-      bool update, bool dry_run,
-      const mysqlshdk::utils::nullable<std::string> &password,
-      const Setup_account_type &type);
+  void setup_account_common(const std::string &username,
+                            const std::string &host,
+                            const Setup_account_options &options,
+                            const Setup_account_type &type);
 
   virtual void _set_instance_option(const std::string &instance_def,
                                     const std::string &option,

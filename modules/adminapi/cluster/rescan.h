@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "adminapi/cluster/cluster_impl.h"
+#include "modules/adminapi/cluster/api_options.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -39,12 +40,7 @@ namespace cluster {
 
 class Rescan : public Command_interface {
  public:
-  Rescan(
-      bool interactive, bool auto_add_instances, bool auto_remove_instances,
-      const std::vector<mysqlshdk::db::Connection_options> &add_instances_list,
-      const std::vector<mysqlshdk::db::Connection_options>
-          &remove_instances_list,
-      Cluster_impl *cluster);
+  Rescan(const Rescan_options &options, Cluster_impl *cluster);
 
   /**
    * Prepare the rescan command for execution.
@@ -87,11 +83,7 @@ class Rescan : public Command_interface {
   void finish() override;
 
  private:
-  const bool m_interactive = false;
-  const bool m_auto_add_instances = false;
-  const bool m_auto_remove_instances = false;
-  std::vector<mysqlshdk::db::Connection_options> m_add_instances_list;
-  std::vector<mysqlshdk::db::Connection_options> m_remove_instances_list;
+  Rescan_options m_options;
   Cluster_impl *m_cluster = nullptr;
 
   /**

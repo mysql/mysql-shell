@@ -4,10 +4,10 @@
 }
 
 //@ Error: user has no privileges to run the configure command (BUG#26609909)
-||Dba.configureLocalInstance: Session account 'gr_user'@'%' (used to authenticate 'gr_user'@'localhost') does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Session account 'gr_user'@'%' (used to authenticate 'gr_user'@'localhost') does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 //@ Error: session user has privileges to run the configure command but we pass it an existing clusterAdmin user that doesn't have enough privileges (BUG#26979375)
-||Dba.configureLocalInstance: Cluster Admin account 'gr_user'@'%' does not have all the required privileges to execute this operation. For more information, see the online documentation.
+||Cluster Admin account 'gr_user'@'%' does not have all the required privileges to execute this operation. For more information, see the online documentation.
 
 //@ Session user has privileges to run the configure command and we pass it an non existing clusterAdmin user(BUG#26979375)
 ||

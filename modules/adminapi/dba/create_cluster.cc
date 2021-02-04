@@ -53,26 +53,18 @@ namespace dba {
 
 Create_cluster::Create_cluster(std::shared_ptr<Instance> target_instance,
                                const std::string &cluster_name,
-                               const Group_replication_options &gr_options,
-                               const Clone_options &clone_options,
-                               mysqlshdk::utils::nullable<bool> multi_primary,
-                               bool adopt_from_gr, bool force, bool interactive)
+                               const Create_cluster_options &options)
     : m_target_instance(target_instance),
       m_cluster_name(cluster_name),
-      m_gr_opts(gr_options),
-      m_clone_opts(clone_options),
-      m_multi_primary(multi_primary),
-      m_adopt_from_gr(adopt_from_gr),
-      m_force(force),
-      m_interactive(interactive) {}
+      m_options(options) {}
 
 Create_cluster::~Create_cluster() {}
 
 void Create_cluster::validate_create_cluster_options() {
   auto console = mysqlsh::current_console();
 
-  if (!m_gr_opts.auto_rejoin_tries.is_null() &&
-      *m_gr_opts.auto_rejoin_tries != 0) {
+  if (!m_options.gr_options.auto_rejoin_tries.is_null() &&
+      *m_options.gr_options.auto_rejoin_tries != 0) {
     std::string warn_msg =
         "The member will only proceed according to its exitStateAction if "
         "auto-rejoin fails (i.e. all retry attempts are exhausted).";
@@ -84,46 +76,48 @@ void Create_cluster::validate_create_cluster_options() {
   InstanceType::Type instance_type = get_gr_instance_type(*m_target_instance);
 
   if (instance_type == mysqlsh::dba::InstanceType::GroupReplication &&
-      !m_adopt_from_gr) {
-    if (m_interactive) {
+      !m_options.adopt_from_gr) {
+    if (m_options.interactive()) {
       if (console->confirm(
               "You are connected to an instance that belongs to an unmanaged "
               "replication group.\nDo you want to setup an InnoDB cluster "
               "based on this replication group?",
               mysqlsh::Prompt_answer::YES) == mysqlsh::Prompt_answer::YES) {
-        m_adopt_from_gr = true;
+        m_options.adopt_from_gr = true;
       }
     }
-    if (!m_adopt_from_gr && !m_retrying)
+    if (!m_options.adopt_from_gr && !m_retrying)
       throw shcore::Exception(
           "Creating a cluster on an unmanaged replication group requires "
           "adoptFromGR option to be true",
           SHERR_DBA_BADARG_INSTANCE_ALREADY_IN_GR);
   }
 
-  if (m_adopt_from_gr && !m_gr_opts.ssl_mode.is_null()) {
+  if (m_options.adopt_from_gr && !m_options.gr_options.ssl_mode.is_null()) {
     throw shcore::Exception::argument_error(
         "Cannot use memberSslMode option if adoptFromGR is set to true.");
   }
 
-  if (m_adopt_from_gr && !m_multi_primary.is_null()) {
+  if (m_options.adopt_from_gr && !m_options.multi_primary.is_null()) {
     throw shcore::Exception::argument_error(
         "Cannot use multiPrimary (or multiMaster) option if adoptFromGR is set "
         "to true. Using adoptFromGR mode will adopt the primary mode in use by "
         "the Cluster.");
   }
 
-  if (m_adopt_from_gr && instance_type != InstanceType::GroupReplication) {
+  if (m_options.adopt_from_gr &&
+      instance_type != InstanceType::GroupReplication) {
     throw shcore::Exception::argument_error(
         "The adoptFromGR option is set to true, but there is no replication "
         "group to adopt");
   }
 
   // Set multi-primary to false by default.
-  if (m_multi_primary.is_null()) m_multi_primary = false;
+  if (m_options.multi_primary.is_null()) m_options.multi_primary = false;
 
-  if (!m_adopt_from_gr && *m_multi_primary && !m_force) {
-    if (m_interactive) {
+  if (!m_options.adopt_from_gr && *m_options.multi_primary &&
+      !m_options.force.get_safe()) {
+    if (m_options.interactive()) {
       console->print_para(
           "The MySQL InnoDB cluster is going to be setup in advanced "
           "Multi-Primary Mode. Before continuing you have to confirm that you "
@@ -142,7 +136,7 @@ void Create_cluster::validate_create_cluster_options() {
         throw shcore::cancelled("Cancelled");
       } else {
         console->println();
-        m_force = true;
+        m_options.force = true;
       }
     } else {
       throw shcore::Exception::argument_error(
@@ -162,17 +156,17 @@ void Create_cluster::validate_create_cluster_options() {
  */
 void Create_cluster::resolve_ssl_mode() {
   // Set SSL Mode to AUTO by default (not defined).
-  if (m_gr_opts.ssl_mode.is_null()) {
-    m_gr_opts.ssl_mode = dba::kMemberSSLModeAuto;
+  if (m_options.gr_options.ssl_mode.is_null()) {
+    m_options.gr_options.ssl_mode = dba::kMemberSSLModeAuto;
   }
 
-  std::string new_ssl_mode =
-      resolve_cluster_ssl_mode(*m_target_instance, *m_gr_opts.ssl_mode);
+  std::string new_ssl_mode = resolve_cluster_ssl_mode(
+      *m_target_instance, *m_options.gr_options.ssl_mode);
 
-  if (new_ssl_mode != *m_gr_opts.ssl_mode) {
-    m_gr_opts.ssl_mode = new_ssl_mode;
+  if (new_ssl_mode != *m_options.gr_options.ssl_mode) {
+    m_options.gr_options.ssl_mode = new_ssl_mode;
     log_warning("SSL mode used to configure the cluster: '%s'",
-                m_gr_opts.ssl_mode->c_str());
+                m_options.gr_options.ssl_mode->c_str());
   }
 }
 
@@ -180,7 +174,8 @@ void Create_cluster::prepare() {
   auto console = mysqlsh::current_console();
   console->println(
       std::string{"A new InnoDB cluster will be created"} +
-      (m_adopt_from_gr ? " based on the existing replication group" : "") +
+      (m_options.adopt_from_gr ? " based on the existing replication group"
+                               : "") +
       " on instance '" +
       m_target_instance->get_connection_options().uri_endpoint() + "'.\n");
 
@@ -189,10 +184,10 @@ void Create_cluster::prepare() {
                                       Cluster_type::GROUP_REPLICATION);
 
   // Validate values given for GR options.
-  m_gr_opts.check_option_values(m_target_instance->get_version());
+  m_options.gr_options.check_option_values(m_target_instance->get_version());
 
   // Validate the Clone options.
-  m_clone_opts.check_option_values(m_target_instance->get_version());
+  m_options.clone_options.check_option_values(m_target_instance->get_version());
 
   // Check if we're retrying a previously failed create attempt
   if (mysqlshdk::mysql::check_indicator_tag(
@@ -207,7 +202,7 @@ void Create_cluster::prepare() {
 
   // Verify if the instance is running asynchronous
   // replication. Skip if 'force' is enabled.
-  if (!m_force) {
+  if (!m_options.force.get_safe()) {
     validate_async_channels(*m_target_instance, checks::Check_type::CREATE);
   } else {
     log_debug(
@@ -224,7 +219,7 @@ void Create_cluster::prepare() {
   // group. We should not bypass GR's mechanism to avoid writes on the secondary
   // by disabling super_read_only. Apart from possible GTID inconsistencies, a
   // secondary will end up having super_read_only disabled.
-  if (m_adopt_from_gr) {
+  if (m_options.adopt_from_gr) {
     m_target_instance = get_primary_member_from_group(m_target_instance);
   }
 
@@ -241,7 +236,7 @@ void Create_cluster::prepare() {
   }
 
   try {
-    if (!m_adopt_from_gr) {
+    if (!m_options.adopt_from_gr) {
       // Check instance configuration and state, like dba.checkInstance
       // but skip if we're adopting, since in that case the target is obviously
       // already configured
@@ -253,11 +248,11 @@ void Create_cluster::prepare() {
       // NOTE: In 8.0.16 the default value became READ_ONLY so we must not
       // change it
       auto instance_version = m_target_instance->get_version();
-      if (m_gr_opts.exit_state_action.is_null() &&
+      if (m_options.gr_options.exit_state_action.is_null() &&
           is_option_supported(instance_version, kExpelTimeout,
                               k_global_cluster_supported_options) &&
           instance_version < mysqlshdk::utils::Version("8.0.16")) {
-        m_gr_opts.exit_state_action = "READ_ONLY";
+        m_options.gr_options.exit_state_action = "READ_ONLY";
       }
 
       // Check replication filters before creating the Metadata.
@@ -278,9 +273,11 @@ void Create_cluster::prepare() {
       // Resolve GR local address.
       // NOTE: Must be done only after getting the report_host used by GR and
       // for the metadata;
-      m_gr_opts.local_address = mysqlsh::dba::resolve_gr_local_address(
-          m_gr_opts.local_address, m_target_instance->get_canonical_hostname(),
-          m_target_instance->get_canonical_port(), !m_retrying, false);
+      m_options.gr_options.local_address =
+          mysqlsh::dba::resolve_gr_local_address(
+              m_options.gr_options.local_address,
+              m_target_instance->get_canonical_hostname(),
+              m_target_instance->get_canonical_port(), !m_retrying, false);
 
       // Validate that the group_replication_local_address is valid for the
       // version we are using
@@ -290,23 +287,23 @@ void Create_cluster::prepare() {
       validate_local_address_ip_compatibility();
 
       // Generate the GR group name (if needed).
-      if (m_gr_opts.group_name.is_null()) {
-        m_gr_opts.group_name =
+      if (m_options.gr_options.group_name.is_null()) {
+        m_options.gr_options.group_name =
             mysqlshdk::gr::generate_group_name(*m_target_instance);
       }
     }
 
     // Determine the GR mode if the cluster is to be adopt from GR.
-    if (m_adopt_from_gr) {
+    if (m_options.adopt_from_gr) {
       // Get the primary UUID value to determine GR mode:
       // UUID (not empty) -> single-primary or "" (empty) -> multi-primary
       std::string gr_primary_uuid =
           mysqlshdk::gr::get_group_primary_uuid(*m_target_instance, nullptr);
 
-      m_multi_primary = gr_primary_uuid.empty();
+      m_options.multi_primary = gr_primary_uuid.empty();
     }
 
-    if (!m_adopt_from_gr) {
+    if (!m_options.adopt_from_gr) {
       // Set the internal configuration object: read/write configs from the
       // server.
       m_cfg = mysqlsh::dba::create_server_config(
@@ -334,51 +331,51 @@ void Create_cluster::log_used_gr_options() {
   auto console = mysqlsh::current_console();
 
   log_info("Using Group Replication single primary mode: %s",
-           *m_multi_primary ? "FALSE" : "TRUE");
+           *m_options.multi_primary ? "FALSE" : "TRUE");
 
-  if (!m_gr_opts.ssl_mode.is_null()) {
+  if (!m_options.gr_options.ssl_mode.is_null()) {
     log_info("Using Group Replication SSL mode: %s",
-             m_gr_opts.ssl_mode->c_str());
+             m_options.gr_options.ssl_mode->c_str());
   }
 
-  if (!m_gr_opts.group_name.is_null()) {
+  if (!m_options.gr_options.group_name.is_null()) {
     log_info("Using Group Replication group name: %s",
-             m_gr_opts.group_name->c_str());
+             m_options.gr_options.group_name->c_str());
   }
 
-  if (!m_gr_opts.local_address.is_null()) {
+  if (!m_options.gr_options.local_address.is_null()) {
     log_info("Using Group Replication local address: %s",
-             m_gr_opts.local_address->c_str());
+             m_options.gr_options.local_address->c_str());
   }
 
-  if (!m_gr_opts.group_seeds.is_null()) {
+  if (!m_options.gr_options.group_seeds.is_null()) {
     log_info("Using Group Replication group seeds: %s",
-             m_gr_opts.group_seeds->c_str());
+             m_options.gr_options.group_seeds->c_str());
   }
 
-  if (!m_gr_opts.exit_state_action.is_null()) {
+  if (!m_options.gr_options.exit_state_action.is_null()) {
     log_info("Using Group Replication exit state action: %s",
-             m_gr_opts.exit_state_action->c_str());
+             m_options.gr_options.exit_state_action->c_str());
   }
 
-  if (!m_gr_opts.member_weight.is_null()) {
+  if (!m_options.gr_options.member_weight.is_null()) {
     log_info("Using Group Replication member weight: %s",
-             std::to_string(*m_gr_opts.member_weight).c_str());
+             std::to_string(*m_options.gr_options.member_weight).c_str());
   }
 
-  if (!m_gr_opts.consistency.is_null()) {
+  if (!m_options.gr_options.consistency.is_null()) {
     log_info("Using Group Replication failover consistency: %s",
-             m_gr_opts.consistency->c_str());
+             m_options.gr_options.consistency->c_str());
   }
 
-  if (!m_gr_opts.expel_timeout.is_null()) {
+  if (!m_options.gr_options.expel_timeout.is_null()) {
     log_info("Using Group Replication expel timeout: %s",
-             std::to_string(*m_gr_opts.expel_timeout).c_str());
+             std::to_string(*m_options.gr_options.expel_timeout).c_str());
   }
 
-  if (!m_gr_opts.auto_rejoin_tries.is_null()) {
+  if (!m_options.gr_options.auto_rejoin_tries.is_null()) {
     log_info("Using Group Replication auto-rejoin tries: %s",
-             std::to_string(*m_gr_opts.auto_rejoin_tries).c_str());
+             std::to_string(*m_options.gr_options.auto_rejoin_tries).c_str());
   }
 }
 
@@ -481,10 +478,10 @@ void Create_cluster::persist_sro_all(Cluster_impl *cluster) {
 
 void Create_cluster::validate_local_address_ip_compatibility() const {
   // local_address must have some value
-  assert(!m_gr_opts.local_address.is_null() &&
-         !m_gr_opts.local_address.get_safe().empty());
+  assert(!m_options.gr_options.local_address.is_null() &&
+         !m_options.gr_options.local_address.get_safe().empty());
 
-  std::string local_address = m_gr_opts.local_address.get_safe();
+  std::string local_address = m_options.gr_options.local_address.get_safe();
 
   // Validate that the group_replication_local_address is valid for the version
   // of the target instance.
@@ -509,7 +506,7 @@ shcore::Value Create_cluster::execute() {
                       m_target_instance->descr() + "'...\n");
 
   // Common informative logging
-  if (m_adopt_from_gr) {
+  if (m_options.adopt_from_gr) {
     log_info(
         "Adopting cluster from existing Group Replication and using its "
         "settings.");
@@ -522,7 +519,7 @@ shcore::Value Create_cluster::execute() {
   //       Disable read-only temporarily to install the plugin if needed.
   mysqlshdk::gr::install_group_replication_plugin(*m_target_instance, nullptr);
 
-  if (*m_multi_primary && !m_adopt_from_gr) {
+  if (*m_options.multi_primary && !m_options.adopt_from_gr) {
     log_info(
         "The MySQL InnoDB cluster is going to be setup in advanced "
         "Multi-Primary Mode. Consult its requirements and limitations in "
@@ -536,7 +533,7 @@ shcore::Value Create_cluster::execute() {
   try {
     console->print_info("Adding Seed Instance...");
 
-    if (!m_adopt_from_gr) {
+    if (!m_options.adopt_from_gr) {
       if (m_retrying) {
         // If we're retrying, make sure GR is stopped
         console->print_note("Stopping GR started by a previous failed attempt");
@@ -552,7 +549,7 @@ shcore::Value Create_cluster::execute() {
       // instance If the instance already has master_user set to this value when
       // we enter createCluster(), it means a previous attempt failed.
       // Note: this shouldn't be set if we're adopting
-      assert(!m_adopt_from_gr);
+      assert(!m_options.adopt_from_gr);
       mysqlshdk::mysql::create_indicator_tag(
           *m_target_instance, metadata::kClusterSetupIndicatorTag);
 
@@ -577,8 +574,8 @@ shcore::Value Create_cluster::execute() {
       });
       // Start GR before creating the recovery user and metadata, so that
       // all transactions executed by us have the same GTID prefix
-      mysqlsh::dba::start_cluster(*m_target_instance, m_gr_opts,
-                                  m_multi_primary, m_cfg.get());
+      mysqlsh::dba::start_cluster(*m_target_instance, m_options.gr_options,
+                                  m_options.multi_primary, m_cfg.get());
     }
 
     std::string group_name = m_target_instance->get_group_name();
@@ -599,8 +596,9 @@ shcore::Value Create_cluster::execute() {
     if (domain_name.empty()) domain_name = k_default_domain_name;
 
     mysqlshdk::gr::Topology_mode topology_mode =
-        (*m_multi_primary) ? mysqlshdk::gr::Topology_mode::MULTI_PRIMARY
-                           : mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY;
+        (*m_options.multi_primary)
+            ? mysqlshdk::gr::Topology_mode::MULTI_PRIMARY
+            : mysqlshdk::gr::Topology_mode::SINGLE_PRIMARY;
 
     auto cluster_impl = std::make_shared<Cluster_impl>(
         cluster_name, group_name, m_target_instance, metadata, topology_mode);
@@ -613,16 +611,17 @@ shcore::Value Create_cluster::execute() {
     MetadataStorage::Transaction trx(metadata);
     undo_list.push_front([&trx]() { trx.rollback(); });
 
-    metadata->create_cluster_record(cluster_impl.get(), m_adopt_from_gr);
+    metadata->create_cluster_record(cluster_impl.get(),
+                                    m_options.adopt_from_gr);
 
     metadata->update_cluster_attribute(
         cluster_impl->get_id(), k_cluster_attribute_assume_gtid_set_complete,
-        m_clone_opts.gtid_set_is_complete ? shcore::Value::True()
-                                          : shcore::Value::False());
+        m_options.clone_options.gtid_set_is_complete ? shcore::Value::True()
+                                                     : shcore::Value::False());
 
     metadata->update_cluster_attribute(
         cluster_impl->get_id(), k_cluster_attribute_manual_start_on_boot,
-        m_gr_opts.manual_start_on_boot.get_safe(false)
+        m_options.gr_options.manual_start_on_boot.get_safe(false)
             ? shcore::Value::True()
             : shcore::Value::False());
 
@@ -631,7 +630,7 @@ shcore::Value Create_cluster::execute() {
                                        shcore::Value::True());
 
     // Insert instance into the metadata.
-    if (m_adopt_from_gr) {
+    if (m_options.adopt_from_gr) {
       // Adoption from an existing GR group is performed after creating/updating
       // the metadata (since it is used internally by adopt_from_gr()).
       cluster_impl->adopt_from_gr();
@@ -664,10 +663,11 @@ shcore::Value Create_cluster::execute() {
     // Handle the clone options
     {
       // If disableClone: true, uninstall the plugin and update the Metadata
-      if (!m_clone_opts.disable_clone.is_null() &&
-          *m_clone_opts.disable_clone) {
+      if (!m_options.clone_options.disable_clone.is_null() &&
+          *m_options.clone_options.disable_clone) {
         mysqlshdk::mysql::uninstall_clone_plugin(*m_target_instance, nullptr);
-        cluster_impl->set_disable_clone_option(*m_clone_opts.disable_clone);
+        cluster_impl->set_disable_clone_option(
+            *m_options.clone_options.disable_clone);
       } else {
         // Install the plugin if the target instance is >= 8.0.17
         if (m_target_instance->get_version() >=
@@ -721,13 +721,14 @@ shcore::Value Create_cluster::execute() {
                                        metadata::kClusterSetupIndicatorTag);
 
   std::string message =
-      m_adopt_from_gr ? "Cluster successfully created based on existing "
-                        "replication group."
-                      : "Cluster successfully created. Use "
-                        "Cluster.<<<addInstance>>>() to add MySQL instances.\n"
-                        "At least 3 instances are needed for the cluster to be "
-                        "able to withstand up to\n"
-                        "one server failure.";
+      m_options.adopt_from_gr
+          ? "Cluster successfully created based on existing "
+            "replication group."
+          : "Cluster successfully created. Use "
+            "Cluster.<<<addInstance>>>() to add MySQL instances.\n"
+            "At least 3 instances are needed for the cluster to be "
+            "able to withstand up to\n"
+            "one server failure.";
   console->print_info(message);
   console->print_info();
 

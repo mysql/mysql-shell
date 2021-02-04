@@ -20,32 +20,32 @@ Result of the rescanning operation for the 'c' cluster:
 }
 
 //@ WL10644 - TSF2_6: empty addInstances throw ArgumentError.
-||Cluster.rescan: The list for 'addInstances' option cannot be empty. (ArgumentError)
+||The list for 'addInstances' option cannot be empty. (ArgumentError)
 
 //@ WL10644 - TSF2_8: invalid addInstances list throw ArgumentError.
-||Cluster.rescan: Invalid value 'undefined' for 'addInstances' option: Invalid connection options, expected either a URI or a Connection Options Dictionary (ArgumentError)
-||Cluster.rescan: Invalid value 'localhost' for 'addInstances' option: port is missing. (ArgumentError)
-||Cluster.rescan: Invalid value ':3301' for 'addInstances' option: host cannot be empty. (ArgumentError)
-||Cluster.rescan: Invalid value '@' for 'addInstances' option: Invalid URI: Missing user information (ArgumentError)
-||Cluster.rescan: Invalid value '{}' for 'addInstances' option: Invalid connection options, no options provided. (ArgumentError)
-||Cluster.rescan: Invalid value '{"host": "myhost"}' for 'addInstances' option: port is missing. (ArgumentError)
-||Cluster.rescan: Invalid value '{"host": ""}' for 'addInstances' option: Host value cannot be an empty string. (ArgumentError)
+||Invalid value 'undefined' for 'addInstances' option: Invalid connection options, expected either a URI or a Connection Options Dictionary (ArgumentError)
+||Invalid value 'localhost' for 'addInstances' option: port is missing. (ArgumentError)
+||Invalid value ':3301' for 'addInstances' option: host cannot be empty. (ArgumentError)
+||Invalid value '@' for 'addInstances' option: Invalid URI: Missing user information (ArgumentError)
+||Invalid value '{}' for 'addInstances' option: Invalid connection options, no options provided. (ArgumentError)
+||Invalid value '{"host": "myhost"}' for 'addInstances' option: port is missing. (ArgumentError)
+||Invalid value '{"host": ""}' for 'addInstances' option: Host value cannot be an empty string. (ArgumentError)
 
 //@ WL10644: Duplicated values for addInstances.
-||Cluster.rescan: Duplicated value found for instance 'localhost:3301' in 'addInstances' option. (ArgumentError)
-||Cluster.rescan: Duplicated value found for instance 'localhost:3301' in 'addInstances' option. (ArgumentError)
-||Cluster.rescan: Duplicated value found for instance 'localhost:3301' in 'addInstances' option. (ArgumentError)
+||Duplicated value found for instance 'localhost:3301' in 'addInstances' option. (ArgumentError)
+||Duplicated value found for instance 'localhost:3301' in 'addInstances' option. (ArgumentError)
+||Duplicated value found for instance 'localhost:3301' in 'addInstances' option. (ArgumentError)
 
 //@ WL10644 - TSF2_9: invalid value with addInstances throw ArgumentError.
-||Cluster.rescan: Option 'addInstances' only accepts 'auto' as a valid string value, otherwise a list of instances is expected. (ArgumentError)
+||Option 'addInstances' only accepts 'auto' as a valid string value, otherwise a list of instances is expected. (ArgumentError)
 
 //@ WL10644 - TSF2_7: "auto" is case insensitive, no error.
 ||
 
 //@ WL10644: Invalid type used for addInstances.
-||Cluster.rescan: Option 'addInstances' is expected to be of type Array, but is Map (TypeError)
-||Cluster.rescan: Option 'addInstances' is expected to be of type Array, but is Bool (TypeError)
-||Cluster.rescan: Option 'addInstances' is expected to be of type Array, but is Integer (TypeError)
+||The 'addInstances' option must be a string or a list of strings. (ArgumentError)
+||The 'addInstances' option must be a string or a list of strings. (ArgumentError)
+||The 'addInstances' option must be a string or a list of strings. (ArgumentError)
 
 //@<OUT> WL10644 - TSF2_10: not active member in addInstances throw RuntimeError.
 ERROR: The following instances cannot be added because they are not active members of the cluster: 'localhost:1111'. Please verify if the specified addresses are correct, or if the instances are currently inactive.
@@ -68,32 +68,32 @@ Result of the rescanning operation for the 'c' cluster:
 WARNING: The following instances were not added to the metadata because they are already part of the cluster: '<<<member_address>>>'. Please verify if the specified value for 'addInstances' option is correct.
 
 //@ WL10644 - TSF3_6: empty removeInstances throw ArgumentError.
-||Cluster.rescan: The list for 'removeInstances' option cannot be empty. (ArgumentError)
+||The list for 'removeInstances' option cannot be empty. (ArgumentError)
 
 //@ WL10644 - TSF3_8: invalid removeInstances list throw ArgumentError.
-||Cluster.rescan: Invalid value 'undefined' for 'removeInstances' option: Invalid connection options, expected either a URI or a Connection Options Dictionary (ArgumentError)
-||Cluster.rescan: Invalid value 'localhost' for 'removeInstances' option: port is missing. (ArgumentError)
-||Cluster.rescan: Invalid value ':3301' for 'removeInstances' option: host cannot be empty. (ArgumentError)
-||Cluster.rescan: Invalid value '@' for 'removeInstances' option: Invalid URI: Missing user information (ArgumentError)
-||Cluster.rescan: Invalid value '{}' for 'removeInstances' option: Invalid connection options, no options provided. (ArgumentError)
-||Cluster.rescan: Invalid value '{"host": "myhost"}' for 'removeInstances' option: port is missing. (ArgumentError)
-||Cluster.rescan: Invalid value '{"host": ""}' for 'removeInstances' option: Host value cannot be an empty string. (ArgumentError)
+||Invalid value 'undefined' for 'removeInstances' option: Invalid connection options, expected either a URI or a Connection Options Dictionary (ArgumentError)
+||Invalid value 'localhost' for 'removeInstances' option: port is missing. (ArgumentError)
+||Invalid value ':3301' for 'removeInstances' option: host cannot be empty. (ArgumentError)
+||Invalid value '@' for 'removeInstances' option: Invalid URI: Missing user information (ArgumentError)
+||Invalid value '{}' for 'removeInstances' option: Invalid connection options, no options provided. (ArgumentError)
+||Invalid value '{"host": "myhost"}' for 'removeInstances' option: port is missing. (ArgumentError)
+||Invalid value '{"host": ""}' for 'removeInstances' option: Host value cannot be an empty string. (ArgumentError)
 
 //@ WL10644: Duplicated values for removeInstances.
-||Cluster.rescan: Duplicated value found for instance 'localhost:3301' in 'removeInstances' option. (ArgumentError)
-||Cluster.rescan: Duplicated value found for instance 'localhost:3301' in 'removeInstances' option. (ArgumentError)
-||Cluster.rescan: Duplicated value found for instance 'localhost:3301' in 'removeInstances' option. (ArgumentError)
+||Duplicated value found for instance 'localhost:3301' in 'removeInstances' option. (ArgumentError)
+||Duplicated value found for instance 'localhost:3301' in 'removeInstances' option. (ArgumentError)
+||Duplicated value found for instance 'localhost:3301' in 'removeInstances' option. (ArgumentError)
 
 //@ WL10644 - TSF3_9: invalid value with removeInstances throw ArgumentError.
-||Cluster.rescan: Option 'removeInstances' only accepts 'auto' as a valid string value, otherwise a list of instances is expected. (ArgumentError)
+||Option 'removeInstances' only accepts 'auto' as a valid string value, otherwise a list of instances is expected. (ArgumentError)
 
 //@ WL10644 - TSF3_7: "auto" is case insensitive, no error.
 ||
 
 //@ WL10644: Invalid type used for removeInstances.
-||Cluster.rescan: Option 'removeInstances' is expected to be of type Array, but is Map (TypeError)
-||Cluster.rescan: Option 'removeInstances' is expected to be of type Array, but is Bool (TypeError)
-||Cluster.rescan: Option 'removeInstances' is expected to be of type Array, but is Integer (TypeError)
+||The 'removeInstances' option must be a string or a list of strings. (ArgumentError)
+||The 'removeInstances' option must be a string or a list of strings. (ArgumentError)
+||The 'removeInstances' option must be a string or a list of strings. (ArgumentError)
 
 //@<OUT> WL10644 - TSF3_10: active member in removeInstances throw RuntimeError.
 ERROR: The following instances cannot be removed because they are active members of the cluster: '<<<member_address>>>'. Please verify if the specified addresses are correct.
@@ -116,9 +116,9 @@ Result of the rescanning operation for the 'c' cluster:
 WARNING: The following instances were not removed from the metadata because they are already not part of the cluster or are running auto-rejoin: 'localhost:1111'. Please verify if the specified value for 'removeInstances' option is correct.
 
 //@ WL10644: Duplicated values between addInstances and removeInstances.
-||Cluster.rescan: The same instances cannot be used in both 'addInstances' and 'removeInstances' options: 'localhost:3300, localhost:3301'. (ArgumentError)
-||Cluster.rescan: The same instance cannot be used in both 'addInstances' and 'removeInstances' options: 'localhost:3301'. (ArgumentError)
-||Cluster.rescan: The same instance cannot be used in both 'addInstances' and 'removeInstances' options: 'localhost:3301'. (ArgumentError)
+||The same instances cannot be used in both 'addInstances' and 'removeInstances' options: 'localhost:3300, localhost:3301'. (ArgumentError)
+||The same instance cannot be used in both 'addInstances' and 'removeInstances' options: 'localhost:3301'. (ArgumentError)
+||The same instance cannot be used in both 'addInstances' and 'removeInstances' options: 'localhost:3301'. (ArgumentError)
 
 //@<OUT> WL10644 - TSF2_1: Rescan with addInstances:[complete_valid_list].
 Rescanning the cluster...
@@ -513,8 +513,8 @@ mm
 //@ WL10644 - TSF4_5: Set auto_increment settings to unused values.
 ||
 
-//@<> WL10644 - TSF4_2: status() error because topology mode changed.
-||Cluster.status: The InnoDB Cluster topology type (Multi-Primary) does not match the current Group Replication configuration (Single-Primary). Please use <cluster>.rescan() or change the Group Replication configuration accordingly. (RuntimeError)
+//@ WL10644 - TSF4_2: status() error because topology mode changed.
+||The InnoDB Cluster topology type (Multi-Primary) does not match the current Group Replication configuration (Single-Primary). Please use <cluster>.rescan() or change the Group Replication configuration accordingly. (RuntimeError)
 
 //@<> BUG#29330769: Verify deprecation message added about updateTopologyMode
 |The updateTopologyMode option is deprecated. The topology-mode is now automatically updated.|

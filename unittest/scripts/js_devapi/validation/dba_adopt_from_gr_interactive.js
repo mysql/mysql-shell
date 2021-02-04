@@ -2,7 +2,7 @@
 ||
 
 //@ it's not possible to adopt from GR without existing group replication
-||Dba.createCluster: The adoptFromGR option is set to true, but there is no replication group to adopt (ArgumentError)
+||The adoptFromGR option is set to true, but there is no replication group to adopt (ArgumentError)
 
 //@ Create cluster
 ||
@@ -14,7 +14,7 @@
 Are you sure you want to remove the Metadata? [y/N]: Metadata Schema successfully removed.
 
 //@ Check cluster status after drop metadata schema
-||Cluster.status: This function is not available through a session to an instance belonging to an unmanaged replication group (RuntimeError)
+||This function is not available through a session to an instance belonging to an unmanaged replication group (RuntimeError)
 
 //@<OUT> Create cluster adopting from GR - answer 'yes' to prompt
 A new InnoDB cluster will be created on instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'.
@@ -57,7 +57,7 @@ mysql_innodb_cluster_2222
 1
 
 //@ Create cluster adopting from GR - answer 'no' to prompt
-||Dba.createCluster: Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true (MYSQLSH 51315)
+||Creating a cluster on an unmanaged replication group requires adoptFromGR option to be true (MYSQLSH 51315)
 
 //@ Check cluster status - failure
 ||The cluster object is disconnected. Please use dba.getCluster to obtain a fresh cluster handle. (RuntimeError)
@@ -96,7 +96,7 @@ Cluster successfully created based on existing replication group.
 |The cluster was successfully dissolved.|
 
 //@ it's not possible to adopt from GR when cluster was dissolved
-||Dba.createCluster: The adoptFromGR option is set to true, but there is no replication group to adopt (ArgumentError)
+||The adoptFromGR option is set to true, but there is no replication group to adopt (ArgumentError)
 
 //@ Finalization
 ||

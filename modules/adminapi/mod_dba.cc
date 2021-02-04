@@ -1173,12 +1173,7 @@ shcore::Value Dba::create_cluster(
   // Create the cluster
   {
     // Create the add_instance command and execute it.
-    // TODO(anyone) This operation should receive an options object instead of
-    // individual parameters.
-    Create_cluster op_create_cluster(
-        group_server, cluster_name, options->gr_options, options->clone_options,
-        options->multi_primary, options->adopt_from_gr, options->force,
-        options->interactive);
+    Create_cluster op_create_cluster(group_server, cluster_name, *options);
 
     // Always execute finish when leaving "try catch".
     auto finally = shcore::on_leave_scope(
@@ -1358,11 +1353,8 @@ shcore::Value Dba::check_instance_configuration(
   std::shared_ptr<Instance> instance;
 
   // Establish the session to the target instance
-  bool interactive =
-      options->interactive.get_safe(current_shell_options()->get().wizards);
-
   if (has_co) {
-    instance = Instance::connect(*instance_def, interactive);
+    instance = Instance::connect(*instance_def, options->interactive());
   } else {
     instance = connect_to_target_member();
   }
@@ -1521,6 +1513,7 @@ set are executed, but no changes are actually made. An exception will be thrown
 when finished.
 @li gtidSetIsComplete: boolean value which indicates whether the GTID set
 of the seed instance corresponds to all transactions executed. Default is false.
+${OPT_INTERACTIVE}
 )*");
 /**
  * $(DBA_CREATEREPLICASET_BRIEF)
@@ -1564,14 +1557,10 @@ shcore::Value Dba::create_replica_set(
 
   Instance_pool::Auth_options auth_opts;
   auth_opts.get(target_server->get_connection_options());
-  Scoped_instance_pool ipool(options->interactive, auth_opts);
+  Scoped_instance_pool ipool(options->interactive(), auth_opts);
 
-  // TODO(anyone): The create function should receivet he options object rather
-  // than individual parameters.
-  auto cluster = Replica_set_impl::create(
-      full_rs_name, topology_type, target_server, options->instance_label,
-      options->ar_options, options->adopt, options->dry_run,
-      options->gtid_set_is_complete);
+  auto cluster = Replica_set_impl::create(full_rs_name, topology_type,
+                                          target_server, *options);
 
   console->print_info(
       "ReplicaSet object successfully created for " + target_server->descr() +
@@ -1997,12 +1986,10 @@ void Dba::do_configure_instance(
   std::shared_ptr<Instance> target_instance;
 
   Cluster_check_info state;
-  bool interactive =
-      options.interactive.get_safe(current_shell_options()->get().wizards);
 
   // Establish the session to the target instance
   if (instance_def.has_data()) {
-    target_instance = Instance::connect(instance_def, interactive);
+    target_instance = Instance::connect(instance_def, options.interactive());
   } else {
     target_instance = connect_to_target_member();
   }
@@ -2039,25 +2026,17 @@ void Dba::do_configure_instance(
 
   Instance_pool::Auth_options auth_opts;
   auth_opts.get(target_instance->get_connection_options());
-  Scoped_instance_pool ipool(interactive, auth_opts);
+  Scoped_instance_pool ipool(options.interactive(), auth_opts);
 
   {
     // Call the API
-    // TODO(rennox): The configure instance operations should be refactored to
-    // use the Configure_instance_options rather than passing it's attributes
     std::unique_ptr<Configure_instance> op_configure_instance;
     if (options.local) {
-      op_configure_instance.reset(new Configure_local_instance(
-          target_instance, options.mycnf_path, options.output_mycnf_path,
-          options.cluster_admin, options.cluster_admin_password,
-          options.clear_read_only, interactive, options.restart));
+      op_configure_instance.reset(
+          new Configure_local_instance(target_instance, options));
     } else {
-      op_configure_instance.reset(new Configure_instance(
-          target_instance, options.mycnf_path, options.output_mycnf_path,
-          options.cluster_admin, options.cluster_admin_password,
-          options.clear_read_only, interactive, options.restart,
-          options.slave_parallel_workers, options.cluster_type,
-          state.source_type));
+      op_configure_instance.reset(
+          new Configure_instance(target_instance, options, state.source_type));
     }
 
     // Prepare and execute the operation.
@@ -2224,6 +2203,7 @@ ${TOPIC_CONNECTION_MORE_INFO}
 
 The options dictionary may contain the following options:
 
+@li password: The password to be used on the connection.
 @li clusterAdmin: The name of a "cluster administrator" user to be
 created. The supported format is the standard MySQL account name format.
 @li clusterAdminPassword: The password for the "cluster administrator" account.
@@ -3011,7 +2991,7 @@ void Dba::upgrade_metadata(
   // The pool is initialized with the metadata using the current session
   Instance_pool::Auth_options auth_opts;
   auth_opts.get(instance->get_connection_options());
-  Scoped_instance_pool ipool(options->interactive, auth_opts);
+  Scoped_instance_pool ipool(options->interactive(), auth_opts);
   ipool->set_metadata(metadata);
 
   // If it happens we are on a RO instance, we update the metadata to make it
@@ -3029,7 +3009,8 @@ void Dba::upgrade_metadata(
     }
   }
 
-  Upgrade_metadata op_upgrade(metadata, options->interactive, options->dry_run);
+  Upgrade_metadata op_upgrade(metadata, options->interactive(),
+                              options->dry_run);
 
   auto finally =
       shcore::on_leave_scope([&op_upgrade]() { op_upgrade.finish(); });

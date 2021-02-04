@@ -249,6 +249,8 @@ DESCRIPTION
       - dryRun: if true, will perform checks and log operations that would be
         performed, but will not execute them. The operations that would be
         performed can be viewed by enabling verbose output in the shell.
+      - timeout: integer value with the maximum number of seconds to wait until
+        the instance being promoted catches up to the current PRIMARY.
       - invalidateErrorInstances: if false, aborts the failover if any instance
         other than the old master is unreachable or has errors. If true, such
         instances will not be failed over and be invalidated.
@@ -399,10 +401,6 @@ DESCRIPTION
         false.
       - timeout: maximum number of seconds to wait for the instance to sync up
         with the PRIMARY. 0 means no timeout and <0 will skip sync.
-      - interactive: boolean value used to disable/enable the wizards in the
-        command execution, i.e. prompts and confirmations will be provided or
-        not according to the value set. The default value is equal to MySQL
-        Shell wizard mode.
 
       The force option (set to true) is required to remove instances that are
       unreachable. Removed instances are normally synchronized with the rest of
@@ -508,17 +506,6 @@ DESCRIPTION
       The update option must be enabled to allow updating an existing account's
       privileges and/or password.
 
-EXCEPTIONS
-      RuntimeError in the following scenarios:
-
-      - The user account name does not exist on the ReplicaSet and update is
-        True.
-      - The user account name does not exist on the ReplicaSet and no password
-        was provided.
-      - The user account name exists on the ReplicaSet and update is False.
-      - The account used to grant the privileges to the admin user doesn't have
-        the necessary privileges.
-
 //@<OUT> setupRouterAccount
 NAME
       setupRouterAccount - Create or upgrade a MySQL account to use with MySQL
@@ -574,18 +561,6 @@ DESCRIPTION
       The update option must be enabled to allow updating an existing account's
       privileges and/or password.
 
-EXCEPTIONS
-      RuntimeError in the following scenarios:
-
-      - The user account name does not exist on the ReplicaSet and update is
-        True.
-      - The user account name does not exist on the ReplicaSet and no password
-        was provided.
-      - The user account name exists on the ReplicaSet and update is False.
-      - The account used to grant the privileges to the router user doesn't
-        have the necessary privileges.
-
-
 //@<OUT> Status
 NAME
       status - Describe the status of the replicaset.
@@ -623,7 +598,6 @@ DESCRIPTION
       - 2 - includes important replication related configuration settings, such
         as SSL, worker threads, replication delay and heartbeat delay.
 
-
 //@<OUT> options
 NAME
       options - Lists the ReplicaSet configuration options.
@@ -637,12 +611,6 @@ RETURNS
 DESCRIPTION
       This function lists the configuration options for the ReplicaSet and its
       instances.
-
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-
 
 //@<OUT> setOption
 NAME
@@ -672,14 +640,6 @@ DESCRIPTION
       ReplicaSet, storing them in its metadata. Custom tag names can be any
       string starting with letters and followed by letters, numbers and _. Tag
       values may be any JSON value. If the value is null, the tag is deleted.
-
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the 'option' parameter is empty.
-      - If the 'value' parameter is empty.
-      - If the 'option' parameter is invalid.
-
 
 //@<OUT> setInstanceOption
 NAME
@@ -724,15 +684,3 @@ DESCRIPTION
             useful to shut down the instance and perform maintenance on it
             without disrupting incoming application traffic.
 
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the 'instance' parameter is empty.
-      - If the 'instance' parameter is invalid.
-      - If the 'option' parameter is empty.
-      - If the 'value' parameter is empty.
-      - If the 'option' parameter is invalid.
-
-      RuntimeError in the following scenarios:
-
-      - If 'instance' does not refer to a replicaSet member.

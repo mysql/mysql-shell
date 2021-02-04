@@ -202,18 +202,18 @@ cluster = scene.cluster;
 session = scene.session;
 
 //@<> WL#13788: Argument errors with tags - TSFR1_4
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:tagname")}, "Cluster.setInstanceOption: Invalid number of arguments, expected 3 but got 2", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:invalid_symbol#", 123)}, "Cluster.setInstanceOption: 'invalid_symbol#' is not a valid tag identifier.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_invalid_builtin", 123)}, "Cluster.setInstanceOption: '_invalid_builtin' is not a valid built-in tag.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "unsupported_namespace:invalid_symbol#", 123)}, "Cluster.setInstanceOption: Namespace 'unsupported_namespace' not supported.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, ":invalid_symbol#", 123)}, "Cluster.setInstanceOption: ':invalid_symbol#' is not a valid identifier.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:", 123)}, "Cluster.setInstanceOption: 'tag:' is not a valid identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:tagname")}, "Invalid number of arguments, expected 3 but got 2", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:invalid_symbol#", 123)}, "'invalid_symbol#' is not a valid tag identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_invalid_builtin", 123)}, "'_invalid_builtin' is not a valid built-in tag.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "unsupported_namespace:invalid_symbol#", 123)}, "Namespace 'unsupported_namespace' not supported.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, ":invalid_symbol#", 123)}, "':invalid_symbol#' is not a valid identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:", 123)}, "'tag:' is not a valid identifier.", "ArgumentError");
 
 //@<> WL#13788 Built-in tag values are validated and throw error if value cannot be converted to expected type - TSFR1_5
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_hidden", "123")}, "Cluster.setInstanceOption: Built-in tag '_hidden' is expected to be of type Bool, but is String", "TypeError");
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_hidden", [true])}, "Cluster.setInstanceOption: Built-in tag '_hidden' is expected to be of type Bool, but is Array", "TypeError");
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", "invalid")}, "Cluster.setInstanceOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", [123])}, "Cluster.setInstanceOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is Array", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_hidden", "123")}, "Built-in tag '_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_hidden", [true])}, "Built-in tag '_hidden' is expected to be of type Bool, but is Array", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", "invalid")}, "Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_disconnect_existing_sessions_when_hidden", [123])}, "Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is Array", "TypeError");
 
 //@<> WL#13788 Validate cluster.options shows values about the tags set via setInstanceOption - TSFR1_7
 // we are using the output of cluster.options to validate the tag was set.
@@ -241,11 +241,11 @@ EXPECT_TRUE(get_tags_for_instance(cluster, __endpoint2)["test_bool"] === true);
 //@<> WL#13788: SetInstanceOption must not allow setting tags for an instance if it is unreachable.
 testutil.killSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING),UNREACHABLE");
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_hidden", false)}, "Cluster.setInstanceOption: Could not open connection to '" + __sandbox2 + "': Can't connect to MySQL server on", "MySQL Error");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri2, "tag:_hidden", false)}, "Could not open connection to '" + __sandbox2 + "': Can't connect to MySQL server on", "MySQL Error");
 
 //@<> WL#13788 setInstanceOption must not allow settings tags for an instance that doesn't belong to the cluster.
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
-EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri4, "tag:_hidden", false)}, "Cluster.setInstanceOption: The instance '" + __sandbox4 + "' does not belong to the Cluster.", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){cluster.setInstanceOption(__sandbox_uri4, "tag:_hidden", false)}, "The instance '" + __sandbox4 + "' does not belong to the Cluster.", "RuntimeError");
 testutil.destroySandbox(__mysql_sandbox_port4);
 
 //@<> WL#13788 use setInstanceOption to set built-in tags and check that they are saved correctly as long as there is quorum TSFR1_3

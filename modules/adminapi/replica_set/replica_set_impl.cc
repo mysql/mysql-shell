@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -320,9 +320,7 @@ Replica_set_impl::Replica_set_impl(
 std::shared_ptr<Replica_set_impl> Replica_set_impl::create(
     const std::string &full_cluster_name, Global_topology_type topology_type,
     const std::shared_ptr<Instance> &target_server,
-    const std::string &instance_label,
-    const Async_replication_options & /*ar_options*/, bool adopt, bool dry_run,
-    bool gtid_set_is_complete) {
+    const Create_replicaset_options &options) {
   auto console = current_console();
 
   // Acquire required locks on target instance.
@@ -344,14 +342,14 @@ std::shared_ptr<Replica_set_impl> Replica_set_impl::create(
                                      &cluster_name);
   if (domain_name.empty()) domain_name = k_default_domain_name;
 
-  if (adopt) {
+  if (options.adopt) {
     console->print_info("A new replicaset with the topology visible from '" +
                         target_server->descr() + "' will be created.\n");
   } else {
     console->print_info("A new replicaset with instance '" +
                         target_server->descr() + "' will be created.\n");
   }
-  if (dry_run) {
+  if (options.dry_run) {
     console->print_note(
         "dryRun option was specified. Validations will be executed, "
         "but no changes will be applied.");
@@ -363,21 +361,22 @@ std::shared_ptr<Replica_set_impl> Replica_set_impl::create(
   auto cluster = std::make_shared<Replica_set_impl>(cluster_name, target_server,
                                                     metadata, topology_type);
 
-  if (adopt) {
+  if (options.adopt) {
     console->print_info("* Scanning replication topology...");
     std::unique_ptr<Star_global_topology_manager> topology(
         new Star_global_topology_manager(
             0, discover_unmanaged_topology(target_server.get())));
     console->print_info();
-    cluster->adopt(topology.get(), instance_label, dry_run);
+    cluster->adopt(topology.get(), options.instance_label, options.dry_run);
   } else {
-    cluster->create(instance_label, dry_run);
+    cluster->create(options.instance_label, options.dry_run);
   }
 
-  if (!dry_run) {
+  if (!options.dry_run) {
     metadata->update_cluster_attribute(
         cluster->get_id(), k_cluster_attribute_assume_gtid_set_complete,
-        gtid_set_is_complete ? shcore::Value::True() : shcore::Value::False());
+        options.gtid_set_is_complete ? shcore::Value::True()
+                                     : shcore::Value::False());
   }
 
   return cluster;
@@ -2664,21 +2663,17 @@ shcore::Value Replica_set_impl::list_routers(bool only_upgrade_required) {
 }
 
 void Replica_set_impl::setup_admin_account(
-    const std::string &username, const std::string &host, bool interactive,
-    bool update, bool dry_run,
-    const mysqlshdk::utils::nullable<std::string> &password) {
+    const std::string &username, const std::string &host,
+    const Setup_account_options &options) {
   check_preconditions("setupAdminAccount");
-  Base_cluster_impl::setup_admin_account(username, host, interactive, update,
-                                         dry_run, password);
+  Base_cluster_impl::setup_admin_account(username, host, options);
 }
 
 void Replica_set_impl::setup_router_account(
-    const std::string &username, const std::string &host, bool interactive,
-    bool update, bool dry_run,
-    const mysqlshdk::utils::nullable<std::string> &password) {
+    const std::string &username, const std::string &host,
+    const Setup_account_options &options) {
   check_preconditions("setupRouterAccount");
-  Base_cluster_impl::setup_router_account(username, host, interactive, update,
-                                          dry_run, password);
+  Base_cluster_impl::setup_router_account(username, host, options);
 }
 
 mysqlshdk::mysql::Auth_options Replica_set_impl::create_replication_user(

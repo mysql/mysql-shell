@@ -74,7 +74,7 @@ session1.runSql('SET GLOBAL validate_password_policy=\'LOW\'');
 session1.runSql('SET GLOBAL validate_password_length=1');
 
 //@<> With validate_password plugin enabled, an error must be thrown when the password does not satisfy the requirements
-EXPECT_THROWS_TYPE(function(){rs.setupRouterAccount("%", {password: "foo"})}, "ReplicaSet.setupRouterAccount: " + __endpoint1 + ": Your password does not satisfy the current policy requirements", "MYSQLSH");
+EXPECT_THROWS_TYPE(function(){rs.setupRouterAccount("%", {password: "foo"})}, __endpoint1 + ": Your password does not satisfy the current policy requirements", "MYSQLSH");
 
 //@<> WL#13536 TSFR3_8 Host if not specified defaults to %
 // account didnt't exist on the replicaset

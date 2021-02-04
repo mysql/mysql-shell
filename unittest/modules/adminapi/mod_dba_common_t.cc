@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1477,25 +1477,6 @@ TEST(mod_dba_common, is_option_supported) {
   EXPECT_FALSE(mysqlsh::dba::is_option_supported(
       Version(5, 7, 23), mysqlsh::dba::kAutoRejoinTries,
       mysqlsh::dba::k_global_cluster_supported_options));
-}
-
-TEST(mod_dba_common, validate_group_name_option) {
-  using mysqlsh::dba::Group_replication_options;
-
-  Group_replication_options options;
-  Version version(8, 0, 14);
-
-  // Error if the groupName is empty.
-  options.group_name = "";
-  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
-
-  // Error if the groupName string is empty (only whitespace).
-  options.group_name = "  ";
-  EXPECT_THROW(options.check_option_values(version), shcore::Exception);
-
-  // No error if the groupName is a non-empty string.
-  options.group_name = "myname";
-  EXPECT_NO_THROW(options.check_option_values(version));
 }
 
 TEST(mod_dba_common, validate_local_address_option) {

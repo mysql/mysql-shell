@@ -2,10 +2,10 @@
 ||
 
 //@ Create cluster fails because port default GR local address port is already in use. {!__replaying && !__recording}
-||Dba.createCluster: The port '<<<__busy_port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__busy_port>>>'. (RuntimeError)
+||The port '<<<__busy_port>>>' for localAddress option is already in use. Specify an available port to be used with localAddress option or free port '<<<__busy_port>>>'. (RuntimeError)
 
 //@ Create cluster errors using localAddress option
-||Dba.createCluster: Group Replication failed to start
+||Group Replication failed to start
 ||Invalid value for localAddress. If ':' is specified then at least a non-empty host or port must be specified: '<host>:<port>' or '<host>:' or ':<port>'. (ArgumentError)
 ||Invalid value for localAddress, string value cannot be empty. (ArgumentError)
 ||Invalid port '123456' for localAddress option. The port must be an integer between 1 and 65535. (ArgumentError)
@@ -15,7 +15,7 @@
 
 //@ Create cluster errors using groupSeeds option
 ||Invalid value for groupSeeds, string value cannot be empty. (ArgumentError)
-||Dba.createCluster: Invalid address format: 'abc'
+||Invalid address format: 'abc'
 
 //@ Create cluster specifying :<valid_port> for localAddress (FR1-TS-1-2)
 ||
@@ -86,7 +86,7 @@
 
 //@ Add instance errors using groupSeeds option
 ||Invalid value for groupSeeds, string value cannot be empty. (ArgumentError)
-||Cluster.addInstance: Invalid address format: 'abc'
+||Invalid address format: 'abc'
 
 //@ Add instance error using groupName (not a valid option)
 ||Invalid options: groupName (ArgumentError)

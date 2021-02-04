@@ -2,10 +2,10 @@
 ||
 
 //@# 1- Rejoin on a active member from different group
-||Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 //@# 1- Add on active member from a different group
-||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another InnoDB cluster
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another InnoDB cluster
 
 //@ Stop GR
 |Query OK|
@@ -14,7 +14,7 @@
 |Query OK|
 
 //@# 3- Rejoin on inactive member from different group
-||Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 ////@# 3- Add on inactive member from a different group
 
@@ -22,7 +22,7 @@
 |Query OK|
 
 //@# 4- Rejoin on non-cluster inactive member from different group
-||Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 ////@# 4- Add on non-cluster inactive member from a different group
 
@@ -30,10 +30,10 @@
 |Query OK|
 
 //@# 2- Rejoin on non-cluster active member from different group
-||Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' does not belong to the cluster: 'clus'.
 
 //@# 2- Add on non-cluster active member from a different group
-||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another Replication Group
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' is already part of another Replication Group
 
 
 //----
@@ -90,7 +90,7 @@
 ]
 
 //@# forceQuorum
-||Cluster.forceQuorumUsingPartitionOf: The instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot be used to restore the cluster as it may belong to a different cluster as the one registered in the Metadata since the value of 'group_replication_group_name' does not match the one registered in the cluster's Metadata: possible split-brain scenario. (RuntimeError)
+||The instance 'localhost:<<<__mysql_sandbox_port2>>>' cannot be used to restore the cluster as it may belong to a different cluster as the one registered in the Metadata since the value of 'group_replication_group_name' does not match the one registered in the cluster's Metadata: possible split-brain scenario. (RuntimeError)
 
 //@ Cleanup
 ||

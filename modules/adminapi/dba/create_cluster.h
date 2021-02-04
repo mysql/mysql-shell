@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/group_replication_options.h"
 #include "modules/adminapi/common/instance_pool.h"
+#include "modules/adminapi/dba/api_options.h"
 #include "modules/adminapi/mod_dba.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
@@ -42,10 +43,7 @@ class Create_cluster : public Command_interface {
  public:
   Create_cluster(std::shared_ptr<Instance> target_instance,
                  const std::string &cluster_name,
-                 const Group_replication_options &gr_options,
-                 const Clone_options &clone_options,
-                 mysqlshdk::utils::nullable<bool> multi_primary,
-                 bool adopt_from_gr, bool force, bool interactive);
+                 const Create_cluster_options &options);
 
   ~Create_cluster() override;
 
@@ -113,12 +111,7 @@ class Create_cluster : public Command_interface {
  private:
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   const std::string m_cluster_name;
-  Group_replication_options m_gr_opts;
-  Clone_options m_clone_opts;
-  mysqlshdk::utils::nullable<bool> m_multi_primary;
-  bool m_adopt_from_gr;
-  bool m_force;
-  bool m_interactive;
+  Create_cluster_options m_options;
   bool m_retrying = false;
 
   std::string m_address_in_metadata;

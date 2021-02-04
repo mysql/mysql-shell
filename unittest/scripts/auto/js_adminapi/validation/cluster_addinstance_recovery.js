@@ -5,19 +5,19 @@
 ||
 
 //@# bogus recoveryMethod (should fail)
-||Cluster.addInstance: Invalid value for option recoveryMethod: foobar (ArgumentError)
+||Invalid value for option recoveryMethod: foobar (ArgumentError)
 
 //@ bogus recoveryMethod (should fail if target instance does not support it) {VER(<8.0.17)}
-||Cluster.addInstance: Option 'recoveryMethod=clone' not supported on target server version: '<<<__version>>>' (RuntimeError)
+||Option 'recoveryMethod=clone' not supported on target server version: '<<<__version>>>' (RuntimeError)
 
 //@# Ensure clone disabled on incremental recovery {VER(>=8.0.17)}
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@ Ensure clone enabled on all cluster members on clone recovery {VER(>=8.0.17)}
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@ Ensure clone enabled on all cluster members on clone recovery when cluster created with old shell {VER(>=8.0.17)}
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:auto, interactive, empty GTID -> prompt c/i/a {VER(>=8.0.17)}
 |NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
@@ -39,19 +39,19 @@
 
 |Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...|
 
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:auto, interactive, cloneDisabled, empty GTID -> prompt i/a
 |Please select a recovery method [I]ncremental recovery/[A]bort (default Incremental recovery): |
-||Cluster.addInstance: Cancelled (RuntimeError)
+||Cancelled (RuntimeError)
 
 //@# recoveryMethod:auto, interactive, empty GTIDs + gtidSetIsComplete -> incr
 |Incremental state recovery was selected because it seems to be safely usable.|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:auto, interactive, subset GTIDs -> incr {VER(>=8.0.17)}
 |Incremental state recovery was selected because it seems to be safely usable.|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:auto, interactive, errant GTIDs -> prompt c/a {VER(>=8.0.17)}
 |WARNING: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
@@ -71,7 +71,7 @@
 |clone recovery method.|
 ||
 |Please select a recovery method [C]lone/[A]bort (default Abort): |
-||Cluster.addInstance: Cancelled (RuntimeError)
+||Cancelled (RuntimeError)
 
 //@ recoveryMethod:auto, interactive, errant GTIDs -> error 5.7 {VER(<8.0.17)}
 |WARNING: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
@@ -93,21 +93,21 @@
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.|
 ||
 |Built-in clone support is available starting with MySQL 8.0.17 and is the recommended method for provisioning instances.|
-||Cluster.addInstance: Instance provisioning required
+||Instance provisioning required
 
 //@# recoveryMethod:auto, interactive, cloneDisabled, errant GTIDs -> error
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.|
-||Cluster.addInstance: Instance provisioning required
+||Instance provisioning required
 
 //@# recoveryMethod:auto, non-interactive, empty GTID -> error {VER(>=8.0.17)}
-||Cluster.addInstance: 'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
+||'recoveryMethod' option must be set to 'clone' or 'incremental' (RuntimeError)
 
 //@# recoveryMethod:auto, non-interactive, cloneDisabled, empty GTID -> error
-||Cluster.addInstance: 'recoveryMethod' option must be set to 'incremental' (RuntimeError)
+||'recoveryMethod' option must be set to 'incremental' (RuntimeError)
 
 //@# recoveryMethod:auto, non-interactive, empty GTIDs + gtidSetIsComplete -> incr
 |Incremental state recovery was selected because it seems to be safely usable.|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:auto, non-interactive, subset GTIDs -> incr
 |The safest and most convenient way to provision a new instance is through|
@@ -123,7 +123,7 @@
 ||
 |Incremental state recovery was selected because it seems to be safely usable.|
 ||
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:auto, non-interactive, errant GTIDs -> error {VER(>=8.0.17)}
 |WARNING: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
@@ -143,25 +143,25 @@
 |clone recovery method.|
 ||
 //@# recoveryMethod:auto, non-interactive, errant GTIDs -> error
-||Cluster.addInstance: Instance provisioning required
+||Instance provisioning required
 
 //@# recoveryMethod:auto, non-interactive, cloneDisabled, errant GTIDs -> error
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.|
-||Cluster.addInstance: Instance provisioning required
+||Instance provisioning required
 
 //@# recoveryMethod:incremental, interactive, make sure no prompts
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:incremental, empty GTID -> incr
 |NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
 |empty). The Shell is unable to decide whether incremental state|
 |recovery can correctly provision it.|
 |Incremental state recovery selected through the recoveryMethod option|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:incremental, cloneDisabled, empty GTID -> incr
 |Incremental state recovery selected through the recoveryMethod option|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:incremental, empty GTIDs + gtidSetIsComplete -> incr
 |NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
@@ -169,45 +169,45 @@
 |state recovery can correctly provision it in this case.|
 ||
 |Incremental state recovery selected through the recoveryMethod option|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:incremental, subset GTIDs -> incr
 |Incremental state recovery selected through the recoveryMethod option|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:incremental, errant GTIDs -> error
 |WARNING: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |contains transactions that do not originate from the cluster, which must be|
 |discarded before it can join the cluster.|
-||Cluster.addInstance: Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
 
 //@# recoveryMethod:incremental, cloneDisabled, errant GTIDs -> error
-||Cluster.addInstance: Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
 
 //@# recoveryMethod:clone, interactive, make sure no prompts {VER(>=8.0.17)}
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:clone, empty GTID -> clone {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:clone, cloneDisabled, empty GTID -> err {VER(>=8.0.17)}
-||Cluster.addInstance: Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (RuntimeError)
+||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (RuntimeError)
 
 //@# recoveryMethod:clone, empty GTIDs + gtidSetIsComplete -> clone {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:clone, subset GTIDs -> clone {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:clone, errant GTIDs -> clone {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:clone, cloneDisabled, errant GTIDs -> error {VER(>=8.0.17)}
-||Cluster.addInstance: Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (RuntimeError)
+||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (RuntimeError)
 
 //@# purge GTIDs from cluster
 ||
@@ -218,9 +218,9 @@
 |NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
 |empty). The Shell is unable to decide whether clone based recovery is safe to use.|
 //@# recoveryMethod:auto, interactive, purged GTID, new -> prompt c/a {VER(>=8.0.17)}
-||Cluster.addInstance: Cancelled (RuntimeError)
+||Cancelled (RuntimeError)
 //@# recoveryMethod:auto, interactive, purged GTID, new -> prompt c/a {VER(<8.0.17)}
-||Cluster.addInstance: Instance provisioning required
+||Instance provisioning required
 
 //@ recoveryMethod:auto, no-interactive, purged GTID, new -> error {VER(>=8.0.17)}
 |NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
@@ -228,7 +228,7 @@
 |NOTE: The target instance '<<<__address2>>>' has not been pre-provisioned (GTID set is|
 |empty). The Shell is unable to decide whether clone based recovery is safe to use.|
 //@ recoveryMethod:auto, no-interactive, purged GTID, new -> error {VER(>=8.0.17)}
-||Cluster.addInstance: Instance provisioning required
+||Instance provisioning required
 
 // BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR CLONE
 //@# recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt
@@ -236,9 +236,9 @@
 |is missing transactions that were purged from all cluster members.|
 |Clone based recovery was selected because it seems to be safely usable.|
 //@# recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 //@# recoveryMethod:auto, interactive, purged GTID, subset gtid -> clone, no prompt {VER(<8.0.17)}
-||Cluster.addInstance: Instance provisioning required
+||Instance provisioning required
 
 // BUG#30884590: ADDING AN INSTANCE WITH COMPATIBLE GTID SET SHOULDN'T PROMPT FOR CLONE
 //@# recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt
@@ -246,57 +246,57 @@
 |is missing transactions that were purged from all cluster members.|
 |Clone based recovery was selected because it seems to be safely usable.|
 //@# recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(>=8.0.17)}
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 //@# recoveryMethod:auto, no-interactive, purged GTID, subset gtid -> clone, no prompt {VER(<8.0.17)}
-||Cluster.addInstance: Instance provisioning required
+||Instance provisioning required
 
 //@# recoveryMethod:auto, interactive, cloneDisabled, purged GTID -> error
 |NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |is missing transactions that were purged from all cluster members.|
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.|
-||Cluster.addInstance: Instance provisioning required
+||Instance provisioning required
 
 //@# recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a
 |WARNING: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |contains transactions that do not originate from the cluster, which must be|
 |discarded before it can join the cluster.|
 //@# recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a {VER(>=8.0.17)}
-||Cluster.addInstance: Cancelled (RuntimeError)
+||Cancelled (RuntimeError)
 //@# recoveryMethod:auto, interactive, errant GTIDs + purged GTIDs -> prompt c/a {VER(<8.0.17)}
-||Cluster.addInstance: Instance provisioning required
+||Instance provisioning required
 
 
 //@# recoveryMethod:auto, interactive, cloneDisabled, errant GTIDs + purged GTIDs -> error
 |ERROR: The target instance must be either cloned or fully provisioned before it can be added to the target cluster.|
-||Cluster.addInstance: Instance provisioning required
+||Instance provisioning required
 
 //@# recoveryMethod:incremental, purged GTID -> error
 |NOTE: A GTID set check of the MySQL instance at '<<<__address2>>>' determined that it|
 |is missing transactions that were purged from all cluster members.|
-||Cluster.addInstance: Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
 
 //@# recoveryMethod:incremental, cloneDisabled, purged GTID -> error
-||Cluster.addInstance: Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
 
 //@# recoveryMethod:incremental, errant GTIDs + purged GTIDs -> error
-||Cluster.addInstance: Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
 
 //@# recoveryMethod:incremental, cloneDisabled, errant GTIDs + purged GTIDs -> error
-||Cluster.addInstance: Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
+||Cannot use recoveryMethod=incremental option because the GTID state is not compatible or cannot be recovered. (RuntimeError)
 
 //@# recoveryMethod:clone, purged GTID -> clone {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:clone, cloneDisabled, purged GTID -> err {VER(>=8.0.17)}
-||Cluster.addInstance: Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (RuntimeError)
+||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (RuntimeError)
 
 //@# recoveryMethod:clone, errant GTIDs + purged GTIDs -> clone {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
-||Cluster.addInstance: debug (LogicError)
+||debug (LogicError)
 
 //@# recoveryMethod:clone, cloneDisabled, errant GTIDs + purged GTIDs -> error {VER(>=8.0.17)}
-||Cluster.addInstance: Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (RuntimeError)
+||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (RuntimeError)
 
 //@# Cleanup
 ||

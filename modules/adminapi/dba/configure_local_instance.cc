@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,16 +43,8 @@ namespace dba {
 
 Configure_local_instance::Configure_local_instance(
     const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-    const std::string &mycnf_path, const std::string &output_mycnf_path,
-    const std::string &cluster_admin,
-    const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
-    mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
-    mysqlshdk::utils::nullable<bool> restart)
-    : Configure_instance(
-          target_instance, mycnf_path, output_mycnf_path, cluster_admin,
-          cluster_admin_password, clear_read_only, interactive, restart,
-          mysqlshdk::utils::nullable<int64_t>(nullptr),
-          Cluster_type::GROUP_REPLICATION, InstanceType::Type::Unknown),
+    const Configure_instance_options &options)
+    : Configure_instance(target_instance, options, InstanceType::Type::Unknown),
       m_instance_type(InstanceType::Unknown) {}
 
 Configure_local_instance::~Configure_local_instance() {}
@@ -71,8 +63,8 @@ void Configure_local_instance::prepare() {
   std::string cnf_path;
   m_is_sandbox = is_sandbox(*m_target_instance, &cnf_path);
   // if instance is sandbox and the mycnf path is empty, fill it.
-  if (m_is_sandbox && m_mycnf_path.empty()) {
-    m_mycnf_path = std::move(cnf_path);
+  if (m_is_sandbox && m_options.mycnf_path.empty()) {
+    m_options.mycnf_path = std::move(cnf_path);
     m_is_cnf_from_sandbox = true;
   }
 

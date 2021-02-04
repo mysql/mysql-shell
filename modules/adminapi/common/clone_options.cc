@@ -90,65 +90,9 @@ void validate_clone_supported(const mysqlshdk::utils::Version &version,
   }
 }
 
-/**
- * Validate the value specified for the cloneDonor option.
- *
- * @param clone_donor string containing the value we want to set for
- * clone_valid_donor_list
- * @throw ArgumentError if the value is empty or no host and port is specified
- *                      (i.e., value is ":").
- */
-void validate_clone_donor_option(std::string clone_donor) {
-  clone_donor = shcore::str_strip(clone_donor);
-  if (clone_donor.empty()) {
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s, string value cannot be empty.", kCloneDonor));
-  }
-
-  if (clone_donor[0] == '[')
-    throw shcore::Exception::argument_error(
-        shcore::str_format("IPv6 addresses not supported for %s", kCloneDonor));
-
-  try {
-    mysqlshdk::utils::split_host_and_port(clone_donor);
-  } catch (const std::invalid_argument &e) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value for %s: %s", kCloneDonor, e.what()));
-  }
-}
 }  // namespace
 
 // ----
-
-void Clone_options::do_unpack(shcore::Option_unpacker *unpacker) {
-  std::string tmp_recovery_method;
-
-  switch (target) {
-    case NONE:
-      break;
-    case CREATE_CLUSTER:
-      unpacker->optional(kDisableClone, &disable_clone)
-          .optional(kGtidSetIsComplete, &gtid_set_is_complete);
-      break;
-    case JOIN_CLUSTER:
-      unpacker->optional(kRecoveryMethod, &tmp_recovery_method);
-      break;
-    case JOIN_REPLICASET:
-      unpacker->optional(kRecoveryMethod, &tmp_recovery_method)
-          .optional(kCloneDonor, &clone_donor);
-      break;
-  }
-
-  // Validate recoveryMethod
-  if (shcore::str_caseeq(tmp_recovery_method, "auto"))
-    recovery_method = Member_recovery_method::AUTO;
-  else if (shcore::str_caseeq(tmp_recovery_method, "clone"))
-    recovery_method = Member_recovery_method::CLONE;
-  else if (shcore::str_caseeq(tmp_recovery_method, "incremental"))
-    recovery_method = Member_recovery_method::INCREMENTAL;
-  else
-    recovery_method_str_invalid = tmp_recovery_method;
-}
 
 void Clone_options::check_option_values(
     const mysqlshdk::utils::Version &version, const Cluster_impl *cluster) {
@@ -176,35 +120,6 @@ void Clone_options::check_option_values(
             return true;
           });
     }
-  }
-
-  // Validate the recoveryMethod option when it wasn't unpack to match "auto",
-  // "regular" or "clone" - recovery_method_std_invalis is not empty
-  if (!recovery_method_str_invalid.empty()) {
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value for option %s: %s", kRecoveryMethod,
-                           recovery_method_str_invalid.c_str()));
-  }
-
-  // If cloneDonor was set and recoveryMethod not or not set to 'clone',
-  // error out
-  if (!clone_donor.is_null()) {
-    if (!recovery_method.is_null()) {
-      if (*recovery_method != Member_recovery_method::CLONE) {
-        throw shcore::Exception::argument_error(shcore::str_format(
-            "Option %s only allowed if option %s is set to 'clone'.",
-            kCloneDonor, kRecoveryMethod));
-      }
-    } else {
-      throw shcore::Exception::argument_error(shcore::str_format(
-          "Option %s only allowed if option %s is used and set to 'clone'.",
-          kCloneDonor, kRecoveryMethod));
-    }
-  }
-
-  // Validate clone_donor
-  if (!clone_donor.is_null()) {
-    validate_clone_donor_option(*clone_donor);
   }
 
   // Finally, if recoveryMethod wasn't set, set the default value of AUTO
@@ -284,6 +199,20 @@ void Join_replicaset_clone_options::set_clone_donor(const std::string &value) {
   } catch (const std::invalid_argument &e) {
     throw shcore::Exception::argument_error(
         shcore::str_format("Invalid value for %s: %s", kCloneDonor, e.what()));
+  }
+
+  // If cloneDonor was set and recoveryMethod not or not set to 'clone',
+  // error out
+  if (!recovery_method.is_null()) {
+    if (*recovery_method != Member_recovery_method::CLONE) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "Option %s only allowed if option %s is set to 'clone'.", kCloneDonor,
+          kRecoveryMethod));
+    }
+  } else {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Option %s only allowed if option %s is used and set to 'clone'.",
+        kCloneDonor, kRecoveryMethod));
   }
 }
 

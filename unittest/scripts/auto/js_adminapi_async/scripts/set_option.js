@@ -27,19 +27,19 @@ rs.addInstance(__sandbox_uri2);
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
 //@<> WL#13788 Argument errors of ReplicaSet.setOption TSFR_2_5
-EXPECT_THROWS_TYPE(function(){rs.setOption("tag:tagname")}, "ReplicaSet.setOption: Invalid number of arguments, expected 2 but got 1", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){rs.setOption("tag:invalid_symbol#", 123)}, "ReplicaSet.setOption: 'invalid_symbol#' is not a valid tag identifier.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){rs.setOption("tag:_invalid_builtin", 123)}, "ReplicaSet.setOption: '_invalid_builtin' is not a valid built-in tag.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){rs.setOption("unsupported_namespace:invalid_symbol#", 123)}, "ReplicaSet.setOption: Namespace 'unsupported_namespace' not supported.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){rs.setOption(":invalid_symbol#", 123)}, "ReplicaSet.setOption: ':invalid_symbol#' is not a valid identifier.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){rs.setOption("tag:", 123)}, "ReplicaSet.setOption: 'tag:' is not a valid identifier.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){rs.setOption("not_a_tag", 123)}, "ReplicaSet.setOption: Option 'not_a_tag' not supported.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setOption("tag:tagname")}, "Invalid number of arguments, expected 2 but got 1", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setOption("tag:invalid_symbol#", 123)}, "'invalid_symbol#' is not a valid tag identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setOption("tag:_invalid_builtin", 123)}, "'_invalid_builtin' is not a valid built-in tag.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setOption("unsupported_namespace:invalid_symbol#", 123)}, "Namespace 'unsupported_namespace' not supported.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setOption(":invalid_symbol#", 123)}, "':invalid_symbol#' is not a valid identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setOption("tag:", 123)}, "'tag:' is not a valid identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){rs.setOption("not_a_tag", 123)}, "Option 'not_a_tag' not supported.", "ArgumentError");
 
 //@<> WL#13788 Built-in tag values are validated and throw error if value cannot be converted to expected type - TSFR2_6
-EXPECT_THROWS_TYPE(function(){rs.setOption("tag:_hidden", "123")}, "ReplicaSet.setOption: Built-in tag '_hidden' is expected to be of type Bool, but is String", "TypeError");
-EXPECT_THROWS_TYPE(function(){rs.setOption("tag:_hidden", [true])}, "ReplicaSet.setOption: Built-in tag '_hidden' is expected to be of type Bool, but is Array", "TypeError");
-EXPECT_THROWS_TYPE(function(){rs.setOption("tag:_disconnect_existing_sessions_when_hidden", "invalid")}, "ReplicaSet.setOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
-EXPECT_THROWS_TYPE(function(){rs.setOption("tag:_disconnect_existing_sessions_when_hidden", [123])}, "ReplicaSet.setOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is Array", "TypeError");
+EXPECT_THROWS_TYPE(function(){rs.setOption("tag:_hidden", "123")}, "Built-in tag '_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){rs.setOption("tag:_hidden", [true])}, "Built-in tag '_hidden' is expected to be of type Bool, but is Array", "TypeError");
+EXPECT_THROWS_TYPE(function(){rs.setOption("tag:_disconnect_existing_sessions_when_hidden", "invalid")}, "Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){rs.setOption("tag:_disconnect_existing_sessions_when_hidden", [123])}, "Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is Array", "TypeError");
 
 //@<> WL#13788 Validate ReplicaSet.options shows values about the tags set via setOption - TSFR2_7
 // we are using the output of ReplicaSet.options to validate the tag was set.

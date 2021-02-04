@@ -8,12 +8,12 @@ Cluster.setupRouterAccount: Invalid user syntax: Invalid user name: foo@bar (Arg
 ||
 
 //@ WL#13536 BUG#30648813 Empty usernames are not supported
-||Cluster.setupRouterAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||Cluster.setupRouterAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||Cluster.setupRouterAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||Cluster.setupRouterAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||Cluster.setupRouterAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||Cluster.setupRouterAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
 
 //@<OUT> WL#13536 TSFR3_8 check global privileges of created user
 | PRIVILEGE_TYPE | IS_GRANTABLE |

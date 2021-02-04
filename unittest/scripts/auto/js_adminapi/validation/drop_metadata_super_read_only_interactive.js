@@ -28,13 +28,13 @@ Do you want to disable super_read_only and continue? [y/N]:
 |For more information see:|
 |https://dev.mysql.com/doc/refman/en/server-system-variables.html#sysvar_super_read_only.|
 |Do you want to disable super_read_only and continue? [y/N]:|
-||Dba.dropMetadataSchema: Server in SUPER_READ_ONLY mode (RuntimeError)
+||Server in SUPER_READ_ONLY mode (RuntimeError)
 
 //@ prepare Interactive_dba_drop_metadata_schemaread_only_invalid_flag_value
 ||
 
 //@# Interactive_dba_drop_metadata_schemaread_only_invalid_flag_value
-||Dba.dropMetadataSchema: Option 'clearReadOnly' Bool expected, but value is String (TypeError)
+||Option 'clearReadOnly' Bool expected, but value is String (TypeError)
 
 //@ prepare Interactive_dba_drop_metadata_schemaread_only_flag_true
 ||
@@ -46,7 +46,7 @@ Do you want to disable super_read_only and continue? [y/N]:
 ||
 
 //@# Interactive_dba_drop_metadata_schemaread_only_flag_false
-||Dba.dropMetadataSchema: Server in SUPER_READ_ONLY mode
+||Server in SUPER_READ_ONLY mode
 
 //@ Cleanup
 ||

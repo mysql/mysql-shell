@@ -15,13 +15,13 @@
 |"status": "ERROR",|
 
 //@# Try addInstance (should fail)
-||ReplicaSet.addInstance: PRIMARY instance is unavailable (MYSQLSH 51118)
+||PRIMARY instance is unavailable (MYSQLSH 51118)
 
 //@# Try removeInstance (should fail)
-||ReplicaSet.removeInstance: PRIMARY instance is unavailable (MYSQLSH 51118)
+||PRIMARY instance is unavailable (MYSQLSH 51118)
 
 //@# Try setPrimary (should fail)
-||ReplicaSet.setPrimaryInstance: PRIMARY instance is unavailable (MYSQLSH 51118)
+||PRIMARY instance is unavailable (MYSQLSH 51118)
 
 //@# force failover
 |Failover finished successfully.|
@@ -97,7 +97,7 @@
 |WARNING: <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> has 1 errant transactions that have not originated from the current PRIMARY (<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>)|
 |WARNING: Replication is not active in instance <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 |Use the 'force' option to remove this instance anyway. The instance may be left in an inconsistent state after removed.|
-||ReplicaSet.removeInstance: Replication is not active in target instance (MYSQLSH 51132)
+||Replication is not active in target instance (MYSQLSH 51132)
 |{|
 |    "replicaSet": {|
 |        "name": "myrs", |
@@ -151,7 +151,7 @@
 |contains transactions that do not originate from the replicaset, which must|
 |discarded before it can join the replicaset.|
 //@ add back the split-brained instance (should fail)
-||ReplicaSet.addInstance: Instance provisioning required (MYSQLSH 51153)
+||Instance provisioning required (MYSQLSH 51153)
 
 //@ add back the split-brained instance after re-building it
 |NOTE: The target instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' has not been pre-provisioned (GTID|
@@ -181,18 +181,18 @@
 
 //@# remove the invalidated instance while it's down (should fail)
 |ERROR: Unable to connect to the target instance localhost:<<<__mysql_sandbox_port1>>>. Please make sure the instance is available and try again. If the instance is permanently not reachable, use the 'force' option to remove it from the replicaset metadata and skip reconfiguration of that instance.|
-||ReplicaSet.removeInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port1)>>>'
+||Could not open connection to 'localhost:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port1)>>>'
 
 //@# add back the removed instance while it's down (should fail)
 |ERROR: Unable to connect to the target instance 'localhost:<<<__mysql_sandbox_port1>>>'. Please verify the connection settings, make sure the instance is available and try again.|
-||ReplicaSet.addInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port1)>>>'
+||Could not open connection to 'localhost:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port1)>>>'
 
 //@# add back the removed instance after bringing it back up (should fail)
-||ReplicaSet.addInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is already a member of this replicaset. (MYSQLSH 51301)
+||<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is already a member of this replicaset. (MYSQLSH 51301)
 
 //@# promote remaining secondary (should fail)
 |ERROR: Could not connect to one or more SECONDARY instances. Use the 'invalidateErrorInstances' option to perform the failover anyway by skipping and invalidating unreachable instances.|
-||ReplicaSet.forcePrimaryInstance: One or more instances are unreachable (MYSQLSH 51161)
+||One or more instances are unreachable (MYSQLSH 51161)
 
 //@# promote remaining secondary with invalidateErrorInstances
 |WARNING: Could not connect to SECONDARY instance: MySQL Error 2003: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>': Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port2)>>>'|
@@ -205,19 +205,19 @@
 //@# connect to invalidated instances and try to removeInstance (should fail)
 |WARNING: MYSQLSH 51121: Target <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was invalidated in a failover: reconnecting to <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>|
 |ERROR: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> is a PRIMARY and cannot be removed.|
-||ReplicaSet.removeInstance: PRIMARY instance cannot be removed from the replicaset. (MYSQLSH 51302)
+||PRIMARY instance cannot be removed from the replicaset. (MYSQLSH 51302)
 
 //@# setPrimary (should fail)
-||ReplicaSet.setPrimaryInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was invalidated by a failover (MYSQLSH 51121)
+||<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was invalidated by a failover (MYSQLSH 51121)
 
 //@# setPrimary with new rs (should fail)
-||ReplicaSet.setPrimaryInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was invalidated by a failover (MYSQLSH 51121)
+||<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was invalidated by a failover (MYSQLSH 51121)
 
 //@# forcePrimary while there's already a primary (should fail)
-||ReplicaSet.forcePrimaryInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was invalidated by a failover (MYSQLSH 51121)
+||<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was invalidated by a failover (MYSQLSH 51121)
 
 //@# forcePrimary with new rs while there's already a primary (should fail)
-||ReplicaSet.forcePrimaryInstance: PRIMARY still available (MYSQLSH 51116)
+||PRIMARY still available (MYSQLSH 51116)
 
 //@<OUT> status
 {
@@ -328,10 +328,10 @@
 |                "status": "ONLINE"|
 
 //@ Try to re-add invalidated instance (should fail)
-||ReplicaSet.addInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is already a member of this replicaset. (MYSQLSH 51301)
+||<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is already a member of this replicaset. (MYSQLSH 51301)
 
 //@# Promote invalidated (should fail)
-||ReplicaSet.setPrimaryInstance: <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> was invalidated by a failover (MYSQLSH 51121)
+||<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> was invalidated by a failover (MYSQLSH 51121)
 
 //@# remove invalidated primary
 |The instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>' was removed from the replicaset.|

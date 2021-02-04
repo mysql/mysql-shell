@@ -178,7 +178,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in
 //@# FR1.1_1 Configure instance using dba.configureInstance() with variable that cannot remotely persisted {VER(>=8.0.11)}
 
 |ERROR: The path to the MySQL configuration file is required to verify and fix InnoDB cluster related options.|
-||Dba.configureInstance: Unable to update configuration
+||Unable to update configuration
 
 //@# FR1.1_2 Configure instance using dba.configureInstance() with variable that cannot remotely persisted {VER(>=8.0.11)}
 |The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.|
@@ -192,7 +192,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is valid to be used in
 
 //@ FR2_2 - Configure local instance using dba.configureInstance() with 'persisted-globals-load' set to 'OFF' but no cnf file path {VER(>=8.0.11)}
 |Remote configuration of the instance is not possible because options changed with SET PERSIST will not be loaded, unless 'persisted_globals_load' is set to ON.|
-||Dba.configureInstance: Unable to update configuration
+||Unable to update configuration
 
 //@<OUT> FR2_2 - Configure local instance using dba.configureInstance() with 'persisted-globals-load' set to 'OFF' with cnf file path {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
@@ -538,7 +538,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 
 //@ ET_13 - Call dba.configuereInstance() with interactive flag set to false, clusterAdmin option and super_read_only=1 {VER(>=8.0.11)}
 |ERROR: The MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' currently has|
-||Dba.configureInstance: Server in SUPER_READ_ONLY mode (RuntimeError)
+||Server in SUPER_READ_ONLY mode (RuntimeError)
 
 //@ ET TEARDOWN
 ||

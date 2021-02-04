@@ -44,10 +44,10 @@ Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
 
 //@ canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 |ERROR: Cannot use host '::1' for instance '[::1]:<<<__mysql_sandbox_port2>>>' because it is an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14. Set the MySQL server 'report_host' variable to an IPv4 address or hostname that resolves an IPv4 address.|
-||Cluster.rejoinInstance: Unsupported IP address '::1'. IPv6 is only supported by Group Replication on MySQL version >= 8.0.14. (RuntimeError)
+||Unsupported IP address '::1'. IPv6 is only supported by Group Replication on MySQL version >= 8.0.14. (RuntimeError)
 
 //@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
-||Cluster.rejoinInstance: Invalid value for ipWhitelist '::1': IPv6 not supported (version >= 8.0.14 required for IPv6 support). (ArgumentError)
+||Invalid value for ipWhitelist '::1': IPv6 not supported (version >= 8.0.14 required for IPv6 support). (ArgumentError)
 
 //@ Rejoin instance fails if the target instance contains errant transactions (BUG#29953812) {VER(>=8.0.17)}
 |ERROR: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' determined that it contains transactions that do not originate from the cluster, which must be discarded before it can join the cluster.|
@@ -58,7 +58,7 @@ Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
 |Having extra GTID events is not expected, and it is recommended to investigate|
 ||
 |Discarding these extra GTID events can either be done manually or by completely|
-||Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' contains errant transactions that did not originate from the cluster. (RuntimeError)
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' contains errant transactions that did not originate from the cluster. (RuntimeError)
 
 //@ Rejoin instance fails if the target instance contains errant transactions 5.7 (BUG#29953812) {VER(<8.0.17)}
 |ERROR: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|
@@ -67,12 +67,12 @@ Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>
 |00025721-1111-1111-1111-111111111111:1|
 ||
 |Having extra GTID events is not expected, and it is recommended to investigate|
-||Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' contains errant transactions that did not originate from the cluster. (RuntimeError)
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' contains errant transactions that did not originate from the cluster. (RuntimeError)
 
 //@ Rejoin instance fails if the target instance has an empty gtid-set (BUG#29953812)
 |ERROR: The target instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has an empty GTID set so it cannot|
-||Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has an empty GTID set. (RuntimeError)
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' has an empty GTID set. (RuntimeError)
 
 //@ Rejoin instance fails if the transactions were purged from the cluster (BUG#29953812)
 |ERROR: A GTID set check of the MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' determined that it is missing transactions that were purged from all cluster members.|
-||Cluster.rejoinInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is missing transactions that were purged from all cluster members. (RuntimeError)
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is missing transactions that were purged from all cluster members. (RuntimeError)

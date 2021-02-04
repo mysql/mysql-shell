@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,22 +39,13 @@ namespace mysqlsh {
 namespace dba {
 namespace cluster {
 
-Rescan::Rescan(
-    bool interactive, bool auto_add_instances, bool auto_remove_instances,
-    const std::vector<mysqlshdk::db::Connection_options> &add_instances_list,
-    const std::vector<mysqlshdk::db::Connection_options> &remove_instances_list,
-    Cluster_impl *cluster)
-    : m_interactive(interactive),
-      m_auto_add_instances(auto_add_instances),
-      m_auto_remove_instances(auto_remove_instances),
-      m_add_instances_list(std::move(add_instances_list)),
-      m_remove_instances_list(std::move(remove_instances_list)),
-      m_cluster(cluster) {
+Rescan::Rescan(const Rescan_options &options, Cluster_impl *cluster)
+    : m_options(options), m_cluster(cluster) {
   assert(cluster);
-  assert((auto_add_instances && add_instances_list.empty()) ||
-         !auto_add_instances);
-  assert((auto_remove_instances && remove_instances_list.empty()) ||
-         !auto_remove_instances);
+  assert((m_options.auto_add && m_options.add_instances_list.empty()) ||
+         !m_options.auto_add);
+  assert((m_options.auto_remove && m_options.remove_instances_list.empty()) ||
+         !m_options.auto_remove);
 }
 
 void Rescan::validate_list_duplicates() const {
@@ -79,10 +70,11 @@ void Rescan::validate_list_duplicates() const {
       };
 
   // Check for duplicates in the addInstances list.
-  duplicates_check("addInstances", m_add_instances_list, &add_instances_set);
+  duplicates_check("addInstances", m_options.add_instances_list,
+                   &add_instances_set);
 
   // Check for duplicates in the removeInstances list.
-  duplicates_check("removeInstances", m_remove_instances_list,
+  duplicates_check("removeInstances", m_options.remove_instances_list,
                    &remove_instances_set);
 
   // Find common instance in the two options.
@@ -166,7 +158,7 @@ void Rescan::prepare() {
 
   // All instance to add must be an active member of the GR group.
   std::vector<std::string> invalid_add_members =
-      detect_invalid_members(m_add_instances_list, true);
+      detect_invalid_members(m_options.add_instances_list, true);
 
   if (!invalid_add_members.empty()) {
     console->print_error(
@@ -184,7 +176,7 @@ void Rescan::prepare() {
 
   // All instance to remove cannot be an active member of the GR group.
   std::vector<std::string> invalid_remove_members =
-      detect_invalid_members(m_remove_instances_list, false);
+      detect_invalid_members(m_options.remove_instances_list, false);
 
   if (!invalid_remove_members.empty()) {
     console->print_error(
@@ -442,17 +434,17 @@ void Rescan::add_metadata_for_instances(
 
     // Check if the new instance belongs to the addInstances list.
     auto list_iter =
-        find_in_instance_list(m_add_instances_list, instance_address);
+        find_in_instance_list(m_options.add_instances_list, instance_address);
 
     // Decide to add/remove instance based on given operation options.
     mysqlshdk::db::Connection_options instance_cnx_opts;
-    if (list_iter != m_add_instances_list.end()) {
+    if (list_iter != m_options.add_instances_list.end()) {
       instance_cnx_opts = *list_iter;
-      m_add_instances_list.erase(list_iter);
-    } else if (m_auto_add_instances) {
+      m_options.add_instances_list.erase(list_iter);
+    } else if (m_options.auto_add) {
       instance_cnx_opts =
           shcore::get_connection_options(instance_address, false);
-    } else if (m_interactive) {
+    } else if (m_options.interactive()) {
       if (console->confirm("Would you like to add it to the cluster metadata?",
                            Prompt_answer::YES) == Prompt_answer::YES) {
         instance_cnx_opts =
@@ -480,16 +472,16 @@ void Rescan::remove_metadata_for_instances(
 
     // Check if the new instance belongs to the addInstances list.
     // Decide to add/remove instance based on given operation options.
-    auto list_iter =
-        find_in_instance_list(m_remove_instances_list, instance_address);
-    if (list_iter != m_remove_instances_list.end()) {
+    auto list_iter = find_in_instance_list(m_options.remove_instances_list,
+                                           instance_address);
+    if (list_iter != m_options.remove_instances_list.end()) {
       remove_instance_from_metadata(instance_address);
 
-      m_remove_instances_list.erase(list_iter);
-    } else if (m_auto_remove_instances) {
+      m_options.remove_instances_list.erase(list_iter);
+    } else if (m_options.auto_remove) {
       // Remove instance automatically if "auto" was used.
       remove_instance_from_metadata(instance_address);
-    } else if (m_interactive) {
+    } else if (m_options.interactive()) {
       console->print_info(
           "The instance is either offline or left the HA group. You can try "
           "to add it to the cluster again with the cluster.rejoinInstance('" +
@@ -530,116 +522,6 @@ void Rescan::update_metadata_for_instances(
   }
 }
 
-/*void Rescan::update_instances_list(
-    std::shared_ptr<shcore::Value::Array_type> found_instances,
-    std::vector<mysqlshdk::db::Connection_options> *instances_list_opt,
-    Instance_update_action action) {
-  assert(instances_list_opt);
-  auto console = mysqlsh::current_console();
-
-  for (const auto &instance : *found_instances) {
-    auto instance_map = instance.as_map();
-
-    std::string instance_address = instance_map->get_string("host");
-    if (action == Instance_update_action::ADD) {
-      // Report that a new instance was discovered (not in the metadata).
-      console->print_info("A new instance '" + instance_address +
-                          "' was discovered in the cluster.");
-    } else if (action == Instance_update_action::REMOVE) {
-      // Report that an obsolete instance was found (in the metadata).
-      console->print_info("The instance '" + instance_address +
-                          "' is no longer part of the cluster.");
-    } else {
-      // Report that an obsolete instance was found (in the metadata).
-      console->print_info(shcore::str_format(
-          "The instance '%s' is part of the cluster but its UUID has changed. "
-          "Old UUID: %s. Current UUID: %s.",
-          instance_address.c_str(),
-          instance_map->get_string("old_member_id").c_str(),
-          instance_map->get_string("member_id").c_str()));
-    }
-
-    // Check if the new instance belongs to the addInstances list.
-    auto list_iter = instances_list_opt->end();
-    if (!instances_list_opt->empty()) {
-      // Lambda function (predicate) to check if the instance address
-      // matches.
-      auto in_list = [&instance_address](
-                         const mysqlshdk::db::Connection_options &cnx_opt) {
-        std::string address =
-            cnx_opt.as_uri(mysqlshdk::db::uri::formats::only_transport());
-        return address == instance_address;
-      };
-
-      // Return iterator with a matching address (if in the list).
-      list_iter = std::find_if(instances_list_opt->begin(),
-                               instances_list_opt->end(), in_list);
-    }
-
-    // Decide to add/remove instance based on given operation options.
-    if (list_iter != instances_list_opt->end()) {
-      mysqlshdk::db::Connection_options instance_cnx_opts = *list_iter;
-      if (action == Instance_update_action::ADD) {
-        // Add instance if in addInstances list.
-        add_instance_to_metadata(instance_cnx_opts);
-      } else if (action == Instance_update_action::REMOVE) {
-        // Remove instance if in removeInstances list.
-        remove_instance_from_metadata(instance_address);
-      } else {
-        update_metadata_for_instance(instance_cnx_opts);
-      }
-
-      instances_list_opt->erase(list_iter);
-      // Automatic update is done for UPDATE action and for ADD/REMOVE if the
-      // corresponding auto option was enabled
-    } else if (action == Instance_update_action::UPDATE ||
-               (action == Instance_update_action::ADD &&
-                m_auto_add_instances) ||
-               (action == Instance_update_action::REMOVE &&
-                m_auto_remove_instances)) {
-      mysqlshdk::db::Connection_options instance_cnx_opts;
-      if (action != Instance_update_action::REMOVE) {
-        instance_cnx_opts =
-            shcore::get_connection_options(instance_address, false);
-      }
-      if (action == Instance_update_action::ADD) {
-        // Add instance automatically if "auto" was used.
-        add_instance_to_metadata(instance_cnx_opts);
-      } else if (action == Instance_update_action::REMOVE) {
-        // Remove instance automatically if "auto" was used.
-        remove_instance_from_metadata(instance_address);
-      } else {
-        update_metadata_for_instance(instance_cnx_opts);
-      }
-    } else if (m_interactive) {
-      if (action == Instance_update_action::ADD) {
-        mysqlshdk::db::Connection_options instance_cnx_opts;
-        instance_cnx_opts =
-            shcore::get_connection_options(instance_address, false);
-        // Ask to add instance if prompts are enabled.
-        if (console->confirm(
-                "Would you like to add it to the cluster metadata?",
-                Prompt_answer::YES) == Prompt_answer::YES) {
-          add_instance_to_metadata(instance_cnx_opts);
-        }
-      } else if (action == Instance_update_action::REMOVE) {
-        console->print_info(
-            "The instance is either offline or left the HA group. You can try "
-            "to add it to the cluster again with the cluster.rejoinInstance('" +
-            instance_map->get_string("host") +
-            "') command or you can remove it from the cluster configuration.");
-
-        // Ask to remove instance if prompts are enabled.
-        if (console->confirm(
-                "Would you like to remove it from the cluster metadata?",
-                Prompt_answer::YES) == Prompt_answer::YES) {
-          remove_instance_from_metadata(instance_address);
-        }
-      }
-    }
-  }
-}*/
-
 shcore::Value Rescan::execute() {
   auto console = mysqlsh::current_console();
   console->print_info("Rescanning the cluster...");
@@ -659,7 +541,7 @@ shcore::Value Rescan::execute() {
 
   // Print warning about not used instances in addInstances.
   std::vector<std::string> not_used_add_instances;
-  for (const auto &cnx_opts : m_add_instances_list) {
+  for (const auto &cnx_opts : m_options.add_instances_list) {
     not_used_add_instances.push_back(
         cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport()));
   }
@@ -692,7 +574,7 @@ shcore::Value Rescan::execute() {
 
   // Print warning about not used instances in removeInstances.
   std::vector<std::string> not_used_remove_instances;
-  for (const auto &cnx_opts : m_remove_instances_list) {
+  for (const auto &cnx_opts : m_options.remove_instances_list) {
     not_used_remove_instances.push_back(
         cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport()));
   }

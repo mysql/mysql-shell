@@ -17,13 +17,13 @@
 |The instance '[::1]:<<<__mysql_sandbox_port2>>>' was added to the replicaset and is replicating from [::1]:<<<__mysql_sandbox_port1>>>.|
 
 //@# addInstance (clone) (should fail)
-||ReplicaSet.addInstance: IPv6 addresses not supported for cloneDonor (ArgumentError)
+||IPv6 addresses not supported for cloneDonor (ArgumentError)
 
 |ERROR: None of the members in the replicaSet are compatible to be used as clone donors for [::1]:<<<__mysql_sandbox_port3>>>|
 |SECONDARY '[::1]:<<<__mysql_sandbox_port2>>>' is not a suitable clone donor: Instance hostname/report_host is an IPv6 address, which is not supported for cloning|
 |PRIMARY '[::1]:<<<__mysql_sandbox_port1>>>' is not a suitable clone donor: Instance hostname/report_host is an IPv6 address, which is not supported for cloning|
 |ERROR: Error adding instance to replicaset: MYSQLSH 51400: The ReplicaSet has no compatible clone donors.|
-||ReplicaSet.addInstance: The ReplicaSet has no compatible clone donors. (MYSQLSH 51400)
+||The ReplicaSet has no compatible clone donors. (MYSQLSH 51400)
 
 //@# status
 |{|
@@ -85,7 +85,7 @@
 |SECONDARY '[::1]:<<<__mysql_sandbox_port2>>>' is not a suitable clone donor: Instance hostname/report_host is an IPv6 address, which is not supported for cloning|
 |PRIMARY '[::1]:<<<__mysql_sandbox_port1>>>' is not a suitable clone donor: Instance hostname/report_host is an IPv6 address, which is not supported for cloning|
 |ERROR: Error rejoining instance to replicaset: MYSQLSH 51400: The ReplicaSet has no compatible clone donors.|
-||ReplicaSet.rejoinInstance: The ReplicaSet has no compatible clone donors. (MYSQLSH 51400)
+||The ReplicaSet has no compatible clone donors. (MYSQLSH 51400)
 
 //@ createReplicaSet(adopt)
 |{|

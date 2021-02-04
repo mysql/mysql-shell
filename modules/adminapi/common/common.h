@@ -213,8 +213,19 @@ constexpr const char kMultiPrimary[] = "multiPrimary";
 constexpr const char kMultiMaster[] = "multiMaster";
 constexpr const char kForce[] = "force";
 constexpr const char kAdoptFromGR[] = "adoptFromGR";
+constexpr const char kAddInstances[] = "addInstances";
 constexpr const char kRemoveInstances[] = "removeInstances";
 constexpr const char kRejoinInstances[] = "rejoinInstances";
+constexpr const char kWaitRecovery[] = "waitRecovery";
+constexpr const char kLabel[] = "label";
+constexpr const char kExtended[] = "extended";
+constexpr const char kQueryMembers[] = "queryMembers";
+constexpr const char kOnlyUpgradeRequired[] = "onlyUpgradeRequired";
+constexpr const char kUpdate[] = "update";
+constexpr const char kUpdateTopologyMode[] = "updateTopologyMode";
+constexpr const char kAll[] = "all";
+constexpr const char kTimeout[] = "timeout";
+constexpr const char kInvalidateErrorInstances[] = "invalidateErrorInstances";
 
 constexpr const int k_group_replication_members_limit = 9;
 

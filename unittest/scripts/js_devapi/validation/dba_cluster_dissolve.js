@@ -46,7 +46,7 @@ Replication was disabled but user data was left intact.
 ||
 
 //@ Cluster.dissolve already dissolved
-||Cluster.dissolve: Can't call function 'dissolve' on a dissolved cluster
+||Can't call function 'dissolve' on a dissolved cluster
 
 //@<OUT> Verify cluster data removed from metadata on instance 1
 false

@@ -324,43 +324,11 @@ Undefined ReplicaSet::addInstance(String instance, Dictionary options) {}
 #elif DOXYGEN_PY
 None ReplicaSet::add_instance(str instance, dict options) {}
 #endif
-void ReplicaSet::add_instance(const std::string &instance_def,
-                              const shcore::Dictionary_t &options) {
+void ReplicaSet::add_instance(
+    const std::string &instance_def,
+    const shcore::Option_pack_ref<replicaset::Add_instance_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("addInstance");
-
-  bool interactive = current_shell_options()->get().wizards;
-  int sync_timeout = 0;
-  std::string instance_label;
-  bool dry_run = false;
-  Async_replication_options ar_options(Async_replication_options::CREATE);
-  Clone_options clone_options(Clone_options::JOIN_REPLICASET);
-  std::string recovery_method_str;
-  int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
-  std::string clone_donor;
-
-  // Parse and check user options
-  Unpack_options(options)
-      .unpack(&ar_options)
-      .unpack(&clone_options)
-      .optional("label", &instance_label)
-      .optional("dryRun", &dry_run)
-      .optional("interactive", &interactive)
-      .optional("waitRecovery", &wait_recovery)
-      .optional("timeout", &sync_timeout)
-      .end();
-
-  // Validate waitRecovery option UInteger [1, 3]
-  if (wait_recovery < 1 || wait_recovery > 3) {
-    throw shcore::Exception::argument_error(
-        "Invalid value '" + std::to_string(wait_recovery) +
-        "' for option 'waitRecovery'. It must be an integer in the range "
-        "[1, 3].");
-  }
-
-  if (sync_timeout < 0) {
-    throw shcore::Exception::argument_error("timeout option must be >= 0");
-  }
 
   // this validates the instance_def
   (void)get_connection_options(shcore::Value(instance_def));
@@ -368,21 +336,24 @@ void ReplicaSet::add_instance(const std::string &instance_def,
   // Init progress_style
   Recovery_progress_style progress_style;
 
-  if (wait_recovery == 1)
+  if (options->wait_recovery == 1)
     progress_style = Recovery_progress_style::NOINFO;
-  else if (wait_recovery == 2)
+  else if (options->wait_recovery == 2)
     progress_style = Recovery_progress_style::TEXTUAL;
-  else if (wait_recovery == 3)
+  else if (options->wait_recovery == 3)
     progress_style = Recovery_progress_style::PROGRESSBAR;
 
+  // TODO(anyone): The implementation should be updated to receive the options
+  // object
   execute_with_pool(
       [&]() {
-        impl()->add_instance(instance_def, ar_options, clone_options,
-                             instance_label, progress_style, sync_timeout,
-                             interactive, dry_run);
+        impl()->add_instance(instance_def, options->ar_options,
+                             options->clone_options, options->instance_label,
+                             progress_style, options->sync_timeout,
+                             options->interactive(), options->dry_run);
         return shcore::Value();
       },
-      interactive);
+      options->interactive());
 }
 
 REGISTER_HELP_FUNCTION(rejoinInstance, ReplicaSet);
@@ -481,38 +452,14 @@ Undefined ReplicaSet::rejoinInstance(String instance, Dictionary options) {}
 #elif DOXYGEN_PY
 None ReplicaSet::rejoin_instance(str instance, dict options) {}
 #endif
-void ReplicaSet::rejoin_instance(const std::string &instance_def,
-                                 const shcore::Dictionary_t &options) {
+void ReplicaSet::rejoin_instance(
+    const std::string &instance_def,
+    const shcore::Option_pack_ref<replicaset::Rejoin_instance_options>
+        &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("rejoinInstance");
 
-  bool interactive = current_shell_options()->get().wizards;
-  bool dry_run = false;
-  int sync_timeout = 0;
-  Clone_options clone_options(Clone_options::JOIN_REPLICASET);
-  int wait_recovery = isatty(STDOUT_FILENO) ? 3 : 2;
   std::string clone_donor;
-
-  // Parse and check user options
-  Unpack_options(options)
-      .unpack(&clone_options)
-      .optional("dryRun", &dry_run)
-      .optional("interactive", &interactive)
-      .optional("waitRecovery", &wait_recovery)
-      .optional("timeout", &sync_timeout)
-      .end();
-
-  // Validate wait_recovery option UInteger [1, 3]
-  if (wait_recovery < 1 || wait_recovery > 3) {
-    throw shcore::Exception::argument_error(
-        "Invalid value '" + std::to_string(wait_recovery) +
-        "' for option 'waitRecovery'. It must be an integer in the range "
-        "[1, 3].");
-  }
-
-  if (sync_timeout < 0) {
-    throw shcore::Exception::argument_error("timeout option must be >= 0");
-  }
 
   // this validates the instance_def
   (void)get_connection_options(shcore::Value(instance_def));
@@ -520,20 +467,21 @@ void ReplicaSet::rejoin_instance(const std::string &instance_def,
   // Init progress_style
   Recovery_progress_style progress_style;
 
-  if (wait_recovery == 1)
+  if (options->wait_recovery == 1)
     progress_style = Recovery_progress_style::NOINFO;
-  else if (wait_recovery == 2)
+  else if (options->wait_recovery == 2)
     progress_style = Recovery_progress_style::TEXTUAL;
-  else if (wait_recovery == 3)
+  else if (options->wait_recovery == 3)
     progress_style = Recovery_progress_style::PROGRESSBAR;
 
   execute_with_pool(
       [&]() {
-        impl()->rejoin_instance(instance_def, clone_options, progress_style,
-                                sync_timeout, interactive, dry_run);
+        impl()->rejoin_instance(instance_def, options->clone_options,
+                                progress_style, options->sync_timeout,
+                                options->interactive(), options->dry_run);
         return shcore::Value();
       },
-      interactive);
+      options->interactive());
 }
 
 REGISTER_HELP_FUNCTION(removeInstance, ReplicaSet);
@@ -562,7 +510,6 @@ The options dictionary may contain the following attributes:
 from metadata) in case it cannot be reached. By default, set to false.
 @li timeout: maximum number of seconds to wait for the instance to sync up with
 the PRIMARY. 0 means no timeout and <0 will skip sync.
-${OPT_INTERACTIVE}
 
 The force option (set to true) is required to remove instances that are
 unreachable. Removed instances are normally synchronized with the rest of the
@@ -582,29 +529,23 @@ Undefined ReplicaSet::removeInstance(String instance, Dictionary options) {}
 None ReplicaSet::remove_instance(str instance, dict options) {}
 #endif
 
-void ReplicaSet::remove_instance(const std::string &instance_def,
-                                 const shcore::Dictionary_t &options) {
+void ReplicaSet::remove_instance(
+    const std::string &instance_def,
+    const shcore::Option_pack_ref<replicaset::Remove_instance_options>
+        &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("removeInstance");
 
   // Remove the Instance from the Default ReplicaSet
   bool interactive = current_shell_options()->get().wizards;
-  int timeout = current_shell_options()->get().dba_gtid_wait_timeout;
-  std::string password;
-  mysqlshdk::null_bool force;
-
-  // Get optional options.
-  Unpack_options(options)
-      .optional("force", &force)
-      .optional("timeout", &timeout)
-      .end();
 
   // this validates the instance_def
   (void)get_connection_options(shcore::Value(instance_def));
 
   execute_with_pool(
       [&]() {
-        impl()->remove_instance(instance_def, force, timeout);
+        impl()->remove_instance(instance_def, options->force,
+                                options->timeout());
         return shcore::Value();
       },
       interactive);
@@ -652,21 +593,12 @@ String ReplicaSet::status(Dictionary options) {}
 str ReplicaSet::status(dict options) {}
 #endif
 
-shcore::Value ReplicaSet::status(const shcore::Dictionary_t &options) {
-  // Throw an error if the cluster has already been dissolved
+shcore::Value ReplicaSet::status(
+    const shcore::Option_pack_ref<replicaset::Status_options> &options) {
   assert_valid("status");
 
-  int extended = 0;
-
-  // Retrieves optional options
-  Unpack_options(options).optional("extended", &extended).end();
-
-  if (extended > 2 || extended < 0) {
-    throw shcore::Exception::argument_error(
-        "Invalid value for option 'extended'");
-  }
-
-  return execute_with_pool([&]() { return impl()->status(extended); }, false);
+  return execute_with_pool([&]() { return impl()->status(options->extended); },
+                           false);
 }
 
 REGISTER_HELP_FUNCTION(disconnect, ReplicaSet);
@@ -738,21 +670,16 @@ Undefined ReplicaSet::setPrimaryInstance(String instance, Dictionary options) {}
 #elif DOXYGEN_PY
 None ReplicaSet::set_primary_instance(str instance, dict options) {}
 #endif
-void ReplicaSet::set_primary_instance(const std::string &instance_def,
-                                      const shcore::Dictionary_t &options) {
+void ReplicaSet::set_primary_instance(
+    const std::string &instance_def,
+    const shcore::Option_pack_ref<replicaset::Set_primary_instance_options>
+        &options) {
   assert_valid("setPrimaryInstance");
-
-  bool dry_run = false;
-  uint32_t timeout = current_shell_options()->get().dba_gtid_wait_timeout;
-
-  Unpack_options(options)
-      .optional("timeout", &timeout)
-      .optional("dryRun", &dry_run)
-      .end();
 
   execute_with_pool(
       [&]() {
-        impl()->set_primary_instance(instance_def, timeout, dry_run);
+        impl()->set_primary_instance(instance_def, options->timeout(),
+                                     options->dry_run);
         return shcore::Value();
       },
       false);
@@ -806,6 +733,8 @@ The following options may be given:
 @li dryRun: if true, will perform checks and log operations that would be
 performed, but will not execute them. The operations that would be performed
 can be viewed by enabling verbose output in the shell.
+@li timeout: integer value with the maximum number of seconds to wait until
+the instance being promoted catches up to the current PRIMARY.
 @li invalidateErrorInstances: if false, aborts the failover if any instance
 other than the old master is unreachable or has errors. If true, such instances
 will not be failed over and be invalidated.
@@ -822,24 +751,17 @@ Undefined ReplicaSet::forcePrimaryInstance(String instance,
 #elif DOXYGEN_PY
 None ReplicaSet::force_primary_instance(str instance, dict options) {}
 #endif
-void ReplicaSet::force_primary_instance(const std::string &instance_def,
-                                        const shcore::Dictionary_t &options) {
+void ReplicaSet::force_primary_instance(
+    const std::string &instance_def,
+    const shcore::Option_pack_ref<replicaset::Force_primary_instance_options>
+        &options) {
   assert_valid("forcePrimaryInstance");
-
-  bool dry_run = false;
-  bool invalidate_instances = false;
-  uint32_t timeout = current_shell_options()->get().dba_gtid_wait_timeout;
-
-  Unpack_options(options)
-      .optional("dryRun", &dry_run)
-      .optional("timeout", &timeout)
-      .optional("invalidateErrorInstances", &invalidate_instances)
-      .end();
 
   execute_with_pool(
       [&]() {
-        impl()->force_primary_instance(instance_def, timeout,
-                                       invalidate_instances, dry_run);
+        impl()->force_primary_instance(instance_def, options->timeout(),
+                                       options->invalidate_instances,
+                                       options->dry_run);
         return shcore::Value();
       },
       false);
@@ -865,13 +787,6 @@ The options dictionary may contain the following attributes:
 @li onlyUpgradeRequired: boolean, enables filtering so only router instances
 that support older version of the Metadata Schema and require upgrade are
 included.
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
-@throw RuntimeError in the following scenarios:
-@li If the InnoDB Cluster topology mode does not match the current Group
-    Replication configuration.
-@li If the InnoDB Cluster name is not registered in the Metadata.
 )*");
 
 /**
@@ -885,21 +800,15 @@ String ReplicaSet::listRouters(Dictionary options) {}
 str ReplicaSet::list_routers(dict options) {}
 #endif
 shcore::Dictionary_t ReplicaSet::list_routers(
-    const shcore::Dictionary_t &options) {
+    const shcore::Option_pack_ref<List_routers_options> &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("listRouters");
-
-  bool only_upgrade_required = false;
 
   // Throw an error if the cluster has already been dissolved
   check_function_preconditions("ReplicaSet.listRouters",
                                m_impl->get_target_server());
 
-  Unpack_options(options)
-      .optional("onlyUpgradeRequired", &only_upgrade_required)
-      .end();
-
-  auto ret_val = m_impl->list_routers(only_upgrade_required);
+  auto ret_val = m_impl->list_routers(options->only_upgrade_required);
 
   return ret_val.as_map();
 }
@@ -919,9 +828,6 @@ be used to clean up such instances that no longer exist.
 
 The @<ReplicaSet@>.<<<listRouters>>>() function may be used to list
 registered router instances, including their identifier.
-
-@throw ArgumentError in the following scenarios:
-@li if router_def is not a registered router instance
 )*");
 /**
  * $(REPLICASET_REMOVEROUTERMETADATA_BRIEF)
@@ -1008,14 +914,6 @@ interactive prompts that help the user through the account setup process.
 
 The update option must be enabled to allow updating an existing account's
 privileges and/or password.
-
-@throw RuntimeError in the following scenarios:
-@li The user account name does not exist on the ReplicaSet and update is True.
-@li The user account name does not exist on the ReplicaSet and no password was
-provided.
-@li The user account name exists on the ReplicaSet and update is False.
-@li The account used to grant the privileges to the admin user doesn't have the
-necessary privileges.
 )*");
 
 /**
@@ -1027,33 +925,17 @@ Undefined ReplicaSet::setupAdminAccount(String user, Dictionary options) {}
 None ReplicaSet::setup_admin_account(str user, dict options) {}
 #endif
 
-void ReplicaSet::setup_admin_account(const std::string &user,
-                                     const shcore::Dictionary_t &options) {
+void ReplicaSet::setup_admin_account(
+    const std::string &user,
+    const shcore::Option_pack_ref<Setup_account_options> &options) {
   // Throw an error if the replicaset is invalid
   assert_valid("setupAdminAccount");
-
-  // set default values for dictionary options
-  bool dry_run = false;
-  bool interactive = current_shell_options()->get().wizards;
-  bool update = false;
-  mysqlshdk::utils::nullable<std::string> password;
 
   // split user into user/host
   std::string username, host;
   std::tie(username, host) = validate_account_name(user);
 
-  // Get optional options.
-  if (options) {
-    Unpack_options(options)
-        .optional("dryRun", &dry_run)
-        .optional("interactive", &interactive)
-        .optional("update", &update)
-        .optional("password", &password)
-        .end();
-  }
-
-  m_impl->setup_admin_account(username, host, interactive, update, dry_run,
-                              password);
+  m_impl->setup_admin_account(username, host, *options);
 }
 
 REGISTER_HELP_FUNCTION(setupRouterAccount, ReplicaSet);
@@ -1098,14 +980,6 @@ interactive prompts that help the user through the account setup process.
 
 The update option must be enabled to allow updating an existing account's
 privileges and/or password.
-
-@throw RuntimeError in the following scenarios:
-@li The user account name does not exist on the ReplicaSet and update is True.
-@li The user account name does not exist on the ReplicaSet and no password was
-provided.
-@li The user account name exists on the ReplicaSet and update is False.
-@li The account used to grant the privileges to the router user doesn't have the
-necessary privileges.
 )*");
 
 /**
@@ -1116,33 +990,17 @@ Undefined ReplicaSet::setupRouterAccount(String user, Dictionary options) {}
 #elif DOXYGEN_PY
 None ReplicaSet::setup_router_account(str user, dict options) {}
 #endif
-void ReplicaSet::setup_router_account(const std::string &user,
-                                      const shcore::Dictionary_t &options) {
+void ReplicaSet::setup_router_account(
+    const std::string &user,
+    const shcore::Option_pack_ref<Setup_account_options> &options) {
   // Throw an error if the replicaset is invalid
   assert_valid("setupRouterAccount");
-
-  // set default values for dictionary options
-  bool dry_run = false;
-  bool interactive = current_shell_options()->get().wizards;
-  bool update = false;
-  mysqlshdk::utils::nullable<std::string> password;
 
   // split user into user/host
   std::string username, host;
   std::tie(username, host) = validate_account_name(user);
 
-  // Get optional options.
-  if (options) {
-    Unpack_options(options)
-        .optional("dryRun", &dry_run)
-        .optional("interactive", &interactive)
-        .optional("update", &update)
-        .optional("password", &password)
-        .end();
-  }
-
-  m_impl->setup_router_account(username, host, interactive, update, dry_run,
-                               password);
+  m_impl->setup_router_account(username, host, *options);
 }
 
 REGISTER_HELP_FUNCTION(options, ReplicaSet);
@@ -1153,9 +1011,6 @@ Lists the ReplicaSet configuration options.
 
 This function lists the configuration options for the ReplicaSet and
 its instances.
-
-@throw MetadataError in the following scenarios:
-@li If the Metadata is inaccessible.
 )*");
 
 /**
@@ -1191,11 +1046,6 @@ The accepted options are:
 ${NAMESPACE_TAG}
 
 ${NAMESPACE_TAG_DETAIL_REPLICASET}
-
-@throw ArgumentError in the following scenarios:
-@li If the 'option' parameter is empty.
-@li If the 'value' parameter is empty.
-@li If the 'option' parameter is invalid.
 )*");
 
 /**
@@ -1234,16 +1084,6 @@ ${NAMESPACE_TAG}
 ${NAMESPACE_TAG_DETAIL_REPLICASET}
 
 ${NAMESPACE_TAG_INSTANCE_DETAILS_EXTRA}
-
-@throw ArgumentError in the following scenarios:
-@li If the 'instance' parameter is empty.
-@li If the 'instance' parameter is invalid.
-@li If the 'option' parameter is empty.
-@li If the 'value' parameter is empty.
-@li If the 'option' parameter is invalid.
-
-@throw RuntimeError in the following scenarios:
-@li If 'instance' does not refer to a replicaSet member.
 )*");
 
 /**

@@ -633,54 +633,6 @@ TEST_F(Shell_cli_operation_test, parse_commandline) {
         "Argument error at '--sandbox-dir=null': String expected, but "
         "value is Null");
   }
-  {
-    const char *arg4[] = {"cluster",      "addInstance",      "--port=3307",
-                          "--force",      "--bool=false",     "--std-dev=0.7",
-                          "--pass-word=", "--sandboxDir=/tmp"};
-    Options::Cmdline_iterator it(8, arg4, 0);
-    parse(&it);
-    prepare();
-    EXPECT_EQ("cluster", m_object_name);
-    EXPECT_EQ("addInstance", m_method_name);
-    EXPECT_EQ(2, m_argument_list.size());
-
-    shcore::Dictionary_t connection_map;
-
-    // Only the port is taken as connectionData
-    ASSERT_NO_THROW(connection_map = m_argument_list.map_at(0));
-    EXPECT_EQ(1, connection_map->size());
-    EXPECT_EQ(3307, connection_map->get_int("port"));
-
-    // The rest is read on the options map, since it does not have defined the
-    // valid options accepts everything
-    shcore::Dictionary_t option_map;
-    ASSERT_NO_THROW(option_map = m_argument_list.map_at(1));
-    Argument_map map(*option_map);
-    ASSERT_NO_THROW(map.ensure_keys(
-        {"force", "bool", "stdDev", "passWord", "sandboxDir"}, {}, "test1"));
-    EXPECT_TRUE(map.bool_at("force"));
-    EXPECT_FALSE(map.bool_at("bool"));
-    EXPECT_EQ(0.7, map.double_at("stdDev"));
-    EXPECT_EQ("", map.string_at("passWord"));
-    EXPECT_EQ("/tmp", map.string_at("sandboxDir"));
-
-    bool force;
-    double std;
-    std::string pwd;
-    EXPECT_NO_THROW(mysqlsh::Unpack_options(option_map)
-                        .required("force", &force)
-                        .optional("bool", &force)
-                        .optional_ci("stddev", &std)
-                        .optional_ci("password", &pwd)
-                        .optional_exact("sandboxDir", &pwd)
-                        .end());
-
-    mysqlsh::Unpack_options up(option_map);
-    // 0.7 will be turned into TRUE
-    EXPECT_NO_THROW(up.required("stdDev", &force));
-    EXPECT_TRUE(force);
-    EXPECT_THROW(up.optional("sandboxDir", &force), Exception);
-  }
 }
 
 TEST_F(Shell_cli_operation_test, local_dict) {

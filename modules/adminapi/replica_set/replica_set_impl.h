@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "modules/adminapi/common/api_options.h"
 #include "modules/adminapi/common/async_replication_options.h"
 #include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/clone_options.h"
@@ -35,6 +36,7 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/global_topology_manager.h"
 #include "modules/adminapi/common/gtid_validations.h"
+#include "modules/adminapi/dba/api_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 
 namespace mysqlsh {
@@ -65,9 +67,7 @@ class Replica_set_impl : public Base_cluster_impl {
   static std::shared_ptr<Replica_set_impl> create(
       const std::string &full_cluster_name, Global_topology_type topology_type,
       const std::shared_ptr<Instance> &target_server,
-      const std::string &instance_label,
-      const Async_replication_options &ar_options, bool adopt, bool dry_run,
-      bool gtid_set_is_complete);
+      const Create_replicaset_options &options);
 
   shcore::Value describe() {
     check_preconditions("describe");
@@ -111,15 +111,12 @@ class Replica_set_impl : public Base_cluster_impl {
 
   shcore::Value list_routers(bool only_upgrade_required) override;
 
-  void setup_admin_account(
-      const std::string &username, const std::string &host, bool interactive,
-      bool update, bool dry_run,
-      const mysqlshdk::utils::nullable<std::string> &password) override;
+  void setup_admin_account(const std::string &username, const std::string &host,
+                           const Setup_account_options &options) override;
 
-  void setup_router_account(
-      const std::string &username, const std::string &host, bool interactive,
-      bool update, bool dry_run,
-      const mysqlshdk::utils::nullable<std::string> &password) override;
+  void setup_router_account(const std::string &username,
+                            const std::string &host,
+                            const Setup_account_options &options) override;
 
   std::list<Scoped_instance> connect_all_members(
       uint32_t read_timeout, bool skip_primary,

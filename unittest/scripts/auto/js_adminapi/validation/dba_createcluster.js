@@ -335,10 +335,10 @@ Cluster.addInstance: Invalid host/IP '127.0.1.1' resolves to '127.0.1.1' which i
 ||
 
 //@ WL#12066: TSF1_4 Validate that an exception is thrown if the value specified is not an unsigned integer. {VER(>=8.0.16)}
-||Dba.createCluster: Unable to set value '-1' for 'autoRejoinTries': Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (RuntimeError)
+||Unable to set value '-1' for 'autoRejoinTries': Variable 'group_replication_autorejoin_tries' can't be set to the value of '-1' (RuntimeError)
 
 //@ WL#12066: TSF1_5 Validate that an exception is thrown if the value  is not in the range 0 to 2016. {VER(>=8.0.16)}
-||Dba.createCluster: Unable to set value '2017' for 'autoRejoinTries': Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (RuntimeError)
+||Unable to set value '2017' for 'autoRejoinTries': Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (RuntimeError)
 
 //@ WL#12066: TSF1_1 Validate that the functions [dba.]createCluster() and [cluster.]addInstance() support a new option named autoRejoinTries. {VER(>=8.0.16)}
 |WARNING: The member will only proceed according to its exitStateAction if auto-rejoin fails (i.e. all retry attempts are exhausted).|
@@ -410,10 +410,10 @@ one server failure.
 |mysql_innodb_cluster_11111, %|
 
 //@ WL#13208: TS_FR1_2 validate errors for disableClone (only boolean values).
-||Dba.createCluster: Argument #2: Option 'disableClone' Bool expected, but value is String (TypeError)
-||Dba.createCluster: Argument #2: Option 'disableClone' Bool expected, but value is String (TypeError)
-||Dba.createCluster: Argument #2: Option 'disableClone' is expected to be of type Bool, but is Array (TypeError)
-||Dba.createCluster: Argument #2: Option 'disableClone' is expected to be of type Bool, but is Map (TypeError)
+||Option 'disableClone' Bool expected, but value is String (TypeError)
+||Option 'disableClone' Bool expected, but value is String (TypeError)
+||Option 'disableClone' is expected to be of type Bool, but is Array (TypeError)
+||Option 'disableClone' is expected to be of type Bool, but is Map (TypeError)
 
 //@ WL#13208: TS_FR1_3 validate default for disableClone is false.
 ||
@@ -782,7 +782,7 @@ one server failure.
 }
 
 //@ WL#13208: TS_FR1_1 disableClone option is not supported for server version < 8.0.17. {VER(<8.0.17)}
-||Dba.createCluster: Option 'disableClone' not supported on target server version: '<<<__version>>>' (RuntimeError)
+||Option 'disableClone' not supported on target server version: '<<<__version>>>' (RuntimeError)
 
 //@ canonical IPv6 addresses are supported WL#12758 {VER(>= 8.0.14)}
 |[::1]:<<<__mysql_sandbox_port1>>> = {"mysqlX": "[::1]:<<<__mysql_sandbox_x_port1>>>", "grLocal": "[::1]:<<<__mysql_sandbox_gr_port1>>>", "mysqlClassic": "[::1]:<<<__mysql_sandbox_port1>>>"}|
@@ -793,17 +793,17 @@ one server failure.
 
 //@ canonical IPv6 addresses are not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 |ERROR: Cannot use host '::1' for instance '[::1]:<<<__mysql_sandbox_port1>>>' because it is an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14. Set the MySQL server 'report_host' variable to an IPv4 address or hostname that resolves an IPv4 address.|
-||Dba.createCluster: Unsupported IP address '::1'. IPv6 is only supported by Group Replication on MySQL version >= 8.0.14. (RuntimeError)
+||Unsupported IP address '::1'. IPv6 is only supported by Group Replication on MySQL version >= 8.0.14. (RuntimeError)
 
 //@ IPv6 local_address is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
 |ERROR: Cannot create cluster on instance '127.0.0.1:<<<__mysql_sandbox_port1>>>': unsupported localAddress value.|
-||Dba.createCluster: Cannot use value '[::1]:<<<__mysql_sandbox_gr_port1>>>' for option localAddress because it has an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)
+||Cannot use value '[::1]:<<<__mysql_sandbox_gr_port1>>>' for option localAddress because it has an IPv6 address which is only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)
 
 //@ IPv6 on ipWhitelist is not supported below 8.0.14 WL#12758 {VER(< 8.0.14)}
-||Dba.createCluster: Invalid value for ipWhitelist '::1': IPv6 not supported (version >= 8.0.14 required for IPv6 support). (ArgumentError)
+||Invalid value for ipWhitelist '::1': IPv6 not supported (version >= 8.0.14 required for IPv6 support). (ArgumentError)
 
 //@ IPv6 on groupSeeds is not supported below 8.0.14 - 1 WL#12758 {VER(< 8.0.14)}
-||Dba.createCluster: Instance does not support the following groupSeed value :'[::1]:<<<__mysql_sandbox_gr_port2>>>'. IPv6 addresses/hostnames are only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)
+||Instance does not support the following groupSeed value :'[::1]:<<<__mysql_sandbox_gr_port2>>>'. IPv6 addresses/hostnames are only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)
 
 //@ IPv6 on groupSeeds is not supported below 8.0.14 - 2 WL#12758 {VER(< 8.0.14)}
-||Dba.createCluster: Instance does not support the following groupSeed values :'[::1]:<<<__mysql_sandbox_gr_port2>>>, [fe80::7e36:f49a:63c8:8ad6]:<<<__mysql_sandbox_gr_port1>>>'. IPv6 addresses/hostnames are only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)
+||Instance does not support the following groupSeed values :'[::1]:<<<__mysql_sandbox_gr_port2>>>, [fe80::7e36:f49a:63c8:8ad6]:<<<__mysql_sandbox_gr_port1>>>'. IPv6 addresses/hostnames are only supported by Group Replication from MySQL version >= 8.0.14 and the target instance version is <<<__version>>>. (ArgumentError)

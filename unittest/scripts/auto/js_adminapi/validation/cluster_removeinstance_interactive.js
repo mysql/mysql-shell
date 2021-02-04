@@ -67,7 +67,7 @@
 //@ Remove instance failure due to wrong credentials
 // NOTE: Do not use @<ERR> because it matches the whole line but result after
 // 'foo' is not deterministic: @'hostanme' or @'hostname_ip' can appear.
-||Cluster.removeInstance: Could not open connection to '[[*]]:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@'[[*]]' (using password: YES) (MySQL Error 1045)
+||Could not open connection to '[[*]]:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'@'[[*]]' (using password: YES) (MySQL Error 1045)
 
 //@<OUT> Cluster status after remove failed
 {
@@ -361,20 +361,20 @@ ERROR: The instance <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> is not reachab
 //@<ERR> Error removing stopped instance on port2 using alternative host not in Metadata and wrong pwd (no prompt)
 Cluster.removeInstance: Metadata for instance <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> not found (MYSQLSH 51104)
 
-//@<> Error removing stopped instance on port2 (no prompt if interactive is false)
+//@ Error removing stopped instance on port2 (no prompt if interactive is false)
 |WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])|
 |ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.|
-||Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
+||Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
 
-//@<> Error removing stopped instance on port2 (no prompt if force is used)
+//@ Error removing stopped instance on port2 (no prompt if force is used)
 |WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])|
 |ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.|
-||Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
+||Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
 
-//@<> Error removing stopped instance on port2
+//@ Error removing stopped instance on port2
 |WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])|
 |ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.|
-||Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
+||Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
 
 //@ Remove stopped instance on port2 with force option
 ||

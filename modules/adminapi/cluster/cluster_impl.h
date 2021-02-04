@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,7 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
 
+#include "modules/adminapi/cluster/api_options.h"
 #include "modules/adminapi/common/base_cluster_impl.h"
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
@@ -84,11 +85,8 @@ class Cluster_impl : public Base_cluster_impl {
 
   // API functions
   void add_instance(const Connection_options &instance_def,
-                    const Group_replication_options &gr_options,
-                    const Clone_options &clone_options,
-                    const mysqlshdk::null_string &label,
-                    Recovery_progress_style progress_style,
-                    const bool interactive);
+                    const cluster::Add_instance_options &options,
+                    Recovery_progress_style progress_style);
 
   void rejoin_instance(const Connection_options &instance_def,
                        const Group_replication_options &gr_options,
@@ -104,12 +102,7 @@ class Cluster_impl : public Base_cluster_impl {
   void force_quorum_using_partition_of(const Connection_options &instance_def,
                                        const bool interactive);
   void dissolve(const mysqlshdk::null_bool &force, const bool interactive);
-  void rescan(
-      const bool auto_add_instances, const bool auto_remove_instances,
-      const std::vector<mysqlshdk::db::Connection_options> &add_instances_list,
-      const std::vector<mysqlshdk::db::Connection_options>
-          &remove_instances_list,
-      const bool interactive);
+  void rescan(const cluster::Rescan_options &options);
   void switch_to_single_primary_mode(const Connection_options &instance_def);
   void switch_to_multi_primary_mode();
   void set_primary_instance(const Connection_options &instance_def);
@@ -177,14 +170,11 @@ class Cluster_impl : public Base_cluster_impl {
 
   void release_primary(mysqlsh::dba::Instance *primary = nullptr) override;
 
-  void setup_admin_account(
-      const std::string &username, const std::string &host, bool interactive,
-      bool update, bool dry_run,
-      const mysqlshdk::utils::nullable<std::string> &password) override;
-  void setup_router_account(
-      const std::string &username, const std::string &host, bool interactive,
-      bool update, bool dry_run,
-      const mysqlshdk::utils::nullable<std::string> &password) override;
+  void setup_admin_account(const std::string &username, const std::string &host,
+                           const Setup_account_options &options) override;
+  void setup_router_account(const std::string &username,
+                            const std::string &host,
+                            const Setup_account_options &options) override;
 
   /**
    * Get the lowest server version of the cluster members.

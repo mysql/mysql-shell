@@ -21,7 +21,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 @The instance '<<<__address2>>>' was configured to be used in an InnoDB ReplicaSet.@
 
 //@# configure and check admin user {VER(>8.0.0)}
-||Dba.configureReplicaSetInstance: User 'root' can only connect from 'localhost'. (RuntimeError)
+||User 'root' can only connect from 'localhost'. (RuntimeError)
 
 //@<OUT> configure and check admin user interactive {VER(>8.0.0)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB ReplicaSet...

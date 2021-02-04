@@ -181,7 +181,7 @@ EXPECT_MYCNF_FIXED(alt_mycnf_path);
 // Regression for BUG#27702439- WRONG MESSAGES DISPLAYED WHEN USING 'MYCNFPATH' AND 'OUTPUTMYCNFPATH' PARAMETERS
 setup_scenario(SCEN_FILE_MISSING);
 
-error_msg = "Dba.configureInstance: File '" + mycnf_path + "' does not exist.";
+error_msg = "File '" + mycnf_path + "' does not exist.";
 EXPECT_THROWS(function(){dba.configureInstance(__sandbox_uri1, {mycnfPath: mycnf_path})}, error_msg);
 EXPECT_OUTPUT_CONTAINS("ERROR: The specified MySQL option file does not exist. A valid path is required for the mycnfPath option.\nPlease provide a valid path for the mycnfPath option or leave it empty if you which to skip the verification of the MySQL option file.");
 

@@ -18,13 +18,13 @@ var mycnf1 = testutil.getSandboxConfPath(__mysql_sandbox_port1);
 //@<> checkInstanceConfiguration error with innodb_page_size=4k.
 EXPECT_THROWS(function(){
   dba.checkInstanceConfiguration(__sandbox_uri1, {mycnfPath: mycnf1});
-}, "Dba.checkInstanceConfiguration: Unsupported innodb_page_size value: 4096");
+}, "Unsupported innodb_page_size value: 4096");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' is using a non-supported InnoDB page size (innodb_page_size=4096). Only instances with innodb_page_size greater than 4k (4096) can be used with InnoDB Cluster.`);
 
 //@<> configureLocalInstance error with innodb_page_size=4k.
 EXPECT_THROWS(function(){
   dba.configureLocalInstance(__sandbox_uri1, {mycnfPath: mycnf1});
-}, "Dba.configureLocalInstance: Unsupported innodb_page_size value: 4096");
+}, "Unsupported innodb_page_size value: 4096");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' is using a non-supported InnoDB page size (innodb_page_size=4096). Only instances with innodb_page_size greater than 4k (4096) can be used with InnoDB Cluster.`);
 
 
@@ -32,7 +32,7 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' i
 shell.connect(__sandbox_uri1);
 EXPECT_THROWS(function(){
   var cluster = dba.createCluster("test_cluster", {gtidSetIsComplete: true, ipAllowlist:"127.0.0.1," + hostname_ip});
-}, "Dba.createCluster: Unsupported innodb_page_size value: 4096");
+}, "Unsupported innodb_page_size value: 4096");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Instance '${hostname}:${__mysql_sandbox_port1}' is using a non-supported InnoDB page size (innodb_page_size=4096). Only instances with innodb_page_size greater than 4k (4096) can be used with InnoDB Cluster.`);
 
 //@<> create cluster works with innodb_page_size=8k (> 4k)

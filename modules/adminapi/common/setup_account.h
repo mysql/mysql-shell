@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "modules/adminapi/cluster/cluster_impl.h"
+#include "modules/adminapi/common/api_options.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 
@@ -53,8 +54,7 @@ class Setup_account : public Command_interface {
    * of the cluster/replicaset object where the command will execute.
    */
   Setup_account(const std::string &name, const std::string &host,
-                bool interactive, bool update, bool dry_run,
-                const mysqlshdk::utils::nullable<std::string> &password,
+                const Setup_account_options &options,
                 std::vector<std::string> grants,
                 const mysqlshdk::mysql::IInstance &m_primary_server);
 
@@ -94,12 +94,9 @@ class Setup_account : public Command_interface {
   void finish() override;
 
  private:
-  const bool m_interactive;
-  const bool m_update;
-  const bool m_dry_run;
-  mysqlshdk::utils::nullable<std::string> m_password;
   const std::string m_name;
   const std::string m_host;
+  Setup_account_options m_options;
   const std::vector<std::string> m_privilege_list;
   const mysqlshdk::mysql::IInstance &m_primary_server;
   bool m_user_exists;

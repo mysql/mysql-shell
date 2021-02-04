@@ -67,9 +67,6 @@ struct Clone_options {
   mysqlshdk::utils::nullable<Member_recovery_method> recovery_method;
   std::string recovery_method_str_invalid;
   mysqlshdk::null_string clone_donor;
-
- private:
-  void do_unpack(shcore::Option_unpacker *unpacker);
 };
 
 struct Create_cluster_clone_options : public Clone_options {

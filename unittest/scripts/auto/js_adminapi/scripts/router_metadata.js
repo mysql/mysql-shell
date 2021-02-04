@@ -51,7 +51,7 @@ cluster.removeRouterMetadata("routerhost1");
 cluster.removeRouterMetadata("routerhost1::r2");
 cluster.removeRouterMetadata("routerhost2::system");
 
-EXPECT_THROWS(function(){cluster.removeRouterMetadata("routerhost1");}, "Cluster.removeRouterMetadata: Invalid router instance 'routerhost1'");
+EXPECT_THROWS(function(){cluster.removeRouterMetadata("routerhost1");}, "Invalid router instance 'routerhost1'");
 
 //@ MD2 - listRouters() after removed routers
 cluster.listRouters();
@@ -139,7 +139,7 @@ cluster.removeRouterMetadata("routerhost1");
 cluster.removeRouterMetadata("routerhost1::r2");
 cluster.removeRouterMetadata("routerhost2::system");
 
-EXPECT_THROWS(function(){cluster.removeRouterMetadata("routerhost1");}, "Cluster.removeRouterMetadata: Invalid router instance 'routerhost1'");
+EXPECT_THROWS(function(){cluster.removeRouterMetadata("routerhost1");}, "Invalid router instance 'routerhost1'");
 
 //@ MD1 - listRouters() after removed routers
 cluster.listRouters();

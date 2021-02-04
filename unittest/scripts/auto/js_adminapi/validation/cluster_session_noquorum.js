@@ -75,7 +75,7 @@
 }
 
 //@# getCluster() and connectToPrimary:true (fail)
-||Dba.getCluster: Unable to find a cluster PRIMARY member from the active shell session because the cluster has too many UNREACHABLE members and no quorum is possible.
+||Unable to find a cluster PRIMARY member from the active shell session because the cluster has too many UNREACHABLE members and no quorum is possible.
 ||Use Dba.getCluster(null, {connectToPrimary:false}) to get a read-only cluster handle. (RuntimeError)
 
 //@<OUT> getCluster() and connectToPrimary:false (succeed)
@@ -193,7 +193,7 @@
 }
 
 //@# 2 getCluster() and connectToPrimary:true (fail)
-||Dba.getCluster: Unable to find a cluster PRIMARY member from the active shell session because the cluster has too many UNREACHABLE members and no quorum is possible.
+||Unable to find a cluster PRIMARY member from the active shell session because the cluster has too many UNREACHABLE members and no quorum is possible.
 ||Use Dba.getCluster(null, {connectToPrimary:false}) to get a read-only cluster handle. (RuntimeError)
 
 //@<OUT> 2 getCluster() and connectToPrimary:false (succeed)

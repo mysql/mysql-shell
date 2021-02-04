@@ -71,7 +71,7 @@ var installed_before = testutil.getInstalledMetadataVersion();
 session.runSql("CREATE USER myguest@'localhost' IDENTIFIED BY 'mypassword'");
 session.runSql("GRANT SELECT on *.* to myguest@'localhost'");
 shell.connect("myguest:mypassword@localhost:" + __mysql_sandbox_port1);
-EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Dba.upgradeMetadata: The account 'myguest'@'localhost' is missing privileges required for this operation.");
+EXPECT_THROWS(function () { dba.upgradeMetadata() }, "The account 'myguest'@'localhost' is missing privileges required for this operation.");
 
 //@ upgradeMetadata, dryRrun upgrade required
 shell.connect(__sandbox_uri1)
@@ -82,7 +82,7 @@ EXPECT_NO_THROWS(function () { dba.upgradeMetadata({dryRun: true}) })
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 session.runSql("delete from mysql_innodb_cluster_metadata.routers")
 session.runSql("CREATE SCHEMA mysql_innodb_cluster_metadata_previous");
-EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Dba.upgradeMetadata: Unable to create the step backup because a schema named 'mysql_innodb_cluster_metadata_previous' already exists.");
+EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Unable to create the step backup because a schema named 'mysql_innodb_cluster_metadata_previous' already exists.");
 session.runSql("DROP SCHEMA mysql_innodb_cluster_metadata_previous");
 
 //@ Upgrades the metadata, no registered routers
@@ -101,7 +101,7 @@ EXPECT_STDERR_EMPTY();
 
 //@<> Tests accessing the cluster after dropping the metadata after an upgrade
 dba.dropMetadataSchema({force:true});
-EXPECT_THROWS(function () { c.status() }, "Cluster.status: This function is not available through a session to an instance belonging to an unmanaged replication group");
+EXPECT_THROWS(function () { c.status() }, "This function is not available through a session to an instance belonging to an unmanaged replication group");
 
 //@ Upgrades the metadata from a slave instance
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
@@ -113,7 +113,7 @@ dba.upgradeMetadata()
 //@<> WL13386-TSFR1_4 Upgrades the metadata, interactive off, error
 shell.connect(__sandbox_uri1);
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
-EXPECT_THROWS(function () { dba.upgradeMetadata({interactive:false}) }, "Dba.upgradeMetadata: Outdated Routers found. Please upgrade the Routers before upgrading the Metadata schema");
+EXPECT_THROWS(function () { dba.upgradeMetadata({interactive:false}) }, "Outdated Routers found. Please upgrade the Routers before upgrading the Metadata schema");
 
 //@ WL13386-TSFR1_5 Upgrades the metadata, upgrade done by unregistering 10 routers and no router accounts
 session.runSql("INSERT INTO mysql_innodb_cluster_metadata.routers VALUES (2, 'second', 2, NULL)")

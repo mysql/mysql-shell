@@ -91,7 +91,7 @@ load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 var installed_before = testutil.getInstalledMetadataVersion();
 session.runSql("delete from mysql_innodb_cluster_metadata.routers");
 testutil.dbugSet("+d,dba_FAIL_metadata_upgrade_at_BACKING_UP_METADATA");
-EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Dba.upgradeMetadata: Upgrade process failed, metadata was not modified.");
+EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Upgrade process failed, metadata was not modified.");
 EXPECT_OUTPUT_CONTAINS(`Upgrading metadata at '${hostname}:${__mysql_sandbox_port1}' from version ${installed_before} to version ${current_version}.`);
 EXPECT_OUTPUT_CONTAINS("Creating backup of the metadata schema...");
 EXPECT_OUTPUT_CONTAINS("ERROR: Debug emulation of failed metadata upgrade BACKING_UP_METADATA.");
@@ -108,7 +108,7 @@ testutil.dbugSet("");
 testutil.dbugSet("+d,dba_limit_lock_wait_timeout");
 other_session.runSql("START TRANSACTION");
 other_session.runSql("SELECT * FROM mysql_innodb_cluster_metadata.schema_version");
-EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Dba.upgradeMetadata: Upgrade process failed, metadata was not modified.");
+EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Upgrade process failed, metadata was not modified.");
 EXPECT_OUTPUT_CONTAINS(`Upgrading metadata at '${hostname}:${__mysql_sandbox_port1}' from version ${installed_before} to version ${current_version}.`);
 EXPECT_OUTPUT_CONTAINS("Creating backup of the metadata schema...");
 EXPECT_OUTPUT_CONTAINS(`ERROR: ${hostname}:${__mysql_sandbox_port1}: Lock wait timeout exceeded; try restarting transaction`);
@@ -124,7 +124,7 @@ testutil.dbugSet("");
 //@<> WL13386-TSET_1 upgradeMetadata, failed upgrade, automatic restore
 var installed_before = testutil.getInstalledMetadataVersion();
 testutil.dbugSet("+d,dba_FAIL_metadata_upgrade_at_UPGRADING");
-EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Dba.upgradeMetadata: Upgrade process failed, metadata has been restored to version " + installed_before + ".");
+EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Upgrade process failed, metadata has been restored to version " + installed_before + ".");
 EXPECT_OUTPUT_CONTAINS(`Upgrading metadata at '${hostname}:${__mysql_sandbox_port1}' from version ${installed_before} to version ${current_version}.`);
 EXPECT_OUTPUT_CONTAINS("Creating backup of the metadata schema...");
 EXPECT_OUTPUT_CONTAINS("upgrading from 1.0.1 to 2.0.0...");
@@ -153,10 +153,10 @@ testutil.dbugSet("");
 other_session.runSql("SELECT GET_LOCK('mysql_innodb_cluster_metadata.upgrade_in_progress', 1)")
 
 //@<> Upgrading: precondition error upgradeMetadata
-EXPECT_THROWS(function () { dba.upgradeMetadata() }, "Dba.upgradeMetadata: The metadata is being upgraded. Wait until the upgrade process completes and then retry the operation.");
+EXPECT_THROWS(function () { dba.upgradeMetadata() }, "The metadata is being upgraded. Wait until the upgrade process completes and then retry the operation.");
 
 //@<> Upgrading: precondition error upgradeMetadata + dryRun
-EXPECT_THROWS(function () { dba.upgradeMetadata({dryRun:true}) }, "Dba.upgradeMetadata: The metadata is being upgraded. Wait until the upgrade process completes and then retry the operation.");
+EXPECT_THROWS(function () { dba.upgradeMetadata({dryRun:true}) }, "The metadata is being upgraded. Wait until the upgrade process completes and then retry the operation.");
 
 //@<> upgradeMetadata, prepare for failed upgrade errors
 other_session.close();

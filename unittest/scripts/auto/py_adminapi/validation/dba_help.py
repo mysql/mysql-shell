@@ -333,6 +333,7 @@ DESCRIPTION
 
       The options dictionary may contain the following options:
 
+      - password: The password to be used on the connection.
       - clusterAdmin: The name of a "cluster administrator" user to be created.
         The supported format is the standard MySQL account name format.
       - clusterAdminPassword: The password for the "cluster administrator"
@@ -716,6 +717,10 @@ DESCRIPTION
       - gtidSetIsComplete: boolean value which indicates whether the GTID set
         of the seed instance corresponds to all transactions executed. Default
         is false.
+      - interactive: boolean value used to disable/enable the wizards in the
+        command execution, i.e. prompts and confirmations will be provided or
+        not according to the value set. The default value is equal to MySQL
+        Shell wizard mode.
 
 #@<OUT> dba.delete_sandbox_instance
 NAME

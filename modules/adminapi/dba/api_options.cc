@@ -20,7 +20,7 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include "modules/adminapi/mod_dba_options.h"
+#include "modules/adminapi/dba/api_options.h"
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -78,10 +78,6 @@ const shcore::Option_pack_def<Deploy_sandbox_options>
   return opts;
 }
 
-Check_instance_configuration_options::Check_instance_configuration_options() {
-  interactive = current_shell_options()->get().wizards;
-}
-
 const shcore::Option_pack_def<Check_instance_configuration_options>
     &Check_instance_configuration_options::options() {
   static const auto opts =
@@ -90,12 +86,7 @@ const shcore::Option_pack_def<Check_instance_configuration_options>
                     &Check_instance_configuration_options::mycnf_path)
           .optional(kVerifyMyCnf,
                     &Check_instance_configuration_options::mycnf_path)
-          .optional(kInteractive,
-                    &Check_instance_configuration_options::interactive)
-          .optional(mysqlshdk::db::kPassword,
-                    &Check_instance_configuration_options::password, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::CLI_DISABLED);
+          .include<Password_interactive_options>();
 
   return opts;
 }
@@ -108,11 +99,7 @@ const shcore::Option_pack_def<Configure_instance_options>
           .optional(kClusterAdminPassword,
                     &Configure_instance_options::cluster_admin_password)
           .optional(kRestart, &Configure_instance_options::restart)
-          .optional(kInteractive, &Configure_instance_options::interactive)
-          .optional(mysqlshdk::db::kPassword,
-                    &Configure_instance_options::password, "",
-                    shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::CLI_DISABLED);
+          .include<Password_interactive_options>();
 
   return opts;
 }
@@ -204,12 +191,13 @@ const shcore::Option_pack_def<Create_cluster_options>
           .include(&Create_cluster_options::gr_options)
           .include(&Create_cluster_options::clone_options)
           .optional(kMultiPrimary, &Create_cluster_options::set_multi_primary)
-          .optional(kMultiMaster, &Create_cluster_options::set_multi_primary)
-          .optional(kForce, &Create_cluster_options::force)
+          .optional(kMultiMaster, &Create_cluster_options::set_multi_primary,
+                    "", shcore::Option_extract_mode::CASE_INSENSITIVE,
+                    shcore::Option_scope::CLI_DISABLED)
           .optional(kAdoptFromGR, &Create_cluster_options::adopt_from_gr)
           .optional(kClearReadOnly,
                     &Create_cluster_options::set_clear_read_only)
-          .optional(kInteractive, &Create_cluster_options::interactive);
+          .include<Force_interactive_options>();
 
   return opts;
 }
@@ -244,7 +232,8 @@ const shcore::Option_pack_def<Create_replicaset_options>
           .optional(kInstanceLabel,
                     &Create_replicaset_options::set_instance_label)
           .optional(kGtidSetIsComplete,
-                    &Create_replicaset_options::gtid_set_is_complete);
+                    &Create_replicaset_options::gtid_set_is_complete)
+          .include<Interactive_option>();
 
   return opts;
 }
@@ -322,16 +311,12 @@ void Reboot_cluster_options::set_clear_read_only(bool value) {
   clear_read_only = value;
 }
 
-Upgrade_metadata_options::Upgrade_metadata_options() {
-  interactive = current_shell_options()->get().wizards;
-}
-
 const shcore::Option_pack_def<Upgrade_metadata_options>
     &Upgrade_metadata_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Upgrade_metadata_options>()
-          .optional(kInteractive, &Upgrade_metadata_options::interactive)
-          .optional(kDryRun, &Upgrade_metadata_options::dry_run);
+          .optional(kDryRun, &Upgrade_metadata_options::dry_run)
+          .include<Interactive_option>();
 
   return opts;
 }

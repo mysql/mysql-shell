@@ -2,11 +2,11 @@
 ||
 
 //@ Errors (should fail)
-||ReplicaSet.status: Argument #1 is expected to be a map (TypeError)
-||ReplicaSet.status: Option 'extended' Integer expected, but value is String (TypeError)
-||ReplicaSet.status: Invalid value for option 'extended' (ArgumentError)
-||ReplicaSet.status: Invalid value for option 'extended' (ArgumentError)
-||ReplicaSet.status: Invalid options: bla (ArgumentError)
+||Argument #1 is expected to be a map (TypeError)
+||Option 'extended' Integer expected, but value is String (TypeError)
+||Invalid value '-1' for option 'extended'. It must be an integer in the range [0, 2]. (ArgumentError)
+||Invalid value '3' for option 'extended'. It must be an integer in the range [0, 2]. (ArgumentError)
+||Invalid options: bla (ArgumentError)
 
 //@<OUT> Regular, extended:0
 {

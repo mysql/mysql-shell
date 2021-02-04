@@ -5,11 +5,11 @@ shell.connect(__sandbox_uri1);
 EXPECT_STDERR_EMPTY()
 
 //@<> Invalid dropMetadataSchema call
-EXPECT_THROWS(function () { dba.dropMetadataSchema(1,2,3,4,5) }, "Dba.dropMetadataSchema: Invalid number of arguments, expected 0 to 1 but got 5")
-EXPECT_THROWS(function () { dba.dropMetadataSchema("Whatever") }, "Dba.dropMetadataSchema: Argument #1 is expected to be a map")
-EXPECT_THROWS(function () { dba.dropMetadataSchema({not_valid:true}) }, "Dba.dropMetadataSchema: Argument #1: Invalid options: not_valid")
-EXPECT_THROWS(function () { dba.dropMetadataSchema({force:"NotABool"}) }, "Dba.dropMetadataSchema: Argument #1: Option 'force' Bool expected, but value is String")
-EXPECT_THROWS(function () { dba.dropMetadataSchema({clearReadOnly:"NotABool"}) }, "Dba.dropMetadataSchema: Argument #1: Option 'clearReadOnly' Bool expected, but value is String")
+EXPECT_THROWS(function () { dba.dropMetadataSchema(1,2,3,4,5) }, "Invalid number of arguments, expected 0 to 1 but got 5")
+EXPECT_THROWS(function () { dba.dropMetadataSchema("Whatever") }, "Argument #1 is expected to be a map")
+EXPECT_THROWS(function () { dba.dropMetadataSchema({not_valid:true}) }, "Invalid options: not_valid")
+EXPECT_THROWS(function () { dba.dropMetadataSchema({force:"NotABool"}) }, "Option 'force' Bool expected, but value is String")
+EXPECT_THROWS(function () { dba.dropMetadataSchema({clearReadOnly:"NotABool"}) }, "Option 'clearReadOnly' Bool expected, but value is String")
 
 
 //@<> drop metadata: no user response
@@ -40,13 +40,13 @@ session.runSql("SET GLOBAL super_read_only=1");
 
 testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");
 testutil.expectPrompt("Do you want to disable super_read_only and continue? [y/N]: ", "n");
-EXPECT_THROWS(function () { dba.dropMetadataSchema() }, "Dba.dropMetadataSchema: Server in SUPER_READ_ONLY");
+EXPECT_THROWS(function () { dba.dropMetadataSchema() }, "Server in SUPER_READ_ONLY");
 
 //@<> InnoDB Cluster: drop metadata on slave with read only master, rejecting to clear it
 shell.connect(__sandbox_uri2);
 testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");
 testutil.expectPrompt("Do you want to disable super_read_only and continue? [y/N]: ", "n");
-EXPECT_THROWS(function () { dba.dropMetadataSchema() }, "Dba.dropMetadataSchema: Server in SUPER_READ_ONLY");
+EXPECT_THROWS(function () { dba.dropMetadataSchema() }, "Server in SUPER_READ_ONLY");
 
 
 //@<> InnoDB Cluster: drop metadata on read only master, accepting to clear it
@@ -90,14 +90,14 @@ shell.connect(__sandbox_uri1);
 session.runSql("SET GLOBAL super_read_only=1");
 testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");
 testutil.expectPrompt("Do you want to disable super_read_only and continue? [y/N]: ", "n");
-EXPECT_THROWS(function () { dba.dropMetadataSchema() }, "Dba.dropMetadataSchema: Server in SUPER_READ_ONLY");
+EXPECT_THROWS(function () { dba.dropMetadataSchema() }, "Server in SUPER_READ_ONLY");
 
 //@<> Replica Set: drop metadata on a slave with a read only master, rejecting to clear it {VER(>8.0.0)}
 shell.connect(__sandbox_uri2);
 testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");
 testutil.expectPrompt("Do you want to disable super_read_only and continue? [y/N]: ", "n");
 EXPECT_THROWS(function () { dba.dropMetadataSchema() },
-    "Dba.dropMetadataSchema: Server in SUPER_READ_ONLY mode");
+    "Server in SUPER_READ_ONLY mode");
 
 //@<> Replica Set: drop metadata on read only master, accepting to clear it {VER(>8.0.0)}
 testutil.expectPrompt("Are you sure you want to remove the Metadata?", "y");

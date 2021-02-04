@@ -8,7 +8,7 @@
 |"status": "ok"|
 
 //@ add third instance with duplicated label
-||Cluster.addInstance: An instance with label '1node1' is already part of this InnoDB cluster (ArgumentError)
+||An instance with label '1node1' is already part of this InnoDB cluster (ArgumentError)
 
 //@ third instance is still valid for cluster usage
 |"status": "ok"|

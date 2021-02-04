@@ -22,7 +22,7 @@ Cluster.removeInstance: Could not open connection to '[[*]]:<<<__mysql_sandbox_p
 //@ Remove instance failure due to wrong credentials
 // NOTE: Do not use @<ERR> because it matches the whole line but result after
 // 'foo' is not deterministic: @'hostanme' or @'hostname_ip' can appear.
-||Cluster.removeInstance: Could not open connection to '[[*]]:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'
+||Could not open connection to '[[*]]:<<<__mysql_sandbox_port2>>>': Access denied for user 'foo'
 
 //@<OUT> Removing instance
 The instance will be removed from the InnoDB cluster. Depending on the instance
@@ -208,11 +208,11 @@ false
 //@ Stop instance on port3
 ||
 
-//@<> Error removing stopped instance on port2
+//@ Error removing stopped instance on port2
 |WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]])|
 |ERROR: The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not reachable and cannot be safely removed from the cluster.|
 |To safely remove the instance from the cluster, make sure the instance is back ONLINE and try again. If you are sure the instance is permanently unable to rejoin the group and no longer connectable, use the 'force' option to remove it from the metadata.|
-||Cluster.removeInstance: Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
+||Can't connect to MySQL server on '<<<libmysql_host_description(hostname, __mysql_sandbox_port2)>>>' ([[*]]) (MySQL Error 2003)
 
 //@ Remove stopped instance on port2 with force option
 ||

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -304,10 +304,8 @@ shcore::Value Base_cluster_impl::list_routers(bool only_upgrade_required) {
  * @param type The type of account to create, Admin or Router
  */
 void Base_cluster_impl::setup_account_common(
-    const std::string &username, const std::string &host, bool interactive,
-    bool update, bool dry_run,
-    const mysqlshdk::utils::nullable<std::string> &password,
-    const Setup_account_type &type) {
+    const std::string &username, const std::string &host,
+    const Setup_account_options &options, const Setup_account_type &type) {
   // NOTE: GR by design guarantees that the primary instance is always the one
   // with the lowest instance version. A similar (although not explicit)
   // guarantee exists on Semi-sync replication, replication from newer master
@@ -326,7 +324,7 @@ void Base_cluster_impl::setup_account_common(
   auto metadata = std::make_shared<MetadataStorage>(get_target_server());
   Instance_pool::Auth_options auth_opts;
   auth_opts.get(get_target_server()->get_connection_options());
-  Scoped_instance_pool ipool(interactive, auth_opts);
+  Scoped_instance_pool ipool(options.interactive(), auth_opts);
   ipool->set_metadata(metadata);
 
   const auto primary_instance = acquire_primary();
@@ -353,8 +351,8 @@ void Base_cluster_impl::setup_account_common(
         break;
     }
 
-    Setup_account op_setup(username, host, interactive, update, dry_run,
-                           password, grant_list, *primary_instance);
+    Setup_account op_setup(username, host, options, grant_list,
+                           *primary_instance);
     // Always execute finish when leaving "try catch".
     auto finally = shcore::on_leave_scope([&op_setup]() { op_setup.finish(); });
     // Prepare the setup_account execution
@@ -365,19 +363,15 @@ void Base_cluster_impl::setup_account_common(
 }
 
 void Base_cluster_impl::setup_admin_account(
-    const std::string &username, const std::string &host, bool interactive,
-    bool update, bool dry_run,
-    const mysqlshdk::utils::nullable<std::string> &password) {
-  setup_account_common(username, host, interactive, update, dry_run, password,
-                       Setup_account_type::ADMIN);
+    const std::string &username, const std::string &host,
+    const Setup_account_options &options) {
+  setup_account_common(username, host, options, Setup_account_type::ADMIN);
 }
 
 void Base_cluster_impl::setup_router_account(
-    const std::string &username, const std::string &host, bool interactive,
-    bool update, bool dry_run,
-    const mysqlshdk::utils::nullable<std::string> &password) {
-  setup_account_common(username, host, interactive, update, dry_run, password,
-                       Setup_account_type::ROUTER);
+    const std::string &username, const std::string &host,
+    const Setup_account_options &options) {
+  setup_account_common(username, host, options, Setup_account_type::ROUTER);
 }
 
 void Base_cluster_impl::set_instance_tag(const std::string &instance_def,

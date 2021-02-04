@@ -7,7 +7,7 @@ Creating a Classic session to 'root@localhost:<<<__mysql_sandbox_port1>>>'
 ||Option 'foobar' not supported. (ArgumentError)
 
 //@ WL#11465: Error when executing setOption on a cluster with 1 or more members not ONLINE
-||Cluster.setOption: This operation requires all the cluster members to be ONLINE (RuntimeError)
+||This operation requires all the cluster members to be ONLINE (RuntimeError)
 
 //@<ERR> WL#11465: Error when executing setOption on a cluster with no visible quorum {VER(>=8.0.14)}
 Cluster.setOption: There is no quorum to perform the operation (MYSQLSH 51011)
@@ -19,9 +19,9 @@ Cluster.setOption: There is no quorum to perform the operation (MYSQLSH 51011)
 ||
 
 //@ WL#11465: setOption clusterName with invalid value for cluster-name
-||Cluster.setOption: Cluster name may only contain alphanumeric characters or '_', and may not start with a number (0_a)
-||Cluster.setOption: _1234567890::_1234567890123456789012345678901: The Cluster name can not be greater than 40 characters. (ArgumentError)
-||Cluster.setOption: Cluster name may only contain alphanumeric characters or '_', and may not start with a number (::) (ArgumentError)
+||Cluster name may only contain alphanumeric characters or '_', and may not start with a number (0_a)
+||_1234567890::_1234567890123456789012345678901: The Cluster name can not be greater than 40 characters. (ArgumentError)
+||Cluster name may only contain alphanumeric characters or '_', and may not start with a number (::) (ArgumentError)
 
 //@<OUT> WL#11465: setOption clusterName
 Setting the value of 'clusterName' to 'newName' in the Cluster ...
@@ -84,10 +84,10 @@ Successfully set the value of 'autoRejoinTries' to '2016' in the 'newName' clust
 ||Variable 'group_replication_autorejoin_tries' can't be set to the value of '2017' (MYSQLSH 1231)
 
 //@ WL#13208: TS_FR2 verify disableClone cannot be set with setOption() to false in a 5.7 cluster {VER(>=5.7.24) && VER(<8.0.0)}
-||Cluster.setOption: Option 'disableClone' not supported on Cluster. (RuntimeError)
+||Option 'disableClone' not supported on Cluster. (RuntimeError)
 
 //@ WL#13208: TS_FR2 verify disableClone cannot be set with setOption() to true in a 5.7 cluster {VER(>=5.7.24) && VER(<8.0.0)}
-||Cluster.setOption: Option 'disableClone' not supported on Cluster. (RuntimeError)
+||Option 'disableClone' not supported on Cluster. (RuntimeError)
 
 //@<OUT> WL#13208: TS_FR2_1 verify disableClone can be set with setOption() to false. {VER(>=8.0.17)}
 Setting the value of 'disableClone' to 'false' in the Cluster ...

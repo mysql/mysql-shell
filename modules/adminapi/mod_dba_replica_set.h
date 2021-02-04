@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include "modules/adminapi/replica_set/api_options.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types.h"
@@ -107,35 +108,48 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   void invalidate() { m_invalidated = true; }
 
  public:
-  void add_instance(const std::string &instance_def,
-                    const shcore::Dictionary_t &options);
+  void add_instance(
+      const std::string &instance_def,
+      const shcore::Option_pack_ref<replicaset::Add_instance_options> &options);
 
-  void rejoin_instance(const std::string &instance_def,
-                       const shcore::Dictionary_t &options);
+  void rejoin_instance(
+      const std::string &instance_def,
+      const shcore::Option_pack_ref<replicaset::Rejoin_instance_options>
+          &options);
 
-  void remove_instance(const std::string &instance_def,
-                       const shcore::Dictionary_t &options);
+  void remove_instance(
+      const std::string &instance_def,
+      const shcore::Option_pack_ref<replicaset::Remove_instance_options>
+          &options);
 
   shcore::Value describe(void);
-  shcore::Value status(const shcore::Dictionary_t &options);
+  shcore::Value status(
+      const shcore::Option_pack_ref<replicaset::Status_options> &options);
   void dissolve(const shcore::Dictionary_t &options);
 
   void disconnect();
 
-  void set_primary_instance(const std::string &instance_def,
-                            const shcore::Dictionary_t &options);
+  void set_primary_instance(
+      const std::string &instance_def,
+      const shcore::Option_pack_ref<replicaset::Set_primary_instance_options>
+          &options);
 
-  void force_primary_instance(const std::string &instance_def,
-                              const shcore::Dictionary_t &options);
+  void force_primary_instance(
+      const std::string &instance_def,
+      const shcore::Option_pack_ref<replicaset::Force_primary_instance_options>
+          &options);
 
-  shcore::Dictionary_t list_routers(const shcore::Dictionary_t &options);
+  shcore::Dictionary_t list_routers(
+      const shcore::Option_pack_ref<List_routers_options> &options);
   void remove_router_metadata(const std::string &router_def);
 
-  void setup_admin_account(const std::string &user,
-                           const shcore::Dictionary_t &options);
+  void setup_admin_account(
+      const std::string &user,
+      const shcore::Option_pack_ref<Setup_account_options> &options);
 
-  void setup_router_account(const std::string &user,
-                            const shcore::Dictionary_t &options);
+  void setup_router_account(
+      const std::string &user,
+      const shcore::Option_pack_ref<Setup_account_options> &options);
 
   shcore::Value options();
 

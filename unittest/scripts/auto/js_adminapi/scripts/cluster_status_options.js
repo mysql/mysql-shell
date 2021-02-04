@@ -666,17 +666,17 @@ const clone_recovery_status_templ = {
 
 //@<> Errors using invalid options and values.
 // Invalid option.
-EXPECT_THROWS(function(){cluster.status({wrong_option: true})}, "Cluster.status: Invalid options: wrong_option");
+EXPECT_THROWS(function(){cluster.status({wrong_option: true})}, "Invalid options: wrong_option");
 // Invalid value type string for extended.
-EXPECT_THROWS(function(){cluster.status({extended: ""})}, "Cluster.status: Option 'extended' UInteger expected, but value is String");
+EXPECT_THROWS(function(){cluster.status({extended: ""})}, "Option 'extended' UInteger expected, but value is String");
 // Invalid value type (negative) integer for extended.
-EXPECT_THROWS(function(){cluster.status({extended: -1})}, "Cluster.status: Option 'extended' UInteger expected, but Integer value is out of range");
+EXPECT_THROWS(function(){cluster.status({extended: -1})}, "Option 'extended' UInteger expected, but Integer value is out of range");
 // Invalid value (out of range) for extended.
-EXPECT_THROWS(function(){cluster.status({extended: 4})}, "Cluster.status: Invalid value '4' for option 'extended'. It must be an integer in the range [0, 3].");
+EXPECT_THROWS(function(){cluster.status({extended: 4})}, "Invalid value '4' for option 'extended'. It must be an integer in the range [0, 3].");
 // Invalid value type float for extended.
 EXPECT_THROWS(function(){cluster.status({extended: 1.5})}, "Option 'extended' UInteger expected, but Float value is out of range");
 // Invalid value type string for queryMembers.
-EXPECT_THROWS(function(){cluster.status({queryMembers: ""})}, "Cluster.status: Option 'queryMembers' Bool expected, but value is String");
+EXPECT_THROWS(function(){cluster.status({queryMembers: ""})}, "Option 'queryMembers' Bool expected, but value is String");
 
 
 //@<> WL#13084 - TSF4_2: extended: 1 provides the following information:

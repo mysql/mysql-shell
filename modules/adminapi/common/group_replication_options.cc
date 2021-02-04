@@ -35,39 +35,11 @@
 namespace mysqlsh {
 namespace dba {
 
-/**
- * Validate the value specified for the groupName option.
- *
- * @param options Map type value with containing the specified options.
- * @throw ArgumentError if the value is empty.
- */
-void validate_group_name_option(std::string group_name) {
-  // Minimal validation is performed here, the rest is already currently
-  // handled at the mysqlprovision level (including the logic to automatically
-  // set the group name when not specified)
-  group_name = shcore::str_strip(group_name);
-  if (group_name.empty())
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s, string value cannot be empty.", kGroupName));
-}
-
 const char *kMemberSSLModeAuto = "AUTO";
 const char *kMemberSSLModeRequired = "REQUIRED";
 const char *kMemberSSLModeDisabled = "DISABLED";
 const std::set<std::string> kMemberSSLModeValues = {
     kMemberSSLModeAuto, kMemberSSLModeDisabled, kMemberSSLModeRequired};
-
-void validate_ssl_instance_options(std::string ssl_mode) {
-  // Validate use of SSL options for the cluster instance and issue an
-  // exception if invalid.
-  ssl_mode = shcore::str_upper(ssl_mode);
-  if (kMemberSSLModeValues.count(ssl_mode) == 0) {
-    std::string valid_values = shcore::str_join(kMemberSSLModeValues, ",");
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value for %s option. Supported values: %s.",
-                           kMemberSslMode, valid_values.c_str()));
-  }
-}
 
 /**
  * Validate the value specified for the localAddress option.
@@ -358,46 +330,8 @@ void validate_ip_whitelist_option(const mysqlshdk::utils::Version &version,
 
 // ----
 
-void Group_replication_options::do_unpack(shcore::Option_unpacker *unpacker) {
-  switch (target) {
-    case NONE:
-      break;
-
-    // Here it CREATE falls back into the JOIN case as they
-    // share the same options except for groupName
-    case CREATE:
-      unpacker->optional(kGroupName, &group_name)
-          .optional(kManualStartOnBoot, &manual_start_on_boot);
-      // fallthrough
-    case JOIN:
-      unpacker->optional(kMemberSslMode, &ssl_mode)
-          .optional(kIpWhitelist, &ip_allowlist)
-          .optional(kIpAllowlist, &ip_allowlist)
-          .optional(kLocalAddress, &local_address)
-          .optional(kGroupSeeds, &group_seeds)
-          .optional(kExitStateAction, &exit_state_action)
-          .optional_exact(kMemberWeight, &member_weight)
-          .optional(kFailoverConsistency, &consistency)
-          .optional(kConsistency, &consistency)
-          .optional_exact(kExpelTimeout, &expel_timeout)
-          .optional(kAutoRejoinTries, &auto_rejoin_tries);
-      break;
-
-    case REJOIN:
-      unpacker->optional(kMemberSslMode, &ssl_mode)
-          .optional(kIpWhitelist, &ip_allowlist)
-          .optional(kIpAllowlist, &ip_allowlist);
-      break;
-  }
-}
-
 void Group_replication_options::check_option_values(
     const mysqlshdk::utils::Version &version) {
-  // Validate group name option
-  if (!group_name.is_null()) {
-    validate_group_name_option(*group_name);
-  }
-
   // Validate ipWhitelist and ipAllowlist
   {
     if (!ip_allowlist.is_null()) {
@@ -406,10 +340,6 @@ void Group_replication_options::check_option_values(
                                      ip_allowlist_option_name);
       }
     }
-  }
-
-  if (!ssl_mode.is_null()) {
-    validate_ssl_instance_options(*ssl_mode);
   }
 
   if (!local_address.is_null()) {
@@ -546,16 +476,65 @@ void Group_replication_options::read_option_values(
   }
 }
 
+const shcore::Option_pack_def<Rejoin_group_replication_options>
+    &Rejoin_group_replication_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Rejoin_group_replication_options>()
+          .optional(kMemberSslMode,
+                    &Rejoin_group_replication_options::set_ssl_mode)
+          .optional(kIpAllowlist,
+                    &Rejoin_group_replication_options::set_ip_allowlist)
+          .optional(kIpWhitelist,
+                    &Rejoin_group_replication_options::set_ip_allowlist, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE,
+                    shcore::Option_scope::CLI_DISABLED);
+
+  return opts;
+}
+
+void Rejoin_group_replication_options::set_ssl_mode(const std::string &value) {
+  ssl_mode = shcore::str_upper(value);
+
+  if (kMemberSSLModeValues.count(*ssl_mode) == 0) {
+    std::string valid_values = shcore::str_join(kMemberSSLModeValues, ",");
+    throw shcore::Exception::argument_error(
+        shcore::str_format("Invalid value for %s option. Supported values: %s.",
+                           kMemberSslMode, valid_values.c_str()));
+  }
+
+  if (target == Unpack_target::JOIN || target == Unpack_target::REJOIN) {
+    auto console = current_console();
+    console->print_warning(shcore::str_format(
+        "Option '%s' is deprecated for this operation and it will "
+        "be removed in a future release. This option is not needed because the "
+        "SSL mode is automatically obtained from the cluster. Please do not "
+        "use it here.",
+        kMemberSslMode));
+    console->print_info();
+  }
+}
+
+void Rejoin_group_replication_options::set_ip_allowlist(
+    const std::string &option, const std::string &value) {
+  // Validate if the value is not empty
+  if (shcore::str_strip(value).empty())
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s: string value cannot be empty.", option.c_str()));
+
+  if (option == kIpWhitelist) {
+    handle_deprecated_option(kIpWhitelist, kIpAllowlist,
+                             !ip_allowlist.is_null(), true);
+  }
+
+  ip_allowlist = value;
+  ip_allowlist_option_name = option;
+}
+
 const shcore::Option_pack_def<Join_group_replication_options>
     &Join_group_replication_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Join_group_replication_options>()
-          .optional(kMemberSslMode,
-                    &Join_group_replication_options::set_ssl_mode)
-          .optional(kIpAllowlist,
-                    &Join_group_replication_options::set_ip_allowlist)
-          .optional(kIpWhitelist,
-                    &Join_group_replication_options::set_ip_allowlist)
+          .include<Rejoin_group_replication_options>()
           .optional(kLocalAddress,
                     &Join_group_replication_options::set_local_address)
           .optional(kGroupSeeds,
@@ -565,37 +544,10 @@ const shcore::Option_pack_def<Join_group_replication_options>
           .optional(kMemberWeight,
                     &Join_group_replication_options::set_member_weight, "",
                     shcore::Option_extract_mode::EXACT)
-          .optional(kConsistency,
-                    &Join_group_replication_options::set_consistency)
-          .optional(kFailoverConsistency,
-                    &Join_group_replication_options::set_consistency)
-          .optional(kExpelTimeout,
-                    &Join_group_replication_options::set_expel_timeout, "",
-                    shcore::Option_extract_mode::EXACT)
           .optional(kAutoRejoinTries,
                     &Join_group_replication_options::set_auto_rejoin_tries);
 
   return opts;
-}
-
-void Join_group_replication_options::set_ssl_mode(const std::string &value) {
-  ssl_mode = shcore::str_upper(value);
-  if (kMemberSSLModeValues.count(*ssl_mode) == 0) {
-    std::string valid_values = shcore::str_join(kMemberSSLModeValues, ",");
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value for %s option. Supported values: %s.",
-                           kMemberSslMode, valid_values.c_str()));
-  }
-}
-
-void Join_group_replication_options::set_ip_allowlist(
-    const std::string &option, const std::string &value) {
-  if (option == kIpWhitelist) {
-    handle_deprecated_option(kIpWhitelist, kIpAllowlist,
-                             !ip_allowlist.is_null(), true);
-  }
-  ip_allowlist = value;
-  ip_allowlist_option_name = option;
 }
 
 void Join_group_replication_options::set_local_address(
@@ -627,24 +579,6 @@ void Join_group_replication_options::set_member_weight(int64_t value) {
   member_weight = value;
 }
 
-void Join_group_replication_options::set_consistency(const std::string &option,
-                                                     const std::string &value) {
-  auto stripped_value = shcore::str_strip(value);
-
-  if (stripped_value.empty()) {
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for '%s', string value cannot be empty.",
-        option.c_str()));
-  }
-
-  if (option == kFailoverConsistency) {
-    handle_deprecated_option(kFailoverConsistency, kConsistency,
-                             !consistency.is_null(), false);
-  }
-
-  consistency = stripped_value;
-}
-
 void Join_group_replication_options::set_group_seeds(const std::string &value) {
   const std::string group_seeds_strip = shcore::str_strip(value);
   if (group_seeds_strip.empty())
@@ -652,16 +586,6 @@ void Join_group_replication_options::set_group_seeds(const std::string &value) {
         "Invalid value for %s, string value cannot be empty.", kGroupSeeds));
 
   group_seeds = value;
-}
-
-void Join_group_replication_options::set_expel_timeout(int64_t value) {
-  if (value < 0 || value > 3600) {
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "Invalid value for %s, integer value must be in the range: [0, 3600]",
-        kExpelTimeout));
-  }
-
-  expel_timeout = value;
 }
 
 void Join_group_replication_options::set_auto_rejoin_tries(int64_t value) {
@@ -675,9 +599,17 @@ const shcore::Option_pack_def<Create_group_replication_options>
           .include<Join_group_replication_options>()
           .optional(kGroupName,
                     &Create_group_replication_options::set_group_name)
-          .optional(
-              kManualStartOnBoot,
-              &Create_group_replication_options::set_manual_start_on_boot);
+          .optional(kManualStartOnBoot,
+                    &Create_group_replication_options::set_manual_start_on_boot)
+          .optional(kConsistency,
+                    &Create_group_replication_options::set_consistency)
+          .optional(kFailoverConsistency,
+                    &Create_group_replication_options::set_consistency, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE,
+                    shcore::Option_scope::CLI_DISABLED)
+          .optional(kExpelTimeout,
+                    &Create_group_replication_options::set_expel_timeout, "",
+                    shcore::Option_extract_mode::EXACT);
 
   return opts;
 }
@@ -695,33 +627,33 @@ void Create_group_replication_options::set_manual_start_on_boot(bool value) {
   manual_start_on_boot = value;
 }
 
-const shcore::Option_pack_def<Rejoin_group_replication_options>
-    &Rejoin_group_replication_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Rejoin_group_replication_options>()
-          .optional(kMemberSslMode,
-                    &Rejoin_group_replication_options::set_ssl_mode)
-          .optional(kIpWhitelist,
-                    &Rejoin_group_replication_options::set_ip_allowlist)
-          .optional(kIpAllowlist,
-                    &Rejoin_group_replication_options::set_ip_allowlist);
+void Create_group_replication_options::set_consistency(
+    const std::string &option, const std::string &value) {
+  auto stripped_value = shcore::str_strip(value);
 
-  return opts;
-}
-
-void Rejoin_group_replication_options::set_ssl_mode(const std::string &value) {
-  ssl_mode = shcore::str_upper(value);
-  if (kMemberSSLModeValues.count(*ssl_mode) == 0) {
-    std::string valid_values = shcore::str_join(kMemberSSLModeValues, ",");
-    throw shcore::Exception::argument_error(
-        shcore::str_format("Invalid value for %s option. Supported values: %s.",
-                           kMemberSslMode, valid_values.c_str()));
+  if (stripped_value.empty()) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for '%s', string value cannot be empty.",
+        option.c_str()));
   }
+
+  if (option == kFailoverConsistency) {
+    handle_deprecated_option(kFailoverConsistency, kConsistency,
+                             !consistency.is_null(), false);
+  }
+
+  consistency = stripped_value;
 }
 
-void Rejoin_group_replication_options::set_ip_allowlist(
-    const std::string &value) {
-  ip_allowlist = value;
+void Create_group_replication_options::set_expel_timeout(int64_t value) {
+  if (value < 0 || value > 3600) {
+    throw shcore::Exception::argument_error(shcore::str_format(
+        "Invalid value for %s, integer value must be in the range: [0, 3600]",
+        kExpelTimeout));
+  }
+
+  expel_timeout = value;
 }
+
 }  // namespace dba
 }  // namespace mysqlsh

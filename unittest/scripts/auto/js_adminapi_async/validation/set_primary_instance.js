@@ -13,7 +13,7 @@ ReplicaSet.setPrimaryInstance: Argument #2 is expected to be a map (TypeError)
 ReplicaSet.setPrimaryInstance: Invalid number of arguments, expected 1 to 2 but got 3 (ArgumentError)
 ReplicaSet.setPrimaryInstance: Argument #1 is expected to be a string (TypeError)
 ReplicaSet.setPrimaryInstance: Argument #1 is expected to be a string (TypeError)
-ReplicaSet.setPrimaryInstance: Invalid options: badOption (ArgumentError)
+ReplicaSet.setPrimaryInstance: Argument #2: Invalid options: badOption (ArgumentError)
 ReplicaSet.setPrimaryInstance: Argument #1 is expected to be a string (TypeError)
 
 //@<ERR> disconnected rs object (should fail)
@@ -23,14 +23,14 @@ ReplicaSet.setPrimaryInstance: The replicaset object is disconnected. Please use
 ReplicaSet.setPrimaryInstance: Target instance localhost:<<<__mysql_sandbox_port3>>> is not a managed instance. (MYSQLSH 51300)
 
 //@# promoted doesn't exist (should fail)
-||ReplicaSet.setPrimaryInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>1': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', "" + __mysql_sandbox_port3 + "1")>>>'
+||Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>1': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', "" + __mysql_sandbox_port3 + "1")>>>'
 
 //@# bad target with a different user (should fail)
 |ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them|
-||ReplicaSet.setPrimaryInstance: Invalid target instance specification (ArgumentError)
+||Invalid target instance specification (ArgumentError)
 
 //@# bad target with a different password (should fail)
-||ReplicaSet.setPrimaryInstance: Invalid target instance specification (ArgumentError)
+||Invalid target instance specification (ArgumentError)
 
 //@# bad target but allowed for compatibility
 |Target instance <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is already the PRIMARY.|
@@ -133,7 +133,7 @@ cluster_id	view_id	topology_type	view_change_reason	view_change_time	view_change
 |<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> was promoted to PRIMARY.|
 
 //@# primary is super-read-only (error ok)
-||ReplicaSet.setPrimaryInstance: Replication or configuration errors at <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> (MYSQLSH 51131)
+||Replication or configuration errors at <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> (MYSQLSH 51131)
 
 //@<OUT> promoted is already primary
 Target instance <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> is already the PRIMARY.
@@ -176,37 +176,37 @@ The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>.
 dryRun finished.
 
 //@# timeout (should fail)
-||ReplicaSet.setPrimaryInstance: Timeout reached waiting for transactions from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> to be applied on instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' (MYSQLSH 51157)
+||Timeout reached waiting for transactions from <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> to be applied on instance '<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>' (MYSQLSH 51157)
 
 //@ try to switch to a different one - (should fail because sb2 wont sync)
 |The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 |ERROR: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: GTID sync failed: MYSQLSH 51157: Timeout waiting for replica to synchronize|
 |ERROR: An error occurred while preparing replicaset instances for a PRIMARY switch: 1 SECONDARY instance(s) failed to synchronize|
-||ReplicaSet.setPrimaryInstance: 1 SECONDARY instance(s) failed to synchronize (MYSQLSH 51160)
+||1 SECONDARY instance(s) failed to synchronize (MYSQLSH 51160)
 
 //@# Runtime problems
 ||
 
 //@# primary is down (should fail)
-||ReplicaSet.setPrimaryInstance: Failed to execute query on Metadata server <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Lost connection to MySQL server during query (MySQL Error 2013)
+||Failed to execute query on Metadata server <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>: Lost connection to MySQL server during query (MySQL Error 2013)
 |ERROR: Unable to connect to the PRIMARY of the replicaset myrs: MySQL Error 2003: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>': Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port1)>>>'|
 |Cluster change operations will not be possible unless the PRIMARY can be reached.|
 |If the PRIMARY is unavailable, you must either repair it or perform a forced failover.|
 |See \help forcePrimaryInstance for more information.|
-||ReplicaSet.setPrimaryInstance: PRIMARY instance is unavailable (MYSQLSH 51118)
+||PRIMARY instance is unavailable (MYSQLSH 51118)
 
 //@# promoted has broken/stopped replication (should fail)
-||ReplicaSet.setPrimaryInstance: Replication is stopped at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
+||Replication is stopped at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
 
 //@# a secondary has broken replication (should fail)
-||ReplicaSet.setPrimaryInstance: Replication is stopped at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
+||Replication is stopped at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
 
 //@ primary has unexpected replication channel (should fail)
-||ReplicaSet.setPrimaryInstance: Replication or configuration errors at <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> (MYSQLSH 51131)
+||Replication or configuration errors at <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>> (MYSQLSH 51131)
 
 //@# promoted is down (should fail)
 |ERROR: Unable to connect to the target instance 'localhost:<<<__mysql_sandbox_port3>>>'. Please verify the connection settings, make sure the instance is available and try again.|
-||ReplicaSet.setPrimaryInstance: Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port3)>>>' ([[*]]) (MySQL Error 2003)
+||Could not open connection to 'localhost:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port3)>>>' ([[*]]) (MySQL Error 2003)
 
 //@# a secondary is down (should fail)
 |<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> will be promoted to PRIMARY of 'myrs'.|
@@ -217,23 +217,23 @@ dryRun finished.
 |** Connecting to <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>|
 |** Connecting to <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>|
 |WARNING: Could not connect to SECONDARY instance: MySQL Error 2003: Could not open connection to '<<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>': Can't connect to MySQL server on '<<<libmysql_host_description(hostname_ip, __mysql_sandbox_port3)>>>' ([[*]])|
-||ReplicaSet.setPrimaryInstance: One or more instances are unreachable (MYSQLSH 51124)
+||One or more instances are unreachable (MYSQLSH 51124)
 
 //@# a secondary has errant GTIDs (should fail)
 |The current PRIMARY is <<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>.|
 |ERROR: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> has 1 errant transactions that have not originated from the current PRIMARY (<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>)|
 
-||ReplicaSet.setPrimaryInstance: Errant transactions at <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> (MYSQLSH 51152)
+||Errant transactions at <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>> (MYSQLSH 51152)
 
 //@# Replication conflict error (should fail)
 |* Checking transaction state of the instance...|
 |ERROR: Replication or configuration errors at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>: source="<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>" [[*]]|
-||ReplicaSet.setPrimaryInstance: Replication or configuration errors at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
+||Replication or configuration errors at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>
 
 //@# promoted has errant GTIDs (should fail)
 |* Checking transaction state of the instance...|
 |ERROR: <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> has 1 errant transactions that have not originated from the current PRIMARY (<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>)|
-||ReplicaSet.setPrimaryInstance: Errant transactions at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> (MYSQLSH 51152)
+||Errant transactions at <<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> (MYSQLSH 51152)
 
 //@ BUG#30574971 - Switch primary using rs2.
 |<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>> was promoted to PRIMARY.|

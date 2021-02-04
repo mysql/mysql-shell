@@ -44,7 +44,7 @@ NOTE: Some configuration options need to be fixed:
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@ Create cluster (fail: parallel type check fail).
-||Dba.createCluster: Instance check failed (RuntimeError)
+||Instance check failed (RuntimeError)
 
 //@ fix config including parallel type
 |The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.|
@@ -96,7 +96,7 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 
 //@ Adding instance to cluster (fail: commit order wrong).
 |Please use the dba.configureInstance() command to repair these issues.|
-||Cluster.addInstance: Instance check failed (RuntimeError)
+||Instance check failed (RuntimeError)
 
 //@<OUT> check instance with invalid type and commit order. {VER(>=8.0.11)}
 Validating local MySQL instance listening at port <<<__mysql_sandbox_port3>>> for use in an InnoDB cluster...

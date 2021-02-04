@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,18 +29,13 @@
 namespace mysqlsh {
 namespace dba {
 
-Setup_account::Setup_account(
-    const std::string &name, const std::string &host, bool interactive,
-    bool update, bool dry_run,
-    const mysqlshdk::utils::nullable<std::string> &password,
-    std::vector<std::string> grants,
-    const mysqlshdk::mysql::IInstance &primary_server)
-    : m_interactive(interactive),
-      m_update(update),
-      m_dry_run(dry_run),
-      m_password(password),
-      m_name(name),
+Setup_account::Setup_account(const std::string &name, const std::string &host,
+                             const Setup_account_options &options,
+                             std::vector<std::string> grants,
+                             const mysqlshdk::mysql::IInstance &primary_server)
+    : m_name(name),
       m_host(host),
+      m_options(options),
       m_privilege_list(std::move(grants)),
       m_primary_server(primary_server) {}
 
@@ -50,13 +45,13 @@ void Setup_account::prompt_for_password() {
   console->print_info(shcore::str_format(
       "Missing the password for new account %s@%s. Please provide one.",
       m_name.c_str(), m_host.c_str()));
-  m_password = prompt_new_account_password();
+  m_options.password = prompt_new_account_password();
   console->print_info();
 }
 
 void Setup_account::prepare() {
   const auto console = mysqlsh::current_console();
-  if (m_dry_run) {
+  if (m_options.dry_run) {
     console->print_note(
         "dryRun option was specified. Validations will be executed, "
         "but no changes will be applied.");
@@ -81,7 +76,7 @@ void Setup_account::prepare() {
   // Check if user exists on instance and throw error if it does and update
   // option was not set to True
   m_user_exists = m_primary_server.user_exists(m_name, m_host);
-  if (m_user_exists && !m_update) {
+  if (m_user_exists && !m_options.update) {
     throw shcore::Exception::runtime_error(shcore::str_format(
         "Could not proceed with the operation because account "
         "%s@%s already exists. Enable the 'update' option "
@@ -89,7 +84,7 @@ void Setup_account::prepare() {
         m_name.c_str(), m_host.c_str()));
   }
   // Also throw an error if user does not exist and update is enabled
-  if (!m_user_exists && m_update) {
+  if (!m_user_exists && m_options.update) {
     throw shcore::Exception::runtime_error(shcore::str_format(
         "Could not proceed with the operation because account "
         "%s@%s does not exist and the 'update' option is enabled",
@@ -97,8 +92,8 @@ void Setup_account::prepare() {
   }
 
   // Prompt for the password in case it is necessary
-  if (!m_user_exists && m_password.is_null()) {
-    if (m_interactive) {
+  if (!m_user_exists && m_options.password.is_null()) {
+    if (m_options.interactive()) {
       prompt_for_password();
     } else {
       // new user, password was not provided and not interactive mode, so we
@@ -120,13 +115,13 @@ shcore::Value Setup_account::execute() {
   // Create the user account
   create_account();
 
-  if (m_dry_run && !m_privilege_list.empty()) {
+  if (m_options.dry_run && !m_privilege_list.empty()) {
     console->print_info("The following grants would be executed: ");
   }
 
   // Give the grants
   for (const auto &grant : m_privilege_list) {
-    if (m_dry_run) {
+    if (m_options.dry_run) {
       console->print_info(grant);
     } else {
       m_primary_server.execute(grant);
@@ -139,7 +134,7 @@ shcore::Value Setup_account::execute() {
                                          m_name.c_str(), m_host.c_str(),
                                          action.c_str()));
   console->print_info();
-  if (m_dry_run) {
+  if (m_options.dry_run) {
     console->print_info("dryRun finished.");
     console->print_info();
   }
@@ -165,20 +160,20 @@ void Setup_account::create_account() {
   // If the user already exists, just update the password otherwise create a new
   // account
   if (m_user_exists) {
-    if (!m_password.is_null()) {
+    if (!m_options.password.is_null()) {
       console->print_info("Updating user password.");
 
-      if (!m_dry_run) {
+      if (!m_options.dry_run) {
         m_primary_server.executef(
             "ALTER USER ?@? IDENTIFIED BY /*((*/ ? /*))*/", m_name, m_host,
-            m_password.get_safe());
+            m_options.password.get_safe());
       }
     }
   } else {
-    if (!m_dry_run) {
+    if (!m_options.dry_run) {
       m_primary_server.executef(
           "CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY /*((*/ ? /*))*/", m_name,
-          m_host, m_password.get_safe());
+          m_host, m_options.password.get_safe());
     }
   }
 }

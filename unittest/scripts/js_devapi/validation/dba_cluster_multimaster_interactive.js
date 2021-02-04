@@ -87,7 +87,7 @@ one server failure.
 <Cluster:devCluster>
 
 //@ Cluster: addInstance with interaction, error
-||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
 
 //@<OUT> Cluster: addInstance with interaction, ok
 Validating instance configuration at localhost:<<<__mysql_sandbox_port2>>>...
@@ -194,7 +194,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
 ||
 
 //@ Cluster: Error cannot remove last instance
-||Cluster.removeInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is the last member of the cluster (RuntimeError)
+||The instance 'localhost:<<<__mysql_sandbox_port1>>>' is the last member of the cluster (RuntimeError)
 
 //@ Dissolve cluster with success
 |The cluster was successfully dissolved.|
@@ -282,11 +282,11 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
 ||
 
 //@: Cluster: rejoinInstance errors
-||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 0
-||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 3
-||Cluster.rejoinInstance: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary
-||Cluster.rejoinInstance: Argument #1: Invalid values in connection options: authMethod
-||Cluster.rejoinInstance: Could not open connection to 'localhost:3306'
+||Invalid number of arguments, expected 1 to 2 but got 0
+||Invalid number of arguments, expected 1 to 2 but got 3
+||Invalid connection options, expected either a URI or a Connection Options Dictionary
+||Invalid values in connection options: authMethod
+||Could not open connection to 'localhost:3306'
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok {VER(>=8.0.11)}
 WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.

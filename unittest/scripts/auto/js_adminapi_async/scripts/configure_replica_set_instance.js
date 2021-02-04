@@ -4,19 +4,19 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {log_slave_updates:0});
 
 //@<> configure nothing (should fail)
 EXPECT_THROWS(function(){dba.configureReplicaSetInstance()},
-    "Dba.configureReplicaSetInstance: An open session is required to perform this operation.");
+    "An open session is required to perform this operation.");
 
 //@<> configure bad URI (should fail)
 EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri3)},
-    `Dba.configureReplicaSetInstance: Can't connect to MySQL server on '${libmysql_host_description('localhost', __mysql_sandbox_port3)}'`);
+    `Can't connect to MySQL server on '${libmysql_host_description('localhost', __mysql_sandbox_port3)}'`);
 
 //@<> configure raw 5.7 server (should fail) {VER(<8.0.0)}
 EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri1)},
-    "Dba.configureReplicaSetInstance: Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is 5.7.");
+    "Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is 5.7.");
 
 //@<> configure 5.7 server (should fail) {VER(<8.0.0)}
 EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri2)},
-    "Dba.configureReplicaSetInstance: Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is 5.7.");
+    "Unsupported server version: This AdminAPI operation requires MySQL version 8.0 or newer, but target is 5.7.");
 
 //@<> configuring applierWorkerThreads in versions lower that 8.0.23 (should fail) {VER(>=8.0.0) && VER(<8.0.23)}
 EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri2, {applierWorkerThreads: 5});}, "Option 'applierWorkerThreads' not supported on target server version: '" + __version + "'");
@@ -24,9 +24,9 @@ EXPECT_THROWS(function(){dba.configureReplicaSetInstance(__sandbox_uri2, {applie
 //@<> configure default session {VER(>8.0.0)}
 shell.connect(__sandbox_uri1);
 EXPECT_NO_THROWS(function(){dba.configureReplicaSetInstance()});
-EXPECT_THROWS(function(){dba.configureReplicaSetInstance("")}, "Dba.configureReplicaSetInstance: Argument #1: Invalid URI: empty.");
+EXPECT_THROWS(function(){dba.configureReplicaSetInstance("")}, "Invalid URI: empty.");
 EXPECT_NO_THROWS(function(){dba.configureReplicaSetInstance(null)});
-EXPECT_THROWS(function(){dba.configureReplicaSetInstance({})}, "Dba.configureReplicaSetInstance: Argument #1: Invalid connection options, no options provided.");
+EXPECT_THROWS(function(){dba.configureReplicaSetInstance({})}, "Invalid connection options, no options provided.");
 
 //@ configure and restart:0 {VER(>8.0.0)}
 // Covers Bug #30510625 DBA.CONFIGURE_REPLICA_SET_INSTANCE: RESTART = TRUE IGNORED, NO ERROR GIVEN

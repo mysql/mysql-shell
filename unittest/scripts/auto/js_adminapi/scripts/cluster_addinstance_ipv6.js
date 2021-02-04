@@ -23,7 +23,7 @@ session.close();
 shell.connect(__sandbox_admin_uri1);
 
 //@<> Add instance2 should fail since clone was selected and all cluster members are IPv6.
-EXPECT_THROWS(function () { cluster.addInstance(__sandbox_admin_uri2, {recoveryMethod: "clone"}) }, "Cluster.addInstance: The Cluster has no compatible clone donors.");
+EXPECT_THROWS(function () { cluster.addInstance(__sandbox_admin_uri2, {recoveryMethod: "clone"}) }, "The Cluster has no compatible clone donors.");
 
 //@<> Add instance 3, which uses IPv4 to the cluster
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: "127.0.0.1"});

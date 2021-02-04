@@ -18,28 +18,28 @@
 
 //@ Error: user has no privileges to run the checkInstanceConfiguration command (BUG#26609909) {VER(>=8.0.0)}
 |ERROR: Unable to check privileges for user 'test_user'@'%'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
-||Dba.checkInstanceConfiguration: Unable to get roles information. (RuntimeError)
+||Unable to get roles information. (RuntimeError)
 
 //@ Error: user has no privileges to run the checkInstanceConfiguration command (BUG#26609909) {VER(<8.0.0)}
 |ERROR: The account 'test_user'@'%' is missing privileges required to manage an InnoDB cluster:|
 |GRANT SELECT ON *.* TO 'test_user'@'%' WITH GRANT OPTION;|
-||Dba.checkInstanceConfiguration: The account 'test_user'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'test_user'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ Check instance configuration using a non existing user that authenticates as another user that does not have enough privileges (BUG#26979375) {VER(>=8.0.0)}
 |ERROR: Unable to check privileges for user 'test_user'@'%'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
-||Dba.checkInstanceConfiguration: Unable to get roles information. (RuntimeError)
+||Unable to get roles information. (RuntimeError)
 
 //@ Check instance configuration using a non existing user that authenticates as another user that does not have enough privileges (BUG#26979375) {VER(<8.0.0)}
 |ERROR: The account 'test_user'@'%' is missing privileges required to manage an InnoDB cluster:|
 |GRANT SELECT ON *.* TO 'test_user'@'%' WITH GRANT OPTION;|
-||Dba.checkInstanceConfiguration: The account 'test_user'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'test_user'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ Check instance configuration using a non existing user that authenticates as another user that has all privileges (BUG#26979375)
 ||
 
 //@ Check if all missing privileges are reported for user with no privileges {VER(>=8.0.0)}
 |ERROR: Unable to check privileges for user 'no_privileges'@'%'. User requires SELECT privilege on mysql.* to obtain information about all roles.|
-||Dba.checkInstanceConfiguration: Unable to get roles information. (RuntimeError)
+||Unable to get roles information. (RuntimeError)
 
 //@ Check if all missing privileges are reported for user with no privileges {VER(<8.0.0)}
 |ERROR: The account 'no_privileges'@'%' is missing privileges required to manage an InnoDB cluster:|
@@ -48,7 +48,7 @@
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'no_privileges'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'no_privileges'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'no_privileges'@'%' WITH GRANT OPTION;|
-||Dba.checkInstanceConfiguration: The account 'no_privileges'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'no_privileges'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ Create a user with the root role {VER(>=8.0.0)}
 ||
@@ -72,7 +72,7 @@
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'admin_test'@'%' WITH GRANT OPTION;|
-||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ Check instance using user with admin role as parameter, missing privileges {VER(>=8.0.17) && VER(<8.0.18)}
 |ERROR: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster:|
@@ -81,7 +81,7 @@
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'admin_test'@'%' WITH GRANT OPTION;|
-||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ Check instance using user with admin role as parameter, missing privileges {VER(>=8.0.0) && VER(<8.0.17)}
 |ERROR: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster:|
@@ -90,7 +90,7 @@
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'admin_test'@'%' WITH GRANT OPTION;|
-||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ Connect using admin user again {VER(>=8.0.0)}
 ||
@@ -102,7 +102,7 @@
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'admin_test'@'%' WITH GRANT OPTION;|
-||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ Check instance using session user with admin role, missing privileges {VER(>=8.0.17) && VER(<8.0.18)}
 |ERROR: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster:|
@@ -111,7 +111,7 @@
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'admin_test'@'%' WITH GRANT OPTION;|
-||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ Check instance using session user with admin role, missing privileges {VER(>=8.0.0) && VER(<8.0.17)}
 |ERROR: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster:|
@@ -120,7 +120,7 @@
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'admin_test'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'admin_test'@'%' WITH GRANT OPTION;|
-||Dba.checkInstanceConfiguration: The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
+||The account 'admin_test'@'%' is missing privileges required to manage an InnoDB cluster. (RuntimeError)
 
 //@ Drop user with role {VER(>=8.0.0)}
 ||

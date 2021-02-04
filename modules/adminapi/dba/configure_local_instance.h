@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,11 +41,7 @@ class Configure_local_instance : public Configure_instance {
  public:
   Configure_local_instance(
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-      const std::string &mycnf_path, const std::string &output_mycnf_path,
-      const std::string &cluster_admin,
-      const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
-      mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
-      mysqlshdk::utils::nullable<bool> restart);
+      const Configure_instance_options &options);
   ~Configure_local_instance();
 
   void prepare() override;

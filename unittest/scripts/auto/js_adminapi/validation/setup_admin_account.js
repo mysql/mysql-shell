@@ -8,12 +8,12 @@ Cluster.setupAdminAccount: Invalid user syntax: Invalid user name: foo@bar (Argu
 ||
 
 //@ WL#13536 BUG#30648813 Empty usernames are not supported
-||Cluster.setupAdminAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||Cluster.setupAdminAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||Cluster.setupAdminAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||Cluster.setupAdminAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||Cluster.setupAdminAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||Cluster.setupAdminAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
 
 //@<OUT> WL#13536 TSFR3_2 check global privileges of created user {VER(<8.0.11)}
 +--------------------+--------------+
@@ -145,10 +145,10 @@ Cluster.setupAdminAccount: Account currently in use ('interactive_test'@'%') doe
 |ERROR: The account 'old_shell'@'%' is missing privileges required to manage an InnoDB cluster:|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'old_shell'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'old_shell'@'%' WITH GRANT OPTION;|
-||Cluster.setupAdminAccount: Account currently in use ('old_shell'@'%') does not have enough privileges to execute the operation. (RuntimeError)
+||Account currently in use ('old_shell'@'%') does not have enough privileges to execute the operation. (RuntimeError)
 
 //@ WL#13536 simulate shell upgrade use case where we want update adminAccount privileges to upgrade metadata {VER(<8.0.17)}
 |ERROR: The account 'old_shell'@'%' is missing privileges required to manage an InnoDB cluster:|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'old_shell'@'%' WITH GRANT OPTION;|
 |GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'old_shell'@'%' WITH GRANT OPTION;|
-||Cluster.setupAdminAccount: Account currently in use ('old_shell'@'%') does not have enough privileges to execute the operation. (RuntimeError)
+||Account currently in use ('old_shell'@'%') does not have enough privileges to execute the operation. (RuntimeError)

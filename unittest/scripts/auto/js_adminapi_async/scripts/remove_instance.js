@@ -33,33 +33,33 @@ shell.options['useWizards'] = true;
 //--------------------------------
 
 //@<> bad parameters (should fail)
-EXPECT_THROWS(function () { rs.removeInstance(); }, "ReplicaSet.removeInstance: Invalid number of arguments, expected 1 to 2 but got 0");
-EXPECT_THROWS(function () { rs.removeInstance(null); }, "ReplicaSet.removeInstance: Argument #1 is expected to be a string");
-EXPECT_THROWS(function () { rs.removeInstance(null, null); }, "ReplicaSet.removeInstance: Argument #1 is expected to be a string");
-EXPECT_THROWS(function () { rs.removeInstance(1, null); }, "ReplicaSet.removeInstance: Argument #1 is expected to be a string");
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox1, 1); }, "ReplicaSet.removeInstance: Argument #2 is expected to be a map");
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox1, 1, 3); }, "ReplicaSet.removeInstance: Invalid number of arguments, expected 1 to 2 but got 3");
-EXPECT_THROWS(function () { rs.removeInstance(null, {}); }, "ReplicaSet.removeInstance: Argument #1 is expected to be a string");
-EXPECT_THROWS(function () { rs.removeInstance({}, {}); }, "ReplicaSet.removeInstance: Argument #1 is expected to be a string");
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox1, {badOption:123}); }, "ReplicaSet.removeInstance: Invalid options: badOption");
-EXPECT_THROWS(function () { rs.removeInstance([__sandbox_uri1]); }, "ReplicaSet.removeInstance: Argument #1 is expected to be a string");
+EXPECT_THROWS(function () { rs.removeInstance(); }, "Invalid number of arguments, expected 1 to 2 but got 0");
+EXPECT_THROWS(function () { rs.removeInstance(null); }, "Argument #1 is expected to be a string");
+EXPECT_THROWS(function () { rs.removeInstance(null, null); }, "Argument #1 is expected to be a string");
+EXPECT_THROWS(function () { rs.removeInstance(1, null); }, "Argument #1 is expected to be a string");
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox1, 1); }, "Argument #2 is expected to be a map");
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox1, 1, 3); }, "Invalid number of arguments, expected 1 to 2 but got 3");
+EXPECT_THROWS(function () { rs.removeInstance(null, {}); }, "Argument #1 is expected to be a string");
+EXPECT_THROWS(function () { rs.removeInstance({}, {}); }, "Argument #1 is expected to be a string");
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox1, {badOption:123}); }, "Invalid options: badOption");
+EXPECT_THROWS(function () { rs.removeInstance([__sandbox_uri1]); }, "Argument #1 is expected to be a string");
 
 //@<> disconnected rs object (should fail)
 rs.disconnect();
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `ReplicaSet.removeInstance: The replicaset object is disconnected. Please use dba.\<\<\<getReplicaSet\>\>\>() to obtain a new object.`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `The replicaset object is disconnected. Please use dba.\<\<\<getReplicaSet\>\>\>() to obtain a new object.`);
 
 rs = dba.getReplicaSet();
 
 //@<> remove invalid host (should fail)
-EXPECT_THROWS(function () { rs.removeInstance("localhost:"+__mysql_sandbox_port3); }, `ReplicaSet.removeInstance: ${hostname_ip}:${__mysql_sandbox_port3} does not belong to the replicaset`);
+EXPECT_THROWS(function () { rs.removeInstance("localhost:"+__mysql_sandbox_port3); }, `${hostname_ip}:${__mysql_sandbox_port3} does not belong to the replicaset`);
 EXPECT_STDOUT_CONTAINS(`ERROR: Instance ${hostname_ip}:${__mysql_sandbox_port3} cannot be removed because it does not belong to the replicaset (not found in the metadata). If you really want to remove this instance because it is still using replication then it must be stopped manually.`);
 
-EXPECT_THROWS(function () { rs.removeInstance("bogushost"); }, `ReplicaSet.removeInstance: Could not open connection to 'bogushost': Unknown MySQL server host 'bogushost'`);
+EXPECT_THROWS(function () { rs.removeInstance("bogushost"); }, `Could not open connection to 'bogushost': Unknown MySQL server host 'bogushost'`);
 
 //@<> remove PRIMARY (should fail)
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox1); }, `ReplicaSet.removeInstance: PRIMARY instance cannot be removed from the replicaset.`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox1); }, `PRIMARY instance cannot be removed from the replicaset.`);
 
-EXPECT_THROWS(function () { rs.removeInstance("localhost:"+__mysql_sandbox_port1); }, `ReplicaSet.removeInstance: PRIMARY instance cannot be removed from the replicaset.`);
+EXPECT_THROWS(function () { rs.removeInstance("localhost:"+__mysql_sandbox_port1); }, `PRIMARY instance cannot be removed from the replicaset.`);
 
 //@<> remove when not in metadata (should fail)
 shell.connect(__sandbox_uri1);
@@ -67,7 +67,7 @@ rs = dba.getReplicaSet();
 
 setup_slave(session3, __mysql_sandbox_port1);
 
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox3); }, `ReplicaSet.removeInstance: ${hostname_ip}:${__mysql_sandbox_port3} does not belong to the replicaset`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox3); }, `${hostname_ip}:${__mysql_sandbox_port3} does not belong to the replicaset`);
 
 reset_instance(session3);
 
@@ -75,7 +75,7 @@ reset_instance(session3);
 // NOTE: The error for removeInstance might not be deterministic, do something
 //       to fix it if the happens. The following could also be observed if we
 //       wait more time after the server is stopped:
-//       ReplicaSet.removeInstance: The Metadata is inaccessible (MetadataError)
+//       The Metadata is inaccessible (MetadataError)
 
 rs.addInstance(__sandbox3);
 testutil.waitMemberTransactions(__mysql_sandbox_port3, __mysql_sandbox_port1);
@@ -85,7 +85,7 @@ var rs = dba.getReplicaSet();
 
 testutil.stopSandbox(__mysql_sandbox_port3, {wait:true});
 // should fail while updating MD on instance 3
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `ReplicaSet.removeInstance: Failed to execute query on Metadata server ${hostname_ip}:${__mysql_sandbox_port3}: Lost connection to MySQL server during query`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `Failed to execute query on Metadata server ${hostname_ip}:${__mysql_sandbox_port3}: Lost connection to MySQL server during query`);
 
 testutil.startSandbox(__mysql_sandbox_port3);
 shell.connect(__sandbox_uri1);
@@ -94,11 +94,11 @@ var rs = dba.getReplicaSet();
 rs.removeInstance(__sandbox2);
 
 //@<> bad URI with a different user (should fail)
-EXPECT_THROWS(function () { rs.removeInstance("admin@"+__sandbox2); }, `ReplicaSet.removeInstance: Invalid target instance specification`);
+EXPECT_THROWS(function () { rs.removeInstance("admin@"+__sandbox2); }, `Invalid target instance specification`);
 EXPECT_STDOUT_CONTAINS(`ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them`);
 
 //@<> bad URI with a different password (should fail)
-EXPECT_THROWS(function () { rs.removeInstance("root:bla@"+__sandbox2); }, `ReplicaSet.removeInstance: Invalid target instance specification`);
+EXPECT_THROWS(function () { rs.removeInstance("root:bla@"+__sandbox2); }, `Invalid target instance specification`);
 EXPECT_STDOUT_CONTAINS(`ERROR: Target instance must be given as host:port. Credentials will be taken from the main session and, if given, must match them`);
 
 // Positive tests for specific issues
@@ -183,7 +183,7 @@ session.runSql("CREATE SCHEMA testdb");
 
 // sandbox2 slave will be stuck trying to apply this because of the lock
 rs.status();
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2, {timeout: 1}); }, `ReplicaSet.removeInstance: Timeout reached waiting for transactions from ${hostname_ip}:${__mysql_sandbox_port1} to be applied on instance '${hostname_ip}:${__mysql_sandbox_port2}'`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2, {timeout: 1}); }, `Timeout reached waiting for transactions from ${hostname_ip}:${__mysql_sandbox_port1} to be applied on instance '${hostname_ip}:${__mysql_sandbox_port2}'`);
 
 session2.runSql("UNLOCK TABLES");
 rs.status();
@@ -195,14 +195,14 @@ rs.status();
 var rs = rebuild_rs();
 testutil.stopSandbox(__mysql_sandbox_port2, {wait:true});
 
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `ReplicaSet.removeInstance: Could not open connection to 'localhost:${__mysql_sandbox_port2}': Can't connect to MySQL server on '${libmysql_host_description('localhost', __mysql_sandbox_port2)}'`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `Could not open connection to 'localhost:${__mysql_sandbox_port2}': Can't connect to MySQL server on '${libmysql_host_description('localhost', __mysql_sandbox_port2)}'`);
 
 EXPECT_STDOUT_NOT_CONTAINS(`ERROR: Unable to connect to the target instance 'localhost:${__mysql_sandbox_port2}'. Please verify the connection settings, make sure the instance is available and try again.`);
 EXPECT_STDOUT_CONTAINS(`ERROR: Unable to connect to the target instance localhost:${__mysql_sandbox_port2}. Please make sure the instance is available and try again. If the instance is permanently not reachable, use the 'force' option to remove it from the replicaset metadata and skip reconfiguration of that instance.`);
 
 //@<> remove while target down (localhost) - force (should fail)
 // This one fails because __sandbox2 is not how the instance is known in the MD
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2, {force:true}); }, `ReplicaSet.removeInstance: localhost:${__mysql_sandbox_port2} does not belong to the replicaset`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2, {force:true}); }, `localhost:${__mysql_sandbox_port2} does not belong to the replicaset`);
 
 EXPECT_STDOUT_CONTAINS(`ERROR: Instance localhost:${__mysql_sandbox_port2} is unreachable and was not found in the replicaset metadata. The exact address of the instance as recorded in the metadata must be used in cases where the target is unreachable.`);
 
@@ -220,12 +220,12 @@ var session2 = mysql.getSession(__sandbox_uri2);
 reset_instance(session2);
 
 //@<> remove instance not in replicaset (metadata), no force (fail).
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `ReplicaSet.removeInstance: ${hostname_ip}:${__mysql_sandbox_port2} does not belong to the replicaset`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `${hostname_ip}:${__mysql_sandbox_port2} does not belong to the replicaset`);
 
 EXPECT_STDOUT_CONTAINS(`ERROR: Instance ${hostname_ip}:${__mysql_sandbox_port2} cannot be removed because it does not belong to the replicaset (not found in the metadata). If you really want to remove this instance because it is still using replication then it must be stopped manually.`);
 
 //@<> remove instance not in replicaset (metadata), with force true (fail).
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2, {force:true}); }, `ReplicaSet.removeInstance: ${hostname_ip}:${__mysql_sandbox_port2} does not belong to the replicaset`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2, {force:true}); }, `${hostname_ip}:${__mysql_sandbox_port2} does not belong to the replicaset`);
 
 EXPECT_STDOUT_CONTAINS(`ERROR: Instance ${hostname_ip}:${__mysql_sandbox_port2} cannot be removed because it does not belong to the replicaset (not found in the metadata). If you really want to remove this instance because it is still using replication then it must be stopped manually.`);
 
@@ -256,22 +256,22 @@ session2.runSql("SET global super_read_only=1");
 
 session.runSql("CREATE SCHEMA testdb");
 
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `ReplicaSet.removeInstance: Replication applier error in ${hostname_ip}:${__mysql_sandbox_port2}`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `Replication applier error in ${hostname_ip}:${__mysql_sandbox_port2}`);
 
 EXPECT_STDOUT_CONTAINS(`ERROR: Replication applier error in ${hostname_ip}:${__mysql_sandbox_port2}:`);
 
 //@<> error in replication channel - force
 // FIXME: The use of the force option is not working, still failing.
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2, {force:true}); }, `ReplicaSet.removeInstance: Replication applier error in ${hostname_ip}:${__mysql_sandbox_port2}`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2, {force:true}); }, `Replication applier error in ${hostname_ip}:${__mysql_sandbox_port2}`);
 
 // rebuild
 reset_instance(session2);
-EXPECT_THROWS(function () { rs.addInstance(__sandbox2); }, `ReplicaSet.addInstance: ${hostname_ip}:${__mysql_sandbox_port2} is already a member of this replicaset.`);
+EXPECT_THROWS(function () { rs.addInstance(__sandbox2); }, `${hostname_ip}:${__mysql_sandbox_port2} is already a member of this replicaset.`);
 
 //@<> remove with repl already stopped - no force (should fail)
 session2.runSql("STOP SLAVE");
 
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `ReplicaSet.removeInstance: Replication is not active in target instance`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `Replication is not active in target instance`);
 
 EXPECT_STDOUT_CONTAINS_MULTILINE(`
 WARNING: Replication is not active in instance ${hostname_ip}:${__mysql_sandbox_port2}.
@@ -298,7 +298,7 @@ session.runSql("FLUSH BINARY LOGS");
 session.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(), INTERVAL 1 DAY)");
 session2.runSql("START SLAVE");
 
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `ReplicaSet.removeInstance: Missing purged transactions at ${hostname_ip}:${__mysql_sandbox_port2}`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `Missing purged transactions at ${hostname_ip}:${__mysql_sandbox_port2}`);
 
 //@<> impossible sync - force
 rs.removeInstance(__sandbox2, {force:true});
@@ -314,7 +314,7 @@ shell.connect(__sandbox_uri2);
 
 rs = dba.getReplicaSet();
 
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `ReplicaSet.removeInstance: PRIMARY instance is unavailable`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `PRIMARY instance is unavailable`);
 
 testutil.startSandbox(__mysql_sandbox_port1);
 

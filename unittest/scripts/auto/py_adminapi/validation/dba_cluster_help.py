@@ -256,35 +256,6 @@ DESCRIPTION
       ATTENTION: The ipWhitelist option will be removed in a future release.
                  Please use the ipAllowlist option instead.
 
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-      - If the Metadata update operation failed.
-
-      ArgumentError in the following scenarios:
-
-      - If the instance parameter is empty.
-      - If the instance definition is invalid.
-      - If the instance definition is a connection dictionary but empty.
-      - If the value for the memberSslMode option is not one of the allowed:
-        "AUTO", "DISABLED", "REQUIRED".
-      - If the value for the ipWhitelist, localAddress, groupSeeds, or
-        exitStateAction options is empty.
-      - If the instance definition cannot be used for Group Replication.
-      - If the value for the waitRecovery option is not in the range [0, 3].
-
-      RuntimeError in the following scenarios:
-
-      - If the instance accounts are invalid.
-      - If the instance is not in bootstrapped state.
-      - If the SSL mode specified is not compatible with the one used in the
-        cluster.
-      - If the value for the localAddress, groupSeeds, exitStateAction,
-        memberWeight or autoRejoinTries options is not valid for Group
-        Replication.
-      - If the value of recoveryMethod is not auto and it cannot be used.
-
 #@<OUT> cluster.check_instance_state
 NAME
       check_instance_state - Verifies the instance gtid state in relation to
@@ -327,23 +298,6 @@ DESCRIPTION
       - lost_transactions: if the instance has more executed GTIDs than the
         executed GTIDs of the cluster instances
 
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the 'instance' parameter is empty.
-      - If the 'instance' parameter is invalid.
-      - If the 'instance' definition is a connection dictionary but empty.
-
-      RuntimeError in the following scenarios:
-
-      - If the 'instance' is unreachable/offline.
-      - If the 'instance' is a cluster member.
-      - If the 'instance' belongs to a Group Replication group that is not
-        managed as an InnoDB cluster.
-      - If the 'instance' is a standalone instance but is part of a different
-        InnoDB Cluster.
-      - If the 'instance' has an unknown state.
-
 #@<OUT> cluster.describe
 NAME
       describe - Describe the structure of the cluster.
@@ -376,17 +330,6 @@ DESCRIPTION
       - label: the instance name identifier
       - role: the instance role
       - version: the instance version (only available for instances >= 8.0.11)
-
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-
-      RuntimeError in the following scenarios:
-
-      - If the InnoDB Cluster topology mode does not match the current Group
-        Replication configuration.
-      - If the InnoDB Cluster name is not registered in the Metadata.
 
 #@<OUT> cluster.disconnect
 NAME
@@ -441,12 +384,6 @@ DESCRIPTION
       and the cluster dissolved without the force option to avoid errors trying
       to reuse the instances and add them back to a cluster.
 
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-      - If the Metadata update operation failed.
-
 #@<OUT> cluster.force_quorum_using_partition_of
 NAME
       force_quorum_using_partition_of - Restores the cluster from quorum loss.
@@ -478,23 +415,6 @@ DESCRIPTION
       When this function is used, all the members that are ONLINE from the
       point of view of the given instance definition will be added to the
       group.
-
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the instance parameter is empty.
-      - If the instance definition cannot be used for Group Replication.
-
-      RuntimeError in the following scenarios:
-
-      - If the instance does not exist on the Metadata.
-      - If the instance is not on the ONLINE state.
-      - If the instance does is not an active member of a replication group.
-      - If there are no ONLINE instances visible from the given one.
-
-      LogicError in the following scenarios:
-
-      - If the cluster does not exist.
 
 #@<OUT> cluster.get_name
 NAME
@@ -536,11 +456,6 @@ DESCRIPTION
 
       - all: if true, includes information about all group_replication system
         variables.
-
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
 
 #@<OUT> cluster.name
 NAME
@@ -606,27 +521,6 @@ DESCRIPTION
       ATTENTION: The ipWhitelist option will be removed in a future release.
                  Please use the ipAllowlist option instead.
 
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-      - If the Metadata update operation failed.
-
-      ArgumentError in the following scenarios:
-
-      - If the value for the memberSslMode option is not one of the allowed:
-        "AUTO", "DISABLED", "REQUIRED".
-      - If the instance definition cannot be used for Group Replication.
-
-      RuntimeError in the following scenarios:
-
-      - If the instance does not exist.
-      - If the instance accounts are invalid.
-      - If the instance is not in bootstrapped state.
-      - If the SSL mode specified is not compatible with the one used in the
-        cluster.
-      - If the instance is an active member of the cluster.
-
 #@<OUT> cluster.remove_instance
 NAME
       remove_instance - Removes an Instance from the cluster.
@@ -668,25 +562,6 @@ DESCRIPTION
       than can no longer be recovered. Otherwise, the instance must be brought
       back ONLINE and removed without the force option to avoid errors trying
       to add it back to a cluster.
-
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-      - If the Metadata update operation failed.
-
-      ArgumentError in the following scenarios:
-
-      - If the instance parameter is empty.
-      - If the instance definition is invalid.
-      - If the instance definition is a connection dictionary but empty.
-      - If the instance definition cannot be used for Group Replication.
-
-      RuntimeError in the following scenarios:
-
-      - If the instance accounts are invalid.
-      - If an error occurs when trying to remove the instance (e.g., instance
-        is not reachable).
 
 #@<OUT> cluster.set_instance_option
 NAME
@@ -784,25 +659,6 @@ DESCRIPTION
       NOTE: '_hidden' and '_disconnect_existing_sessions_when_hidden' can be
             useful to shut down the instance and perform maintenance on it
             without disrupting incoming application traffic.
-
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the 'instance' parameter is empty.
-      - If the 'instance' parameter is invalid.
-      - If the 'instance' definition is a connection dictionary but empty.
-      - If the 'option' parameter is empty.
-      - If the 'value' parameter is empty.
-      - If the 'option' parameter is invalid.
-
-      RuntimeError in the following scenarios:
-
-      - If 'instance' does not refer to a cluster member.
-      - If the cluster has no visible quorum.
-      - If 'instance' is unreachable/offline.
-      - If 'instance' does not support the configuration option passed in
-        'option'.
-      - If the value passed in 'option' is not valid for Group Replication.
 
 #@<OUT> cluster.set_option
 NAME
@@ -961,23 +817,6 @@ DESCRIPTION
       with letters and followed by letters, numbers and _. Tag values may be
       any JSON value. If the value is null, the tag is deleted.
 
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the 'option' parameter is empty.
-      - If the 'value' parameter is empty.
-      - If the 'option' parameter is invalid.
-
-      RuntimeError in the following scenarios:
-
-      - If any of the cluster members do not support the configuration option
-        passed in 'option'.
-      - If the value passed in 'option' is not valid for Group Replication.
-      - If the cluster has no visible quorum.
-      - If setting a Group Replication option and any of the cluster members is
-        not ONLINE.
-
-
 #@<OUT> cluster.setup_admin_account
 NAME
       setup_admin_account - Create or upgrade an InnoDB Cluster admin account.
@@ -1030,16 +869,6 @@ DESCRIPTION
 
       The update option must be enabled to allow updating an existing account's
       privileges and/or password.
-
-EXCEPTIONS
-      RuntimeError in the following scenarios:
-
-      - The user account name does not exist on the Cluster and update is True.
-      - The user account name does not exist on the Cluster and no password was
-        provided.
-      - The user account name exists on the Cluster and update is False.
-      - The account used to grant the privileges to the admin user doesn't have
-        the necessary privileges.
 
 #@<OUT> cluster.setup_router_account
 NAME
@@ -1096,16 +925,6 @@ DESCRIPTION
       The update option must be enabled to allow updating an existing account's
       privileges and/or password.
 
-EXCEPTIONS
-      RuntimeError in the following scenarios:
-
-      - The user account name does not exist on the Cluster and update is True.
-      - The user account name does not exist on the Cluster and no password was
-        provided.
-      - The user account name exists on the Cluster and update is False.
-      - The account used to grant the privileges to the router user doesn't
-        have the necessary privileges.
-
 #@<OUT> cluster.rescan
 NAME
       rescan - Rescans the cluster.
@@ -1150,29 +969,6 @@ DESCRIPTION
       ATTENTION: The updateTopologyMode option will be removed in a future
                  release.
 
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the value for `addInstances` or `removeInstance` is empty.
-      - If the value for `addInstances` or `removeInstance` is invalid.
-
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-      - If the Metadata update operation failed.
-
-      LogicError in the following scenarios:
-
-      - If the cluster does not exist.
-
-      RuntimeError in the following scenarios:
-
-      - If all the ReplicaSet instances of any ReplicaSet are offline.
-      - If an instance specified for `addInstances` is not an active member of
-        the replication group.
-      - If an instance specified for `removeInstances` is an active member of
-        the replication group.
-
 #@<OUT> cluster.status
 NAME
       status - Describe the status of the cluster.
@@ -1211,17 +1007,6 @@ DESCRIPTION
         cluster member;
       - Boolean: equivalent to assign either 0 (false) or 1 (true).
 
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-
-      RuntimeError in the following scenarios:
-
-      - If the InnoDB Cluster topology mode does not match the current Group
-        Replication configuration.
-      - If the InnoDB Cluster name is not registered in the Metadata.
-
 #@<OUT> cluster.list_routers
 NAME
       list_routers - Lists the Router instances.
@@ -1249,17 +1034,6 @@ DESCRIPTION
         instances that support older version of the Metadata Schema and require
         upgrade are included.
 
-EXCEPTIONS
-      MetadataError in the following scenarios:
-
-      - If the Metadata is inaccessible.
-
-      RuntimeError in the following scenarios:
-
-      - If the InnoDB Cluster topology mode does not match the current Group
-        Replication configuration.
-      - If the InnoDB Cluster name is not registered in the Metadata.
-
 #@<OUT> cluster.remove_router_metadata
 NAME
       remove_router_metadata - Removes metadata for a router instance.
@@ -1282,11 +1056,6 @@ DESCRIPTION
 
       The Cluster.list_routers() function may be used to list registered router
       instances, including their identifier.
-
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - if router_def is not a registered router instance
 
 #@<OUT> cluster.set_primary_instance
 NAME
@@ -1313,20 +1082,6 @@ DESCRIPTION
       The instance definition is mandatory and is the identifier of the cluster
       member that shall become the new primary.
 
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the instance parameter is empty.
-      - If the instance definition is invalid.
-
-      RuntimeError in the following scenarios:
-
-      - If the cluster is in multi-primary mode.
-      - If 'instance' does not refer to a cluster member.
-      - If any of the cluster members has a version < 8.0.13.
-      - If the cluster has no visible quorum.
-      - If any of the cluster members is not ONLINE.
-
 #@<OUT> cluster.switch_to_multi_primary_mode
 NAME
       switch_to_multi_primary_mode - Switches the cluster to multi-primary
@@ -1341,13 +1096,6 @@ RETURNS
 DESCRIPTION
       This function changes a cluster running in single-primary mode to
       multi-primary mode.
-
-EXCEPTIONS
-      RuntimeError in the following scenarios:
-
-      - If any of the cluster members has a version < 8.0.13.
-      - If the cluster has no visible quorum.
-      - If any of the cluster members is not ONLINE.
 
 #@<OUT> cluster.switch_to_single_primary_mode
 NAME
@@ -1377,19 +1125,6 @@ DESCRIPTION
       If the instance definition is not provided, the new primary will be the
       instance with the highest member weight (and the lowest UUID in case of a
       tie on member weight).
-
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If the instance parameter is empty.
-      - If the instance definition is invalid.
-
-      RuntimeError in the following scenarios:
-
-      - If 'instance' does not refer to a cluster member.
-      - If any of the cluster members has a version < 8.0.13.
-      - If the cluster has no visible quorum.
-      - If any of the cluster members is not ONLINE.
 
 #@<OUT> cluster.reset_recovery_accounts_password
 NAME
@@ -1428,11 +1163,4 @@ DESCRIPTION
       reachable) or never going to be reused again in a cluster. Prefer to
       bring the non available instances back ONLINE or remove them from the
       cluster if they will no longer be used.
-
-EXCEPTIONS
-      RuntimeError in the following scenarios:
-
-      - If some cluster instance is not ONLINE and force option not used or set
-        to false.
-      - If the recovery user account was not created by InnoDB Cluster.
 

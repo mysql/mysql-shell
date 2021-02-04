@@ -8,12 +8,12 @@ ReplicaSet.setupAdminAccount: Invalid user syntax: Invalid user name: foo@bar (A
 ||
 
 //@ WL#13536 BUG#30648813 Empty usernames are not supported
-||ReplicaSet.setupAdminAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||ReplicaSet.setupAdminAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||ReplicaSet.setupAdminAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||ReplicaSet.setupAdminAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||ReplicaSet.setupAdminAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
-||ReplicaSet.setupAdminAccount: Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
+||Invalid user syntax: User name must not be empty. (ArgumentError)
 
 //@<OUT> WL#13536 TSFR3_2 check global privileges of created user {VER(>=8.0.11)}
 +----------------------------+--------------+

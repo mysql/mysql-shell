@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,6 +31,7 @@
 #include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
 
+#include "modules/adminapi/cluster/api_options.h"
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/group_replication_options.h"
@@ -121,30 +122,41 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void invalidate() { m_invalidated = true; }
 
   void add_instance(const Connection_options &instance_def,
-                    const shcore::Dictionary_t &options = {});
-  void rejoin_instance(const Connection_options &instance_def,
-                       const shcore::Dictionary_t &options = {});
-  void remove_instance(const Connection_options &instance_def,
-                       const shcore::Dictionary_t &options = {});
+                    const shcore::Option_pack_ref<cluster::Add_instance_options>
+                        &options = {});
+  void rejoin_instance(
+      const Connection_options &instance_def,
+      const shcore::Option_pack_ref<cluster::Rejoin_instance_options> &options =
+          {});
+  void remove_instance(
+      const Connection_options &instance_def,
+      const shcore::Option_pack_ref<cluster::Remove_instance_options> &options =
+          {});
   shcore::Value get_replicaset(const shcore::Argument_list &args);
   shcore::Value describe(void);
-  shcore::Value status(const shcore::Dictionary_t &options);
-  shcore::Dictionary_t list_routers(const shcore::Dictionary_t &options);
-  void dissolve(const shcore::Dictionary_t &options);
+  shcore::Value status(
+      const shcore::Option_pack_ref<cluster::Status_options> &options);
+  shcore::Dictionary_t list_routers(
+      const shcore::Option_pack_ref<List_routers_options> &options);
+  void dissolve(
+      const shcore::Option_pack_ref<Force_interactive_options> &options);
   shcore::Value check_instance_state(const Connection_options &instance_def);
-  void rescan(const shcore::Dictionary_t &options);
-  void reset_recovery_accounts_password(const shcore::Dictionary_t &options);
+  void rescan(const shcore::Option_pack_ref<cluster::Rescan_options> &options);
+  void reset_recovery_accounts_password(
+      const shcore::Option_pack_ref<Force_interactive_options> &options);
   void force_quorum_using_partition_of(const Connection_options &instance_def,
                                        const char *password = nullptr);
   void disconnect();
 
   void remove_router_metadata(const std::string &router_def);
 
-  void setup_admin_account(const std::string &user,
-                           const shcore::Dictionary_t &options);
+  void setup_admin_account(
+      const std::string &user,
+      const shcore::Option_pack_ref<Setup_account_options> &options);
 
-  void setup_router_account(const std::string &user,
-                            const shcore::Dictionary_t &options);
+  void setup_router_account(
+      const std::string &user,
+      const shcore::Option_pack_ref<Setup_account_options> &options);
 
   void switch_to_single_primary_mode(
       const Connection_options &instance_def = Connection_options());
@@ -152,7 +164,8 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void switch_to_multi_primary_mode(void);
   void set_primary_instance(const Connection_options &instance_def);
 
-  shcore::Value options(const shcore::Dictionary_t &options);
+  shcore::Value options(
+      const shcore::Option_pack_ref<cluster::Options_options> &options);
 
   void set_option(const std::string &option, const shcore::Value &value);
 
@@ -167,8 +180,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
  private:
   std::shared_ptr<Cluster_impl> m_impl;
   bool m_invalidated = false;
-
-  void verify_add_rejoin_deprecations(const shcore::Dictionary_t &options);
 };
 
 }  // namespace dba

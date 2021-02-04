@@ -2,7 +2,7 @@
 ||
 
 //@ it's not possible to adopt from GR without existing group replication
-||Dba.createCluster: The adoptFromGR option is set to true, but there is no replication group to adopt (ArgumentError)
+||The adoptFromGR option is set to true, but there is no replication group to adopt (ArgumentError)
 
 //@ Create group by hand
 ||
@@ -40,7 +40,7 @@ mysql_innodb_cluster_2222
 ||
 
 //@ it's not possible to adopt from GR when cluster was dissolved
-||Dba.createCluster: The adoptFromGR option is set to true, but there is no replication group to adopt (ArgumentError)
+||The adoptFromGR option is set to true, but there is no replication group to adopt (ArgumentError)
 
 //@ Finalization
 ||

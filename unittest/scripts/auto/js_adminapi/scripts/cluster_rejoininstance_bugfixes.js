@@ -49,7 +49,7 @@ testutil.startSandbox(__mysql_sandbox_port2);
 session2 = mysql.getSession(__sandbox_uri2);
 session2.runSql("stop group_replication");
 
-EXPECT_THROWS_TYPE(function(){cluster.rejoinInstance(__sandbox_uri2);}, "Cluster.rejoinInstance: The 'group_replication_gtid_assignment_block_size' value '1000' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster '2000'.", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){cluster.rejoinInstance(__sandbox_uri2);}, "The 'group_replication_gtid_assignment_block_size' value '1000' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster '2000'.", "RuntimeError");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Cannot join instance 'localhost:${__mysql_sandbox_port2}' to cluster: incompatible 'group_replication_gtid_assignment_block_size' value.`);
 
 //@<> BUG#29255212 Test that rejoinInstance fails with nice error if default_table_encryption of instance different from the value off the cluster  {VER(>= 8.0.16)}
@@ -58,7 +58,7 @@ testutil.changeSandboxConf(__mysql_sandbox_port2, 'loose_group_replication_gtid_
 testutil.changeSandboxConf(__mysql_sandbox_port2, 'default_table_encryption', 'ON');
 testutil.startSandbox(__mysql_sandbox_port2);
 
-EXPECT_THROWS_TYPE(function(){cluster.rejoinInstance(__sandbox_uri2);}, "Cluster.rejoinInstance: The 'default_table_encryption' value 'ON' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster 'OFF'.", "RuntimeError");
+EXPECT_THROWS_TYPE(function(){cluster.rejoinInstance(__sandbox_uri2);}, "The 'default_table_encryption' value 'ON' of the instance 'localhost:" + __mysql_sandbox_port2 + "' is different from the value of the cluster 'OFF'.", "RuntimeError");
 EXPECT_OUTPUT_CONTAINS(`ERROR: Cannot join instance 'localhost:${__mysql_sandbox_port2}' to cluster: incompatible 'default_table_encryption' value.`);
 
 //@<> rejoinInstance without credentials

@@ -87,7 +87,7 @@ cluster.addInstance(sockuri2, {recoveryMethod:'incremental'});
 //cluster.addInstance(sockuri2, {recoveryMethod:'incremental'});
 
 //@<> setPrimaryInstance {VER(>=8.0.0)}
-CHECK_MYSQLX_EXPECT_THROWS_ERROR(`Cluster.setPrimaryInstance: The instance '${get_mysqlx_endpoint(sockuri2)}' does not belong to the cluster: 'mycluster'.`, cluster.setPrimaryInstance, sockuri2);
+CHECK_MYSQLX_EXPECT_THROWS_ERROR(`The instance '${get_mysqlx_endpoint(sockuri2)}' does not belong to the cluster: 'mycluster'.`, cluster.setPrimaryInstance, sockuri2);
 
 cluster.setPrimaryInstance(sockuri2);
 

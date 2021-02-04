@@ -69,6 +69,9 @@ OPTIONS
             the expected option values, in addition to the global MySQL system
             variables.
 
+--password=<str>
+            The password to get connected to the instance.
+
 --interactive=<bool>
             Boolean value used to disable/enable the wizards in the command
             execution, i.e. prompts and confirmations will be provided or not
@@ -99,6 +102,9 @@ OPTIONS
 --restart=<bool>
             Boolean value used to indicate that a remote restart of the target
             instance should be performed to finalize the operation.
+
+--password=<str>
+            The password to be used on the connection.
 
 --interactive=<bool>
             Boolean value used to disable/enable the wizards in the command
@@ -146,6 +152,9 @@ OPTIONS
             Boolean value used to indicate that a remote restart of the target
             instance should be performed to finalize the operation.
 
+--password=<str>
+            The password to be used on the connection.
+
 --interactive=<bool>
             Boolean value used to disable/enable the wizards in the command
             execution, i.e. prompts and confirmations will be provided or not
@@ -190,6 +199,9 @@ OPTIONS
             Boolean value used to indicate that a remote restart of the target
             instance should be performed to finalize the operation.
 
+--password=<str>
+            The password to be used on the connection.
+
 --interactive=<bool>
             Boolean value used to disable/enable the wizards in the command
             execution, i.e. prompts and confirmations will be provided or not
@@ -221,10 +233,6 @@ OPTIONS
             The list of hosts allowed to connect to the instance for group
             replication.
 
---ipWhitelist=<str>
-            The list of hosts allowed to connect to the instance for group
-            replication. Deprecated.
-
 --localAddress=<str>
             String value with the Group Replication local address to be used
             instead of the automatically generated one.
@@ -241,19 +249,6 @@ OPTIONS
             Integer value with a percentage weight for automatic primary
             election on failover.
 
---consistency=<str>
-            String value indicating the consistency guarantees that the cluster
-            provides.
-
---failoverConsistency=<str>
-            String value indicating the consistency guarantees that the cluster
-            provides.
-
---expelTimeout=<int>
-            Integer value to define the time period in seconds that cluster
-            members should wait for a non-responding member before evicting it
-            from the cluster.
-
 --autoRejoinTries=<int>
             Integer value to define the number of times an instance will
             attempt to rejoin the cluster after being expelled.
@@ -267,6 +262,15 @@ OPTIONS
             instances will automatically start and rejoin when MySQL starts,
             otherwise it must be started manually.
 
+--consistency=<str>
+            String value indicating the consistency guarantees that the cluster
+            provides.
+
+--expelTimeout=<int>
+            Integer value to define the time period in seconds that cluster
+            members should wait for a non-responding member before evicting it
+            from the cluster.
+
 --disableClone=<bool>
             Boolean value used to disable the clone usage on the cluster.
 
@@ -279,15 +283,6 @@ OPTIONS
             Boolean value used to define an InnoDB cluster with multiple
             writable instances.
 
---multiMaster=<bool>
-            Boolean value used to define an InnoDB cluster with multiple
-            writable instances. Deprecated.
-
---force=<bool>
-            Boolean, confirms that the multiPrimary option must be applied
-            and/or the operation must proceed even if unmanaged replication
-            channels were detected.
-
 --adoptFromGR=<bool>
             Boolean value used to create the InnoDB cluster based on existing
             replication group.
@@ -295,6 +290,11 @@ OPTIONS
 --clearReadOnly=<bool>
             Boolean value used to confirm that super_read_only must be
             disabled. Deprecated.
+
+--force=<bool>
+            Boolean, confirms that the multiPrimary option must be applied
+            and/or the operation must proceed even if unmanaged replication
+            channels were detected.
 
 --interactive=<bool>
             Boolean value used to disable/enable the wizards in the command
@@ -333,6 +333,12 @@ OPTIONS
             Boolean value which indicates whether the GTID set of the seed
             instance corresponds to all transactions executed. Default is
             false.
+
+--interactive=<bool>
+            Boolean value used to disable/enable the wizards in the command
+            execution, i.e. prompts and confirmations will be provided or not
+            according to the value set. The default value is equal to MySQL
+            Shell wizard mode.
 
 //@<OUT> CLI dba delete-sandbox-instance --help
 NAME
@@ -501,12 +507,12 @@ SYNTAX
       dba upgrade-metadata [<options>]
 
 OPTIONS
+--dryRun=<bool>
+            Boolean value used to enable a dry run of the upgrade process.
+
 --interactive=<bool>
             Boolean value used to disable/enable the wizards in the command
             execution, i.e. prompts and confirmations will be provided or not
             according to the value set. The default value is equal to MySQL
             Shell wizard mode.
-
---dryRun=<bool>
-            Boolean value used to enable a dry run of the upgrade process.
 

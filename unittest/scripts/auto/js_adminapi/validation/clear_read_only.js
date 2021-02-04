@@ -1,6 +1,6 @@
 
 //@ Dba_create_cluster.clear_read_only_invalid
-||Dba.createCluster: Argument #2: Option 'clearReadOnly' Bool expected, but value is String (TypeError)
+||Option 'clearReadOnly' Bool expected, but value is String (TypeError)
 
 //@ Dba_create_cluster.clear_read_only automatically disabled and clearReadOnly deprecated
 |WARNING: The clearReadOnly option is deprecated. The super_read_only mode is now automatically cleared.|
@@ -10,7 +10,7 @@
 ||
 
 //@ Dba_configure_local_instance.clear_read_only_invalid
-||Dba.configureLocalInstance: Argument #2: Option 'clearReadOnly' Bool expected, but value is String
+||Option 'clearReadOnly' Bool expected, but value is String
 
 
 //@<OUT> Dba_configure_local_instance.clear_read_only_unset
@@ -50,7 +50,7 @@ ERROR: The MySQL instance at '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' curren
 Dba.configureLocalInstance: Server in SUPER_READ_ONLY mode (RuntimeError)
 
 //@ Dba_drop_metadata.clear_read_only_invalid
-||Dba.dropMetadataSchema: Argument #1: Option 'clearReadOnly' Bool expected, but value is String (TypeError)
+||Option 'clearReadOnly' Bool expected, but value is String (TypeError)
 
 
 //@<OUT> Dba_drop_metadata.clear_read_only_unset

@@ -173,6 +173,8 @@ Cluster.rejoinInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok
 Cluster.rejoinInstance({dbUser: "root", host: "localhost", port: __mysql_sandbox_port3}, {memberSslMode: "AUTO", password: 'root'});
+EXPECT_STDOUT_CONTAINS("WARNING: Option 'memberSslMode' is deprecated for this operation and it will be removed in a future release. This option is not needed because the SSL mode is automatically obtained from the cluster. Please do not use it here.")
+EXPECT_STDOUT_CONTAINS("WARNING: 'dbUser' connection option is deprecated, use 'user' option instead.");
 
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 

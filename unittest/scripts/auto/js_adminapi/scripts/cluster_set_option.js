@@ -218,18 +218,18 @@ cluster = scene.cluster;
 session = scene.session;
 
 //@<> WL#13788: Argument errors with tags - TSFR1_4
-EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:tagname")}, "Cluster.setOption: Invalid number of arguments, expected 2 but got 1", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:invalid_symbol#", 123)}, "Cluster.setOption: 'invalid_symbol#' is not a valid tag identifier.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_invalid_builtin", 123)}, "Cluster.setOption: '_invalid_builtin' is not a valid built-in tag.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster.setOption("unsupported_namespace:invalid_symbol#", 123)}, "Cluster.setOption: Namespace 'unsupported_namespace' not supported.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster.setOption(":invalid_symbol#", 123)}, "Cluster.setOption: ':invalid_symbol#' is not a valid identifier.", "ArgumentError");
-EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:", 123)}, "Cluster.setOption: 'tag:' is not a valid identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:tagname")}, "Invalid number of arguments, expected 2 but got 1", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:invalid_symbol#", 123)}, "'invalid_symbol#' is not a valid tag identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_invalid_builtin", 123)}, "'_invalid_builtin' is not a valid built-in tag.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("unsupported_namespace:invalid_symbol#", 123)}, "Namespace 'unsupported_namespace' not supported.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption(":invalid_symbol#", 123)}, "':invalid_symbol#' is not a valid identifier.", "ArgumentError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:", 123)}, "'tag:' is not a valid identifier.", "ArgumentError");
 
 //@<> WL#13788 Built-in tag values are validated and throw error if value cannot be converted to expected type - TSFR1_5
-EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_hidden", "123")}, "Cluster.setOption: Built-in tag '_hidden' is expected to be of type Bool, but is String", "TypeError");
-EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_hidden", [true])}, "Cluster.setOption: Built-in tag '_hidden' is expected to be of type Bool, but is Array", "TypeError");
-EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", "invalid")}, "Cluster.setOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
-EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", [123])}, "Cluster.setOption: Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is Array", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_hidden", "123")}, "Built-in tag '_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_hidden", [true])}, "Built-in tag '_hidden' is expected to be of type Bool, but is Array", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", "invalid")}, "Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is String", "TypeError");
+EXPECT_THROWS_TYPE(function(){cluster.setOption("tag:_disconnect_existing_sessions_when_hidden", [123])}, "Built-in tag '_disconnect_existing_sessions_when_hidden' is expected to be of type Bool, but is Array", "TypeError");
 
 //@<> WL#13788 Validate cluster.options shows values about the tags set via setOption - TSFR1_7
 // we are using the output of cluster.options to validate the tag was set.

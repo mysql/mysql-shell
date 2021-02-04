@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/provisioning_interface.h"
+#include "modules/adminapi/dba/api_options.h"
 #include "modules/command_interface.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
@@ -46,13 +47,8 @@ class Configure_instance : public Command_interface {
  public:
   Configure_instance(
       const std::shared_ptr<mysqlsh::dba::Instance> &target_instance,
-      const std::string &mycnf_path, const std::string &output_mycnf_path,
-      const std::string &cluster_admin,
-      const mysqlshdk::utils::nullable<std::string> &cluster_admin_password,
-      mysqlshdk::utils::nullable<bool> clear_read_only, const bool interactive,
-      mysqlshdk::utils::nullable<bool> restart,
-      mysqlshdk::utils::nullable<int64_t> applier_worker_threads,
-      Cluster_type cluster_type, InstanceType::Type instance_type);
+      const Configure_instance_options &options,
+      InstanceType::Type instance_type);
   ~Configure_instance();
 
   void prepare() override;
@@ -93,18 +89,10 @@ class Configure_instance : public Command_interface {
 
  protected:
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
-  const bool m_interactive;
-  // The following may change from user-interaction
-  std::string m_mycnf_path;
-  std::string m_output_mycnf_path;
-  std::string m_cluster_admin;
-  mysqlshdk::utils::nullable<std::string> m_cluster_admin_password;
   std::string m_current_user;
   std::string m_current_host;
   bool m_local_target = false;
-  mysqlshdk::utils::nullable<bool> m_clear_read_only;
-  mysqlshdk::utils::nullable<bool> m_restart;
-  mysqlshdk::utils::nullable<int64_t> m_applier_worker_threads;
+  Configure_instance_options m_options;
 
   // By default, the clusterAdmin account will be created unless
   // it's not specified on the command options or it already exists
@@ -123,8 +111,6 @@ class Configure_instance : public Command_interface {
                                        // the instance is a sandbox.
 
   bool m_set_applier_worker_threads = false;
-
-  Cluster_type m_cluster_type;
 
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;

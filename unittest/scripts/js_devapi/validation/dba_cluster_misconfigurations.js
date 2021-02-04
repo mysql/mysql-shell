@@ -24,14 +24,14 @@
 
 //@ Create cluster fails (one table is not compatible)
 |WARNING: The following tables do not have a Primary Key or equivalent column:|
-||Dba.createCluster: Instance check failed (RuntimeError)
+||Instance check failed (RuntimeError)
 
 //@ Enable verbose
 ||
 
 //@Create cluster fails (one table is not compatible) - verbose mode
 |WARNING: The following tables do not have a Primary Key or equivalent column:|
-||Dba.createCluster: Instance check failed
+||Instance check failed
 //@ Disable verbose
 ||
 

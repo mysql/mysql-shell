@@ -12,8 +12,8 @@
 ||instance has global replication filters configured, but they are not supported in InnoDB clusters.
 
 //@# Dba: create_cluster fails with repl filter {VER(>=8.0.11)}
-||Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' has asynchronous replication configured. (RuntimeError)
-||Dba.createCluster: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' has asynchronous replication configured. (RuntimeError)
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' has asynchronous replication configured. (RuntimeError)
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' has asynchronous replication configured. (RuntimeError)
 
 //@# Dba: create_cluster succeed without binlog-do-db nor repl filter
 |<Cluster:testCluster>|

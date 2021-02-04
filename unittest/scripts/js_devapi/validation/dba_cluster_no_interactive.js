@@ -1,20 +1,20 @@
 
 //@# Cluster: addInstance errors
-||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 0
-||Cluster.addInstance: Invalid number of arguments, expected 1 to 2 but got 4
-||Cluster.addInstance: Argument #2 is expected to be a map
-||Cluster.addInstance: Argument #2 is expected to be a map
-||Cluster.addInstance: Argument #1: Invalid values in connection options: weird
-||Cluster.addInstance: Argument #1: Invalid values in connection options: ipWhitelist, memberSslMode
-||Cluster.addInstance: Argument #2 is expected to be a map
+||Invalid number of arguments, expected 1 to 2 but got 0
+||Invalid number of arguments, expected 1 to 2 but got 4
+||Argument #2 is expected to be a map
+||Argument #2 is expected to be a map
+||Invalid values in connection options: weird
+||Invalid values in connection options: ipWhitelist, memberSslMode
+||Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for ipWhitelist: string value cannot be empty.
-||Cluster.addInstance: The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
-||Cluster.addInstance: The label can not be empty.
-||Cluster.addInstance: The label can only start with an alphanumeric or the '_' character.
-||Cluster.addInstance: The label can only contain alphanumerics or the '_', '.', '-', ':' characters. Invalid character '#' found.
-||Cluster.addInstance: The label can not be greater than 256 characters.
+||The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' is already part of this InnoDB cluster
+||The label can not be empty.
+||The label can only start with an alphanumeric or the '_' character.
+||The label can only contain alphanumerics or the '_', '.', '-', ':' characters. Invalid character '#' found.
+||The label can not be greater than 256 characters.
 
 //@ Cluster: addInstance 2
 ||
@@ -183,13 +183,13 @@ Cluster.removeInstance: Metadata for instance <<<__host>>>:<<<__mysql_port>>> no
 ||
 
 //@ Cluster: rejoinInstance errors
-||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 0
-||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 3
-||Cluster.rejoinInstance: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary
-||Cluster.rejoinInstance: Argument #1: Invalid values in connection options: ipWhitelist, memberSslMode
-||Cluster.rejoinInstance: Could not open connection to 'localhost'
-||Cluster.rejoinInstance: Could not open connection to 'localhost:3306'
-||Cluster.rejoinInstance: Argument #2 is expected to be a map
+||Invalid number of arguments, expected 1 to 2 but got 0
+||Invalid number of arguments, expected 1 to 2 but got 3
+||Invalid connection options, expected either a URI or a Connection Options Dictionary
+||Invalid values in connection options: ipWhitelist, memberSslMode
+||Could not open connection to 'localhost'
+||Could not open connection to 'localhost:3306'
+||Argument #2 is expected to be a map
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
 ||Invalid value for ipWhitelist: string value cannot be empty.
@@ -201,27 +201,27 @@ Cluster.removeInstance: Metadata for instance <<<__host>>>:<<<__mysql_port>>> no
 ||
 
 //@ Cluster: dissolve errors
-||Cluster.dissolve: Argument #1 is expected to be a map
-||Cluster.dissolve: Invalid number of arguments, expected 0 to 1 but got 2
-||Cluster.dissolve: Argument #1 is expected to be a map
-||Cluster.dissolve: Invalid options: foobar
-||Cluster.dissolve: Option 'force' Bool expected, but value is String
+||Argument #1 is expected to be a map
+||Invalid number of arguments, expected 0 to 1 but got 2
+||Argument #1 is expected to be a map
+||Invalid options: foobar
+||Option 'force' Bool expected, but value is String
 
 //@ Cluster: final dissolve
 ||
 
 //@ Cluster: no operations can be done on a dissolved cluster
-||Cluster.name: Can't access object member 'name' on a dissolved cluster
-||Cluster.addInstance: Can't call function 'addInstance' on a dissolved cluster
-||Cluster.checkInstanceState: Can't call function 'checkInstanceState' on a dissolved cluster
-||Cluster.describe: Can't call function 'describe' on a dissolved cluster
-||Cluster.dissolve: Can't call function 'dissolve' on a dissolved cluster
-||Cluster.forceQuorumUsingPartitionOf: Can't call function 'forceQuorumUsingPartitionOf' on a dissolved cluster
-||Cluster.getName: Can't call function 'getName' on a dissolved cluster
-||Cluster.rejoinInstance: Can't call function 'rejoinInstance' on a dissolved cluster
-||Cluster.removeInstance: Can't call function 'removeInstance' on a dissolved cluster
-||Cluster.rescan: Can't call function 'rescan' on a dissolved cluster
-||Cluster.status: Can't call function 'status' on a dissolved cluster
+||Can't access object member 'name' on a dissolved cluster
+||Can't call function 'addInstance' on a dissolved cluster
+||Can't call function 'checkInstanceState' on a dissolved cluster
+||Can't call function 'describe' on a dissolved cluster
+||Can't call function 'dissolve' on a dissolved cluster
+||Can't call function 'forceQuorumUsingPartitionOf' on a dissolved cluster
+||Can't call function 'getName' on a dissolved cluster
+||Can't call function 'rejoinInstance' on a dissolved cluster
+||Can't call function 'removeInstance' on a dissolved cluster
+||Can't call function 'rescan' on a dissolved cluster
+||Can't call function 'status' on a dissolved cluster
 
 //@ Cluster: disconnect should work, tho
 ||

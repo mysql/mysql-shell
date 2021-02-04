@@ -492,7 +492,7 @@ set_auto_increment_to_unused_values(__sandbox_uri1);
 set_auto_increment_to_unused_values(__sandbox_uri2);
 set_auto_increment_to_unused_values(__sandbox_uri3);
 
-//@<> WL10644 - TSF4_2: status() error because topology mode changed.
+//@ WL10644 - TSF4_2: status() error because topology mode changed.
 // NOTE: dba.getCluster() needed for new metadata info to be loaded by cluster object.
 cluster = dba.getCluster();
 cluster.status();

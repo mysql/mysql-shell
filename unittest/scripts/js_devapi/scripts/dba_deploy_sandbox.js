@@ -24,7 +24,7 @@ if (!connected)
 //@<> BUG#27369121: allowRootFrom null
 EXPECT_THROWS_TYPE(function () {
     dba.deploySandboxInstance(__mysql_sandbox_port1, {allowRootFrom: null, sandboxDir: __sandbox_dir});
-}, "Dba.deploySandboxInstance: Argument #2: Option 'allowRootFrom' is expected to be of type String, but is Null", "TypeError");
+}, "Option 'allowRootFrom' is expected to be of type String, but is Null", "TypeError");
 
 //@<> BUG#27369121: allowRootFrom empty string does not create remote root account
 const select_root_accounts = "select host, user from mysql.user where user like 'root' order by host;";

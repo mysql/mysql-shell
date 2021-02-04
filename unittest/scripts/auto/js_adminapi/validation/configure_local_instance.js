@@ -184,19 +184,19 @@ Cluster admin user 'root2'@'%' created.
 Enabling super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'
 
 //@ test configureLocalInstance providing clusterAdminPassword without clusterAdmin
-||Dba.configureLocalInstance: The clusterAdminPassword is allowed only if clusterAdmin is specified.
+||The clusterAdminPassword is allowed only if clusterAdmin is specified.
 
 //@ test configureLocalInstance providing clusterAdminPassword and an existing clusterAdmin
 ||The 'root2'@'%' account already exists, clusterAdminPassword is not allowed for an existing account.
 
 //@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 8.0 {VER(>=8.0.11)}
-||Dba.configureLocalInstance: Cancelled (RuntimeError)
+||Cancelled (RuntimeError)
 
 //@ Interactive_dba_configure_local_instance read_only_no_flag_prompt_no 5.7 {VER(<8.0.11)}
-||Dba.configureLocalInstance: Cancelled (RuntimeError)
+||Cancelled (RuntimeError)
 
 //@ Interactive_dba_configure_local_instance read_only_invalid_flag_value
-||Dba.configureLocalInstance: Argument #2: Option 'clearReadOnly' Bool expected, but value is String
+||Option 'clearReadOnly' Bool expected, but value is String
 
 //@<OUT> Interactive_dba_configure_local_instance read_only_flag_true 8.0 {VER(>=8.0.11)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...

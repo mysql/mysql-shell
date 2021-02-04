@@ -67,7 +67,7 @@
 ||
 
 //@ Cluster: Error cannot remove last instance
-||Cluster.removeInstance: The instance 'localhost:<<<__mysql_sandbox_port1>>>' is the last member of the cluster (RuntimeError)
+||The instance 'localhost:<<<__mysql_sandbox_port1>>>' is the last member of the cluster (RuntimeError)
 
 //@ Dissolve cluster with success
 ||
@@ -85,12 +85,12 @@
 ||
 
 //@ Cluster: rejoinInstance errors
-||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 0
-||Cluster.rejoinInstance: Invalid number of arguments, expected 1 to 2 but got 3
-||Cluster.rejoinInstance: Argument #1: Invalid connection options, expected either a URI or a Connection Options Dictionary
-||Cluster.rejoinInstance: Argument #1: Invalid values in connection options: authMethod
-||Cluster.rejoinInstance: Could not open connection to 'localhost'
-||Cluster.rejoinInstance: Could not open connection to 'localhost:3306'
+||Invalid number of arguments, expected 1 to 2 but got 0
+||Invalid number of arguments, expected 1 to 2 but got 3
+||Invalid connection options, expected either a URI or a Connection Options Dictionary
+||Invalid values in connection options: authMethod
+||Could not open connection to 'localhost'
+||Could not open connection to 'localhost:3306'
 
 //@#: Dba: rejoin instance 3 ok
 ||

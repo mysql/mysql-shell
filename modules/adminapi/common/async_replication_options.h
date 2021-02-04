@@ -57,12 +57,6 @@ struct Async_replication_options {
 
   explicit Async_replication_options(Unpack_target t) : target(t) {}
 
-  template <typename Unpacker>
-  Unpacker &unpack(Unpacker *options) {
-    do_unpack(options);
-    return *options;
-  }
-
   Unpack_target target;
 
   mysqlshdk::utils::nullable<mysqlshdk::mysql::Auth_options> repl_credentials;
@@ -70,19 +64,6 @@ struct Async_replication_options {
   mysqlshdk::utils::nullable<int> master_connect_retry;
   mysqlshdk::utils::nullable<int> master_retry_count;
   mysqlshdk::utils::nullable<int> master_delay;
-
- private:
-  template <typename Unpacker>
-  void do_unpack(Unpacker * /*unpacker*/) {
-    switch (target) {
-      case NONE:
-        break;
-
-      case CREATE:
-        // unpacker->optional_obj_group("replChannel", &repl_credentials);
-        break;
-    }
-  }
 };
 
 }  // namespace dba

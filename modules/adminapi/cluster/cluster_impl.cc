@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -961,9 +961,8 @@ void Cluster_impl::update_group_members_for_removed_member(
 
 void Cluster_impl::add_instance(
     const mysqlshdk::db::Connection_options &instance_def,
-    const Group_replication_options &gr_options,
-    const Clone_options &clone_options, const mysqlshdk::null_string &label,
-    Recovery_progress_style progress_style, const bool interactive) {
+    const cluster::Add_instance_options &options,
+    Recovery_progress_style progress_style) {
   check_preconditions("addInstance");
 
   auto primary = acquire_primary();
@@ -971,13 +970,13 @@ void Cluster_impl::add_instance(
       shcore::on_leave_scope([this]() { release_primary(); });
 
   Scoped_instance target(connect_target_instance(instance_def, true, true));
-  cluster::Cluster_join joiner(this, primary, target, gr_options, clone_options,
-                               interactive);
+  cluster::Cluster_join joiner(this, primary, target, options.gr_options,
+                               options.clone_options, options.interactive());
 
   // Add the Instance to the Cluster
 
   // Prepare and validate
-  joiner.prepare_join(label);
+  joiner.prepare_join(options.label);
 
   std::string msg =
       "A new instance will be added to the InnoDB cluster. Depending on the "
@@ -1202,22 +1201,18 @@ void Cluster_impl::reset_recovery_password(const mysqlshdk::null_bool &force,
   op_reset.execute();
 }
 
-void Cluster_impl::setup_admin_account(
-    const std::string &username, const std::string &host, bool interactive,
-    bool update, bool dry_run,
-    const mysqlshdk::utils::nullable<std::string> &password) {
+void Cluster_impl::setup_admin_account(const std::string &username,
+                                       const std::string &host,
+                                       const Setup_account_options &options) {
   check_preconditions("setupAdminAccount");
-  Base_cluster_impl::setup_admin_account(username, host, interactive, update,
-                                         dry_run, password);
+  Base_cluster_impl::setup_admin_account(username, host, options);
 }
 
-void Cluster_impl::setup_router_account(
-    const std::string &username, const std::string &host, bool interactive,
-    bool update, bool dry_run,
-    const mysqlshdk::utils::nullable<std::string> &password) {
+void Cluster_impl::setup_router_account(const std::string &username,
+                                        const std::string &host,
+                                        const Setup_account_options &options) {
   check_preconditions("setupRouterAccount");
-  Base_cluster_impl::setup_router_account(username, host, interactive, update,
-                                          dry_run, password);
+  Base_cluster_impl::setup_router_account(username, host, options);
 }
 
 shcore::Value Cluster_impl::options(const bool all) {
@@ -1476,11 +1471,7 @@ void Cluster_impl::force_quorum_using_partition_of(
   }
 }
 
-void Cluster_impl::rescan(
-    const bool auto_add_instances, const bool auto_remove_instances,
-    const std::vector<mysqlshdk::db::Connection_options> &add_instances_list,
-    const std::vector<mysqlshdk::db::Connection_options> &remove_instances_list,
-    const bool interactive) {
+void Cluster_impl::rescan(const cluster::Rescan_options &options) {
   check_preconditions("rescan");
 
   acquire_primary();
@@ -1488,9 +1479,7 @@ void Cluster_impl::rescan(
       shcore::on_leave_scope([this]() { release_primary(); });
 
   // Create the rescan command and execute it.
-  cluster::Rescan op_rescan(interactive, auto_add_instances,
-                            auto_remove_instances, add_instances_list,
-                            remove_instances_list, this);
+  cluster::Rescan op_rescan(options, this);
 
   // Always execute finish when leaving "try catch".
   auto finally = shcore::on_leave_scope([&op_rescan]() { op_rescan.finish(); });

@@ -70,7 +70,7 @@ one server failure.
 ||Option 'memberWeight' Integer expected, but value is String (TypeError)
 ||Option 'memberWeight' is expected to be of type Integer, but is Bool (TypeError)
 ||Option 'memberWeight' Integer expected, but value is String (TypeError)
-||Dba.createCluster: Argument #2: Option 'memberWeight' is expected to be of type Integer, but is Float (TypeError)
+||Option 'memberWeight' is expected to be of type Integer, but is Float (TypeError)
 
 
 //@ WL#11032: Create cluster specifying a valid value for memberWeight (integer) {VER(>=5.7.20)}
