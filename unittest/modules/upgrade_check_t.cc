@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -850,6 +850,26 @@ TEST_F(MySQL_upgrade_check_test, engine_mixup_check) {
 
   // positive test cases performed manually as it requires manual changes to the
   // datadir files
+}
+
+TEST_F(MySQL_upgrade_check_test, old_geometry_check) {
+  if (_target_server_version < Version(5, 7, 0) ||
+      _target_server_version >= Version(8, 0, 0))
+    SKIP_TEST("This test requires running against MySQL server version 5.7");
+
+  Upgrade_check_options opt23(_target_server_version, Version(8, 0, 23));
+  auto check = Sql_upgrade_check::get_old_geometry_types_check(opt23);
+  EXPECT_NE(nullptr, strstr(check->get_description(),
+                            "The following columns are spatial data columns "
+                            "created in MySQL Server version 5.6"));
+
+  // positive test cases performed manually as they required datadir created
+  // in 5.6 and upgraded to 5.7
+  EXPECT_NO_ISSUES(check.get());
+
+  Upgrade_check_options opt24(_target_server_version, Version(8, 0, 24));
+  EXPECT_THROW(Sql_upgrade_check::get_old_geometry_types_check(opt24),
+               Upgrade_check::Check_not_needed);
 }
 
 TEST_F(MySQL_upgrade_check_test, manual_checks) {

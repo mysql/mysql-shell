@@ -142,8 +142,7 @@ void Upgrade_check::prepare_translation_file(const char *filename) {
 
   const char *oracle_copyright =
       "Copyright (c) 2018, " PACKAGE_YEAR
-      ", Oracle and/or its affiliates. All rights "
-      "reserved.\n\n"
+      ", Oracle and/or its affiliates.\n\n"
       "This program is free software; you can redistribute it and/or modify\n"
       "it under the terms of the GNU General Public License, version 2.0,\n"
       "as published by the Free Software Foundation.\n\n"
@@ -1344,6 +1343,37 @@ namespace {
 bool UNUSED_VARIABLE(register_engine_mixup_check) =
     Upgrade_check::register_check(
         std::bind(&Sql_upgrade_check::get_engine_mixup_check), "8.0.11");
+}
+
+std::unique_ptr<Sql_upgrade_check>
+Sql_upgrade_check::get_old_geometry_types_check(
+    const Upgrade_check_options &opts) {
+  if (opts.target_version >= Version(8, 0, 24)) throw Check_not_needed();
+  return std::make_unique<Sql_upgrade_check>(
+      "oldGeometryCheck", "Spatial data columns created in MySQL 5.6",
+      std::vector<std::string>{
+          R"(select t.table_schema, t.table_name, c.column_name, 
+              concat(c.data_type, " column") as 'advice'
+              from information_schema.innodb_sys_tables as st,
+              information_schema.innodb_sys_columns as sc,
+              information_schema.tables as t,
+              information_schema.columns as c
+              where sc.mtype=5 and
+                sc.table_id = st.table_id and
+                st.name =  concat(t.table_schema, '/', t.table_name) and
+                c.table_schema = t.table_schema and
+                c.table_name = t.table_name and
+                c.column_name = sc.name and
+                c.data_type in ('point', 'geometry', 'polygon', 'linestring',
+                  'multipoint', 'multilinestring', 'multipolygon', 
+                  'geometrycollection');)"},
+      Upgrade_issue::ERROR);
+}
+
+namespace {
+bool UNUSED_VARIABLE(register_old_geometry_check) =
+    Upgrade_check::register_check(
+        &Sql_upgrade_check::get_old_geometry_types_check, "8.0.11");
 }
 
 Check_table_command::Check_table_command()

@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2018, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -264,6 +264,18 @@ and rename the dummy .frm and .ibd files to the orphan name using OS file comman
 4. Finally the MyISAM table can be renamed back to its original name.
 
 * engineMixupCheck.docLink
+
+* oldGeometryCheck.title
+# Spatial data columns created in MySQL 5.6
+
+* oldGeometryCheck.description
+# Error
+Error: The following columns are spatial data columns created in MySQL Server version 5.6. 
+MySQL 8.0 servers before 8.0.24 do not support upgrading these tables and will reject them. 
+In order for the upgrade to succeed we encourage you to upgrade directly to MySQL Server version
+8.0.24 or newer. Otherwise, you must rebuild these tables using ALTER TABLE FORCE before upgrading.
+
+* oldGeometryCheck.docLink
 
 * checkTableOutput.title
 # Issues reported by 'check table x for upgrade' command
