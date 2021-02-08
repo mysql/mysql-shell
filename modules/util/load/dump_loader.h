@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -164,12 +164,14 @@ class Dump_loader {
       Load_chunk_task(size_t id, const std::string &schema,
                       const std::string &table, ssize_t chunk_index,
                       std::unique_ptr<mysqlshdk::storage::IFile> file,
-                      shcore::Dictionary_t options, bool resume)
+                      shcore::Dictionary_t options, bool resume,
+                      uint64_t bytes_to_skip)
           : Task(id, schema, table),
             m_chunk_index(chunk_index),
             m_file(std::move(file)),
             m_options(options),
-            m_resume(resume) {}
+            m_resume(resume),
+            m_bytes_to_skip(bytes_to_skip) {}
 
       size_t bytes_loaded = 0;
       size_t raw_bytes_loaded = 0;
@@ -178,17 +180,18 @@ class Dump_loader {
                    Worker *, Dump_loader *) override;
 
       void load(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                Dump_loader *);
+                Dump_loader *, Worker *);
 
       ssize_t chunk_index() const { return m_chunk_index; }
 
      private:
+      std::string query_comment() const;
+
       ssize_t m_chunk_index;
       std::unique_ptr<mysqlshdk::storage::IFile> m_file;
       shcore::Dictionary_t m_options;
       bool m_resume = false;
-
-      std::string query_comment() const;
+      uint64_t m_bytes_to_skip = 0;
     };
 
     class Analyze_table_task : public Task {
@@ -234,7 +237,8 @@ class Dump_loader {
     void load_chunk_file(const std::string &schema, const std::string &table,
                          std::unique_ptr<mysqlshdk::storage::IFile> file,
                          ssize_t chunk_index, size_t chunk_size,
-                         const shcore::Dictionary_t &options, bool resuming);
+                         const shcore::Dictionary_t &options, bool resuming,
+                         uint64_t bytes_to_skip);
 
     void recreate_indexes(const std::string &schema, const std::string &table,
                           const std::vector<std::string> &indexes);
@@ -276,10 +280,13 @@ class Dump_loader {
       INDEX_END,
       ANALYZE_START,
       ANALYZE_END,
-      EXIT
+      EXIT,
+      LOAD_SUBCHUNK_START,
+      LOAD_SUBCHUNK_END,
     };
     Event event;
     Worker *worker = nullptr;
+    shcore::Dictionary_t details;
   };
 
   using Name_and_file =
@@ -308,7 +315,7 @@ class Dump_loader {
                             ssize_t chunk_index, Worker *worker,
                             std::unique_ptr<mysqlshdk::storage::IFile> file,
                             size_t size, shcore::Dictionary_t options,
-                            bool resuming);
+                            bool resuming, uint64_t bytes_to_skip);
 
   bool schedule_next_task(Worker *worker);
   size_t handle_worker_events(
@@ -328,7 +335,8 @@ class Dump_loader {
 
   void clear_worker(Worker *worker);
 
-  void post_worker_event(Worker *worker, Worker_event::Event event);
+  void post_worker_event(Worker *worker, Worker_event::Event event,
+                         shcore::Dictionary_t &&details = {});
 
   void on_schema_end(const std::string &schema);
 
@@ -349,6 +357,12 @@ class Dump_loader {
   void on_chunk_load_end(const std::string &schema, const std::string &table,
                          ssize_t index, size_t bytes_loaded,
                          size_t raw_bytes_loaded);
+
+  void on_subchunk_load_start(const std::string &schema,
+                              const std::string &table, ssize_t index,
+                              uint64_t subchunk);
+  void on_subchunk_load_end(const std::string &schema, const std::string &table,
+                            ssize_t index, uint64_t subchunk, uint64_t bytes);
 
   friend class Worker;
   friend class Worker::Table_ddl_task;

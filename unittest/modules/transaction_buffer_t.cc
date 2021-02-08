@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -74,7 +74,9 @@ void test_subchunking(int max_trx_size, int net_buffer_size, int first_row_size,
 
   mfile.open(mysqlshdk::storage::Mode::READ);
 
-  Transaction_buffer buffer(Dialect::default_(), max_trx_size, &mfile, nullptr);
+  Transaction_options options;
+  options.max_trx_size = max_trx_size;
+  Transaction_buffer buffer(Dialect::default_(), &mfile, options);
 
   std::string net_buffer;
   net_buffer.resize(net_buffer_size);

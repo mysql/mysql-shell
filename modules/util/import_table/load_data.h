@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 
 #include <atomic>
 #include <exception>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -44,19 +45,28 @@
 namespace mysqlsh {
 namespace import_table {
 
+struct Transaction_options {
+  uint64_t max_trx_size = 0;  //< 0 disables the sub-chunking
+  uint64_t skip_bytes = 0;    //< start transaction at this offset
+  const std::vector<uint64_t> *offsets =
+      nullptr;  //< offsets which point to end of a row
+  std::function<void()> transaction_started;
+  std::function<void(uint64_t)> transaction_finished;
+};
+
 class Transaction_buffer {
  public:
   Transaction_buffer() {}
 
-  Transaction_buffer(Dialect dialect, uint64_t max_trx_size,
-                     mysqlshdk::storage::IFile *file,
-                     const std::vector<uint64_t> *offsets)
+  Transaction_buffer(Dialect dialect, mysqlshdk::storage::IFile *file,
+                     const Transaction_options &options = {})
       : m_delimiter(dialect.lines_terminated_by[0]),
-        m_max_trx_size(max_trx_size),
         m_file(file),
-        m_offsets(offsets) {
+        m_options(options) {
     assert(Dialect::default_() == dialect);
   }
+
+  void before_query();
 
   int read(char *buffer, unsigned int length);
 
@@ -66,7 +76,7 @@ class Transaction_buffer {
  private:
   int consume(char *buffer, unsigned int length);
 
-  int64_t trx_bytes_left() const { return m_max_trx_size - m_trx_size; }
+  int64_t trx_bytes_left() const { return m_options.max_trx_size - m_trx_size; }
 
   uint64_t find_first_row_boundary_after(uint64_t offset) const;
   uint64_t find_last_row_boundary_before(uint64_t limit);
@@ -74,16 +84,15 @@ class Transaction_buffer {
   void set_trx_end_offset(uint64_t end) { m_trx_end_offset = m_trx_size + end; }
 
   char m_delimiter = 0;
-  uint64_t m_max_trx_size = 0;
   mysqlshdk::storage::IFile *m_file = nullptr;
+  Transaction_options m_options;
+
   uint64_t m_trx_size = 0;  // current trx size
   uint64_t m_trx_end_offset =
       0;  // offset of the end of the trx once we know it
   bool m_partial_row_sent = false;
   bool m_eof = false;
 
-  const std::vector<uint64_t> *m_offsets =
-      nullptr;                     //< offsets which point to end of a row
   std::size_t m_offset_index = 0;  //< points to the last offset used
   uint64_t m_current_offset = 0;
 
@@ -148,8 +157,7 @@ class Load_data_worker final {
   void operator()();
   void execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
                std::unique_ptr<mysqlshdk::storage::IFile> file,
-               size_t max_trx_size = 0,
-               const std::vector<uint64_t> *offsets = nullptr);
+               const Transaction_options &options = {});
 
  private:
   const Import_table_options &m_opt;

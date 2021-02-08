@@ -12,9 +12,11 @@ def rand_text(size):
     return s
 
 
-def TEST_LOAD(dump, net_buffer_length, max_binlog_cache_size):
-    wipeout_server(session)
-    testutil.rmfile(__tmp_dir+"/ldtest/"+dump+"/load-progress*")
+def TEST_LOAD(dump, net_buffer_length, max_binlog_cache_size, remove_progress=True):
+    WIPE_STDOUT()
+    if remove_progress:
+        wipeout_server(session)
+        testutil.rmfile(__tmp_dir+"/ldtest/"+dump+"/load-progress*")
     session.run_sql("set global max_binlog_cache_size=?", [max_binlog_cache_size])
     session.close()
     shell.connect(__sandbox_uri1+"?net-buffer-length=%s"%net_buffer_length)
@@ -96,11 +98,15 @@ session.run_sql("insert into testdb.data0 values (?)", ["g"+rand_text(chunk_size
 session.run_sql("insert into testdb.data0 values ('\\n\\t\\\\')")
 
 session.run_sql("create table testdb.data1 (n int)")
-s = "insert into testdb.data1 values (1111111)"
-s += ",(1111111)"*chunk_size
-session.run_sql(s)
+session.run_sql("insert into testdb.data1 values (1111111)" + ",(1111111)"*chunk_size)
 
-set_test_table_count(2)
+session.run_sql("create table testdb.data2 (n int, pk int PRIMARY KEY AUTO_INCREMENT)")
+session.run_sql("insert into testdb.data2 (n) values (1111111)" + ",(1111111)"*chunk_size)
+
+session.run_sql("create table testdb.data3 (n int, pk int PRIMARY KEY AUTO_INCREMENT)")
+session.run_sql("insert into testdb.data3 (n) values (1111111)" + ",(1111111)"*4)
+
+set_test_table_count(4)
 
 util.dump_instance(__tmp_dir+"/ldtest/dump-trxlimit", {"chunking":False})
 # set bytesPerChunk to 128K to take effect during load
@@ -133,7 +139,163 @@ TEST_LOAD("dump-trxlimit", trx_size_limit*3, trx_size_limit)
 #@<> net_buffer > trx_limit 3
 TEST_LOAD("dump-trxlimit", trx_size_limit*4, trx_size_limit*2)
 
+EXPECT_STDOUT_CONTAINS("testdb@data0.tsv.zst: Records: 1  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 9 sub-chunks")
 EXPECT_STDOUT_CONTAINS("testdb@data1.tsv.zst: Records: 1  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 9 sub-chunks")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
+EXPECT_STDOUT_CONTAINS("testdb@data3.tsv.zst: Records: 5  Deleted: 0  Skipped: 0  Warnings: 0")
+
+#@<> BUG#31961688 - fail after loading a sub-chunk from table which does not have PK, then resume {not __dbug_off}
+# EXPECT: when resuming, table is truncated, all sub-chunks are loaded again
+testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_END", "schema == testdb", "table == data0", "chunk == -1", "subchunk == 3"], {"msg": "Injected exception"})
+
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_CONTAINS("testdb@data0.tsv.zst: Injected exception")
+
+testutil.clear_traps("dump_loader")
+
+TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+EXPECT_STDOUT_CONTAINS("NOTE: Truncating table `testdb`.`data0` because of resume and it has no PK or equivalent key")
+EXPECT_STDOUT_CONTAINS("testdb@data0.tsv.zst: Records: 1  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 9 sub-chunks")
+
+#@<> BUG#31961688 - fail before start of the data load has been logged, then resume {not __dbug_off}
+# EXPECT: when resuming, all sub-chunks are loaded
+testutil.set_trap("dump_loader", ["op == BEFORE_LOAD_START", "schema == testdb", "table == data2", "chunk == -1"], {"msg": "Injected exception"})
+
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
+
+testutil.clear_traps("dump_loader")
+
+TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
+
+#@<> BUG#31961688 - fail after start of the data load has been logged, then resume {not __dbug_off}
+# EXPECT: when resuming, all sub-chunks are loaded
+testutil.set_trap("dump_loader", ["op == AFTER_LOAD_START", "schema == testdb", "table == data2", "chunk == -1"], {"msg": "Injected exception"})
+
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
+
+testutil.clear_traps("dump_loader")
+
+TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
+
+#@<> BUG#31961688 - fail before start of the sub-chunk transaction has been logged, then resume {not __dbug_off}
+# EXPECT: when resuming, all sub-chunks are loaded again
+testutil.set_trap("dump_loader", ["op == BEFORE_LOAD_SUBCHUNK_START", "schema == testdb", "table == data2", "chunk == -1", "subchunk == 0"], {"msg": "Injected exception"})
+
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
+
+testutil.clear_traps("dump_loader")
+
+TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
+
+#@<> BUG#31961688 - fail after start of the sub-chunk transaction has been logged, then resume {not __dbug_off}
+# EXPECT: when resuming, all sub-chunks are loaded again
+testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_START", "schema == testdb", "table == data2", "chunk == -1", "subchunk == 0"], {"msg": "Injected exception"})
+
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
+
+testutil.clear_traps("dump_loader")
+
+TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
+
+#@<> BUG#31961688 - fail before end of the sub-chunk transaction has been logged, then resume {not __dbug_off}
+# EXPECT: when resuming, all sub-chunks are loaded again
+testutil.set_trap("dump_loader", ["op == BEFORE_LOAD_SUBCHUNK_END", "schema == testdb", "table == data2", "chunk == -1", "subchunk == 0"], {"msg": "Injected exception"})
+
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
+
+testutil.clear_traps("dump_loader")
+
+TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
+
+#@<> BUG#31961688 - fail after end of the sub-chunk transaction has been logged, then resume {not __dbug_off}
+# EXPECT: when resuming, sub-chunks which were finished are not loaded again
+for subchunk in range(13):
+  print("Testing sub-chunk: " + str(subchunk))
+  testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_END", "schema == testdb", "table == data2", "chunk == -1", "subchunk == " + str(subchunk)], {"msg": "Injected exception"})
+  EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+  EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
+  testutil.clear_traps("dump_loader")
+  TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
+  EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+  EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in {0} sub-chunks".format(13 - subchunk))
+
+#@<> BUG#31961688 - fail after the last end of the sub-chunk transaction has been logged, then resume {not __dbug_off}
+# EXPECT: when resuming, an empty sub-chunk is loaded
+testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_END", "schema == testdb", "table == data2", "chunk == -1", "subchunk == 13"], {"msg": "Injected exception"})
+
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
+
+testutil.clear_traps("dump_loader")
+
+TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 1 sub-chunks")
+
+#@<> BUG#31961688 - fail before end of the data load has been logged, then resume {not __dbug_off}
+# EXPECT: when resuming, an empty sub-chunk is loaded
+testutil.set_trap("dump_loader", ["op == BEFORE_LOAD_END", "schema == testdb", "table == data2", "chunk == -1"], {"msg": "Injected exception"})
+
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
+
+testutil.clear_traps("dump_loader")
+
+TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 1 sub-chunks")
+
+#@<> BUG#31961688 - fail after end of the data load has been logged, then resume {not __dbug_off}
+# EXPECT: when resuming, no sub-chunks are loaded
+testutil.set_trap("dump_loader", ["op == AFTER_LOAD_END", "schema == testdb", "table == data2", "chunk == -1"], {"msg": "Injected exception"})
+
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
+
+testutil.clear_traps("dump_loader")
+
+TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+EXPECT_STDOUT_NOT_CONTAINS("testdb@data2.tsv.zst")
+
+#@<> BUG#31961688 - table which is not sub-chunked does not generate sub-chunking events {not __dbug_off}
+# EXPECT: trap should not be triggered
+testutil.set_trap("dump_loader", ["op == BEFORE_LOAD_SUBCHUNK_START", "schema == testdb", "table == data3", "chunk == -1"], {"msg": "Injected exception"})
+
+EXPECT_NO_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "trap should not be triggered")
+
+testutil.clear_traps("dump_loader")
+
+#@<> BUG#31961688 - test uncompressed files {not __dbug_off}
+util.dump_instance(os.path.join(__tmp_dir, "ldtest", "dump-trxlimit-none"), {"chunking": False, "compression": "none"})
+hack_in_bytes_per_chunk("dump-trxlimit-none", chunk_size)
+
+testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_END", "schema == testdb", "table == data2", "chunk == -1", "subchunk == 5"], {"msg": "Injected exception"})
+
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit-none", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv: Injected exception")
+
+testutil.clear_traps("dump_loader")
+
+TEST_LOAD("dump-trxlimit-none", trx_size_limit, trx_size_limit, False)
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 8 sub-chunks")
 
 ##
 

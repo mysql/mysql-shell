@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 #define MODULES_UTIL_LOAD_SCHEMA_LOAD_PROGRESS_LOG_H_
 
 #include <fstream>
+#include <functional>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -100,9 +101,13 @@ class Load_progress_log final {
                 if (entry->has_key("chunk"))
                   key += ":" + std::to_string(entry->get_int("chunk"));
 
+                if (entry->has_key("subchunk"))
+                  key += ":" + std::to_string(entry->get_int("subchunk"));
+
                 auto iter = m_last_state.find(key);
                 if (iter == m_last_state.end() || !done) {
-                  m_last_state.emplace(key, Status::INTERRUPTED);
+                  m_last_state.emplace(key, Status_details{Status::INTERRUPTED,
+                                                           std::move(entry)});
                 } else {
                   if (entry->has_key("bytes"))
                     bytes_completed += entry->get_uint("bytes");
@@ -110,7 +115,8 @@ class Load_progress_log final {
                   if (entry->has_key("raw_bytes"))
                     raw_bytes_completed += entry->get_uint("raw_bytes");
 
-                  iter->second = Status::DONE;
+                  iter->second.status = Status::DONE;
+                  iter->second.details = std::move(entry);
                 }
               }
               return true;
@@ -166,7 +172,7 @@ class Load_progress_log final {
   Status schema_ddl_status(const std::string &schema) const {
     auto it = m_last_state.find("SCHEMA-DDL:`" + schema + "`");
     if (it == m_last_state.end()) return Status::PENDING;
-    return it->second;
+    return it->second.status;
   }
 
   Status triggers_ddl_status(const std::string &schema,
@@ -174,14 +180,14 @@ class Load_progress_log final {
     auto it =
         m_last_state.find("TRIGGERS-DDL:`" + schema + "`:`" + table + "`");
     if (it == m_last_state.end()) return Status::PENDING;
-    return it->second;
+    return it->second.status;
   }
 
   Status table_ddl_status(const std::string &schema,
                           const std::string &table) const {
     auto it = m_last_state.find("TABLE-DDL:`" + schema + "`:`" + table + "`");
     if (it == m_last_state.end()) return Status::PENDING;
-    return it->second;
+    return it->second.status;
   }
 
   Status table_chunk_status(const std::string &schema, const std::string &table,
@@ -189,24 +195,42 @@ class Load_progress_log final {
     auto it = m_last_state.find("TABLE-DATA:`" + schema + "`:`" + table +
                                 "`:" + std::to_string(chunk));
     if (it == m_last_state.end()) return Status::PENDING;
-    return it->second;
+    return it->second.status;
+  }
+
+  Status table_subchunk_status(const std::string &schema,
+                               const std::string &table, ssize_t chunk,
+                               uint64_t subchunk) const {
+    auto it =
+        m_last_state.find(encode_subchunk(schema, table, chunk, subchunk));
+    if (it == m_last_state.end()) return Status::PENDING;
+    return it->second.status;
+  }
+
+  uint64_t table_subchunk_size(const std::string &schema,
+                               const std::string &table, ssize_t chunk,
+                               uint64_t subchunk) const {
+    auto it =
+        m_last_state.find(encode_subchunk(schema, table, chunk, subchunk));
+    if (it == m_last_state.end()) return 0;
+    return it->second.details->get_uint("transaction_bytes");
   }
 
   Status gtid_update_status() const {
     auto it = m_last_state.find("GTID-UPDATE");
     if (it == m_last_state.end()) return Status::PENDING;
-    return it->second;
+    return it->second.status;
   }
 
   // schema DDL includes the schema script and views
   void start_schema_ddl(const std::string &schema) {
     if (schema_ddl_status(schema) != Status::DONE)
-      log(false, "SCHEMA-DDL", schema, "");
+      log(false, "SCHEMA-DDL", schema);
   }
 
   void end_schema_ddl(const std::string &schema) {
     if (schema_ddl_status(schema) != Status::DONE)
-      log(true, "SCHEMA-DDL", schema, "");
+      log(true, "SCHEMA-DDL", schema);
   }
 
   void start_table_ddl(const std::string &schema, const std::string &table) {
@@ -232,36 +256,56 @@ class Load_progress_log final {
   void start_table_chunk(const std::string &schema, const std::string &table,
                          ssize_t index) {
     if (table_chunk_status(schema, table, index) != Status::DONE)
-      log(false, "TABLE-DATA", schema, table, index, 0, 0);
+      log_chunk_started(schema, table, index);
   }
 
   void end_table_chunk(const std::string &schema, const std::string &table,
                        ssize_t index, size_t bytes_loaded,
                        size_t raw_bytes_loaded) {
     if (table_chunk_status(schema, table, index) != Status::DONE)
-      log(true, "TABLE-DATA", schema, table, index, bytes_loaded,
-          raw_bytes_loaded);
+      log_chunk_finished(schema, table, index, bytes_loaded, raw_bytes_loaded);
+  }
+
+  void start_table_subchunk(const std::string &schema, const std::string &table,
+                            ssize_t index, uint64_t subchunk) {
+    if (table_subchunk_status(schema, table, index, subchunk) != Status::DONE) {
+      log_subchunk_started(schema, table, index, subchunk);
+    }
+  }
+  void end_table_subchunk(const std::string &schema, const std::string &table,
+                          ssize_t index, uint64_t subchunk, uint64_t bytes) {
+    if (table_subchunk_status(schema, table, index, subchunk) != Status::DONE) {
+      log_subchunk_finished(schema, table, index, subchunk, bytes);
+    }
   }
 
   void start_gtid_update() {
-    if (gtid_update_status() != Status::DONE) log(false, "GTID-UPDATE", "", "");
+    if (gtid_update_status() != Status::DONE) log(false, "GTID-UPDATE");
   }
 
   void end_gtid_update() {
-    if (gtid_update_status() != Status::DONE) log(true, "GTID-UPDATE", "", "");
+    if (gtid_update_status() != Status::DONE) log(true, "GTID-UPDATE");
   }
 
  private:
+  using Dumper = shcore::JSON_dumper;
+  using Callback = std::function<void(Dumper *)>;
+
+  struct Status_details {
+    Status status;
+    shcore::Dictionary_t details;
+  };
+
   std::unique_ptr<mysqlshdk::storage::IFile> m_file;
   std::unique_ptr<mysqlshdk::storage::IFile> m_real_file;
   const std::string *m_memfile_contents = nullptr;
 
-  std::unordered_map<std::string, Status> m_last_state;
+  std::unordered_map<std::string, Status_details> m_last_state;
 
-  void log(bool end, const std::string &op, const std::string &schema,
-           const std::string &table) {
+  void log(bool end, const std::string &op, const std::string &schema = "",
+           const std::string &table = "", const Callback &more = {}) {
     if (m_file) {
-      shcore::JSON_dumper json;
+      Dumper json;
 
       json.start_object();
       json.append_string("op", op);
@@ -272,6 +316,9 @@ class Load_progress_log final {
           json.append_string("table", table);
         }
       }
+      if (more) {
+        more(&json);
+      }
       json.end_object();
 
       mysqlshdk::storage::fputs(json.str() + "\n", m_file.get());
@@ -280,26 +327,59 @@ class Load_progress_log final {
   }
 
   void log(bool end, const std::string &op, const std::string &schema,
-           const std::string &table, ssize_t chunk_index, size_t bytes_loaded,
-           size_t raw_bytes_loaded) {
-    if (m_file) {
-      shcore::JSON_dumper json;
+           const std::string &table, ssize_t chunk_index,
+           const Callback &more = {}) {
+    log(end, op, schema, table, [&](Dumper *json) {
+      json->append_int("chunk", chunk_index);
 
-      json.start_object();
-      json.append_string("op", op);
-      json.append_bool("done", end);
-      json.append_string("schema", schema);
-      json.append_string("table", table);
-      json.append_int("chunk", chunk_index);
-      if (end) {
-        json.append_uint64("bytes", bytes_loaded);
-        json.append_uint64("raw_bytes", raw_bytes_loaded);
+      if (more) {
+        more(json);
       }
-      json.end_object();
+    });
+  }
 
-      mysqlshdk::storage::fputs(json.str() + "\n", m_file.get());
-      flush();
-    }
+  void log_chunk(bool end, const std::string &schema, const std::string &table,
+                 ssize_t chunk_index, const Callback &more = {}) {
+    log(end, "TABLE-DATA", schema, table, chunk_index, more);
+  }
+
+  void log_chunk_started(const std::string &schema, const std::string &table,
+                         ssize_t chunk_index) {
+    log_chunk(false, schema, table, chunk_index);
+  }
+
+  void log_chunk_finished(const std::string &schema, const std::string &table,
+                          ssize_t chunk_index, size_t bytes_loaded,
+                          size_t raw_bytes_loaded) {
+    log_chunk(true, schema, table, chunk_index, [&](Dumper *json) {
+      json->append_uint64("bytes", bytes_loaded);
+      json->append_uint64("raw_bytes", raw_bytes_loaded);
+    });
+  }
+
+  void log_subchunk(bool end, const std::string &schema,
+                    const std::string &table, ssize_t chunk_index,
+                    uint64_t subchunk, const Callback &more = {}) {
+    log(end, "TABLE-SUB-DATA", schema, table, chunk_index, [&](Dumper *json) {
+      json->append_int("subchunk", subchunk);
+
+      if (more) {
+        more(json);
+      }
+    });
+  }
+
+  void log_subchunk_started(const std::string &schema, const std::string &table,
+                            ssize_t chunk_index, uint64_t subchunk) {
+    log_subchunk(false, schema, table, chunk_index, subchunk);
+  }
+
+  void log_subchunk_finished(const std::string &schema,
+                             const std::string &table, ssize_t chunk_index,
+                             uint64_t subchunk, uint64_t bytes) {
+    log_subchunk(true, schema, table, chunk_index, subchunk, [&](Dumper *json) {
+      json->append_uint64("transaction_bytes", bytes);
+    });
   }
 
   void flush() {
@@ -312,6 +392,13 @@ class Load_progress_log final {
                          m_memfile_contents->size());
       m_real_file->close();
     }
+  }
+
+  std::string encode_subchunk(const std::string &schema,
+                              const std::string &table, ssize_t chunk,
+                              uint64_t subchunk) const {
+    return "TABLE-SUB-DATA:`" + schema + "`:`" + table +
+           "`:" + std::to_string(chunk) + ":" + std::to_string(subchunk);
   }
 };
 

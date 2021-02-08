@@ -74,16 +74,51 @@ int local_infile_error_nop(void * /* userdata */, char * /* error_msg */,
 
 }  // namespace
 
+void Transaction_buffer::before_query() {
+  if (m_options.max_trx_size) {
+    if (m_options.transaction_started) {
+      m_options.transaction_started();
+    }
+
+    if (m_options.skip_bytes > 0) {
+      try {
+        m_file->seek(m_options.skip_bytes);
+        m_options.skip_bytes = 0;
+      } catch (const std::logic_error &) {
+        static constexpr std::size_t length = 1024;
+        static char buffer[length];
+
+        // seek() failed (i.e. it's not implemented), read beginning of the file
+        while (m_options.skip_bytes > 0) {
+          const auto bytes = m_file->read(
+              buffer, std::min<std::size_t>(m_options.skip_bytes, length));
+
+          if (bytes <= 0) {
+            return;
+          }
+
+          m_options.skip_bytes -= bytes;
+        }
+      }
+    }
+  }
+}
+
 void Transaction_buffer::flush_done(bool *out_has_more_data) {
+  if (m_options.max_trx_size && m_options.transaction_finished) {
+    m_options.transaction_finished(m_trx_size);
+  }
+
   m_trx_size = 0;
   m_trx_end_offset = 0;
   m_partial_row_sent = false;
 
-  *out_has_more_data = m_max_trx_size > 0 && (!m_eof || !m_data.empty());
+  *out_has_more_data =
+      m_options.max_trx_size > 0 && (!m_eof || !m_data.empty());
 }
 
 bool Transaction_buffer::flush_pending() const {
-  return m_max_trx_size > 0 && m_trx_end_offset > 0 &&
+  return m_options.max_trx_size > 0 && m_trx_end_offset > 0 &&
          m_trx_end_offset <= m_trx_size;
 }
 
@@ -114,7 +149,7 @@ int Transaction_buffer::consume(char *buffer, unsigned int length) {
 }
 
 int Transaction_buffer::read(char *buffer, unsigned int length) {
-  if (m_max_trx_size == 0) {
+  if (m_options.max_trx_size == 0) {
     // regular read if truncation is not enabled
     return m_file->read(buffer, length);
   }
@@ -261,12 +296,12 @@ uint64_t Transaction_buffer::find_last_row_boundary_before(uint64_t limit) {
 
   if (length == 0) return 0;
 
-  if (m_offsets) {
-    const auto size = m_offsets->size();
+  if (m_options.offsets) {
+    const auto size = m_options.offsets->size();
     bool index_changed = false;
 
     for (; m_offset_index < size; ++m_offset_index, index_changed = true) {
-      const auto &o = (*m_offsets)[m_offset_index];
+      const auto &o = (*m_options.offsets)[m_offset_index];
 
       if (o > m_current_offset) {
         const auto new_length = o - m_current_offset;
@@ -454,8 +489,8 @@ void Load_data_worker::operator()() {
 
 void Load_data_worker::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-    std::unique_ptr<mysqlshdk::storage::IFile> file, size_t max_trx_size,
-    const std::vector<uint64_t> *offsets) {
+    std::unique_ptr<mysqlshdk::storage::IFile> file,
+    const Transaction_options &options) {
   try {
     File_info fi;
     fi.worker_id = m_thread_id;
@@ -606,15 +641,14 @@ void Load_data_worker::execute(
           fi.chunk_start = 0;
           fi.bytes_left = 0;
         }
-        fi.buffer =
-            Transaction_buffer(Dialect(), 0, fi.filehandler.get(), nullptr);
+        fi.buffer = Transaction_buffer(Dialect(), fi.filehandler.get());
       } else {
         if (file != nullptr) {
           fi.filename = file->full_path();
           fi.filehandler = std::move(file);
           file.reset(nullptr);
-          fi.buffer = Transaction_buffer(m_opt.dialect(), max_trx_size,
-                                         fi.filehandler.get(), offsets);
+          fi.buffer = Transaction_buffer(m_opt.dialect(), fi.filehandler.get(),
+                                         options);
           fi.filehandler->open(mysqlshdk::storage::Mode::READ);
         }
         fi.range_read = false;
@@ -634,6 +668,7 @@ void Load_data_worker::execute(
 #endif
 
       try {
+        fi.buffer.before_query();
         load_result = session->query(m_query_comment + full_query);
         fi.buffer.flush_done(&has_more_data);
         m_stats.total_bytes += fi.bytes;
@@ -679,7 +714,7 @@ void Load_data_worker::execute(
         const char *mysql_info = session->get_mysql_info();
         mysqlsh::current_console()->print_info(
             worker_name + task + ": " + (mysql_info ? mysql_info : "ERROR") +
-            (max_trx_size == 0
+            (options.max_trx_size == 0
                  ? ""
                  : (has_more_data
                         ? " - flushed sub-chunk " + std::to_string(subchunk)
