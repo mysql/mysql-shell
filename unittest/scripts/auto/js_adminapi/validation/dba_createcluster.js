@@ -104,7 +104,7 @@ group_replication_start_on_boot = ON
 //@ WL#12049: Create cluster 2 {VER(>=8.0.12)}
 ||
 
-//@<OUT> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12)}
+//@<OUT> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC
 group_replication_exit_state_action = READ_ONLY
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -153,7 +153,9 @@ group_replication_start_on_boot = ON
 //@<OUT> WL#11032: memberWeight must be persisted on mysql >= 8.0.11 {VER(>=8.0.12)}
 group_replication_bootstrap_group = OFF
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_force_members =
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
@@ -174,7 +176,9 @@ group_replication_start_on_boot = ON
 ||
 
 //@<OUT> WL#11032: memberWeight must not be persisted on mysql >= 8.0.11 if not set {VER(>=8.0.12)}
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON

@@ -428,13 +428,15 @@ void Group_replication_options::check_option_values(
   if (!exit_state_action.is_null()) {
     validate_exit_state_action_supported(version, *exit_state_action);
   } else {
-    // BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC
-    // - exitStateAction default value must be READ_ONLY
-    // - exitStateAction default value should only be set if supported in
-    // the target instance
+    // exitStateAction default value should only be set if supported in
+    // the target instance and must be READ_ONLY for versions < 8.0.16 since
+    // the default was ABORT_SERVER which was considered to be too drastic
+    // NOTE: In 8.0.16 the default value became READ_ONLY so we must not change
+    // it
     if (target == JOIN &&
         is_option_supported(version, kExitStateAction,
-                            k_global_cluster_supported_options)) {
+                            k_global_cluster_supported_options) &&
+        version < mysqlshdk::utils::Version("8.0.16")) {
       exit_state_action = "READ_ONLY";
     }
   }

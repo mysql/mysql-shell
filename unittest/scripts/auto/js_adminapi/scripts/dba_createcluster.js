@@ -223,8 +223,11 @@ shell.connect(__sandbox_uri1);
 //@ WL#12049: Create cluster 2 {VER(>=8.0.12)}
 var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-4485005154dc"});
 
-//@<OUT> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12)}
+//@<OUT> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12) && VER(<8.0.16)}
 print(get_persisted_gr_sysvars(__mysql_sandbox_port1));
+
+//@<> BUG#29037274: ADMINAPI MUST NOT SET DEFAULT VALUE FOR G_R_EXIT_STATE_ACTION IN 8.0.16 {VER(>=8.0.16)}
+EXPECT_EQ(null, session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like 'group_replication_exit_state_action'").fetchOne());
 
 //@ WL#12049: Finalization
 session.close();

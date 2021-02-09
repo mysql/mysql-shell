@@ -2,7 +2,9 @@
 ||
 
 //@<OUT> FR1-TS-01 Check persisted variables after create cluster {VER(>=8.0.12)}
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
@@ -97,7 +99,9 @@ one server failure.
 |Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.|
 
 //@<OUT> FR1-TS-04/05 {VER(>=8.0.12)}
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = 62d73bbd-b830-11e7-a7b7-34e6d72fbd80
 ?{VER(>=8.0.22)}
 group_replication_ip_allowlist = 255.255.255.255/32,127.0.0.1,<<<hostname_ip>>>,<<<hostname>>>
@@ -149,7 +153,9 @@ one server failure.
 ||
 
 //@<OUT> FR1-TS-7 show persisted cluster variables {VER(>=8.0.12)}
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_recovery_use_ssl = ON
@@ -217,7 +223,9 @@ group_replication_start_on_boot = ON
 //@<OUT> FR2-TS-1 check persisted variables on instance 1 {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
@@ -371,7 +379,9 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
 
 //@<OUT> FR2-TS-4 Check that persisted variables match the ones passed on the arguments to create cluster and addInstance {VER(>=8.0.12)}
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = localhost:<<<__local_address_2>>>
 ?{VER(>=8.0.22)}
@@ -388,7 +398,9 @@ group_replication_start_on_boot = ON
 
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.22)}
@@ -413,7 +425,9 @@ group_replication_start_on_boot = ON
 
 //@<OUT> FR2-TS-5 {VER(>=8.0.12)}
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = localhost:<<<__local_address_3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -424,7 +438,9 @@ group_replication_start_on_boot = ON
 
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.22)}
@@ -444,7 +460,9 @@ Calling this function on a cluster member is only required for MySQL versions 8.
 
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 ?{VER(>=8.0.22)}
@@ -484,7 +502,9 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added
 
 //@<OUT> FR2-TS-8 Check that correct values were persisted and that instance rejoins automatically {VER(>=8.0.12)}
 group_replication_enforce_update_everywhere_checks = ON
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -495,7 +515,9 @@ group_replication_start_on_boot = ON
 
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = ON
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
@@ -578,7 +600,9 @@ ONLINE
 //@<OUT> FR2-TS-9 Check that correct values were persisted on instance 2 {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
@@ -594,7 +618,9 @@ group_replication_start_on_boot = ON
 //@<OUT> FR2-TS-9 Check that correct values are persisted and updated when instances are added and that instances rejoin automatically {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
@@ -606,7 +632,9 @@ group_replication_start_on_boot = ON
 
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
@@ -617,7 +645,9 @@ group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = ON
 
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -722,7 +752,9 @@ ONLINE
 group_replication_consistency = EVENTUAL
 group_replication_bootstrap_group = OFF
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_force_members =
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
@@ -734,7 +766,9 @@ group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
 
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -752,7 +786,9 @@ group_replication_start_on_boot = ON
 //@<OUT> FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation - before {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>,<<<hostname>>>:<<<__mysql_sandbox_gr_port2>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
@@ -772,7 +808,9 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
 //@<OUT> FR5-TS-4 Check that persisted variables are updated/reset after removeCluster operation - after {VER(>=8.0.12)}
 group_replication_consistency = EVENTUAL
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
@@ -785,7 +823,9 @@ group_replication_start_on_boot = ON
 group_replication_consistency = EVENTUAL
 group_replication_bootstrap_group = OFF
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_force_members =
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
@@ -797,7 +837,9 @@ group_replication_ssl_mode = REQUIRED
 group_replication_start_on_boot = OFF
 
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds = <<<hostname>>>:<<<__mysql_sandbox_gr_port3>>>
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -868,7 +910,9 @@ The instance 'localhost:<<<__mysql_sandbox_port2>>>' was successfully removed fr
 //@<OUT> Check if Cluster dissolve will reset persisted variables {VER(>=8.0.12)}
 group_replication_bootstrap_group = OFF
 group_replication_enforce_update_everywhere_checks = OFF
+?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
+?{}
 group_replication_force_members =
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =

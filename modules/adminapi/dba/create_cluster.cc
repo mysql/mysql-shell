@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -247,13 +247,16 @@ void Create_cluster::prepare() {
       // already configured
       ensure_gr_instance_configuration_valid(m_target_instance.get());
 
-      // BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC
-      // - exitStateAction default value must be READ_ONLY
-      // - exitStateAction default value should only be set if supported in
-      // the target instance
+      // exitStateAction default value should only be set if supported in
+      // the target instance and must be READ_ONLY for versions < 8.0.16 since
+      // the default was ABORT_SERVER which was considered to be too drastic
+      // NOTE: In 8.0.16 the default value became READ_ONLY so we must not
+      // change it
+      auto instance_version = m_target_instance->get_version();
       if (m_gr_opts.exit_state_action.is_null() &&
-          is_option_supported(m_target_instance->get_version(), kExpelTimeout,
-                              k_global_cluster_supported_options)) {
+          is_option_supported(instance_version, kExpelTimeout,
+                              k_global_cluster_supported_options) &&
+          instance_version < mysqlshdk::utils::Version("8.0.16")) {
         m_gr_opts.exit_state_action = "READ_ONLY";
       }
 

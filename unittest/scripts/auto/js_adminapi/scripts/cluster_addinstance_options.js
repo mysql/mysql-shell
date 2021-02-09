@@ -164,8 +164,13 @@ var c = dba.createCluster('test', {groupName: "ca94447b-e6fc-11e7-b69d-448500515
 //@ WL#12049: Add instance without using exitStateAction {VER(>=8.0.12)}
 c.addInstance(__sandbox_uri2)
 
-//@<> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12)}
+//@<> BUG#28701263: DEFAULT VALUE OF EXITSTATEACTION TOO DRASTIC {VER(>=8.0.12) && VER(<8.0.16)}
 EXPECT_EQ("READ_ONLY", get_sysvar(session, "group_replication_exit_state_action"));
+
+//@<> BUG#29037274: ADMINAPI MUST NOT SET DEFAULT VALUE FOR G_R_EXIT_STATE_ACTION IN 8.0.16 {VER(>=8.0.16)}
+session.close()
+shell.connect(__sandbox_uri2);
+EXPECT_EQ(null, session.runSql("SELECT * from performance_schema.persisted_variables WHERE Variable_name like 'group_replication_exit_state_action'").fetchOne());
 
 //@ WL#12049: Finalization
 session.close();
