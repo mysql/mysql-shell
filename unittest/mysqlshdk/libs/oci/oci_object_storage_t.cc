@@ -96,6 +96,33 @@ TEST_F(Oci_os_tests, directory_list_files) {
   EXPECT_STREQ("category_metadata.txt", files[5].name.c_str());
   EXPECT_STREQ("sakila_multipart_object.txt", files[6].name.c_str());
 
+  {
+    auto filtered = root_directory.filter_files("*");
+    EXPECT_EQ(5, filtered.size());
+    EXPECT_STREQ("sakila.sql", filtered[0].name.c_str());
+    EXPECT_STREQ("sakila_metadata.txt", filtered[1].name.c_str());
+    EXPECT_STREQ("sakila_tables.txt", filtered[2].name.c_str());
+    EXPECT_STREQ("uncommon%25%name.txt", filtered[3].name.c_str());
+    EXPECT_STREQ("uncommon's name.txt", filtered[4].name.c_str());
+  }
+  {
+    auto filtered = root_directory.filter_files("sakila*");
+    EXPECT_EQ(3, filtered.size());
+    EXPECT_STREQ("sakila.sql", filtered[0].name.c_str());
+    EXPECT_STREQ("sakila_metadata.txt", filtered[1].name.c_str());
+    EXPECT_STREQ("sakila_tables.txt", filtered[2].name.c_str());
+  }
+  {
+    auto filtered = sakila.filter_files("*");
+    EXPECT_EQ(6, filtered.size());
+    EXPECT_STREQ("actor.csv", filtered[0].name.c_str());
+    EXPECT_STREQ("actor_metadata.txt", filtered[1].name.c_str());
+    EXPECT_STREQ("address.csv", filtered[2].name.c_str());
+    EXPECT_STREQ("address_metadata.txt", filtered[3].name.c_str());
+    EXPECT_STREQ("category.csv", filtered[4].name.c_str());
+    EXPECT_STREQ("category_metadata.txt", filtered[5].name.c_str());
+  }
+
   Directory unexisting(options, "unexisting");
   EXPECT_FALSE(unexisting.exists());
   unexisting.create();

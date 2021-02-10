@@ -151,7 +151,7 @@ std::vector<IDirectory::File_info> Directory::filter_files(
   } else {
     for (const auto &object : objects) {
       auto file_name = object.name.substr(prefix.size());
-      if (shcore::match_glob(pattern, file_name)) {
+      if (!file_name.empty() && shcore::match_glob(pattern, file_name)) {
         files.push_back({std::move(file_name), object.size});
       }
     }

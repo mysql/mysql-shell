@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -199,7 +199,7 @@ std::vector<Object_details> Bucket::list_objects(
       if (fields.is_set(Object_fields::TIME_CREATED))
         details.time_created = object->get_string("timeCreated");
 
-      list.push_back(details);
+      list.emplace_back(std::move(details));
     }
 
     if (out_prefixes && data->has_key("prefixes")) {
