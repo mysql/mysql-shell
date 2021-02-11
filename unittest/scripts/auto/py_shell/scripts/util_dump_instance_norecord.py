@@ -2,6 +2,7 @@
 import json
 import os
 import os.path
+import random
 import re
 import shutil
 import stat
@@ -505,7 +506,9 @@ EXPECT_FAIL("RuntimeError", "An open session is required to perform this operati
 testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root", {
     "loose_innodb_directories": filename_for_file(table_data_directory),
     "early-plugin-load": "keyring_file." + ("dll" if __os_type == "windows" else "so"),
-    "keyring_file_data": filename_for_file(os.path.join(incompatible_table_directory, "keyring"))
+    "keyring_file_data": filename_for_file(os.path.join(incompatible_table_directory, "keyring")),
+    "log-bin": "binlog",
+    "server-id": str(random.randint(1, 4294967295))
 })
 
 #@<> wait for server
@@ -1724,6 +1727,14 @@ EXPECT_FAIL("RuntimeError", "Failed to get object list", '', {"osBucketName": "a
 
 #@<> An error should occur when dumping using oci+os://
 EXPECT_FAIL("ValueError", "Directory handling for oci+os protocol is not supported.", 'oci+os://sakila')
+
+#@<> BUG#32490714 - running a dump should not change binlog position
+[binlog_file, binlog_position, _, _, _] = session.run_sql('SHOW MASTER STATUS;').fetch_one()
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
+[new_binlog_file, new_binlog_position, _, _, _] = session.run_sql('SHOW MASTER STATUS;').fetch_one()
+
+EXPECT_EQ(binlog_file, new_binlog_file, "binlog file should not change")
+EXPECT_EQ(binlog_position, new_binlog_position, "binlog position should not change")
 
 #@<> Drop roles {VER(>=8.0.0)}
 session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])

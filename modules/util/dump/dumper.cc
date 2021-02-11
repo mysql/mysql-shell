@@ -1207,7 +1207,7 @@ void Dumper::acquire_read_locks() {
       // both shell and most client connections are stalled. Of course, if a
       // second long update starts between the two FLUSHes, we have that bad
       // stall.
-      session()->execute("FLUSH TABLES;");
+      session()->execute("FLUSH NO_WRITE_TO_BINLOG TABLES;");
       session()->execute("FLUSH TABLES WITH READ LOCK;");
       current_console()->print_info("Global read lock acquired");
 
