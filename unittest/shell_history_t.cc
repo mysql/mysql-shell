@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,6 +45,7 @@ class Shell_history : public ::testing::Test {
 #else
   const std::string to_scripting = "\\py";
 #endif
+
  public:
   Shell_history()
       : _options_file(
@@ -680,6 +681,57 @@ TEST_F(Shell_history, check_history_source_js) {
 
   shcore::delete_file("test_source.js");
 }
+
+TEST_F(Shell_history, check_history_source_js_nonl_interactive) {
+  // WL#10446 says \source shall no add entries to the history
+  // Only history entry shall the \source itself
+
+  // BUG#30765725 SHELL PYTHON HISTORY INCLUDING LAST LINE OF SCRIPTS
+  // If script doesn't have newline at the end of the file, then last statement
+  // is not executed.
+
+  const auto &server_uri = shell_test_server_uri();
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
+                  const_cast<char *>("--interactive=full"),
+                  const_cast<char *>(server_uri.c_str()), nullptr};
+  mysqlsh::Command_line_shell shell(
+      std::make_shared<Shell_options>(4, args, _options_file));
+  shell._history.set_limit(10);
+
+  std::ofstream of;
+  of.open("test_source_nonl.js");
+  of << "print(`line1\nline2\nline3`)";
+  of.close();
+
+  EXPECT_NO_THROW(shell.load_state());
+  EXPECT_EQ(0, linenoiseHistorySize());
+
+  {
+    enable_capture();
+
+    shell.process_line("\\source test_source_nonl.js");
+    EXPECT_EQ(1, linenoiseHistorySize());
+    EXPECT_EQ(std::string{"\\source test_source_nonl.js"},
+              std::string(linenoiseHistoryLine(0)));
+    EXPECT_EQ(R"*(mysql-js> 
+print(`line1
+
+       -> 
+line2
+
+       -> 
+line3`)
+
+       -> 
+line1
+line2
+line3
+)*",
+              m_capture);
+  }
+
+  shcore::delete_file("test_source_nonl.js");
+}
 #endif
 
 TEST_F(Shell_history, check_history_source_py) {
@@ -711,6 +763,109 @@ TEST_F(Shell_history, check_history_source_py) {
   }
 
   shcore::delete_file("test_source.py");
+}
+
+TEST_F(Shell_history, check_history_source_py_nonl_interactive) {
+  // WL#10446 says \source shall no add entries to the history
+  // Only history entry shall the \source itself
+
+  // BUG#30765725 SHELL PYTHON HISTORY INCLUDING LAST LINE OF SCRIPTS
+  // If script doesn't have newline at the end of the file, then last statement
+  // is not executed.
+
+  const auto &server_uri = shell_test_server_uri();
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--py"),
+                  const_cast<char *>("--interactive=full"),
+                  const_cast<char *>(server_uri.c_str()), nullptr};
+  mysqlsh::Command_line_shell shell(
+      std::make_shared<Shell_options>(4, args, _options_file));
+  shell._history.set_limit(10);
+
+  std::ofstream of;
+  of.open("test_source_nonl.py");
+  of << "print('''line1\nline2\nline3''')";
+  of.close();
+
+  EXPECT_NO_THROW(shell.load_state());
+  EXPECT_EQ(0, linenoiseHistorySize());
+
+  {
+    enable_capture();
+
+    shell.process_line("\\source test_source_nonl.py");
+    EXPECT_EQ(1, linenoiseHistorySize());
+    EXPECT_EQ(std::string{"\\source test_source_nonl.py"},
+              std::string(linenoiseHistoryLine(0)));
+    EXPECT_EQ(R"*(mysql-py> 
+print('''line1
+
+       -> 
+line2
+
+       -> 
+line3''')
+
+line1
+line2
+line3
+
+
+mysql-py> 
+)*",
+              m_capture);
+  }
+
+  shcore::delete_file("test_source_nonl.py");
+}
+
+TEST_F(Shell_history, check_history_source_py_nonl_continuedstate_interactive) {
+  // WL#10446 says \source shall no add entries to the history
+  // Only history entry shall the \source itself
+
+  // BUG#30765725 SHELL PYTHON HISTORY INCLUDING LAST LINE OF SCRIPTS
+  // If script doesn't have newline at the end of the file, then last statement
+  // is not executed.
+
+  const auto &server_uri = shell_test_server_uri();
+  char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--py"),
+                  const_cast<char *>("--interactive=full"),
+                  const_cast<char *>(server_uri.c_str()), nullptr};
+  mysqlsh::Command_line_shell shell(
+      std::make_shared<Shell_options>(4, args, _options_file));
+  shell._history.set_limit(10);
+
+  std::ofstream of;
+  of.open("test_source_nonl.py");
+  // of << "print('''line1\nline2\nline3";
+  of << "l = ['line1', 'line2', 'line3']\nfor s in l:\n  print(s";
+  of.close();
+
+  EXPECT_NO_THROW(shell.load_state());
+  EXPECT_EQ(0, linenoiseHistorySize());
+
+  {
+    enable_capture();
+
+    shell.process_line("\\source test_source_nonl.py");
+    EXPECT_EQ(shell.input_state(), shcore::Input_state::ContinuedBlock);
+    EXPECT_EQ(1, linenoiseHistorySize());
+    EXPECT_EQ(std::string{"\\source test_source_nonl.py"},
+              std::string(linenoiseHistoryLine(0)));
+    EXPECT_EQ(R"*(mysql-py> 
+l = ['line1', 'line2', 'line3']
+
+mysql-py> 
+for s in l:
+
+       -> 
+  print(s
+
+       -> 
+)*",
+              m_capture);
+  }
+
+  shcore::delete_file("test_source_nonl.py");
 }
 
 TEST_F(Shell_history, check_history_overflow_del) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -166,7 +166,11 @@ class Command_line_shell : public Mysql_shell,
   FRIEND_TEST(Shell_history, history_sizes);
   FRIEND_TEST(Shell_history, check_history_overflow_del);
   FRIEND_TEST(Shell_history, check_history_source_js);
+  FRIEND_TEST(Shell_history, check_history_source_js_nonl_interactive);
   FRIEND_TEST(Shell_history, check_history_source_py);
+  FRIEND_TEST(Shell_history, check_history_source_py_nonl_interactive);
+  FRIEND_TEST(Shell_history,
+              check_history_source_py_nonl_continuedstate_interactive);
   FRIEND_TEST(Shell_history, history_autosave_int);
   FRIEND_TEST(Shell_history, check_help_shows_history);
   FRIEND_TEST(Shell_history, history_del_invisible_entry);

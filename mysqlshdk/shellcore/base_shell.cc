@@ -429,7 +429,7 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
  * @param str text to be printed.
  */
 void Base_shell::println_deferred(const std::string &str) {
-  // This can't be called once the deferred output is flusehd
+  // This can't be called once the deferred output is flushed
   assert(_deferred_output != nullptr);
   _deferred_output->append(str + "\n");
 }
@@ -443,14 +443,17 @@ void Base_shell::clear_input() {
 void Base_shell::process_line(const std::string &line) {
   std::string to_history;
 
-  if (_input_mode == shcore::Input_state::ContinuedBlock && line.empty())
+  if (_input_mode == shcore::Input_state::ContinuedBlock && line.empty()) {
     _input_mode = shcore::Input_state::Ok;
+  }
 
   // Appends the line, no matter if it is an empty line
   _input_buffer.append(_shell->preprocess_input_line(line));
 
   // Appends the new line if anything has been added to the buffer
-  if (!_input_buffer.empty()) _input_buffer.append("\n");
+  if (!_input_buffer.empty()) {
+    _input_buffer.append("\n");
+  }
 
   if (_input_mode != shcore::Input_state::ContinuedBlock &&
       !_input_buffer.empty()) {
@@ -474,10 +477,14 @@ void Base_shell::process_line(const std::string &line) {
     // TODO: Do we need this cleanup? i.e. in case of exceptions above??
     // Clears the buffer if OK, if continued, buffer will contain
     // the non executed code
-    if (_input_mode == shcore::Input_state::Ok) _input_buffer.clear();
+    if (_input_mode == shcore::Input_state::Ok) {
+      _input_buffer.clear();
+    }
   }
 
-  if (!to_history.empty()) notify_executed_statement(to_history);
+  if (!to_history.empty()) {
+    notify_executed_statement(to_history);
+  }
 }
 
 void Base_shell::notify_executed_statement(const std::string &line) {
@@ -597,8 +604,10 @@ int Base_shell::process_stream(std::istream &stream, const std::string &source,
 
     bool comment_first_js_line =
         _shell->interactive_mode() == shcore::IShell_core::Mode::JavaScript;
+
+    std::string line;
     while (!stream.eof()) {
-      std::string line;
+      line.clear();
 
       shcore::getline(stream, line);
 
@@ -616,6 +625,13 @@ int Base_shell::process_stream(std::istream &stream, const std::string &source,
       process_line(line);
 
       if (options().full_interactive) print(prompt());
+    }
+
+    // If stream ended, but doesn't have newline at the end, then last statement
+    // won't be executed.  We force process empty line to be able to escape from
+    // ContinuedBlock state and execute last statement.
+    if (_input_mode == shcore::Input_state::ContinuedBlock) {
+      process_line(std::string());
     }
 
     // Being interactive, we do not care about the return value

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -131,9 +131,9 @@ int Shell_core::process_stream(std::istream &stream, const std::string &source,
   } else {
     std::string data;
     if (&std::cin == &stream) {
+      std::string line;
       while (!stream.eof()) {
-        std::string line;
-
+        line.clear();
         shcore::getline(stream, line);
         data.append(line).append("\n");
       }
