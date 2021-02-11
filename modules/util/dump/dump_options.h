@@ -147,6 +147,8 @@ class Dump_options {
 
   virtual bool use_timezone_utc() const = 0;
 
+  virtual bool dump_binlog_info() const = 0;
+
  protected:
   void set_dialect(const import_table::Dialect &dialect) {
     m_dialect = dialect;

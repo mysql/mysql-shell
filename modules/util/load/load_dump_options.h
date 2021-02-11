@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -159,6 +159,8 @@ class Load_dump_options {
 
   void set_url(const std::string &url) { m_url = url; }
 
+  bool show_metadata() const { return m_show_metadata; }
+
  private:
   void set_wait_timeout(const double &timeout_seconds);
   void set_str_vector_option(const std::string &option,
@@ -210,6 +212,7 @@ class Load_dump_options {
 
   mysqlshdk::utils::Version m_target_server_version;
   bool m_is_mds = false;
+  bool m_show_metadata = false;
 };
 
 }  // namespace mysqlsh

@@ -102,6 +102,8 @@ struct Instance_cache {
   bool server_is_5_6 = false;
   bool server_is_5_7 = false;
   bool server_is_8_0 = false;
+  std::string binlog_file;
+  uint64_t binlog_position;
   std::string gtid_executed;
   std::unordered_map<std::string, Schema> schemas;
   std::vector<shcore::Account> users;
@@ -142,6 +144,8 @@ class Instance_cache_builder final {
   Instance_cache_builder &routines();
 
   Instance_cache_builder &triggers();
+
+  Instance_cache_builder &binlog_info();
 
   Instance_cache build();
 

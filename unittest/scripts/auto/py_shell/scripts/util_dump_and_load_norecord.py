@@ -4,7 +4,9 @@
 
 #@<> Setup
 from contextlib import ExitStack
+import json
 import os
+import os.path
 import threading
 import time
 
@@ -363,6 +365,92 @@ for f in ordered:
         if not EXPECT_THROWS(lambda: util.load_dump(target, {"waitDumpTimeout": 0.001}), "Dump timeout"):
             break
 
+### BUG#32430402 showMetadata option
+
+#@<> setup showMetadata tests
+binlog_info_header = "---"
+binlog_file = ""
+binlog_position = 0
+gtid_executed = ""
+binlog_info = session1.run_sql("SHOW MASTER STATUS").fetch_one()
+
+if binlog_info is not None:
+    if len(binlog_info[0]) > 0:
+        binlog_file = binlog_info[0]
+        binlog_position = str(binlog_info[1])
+    if len(binlog_info[4]) > 0:
+        gtid_executed = binlog_info[4]
+
+metadata_file = os.path.join(outdir, "fulldump", "@.json")
+
+wipeout_server(session2)
+shell.connect(__sandbox_uri2)
+
+def set_binlog_info(file, position, gtid):
+    with open(metadata_file, "r+", encoding="utf-8") as json_file:
+        # read contents
+        metadata = json.load(json_file)
+        # modify data
+        if file is None:
+            metadata.pop('binlogFile', None)
+        else:
+            metadata['binlogFile'] = file
+        if position is None:
+            metadata.pop('binlogPosition', None)
+        else:
+            metadata['binlogPosition'] = position
+        if gtid is None:
+            metadata.pop('gtidExecuted', None)
+        else:
+            metadata['gtidExecuted'] = gtid
+        # write back to file
+        json_file.seek(0)
+        json.dump(metadata, json_file)
+        json_file.truncate()
+
+def EXPECT_BINLOG_INFO(file, position, gtid, options = {}):
+    WIPE_STDOUT()
+    for option in [ "showMetadata", "dryRun" ]:
+        if option not in options:
+            options[option] = True
+    util.load_dump(os.path.join(outdir, "fulldump"), options)
+    EXPECT_STDOUT_CONTAINS(binlog_info_header)
+    EXPECT_STDOUT_CONTAINS(testutil.yaml({ "Dump_metadata": { "Binlog_file": file, "Binlog_position": position, "Executed_GTID_set": gtid } }))
+
+#@<> showMetadata defaults to false
+util.load_dump(os.path.join(outdir, "fulldump"), { "dryRun": True })
+EXPECT_STDOUT_NOT_CONTAINS(binlog_info_header)
+
+#@<> showMetadata displays expected information
+EXPECT_BINLOG_INFO(binlog_file, binlog_position, gtid_executed)
+
+#@<> create backup of @.json
+testutil.cpfile(metadata_file, metadata_file + ".bak")
+
+#@<> no binary log information
+set_binlog_info(None, None, None)
+EXPECT_BINLOG_INFO("", 0, "", { "loadData": True, "loadDdl": False, "loadUsers": False })
+
+#@<> only executed GTID set
+set_binlog_info(None, None, "gtid_executed")
+EXPECT_BINLOG_INFO("", 0, "gtid_executed", { "loadData": False, "loadDdl": True, "loadUsers": False })
+
+#@<> executed GTID set + empty binlog file + zero binlog position
+set_binlog_info("", 0, "gtid_executed")
+EXPECT_BINLOG_INFO("", 0, "gtid_executed", { "loadData": False, "loadDdl": False, "loadUsers": True })
+
+#@<> executed GTID set + empty binlog file + non-zero binlog position
+set_binlog_info("", 5, "gtid_executed")
+EXPECT_BINLOG_INFO("", 5, "gtid_executed")
+
+#@<> everything is available
+set_binlog_info("binlog.file", 1234, "gtid_executed")
+EXPECT_BINLOG_INFO("binlog.file", "1234", "gtid_executed")
+
+#@<> restore backup of @.json
+testutil.cpfile(metadata_file + ".bak", metadata_file)
+
+### BUG#32430402 showMetadata option -- END
 
 #@ Source data is utf8mb4, but double-encoded in latin1 (preparation)
 session1.run_sql("create schema dblenc")

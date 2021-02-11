@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -271,6 +271,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
 
   expose("traceSyslog", &Testutils::trace_syslog, "file");
   expose("stopTracingSyslog", &Testutils::stop_tracing_syslog);
+
+  expose("yaml", &Testutils::yaml, "value");
 }
 
 Testutils::~Testutils() { stop_tracing_syslog(); }
@@ -4188,5 +4190,20 @@ void Testutils::stop_tracing_syslog() {
     m_syslog_trace.close();
   }
 }
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Converts given value to a YAML representation.
+ *
+ * @param value Value to convert.
+ */
+#if DOXYGEN_JS
+String Testutils::yaml(Any value);
+#elif DOXYGEN_PY
+str Testutils::yaml(any value);
+#endif
+///@}
+std::string Testutils::yaml(const shcore::Value &v) const { return v.yaml(); }
 
 }  // namespace tests

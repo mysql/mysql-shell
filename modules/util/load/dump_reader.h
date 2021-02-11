@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,6 +61,10 @@ class Dump_reader {
   const mysqlshdk::utils::Version &server_version() const {
     return m_contents.server_version;
   }
+
+  const std::string &binlog_file() const { return m_contents.binlog_file; }
+
+  uint64_t binlog_position() const { return m_contents.binlog_position; }
 
   const std::string &gtid_executed() const { return m_contents.gtid_executed; }
 
@@ -183,6 +187,8 @@ class Dump_reader {
 
   std::unique_ptr<mysqlshdk::storage::IFile> create_progress_file_handle()
       const;
+
+  void show_metadata() const;
 
   struct View_info {
     std::string schema;
@@ -317,6 +323,8 @@ class Dump_reader {
     bool has_users = false;
 
     std::string default_charset;
+    std::string binlog_file;
+    uint64_t binlog_position = 0;
     std::string gtid_executed;
     bool gtid_executed_inconsistent = false;
     bool tz_utc = true;

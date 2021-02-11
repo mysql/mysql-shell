@@ -125,6 +125,7 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
                     {{"append", Update_gtid_set::APPEND},
                      {"replace", Update_gtid_set::REPLACE},
                      {"off", Update_gtid_set::OFF}})
+          .optional("showMetadata", &Load_dump_options::m_show_metadata)
           .include(&Load_dump_options::m_oci_option_pack)
           .on_done(&Load_dump_options::on_unpacked_options);
 

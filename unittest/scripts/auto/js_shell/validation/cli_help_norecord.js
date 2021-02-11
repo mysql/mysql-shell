@@ -902,6 +902,10 @@ OPTIONS
             than 'off' updates GTID_PURGED by either replacing its contents or
             appending to it the gtid set present in the dump.
 
+--showMetadata=<bool>
+            Displays the metadata information stored in the dump files, i.e.
+            binary log file name and position. Default: false.
+
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
             it will be obtained using the tenancy id on the OCI configuration.
@@ -918,4 +922,3 @@ OPTIONS
 --ociProfile=<str>
             Use the specified OCI profile instead of the default one. Default:
             not set.
-

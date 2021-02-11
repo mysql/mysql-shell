@@ -1373,6 +1373,10 @@ void Dumper::initialize_instance_cache() {
     }
   }
 
+  if (m_options.dump_binlog_info()) {
+    builder.binlog_info();
+  }
+
   m_cache = builder.build();
 }
 
@@ -1998,6 +2002,12 @@ void Dumper::write_dump_started_metadata() const {
   doc.AddMember(StringRef("server"), ref(m_cache.server), a);
   doc.AddMember(StringRef("serverVersion"),
                 {m_cache.server_version.get_full().c_str(), a}, a);
+
+  if (m_options.dump_binlog_info()) {
+    doc.AddMember(StringRef("binlogFile"), ref(m_cache.binlog_file), a);
+    doc.AddMember(StringRef("binlogPosition"), m_cache.binlog_position, a);
+  }
+
   doc.AddMember(StringRef("gtidExecuted"), ref(m_cache.gtid_executed), a);
   doc.AddMember(StringRef("gtidExecutedInconsistent"),
                 is_gtid_executed_inconsistent(), a);

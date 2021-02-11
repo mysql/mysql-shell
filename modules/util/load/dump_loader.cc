@@ -1799,6 +1799,8 @@ void Dump_loader::open_dump(
   }
 
   m_dump->validate_options();
+
+  m_dump->show_metadata();
 }
 
 void Dump_loader::check_server_version() {

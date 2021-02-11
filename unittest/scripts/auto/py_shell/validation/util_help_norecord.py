@@ -1540,6 +1540,8 @@ DESCRIPTION
       - schema: string (default not set) - Load the dump into the given schema.
         This option can only be used when loading dumps created by the
         util.dump_tables() function.
+      - showMetadata: bool (default: false) - Displays the metadata information
+        stored in the dump files, i.e. binary log file name and position.
       - showProgress: bool (default: true if stdout is a tty, false otherwise)
         - Enable or disable import progress information.
       - skipBinlog: bool (default: false) - Disables the binary log for the
@@ -1595,4 +1597,3 @@ DESCRIPTION
           "osBucketName": "mybucket",    // OCI Object Storage bucket
           "waitDumpTimeout": 1800        // wait for new data for up to 30mins
       })
-

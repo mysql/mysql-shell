@@ -1885,6 +1885,14 @@ WIPE_STDOUT()
 EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_NOT_CONTAINS(expected_msg)
 
+#@<> BUG#32430402 metadata should contain information about binlog
+EXPECT_SUCCESS(types_schema, [types_schema_tables[0]], test_output_absolute, { "ddlOnly": True, "showProgress": False })
+
+with open(os.path.join(test_output_absolute, "@.json"), encoding="utf-8") as json_file:
+    metadata = json.load(json_file)
+    EXPECT_EQ(True, "binlogFile" in metadata, "'binlogFile' should be in metadata")
+    EXPECT_EQ(True, "binlogPosition" in metadata, "'binlogPosition' should be in metadata")
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")

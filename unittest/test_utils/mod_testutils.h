@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -119,6 +119,7 @@ class Testutils : public mysqlsh::Extensible_object {
   // Undefined slowify(Integer port, Boolean start);
   Undefined traceSyslog(String file);
   Undefined stopTracingSyslog();
+  String yaml(Any value);
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd, Dictionary options);
   None destroy_sandbox(int port);
@@ -181,6 +182,7 @@ class Testutils : public mysqlsh::Extensible_object {
   str get_installed_metadata_version();
   None trace_syslog(str file);
   None stop_tracing_syslog();
+  str yaml(any value);
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -387,6 +389,8 @@ class Testutils : public mysqlsh::Extensible_object {
   void trace_syslog(const std::string &file);
 
   void stop_tracing_syslog();
+
+  std::string yaml(const shcore::Value &v) const;
 
  private:
   // Testing stuff

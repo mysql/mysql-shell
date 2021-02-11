@@ -1590,11 +1590,12 @@ for table in types_schema_tables:
 
 #@<> test privileges required to dump an instance
 class PrivilegeError:
-    def __init__(self, exception_message, error_message="", exception_type="RuntimeError", output_dir_created=False):
+    def __init__(self, exception_message, error_message="", exception_type="RuntimeError", output_dir_created=False, fatal=True):
         self.exception_message = exception_message
         self.error_message = error_message
         self.exception_type = exception_type
         self.output_dir_created = output_dir_created
+        self.fatal = fatal
 
 # if this list ever changes, online docs need to be updated
 required_privileges = {
@@ -1617,6 +1618,11 @@ required_privileges = {
     ),
     "TRIGGER": PrivilegeError(  # table-level privilege
         re.compile(r"User '{0}'@'{1}' is missing the following privilege\(s\) for table `.+`\.`.+`: TRIGGER.".format(test_user, __host))
+    ),
+    "REPLICATION CLIENT": PrivilegeError(  # global privilege
+        "NO EXCEPTION!",
+        "WARNING: Could not fetch the binary log information: MySQL Error 1227 (42000): Access denied; you need (at least one of) the SUPER, REPLICATION CLIENT privilege(s) for this operation",
+        fatal=False
     ),
 }
 
@@ -1662,7 +1668,10 @@ for privilege, error in required_privileges.items():
     print("--> testing:", privilege)
     root_session.run_sql("REVOKE {0} ON *.* FROM !@!;".format(privilege), [test_user, __host])
     WIPE_STDOUT()
-    EXPECT_FAIL(error.exception_type, error.exception_message, test_output_absolute, { "showProgress": False }, expect_dir_created=error.output_dir_created)
+    if error.fatal:
+        EXPECT_FAIL(error.exception_type, error.exception_message, test_output_absolute, { "showProgress": False }, expect_dir_created=error.output_dir_created)
+    else:
+        EXPECT_SUCCESS(all_schemas, test_output_absolute, { "showProgress": False })
     EXPECT_STDOUT_CONTAINS(error.error_message)
     root_session.run_sql("GRANT {0} ON *.* TO !@!;".format(privilege), [test_user, __host])
 
@@ -1751,6 +1760,14 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: Failed to fetch table histograms.")
 
 testutil.dbug_set("")
+
+#@<> BUG#32430402 metadata should contain information about binlog
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
+
+with open(os.path.join(test_output_absolute, "@.json"), encoding="utf-8") as json_file:
+    metadata = json.load(json_file)
+    EXPECT_EQ(True, "binlogFile" in metadata, "'binlogFile' should be in metadata")
+    EXPECT_EQ(True, "binlogPosition" in metadata, "'binlogPosition' should be in metadata")
 
 #@<> Drop roles {VER(>=8.0.0)}
 session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])

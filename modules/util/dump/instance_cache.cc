@@ -23,6 +23,8 @@
 
 #include "modules/util/dump/instance_cache.h"
 
+#include <mysqld_error.h>
+
 #include <algorithm>
 #include <iterator>
 #include <stdexcept>
@@ -289,6 +291,26 @@ Instance_cache_builder &Instance_cache_builder::triggers() {
           t.triggers.emplace_back(std::move(trigger.second));
         }
       }
+    }
+  }
+
+  return *this;
+}
+
+Instance_cache_builder &Instance_cache_builder::binlog_info() {
+  try {
+    const auto result = m_session->query("SHOW MASTER STATUS;");
+
+    if (const auto row = result->fetch_one()) {
+      m_cache.binlog_file = row->get_string(0);
+      m_cache.binlog_position = row->get_uint(1);
+    }
+  } catch (const mysqlshdk::db::Error &e) {
+    if (e.code() == ER_SPECIFIC_ACCESS_DENIED_ERROR) {
+      current_console()->print_warning(
+          "Could not fetch the binary log information: " + e.format());
+    } else {
+      throw;
     }
   }
 

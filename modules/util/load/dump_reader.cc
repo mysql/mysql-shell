@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -106,6 +106,12 @@ Dump_reader::Status Dump_reader::open() {
 
   if (md->has_key("defaultCharacterSet"))
     m_contents.default_charset = md->get_string("defaultCharacterSet");
+
+  if (md->has_key("binlogFile"))
+    m_contents.binlog_file = md->get_string("binlogFile");
+
+  if (md->has_key("binlogPosition"))
+    m_contents.binlog_position = md->get_uint("binlogPosition");
 
   if (md->has_key("gtidExecuted"))
     m_contents.gtid_executed = md->get_string("gtidExecuted");
@@ -1038,6 +1044,21 @@ Dump_reader::create_progress_file_handle() const {
     return m_dir->file(*m_options.progress_file());
   } else {
     return m_options.create_progress_file_handle();
+  }
+}
+
+void Dump_reader::show_metadata() const {
+  if (m_options.show_metadata()) {
+    const auto metadata = shcore::make_dict(
+        "Dump_metadata",
+        shcore::make_dict("Binlog_file", binlog_file(), "Binlog_position",
+                          binlog_position(), "Executed_GTID_set",
+                          gtid_executed()));
+
+    const auto console = current_console();
+
+    console->println();
+    console->println(shcore::Value(metadata).yaml());
   }
 }
 
