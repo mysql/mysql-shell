@@ -1,8 +1,6 @@
 //@ Initialization
 ||
 
-//@ connect to instance
-||
 
 //@ create first cluster
 |~WARNING: Option 'memberSslMode' is deprecated|
@@ -51,6 +49,3 @@ mysql_innodb_cluster_111
 
 //@ Failure adding instance already in the InnoDB cluster
 ||The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already part of this InnoDB cluster
-
-//@ Finalization
-||

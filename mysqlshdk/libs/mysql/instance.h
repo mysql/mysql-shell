@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -90,6 +90,12 @@ class IInstance {
   virtual std::string descr() const = 0;
   virtual std::string get_canonical_hostname() const = 0;
   virtual int get_canonical_port() const = 0;
+  /**
+   * @brief returns the canonical address that should be used to reach this
+   * instance in the format: canonical_hostname + ':' + canonical_port
+   *
+   * @return std::string canonical address
+   */
   virtual std::string get_canonical_address() const = 0;
 
   virtual const std::string &get_uuid() const = 0;

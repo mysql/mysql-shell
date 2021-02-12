@@ -21,6 +21,3 @@ WARNING: Not all recovery account passwords were successfully reset, the followi
 NOTE: Skipping reset of the recovery account password for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' because it is '(MISSING)'. To reset the recovery password, bring the instance back ONLINE and run the <Cluster>.resetRecoveryAccountsPassword() again.
 
 WARNING: Not all recovery account passwords were successfully reset, the following instance was skipped: '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'. Bring this instance back online and run the <Cluster>.resetRecoveryAccountsPassword() operation again if you want to reset its recovery account password.
-
-//@WL#12776 An error is thrown if the any of the instances' recovery user was not created by InnoDB cluster.
-|ERROR: The recovery user name for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' does not match the expected format for users created automatically by InnoDB Cluster. Aborting password reset operation.|Cluster.resetRecoveryAccountsPassword: Recovery user 'nonstandart' not created by InnoDB Cluster (RuntimeError)

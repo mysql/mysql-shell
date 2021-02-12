@@ -66,7 +66,7 @@ var server_id = session.runSql("SELECT @@server_id").fetchOne()[0];
 
 prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, group_name, [[server_uuid, server_id]], "mm");
 
-//@ Verify Cluster Status
+//@<> Verify Cluster Status
 load_metadata(__sandbox_uri1, metadata_1_0_1_file)
 session.runSql("delete from mysql_innodb_cluster_metadata.routers")
 var cluster = dba.getCluster()
@@ -77,7 +77,10 @@ var major = parseInt(version[0]);
 var minor = parseInt(version[1]);
 var patch = parseInt(version[2]);
 
-cluster.status();
+var status = cluster.status();
+EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
+EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
+EXPECT_EQ("OK_NO_TOLERANCE", status["defaultReplicaSet"]["status"])
 
 //@<> upgradeMetadata, restore dryRun preparation
 create_failed_upgrade_scenario();

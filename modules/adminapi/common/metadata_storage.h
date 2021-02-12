@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
 #ifndef MODULES_ADMINAPI_COMMON_METADATA_STORAGE_H_
 #define MODULES_ADMINAPI_COMMON_METADATA_STORAGE_H_
 
+#include <map>
 #include <memory>
 #include <string>
 #include <utility>
@@ -231,6 +232,17 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   void remove_instance_recovery_account(
       const std::string &instance_uuid,
       const std::string &recovery_account_user);
+
+  /**
+   * Fetch from the metadata list of server uuids
+   * with recovery account information.
+   *
+   * @param cluster_id ID of a cluster
+   * @return a map of std::string server UUIDS and recovery account
+   */
+  std::map<std::string, std::string> get_instances_with_recovery_accounts(
+      const Cluster_id &cluster_id) const;
+
   bool is_recovery_account_unique(const std::string &recovery_account_user);
 
   virtual bool is_instance_on_cluster(const Cluster_id &cluster_id,

@@ -549,14 +549,6 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations_interactive) {
   MY_EXPECT_LOG_NOT_CONTAINS(log);
 }
 
-TEST_F(Shell_js_dba_tests, dba_cluster_add_instance) {
-  _options->wizards = false;
-  reset_replayable_shell();
-  output_handler.set_log_level(shcore::Logger::LOG_WARNING);
-
-  validate_interactive("dba_cluster_add_instance.js");
-}
-
 TEST_F(Shell_js_dba_tests, dba_cluster_remove_instance) {
   _options->wizards = false;
   reset_replayable_shell();

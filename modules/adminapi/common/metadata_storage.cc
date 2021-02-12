@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -907,6 +907,25 @@ void MetadataStorage::remove_instance_recovery_account(
     query.done();
     execute_sql(query);
   }
+}
+
+std::map<std::string, std::string>
+MetadataStorage::get_instances_with_recovery_accounts(
+    const Cluster_id &cluster_id) const {
+  shcore::sqlstring query(
+      "SELECT mysql_server_uuid, IFNULL("
+      "attributes->>'$.recoveryAccountUser','') FROM "
+      "mysql_innodb_cluster_metadata.instances "
+      "WHERE cluster_id = ?",
+      0);
+  query << cluster_id;
+  query.done();
+  auto result = execute_sql(query);
+  std::map<std::string, std::string> ret_val;
+  while (auto row = result->fetch_one()) {
+    ret_val.insert({row->get_string(0), row->get_string(1)});
+  }
+  return ret_val;
 }
 
 bool MetadataStorage::is_recovery_account_unique(

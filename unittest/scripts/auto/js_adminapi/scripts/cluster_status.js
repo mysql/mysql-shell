@@ -17,6 +17,75 @@ EXPECT_SHELL_LOG_CONTAINS("Debug: Detected state of MD schema as OK");
 
 cluster.addInstance(__sandbox_uri2);
 
+//@<> set recoveryAccount to empty user
+//BUG#32157182
+session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET attributes = json_remove(attributes, '$.recoveryAccountUser', '$.recoveryAccountHost')");
+var status = cluster.status();
+EXPECT_EQ("WARNING: The replication recovery account in use by the instance is not stored in the metadata. Use Cluster.rescan() to update the metadata.", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"][0])
+cluster.rescan();
+var status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+EXPECT_SHELL_LOG_CONTAINS("Fixing instances missing the replication recovery account...");
+WIPE_STDOUT()
+
+EXPECT_EQ(0, session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE (attributes->>'$.recoveryAccountUser') IS NULL").fetchOne()[0], "Rescan didn't fix all recovery accounts");
+
+//@<> set recoveryAccount to invalid user
+//BUG#32157182
+session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET attributes =  json_set(COALESCE(attributes, '{}'),  '$.recoveryAccountUser', 'invalid_user', '$.recoveryAccountHost', '%')");
+var status = cluster.status();
+EXPECT_EQ("WARNING: The replication recovery account in use by the instance is not stored in the metadata. Use Cluster.rescan() to update the metadata.", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"][0])
+cluster.rescan();
+var status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+EXPECT_SHELL_LOG_CONTAINS("Fixing instances missing the replication recovery account...");
+WIPE_STDOUT()
+EXPECT_EQ(0, session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE (attributes->>'$.recoveryAccountUser') IS NULL").fetchOne()[0], "Rescan didn't fix all recovery accounts");
+
+//@<> set recoveryAccount to invalid user that looks like cluster created user
+//BUG#32157182
+session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET attributes =  json_set(COALESCE(attributes, '{}'),  '$.recoveryAccountUser', 'mysql_innodb_cluster_100000', '$.recoveryAccountHost', '%')");
+var status = cluster.status();
+EXPECT_EQ("WARNING: The replication recovery account in use by the instance is not stored in the metadata. Use Cluster.rescan() to update the metadata.", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"][0])
+cluster.rescan();
+var status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+EXPECT_SHELL_LOG_CONTAINS("Fixing instances missing the replication recovery account...");
+WIPE_STDOUT()
+EXPECT_EQ(0, session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE (attributes->>'$.recoveryAccountUser') IS NULL").fetchOne()[0], "Rescan didn't fix all recovery accounts");
+
+//@<> set recoveryAccount to invalid user that looks like old cluster created user
+//BUG#32157182
+session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET attributes =  json_set(COALESCE(attributes, '{}'),  '$.recoveryAccountUser', 'mysql_innodb_cluster_r100000', '$.recoveryAccountHost', '%')");
+var status = cluster.status();
+EXPECT_EQ("WARNING: The replication recovery account in use by the instance is not stored in the metadata. Use Cluster.rescan() to update the metadata.", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["instanceErrors"][0])
+cluster.rescan();
+var status = cluster.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
+EXPECT_SHELL_LOG_CONTAINS("Fixing instances missing the replication recovery account...");
+WIPE_STDOUT()
+EXPECT_EQ(0, session.runSql("SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances WHERE (attributes->>'$.recoveryAccountUser') IS NULL").fetchOne()[0], "Rescan didn't fix all recovery accounts");
+
+//@<> set recoveryAccount to custom user
+//BUG#32157182
+testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host:hostname});
+cluster.addInstance(__sandbox_uri4);
+shell.connect(__sandbox_uri4);
+session.runSql("CHANGE MASTER TO MASTER_USER='custom_user', MASTER_PASSWORD='custom_user' FOR CHANNEL 'group_replication_recovery'");
+var status = cluster.status();
+EXPECT_EQ("WARNING: Unsupported recovery account 'custom_user' has been found for instance '<<<hostname>>>:<<<__mysql_sandbox_port4>>>'. Operations such as Cluster.resetRecoveryAccountsPassword() and Cluster.addInstance() may fail. Please remove and add the instance back to the Cluster to ensure a supported recovery account is used.", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port4}`]["instanceErrors"][0])
+WIPE_STDOUT()
+cluster.rescan();
+EXPECT_STDOUT_CONTAINS("ERROR: Unsupported recovery account 'custom_user' has been found for instance '<<<hostname>>>:<<<__mysql_sandbox_port4>>>'. Operations such as <Cluster>.resetRecoveryAccountsPassword() and <Cluster>.addInstance() may fail. Please remove and add the instance back to the Cluster to ensure a supported recovery account is used.")
+
+//@<> clean up cluster - remove sandbox 4 from cluster
+//BUG#32157182
+shell.connect(__sandbox_uri1);
+cluster.removeInstance(__sandbox_uri4)
+testutil.destroySandbox(__mysql_sandbox_port4);
+
+
+//@<> prepare testdb
 function create_testdb(session)  {
     session.runSql("set global super_read_only=0");
     session.runSql("set sql_log_bin=0");

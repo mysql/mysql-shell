@@ -258,9 +258,9 @@ void Cluster_join::handle_recovery_account() const {
       mysql_innodb_cluster_1 account is dropped on all group servers.
 
     To avoid such situation, we will re-issue the CHANGE MASTER query after
-    clone to ensure the right account is used. On top of that, we will make
-    sure that the account is not dropped if any other cluster member is using
-    it.
+    clone to ensure the Metadata Schema for each instance holds the user used by
+    GR. On top of that, we will make sure that the account is not dropped if any
+    other cluster member is using it.
 
     The approach to tackle the usage of the recovery accounts is to store them
     in the Metadata, i.e. in addInstance() the user created in the "donor" is
@@ -269,6 +269,18 @@ void Cluster_join::handle_recovery_account() const {
     In removeInstance(), the Metadata is verified to check whether the recovery
     user of that instance is registered for more than one instance and if that's
     the case then it won't be dropped.
+
+    createCluster() @ instance1:
+      1) create recovery acct: foo1@%
+      2) insert into MD for instance1: foo1
+      3) start GR
+
+    addInstance(instance2):
+      1) create recovery acct on primary: foo2@%
+      2) insert into MD for instance2: foo1@%
+      3) clone
+      4) change master to use foo2@%
+      5) update MD for instance2 with user: foo2@%
    */
 
   // Get the "donor" recovery account

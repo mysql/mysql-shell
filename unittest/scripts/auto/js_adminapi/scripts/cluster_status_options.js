@@ -848,7 +848,7 @@ json_check(stat, extended_2_status_templ_80, [], allowed_unexpected);
 
 //@<> F7- Check that recovery stats are there 8.0.23 - extended 2 {VER(>=8.0.23)}
 var stat = cluster.status({extended:2});
-var allowed_unexpected = ["recovery", "recoveryStatusText", "replicationLag"];
+var allowed_unexpected = ["recovery", "recoveryStatusText", "replicationLag", "instanceErrors"];
 json_check(stat, extended_2_status_templ_8023, [], allowed_unexpected);
 
 //@<> F7- Check that recovery stats are there 8.0 - extended 3 {VER(>=8.0)}

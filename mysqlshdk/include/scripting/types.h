@@ -438,6 +438,7 @@ class SHCORE_PUBLIC Exception : public shcore::Error {
   bool is_mysqlsh() const;
   bool is_parser() const;
   bool is_runtime() const;
+  bool is_metadata() const;
 
   const char *type() const noexcept;
 

@@ -514,6 +514,68 @@ void Cluster_impl::ensure_metadata_has_server_id(
       });
 }
 
+void Cluster_impl::ensure_metadata_has_recovery_accounts() {
+  auto endpoints =
+      get_metadata_storage()->get_instances_with_recovery_accounts(get_id());
+
+  if (!endpoints.empty()) {
+    log_info("Fixing instances missing the replication recovery account...");
+
+    auto console = mysqlsh::current_console();
+
+    execute_in_members(
+        {}, get_target_server()->get_connection_options(), {},
+        [this, &console,
+         &endpoints](const std::shared_ptr<Instance> &instance) {
+          std::string recovery_user =
+              mysqlshdk::gr::get_recovery_user(*instance);
+
+          bool recovery_is_valid = false;
+          if (!recovery_user.empty()) {
+            recovery_is_valid =
+                shcore::str_beginswith(
+                    recovery_user,
+                    mysqlshdk::gr::k_group_recovery_old_user_prefix) ||
+                shcore::str_beginswith(
+                    recovery_user, mysqlshdk::gr::k_group_recovery_user_prefix);
+          }
+
+          if (!recovery_user.empty()) {
+            if (!recovery_is_valid) {
+              console->print_error(
+                  "Unsupported recovery account '" + recovery_user +
+                  "' has been found for instance '" + instance->descr() +
+                  "'. Operations such as "
+                  "<Cluster>.<<<resetRecoveryAccountsPassword>>>() and "
+                  "<Cluster>.<<<addInstance>>>() may fail. Please remove and "
+                  "add the instance back to the Cluster to ensure a supported "
+                  "recovery account is used.");
+              return true;
+            }
+
+            auto it = endpoints.find(instance->get_uuid());
+            if (it != endpoints.end()) {
+              if (it->second != recovery_user) {
+                get_metadata_storage()->update_instance_recovery_account(
+                    instance->get_uuid(), recovery_user, "%");
+              }
+            }
+
+          } else {
+            throw std::logic_error(
+                "Recovery user account not found for server address: " +
+                instance->descr() + " with UUID " + instance->get_uuid());
+          }
+
+          return true;
+        },
+        [](const Instance_md_and_gr_member &md) {
+          return (md.second.state == mysqlshdk::gr::Member_state::ONLINE ||
+                  md.second.state == mysqlshdk::gr::Member_state::RECOVERING);
+        });
+  }
+}
+
 std::vector<Instance_metadata> Cluster_impl::get_active_instances() const {
   return get_instances({mysqlshdk::gr::Member_state::ONLINE,
                         mysqlshdk::gr::Member_state::RECOVERING});
@@ -1816,21 +1878,34 @@ Cluster_impl::get_replication_user(
         "old account style",
         target_instance.descr().c_str());
 
-    recovery_user = mysqlshdk::gr::get_recovery_user(target_instance);
-    assert(!recovery_user.empty());
+    auto unrecorded_recovery_user =
+        mysqlshdk::gr::get_recovery_user(target_instance);
+    assert(!unrecorded_recovery_user.empty());
 
     if (shcore::str_beginswith(
-            recovery_user, mysqlshdk::gr::k_group_recovery_old_user_prefix)) {
+            unrecorded_recovery_user,
+            mysqlshdk::gr::k_group_recovery_old_user_prefix)) {
       log_info("Found old account style recovery user '%s'",
-               recovery_user.c_str());
+               unrecorded_recovery_user.c_str());
       // old accounts were created for several hostnames
       recovery_user_hosts = mysqlshdk::mysql::get_all_hostnames_for_user(
-          *(get_target_server()), recovery_user);
+          *(get_target_server()), unrecorded_recovery_user);
+      recovery_user = unrecorded_recovery_user;
+    } else if (shcore::str_beginswith(
+                   unrecorded_recovery_user,
+                   mysqlshdk::gr::k_group_recovery_user_prefix)) {
+      // either the transaction to store the user failed or the metadata was
+      // manually changed to remove it.
+      throw shcore::Exception::metadata_error(
+          "The replication recovery account in use by '" +
+          target_instance.descr() +
+          "' is not stored in the metadata. Use cluster.rescan() to update the "
+          "metadata.");
     } else {
       // account not created by InnoDB cluster
       throw shcore::Exception::runtime_error(
           shcore::str_format("Recovery user '%s' not created by InnoDB Cluster",
-                             recovery_user.c_str()));
+                             unrecorded_recovery_user.c_str()));
     }
   } else {
     from_metadata = true;
@@ -1899,8 +1974,23 @@ size_t Cluster_impl::setup_clone_plugin(bool enable_clone) {
           {
             std::string recovery_user;
             std::vector<std::string> recovery_user_hosts;
-            std::tie(recovery_user, recovery_user_hosts, std::ignore) =
-                get_replication_user(*instance);
+            try {
+              std::tie(recovery_user, recovery_user_hosts, std::ignore) =
+                  get_replication_user(*instance);
+            } catch (const shcore::Exception &re) {
+              if (re.is_runtime()) {
+                mysqlsh::current_console()->print_error(
+                    "Unsupported recovery account has been found for "
+                    "instance " +
+                    instance->descr() +
+                    ". Operations such as "
+                    "<Cluster>.<<<resetRecoveryAccountsPassword>>>() and "
+                    "<Cluster>.<<<addInstance>>>() may fail. Please remove and "
+                    "add the instance back to the Cluster to ensure a "
+                    "supported recovery account is used.");
+              }
+              throw;
+            }
 
             auto primary = get_primary_master();
 

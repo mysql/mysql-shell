@@ -567,6 +567,9 @@ shcore::Value Rescan::execute() {
     update_metadata_for_instances(result->get_array("updatedInstances"));
   }
 
+  // Fix all missing recovery accounts from metadata.
+  m_cluster->ensure_metadata_has_recovery_accounts();
+
   // This calls ensures all of the instances have server_id as instance
   // attribute, including the case were rescan is executed and no new/updated
   // instances were found

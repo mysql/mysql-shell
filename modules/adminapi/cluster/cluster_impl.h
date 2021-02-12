@@ -305,6 +305,13 @@ class Cluster_impl : public Base_cluster_impl {
       const mysqlshdk::mysql::IInstance &target_instance);
 
   /**
+   * Checks for missing metadata recovery account entries, and fix them using
+   * info from mysql.slave_master_info.
+   *
+   */
+  void ensure_metadata_has_recovery_accounts();
+
+  /**
    * Get an online instance from the cluster.
    *
    * Return an online instance from the cluster that is reachable (able

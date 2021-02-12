@@ -158,6 +158,18 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 restart_gr_plugin(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
+//@<> Make the recovery user of the MD schema invalid one, exception should be thrown BUG#32157182
+shell.connect(__sandbox_uri2);
+var uuid_2 = get_sysvar(session, "SERVER_UUID", "GLOBAL");
+session.close();
+shell.connect(__sandbox_uri1);
+session.runSql("UPDATE mysql_innodb_cluster_metadata.instances SET attributes = json_set(COALESCE(attributes, '{}'),'$.recoveryAccountUser', '', '$.recoveryAccountHost', '') WHERE mysql_server_uuid = '" + uuid_2 + "'");
+WIPE_STDOUT()
+EXPECT_THROWS_TYPE(function() { c.resetRecoveryAccountsPassword(); }, "Cluster.resetRecoveryAccountsPassword: The replication recovery account in use by '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is not stored in the metadata. Use cluster.rescan() to update the metadata.", "MetadataError");
+c.rescan();
+var status = c.status();
+EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
+
 //@<> Set up a recovery user on instance 2 whose format is different than the ones created by Innodb Cluster and check that an exception is thrown
 // Note must be connected to the primary instance as other instances will be in super-read-only mode.
 shell.connect(__sandbox_uri2);
@@ -177,8 +189,11 @@ shell.connect(__sandbox_uri1);
 restart_gr_plugin(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
-//@WL#12776 An error is thrown if the any of the instances' recovery user was not created by InnoDB cluster.
-c.resetRecoveryAccountsPassword();
+//<>@ WL#12776 An error is thrown if the any of the instances' recovery user was not created by InnoDB cluster.
+WIPE_STDOUT()
+EXPECT_THROWS_TYPE(function() { c.resetRecoveryAccountsPassword(); }, "Cluster.resetRecoveryAccountsPassword: Recovery user 'nonstandart' not created by InnoDB Cluster", "RuntimeError");
+EXPECT_STDOUT_CONTAINS("ERROR: The recovery user name for instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' does not match the expected format for users created automatically by InnoDB Cluster. Please remove and add the instance back to the Cluster to ensure a supported recovery account is used. Aborting password reset operation.")
+
 
 //@<> WL#12776: Cleanup
 c.disconnect();

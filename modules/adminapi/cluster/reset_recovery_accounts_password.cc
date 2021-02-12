@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -179,11 +179,15 @@ shcore::Value Reset_recovery_accounts_password::execute() {
       std::tie(user, hosts, std::ignore) =
           m_cluster.get_replication_user(*instance);
     } catch (const shcore::Exception &err) {
-      console->print_error(
-          "The recovery user name for instance '" + instance->descr() +
-          "' does not match the expected format for users "
-          "created automatically by InnoDB Cluster. Aborting password reset "
-          "operation.");
+      if (!err.is_metadata()) {
+        console->print_error(
+            "The recovery user name for instance '" + instance->descr() +
+            "' does not match the expected format for users "
+            "created automatically by InnoDB Cluster. Please "
+            "remove and add the instance back to the Cluster to ensure a "
+            "supported recovery account is used. Aborting password reset "
+            "operation.");
+      }
       throw err;
     }
     // generate a password for the user
