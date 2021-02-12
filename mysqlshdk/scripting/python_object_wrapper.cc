@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,16 +81,14 @@ void translate_python_exception(const std::string &context = "") {
 static PyObject *call_object_method(std::shared_ptr<Cpp_object_bridge> object,
                                     const char *method, PyObject *args,
                                     PyObject *kwargs) {
-  Python_context *ctx = Python_context::get_and_check();
-  if (!ctx) return NULL;
-
   Argument_list arglist;
+  Python_context *ctx = nullptr;
 
   for (Py_ssize_t a = 0; a < PyTuple_Size(args); a++) {
     PyObject *argval = PyTuple_GetItem(args, a);
 
     try {
-      arglist.push_back(ctx->pyobj_to_shcore_value(argval));
+      arglist.push_back(py::convert(argval, &ctx));
     } catch (...) {
       char buffer[100];
       snprintf(buffer, sizeof(buffer), "argument #" PY_SIZE_T_FMT, a);
@@ -99,7 +97,7 @@ static PyObject *call_object_method(std::shared_ptr<Cpp_object_bridge> object,
     }
   }
 
-  auto keyword_args = ctx->pyobj_to_shcore_value(kwargs);
+  auto keyword_args = py::convert(kwargs, &ctx);
 
   try {
     Value result;
@@ -108,7 +106,7 @@ static PyObject *call_object_method(std::shared_ptr<Cpp_object_bridge> object,
       shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
       result = object->call_advanced(method, arglist, keyword_args.as_map());
     }
-    return ctx->shcore_value_to_pyobj(result);
+    return py::convert(result);
   } catch (...) {
     translate_python_exception();
     return NULL;
@@ -360,9 +358,7 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name) {
     }
 
     if (member.type != shcore::Undefined) {
-      Python_context *ctx = Python_context::get_and_check();
-      if (!ctx) return NULL;
-      object = ctx->shcore_value_to_pyobj(member);
+      object = py::convert(member);
       self->cache->members[attrname] = object;
       return object;
     } else if (!error_handled) {
@@ -383,13 +379,10 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name,
     shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
 
     if (cobj->has_member_advanced(attrname)) {
-      Python_context *ctx = Python_context::get_and_check();
-      if (!ctx) return -1;
-
       Value value;
 
       try {
-        value = ctx->pyobj_to_shcore_value(attr_value);
+        value = py::convert(attr_value);
       } catch (...) {
         translate_python_exception();
         return -1;
@@ -412,8 +405,6 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name,
 static PyObject *call_object_method(
     std::shared_ptr<shcore::Object_bridge> object, Value method,
     PyObject *args) {
-  Python_context *ctx = Python_context::get_and_check();
-  if (!ctx) return NULL;
   shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
 
   std::shared_ptr<shcore::Function_base> func = method.as_function();
@@ -431,12 +422,13 @@ static PyObject *call_object_method(
   }
 
   Argument_list r;
+  Python_context *ctx = nullptr;
 
   for (int c = func->signature().size(), i = 0; i < c; i++) {
     PyObject *argval = PyTuple_GetItem(args, i);
 
     try {
-      Value v = ctx->pyobj_to_shcore_value(argval);
+      Value v = py::convert(argval, &ctx);
       r.push_back(v);
     } catch (...) {
       translate_python_exception();
@@ -457,7 +449,7 @@ static PyObject *call_object_method(
       result =
           cobj->call_advanced(cfunc->name(shcore::LowerCaseUnderscores), r);
     }
-    return ctx->shcore_value_to_pyobj(result);
+    return py::convert(result);
   } catch (...) {
     translate_python_exception();
     return NULL;
@@ -529,10 +521,6 @@ Py_ssize_t object_length(PyShObjObject *self) {
 }
 
 PyObject *object_item(PyShObjObject *self, Py_ssize_t index) {
-  Python_context *ctx;
-
-  if (!(ctx = Python_context::get_and_check())) return NULL;
-
   Py_ssize_t length = object_length(self);
 
   if (index < 0 || index >= length) {
@@ -542,7 +530,7 @@ PyObject *object_item(PyShObjObject *self, Py_ssize_t index) {
   }
 
   try {
-    return ctx->shcore_value_to_pyobj(self->object->get()->get_member(index));
+    return py::convert(self->object->get()->get_member(index));
   } catch (...) {
     translate_python_exception();
     return NULL;
@@ -550,9 +538,6 @@ PyObject *object_item(PyShObjObject *self, Py_ssize_t index) {
 }
 
 int object_assign(PyShObjObject *self, Py_ssize_t index, PyObject *value) {
-  Python_context *ctx = Python_context::get_and_check();
-  if (!ctx) return -1;
-
   Py_ssize_t length = object_length(self);
 
   if (index < 0 || index >= length) {
@@ -562,7 +547,7 @@ int object_assign(PyShObjObject *self, Py_ssize_t index, PyObject *value) {
   }
 
   try {
-    self->object->get()->set_member(index, ctx->pyobj_to_shcore_value(value));
+    self->object->get()->set_member(index, py::convert(value));
 
     return 0;
   } catch (...) {

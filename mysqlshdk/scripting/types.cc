@@ -423,6 +423,10 @@ void Value::Map_type::merge_contents(std::shared_ptr<Map_type> source,
 
 Value::Value(const Value &copy) : type(shcore::Null) { operator=(copy); }
 
+Value::Value(Value &&other) : type(shcore::Null) {
+  operator=(std::move(other));
+}
+
 Value::Value(const std::string &s) : type(String) {
   value.s = new std::string(s);
 }
@@ -468,7 +472,7 @@ Value::Value(double d) : type(Float) { value.d = d; }
 
 Value::Value(bool b) : type(Bool) { value.b = b; }
 
-Value::Value(std::shared_ptr<Function_base> f) : type(Function) {
+Value::Value(const std::shared_ptr<Function_base> &f) : type(Function) {
   if (f) {
     value.func = new std::shared_ptr<Function_base>(f);
   } else {
@@ -476,7 +480,15 @@ Value::Value(std::shared_ptr<Function_base> f) : type(Function) {
   }
 }
 
-Value::Value(std::shared_ptr<Object_bridge> n) : type(Object) {
+Value::Value(std::shared_ptr<Function_base> &&f) : type(Function) {
+  if (f) {
+    value.func = new std::shared_ptr<Function_base>(std::move(f));
+  } else {
+    type = shcore::Null;
+  }
+}
+
+Value::Value(const std::shared_ptr<Object_bridge> &n) : type(Object) {
   if (n) {
     value.o = new std::shared_ptr<Object_bridge>(n);
   } else {
@@ -484,7 +496,15 @@ Value::Value(std::shared_ptr<Object_bridge> n) : type(Object) {
   }
 }
 
-Value::Value(Map_type_ref n) : type(Map) {
+Value::Value(std::shared_ptr<Object_bridge> &&n) : type(Object) {
+  if (n) {
+    value.o = new std::shared_ptr<Object_bridge>(std::move(n));
+  } else {
+    type = shcore::Null;
+  }
+}
+
+Value::Value(const Map_type_ref &n) : type(Map) {
   if (n) {
     value.map = new std::shared_ptr<Map_type>(n);
   } else {
@@ -492,13 +512,33 @@ Value::Value(Map_type_ref n) : type(Map) {
   }
 }
 
-Value::Value(std::weak_ptr<Map_type> n) : type(MapRef) {
+Value::Value(Map_type_ref &&n) : type(Map) {
+  if (n) {
+    value.map = new std::shared_ptr<Map_type>(std::move(n));
+  } else {
+    type = shcore::Null;
+  }
+}
+
+Value::Value(const std::weak_ptr<Map_type> &n) : type(MapRef) {
   value.mapref = new std::weak_ptr<Map_type>(n);
 }
 
-Value::Value(Array_type_ref n) : type(Array) {
+Value::Value(std::weak_ptr<Map_type> &&n) : type(MapRef) {
+  value.mapref = new std::weak_ptr<Map_type>(std::move(n));
+}
+
+Value::Value(const Array_type_ref &n) : type(Array) {
   if (n) {
     value.array = new std::shared_ptr<Array_type>(n);
+  } else {
+    type = shcore::Null;
+  }
+}
+
+Value::Value(Array_type_ref &&n) : type(Array) {
+  if (n) {
+    value.array = new std::shared_ptr<Array_type>(std::move(n));
   } else {
     type = shcore::Null;
   }
@@ -1175,6 +1215,202 @@ bool Value::operator==(const Value &other) const {
           case Integer:
           case UInteger:
             return other.operator==(*this);
+          default:
+            return false;
+        }
+      default:
+        return false;
+    }
+  }
+  return false;
+}
+
+bool Value::operator<(const Value &other) const {
+  if (type == other.type) {
+    switch (type) {
+      case Undefined:
+        return false;
+      case shcore::Null:
+        return false;
+      case Bool:
+        return value.b < other.value.b;
+      case Integer:
+        return value.i < other.value.i;
+      case UInteger:
+        return value.ui < other.value.ui;
+      case Float:
+        return value.d < other.value.d;
+      case String:
+        return *value.s < *other.value.s;
+      case Object:
+        return **value.o < **other.value.o;
+      case Array:
+        return **value.array < **other.value.array;
+      case Map:
+        return **value.map < **other.value.map;
+      case MapRef:
+        return *value.mapref->lock() < *other.value.mapref->lock();
+      case Function:
+        // NOTE: not implemented, it's not possible to order functions
+        return false;
+    }
+  } else {
+    // with type conversion
+    switch (type) {
+      case Undefined:
+        return false;
+      case shcore::Null:
+        return false;
+      case Bool:
+        switch (other.type) {
+          case Integer:
+            if (other.value.i == 1)
+              return value.b < true;
+            else if (other.value.i == 0)
+              return false;
+            return false;
+          case UInteger:
+            if (other.value.ui == 1)
+              return value.b < true;
+            else if (other.value.ui == 0)
+              return false;
+            return false;
+          case Float:
+            if (other.value.d == 1.0)
+              return value.b < true;
+            else if (other.value.d == 0.0)
+              return false;
+            return false;
+          default:
+            return false;
+        }
+      case Integer:
+        switch (other.type) {
+          case Bool:
+            return other.operator<(*this);
+          case Float:
+            return value.i < (int64_t)other.value.d ||
+                   (value.i < (int64_t)other.value.d &&
+                    ((other.value.d - (int64_t)other.value.d) > 0.0));
+          default:
+            return false;
+        }
+      case UInteger:
+        switch (other.type) {
+          case Bool:
+            return other.operator<(*this);
+          case Float:
+            return value.ui < (uint64_t)other.value.d ||
+                   (value.ui == (uint64_t)other.value.d &&
+                    ((other.value.d - (uint64_t)other.value.d) > 0.0));
+          default:
+            return false;
+        }
+      case Float:
+        switch (other.type) {
+          case Bool:
+            return other.operator<(*this);
+          case Integer:
+          case UInteger:
+            return other.operator<(*this);
+          default:
+            return false;
+        }
+      default:
+        return false;
+    }
+  }
+  return false;
+}
+
+bool Value::operator<=(const Value &other) const {
+  if (type == other.type) {
+    switch (type) {
+      case Undefined:
+        return true;  // undefined == undefined is true
+      case shcore::Null:
+        return true;
+      case Bool:
+        return value.b <= other.value.b;
+      case Integer:
+        return value.i <= other.value.i;
+      case UInteger:
+        return value.ui <= other.value.ui;
+      case Float:
+        return value.d <= other.value.d;
+      case String:
+        return *value.s <= *other.value.s;
+      case Object:
+        return **value.o <= **other.value.o;
+      case Array:
+        return **value.array <= **other.value.array;
+      case Map:
+        return **value.map <= **other.value.map;
+      case MapRef:
+        return *value.mapref->lock() <= *other.value.mapref->lock();
+      case Function:
+        // NOTE: not implemented, it's not possible to order functions
+        return **value.func == **other.value.func;
+    }
+  } else {
+    // with type conversion
+    switch (type) {
+      case Undefined:
+        return false;
+      case shcore::Null:
+        return false;
+      case Bool:
+        switch (other.type) {
+          case Integer:
+            if (other.value.i == 1)
+              return true;
+            else if (other.value.i == 0)
+              return value.b <= false;
+            return false;
+          case UInteger:
+            if (other.value.ui == 1)
+              return true;
+            else if (other.value.ui == 0)
+              return value.b <= false;
+            return false;
+          case Float:
+            if (other.value.d == 1.0)
+              return true;
+            else if (other.value.d == 0.0)
+              return value.b <= false;
+            return false;
+          default:
+            return false;
+        }
+      case Integer:
+        switch (other.type) {
+          case Bool:
+            return other.operator<=(*this);
+          case Float:
+            return value.i < (int64_t)other.value.d ||
+                   (value.i == (int64_t)other.value.d &&
+                    ((other.value.d - (int64_t)other.value.d) >= 0.0));
+          default:
+            return false;
+        }
+      case UInteger:
+        switch (other.type) {
+          case Bool:
+            return other.operator<=(*this);
+          case Float:
+            return value.ui < (uint64_t)other.value.d ||
+                   (value.ui == (uint64_t)other.value.d &&
+                    ((other.value.d - (uint64_t)other.value.d) >= 0.0));
+          default:
+            return false;
+        }
+      case Float:
+        switch (other.type) {
+          case Bool:
+            return other.operator<=(*this);
+          case Integer:
+          case UInteger:
+            return other.operator<=(*this);
           default:
             return false;
         }

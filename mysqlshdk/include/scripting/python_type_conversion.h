@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,28 +21,25 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _PYTHON_TYPE_CONVERSION_H_
-#define _PYTHON_TYPE_CONVERSION_H_
+#ifndef MYSQLSHDK_INCLUDE_SCRIPTING_PYTHON_TYPE_CONVERSION_H_
+#define MYSQLSHDK_INCLUDE_SCRIPTING_PYTHON_TYPE_CONVERSION_H_
 
-#include "python_utils.h"
+#include "scripting/python_utils.h"
 #include "scripting/types.h"
 
 namespace shcore {
+
 class Python_context;
 
-struct Python_type_bridger {
-  Python_type_bridger(Python_context *context);
-  ~Python_type_bridger();
+namespace py {
 
-  void init();
+Value convert(PyObject *value, Python_context *context = nullptr);
 
-  Value pyobj_to_shcore_value(PyObject *value) const;
-  PyObject *shcore_value_to_pyobj(const Value &value);
+Value convert(PyObject *value, Python_context **context);
 
-  PyObject *native_object_to_py(Object_bridge_ref object);
+PyObject *convert(const Value &value);
 
-  Python_context *_owner;
-};
+}  // namespace py
 }  // namespace shcore
 
-#endif
+#endif  // MYSQLSHDK_INCLUDE_SCRIPTING_PYTHON_TYPE_CONVERSION_H_

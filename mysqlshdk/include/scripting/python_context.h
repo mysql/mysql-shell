@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,7 @@
 #include "scripting/types_common.h"
 #include "utils/utils_file.h"
 
+#include <cassert>
 #include <list>
 #include <memory>
 #include <string>
@@ -41,60 +42,99 @@
 #include "scripting/python_type_conversion.h"
 
 namespace shcore {
-class AutoPyObject {
- private:
-  PyObject *object;
-  bool autorelease;
+namespace py {
 
+/**
+ * Used to store borrowed references, references passed from Python (i.e. as
+ * arguments), or new references if such reference is returned to Python.
+ *
+ * Increases the reference count when acquiring the Python object, decreases it
+ * when releasing the object.
+ */
+class Store {
  public:
-  AutoPyObject() : object(0), autorelease(false) {}
+  Store() = default;
 
-  // Assigning another auto object always makes this one ref-counting as they
-  // share now the same object. Same for the assignment operator.
-  AutoPyObject(const AutoPyObject &other)
-      : object(other.object), autorelease(true) {
-    Py_XINCREF(object);
-  }
+  explicit Store(PyObject *py) : m_object(py) { Py_XINCREF(m_object); }
 
-  AutoPyObject(PyObject *py, bool retain = true) : object(py) {
-    autorelease = retain;
-    if (autorelease) {
-      // Leave the braces in place, even though this is a one liner. They will
-      // silence LLVM.
-      Py_XINCREF(object);
-    }
-  }
+  Store(const Store &other) : Store(other.m_object) {}
 
-  ~AutoPyObject() {
-    if (autorelease) {
-      Py_XDECREF(object);
-    }
-  }
+  Store(Store &&other) { operator=(std::move(other)); }
 
-  AutoPyObject &operator=(PyObject *other) {
-    if (object == other)  // Ignore assignments of the same object.
-      return *this;
+  Store &operator=(PyObject *other) {
+    // increasing the reference count of the other object then decreasing
+    // the reference count of our object protects from self-assignment
+    Py_XINCREF(other);
+    Py_XDECREF(m_object);
 
-    // Auto release only if we actually have increased its ref count.
-    // Always make this auto object auto-releasing after that as we get an
-    // object that might be shared by another instance.
-    if (autorelease) {
-      Py_XDECREF(object);
-    }
-
-    object = other;
-    autorelease = true;
-    Py_XINCREF(object);
+    m_object = other;
 
     return *this;
   }
 
-  explicit operator bool() const { return object != 0; }
+  Store &operator=(const Store &other) { return operator=(other.m_object); }
 
-  operator PyObject *() { return object; }
+  Store &operator=(Store &&other) {
+    // the other instance already increased the reference count, just move the
+    // pointer
+    assert(this != &other);
 
-  PyObject *operator->() { return object; }
+    Py_XDECREF(m_object);
+
+    m_object = other.m_object;
+    other.m_object = nullptr;
+
+    return *this;
+  }
+
+  ~Store() { Py_XDECREF(m_object); }
+
+  explicit operator bool() const { return nullptr != m_object; }
+
+  operator PyObject *() const { return m_object; }
+
+ private:
+  PyObject *m_object = nullptr;
 };
+
+/**
+ * Used to automatically release new references.
+ *
+ * Does not increase the reference count, decreases it when releasing the Python
+ * object.
+ */
+class Release {
+ public:
+  Release() = default;
+
+  explicit Release(PyObject *py) : m_object(py) {}
+
+  Release(const Release &other) = delete;
+
+  Release(Release &&other) { operator=(std::move(other)); }
+
+  Release &operator=(const Release &other) = delete;
+
+  Release &operator=(Release &&other) {
+    assert(this != &other);
+
+    m_object = other.m_object;
+    other.m_object = nullptr;
+
+    return *this;
+  }
+
+  ~Release() { Py_XDECREF(m_object); }
+
+  explicit operator bool() const { return nullptr != m_object; }
+
+  operator PyObject *() const { return m_object; }
+
+ private:
+  PyObject *m_object = nullptr;
+};
+
+}  // namespace py
 
 class TYPES_COMMON_PUBLIC Python_context {
  public:
@@ -121,8 +161,8 @@ class TYPES_COMMON_PUBLIC Python_context {
                        const std::vector<std::string> &argv);
   bool load_plugin(const Plugin_definition &plugin);
 
-  Value pyobj_to_shcore_value(PyObject *value);
-  PyObject *shcore_value_to_pyobj(const Value &value);
+  Value convert(PyObject *value);
+  PyObject *convert(const Value &value);
 
   Value get_global(const std::string &value);
   void set_global(const std::string &name, const Value &value);
@@ -138,11 +178,11 @@ class TYPES_COMMON_PUBLIC Python_context {
   static bool pystring_to_string(PyObject *strobject, std::string *result,
                                  bool convert = false);
 
-  AutoPyObject get_shell_list_class();
-  AutoPyObject get_shell_dict_class();
-  AutoPyObject get_shell_object_class();
-  AutoPyObject get_shell_indexed_object_class();
-  AutoPyObject get_shell_function_class();
+  py::Store get_shell_list_class() const;
+  py::Store get_shell_dict_class() const;
+  py::Store get_shell_object_class() const;
+  py::Store get_shell_indexed_object_class() const;
+  py::Store get_shell_function_class() const;
 
   PyObject *db_error() { return _db_error; }
   PyObject *error() { return _error; }
@@ -153,8 +193,8 @@ class TYPES_COMMON_PUBLIC Python_context {
   bool raw_execute(const std::vector<std::string> &statements,
                    std::string *error = nullptr);
 
-  std::weak_ptr<AutoPyObject> store(PyObject *object);
-  void erase(const std::shared_ptr<AutoPyObject> &object);
+  std::weak_ptr<py::Store> store(PyObject *object);
+  void erase(const std::shared_ptr<py::Store> &object);
 
  private:
   static PyObject *shell_print(PyObject *self, PyObject *args,
@@ -190,8 +230,6 @@ class TYPES_COMMON_PUBLIC Python_context {
   PyObject *_db_error;
   PyObject *_error;
 
-  Python_type_bridger _types;
-
   PyObject *_mysqlsh_module = nullptr;
   PyObject *_mysqlsh_globals = nullptr;
 
@@ -221,16 +259,16 @@ class TYPES_COMMON_PUBLIC Python_context {
 
   void set_argv(const std::vector<std::string> &argv);
 
-  AutoPyObject m_captured_eval_result;
+  py::Store m_captured_eval_result;
 
-  std::list<std::shared_ptr<AutoPyObject>> m_stored_objects;
+  std::list<std::shared_ptr<py::Store>> m_stored_objects;
 
  protected:
-  AutoPyObject _shell_list_class;
-  AutoPyObject _shell_dict_class;
-  AutoPyObject _shell_object_class;
-  AutoPyObject _shell_indexed_object_class;
-  AutoPyObject _shell_function_class;
+  py::Store _shell_list_class;
+  py::Store _shell_dict_class;
+  py::Store _shell_object_class;
+  py::Store _shell_indexed_object_class;
+  py::Store _shell_function_class;
 };
 
 // The static member _instance needs to be in a class not exported (no

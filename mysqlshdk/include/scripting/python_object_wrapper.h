@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,7 +35,7 @@ class Cpp_object_bridge;
 class Python_context;
 
 struct PyMemberCache {
-  std::map<std::string, AutoPyObject> members;
+  std::map<std::string, py::Store> members;
 };
 
 /*
@@ -54,7 +54,6 @@ struct PyShObjIndexedObject {
   PyObject_HEAD
   shcore::Object_bridge_ref *object;
   // clang-format on
-  PyMemberCache *cache;
 };
 
 PyObject *wrap(const std::shared_ptr<Object_bridge> &object);

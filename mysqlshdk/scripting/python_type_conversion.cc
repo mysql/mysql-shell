@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,28 +22,25 @@
  */
 
 #include "scripting/python_type_conversion.h"
+
+#include <cassert>
+
 #include "scripting/python_array_wrapper.h"
 #include "scripting/python_function_wrapper.h"
 #include "scripting/python_map_wrapper.h"
 #include "scripting/python_object_wrapper.h"
 #include "scripting/types_python.h"
 
-using namespace shcore;
+namespace shcore {
+namespace py {
 
-Python_type_bridger::Python_type_bridger(Python_context *context)
-    : _owner(context) {}
-
-Python_type_bridger::~Python_type_bridger() {}
-
-void Python_type_bridger::init() {}
-
-/* TODO:
-PyObject *Python_type_bridger::native_object_to_py(Object_bridge_ref object)
-{
+Value convert(PyObject *py, Python_context *context) {
+  return convert(py, &context);
 }
-*/
 
-Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
+Value convert(PyObject *py, Python_context **context) {
+  assert(context);
+
   // Some numeric conversions yield errors, in that case the string
   // representation of the python object is returned
   Value retval;
@@ -66,15 +63,13 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
         // If reading UnsignedLongLong failed then retrieves
         // the string representation
         PyErr_Clear();
-        PyObject *obj_repr = PyObject_Repr(py);
+        Release obj_repr{PyObject_Repr(py)};
         if (obj_repr) {
           std::string s;
 
           if (Python_context::pystring_to_string(obj_repr, &s)) {
             retval = Value(s);
           }
-
-          Py_DECREF(obj_repr);
         }
       } else {
         retval = Value(uint_value);
@@ -88,15 +83,13 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
       // At this point it means an error was generated above
       // It is needed to clear it
       PyErr_Clear();
-      PyObject *obj_repr = PyObject_Repr(py);
+      Release obj_repr{PyObject_Repr(py)};
       if (obj_repr) {
         std::string s;
 
         if (Python_context::pystring_to_string(obj_repr, &s)) {
           retval = Value(s);
         }
-
-        Py_DECREF(obj_repr);
       }
     } else {
       retval = Value(value);
@@ -108,24 +101,31 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
   } else if (PyUnicode_Check(py)) {
     // TODO: In case of error calls ourself using NULL, either handle here
     // before calling recursively or always allow NULL
-    PyObject *ref = PyUnicode_AsUTF8String(py);
-    retval = pyobj_to_shcore_value(ref);
-    Py_DECREF(ref);
+    Release ref{PyUnicode_AsUTF8String(py)};
+    retval = convert(ref, context);
+  } else if (array_check(py)) {
+    std::shared_ptr<Value::Array_type> array;
+
+    if (!unwrap(py, &array)) {
+      throw std::runtime_error("Could not unwrap shell array.");
+    }
+
+    return Value(array);
   } else if (PyList_Check(py)) {
-    std::shared_ptr<Value::Array_type> array(new Value::Array_type);
+    auto array = std::make_shared<Value::Array_type>();
 
     for (Py_ssize_t c = PyList_Size(py), i = 0; i < c; i++) {
-      PyObject *item = PyList_GetItem(py, i);
-      array->push_back(pyobj_to_shcore_value(item));
+      array->emplace_back(convert(PyList_GetItem(py, i), context));
     }
+
     return Value(array);
   } else if (PyTuple_Check(py)) {
-    std::shared_ptr<Value::Array_type> array(new Value::Array_type);
+    auto array = std::make_shared<Value::Array_type>();
 
     for (Py_ssize_t c = PyTuple_Size(py), i = 0; i < c; i++) {
-      PyObject *item = PyTuple_GetItem(py, i);
-      array->push_back(pyobj_to_shcore_value(item));
+      array->emplace_back(convert(PyTuple_GetItem(py, i), context));
     }
+
     return Value(array);
   } else if (PyDict_Check(py)) {
     std::shared_ptr<Value::Map_type> map(new Value::Map_type);
@@ -139,25 +139,29 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
       PyObject *key_repr = PyObject_Str(key);
       std::string key_repr_string;
       Python_context::pystring_to_string(key_repr, &key_repr_string);
-      (*map)[key_repr_string] = pyobj_to_shcore_value(value);
+      (*map)[key_repr_string] = convert(value, context);
 
       Py_DECREF(key_repr);
     }
 
     return Value(map);
   } else if (PyFunction_Check(py)) {
-    std::shared_ptr<shcore::Python_function> function(
-        new shcore::Python_function(_owner, py));
-    return Value(std::dynamic_pointer_cast<Function_base>(function));
+    if (!*context) {
+      try {
+        *context = Python_context::get();
+      } catch (const std::exception &e) {
+        throw std::runtime_error(std::string{"Could not get SHELL context: "} +
+                                 e.what());
+      }
+    }
+
+    return Value(std::make_shared<Python_function>(*context, py));
   } else {
-    std::shared_ptr<Value::Array_type> array;
     std::shared_ptr<Value::Map_type> map;
     std::shared_ptr<Object_bridge> object;
     std::shared_ptr<Function_base> function;
 
-    if (unwrap(py, array)) {
-      return Value(array);
-    } else if (unwrap(py, map)) {
+    if (unwrap(py, &map)) {
       return Value(map);
     } else if (unwrap(py, object)) {
       return Value(object);
@@ -188,7 +192,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
   return retval;
 }
 
-PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value) {
+PyObject *convert(const Value &value) {
   PyObject *r = nullptr;
   switch (value.type) {
     case Undefined:
@@ -241,3 +245,6 @@ PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value) {
   }
   return r;
 }
+
+}  // namespace py
+}  // namespace shcore

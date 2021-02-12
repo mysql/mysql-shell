@@ -1,25 +1,28 @@
-/* Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+/*
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License, version 2.0,
- as published by the Free Software Foundation.
-
- This program is also distributed with certain software (including
- but not limited to OpenSSL) that is licensed under separate terms, as
- designated in a particular file or component or in included license
- documentation.  The authors of MySQL hereby grant you an additional
- permission to link the program and your derivative works with the
- separately licensed software that they have included with MySQL.
- This program is distributed in the hope that it will be useful,  but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
- the GNU General Public License, version 2.0, for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
-
-/* python_contex.h includes Python.h so it needs to be the first include to
+/*
+ * python_contex.h includes Python.h so it needs to be the first include to
  * avoid error: "_POSIX_C_SOURCE" redefined
  */
 #include "scripting/python_context.h"
@@ -132,43 +135,42 @@ TEST_F(Python, simple_to_py_and_back) {
 
   {
     Value v(Value::True());
-    ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)), v);
+    ASSERT_EQ(py->convert(py->convert(v)), v);
   }
   {
     Value v(Value::False());
-    ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)), v);
+    ASSERT_EQ(py->convert(py->convert(v)), v);
   }
   {
     Value v(Value(1234));
-    ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)), v);
+    ASSERT_EQ(py->convert(py->convert(v)), v);
   }
   {
     Value v(Value(1234));
-    ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)).repr(),
-              "1234");
+    ASSERT_EQ(py->convert(py->convert(v)).repr(), "1234");
   }
   {
     Value v(Value("hello"));
-    ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)), v);
+    ASSERT_EQ(py->convert(py->convert(v)), v);
   }
   {
     Value v(Value(123.45));
-    ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)), v);
+    ASSERT_EQ(py->convert(py->convert(v)), v);
   }
   {
     Value v(Value::Null());
-    ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)), v);
+    ASSERT_EQ(py->convert(py->convert(v)), v);
   }
 
   {
     Value v1(Value(123));
     Value v2(Value(1234));
-    ASSERT_NE(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v1)), v2);
+    ASSERT_NE(py->convert(py->convert(v1)), v2);
   }
   {
     Value v1(Value(123));
     Value v2(Value("123"));
-    ASSERT_NE(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v1)), v2);
+    ASSERT_NE(py->convert(py->convert(v1)), v2);
   }
 }
 
@@ -285,10 +287,9 @@ TEST_F(Python, array_to_py) {
   Input_state cont = Input_state::Ok;
   WillEnterPython lock;
   // this will also test conversion of a wrapped array
-  ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)).repr(),
-            "[123, \"text\", [444]]");
+  ASSERT_EQ(py->convert(py->convert(v)).repr(), "[123, \"text\", [444]]");
 
-  ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)), v);
+  ASSERT_EQ(py->convert(py->convert(v)), v);
 
   py->set_global("arr", v);
   ASSERT_EQ(py->get_global("arr").repr(), "[123, \"text\", [444]]");
@@ -317,10 +318,10 @@ TEST_F(Python, map_to_py) {
   WillEnterPython lock;
 
   // this will also test conversion of a wrapped array
-  ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)).repr(),
+  ASSERT_EQ(py->convert(py->convert(v)).repr(),
             "{\"k1\": 123, \"k2\": \"text\", \"k3\": {\"submap\": 444}}");
 
-  ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)), v);
+  ASSERT_EQ(py->convert(py->convert(v)), v);
 
   py->set_global("mapval", v);
   ASSERT_EQ(py->get_global("mapval").repr(),
@@ -384,9 +385,8 @@ TEST_F(Python, object_to_py) {
 
   PyObject *tmp;
   ASSERT_EQ(Value(std::static_pointer_cast<Object_bridge>(obj2)),
-            py->pyobj_to_shcore_value(
-                tmp = py->shcore_value_to_pyobj(
-                    Value(std::static_pointer_cast<Object_bridge>(obj)))));
+            py->convert(tmp = py->convert(Value(
+                            std::static_pointer_cast<Object_bridge>(obj)))));
   Py_XDECREF(tmp);
 
   // expose the object to JS

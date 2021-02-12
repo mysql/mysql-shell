@@ -181,6 +181,8 @@ struct SHCORE_PUBLIC Value {
       return _map[k];
     }
     bool operator==(const Map_type &other) const { return _map == other._map; }
+    bool operator<(const Map_type &other) const { return _map < other._map; }
+    bool operator<=(const Map_type &other) const { return _map <= other._map; }
 
     bool empty() const { return _map.empty(); }
     size_t size() const { return _map.size(); }
@@ -212,6 +214,7 @@ struct SHCORE_PUBLIC Value {
 
   Value() : type(Undefined) {}
   Value(const Value &copy);
+  Value(Value &&other);
 
   explicit Value(const std::string &s);
   explicit Value(std::string &&s);
@@ -224,11 +227,16 @@ struct SHCORE_PUBLIC Value {
   explicit Value(float f);
   explicit Value(double d);
   explicit Value(bool b);
-  explicit Value(std::shared_ptr<Function_base> f);
-  explicit Value(std::shared_ptr<Object_bridge> o);
-  explicit Value(std::weak_ptr<Map_type> n);
-  explicit Value(Map_type_ref n);
-  explicit Value(Array_type_ref n);
+  explicit Value(const std::shared_ptr<Function_base> &f);
+  explicit Value(std::shared_ptr<Function_base> &&f);
+  explicit Value(const std::shared_ptr<Object_bridge> &o);
+  explicit Value(std::shared_ptr<Object_bridge> &&o);
+  explicit Value(const std::weak_ptr<Map_type> &n);
+  explicit Value(std::weak_ptr<Map_type> &&n);
+  explicit Value(const Map_type_ref &n);
+  explicit Value(Map_type_ref &&n);
+  explicit Value(const Array_type_ref &n);
+  explicit Value(Array_type_ref &&n);
 
   static Value wrap(Object_bridge *o) {
     return Value(std::shared_ptr<Object_bridge>(o));
@@ -277,6 +285,14 @@ struct SHCORE_PUBLIC Value {
   bool operator==(const Value &other) const;
 
   bool operator!=(const Value &other) const { return !(*this == other); }
+
+  bool operator<(const Value &other) const;
+
+  bool operator<=(const Value &other) const;
+
+  bool operator>(const Value &other) const { return !(*this <= other); }
+
+  bool operator>=(const Value &other) const { return !(*this < other); }
 
   explicit operator bool() const {
     return type != Undefined && type != shcore::Null;
@@ -839,6 +855,12 @@ class SHCORE_PUBLIC Object_bridge {
 
   virtual bool operator!=(const Object_bridge &other) const {
     return !(*this == other);
+  }
+
+  virtual bool operator<(const Object_bridge &) const { return false; }
+
+  virtual bool operator<=(const Object_bridge &other) const {
+    return (*this < other) || (*this == other);
   }
 
   //! Returns the value of a member
