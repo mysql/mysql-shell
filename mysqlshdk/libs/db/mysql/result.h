@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,7 +62,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
     return (_affected_rows == ~(my_ulonglong)0) ? 0 : _affected_rows;
   }
   virtual uint64_t get_fetched_row_count() const { return _fetched_row_count; }
-  virtual uint64_t get_warning_count() const { return _warning_count; }
+  virtual uint64_t get_warning_count() const;
   virtual std::string get_info() const { return _info; }
   virtual const std::vector<std::string> &get_gtids() const { return _gtids; }
   virtual const std::vector<Column> &get_metadata() const { return _metadata; }
@@ -74,8 +74,8 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
 
  protected:
   Result(std::shared_ptr<mysqlshdk::db::mysql::Session_impl> owner,
-         uint64_t affected_rows, unsigned int warning_count,
-         uint64_t last_insert_id, const char *info, bool buffered);
+         uint64_t affected_rows, uint64_t last_insert_id, const char *info,
+         bool buffered);
   void reset(std::shared_ptr<MYSQL_RES> res);
 
   std::deque<mysqlshdk::db::Row_copy> _pre_fetched_rows;
@@ -101,7 +101,6 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   mutable std::shared_ptr<Field_names> _field_names;
   uint64_t _affected_rows = 0;
   uint64_t _last_insert_id = 0;
-  uint64_t _warning_count = 0;
   uint64_t _fetched_row_count = 0;
   std::string _info;
   std::list<std::unique_ptr<Warning>> _warnings;

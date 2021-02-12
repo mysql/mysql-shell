@@ -398,10 +398,10 @@ std::shared_ptr<IResult> Session_impl::run_sql(const char *sql, size_t len,
     throw err;
   }
 
+  // warning count can only be obtained after consuming the result data
   std::shared_ptr<Result> result(
       new Result(shared_from_this(), mysql_affected_rows(_mysql),
-                 mysql_warning_count(_mysql), mysql_insert_id(_mysql),
-                 mysql_info(_mysql), buffered));
+                 mysql_insert_id(_mysql), mysql_info(_mysql), buffered));
 
   timer.stage_end();
   result->set_execution_time(timer.total_seconds_elapsed());

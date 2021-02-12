@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1002,28 +1002,25 @@ int Resultset_dumper::get_warning_and_execution_time_stats(
 }
 
 void Resultset_dumper_base::dump_warnings() {
-  if (m_result->get_warning_count()) {
-    auto warning = m_result->fetch_one_warning();
-    while (warning && !m_cancelled) {
-      std::string type;
-      switch (warning->level) {
-        case mysqlshdk::db::Warning::Level::Note:
-          type = "Note";
-          break;
-        case mysqlshdk::db::Warning::Level::Warn:
-          type = "Warning";
-          break;
-        case mysqlshdk::db::Warning::Level::Error:
-          type = "Error";
-          break;
-      }
-
-      m_printer->print(
-          (shcore::str_format("%s (code %d): %s\n", type.c_str(), warning->code,
-                              warning->msg.c_str())));
-
-      warning = m_result->fetch_one_warning();
+  auto warning = m_result->fetch_one_warning();
+  while (warning && !m_cancelled) {
+    std::string type;
+    switch (warning->level) {
+      case mysqlshdk::db::Warning::Level::Note:
+        type = "Note";
+        break;
+      case mysqlshdk::db::Warning::Level::Warn:
+        type = "Warning";
+        break;
+      case mysqlshdk::db::Warning::Level::Error:
+        type = "Error";
+        break;
     }
+
+    m_printer->print((shcore::str_format("%s (code %d): %s\n", type.c_str(),
+                                         warning->code, warning->msg.c_str())));
+
+    warning = m_result->fetch_one_warning();
   }
 }
 

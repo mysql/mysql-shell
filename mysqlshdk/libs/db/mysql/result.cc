@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,12 +37,11 @@ namespace mysqlshdk {
 namespace db {
 namespace mysql {
 Result::Result(std::shared_ptr<mysqlshdk::db::mysql::Session_impl> owner,
-               uint64_t affected_rows_, unsigned int warning_count_,
-               uint64_t last_insert_id, const char *info_, bool buffered)
+               uint64_t affected_rows_, uint64_t last_insert_id,
+               const char *info_, bool buffered)
     : _session(owner),
       _affected_rows(affected_rows_),
       _last_insert_id(last_insert_id),
-      _warning_count(warning_count_),
       _fetched_row_count(0),
       _has_resultset(false),
       m_buffered(buffered) {
@@ -255,8 +254,13 @@ void Result::rewind() {
     mysql_data_seek(res.get(), 0);
 }
 
+uint64_t Result::get_warning_count() const {
+  if (auto s = _session.lock()) return s->warning_count();
+  return 0;
+}
+
 std::unique_ptr<Warning> Result::fetch_one_warning() {
-  if (_warning_count && !_fetched_warnings) {
+  if (!_fetched_warnings && get_warning_count()) {
     _fetched_warnings = true;
     if (auto s = _session.lock()) {
       auto result =

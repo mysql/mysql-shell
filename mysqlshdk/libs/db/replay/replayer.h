@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -92,6 +92,8 @@ class Result_mysql : public db::mysql::Result {
 
   bool has_resultset() override { return _has_resultset; }
 
+  uint64_t get_warning_count() const override { return _warning_count; }
+
   const std::vector<std::string> &get_gtids() const override { return _gtids; }
 
  private:
@@ -99,6 +101,7 @@ class Result_mysql : public db::mysql::Result {
 
   std::vector<db::Row_copy> _rows;
 
+  uint64_t _warning_count = 0;
   std::list<std::unique_ptr<db::Warning>> _warnings;
   std::vector<std::string> _gtids;
   bool _has_resultset = false;

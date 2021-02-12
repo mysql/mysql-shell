@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+/* Copyright (c) 2014, 2021, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -3291,5 +3291,28 @@ TEST_F(Interactive_shell_test, Bug30296825) {
   wipe_all();
 }
 #endif
+
+TEST_F(Interactive_shell_test, show_warnings) {
+  execute("\\sql");
+  // Enable warnings
+  execute("\\W");
+  MY_EXPECT_STDOUT_CONTAINS("Show warnings enabled");
+
+  const auto test_warnings = [&](const std::string &uri) {
+    execute("\\connect " + uri);
+    EXPECT_TRUE(output_handler.std_err.empty());
+    wipe_all();
+
+    execute("select cast('abc' as signed);");
+    MY_EXPECT_STDOUT_CONTAINS("Truncated incorrect INTEGER value: 'abc'");
+    wipe_all();
+  };
+
+  // X protocol
+  test_warnings(_uri);
+
+  // Classic
+  test_warnings(_mysql_uri);
+}
 
 }  // namespace mysqlsh

@@ -148,6 +148,10 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   std::vector<std::string> get_last_gtids() const;
 
+  uint64_t warning_count() const {
+    return _mysql ? mysql_warning_count(_mysql) : 0;
+  }
+
   const mysqlshdk::db::Connection_options &get_connection_options() const {
     return _connection_options;
   }
