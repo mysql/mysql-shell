@@ -17,6 +17,17 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 
+//@<> check if warning is returned for tables without PK BUG#29771457
+shell.connect(__sandbox_uri1);
+session.runSql("CREATE DATABASE test");
+session.runSql("CREATE TABLE test.foo (i int)");
+var resp = dba.checkInstanceConfiguration();
+session.runSql("DROP DATABASE test");
+EXPECT_EQ({"status":"error"}, resp)
+
+EXPECT_STDOUT_CONTAINS("Group Replication requires tables to use InnoDB and have a PRIMARY KEY or PRIMARY KEY Equivalent (non-null unique key). Tables that do not follow these requirements will be readable but not updateable when used with Group Replication. If your applications make updates (INSERT, UPDATE or DELETE) to these tables, ensure they use the InnoDB storage engine and have a PRIMARY KEY or PRIMARY KEY Equivalent.")
+EXPECT_STDOUT_CONTAINS("If you can't change the tables structure to include an extra visible key to be used as PRIMARY KEY, you can make use of the INVISIBLE COLUMN feature available since 8.0.23: https://dev.mysql.com/doc/refman/8.0/en/invisible-columns.html")
+
 //@<> BUG#32287986: Create account without all grants
 shell.connect(__sandbox_uri1);
 session.runSql("CREATE USER 'dba'@'%'");

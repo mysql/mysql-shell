@@ -265,14 +265,6 @@ TEST_F(Shell_js_dba_tests, no_interactive_sandboxes) {
   MY_EXPECT_LOG_CONTAINS(log);
 }
 
-// Regression test for a bug on checkInstanceConfiguration() which
-// was requiring an active session to the metadata which is not
-// required by design
-TEST_F(Shell_js_dba_tests, dba_check_instance_configuration_session) {
-  reset_replayable_shell();
-  validate_interactive("dba_check_instance_configuration_session.js");
-}
-
 TEST_F(Shell_js_dba_tests, interactive_deploy_instance) {
   _options->interactive = true;
   reset_shell();
@@ -496,20 +488,6 @@ TEST_F(Shell_js_dba_tests, reboot_cluster_interactive) {
   reset_replayable_shell();
 
   validate_interactive("dba_reboot_cluster_interactive.js");
-}
-
-TEST_F(Shell_js_dba_tests, cluster_misconfigurations) {
-  _options->wizards = false;
-  reset_replayable_shell();
-  output_handler.set_log_level(shcore::Logger::LOG_WARNING);
-
-  validate_interactive("dba_cluster_misconfigurations.js");
-
-  // Validate output for chunk: Create cluster fails
-  // (one table is not compatible) - verbose mode
-  // Regression for BUG#25966731 : ALLOW-NON-COMPATIBLE-TABLES OPTION DOES
-  // NOT EXIST
-  MY_EXPECT_STDOUT_NOT_CONTAINS("the --allow-non-compatible-tables option");
 }
 
 TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations) {

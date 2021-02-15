@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -91,7 +91,7 @@ bool validate_schemas(const mysqlshdk::mysql::IInstance &instance) {
 
     auto row = result->fetch_one();
     if (row) {
-      console->print_warning(
+      console->print_error(
           "The following tables use a storage engine that are not supported by "
           "Group Replication:");
       ok = false;
@@ -127,7 +127,7 @@ bool validate_schemas(const mysqlshdk::mysql::IInstance &instance) {
 
     auto row = result->fetch_one();
     if (row) {
-      console->print_warning(
+      console->print_error(
           "The following tables do not have a Primary Key or equivalent "
           "column: ");
       ok = false;
@@ -154,6 +154,11 @@ bool validate_schemas(const mysqlshdk::mysql::IInstance &instance) {
         "DELETE) to these tables, ensure they use the InnoDB "
         "storage engine and have a PRIMARY KEY or PRIMARY KEY "
         "Equivalent.");
+    console->print_info(
+        "If you can't change the tables structure to include an extra visible "
+        "key to be used as PRIMARY KEY, you can make use of the INVISIBLE "
+        "COLUMN feature available since 8.0.23: "
+        "https://dev.mysql.com/doc/refman/8.0/en/invisible-columns.html");
   }
   return ok;
 }

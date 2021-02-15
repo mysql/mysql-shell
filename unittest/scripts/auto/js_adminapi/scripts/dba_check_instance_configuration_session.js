@@ -6,11 +6,11 @@ dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, us
 //@ Check Instance Configuration should fail if there's no session nor parameters provided
 dba.checkInstanceConfiguration();
 
-//@ First Sandbox
+//@<> First Sandbox
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {"report_host": hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 
-//@ Deploy 2nd sandbox with invalid (empty) report_host value.
+//@<> Deploy 2nd sandbox with invalid (empty) report_host value.
 // Regression for BUG#28285389: TARGET MEMBER HOSTNAME SHOULD BE TAKEN FROM HOSTNAME OR REPORT_HOST SYSVARS
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {"report_host": ""});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
@@ -18,7 +18,7 @@ testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 //@ Check Instance Configuration ok with a session
 dba.checkInstanceConfiguration({host: localhost, port: __mysql_sandbox_port1, user:'root', password:'root'});
 
-//@ Create account with all privileges but remove one of the necessary privileges
+//@<> Create account with all privileges but remove one of the necessary privileges
 shell.connect({scheme:'mysql', host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 session.runSql("SET sql_log_bin = 0");
 session.runSql("CREATE USER 'test_user'@'%'");

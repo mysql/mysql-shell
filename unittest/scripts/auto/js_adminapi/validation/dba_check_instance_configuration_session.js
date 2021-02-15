@@ -4,16 +4,7 @@
 //@ Check Instance Configuration should fail if there's no session nor parameters provided
 ||An open session is required to perform this operation.
 
-//@ First Sandbox
-||
-
-//@ Deploy 2nd sandbox with invalid (empty) report_host value.
-||
-
 //@ Check Instance Configuration ok with a session
-||
-
-//@ Create account with all privileges but remove one of the necessary privileges
 ||
 
 //@ Error: user has no privileges to run the checkInstanceConfiguration command (BUG#26609909) {VER(>=8.0.0)}

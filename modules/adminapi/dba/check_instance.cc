@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -107,6 +107,8 @@ void Check_instance::check_clone_plugin_status() {
 }
 
 bool Check_instance::check_configuration() {
+  bool bad_schema = check_schema_compatibility();
+
   auto console = mysqlsh::current_console();
   if (!m_silent) {
     console->println();
@@ -126,6 +128,7 @@ bool Check_instance::check_configuration() {
   } else {
     log_debug("Checking instance configuration...");
   }
+
   // Perform check with no update
   bool restart;
   bool config_file_change;
@@ -142,6 +145,15 @@ bool Check_instance::check_configuration() {
     } else {
       console->print_note("Please restart the MySQL server and try again.");
     }
+    return false;
+  }
+
+  if (!bad_schema) {
+    // if we're here it means validate_configuration found no errors and the
+    // only problems are related to schema, we need to update the status and
+    // still return false as we can't continue anyway.
+    auto m = m_ret_val.as_map();
+    (*m)["status"] = shcore::Value("error");
     return false;
   }
 
@@ -189,7 +201,6 @@ void Check_instance::prepare() {
   prepare_config_object();
 
   m_is_valid = true;
-  bool bad_schema = false;
 
   try {
     ensure_user_privileges(*m_target_instance);
@@ -203,10 +214,6 @@ void Check_instance::prepare() {
     }
 
     check_instance_address();
-
-    if (!check_schema_compatibility()) {
-      bad_schema = true;
-    }
 
     // Check if async replication is running
     //
@@ -229,19 +236,10 @@ void Check_instance::prepare() {
     m_is_valid = false;
     throw;
   }
-
   if (m_is_valid && !m_silent) {
     console->println();
     console->print_info("The instance '" + target +
                         "' is valid to be used in an InnoDB cluster.");
-    if (bad_schema) {
-      console->print_warning(
-          "Some non-fatal issues were detected in some of the existing "
-          "tables.");
-      console->println(
-          "You may choose to ignore these issues, although replicated updates "
-          "on these tables will not be possible.");
-    }
   }
 }
 
