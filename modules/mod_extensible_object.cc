@@ -971,17 +971,20 @@ void Extensible_object::get_param_help_detail(
     }
 
     case shcore::Value_type::Map: {
-      help_entry += " accepts the following options:";
-      details->emplace_back(std::move(help_entry));
-
       const auto &options = param_definition.options();
+      if (!options.empty()) {
+        help_entry += " accepts the following options:";
+      } else {
+        help_entry += " accepts any key/value pair.";
+      }
+
+      details->emplace_back(std::move(help_entry));
 
       for (const auto &option : options)
         get_param_help_brief(*option, false, details);
 
       for (const auto &option : options)
         get_param_help_detail(*option, false, details);
-
       break;
     }
 

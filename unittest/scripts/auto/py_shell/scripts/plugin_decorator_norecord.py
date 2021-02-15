@@ -84,7 +84,7 @@ def test_options(stritem, options=None):
 
     Args:
         stritem (str): String parameter.
-        options (dictionary): Options to whatever.
+        options (dict): Options to whatever.
 
     Allowed options for options:
         strOption (str): String parameter.
@@ -98,6 +98,48 @@ def test_options(stritem, options=None):
     print("stritem value:", stritem)
     if options is not None:
         print("options:", options)
+
+# This function is to test that option registration is done correctly in the
+# following cases:
+# - Dict parameter with options, documented as "dict"
+# - Dict parameter with options, documented as "dictionary"
+# - Dict parameter with no options, documented as "dict"
+# - Dict parameter with no options, documented as "dictionary"
+#
+# In addition does the same testing for nested dictionary options
+# - Dict option with options, documented as "dict"
+# - Dict option with options, documented as "dictionary"
+# - Dict option with no options, documented as "dict"
+# - Dict option with no options, documented as "dictionary"
+@plugin_function("decorator.inner.testMoreOptions", cli=True)
+def test_more_options(dictOne, dictTwo, dictThree, dictFour):
+    """
+    Tests some parameter documentation.
+
+    Args:
+        dictOne (dict): Dictionary with specific options.
+        dictTwo (dict): Dictionary with specific options.
+        dictThree (dict): Open dictionary.
+        dictFour (dict): Open dictionary.
+
+    Allowed options for dictOne:
+        optOne (dict): Dictionary option.
+        optTwo (dict): Dictionary option.
+
+    Allowed options for dictTwo:
+        optThree (dict): Dictionary option.
+        optFour (dict): Dictionary option.
+
+    This test ensures the dictionaries and options are properly parsed
+    based on the documentation.
+
+    Allowed options for optOne:
+        strSample (str): sample option
+
+    Allowed options for optThree:
+        strLast (str): sample option
+    """
+    pass
 '''
 
 user_path = testutil.get_user_config_path()
@@ -107,124 +149,139 @@ plugin_path =  os.path.join(plugin_folder_path, "init.py")
 testutil.mkdir(plugin_folder_path, True)
 testutil.create_file(plugin_path, plugin_code)
 
+def __call_mysqlsh(cmdline_args):
+    return testutil.call_mysqlsh(["--quiet-start=2"] + cmdline_args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+
+def call_mysqlsh_e(e_arg, py=False):
+    return __call_mysqlsh((["--py"] if py else []) + ["-ifull", "-e"] + [e_arg])
+
+def call_mysqlsh_py_e(e_arg):
+    return call_mysqlsh_e(e_arg, True)
+
+def call_mysqlsh_cli(*cmdline_args):
+    return __call_mysqlsh(["--"] + [arg for arg in cmdline_args])
+
 # Using the Plugin In JavaScript
 # ==============================
 #@<> Lists help of plugin (js)
-rc = testutil.call_mysqlsh(["-ifull", "-e", "\\? decorator"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_e("\\? decorator")
 
 #@<> Lists help of plugin child object (js)
-rc = testutil.call_mysqlsh(["-ifull", "-e", "\\? decorator.inner"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_e("\\? decorator.inner")
 
 #@<> Lists help of plugin function for simple type parameters (js)
-rc = testutil.call_mysqlsh(["-ifull", "-e", "\\? decorator.testSimpleTypes"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_e("\\? decorator.testSimpleTypes")
 
 #@<> Lists help of plugin function with optional parameters (js)
-rc = testutil.call_mysqlsh(["-ifull", "-e", "\\? decorator.testOptionalParameters"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_e("\\? decorator.testOptionalParameters")
 
 #@<> Lists help of plugin function with options (js)
-rc = testutil.call_mysqlsh(["-ifull", "-e", "\\? decorator.inner.testOptions"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_e("\\? decorator.inner.testOptions")
 
 #@<> Test calling simple types function (js)
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.testSimpleTypes('one', 2, false, {whateverOption:'whateverValue'}, [1,2,3], 'Some Value')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_e("decorator.testSimpleTypes('one', 2, false, {whateverOption:'whateverValue'}, [1,2,3], 'Some Value')")
 
 #@<> Test calling function with optionals 1 (js)
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.testOptionalParameters('two', 1, true, {whateverOption:'whateverValue'})"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_e("decorator.testOptionalParameters('two', 1, true, {whateverOption:'whateverValue'})")
 
 #@<> Test calling function with optionals 2 (js)
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.testOptionalParameters('two', 1, true, {whateverOption:'whateverValue'}, [4,5,6])"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_e("decorator.testOptionalParameters('two', 1, true, {whateverOption:'whateverValue'}, [4,5,6])")
 
 #@<> Test calling function with optionals 3 (js)
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.testOptionalParameters('two', 1, true, {whateverOption:'whateverValue'}, [4,5,6], {anykey:'anyValue'})"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_e("decorator.testOptionalParameters('two', 1, true, {whateverOption:'whateverValue'}, [4,5,6], {anykey:'anyValue'})")
 
 #@<> Test calling function with options 1 (js)
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.inner.testOptions('Passing No Options')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_e("decorator.inner.testOptions('Passing No Options')")
 
 #@<> Test calling function with options 2 (js)
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.inner.testOptions('Passing Options', {strOption:'String Option Value', intOption: 45, anyTypeOption:[1,'one',true]})"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_e("decorator.inner.testOptions('Passing Options', {strOption:'String Option Value', intOption: 45, anyTypeOption:[1,'one',true]})")
 
 #@<> Function Call Errors (js)
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.testSimpleTypes(1, 2, false, {whateverOption:'whateverValue'}, [1,2,3], 'Some Value')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.testSimpleTypes('one', 'two', false, {whateverOption:'whateverValue'}, [1,2,3], 'Some Value')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.testSimpleTypes('one', 2, 'error', {whateverOption:'whateverValue'}, [1,2,3], 'Some Value')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.testSimpleTypes('one', 2, false, [1,2], [1,2,3], 'Some Value')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.testSimpleTypes('one', 2, false, {whateverOption:'whateverValue'}, 'error', 'Some Value')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.testSimpleTypes('one', 2, false, {whateverOption:'whateverValue'}, [1,2,3])"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
-rc = testutil.call_mysqlsh(["-ifull", "-e", "decorator.inner.testOptions('Passing Options', {invalidOption:'String Option Value'})"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_e("decorator.testSimpleTypes(1, 2, false, {whateverOption:'whateverValue'}, [1,2,3], 'Some Value')")
+rc = call_mysqlsh_e("decorator.testSimpleTypes('one', 'two', false, {whateverOption:'whateverValue'}, [1,2,3], 'Some Value')")
+rc = call_mysqlsh_e("decorator.testSimpleTypes('one', 2, 'error', {whateverOption:'whateverValue'}, [1,2,3], 'Some Value')")
+rc = call_mysqlsh_e("decorator.testSimpleTypes('one', 2, false, [1,2], [1,2,3], 'Some Value')")
+rc = call_mysqlsh_e("decorator.testSimpleTypes('one', 2, false, {whateverOption:'whateverValue'}, 'error', 'Some Value')")
+rc = call_mysqlsh_e("decorator.testSimpleTypes('one', 2, false, {whateverOption:'whateverValue'}, [1,2,3])")
+rc = call_mysqlsh_e("decorator.inner.testOptions('Passing Options', {invalidOption:'String Option Value'})")
 
 # Using the Plugin In Python
 # ==========================
 #@<> Lists help of plugin (py)
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "\\? decorator"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_py_e("\\? decorator")
 
 #@<> Lists help of plugin child object (py)
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "\\? decorator.inner"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_py_e("\\? decorator.inner")
 
 #@<> Lists help of plugin function for simple type parameters (py)
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "\\? decorator.test_simple_types"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_py_e("\\? decorator.test_simple_types")
 
 #@<> Lists help of plugin function with optional parameters (py)
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "\\? decorator.test_optional_parameters"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_py_e("\\? decorator.test_optional_parameters")
 
 #@<> Lists help of plugin function with options (py)
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "\\? decorator.inner.test_options"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_py_e("\\? decorator.inner.test_options")
+
+#@<> Lists help of function with open and fixed options in params and options (py)
+rc = call_mysqlsh_py_e("\\? decorator.inner.test_more_options")
 
 #@<> Test calling simple types function (py)
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_py_e("decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')")
 
 #@<> Test calling function with optionals 1 (py)
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.test_optional_parameters('two', 1, True, {'whateverOption':'whateverValue'})"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_py_e("decorator.test_optional_parameters('two', 1, True, {'whateverOption':'whateverValue'})")
 
 #@<> Test calling function with optionals 2 (py)
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.test_optional_parameters('two', 1, True, {'whateverOption':'whateverValue'}, [4,5,6])"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_py_e("decorator.test_optional_parameters('two', 1, True, {'whateverOption':'whateverValue'}, [4,5,6])")
 
 #@<> Test calling function with optionals 3 (py)
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.test_optional_parameters('two', 1, True, {'whateverOption':'whateverValue'}, [4,5,6], {'anykey':'anyValue'})"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_py_e("decorator.test_optional_parameters('two', 1, True, {'whateverOption':'whateverValue'}, [4,5,6], {'anykey':'anyValue'})")
 
 #@<> Test calling function with options 1 (py)
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.inner.test_options('Passing No Options')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_py_e("decorator.inner.test_options('Passing No Options')")
 
 #@<> Test calling function with options 2 (py)
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.inner.test_options('Passing Options', {'strOption':'String Option Value', 'intOption': 45, 'anyTypeOption':[1,'one',True]})"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_py_e("decorator.inner.test_options('Passing Options', {'strOption':'String Option Value', 'intOption': 45, 'anyTypeOption':[1,'one',True]})")
 
 #@<> Function Call Errors (py)
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.test_simple_types(1, 2, False, {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.test_simple_types('one', 'two', False, {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.test_simple_types('one', 2, 'error', {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.test_simple_types('one', 2, False, 'error', [1,2,3], 'Some Value')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, 'error', 'Some Value')"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, [1,2,3])"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
-rc = testutil.call_mysqlsh(["--py", "-ifull", "-e", "decorator.inner.test_options('Passing Options', {'invalidOption':'String Option Value'})"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_py_e("decorator.test_simple_types(1, 2, False, {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')")
+rc = call_mysqlsh_py_e("decorator.test_simple_types('one', 'two', False, {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')")
+rc = call_mysqlsh_py_e("decorator.test_simple_types('one', 2, 'error', {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')")
+rc = call_mysqlsh_py_e("decorator.test_simple_types('one', 2, False, 'error', [1,2,3], 'Some Value')")
+rc = call_mysqlsh_py_e("decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, 'error', 'Some Value')")
+rc = call_mysqlsh_py_e("decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, [1,2,3])")
+rc = call_mysqlsh_py_e("decorator.inner.test_options('Passing Options', {'invalidOption':'String Option Value'})")
 
 
 ###########################
 # Using the Plugin As CLI
 # ==========================
 #@<> Lists help of plugin (cli)
-rc = testutil.call_mysqlsh(["--quiet-start=2", "--", "decorator", "--help"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_cli("decorator", "--help")
 
 #@<> Lists help of plugin child object (cli)
-rc = testutil.call_mysqlsh(["--quiet-start=2", "--", "decorator", "inner", "--help"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_cli("decorator", "inner", "--help")
 
 #@<> Lists help of plugin function for simple type parameters (cli)
-rc = testutil.call_mysqlsh(["--quiet-start=2", "--", "decorator", "test_simple_types", "--help"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_cli("decorator", "test_simple_types", "--help")
 
 #@<> Lists help of plugin function with options (cli)
-rc = testutil.call_mysqlsh(["--quiet-start=2", "--", "decorator", "inner", "test_options", "--help"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_cli("decorator", "inner", "test_options", "--help")
 
 #@<> Test calling simple types function (cli)
-rc = testutil.call_mysqlsh(["--quiet-start=2", "--", "decorator", "test_simple_types", 'one', "2", "false", '--whateverOption=whateverValue', "1,2,3", "--an-undefined=\'Some Value\'"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_cli("decorator", "test_simple_types", 'one', "2", "false", '--whateverOption=whateverValue', "1,2,3", "--an-undefined=\'Some Value\'")
 
 #@<> Test calling function with optionals 1 (cli)
-rc = testutil.call_mysqlsh(["--quiet-start=2", "--", "decorator", "test_optional_parameters", 'two', "1", "true", '--whateverOption=whateverValue'], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_cli("decorator", "test_optional_parameters", 'two', "1", "true", '--whateverOption=whateverValue')
 
 #@<> Test calling function with optionals 2 (cli)
-rc = testutil.call_mysqlsh(["--quiet-start=2", "--", "decorator", "test_optional_parameters", 'two', "1", "True", "--whateverOption=whateverValue", "4,5,6"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_cli("decorator", "test_optional_parameters", 'two', "1", "True", "--whateverOption=whateverValue", "4,5,6")
 
 #@<> Test calling function with optionals 3 (cli)
-rc = testutil.call_mysqlsh(["--quiet-start=2", "--", "decorator", "test_optional_parameters", 'two', "1", "True", '--whateverOption=whateverValue', "4,5,6", '--anykey=anyValue'], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_cli("decorator", "test_optional_parameters", 'two', "1", "True", '--whateverOption=whateverValue', "4,5,6", '--anykey=anyValue')
 
 #@<> Test calling function with options 1 (cli)
-rc = testutil.call_mysqlsh(["--quiet-start=2", "--", "decorator", "inner", "test_options", 'Passing No Options'], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+rc = call_mysqlsh_cli("decorator", "inner", "test_options", 'Passing No Options')
 
 #@<> Finalization
 testutil.rmdir(plugins_path, True)

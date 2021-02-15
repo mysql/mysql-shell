@@ -42,6 +42,9 @@ FUNCTIONS
       help([member])
             Provides help about this object and it's members
 
+      testMoreOptions(dictOne, dictTwo, dictThree, dictFour)
+            Tests some parameter documentation.
+
       testOptions(stritem[, options])
             Tests some parameter documentation.
 
@@ -67,7 +70,8 @@ DESCRIPTION
       The simple types function is only used to test how the simple parameters
       are properly documented using the decorator plugins.
 
-      The aDict parameter accepts the following options:
+      The aDict parameter accepts any key/value pair.
+
 
 #@<OUT> Lists help of plugin function with optional parameters (js)
 [[*]]> \? decorator.testOptionalParameters
@@ -90,7 +94,8 @@ DESCRIPTION
       The optional parameters function is only used to test how the parameters
       with default values are documented as optional params.
 
-      The aDict parameter accepts the following options:
+      The aDict parameter accepts any key/value pair.
+
 
 #@<OUT> Lists help of plugin function with options (js)
 [[*]]> \? decorator.inner.testOptions
@@ -218,6 +223,9 @@ FUNCTIONS
       help([member])
             Provides help about this object and it's members
 
+      test_more_options(dictOne, dictTwo, dictThree, dictFour)
+            Tests some parameter documentation.
+
       test_options(stritem[, options])
             Tests some parameter documentation.
 
@@ -243,7 +251,8 @@ DESCRIPTION
       The simple types function is only used to test how the simple parameters
       are properly documented using the decorator plugins.
 
-      The aDict parameter accepts the following options:
+      The aDict parameter accepts any key/value pair.
+
 
 #@<OUT> Lists help of plugin function with optional parameters (py)
 [[*]]> \? decorator.test_optional_parameters
@@ -266,7 +275,8 @@ DESCRIPTION
       The optional parameters function is only used to test how the parameters
       with default values are documented as optional params.
 
-      The aDict parameter accepts the following options:
+      The aDict parameter accepts any key/value pair.
+
 
 #@<OUT> Lists help of plugin function with options (py)
 [[*]]> \? decorator.inner.test_options
@@ -289,6 +299,52 @@ DESCRIPTION
       - strOption: String - String parameter.
       - intOption: Integer - String List parameter.
       - anyTypeOption: Any type option.
+
+
+#@<OUT> Lists help of function with open and fixed options in params and options (py)
+[[*]]> \? decorator.inner.test_more_options
+NAME
+      test_more_options - Tests some parameter documentation.
+
+SYNTAX
+      decorator.inner.test_more_options(dictOne, dictTwo, dictThree, dictFour)
+
+WHERE
+      dictOne: Dictionary - Dictionary with specific options.
+      dictTwo: Dictionary - Dictionary with specific options.
+      dictThree: Dictionary - Open dictionary.
+      dictFour: Dictionary - Open dictionary.
+
+DESCRIPTION
+      This test ensures the dictionaries and options are properly parsed based
+      on the documentation.
+
+      The dictOne parameter accepts the following options:
+
+      - optOne: Dictionary - Dictionary option.
+      - optTwo: Dictionary - Dictionary option.
+
+      The optOne option accepts the following options:
+
+      - strSample: String - sample option.
+
+      The optTwo option accepts any key/value pair.
+
+      The dictTwo parameter accepts the following options:
+
+      - optThree: Dictionary - Dictionary option.
+      - optFour: Dictionary - Dictionary option.
+
+      The optThree option accepts the following options:
+
+      - strLast: String - sample option.
+
+      The optFour option accepts any key/value pair.
+
+      The dictThree parameter accepts any key/value pair.
+
+      The dictFour parameter accepts any key/value pair.
+
 
 #@<OUT> Test calling simple types function (py)
 [[*]]> decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, [1,2,3], 'Some Value')
@@ -364,6 +420,9 @@ The following operations are available at 'decorator':
 
 #@<OUT> Lists help of plugin child object (cli)
 The following operations are available at 'decorator inner':
+
+   test-more-options
+      Tests some parameter documentation.
 
    test-options
       Tests some parameter documentation.

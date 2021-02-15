@@ -136,7 +136,7 @@ class PluginRegistrar:
             if self.default is not None:
                 info["default"] = self.default
 
-            if self.type == "dictionary":
+            if "type" in info.keys() and info["type"] == "dictionary":
                 options = []
                 for o in self.options:
                     options.append(o.format_info())
@@ -203,7 +203,7 @@ class PluginRegistrar:
                 info["default"] = self.definition.default
                 info["required"] = False
 
-            if self.type == "dictionary" and len(self.options):
+            if "type" in info.keys() and info["type"] == "dictionary" and len(self.options):
                 options = []
                 for o in self.options:
                     options.append(o.format_info())
@@ -467,7 +467,8 @@ class PluginRegistrar:
                 # data type definition included
                 elif match.group(5):
                     param_options = match.group(5).split(",")
-                    info["type"] = param_options[0]
+                    info["type"] = PluginRegistrar.sphinx_2shell_type(
+                        param_options[0])
 
                     if len(param_options) > 1:
                         if param_options[1] == "required":
