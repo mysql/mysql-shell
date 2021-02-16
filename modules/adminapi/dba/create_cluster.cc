@@ -160,14 +160,10 @@ void Create_cluster::resolve_ssl_mode() {
     m_options.gr_options.ssl_mode = dba::kMemberSSLModeAuto;
   }
 
-  std::string new_ssl_mode = resolve_cluster_ssl_mode(
-      *m_target_instance, *m_options.gr_options.ssl_mode);
+  resolve_cluster_ssl_mode(*m_target_instance, &m_options.gr_options.ssl_mode);
 
-  if (new_ssl_mode != *m_options.gr_options.ssl_mode) {
-    m_options.gr_options.ssl_mode = new_ssl_mode;
-    log_warning("SSL mode used to configure the cluster: '%s'",
-                m_options.gr_options.ssl_mode->c_str());
-  }
+  log_info("SSL mode used to configure the cluster: '%s'",
+           m_options.gr_options.ssl_mode->c_str());
 }
 
 void Create_cluster::prepare() {

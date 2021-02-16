@@ -343,6 +343,8 @@ std::string get_mysqlprovision_error_string(
 extern const char *kMemberSSLModeAuto;
 extern const char *kMemberSSLModeRequired;
 extern const char *kMemberSSLModeDisabled;
+extern const char *kMemberSSLModeVerifyCA;
+extern const char *kMemberSSLModeVerifyIdentity;
 
 /**
  * Check if a setting is supported on the target instance
@@ -377,13 +379,11 @@ bool is_option_supported(
 void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
                                   Cluster_type cluster_type);
 
-std::string SHCORE_PUBLIC
-resolve_cluster_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
-                         const std::string &member_ssl_mode);
-std::string SHCORE_PUBLIC
-resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
-                          const mysqlshdk::mysql::IInstance &pinstance,
-                          const std::string &member_ssl_mode);
+void resolve_cluster_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
+                              mysqlshdk::null_string *member_ssl_mode);
+void resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
+                               const mysqlshdk::mysql::IInstance &pinstance,
+                               mysqlshdk::null_string *member_ssl_mode);
 
 std::vector<NewInstanceInfo> get_newly_discovered_instances(
     const mysqlshdk::mysql::IInstance &group_server,

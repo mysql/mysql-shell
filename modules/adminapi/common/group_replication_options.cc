@@ -38,8 +38,11 @@ namespace dba {
 const char *kMemberSSLModeAuto = "AUTO";
 const char *kMemberSSLModeRequired = "REQUIRED";
 const char *kMemberSSLModeDisabled = "DISABLED";
+const char *kMemberSSLModeVerifyCA = "VERIFY_CA";
+const char *kMemberSSLModeVerifyIdentity = "VERIFY_IDENTITY";
 const std::set<std::string> kMemberSSLModeValues = {
-    kMemberSSLModeAuto, kMemberSSLModeDisabled, kMemberSSLModeRequired};
+    kMemberSSLModeAuto, kMemberSSLModeDisabled, kMemberSSLModeRequired,
+    kMemberSSLModeVerifyCA, kMemberSSLModeVerifyIdentity};
 
 /**
  * Validate the value specified for the localAddress option.

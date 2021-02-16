@@ -261,6 +261,10 @@ The memberSslMode option supports the following values:
 
 @li REQUIRED: if used, SSL (encryption) will be enabled for the instance to
 communicate with other members of the cluster
+@li VERIFY_CA: Like REQUIRED, but additionally verify the server TLS
+certificate against the configured Certificate Authority (CA) certificates.
+@li VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the server
+certificate matches the host to which the connection is attempted.
 @li DISABLED: if used, SSL (encryption) will be disabled
 @li AUTO: if used, SSL (encryption) will be automatically enabled or disabled
 based on the cluster configuration
@@ -396,6 +400,10 @@ The memberSslMode option supports these values:
 
 @li REQUIRED: if used, SSL (encryption) will be enabled for the instance to
 communicate with other members of the cluster
+@li VERIFY_CA: Like REQUIRED, but additionally verify the server TLS
+certificate against the configured Certificate Authority (CA) certificates.
+@li VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the server
+certificate matches the host to which the connection is attempted.
 @li DISABLED: if used, SSL (encryption) will be disabled
 @li AUTO: if used, SSL (encryption) will be automatically enabled or disabled
 based on the cluster configuration

@@ -11,8 +11,8 @@
 ||Invalid URI: empty.
 ||Invalid values in connection options: ipWhitelist, memberSslMode
 ||Argument #2 is expected to be a map
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
+||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
+||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
 ||Invalid value for ipWhitelist: string value cannot be empty.
 ||The label can not be empty.
 ||The label can only start with an alphanumeric or the '_' character.
@@ -317,8 +317,8 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port3>>>' was successfully added
 ||Argument #2 is expected to be a map
 ||Could not open connection to 'localhost'
 ||Could not open connection to 'localhost:3306'
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
+||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
+||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
 ||Invalid value for ipWhitelist: string value cannot be empty.
 
 //@<OUT> Cluster: rejoinInstance with interaction, ok

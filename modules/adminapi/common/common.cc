@@ -35,6 +35,7 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
@@ -211,66 +212,64 @@ void validate_replication_filters(const mysqlshdk::mysql::IInstance &instance,
  * - The instance having require_secure_transport ON
  * - The memberSslMode option given by the user
  *
- * Returns:
+ * Assigned to:
  *   REQUIRED if SSL is supported and member_ssl_mode is either AUTO or REQUIRED
+ *   VERIFY_CA if SSL is supported and member_ssl_mode is VERIFY_CA
+ *   VERIFY_IDENTITY if SSL is supported and member_ssl_mode is VERIFY_IDENTITY
  *   DISABLED if SSL is not supported and member_ssl_mode is either unspecified
  *            DISABLED or AUTO.
  *
  * Error:
  *   - If SSL is supported, require_secure_transport is ON and member_ssl_mode
  *     is DISABLED
- *   - If SSL mode is not supported and member_ssl_mode is REQUIRED
+ *   - If SSL mode is not supported and member_ssl_mode is REQUIRED, VERIFY_CA
+ *     or VERIFY_IDENTITY
  */
-std::string resolve_cluster_ssl_mode(
-    const mysqlshdk::mysql::IInstance &instance,
-    const std::string &member_ssl_mode) {
-  std::string ret_val;
-  std::string have_ssl;
-
-  have_ssl = *instance.get_sysvar_string("have_ssl");
+void resolve_cluster_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
+                              mysqlshdk::null_string *member_ssl_mode) {
+  std::string member_ssl_mode_value = member_ssl_mode->get_safe();
+  std::string have_ssl = *instance.get_sysvar_string("have_ssl");
+  bool require_secure_transport =
+      *instance.get_sysvar_bool("require_secure_transport");
 
   // The instance supports SSL
   if (!shcore::str_casecmp(have_ssl.c_str(), "YES")) {
-    // memberSslMode is DISABLED
-    if (!shcore::str_casecmp(member_ssl_mode.c_str(), "DISABLED")) {
-      bool require_secure_transport =
-          *instance.get_sysvar_bool("require_secure_transport");
-
-      if (require_secure_transport) {
-        throw shcore::Exception::argument_error(
-            "The instance "
-            "'" +
-            instance.descr() +
-            "' requires secure connections, to create the "
-            "cluster either turn off require_secure_transport or use the "
-            "memberSslMode option with 'REQUIRED' value.");
-      }
-
-      ret_val = dba::kMemberSSLModeDisabled;
-    } else {
-      // memberSslMode is either AUTO or REQUIRED
-      ret_val = dba::kMemberSSLModeRequired;
-    }
-
-    // The instance does not support SSL
-  } else {
-    // memberSslMode is REQUIRED
-    if (!shcore::str_casecmp(member_ssl_mode.c_str(), "REQUIRED")) {
+    // memberSslMode is DISABLED but instance requires SSL
+    if (member_ssl_mode_value == dba::kMemberSSLModeDisabled &&
+        require_secure_transport) {
       throw shcore::Exception::argument_error(
-          "The instance "
-          "'" +
-          instance.descr() +
+          "The instance '" + instance.descr() +
+          "' requires secure connections, to create the "
+          "cluster either turn off require_secure_transport or use the "
+          "memberSslMode option with 'REQUIRED', 'VERIFY_CA' or "
+          "'VERIFY_IDENTITY' value.");
+    } else if (member_ssl_mode_value == dba::kMemberSSLModeAuto ||
+               member_ssl_mode_value.empty()) {
+      // memberSslMode when set to AUTO and SSL is supported, then REQUIRED is
+      // used
+      *member_ssl_mode = dba::kMemberSSLModeRequired;
+    } else if (member_ssl_mode_value == dba::kMemberSSLModeVerifyCA ||
+               member_ssl_mode_value == dba::kMemberSSLModeVerifyIdentity) {
+      // memberSslMode is VERIFY_CA or VERIFY_IDENTITY
+      // verify the certificates
+      ensure_certificates_set(instance, *member_ssl_mode);
+    }
+  } else {  // The instance does not support SSL
+    // memberSslMode is REQUIRED, VERIFY_CA or VERIFY_IDENTITY
+    if (member_ssl_mode_value == dba::kMemberSSLModeRequired ||
+        member_ssl_mode_value == dba::kMemberSSLModeVerifyCA ||
+        member_ssl_mode_value == dba::kMemberSSLModeVerifyIdentity) {
+      throw shcore::Exception::argument_error(
+          "The instance '" + instance.descr() +
           "' does not have SSL enabled, to create the "
           "cluster either use an instance with SSL enabled, remove the "
           "memberSslMode option or use it with any of 'AUTO' or 'DISABLED'.");
+    } else {
+      // memberSslMode is either not defined, DISABLED or AUTO
+      *member_ssl_mode = dba::kMemberSSLModeDisabled;
     }
-
-    // memberSslMode is either not defined, DISABLED or AUTO
-    ret_val = dba::kMemberSSLModeDisabled;
   }
-
-  return ret_val;
-}
+}  // namespace dba
 
 /**
  * Determines the value to use on the instance for the SSL mode
@@ -280,62 +279,76 @@ std::string resolve_cluster_ssl_mode(
  * - The cluster SSL configuration
  * - The memberSslMode option given by the user
  *
- * Returns:
- *   REQUIRED if SSL is supported and member_ssl_mode is either AUTO or REQUIRED
- *            and the cluster uses SSL
+ * Assigned to:
+ *   REQUIRED if SSL is supported and member_ssl_mode is either AUTO or
+ *            REQUIRED, and the cluster uses SSL
+ *   VERIFY_CA if SSL is supported and member_ssl_mode is VERIFY_CA on the
+ *             cluster
+ *   VERIFY_IDENTITY if SSL is supported and member_ssl_mode is VERIFY_CA on
+ *                   the cluster
  *   DISABLED if SSL is not supported and member_ssl_mode is either unspecified
  *            DISABLED or AUTO and the cluster has SSL disabled.
  *
  * Error:
  *   - Cluster has SSL enabled and member_ssl_mode is DISABLED or not specified
  *   - Cluster has SSL enabled and SSL is not supported on the instance
- *   - Cluster has SSL disabled and member_ssl_mode is REQUIRED
+ *   - Cluster has SSL disabled and member_ssl_mode is REQUIRED, VERIFY_CA or
+ *     VERIFY_IDENTITY
  *   - Cluster has SSL disabled and the instance has require_secure_transport ON
  */
-std::string resolve_instance_ssl_mode(
-    const mysqlshdk::mysql::IInstance &instance,
-    const mysqlshdk::mysql::IInstance &pinstance,
-    const std::string &member_ssl_mode) {
-  std::string ret_val;
-  std::string gr_ssl_mode;
+void resolve_instance_ssl_mode(const mysqlshdk::mysql::IInstance &instance,
+                               const mysqlshdk::mysql::IInstance &pinstance,
+                               mysqlshdk::null_string *member_ssl_mode) {
+  std::string member_ssl_mode_value = member_ssl_mode->get_safe();
 
-  // Checks how memberSslMode was configured on the cluster
-  gr_ssl_mode = *pinstance.get_sysvar_string("group_replication_ssl_mode");
+  // Get how memberSslMode was configured on the cluster
+  std::string gr_ssl_mode =
+      *pinstance.get_sysvar_string("group_replication_ssl_mode");
 
   // The cluster REQUIRES SSL
-  if (!shcore::str_casecmp(gr_ssl_mode.c_str(), "REQUIRED")) {
+  if (gr_ssl_mode == dba::kMemberSSLModeRequired ||
+      gr_ssl_mode == dba::kMemberSSLModeVerifyCA ||
+      gr_ssl_mode == dba::kMemberSSLModeVerifyIdentity) {
     // memberSslMode is DISABLED
-    if (!shcore::str_casecmp(member_ssl_mode.c_str(), "DISABLED"))
+    if (member_ssl_mode_value == dba::kMemberSSLModeDisabled) {
       throw shcore::Exception::runtime_error(
           "The cluster has SSL (encryption) enabled. "
           "To add the instance '" +
           instance.descr() +
-          "' to the cluster either "
-          "disable SSL on the cluster, remove the memberSslMode option or use "
-          "it with any of 'AUTO' or 'REQUIRED'.");
+          "' to the cluster either disable SSL on the cluster, remove the "
+          "memberSslMode option or use it with any of 'AUTO', 'REQUIRED', "
+          "'VERIFY_CA' or 'VERIFY_IDENTITY'.");
+    }
 
     // Now checks if SSL is actually supported on the instance
-    std::string have_ssl;
-
-    have_ssl = *instance.get_sysvar_string("have_ssl");
+    std::string have_ssl = *instance.get_sysvar_string("have_ssl");
 
     // SSL is not supported on the instance
     if (shcore::str_casecmp(have_ssl.c_str(), "YES")) {
       throw shcore::Exception::runtime_error(
           "Instance '" + instance.descr() +
-          "' does not support SSL and cannot "
-          "join a cluster with SSL (encryption) enabled. "
-          "Enable SSL support on the instance and try again, otherwise it can "
-          "only be added to a cluster with SSL disabled.");
+          "' does not support SSL and cannot join a cluster with SSL "
+          "(encryption) enabled. Enable SSL support on the instance and try "
+          "again, otherwise it can only be added to a cluster with SSL "
+          "disabled.");
+    } else {
+      // memberSslMode AUTO or empty gets set to the Cluster SslMode
+      if (member_ssl_mode_value == dba::kMemberSSLModeAuto ||
+          member_ssl_mode_value.empty()) {
+        *member_ssl_mode = gr_ssl_mode;
+      } else if (member_ssl_mode_value == dba::kMemberSSLModeVerifyCA ||
+                 member_ssl_mode_value == dba::kMemberSSLModeVerifyIdentity) {
+        // memberSslMode is VERIFY_CA or VERIFY_IDENTITY
+        // verify the certificates
+        ensure_certificates_set(instance, *member_ssl_mode);
+      }
     }
-
-    // memberSslMode is either AUTO or REQUIRED
-    ret_val = dba::kMemberSSLModeRequired;
-
     // The cluster has SSL DISABLED
-  } else if (!shcore::str_casecmp(gr_ssl_mode.c_str(), "DISABLED")) {
-    // memberSslMode is REQUIRED
-    if (!shcore::str_casecmp(member_ssl_mode.c_str(), "REQUIRED"))
+  } else if (gr_ssl_mode == dba::kMemberSSLModeDisabled) {
+    // memberSslMode is REQUIRED, VERIFY_CA or VERIFY_IDENTITY
+    if (member_ssl_mode_value == dba::kMemberSSLModeRequired ||
+        member_ssl_mode_value == dba::kMemberSSLModeVerifyCA ||
+        member_ssl_mode_value == dba::kMemberSSLModeVerifyIdentity) {
       throw shcore::Exception::runtime_error(
           "The cluster has SSL (encryption) disabled. "
           "To add the instance '" +
@@ -343,6 +356,7 @@ std::string resolve_instance_ssl_mode(
           "' to the cluster either "
           "enable SSL on the cluster, remove the memberSslMode option or use "
           "it with any of 'AUTO' or 'DISABLED'.");
+    }
 
     // If the instance session requires SSL connections, then it can's
     // Join a cluster with SSL disabled
@@ -351,26 +365,14 @@ std::string resolve_instance_ssl_mode(
     if (secure_transport_required) {
       throw shcore::Exception::runtime_error(
           "The instance '" + instance.descr() +
-          "' is configured to require a "
-          "secure transport but the cluster has SSL disabled. To add the "
-          "instance to the cluster, either turn OFF the "
-          "require_secure_transport option on the instance or enable SSL on "
-          "the cluster.");
+          "' is configured to require a secure transport but the cluster has "
+          "SSL disabled. To add the instance to the cluster, either turn OFF "
+          "the require_secure_transport option on the instance or enable SSL "
+          "on the cluster.");
     }
 
-    ret_val = dba::kMemberSSLModeDisabled;
-  } else {
-    // Only GR SSL mode "REQUIRED" and "DISABLED" are currently supported.
-    throw shcore::Exception::runtime_error(
-        "Unsupported Group Replication SSL Mode for the cluster: '" +
-        gr_ssl_mode +
-        "'. If the cluster was created using "
-        "adoptFromGR:true make sure the group_replication_ssl_mode "
-        "variable is set with a supported value (DISABLED or REQUIRED) "
-        "for all cluster members.");
+    *member_ssl_mode = dba::kMemberSSLModeDisabled;
   }
-
-  return ret_val;
 }
 
 /**

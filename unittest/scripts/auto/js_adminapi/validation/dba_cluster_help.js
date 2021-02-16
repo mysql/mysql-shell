@@ -171,6 +171,12 @@ DESCRIPTION
 
       - REQUIRED: if used, SSL (encryption) will be enabled for the instance to
         communicate with other members of the cluster
+      - VERIFY_CA: Like REQUIRED, but additionally verify the server TLS
+        certificate against the configured Certificate Authority (CA)
+        certificates.
+      - VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the
+        server certificate matches the host to which the connection is
+        attempted.
       - DISABLED: if used, SSL (encryption) will be disabled
       - AUTO: if used, SSL (encryption) will be automatically enabled or
         disabled based on the cluster configuration
@@ -557,6 +563,12 @@ DESCRIPTION
 
       - REQUIRED: if used, SSL (encryption) will be enabled for the instance to
         communicate with other members of the cluster
+      - VERIFY_CA: Like REQUIRED, but additionally verify the server TLS
+        certificate against the configured Certificate Authority (CA)
+        certificates.
+      - VERIFY_IDENTITY: Like VERIFY_CA, but additionally verify that the
+        server certificate matches the host to which the connection is
+        attempted.
       - DISABLED: if used, SSL (encryption) will be disabled
       - AUTO: if used, SSL (encryption) will be automatically enabled or
         disabled based on the cluster configuration

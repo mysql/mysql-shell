@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,12 +81,7 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
   if (!gr_opts.ssl_mode.is_null()) {
     // SET the GR SSL variable according to the ssl_mode value (resolved by the
     // caller).
-    if (*gr_opts.ssl_mode == mysqlsh::dba::kMemberSSLModeRequired) {
-      config->set("group_replication_recovery_use_ssl",
-                  mysqlshdk::utils::nullable<bool>(true));
-      config->set("group_replication_ssl_mode",
-                  mysqlshdk::utils::nullable<std::string>("REQUIRED"));
-    } else if (*gr_opts.ssl_mode == mysqlsh::dba::kMemberSSLModeDisabled) {
+    if (gr_opts.ssl_mode.get_safe() == mysqlsh::dba::kMemberSSLModeDisabled) {
       if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 5)) {
         // This option is required to connect using the new
         // caching_sha256_password authentication method without SSL.
@@ -95,11 +90,18 @@ void set_gr_options(const mysqlshdk::mysql::IInstance &instance,
                     mysqlshdk::utils::nullable<bool>(true));
       }
 
+      // Disable SSL on GR
       config->set("group_replication_recovery_use_ssl",
                   mysqlshdk::utils::nullable<bool>(false));
-      config->set("group_replication_ssl_mode",
-                  mysqlshdk::utils::nullable<std::string>("DISABLED"));
+    } else {
+      // Enable SSL on GR
+      config->set("group_replication_recovery_use_ssl",
+                  mysqlshdk::utils::nullable<bool>(true));
     }
+
+    // Set the ssl_mode
+    config->set("group_replication_ssl_mode", gr_opts.ssl_mode,
+                "memberSslMode");
   }
 
   // The local_address value is determined based on the given localAddress

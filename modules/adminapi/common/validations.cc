@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -204,5 +204,29 @@ bool ensure_gtid_no_errants(const mysqlshdk::mysql::IInstance &master,
   return true;
 }
 
+void ensure_certificates_set(const mysqlshdk::mysql::IInstance &instance,
+                             const mysqlshdk::null_string &ssl_mode) {
+  auto console = mysqlsh::current_console();
+
+  if (ssl_mode.get_safe() == dba::kMemberSSLModeVerifyCA ||
+      ssl_mode.get_safe() == dba::kMemberSSLModeVerifyIdentity) {
+    // Get the values of ssl_ca and ss_capath
+    std::string ssl_ca = instance.get_sysvar_string("ssl_ca").get_safe("");
+    std::string ssl_capath =
+        instance.get_sysvar_string("ssl_capath").get_safe("");
+
+    // If both unset, error-out
+    if (ssl_ca.empty() && ssl_capath.empty()) {
+      console->print_error(
+          "CA certificates options not set. --ssl-ca or --ssl-capath are "
+          "required, to supply a CA certificate that matches the one used by "
+          "the server.");
+      throw std::runtime_error(
+          "memberSslMode '" + ssl_mode.get_safe() +
+          "' requires Certificate Authority (CA) certificates "
+          "to be supplied.");
+    }
+  }
+}
 }  // namespace dba
 }  // namespace mysqlsh

@@ -6,8 +6,8 @@
 ||Argument #2 is expected to be a map
 ||Argument #2 is expected to be a map
 ||Invalid options: another, invalid
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
-||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED.
+||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
+||Invalid value for memberSslMode option. Supported values: AUTO,DISABLED,REQUIRED,VERIFY_CA,VERIFY_IDENTITY.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.
 ||Cannot use memberSslMode option if adoptFromGR is set to true.

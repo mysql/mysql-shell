@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -218,14 +218,10 @@ void Cluster_join::resolve_ssl_mode() {
   }
 
   if (m_primary_instance) {
-    std::string new_ssl_mode = resolve_instance_ssl_mode(
-        *m_target_instance, *m_primary_instance, *m_gr_opts.ssl_mode);
-
-    if (new_ssl_mode != *m_gr_opts.ssl_mode) {
-      m_gr_opts.ssl_mode = new_ssl_mode;
-      log_warning("SSL mode used to configure the instance: '%s'",
-                  m_gr_opts.ssl_mode->c_str());
-    }
+    resolve_instance_ssl_mode(*m_target_instance, *m_primary_instance,
+                              &m_gr_opts.ssl_mode);
+    log_info("SSL mode used to configure the instance: '%s'",
+             m_gr_opts.ssl_mode->c_str());
   }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -74,6 +74,19 @@ bool ensure_gtid_sync_possible(const mysqlshdk::mysql::IInstance &master,
 bool ensure_gtid_no_errants(const mysqlshdk::mysql::IInstance &master,
                             const mysqlshdk::mysql::IInstance &instance,
                             bool fatal);
+
+/**
+ * Ensure CA Certificate options are set on the target instance
+ *
+ * This function verifies if the CA Certificate options --ssl-ca or --ssl-capath
+ * are set when VERIFY_CA or VERIFY_IDENTIFY are used as memberSslMode
+ *
+ * @param instance target instance to perform the verification
+ * @param ssl_mode SslMode used in
+ * createCluster()/addInstance()/rejoinInstance()
+ */
+void ensure_certificates_set(const mysqlshdk::mysql::IInstance &instance,
+                             const mysqlshdk::null_string &ssl_mode);
 }  // namespace dba
 }  // namespace mysqlsh
 
