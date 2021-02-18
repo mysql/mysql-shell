@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+/* Copyright (c) 2018, 2021, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -301,12 +301,12 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
 
   test({"SELECT", "INSERT", "UPDATE"}, false);
   test({}, false, "test_db");
-  test({"INSERT", "UPDATE"}, true, "test_db2");
+  test({"INSERT", "UPDATE"}, false, "test_db2");
   test({"SELECT", "INSERT", "UPDATE"}, false, "mysql");
   test({}, false, "test_db", "t1");
-  test({}, true, "test_db", "t2");
+  test({}, false, "test_db", "t2");
   test({}, false, "test_db", "t3");
-  test({"INSERT", "UPDATE"}, true, "test_db2", "t1");
+  test({"INSERT", "UPDATE"}, false, "test_db2", "t1");
   test({"SELECT", "INSERT", "UPDATE"}, false, "mysql", "user");
 
   // Test all given privileges for *.*, test_db.*, test_db2.*, mysql.*,
@@ -315,12 +315,12 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
 
   test({"SELECT", "INSERT", "UPDATE", "DELETE"}, false);
   test({"DELETE"}, false, "test_db");
-  test({"INSERT", "UPDATE", "DELETE"}, true, "test_db2");
+  test({"INSERT", "UPDATE", "DELETE"}, false, "test_db2");
   test({"SELECT", "INSERT", "UPDATE", "DELETE"}, false, "mysql");
   test({}, false, "test_db", "t1");
-  test({"DELETE"}, true, "test_db", "t2");
+  test({"DELETE"}, false, "test_db", "t2");
   test({"DELETE"}, false, "test_db", "t3");
-  test({"INSERT", "UPDATE", "DELETE"}, true, "test_db2", "t1");
+  test({"INSERT", "UPDATE", "DELETE"}, false, "test_db2", "t1");
   test({"SELECT", "INSERT", "UPDATE", "DELETE"}, false, "mysql", "user");
 
   // Test ALL privileges for *.*, test_db.*, test_db2.*, mysql.*, test_db.t1,
@@ -393,7 +393,7 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
   // User with SELECT on test_db2.*.
   expected_priv = all_expected_priv;
   expected_priv.erase("SELECT");
-  test(expected_priv, true, "test_db2");
+  test(expected_priv, false, "test_db2");
   test({"ALL"}, false, "mysql");
   // User with SELECT,INSERT,UPDATE on test_db.* and DELETE on test_db.t1.
   expected_priv = all_expected_priv;
@@ -409,7 +409,7 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
   expected_priv.erase("UPDATE");
   expected_priv.erase("ALTER");
   expected_priv.erase("DROP");
-  test(expected_priv, true, "test_db", "t2");
+  test(expected_priv, false, "test_db", "t2");
   // User with SELECT,INSERT,UPDATE on test_db.*.
   expected_priv = all_expected_priv;
   expected_priv.erase("INSERT");
@@ -419,7 +419,7 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
   // User with SELECT on test_db2.*.
   expected_priv = all_expected_priv;
   expected_priv.erase("SELECT");
-  test(expected_priv, true, "test_db2", "t1");
+  test(expected_priv, false, "test_db2", "t1");
   test({"ALL"}, false, "mysql", "user");
 }  // NOLINT(readability/fn_size)
 

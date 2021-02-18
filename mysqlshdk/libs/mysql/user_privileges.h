@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -192,15 +192,35 @@ class User_privileges {
   void read_user_roles(const mysqlshdk::mysql::IInstance &instance);
 
   /**
-   * Checks if the given user account has GRANT OPTION privilege on specified
-   * schema.table.
+   * Gets the list of privileges missing on the given user account of a
+   * specific set of privileges.
    *
+   * @param required_privileges The list of required privileges.
+   * @param schema The schema to check.
+   * @param table The table to check.
+   * @param check_is_grantable Boolean value to indicate whether a check to
+   * verify whether the privilege is grantable or not should be done.
+   *
+   * @return A set of privileges missing from the given list of required
+   * privileges. This set is empty if user has all the required privileges.
+   */
+  std::set<std::string> get_missing_privileges_from_set(
+      const std::set<std::string> &required_privileges,
+      const std::string &schema, const std::string &table,
+      bool check_is_grantable = false) const;
+
+  /**
+   * Checks if the given user account has GRANT OPTION privilege on
+   * specified schema.table.
+   *
+   * @param required_privileges The privileges the user needs to have.
    * @param schema The schema to check. By default "*" is used.
    * @param table The table to check. By default "*" is used.
    *
    * @return True if user has the GRANT OPTION.
    */
-  bool has_grant_option(const std::string &schema = k_wildcard,
+  bool has_grant_option(const std::set<std::string> &required_privileges,
+                        const std::string &schema = k_wildcard,
                         const std::string &table = k_wildcard) const;
 
   /**
@@ -223,20 +243,23 @@ class User_privileges {
 
   bool m_user_exists = false;
 
+  struct Privilege {
+    std::string name;
+    bool grantable;
+
+    Privilege(std::string &&name_, bool grantable_)
+        : name(std::move(name_)), grantable(grantable_) {}
+
+    bool operator<(const Privilege &priv) const { return name < priv.name; }
+  };
+
   // Map with user privileges information:
   // {user/roles -> {schema -> {table -> {privileges}}}}
   std::unordered_map<
       std::string,
-      std::unordered_map<
-          std::string, std::unordered_map<std::string, std::set<std::string>>>>
+      std::unordered_map<std::string,
+                         std::unordered_map<std::string, std::set<Privilege>>>>
       m_privileges;
-
-  // Map with user grant option information:
-  // {user/roles -> {schema -> {table -> is_grantable}}}
-  std::unordered_map<
-      std::string,
-      std::unordered_map<std::string, std::unordered_map<std::string, bool>>>
-      m_grants;
 
   // Set of roles/users granted.
   std::set<std::string> m_roles;

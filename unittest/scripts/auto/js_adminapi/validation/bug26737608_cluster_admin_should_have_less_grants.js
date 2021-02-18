@@ -20,16 +20,19 @@
 +----------------------------+--------------+
 | PRIVILEGE_TYPE             | IS_GRANTABLE |
 +----------------------------+--------------+
+| CONNECTION_ADMIN           | YES          |
 | CREATE USER                | YES          |
 | FILE                       | YES          |
+| GROUP_REPLICATION_ADMIN    | YES          |
 | PERSIST_RO_VARIABLES_ADMIN | YES          |
 | PROCESS                    | YES          |
 | RELOAD                     | YES          |
 | REPLICATION CLIENT         | YES          |
 | REPLICATION SLAVE          | YES          |
+| REPLICATION_SLAVE_ADMIN    | YES          |
+| ROLE_ADMIN                 | YES          |
 | SELECT                     | YES          |
 | SHUTDOWN                   | YES          |
-| SUPER                      | YES          |
 | SYSTEM_VARIABLES_ADMIN     | YES          |
 +----------------------------+--------------+
 
@@ -37,19 +40,21 @@
 +----------------------------+--------------+
 | PRIVILEGE_TYPE             | IS_GRANTABLE |
 +----------------------------+--------------+
-| BACKUP_ADMIN               | YES          |
 | CLONE_ADMIN                | YES          |
+| CONNECTION_ADMIN           | YES          |
 | CREATE USER                | YES          |
 | EXECUTE                    | YES          |
 | FILE                       | YES          |
+| GROUP_REPLICATION_ADMIN    | YES          |
 | PERSIST_RO_VARIABLES_ADMIN | YES          |
 | PROCESS                    | YES          |
 | RELOAD                     | YES          |
 | REPLICATION CLIENT         | YES          |
 | REPLICATION SLAVE          | YES          |<<<(__version_num>=80018) ?  "\n| REPLICATION_APPLIER        | YES          |":"">>>
+| REPLICATION_SLAVE_ADMIN    | YES          |
+| ROLE_ADMIN                 | YES          |
 | SELECT                     | YES          |
 | SHUTDOWN                   | YES          |
-| SUPER                      | YES          |
 | SYSTEM_VARIABLES_ADMIN     | YES          |
 +----------------------------+--------------+
 

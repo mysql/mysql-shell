@@ -33,17 +33,20 @@ Cluster.setupAdminAccount: Invalid user syntax: Invalid user name: foo@bar (Argu
 //@<OUT> WL#13536 TSFR3_2 check global privileges of created user {VER(>=8.0.11)}
 +----------------------------+--------------+
 | PRIVILEGE_TYPE             | IS_GRANTABLE |
-+----------------------------+--------------+<<<(__version_num>=80017) ?  "\n| BACKUP_ADMIN               | YES          |\n| CLONE_ADMIN                | YES          |":"">>>
++----------------------------+--------------+<<<(__version_num>=80017) ?  "\n| CLONE_ADMIN                | YES          |":"">>>
+| CONNECTION_ADMIN           | YES          |
 | CREATE USER                | YES          |<<<(__version_num>=80017) ?  "\n| EXECUTE                    | YES          |":"">>>
 | FILE                       | YES          |
+| GROUP_REPLICATION_ADMIN    | YES          |
 | PERSIST_RO_VARIABLES_ADMIN | YES          |
 | PROCESS                    | YES          |
 | RELOAD                     | YES          |
 | REPLICATION CLIENT         | YES          |
 | REPLICATION SLAVE          | YES          |<<<(__version_num>=80018) ?  "\n| REPLICATION_APPLIER        | YES          |":"">>>
+| REPLICATION_SLAVE_ADMIN    | YES          |
+| ROLE_ADMIN                 | YES          |
 | SELECT                     | YES          |
 | SHUTDOWN                   | YES          |
-| SUPER                      | YES          |
 | SYSTEM_VARIABLES_ADMIN     | YES          |
 +----------------------------+--------------+
 

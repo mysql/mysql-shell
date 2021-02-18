@@ -82,6 +82,7 @@ class Version {
   bool operator>=(const Version &other) const;
   bool operator==(const Version &other) const;
   bool operator!=(const Version &other) const;
+  explicit operator bool() const;
 
  private:
   int _major;

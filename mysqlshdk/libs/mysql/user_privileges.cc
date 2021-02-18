@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #include <mysqld_error.h>
 #include <algorithm>
 #include <iterator>
+#include <vector>
 
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/clone.h"
@@ -278,88 +279,90 @@ const char User_privileges::k_wildcard[] = "*";
 
 bool User_privileges::user_exists() const { return m_user_exists; }
 
-bool User_privileges::has_grant_option(const std::string &schema,
-                                       const std::string &table) const {
-  if (user_exists()) {
-    bool grant = false;
+std::set<std::string> User_privileges::get_missing_privileges_from_set(
+    const std::set<std::string> &required_privileges, const std::string &schema,
+    const std::string &table, bool check_is_grantable) const {
+  std::set<std::string> user_privileges;
 
-    // Check grantable for user and roles.
-    for (const auto &kv : m_grants) {
-      auto role_grant = kv.second;
-      grant |= role_grant.at(k_wildcard).at(k_wildcard);
+  // Get privileges from user and associated roles.
+  for (const auto &kv : m_privileges) {
+    // Get wildcard privileges.
+    auto &role_privileges = kv.second;
 
-      if (!grant && schema != k_wildcard) {
-        auto schema_grants = role_grant.find(schema);
+    const auto add_user_privs = [check_is_grantable, &user_privileges](
+                                    const std::set<Privilege> &privs) {
+      for (const auto &priv : privs) {
+        if ((check_is_grantable && priv.grantable) || !check_is_grantable) {
+          user_privileges.insert(priv.name);
+        }
+      }
+    };
 
-        if (schema_grants != role_grant.end()) {
-          auto table_grants = schema_grants->second.find(k_wildcard);
+    add_user_privs(role_privileges.at(k_wildcard).at(k_wildcard));
 
-          if (table_grants != schema_grants->second.end()) {
-            grant |= table_grants->second;
-          }
+    // Get schema/table privileges.
+    if (schema != k_wildcard) {
+      auto schema_privileges = role_privileges.find(schema);
 
-          if (!grant && table != k_wildcard) {
-            table_grants = schema_grants->second.find(table);
+      if (schema_privileges != role_privileges.end()) {
+        auto table_privileges = schema_privileges->second.find(k_wildcard);
 
-            if (table_grants != schema_grants->second.end()) {
-              grant |= table_grants->second;
-            }
+        if (table_privileges != schema_privileges->second.end()) {
+          add_user_privs(table_privileges->second);
+        }
+
+        if (table != k_wildcard) {
+          table_privileges = schema_privileges->second.find(table);
+
+          if (table_privileges != schema_privileges->second.end()) {
+            add_user_privs(table_privileges->second);
           }
         }
       }
     }
-
-    return grant;
-  } else {
-    return false;
   }
+
+  std::set<std::string> missing_privileges;
+
+  std::set_difference(
+      required_privileges.begin(), required_privileges.end(),
+      user_privileges.begin(), user_privileges.end(),
+      std::inserter(missing_privileges, missing_privileges.begin()));
+
+  return missing_privileges;
+}
+
+bool User_privileges::has_grant_option(
+    const std::set<std::string> &required_privileges, const std::string &schema,
+    const std::string &table) const {
+  if (user_exists()) {
+    // Validate if the set contains only valid privileges
+    std::set<std::string> privileges =
+        validate_privileges(required_privileges, m_all_privileges);
+
+    std::set<std::string> missing_privileges_with_grant_option =
+        get_missing_privileges_from_set(privileges, schema, table, true);
+
+    if (missing_privileges_with_grant_option.size() == 0) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 std::set<std::string> User_privileges::get_missing_privileges(
     const std::set<std::string> &required_privileges, const std::string &schema,
     const std::string &table) const {
-  auto privileges = validate_privileges(required_privileges, m_all_privileges);
   std::set<std::string> missing_privileges;
 
+  // Validate if the set contains only valid privileges
+  std::set<std::string> privileges =
+      validate_privileges(required_privileges, m_all_privileges);
+
   if (user_exists()) {
-    std::set<std::string> user_privileges;
-
-    // Get privileges from user and associated roles.
-    for (const auto &kv : m_privileges) {
-      // Get wildcard privileges.
-      auto &role_privileges = kv.second;
-      auto &wildcard_privileges = role_privileges.at(k_wildcard).at(k_wildcard);
-      user_privileges.insert(wildcard_privileges.begin(),
-                             wildcard_privileges.end());
-
-      // Get schema/table privileges.
-      if (schema != k_wildcard) {
-        auto schema_privileges = role_privileges.find(schema);
-
-        if (schema_privileges != role_privileges.end()) {
-          auto table_privileges = schema_privileges->second.find(k_wildcard);
-
-          if (table_privileges != schema_privileges->second.end()) {
-            user_privileges.insert(table_privileges->second.begin(),
-                                   table_privileges->second.end());
-          }
-
-          if (table != k_wildcard) {
-            table_privileges = schema_privileges->second.find(table);
-
-            if (table_privileges != schema_privileges->second.end()) {
-              user_privileges.insert(table_privileges->second.begin(),
-                                     table_privileges->second.end());
-            }
-          }
-        }
-      }
-    }
-
-    std::set_difference(
-        privileges.begin(), privileges.end(), user_privileges.begin(),
-        user_privileges.end(),
-        std::inserter(missing_privileges, missing_privileges.begin()));
+    missing_privileges =
+        get_missing_privileges_from_set(privileges, schema, table);
   } else {
     // If user does not exist, then all privileges are also missing.
     missing_privileges = std::move(privileges);
@@ -386,14 +389,12 @@ void User_privileges::parse_privileges(
   Mapped_row mapped_row;
   std::string schema;
   std::string table;
-  std::set<std::string> *privileges = nullptr;
-  bool *grants = nullptr;
+  std::set<Privilege> *privileges = nullptr;
 
   auto select_table = [&]() {
     schema = mapped_row.schema;
     table = mapped_row.table;
     privileges = &m_privileges[user_role][schema][table];
-    grants = &m_grants[user_role][schema][table];
   };
 
   select_table();
@@ -405,8 +406,7 @@ void User_privileges::parse_privileges(
       select_table();
     }
 
-    privileges->emplace(row->get_string(0));
-    *grants = is_grantable(row->get_string(1));
+    privileges->emplace(row->get_string(0), is_grantable(row->get_string(1)));
   }
 }
 
@@ -665,7 +665,8 @@ User_privileges_result::User_privileges_result(
     const std::set<std::string> &required_privileges, const std::string &schema,
     const std::string &table) {
   m_user_exists = privileges.user_exists();
-  m_has_grant_option = privileges.has_grant_option(schema, table);
+  m_has_grant_option =
+      privileges.has_grant_option(required_privileges, schema, table);
   m_missing_privileges =
       privileges.get_missing_privileges(required_privileges, schema, table);
 }

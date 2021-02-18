@@ -132,5 +132,9 @@ bool Version::operator!=(const Version &other) const {
   return !(*this == other);
 }
 
+Version::operator bool() const {
+  return !(get_major() == 0 && get_minor() == 0 && get_patch() == 0);
+}
+
 }  // namespace utils
 }  // namespace mysqlshdk

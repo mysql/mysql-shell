@@ -11,11 +11,53 @@
 // dba.checkInstanceConfiguration() shall report a warning if asynchronous
 // replication is running on the target instance
 
-//@<> BUG#29305551: Initialization
+//@<> Initialization
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+
+//@<> BUG#32287986: Create account without all grants
+shell.connect(__sandbox_uri1);
+session.runSql("CREATE USER 'dba'@'%'");
+session.runSql("GRANT SELECT ON *.* TO 'dba'@'%'");
+session.close()
+
+//@<> BUG#32287986: Verify the list of missing grants displayed by checkInstanceConfiguration()
+var __dba_uri = "mysql://dba:@localhost:"+__mysql_sandbox_port1;
+
+//@<> BUG#32287986: Set the list of grants {VER(>=8.0.0)}
+var __grant1 = "GRANT CLONE_ADMIN, CONNECTION_ADMIN, CREATE USER, EXECUTE, FILE, GROUP_REPLICATION_ADMIN, PERSIST_RO_VARIABLES_ADMIN, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, REPLICATION_APPLIER, REPLICATION_SLAVE_ADMIN, ROLE_ADMIN, SHUTDOWN, SYSTEM_VARIABLES_ADMIN ON *.* TO 'dba'@'%' WITH GRANT OPTION;";
+var __grant2 = "GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'dba'@'%' WITH GRANT OPTION;";
+var __grant3 = "GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'dba'@'%' WITH GRANT OPTION;";
+var __grant4 = "GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'dba'@'%' WITH GRANT OPTION;";
+var __grant5 = "GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'dba'@'%' WITH GRANT OPTION;";
+
+//@<> BUG#32287986: Set the list of grants {VER(>=5.7.0) && VER(<8.0.0)}
+var __grant1 = "GRANT CREATE USER, FILE, PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE, SHUTDOWN, SUPER ON *.* TO 'dba'@'%' WITH GRANT OPTION;";
+var __grant2 = "GRANT DELETE, INSERT, UPDATE ON mysql.* TO 'dba'@'%' WITH GRANT OPTION;";
+var __grant3 = "GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata.* TO 'dba'@'%' WITH GRANT OPTION;";
+var __grant4 = "GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_bkp.* TO 'dba'@'%' WITH GRANT OPTION;";
+var __grant5 = "GRANT ALTER, ALTER ROUTINE, CREATE, CREATE ROUTINE, CREATE TEMPORARY TABLES, CREATE VIEW, DELETE, DROP, EVENT, EXECUTE, INDEX, INSERT, LOCK TABLES, REFERENCES, SHOW VIEW, TRIGGER, UPDATE ON mysql_innodb_cluster_metadata_previous.* TO 'dba'@'%' WITH GRANT OPTION;";
+
+//@<> BUG#32287986: Run checkInstanceConfiguration()
+EXPECT_THROWS(function(){dba.checkInstanceConfiguration(__dba_uri)}, "The account 'dba'@'%' is missing privileges required to manage an InnoDB cluster.");
+EXPECT_STDOUT_CONTAINS(__grant1);
+EXPECT_STDOUT_CONTAINS(__grant2);
+EXPECT_STDOUT_CONTAINS(__grant3);
+EXPECT_STDOUT_CONTAINS(__grant4);
+EXPECT_STDOUT_CONTAINS(__grant5);
+
+//@<> BUG#32287986: Grant account the grants as indicated by the cmd
+shell.connect(__sandbox_uri1);
+session.runSql(__grant1);
+session.runSql(__grant2);
+session.runSql(__grant3);
+session.runSql(__grant4);
+session.runSql(__grant5);
+session.close();
+
+EXPECT_NO_THROWS(function(){dba.checkInstanceConfiguration(__dba_uri)});
 
 //@<> BUG#29305551: Setup asynchronous replication
 shell.connect(__sandbox_uri1);

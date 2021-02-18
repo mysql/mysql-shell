@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,7 +22,6 @@
  */
 
 #include "modules/adminapi/common/accounts.h"
-
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/clone.h"
@@ -105,27 +104,39 @@ using mysqlshdk::utils::Version;
  * 2) has the necessary privileges assigned
  */
 
+struct Privilege_versions {
+  std::string name;  // Privilege name
+  Version minimum;   // Minimum version supported
+  Version maximum;   // Maximum version supported
+};
+
 // Global privs needed for managing cluster instances
 // BUG#29743910: clusterAdmin needs SELECT on *.* for tables compliance check.
 // BUG#30339460: SYSTEM_VARIABLES_ADMIN and PERSIST_RO_VARIABLES_ADMIN
 //               privileges needed to change Global system variables for 8.0
 //               servers (not for 5.7).
-const std::vector<std::pair<std::string, Version>> k_admin_global_privileges{
-    {"RELOAD", Version()},
-    {"SHUTDOWN", Version()},
-    {"PROCESS", Version()},
-    {"FILE", Version()},
-    {"SELECT", Version()},
-    {"SUPER", Version()},
-    {"REPLICATION SLAVE", Version()},
-    {"REPLICATION CLIENT", Version()},
-    {"CREATE USER", Version()},
-    {"SYSTEM_VARIABLES_ADMIN", Version(8, 0, 0)},
-    {"PERSIST_RO_VARIABLES_ADMIN", Version(8, 0, 0)},
-    {"REPLICATION_APPLIER", Version(8, 0, 18)},
-    {"EXECUTE", mysqlshdk::mysql::k_mysql_clone_plugin_initial_version},
-    {"BACKUP_ADMIN", mysqlshdk::mysql::k_mysql_clone_plugin_initial_version},
-    {"CLONE_ADMIN", mysqlshdk::mysql::k_mysql_clone_plugin_initial_version}};
+const std::vector<Privilege_versions> k_admin_global_privileges{
+    {"RELOAD", Version(), Version()},
+    {"SHUTDOWN", Version(), Version()},
+    {"PROCESS", Version(), Version()},
+    {"FILE", Version(), Version()},
+    {"SELECT", Version(), Version()},
+    {"SUPER", Version(5, 7, 0),
+     Version(5, 7, 9999)},  // SUPER is exclusive of 5.7
+    {"REPLICATION SLAVE", Version(), Version()},
+    {"REPLICATION CLIENT", Version(), Version()},
+    {"CREATE USER", Version(), Version()},
+    {"SYSTEM_VARIABLES_ADMIN", Version(8, 0, 0), Version()},
+    {"PERSIST_RO_VARIABLES_ADMIN", Version(8, 0, 0), Version()},
+    {"REPLICATION_APPLIER", Version(8, 0, 18), Version()},
+    {"EXECUTE", mysqlshdk::mysql::k_mysql_clone_plugin_initial_version,
+     Version()},
+    {"CLONE_ADMIN", mysqlshdk::mysql::k_mysql_clone_plugin_initial_version,
+     Version()},
+    {"REPLICATION_SLAVE_ADMIN", Version(8, 0, 0), Version()},
+    {"GROUP_REPLICATION_ADMIN", Version(8, 0, 0), Version()},
+    {"ROLE_ADMIN", Version(8, 0, 0), Version()},
+    {"CONNECTION_ADMIN", Version(8, 0, 0), Version()}};
 
 // Schema privileges needed on the metadata schema
 // NOTE: SELECT *.* required (BUG#29743910), thus no longer needed here.
@@ -195,8 +206,10 @@ std::set<std::string> global_admin_privileges_for_server_version(
   std::set<std::string> privs;
 
   for (const auto &priv : k_admin_global_privileges) {
-    if (priv.second.get_major() == 0 || version >= priv.second) {
-      privs.insert(priv.first);
+    if ((!priv.minimum && !priv.maximum) ||
+        ((!priv.minimum || version >= priv.minimum) &&
+         (!priv.maximum || version <= priv.maximum))) {
+      privs.insert(priv.name);
     }
   }
   return privs;
