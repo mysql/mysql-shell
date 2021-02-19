@@ -147,6 +147,40 @@ wipeout_server(session2)
 util.load_dump(outdir+"/dataonly", {"loadData": False, "loadDdl": True})
 
 
+#@<> Bug #32526496 - ensure dumps with users that have grants on specific objects (tables, SPs etc) can be loaded
+
+shell.connect(__sandbox_uri1)
+# first create all objects that can reference a user, since the load has to create accounts last
+# this also ensures that our assumption that the server allows objects to reference users that don't exist still holds
+session.run_sql("CREATE SCHEMA schema1")
+session.run_sql("USE schema1")
+session.run_sql("CREATE definer=uuuser@localhost PROCEDURE mysp1() BEGIN END")
+session.run_sql("CREATE definer=uuuuser@localhost FUNCTION myfun1() RETURNS INT NO SQL RETURN 1")
+session.run_sql("CREATE definer=uuuuuser@localhost VIEW view1 AS select 1")
+session.run_sql("CREATE TABLE table1 (pk INT PRIMARY KEY)");
+session.run_sql("CREATE definer=uuuuuuser@localhost TRIGGER trigger1 BEFORE UPDATE ON table1 FOR EACH ROW BEGIN END")
+session.run_sql("CREATE definer=uuuuuuuser@localhost EVENT event1 ON SCHEDULE EVERY 1 year DISABLE DO BEGIN END")
+
+session.run_sql("CREATE USER uuuser@localhost")
+session.run_sql("CREATE USER uuuuser@localhost")
+session.run_sql("CREATE USER uuuuuser@localhost")
+session.run_sql("CREATE USER uuuuuuser@localhost")
+session.run_sql("CREATE USER uuuuuuuser@localhost")
+
+session.run_sql("GRANT SELECT ON TABLE schema1.table1 TO uuuser@localhost")
+session.run_sql("GRANT EXECUTE ON FUNCTION schema1.myfun1 TO uuuser@localhost")
+session.run_sql("GRANT EXECUTE ON PROCEDURE schema1.mysp1 TO uuuser@localhost")
+
+dump_dir = os.path.join(outdir, "user_load_order")
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir), "Dump")
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, {"loadUsers":True, "excludeUsers":["root@%"]}), "Load")
+
+compare_servers(session1, session2)
+
 #@<> load while dump is still running (prepare)
 # We test this artificially by manually assembling the loaded dump
 wipeout_server(session2)

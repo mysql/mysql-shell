@@ -1066,6 +1066,18 @@ std::string Dump_loader::filter_user_script_for_mds(const std::string &script) {
 }
 
 void Dump_loader::on_dump_begin() {
+  std::string pre_script = m_dump->begin_script();
+
+  current_console()->print_status("Executing common preamble SQL");
+
+  if (!m_options.dry_run())
+    execute_script(m_session, pre_script, "While executing preamble SQL",
+                   m_default_sql_transforms);
+}
+
+void Dump_loader::on_dump_end() {
+  // Users have to be loaded last, because GRANTs on specific objects require
+  // the objects to exist
   if (m_options.load_users()) {
     std::string script = m_dump->users_script();
 
@@ -1087,16 +1099,6 @@ void Dump_loader::on_dump_begin() {
                      m_default_sql_transforms);
   }
 
-  std::string pre_script = m_dump->begin_script();
-
-  current_console()->print_status("Executing common preamble SQL");
-
-  if (!m_options.dry_run())
-    execute_script(m_session, pre_script, "While executing preamble SQL",
-                   m_default_sql_transforms);
-}
-
-void Dump_loader::on_dump_end() {
   std::string post_script = m_dump->end_script();
 
   // Execute schema end scripts
