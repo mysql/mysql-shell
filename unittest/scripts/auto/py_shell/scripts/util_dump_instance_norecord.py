@@ -1736,6 +1736,22 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
 EXPECT_EQ(binlog_file, new_binlog_file, "binlog file should not change")
 EXPECT_EQ(binlog_position, new_binlog_position, "binlog position should not change")
 
+#@<> BUG#32515696 dump should not fail if GTID_EXECUTED system variable is not available {not __dbug_off}
+testutil.dbug_set("+d,dumper_no_gtid_executed")
+
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
+EXPECT_STDOUT_CONTAINS("WARNING: Failed to fetch value of @@GLOBAL.GTID_EXECUTED.")
+
+testutil.dbug_set("")
+
+#@<> BUG#32515696 dump should not fail if table histograms are not available {VER(>=8.0.0) and not __dbug_off}
+testutil.dbug_set("+d,dumper_no_column_statictics")
+
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
+EXPECT_STDOUT_CONTAINS("WARNING: Failed to fetch table histograms.")
+
+testutil.dbug_set("")
+
 #@<> Drop roles {VER(>=8.0.0)}
 session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])
 

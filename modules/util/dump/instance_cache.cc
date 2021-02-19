@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
@@ -380,12 +381,22 @@ void Instance_cache_builder::fetch_server_metadata() {
 
   m_cache.hostname = mysqlshdk::utils::Net::get_hostname();
 
-  {
+  try {
+    DBUG_EXECUTE_IF("dumper_no_gtid_executed", {
+      throw mysqlshdk::db::Error("Unknown system variable 'GTID_EXECUTED'.",
+                                 1193, "HY000");
+    });
+
     const auto result = m_session->query("SELECT @@GLOBAL.GTID_EXECUTED;");
 
     if (const auto row = result->fetch_one()) {
       m_cache.gtid_executed = row->get_string(0);
     }
+  } catch (const mysqlshdk::db::Error &e) {
+    log_error("Failed to fetch value of @@GLOBAL.GTID_EXECUTED: %s.",
+              e.format().c_str());
+    current_console()->print_warning(
+        "Failed to fetch value of @@GLOBAL.GTID_EXECUTED.");
   }
 }
 
@@ -499,24 +510,35 @@ void Instance_cache_builder::fetch_table_histograms() {
     return;
   }
 
-  Iterate_table info;
-  info.schema_column = "SCHEMA_NAME";               // NOT NULL
-  info.table_column = "TABLE_NAME";                 // NOT NULL
-  info.extra_columns = {"COLUMN_NAME",              // NOT NULL
-                        "JSON_EXTRACT(HISTOGRAM, "  // NOT NULL
-                        "'$.\"number-of-buckets-specified\"')"};
-  info.table_name = "column_statistics";
-  info.order_by = {"COLUMN_NAME"};
+  try {
+    DBUG_EXECUTE_IF("dumper_no_column_statictics", {
+      throw mysqlshdk::db::Error(
+          "Unknown table 'COLUMN_STATISTICS' in information_schema.", 1109,
+          "42S02");
+    });
 
-  iterate_tables(info, [](const std::string &, Instance_cache::Table *table,
-                          const mysqlshdk::db::IRow *row) {
-    Instance_cache::Histogram histogram;
+    Iterate_table info;
+    info.schema_column = "SCHEMA_NAME";               // NOT NULL
+    info.table_column = "TABLE_NAME";                 // NOT NULL
+    info.extra_columns = {"COLUMN_NAME",              // NOT NULL
+                          "JSON_EXTRACT(HISTOGRAM, "  // NOT NULL
+                          "'$.\"number-of-buckets-specified\"')"};
+    info.table_name = "column_statistics";
+    info.order_by = {"COLUMN_NAME"};
 
-    histogram.column = row->get_string(2);
-    histogram.buckets = shcore::lexical_cast<std::size_t>(row->get_string(3));
+    iterate_tables(info, [](const std::string &, Instance_cache::Table *table,
+                            const mysqlshdk::db::IRow *row) {
+      Instance_cache::Histogram histogram;
 
-    table->histograms.emplace_back(std::move(histogram));
-  });
+      histogram.column = row->get_string(2);
+      histogram.buckets = shcore::lexical_cast<std::size_t>(row->get_string(3));
+
+      table->histograms.emplace_back(std::move(histogram));
+    });
+  } catch (const mysqlshdk::db::Error &e) {
+    log_error("Failed to fetch table histograms: %s.", e.format().c_str());
+    current_console()->print_warning("Failed to fetch table histograms.");
+  }
 }
 
 std::string Instance_cache_builder::build_query(const Iterate_schema &info) {
