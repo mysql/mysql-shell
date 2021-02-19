@@ -1,4 +1,5 @@
-/* Copyright (c) 2020, Oracle and/or its affiliates.
+/*
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -2585,6 +2586,75 @@ TEST_F(Instance_cache_test, filter_schemas_and_tables_case_sensitive) {
   }
 }
 #endif
+
+TEST_F(Instance_cache_test, bug32540460) {
+  // create some number of schemas, only one of them contains a table and a view
+  // this is not guaranteed to reproduce the bug, as tables and views are held
+  // in an unordered map
+  const std::size_t schemas = 50;
+  // select schema which is going to hold a table and a view, it should not be
+  // the last one
+  const std::string target_schema =
+      "test_schema_" + std::to_string(rand() % (schemas - 1));
+  // exclude all existing schemas, to make sure only newly created ones are in
+  // the result
+  Instance_cache_builder::Object_filters excluded_schemas;
+
+  const auto cleanup = [this](std::size_t s) {
+    for (std::size_t i = 0; i < s; ++i) {
+      m_session->execute("DROP SCHEMA IF EXISTS test_schema_" +
+                         std::to_string(i));
+    }
+  };
+
+  cleanup(schemas);
+
+  {
+    // fetch existing schemas
+    const auto result =
+        m_session->query("SELECT SCHEMA_NAME FROM information_schema.schemata");
+
+    while (const auto row = result->fetch_one()) {
+      excluded_schemas.emplace(row->get_string(0));
+    }
+
+    // create new schemas
+    for (std::size_t i = 0; i < schemas; ++i) {
+      m_session->execute("CREATE SCHEMA test_schema_" + std::to_string(i));
+    }
+
+    // create table and view in one of the schemas
+    m_session->execute("CREATE TABLE " + target_schema + ".one (id INT);");
+    m_session->execute("CREATE VIEW " + target_schema +
+                       ".two AS SELECT * FROM " + target_schema + ".one;");
+  }
+
+  {
+    // create the cache, do not fetch metadata, this will return just list of
+    // schemas, tables and views
+    auto cache =
+        Instance_cache_builder(m_session, {}, {}, excluded_schemas, {}, false)
+            .build();
+    // recreate the cache, use the existing one, fetch metadata
+    auto builder = Instance_cache_builder(m_session, std::move(cache));
+    cache = builder.build();
+
+    EXPECT_EQ(schemas, cache.schemas.size());
+
+    Instance_cache::Schema target;
+    target.tables = {{"one", {}}};
+    target.views = {{"two", {}}};
+    verify(cache, target_schema, target);
+
+    EXPECT_FALSE(
+        cache.schemas.at(target_schema).tables.at("one").columns.empty());
+    EXPECT_FALSE(cache.schemas.at(target_schema)
+                     .views.at("two")
+                     .collation_connection.empty());
+  }
+
+  cleanup(schemas);
+}
 
 }  // namespace tests
 }  // namespace dump

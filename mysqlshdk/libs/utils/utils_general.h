@@ -28,6 +28,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 #ifdef _WIN32
@@ -178,6 +179,10 @@ std::string SHCORE_PUBLIC errno_to_string(int err);
 struct Account {
   std::string user;
   std::string host;
+
+  bool operator<(const Account &a) const {
+    return std::tie(user, host) < std::tie(a.user, a.host);
+  }
 };
 
 void SHCORE_PUBLIC split_account(const std::string &account,

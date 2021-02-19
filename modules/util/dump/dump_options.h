@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -103,19 +103,19 @@ class Dump_options {
     return m_included_users;
   }
 
-  const Instance_cache_builder::Objects &included_schemas() const {
+  const Instance_cache_builder::Object_filters &included_schemas() const {
     return m_included_schemas;
   }
 
-  const Instance_cache_builder::Objects &excluded_schemas() const {
+  const Instance_cache_builder::Object_filters &excluded_schemas() const {
     return m_excluded_schemas;
   }
 
-  const Instance_cache_builder::Schema_objects &included_tables() const {
+  const Instance_cache_builder::Table_filters &included_tables() const {
     return m_included_tables;
   }
 
-  const Instance_cache_builder::Schema_objects &excluded_tables() const {
+  const Instance_cache_builder::Table_filters &excluded_tables() const {
     return m_excluded_tables;
   }
 
@@ -191,11 +191,11 @@ class Dump_options {
   std::set<std::string> find_missing(const std::string &schema,
                                      const std::set<std::string> &tables) const;
 
-  Instance_cache_builder::Objects m_included_schemas;
-  Instance_cache_builder::Objects m_excluded_schemas;
+  Instance_cache_builder::Object_filters m_included_schemas;
+  Instance_cache_builder::Object_filters m_excluded_schemas;
 
-  Instance_cache_builder::Schema_objects m_included_tables;
-  Instance_cache_builder::Schema_objects m_excluded_tables;
+  Instance_cache_builder::Table_filters m_included_tables;
+  Instance_cache_builder::Table_filters m_excluded_tables;
 
  protected:
   void on_start_unpack(const shcore::Dictionary_t &options);

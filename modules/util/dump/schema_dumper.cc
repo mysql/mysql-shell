@@ -1,5 +1,5 @@
 /*
-   Copyright (c) 2000, 2020, Oracle and/or its affiliates.
+   Copyright (c) 2000, 2021, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -2725,17 +2725,21 @@ std::vector<shcore::Account> Schema_dumper::get_users(
       "  AS user, "
       "SUBSTR(grantee, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))+3,"
       "  LOCATE('@', REVERSE(grantee))-3) AS host "
-      "FROM information_schema.user_privileges ORDER BY user, host) AS users";
+      "FROM information_schema.user_privileges) AS users";
 
   auto users_res = query_log_and_throw(users_query + where_filter);
-  std::vector<shcore::Account> users;
-  for (auto u = users_res->fetch_one(); u; u = users_res->fetch_one()) {
+
+  std::set<shcore::Account> users;
+
+  while (const auto u = users_res->fetch_one()) {
     shcore::Account account;
     account.user = u->get_string(0);
     account.host = u->get_string(1);
-    users.emplace_back(std::move(account));
+    users.emplace(std::move(account));
   }
-  return users;
+
+  return {std::make_move_iterator(users.begin()),
+          std::make_move_iterator(users.end())};
 }
 
 const char *Schema_dumper::version() { return DUMP_VERSION; }

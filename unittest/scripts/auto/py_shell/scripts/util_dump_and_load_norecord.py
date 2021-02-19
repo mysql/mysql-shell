@@ -3,6 +3,7 @@
 #@<> INCLUDE dump_utils.inc
 
 #@<> Setup
+from contextlib import ExitStack
 import os
 import threading
 import time
@@ -14,6 +15,12 @@ except:
     pass
 testutil.mkdir(outdir)
 
+mysql_tmpdir = __tmp_dir+"/mysql"
+try:
+    testutil.rmdir(mysql_tmpdir, True)
+except:
+    pass
+testutil.mkdir(mysql_tmpdir)
 
 def prepare(sbport, options={}):
     # load test schemas
@@ -28,7 +35,10 @@ def prepare(sbport, options={}):
         "loose_innodb_directories": datadir,
         "early_plugin_load": "keyring_file."+("dll" if __os_type == "windows" else "so"),
         "keyring_file_data": datadir+"/keyring",
-        "local_infile": "1"
+        "local_infile": "1",
+        "tmpdir": mysql_tmpdir,
+        # small sort buffer to force stray filesorts to be triggered even if we don't have much data
+        "sort_buffer_size": 32768
     })
     testutil.deploy_sandbox(sbport, "root", options)
 
@@ -524,6 +534,56 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "ignoreVersion": True, "show
 EXPECT_STDOUT_CONTAINS("WARNING: Destination is a MySQL Database Service instance but the dump was produced without the compatibility option. The 'ignoreVersion' option is enabled, so loading anyway. If this operation fails, create the dump once again with the 'ocimds' option enabled.")
 
 testutil.dbug_set("")
+
+#@<> Check that dumping lots of things won't trigger a filesort, which could be a problem if the source has no disk space left
+session1.run_sql("set global sort_buffer_size=32768")
+
+# create lots of users
+user_length = 20 if __version_num < 80017 else 200
+for i in range(500):
+    session1.run_sql(f"create user rando_____________________{i}@'l{'o'*user_length}calhost'")
+
+# create lots of schemas, tables and columns
+for s in range(500):
+    dbname = f"randodb{s}{'_'*30}"
+    session1.run_sql(f"create schema {dbname}")
+
+for t in range(500):
+    sql = f"create table {dbname}.table{t} (pk int primary key"
+    for c in range(100):
+        sql += f", column{c} int"
+    sql += ")"
+    session1.run_sql(sql)
+
+if __version_num > 80000:
+    for t in range(500):
+        sql = f"ANALYZE TABLE {dbname}.table{t} UPDATE HISTOGRAM ON `column0`;"
+        session1.run_sql(sql)
+
+for i in range(500):
+    sql = f"create event {dbname}.event{i} on schedule at '2035-12-31 20:01:23' do set @a=5;"
+    session1.run_sql(sql)
+    sql = f"create function {dbname}.function{i}() RETURNS INT DETERMINISTIC RETURN 0"
+    session1.run_sql(sql)
+    sql = f"create procedure {dbname}.procedure{i}() BEGIN END"
+    session1.run_sql(sql)
+    sql = f"create trigger {dbname}.trigger{i} BEFORE INSERT ON table0 FOR EACH ROW SET @sum = @sum + NEW.column0"
+    session1.run_sql(sql)
+
+with ExitStack() as stack:
+    if __os_type != "windows":
+        # make the tmpdir read-only to force an error when tmpfiles are created (like when filesort is used) during dump
+        os.chmod(mysql_tmpdir, 0o550)
+        # allow writing to tmpdir for loading (executed when leaving the 'with' scope)
+        stack.callback(lambda: os.chmod(mysql_tmpdir, 0o770))
+    shell.connect(__sandbox_uri1)
+    dump_dir = os.path.join(outdir, "lotsofstuff")
+    util.dump_instance(dump_dir)
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+
+util.load_dump(dump_dir)
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
