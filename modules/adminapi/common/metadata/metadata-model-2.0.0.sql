@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS clusters (
   `router_options` JSON,
 
   PRIMARY KEY(cluster_id)
-) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARSET = utf8mb4 ROW_FORMAT = DYNAMIC;
 
 
 /*
@@ -167,7 +167,7 @@ CREATE TABLE IF NOT EXISTS instances (
 
   PRIMARY KEY(instance_id, cluster_id),
   FOREIGN KEY (cluster_id) REFERENCES clusters(cluster_id)
-) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARSET = utf8mb4 ROW_FORMAT = DYNAMIC;
 
 
 --  AR ReplicaSet Tables
@@ -217,7 +217,7 @@ CREATE TABLE IF NOT EXISTS async_cluster_views (
 
   FOREIGN KEY (cluster_id)
     REFERENCES clusters (cluster_id)
-) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARSET = utf8mb4 ROW_FORMAT = DYNAMIC;
 
 
 /*
@@ -254,7 +254,7 @@ CREATE TABLE IF NOT EXISTS async_cluster_members (
 
   FOREIGN KEY (cluster_id, view_id)
       REFERENCES async_cluster_views (cluster_id, view_id)
-) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARSET = utf8mb4 ROW_FORMAT = DYNAMIC;
 
 /*
   This table contain a list of all router instances that are tracked by the
@@ -312,7 +312,7 @@ CREATE TABLE IF NOT EXISTS routers (
   `options` JSON DEFAULT NULL,
 
   UNIQUE KEY (address, router_name)
-) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARSET = utf8mb4 ROW_FORMAT = DYNAMIC;
 
 /*
   This table contains a list of all REST user accounts that are granted
@@ -355,7 +355,7 @@ CREATE TABLE IF NOT EXISTS router_rest_accounts (
   `attributes` JSON DEFAULT NULL,
 
   PRIMARY KEY (cluster_id, user)
-) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARSET = utf8mb4 ROW_FORMAT = DYNAMIC;
 
 
 --  Public Interface Views

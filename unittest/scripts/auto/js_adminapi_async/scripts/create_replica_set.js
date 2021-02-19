@@ -36,6 +36,15 @@ dba.createReplicaSet("::");
 session.close();
 dba.createReplicaSet("aa");
 
+//@<> check if innodb is forced for metadata schema BUG#32110085
+shell.connect(__sandbox_uri1)
+session.runSql("SET default_storage_engine = MyISAM");
+EXPECT_NO_THROWS(function() { dba.createReplicaSet("myisamtest"); });
+
+//@<> cleanup BUG#32110085
+session.runSql("SET default_storage_engine = InnoDB");
+reset_instance(session);
+
 //@ create with unmanaged GR (should fail)
 shell.connect(__sandbox_uri1);
 start_standalone_gr(session, __mysql_sandbox_gr_port1);
