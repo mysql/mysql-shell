@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -83,6 +83,12 @@ void Import_table::rethrow_exceptions() {
       std::rethrow_exception(exc);
     }
   }
+
+  // Non critical errors appear during import. Throwing an error sets required
+  // non-zero exit code.
+  if (!noncritical_errors.empty()) {
+    throw std::runtime_error(noncritical_errors[0]);
+  }
 }
 
 bool Import_table::any_exception() {
@@ -131,8 +137,10 @@ void Import_table::build_queue() {
       auto dir = mysqlshdk::storage::make_directory(
           glob_fh->parent()->full_path(), oci_opts);
       if (!dir->exists()) {
-        m_console.get()->print_error("Directory " + dir->full_path() +
-                                     " does not exists.");
+        std::string errmsg{"Directory " + dir->full_path() +
+                           " does not exists."};
+        m_console.get()->print_error(errmsg);
+        noncritical_errors.emplace_back(std::move(errmsg));
         continue;
       }
       auto list_files = dir->filter_files(shcore::path::basename(glob_item));
@@ -161,8 +169,10 @@ void Import_table::build_queue() {
     } else {
       auto glob_fh = mysqlshdk::storage::make_file(glob_item, oci_opts);
       if (!glob_fh->exists()) {
-        m_console.get()->print_error("File " + glob_fh->full_path() +
-                                     " does not exists.");
+        std::string errmsg{"File " + glob_fh->full_path() +
+                           " does not exists."};
+        m_console.get()->print_error(errmsg);
+        noncritical_errors.emplace_back(std::move(errmsg));
         continue;
       }
       File_import_info task;

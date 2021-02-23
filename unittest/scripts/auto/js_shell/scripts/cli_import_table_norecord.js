@@ -42,8 +42,7 @@ validate_and_cleanup(schema, table, '{"column_1,:int=1":"john"}');
 session.runSql(`create table ${schema}.${table} (\`column_1\` VARCHAR(10))`);
 testutil.createFile(`${table}.dump`, "john");
 rc = callMysqlsh([`--schema=${schema}`, "--", "util", "import-table", `${table}.dump`, `--table=${table}`, "--columns:str=column_1", ":int=1"]);
-// BUG #32286186 - IMPORT TABLE FROM CLI REPORTS WRONG RETURN CODE ON FAILURE WITH MULTIPLE FILES
-//EXPECT_EQ(1, rc);
+EXPECT_EQ(1, rc);
 EXPECT_OUTPUT_CONTAINS('ERROR: File');
 EXPECT_OUTPUT_CONTAINS(':int=1 does not exists.');
 validate_and_cleanup(schema, table, '{"column_1":"john"}');
