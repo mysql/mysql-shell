@@ -58,6 +58,22 @@ def compare_schemas(session1, session2, check_rows=True):
             continue
         compare_schema(session1, session2, schema, check_rows)
 
+def compare_user_grants(session1, session2, user):
+    grants1 = session1.run_sql(f"show grants for {user}").fetch_all()
+    grants2 = session2.run_sql(f"show grants for {user}").fetch_all()
+    EXPECT_EQ(str(grants1), str(grants2), f"grants for {user}")
 
-def compare_servers(session1, session2, check_rows=True):
+
+def compare_users(session1, session2):
+    users = set()
+    for s in [session1, session2]:
+        for user, in s.run_sql("select concat(quote(user), '@', quote(host)) from mysql.user").fetch_all():
+            users.add(user)
+    for user in users:
+        compare_user_grants(session1, session2, user)
+
+
+def compare_servers(session1, session2, *, check_rows=True, check_users=True):
     compare_schemas(session1, session2, check_rows)
+    if check_users:
+        compare_users(session1, session2)

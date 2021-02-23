@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -293,7 +293,8 @@ class Schema_dumper {
                                                        const std::string &db);
 
   std::string expand_all_privileges(const std::string &stmt,
-                                    const std::string &grantee);
+                                    const std::string &grantee,
+                                    std::string *out_schema);
 };
 
 }  // namespace dump

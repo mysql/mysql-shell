@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,7 @@
 
 #include "unittest/gprod_clean.h"
 
+#include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/dump_utils.h"
 #include "modules/util/load/dump_loader.h"
 #include "modules/util/load/dump_reader.h"
@@ -513,6 +514,17 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
         EXPECT_TRUE(shcore::load_text_file(path, script));
         EXPECT_TRUE(shcore::load_text_file(path + ".out", expected_out));
 
+        auto &r = mock_main_session
+                      ->expect_query(
+                          "SELECT privilege_type FROM "
+                          "information_schema.user_privileges "
+                          "WHERE grantee=concat(quote('administrator'), '@', "
+                          "quote('%'))")
+                      .then({"privilege_type"});
+        for (const auto &p :
+             mysqlsh::compatibility::k_mysqlaas_allowed_privileges)
+          r.add_row({p});
+
         mock_main_session
             ->expect_query(
                 "SELECT User_attributes->>'$.Restrictions' FROM mysql.user "
@@ -521,7 +533,7 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
             .add_row({k_mds_administrator_restrictions});
 
         auto out = loader.filter_user_script_for_mds(script);
-        EXPECT_EQ(out, expected_out);
+        EXPECT_EQ(out, expected_out) << path;
 
         return true;
       });

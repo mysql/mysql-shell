@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,6 +56,10 @@ void clone_user(const IInstance &instance, const std::string &orig_user,
                     Account_attribute_set(Account_attribute::Grants));
 
 using Privilege_list = std::vector<std::string>;
+
+Privilege_list get_global_grants(const IInstance &instance,
+                                 const std::string &user,
+                                 const std::string &host);
 
 std::vector<std::pair<std::string, Privilege_list>> get_user_restrictions(
     const IInstance &instance, const std::string &user,

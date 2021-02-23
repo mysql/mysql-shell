@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -946,7 +946,7 @@ void split_schema_and_table(const std::string &str, std::string *out_schema,
 }
 
 void split_priv_level(const std::string &str, std::string *out_schema,
-                      std::string *out_object) {
+                      std::string *out_object, size_t *out_leftover) {
   assert(out_schema && out_object);
   // *
   // *.*
@@ -972,9 +972,9 @@ void split_priv_level(const std::string &str, std::string *out_schema,
 
   if (pos < str.length()) {
     if (str[pos] != '.') {
-      throw std::runtime_error(
-          std::string("Invalid object name, expected '.', but got: '") +
-          str[pos] + "'.");
+      throw std::runtime_error(std::string("Invalid object name '" + str +
+                                           "', expected '.', but got: '") +
+                               str[pos] + "'.");
     }
     ++pos;
 
@@ -986,13 +986,18 @@ void split_priv_level(const std::string &str, std::string *out_schema,
         pos = span_quotable_identifier(str, pos, out_object);
       }
     } else {
-      throw std::runtime_error(
-          "Invalid object name, expected object name after '.'");
+      throw std::runtime_error("Invalid object name '" + str +
+                               "', expected object name after '.'");
     }
     if (pos < str.length()) {
-      throw std::runtime_error(
-          std::string("Invalid object name, expected end of name, but got: '") +
-          str[pos] + "'.");
+      if (out_leftover) {
+        *out_leftover = pos;
+      } else {
+        throw std::runtime_error(
+            std::string("Invalid object name '" + str +
+                        "', expected end of name, but got: '") +
+            str[pos] + "'.");
+      }
     }
   }
 }

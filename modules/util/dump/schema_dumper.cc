@@ -2464,46 +2464,35 @@ std::vector<std::string> Schema_dumper::get_routines(const std::string &db,
 }
 
 namespace {
-enum class Priv_level_type { ERROR, GLOBAL, SCHEMA, TABLE };
+enum class Priv_level_type { GLOBAL, SCHEMA, TABLE };
 
 Priv_level_type check_priv_level(const std::string &s, std::string *out_schema,
                                  std::string *out_table) {
-  mysqlshdk::utils::SQL_iterator sqli(s, 0, false);
+  size_t rest;
+  shcore::split_priv_level(s, out_schema, out_table, &rest);
 
-  std::string token = sqli.get_next_token();
-
-  if (token == "*.*") {
-    *out_schema = "*";
-    *out_table = "*";
+  if (*out_schema == "*" && *out_table == "*")
     return Priv_level_type::GLOBAL;
-  } else {
-    *out_schema = token;
-  }
-  try {
-    *out_schema = shcore::unquote_identifier(*out_schema);
-    if (sqli.get_next_token() != ".") return Priv_level_type::ERROR;
-    if ((*out_table = sqli.get_next_token()) == "*") {
-      return Priv_level_type::SCHEMA;
-    } else {
-      *out_table = shcore::unquote_identifier(*out_table);
-      return Priv_level_type::TABLE;
-    }
-  } catch (const std::exception &e) {
-    throw std::runtime_error("While parsing '" + s + "': " + e.what());
-  }
+  else if (*out_schema != "*" && *out_table == "*")
+    return Priv_level_type::SCHEMA;
+  else
+    return Priv_level_type::TABLE;
 }
 }  // namespace
 
 std::string Schema_dumper::expand_all_privileges(const std::string &stmt,
-                                                 const std::string &grantee) {
+                                                 const std::string &grantee,
+                                                 std::string *out_schema) {
   const std::string k_grant_all = "GRANT ALL PRIVILEGES ON ";
+
+  *out_schema = "";
 
   if (shcore::str_beginswith(stmt, k_grant_all)) {
     std::string target = stmt.substr(k_grant_all.size());
-    std::string schema, table;
+    std::string table;
     std::string query;
 
-    switch (check_priv_level(target, &schema, &table)) {
+    switch (check_priv_level(target, out_schema, &table)) {
       case Priv_level_type::GLOBAL: {
         query =
             "SELECT group_concat(privilege_type) FROM "
@@ -2515,7 +2504,7 @@ std::string Schema_dumper::expand_all_privileges(const std::string &stmt,
         query =
             "SELECT group_concat(privilege_type) FROM "
             "information_schema.schema_privileges WHERE table_schema = " +
-            shcore::quote_sql_string(schema) +
+            shcore::quote_sql_string(*out_schema) +
             " AND grantee = " + shcore::quote_sql_string(grantee);
         break;
       }
@@ -2523,13 +2512,11 @@ std::string Schema_dumper::expand_all_privileges(const std::string &stmt,
         query =
             "SELECT group_concat(privilege_type) FROM "
             "information_schema.table_privileges WHERE table_schema = " +
-            shcore::quote_sql_string(schema) +
+            shcore::quote_sql_string(*out_schema) +
             " AND table_name = " + shcore::quote_sql_string(table) +
             " AND grantee = " + shcore::quote_sql_string(grantee);
         break;
       }
-      case Priv_level_type::ERROR:
-        break;
     }
     if (!query.empty()) {
       auto r = query_log_and_throw(query);
@@ -2548,6 +2535,11 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
   std::vector<Issue> problems;
   bool compatibility = opt_strip_restricted_grants;
   log_debug("Dumping grants for server");
+
+  auto is_restricted_schema = [](const std::string &s) {
+    return s == "mysql" || s == "sys" || s == "information_schema" ||
+           s == "performance_schema";
+  };
 
   fputs("--\n-- Dumping user accounts\n--\n\n", file);
 
@@ -2626,19 +2618,26 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
         // In MySQL <= 5.7, if a user has all privs, the SHOW GRANTS will say
         // ALL PRIVILEGES, which isn't helpful for filtering out grants.
         // Also, ALL PRIVILEGES can appear even in 8.0 for DB grants
-        grant = expand_all_privileges(grant, user);
+        std::string orig_grant = grant;
+        std::string schema;
+        grant = expand_all_privileges(grant, user, &schema);
 
-        std::set<std::string> allowed_privs;
-        if (opt_mysqlaas || opt_strip_restricted_grants) {
-          allowed_privs = compatibility::k_mysqlaas_allowed_privileges;
-        }
+        // grants on specific user schemas don't need to be filtered
+        if (schema != "" && !is_restricted_schema(schema) && schema != "*") {
+          grant = orig_grant;
+        } else {
+          std::set<std::string> allowed_privs;
+          if (opt_mysqlaas || opt_strip_restricted_grants) {
+            allowed_privs = compatibility::k_mysqlaas_allowed_privileges;
+          }
 
-        std::string rewritten;
-        const auto privs = compatibility::check_privileges(
-            grant, compatibility ? &rewritten : nullptr, allowed_privs);
-        if (!privs.empty()) {
-          restricted.insert(privs.begin(), privs.end());
-          if (compatibility) grant = rewritten;
+          std::string rewritten;
+          const auto privs = compatibility::check_privileges(
+              grant, compatibility ? &rewritten : nullptr, allowed_privs);
+          if (!privs.empty()) {
+            restricted.insert(privs.begin(), privs.end());
+            if (compatibility) grant = rewritten;
+          }
         }
       }
       if (!grant.empty()) grants.emplace_back(grant);

@@ -1025,9 +1025,16 @@ std::string Dump_loader::filter_user_script_for_mds(const std::string &script) {
   // dump is loaded by a root user in a non-MDS instance, accounts
   // can end up without the expected original revokes.
 
-  // get list of privileges revoked from the administrator role
-  auto restrictions = mysqlshdk::mysql::get_user_restrictions(
-      mysqlshdk::mysql::Instance(m_session), "administrator", "%");
+  mysqlshdk::mysql::Instance instance(m_session);
+
+  auto allowed_global_grants =
+      mysqlshdk::mysql::get_global_grants(instance, "administrator", "%");
+  if (allowed_global_grants.empty())
+    current_console()->print_warning("`administrator` role not found!");
+
+  // get list of DB level privileges revoked from the administrator role
+  auto restrictions =
+      mysqlshdk::mysql::get_user_restrictions(instance, "administrator", "%");
 
 #ifndef NDEBUG
   for (const auto &r : restrictions) {
@@ -1042,13 +1049,24 @@ std::string Dump_loader::filter_user_script_for_mds(const std::string &script) {
       [this](const std::string &account) {
         return m_options.include_user(shcore::split_account(account));
       },
-      [&restrictions](const std::string &priv_type,
-                      const std::string &priv_level) {
+      [&restrictions, &allowed_global_grants](const std::string &priv_type,
+                                              const std::string &priv_level) {
+        // strip global privileges
+        if (priv_level == "*.*") {
+          // return true if the priv should be stripped
+          return std::find_if(allowed_global_grants.begin(),
+                              allowed_global_grants.end(),
+                              [&priv_type](const std::string &priv) {
+                                return shcore::str_caseeq(priv, priv_type);
+                              }) == allowed_global_grants.end();
+        }
+
         std::string schema, object;
         shcore::split_priv_level(priv_level, &schema, &object);
 
         if (object.empty() && schema == "*") return false;
 
+        // strip DB privileges
         // only schema.* revokes are expected, this needs to be reviewed if
         // object specific revokes are ever added
         for (const auto &r : restrictions) {

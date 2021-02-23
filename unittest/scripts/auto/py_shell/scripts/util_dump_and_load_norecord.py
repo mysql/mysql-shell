@@ -91,8 +91,26 @@ reset_server(session2)
 session2.run_sql("create user testuser@'%'")
 session2.run_sql("grant select, delete on *.* to testuser@'%'")
 session2.run_sql("create user myuser@'%'")
-session2.run_sql("grant all on mysql.* to myuser@'%'")
+session2.run_sql("create user myuser2@'%'")
+session2.run_sql("create user myuser3@'%'")
 session2.run_sql("CREATE SCHEMA test_schema")
+
+#Bug #32526567 - strip_restricted_grants should allow GRANT ALL ON user schemas
+# should work as is in MDS
+session2.run_sql("grant all on test_schema.* to myuser@'%'")
+# should expand and filter out privs
+session2.run_sql("grant all on mysql.* to myuser@'%'")
+
+# should expand and filter out privs
+session2.run_sql("grant all on *.* to myuser2@'%'")
+
+# single user with all grants
+session2.run_sql("grant all on test_schema.* to myuser3@'%' with grant option")
+session2.run_sql("grant all on mysql.* to myuser3@'%' with grant option")
+session2.run_sql("grant all on *.* to myuser3@'%' with grant option")
+
+def format_rows(rows):
+    return "\n".join([r[0] for r in rows])
 
 shell.connect(__sandbox_uri2)
 
@@ -108,8 +126,46 @@ util.dump_instance(__tmp_dir+"/ldtest/dump_admin", {"compatibility":["strip_rest
 reset_server(session2)
 util.load_dump(__tmp_dir+"/ldtest/dump_admin", {"loadUsers":1, "loadDdl":0, "loadData":0, "excludeUsers":["root@%","root@localhost"]})
 
+EXPECT_EQ("""GRANT USAGE ON *.* TO `myuser`@`%`
+GRANT SELECT, SHOW VIEW ON `mysql`.* TO `myuser`@`%`
+GRANT ALL PRIVILEGES ON `test_schema`.* TO `myuser`@`%`""",
+        format_rows(session2.run_sql("show grants for myuser@'%'").fetch_all()))
+
+EXPECT_EQ("""GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, PROCESS, REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE ROLE, DROP ROLE ON *.* TO `myuser2`@`%`
+GRANT APPLICATION_PASSWORD_ADMIN,CONNECTION_ADMIN,REPLICATION_APPLIER,RESOURCE_GROUP_ADMIN,RESOURCE_GROUP_USER,XA_RECOVER_ADMIN ON *.* TO `myuser2`@`%`
+REVOKE INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `mysql`.* FROM `myuser2`@`%`
+REVOKE CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `sys`.* FROM `myuser2`@`%`""",
+          format_rows(session2.run_sql("show grants for myuser2@'%'").fetch_all()))
+
+EXPECT_EQ("""GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, PROCESS, REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE ROLE, DROP ROLE ON *.* TO `myuser3`@`%` WITH GRANT OPTION
+GRANT APPLICATION_PASSWORD_ADMIN,CONNECTION_ADMIN,REPLICATION_APPLIER,RESOURCE_GROUP_ADMIN,RESOURCE_GROUP_USER,XA_RECOVER_ADMIN ON *.* TO `myuser3`@`%` WITH GRANT OPTION
+GRANT SELECT, SHOW VIEW ON `mysql`.* TO `myuser3`@`%` WITH GRANT OPTION
+GRANT ALL PRIVILEGES ON `test_schema`.* TO `myuser3`@`%` WITH GRANT OPTION
+REVOKE INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `mysql`.* FROM `myuser3`@`%`
+REVOKE CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `sys`.* FROM `myuser3`@`%`""",
+          format_rows(session2.run_sql("show grants for myuser3@'%'").fetch_all()))
+
 reset_server(session2)
 util.load_dump(__tmp_dir+"/ldtest/dump_root", {"loadUsers":1, "loadDdl":0, "loadData":0, "excludeUsers":["root@%","root@localhost"]})
+
+EXPECT_EQ("""GRANT USAGE ON *.* TO `myuser`@`%`
+GRANT SELECT, SHOW VIEW ON `mysql`.* TO `myuser`@`%`
+GRANT ALL PRIVILEGES ON `test_schema`.* TO `myuser`@`%`""",
+          format_rows(session2.run_sql("show grants for myuser@'%'").fetch_all()))
+
+EXPECT_EQ("""GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, PROCESS, REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE ROLE, DROP ROLE ON *.* TO `myuser2`@`%`
+GRANT APPLICATION_PASSWORD_ADMIN,CONNECTION_ADMIN,REPLICATION_APPLIER,RESOURCE_GROUP_ADMIN,RESOURCE_GROUP_USER,XA_RECOVER_ADMIN ON *.* TO `myuser2`@`%`
+REVOKE INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `mysql`.* FROM `myuser2`@`%`
+REVOKE CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `sys`.* FROM `myuser2`@`%`""",
+          format_rows(session2.run_sql("show grants for myuser2@'%'").fetch_all()))
+
+EXPECT_EQ("""GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, PROCESS, REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE ROLE, DROP ROLE ON *.* TO `myuser3`@`%` WITH GRANT OPTION
+GRANT APPLICATION_PASSWORD_ADMIN,CONNECTION_ADMIN,REPLICATION_APPLIER,RESOURCE_GROUP_ADMIN,RESOURCE_GROUP_USER,XA_RECOVER_ADMIN ON *.* TO `myuser3`@`%` WITH GRANT OPTION
+GRANT SELECT, SHOW VIEW ON `mysql`.* TO `myuser3`@`%` WITH GRANT OPTION
+GRANT ALL PRIVILEGES ON `test_schema`.* TO `myuser3`@`%` WITH GRANT OPTION
+REVOKE INSERT, UPDATE, DELETE, CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `mysql`.* FROM `myuser3`@`%`
+REVOKE CREATE, DROP, REFERENCES, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, TRIGGER ON `sys`.* FROM `myuser3`@`%`""",
+          format_rows(session2.run_sql("show grants for myuser3@'%'").fetch_all()))
 
 testutil.dbug_set("")
 
@@ -131,7 +187,7 @@ testutil.rmfile(outdir+"/ddlonly/load-progress*.json")
 #@<> load ddl normally
 util.load_dump(outdir+"/ddlonly")
 
-compare_servers(session1, session2, check_rows=False)
+compare_servers(session1, session2, check_rows=False, check_users=False)
 #@<> Dump dataOnly
 shell.connect(__sandbox_uri1)
 util.dump_instance(outdir+"/dataonly", {"dataOnly": True})
@@ -149,9 +205,10 @@ util.load_dump(outdir+"/dataonly", {"dryRun": True, "loadDdl": False})
 
 util.load_dump(outdir+"/dataonly", {"ignoreExistingObjects": True})
 
-compare_servers(session1, session2)
+compare_servers(session1, session2, check_users=False)
 
 wipeout_server(session2)
+
 
 #@<> load ddl which is not in the dump (fail/no-op)
 util.load_dump(outdir+"/dataonly", {"loadData": False, "loadDdl": True})
@@ -258,7 +315,7 @@ EXPECT_THROWS(lambda: util.load_dump(target, {"waitDumpTimeout": 5}), "Dump time
 copy("@.done.json")
 util.load_dump(target, {"waitDumpTimeout": 10})
 
-compare_servers(session1, session2, check_rows=True)
+compare_servers(session1, session2, check_rows=True, check_users=False)
 
 #@<> load incomplete dumps by retrying
 testutil.rmfile(target+"/*")

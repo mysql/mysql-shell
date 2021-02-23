@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -171,6 +171,22 @@ void clone_user(const IInstance &instance, const std::string &orig_user,
       instance.execute(grant);
     }
   }
+}
+
+Privilege_list get_global_grants(const IInstance &instance,
+                                 const std::string &user,
+                                 const std::string &host) {
+  Privilege_list grants;
+  // TODO(alfredo) in 5.7, grantee may have truncated values if username is
+  // long
+  auto res = instance.queryf(
+      "SELECT privilege_type FROM information_schema.user_privileges"
+      " WHERE grantee=concat(quote(?), '@', quote(?))",
+      user, host);
+  while (const auto row = res->fetch_one()) {
+    grants.emplace_back(row->get_string(0));
+  }
+  return grants;
 }
 
 std::vector<std::pair<std::string, Privilege_list>> get_user_restrictions(

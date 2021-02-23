@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -509,6 +509,31 @@ END//)";
   EXPECT_EQ(";", sit.get_next_token());
   EXPECT_TRUE(sit.get_next_sql_function().empty());
   EXPECT_FALSE(sit.valid());
+
+  // TODO(alfredo) these are wrong
+  // std::string objects = "*, *.*, `foo`.*, `foo`.`bar`, foo.bar, *.foo,
+  // foo.*";
+
+  // SQL_iterator oit(objects, 0, false);
+  // EXPECT_EQ("*", oit.get_next_token());
+  // EXPECT_EQ(",", oit.get_next_token());
+
+  // EXPECT_EQ("*.*", oit.get_next_token());
+  // EXPECT_EQ(",", oit.get_next_token());
+
+  // EXPECT_EQ("`foo`.*", oit.get_next_token());
+  // EXPECT_EQ(",", oit.get_next_token());
+
+  // EXPECT_EQ("`foo`.`bar`", oit.get_next_token());
+  // EXPECT_EQ(",", oit.get_next_token());
+
+  // EXPECT_EQ("foo.bar", oit.get_next_token());
+  // EXPECT_EQ(",", oit.get_next_token());
+
+  // EXPECT_EQ("*.foo", oit.get_next_token());
+  // EXPECT_EQ(",", oit.get_next_token());
+
+  // EXPECT_EQ("foo.*", oit.get_next_token());
 
   // TODO(alfredo): lexer is not breaking these correctly
   // std::string sql2("!+foo@localhost foo@'%' (x+y/zzz-q*y&x)");

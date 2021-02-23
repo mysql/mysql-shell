@@ -215,7 +215,8 @@ void SHCORE_PUBLIC split_schema_and_table(const std::string &str,
 
 void SHCORE_PUBLIC split_priv_level(const std::string &str,
                                     std::string *out_schema,
-                                    std::string *out_object);
+                                    std::string *out_object,
+                                    size_t *out_leftover = nullptr);
 
 std::string SHCORE_PUBLIC unquote_identifier(const std::string &str);
 
