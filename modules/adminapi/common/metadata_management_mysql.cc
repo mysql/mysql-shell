@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,8 +78,9 @@ Version get_version(const std::shared_ptr<Instance> &group_server,
           "Unable to detect Metadata version. Please check account "
           "privileges.");
     } else if (error.code() != ER_NO_SUCH_TABLE &&
-               error.code() != ER_BAD_DB_ERROR)
+               error.code() != ER_BAD_DB_ERROR) {
       throw;
+    }
   }
 
   return kNotInstalled;
@@ -176,13 +177,6 @@ Stage compute_failed_upgrade_stage(
                              schema_version != kNotInstalled &&
                              !at_target_version;
 
-  log_info(
-      "Detecting state of MD schema upgrade... schema_version=%s, "
-      "target_version=%s, backup_exists=%i, saved_stage=%s",
-      schema_version.get_base().c_str(), current_version().get_base().c_str(),
-      backup_exists,
-      saved_stage.is_null() ? "null" : to_string(*saved_stage).c_str());
-
   Stage actual_stage;
 
   if (!backup_exists && at_upgrading_version)
@@ -208,8 +202,18 @@ Stage compute_failed_upgrade_stage(
     throw std::logic_error(
         "Metadata schema upgrade was left in an inconsistent state");
 
-  log_info("MD schema upgrade detected to be in stage %s",
-           to_string(actual_stage).c_str());
+  std::string state_info = shcore::str_format(
+      "Detected state of MD schema as %s... schema_version=%s, "
+      "target_version=%s, backup_exists=%i, saved_stage=%s",
+      to_string(actual_stage).c_str(), schema_version.get_base().c_str(),
+      current_version().get_base().c_str(), backup_exists,
+      saved_stage.is_null() ? "null" : to_string(*saved_stage).c_str());
+
+  if (actual_stage != upgrade::Stage::OK) {
+    log_info("%s", state_info.c_str());
+  } else {
+    log_debug("%s", state_info.c_str());
+  }
 
   return actual_stage;
 }

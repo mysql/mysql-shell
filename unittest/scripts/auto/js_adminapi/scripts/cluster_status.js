@@ -7,6 +7,14 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host:hostname});
 
 shell.connect(__sandbox_uri1);
 cluster = dba.createCluster("cluster", {gtidSetIsComplete:1});
+
+// BUG#32582745 - ADMINAPI: OPERATIONS LOGGING USELESS MD STATE INFORMATION
+// When run in debug mode, the MD state check logging should be present
+WIPE_SHELL_LOG()
+var user_path = testutil.getUserConfigPath();
+testutil.callMysqlsh([__sandbox_uri1, "--log-level=debug", "--", "cluster", "status"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+EXPECT_SHELL_LOG_CONTAINS("Debug: Detected state of MD schema as OK");
+
 cluster.addInstance(__sandbox_uri2);
 
 function create_testdb(session)  {

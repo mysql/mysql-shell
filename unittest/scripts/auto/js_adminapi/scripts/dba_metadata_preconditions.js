@@ -195,12 +195,17 @@ for (index in tests) {
         }
     }
 
+    // BUG#32582745 - ADMINAPI: OPERATIONS LOGGING USELESS MD STATE INFORMATION
+    // The MD state logging should be present if state != OK
+    WIPE_SHELL_LOG()
     if (tests[index][3].endsWith("ERROR")) {
         EXPECT_THROWS(function () {
             var c = dba.getCluster('sample')
         }, messages[tests[index][3]]);
+        EXPECT_SHELL_LOG_CONTAINS("Info: Detected state of MD schema as");
     } else {
         call_and_validate(function() {var c = dba.getCluster('sample')}, tests[index][3]);
+        EXPECT_SHELL_LOG_NOT_CONTAINS("Info: Detected state of MD schema as");
     }
 
     if (tests[index][3] == "FAILED_UPGRADE_ERROR" || tests[index][3] == "UPGRADING_ERROR") {
