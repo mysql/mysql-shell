@@ -81,8 +81,8 @@ class Dump_loader {
       const std::string &table() const { return m_table; }
 
      protected:
-      void handle_current_exception(Worker *worker, Dump_loader *loader,
-                                    const std::string &error);
+      static void handle_current_exception(Worker *worker, Dump_loader *loader,
+                                           const std::string &error);
 
      protected:
       size_t m_id;
