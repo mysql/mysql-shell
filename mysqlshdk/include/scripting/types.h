@@ -70,6 +70,7 @@ enum Value_type {
 bool is_compatible_type(Value_type source_type, Value_type target_type);
 
 std::string type_description(Value_type type);
+std::string SHCORE_PUBLIC type_name(Value_type type);
 
 class Object_bridge;
 typedef std::shared_ptr<Object_bridge> Object_bridge_ref;
@@ -277,7 +278,12 @@ struct SHCORE_PUBLIC Value {
 
   bool operator!=(const Value &other) const { return !(*this == other); }
 
-  operator bool() const { return type != Undefined && type != shcore::Null; }
+  explicit operator bool() const {
+    return type != Undefined && type != shcore::Null;
+  }
+
+  // helper used by gtest
+  friend std::ostream &operator<<(std::ostream &os, const Value &v);
 
   //! returns a human-readable description text for the value.
   // if pprint is true, it will try to pretty-print it (like adding newlines)
@@ -713,8 +719,6 @@ struct value_type_for_native<mysqlshdk::utils::nullable<T>> {
     return value_type_for_native<T>::extract(value);
   }
 };
-
-std::string SHCORE_PUBLIC type_name(Value_type type);
 
 // Extract option values from an options dictionary, with validations
 // Replaces Argument_map
