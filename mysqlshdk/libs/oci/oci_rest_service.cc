@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -334,14 +334,14 @@ Response::Status_code Oci_rest_service::execute(
   // Using exponential backoff retry logic with:
   // 1 second as base sleep time
   // 2 as the exponential factor
-  // 30 seconds as max time between retries
-  mysqlshdk::rest::Exponential_backoff_retry retry_strategy(1, 2, 30);
+  // 60 seconds as max time between retries
+  mysqlshdk::rest::Exponential_backoff_retry retry_strategy(1, 2, 60);
 
-  // Retry up to 5 times
-  retry_strategy.set_max_attempts(5);
+  // Retry up to 10 times
+  retry_strategy.set_max_attempts(10);
 
-  // Keep retrying for 5 minutes
-  retry_strategy.set_max_ellapsed_time(300);
+  // Keep retrying for 10 minutes
+  retry_strategy.set_max_ellapsed_time(600);
 
   // Throttling handling: a response with TOO_MANY_REQUESTS makes the retry
   // strategy to continue
