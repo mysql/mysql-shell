@@ -61,7 +61,9 @@ EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
 
 #@<> Empty wildcard expansion and non-existing file
-util.import_table(['lorem_xxx*', 'lorem_yyy.tsv.zst'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
+EXPECT_THROWS(lambda: util.import_table(['lorem_xxx*', 'lorem_yyy.tsv.zst'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True}),
+    "Util.import_table: File lorem_yyy.tsv.zst does not exists."
+)
 EXPECT_STDOUT_CONTAINS("ERROR: File lorem_yyy.tsv.zst does not exists.")
 EXPECT_STDOUT_CONTAINS("0 file(s) (0 bytes) was imported in ")
 EXPECT_STDOUT_CONTAINS("Total rows affected in {0}.lorem: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0".format(TARGET_SCHEMA))
@@ -92,7 +94,9 @@ EXPECT_THROWS(lambda: util.import_table('nonexisting/' + raw_files[0], {'schema'
 )
 
 #@<> expand wildcard from non existing bucket directory
-util.import_table(['nonexisting/lorem*.gz', '', 'parts/*.gz', 'parts/*.zst'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True})
+EXPECT_THROWS(lambda: util.import_table(['nonexisting/lorem*.gz', '', 'parts/*.gz', 'parts/*.zst'], {'schema': TARGET_SCHEMA, 'table': 'lorem', 'osBucketName': OS_BUCKET_NAME, 'osNamespace': OS_NAMESPACE, 'ociConfigFile': OCI_CONFIG_FILE, 'replaceDuplicates': True}),
+    "Util.import_table: Directory nonexisting does not exists."
+)
 EXPECT_STDOUT_CONTAINS("Directory nonexisting does not exists.")
 
 #@<> oci+os:// scheme is not supported
