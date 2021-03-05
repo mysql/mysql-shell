@@ -110,6 +110,8 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 scene.make_no_quorum([__mysql_sandbox_port1]);
 testutil.startSandbox(__mysql_sandbox_port2);
 testutil.startSandbox(__mysql_sandbox_port3);
+testutil.waitForDelayedGRStart(__mysql_sandbox_port2, "root");
+testutil.waitForDelayedGRStart(__mysql_sandbox_port3, "root");
 cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root', password:'root'});
 
 //@<> Cluster status after force quorum
