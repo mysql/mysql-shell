@@ -25,8 +25,9 @@
 %{?with_static: %global static 1}
 
 %global commercial  @COMMERCIAL_VER@
+%global cloud  @CLOUD_VER@
 
-%if 0%{?commercial}
+%if 0%{?commercial} || 0%{?cloud}
 %global product_suffix @PRODUCT_SUFFIX@
 %endif
 
@@ -39,6 +40,11 @@ Release:        @RPM_RELEASE@%{?dist}
 License:        @LICENSE_TYPE@
 URL:            http://dev.mysql.com/
 Source0:        https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.gz
+
+# Dependencies for the cloud version
+%if 0%{?cloud}
+Requires:       lapack libgfortran5
+%endif
 
 %if 0%{!?bundled_python:1}
 # Most runtime deps the RPM build tools figures out, like the dependency
@@ -76,7 +82,7 @@ BuildRequires:  libcurl-devel
 #BuildRequires:  v8-devel
 #BuildRequires:  v8-python
 %endif
-%if 0%{?commercial}
+%if 0%{?commercial} || %{?cloud}
 Provides:      mysql-shell = %{version}-%{release}
 Obsoletes:     mysql-shell < %{version}-%{release}
 %endif
@@ -135,7 +141,7 @@ cmake .. \
 %endif
     -DCMAKE_INSTALL_PREFIX=%{_prefix} \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-%if 0%{?commercial}
+%if 0%{?commercial} || %{?cloud}
     -DEXTRA_NAME_SUFFIX="%{?product_suffix}" \
 %endif
 %if "%{_lib}" == "lib64"

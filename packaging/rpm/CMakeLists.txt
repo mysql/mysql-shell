@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2016, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -54,22 +54,35 @@ if(NOT RPM_RELEASE)
   endif()
 endif()
 
+
 # Distinguish between community and non-community builds, with the
 # default being a community build. This does not impact the feature
 # set that will be compiled in; it's merely provided as a hint to
 # custom packaging steps.
-option(COMMUNITY_BUILD "Set to true if this is a community build" ON) 
+option(COMMUNITY_BUILD "Set to true if this is a community build" ON)
 
-if(NOT COMMUNITY_BUILD)
-  set(PRODUCT_SUFFIX "-commercial")
-  set(LICENSE_TYPE   "Commercial")
-  set(COMMERCIAL_VER     "1")
-  # We add ".1" to RPM release if commercial
-  set(RPM_RELEASE "${RPM_RELEASE}.1")
-else()
-  set(PRODUCT_SUFFIX "")
-  set(LICENSE_TYPE   "GPLv2")
+# Distinguish cloud builds from commercial/gpl
+option(CLOUD_BUILD "Set to true if this is a cloud build" OFF)
+
+set(CLOUD_VER "0")
+if (CLOUD_BUILD)
+  set(PRODUCT_SUFFIX "-cloud")
+  set(LICENSE_TYPE   "Cloud")
   set(COMMERCIAL_VER     "0")
+  set(CLOUD_VER          "1")
+  # We add ".2" to RPM release if commercial
+  set(RPM_RELEASE "${RPM_RELEASE}.2")
+else()
+  if(NOT COMMUNITY_BUILD)
+    set(PRODUCT_SUFFIX "-commercial")
+    set(LICENSE_TYPE   "Commercial")
+    set(COMMERCIAL_VER     "1")
+    # We add ".1" to RPM release if commercial
+    set(RPM_RELEASE "${RPM_RELEASE}.1")
+  else()
+    set(PRODUCT_SUFFIX "")
+    set(LICENSE_TYPE   "GPLv2")
+  endif()
 endif()
 
 # ----------------------------------------------------------------------
