@@ -1746,20 +1746,20 @@ EXPECT_EQ(binlog_file, new_binlog_file, "binlog file should not change")
 EXPECT_EQ(binlog_position, new_binlog_position, "binlog position should not change")
 
 #@<> BUG#32515696 dump should not fail if GTID_EXECUTED system variable is not available {not __dbug_off}
-testutil.dbug_set("+d,dumper_no_gtid_executed")
+testutil.set_trap("mysql", ["sql == SELECT @@GLOBAL.GTID_EXECUTED;"], { "code": 1193, "msg": "Unknown system variable 'GTID_EXECUTED'.", "state": "HY000" })
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: Failed to fetch value of @@GLOBAL.GTID_EXECUTED.")
 
-testutil.dbug_set("")
+testutil.clear_traps("mysql")
 
 #@<> BUG#32515696 dump should not fail if table histograms are not available {VER(>=8.0.0) and not __dbug_off}
-testutil.dbug_set("+d,dumper_no_column_statictics")
+testutil.set_trap("mysql", ["sql regex .*number-of-buckets-specified.*"], { "code": 1109, "msg": "Unknown table 'COLUMN_STATISTICS' in information_schema.", "state": "42S02" })
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: Failed to fetch table histograms.")
 
-testutil.dbug_set("")
+testutil.clear_traps("mysql")
 
 #@<> BUG#32430402 metadata should contain information about binlog
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
@@ -1768,6 +1768,15 @@ with open(os.path.join(test_output_absolute, "@.json"), encoding="utf-8") as jso
     metadata = json.load(json_file)
     EXPECT_EQ(True, "binlogFile" in metadata, "'binlogFile' should be in metadata")
     EXPECT_EQ(True, "binlogPosition" in metadata, "'binlogPosition' should be in metadata")
+
+#@<> BUG#32528110 shell could crash if exception is thrown from the main thread and one of the worker threads is slow to start {not __dbug_off}
+testutil.set_trap("mysql", ["sql == SELECT @@GLOBAL.HOSTNAME;"], { "code": 7777, "msg": "Internal error.", "state": "HY000" })
+testutil.set_trap("dumper", ["op == WORKER_START", "id == 0"], { "msg": "sleep=1000" })
+
+EXPECT_FAIL("DBError: MySQL Error (7777)", "Internal error.", test_output_absolute, { "showProgress": False })
+
+testutil.clear_traps("mysql")
+testutil.clear_traps("dumper")
 
 #@<> Drop roles {VER(>=8.0.0)}
 session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])

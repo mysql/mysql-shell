@@ -56,9 +56,9 @@
 
 namespace mysqlsh {
 
-FI_DEFINE(dump_loader, ([](const mysqlshdk::utils::FI::Args &args) {
-            throw std::runtime_error(args.get_string("msg"));
-          }));
+FI_DEFINE(dump_loader, [](const mysqlshdk::utils::FI::Args &args) {
+  throw std::runtime_error(args.get_string("msg"));
+});
 
 // how many seconds the server should wait to finish reading data from client
 // basically how long it may take for a block of data to be read from its

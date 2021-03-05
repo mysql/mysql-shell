@@ -40,16 +40,17 @@ namespace mysqlshdk {
 namespace db {
 namespace mysql {
 
-FI_DEFINE(mysql, ([](const mysqlshdk::utils::FI::Args &args) {
-            if (args.get_int("abort", 0)) {
-              abort();
-            }
-            if (args.get_int("code", -1) < 0) {
-              throw std::logic_error(args.get_string("msg"));
-            }
-            throw mysqlshdk::db::Error(args.get_string("msg"),
-                                       args.get_int("code"));
-          }));
+FI_DEFINE(mysql, [](const mysqlshdk::utils::FI::Args &args) {
+  if (args.get_int("abort", 0)) {
+    abort();
+  }
+  if (args.get_int("code", -1) < 0) {
+    throw std::logic_error(args.get_string("msg"));
+  }
+  throw mysqlshdk::db::Error(args.get_string("msg").c_str(),
+                             args.get_int("code"),
+                             args.get_string("state", {""}).c_str());
+});
 
 //-------------------------- Session Implementation ----------------------------
 void Session_impl::throw_on_connection_fail() {

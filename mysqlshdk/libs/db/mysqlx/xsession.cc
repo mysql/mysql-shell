@@ -47,7 +47,9 @@ FI_DEFINE(mysqlx, [](const mysqlshdk::utils::FI::Args &args) {
   if (args.get_int("code", -1) < 0) {
     throw std::logic_error(args.get_string("msg"));
   }
-  throw mysqlshdk::db::Error(args.get_string("msg"), args.get_int("code"));
+  throw mysqlshdk::db::Error(args.get_string("msg").c_str(),
+                             args.get_int("code"),
+                             args.get_string("state", {""}).c_str());
 });
 
 namespace {

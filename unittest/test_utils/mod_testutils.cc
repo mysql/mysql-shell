@@ -392,6 +392,7 @@ void Testutils::bp(bool flag) {
  * abort:int - if present and != 0, it will abort() on match, optional
  * code:int - MySQL error code to be reported, optional
  * msg:string - MySQL error msg to be reported, required unless abort:1
+ * state:string - MySQL error state to be reported, optional
  *
  * If only msg is given, a std::logic_error will be thrown with the given msg,
  * instead of a db::Error.

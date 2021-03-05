@@ -468,11 +468,6 @@ void Instance_cache_builder::fetch_server_metadata() {
   m_cache.hostname = mysqlshdk::utils::Net::get_hostname();
 
   try {
-    DBUG_EXECUTE_IF("dumper_no_gtid_executed", {
-      throw mysqlshdk::db::Error("Unknown system variable 'GTID_EXECUTED'.",
-                                 1193, "HY000");
-    });
-
     const auto result = m_session->query("SELECT @@GLOBAL.GTID_EXECUTED;");
 
     if (const auto row = result->fetch_one()) {
@@ -636,12 +631,6 @@ void Instance_cache_builder::fetch_table_histograms() {
   }
 
   try {
-    DBUG_EXECUTE_IF("dumper_no_column_statictics", {
-      throw mysqlshdk::db::Error(
-          "Unknown table 'COLUMN_STATISTICS' in information_schema.", 1109,
-          "42S02");
-    });
-
     Iterate_table info;
     info.schema_column = "SCHEMA_NAME";  // NOT NULL
     info.table_column = "TABLE_NAME";    // NOT NULL

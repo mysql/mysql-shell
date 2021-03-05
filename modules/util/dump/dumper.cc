@@ -50,6 +50,7 @@
 #include "mysqlshdk/libs/textui/progress.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/rate_limit.h"
 #include "mysqlshdk/libs/utils/std.h"
@@ -84,6 +85,10 @@ static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
 
 const int k_chunker_retries = 10;
 const int k_chunker_iterations = 10;
+
+FI_DEFINE(dumper, [](const mysqlshdk::utils::FI::Args &args) {
+  throw std::runtime_error(args.get_string("msg"));
+});
 
 std::string quote_value(const std::string &value, mysqlshdk::db::Type type) {
   if (is_string_type(type)) {
@@ -168,6 +173,19 @@ class Dumper::Table_worker final {
 
   void run() {
     try {
+#ifndef NDEBUG
+      try {
+        FI_TRIGGER_TRAP(dumper, mysqlshdk::utils::FI::Trigger_options(
+                                    {{"op", "WORKER_START"},
+                                     {"id", std::to_string(m_id)}}));
+      } catch (const std::exception &e) {
+        if (shcore::str_beginswith(e.what(), "sleep=")) {
+          shcore::sleep_ms(shcore::lexical_cast<uint32_t>(e.what() + 6));
+        } else {
+          throw;
+        }
+      }
+#endif
       mysqlsh::Mysql_thread mysql_thread;
       shcore::on_leave_scope close_session([this]() {
         if (m_session) {
@@ -1111,8 +1129,6 @@ void Dumper::close_session() {
   if (m_session) {
     m_session->close();
   }
-
-  m_session = nullptr;
 }
 
 void Dumper::lock_all_tables() {
