@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2021, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -762,22 +762,19 @@ TEST_F(Command_line_connection_test, auth_method) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             X protocol");
 
-  // auto: classic port - invalid authentication method
+  // auto: classic port - invalid authentication method ignored in favor of the
+  // authentication method sent by the server
   execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
            "--auth-method=invalid", "-e", "\\status", NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "ArgumentError: X protocol error: Failed to set the authentication "
-      "method: Invalid value for option\nClassic protocol error: MySQL Error "
-      "2059 (HY000): Authentication plugin 'invalid' cannot be loaded:");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
 
   // auto: classic port - invalid (but valid X protocol) authentication method
+  // ignored in favor of the authentication plugin name sent by the server
   execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
            "--auth-method=PLAIN", "-e", "\\status", NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "MySQL Error 2059 (HY000): Authentication plugin 'PLAIN' cannot be "
-      "loaded:");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
 
   // auto: classic port - valid authentication method
   execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
@@ -823,13 +820,12 @@ TEST_F(Command_line_connection_test, auth_method) {
       "seems to speak the classic MySQL protocol (Unexpected response received "
       "from server, msg-id:");
 
-  // mysql: classic port - invalid authentication method
+  // mysql: classic port - invalid authentication method is ignored in favor of
+  // the authentication plugin sent by the server
   execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
            "--auth-method=invalid", "--mysql", "-e", "\\status", NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "MySQL Error 2059 (HY000): Authentication plugin 'invalid' cannot be "
-      "loaded:");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
 
   // mysql: classic port - valid authentication method
   execute({_mysqlsh, _mysql_uri.c_str(), "--interactive=full",
