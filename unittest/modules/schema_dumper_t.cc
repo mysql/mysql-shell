@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, Oracle and/or its affiliates.
+/* Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -890,6 +890,7 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
 
   const auto EXPECT_TABLE = [&](const std::string &table,
                                 std::vector<std::string> msg) {
+    SCOPED_TRACE(table);
     ASSERT_TRUE(file->is_open());
     std::vector<Schema_dumper::Issue> iss;
     try {
@@ -917,7 +918,9 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
       {"Table 'mysqlaas_compat'.'blackhole_tbl1' does not have primary or "
        "unique non null key defined",
        "Table 'mysqlaas_compat'.'blackhole_tbl1' uses unsupported storage "
-       "engine BLACKHOLE"});
+       "engine BLACKHOLE",
+       "Table 'mysqlaas_compat'.'blackhole_tbl1' does not have a Primary Key, "
+       "which is required for High Availability in MDS"});
 
   EXPECT_TABLE("myisam_tbl2",
                {"Table 'mysqlaas_compat'.'myisam_tbl2' uses unsupported "
@@ -1053,6 +1056,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
   const auto EXPECT_TABLE = [&](const std::string &table,
                                 std::vector<std::string> msg,
                                 const std::string &ddl = "") {
+    SCOPED_TRACE(table);
     file.reset(new mysqlshdk::storage::backend::File(file_path));
     file->open(mysqlshdk::storage::Mode::WRITE);
     ASSERT_TRUE(file->is_open());
@@ -1092,14 +1096,50 @@ TEST_F(Schema_dumper_test, compat_ddl) {
       "  PRIMARY KEY (`id`)\n"
       ") ENGINE=InnoDB DEFAULT CHARSET=latin1");
 
+  sd.opt_create_invisible_pks = true;
+  sd.opt_ignore_missing_pks = false;
+
   EXPECT_TABLE(
       "blackhole_tbl1",
       {"Table 'mysqlaas_compat'.'blackhole_tbl1' had unsupported engine "
-       "BLACKHOLE changed to InnoDB"},
+       "BLACKHOLE changed to InnoDB",
+       "Table 'mysqlaas_compat'.'blackhole_tbl1' does not have a Primary Key, "
+       "this will be fixed when the dump is loaded"},
       "CREATE TABLE IF NOT EXISTS `blackhole_tbl1` (\n"
       "  `id` int(11) DEFAULT NULL,\n"
       "  UNIQUE KEY `id` (`id`)\n"
       ") ENGINE=InnoDB DEFAULT CHARSET=latin1;");
+
+  sd.opt_create_invisible_pks = false;
+  sd.opt_ignore_missing_pks = true;
+
+  EXPECT_TABLE(
+      "blackhole_tbl1",
+      {"Table 'mysqlaas_compat'.'blackhole_tbl1' had unsupported engine "
+       "BLACKHOLE changed to InnoDB",
+       "Table 'mysqlaas_compat'.'blackhole_tbl1' does not have a Primary Key, "
+       "this is ignored"},
+      "CREATE TABLE IF NOT EXISTS `blackhole_tbl1` (\n"
+      "  `id` int(11) DEFAULT NULL,\n"
+      "  UNIQUE KEY `id` (`id`)\n"
+      ") ENGINE=InnoDB DEFAULT CHARSET=latin1;");
+
+  sd.opt_create_invisible_pks = true;
+  sd.opt_ignore_missing_pks = true;
+
+  EXPECT_TABLE(
+      "blackhole_tbl1",
+      {"Table 'mysqlaas_compat'.'blackhole_tbl1' had unsupported engine "
+       "BLACKHOLE changed to InnoDB",
+       "Table 'mysqlaas_compat'.'blackhole_tbl1' does not have a Primary Key, "
+       "this will be fixed when the dump is loaded"},
+      "CREATE TABLE IF NOT EXISTS `blackhole_tbl1` (\n"
+      "  `id` int(11) DEFAULT NULL,\n"
+      "  UNIQUE KEY `id` (`id`)\n"
+      ") ENGINE=InnoDB DEFAULT CHARSET=latin1;");
+
+  sd.opt_create_invisible_pks = false;
+  sd.opt_ignore_missing_pks = false;
 
   EXPECT_TABLE(
       "myisam_tbl2",

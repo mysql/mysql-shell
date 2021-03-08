@@ -7,6 +7,7 @@ from contextlib import ExitStack
 import json
 import os
 import os.path
+import random
 import threading
 import time
 
@@ -627,7 +628,7 @@ session.run_sql("DROP USER 'second'@'10.11.12.14';")
 shell.connect(__sandbox_uri1)
 
 dump_dir = os.path.join(outdir, "skip_binlog")
-EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "ocimds": True, "compatibility": ["strip_restricted_grants", "strip_definers"], "ddlOnly": True, "showProgress": False }), "Dumping the instance should not fail")
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "ocimds": True, "compatibility": ["ignore_missing_pks", "strip_restricted_grants", "strip_definers"], "ddlOnly": True, "showProgress": False }), "Dumping the instance should not fail")
 
 # when loading into non-MDS instance, if skipBinlog is set, but user doesn't have required privileges, exception should be thrown
 wipeout_server(session2)
@@ -729,6 +730,152 @@ shell.connect(__sandbox_uri2)
 wipeout_server(session2)
 
 util.load_dump(dump_dir)
+
+#@<> WL14506: create tables and dumps with and without 'create_invisible_pks' compatibility option
+dump_pks_dir = os.path.join(outdir, "invisible_pks")
+dump_no_pks_dir = os.path.join(outdir, "no_invisible_pks")
+dump_just_pk_dir = os.path.join(outdir, "just_pk")
+schema_name = "wl14506"
+pk_table_name = "pk"
+no_pk_table_name = "no_pk"
+
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [schema_name])
+session.run_sql("CREATE TABLE !.! (id BIGINT AUTO_INCREMENT PRIMARY KEY, data BIGINT)", [ schema_name, pk_table_name ])
+
+for i in range(20):
+    session.run_sql("INSERT INTO !.! (data) VALUES " + ",".join(["("+ str(random.randint(0, 2 ** 63 - 1)) + ")" for _ in range(1000)]), [ schema_name, pk_table_name ])
+
+# two statements to avoid 'Statement violates GTID consistency'
+session.run_sql("CREATE TABLE !.! (data BIGINT)", [ schema_name, no_pk_table_name ])
+session.run_sql("INSERT INTO !.! SELECT data FROM !.! GROUP BY data", [ schema_name, no_pk_table_name, schema_name, pk_table_name ])
+# add unique index to make sure this table is chunked
+session.run_sql("ALTER TABLE !.! ADD UNIQUE INDEX idx (data);", [ schema_name, no_pk_table_name ])
+
+session.run_sql("ANALYZE TABLE !.!;", [ schema_name, pk_table_name ])
+session.run_sql("ANALYZE TABLE !.!;", [ schema_name, no_pk_table_name ])
+
+# small 'bytesPerChunk' value to force chunking
+util.dump_schemas([schema_name], dump_pks_dir, { "ocimds": True, "compatibility": ["create_invisible_pks"], "bytesPerChunk" : "128k", "showProgress": False })
+util.dump_schemas([schema_name], dump_no_pks_dir, { "ocimds": True, "compatibility": ["ignore_missing_pks"], "bytesPerChunk" : "128k", "showProgress": False })
+# dump which has only table with a primary key
+util.dump_tables(schema_name, [ pk_table_name ], dump_just_pk_dir, { "bytesPerChunk" : "128k", "showProgress": False })
+
+# helper function
+def EXPECT_PK(dump_dir, options, pk_created, expected_exception=None, wipeout=True):
+    opts = { "showProgress": False, "resetProgress": True }
+    opts.update(options)
+    shell.connect(__sandbox_uri2)
+    if wipeout:
+        wipeout_server(session)
+    WIPE_OUTPUT()
+    if expected_exception:
+        EXPECT_THROWS(lambda: util.load_dump(dump_dir, opts), expected_exception)
+    else:
+        EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, opts), "Loading the dump should not fail")
+    pk = session.run_sql("SELECT COLUMN_NAME, COLUMN_TYPE, EXTRA FROM information_schema.columns WHERE COLUMN_KEY = 'PRI' AND TABLE_SCHEMA = ? AND TABLE_NAME = ?", [schema_name, no_pk_table_name]).fetch_all()
+    if pk_created:
+        # WL14506-FR4.6 - If the createInvisiblePKs option is set to true and the target instance supports WL#13784, the primary keys must be created automatically by setting the session server variable SQL_GENERATE_INVISIBLE_PRIMARY_KEY to ON.
+        # WL14506-FR4.7 - If the createInvisiblePKs option is set to true and the target instance does not support WL#13784, the primary key must be created for each table which does not have one by modifying the CREATE TABLE statement and adding the my_row_id BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY column.
+        # if server supports WL#13784 loader will use that feature, if something is wrong tests will fail
+        # the format of the primary key is the same in case of both FR4.6 and FR4.7
+        # WL14506-TSFR_4.7_1
+        EXPECT_EQ(1, len(pk), "Primary key should have been created using a single column")
+        EXPECT_EQ("my_row_id", pk[0][0], "Primary key should be named `my_row_id`")
+        EXPECT_EQ("BIGINT UNSIGNED", pk[0][1].upper(), "Primary key should be a BIGINT UNSIGNED")
+        EXPECT_NE(-1, pk[0][2].upper().find("AUTO_INCREMENT"), "Primary key should have the AUTO_INCREMENT attribute")
+        EXPECT_NE(-1, pk[0][2].upper().find("INVISIBLE"), "Primary key should have the INVISIBLE attribute")
+    else:
+        EXPECT_EQ(0, len(pk), "Primary key should have NOT been created")
+
+# WL14506-FR4 - The util.loadDump() function must support a new boolean option, createInvisiblePKs, which allows for automatic creation of invisible primary keys.
+# WL14506-FR4.1 - The default value of this option must depend on the dump which is being loaded: if it was created using the create_invisible_pks value given to the compatibility option, it must be set to true. Otherwise it must be set to false.
+
+#@<> dump created without 'create_invisible_pks', 'createInvisiblePKs' not given, primary key should not be created {VER(>= 8.0.24)}
+EXPECT_PK(dump_no_pks_dir, {}, False)
+
+#@<> dump created without 'create_invisible_pks', 'createInvisiblePKs' is false, primary key should not be created {VER(>= 8.0.24)}
+# WL14506-TSFR_4_2
+EXPECT_PK(dump_no_pks_dir, { "createInvisiblePKs": False }, False)
+
+#@<> dump created without 'create_invisible_pks', 'createInvisiblePKs' is true, primary key should be created {VER(>= 8.0.24)}
+# WL14506-TSFR_4_3
+# WL14506-TSFR_4_8
+EXPECT_PK(dump_no_pks_dir, { "createInvisiblePKs": True }, True)
+
+#@<> dump created with 'create_invisible_pks', 'createInvisiblePKs' not given, primary key should be created {VER(>= 8.0.24)}
+# WL14506-TSFR_4_1
+EXPECT_PK(dump_pks_dir, {}, True)
+
+#@<> dump created with 'create_invisible_pks', 'createInvisiblePKs' is false, primary key should not be created {VER(>= 8.0.24)}
+# WL14506-TSFR_4_6
+EXPECT_PK(dump_pks_dir, { "createInvisiblePKs": False }, False)
+
+#@<> dump created with 'create_invisible_pks', 'createInvisiblePKs' is true, primary key should be created {VER(>= 8.0.24)}
+# WL14506-TSFR_4_1
+EXPECT_PK(dump_pks_dir, { "createInvisiblePKs": True }, True)
+
+#@<> WL14506-FR4.2 - If the createInvisiblePKs option is set to true and the loadDdl option is set to false, a warning must be printed, the value of createInvisiblePks must be ignored and the load process must continue. {VER(>= 8.0.24)}
+# WL14506-TSFR_4_4
+# first load just DDL
+EXPECT_PK(dump_pks_dir, { "createInvisiblePKs": False, "loadData": False }, False)
+# then load data with 'createInvisiblePKs' set to true
+EXPECT_PK(dump_pks_dir, { "loadDdl": False }, False, wipeout=False)
+EXPECT_STDOUT_CONTAINS("WARNING: The 'createInvisiblePKs' option is set to true, but the 'loadDdl' option is false, Primary Keys are not going to be created.")
+
+#@<> WL14506-TSFR_4_4 {VER(>= 8.0.24)}
+# first load just DDL
+EXPECT_PK(dump_pks_dir, { "createInvisiblePKs": False, "loadData": False }, False)
+# then load data with 'createInvisiblePKs' set to true
+EXPECT_PK(dump_pks_dir, { "createInvisiblePKs": True, "loadDdl": False }, False, wipeout=False)
+EXPECT_STDOUT_CONTAINS("WARNING: The 'createInvisiblePKs' option is set to true, but the 'loadDdl' option is false, Primary Keys are not going to be created.")
+
+#@<> WL14506-FR4.3 - If the createInvisiblePKs option is set to true and the target instance has version lower than 8.0.24, an error must be reported and the load process must be aborted. {VER(< 8.0.24)}
+# 'createInvisiblePKs' is true implicitly
+# WL14506-TSFR_4.3_1
+EXPECT_PK(dump_pks_dir, {}, False, "The 'createInvisiblePKs' option requires server 8.0.24 or newer.")
+
+# 'createInvisiblePKs' is true explicitly
+EXPECT_PK(dump_no_pks_dir, { "createInvisiblePKs": True }, False, "The 'createInvisiblePKs' option requires server 8.0.24 or newer.")
+
+#@<> WL14506-FR4.4 - If the createInvisiblePKs option is set to false and the dump which contains tables without primary keys is loaded into MDS, a warning must be reported stating that MDS HA cannot be used with this dump and the load process must continue. {VER(>= 8.0.24) and not __dbug_off}
+# WL14506-TSFR_4_5
+testutil.dbug_set("+d,dump_loader_force_mds")
+
+EXPECT_PK(dump_no_pks_dir, { "createInvisiblePKs": False, "ignoreVersion": True }, False)
+EXPECT_STDOUT_CONTAINS("WARNING: The dump contains tables without Primary Keys and it is loaded with the 'createInvisiblePKs' option set to false, this dump cannot be loaded into an MySQL Database Service instance with High Availability.")
+
+# all tables have primary keys, no warning
+EXPECT_PK(dump_just_pk_dir, { "createInvisiblePKs": False, "ignoreVersion": True }, False)
+EXPECT_STDOUT_NOT_CONTAINS("createInvisiblePKs")
+
+testutil.dbug_set("")
+
+#@<> WL14506-FR4.5 - If the createInvisiblePKs option is set to true and the dump which contains tables without primary keys is loaded into MDS, a warning must be reported stating that Inbound Replication into an MDS HA instance cannot be used with this dump and the load process must continue. {VER(>= 8.0.24) and not __dbug_off}
+# WL14506-TSFR_4_7
+testutil.dbug_set("+d,dump_loader_force_mds")
+
+EXPECT_PK(dump_no_pks_dir, { "createInvisiblePKs": True, "ignoreVersion": True }, True)
+EXPECT_STDOUT_CONTAINS("WARNING: The dump contains tables without Primary Keys and it is loaded with the 'createInvisiblePKs' option set to true, Inbound Replication into an MySQL Database Service instance with High Availability (at the time of the release of MySQL Shell 8.0.24) cannot be used with this dump.")
+
+# all tables have primary keys, no warning
+EXPECT_PK(dump_just_pk_dir, { "createInvisiblePKs": True, "ignoreVersion": True }, False)
+EXPECT_STDOUT_NOT_CONTAINS("createInvisiblePKs")
+
+testutil.dbug_set("")
+
+#@<> if SQL_GENERATE_INVISIBLE_PRIMARY_KEY is globally ON and createInvisiblePKs is false, primary key should not be created {VER(>= 8.0.24)}
+try:
+    session.run_sql("SET @@GLOBAL.SQL_GENERATE_INVISIBLE_PRIMARY_KEY = ON")
+    EXPECT_PK(dump_pks_dir, { "createInvisiblePKs": False }, False)
+    session.run_sql("SET @@GLOBAL.SQL_GENERATE_INVISIBLE_PRIMARY_KEY = OFF")
+except Exception as e:
+    # server does not support SQL_GENERATE_INVISIBLE_PRIMARY_KEY
+    EXPECT_EQ(1193, e.code)
+
+#@<> WL14506: cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

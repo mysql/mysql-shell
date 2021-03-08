@@ -111,8 +111,10 @@ open("progress.txt").read()
 EXPECT_STDOUT_CONTAINS("Executing DDL script for ")
 EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zst: Records: ")
 
+#@<> Bad Bucket Name Option
+EXPECT_THROWS(lambda: util.load_dump("mydump", {"osBucketName":"bukkit"}), "RuntimeError: Util.load_dump: Failed opening object 'mydump/@.json' in READ mode: Not Found (404)")
+
 #@<> Cleanup
 testutil.rmfile("progress.txt")
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
-

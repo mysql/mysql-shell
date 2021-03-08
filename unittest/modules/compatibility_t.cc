@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1376,6 +1376,306 @@ TEST_F(Compatibility_test, create_user) {
   EXPECT_EQ("plugin_b",
             check_create_user_for_authentication_plugin(
                 "CREATE USER r@l IDENTIFIED WITH 'plugin_b'", {"plugin_a"}));
+}
+
+TEST_F(Compatibility_test, add_invisible_pk) {
+  const auto EXPECT_PK = [](const std::string &statement) {
+    SCOPED_TRACE(statement);
+    std::string result;
+
+    EXPECT_NO_THROW(add_pk_to_create_table(statement, &result));
+
+    const std::string pk =
+        ",`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY";
+    const auto pos = statement.find_last_of(')');
+    const auto expected = statement.substr(0, pos) + pk + statement.substr(pos);
+    EXPECT_EQ(expected, result) << "PK should be added";
+  };
+
+  {
+    const std::string exception =
+        "Invisible primary key can be only added to CREATE TABLE statements";
+    std::string result;
+
+    // unsupported statements
+    EXPECT_THROW_LIKE(add_pk_to_create_table("", &result), std::runtime_error,
+                      exception);
+    EXPECT_THROW_LIKE(add_pk_to_create_table("CREATE", &result),
+                      std::runtime_error, exception);
+    EXPECT_THROW_LIKE(add_pk_to_create_table("create User", &result),
+                      std::runtime_error, exception);
+  }
+
+  {
+    const std::string exception = "Unsupported CREATE TABLE statement";
+    std::string result;
+
+    EXPECT_THROW_LIKE(
+        add_pk_to_create_table("create table s.t2 like s.t1", &result),
+        std::runtime_error, exception);
+    EXPECT_THROW_LIKE(
+        add_pk_to_create_table(
+            "CREATE TABLE new_tbl AS SELECT * FROM orig_tbl;", &result),
+        std::runtime_error, exception);
+    EXPECT_THROW_LIKE(
+        add_pk_to_create_table("CREATE TABLE new_tbl SELECT * FROM orig_tbl;",
+                               &result),
+        std::runtime_error, exception);
+    EXPECT_THROW_LIKE(
+        add_pk_to_create_table("CREATE TABLE bar (m INT) AS SELECT n FROM foo",
+                               &result),
+        std::runtime_error, exception);
+    EXPECT_THROW_LIKE(
+        add_pk_to_create_table("CREATE TABLE bar (m INT) SELECT n FROM foo",
+                               &result),
+        std::runtime_error, exception);
+  }
+
+  EXPECT_PK("create table s.t (c int)");
+  EXPECT_PK("CREATE TABLE IF NOT EXISTS s.t (c int) Engine = InnoDB;");
+
+  EXPECT_PK("create table s.t (c int, Index i (c))");
+  EXPECT_PK(
+      "create table s.t (key USING BTREE (d, c) COMMENT 'string', c int, d "
+      "int)");
+  EXPECT_PK(
+      "create table t (FULLTEXT x (c), c int, spatial (d, (expr)), d int)");
+
+  EXPECT_PK("create table t (CONSTRAINT FOREIGN KEY (x.t), c int)");
+  EXPECT_PK("create table t (c int, CONSTRAINT symbol FOREIGN KEY (x.t))");
+  EXPECT_PK("create table t (FOREIGN KEY (x.t), c int)");
+
+  EXPECT_PK("create table t (c int, CONSTRAINT CHECK (expr (expr)))");
+  EXPECT_PK(
+      "create table t (CONSTRAINT symbol CHECK (expr (expr)) ENFORCED,c int)");
+  EXPECT_PK("create table t (c int, CHECK ((expr) expr))");
+
+  EXPECT_PK("create table t (c int, CONSTRAINT PRIMARY KEY USING BTREE (c))");
+  EXPECT_PK(
+      "create table t (CONSTRAINT symbol PRIMARY KEY (c) USING BTREE, c int)");
+  EXPECT_PK("create table t (c int, PRIMARY KEY (c, d), d int)");
+
+  EXPECT_PK("create table t (CONSTRAINT UNIQUE KEY (c), `c` int NOT NULL)");
+  EXPECT_PK(
+      "create table t (c int NULL, CONSTRAINT symbol UNIQUE INDEX (`c`) "
+      "KEY_BLOCK_SIZE = 7)");
+  EXPECT_PK("create table t (UNIQUE (`c`), c int DEFAULT 1 NOT NULL)");
+
+  EXPECT_PK(
+      "create table t (d varchar NOT NULL, UNIQUE u (`c`(7), d DESC), c int "
+      "DEFAULT 1 NOT NULL)");
+
+  EXPECT_PK(
+      "create table t (d varchar NOT NULL, UNIQUE u ((expr), d, (expr) ASC, c "
+      "(1)), c int DEFAULT 1 NOT NULL)");
+}
+
+TEST_F(Compatibility_test, add_invisible_pk_if_missing) {
+  const auto EXPECT_PK = [](const std::string &statement, bool pk_added,
+                            bool ignore_pke = true) {
+    SCOPED_TRACE(statement);
+    std::string result;
+
+    EXPECT_EQ(pk_added, add_pk_to_create_table_if_missing(statement, &result,
+                                                          ignore_pke));
+
+    if (pk_added) {
+      const std::string pk =
+          ",`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY";
+      const auto pos = statement.find_last_of(')');
+      const auto expected =
+          statement.substr(0, pos) + pk + statement.substr(pos);
+      EXPECT_EQ(expected, result) << "PK should be added";
+    } else {
+      EXPECT_EQ("", result) << "Result should be empty";
+    }
+  };
+
+  {
+    const std::string exception =
+        "Invisible primary key can be only added to CREATE TABLE statements";
+    std::string result;
+
+    // unsupported statements
+    EXPECT_THROW_LIKE(add_pk_to_create_table_if_missing("", &result),
+                      std::runtime_error, exception);
+    EXPECT_THROW_LIKE(add_pk_to_create_table_if_missing("CREATE", &result),
+                      std::runtime_error, exception);
+    EXPECT_THROW_LIKE(add_pk_to_create_table_if_missing("create User", &result),
+                      std::runtime_error, exception);
+  }
+
+  {
+    const std::string exception = "Unsupported CREATE TABLE statement";
+    std::string result;
+
+    EXPECT_THROW_LIKE(add_pk_to_create_table_if_missing(
+                          "create table s.t2 like s.t1", &result),
+                      std::runtime_error, exception);
+    EXPECT_THROW_LIKE(add_pk_to_create_table_if_missing(
+                          "create table s.t2 (like s.t1)", &result),
+                      std::runtime_error, exception);
+    EXPECT_THROW_LIKE(
+        add_pk_to_create_table_if_missing(
+            "CREATE TABLE new_tbl AS SELECT * FROM orig_tbl;", &result),
+        std::runtime_error, exception);
+    EXPECT_THROW_LIKE(
+        add_pk_to_create_table_if_missing(
+            "CREATE TABLE new_tbl SELECT * FROM orig_tbl;", &result),
+        std::runtime_error, exception);
+    EXPECT_THROW_LIKE(
+        add_pk_to_create_table_if_missing(
+            "CREATE TABLE bar (m INT) AS SELECT n FROM foo", &result),
+        std::runtime_error, exception);
+    EXPECT_THROW_LIKE(
+        add_pk_to_create_table_if_missing(
+            "CREATE TABLE bar (m INT) SELECT n FROM foo", &result),
+        std::runtime_error, exception);
+    EXPECT_THROW_LIKE(
+        add_pk_to_create_table_if_missing(
+            "CREATE TABLE bar (m INT NOT NULL, Unique (m)) SELECT n FROM foo",
+            &result),
+        std::runtime_error, exception);
+  }
+
+  EXPECT_PK("create table s.t (c int)", true);
+  EXPECT_PK("CREATE TABLE IF NOT EXISTS s.t (c int) Engine = InnoDB;", true);
+
+  EXPECT_PK("create table s.t (c int, Index i (c))", true);
+  EXPECT_PK(
+      "create table s.t (key USING BTREE (d, c) COMMENT 'string', c int, d "
+      "int)",
+      true);
+  EXPECT_PK(
+      "create table t (FULLTEXT x (c), c int, spatial (d, (expr)), d int)",
+      true);
+
+  EXPECT_PK("create table t (CONSTRAINT FOREIGN KEY (x.t), c int)", true);
+  EXPECT_PK("create table t (c int, CONSTRAINT symbol FOREIGN KEY (x.t))",
+            true);
+  EXPECT_PK("create table t (FOREIGN KEY (x.t), c int)", true);
+
+  EXPECT_PK("create table t (c int, CONSTRAINT CHECK (expr (expr)))", true);
+  EXPECT_PK(
+      "create table t (CONSTRAINT symbol CHECK (expr (expr)) ENFORCED,c int)",
+      true);
+  EXPECT_PK("create table t (c int, CHECK ((expr) expr))", true);
+
+  EXPECT_PK("create table t (c int, CONSTRAINT PRIMARY KEY USING BTREE (c))",
+            false);
+  EXPECT_PK(
+      "create table t (CONSTRAINT symbol PRIMARY KEY (c) USING BTREE, c int)",
+      false);
+  EXPECT_PK("create table t (c int, PRIMARY KEY (c, d), d int)", false);
+
+  EXPECT_PK("create table t (CONSTRAINT UNIQUE KEY (c), `c` int NOT NULL)",
+            true);
+  EXPECT_PK(
+      "create table t (c int NULL, CONSTRAINT symbol UNIQUE INDEX (`c`) "
+      "KEY_BLOCK_SIZE = 7)",
+      true);
+  EXPECT_PK("create table t (UNIQUE (`c`), c int DEFAULT 1 NOT NULL)", true);
+
+  EXPECT_PK("create table t (CONSTRAINT UNIQUE KEY (c), `c` int NOT NULL)",
+            false, false);
+  EXPECT_PK(
+      "create table t (c int NULL, CONSTRAINT symbol UNIQUE INDEX (`c`) "
+      "KEY_BLOCK_SIZE = 7)",
+      true, false);
+  EXPECT_PK("create table t (UNIQUE (`c`), c int DEFAULT 1 NOT NULL)", false,
+            false);
+
+  EXPECT_PK(
+      "create table t (d varchar NOT NULL, UNIQUE u (`c`(7), d DESC), c int "
+      "DEFAULT 1 NOT NULL)",
+      true);
+  EXPECT_PK(
+      "create table t (d varchar NOT NULL, UNIQUE u (`c`(7), d DESC), c int "
+      "DEFAULT 1 NOT NULL)",
+      false, false);
+
+  EXPECT_PK(
+      "create table t (d varchar NOT NULL, UNIQUE u ((expr), d, (expr) ASC, c "
+      "(1)), c int DEFAULT 1 NOT NULL)",
+      true);
+  EXPECT_PK(
+      "create table t (d varchar NOT NULL, UNIQUE u ((expr (expr)), d, ((expr) "
+      "expr (expr)) ASC), c int DEFAULT 1 NOT NULL)",
+      true, false);
+
+  EXPECT_PK("create table t (c int, d bigint NULL, e varchar UNIQUE)", true);
+  EXPECT_PK("create table t (c int, d bigint NULL, e varchar UNIQUE)", true,
+            false);
+
+  EXPECT_PK(R"*(create table t (
+    c int REFERENCES x (a, b) ON DELETE CASCADE,
+    d bigint NULL CHECK (expr),
+    e varchar UNIQUE CONSTRAINT symbol CHECK (expr)
+  ))*",
+            true);
+  EXPECT_PK(
+      "create table t (c int REFERENCES x (a, b) ON DELETE CASCADE, d bigint "
+      "NULL CHECK (expr), e varchar UNIQUE CONSTRAINT symbol CHECK (expr))",
+      true, false);
+
+  EXPECT_PK("create table t (c int NOT NULL PRIMARY)", false);
+
+  EXPECT_PK("create table t (c int PRIMARY NULL)", false);
+
+  EXPECT_PK("create table t (c int PRIMARY NULL, d varchar)", false);
+
+  EXPECT_PK("create table t (c int PRIMARY NULL, PRIMARY KEY c)", false);
+
+  EXPECT_PK("create table t (PRIMARY KEY c, c int PRIMARY NULL)", false);
+
+  EXPECT_PK("create table t (d varchar UNIQUE NOT NULL, c int PRIMARY KEY)",
+            false);
+  EXPECT_PK("create table t (d varchar UNIQUE NOT NULL, c int PRIMARY KEY)",
+            false, false);
+
+  EXPECT_PK("create table t (d varchar UNIQUE NOT NULL, c int)", true);
+  EXPECT_PK("create table t (d varchar UNIQUE NOT NULL, c int)", false, false);
+
+  EXPECT_PK("create table t (d varchar UNIQUE NOT NULL, c int, UNIQUE (c))",
+            true);
+  EXPECT_PK("create table t (d varchar UNIQUE NOT NULL, c int, UNIQUE (c))",
+            false, false);
+
+  EXPECT_PK(
+      "create table t (d varchar UNIQUE NULL, c int NOT NULL, UNIQUE (`c`))",
+      true);
+  EXPECT_PK(
+      "create table t (d varchar UNIQUE NULL, c int NOT NULL, UNIQUE (`c`))",
+      false, false);
+
+  EXPECT_PK(
+      "create table t (d varchar UNIQUE NOT NULL, c int NOT NULL, UNIQUE (c))",
+      true);
+  EXPECT_PK(
+      "create table t (d varchar UNIQUE NOT NULL, c int NOT NULL, UNIQUE (c))",
+      false, false);
+
+  EXPECT_PK(
+      "create table t (`d` varchar NOT NULL, c int NOT NULL, UNIQUE (c, d))",
+      true);
+  EXPECT_PK(
+      "create table t (`d` varchar NOT NULL, c int NOT NULL, UNIQUE (c, d))",
+      false, false);
+
+  EXPECT_PK("create table t (`d` varchar NULL, UNIQUE (c, d), c int NOT NULL)",
+            true);
+  EXPECT_PK("create table t (`d` varchar NULL, UNIQUE (d, c), c int NOT NULL)",
+            true, false);
+
+  EXPECT_PK("create table t (UNIQUE (c, d),`d` varchar NOT NULL, c int)", true);
+  EXPECT_PK("create table t (UNIQUE (c, d),`d` varchar NOT NULL, c int)", true,
+            false);
+
+  EXPECT_PK("CREATE TABLE bar (m INT PRIMARY) SELECT n FROM foo", false);
+  EXPECT_PK("CREATE TABLE bar (m INT, primary KEY m) SELECT n FROM foo", false);
+
+  EXPECT_PK("CREATE TABLE bar (m INT NOT NULL, Unique (m)) SELECT n FROM foo",
+            false, false);
 }
 
 }  // namespace compatibility

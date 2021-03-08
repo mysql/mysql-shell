@@ -1058,6 +1058,11 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
   unsigned int colno;
   std::shared_ptr<mysqlshdk::db::IResult> result;
   mysqlshdk::db::Error error;
+  bool has_pk = false;
+  bool has_my_row_id = false;
+  bool has_auto_increment = false;
+  const auto my_row_id = "my_row_id";
+  const std::string auto_increment = "auto_increment";
 
   *ignore_flag = check_if_ignore_table(db, table, out_table_type);
 
@@ -1233,8 +1238,29 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
         std::string extra = row->get_string(SHOW_EXTRA);
         real_columns[colno] =
             extra != "STORED GENERATED" && extra != "VIRTUAL GENERATED";
+
+        if (opt_create_invisible_pks) {
+          has_auto_increment |= extra.find(auto_increment) != std::string::npos;
+        }
       } else {
         real_columns[colno] = true;
+      }
+
+      if (opt_create_invisible_pks) {
+        has_my_row_id |= shcore::str_caseeq(
+            row->get_string(SHOW_FIELDNAME).c_str(), my_row_id);
+      }
+    }
+
+    if (opt_mysqlaas || opt_create_invisible_pks || opt_ignore_missing_pks) {
+      if (m_cache) {
+        has_pk = m_cache->schemas.at(db).tables.at(table).index.primary;
+      } else {
+        result = query_log_and_throw(shcore::sqlformat(
+            "SELECT COUNT(*) FROM information_schema.statistics WHERE "
+            "INDEX_NAME='PRIMARY' AND TABLE_SCHEMA=? AND TABLE_NAME=?",
+            db, table));
+        has_pk = result->fetch_one()->get_int(0) > 0;
       }
     }
   } else {
@@ -1271,11 +1297,15 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
       }
       init = true;
       {
-        fprintf(
-            sql_file, "  %s.%s %s", result_table.c_str(),
-            shcore::quote_identifier_if_needed(row->get_string(SHOW_FIELDNAME))
-                .c_str(),
-            row->get_string(SHOW_TYPE).c_str());
+        const auto fieldname = row->get_string(SHOW_FIELDNAME);
+
+        if (opt_create_invisible_pks) {
+          has_my_row_id |= shcore::str_caseeq(fieldname.c_str(), my_row_id);
+        }
+
+        fprintf(sql_file, "  %s.%s %s", result_table.c_str(),
+                shcore::quote_identifier_if_needed(fieldname).c_str(),
+                row->get_string(SHOW_TYPE).c_str());
 
         if (!row->is_null(SHOW_DEFAULT)) {
           fputs(" DEFAULT ", sql_file);
@@ -1283,8 +1313,20 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
           unescape(sql_file, def);
         }
         if (!row->get_string(SHOW_NULL).empty()) fputs(" NOT NULL", sql_file);
-        if (!row->is_null(SHOW_EXTRA) && !row->get_string(SHOW_EXTRA).empty())
-          fprintf(sql_file, " %s", row->get_string(SHOW_EXTRA).c_str());
+
+        if (!row->is_null(SHOW_EXTRA)) {
+          const auto extra = row->get_string(SHOW_EXTRA);
+
+          if (!extra.empty()) {
+            fprintf(sql_file, " %s", extra.c_str());
+
+            if (opt_create_invisible_pks) {
+              has_auto_increment |=
+                  extra.find(auto_increment) != std::string::npos;
+            }
+          }
+        }
+
         check_io(sql_file);
       }
     }
@@ -1314,6 +1356,9 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
           }
         }
       }
+
+      has_pk = INT_MAX != primary_key;
+
       result->rewind();
       keynr = 0;
       while (auto row = result->fetch_one()) {
@@ -1385,6 +1430,41 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
     continue_xml:
       fputs(";\n", sql_file);
       check_io(sql_file);
+    }
+  }
+
+  if (!has_pk) {
+    const auto prefix =
+        "Table '" + db + "'.'" + table + "' does not have a Primary Key, ";
+
+    if (opt_create_invisible_pks) {
+      if (has_my_row_id || has_auto_increment) {
+        if (has_my_row_id) {
+          res.emplace_back(prefix +
+                               "this cannot be fixed automatically because the "
+                               "table has a column named `" +
+                               my_row_id + "`",
+                           Issue::Status::FIX_MANUALLY);
+        }
+
+        if (has_auto_increment) {
+          res.emplace_back(
+              prefix +
+                  "this cannot be fixed automatically because the table has a "
+                  "column with 'AUTO_INCREMENT' attribute",
+              Issue::Status::FIX_MANUALLY);
+        }
+      } else {
+        res.emplace_back(prefix + "this will be fixed when the dump is loaded",
+                         Issue::Status::FIXED_BY_CREATE_INVISIBLE_PKS);
+      }
+    } else if (opt_ignore_missing_pks) {
+      res.emplace_back(prefix + "this is ignored",
+                       Issue::Status::FIXED_BY_IGNORE_MISSING_PKS);
+    } else if (opt_mysqlaas) {
+      res.emplace_back(
+          prefix + "which is required for High Availability in MDS",
+          Issue::Status::USE_CREATE_OR_IGNORE_PKS);
     }
   }
 

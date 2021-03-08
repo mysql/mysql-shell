@@ -35,6 +35,7 @@
 #include "mysqlshdk/libs/oci/oci_options.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
+#include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -161,6 +162,12 @@ class Load_dump_options {
 
   bool show_metadata() const { return m_show_metadata; }
 
+  bool should_create_pks(bool default_value) const {
+    return m_create_invisible_pks.get_safe(default_value);
+  }
+
+  bool auto_create_pks_supported() const { return m_auto_create_pks_supported; }
+
  private:
   void set_wait_timeout(const double &timeout_seconds);
   void set_str_vector_option(const std::string &option,
@@ -213,6 +220,8 @@ class Load_dump_options {
   mysqlshdk::utils::Version m_target_server_version;
   bool m_is_mds = false;
   bool m_show_metadata = false;
+  mysqlshdk::null_bool m_create_invisible_pks;
+  bool m_auto_create_pks_supported = false;
 };
 
 }  // namespace mysqlsh

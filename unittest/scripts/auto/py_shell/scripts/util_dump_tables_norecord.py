@@ -1277,6 +1277,113 @@ EXPECT_STDOUT_CONTAINS("ERROR: View {0}.{1} - definition uses DEFINER clause set
 
 EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version))
 
+# WL14506-FR1 - When a dump is executed with the ocimds option set to true, for each table that would be dumped which does not contain a primary key, an error must be reported.
+# WL14506-TSFR_1_14
+missing_pks = {
+    "xtest": [
+        "t_bigint",
+        "t_bit",
+        "t_char",
+        "t_date",
+        "t_decimal1",
+        "t_decimal2",
+        "t_decimal3",
+        "t_double",
+        "t_enum",
+        "t_float",
+        "t_geom",
+        "t_geom_all",
+        "t_int",
+        "t_integer",
+        "t_json",
+        "t_lchar",
+        "t_lob",
+        "t_mediumint",
+        "t_numeric1",
+        "t_numeric2",
+        "t_real",
+        "t_set",
+        "t_smallint",
+        "t_tinyint",
+    ],
+    incompatible_schema: [
+        incompatible_table_data_directory,
+        incompatible_table_encryption,
+        incompatible_table_index_directory,
+        incompatible_table_tablespace,
+        incompatible_table_wrong_engine,
+    ],
+    test_schema: [
+        test_table_unique,
+        test_table_non_unique,
+        test_table_no_index
+    ]
+}
+
+# only tables from incompatible_schema are included in dump
+for table in missing_pks[incompatible_schema]:
+    EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, which is required for High Availability in MDS".format(incompatible_schema, table))
+
+# remaining tables are not included and should not be reported
+for table in missing_pks["xtest"] + missing_pks[test_schema]:
+    EXPECT_STDOUT_NOT_CONTAINS(table)
+
+# WL14506-FR1.1 - The following message must be printed:
+# WL14506-TSFR_1_14
+EXPECT_STDOUT_CONTAINS("""
+ERROR: One or more tables without Primary Keys were found.
+
+       MySQL Database Service High Availability (MDS HA) requires Primary Keys to be present in all tables.
+       To continue with the dump you must do one of the following:
+
+       * Create PRIMARY keys in all tables before dumping them.
+         MySQL 8.0.23 supports the creation of invisible columns to allow creating Primary Key columns with no impact to applications. For more details, see https://dev.mysql.com/doc/refman/en/invisible-columns.html.
+         This is considered a best practice for both performance and usability and will work seamlessly with MDS.
+
+       * Add the "create_invisible_pks" to the "compatibility" option.
+         The dump will proceed and loader will automatically add Primary Keys to tables that don't have them when loading into MDS.
+         This will make it possible to enable HA in MDS without application impact.
+         However, Inbound Replication into an MDS HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
+
+       * Add the "ignore_missing_pks" to the "compatibility" option.
+         This will disable this check and the dump will be produced normally, Primary Keys will not be added automatically.
+         It will not be possible to load the dump in an HA enabled MDS instance.
+""")
+
+#@<> WL14506-TSFR_2_1
+util.help("dump_tables")
+
+EXPECT_STDOUT_CONTAINS("""
+      create_invisible_pks - Each table which does not have a Primary Key will
+      have one created when the dump is loaded. The following Primary Key is
+      added to the table:
+      `my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY
+
+      At the time of the release of MySQL Shell 8.0.24, dumps created with this
+      value cannot be used with Inbound Replication into an MySQL Database
+      Service instance with High Availability. Mutually exclusive with the
+      ignore_missing_pks value.
+""")
+EXPECT_STDOUT_CONTAINS("""
+      ignore_missing_pks - Ignore errors caused by tables which do not have
+      Primary Keys. Dumps created with this value cannot be used in MySQL
+      Database Service instance with High Availability. Mutually exclusive with
+      the create_invisible_pks value.
+""")
+EXPECT_STDOUT_CONTAINS("""
+      At the time of the release of MySQL Shell 8.0.24, in order to use Inbound
+      Replication into an MySQL Database Service instance with High
+      Availability, all tables at the source server need to have Primary Keys.
+      This needs to be fixed manually before running the dump. Starting with
+      MySQL 8.0.23 invisible columns may be used to add Primary Keys without
+      changing the schema compatibility, for more information see:
+      https://dev.mysql.com/doc/refman/en/invisible-columns.html.
+
+      In order to use MySQL Database Service instance with High Availability,
+      all tables at the MDS server need to have Primary Keys. This can be fixed
+      automatically using the create_invisible_pks compatibility value.
+""")
+
 #@<> If the `ocimds` option is not given, a default value of `false` must be used instead.
 EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
 
@@ -1291,12 +1398,117 @@ EXPECT_FAIL("ValueError", "Argument #4: Unknown compatibility option: ", incompa
 # * `strip_restricted_grants` - remove disallowed grants.
 # * `strip_tablespaces` - remove unsupported tablespace syntax.
 # * `strip_definers` - remove DEFINER clause from views, triggers, events and routines and change SQL SECURITY property to INVOKER for views and routines.
-EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "compatibility": [ "force_innodb", "strip_definers", "strip_restricted_grants", "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
+# WL14506-FR2 - The compatibility option of the dump utilities must support a new value: ignore_missing_pks.
+# WL14506-TSFR_1_15
+EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "ocimds": True, "compatibility": [ "force_innodb", "ignore_missing_pks", "strip_definers", "strip_restricted_grants", "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
+
+# WL14506-FR2.2 - The following message must be printed:
+# WL14506-TSFR_1_15
+EXPECT_STDOUT_CONTAINS("""
+NOTE: One or more tables without Primary Keys were found.
+
+      This issue is ignored.
+      This dump cannot be loaded into an MySQL Database Service instance with High Availability.
+""")
+
+# WL14506-FR3 - The compatibility option of the dump utilities must support a new value: create_invisible_pks.
+# create_invisible_pks and ignore_missing_pks are mutually exclusive
+# WL14506-TSFR_1_16
+EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "ocimds": True, "compatibility": [ "create_invisible_pks", "force_innodb", "strip_definers", "strip_restricted_grants", "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
+
+# WL14506-FR3.1.1 - The following message must be printed:
+# WL14506-TSFR_1_16
+EXPECT_STDOUT_CONTAINS("""
+NOTE: One or more tables without Primary Keys were found.
+
+      Missing Primary Keys will be created automatically when this dump is loaded.
+      This will make it possible to enable High Availability in MySQL Database Service instance without application impact.
+      However, Inbound Replication into an MDS HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
+""")
+
+#@<> WL14506-FR3.1 - When a dump is executed with the ocimds option set to true and the compatibility option contains the create_invisible_pks value, for each table that would be dumped which does not contain a primary key, an information should be printed that an invisible primary key will be created when loading the dump.
+EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "compatibility": [ "create_invisible_pks" ] , "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
+
+for table in missing_pks[incompatible_schema]:
+    EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' does not have a Primary Key, this will be fixed when the dump is loaded".format(incompatible_schema, table))
+
+#@<> WL14506-FR3.2 - When a dump is executed and the compatibility option contains the create_invisible_pks value, for each table that would be dumped which does not contain a primary key but has a column named my_row_id, an error must be reported.
+# WL14506-TSFR_3.2_3
+table = missing_pks[incompatible_schema][0]
+session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schema, table])
+
+EXPECT_FAIL("RuntimeError", "Fatal error during dump", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
+
+WIPE_OUTPUT()
+EXPECT_FAIL("RuntimeError", "Compatibility issues were found", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
+
+session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
+
+#@<> WL14506-FR3.4 - When a dump is executed and the compatibility option contains the create_invisible_pks value, for each table that would be dumped which does not contain a primary key but has a column with an AUTO_INCREMENT attribute, an error must be reported.
+table = missing_pks[incompatible_schema][0]
+session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
+
+EXPECT_FAIL("RuntimeError", "Fatal error during dump", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
+
+WIPE_OUTPUT()
+EXPECT_FAIL("RuntimeError", "Compatibility issues were found", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+
+session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table])
+
+#@<> WL14506-FR3.2 + WL14506-FR3.4 - same column
+table = missing_pks[incompatible_schema][0]
+session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
+
+EXPECT_FAIL("RuntimeError", "Fatal error during dump", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
+
+WIPE_OUTPUT()
+EXPECT_FAIL("RuntimeError", "Compatibility issues were found", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+
+session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
+
+#@<> WL14506-FR3.2 + WL14506-FR3.4 - different columns
+table = missing_pks[incompatible_schema][0]
+session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schema, table])
+session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
+
+EXPECT_FAIL("RuntimeError", "Fatal error during dump", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
+
+WIPE_OUTPUT()
+EXPECT_FAIL("RuntimeError", "Compatibility issues were found", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+
+session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
+session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table])
+
+#@<> WL14506-FR3.3 - When a dump is executed and the compatibility option contains both create_invisible_pks and ignore_missing_pks values, an error must be reported and process must be aborted.
+# WL14506-TSFR_3.3_1
+EXPECT_FAIL("ValueError", "Argument #4: The 'create_invisible_pks' and 'ignore_missing_pks' compatibility options cannot be used at the same time.", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "compatibility": [ "create_invisible_pks", "ignore_missing_pks" ] })
 
 #@<> force_innodb
 EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "compatibility": [ "force_innodb" ] , "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_index_directory))
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_wrong_engine))
+
+#@<> WL14506-FR2.1 - When a dump is executed with the ocimds option set to true and the compatibility option contains the ignore_missing_pks value, for each table that would be dumped which does not contain a primary key, a note must be displayed, stating that this issue is ignored.
+EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "compatibility": [ "ignore_missing_pks" ] , "ddlOnly": True, "showProgress": False }, incompatible_schema_views)
+
+for table in missing_pks[incompatible_schema]:
+    EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' does not have a Primary Key, this is ignored".format(incompatible_schema, table))
 
 #@<> strip_definers
 EXPECT_SUCCESS(incompatible_schema, incompatible_schema_tables, test_output_absolute, { "compatibility": [ "strip_definers" ] , "ddlOnly": True, "showProgress": False }, incompatible_schema_views)

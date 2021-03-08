@@ -120,7 +120,7 @@ EXPECT_THROWS(function() { util.dumpInstance(k_dump_dir); }, "Dumping user accou
 
 //@<> dumpInstance
 // BUG32376447 - use small bytesPerChunk to ensure some tables are chunked, triggering the bug
-util.dumpInstance(k_instance_dump, { "users": false, "bytesPerChunk": "128k", "ocimds": true, "compatibility": [ "strip_definers" ] });
+util.dumpInstance(k_instance_dump, { "users": false, "bytesPerChunk": "128k", "ocimds": true, "compatibility": [ "ignore_missing_pks", "strip_definers" ] });
 EXPECT_STDOUT_CONTAINS("NOTE: Backup lock is not supported in MySQL 5.6 and DDL changes will not be blocked. The dump may fail with an error or not be completely consistent if schema changes are made while dumping.");
 // BUG32376447 - check if some tables were chunked
 EXPECT_STDOUT_MATCHES(/Data dump for table `\w+`.`\w+` will be written to \d+ files/);

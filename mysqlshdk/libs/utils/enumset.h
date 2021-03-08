@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,9 @@
 #define MYSQLSHDK_LIBS_UTILS_ENUMSET_H_
 
 #include <cstdint>
+#include <limits>
+#include <set>
+#include <type_traits>
 
 namespace mysqlshdk {
 namespace utils {
@@ -85,7 +88,28 @@ class Enum_set {
 
   bool operator!=(Enum_set set) const { return _value != set._value; }
 
+  std::set<Enum> values() const {
+    std::set<Enum> enums;
+    auto v = _value;
+    std::underlying_type_t<Enum> e{};
+
+    while (v) {
+      if (v & UINT32_C(1)) {
+        enums.emplace(static_cast<Enum>(e));
+      }
+
+      v >>= 1;
+      ++e;
+    }
+
+    return enums;
+  }
+
  private:
+  static_assert(
+      static_cast<int>(last_value) <= std::numeric_limits<uint32_t>::digits,
+      "The last enum value should not exceed the number of available bits");
+
   explicit Enum_set(uint32_t v) : _value(v) {}
 
   inline uint32_t ord(Enum value) const {

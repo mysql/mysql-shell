@@ -26,7 +26,6 @@
 
 #include <string>
 
-#include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/dump_options.h"
 
 namespace mysqlsh {
@@ -66,10 +65,6 @@ class Ddl_dumper_options : public Dump_options {
 
   bool use_timezone_utc() const override { return m_timezone_utc; }
 
-  const Compatibility_options &compatibility_options() const {
-    return m_compatibility_options;
-  }
-
   bool dump_binlog_info() const override { return true; }
 
  protected:
@@ -98,8 +93,6 @@ class Ddl_dumper_options : public Dump_options {
   bool m_data_only = false;
   bool m_dry_run = false;
   bool m_consistent_dump = true;
-
-  Compatibility_options m_compatibility_options;
 };
 
 }  // namespace dump

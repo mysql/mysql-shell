@@ -301,8 +301,21 @@ session.runSql("SET GLOBAL local_infile=1");
 if(__version_num>80013) {
   session.runSql("set @@global.sql_require_primary_key=ON;");
   EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: sql_require_primary_key enabled at destination server");
-  EXPECT_OUTPUT_CONTAINS("ERROR: The sql_require_primary_key option is enabled at the destination server and one or more tables without a Primary Key were found in the dump");
-  EXPECT_OUTPUT_CONTAINS("schema `xtest`: `t_bigint`, `t_bit`, `t_char`, `t_date`, `t_decimal1`, `t_decimal2`, `t_decimal3`, `t_double`, `t_enum`, `t_float`, `t_geom_all`, `t_geom`, `t_int`, `t_integer`, `t_json`, `t_lchar`, `t_lob`, `t_mediumint`, `t_numeric1`, `t_numeric2`, `t_real`, `t_set`, `t_smallint`, `t_tinyint`");
+  EXPECT_STDOUT_CONTAINS_MULTILINE(`ERROR: The sql_require_primary_key option is enabled at the destination server and one or more tables without a Primary Key were found in the dump:
+schema \`all_features\`: \`findextable3\`, \`findextable\`
+schema \`xtest\`: \`t_bigint\`, \`t_bit\`, \`t_char\`, \`t_date\`, \`t_decimal1\`, \`t_decimal2\`, \`t_decimal3\`, \`t_double\`, \`t_enum\`, \`t_float\`, \`t_geom_all\`, \`t_geom\`, \`t_int\`, \`t_integer\`, \`t_json\`, \`t_lchar\`, \`t_lob\`, \`t_mediumint\`, \`t_numeric1\`, \`t_numeric2\`, \`t_real\`, \`t_set\`, \`t_smallint\`, \`t_tinyint\`
+
+You must do one of the following to be able to load this dump:
+- Add a Primary Key to the tables where it's missing
+- Use the "createInvisiblePKs" option to automatically create Primary Keys on a 8.0.24+ server
+- Use the "excludeTables" option to load the dump without those tables
+- Disable the sql_require_primary_key sysvar at the server (note that the underlying reason for the option to be enabled may still prevent your database from functioning properly)`);
+
+  if (__version_num > 80023) {
+    EXPECT_NO_THROWS(function () { util.loadDump(os.path.join(__tmp_dir, "ldtest", "dump"), { "createInvisiblePKs": true }); });
+    wipe_instance(session);
+  }
+
   session.runSql("set @@global.sql_require_primary_key=OFF;");
 }
 
@@ -332,10 +345,6 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {deferTableIndexes: true});
 util.loadDump(__tmp_dir+"/ldtest/dump", {updateGtidSet: "xxx"});
 util.loadDump(__tmp_dir+"/ldtest/dump", {updateGtidSet: ""});
 util.loadDump(__tmp_dir+"/ldtest/dump", {updateGtidSet: true});
-
-//@ Bad Bucket Name Option
-testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
-util.loadDump(__tmp_dir+"/ldtest/dump", {osBucketName: "bukkit"});
 
 //@ progressFile errors should be reported before opening the dump
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");

@@ -24,11 +24,6 @@ Util.loadDump: Argument #2: Option 'deferTableIndexes' is expected to be of type
 Util.loadDump: Argument #2: Invalid value 'xxx' for updateGtidSet option, allowed values: 'append', 'off' and 'replace'. (ArgumentError)
 Util.loadDump: Argument #2: Invalid value '' for updateGtidSet option, allowed values: 'append', 'off' and 'replace'. (ArgumentError)
 Util.loadDump: Argument #2: Option 'updateGtidSet' is expected to be of type String, but is Bool (TypeError)
-//@<ERR> Bad Bucket Name Option {!hasOciEnvironment('OS')}
-Util.loadDump: Cannot open file: [[*]]<<<filename_for_output("/.oci/config")>>>. (RuntimeError)
-
-//@<ERR> Bad Bucket Name Option {hasOciEnvironment('OS')}
-Util.loadDump: Failed opening object '@.json' in READ mode: Not Found (404) (RuntimeError)
 
 //@# progressFile errors should be reported before opening the dump
 |Loading DDL and Data from '<<<__tmp_dir>>>/ldtest/dump' using 4 threads.|

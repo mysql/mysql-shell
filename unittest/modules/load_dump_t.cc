@@ -31,6 +31,8 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/backend/memory_file.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+
 #include "unittest/gtest_clean.h"
 #include "unittest/modules/dummy_dumpdir.h"
 #include "unittest/test_utils.h"
@@ -40,8 +42,12 @@ extern "C" const char *g_test_home;
 
 using ::testing::_;
 using ::testing::AtLeast;
+using ::testing::Exactly;
 using ::testing::Return;
 using ::testing::ReturnRef;
+using ::testing::StrEq;
+
+using mysqlshdk::utils::Version;
 
 namespace mysqlsh {
 
@@ -148,6 +154,14 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
           EXPECT_CALL(*mock, get_connection_id())
               .WillRepeatedly(Return(m_session_count));
 
+          if (m_auto_generate_pk_value) {
+            const auto query = shcore::sqlformat(
+                "SET @@SESSION.sql_generate_invisible_primary_key=?",
+                m_create_invisible_pks);
+            EXPECT_CALL(*mock, executes(StrEq(query.c_str()), _))
+                .Times(Exactly(1));
+          }
+
           {
             // this is the main connection used by the loader
 
@@ -156,9 +170,13 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
                     "schema_name in ('stackoverflow')")
                 .then({""});
 
-            mock->expect_query("show variables like 'sql_require_primary_key';")
-                .then({"", ""})
-                .add_row({"sql_require_primary_key", "1"});
+            if (Version(m_version) >= Version(8, 0, 13) &&
+                !m_create_invisible_pks) {
+              mock->expect_query(
+                      "show variables like 'sql_require_primary_key';")
+                  .then({"", ""})
+                  .add_row({"sql_require_primary_key", "1"});
+            }
 
             mock->expect_query(
                     "SELECT VARIABLE_VALUE = 'OFF' FROM "
@@ -180,7 +198,9 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
 
                   std::string filename = sql.substr(start, end - start);
 
-                  m_on_load_data(filename);
+                  if (m_on_load_data) {
+                    m_on_load_data(filename);
+                  }
 
                   auto r = std::make_shared<testing::Mock_result>();
                   EXPECT_CALL(*r, get_warning_count())
@@ -202,7 +222,18 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
         .WillRepeatedly(ReturnRef(m_coptions));
     mock_main_session->expect_query("SELECT @@version")
         .then({"version"})
-        .add_row({"8.0.20"});
+        .add_row({m_version});
+
+    {
+      auto &r = mock_main_session->expect_query(
+          "SELECT @@SESSION.sql_generate_invisible_primary_key;");
+
+      if (m_auto_generate_pk_value) {
+        r.then({""}).add_row({*m_auto_generate_pk_value ? "1" : "0"});
+      } else {
+        r.then_throw();
+      }
+    }
 
     mock_main_session
         ->expect_query(
@@ -237,6 +268,10 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
   std::vector<std::shared_ptr<testing::Mock_mysql_session>> m_sessions;
 
   std::function<void(const std::string &)> m_on_load_data;
+
+  std::string m_version = "8.0.20";
+  mysqlshdk::null_bool m_auto_generate_pk_value;
+  bool m_create_invisible_pks = false;
 };
 
 namespace {
@@ -494,6 +529,10 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
       .then({"version"})
       .add_row({"8.0.21-u1-cloud"});
 
+  mock_main_session
+      ->expect_query("SELECT @@SESSION.sql_generate_invisible_primary_key;")
+      .then_throw();
+
   options.set_session(mock_main_session, "");
 
   Dump_loader loader(options);
@@ -537,6 +576,54 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
 
         return true;
       });
+}
+
+TEST_F(Load_dump_mocked, sql_generate_invisible_primary_key) {
+  // WL14506-TSFR_4.6_1
+  m_version = "8.0.24";
+  // sql_generate_invisible_primary_key is supported, global value is false
+  m_auto_generate_pk_value = false;
+  // we want to create PKs, and expect that query which sets
+  // sql_generate_invisible_primary_key to ON is executed
+  m_create_invisible_pks = true;
+
+  int num_threads = 4;
+  auto file_list = test_dump1_files;
+  auto file_list_size = shcore::array_size(test_dump1_files);
+
+  auto dir = std::make_unique<tests::Dummy_dump_directory>(
+      shcore::path::join_path(g_test_home, "data/load/test_dump1"), file_list,
+      file_list_size);
+
+  Load_dump_options options;
+  options.set_session(make_mock_main_session(), "");
+
+  Load_dump_options::options().unpack(
+      shcore::make_dict("threads", num_threads, "showProgress", false,
+                        "progressFile", "", "createInvisiblePKs",
+                        m_create_invisible_pks),
+      &options);
+
+  Dump_loader loader(options);
+
+  ASSERT_EQ(options.threads_count(), num_threads);
+
+  // open the mock dump
+  loader.open_dump(std::move(dir));
+  loader.m_dump->rescan();
+
+  // run the load
+  loader.spawn_workers();
+  {
+    shcore::on_leave_scope cleanup([&loader]() {
+      loader.join_workers();
+
+      loader.m_progress->hide(true);
+      loader.m_progress->shutdown();
+    });
+
+    loader.execute_tasks();
+  }
 }
 
 }  // namespace mysqlsh

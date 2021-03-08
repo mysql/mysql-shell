@@ -58,6 +58,8 @@ class Dump_reader {
 
   bool mds_compatibility() const { return m_contents.mds_compatibility; }
 
+  bool should_create_pks() const;
+
   const mysqlshdk::utils::Version &server_version() const {
     return m_contents.server_version;
   }
@@ -121,6 +123,11 @@ class Dump_reader {
       const std::string &schema) const;
   const std::map<std::string, std::vector<std::string>> tables_without_pk()
       const;
+
+  bool has_tables_without_pk() const;
+
+  bool has_primary_key(const std::string &schema,
+                       const std::string &table) const;
 
   bool next_table_chunk(
       const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
@@ -329,6 +336,7 @@ class Dump_reader {
     bool gtid_executed_inconsistent = false;
     bool tz_utc = true;
     bool mds_compatibility = false;
+    bool create_invisible_pks = false;
     bool table_only = false;
     mysqlshdk::utils::Version server_version;
     mysqlshdk::utils::Version dump_version;

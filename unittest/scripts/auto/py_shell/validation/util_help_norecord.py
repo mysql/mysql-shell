@@ -177,8 +177,9 @@ DESCRIPTION
         MySQL Database Service (MDS)
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
-        values: "force_innodb", "skip_invalid_accounts", "strip_definers",
-        "strip_restricted_grants", "strip_tablespaces".
+        values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+        "skip_invalid_accounts", "strip_definers", "strip_restricted_grants",
+        "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
@@ -331,7 +332,7 @@ DESCRIPTION
       compliant.
 
       The ocimds option, when set to true, will perform schema checks for most
-      of these issues and abort the dump if any are found. The load_dump
+      of these issues and abort the dump if any are found. The load_dump()
       command will also only allow loading dumps that have been created with
       the "ocimds" option enabled.
 
@@ -342,10 +343,25 @@ DESCRIPTION
       these compatibility issues. You may pass one or more of the following
       values to the "compatibility" option.
 
+      create_invisible_pks - Each table which does not have a Primary Key will
+      have one created when the dump is loaded. The following Primary Key is
+      added to the table:
+      `my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY
+
+      At the time of the release of MySQL Shell 8.0.24, dumps created with this
+      value cannot be used with Inbound Replication into an MySQL Database
+      Service instance with High Availability. Mutually exclusive with the
+      ignore_missing_pks value.
+
       force_innodb - The MySQL Database Service requires use of the InnoDB
       storage engine. This option will modify the ENGINE= clause of CREATE
       TABLE statements that use incompatible storage engines and replace them
       with InnoDB.
+
+      ignore_missing_pks - Ignore errors caused by tables which do not have
+      Primary Keys. Dumps created with this value cannot be used in MySQL
+      Database Service instance with High Availability. Mutually exclusive with
+      the create_invisible_pks value.
 
       skip_invalid_accounts - Skips accounts which use authentication methods
       (plugins) not supported by the MySQL Database Service.
@@ -380,6 +396,18 @@ DESCRIPTION
 
       - DATA DIRECTORY, INDEX DIRECTORY and ENCRYPTION options in CREATE TABLE
         statements will be commented out.
+
+      At the time of the release of MySQL Shell 8.0.24, in order to use Inbound
+      Replication into an MySQL Database Service instance with High
+      Availability, all tables at the source server need to have Primary Keys.
+      This needs to be fixed manually before running the dump. Starting with
+      MySQL 8.0.23 invisible columns may be used to add Primary Keys without
+      changing the schema compatibility, for more information see:
+      https://dev.mysql.com/doc/refman/en/invisible-columns.html.
+
+      In order to use MySQL Database Service instance with High Availability,
+      all tables at the MDS server need to have Primary Keys. This can be fixed
+      automatically using the create_invisible_pks compatibility value.
 
       Please refer to the MySQL Database Service documentation for more
       information about restrictions and compatibility.
@@ -468,8 +496,9 @@ DESCRIPTION
         MySQL Database Service (MDS)
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
-        values: "force_innodb", "skip_invalid_accounts", "strip_definers",
-        "strip_restricted_grants", "strip_tablespaces".
+        values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+        "skip_invalid_accounts", "strip_definers", "strip_restricted_grants",
+        "strip_tablespaces".
       - events: bool (default: true) - Include events from each dumped schema.
       - routines: bool (default: true) - Include functions and stored
         procedures for each dumped schema.
@@ -602,7 +631,7 @@ DESCRIPTION
       compliant.
 
       The ocimds option, when set to true, will perform schema checks for most
-      of these issues and abort the dump if any are found. The load_dump
+      of these issues and abort the dump if any are found. The load_dump()
       command will also only allow loading dumps that have been created with
       the "ocimds" option enabled.
 
@@ -613,10 +642,25 @@ DESCRIPTION
       these compatibility issues. You may pass one or more of the following
       values to the "compatibility" option.
 
+      create_invisible_pks - Each table which does not have a Primary Key will
+      have one created when the dump is loaded. The following Primary Key is
+      added to the table:
+      `my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY
+
+      At the time of the release of MySQL Shell 8.0.24, dumps created with this
+      value cannot be used with Inbound Replication into an MySQL Database
+      Service instance with High Availability. Mutually exclusive with the
+      ignore_missing_pks value.
+
       force_innodb - The MySQL Database Service requires use of the InnoDB
       storage engine. This option will modify the ENGINE= clause of CREATE
       TABLE statements that use incompatible storage engines and replace them
       with InnoDB.
+
+      ignore_missing_pks - Ignore errors caused by tables which do not have
+      Primary Keys. Dumps created with this value cannot be used in MySQL
+      Database Service instance with High Availability. Mutually exclusive with
+      the create_invisible_pks value.
 
       skip_invalid_accounts - Skips accounts which use authentication methods
       (plugins) not supported by the MySQL Database Service.
@@ -651,6 +695,18 @@ DESCRIPTION
 
       - DATA DIRECTORY, INDEX DIRECTORY and ENCRYPTION options in CREATE TABLE
         statements will be commented out.
+
+      At the time of the release of MySQL Shell 8.0.24, in order to use Inbound
+      Replication into an MySQL Database Service instance with High
+      Availability, all tables at the source server need to have Primary Keys.
+      This needs to be fixed manually before running the dump. Starting with
+      MySQL 8.0.23 invisible columns may be used to add Primary Keys without
+      changing the schema compatibility, for more information see:
+      https://dev.mysql.com/doc/refman/en/invisible-columns.html.
+
+      In order to use MySQL Database Service instance with High Availability,
+      all tables at the MDS server need to have Primary Keys. This can be fixed
+      automatically using the create_invisible_pks compatibility value.
 
       Please refer to the MySQL Database Service documentation for more
       information about restrictions and compatibility.
@@ -740,8 +796,9 @@ DESCRIPTION
         MySQL Database Service (MDS)
       - compatibility: list of strings (default: empty) - Apply MySQL Database
         Service compatibility modifications when writing dump files. Supported
-        values: "force_innodb", "skip_invalid_accounts", "strip_definers",
-        "strip_restricted_grants", "strip_tablespaces".
+        values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+        "skip_invalid_accounts", "strip_definers", "strip_restricted_grants",
+        "strip_tablespaces".
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
@@ -867,7 +924,7 @@ DESCRIPTION
       compliant.
 
       The ocimds option, when set to true, will perform schema checks for most
-      of these issues and abort the dump if any are found. The load_dump
+      of these issues and abort the dump if any are found. The load_dump()
       command will also only allow loading dumps that have been created with
       the "ocimds" option enabled.
 
@@ -878,10 +935,25 @@ DESCRIPTION
       these compatibility issues. You may pass one or more of the following
       values to the "compatibility" option.
 
+      create_invisible_pks - Each table which does not have a Primary Key will
+      have one created when the dump is loaded. The following Primary Key is
+      added to the table:
+      `my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY
+
+      At the time of the release of MySQL Shell 8.0.24, dumps created with this
+      value cannot be used with Inbound Replication into an MySQL Database
+      Service instance with High Availability. Mutually exclusive with the
+      ignore_missing_pks value.
+
       force_innodb - The MySQL Database Service requires use of the InnoDB
       storage engine. This option will modify the ENGINE= clause of CREATE
       TABLE statements that use incompatible storage engines and replace them
       with InnoDB.
+
+      ignore_missing_pks - Ignore errors caused by tables which do not have
+      Primary Keys. Dumps created with this value cannot be used in MySQL
+      Database Service instance with High Availability. Mutually exclusive with
+      the create_invisible_pks value.
 
       skip_invalid_accounts - Skips accounts which use authentication methods
       (plugins) not supported by the MySQL Database Service.
@@ -916,6 +988,18 @@ DESCRIPTION
 
       - DATA DIRECTORY, INDEX DIRECTORY and ENCRYPTION options in CREATE TABLE
         statements will be commented out.
+
+      At the time of the release of MySQL Shell 8.0.24, in order to use Inbound
+      Replication into an MySQL Database Service instance with High
+      Availability, all tables at the source server need to have Primary Keys.
+      This needs to be fixed manually before running the dump. Starting with
+      MySQL 8.0.23 invisible columns may be used to add Primary Keys without
+      changing the schema compatibility, for more information see:
+      https://dev.mysql.com/doc/refman/en/invisible-columns.html.
+
+      In order to use MySQL Database Service instance with High Availability,
+      all tables at the MDS server need to have Primary Keys. This can be fixed
+      automatically using the create_invisible_pks compatibility value.
 
       Please refer to the MySQL Database Service documentation for more
       information about restrictions and compatibility.
@@ -1495,6 +1579,10 @@ DESCRIPTION
         character set to be used for loading dump data. By default, the same
         character set used for dumping will be used (utf8mb4 if not set on
         dump).
+      - createInvisiblePKs: bool (default taken from dump) - Automatically
+        create an invisible Primary Key for each table which does not have one.
+        By default, set to true if dump was created with create_invisible_pks
+        compatibility option, false otherwise. Requires server 8.0.24 or newer.
       - deferTableIndexes: "off", "fulltext", "all" (default: fulltext) - If
         "all", creation of "all" indexes except PRIMARY is deferred until after
         table data is loaded, which in many cases can reduce load times. If
