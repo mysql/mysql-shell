@@ -127,6 +127,32 @@ std::vector<std::string> preprocess_table_script_for_indexes(
   return indexes;
 }
 
+void add_invisible_pk(std::string *script, const std::string &key) {
+  const auto script_length = script->length();
+  std::istringstream stream(*script);
+
+  script->clear();
+
+  mysqlshdk::utils::iterate_sql_stream(
+      &stream, script_length,
+      [&](const char *s, size_t len, const std::string &delim, size_t) {
+        auto sql = std::string(s, len) + delim + "\n";
+        mysqlshdk::utils::SQL_iterator sit(sql);
+
+        if (shcore::str_caseeq(sit.get_next_token(), "CREATE") &&
+            shcore::str_caseeq(sit.get_next_token(), "TABLE")) {
+          compatibility::add_pk_to_create_table(sql, &sql);
+        }
+
+        script->append(sql);
+        return true;
+      },
+      [&key](const std::string &err) {
+        throw std::runtime_error("Error splitting DDL script for table " + key +
+                                 ": " + err);
+      });
+}
+
 void execute_script(const std::shared_ptr<mysqlshdk::db::ISession> &session,
                     const std::string &script, const std::string &error_prefix,
                     const std::function<bool(const char *, size_t,
@@ -339,6 +365,12 @@ void Dump_loader::Worker::Table_ddl_task::process(
                               loader->m_options.defer_table_indexes() ==
                                   Load_dump_options::Defer_index_mode::FULLTEXT,
                               m_status == Load_progress_log::DONE, loader);
+    }
+
+    if (loader->m_options.load_ddl() && loader->should_create_pks() &&
+        !loader->m_options.auto_create_pks_supported() &&
+        !loader->m_dump->has_primary_key(m_schema, m_table)) {
+      add_invisible_pk(out_script, schema_table_key(m_schema, m_table));
     }
   }
 }
@@ -1000,6 +1032,14 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
     session->executef("SET NAMES ?", m_character_set);
 
   if (m_dump->tz_utc()) session->execute("SET TIME_ZONE='+00:00'");
+
+  if (m_options.load_ddl() && m_options.auto_create_pks_supported()) {
+    // target server supports automatic creation of primary keys, we need to
+    // explicitly set the value of session variable, so we won't end up creating
+    // primary keys when user doesn't want to do that
+    session->executef("SET @@SESSION.sql_generate_invisible_primary_key=?",
+                      should_create_pks());
+  }
 
   return session;
 }
@@ -1936,12 +1976,43 @@ void Dump_loader::check_server_version() {
       }
     }
   }
+
+  if (should_create_pks() &&
+      target_server < mysqlshdk::utils::Version(8, 0, 24)) {
+    throw std::runtime_error(
+        "The 'createInvisiblePKs' option requires server 8.0.24 or newer.");
+  }
 }
 
 void Dump_loader::check_tables_without_primary_key() {
-  if (!m_options.load_ddl() ||
-      m_options.target_server_version() < mysqlshdk::utils::Version(8, 0, 13))
+  if (!m_options.load_ddl()) {
     return;
+  }
+
+  if (m_options.is_mds() && m_dump->has_tables_without_pk()) {
+    std::string msg =
+        "The dump contains tables without Primary Keys and it is loaded with "
+        "the 'createInvisiblePKs' option set to ";
+
+    if (should_create_pks()) {
+      msg +=
+          "true, Inbound Replication into an MySQL Database Service instance "
+          "with High Availability (at the time of the release of MySQL Shell "
+          "8.0.24) cannot be used with this dump.";
+    } else {
+      msg +=
+          "false, this dump cannot be loaded into an MySQL Database Service "
+          "instance with High Availability.";
+    }
+
+    current_console()->print_warning(msg);
+  }
+
+  if (m_options.target_server_version() < mysqlshdk::utils::Version(8, 0, 13) ||
+      should_create_pks()) {
+    return;
+  }
+
   if (m_session->query("show variables like 'sql_require_primary_key';")
           ->fetch_one()
           ->get_string(1) != "ON")
@@ -1959,6 +2030,8 @@ void Dump_loader::check_tables_without_primary_key() {
         "the dump:\n%s\n"
         "You must do one of the following to be able to load this dump:\n"
         "- Add a Primary Key to the tables where it's missing\n"
+        "- Use the \"createInvisiblePKs\" option to automatically create "
+        "Primary Keys on a 8.0.24+ server\n"
         "- Use the \"excludeTables\" option to load the dump without those "
         "tables\n"
         "- Disable the sql_require_primary_key sysvar at the server (note "
@@ -2649,6 +2722,10 @@ void Dump_loader::handle_schema_option() {
   if (!m_options.target_schema().empty()) {
     m_dump->replace_target_schema(m_options.target_schema());
   }
+}
+
+bool Dump_loader::should_create_pks() const {
+  return m_dump->should_create_pks();
 }
 
 }  // namespace mysqlsh

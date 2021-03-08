@@ -46,8 +46,11 @@ class Schema_dumper {
  public:
   struct Issue {
     enum class Status {
+      FIXED_BY_CREATE_INVISIBLE_PKS,
+      FIXED_BY_IGNORE_MISSING_PKS,
       FIXED,
       FIX_MANUALLY,
+      USE_CREATE_OR_IGNORE_PKS,
       USE_FORCE_INNODB,
       USE_STRIP_DEFINERS,
       USE_STRIP_RESTRICTED_GRANTS,
@@ -150,6 +153,8 @@ class Schema_dumper {
   bool opt_strip_tablespaces = false;
   bool opt_strip_definer = false;
   bool opt_skip_invalid_accounts = false;
+  bool opt_ignore_missing_pks = false;
+  bool opt_create_invisible_pks = false;
   std::string opt_character_set_results = "utf8mb4";
 
   enum enum_set_gtid_purged_mode {

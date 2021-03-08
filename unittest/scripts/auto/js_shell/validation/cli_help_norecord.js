@@ -270,9 +270,10 @@ OPTIONS
 
 --compatibility=<str list>
             Apply MySQL Database Service compatibility modifications when
-            writing dump files. Supported values: "force_innodb",
-            "skip_invalid_accounts", "strip_definers",
-            "strip_restricted_grants", "strip_tablespaces". Default: empty.
+            writing dump files. Supported values: "create_invisible_pks",
+            "force_innodb", "ignore_missing_pks", "skip_invalid_accounts",
+            "strip_definers", "strip_restricted_grants", "strip_tablespaces".
+            Default: empty.
 
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
@@ -392,9 +393,10 @@ OPTIONS
 
 --compatibility=<str list>
             Apply MySQL Database Service compatibility modifications when
-            writing dump files. Supported values: "force_innodb",
-            "skip_invalid_accounts", "strip_definers",
-            "strip_restricted_grants", "strip_tablespaces". Default: empty.
+            writing dump files. Supported values: "create_invisible_pks",
+            "force_innodb", "ignore_missing_pks", "skip_invalid_accounts",
+            "strip_definers", "strip_restricted_grants", "strip_tablespaces".
+            Default: empty.
 
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
@@ -499,9 +501,10 @@ OPTIONS
 
 --compatibility=<str list>
             Apply MySQL Database Service compatibility modifications when
-            writing dump files. Supported values: "force_innodb",
-            "skip_invalid_accounts", "strip_definers",
-            "strip_restricted_grants", "strip_tablespaces". Default: empty.
+            writing dump files. Supported values: "create_invisible_pks",
+            "force_innodb", "ignore_missing_pks", "skip_invalid_accounts",
+            "strip_definers", "strip_restricted_grants", "strip_tablespaces".
+            Default: empty.
 
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
@@ -905,6 +908,12 @@ OPTIONS
 --showMetadata=<bool>
             Displays the metadata information stored in the dump files, i.e.
             binary log file name and position. Default: false.
+
+--createInvisiblePKs=<bool>
+            Automatically create an invisible Primary Key for each table which
+            does not have one. By default, set to true if dump was created with
+            create_invisible_pks compatibility option, false otherwise.
+            Requires server 8.0.24 or newer. Default: taken from dump.
 
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given

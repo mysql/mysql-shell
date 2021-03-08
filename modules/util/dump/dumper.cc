@@ -85,6 +85,15 @@ static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
 const int k_chunker_retries = 10;
 const int k_chunker_iterations = 10;
 
+enum class Issue_status {
+  NONE,
+  FIXED,
+  FIXED_CREATE_PKS,
+  FIXED_IGNORE_PKS,
+  ERROR,
+  PK_ERROR,
+};
+
 std::string quote_value(const std::string &value, mysqlshdk::db::Type type) {
   if (is_string_type(type)) {
     return shcore::quote_sql_string(value);
@@ -120,6 +129,50 @@ void write_json(std::unique_ptr<mysqlshdk::storage::IFile> file,
   file->open(Mode::WRITE);
   file->write(json.c_str(), json.length());
   file->close();
+}
+
+Issue_status show_issues(const std::vector<Schema_dumper::Issue> &issues) {
+  const auto console = current_console();
+  Issue_status status = Issue_status::NONE;
+  const auto set_status = [&status](Issue_status s) {
+    status = std::max(status, s);
+  };
+
+  for (const auto &issue : issues) {
+    if (issue.status <= Schema_dumper::Issue::Status::FIXED) {
+      if (issue.status ==
+          Schema_dumper::Issue::Status::FIXED_BY_CREATE_INVISIBLE_PKS) {
+        set_status(Issue_status::FIXED_CREATE_PKS);
+      } else if (issue.status ==
+                 Schema_dumper::Issue::Status::FIXED_BY_IGNORE_MISSING_PKS) {
+        set_status(Issue_status::FIXED_IGNORE_PKS);
+      } else {
+        set_status(Issue_status::FIXED);
+      }
+
+      console->print_note(issue.description);
+    } else {
+      set_status(Issue_status::ERROR);
+
+      std::string hint;
+
+      if (Schema_dumper::Issue::Status::FIX_MANUALLY == issue.status) {
+        hint = "this issue needs to be fixed manually";
+      } else if (Schema_dumper::Issue::Status::USE_CREATE_OR_IGNORE_PKS ==
+                 issue.status) {
+        set_status(Issue_status::PK_ERROR);
+      } else {
+        hint = "fix this with '" +
+               to_string(to_compatibility_option(issue.status)) +
+               "' compatibility option";
+      }
+
+      console->print_error(issue.description +
+                           (hint.empty() ? "" : " (" + hint + ")"));
+    }
+  }
+
+  return status;
 }
 
 }  // namespace
@@ -1410,61 +1463,43 @@ void Dumper::create_schema_tasks() {
 }
 
 void Dumper::validate_mds() const {
-  if (m_options.mds_compatibility() && m_options.dump_ddl()) {
-    const auto console = current_console();
-    const auto version = m_options.mds_compatibility()->get_base();
+  if (!m_options.mds_compatibility() ||
+      (!m_options.dump_ddl() && !m_options.dump_users())) {
+    return;
+  }
 
-    console->print_info(
-        "Checking for compatibility with MySQL Database Service " + version);
+  const auto console = current_console();
+  const auto version = m_options.mds_compatibility()->get_base();
 
-    if (!m_cache.server_is_8_0) {
-      console->print_note("MySQL Server " + m_cache.server_version.get_short() +
-                          " detected, please consider upgrading to 8.0 first.");
+  console->print_info(
+      "Checking for compatibility with MySQL Database Service " + version);
 
-      if (m_cache.server_is_5_7) {
-        console->print_note(
-            "You can check for potential upgrade issues using util." +
-            shcore::get_member_name("checkForServerUpgrade",
-                                    shcore::current_naming_style()) +
-            "().");
-      }
+  if (!m_cache.server_is_8_0) {
+    console->print_note("MySQL Server " + m_cache.server_version.get_short() +
+                        " detected, please consider upgrading to 8.0 first.");
+
+    if (m_cache.server_is_5_7) {
+      console->print_note(
+          "You can check for potential upgrade issues using util." +
+          shcore::get_member_name("checkForServerUpgrade",
+                                  shcore::current_naming_style()) +
+          "().");
     }
+  }
 
-    bool fixed = false;
-    bool error = false;
+  Issue_status status = Issue_status::NONE;
 
-    const auto issues = [&](const auto &memory) {
-      for (const auto &issue : memory->issues()) {
-        const bool was_fixed =
-            Schema_dumper::Issue::Status::FIXED == issue.status;
+  const auto issues = [&status](const auto &memory) {
+    status = std::max(status, show_issues(memory->issues()));
+  };
 
-        fixed |= was_fixed;
-        error |= !was_fixed;
+  const auto dumper = schema_dumper(session());
 
-        if (was_fixed) {
-          console->print_note(issue.description);
-        } else {
-          std::string hint;
+  if (m_options.dump_users()) {
+    issues(dump_users(dumper.get()));
+  }
 
-          if (Schema_dumper::Issue::Status::FIX_MANUALLY == issue.status) {
-            hint = "this issue needs to be fixed manually";
-          } else {
-            hint = "fix this with '" +
-                   to_string(to_compatibility_option(issue.status)) +
-                   "' compatibility option";
-          }
-
-          console->print_error(issue.description + " (" + hint + ")");
-        }
-      }
-    };
-
-    const auto dumper = schema_dumper(session());
-
-    if (m_options.dump_users()) {
-      issues(dump_users(dumper.get()));
-    }
-
+  if (m_options.dump_ddl()) {
     for (const auto &schema : m_schema_infos) {
       issues(dump_schema(dumper.get(), schema.name));
     }
@@ -1484,21 +1519,72 @@ void Dumper::validate_mds() const {
         issues(dump_view(dumper.get(), schema.name, view.name));
       }
     }
+  }
 
-    if (error) {
+  switch (status) {
+    case Issue_status::PK_ERROR:
+      console->print_info();
+      console->print_error(
+          "One or more tables without Primary Keys were found.");
+      console->print_info(R"(
+       MySQL Database Service High Availability (MDS HA) requires Primary Keys to be present in all tables.
+       To continue with the dump you must do one of the following:
+
+       * Create PRIMARY keys in all tables before dumping them.
+         MySQL 8.0.23 supports the creation of invisible columns to allow creating Primary Key columns with no impact to applications. For more details, see https://dev.mysql.com/doc/refman/en/invisible-columns.html.
+         This is considered a best practice for both performance and usability and will work seamlessly with MDS.
+
+       * Add the "create_invisible_pks" to the "compatibility" option.
+         The dump will proceed and loader will automatically add Primary Keys to tables that don't have them when loading into MDS.
+         This will make it possible to enable HA in MDS without application impact.
+         However, Inbound Replication into an MDS HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
+
+       * Add the "ignore_missing_pks" to the "compatibility" option.
+         This will disable this check and the dump will be produced normally, Primary Keys will not be added automatically.
+         It will not be possible to load the dump in an HA enabled MDS instance.
+)");
+      // fallthrough
+
+    case Issue_status::ERROR:
       console->print_info(
           "Compatibility issues with MySQL Database Service " + version +
           " were found. Please use the 'compatibility' option to apply "
           "compatibility adaptations to the dumped DDL.");
       throw std::runtime_error("Compatibility issues were found");
-    } else if (fixed) {
+
+    case Issue_status::FIXED:
+    case Issue_status::FIXED_CREATE_PKS:
+    case Issue_status::FIXED_IGNORE_PKS:
+      if (Issue_status::FIXED != status) {
+        console->print_info();
+        console->print_note(
+            "One or more tables without Primary Keys were found.");
+      }
+
+      if (Issue_status::FIXED_CREATE_PKS == status) {
+        console->print_info(R"(
+      Missing Primary Keys will be created automatically when this dump is loaded.
+      This will make it possible to enable High Availability in MySQL Database Service instance without application impact.
+      However, Inbound Replication into an MDS HA instance (at the time of the release of MySQL Shell 8.0.24) will still not be possible.
+)");
+      }
+
+      if (Issue_status::FIXED_IGNORE_PKS == status) {
+        console->print_info(R"(
+      This issue is ignored.
+      This dump cannot be loaded into an MySQL Database Service instance with High Availability.
+)");
+      }
+
       console->print_info("Compatibility issues with MySQL Database Service " +
                           version +
                           " were found and repaired. Please review the changes "
                           "made before loading them.");
-    } else {
+      break;
+
+    case Issue_status::NONE:
       console->print_info("Compatibility checks finished.");
-    }
+      break;
   }
 }
 
@@ -1636,11 +1722,9 @@ void Dumper::write_ddl(const Memory_dumper &in_memory,
                        const std::string &file) const {
   if (!m_options.mds_compatibility()) {
     // if MDS is on, changes done by compatibility options were printed earlier
-    // MDS is off, so no errors here
-    const auto console = current_console();
-
-    for (const auto &issue : in_memory.issues()) {
-      console->print_note(issue.description);
+    if (show_issues(in_memory.issues()) >= Issue_status::ERROR) {
+      throw std::runtime_error(
+          "Could not apply some of the compatibility options");
     }
   }
 
@@ -2016,6 +2100,18 @@ void Dumper::write_dump_started_metadata() const {
   if (m_options.mds_compatibility()) {
     bool compat = static_cast<bool>(m_options.mds_compatibility());
     doc.AddMember(StringRef("mdsCompatibility"), compat, a);
+  }
+
+  {
+    // list of compatibility options
+    Value compatibility{Type::kArrayType};
+
+    for (const auto &option : m_options.compatibility_options().values()) {
+      compatibility.PushBack({to_string(option).c_str(), a}, a);
+    }
+
+    doc.AddMember(StringRef("compatibilityOptions"), std::move(compatibility),
+                  a);
   }
 
   doc.AddMember(StringRef("begin"), ref(m_dump_info->begin()), a);

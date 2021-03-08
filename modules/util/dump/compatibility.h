@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -82,6 +82,13 @@ std::string check_create_user_for_authentication_plugin(
     const std::string &create_user,
     const std::set<std::string> &plugins =
         k_mysqlaas_allowed_authentication_plugins);
+
+void add_pk_to_create_table(const std::string &statement,
+                            std::string *rewritten);
+
+bool add_pk_to_create_table_if_missing(const std::string &statement,
+                                       std::string *rewritten,
+                                       bool ignore_pke = true);
 
 }  // namespace compatibility
 }  // namespace mysqlsh

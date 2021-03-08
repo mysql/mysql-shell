@@ -126,6 +126,14 @@ Dump_reader::Status Dump_reader::open() {
   if (md->has_key("mdsCompatibility"))
     m_contents.mds_compatibility = md->get_bool("mdsCompatibility");
 
+  if (md->has_key("compatibilityOptions")) {
+    const auto options = md->at("compatibilityOptions").to_string_vector();
+
+    m_contents.create_invisible_pks =
+        std::find(options.begin(), options.end(), "create_invisible_pks") !=
+        options.end();
+  }
+
   if (md->has_key("tableOnly"))
     m_contents.table_only = md->get_bool("tableOnly");
 
@@ -302,6 +310,25 @@ Dump_reader::tables_without_pk() const {
     }
   }
   return res;
+}
+
+bool Dump_reader::has_tables_without_pk() const {
+  for (const auto &s : m_contents.schemas) {
+    for (const auto &t : s.second->tables) {
+      if (t.second->primary_index.empty()) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+bool Dump_reader::has_primary_key(const std::string &schema,
+                                  const std::string &table) const {
+  return !m_contents.schemas.at(schema)
+              ->tables.at(table)
+              ->primary_index.empty();
 }
 
 std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
@@ -663,6 +690,12 @@ void Dump_reader::validate_options() {
           "() function, the 'schema' option cannot be used.");
       throw std::invalid_argument("Invalid option: schema.");
     }
+  }
+
+  if (should_create_pks() && !m_options.load_ddl()) {
+    current_console()->print_warning(
+        "The 'createInvisiblePKs' option is set to true, but the 'loadDdl' "
+        "option is false, Primary Keys are not going to be created.");
   }
 }
 
@@ -1060,6 +1093,10 @@ void Dump_reader::show_metadata() const {
     console->println();
     console->println(shcore::Value(metadata).yaml());
   }
+}
+
+bool Dump_reader::should_create_pks() const {
+  return m_options.should_create_pks(m_contents.create_invisible_pks);
 }
 
 }  // namespace mysqlsh

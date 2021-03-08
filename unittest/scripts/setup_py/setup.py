@@ -88,9 +88,9 @@ def EXPECT_EQ(expected, actual, note=""):
     context = "Tested values don't match as expected: "+note+"\n\tActual:   " + str(actual) + "\n\tExpected: " + str(expected)
     testutil.fail(context)
 
-def EXPECT_NE(expected, actual):
+def EXPECT_NE(expected, actual, note=""):
   if expected == actual:
-    context = "Tested values should not match:\n\tActual: " + str(actual) + "\n\tExpected: " + str(expected)
+    context = "Tested values should not match: "+note+"\n\tActual: " + str(actual) + "\n\tExpected: " + str(expected)
     testutil.fail(context)
 
 def EXPECT_LE(expected, actual, note=""):

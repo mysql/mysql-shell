@@ -1297,6 +1297,10 @@ option can be used even if all 'load' options are disabled.
 @li <b>characterSet</b>: string (default taken from dump) - Overrides
 the character set to be used for loading dump data. By default, the same
 character set used for dumping will be used (utf8mb4 if not set on dump).
+@li <b>createInvisiblePKs</b>: bool (default taken from dump) - Automatically
+create an invisible Primary Key for each table which does not have one. By
+default, set to true if dump was created with <b>create_invisible_pks</b>
+compatibility option, false otherwise. Requires server 8.0.24 or newer.
 @li <b>deferTableIndexes</b>: "off", "fulltext", "all" (default: fulltext) -
 If "all", creation of "all" indexes except PRIMARY is deferred until after
 table data is loaded, which in many cases can reduce load times. If "fulltext",
@@ -1443,7 +1447,7 @@ MySQL Shell has options to detect potential issues and in some cases, to
 automatically adjust your schema definition to be compliant.
 
 The <b>ocimds</b> option, when set to true, will perform schema checks for
-most of these issues and abort the dump if any are found. The <<<loadDump>>>
+most of these issues and abort the dump if any are found. The <<<loadDump>>>()
 command will also only allow loading dumps that have been created with the
 "ocimds" option enabled.
 
@@ -1454,9 +1458,25 @@ automatically modify the dumped schema SQL scripts, resolving some of these
 compatibility issues. You may pass one or more of the following values to
 the "compatibility" option.
 
+<b>create_invisible_pks</b> - Each table which does not have a Primary Key will
+have one created when the dump is loaded. The following Primary Key is added
+to the table:
+@code
+`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY
+@endcode
+At the time of the release of MySQL Shell 8.0.24, dumps created with this value
+cannot be used with Inbound Replication into an MySQL Database Service instance
+with High Availability. Mutually exclusive with the <b>ignore_missing_pks</b>
+value.
+
 <b>force_innodb</b> - The MySQL Database Service requires use of the InnoDB
 storage engine. This option will modify the ENGINE= clause of CREATE TABLE
 statements that use incompatible storage engines and replace them with InnoDB.
+
+<b>ignore_missing_pks</b> - Ignore errors caused by tables which do not have
+Primary Keys. Dumps created with this value cannot be used in MySQL Database
+Service instance with High Availability. Mutually exclusive with the
+<b>create_invisible_pks</b> value.
 
 <b>skip_invalid_accounts</b> - Skips accounts which use authentication methods
 (plugins) not supported by the MySQL Database Service.
@@ -1489,6 +1509,17 @@ when the <b>ocimds</b> option is enabled:
 
 @li <b>DATA DIRECTORY</b>, <b>INDEX DIRECTORY</b> and <b>ENCRYPTION</b> options
 in <b>CREATE TABLE</b> statements will be commented out.
+
+At the time of the release of MySQL Shell 8.0.24, in order to use Inbound
+Replication into an MySQL Database Service instance with High Availability, all
+tables at the source server need to have Primary Keys. This needs to be fixed
+manually before running the dump. Starting with MySQL 8.0.23 invisible columns
+may be used to add Primary Keys without changing the schema compatibility, for
+more information see: https://dev.mysql.com/doc/refman/en/invisible-columns.html.
+
+In order to use MySQL Database Service instance with High Availability, all
+tables at the MDS server need to have Primary Keys. This can be fixed
+automatically using the <b>create_invisible_pks</b> compatibility value.
 
 Please refer to the MySQL Database Service documentation for more information
 about restrictions and compatibility.
@@ -1565,8 +1596,9 @@ REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_MDS_COMMON_OPTIONS, R"*(
 MySQL Database Service (MDS)
 @li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
 Database Service compatibility modifications when writing dump files. Supported
-values: "force_innodb", "skip_invalid_accounts", "strip_definers",
-"strip_restricted_grants", "strip_tablespaces".)*");
+values: "create_invisible_pks", "force_innodb", "ignore_missing_pks",
+"skip_invalid_accounts", "strip_definers", "strip_restricted_grants",
+"strip_tablespaces".)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS, R"*(
 @li <b>excludeTables</b>: list of strings (default: empty) - List of tables to

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,7 +34,9 @@ namespace mysqlsh {
 namespace dump {
 
 enum class Compatibility_option {
+  CREATE_INVISIBLE_PKS,
   FORCE_INNODB,
+  IGNORE_MISSING_PKS,
   STRIP_DEFINERS,
   STRIP_RESTRICTED_GRANTS,
   STRIP_TABLESPACES,

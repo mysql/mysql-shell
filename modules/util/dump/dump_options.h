@@ -38,6 +38,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
 
+#include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/instance_cache.h"
 #include "modules/util/import_table/dialect.h"
 
@@ -93,6 +94,10 @@ class Dump_options {
   const mysqlshdk::utils::nullable<mysqlshdk::utils::Version>
       &mds_compatibility() const {
     return m_mds;
+  }
+
+  const Compatibility_options &compatibility_options() const {
+    return m_compatibility_options;
   }
 
   const std::vector<shcore::Account> &excluded_users() const {
@@ -161,6 +166,10 @@ class Dump_options {
   void set_mds_compatibility(
       const mysqlshdk::utils::nullable<mysqlshdk::utils::Version> &mds) {
     m_mds = mds;
+  }
+
+  void set_compatibility_option(Compatibility_option c) {
+    m_compatibility_options |= c;
   }
 
   template <typename C>
@@ -242,6 +251,7 @@ class Dump_options {
 
   // currently used by dumpTables(), dumpSchemas() and dumpInstance()
   mysqlshdk::utils::nullable<mysqlshdk::utils::Version> m_mds;
+  Compatibility_options m_compatibility_options;
 
   // currently used by dumpInstance()
   std::vector<shcore::Account> m_excluded_users;

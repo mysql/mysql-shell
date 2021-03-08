@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,9 @@
 
 #include "mysqlshdk/libs/utils/nullable.h"
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
+
+#include "modules/util/dump/compatibility_option.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -87,7 +90,7 @@ void Ddl_dumper_options::set_ocimds(bool value) {
 void Ddl_dumper_options::set_compatibility_options(
     const std::vector<std::string> &options) {
   for (const auto &option : options) {
-    m_compatibility_options |= to_compatibility_option(option);
+    set_compatibility_option(to_compatibility_option(option));
   }
 }
 
@@ -108,6 +111,17 @@ void Ddl_dumper_options::on_unpacked_options() {
   if (m_ddl_only && m_data_only) {
     throw std::invalid_argument(
         "The 'ddlOnly' and 'dataOnly' options cannot be both set to true.");
+  }
+
+  if (compatibility_options().is_set(
+          Compatibility_option::CREATE_INVISIBLE_PKS) &&
+      compatibility_options().is_set(
+          Compatibility_option::IGNORE_MISSING_PKS)) {
+    throw std::invalid_argument(shcore::str_format(
+        "The '%s' and '%s' compatibility options cannot be used at the same "
+        "time.",
+        to_string(Compatibility_option::CREATE_INVISIBLE_PKS).c_str(),
+        to_string(Compatibility_option::IGNORE_MISSING_PKS).c_str()));
   }
 }
 

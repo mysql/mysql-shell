@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,7 +37,11 @@ std::unique_ptr<Schema_dumper> Ddl_dumper::schema_dumper(
 
   const auto &options = m_options.compatibility_options();
 
+  dumper->opt_create_invisible_pks =
+      options.is_set(Compatibility_option::CREATE_INVISIBLE_PKS);
   dumper->opt_force_innodb = options.is_set(Compatibility_option::FORCE_INNODB);
+  dumper->opt_ignore_missing_pks =
+      options.is_set(Compatibility_option::IGNORE_MISSING_PKS);
   dumper->opt_strip_definer =
       options.is_set(Compatibility_option::STRIP_DEFINERS);
   dumper->opt_strip_restricted_grants =

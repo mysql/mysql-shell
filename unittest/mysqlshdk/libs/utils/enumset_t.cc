@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,6 +22,9 @@
  */
 
 #include "mysqlshdk/libs/utils/enumset.h"
+
+#include <set>
+
 #include "unittest/gtest_clean.h"
 
 namespace mysqlshdk {
@@ -39,18 +42,23 @@ TEST(Enumset, test) {
   EXPECT_FALSE(fruitset.is_set(Banana));
   EXPECT_FALSE(fruitset.matches_any(Fruit_set::any()));
   EXPECT_TRUE(fruitset == empty);
+  EXPECT_TRUE(fruitset.values().empty());
 
   fruitset.set(Apple);
   EXPECT_TRUE(fruitset.matches_any(Fruit_set::any()));
   EXPECT_TRUE(Fruit_set::any().matches_any(fruitset));
+  EXPECT_EQ((std::set<Fruit>{Apple}), fruitset.values());
 
   fruitset2.set(Banana).set(Cantaloupe);
   EXPECT_FALSE(fruitset == fruitset2);
   EXPECT_FALSE(fruitset2.is_set(Apple));
   EXPECT_TRUE(fruitset2.is_set(Banana));
   EXPECT_TRUE(fruitset2.is_set(Cantaloupe));
+  EXPECT_EQ((std::set<Fruit>{Banana, Cantaloupe}), fruitset2.values());
+
   fruitset2.unset(Cantaloupe);
   EXPECT_FALSE(fruitset2.is_set(Cantaloupe));
+  EXPECT_EQ((std::set<Fruit>{Banana}), fruitset2.values());
 }
 
 TEST(Enumset, operators) {

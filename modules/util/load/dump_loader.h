@@ -380,12 +380,15 @@ class Dump_loader {
 
   std::string filter_user_script_for_mds(const std::string &script);
 
+  bool should_create_pks() const;
+
  private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);
   FRIEND_TEST(Load_dump_mocked, chunk_scheduling_more_threads);
   FRIEND_TEST(Load_dump_mocked, chunk_scheduling_more_tables);
   FRIEND_TEST(Load_dump_mocked, filter_user_script_for_mds);
+  FRIEND_TEST(Load_dump_mocked, sql_generate_invisible_primary_key);
 #endif
 
   class Sql_transform {

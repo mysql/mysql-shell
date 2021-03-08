@@ -25,6 +25,8 @@
 
 #include <algorithm>
 
+#include <mysqld_error.h>
+
 #include "modules/mod_utils.h"
 #include "modules/util/dump/dump_manifest.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
@@ -126,6 +128,8 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
                      {"replace", Update_gtid_set::REPLACE},
                      {"off", Update_gtid_set::OFF}})
           .optional("showMetadata", &Load_dump_options::m_show_metadata)
+          .optional("createInvisiblePKs",
+                    &Load_dump_options::m_create_invisible_pks)
           .include(&Load_dump_options::m_oci_option_pack)
           .on_done(&Load_dump_options::on_unpacked_options);
 
@@ -241,6 +245,18 @@ void Load_dump_options::set_session(
 
   m_is_mds = ::mysqlsh::is_mds(m_target_server_version);
   DBUG_EXECUTE_IF("dump_loader_force_mds", { m_is_mds = true; });
+
+  try {
+    m_base_session->query(
+        "SELECT @@SESSION.sql_generate_invisible_primary_key;");
+    m_auto_create_pks_supported = true;
+  } catch (const mysqlshdk::db::Error &e) {
+    if (e.code() == ER_UNKNOWN_SYSTEM_VARIABLE) {
+      m_auto_create_pks_supported = false;
+    } else {
+      throw;
+    }
+  }
 }
 
 void Load_dump_options::validate() {

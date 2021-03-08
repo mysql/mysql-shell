@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,7 +29,9 @@ namespace mysqlsh {
 namespace dump {
 
 namespace {
+constexpr auto k_create_invisible_pks = "create_invisible_pks";
 constexpr auto k_force_innodb = "force_innodb";
+constexpr auto k_ignore_missing_pks = "ignore_missing_pks";
 constexpr auto k_strip_definers = "strip_definers";
 constexpr auto k_strip_restricted_grants = "strip_restricted_grants";
 constexpr auto k_strip_tablespaces = "strip_tablespaces";
@@ -37,7 +39,11 @@ constexpr auto k_skip_invalid_accounts = "skip_invalid_accounts";
 }  // namespace
 
 Compatibility_option to_compatibility_option(const std::string &c) {
+  if (c == k_create_invisible_pks)
+    return Compatibility_option::CREATE_INVISIBLE_PKS;
   if (c == k_force_innodb) return Compatibility_option::FORCE_INNODB;
+  if (c == k_ignore_missing_pks)
+    return Compatibility_option::IGNORE_MISSING_PKS;
   if (c == k_strip_definers) return Compatibility_option::STRIP_DEFINERS;
   if (c == k_strip_restricted_grants)
     return Compatibility_option::STRIP_RESTRICTED_GRANTS;
@@ -66,8 +72,14 @@ Compatibility_option to_compatibility_option(Schema_dumper::Issue::Status s) {
 
 std::string to_string(Compatibility_option c) {
   switch (c) {
+    case Compatibility_option::CREATE_INVISIBLE_PKS:
+      return k_create_invisible_pks;
+
     case Compatibility_option::FORCE_INNODB:
       return k_force_innodb;
+
+    case Compatibility_option::IGNORE_MISSING_PKS:
+      return k_ignore_missing_pks;
 
     case Compatibility_option::STRIP_DEFINERS:
       return k_strip_definers;
