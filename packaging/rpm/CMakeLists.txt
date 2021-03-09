@@ -64,11 +64,13 @@ option(COMMUNITY_BUILD "Set to true if this is a community build" ON)
 # Distinguish cloud builds from commercial/gpl
 option(CLOUD_BUILD "Set to true if this is a cloud build" OFF)
 
+# These options are only turned ON when needed
 set(CLOUD_VER "0")
+set(COMMERCIAL_VER "0")
+
 if (CLOUD_BUILD)
   set(PRODUCT_SUFFIX "-cloud")
   set(LICENSE_TYPE   "Cloud")
-  set(COMMERCIAL_VER     "0")
   set(CLOUD_VER          "1")
   # We add ".2" to RPM release if commercial
   set(RPM_RELEASE "${RPM_RELEASE}.2")
