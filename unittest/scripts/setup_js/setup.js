@@ -3,6 +3,8 @@ sandbox_uris[__mysql_sandbox_port1] = __sandbox_uri1;
 sandbox_uris[__mysql_sandbox_port2] = __sandbox_uri2;
 sandbox_uris[__mysql_sandbox_port3] = __sandbox_uri3;
 
+var add_instance_options = {HoSt:localhost, port: 0000, PassWord:'root', scheme:'mysql'};
+
 // Gets the initial UUID of the given instance caching the data
 // for further requests
 var sandbox_uuids = {}

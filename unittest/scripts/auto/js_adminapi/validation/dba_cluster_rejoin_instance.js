@@ -24,6 +24,3 @@ NOTE: <<<hostname>>>:<<<__mysql_sandbox_port2>>> is already an active (ONLINE) m
 
 //@ Dissolve cluster
 ||
-
-//@ Finalization
-||

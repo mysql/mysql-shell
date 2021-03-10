@@ -469,27 +469,6 @@ TEST_F(Shell_js_dba_tests, DISABLED_configure_local_instance) {
 }
 #endif
 
-TEST_F(Shell_js_dba_tests, configure_local_instance_errors) {
-  _options->wizards = false;
-  reset_replayable_shell();
-
-  validate_interactive("dba_configure_local_instance_errors.js");
-}
-
-TEST_F(Shell_js_dba_tests, reboot_cluster) {
-  _options->wizards = false;
-  reset_replayable_shell();
-
-  validate_interactive("dba_reboot_cluster.js");
-}
-
-TEST_F(Shell_js_dba_tests, reboot_cluster_interactive) {
-  _options->interactive = true;
-  reset_replayable_shell();
-
-  validate_interactive("dba_reboot_cluster_interactive.js");
-}
-
 TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations) {
   _options->wizards = false;
   reset_replayable_shell();
@@ -527,42 +506,6 @@ TEST_F(Shell_js_dba_tests, cluster_no_misconfigurations_interactive) {
   MY_EXPECT_LOG_NOT_CONTAINS(log);
 }
 
-TEST_F(Shell_js_dba_tests, dba_cluster_remove_instance) {
-  _options->wizards = false;
-  reset_replayable_shell();
-  // Regression for Bug #25404009
-  validate_interactive("dba_cluster_remove_instance.js");
-}
-
-TEST_F(Shell_js_dba_tests, dba_cluster_rejoin_instance) {
-  _options->wizards = false;
-  _options->dba_log_sql = 2;
-  reset_replayable_shell();
-  // Regression for Bug #25786495
-  validate_interactive("dba_cluster_rejoin_instance.js");
-}
-
-TEST_F(Shell_js_dba_tests, rpl_filter_check_no_interactive) {
-  _options->wizards = false;
-  reset_replayable_shell();
-
-  // Validate test script.
-  validate_interactive("dba_rpl_filter_check_no_interactive.js");
-}
-
-TEST_F(Shell_js_dba_tests, dba_cluster_rpl_user_password) {
-  _options->wizards = false;
-  reset_replayable_shell();
-
-#ifdef _WIN32
-  execute("var __plugin='validate_password.dll'");
-#else
-  execute("var __plugin='validate_password.so'");
-#endif
-
-  validate_interactive("dba_cluster_rpl_user_password.js");
-}
-
 TEST_F(Shell_js_dba_tests, dba_cluster_mts) {
   _options->wizards = false;
   reset_replayable_shell();
@@ -571,14 +514,6 @@ TEST_F(Shell_js_dba_tests, dba_cluster_mts) {
   create_file("mybad.cnf", bad_config);
 
   validate_interactive("dba_cluster_mts.js");
-}
-
-TEST_F(Shell_js_dba_tests, dba_configure_new_instance) {
-  // Regression for BUG#26818744 : MYSQL SHELL DOESN'T ADD THE SERVER_ID ANYMORE
-  _options->wizards = false;
-  reset_replayable_shell();
-
-  validate_interactive("dba_configure_new_instance.js");
 }
 
 TEST_F(Shell_js_dba_tests, super_read_only_handling) {
@@ -594,13 +529,6 @@ TEST_F(Shell_js_dba_tests, super_read_only_handling) {
   output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_super_read_only_handling.js");
-}
-
-TEST_F(Shell_js_dba_tests, adopt_from_gr) {
-  _options->wizards = false;
-  reset_replayable_shell();
-
-  validate_interactive("dba_adopt_from_gr.js");
 }
 
 TEST_F(Shell_js_dba_tests, adopt_from_gr_interactive) {
@@ -631,20 +559,6 @@ TEST_F(Shell_js_dba_tests, adopt_from_gr_interactive) {
   output_handler.prompts.push_back({"*", "y"});
 
   validate_interactive("dba_adopt_from_gr_interactive.js");
-}
-
-TEST_F(Shell_js_dba_tests, dba_cluster_dissolve) {
-  _options->wizards = false;
-  reset_replayable_shell();
-
-  validate_interactive("dba_cluster_dissolve.js");
-}
-
-TEST_F(Shell_js_dba_tests, advanced_options) {
-  _options->wizards = false;
-  reset_replayable_shell();
-
-  validate_interactive("dba_advanced_options.js");
 }
 
 }  // namespace shcore

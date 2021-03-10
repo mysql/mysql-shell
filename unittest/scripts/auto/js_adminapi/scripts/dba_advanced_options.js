@@ -7,6 +7,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port3);
+var __sandbox_dir = testutil.getSandboxPath();
 
 shell.connect({scheme: "mysql", host: localhost, port: __mysql_sandbox_port1, user: 'root', password: 'root'});
 
@@ -331,13 +332,13 @@ testutil.waitMemberTransactions(__mysql_sandbox_port3);
 c.disconnect();
 
 //@ Configure seed instance (FR1-TS-4)
-var cnfPath1 = __sandbox_dir + __mysql_sandbox_port1 + "/my.cnf";
+var cnfPath1 = os.path.join(__sandbox_dir, __mysql_sandbox_port1.toString(), "my.cnf");
 dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port1, password:'root', user: 'root'}, {mycnfPath: cnfPath1});
 
 //@ Configure added instance (FR1-TS-4)
 session.close();
 add_instance_options['port'] = __mysql_sandbox_port2;
-var cnfPath2 = __sandbox_dir + __mysql_sandbox_port2 + "/my.cnf";
+var cnfPath2 = os.path.join(__sandbox_dir, __mysql_sandbox_port2.toString(), "my.cnf");
 dba.configureLocalInstance({host: localhost, port: __mysql_sandbox_port2, password:'root', user: 'root'}, {mycnfPath: cnfPath2});
 
 //@ Stop seed and added instance with specific options (FR1-TS-4)
