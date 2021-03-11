@@ -108,34 +108,17 @@ cluster.rejoinInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 scene.make_no_quorum([__mysql_sandbox_port1]);
-testutil.startSandbox(__mysql_sandbox_port2);
-testutil.startSandbox(__mysql_sandbox_port3);
-testutil.waitForDelayedGRStart(__mysql_sandbox_port2, "root");
-testutil.waitForDelayedGRStart(__mysql_sandbox_port3, "root");
+//NOTE: Due to BUG#26394418 (GR) when the remaining cluster members are
+//killed and restarted, restoring the quorum can result in a timeout.
+//Since this bug was only fixed in 8.0 and not ported to 5.7, we must
+//not restart the killed instances.
 cluster.forceQuorumUsingPartitionOf({host:localhost, port: __mysql_sandbox_port1, user: 'root', password:'root'});
 
-//@<> Cluster status after force quorum
-var status = cluster.status();
-EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"], "Status for sandbox 1 is invalid")
-EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"], "Status for sandbox 1 is invalid")
-EXPECT_EQ("(MISSING)", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["status"], "Status for sandbox 1 is invalid")
-EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"], "Mode for sandbox 1 is invalid")
-EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"], "Mode for sandbox 2 is invalid")
-EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port3}`]["mode"], "Mode for sandbox 3 is invalid")
-
-//@<> Rejoin instance 2
-cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port2, password:'root', user:'root'}, {memberSslMode: 'REQUIRED'});
-
-// Waiting for the second rejoined instance to become online
+//@<> Cluster status after force quorum and rejoins
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
-//@<> Rejoin instance 3
-cluster.rejoinInstance({host:localhost, port: __mysql_sandbox_port3, password:'root', user:'root'}, {memberSslMode: 'REQUIRED'});
-
-// Waiting for the third rejoined instance to become online
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
-
-//@<> Cluster status after rejoins
 var status = cluster.status();
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["status"])
 EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["status"])
