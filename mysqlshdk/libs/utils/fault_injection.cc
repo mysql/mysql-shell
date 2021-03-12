@@ -117,8 +117,10 @@ class Fault_injector {
   std::function<void(const FI::Args &)> m_inject;
 
   std::list<FI::Trap> m_traps;
-  int m_paused = 0;
+  static thread_local int m_paused;
 };
+
+thread_local int Fault_injector::m_paused = 0;
 
 static std::unique_ptr<std::vector<Fault_injector>> g_fault_injectors;
 }  // namespace

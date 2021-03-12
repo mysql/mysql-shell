@@ -261,19 +261,6 @@ TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
 EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 1 sub-chunks")
 
-#@<> BUG#31961688 - fail after end of the data load has been logged, then resume {not __dbug_off}
-# EXPECT: when resuming, no sub-chunks are loaded
-testutil.set_trap("dump_loader", ["op == AFTER_LOAD_END", "schema == testdb", "table == data2", "chunk == -1"], {"msg": "Injected exception"})
-
-EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "RuntimeError: Util.load_dump: Error loading dump")
-EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
-
-testutil.clear_traps("dump_loader")
-
-TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
-EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
-EXPECT_STDOUT_NOT_CONTAINS("testdb@data2.tsv.zst")
-
 #@<> BUG#31961688 - table which is not sub-chunked does not generate sub-chunking events {not __dbug_off}
 # EXPECT: trap should not be triggered
 testutil.set_trap("dump_loader", ["op == BEFORE_LOAD_SUBCHUNK_START", "schema == testdb", "table == data3", "chunk == -1"], {"msg": "Injected exception"})

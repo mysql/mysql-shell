@@ -56,9 +56,9 @@
 
 namespace mysqlsh {
 
-FI_DEFINE(dump_loader, ([](const mysqlshdk::utils::FI::Args &args) {
-            throw std::runtime_error(args.get_string("msg"));
-          }));
+FI_DEFINE(dump_loader, [](const mysqlshdk::utils::FI::Args &args) {
+  throw std::runtime_error(args.get_string("msg"));
+});
 
 // how many seconds the server should wait to finish reading data from client
 // basically how long it may take for a block of data to be read from its
@@ -276,11 +276,14 @@ class Index_file {
 
 void Dump_loader::Worker::Task::handle_current_exception(
     Worker *worker, Dump_loader *loader, const std::string &error) {
-  if (!loader->m_thread_exceptions[id()]) {
+  const auto id = worker->id();
+
+  if (!loader->m_thread_exceptions[id]) {
     current_console()->print_error(
-        shcore::str_format("[Worker%03zu] %s", id(), error.c_str()));
-    loader->m_thread_exceptions[id()] = std::current_exception();
+        shcore::str_format("[Worker%03zu] %s", id, error.c_str()));
+    loader->m_thread_exceptions[id] = std::current_exception();
   }
+
   loader->m_num_errors += 1;
   loader->post_worker_event(worker, Worker_event::FATAL_ERROR);
 }
@@ -474,21 +477,9 @@ bool Dump_loader::Worker::Load_chunk_task::execute(
       load(session, loader, worker);
     }
 
-    log_debug("worker%zu done", id());
-
     FI_TRIGGER_TRAP(dump_loader,
                     mysqlshdk::utils::FI::Trigger_options(
                         {{"op", "BEFORE_LOAD_END"},
-                         {"schema", schema()},
-                         {"table", table()},
-                         {"chunk", std::to_string(chunk_index())}}));
-
-    // signal for more work
-    loader->post_worker_event(worker, Worker_event::LOAD_END);
-
-    FI_TRIGGER_TRAP(dump_loader,
-                    mysqlshdk::utils::FI::Trigger_options(
-                        {{"op", "AFTER_LOAD_END"},
                          {"schema", schema()},
                          {"table", table()},
                          {"chunk", std::to_string(chunk_index())}}));
@@ -498,6 +489,11 @@ bool Dump_loader::Worker::Load_chunk_task::execute(
         shcore::str_format("While loading %s: %s", path.c_str(), e.what()));
     return false;
   }
+
+  log_debug("worker%zu done", id());
+
+  // signal for more work
+  loader->post_worker_event(worker, Worker_event::LOAD_END);
 
   return true;
 }

@@ -28,6 +28,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 #include <limits>
 #include <locale>
 #include <sstream>
@@ -1152,8 +1153,8 @@ bool Value::operator==(const Value &other) const {
           case Bool:
             return other.operator==(*this);
           case Float:
-            return value.i == (int)other.value.d &&
-                   ((other.value.d - (int)other.value.d) == 0.0);
+            return value.i == (int64_t)other.value.d &&
+                   ((other.value.d - (int64_t)other.value.d) == 0.0);
           default:
             return false;
         }
@@ -1162,8 +1163,8 @@ bool Value::operator==(const Value &other) const {
           case Bool:
             return other.operator==(*this);
           case Float:
-            return value.ui == (unsigned int)other.value.d &&
-                   ((other.value.d - (int)other.value.d) == 0.0);
+            return value.ui == (uint64_t)other.value.d &&
+                   ((other.value.d - (uint64_t)other.value.d) == 0.0);
           default:
             return false;
         }
@@ -2197,6 +2198,10 @@ std::string &Function_base::append_repr(std::string *s_out) const {
 void Function_base::append_json(JSON_dumper *dumper) const {
   std::string repr;
   dumper->append_string(append_repr(&repr));
+}
+
+std::ostream &operator<<(std::ostream &os, const Value &v) {
+  return os << v.descr() << " (" << type_name(v.type) << ")";
 }
 
 }  // namespace shcore

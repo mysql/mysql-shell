@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -248,7 +248,7 @@ v8::Local<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(
       r = owner->v8_string(*value.value.s);
       break;
     case Integer:
-      r = v8::Integer::New(owner->isolate(), value.value.i);
+      r = v8::Number::New(owner->isolate(), value.value.i);
       break;
     case UInteger:
       r = v8::Number::New(owner->isolate(), value.value.ui);

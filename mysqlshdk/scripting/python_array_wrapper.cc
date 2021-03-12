@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -147,8 +147,7 @@ PyObject *list_inplace_concat(PyShListObject *self, PyObject *other) {
   shcore::Value::Array_type *array;
   array = self->array->get();
 
-  shcore::Value::Array_type *array_other =
-      new Value::Array_type(ctx->pyobj_to_shcore_value(other));
+  const auto array_other = ctx->pyobj_to_shcore_value(other).as_array();
 
   std::copy(array_other->begin(), array_other->end(),
             std::back_inserter(*array));

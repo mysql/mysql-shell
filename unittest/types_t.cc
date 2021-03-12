@@ -1,23 +1,25 @@
-/* Copyright (c) 2014, 2020, Oracle and/or its affiliates.
-
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License, version 2.0,
- as published by the Free Software Foundation.
-
- This program is also distributed with certain software (including
- but not limited to OpenSSL) that is licensed under separate terms, as
- designated in a particular file or component or in included license
- documentation.  The authors of MySQL hereby grant you an additional
- permission to link the program and your derivative works with the
- separately licensed software that they have included with MySQL.
- This program is distributed in the hope that it will be useful,  but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
- the GNU General Public License, version 2.0, for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
+/*
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 #include <algorithm>
 #include <cstdio>
@@ -484,7 +486,7 @@ TEST(Parsing, Map) {
 
   EXPECT_TRUE(map->has_key("null"));
   EXPECT_EQ(shcore::Null, (*map)["null"].type);
-  EXPECT_EQ(NULL, (*map)["null"]);
+  EXPECT_FALSE((*map)["null"]);
 
   EXPECT_TRUE(map->has_key("false"));
   EXPECT_EQ(shcore::Bool, (*map)["false"].type);
@@ -576,10 +578,10 @@ TEST(Parsing, Array) {
   EXPECT_FALSE((*array)[7].as_bool());
 
   EXPECT_EQ(shcore::Null, (*array)[8].type);
-  EXPECT_EQ(NULL, (*array)[8]);
+  EXPECT_FALSE((*array)[8]);
 
   EXPECT_EQ(shcore::Undefined, (*array)[9].type);
-  EXPECT_EQ(NULL, (*array)[9]);
+  EXPECT_FALSE((*array)[9]);
 
   shcore::Value v2 = shcore::Value::parse("[]");
   EXPECT_EQ(shcore::Array, v2.type);
