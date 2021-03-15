@@ -138,6 +138,15 @@ function filter_gtids_from(gtidset, uuid) {
   return result.join(",");
 }
 
+function ensure_cs_replication_channel_ready(replica_uri, master_port) {
+  var replica_session = mysql.getSession(replica_uri);
+
+  wait_channel_reconnecting(replica_session, "clusterset_replication");
+  wait_channel_ready(replica_session, master_port, "clusterset_replication");
+
+  replica_session.close();
+}
+
 function invalidate_cluster(cluster, pcluster) {
   var session = mysql.getSession("mysql://root:root@"+pcluster.status()["defaultReplicaSet"]["primary"]);
 
@@ -513,6 +522,62 @@ function CHECK_REMOVED_CLUSTER(uris, pcluster, cluster_name) {
     EXPECT_EQ("OFF", skip_replica_start, uri+".skip_replica_start");
 
     session.close();
+  }
+}
+
+function CHECK_REMOVED_INSTANCE(uri) {
+  var session = mysql.getSession(uri);
+  println("CHECK REMOVED INSTANCE", uri);
+
+  // check member action config
+  var res = session.runSql("select name, event, enabled, type, priority, error_handling from performance_schema.replication_group_member_actions");
+  while (r = res.fetchOne()) {
+    if ("mysql_disable_super_read_only_if_primary" == r["name"]) {
+      EXPECT_EQ("AFTER_PRIMARY_ELECTION", r["event"], uri+".member_action.sro.event");
+      EXPECT_EQ(1, r["enabled"], uri+".member_action.sro.enabled");
+      EXPECT_EQ("INTERNAL", r["type"], uri+".member_action.sro.type");
+      EXPECT_EQ(1, r["priority"], uri+".member_action.sro.priority");
+      EXPECT_EQ("IGNORE", r["error_handling"], uri+".member_action.sro.error_handling");
+    } else if ("mysql_start_failover_channels_if_primary" == r["name"]) {
+      EXPECT_EQ("AFTER_PRIMARY_ELECTION", r["event"], uri+".member_action.failover.event");
+      EXPECT_EQ(1, r["enabled"], uri+".member_action.failover.enabled");
+      EXPECT_EQ("INTERNAL", r["type"], uri+".member_action.failover.type");
+      EXPECT_EQ(10, r["priority"], uri+".member_action.failover.priority");
+      EXPECT_EQ("CRITICAL", r["error_handling"], uri+".member_action.failover.error_handling");
+    } else {
+      println("UNEXPECTED member action: ", r["name"], "at", uri)
+    }
+  }
+
+  // check replication channel
+  var res = session.runSql("select c.host, c.port, c.user, c.source_connection_auto_failover, s.service_state, s.source_uuid from performance_schema.replication_connection_status s join performance_schema.replication_connection_configuration c on s.channel_name = c.channel_name where s.channel_name='clusterset_replication'");
+  var r = res.fetchOne();
+  EXPECT_EQ(null, r, uri+".async repl")
+}
+
+function CHECK_REJOINED_INSTANCE(uri, primary_cluster, is_primary_member) {
+  var session = mysql.getSession(uri);
+  println("CHECK REJOINED INSTANCE", uri);
+
+  // check replication channel
+  var res = session.runSql("select c.host, c.port, c.user, c.source_connection_auto_failover, s.service_state, s.source_uuid from performance_schema.replication_connection_status s join performance_schema.replication_connection_configuration c on s.channel_name = c.channel_name where s.channel_name='clusterset_replication'");
+  var r = res.fetchOne();
+  if (primary_cluster) {
+    if (is_primary_member) {
+      primary = shell.parseUri(primary_cluster.status()["defaultReplicaSet"]["primary"]);
+      EXPECT_EQ("ON", r["service_state"], uri+".ar.service_state");
+      EXPECT_EQ(hostname, r["host"], uri+".ar.host");
+      EXPECT_EQ(primary["port"], r["port"], uri+".ar.port");
+    } else {
+      EXPECT_EQ("OFF", r["service_state"], uri+".ar.service_state");
+      EXPECT_EQ(hostname, r["host"], uri+".ar.host");
+      EXPECT_EQ(primary["port"], r["port"], uri+".ar.port");
+    }
+  } else {
+    if (r != null)
+      EXPECT_EQ("OFF", r["service_state"], uri+".async repl.service_state");
+    else
+      EXPECT_EQ(null, r, uri+".async repl")
   }
 }
 

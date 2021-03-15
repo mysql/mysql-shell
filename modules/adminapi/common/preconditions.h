@@ -107,7 +107,7 @@ class Precondition_checker {
       mysqlsh::dba::Cluster_global_status_mask allowed_states);
 
  protected:
-  virtual Cluster_global_status_mask get_cluster_global_state();
+  virtual Cluster_global_status get_cluster_global_state();
 
   std::shared_ptr<MetadataStorage> m_metadata;
   std::shared_ptr<Instance> m_group_server;

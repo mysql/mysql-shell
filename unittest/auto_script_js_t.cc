@@ -254,7 +254,9 @@ std::vector<std::string> find_js_tests(const std::string &subdir,
 
   std::vector<std::string> filtered;
   for (const auto &s : tests) {
-    if (shcore::str_endswith(s, ext)) filtered.push_back(subdir + "/" + s);
+    // We let files starting with underscore as modules
+    if (shcore::str_endswith(s, ext) && s[0] != '_')
+      filtered.push_back(subdir + "/" + s);
   }
   return filtered;
 }

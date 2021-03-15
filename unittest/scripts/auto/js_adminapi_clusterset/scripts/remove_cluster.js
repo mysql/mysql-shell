@@ -15,10 +15,11 @@ var session = scene.session
 var cluster = scene.cluster
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port5, "root", {report_host: hostname});
-// testutil.deploySandbox(__mysql_sandbox_port6, "root", {report_host: hostname});
+testutil.deploySandbox(__mysql_sandbox_port6, "root", {report_host: hostname});
 
 session1 = mysql.getSession(__sandbox_uri1);
 session4 = mysql.getSession(__sandbox_uri4);
+session6 = mysql.getSession(__sandbox_uri6);
 
 var clusterset = cluster.createClusterSet("myClusterSet");
 
@@ -229,7 +230,37 @@ testutil.startSandbox(__mysql_sandbox_port4);
 session4 = mysql.getSession(__sandbox_uri4);
 wipeout_cluster(session1, [__address4r]);
 
+//@<> Remove partial OFFLINE cluster
+replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental"});
+replicacluster.addInstance(__sandbox_uri6);
+
+session6.runSql("stop group_replication");
+
+clusterset.removeCluster("replicacluster")
+
+//@<> Remove NO_QUORUM cluster (should fail)
+wipeout_cluster(session1, [__address4r, __address6r]);
+replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster");
+replicacluster.addInstance(__sandbox_uri6);
+
+testutil.killSandbox(__mysql_sandbox_port6);
+shell.connect(__sandbox_uri4);
+testutil.waitMemberState(__mysql_sandbox_port6, "UNREACHABLE");
+
+EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51016: Could not find any available member in group ");
+
+//@<> Remove NO_QUORUM cluster + force (should still fail) {false}
+// TODO enable it back after wl11894
+// we can't remove a NO_QUORUM cluster because STOP REPLICA and most things will just freeze
+EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51016: Could not find any available member in group ");
+
+//@<> temporary recovery until test above is fixed
+replicacluster.forceQuorumUsingPartitionOf(__sandbox_uri4);
+clusterset.removeCluster("replicacluster");
+
 //@<> Remove cluster with errant trxs
+wipeout_cluster(session1, [__address4r]);
+
 replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental"});
 
 inject_errant_gtid(session4);
@@ -262,24 +293,8 @@ session4.runSql("unlock tables");
 
 clusterset.removeCluster("replicacluster");
 
-// ------------------------------------------------------------
-
-//@<> Tests with a 3 member replica cluster
-
-// TODO doesn't work in this branch
-// replicacluster.addInstance(__sandbox_uri5, {recoveryMethod: "incremental"});
-// replicacluster.addInstance(__sandbox_uri6, {recoveryMethod: "incremental"});
-
-
-//@<> Remove NO_QUORUM cluster
-
-// TODO after fixing addInstance
-
-//@<> Remove partially down cluster
-
-// TODO
-
 //@<> Cleanup
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port4);
 testutil.destroySandbox(__mysql_sandbox_port5);
+testutil.destroySandbox(__mysql_sandbox_port6);

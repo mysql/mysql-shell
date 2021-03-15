@@ -499,6 +499,7 @@ void Create_replica_cluster::prepare() {
       case TargetType::StandaloneInMetadata:
       case TargetType::InnoDBCluster:
       case TargetType::InnoDBClusterSet:
+      case TargetType::InnoDBClusterSetOffline:
         managed_type = "an InnoDB Cluster";
         break;
       case TargetType::GroupReplication:
@@ -527,7 +528,8 @@ void Create_replica_cluster::prepare() {
       "replication configured.",
       m_target_instance->get_canonical_address().c_str());
 
-  if (mysqlshdk::mysql::is_async_replication_configured(*m_target_instance)) {
+  if (mysqlsh::dba::checks::check_illegal_async_channels(*m_target_instance,
+                                                         {})) {
     console->print_error(
         "The target instance '" + m_target_instance->get_canonical_address() +
         "' has asynchronous (source-replica) "
@@ -714,7 +716,7 @@ shcore::Value Create_replica_cluster::execute() {
 
       try {
         // Stop Group Replication and reset GR variables
-        mysqlsh::dba::leave_cluster(*m_target_instance);
+        mysqlsh::dba::leave_cluster(*m_target_instance, true);
       } catch (const std::exception &err) {
         console->print_error("Failed to revert changes: " +
                              std::string(err.what()));
@@ -732,7 +734,7 @@ shcore::Value Create_replica_cluster::execute() {
         "* Configuring ClusterSet managed replication channel...");
 
     m_cluster_set->update_replica(m_target_instance.get(), m_primary_instance,
-                                  ar_options, m_options.dry_run);
+                                  ar_options, true, m_options.dry_run);
 
     // NOTE: This should be done last to allow changes to be replicated
     undo_list.push_back([=]() {

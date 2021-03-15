@@ -73,8 +73,13 @@ void ensure_instance_not_belong_to_metadata(
 
 enum class Check_type { CHECK, CREATE, BOOTSTRAP, JOIN, REJOIN };
 
-void validate_async_channels(const mysqlshdk::mysql::IInstance &instance,
-                             Check_type type);
+size_t check_illegal_async_channels(
+    const mysqlshdk::mysql::IInstance &instance,
+    const std::unordered_set<std::string> &allowed_channels_);
+
+void validate_async_channels(
+    const mysqlshdk::mysql::IInstance &instance,
+    const std::unordered_set<std::string> &allowed_channels, Check_type type);
 
 }  // namespace checks
 }  // namespace dba

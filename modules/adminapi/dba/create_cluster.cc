@@ -247,7 +247,7 @@ void Create_cluster::prepare() {
   // Verify if the instance is running asynchronous
   // replication. Skip if 'force' is enabled.
   if (!m_options.force.get_safe()) {
-    validate_async_channels(*m_target_instance, checks::Check_type::CREATE);
+    validate_async_channels(*m_target_instance, {}, checks::Check_type::CREATE);
   } else {
     log_debug(
         "Skipping verification to check if instance '%s' is running "
@@ -483,7 +483,8 @@ void Create_cluster::reset_recovery_all(Cluster_impl *cluster) {
 
   cluster->execute_in_members(
       {}, cluster->get_cluster_server()->get_connection_options(), {},
-      [&](const std::shared_ptr<Instance> &target) {
+      [&](const std::shared_ptr<Instance> &target,
+          const mysqlshdk::gr::Member &) {
         old_users.insert(mysqlshdk::gr::get_recovery_user(*target));
 
         std::string new_user;

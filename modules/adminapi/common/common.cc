@@ -1867,6 +1867,9 @@ TargetType::Type get_instance_type(const MetadataStorage &metadata,
       return TargetType::InnoDBCluster;
     } else if (cluster_type == Cluster_type::GROUP_REPLICATION && !gr_active) {
       // InnoDB cluster but with GR stopped
+      if (metadata.check_cluster_set(target_server)) {
+        return TargetType::InnoDBClusterSetOffline;
+      }
       return TargetType::StandaloneInMetadata;
     } else if (gr_active) {
       // GR running but instance is not in the metadata, could be:

@@ -147,6 +147,10 @@ EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR("Cluster.rejoinInstance", cluster.rejoinIns
 
 cluster.rejoinInstance(__sandbox_uri2);
 
+//@<> skip_replica_start is kept unchanged if the instance does not belong to a ClusterSet {VER(>=8.0.27)}
+var skip_replica_start = session2.runSql("SELECT @@skip_replica_start").fetchOne()[0];
+EXPECT_EQ(0, skip_replica_start);
+
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
 

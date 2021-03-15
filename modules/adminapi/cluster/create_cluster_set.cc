@@ -31,6 +31,7 @@
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/global_topology.h"
+#include "modules/adminapi/common/instance_validations.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/mod_dba_cluster_set.h"
@@ -92,7 +93,7 @@ void Create_cluster_set::check_illegal_channels() {
           "replication configured.",
           instance_address.c_str());
 
-      if (mysqlshdk::mysql::is_async_replication_configured(*instance)) {
+      if (mysqlsh::dba::checks::check_illegal_async_channels(*instance, {})) {
         console->print_error(
             "Cluster member '" + instance_address +
             "' has asynchronous (source-replica) replication channel(s) "

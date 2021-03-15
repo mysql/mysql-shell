@@ -2444,7 +2444,8 @@ bool MetadataStorage::check_metadata(mysqlshdk::utils::Version *out_version,
   return false;
 }
 
-bool MetadataStorage::check_cluster_set(Instance *target_instance) const {
+bool MetadataStorage::check_cluster_set(Instance *target_instance,
+                                        std::string *out_cs_domain_name) const {
   bool ret_val = false;
 
   auto target = target_instance ? target_instance : m_md_server.get();
@@ -2460,6 +2461,18 @@ bool MetadataStorage::check_cluster_set(Instance *target_instance) const {
     auto row = result->fetch_one();
 
     ret_val = row && !row->is_null(0);
+
+    if (out_cs_domain_name && ret_val) {
+      result = execute_sqlf(
+          "SELECT domain_name"
+          " FROM mysql_innodb_cluster_metadata.clustersets"
+          " WHERE clusterset_id = ?",
+          row->get_as_string(0));
+
+      auto domain_name = result->fetch_one();
+
+      *out_cs_domain_name = domain_name->get_as_string(0);
+    }
   } catch (const shcore::Error &e) {
     // ER_BAD_FIELD_ERROR Would be raised if metadata schema is not 2.1.0
     // ER_BAD_DB_ERROR Would be raised in a metadata upgrade failure in which

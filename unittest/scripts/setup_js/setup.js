@@ -454,6 +454,20 @@ function wait_member_state_from(session, member_port, state) {
   testutil.fail("Timeout while waiting for "+member_port+" to become "+state+" when queried from "+session.runSql("select @@port").fetchOne()[0]);
 }
 
+function wait_channel_ready(session, port, channel) {
+  wait(10, 0.5, function(){
+    row = session.runSql("select s.service_state, port from performance_schema.replication_connection_status s join performance_schema.replication_connection_configuration c on s.channel_name = c.channel_name where s.channel_name=?", [channel]).fetchOne();
+    return row && row[0]=="ON" && row[1]==port;
+  });
+}
+
+function wait_channel_reconnecting(session, channel) {
+  wait(10, 0.5, function(){
+    row = session.runSql("select s.service_state, port from performance_schema.replication_connection_status s join performance_schema.replication_connection_configuration c on s.channel_name = c.channel_name where s.channel_name=?", [channel]).fetchOne();
+    return row && row[0]=="CONNECTING";
+  });
+}
+
 function normalize_cluster_options(options) {
   // normalize output of cluster.options(), to make order of tags to be always the same
   options["defaultReplicaSet"]["tags"][".global"] = options["defaultReplicaSet"]["tags"]["global"];
@@ -529,6 +543,8 @@ var __address1r = __mysql_host + ":" + __mysql_sandbox_port1;
 var __address2r = __mysql_host + ":" + __mysql_sandbox_port2;
 var __address3r = __mysql_host + ":" + __mysql_sandbox_port3;
 var __address4r = __mysql_host + ":" + __mysql_sandbox_port4;
+var __address5r = __mysql_host + ":" + __mysql_sandbox_port5;
+var __address6r = __mysql_host + ":" + __mysql_sandbox_port6;
 
 var CLUSTER_ADMIN = "AdminUser";
 var CLUSTER_ADMIN_PWD = "AdminUserPwd";

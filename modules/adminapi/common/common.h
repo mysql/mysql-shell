@@ -78,7 +78,8 @@ enum Type {
   StandaloneInMetadata = 1 << 4,
   AsyncReplicaSet = 1 << 5,
   InnoDBClusterSet = 1 << 6,
-  Unknown = 1 << 7
+  InnoDBClusterSetOffline = 1 << 7,
+  Unknown = 1 << 8
 };
 }  // namespace TargetType
 

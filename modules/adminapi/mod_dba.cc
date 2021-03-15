@@ -913,13 +913,16 @@ Cluster Dba::get_cluster(str name, dict options) {}
 std::shared_ptr<Cluster> Dba::get_cluster(
     const mysqlshdk::null_string &cluster_name,
     const shcore::Dictionary_t &options) const {
+  std::shared_ptr<Instance> target_member, group_server;
+  std::shared_ptr<MetadataStorage> metadata;
+
+  auto console = mysqlsh::current_console();
+
   try {
     bool connect_to_primary = true;
     bool fallback_to_anything = true;
 
-    auto target_member = connect_to_target_member();
-
-    std::shared_ptr<MetadataStorage> metadata;
+    target_member = connect_to_target_member();
 
     if (target_member) {
       metadata = std::make_shared<MetadataStorage>(target_member);
@@ -932,11 +935,10 @@ std::shared_ptr<Cluster> Dba::get_cluster(
           .optional("connectToPrimary", &connect_to_primary)
           .end();
 
-      if (options->has_key("connectToPrimary")) fallback_to_anything = false;
+      if (options->has_key("connectToPrimary")) {
+        fallback_to_anything = false;
+      }
     }
-
-    std::shared_ptr<Instance> group_server;
-    auto console = mysqlsh::current_console();
 
     // This will throw if not a cluster member
     try {
@@ -993,10 +995,20 @@ std::shared_ptr<Cluster> Dba::get_cluster(
       }
     }
 
-    return get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
-                       metadata, group_server);
+    auto cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
+                               metadata, group_server);
+
+    // Check if the target Cluster is invalidated
+    if (cluster->impl()->is_cluster_set_member() &&
+        cluster->impl()->is_invalidated()) {
+      console->print_warning(
+          "Cluster '" + cluster->impl()->get_name() +
+          "' was INVALIDATED and must be removed from the ClusterSet.");
+    }
+
+    return cluster;
   } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM)
+    if (e.code() == SHERR_DBA_GROUP_HAS_NO_QUORUM) {
       throw shcore::Exception::runtime_error(
           get_function_name("getCluster") +
           ": Unable to find a cluster PRIMARY member from the active shell "
@@ -1006,6 +1018,43 @@ std::shared_ptr<Cluster> Dba::get_cluster(
           get_function_name("getCluster") +
           "(null, {connectToPrimary:false}) to get a read-only cluster "
           "handle.");
+    } else if (e.code() == SHERR_DBA_METADATA_MISSING) {
+      // The Metadata does not contain this Cluster, however, the preconditions
+      // checker verified the existence of the Cluster in the Metadata schema of
+      // the current Shell session meaning:
+      //
+      //   - The Cluster is ONLINE
+      //   - The Cluster belongs to a ClusterSet, however it's not the valid
+      //   PRIMARY Cluster
+      //   - The Cluster's Metadata is not the most up-to-date Metadata copy of
+      //   the ClusterSet hence it does not exist in that Metadata copy
+      //
+      // This means the Cluster has been removed from the ClusterSet Metadata so
+      // we must check if the Cluster is part of a ClusterSet to print a
+      // warning and obtain the Cluster object from its own Metadata.
+      // If not, we must error out right away.
+      if (target_member) {
+        std::shared_ptr<MetadataStorage> metadata_at_target =
+            std::make_shared<MetadataStorage>(target_member);
+
+        auto cluster =
+            get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
+                        metadata_at_target, group_server);
+
+        std::string cs_domain_name;
+        if (metadata_at_target->check_cluster_set(target_member.get(),
+                                                  &cs_domain_name)) {
+          console->print_warning(
+              "The Cluster '" + cluster->impl()->get_name() +
+              "' appears to have been removed from the ClusterSet '" +
+              cs_domain_name +
+              "', however its own metadata copy wasn't properly updated during "
+              "the removal");
+
+          return cluster;
+        }
+      }
+    }
 
     throw;
   }
@@ -1770,6 +1819,23 @@ std::shared_ptr<ClusterSet> Dba::get_cluster_set() {
   }
 
   auto cs = cluster->impl()->get_cluster_set(true);
+
+  // Check if the target Cluster still belongs to the ClusterSet
+  Cluster_set_member_metadata cluster_member_md;
+  if (!cs->get_metadata_storage()->get_cluster_set_member(
+          cluster->impl()->get_id(), &cluster_member_md)) {
+    current_console()->print_error("The Cluster '" + cluster_md.cluster_name +
+                                   "' appears to have been removed from "
+                                   "the ClusterSet '" +
+                                   cs->get_name() +
+                                   "', however its own metadata copy wasn't "
+                                   "properly updated during the removal");
+
+    throw shcore::Exception("The cluster '" + cluster_md.cluster_name +
+                                "' is not a part of the ClusterSet '" +
+                                cs->get_name() + "'",
+                            SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET);
+  }
 
   return std::make_shared<mysqlsh::dba::ClusterSet>(cs);
 }
@@ -2611,16 +2677,6 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
   // 1. Ensure that a Metadata Schema exists on the current session instance.
   // 3. Ensure that the provided cluster identifier exists on the Metadata
   // Schema
-  if (!cluster_name) {
-    console->print_info(
-        "Restoring the default cluster from complete outage...");
-  } else {
-    console->print_info(
-        shcore::str_format("Restoring the cluster '%s' from complete outage...",
-                           cluster_name->c_str()));
-  }
-  console->print_info();
-
   try {
     cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
                           metadata, target_instance, true);
@@ -2640,6 +2696,10 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
       throw;
     }
   }
+
+  console->print_info("Restoring the cluster '" + cluster->impl()->get_name() +
+                      "' from complete outage...");
+  console->print_info();
 
   if (!cluster) {
     if (!cluster_name) {
@@ -2874,6 +2934,14 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     }
   }
 
+  // If this is a REPLICA Cluster of a ClusterSet, ensure SRO is enabled on all
+  // members
+  if (cluster_impl->is_cluster_set_member() &&
+      !cluster_impl->is_primary_cluster()) {
+    auto cs = cluster_impl->get_cluster_set();
+    cs->ensure_replica_settings(cluster_impl.get(), false);
+  }
+
   console->print_info("The cluster was successfully rebooted.");
   console->print_info();
 
@@ -2918,6 +2986,7 @@ static void validate_instance_belongs_to_cluster(
           "' belongs to an InnoDB ReplicaSet. ");
 
     case TargetType::InnoDBClusterSet:
+    case TargetType::InnoDBClusterSetOffline:
       throw shcore::Exception::runtime_error(
           "The MySQL instance '" + member_session_address +
           "' belongs to an InnoDB ClusterSet. ");

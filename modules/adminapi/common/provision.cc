@@ -24,6 +24,7 @@
 #include <map>
 
 #include "modules/adminapi/common/common.h"
+#include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/provision.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -278,7 +279,8 @@ void wait_super_read_only_cleared(const mysqlshdk::mysql::IInstance &instance,
 namespace mysqlsh {
 namespace dba {
 
-void leave_cluster(const mysqlsh::dba::Instance &instance) {
+void leave_cluster(const mysqlsh::dba::Instance &instance,
+                   bool is_cluster_set_member) {
   std::string instance_address = instance.get_connection_options().as_uri(
       mysqlshdk::db::uri::formats::only_transport());
 
@@ -361,6 +363,20 @@ void leave_cluster(const mysqlsh::dba::Instance &instance) {
         "to 'OFF' in the server configuration file, otherwise it might rejoin "
         "the cluster upon restart.";
     console->print_warning(warn_msg);
+  }
+
+  // Reset any member action value to the default since might have been changed
+  // if the instance belonged to a ClusterSet:
+  //   - mysql_disable_super_read_only_if_primary
+  //   - mysql_start_failover_channels_if_primary
+  if (is_cluster_set_member) {
+    try {
+      mysqlshdk::gr::reset_member_actions(instance);
+    } catch (...) {
+      log_error("Error resetting Group Replication member actions at %s: %s",
+                instance.descr().c_str(), format_active_exception().c_str());
+      throw;
+    }
   }
 }
 

@@ -1241,7 +1241,7 @@ void execute_member_action_udf(const mysqlshdk::mysql::IInstance &instance,
     log_info(
         "Disabling super_read_only mode on instance '%s' to '%s' a Group "
         "Replication member action configuration.",
-        reason.c_str(), instance.descr().c_str());
+        instance.descr().c_str(), reason.c_str());
     instance.set_sysvar("super_read_only", false);
   }
 

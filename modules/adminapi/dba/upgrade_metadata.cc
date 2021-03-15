@@ -435,17 +435,16 @@ void Upgrade_metadata::upgrade_router_users() {
           "GRANT UPDATE, INSERT, DELETE ON "
           "mysql_innodb_cluster_metadata.routers TO "};
 
-      // When migrating to version 2.0.0 or 2.1.0 this dummy view is required to
+      mysqlshdk::utils::Version installed;
+      m_metadata->check_version(&installed);
+
+      // When migrating to version 2.0.0 this dummy view is required to
       // enable giving the router users the  right permissions, it will be
       // updated to the correct view once the upgrade is done
-      if (mysqlsh::dba::metadata::current_version() ==
-              mysqlshdk::utils::Version(2, 0, 0) ||
-          mysqlsh::dba::metadata::current_version() ==
-              mysqlshdk::utils::Version(2, 1, 0)) {
+      if (installed < mysqlshdk::utils::Version(2, 0, 0)) {
         m_target_instance->execute(
             "CREATE OR REPLACE VIEW mysql_innodb_cluster_metadata.v2_routers "
-            "AS "
-            "SELECT 1");
+            "AS SELECT 1");
       }
 
       log_debug("Metadata upgrade for version %s, upgraded Router accounts:",

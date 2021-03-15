@@ -131,6 +131,12 @@ class Cluster_join {
    */
   void handle_clone_plugin_state(bool enable_clone);
 
+  /*
+   * Enable skip_slave_start and configures the managed replication channel if
+   * the target cluster is a replica.
+   */
+  void configure_cluster_set_member();
+
  private:
   Cluster_impl *m_cluster = nullptr;
   mysqlsh::dba::Instance *m_primary_instance;
@@ -142,7 +148,6 @@ class Cluster_join {
   mysqlshdk::utils::nullable<std::string> m_instance_label;
 
   bool m_already_member = false;
-
   bool m_is_autorejoining = false;
 };
 

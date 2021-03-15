@@ -52,8 +52,11 @@ namespace dba {
  *       variables on the instance itself.
  *
  * @param instance target Instance object to remove from the cluster.
+ * @param is_cluster_set_member Boolean value to indicate if the instance was
+ * part of a ClusterSet or not
  */
-void leave_cluster(const mysqlsh::dba::Instance &instance);
+void leave_cluster(const mysqlsh::dba::Instance &instance,
+                   bool is_cluster_set_member = false);
 
 /**
  * Check the instance configuration.

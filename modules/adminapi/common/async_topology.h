@@ -43,15 +43,22 @@ namespace dba {
 /**
  * Adds a prepared instance as a replica of the given primary.
  *
- * channel_name - The replication channel name
- * repl_options - AR options, including repl credentials
- * fence_slave - if true, sets SUPER_READ_ONLY at the slave end
+ * @param primary primary/source instance
+ * @param target target instance
+ * @param channel_name The replication channel name
+ * @param repl_options AR options, including repl credentials
+ * @param fence_slave if true, sets SUPER_READ_ONLY at the slave end
+ * @param dry_run boolean value to indicate if the command should do a dry run
+ * or not
+ * @param start_replica boolean value to indicate if the replication channel
+ * should be started after configured or not
  */
 void async_add_replica(mysqlshdk::mysql::IInstance *primary,
                        mysqlshdk::mysql::IInstance *target,
                        const std::string &channel_name,
                        const Async_replication_options &repl_options,
-                       bool fence_slave, bool dry_run);
+                       bool fence_slave, bool dry_run,
+                       bool start_replica = true);
 
 /**
  * Rejoins a replica to replicaset.
@@ -79,6 +86,13 @@ void async_remove_replica(mysqlshdk::mysql::IInstance *target,
                           const std::string &channel_name, bool dry_run);
 
 /**
+ * Updates the replication credentials and re-starts the channel
+ */
+void async_update_replica_credentials(
+    mysqlshdk::mysql::IInstance *target, const std::string &channel_name,
+    const Async_replication_options &rpl_options, bool dry_run);
+
+/**
  * Promotes a secondary to primary.
  */
 void async_swap_primary(mysqlshdk::mysql::IInstance *current_primary,
@@ -103,11 +117,16 @@ void async_force_primary(mysqlshdk::mysql::IInstance *promoted,
 void undo_async_force_primary(mysqlshdk::mysql::IInstance *promoted,
                               bool dry_run);
 
-void async_change_primary(mysqlshdk::mysql::Instance *target,
+bool async_check_primary(mysqlshdk::mysql::IInstance *slave,
+                         mysqlshdk::mysql::IInstance *new_master,
+                         const std::string &channel_name,
+                         const Async_replication_options &repl_options);
+
+void async_change_primary(mysqlshdk::mysql::IInstance *target,
                           mysqlshdk::mysql::IInstance *primary,
                           const std::string &channel_name,
                           const Async_replication_options &repl_options,
-                          bool dry_run);
+                          bool start_replica, bool dry_run);
 /**
  * Change the primary of one or more secondary instances.
  *
@@ -116,9 +135,16 @@ void async_change_primary(mysqlshdk::mysql::Instance *target,
 void async_change_primary(
     mysqlshdk::mysql::IInstance *primary,
     const std::list<std::shared_ptr<Instance>> &secondaries,
+    const std::string &channel_name,
     const Async_replication_options &repl_options,
     mysqlshdk::mysql::IInstance *old_primary,
     shcore::Scoped_callback_list *undo_list, bool dry_run);
+
+void async_change_primary(mysqlshdk::mysql::IInstance *replica,
+                          mysqlshdk::mysql::IInstance *primary,
+                          const std::string &channel_name,
+                          const Async_replication_options &repl_options,
+                          bool dry_run);
 
 void wait_apply_retrieved_trx(mysqlshdk::mysql::IInstance *instance,
                               int timeout_sec);
@@ -137,7 +163,7 @@ void reset_channel(mysqlshdk::mysql::IInstance *instance,
                    const std::string &channel_name = "",
                    bool reset_credentials = false, bool dry_run = false);
 
-void stop_channel(mysqlshdk::mysql::IInstance *instance,
+bool stop_channel(mysqlshdk::mysql::IInstance *instance,
                   const std::string &channel_name, bool safe, bool dry_run);
 
 void start_channel(mysqlshdk::mysql::IInstance *instance,

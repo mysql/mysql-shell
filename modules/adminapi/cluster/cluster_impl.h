@@ -263,7 +263,8 @@ class Cluster_impl : public Base_cluster_impl {
       const std::vector<mysqlshdk::gr::Member_state> &states,
       const mysqlshdk::db::Connection_options &cnx_opt,
       const std::vector<std::string> &ignore_instances_vector,
-      const std::function<bool(const std::shared_ptr<Instance> &instance)>
+      const std::function<bool(const std::shared_ptr<Instance> &instance,
+                               const mysqlshdk::gr::Member &gr_member)>
           &functor,
       const std::function<bool(const Instance_md_and_gr_member &md)>
           &condition = nullptr,
@@ -326,6 +327,18 @@ class Cluster_impl : public Base_cluster_impl {
       const mysqlshdk::mysql::IInstance &target_instance);
 
   /**
+   * Ensures group_replication_view_change_uuid is set on all Cluster members
+   * and stored in the Metadata schema.
+   *
+   * Only effective when the Cluster members are running MySQL >= 8.0.27
+   *
+   * @param target_instance The instance to be used to get the cluster members
+   * to update the group_replication_view_change_uuid option.
+   */
+  void ensure_view_change_uuid_set(
+      const mysqlshdk::mysql::IInstance &target_instance);
+
+  /**
    * Checks for missing metadata recovery account entries, and fix them using
    * info from mysql.slave_master_info.
    *
@@ -361,7 +374,8 @@ class Cluster_impl : public Base_cluster_impl {
 
   std::unique_ptr<mysqlshdk::config::Config> create_config_object(
       const std::vector<std::string> &ignored_instances = {},
-      bool skip_invalid_state = false, bool persist_only = false) const;
+      bool skip_invalid_state = false, bool persist_only = false,
+      bool best_effort = false) const;
 
   void query_group_wide_option_values(
       mysqlshdk::mysql::IInstance *target_instance,
@@ -402,9 +416,18 @@ class Cluster_impl : public Base_cluster_impl {
   // clusterset related methods
   const Cluster_set_member_metadata &get_clusterset_metadata() const;
 
-  bool is_clusterset_member(const std::string &cs_id = "") const;
+  bool is_cluster_set_member(const std::string &cs_id = "") const;
   bool is_invalidated() const;
   bool is_primary_cluster() const;
+
+  /**
+   * Reset the password for the Cluster's replication account in use for the
+   * ClusterSet replication channel
+   *
+   * @return A mysqlshdk::mysql::Auth_options with the username and the newly
+   * generated password
+   */
+  mysqlshdk::mysql::Auth_options refresh_clusterset_replication_user();
 
  protected:
   void _set_option(const std::string &option,

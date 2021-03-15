@@ -1537,14 +1537,31 @@ ReplicaSet Cluster::get_cluster_set() {}
 std::shared_ptr<ClusterSet> Cluster::get_cluster_set() {
   m_impl->check_preconditions("getClusterSet");
 
+  auto cs = m_impl->get_cluster_set();
+
   // Check if the target Cluster is invalidated
-  if (m_impl->is_invalidated()) {
+  if (impl()->is_invalidated()) {
     mysqlsh::current_console()->print_warning(
-        "Cluster '" + m_impl->get_name() +
+        "Cluster '" + impl()->get_name() +
         "' was INVALIDATED and must be removed from the ClusterSet.");
   }
 
-  auto cs = m_impl->get_cluster_set();
+  // Check if the target Cluster still belongs to the ClusterSet
+  Cluster_set_member_metadata cluster_member_md;
+  if (!cs->get_metadata_storage()->get_cluster_set_member(impl()->get_id(),
+                                                          &cluster_member_md)) {
+    current_console()->print_error("The Cluster '" + impl()->get_name() +
+                                   "' appears to have been removed from "
+                                   "the ClusterSet '" +
+                                   cs->get_name() +
+                                   "', however its own metadata copy wasn't "
+                                   "properly updated during the removal");
+
+    throw shcore::Exception("The cluster '" + impl()->get_name() +
+                                "' is not a part of the ClusterSet '" +
+                                cs->get_name() + "'",
+                            SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET);
+  }
 
   return std::make_shared<mysqlsh::dba::ClusterSet>(cs);
 }

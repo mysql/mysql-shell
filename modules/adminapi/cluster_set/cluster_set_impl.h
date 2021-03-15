@@ -145,9 +145,13 @@ class Cluster_set_impl : public Base_cluster_impl {
   void swap_primary(Instance *demoted, Instance *promoted,
                     const Async_replication_options &ar_options, bool dry_run);
 
-  void update_replica(Instance *replica, Instance *master,
+  void update_replica(Cluster_impl *replica, Instance *master,
                       const Async_replication_options &ar_options,
                       bool dry_run);
+
+  void update_replica(Instance *replica, Instance *master,
+                      const Async_replication_options &ar_options,
+                      bool primary_instance, bool dry_run);
 
   void remove_replica(Instance *instance, bool dry_run);
 
@@ -155,6 +159,8 @@ class Cluster_set_impl : public Base_cluster_impl {
                                bool dry_run);
 
   void remove_replica_settings(Instance *instance, bool dry_run);
+
+  void ensure_replica_settings(Cluster_impl *replica, bool dry_run);
 
   void record_in_metadata(
       const Cluster_id &seed_cluster_id,

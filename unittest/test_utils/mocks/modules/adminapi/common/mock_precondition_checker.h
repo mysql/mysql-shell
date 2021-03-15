@@ -41,11 +41,10 @@ class Mock_precondition_checker : public mysqlsh::dba::Precondition_checker {
       const std::shared_ptr<mysqlsh::dba::Instance> &group_server);
   virtual ~Mock_precondition_checker() {}
 
-  MOCK_METHOD0(get_cluster_global_state,
-               mysqlsh::dba::Cluster_global_status_mask());
+  MOCK_METHOD0(get_cluster_global_state, mysqlsh::dba::Cluster_global_status());
 
  private:
-  mysqlsh::dba::Cluster_global_status_mask def_get_cluster_global_state();
+  mysqlsh::dba::Cluster_global_status def_get_cluster_global_state();
 };
 }  // namespace testing
 

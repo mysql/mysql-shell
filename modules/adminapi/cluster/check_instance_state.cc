@@ -141,7 +141,8 @@ shcore::Dictionary_t Check_instance_state::collect_instance_state() {
   m_cluster.execute_in_members(
       {mysqlshdk::gr::Member_state::ONLINE},
       m_target_instance->get_connection_options(), {},
-      [&all_purged, this](const std::shared_ptr<Instance> &instance) {
+      [&all_purged, this](const std::shared_ptr<Instance> &instance,
+                          const mysqlshdk::gr::Member &) {
         // Get the gtid state in regards to the cluster_session
         mysqlshdk::mysql::Replica_gtid_state gtid_state =
             mysqlshdk::mysql::check_replica_gtid_state(

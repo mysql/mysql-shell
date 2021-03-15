@@ -185,8 +185,7 @@ The cluster successfully switched to Single-Primary mode.
         },
         "topologyMode": "Single-Primary"
     },
-    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port1>>>",
-    "metadataServer": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
+    "groupInformationSourceMember": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>"
 }
 
 //@ WL#12052: Finalization

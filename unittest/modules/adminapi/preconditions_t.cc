@@ -370,8 +370,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions_errors) {
   testing::Mock_precondition_checker checker(m_mock_metadata, m_mock_instance);
 
   EXPECT_CALL(checker, get_cluster_global_state())
-      .WillOnce(Return(mysqlsh::dba::Cluster_global_status_mask(
-          mysqlsh::dba::Cluster_global_status::OK_MISCONFIGURED)));
+      .WillOnce(Return(mysqlsh::dba::Cluster_global_status::OK_MISCONFIGURED));
 
   Invalid_states validation = {
       mysqlsh::dba::Cluster_global_status_mask(
@@ -396,8 +395,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions_errors) {
           "state "};
 
   EXPECT_CALL(checker, get_cluster_global_state())
-      .WillOnce(Return(mysqlsh::dba::Cluster_global_status_mask(
-          mysqlsh::dba::Cluster_global_status::NOT_OK)));
+      .WillOnce(Return(mysqlsh::dba::Cluster_global_status::NOT_OK));
 
   EXPECT_THROW_LIKE(
       checker.check_cluster_set_preconditions(validation.allowed_states),
@@ -418,15 +416,18 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       mysqlsh::dba::Cluster_global_status::INVALIDATED};
 
   std::set<std::string> cset_exclusive_expected = {
-      "Cluster.getClusterSet",
-      "ClusterSet.createReplicaCluster",
+      "Cluster.getClusterSet",          "ClusterSet.createReplicaCluster",
+      "ClusterSet.forcePrimaryCluster", "ClusterSet.rejoinCluster",
+      "ClusterSet.removeCluster",       "ClusterSet.setPrimaryCluster"};
+
+  std::set<std::string> cset_offline_expected = {
       "ClusterSet.describe",
-      "ClusterSet.forcePrimaryCluster",
-      "ClusterSet.rejoinCluster",
-      "ClusterSet.removeCluster",
-      "ClusterSet.setPrimaryCluster",
       "ClusterSet.status",
-      "Dba.getClusterSet"};
+      "Dba.checkInstanceConfiguration",
+      "Dba.configureInstance",
+      "Dba.configureLocalInstance",
+      "Dba.getClusterSet",
+      "Dba.rebootClusterFromCompleteOutage"};
 
   std::set<std::string> standalone_cluster_exclusive_expected = {
       "Cluster.createClusterSet", "Cluster.dissolve",
@@ -440,11 +441,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       "Cluster.listRouters",
       "Cluster.options",
       "Cluster.status",
-      "Dba.checkInstanceConfiguration",
-      "Dba.configureInstance",
-      "Dba.configureLocalInstance",
       "Dba.getCluster",
-      "Dba.rebootClusterFromCompleteOutage",
       "Dba.upgradeMetadata"};
 
   std::set<std::string> cset_sometimes_allowed_expected = {
@@ -461,6 +458,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       "Cluster.setupRouterAccount"};
 
   std::set<std::string> cset_exclusive;
+  std::set<std::string> cset_offline;
   std::set<std::string> standalone_cluster_exclusive;
   std::set<std::string> cset_always_allowed;
   std::set<std::string> cset_sometimes_allowed;
@@ -471,6 +469,12 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
     bool cluster_set_exclusive =
         (precondition.second.instance_config_state |
          TargetType::InnoDBClusterSet) == TargetType::InnoDBClusterSet;
+
+    bool cluster_set_offline =
+        ((precondition.second.instance_config_state &
+          TargetType::InnoDBClusterSet) == TargetType::InnoDBClusterSet) &&
+        (precondition.second.instance_config_state &
+         TargetType::InnoDBClusterSetOffline);
 
     // Functions that are forbidden in Clusters that belong to ClusterSets
     bool is_standalone_cluster_exclusive =
@@ -486,6 +490,8 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
     if (cluster_set_exclusive) {
       cset_exclusive.insert(precondition.first);
       // Check also that the cluster_set_state mask is empty
+    } else if (cluster_set_offline) {
+      cset_offline.insert(precondition.first);
     } else if (precondition.second.cluster_set_state.empty() &&
                is_standalone_cluster_exclusive) {
       // Functions that are forbidden to cluster sets
@@ -503,8 +509,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       cset_sometimes_allowed.insert(precondition.first);
       for (const auto global_state : global_cluster_states) {
         EXPECT_CALL(checker, get_cluster_global_state())
-            .WillOnce(
-                Return(mysqlsh::dba::Cluster_global_status_mask(global_state)));
+            .WillOnce(Return(global_state));
         if (precondition.second.cluster_set_state.is_set(global_state)) {
           EXPECT_NO_THROW(checker.check_cluster_set_preconditions(
               precondition.second.cluster_set_state));
@@ -516,6 +521,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
     }
   }
   EXPECT_EQ(cset_exclusive_expected, cset_exclusive);
+  EXPECT_EQ(cset_offline_expected, cset_offline);
   EXPECT_EQ(standalone_cluster_exclusive_expected,
             standalone_cluster_exclusive);
   EXPECT_EQ(cset_always_allowed_expected, cset_always_allowed);

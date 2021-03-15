@@ -306,7 +306,8 @@ void Dissolve::remove_instance(const std::string &instance_address,
                                const std::size_t instance_index) {
   try {
     // Stop Group Replication and reset (persist) GR variables.
-    mysqlsh::dba::leave_cluster(*m_available_instances[instance_index]);
+    mysqlsh::dba::leave_cluster(*m_available_instances[instance_index],
+                                m_cluster->is_cluster_set_member());
   } catch (const std::exception &err) {
     auto console = mysqlsh::current_console();
 

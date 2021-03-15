@@ -1407,8 +1407,8 @@ void Replica_set_impl::do_set_primary_instance(
                        ar_options, &undo_list, dry_run);
 
     // NOTE: Skip old master, already setup previously by async_swap_primary().
-    async_change_primary(new_master, instances, ar_options, master, &undo_list,
-                         dry_run);
+    async_change_primary(new_master, instances, k_replicaset_channel_name,
+                         ar_options, master, &undo_list, dry_run);
   } catch (...) {
     console->print_error("Error changing replication source: " +
                          format_active_exception());
@@ -1635,8 +1635,8 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
   console->print_info("* Updating source of remaining SECONDARY instances");
   shcore::Scoped_callback_list undo_list;
   try {
-    async_change_primary(new_master.get(), instances, ar_options, nullptr,
-                         &undo_list, dry_run);
+    async_change_primary(new_master.get(), instances, k_replicaset_channel_name,
+                         ar_options, nullptr, &undo_list, dry_run);
   } catch (...) {
     console->print_error("Error changing replication source: " +
                          format_active_exception());

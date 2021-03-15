@@ -190,6 +190,20 @@ bool get_channel_status(const mysqlshdk::mysql::IInstance &instance,
                         Replication_channel *out_channel);
 
 /**
+ * Gets state information for a replication channel
+ *
+ * @param  instance      [TODO]
+ * @param  channel_name  [TODO]
+ * @param  out_io_state  [TODO]
+ * @param  out_sql_state [TODO]
+ * @return               [TODO]
+ */
+bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
+                       const std::string &channel_name,
+                       Replication_channel::Receiver::State *out_io_state,
+                       Replication_channel::Applier::State *out_sql_state);
+
+/**
  * Gets configuration for a replication channel (as obtained from
  * mysql.slave_master_info and slave_relay_log_info)
  *
@@ -358,20 +372,6 @@ bool wait_for_gtid_set_from(const mysqlshdk::mysql::IInstance &target,
  * @return an integer with a random between 1 and 4294967295.
  */
 int64_t generate_server_id();
-
-/**
- * Checks if the asynchronous (master-slave) replication channels and threads
- * are configured on the target instance:
- *   - Gets the state of the replication I/O thread (receiver channel)
- *   - Gets the state of the replication applier thread (applier channel)
- *
- * @param instance Instance to use to perform the check.
- *
- * @return a boolean value indicating if the instance has the asynchronous
- * (master-slave) replication active
- */
-bool is_async_replication_configured(
-    const mysqlshdk::mysql::IInstance &instance);
 
 /**
  * Get the correct keyword in use for replica/slave regarding the target

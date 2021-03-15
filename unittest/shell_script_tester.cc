@@ -846,8 +846,7 @@ bool Shell_script_tester::load_source_chunks(const std::string &path,
 
       // Handle include files... we make them look like chunks even if they
       // aren't to make it obvious the previous chunk is over
-      if (str_beginswith(chunk_def->id, "INCLUDE ") &&
-          str_endswith(chunk_def->id, ".inc")) {
+      if (str_beginswith(chunk_def->id, "INCLUDE ")) {
         // Syntax:
         //@ INCLUDE file.inc
         //@ INCLUDE tag file.inc
@@ -1662,6 +1661,7 @@ void Shell_script_tester::set_defaults() {
           shcore::quote_string(shcore::path::join_path(g_test_home, "data", ""),
                                '\'') +
               ";");
+  def_var("__test_home_path", shcore::quote_string(g_test_home, '\'') + ";");
 
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 21)) {
     def_var("__default_gr_expel_timeout", "5");

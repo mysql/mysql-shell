@@ -149,6 +149,10 @@ var c = dba.createCluster('test', {exitStateAction: "ABORT_SERVER"});
 // user.
 EXPECT_EQ("ABORT_SERVER", get_sysvar(session, "group_replication_exit_state_action"));
 
+//@<> group_replication_view_change_uuid must not be set for Clusters running versions < 8.0.27 {VER(<8.0.27)}
+var view_change_uuid_md = session.runSql("select (attributes->>'$.group_replication_view_change_uuid') from mysql_innodb_cluster_metadata.clusters where cluster_name='newcluster'").fetchOne();
+EXPECT_EQ(null, view_change_uuid_md);
+
 //@ WL#12049: Dissolve cluster 1 {VER(>=5.7.24)}
 c.dissolve({force: true});
 

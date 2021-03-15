@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,6 +77,7 @@ class Set_primary_instance : public Topology_configuration_command {
 
  private:
   mysqlshdk::db::Connection_options m_instance_cnx_opts;
+  std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
   std::string m_target_uuid;
 
   /**

@@ -601,6 +601,10 @@ shcore::Value Rescan::execute() {
   // instances were found
   m_cluster->ensure_metadata_has_server_id(*m_cluster->get_cluster_server());
 
+  // Ensure group_replication_view_change_uuid is set on the Cluster, and all of
+  // its members, when running MySQL >= 8.0.27
+  m_cluster->ensure_view_change_uuid_set(*m_cluster->get_cluster_server());
+
   // Print warning about not used instances in removeInstances.
   std::vector<std::string> not_used_remove_instances;
   for (const auto &cnx_opts : m_options.remove_instances_list) {

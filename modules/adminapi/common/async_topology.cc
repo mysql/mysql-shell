@@ -113,12 +113,12 @@ void async_add_replica(mysqlshdk::mysql::IInstance *primary,
                        mysqlshdk::mysql::IInstance *target,
                        const std::string &channel_name,
                        const Async_replication_options &repl_options,
-                       bool fence_slave, bool dry_run) {
+                       bool fence_slave, bool dry_run, bool start_replica) {
   stop_channel(target, channel_name, true, dry_run);
 
   change_master(target, primary, channel_name, repl_options, dry_run);
 
-  start_channel(target, channel_name, dry_run);
+  if (start_replica) start_channel(target, channel_name, dry_run);
 
   if (fence_slave) {
     // The fence added here is going to be cleared when a GR group
@@ -166,6 +166,22 @@ void async_remove_replica(mysqlshdk::mysql::IInstance *target,
 
   log_info("Fencing removed instance %s", target->descr().c_str());
   if (!dry_run) fence_instance(target);
+}
+
+void async_update_replica_credentials(
+    mysqlshdk::mysql::IInstance *target, const std::string &channel_name,
+    const Async_replication_options &rpl_options, bool dry_run) {
+  using mysqlshdk::mysql::Replication_channel;
+
+  bool channel_stopped = stop_channel(target, channel_name, false, dry_run);
+
+  if (!dry_run) {
+    change_replication_credentials(
+        *target, rpl_options.repl_credentials->user,
+        rpl_options.repl_credentials->password.get_safe(), channel_name);
+  }
+
+  if (channel_stopped) start_channel(target, channel_name, dry_run);
 }
 
 void async_swap_primary(mysqlshdk::mysql::IInstance *current_primary,
@@ -243,42 +259,43 @@ void undo_async_force_primary(mysqlshdk::mysql::IInstance *promoted,
   if (!dry_run) fence_instance(promoted);
 }
 
-void async_change_primary(mysqlshdk::mysql::Instance *target,
+void async_change_primary(mysqlshdk::mysql::IInstance *replica,
                           mysqlshdk::mysql::IInstance *primary,
                           const std::string &channel_name,
                           const Async_replication_options &repl_options,
-                          bool dry_run) {
+                          bool start_replica, bool dry_run) {
   // make sure it's fenced
-  if (!dry_run) fence_instance(target);
+  if (!dry_run) fence_instance(replica);
 
-  stop_channel(target, channel_name, false, dry_run);
+  stop_channel(replica, channel_name, true, dry_run);
 
-  change_master(target, primary, channel_name, repl_options, dry_run);
+  // This will re-point the slave to the new master without changing any
+  // other replication parameter if repl_options has no credentials.
+  change_master(replica, primary, channel_name, repl_options, dry_run);
 
-  start_channel(target, channel_name, dry_run);
+  if (start_replica) start_channel(replica, channel_name, dry_run);
 
-  log_info("PRIMARY changed for instance %s", target->descr().c_str());
+  log_info("PRIMARY changed for instance %s", replica->descr().c_str());
 }
 
 void async_change_primary(
     mysqlshdk::mysql::IInstance *primary,
     const std::list<std::shared_ptr<Instance>> &secondaries,
+    const std::string &channel_name,
     const Async_replication_options & /*repl_options*/,
     mysqlshdk::mysql::IInstance *old_primary,
     shcore::Scoped_callback_list *undo_list, bool dry_run) {
   for (const auto &slave : secondaries) {
-    if (slave.get() != primary && slave.get() != old_primary) {
-      // This will re-point the slave to the new master without changing any
-      // other replication parameter.
-
-      auto slave_ptr = slave.get();
-
+    if (slave->get_uuid() != primary->get_uuid() &&
+        (!old_primary || slave->get_uuid() != old_primary->get_uuid())) {
       undo_list->push_front([=]() {
-        async_change_primary(slave_ptr, old_primary, k_replicaset_channel_name,
-                             {}, dry_run);
+        if (old_primary) {
+          async_change_primary(slave.get(), old_primary, channel_name, {}, true,
+                               dry_run);
+        }
       });
 
-      async_change_primary(slave_ptr, primary, k_replicaset_channel_name, {},
+      async_change_primary(slave.get(), primary, channel_name, {}, true,
                            dry_run);
 
       log_info("PRIMARY changed for instance %s", slave->descr().c_str());
@@ -379,9 +396,10 @@ void wait_all_apply_retrieved_trx(
   }
 }
 
-void stop_channel(mysqlshdk::mysql::IInstance *instance,
+bool stop_channel(mysqlshdk::mysql::IInstance *instance,
                   const std::string &channel_name, bool safe, bool dry_run) {
   auto console = mysqlsh::current_console();
+  bool channel_stopped = false;
 
   log_info("Stopping channel '%s' at %s", channel_name.c_str(),
            instance->descr().c_str());
@@ -426,11 +444,15 @@ void stop_channel(mysqlshdk::mysql::IInstance *instance,
 
           reset_channel(instance, channel_name, false, dry_run);
         }
+
+        channel_stopped = true;
       }
     } catch (const shcore::Error &e) {
       throw shcore::Exception::mysql_error_with_code(e.what(), e.code());
     }
   }
+
+  return channel_stopped;
 }
 
 void start_channel(mysqlshdk::mysql::IInstance *instance,

@@ -69,7 +69,10 @@ enum class Cluster_status {
   OK_NO_TOLERANCE,          // All members ONLINE, <3 members
   OK_NO_TOLERANCE_PARTIAL,  // <3 members ONLINE, some other members down
   NO_QUORUM,                // Group has no quorum
-  UNKNOWN                   // No members reachable
+  OFFLINE,                  // No members ONLINE (but all reachable)
+  INVALIDATED,              // Part of a ClusterSet but is invalidated
+  ERROR,                    // Group Replication Error
+  UNKNOWN                   // No members ONLINE (some or all unreachable)
 };
 
 std::string to_string(Cluster_status state);
@@ -99,8 +102,9 @@ enum class Cluster_channel_status {
   STOPPED,  // Replication channel stopped gracefully. Either both IO and SQL
             // threads or just one of them.
   ERROR,    // Replication channel stopped due to a replication error (e.g.
-            // conflicting GTID-set or bad configuration)
-  NOT_CONFIGURED,  // Channel doesn't exist
+            // conflicting GTID-set)
+  MISCONFIGURED,  // Channel exists but is replicating from the wrong place
+  MISSING,        // Channel doesn't exist
   UNKNOWN  // Shell cannot connect to the Replica Cluster to obtain information
            // about the replication channel and others
 };

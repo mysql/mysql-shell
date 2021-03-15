@@ -418,7 +418,7 @@ one server failure.
 |Adding instance to the cluster...|
 
 #@<OUT> add_instance() 1 clone {VER(>=8.0.17)}
-{{State recovery already finished for 'localhost:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
+{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 #@<OUT> add_instance() 1 clone {VER(>=8.0.17)}
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
@@ -440,7 +440,7 @@ WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' cannot persist Gr
 Adding instance to the cluster...
 
 #@<OUT> add_instance() 1 {VER(<8.0.11)}
-{{State recovery already finished for 'localhost:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
+{{State recovery already finished for '<<<hostname>>>:<<<__mysql_sandbox_port2>>>'|Incremental state recovery is now in progress.}}
 
 #@<OUT> add_instance() 1 {VER(<8.0.11)}
 WARNING: Instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' cannot persist configuration since MySQL version <<<__version>>> does not support the SET PERSIST command (MySQL version >= 8.0.11 required). Please use the dba.configure_local_instance() command locally to persist the changes.

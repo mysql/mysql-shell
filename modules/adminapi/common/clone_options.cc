@@ -113,7 +113,8 @@ void Clone_options::check_option_values(
           {mysqlshdk::gr::Member_state::ONLINE,
            mysqlshdk::gr::Member_state::RECOVERING},
           cluster->get_cluster_server()->get_connection_options(), {},
-          [&trg](const std::shared_ptr<Instance> &instance) {
+          [&trg](const std::shared_ptr<Instance> &instance,
+                 const mysqlshdk::gr::Member &) {
             validate_clone_supported(instance->get_version(),
                                      std::string(kRecoveryMethod) + "=clone",
                                      trg, true);

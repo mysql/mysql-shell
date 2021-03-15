@@ -32,7 +32,7 @@ Mock_precondition_checker::Mock_precondition_checker(
           this, &Mock_precondition_checker::def_get_cluster_global_state));
 }
 
-mysqlsh::dba::Cluster_global_status_mask
+mysqlsh::dba::Cluster_global_status
 Mock_precondition_checker::def_get_cluster_global_state() {
   return mysqlsh::dba::Precondition_checker::get_cluster_global_state();
 }

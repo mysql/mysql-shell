@@ -197,9 +197,11 @@ const std::map<std::string, Function_availability>
         {"Dba.rebootClusterFromCompleteOutage",
          {k_min_gr_version,
           TargetType::StandaloneInMetadata | TargetType::InnoDBCluster |
-              TargetType::InnoDBClusterSet,
+              TargetType::InnoDBClusterSet |
+              TargetType::InnoDBClusterSetOffline,
           ReplicationQuorum::State::any(),
-          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
+          ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO |
+              ManagedInstance::State::Offline,
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
            {metadata::States(metadata::State::MAJOR_HIGHER),
             MDS_actions::RAISE_ERROR},
@@ -210,7 +212,8 @@ const std::map<std::string, Function_availability>
          {k_min_gr_version,
           TargetType::Standalone | TargetType::StandaloneWithMetadata |
               TargetType::StandaloneInMetadata | TargetType::InnoDBCluster |
-              TargetType::InnoDBClusterSet | TargetType::Unknown |
+              TargetType::InnoDBClusterSet |
+              TargetType::InnoDBClusterSetOffline | TargetType::Unknown |
               TargetType::GroupReplication,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
@@ -220,8 +223,9 @@ const std::map<std::string, Function_availability>
          {k_min_gr_version,
           TargetType::Standalone | TargetType::StandaloneWithMetadata |
               TargetType::StandaloneInMetadata | TargetType::InnoDBCluster |
-              TargetType::InnoDBClusterSet | TargetType::GroupReplication |
-              TargetType::Unknown,
+              TargetType::InnoDBClusterSet |
+              TargetType::InnoDBClusterSetOffline |
+              TargetType::GroupReplication | TargetType::Unknown,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {},
@@ -230,7 +234,8 @@ const std::map<std::string, Function_availability>
          {k_min_gr_version,
           TargetType::Standalone | TargetType::StandaloneWithMetadata |
               TargetType::StandaloneInMetadata | TargetType::GroupReplication |
-              TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,
+              TargetType::InnoDBCluster | TargetType::InnoDBClusterSet |
+              TargetType::InnoDBClusterSetOffline,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {},
@@ -270,7 +275,7 @@ const std::map<std::string, Function_availability>
            {metadata::kCompatibleLower, MDS_actions::NOTE}}}},
         {"Dba.getClusterSet",
          {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
+          TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
@@ -488,7 +493,7 @@ const std::map<std::string, Function_availability>
           kClusterGlobalStateAnyOk}},
         {"ClusterSet.status",
          {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
+          TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
@@ -497,7 +502,7 @@ const std::map<std::string, Function_availability>
           kClusterGlobalStateAny}},
         {"ClusterSet.describe",
          {k_min_cs_version,
-          TargetType::InnoDBClusterSet,
+          TargetType::InnoDBClusterSet | TargetType::InnoDBClusterSetOffline,
           ReplicationQuorum::State::any(),
           ManagedInstance::State::Any,
           {{metadata::kUpgradeStates, MDS_actions::RAISE_ERROR},
@@ -717,6 +722,7 @@ Cluster_check_info Precondition_checker::check_preconditions(
     if (state.source_type == TargetType::GroupReplication ||
         state.source_type == TargetType::InnoDBCluster ||
         state.source_type == TargetType::InnoDBClusterSet ||
+        state.source_type == TargetType::InnoDBClusterSetOffline ||
         state.source_type == TargetType::AsyncReplicaSet) {
       // Validates availability based on the instance status
       check_managed_instance_status_preconditions(state.source_state,
@@ -730,7 +736,8 @@ Cluster_check_info Precondition_checker::check_preconditions(
       }
 
       // Validate other ClusterSet preconditions
-      if (state.source_type == TargetType::InnoDBClusterSet) {
+      if (state.source_type == TargetType::InnoDBClusterSet ||
+          state.source_type == TargetType::InnoDBClusterSetOffline) {
         check_cluster_set_preconditions(availability.cluster_set_state);
       }
     }
@@ -794,8 +801,10 @@ void Precondition_checker::check_instance_configuration_preconditions(
       error += " to an instance belonging to an unmanaged replication group";
       break;
     case TargetType::InnoDBCluster:
-      if ((allowed_types | TargetType::InnoDBClusterSet) ==
-          TargetType::InnoDBClusterSet) {
+      if (((allowed_types | TargetType::InnoDBClusterSet |
+            TargetType::InnoDBClusterSetOffline) ==
+           (TargetType::InnoDBClusterSet |
+            TargetType::InnoDBClusterSetOffline))) {
         error +=
             " to an instance that belongs to an InnoDB Cluster that is not a "
             "member of an InnoDB ClusterSet";
@@ -812,6 +821,12 @@ void Precondition_checker::check_instance_configuration_preconditions(
     case TargetType::InnoDBClusterSet:
       error += " to an InnoDB Cluster that belongs to an InnoDB ClusterSet";
       code = SHERR_DBA_CLUSTER_ALREADY_IN_CLUSTERSET;
+      break;
+    case TargetType::InnoDBClusterSetOffline:
+      error +=
+          " to an InnoDB Cluster that belongs to an InnoDB ClusterSet but is "
+          "not ONLINE";
+      code = SHERR_DBA_BADARG_INSTANCE_NOT_ONLINE;
       break;
   }
 
@@ -884,26 +899,23 @@ void Precondition_checker::check_quorum_state_preconditions(
   }
 }
 
-Cluster_global_status_mask Precondition_checker::get_cluster_global_state() {
+Cluster_global_status Precondition_checker::get_cluster_global_state() {
   Cluster_metadata cluster_md;
   Cluster_set_metadata cset_md;
-  Cluster_global_status_mask global_state = {};
 
-  // Only queries the global state if not ALL the states are allowed
   if (m_metadata->get_cluster_for_server_uuid(m_group_server->get_uuid(),
                                               &cluster_md) &&
       !cluster_md.cluster_set_id.empty() &&
       m_metadata->get_cluster_set(cluster_md.cluster_set_id, &cset_md,
                                   nullptr)) {
     Cluster_impl cluster(cluster_md, m_group_server, m_metadata);
-
     auto finally_primary =
         shcore::on_leave_scope([&cluster]() { cluster.release_primary(); });
-    Cluster_set_impl cset(cset_md, m_group_server, m_metadata);
-    global_state = cset.get_cluster_global_status(&cluster);
+
+    return cluster.get_cluster_set()->get_cluster_global_status(&cluster);
   }
 
-  return global_state;
+  throw std::logic_error("Cluster metadata not found");
 }
 
 /**
@@ -919,16 +931,17 @@ void Precondition_checker::check_cluster_set_preconditions(
   std::string error;
 
   if (allowed_states != mysqlsh::dba::Cluster_global_status_mask::any()) {
-    Cluster_global_status_mask global_state = get_cluster_global_state();
+    // Only queries the global state if not ALL the states are allowed
+    Cluster_global_status global_state = get_cluster_global_state();
 
-    if (!global_state.matches_any(allowed_states)) {
+    if (!allowed_states.is_set(global_state)) {
       // ERROR: The function is available on instances in a ClusterSet
       // with specific global state and the instance global state is
       // different
       error =
           "The InnoDB Cluster is part of an InnoDB ClusterSet and has global "
           "state of " +
-          to_string(*(global_state.values().begin())) +
+          to_string(global_state) +
           " within the ClusterSet. Operation is not possible when in that "
           "state ";
 

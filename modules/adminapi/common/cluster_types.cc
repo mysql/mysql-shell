@@ -82,6 +82,15 @@ std::string to_string(Cluster_status state) {
     case Cluster_status::NO_QUORUM:
       ret_val = "NO_QUORUM";
       break;
+    case Cluster_status::OFFLINE:
+      ret_val = "OFFLINE";
+      break;
+    case Cluster_status::INVALIDATED:
+      ret_val = "INVALIDATED";
+      break;
+    case Cluster_status::ERROR:
+      ret_val = "ERROR";
+      break;
     case Cluster_status::UNKNOWN:
       ret_val = "UNKNOWN";
       break;
@@ -121,7 +130,7 @@ std::string to_string(Cluster_global_status status) {
     case Cluster_global_status::INVALIDATED:
       return "INVALIDATED";
     case Cluster_global_status::UNKNOWN:
-      return "UKNOWN";
+      return "UNKNOWN";
   }
   throw std::logic_error("internal error");
 }
@@ -134,8 +143,10 @@ std::string to_string(Cluster_channel_status status) {
       return "STOPPED";
     case Cluster_channel_status::ERROR:
       return "ERROR";
-    case Cluster_channel_status::NOT_CONFIGURED:
-      return "NOT_CONFIGURED";
+    case Cluster_channel_status::MISCONFIGURED:
+      return "MISCONFIGURED";
+    case Cluster_channel_status::MISSING:
+      return "MISSING";
     case Cluster_channel_status::UNKNOWN:
       return "UNKNOWN";
   }

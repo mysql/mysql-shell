@@ -24,8 +24,10 @@
 #include "modules/adminapi/cluster/remove_instance.h"
 
 #include <mysqld_error.h>
+#include <utility>
 #include <vector>
 
+#include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -518,13 +520,39 @@ shcore::Value Remove_instance::execute() {
       }
     }
 
+    // If the instance belongs to a ClusterSet:
+    //   - Sync the transactions after dropping the replication user and
+    //   updating the metadata
+    //   - Reset the ClusterSet replication channel if the cluster is a replica
+    //   cluster
+    //   - Reset ClusterSet configurations and member actions (after stopping
+    //   GR)
+    if (m_cluster->is_cluster_set_member()) {
+      console->print_info(
+          "* Waiting for the Cluster to synchronize with the PRIMARY "
+          "Cluster...");
+
+      m_cluster->sync_transactions(*m_cluster->get_global_primary_master(),
+                                   k_clusterset_async_channel_name, 0);
+
+      auto cs = m_cluster->get_cluster_set();
+
+      if (!m_cluster->is_primary_cluster()) {
+        // Reset the clusterset replication channel
+        remove_channel(m_target_instance.get(), k_clusterset_async_channel_name,
+                       false);
+      }
+    }
+
     // JOB: Remove the instance from the cluster (Stop GR)
     // NOTE: We always try (best effort) to execute leave_cluster(), but
     // ignore any error if force is used (even if the instance is not
     // reachable, since it is already expected to fail).
     try {
       // Stop Group Replication and reset (persist) GR variables.
-      mysqlsh::dba::leave_cluster(*m_target_instance);
+      // Also, reset ClusterSet member actions
+      mysqlsh::dba::leave_cluster(*m_target_instance,
+                                  m_cluster->is_cluster_set_member());
 
       log_info("Instance '%s' has left the group.", m_instance_address.c_str());
     } catch (const std::exception &err) {
@@ -548,11 +576,11 @@ shcore::Value Remove_instance::execute() {
 
   // TODO(alfredo) - when the instance being removed is the PRIMARY and
   // we're connected to it, the create_config_object() is effectively a
-  // no-op, because it will see all other members are MISSING. This has to be
-  // be fixed. This check will accomplish the same
-  // thing as before and will avoid the new exception that would be thrown
-  // in create_config_object() when it tries to query members from an
-  // instance that's not in the group anymore.
+  // no-op, because it will see all other members are MISSING. This has to
+  // be be fixed. This check will accomplish the same thing as before and
+  // will avoid the new exception that would be thrown in
+  // create_config_object() when it tries to query members from an instance
+  // that's not in the group anymore.
   if (!m_target_instance || m_target_instance->get_uuid() !=
                                 m_cluster->get_cluster_server()->get_uuid()) {
     try {
@@ -562,9 +590,10 @@ shcore::Value Remove_instance::execute() {
       m_cluster->update_group_members_for_removed_member(
           m_instance_gr_local_address);
     } catch (const std::exception &err) {
-      console->print_error(shcore::str_format(
-          "Could not update remaining cluster members after removing '%s': %s",
-          m_instance_address.c_str(), err.what()));
+      console->print_error(
+          shcore::str_format("Could not update remaining cluster members "
+                             "after removing '%s': %s",
+                             m_instance_address.c_str(), err.what()));
       // Only add the metadata back if the force option was not used.
       if (m_force.is_null() || *m_force == false) {
         // REVERT JOB: Remove instance from the MD (metadata).

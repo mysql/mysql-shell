@@ -30,6 +30,7 @@
 #include <utility>
 #include <vector>
 
+#include "adminapi/common/async_topology.h"
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
@@ -42,6 +43,7 @@
 #include "modules/adminapi/common/validations.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/mysql/async_replication.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -383,6 +385,45 @@ void Cluster_join::handle_clone_plugin_state(bool enable_clone) {
   m_cluster->setup_clone_plugin(enable_clone);
 }
 
+void Cluster_join::configure_cluster_set_member() {
+  try {
+    m_target_instance->set_sysvar(
+        "skip_replica_start", true,
+        mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
+  } catch (const mysqlshdk::db::Error &e) {
+    throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
+                                                             e.sqlstate());
+  }
+
+  if (!m_cluster->is_primary_cluster()) {
+    m_cluster->sync_transactions(*m_primary_instance,
+                                 k_clusterset_async_channel_name, 0);
+    auto cs = m_cluster->get_cluster_set();
+
+    auto ar_options = cs->get_clusterset_replication_options();
+
+    ar_options.repl_credentials =
+        m_cluster->refresh_clusterset_replication_user();
+
+    // Update the credentials on all cluster members
+    m_cluster->execute_in_members(
+        {}, m_cluster->get_global_primary_master()->get_connection_options(),
+        {},
+        [&](const std::shared_ptr<Instance> &target,
+            const mysqlshdk::gr::Member &) {
+          async_update_replica_credentials(
+              target.get(), k_clusterset_async_channel_name, ar_options, false);
+          return true;
+        });
+
+    // Setup the replication channel at the target instance but do not start
+    // it since that's handled by Group Replication
+    async_add_replica(m_cluster->get_global_primary_master().get(),
+                      m_target_instance.get(), k_clusterset_async_channel_name,
+                      ar_options, true, false, false);
+  }
+}
+
 void Cluster_join::check_cluster_members_limit() const {
   const std::vector<Instance_metadata> all_instances =
       m_cluster->get_metadata_storage()->get_all_instances(m_cluster->get_id());
@@ -410,7 +451,9 @@ Member_recovery_method Cluster_join::check_recovery_method(
 
     m_cluster->execute_in_members(
         {mysqlshdk::gr::Member_state::ONLINE}, target->get_connection_options(),
-        {}, [&recoverable, &target](const std::shared_ptr<Instance> &instance) {
+        {},
+        [&recoverable, &target](const std::shared_ptr<Instance> &instance,
+                                const mysqlshdk::gr::Member &) {
           // Get the gtid state in regards to the cluster_session
           mysqlshdk::mysql::Replica_gtid_state state =
               mysqlshdk::mysql::check_replica_gtid_state(*instance, *target,
@@ -528,7 +571,12 @@ void Cluster_join::check_instance_configuration(checks::Check_type type) {
   // replication
   // NOTE: Verify for all operations: addInstance(), rejoinInstance() and
   // rebootClusterFromCompleteOutage()
-  validate_async_channels(*m_target_instance, type);
+  validate_async_channels(
+      *m_target_instance,
+      m_cluster->is_cluster_set_member()
+          ? std::unordered_set<std::string>{k_clusterset_async_channel_name}
+          : std::unordered_set<std::string>{},
+      type);
 
   if (type != checks::Check_type::BOOTSTRAP) {
     // If this is not seed instance, then we should try to read the
@@ -552,11 +600,12 @@ void Cluster_join::check_instance_configuration(checks::Check_type type) {
   // before joining instance to cluster, get the values of the
   // gr_local_address from all the active members of the cluster
   if (user_options.group_seeds.is_null() || user_options.group_seeds->empty()) {
-    if (type == checks::Check_type::REJOIN)
+    if (type == checks::Check_type::REJOIN) {
       m_gr_opts.group_seeds =
           m_cluster->get_cluster_group_seeds(m_target_instance);
-    else if (type == checks::Check_type::JOIN)
+    } else if (type == checks::Check_type::JOIN) {
       m_gr_opts.group_seeds = m_cluster->get_cluster_group_seeds();
+    }
   }
 
   // Resolve and validate GR local address.
@@ -880,7 +929,8 @@ void Cluster_join::wait_recovery(const std::string &join_begin_time,
 void Cluster_join::join(Recovery_progress_style progress_style) {
   auto console = mysqlsh::current_console();
 
-  // Set the internal configuration object: read/write configs from the server.
+  // Set the internal configuration object: read/write configs from the
+  // server.
   auto cfg = mysqlsh::dba::create_server_config(
       m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler);
 
@@ -939,9 +989,9 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
     // NOTE: If the clone usage is not disabled on the cluster (disableClone),
     // we must ensure the clone plugin is installed on all members. Otherwise,
     // if the cluster was creating an Older shell (<8.0.17) or if the cluster
-    // was set up using the Incremental recovery only and the primary is removed
-    // (or a failover happened) the instances won't have the clone plugin
-    // installed and GR's recovery using clone will fail.
+    // was set up using the Incremental recovery only and the primary is
+    // removed (or a failover happened) the instances won't have the clone
+    // plugin installed and GR's recovery using clone will fail.
     //
     // See BUG#29954085 and BUG#29960838
     handle_clone_plugin_state(enable_clone);
@@ -949,6 +999,12 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
 
   // Handle the replication user creation.
   bool owns_repl_user = handle_replication_user();
+
+  // enable skip_slave_start if the cluster belongs to a ClusterSet, and
+  // configure the managed replication channel if the cluster is a replica.
+  if (m_cluster->is_cluster_set_member()) {
+    configure_cluster_set_member();
+  }
 
   try {
     // we need a point in time as close as possible, but still earlier than
@@ -1044,14 +1100,14 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
       // restart.
       if (restore_clone_threshold != 0) {
         // TODO(miguel): 'start group_replication' returns before reading the
-        // threshold value so we can have a race condition. We should wait until
-        // the instance is 'RECOVERING'
+        // threshold value so we can have a race condition. We should wait
+        // until the instance is 'RECOVERING'
         log_debug(
             "Restoring value of group_replication_clone_threshold to: %s.",
             std::to_string(restore_clone_threshold).c_str());
 
-        // If -1 we must restore it's default, otherwise we restore the initial
-        // value
+        // If -1 we must restore it's default, otherwise we restore the
+        // initial value
         if (restore_clone_threshold == -1) {
           m_target_instance->set_sysvar_default(
               "group_replication_clone_threshold");
@@ -1095,8 +1151,15 @@ void Cluster_join::rejoin() {
   m_cluster->validate_variable_compatibility(
       *m_target_instance, "group_replication_gtid_assignment_block_size");
 
-  // TODO(alfredo) - when clone support is added to rejoin, join() can probably
-  // be simplified into create repl user + rejoin() + update metadata
+  // enable skip_slave_start if the cluster belongs to a ClusterSet, and
+  // configure the managed replication channel if the cluster is a
+  // replica.
+  if (m_cluster->is_cluster_set_member()) {
+    configure_cluster_set_member();
+  }
+
+  // TODO(alfredo) - when clone support is added to rejoin, join() can
+  // probably be simplified into create repl user + rejoin() + update metadata
 
   // (Re-)join the instance to the cluster (setting up GR properly).
   // NOTE: the join_cluster() function expects the number of members in
@@ -1115,9 +1178,8 @@ void Cluster_join::rejoin() {
 }
 
 void Cluster_join::reboot() {
-  auto console = mysqlsh::current_console();
-
-  // Set the internal configuration object: read/write configs from the server.
+  // Set the internal configuration object: read/write configs from the
+  // server.
   auto cfg = mysqlsh::dba::create_server_config(
       m_target_instance.get(), mysqlshdk::config::k_dft_cfg_server_handler);
 

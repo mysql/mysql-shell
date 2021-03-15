@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "modules/adminapi/cluster/set_primary_instance.h"
+#include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/sql.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -94,10 +95,10 @@ void Set_primary_instance::prepare() {
 
   std::string address_in_md;
   try {
-    auto target_instance = Instance::connect(m_instance_cnx_opts, false, true);
+    m_target_instance = Instance::connect(m_instance_cnx_opts, false, true);
 
-    m_target_uuid = target_instance->get_uuid();
-    address_in_md = target_instance->get_canonical_address();
+    m_target_uuid = m_target_instance->get_uuid();
+    address_in_md = m_target_instance->get_canonical_address();
   } catch (const shcore::Error &e) {
     log_debug("Failed query target instance '%s': %s",
               target_instance_address.c_str(), e.format().c_str());
@@ -119,8 +120,27 @@ shcore::Value Set_primary_instance::execute() {
                       m_cluster->get_name() + "'...");
   console->println();
 
-  // Execute the UDF: SELECT group_replication_set_as_primary(member_uuid)
-  mysqlshdk::gr::set_as_primary(*m_cluster_session_instance, m_target_uuid);
+  // Restore the replication channel if the cluster belongs to a ClusterSet and
+  // is a replica cluster
+  if (m_cluster->is_cluster_set_member() && !m_cluster->is_primary_cluster()) {
+    // We must stop the replication channel at the primary instance first
+    // since GR won't allow changing the primary when there are running
+    // replication channels.
+
+    // Stop the channel, ensuring all transactions in queue are applied first to
+    // ensure no transaction loss
+    stop_channel(m_cluster->get_cluster_server().get(),
+                 k_clusterset_async_channel_name, true, false);
+
+    // Elect the new primary before starting the replication channel
+    mysqlshdk::gr::set_as_primary(*m_cluster_session_instance, m_target_uuid);
+
+    start_channel(m_target_instance.get(), k_clusterset_async_channel_name,
+                  false);
+  } else {
+    // Just elect the new primary
+    mysqlshdk::gr::set_as_primary(*m_cluster_session_instance, m_target_uuid);
+  }
 
   // Print information about the instances role changes
   print_cluster_members_role_changes();

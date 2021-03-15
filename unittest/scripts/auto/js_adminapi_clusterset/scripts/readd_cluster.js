@@ -13,18 +13,7 @@ cs = cluster.createClusterSet("domain");
 
 rc = cs.createReplicaCluster(__sandbox_uri4, "replica");
 
-//@<> Remove cluster and then add it back with createReplicaCluster with same name
-
-// cs.removeCluster("replica");
-
-// XXX not working
-// cs.createReplicaCluster(__sandbox_uri4, "replica");
-
-//@<> Remove cluster and then add it back with createReplicaCluster with a diff name
-
-
 //@<> Try treating the removed cluster as a clusterset member
-
 cs.removeCluster("replica");
 shell.connect(__sandbox_uri4);
 session.runSql("set global super_read_only=0");

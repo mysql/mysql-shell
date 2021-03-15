@@ -224,7 +224,8 @@ void Check_instance::prepare() {
     // to ensure_instance_configuration_valid() which on the background creates
     // a Check_instance object with the silent flag enabled and executes it.
     if (!m_silent) {
-      validate_async_channels(*m_target_instance, checks::Check_type::CHECK);
+      validate_async_channels(*m_target_instance, {},
+                              checks::Check_type::CHECK);
     }
 
     // Check if the target instance has the clone plugin installed

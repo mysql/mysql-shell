@@ -26,6 +26,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include "modules/adminapi/common/common.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/structured_text.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -384,6 +385,42 @@ bool get_channel_status(const mysqlshdk::mysql::IInstance &instance,
       while ((row = result->fetch_one_named())) {
         unserialize_channel_applier_info(row, out_channel);
       }
+    }
+    return true;
+  }
+  return false;
+}
+
+bool get_channel_state(const mysqlshdk::mysql::IInstance &instance,
+                       const std::string &channel_name,
+                       Replication_channel::Receiver::State *out_io_state,
+                       Replication_channel::Applier::State *out_sql_state) {
+  auto result =
+      instance.queryf("SHOW " + get_replica_keyword(instance.get_version()) +
+                          " STATUS FOR CHANNEL ?",
+                      channel_name);
+  if (auto row = result->fetch_one()) {
+    auto io_state = row->get_string(10);
+    auto sql_state = row->get_string(11);
+
+    if (io_state == "Yes") {
+      *out_io_state = Replication_channel::Receiver::ON;
+    } else if (io_state == "No") {
+      *out_io_state = Replication_channel::Receiver::OFF;
+    } else if (io_state == "Connecting") {
+      *out_io_state = Replication_channel::Receiver::ON;
+    } else {
+      throw std::logic_error("Unexpected value for Replica_IO_Running: " +
+                             io_state);
+    }
+
+    if (sql_state == "Yes") {
+      *out_sql_state = Replication_channel::Applier::ON;
+    } else if (sql_state == "No") {
+      *out_sql_state = Replication_channel::Applier::OFF;
+    } else {
+      throw std::logic_error("Unexpected value for Replica_SQL_Running: " +
+                             sql_state);
     }
     return true;
   }
@@ -816,55 +853,6 @@ int64_t generate_server_id() {
   std::mt19937 rnd_gen(rd_seed());
   std::uniform_int_distribution<int64_t> distribution(1, 4294967295);
   return distribution(rnd_gen);
-}
-
-bool is_async_replication_configured(
-    const mysqlshdk::mysql::IInstance &instance) {
-  std::string receiver_channel_state, applier_channel_state;
-
-  assert(instance.get_session());
-
-  try {
-    // Get the state of the receiver and applier channels
-    // NOTE:
-    // - Values of receiver channel can be: ON, OFF, or CONNECTING
-    // - Values of applier channel can be: ON, OFF
-    std::string query(
-        "SELECT a.SERVICE_STATE AS RECEIVER, b.SERVICE_STATE "
-        "AS APPLIER FROM "
-        "performance_schema.replication_connection_status a, "
-        "performance_schema.replication_applier_status b WHERE "
-        "a.CHANNEL_NAME != 'group_replication_applier' AND "
-        "a.CHANNEL_NAME != 'group_replication_recovery' AND "
-        "b.CHANNEL_NAME != 'group_replication_applier' AND "
-        "b.CHANNEL_NAME != 'group_replication_recovery'");
-
-    log_debug("Executing query '%s'.", query.c_str());
-
-    auto resultset = instance.query(query);
-    auto row = resultset->fetch_one();
-
-    // If the query returned no values it means async replication channels are
-    // not set
-    if (!row) {
-      log_debug("Query returned no results.");
-      return false;
-    }
-
-    receiver_channel_state = row->get_string(0);
-    applier_channel_state = row->get_string(1);
-
-    // If the channels state info exists, we can consider async replication is
-    // configured. It's irrelevant if running (ON/CONNECTING) or not (OFF).
-    if (!receiver_channel_state.empty() || !applier_channel_state.empty()) {
-      return true;
-    } else {
-      return false;
-    }
-  } catch (const std::exception &e) {
-    log_error("Error checking asynchronous replication status: %s", e.what());
-    throw;
-  }
 }
 
 std::string get_replica_keyword(const mysqlshdk::utils::Version &version) {

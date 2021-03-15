@@ -73,7 +73,7 @@ testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 //FR2.6: The Cluster must have group_replication_view_change_uuid set and stored in the Metadata, otherwise fail with an error
 //indicating to run <Cluster>.rescan() to fix it.
 
-//@<> The Cluster must have group_replication_view_change_uuid set and stored in the Metadata schema
+//@<> The Cluster must have group_replication_view_change_uuid stored in the Metadata schema
 var view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
 EXPECT_NE(view_change_uuid, "AUTOMATIC");
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = JSON_REMOVE(attributes, '$.group_replication_view_change_uuid')");
@@ -82,6 +82,66 @@ EXPECT_OUTPUT_CONTAINS("The cluster's group_replication_view_change_uuid is not 
 
 // Revert the removal of group_replication_view_change_uuid from the Metadata
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = JSON_SET(attributes, '$.group_replication_view_change_uuid', '" +view_change_uuid + "')");
+
+//@<> The Cluster must have group_replication_view_change_uuid set
+
+// Remove the value group_replication_view_change from the metadata and change it to AUTOMATIC in the whole cluster
+session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET attributes = JSON_REMOVE(attributes, '$.group_replication_view_change_uuid')");
+
+var session2 = mysql.getSession(__sandbox_uri2);
+var session3 = mysql.getSession(__sandbox_uri3);
+session.runSql("RESET PERSIST group_replication_view_change_uuid");
+session2.runSql("RESET PERSIST group_replication_view_change_uuid");
+session3.runSql("RESET PERSIST group_replication_view_change_uuid");
+
+// Shutdown the whole cluster
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+disable_auto_rejoin(__mysql_sandbox_port3);
+
+shell.connect(__sandbox_uri1);
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING),UNREACHABLE");
+testutil.killSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING),UNREACHABLE");
+testutil.killSandbox(__mysql_sandbox_port1);
+
+testutil.startSandbox(__mysql_sandbox_port3)
+testutil.startSandbox(__mysql_sandbox_port2)
+testutil.startSandbox(__mysql_sandbox_port1)
+
+shell.connect(__sandbox_uri1);
+
+cluster = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint2, __endpoint3]});
+
+var view_change_uuid = session.runSql("SELECT @@group_replication_view_change_uuid").fetchOne()[0];
+EXPECT_EQ(view_change_uuid, "AUTOMATIC");
+
+EXPECT_THROWS_TYPE(function(){cluster.createClusterSet("testCS")}, "group_replication_view_change_uuid not configured", "MYSQLSH");
+EXPECT_OUTPUT_CONTAINS("ERROR: The cluster is not configured to use group_replication_view_change_uuid. Please use <Cluster>.rescan() to repair the issue.");
+
+// Use cluster.rescan() to fix the group_replication_view_change_uuid values
+EXPECT_NO_THROWS(function() { cluster.rescan(); });
+
+// Reboot the cluster
+disable_auto_rejoin(__mysql_sandbox_port1);
+disable_auto_rejoin(__mysql_sandbox_port2);
+disable_auto_rejoin(__mysql_sandbox_port3);
+
+shell.connect(__sandbox_uri1);
+testutil.killSandbox(__mysql_sandbox_port2);
+testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING),UNREACHABLE");
+testutil.killSandbox(__mysql_sandbox_port3);
+testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING),UNREACHABLE");
+testutil.killSandbox(__mysql_sandbox_port1);
+
+testutil.startSandbox(__mysql_sandbox_port3)
+testutil.startSandbox(__mysql_sandbox_port2)
+testutil.startSandbox(__mysql_sandbox_port1)
+
+shell.connect(__sandbox_uri1);
+
+cluster = dba.rebootClusterFromCompleteOutage("cluster", {rejoinInstances: [__endpoint2, __endpoint3]});
 
 //@<> Create ClusterSet - dryRun
 EXPECT_NO_THROWS(function(){cs = cluster.createClusterSet("testCS", {dryRun: 1})});

@@ -582,6 +582,30 @@ void ensure_instance_not_belong_to_metadata(
   }
 }
 
+size_t check_illegal_async_channels(
+    const mysqlshdk::mysql::IInstance &instance,
+    const std::unordered_set<std::string> &allowed_channels_) {
+  auto console = mysqlsh::current_console();
+  std::unordered_set<std::string> allowed_channels(allowed_channels_);
+
+  allowed_channels.insert("group_replication_applier");
+  allowed_channels.insert("group_replication_recovery");
+
+  auto channels = get_incoming_channels(instance);
+  size_t illegal_channels = channels.size();
+
+  for (const auto &ch : channels) {
+    if (std::find(allowed_channels.begin(), allowed_channels.end(),
+                  ch.channel_name) != allowed_channels.end())
+      illegal_channels--;
+    else
+      console->print_note("Found unexpected replication channel " +
+                          ch.channel_name + "at " + instance.descr());
+  }
+
+  return illegal_channels;
+}
+
 /**
  * Validate if asynchronous replication is configured on the target instance.
  *
@@ -590,18 +614,24 @@ void ensure_instance_not_belong_to_metadata(
  * or an error message and terminates with an exception.
  *
  * @param instance The instance to validate.
+ * @param allowed_channels List of channel names that can appear at the instance
  * @param type     The type of check (Check_type)
  */
-void validate_async_channels(const mysqlshdk::mysql::IInstance &instance,
-                             Check_type type) {
+void validate_async_channels(
+    const mysqlshdk::mysql::IInstance &instance,
+    const std::unordered_set<std::string> &allowed_channels, Check_type type) {
   log_debug(
       "Checking if instance '%s' has asynchronous (source-replica) "
       "replication configured.",
       instance.descr().c_str());
 
-  if (mysqlshdk::mysql::is_async_replication_configured(instance)) {
-    auto console = mysqlsh::current_console();
-    std::string error_msg = "";
+  auto console = mysqlsh::current_console();
+
+  size_t illegal_channels =
+      check_illegal_async_channels(instance, allowed_channels);
+
+  if (illegal_channels > 0) {
+    std::string error_msg;
 
     switch (type) {
       case Check_type::CHECK:
