@@ -1,5 +1,6 @@
 // Assumptions: smart deployment rountines available
 //@ Initialization
+begin_dba_log_sql(2);
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
@@ -115,7 +116,11 @@ session.runSql('DROP USER IF EXISTS \'foo\'@\'%\'');
 session.runSql('SET sql_log_bin=1');
 session.close();
 
-//@ Finalization
+//@<> Finalization
+var logs = end_dba_log_sql();
+EXPECT_NO_SQL(__sandbox1, logs);
+EXPECT_NO_SQL(__sandbox2, logs);
+EXPECT_NO_SQL(__sandbox3, logs);
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

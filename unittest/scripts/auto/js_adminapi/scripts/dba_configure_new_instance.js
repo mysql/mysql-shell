@@ -1,6 +1,7 @@
 // Assumptions: New sandboxes deployed with no server id in the config file.
 // Regression for BUG#26818744 : MYSQL SHELL DOESN'T ADD THE SERVER_ID ANYMORE
 
+var __sandbox_dir = testutil.getSandboxPath();
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
@@ -29,17 +30,17 @@ testutil.startSandbox(__mysql_sandbox_port3);
 
 //@ Configure instance on port 1.
 //TODO: The test should check for BUG#26836230
-var cnfPath1 = __sandbox_dir + __mysql_sandbox_port1 + "/my.cnf";
+var cnfPath1 = os.path.join(__sandbox_dir, __mysql_sandbox_port1.toString(), "my.cnf");
 dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port1, {mycnfPath: cnfPath1, password:'root'});
 
 //@ Configure instance on port 2.
 //TODO: The test should check for BUG#26836230
-var cnfPath2 = __sandbox_dir + __mysql_sandbox_port2 + "/my.cnf";
+var cnfPath2 = os.path.join(__sandbox_dir, __mysql_sandbox_port2.toString(), "my.cnf");
 dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port2, {mycnfPath: cnfPath2, password:'root'});
 
 //@ Configure instance on port 3.
 //TODO: The test should check for BUG#26836230
-var cnfPath3 = __sandbox_dir + __mysql_sandbox_port3 + "/my.cnf";
+var cnfPath3 = os.path.join(__sandbox_dir, __mysql_sandbox_port3.toString(), "my.cnf");
 dba.configureLocalInstance("root@localhost:"+__mysql_sandbox_port3, {mycnfPath: cnfPath3, password:'root'});
 
 testutil.stopSandbox(__mysql_sandbox_port1);

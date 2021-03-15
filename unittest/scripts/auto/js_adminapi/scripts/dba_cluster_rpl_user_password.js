@@ -5,6 +5,8 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 
+var __plugin= 'validate_password.' + (__os_type != "windows" ? "so" : "dll");
+
 shell.connect(__sandbox_uri1);
 
 // Install validate_password plugin and configure it for the medium policy

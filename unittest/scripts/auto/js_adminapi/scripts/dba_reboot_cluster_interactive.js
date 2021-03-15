@@ -131,7 +131,6 @@ uri3 = hostname + ":"  + __mysql_sandbox_port3;
 // persisted on instance 3 and it will rejoin the cluster that has been
 // rebooted. We just need to add it back to the metadata.
 testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]: ", "y");
-testutil.expectPassword("Please provide the password for 'root@" + hostname + ":" + __mysql_sandbox_port3 + "': ", "root");
 cluster.rescan();
 
 //@ Add instance 3 back to the cluster {VER(<8.0.11)}
