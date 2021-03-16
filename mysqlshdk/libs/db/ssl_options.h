@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -102,6 +102,7 @@ struct SHCORE_PUBLIC Ssl_options : public mysqlshdk::utils::Nullable_options {
   void set(const std::string &name, const std::string &value);
   void remove(const std::string &name);
   void validate() const;
+  std::string tls_deprecation_message() const;
 
   static constexpr const char *const option_str_list[] = {
       kSslCa,     kSslCaPath,     kSslCert,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,7 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include <algorithm>
 #include <cassert>
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -529,6 +530,16 @@ void Connection_options::throw_invalid_connect_timeout(
                          "(including 0).",
                          value.c_str(), kConnectTimeout));
 }
+
+void Connection_options::show_tls_deprecation_warning(bool show) const {
+  if (show) {
+    const auto msg = this->get_ssl_options().tls_deprecation_message();
+    if (!msg.empty()) {
+      mysqlsh::current_console()->print_warning(msg);
+    }
+  }
+}
+
 void Connection_options::set_connection_attribute(const std::string &attribute,
                                                   const std::string &value) {
   std::string error;

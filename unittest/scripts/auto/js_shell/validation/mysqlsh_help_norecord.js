@@ -187,7 +187,10 @@ Usage: mysqlsh [OPTIONS] [URI]
                                   DISABLED,PREFERRED, REQUIRED, VERIFY_CA,
                                   VERIFY_IDENTITY.
   --tls-version=<version>         TLS version to use. Allowed values: TLSv1,
-                                  TLSv1.1, TLSv1.2, TLSv1.3.
+                                  TLSv1.1, TLSv1.2, TLSv1.3. TLS versions TLSv1
+                                  and TLSv1.1 are now deprecated and will be
+                                  removed in a future release of MySQL Shell.
+                                  Use TLSv1.2 or TLSv1.3.
   --tls-ciphersuites=<name>       TLS v1.3 cipher to use.
   --auth-method=<method>          Authentication method to use. In case of
                                   classic session, this is the name of the

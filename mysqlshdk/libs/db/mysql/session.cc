@@ -299,9 +299,14 @@ bool Session_impl::setup_ssl(
       mysql_options(_mysql, MYSQL_OPT_SSL_CIPHER,
                     (ssl_options.get_cipher().c_str()));
 
-    if (ssl_options.has_tls_version())
+    if (ssl_options.has_tls_version()) {
+      const auto msg = ssl_options.tls_deprecation_message();
+      if (!msg.empty()) {
+        log_warning("%s", msg.c_str());
+      }
       mysql_options(_mysql, MYSQL_OPT_TLS_VERSION,
                     (ssl_options.get_tls_version().c_str()));
+    }
 
     if (ssl_options.has_tls_ciphersuites())
       mysql_options(_mysql, MYSQL_OPT_TLS_CIPHERSUITES,

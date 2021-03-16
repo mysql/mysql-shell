@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -213,7 +213,7 @@ void Remove_instance::prepare() {
   //       instance is available.
   log_debug("Connecting to instance '%s'", m_instance_address.c_str());
   try {
-    m_target_instance = Instance::connect(m_instance_cnx_opts);
+    m_target_instance = Instance::connect(m_instance_cnx_opts, false, true);
     log_debug("Successfully connected to instance");
 
     // If we can connect directly to the instance, the following cases are

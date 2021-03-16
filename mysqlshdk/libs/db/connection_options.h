@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -178,6 +178,8 @@ class SHCORE_PUBLIC Connection_options {
   }
 
   static void throw_invalid_connect_timeout(const std::string &value);
+
+  void show_tls_deprecation_warning(bool show) const;
 
  private:
   void _set_fixed(const std::string &key, const std::string &val);

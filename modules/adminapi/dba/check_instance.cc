@@ -171,7 +171,7 @@ void Check_instance::prepare() {
   auto console = mysqlsh::current_console();
 
   // Establish a session to the target instance
-  m_target_instance = Instance::connect(m_instance_cnx_opts);
+  m_target_instance = Instance::connect(m_instance_cnx_opts, false, true);
 
   std::string target = m_target_instance->descr();
 

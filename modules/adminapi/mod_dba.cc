@@ -1993,7 +1993,8 @@ void Dba::do_configure_instance(
 
   // Establish the session to the target instance
   if (instance_def.has_data()) {
-    target_instance = Instance::connect(instance_def, options.interactive());
+    target_instance =
+        Instance::connect(instance_def, options.interactive(), true);
   } else {
     target_instance = connect_to_target_member();
   }

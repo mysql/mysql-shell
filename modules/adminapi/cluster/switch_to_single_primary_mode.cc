@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,7 +58,8 @@ void Switch_to_single_primary_mode::prepare() {
     std::string target_instance_address = m_instance_cnx_opts.as_uri(
         mysqlshdk::db::uri::formats::only_transport());
 
-    auto target_instance = mysqlsh::dba::Instance::connect(m_instance_cnx_opts);
+    auto target_instance =
+        mysqlsh::dba::Instance::connect(m_instance_cnx_opts, false, true);
 
     m_target_uuid = target_instance->get_uuid();
 

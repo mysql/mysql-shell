@@ -122,6 +122,17 @@ def EXPECT_THROWS(func, etext):
       return False
     return True
 
+def EXPECT_MAY_THROW(func, etext):
+  m = __TextMatcher(etext)
+  ret = None
+  try:
+    ret = func()
+  except Exception as e:
+    exception_message = type(e).__name__ + ": " + str(e)
+    if not m.matches(exception_message):
+      testutil.fail("<red>Exception expected:</red> " + str(m) + "\n\t<yellow>Actual:</yellow> " + exception_message)
+  return ret
+
 def EXPECT_NO_THROWS(func, context):
   try:
     func()
@@ -161,14 +172,14 @@ def EXPECT_STDOUT_MATCHES(re):
     err = testutil.fetch_captured_stderr(False)
     if re.search(out) is None:
         context = "<b>Context:</b> " + __test_context + "\n<red>Missing match for:</red> " + re.pattern + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err
-        testutil.fail(context);
+        testutil.fail(context)
 
 def EXPECT_STDOUT_NOT_CONTAINS(text):
     out = testutil.fetch_captured_stdout(False)
     err = testutil.fetch_captured_stderr(False)
     if out.find(text) != -1:
-        context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
-        testutil.fail(context);
+        context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err
+        testutil.fail(context)
 
 def EXPECT_FILE_CONTAINS(expected, path):
     with open(path, encoding='utf-8') as f:

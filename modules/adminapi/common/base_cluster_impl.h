@@ -172,17 +172,20 @@ class Base_cluster_impl {
    * printed or not
    * @param allow_account_override if true, allows the user to override the
    * account, otherwise they must match the cluster session
+   * @param show_tls_deprecation if true, prints warning when tls-version
+   * connection option is set to deprecated TLS versions.
    *
    * A URL is allowed, if it matches that of m_target_server.
    * @return instance object owned by ipool
    */
   std::shared_ptr<Instance> connect_target_instance(
       const std::string &instance_def, bool print_error = true,
-      bool allow_account_override = false);
+      bool allow_account_override = false, bool show_tls_deprecation = false);
 
   std::shared_ptr<Instance> connect_target_instance(
       const mysqlshdk::db::Connection_options &instance_def,
-      bool print_error = true, bool allow_account_override = false);
+      bool print_error = true, bool allow_account_override = false,
+      bool show_tls_deprecation = false);
 
  protected:
   Cluster_id m_id;

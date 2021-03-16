@@ -391,7 +391,9 @@ DESCRIPTION
         list files.
       - ssl-cipher: The list of permissible encryption ciphers for connections
         that use TLS protocols up through TLSv1.2.
-      - tls-version: List of protocols permitted for secure connections.
+      - tls-version: List of protocols permitted for secure connections. TLS
+        versions TLSv1 and TLSv1.1 are now deprecated and will be removed in a
+        future release of MySQL Shell. Use TLSv1.2 or TLSv1.3.
       - tls-ciphers: List of TLS v1.3 ciphers to use.
       - auth-method: Authentication method.
       - get-server-public-key: Request public key from the server required for
@@ -496,7 +498,9 @@ DESCRIPTION
         list files.
       - ssl-cipher: The list of permissible encryption ciphers for connections
         that use TLS protocols up through TLSv1.2.
-      - tls-version: List of protocols permitted for secure connections.
+      - tls-version: List of protocols permitted for secure connections. TLS
+        versions TLSv1 and TLSv1.1 are now deprecated and will be removed in a
+        future release of MySQL Shell. Use TLSv1.2 or TLSv1.3.
       - tls-ciphers: List of TLS v1.3 ciphers to use.
       - auth-method: Authentication method.
       - get-server-public-key: Request public key from the server required for
@@ -1059,7 +1063,9 @@ The following options are valid for use either in a URI or in a dictionary:
   files.
 - ssl-cipher: The list of permissible encryption ciphers for connections that
   use TLS protocols up through TLSv1.2.
-- tls-version: List of protocols permitted for secure connections.
+- tls-version: List of protocols permitted for secure connections. TLS versions
+  TLSv1 and TLSv1.1 are now deprecated and will be removed in a future release
+  of MySQL Shell. Use TLSv1.2 or TLSv1.3.
 - tls-ciphers: List of TLS v1.3 ciphers to use.
 - auth-method: Authentication method.
 - get-server-public-key: Request public key from the server required for RSA
@@ -1322,7 +1328,9 @@ The following options are valid for use either in a URI or in a dictionary:
   files.
 - ssl-cipher: The list of permissible encryption ciphers for connections that
   use TLS protocols up through TLSv1.2.
-- tls-version: List of protocols permitted for secure connections.
+- tls-version: List of protocols permitted for secure connections. TLS versions
+  TLSv1 and TLSv1.1 are now deprecated and will be removed in a future release
+  of MySQL Shell. Use TLSv1.2 or TLSv1.3.
 - tls-ciphers: List of TLS v1.3 ciphers to use.
 - auth-method: Authentication method.
 - get-server-public-key: Request public key from the server required for RSA

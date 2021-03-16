@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,11 +51,13 @@ class Instance : public mysqlshdk::mysql::Instance {
   // Session is prepared for executing non-trivial queries, like sql_mode
   // and autocommit being set to default values.
   static std::shared_ptr<Instance> connect(
-      const mysqlshdk::db::Connection_options &copts, bool interactive = false);
+      const mysqlshdk::db::Connection_options &copts, bool interactive = false,
+      bool show_tls_deprecation = false);
 
   // Non-prepared version
   static std::shared_ptr<Instance> connect_raw(
-      const mysqlshdk::db::Connection_options &copts, bool interactive = false);
+      const mysqlshdk::db::Connection_options &copts, bool interactive = false,
+      bool show_tls_deprecation = false);
 
  public:
   Instance() {}
@@ -232,7 +234,8 @@ class Instance_pool {
 
   // Connect to the specified instance without doing any checks
   std::shared_ptr<Instance> connect_unchecked(
-      const mysqlshdk::db::Connection_options &opts);
+      const mysqlshdk::db::Connection_options &opts,
+      bool show_tls_deprecation = false);
 
   // Same as above, but by uuid
   std::shared_ptr<Instance> connect_unchecked_uuid(const std::string &uuid);

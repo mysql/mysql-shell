@@ -1031,7 +1031,8 @@ void Cluster_impl::add_instance(
   auto finally_primary =
       shcore::on_leave_scope([this]() { release_primary(); });
 
-  Scoped_instance target(connect_target_instance(instance_def, true, true));
+  Scoped_instance target(
+      connect_target_instance(instance_def, true, true, true));
   cluster::Cluster_join joiner(this, primary, target, options.gr_options,
                                options.clone_options, options.interactive());
 
@@ -1068,7 +1069,8 @@ void Cluster_impl::rejoin_instance(const Connection_options &instance_def,
   auto finally_primary =
       shcore::on_leave_scope([this]() { release_primary(); });
 
-  Scoped_instance target(connect_target_instance(instance_def, true));
+  Scoped_instance target(
+      connect_target_instance(instance_def, true, false, true));
   cluster::Cluster_join joiner(this, primary, target, gr_options, {},
                                interactive);
 
@@ -1368,8 +1370,8 @@ void Cluster_impl::force_quorum_using_partition_of(
   try {
     log_info("Opening a new session to the partition instance %s",
              instance_address.c_str());
-    target_instance =
-        Instance::connect(instance_def, current_shell_options()->get().wizards);
+    target_instance = Instance::connect(
+        instance_def, current_shell_options()->get().wizards, true);
   }
   CATCH_REPORT_AND_THROW_CONNECTION_ERROR(instance_address)
 
@@ -1583,7 +1585,8 @@ shcore::Value Cluster_impl::check_instance_state(
     const Connection_options &instance_def) {
   check_preconditions("checkInstanceState");
 
-  Scoped_instance target(connect_target_instance(instance_def, true));
+  Scoped_instance target(
+      connect_target_instance(instance_def, true, false, true));
 
   // Create the Cluster Check_instance_state object and execute it.
   cluster::Check_instance_state op_check_instance_state(*this, target);

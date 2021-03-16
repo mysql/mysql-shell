@@ -657,7 +657,7 @@ void Replica_set_impl::add_instance(
 
   // Connect to the target Instance.
   const auto target_instance =
-      Scoped_instance(connect_target_instance(instance_def));
+      Scoped_instance(connect_target_instance(instance_def, true, false, true));
   const auto target_uuid = target_instance->get_uuid();
 
   // Acquire required locks on target instance (acquired on primary after).
@@ -867,7 +867,7 @@ void Replica_set_impl::rejoin_instance(const std::string &instance_def,
 
   log_debug("Connecting to target instance.");
   const auto target_instance =
-      Scoped_instance(connect_target_instance(instance_def));
+      Scoped_instance(connect_target_instance(instance_def, true, false, true));
   const auto target_uuid = target_instance->get_uuid();
 
   // Acquire required locks on target instance (already acquired on primary).
@@ -1078,8 +1078,8 @@ void Replica_set_impl::remove_instance(const std::string &instance_def_,
   Scoped_instance target_server;
   try {
     // Do not print the ERROR message here (in connect_target_instance())
-    target_server =
-        Scoped_instance(connect_target_instance(instance_def_, false));
+    target_server = Scoped_instance(
+        connect_target_instance(instance_def_, false, false, true));
   } catch (const shcore::Exception &) {
     // Check if instance belongs to the replicaset (to send a more user-friendly
     // message to users)
@@ -2476,7 +2476,7 @@ const topology::Server *Replica_set_impl::check_target_member(
   // we can't print instance_def directly because it may contain credentials
   std::string instance_label = Connection_options(instance_def).uri_endpoint();
   const auto target_instance =
-      Scoped_instance(connect_target_instance(instance_def));
+      Scoped_instance(connect_target_instance(instance_def, true, false, true));
 
   try {
     return topology->get_server(target_instance->get_uuid());

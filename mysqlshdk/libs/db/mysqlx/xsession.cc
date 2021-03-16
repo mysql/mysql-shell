@@ -215,9 +215,14 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
       _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_crl_path,
                                ssl_options.get_crlpath());
 
-    if (ssl_options.has_tls_version())
+    if (ssl_options.has_tls_version()) {
+      const auto msg = ssl_options.tls_deprecation_message();
+      if (!msg.empty()) {
+        log_warning("%s", msg.c_str());
+      }
       _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Allowed_tls,
                                ssl_options.get_tls_version());
+    }
 
     if (ssl_options.has_cipher())
       _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_cipher,

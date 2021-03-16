@@ -486,8 +486,10 @@ $(TOPIC_URI_CONNECTION_OPTIONS14)
 $(TOPIC_URI_CONNECTION_OPTIONS15)
 $(TOPIC_URI_CONNECTION_OPTIONS16)
 $(TOPIC_URI_CONNECTION_OPTIONS17)
-
 $(TOPIC_URI_CONNECTION_OPTIONS18)
+$(TOPIC_URI_CONNECTION_OPTIONS19)
+
+$(TOPIC_URI_CONNECTION_OPTIONS20)
 
 
 $(TOPIC_DICT_CONNECTION_OPTIONS)
@@ -560,7 +562,9 @@ REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS7,
               "connections that use TLS protocols up through TLSv1.2.");
 REGISTER_HELP(
     TOPIC_URI_CONNECTION_OPTIONS8,
-    "@li tls-version: List of protocols permitted for secure connections.");
+    "@li tls-version: List of protocols permitted for secure connections. TLS "
+    "versions TLSv1 and TLSv1.1 are now deprecated and will be removed in a "
+    "future release of MySQL Shell. Use TLSv1.2 or TLSv1.3.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS9,
               "@li tls-ciphers: List of TLS v1.3 ciphers to use.");
 REGISTER_HELP(TOPIC_URI_CONNECTION_OPTIONS10,
@@ -953,6 +957,8 @@ std::shared_ptr<ShellBaseSession> Shell::connect_to_primary(
   if (co.has_data()) {
     mysqlsh::set_password_from_string(&co, password);
   }
+
+  co.show_tls_deprecation_warning(true);
 
   if (!_shell->redirect_session_if_needed(false, co)) {
     current_console()->print_note("Already connected to a PRIMARY.");
