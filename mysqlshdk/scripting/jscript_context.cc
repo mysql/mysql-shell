@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,6 +67,25 @@
 #endif
 #include "utils/utils_file.h"
 
+namespace v8 {
+namespace debug {
+
+enum class EvaluateGlobalMode {
+  kDefault,
+  kDisableBreaks,
+  kDisableBreaksAndThrowOnSideEffect
+};
+
+// this symbol is exported from V8, but including the header file requires a
+// bunch of other files from the V8's source tree, declare it here instead
+v8::MaybeLocal<v8::Value> EvaluateGlobal(v8::Isolate *isolate,
+                                         v8::Local<v8::String> source,
+                                         EvaluateGlobalMode mode,
+                                         bool repl_mode);
+
+}  // namespace debug
+}  // namespace v8
+
 namespace shcore {
 
 namespace {
@@ -74,6 +93,8 @@ namespace {
 using V8_args = v8::FunctionCallbackInfo<v8::Value>;
 
 std::unique_ptr<v8::Platform> g_platform;
+
+const std::string k_origin_shell = "(shell)";
 
 #ifdef ENABLE_V8_TRACING
 
@@ -141,6 +162,12 @@ class Current_script {
   std::string m_root;
   std::stack<std::string> m_scripts;
 };
+
+v8::MaybeLocal<v8::Value> evaluate_repl(v8::Isolate *isolate,
+                                        v8::Local<v8::String> source) {
+  return v8::debug::EvaluateGlobal(
+      isolate, source, v8::debug::EvaluateGlobalMode::kDefault, true);
+}
 
 }  // namespace
 
@@ -244,7 +271,8 @@ class JScript_context::Impl {
    * and inserts the definitions on the JS globals.
    */
   void load_core_module() const;
-  void load_module(const std::string &path, v8::Local<v8::Value> module);
+  void load_module(const std::string &path, v8::Local<v8::Value> module,
+                   bool *js_exception = nullptr);
 
   v8::Local<v8::FunctionTemplate> wrap_callback(
       v8::FunctionCallback callback) const;
@@ -277,6 +305,8 @@ JScript_context::Impl::Impl(JScript_context *owner)
 
   m_isolate = v8::Isolate::New(params);
   m_isolate->SetData(0, this);
+
+  m_isolate->SetCaptureStackTraceForUncaughtExceptions(true);
 
   v8::Isolate::Scope isolate_scope(m_isolate);
   v8::HandleScope handle_scope(m_isolate);
@@ -375,7 +405,12 @@ void JScript_context::Impl::load_core_module() const {
 }
 
 void JScript_context::Impl::load_module(const std::string &path,
-                                        v8::Local<v8::Value> module) {
+                                        v8::Local<v8::Value> module,
+                                        bool *js_exception) {
+  if (js_exception) {
+    *js_exception = false;
+  }
+
   const auto script_scope = enter_script(path);
   shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
 
@@ -389,7 +424,6 @@ void JScript_context::Impl::load_module(const std::string &path,
 
   // compile the source code
   v8::HandleScope handle_scope(m_isolate);
-  v8::TryCatch try_catch{m_isolate};
 
   const auto new_context = copy_global_context();
   v8::Context::Scope context_scope(new_context);
@@ -413,18 +447,14 @@ void JScript_context::Impl::load_module(const std::string &path,
   // run the code, creating the function
   auto maybe_result = script.ToLocalChecked()->Run(new_context);
 
-  const auto handle_empty_result = [this, &try_catch, &path]() {
-    if (try_catch.HasCaught()) {
-      // populate JS exception
-      try_catch.ReThrow();
-      // terminate execution
-      throw std::runtime_error(shcore::str_format(
-          "Failed to execute: %s",
-          m_owner->translate_exception(try_catch, false).c_str()));
-    } else {
-      throw std::runtime_error(
-          shcore::str_format("Failed to execute '%s'.", path.c_str()));
+  const auto handle_empty_result = [&path, &js_exception]() {
+    if (js_exception) {
+      // if result is empty, there was a JS exception
+      *js_exception = true;
     }
+
+    throw std::runtime_error(
+        shcore::str_format("Failed to execute '%s'.", path.c_str()));
   };
 
   if (maybe_result.IsEmpty()) {
@@ -619,27 +649,23 @@ void JScript_context::Impl::f_load_module(const V8_args &args) {
   const auto self = static_cast<Impl *>(isolate->GetData(0));
 
   v8::HandleScope handle_scope(isolate);
-  v8::TryCatch try_catch{isolate};
 
   if (args.Length() != 2) {
     isolate->ThrowException(v8_string(isolate, "Invalid number of parameters"));
   } else {
+    bool js_exception = false;
+
     try {
-      self->load_module(to_string(isolate, args[0]), args[1]);
+      self->load_module(to_string(isolate, args[0]), args[1], &js_exception);
     } catch (const std::runtime_error &ex) {
       // throw new JS exception only if there isn't one already
-      if (!try_catch.HasCaught()) {
+      if (!js_exception) {
         // needed to create the v8 exception
         v8::Isolate::Scope isolate_scope(isolate);
         isolate->ThrowException(
             v8::Exception::Error(v8_string(isolate, ex.what())));
       }
     }
-  }
-
-  // ensure that JS exception is populated
-  if (try_catch.HasCaught()) {
-    try_catch.ReThrow();
   }
 }
 
@@ -1120,10 +1146,7 @@ std::pair<Value, bool> JScript_context::execute_interactive(
   // set context to be the default context for everything in this scope
   v8::Local<v8::Context> lcontext = context();
   v8::Context::Scope context_scope(lcontext);
-  v8::ScriptOrigin origin(v8_string("(shell)"));
   v8::Local<v8::String> code = v8_string(code_str);
-  v8::MaybeLocal<v8::Script> script =
-      v8::Script::Compile(lcontext, code, &origin);
 
   shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
 
@@ -1131,31 +1154,47 @@ std::pair<Value, bool> JScript_context::execute_interactive(
 
   *r_state = Input_state::Ok;
 
-  if (script.IsEmpty()) {
+  const auto console = mysqlsh::current_console();
+
+  v8::MaybeLocal<v8::Value> result = evaluate_repl(isolate(), code);
+
+  if (is_terminating() || try_catch.HasTerminated()) {
+    isolate()->CancelTerminateExecution();
+    console->print_diag("Script execution interrupted by user.");
+  } else if (try_catch.HasCaught()) {
     // check if this was an error of type
     // - SyntaxError: Unexpected end of input
     // - SyntaxError: Unterminated template literal
     // which we treat as a multiline mode trigger or
     // - SyntaxError: Invalid or unexpected token
     // which may be a sign of unfinished C style comment
-    const char *unexpected_end_exc = "SyntaxError: Unexpected end of input";
-    const char *unterminated_template_exc =
+    const std::string unexpected_end_exc =
+        "SyntaxError: Unexpected end of input";
+    const std::string unterminated_template_exc =
         "SyntaxError: Unterminated template literal";
-    const char *unexpected_tok_exc = "SyntaxError: Invalid or unexpected token";
+    const std::string unexpected_tok_exc =
+        "SyntaxError: Invalid or unexpected token";
+
     auto message = m_impl->to_string(try_catch.Exception());
+
     if (message == unexpected_end_exc || message == unterminated_template_exc) {
       *r_state = Input_state::ContinuedBlock;
     } else if (message == unexpected_tok_exc) {
+      v8::ScriptOrigin origin(v8_string(k_origin_shell));
+
       auto comment_pos = code_str.rfind("/*");
+
       while (comment_pos != std::string::npos &&
              code_str.find("*/", comment_pos + 2) == std::string::npos) {
         try_catch.Reset();
+
         if (!v8::Script::Compile(
                  lcontext, v8_string(code_str.substr(0, comment_pos)), &origin)
                  .IsEmpty()) {
           *r_state = Input_state::ContinuedSingle;
         } else {
           message = m_impl->to_string(try_catch.Exception());
+
           if (message == unexpected_end_exc) {
             *r_state = Input_state::ContinuedBlock;
           } else if (message == unexpected_tok_exc && comment_pos > 0) {
@@ -1166,37 +1205,56 @@ std::pair<Value, bool> JScript_context::execute_interactive(
         break;
       }
     }
-    if (*r_state == Input_state::Ok)
-      print_exception(format_exception(get_v8_exception_data(try_catch, true)));
-  } else {
-    auto console = mysqlsh::current_console();
 
-    v8::MaybeLocal<v8::Value> result = script.ToLocalChecked()->Run(lcontext);
-    if (is_terminating() || try_catch.HasTerminated()) {
-      isolate()->CancelTerminateExecution();
-      console->print_diag("Script execution interrupted by user.");
-    } else if (try_catch.HasCaught()) {
+    if (*r_state == Input_state::Ok) {
       Value exc(get_v8_exception_data(try_catch, true));
-      if (exc)
-        print_exception(format_exception(exc));
-      else
-        console->print_diag("Error executing script");
-    } else {
-      try {
-        // force GC on each execution in order to wipe the native objects and
-        // release the resources (i.e. open connections)
-        isolate()->LowMemoryNotification();
 
-        return {convert(result.ToLocalChecked()), false};
-      } catch (const std::exception &exc) {
-        // we used to let the exception bubble up, but somehow, exceptions
-        // thrown from v8_value_to_shcore_value() aren't being caught from
-        // main.cc, leading to a crash due to unhandled exception.. so we catch
-        // and print it here
-        console->print_diag(std::string("INTERNAL ERROR: ").append(exc.what()));
+      if (exc) {
+        print_exception(format_exception(exc));
+      } else {
+        console->print_diag("Error executing script");
       }
     }
+  } else {
+    try {
+      auto checked_result = result.ToLocalChecked();
+
+      assert(checked_result->IsPromise());
+
+      v8::Local<v8::Promise> promise = checked_result.As<v8::Promise>();
+
+      // wait till result promise is fulfilled
+      while (v8::Promise::kPending == promise->State()) {
+        isolate()->PerformMicrotaskCheckpoint();
+      }
+
+      // force GC on each execution in order to wipe the native objects and
+      // release the resources (i.e. open connections)
+      isolate()->LowMemoryNotification();
+
+      const auto state = promise->State();
+
+      if (v8::Promise::kFulfilled == state) {
+        return {convert(promise->Result()).as_map()->at(".repl_result"), false};
+      } else if (v8::Promise::kRejected == state) {
+        if (!try_catch.HasCaught()) {
+          isolate()->ThrowException(promise->Result());
+        }
+
+        print_exception(
+            format_exception(get_v8_exception_data(try_catch, true)));
+      } else {
+        assert(false);
+      }
+    } catch (const std::exception &exc) {
+      // we used to let the exception bubble up, but somehow, exceptions
+      // thrown from v8_value_to_shcore_value() aren't being caught from
+      // main.cc, leading to a crash due to unhandled exception.. so we catch
+      // and print it here
+      console->print_diag(std::string("INTERNAL ERROR: ").append(exc.what()));
+    }
   }
+
   return {Value(), true};
 }
 
@@ -1234,20 +1292,26 @@ std::string JScript_context::format_exception(const shcore::Value &exc) {
 
 Value JScript_context::get_v8_exception_data(const v8::TryCatch &exc,
                                              bool interactive) {
-  Value::Map_type_ref data;
+  return get_v8_exception_data(exc.Exception(), exc.Message(), interactive);
+}
 
-  if (exc.Exception().IsEmpty() || exc.Exception()->IsUndefined())
-    return Value();
+Value JScript_context::get_v8_exception_data(v8::Local<v8::Value> exc,
+                                             v8::Local<v8::Message> message,
+                                             bool interactive) {
+  Dictionary_t data;
+
+  if (exc.IsEmpty() || exc->IsUndefined()) return Value();
 
   shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
 
-  if (exc.Exception()->IsObject() &&
-      JScript_map_wrapper::is_map(
-          exc.Exception()->ToObject(context()).ToLocalChecked())) {
-    data = convert(exc.Exception()).as_map();
+  if (exc->IsObject() &&
+      JScript_map_wrapper::is_map(exc->ToObject(context()).ToLocalChecked())) {
+    data = convert(exc).as_map();
   } else {
-    const auto excstr = m_impl->to_string(exc.Exception());
-    data.reset(new Value::Map_type());
+    data = make_dict();
+
+    const auto excstr = m_impl->to_string(exc);
+
     if (!excstr.empty()) {
       // JS errors produced by V8 most likely will fall on this branch
       (*data)["message"] = Value(excstr);
@@ -1257,7 +1321,7 @@ Value JScript_context::get_v8_exception_data(const v8::TryCatch &exc,
   }
 
   bool include_location = !interactive;
-  v8::Local<v8::Message> message = exc.Message();
+
   if (!message.IsEmpty()) {
     const auto lcontext = context();
     v8::Context::Scope context_scope(lcontext);
@@ -1265,7 +1329,7 @@ Value JScript_context::get_v8_exception_data(const v8::TryCatch &exc,
     // location
     const auto filename =
         m_impl->to_string(message->GetScriptOrigin().ResourceName());
-    std::string text = filename + ":";
+    std::string text = (filename.empty() ? k_origin_shell : filename) + ":";
 
     {
       const auto line_number = message->GetLineNumber(lcontext);
@@ -1275,10 +1339,12 @@ Value JScript_context::get_v8_exception_data(const v8::TryCatch &exc,
     }
 
     {
+      // start column is zero-based
       const auto start_column = message->GetStartColumn(lcontext);
-      text += (start_column.IsJust() ? std::to_string(start_column.FromJust())
-                                     : "?") +
-              std::string{"\n"};
+      text +=
+          (start_column.IsJust() ? std::to_string(start_column.FromJust() + 1)
+                                 : "?") +
+          std::string{"\n"};
     }
 
     text.append("in ");
@@ -1308,7 +1374,7 @@ Value JScript_context::get_v8_exception_data(const v8::TryCatch &exc,
     }
 
     {
-      auto stack_trace = exc.StackTrace(lcontext);
+      auto stack_trace = v8::TryCatch::StackTrace(lcontext, exc);
 
       if (!stack_trace.IsEmpty()) {
         const auto stack = m_impl->to_string(stack_trace.ToLocalChecked());
@@ -1318,6 +1384,50 @@ Value JScript_context::get_v8_exception_data(const v8::TryCatch &exc,
           if (new_lines > 1) {
             text.append(stack).append("\n");
             include_location = true;
+          }
+        }
+      } else {
+        const auto stack = message->GetStackTrace();
+
+        if (!stack.IsEmpty() && stack->GetFrameCount() > 1) {
+          include_location = true;
+
+          text.append((*data)["message"].as_string().append("\n"));
+
+          const auto lisolate = isolate();
+
+          for (int idx = 0; idx < stack->GetFrameCount(); ++idx) {
+            const auto frame = stack->GetFrame(lisolate, idx);
+
+            text.append("    at ");
+
+            const auto func = frame->GetFunctionName();
+
+            if (!func.IsEmpty()) {
+              text.append(to_string(func)).append(" (");
+            }
+
+            {
+              const auto script = frame->GetScriptName();
+              std::string script_str;
+
+              if (!script.IsEmpty()) {
+                script_str = to_string(script);
+              }
+
+              text.append(script_str.empty() ? k_origin_shell : script_str);
+            }
+
+            text.append(":")
+                .append(std::to_string(frame->GetLineNumber()))
+                .append(":")
+                .append(std::to_string(frame->GetColumn()));
+
+            if (!func.IsEmpty()) {
+              text.append(")");
+            }
+
+            text.append("\n");
           }
         }
       }

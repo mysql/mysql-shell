@@ -468,7 +468,7 @@ DESCRIPTION
 
 //@<ERR> Call JS report which throws in JS mode
 reports.javascript_report_which_throws_an_exception: User-defined function threw an exception:
-This is a JavaScript exception at (shell):1:89
+This is a JavaScript exception at (shell):1:90
 in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
                                                                                             ^
 
@@ -480,7 +480,7 @@ in shell.registerReport('javascript_report_which_throws_an_exception', 'print', 
 
 //@<ERR> Call JS report which throws in PY mode
 reports.javascript_report_which_throws_an_exception: User-defined function threw an exception:
-This is a JavaScript exception at (shell):1:89
+This is a JavaScript exception at (shell):1:90
 in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
                                                                                             ^
 
@@ -495,7 +495,7 @@ Exception: This is a Python exception
 
 //@<ERR> Call JS report which throws in SQL mode
 reports.javascript_report_which_throws_an_exception: User-defined function threw an exception:
-This is a JavaScript exception at (shell):1:89
+This is a JavaScript exception at (shell):1:90
 in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
                                                                                             ^
 

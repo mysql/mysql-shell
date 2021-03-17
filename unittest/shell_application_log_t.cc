@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -74,7 +74,10 @@ std::string Shell_application_log_tests::error = "";
 TEST_F(Shell_application_log_tests, test) {
   mysqlsh::Scoped_logger log(m_logger);
   // issue a stmt with syntax error, then check the log.
-  error = "SyntaxError: missing ) after argument list at :1:6\nin print('x';";
+  error =
+      R"(SyntaxError: missing ) after argument list at (shell):1:7
+in print('x';
+         ^^^)";
   execute("print('x';");
 
   error =
