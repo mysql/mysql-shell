@@ -67,7 +67,8 @@ shell.connect(__sandbox_uri1);
 
 // Prepare metadata schema 1.0.1
 var server_uuid1 = session.runSql("SELECT @@server_uuid").fetchOne()[0];
-prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, "", [server_uuid1]);
+var server_id1 = session.runSql("SELECT @@server_id").fetchOne()[0];
+prepare_1_0_1_metadata_from_template(metadata_1_0_1_file, "", [[server_uuid1, server_id1]]);
 
 var cluster = dba.createCluster("sample");
 backup_metadata(__sandbox_uri1, metadata_current_file);
