@@ -201,25 +201,27 @@ endif()
 
 ### Bundling of Python runtime if needed
 IF(HAVE_PYTHON)
-  # Scans the python deps to re-create the easy-install.pth, so the modules are
-  # automatically loaded on the target python
   IF(PYTHON_DEPS)
-    FILE(TO_CMAKE_PATH ${PYTHON_DEPS} PYTHON_DEPS_PATH)
-    FILE(GLOB PYTHON_DEP_LIST "${PYTHON_DEPS_PATH}/*")
-    SET(PTH_PYTHON_DEP_LIST "")
-    FOREACH(PYTHON_DEP ${PYTHON_DEP_LIST})
-      GET_FILENAME_COMPONENT(PTH_DEP_NAME ${PYTHON_DEP} NAME)
-      IF (NOT PTH_DEP_NAME STREQUAL "easy-install.pth")
-        LIST(APPEND PTH_PYTHON_DEP_LIST "./${PTH_DEP_NAME}")
+    IF (APPLE)
+      IF(BUNDLED_OPENSSL_DIR)
+        FILE(GLOB_RECURSE OCI_OPEN_SSL_LIBRARIES ${PYTHON_DEPS_PATH}/cryptography/hazmat/bindings/_openssl*.so)
+        SET_BUNDLED_OPEN_SSL("${OCI_OPEN_SSL_LIBRARIES}")
       ENDIF()
-    ENDFOREACH(PYTHON_DEP)
+    ELSE()
+      # Scans the python deps to re-create the easy-install.pth, so the modules are
+      # automatically loaded on the target python
+      FILE(TO_CMAKE_PATH ${PYTHON_DEPS} PYTHON_DEPS_PATH)
+      FILE(GLOB PYTHON_DEP_LIST "${PYTHON_DEPS_PATH}/*")
+      SET(PTH_PYTHON_DEP_LIST "")
+      FOREACH(PYTHON_DEP ${PYTHON_DEP_LIST})
+        GET_FILENAME_COMPONENT(PTH_DEP_NAME ${PYTHON_DEP} NAME)
+        IF (NOT PTH_DEP_NAME STREQUAL "easy-install.pth")
+          LIST(APPEND PTH_PYTHON_DEP_LIST "./${PTH_DEP_NAME}")
+        ENDIF()
+      ENDFOREACH(PYTHON_DEP)
 
-    STRING(REPLACE ";" "\n" PTH_FILE_CONTENT "${PTH_PYTHON_DEP_LIST}")
-    FILE(WRITE ${PYTHON_DEPS_PATH}/easy-install.pth "${PTH_FILE_CONTENT}")
-
-    IF(BUNDLED_OPENSSL_DIR AND APPLE)
-      FILE(GLOB_RECURSE OCI_OPEN_SSL_LIBRARIES ${PYTHON_DEPS_PATH}/cryptography*.egg/cryptography/hazmat/bindings/_openssl*.so)
-      SET_BUNDLED_OPEN_SSL("${OCI_OPEN_SSL_LIBRARIES}")
+      STRING(REPLACE ";" "\n" PTH_FILE_CONTENT "${PTH_PYTHON_DEP_LIST}")
+      FILE(WRITE ${PYTHON_DEPS_PATH}/easy-install.pth "${PTH_FILE_CONTENT}")
     ENDIF()
   ENDIF()
 
