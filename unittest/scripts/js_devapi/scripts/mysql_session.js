@@ -15,7 +15,8 @@ validateMembers(classicSession, [
     'query',
     'rollback',
     'runSql',
-    'uri'])
+    'uri',
+    '_getSocketFd'])
 
 //@<> BUG#30516645 character sets should be set to utf8mb4
 classicSession.runSql("SHOW SESSION VARIABLES LIKE 'character\\_set\\_%'");

@@ -216,6 +216,7 @@ class SHCORE_PUBLIC Session : public ISession,
   uint64_t get_connection_id() const override { return _impl->get_thread_id(); }
 
   virtual uint64_t get_protocol_info() { return _impl->get_protocol_info(); }
+
   virtual bool is_compression_enabled() const {
     return _impl->is_compression_enabled();
   }
@@ -273,6 +274,13 @@ class SHCORE_PUBLIC Session : public ISession,
     _impl->m_local_infile.userdata = local_infile_userdata;
     if (_impl->_mysql)
       _impl->_mysql->options.local_infile_userdata = local_infile_userdata;
+  }
+
+  socket_t get_socket_fd() const override {
+    if (!_impl || !_impl->_mysql || _impl->_mysql->net.fd == -1)
+      throw std::invalid_argument("Invalid session");
+
+    return _impl->_mysql->net.fd;
   }
 
   ~Session() override {

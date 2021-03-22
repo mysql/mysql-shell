@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -398,8 +398,8 @@ class Completer_frontend : public Shell_core_test_wrapper {
 
     std::vector<std::string> expected;
     for (const shcore::Value &value : *result.as_array()) {
-      if (value.get_string()[0] == '_')  // skip __methods from python
-        continue;
+      // skip __methods from python
+      if (shcore::str_beginswith(value.get_string(), "__")) continue;
       expected.push_back(value.get_string());
     }
     std::sort(expected.begin(), expected.end());
@@ -1060,7 +1060,10 @@ TEST_F(Completer_frontend, js_devapi_members_x) {
       {"rollbackTo", "('name')"},
       {"releaseSavepoint", "('name')"},
       {"rollback", "()"},
-      {"runSql", "('select 1')"}};
+      {"runSql", "('select 1')"},
+      {"_enableNotices", ""},
+      {"_fetchNotice", ""},
+      {"_getSocketFd", ""}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("session", session_calls);
 
   std::vector<std::pair<std::string, std::string>> db_calls{
@@ -1113,7 +1116,8 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
       {"help", ""},
       {"close", ""},
       {"runSql", "('select 1')"},
-      {"query", "('select 1')"}};
+      {"query", "('select 1')"},
+      {"_getSocketFd", ""}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("session", session_calls);
 }
 #endif

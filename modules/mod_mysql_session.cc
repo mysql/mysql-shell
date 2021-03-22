@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -92,6 +92,8 @@ void ClassicSession::init() {
   expose("startTransaction", &ClassicSession::_start_transaction);
   expose("commit", &ClassicSession::_commit);
   expose("rollback", &ClassicSession::_rollback);
+
+  expose("_getSocketFd", &ClassicSession::_get_socket_fd);
 }
 
 void ClassicSession::connect(
@@ -654,4 +656,10 @@ void ClassicSession::kill_query() {
   } catch (const std::exception &e) {
     log_warning("Error cancelling SQL query: %s", e.what());
   }
+}
+
+socket_t ClassicSession::_get_socket_fd() const {
+  if (!_session || !_session->is_open())
+    throw std::invalid_argument("Session is not open");
+  return _session->get_socket_fd();
 }

@@ -33,6 +33,15 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#ifdef _WIN32
+#include <windows.h>
+#ifdef WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+#endif
+using socket_t = SOCKET;
+#else
+using socket_t = int;
+#endif /* _WIN32 */
 
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/result.h"
@@ -89,6 +98,8 @@ class SHCORE_PUBLIC ISession {
   virtual void connect(const mysqlshdk::db::Connection_options &data) = 0;
 
   virtual uint64_t get_connection_id() const = 0;
+
+  virtual socket_t get_socket_fd() const = 0;
 
   virtual const mysqlshdk::db::Connection_options &get_connection_options()
       const = 0;

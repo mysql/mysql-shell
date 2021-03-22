@@ -16,7 +16,8 @@ validate_members(classicSession, [
   'rollback',
   'run_sql',
   'start_transaction',
-  'uri'])
+  'uri',
+  '_get_socket_fd'])
 
 #@ ClassicSession: accessing Schemas
 schemas = classicSession.get_schemas();

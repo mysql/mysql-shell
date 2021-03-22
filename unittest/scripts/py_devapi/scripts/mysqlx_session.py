@@ -30,7 +30,10 @@ validate_members(mySession, [
   'current_schema',
   'set_savepoint',
   'release_savepoint',
-  'rollback_to'])
+  'rollback_to',
+  '_enable_notices',
+  '_fetch_notice',
+  '_get_socket_fd'])
 
 #@ Session: accessing Schemas
 schemas = mySession.get_schemas()

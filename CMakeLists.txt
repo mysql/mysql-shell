@@ -366,16 +366,17 @@ if(HAVE_PYTHON)
 endif()
 
 IF(WIN32)
-	# Speed up build process excluding unused header files
-	# Also definitely resolves the trouble of using both
-	# windows.h and winsock2.h
-	ADD_DEFINITIONS(-DWIN32_LEAN_AND_MEAN)
+  # Speed up build process excluding unused header files
+  # Also definitely resolves the trouble of using both
+  # windows.h and winsock2.h
+  ADD_DEFINITIONS(-DWIN32_LEAN_AND_MEAN)
   ADD_DEFINITIONS(-DNOMINMAX)
+  ADD_DEFINITIONS(-DNOGDI)
   # Silence warnings about functions that are perfectly fine for posix
   ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
 
-	# Sets the windows versions that should be supported
-	ADD_DEFINITIONS(-DNTDDI_VERSION=0x06000100 -D_WIN32_WINNT=0x0600)
+  # Sets the windows versions that should be supported
+  ADD_DEFINITIONS(-DNTDDI_VERSION=0x06000100 -D_WIN32_WINNT=0x0600)
 ELSE()
   # Non windows builds should build dev packages by default
   SET(WITH_DEV "1")

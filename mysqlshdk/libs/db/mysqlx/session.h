@@ -40,6 +40,21 @@
 namespace mysqlshdk {
 namespace db {
 namespace mysqlx {
+
+struct GlobalNotice {
+  enum Type { GRViewChanged };
+
+  struct GRViewInfo {
+    std::string view_id;
+  };
+
+  struct {
+    GRViewInfo gr_view_change;
+  } info;
+
+  Type type;
+};
+
 /*
  * Session implementation for the MySQL protocol.
  *
@@ -111,6 +126,16 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
 
   void deallocate_prep_stmt(uint32_t stmt_id);
 
+  void enable_notices(const std::vector<GlobalNotice::Type> &types);
+
+  /** Registers a callback called when an async notice is received
+   *
+   * Callback must return true to keep it registered, false to
+   * unregister it from further calls.
+   */
+  void add_notice_listener(
+      const std::function<bool(const GlobalNotice &)> &listener);
+
   void load_session_info();
 
   void check_error_and_throw(const xcl::XError &error,
@@ -136,6 +161,12 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
   std::weak_ptr<Result> _prev_result;
   mysqlshdk::db::Connection_options _connection_options;
   std::unique_ptr<Error> m_last_error;
+
+  std::list<std::function<bool(const GlobalNotice &)>> m_notice_listeners;
+  xcl::Handler_result global_notice_handler(
+      const xcl::XProtocol *, const bool /*is_global*/,
+      const Mysqlx::Notice::Frame::Type type, const char *, const uint32_t);
+  bool m_handler_installed = false;
 };
 
 class SHCORE_PUBLIC Session : public ISession,
@@ -230,7 +261,21 @@ class SHCORE_PUBLIC Session : public ISession,
   std::string escape_string(const std::string &s) const override;
   std::string escape_string(const char *buffer, size_t len) const override;
 
+  socket_t get_socket_fd() const override {
+    if (!_impl || !_impl->_mysql) throw std::logic_error("Invalid session");
+    return _impl->_mysql->get_protocol().get_connection().get_socket_fd();
+  }
+
   ~Session() { close(); }
+
+  void enable_notices(const std::vector<GlobalNotice::Type> &types) {
+    _impl->enable_notices(types);
+  }
+
+  void add_notice_listener(
+      const std::function<bool(const GlobalNotice &)> &listener) {
+    _impl->add_notice_listener(listener);
+  }
 
  public:
   xcl::XSession *get_driver_obj() { return _impl->_mysql.get(); }

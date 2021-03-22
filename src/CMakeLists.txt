@@ -95,9 +95,6 @@ set(mysqlsh_SRC
   mysqlsh/debug_shell.cc
 )
 
-add_shell_executable(mysqlshrec "${mysqlsh_SRC}" TRUE)
-target_compile_definitions(mysqlshrec PRIVATE -DENABLE_SESSION_RECORDING)
-
 # Last, to make -lrt -lpthread last, v8 needs it
 target_link_libraries(mysqlsh
     shellfe
@@ -109,7 +106,11 @@ target_link_libraries(mysqlsh
     ${MYSQL_EXTRA_LIBRARIES}
 )
 
-target_link_libraries(mysqlshrec
+IF(WITH_TESTS)
+  add_shell_executable(mysqlshrec "${mysqlsh_SRC}" TRUE)
+  target_compile_definitions(mysqlshrec PRIVATE -DENABLE_SESSION_RECORDING)
+
+  target_link_libraries(mysqlshrec
     shellfe
     api_modules
     mysqlshdk-static
@@ -117,7 +118,8 @@ target_link_libraries(mysqlshrec
     ${MYSQLX_LIBRARIES}
     ${PROTOBUF_LIBRARIES}
     ${MYSQL_EXTRA_LIBRARIES}
-)
+  )
+ENDIF()
 
 ### Bundling of OpenSSL libraries (if needed)
 if(BUNDLED_OPENSSL)
