@@ -202,6 +202,7 @@ endif()
 ### Bundling of Python runtime if needed
 IF(HAVE_PYTHON)
   IF(PYTHON_DEPS)
+    FILE(TO_CMAKE_PATH ${PYTHON_DEPS} PYTHON_DEPS_PATH)
     IF (APPLE)
       IF(BUNDLED_OPENSSL_DIR)
         FILE(GLOB_RECURSE OCI_OPEN_SSL_LIBRARIES ${PYTHON_DEPS_PATH}/cryptography/hazmat/bindings/_openssl*.so)
@@ -210,7 +211,6 @@ IF(HAVE_PYTHON)
     ELSE()
       # Scans the python deps to re-create the easy-install.pth, so the modules are
       # automatically loaded on the target python
-      FILE(TO_CMAKE_PATH ${PYTHON_DEPS} PYTHON_DEPS_PATH)
       FILE(GLOB PYTHON_DEP_LIST "${PYTHON_DEPS_PATH}/*")
       SET(PTH_PYTHON_DEP_LIST "")
       FOREACH(PYTHON_DEP ${PYTHON_DEP_LIST})
