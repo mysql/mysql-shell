@@ -1,5 +1,5 @@
 #@<OUT> Install the test repository
-[[*]]> plugins.repositories.add('http://127.0.0.1:<<<PORT>>>/mysql-shell-plugins-manifest.json')
+[[*]]repositories.add_plugin_repository('http://127.0.0.1:<<<PORT>>>/mysql-shell-plugins-manifest.json')
 
 WARNING:
 You are about to add an external MySQL Shell plugin repository.
@@ -26,7 +26,7 @@ Adding repository 'Testing MySQL Shell Plugin Repository'...
 Repository 'Testing MySQL Shell Plugin Repository' successfully added.
 
 #@<OUT> Help on built-in plugins plugin
-[[*]]> \? plugins
+[[*]]\? plugins
 NAME
       plugins - Plugin to manage MySQL Shell plugins
 
@@ -36,10 +36,6 @@ DESCRIPTION
 
       Use plugins.about() to get more information about writing MySQL Shell
       plugins.
-
-PROPERTIES
-      repositories
-            Manages the registry of plugin repositories.
 
 FUNCTIONS
       about()
@@ -70,7 +66,7 @@ FUNCTIONS
             Returns the version number of the plugin manager.
 
 #@<OUT> Tests the about function
-[[*]]> plugins.about()
+[[*]]plugins.about()
 
 The MySQL Shell allows extending its base functionality through the creation
 of plugins.
@@ -107,44 +103,19 @@ For additional information on shell reports execute: \? reports
 For additional information on extension objects execute: \? extension objects
 
 
-#@<OUT> Help on built-in plugins.repositories object
-[[*]]> \? plugins.repositories
-NAME
-      repositories - Manages the registry of plugin repositories.
-
-SYNTAX
-      plugins.repositories
-
-DESCRIPTION
-      Manages the registry of plugin repositories.
-
-FUNCTIONS
-      add([url][, kwargs])
-            Adds a new plugin repository
-
-      help([member])
-            Provides help about this object and it's members
-
-      list([kwargs])
-            Lists all registered plugin repositories
-
-      remove([kwargs])
-            Removes a registered plugin repository
-
 #@<OUT> Tests the info function
-[[*]]> plugins.info()
+[[*]]plugins.info()
 MySQL Shell Plugin Manager Version 0.0.1
 
 #@<OUT> Tests the details function without name specified
-[[*]]> plugins.details()
+[[*]]plugins.details()
 Fetching list of all plugins...
-${*}
+
    # Name                 Caption                            Version          Installed       
 ---- -------------------- ---------------------------------- ---------------- ----------------
-${*}
-Testing MySQL Shell Plugin Repository
-==============================================================================================
-[[*]] repo                 Repo Testing Plugin                0.0.1 PREVIEW    No              
+   1 cloud                Oracle Cloud Plugin                0.1.9 PREVIEW    No              
+
+   2 repo                 Repo Testing Plugin                0.0.1 PREVIEW    No              
 
 
 Repo Testing Plugin
@@ -157,9 +128,9 @@ Repo Testing Plugin
      0.0.1 PREVIEW - Initial Version
 
 #@<OUT> Tests the details function with a specific plugin
-[[*]]> plugins.details('repo')
+[[*]]plugins.details('repo')
 Fetching list of all plugins...
-${*}
+
 Repo Testing Plugin
 -------------------
         Plugin Name: repo
@@ -170,12 +141,12 @@ Repo Testing Plugin
      0.0.1 PREVIEW - Initial Version
 
 #@<OUT> Lists the plugin repositories
-[[*]]> plugins.repositories.list()
+[[*]]repositories.get_plugin_repositories()
 Registered MySQL Shell Plugin Repositories.
 
    1 Official MySQL Shell Plugin Repository
      The official MySQL Shell Plugin Repository maintained by the MySQL Team at Oracle.
-     https://cdn.mysql.com/windows/installer/manifest.zip
+     http://127.0.0.1:<<<PORT>>>/windows/installer/manifest.zip
 
    2 Testing MySQL Shell Plugin Repository
      A testing repository to be used while testing the plugins builtin plugin.
@@ -184,151 +155,147 @@ Registered MySQL Shell Plugin Repositories.
 Total of 2 repositories.
 
 #@<OUT> Lists the plugins
-[[*]]> plugins.list()
+[[*]]plugins.list()
 Fetching list of all plugins...
-${*}
+
    # Name                 Caption                            Version          Installed       
 ---- -------------------- ---------------------------------- ---------------- ----------------
-${*}
-Testing MySQL Shell Plugin Repository
-==============================================================================================
-   [[*]] repo                 Repo Testing Plugin                0.0.1 PREVIEW    No              
+   1 cloud                Oracle Cloud Plugin                0.1.9 PREVIEW    No              
+     Plugin to manage the MySQL Database Service on OCI.
+
+   2 repo                 Repo Testing Plugin                0.0.1 PREVIEW    No              
      Plugin to test the plugins builtin plugin.
 
-[[*]] plugin[[*]] total.
+2 plugins total.
 
 Use plugins.details() to get more information about a specific plugin.
 
 #@<OUT> Install the test plugin
-[[*]]> plugins.install('repo')
+[[*]]plugins.install('repo')
 Fetching list of all plugins...
-${*}
+
 Installing Repo Testing Plugin ...
 Repo Testing Plugin has been installed successfully.
 
 Please restart the shell to load the plugin. To get help type  '\? repo' after restart.
 ${*}
-[[*]]> print('Test Plugin Version: ' + repo.version())
+[[*]]print('Test Plugin Version: ' + repo.version())
 Test Plugin Version: 0.0.1
 
 #@<OUT> Lists installed plugins in a new shell session
-[[*]]> plugins.list()
+[[*]]plugins.list()
 Fetching list of all plugins...
-${*}
+
    # Name                 Caption                            Version          Installed       
 ---- -------------------- ---------------------------------- ---------------- ----------------
-${*}
-Testing MySQL Shell Plugin Repository
-==============================================================================================
-*  [[*]] repo                 Repo Testing Plugin                0.0.1 PREVIEW    0.0.1 PREVIEW   
+   1 cloud                Oracle Cloud Plugin                0.1.9 PREVIEW    No              
+     Plugin to manage the MySQL Database Service on OCI.
+
+*  2 repo                 Repo Testing Plugin                0.0.1 PREVIEW    0.0.1 PREVIEW   
      Plugin to test the plugins builtin plugin.
 
-* 1 plugin installed, [[*]] plugin[[*]] total.
+* 1 plugin installed, 2 plugins total.
 
 Use plugins.details() to get more information about a specific plugin.
 
 #@<OUT> Attempts reinstalling a plugin
-[[*]]> plugins.install('repo')
+[[*]]plugins.install('repo')
 Fetching list of all plugins...
-${*}
+
 The plugin 'repo' is already installed. Use the force_install parameter to re-install it anyway.
 
 #@<OUT> Attempts forces reinstalling a plugin
-[[*]]> plugins.install('repo', force_install=True)
+[[*]]plugins.install('repo', force_install=True)
 Fetching list of all plugins...
-${*}
+
 Installing Repo Testing Plugin ...
 Repo Testing Plugin has been installed successfully.
 
 Please restart the shell to load the plugin. To get help type  '\? repo' after restart.
 
 #@<OUT> Upgrades the test plugin version in the repository
-[[*]]> plugins.list()
+[[*]]plugins.list()
 Fetching list of all plugins...
-${*}
+
    # Name                 Caption                            Version          Installed       
 ---- -------------------- ---------------------------------- ---------------- ----------------
-${*}
-Testing MySQL Shell Plugin Repository
-==============================================================================================
-*  [[*]] repo                 Repo Testing Plugin                0.0.2 PREVIEW    0.0.1 PREVIEW^  
+   1 cloud                Oracle Cloud Plugin                0.1.9 PREVIEW    No              
+     Plugin to manage the MySQL Database Service on OCI.
+
+*  2 repo                 Repo Testing Plugin                0.0.2 PREVIEW    0.0.1 PREVIEW^  
      Plugin to test the plugins builtin plugin.
 
-* 1 plugin installed, [[*]] plugin[[*]] total.
+* 1 plugin installed, 2 plugins total.
 ^ One update is available. Use plugins.update() to install the update.
 
 Use plugins.details() to get more information about a specific plugin.
 
 #@<OUT> Upgrades the test plugin locally
-[[*]]> plugins.update()
+[[*]]plugins.update()
 Fetching list of updatable plugins...
 ${*}
    # Name                 Caption                            Version          Installed       
 ---- -------------------- ---------------------------------- ---------------- ----------------
-Testing MySQL Shell Plugin Repository
-==============================================================================================
-*  [[*]] repo                 Repo Testing Plugin                0.0.2 PREVIEW    0.0.1 PREVIEW^  
+*  2 repo                 Repo Testing Plugin                0.0.2 PREVIEW    0.0.1 PREVIEW^  
 
 
 Updating Repo Testing Plugin ...
-${*}
+
 The update has been completed successfully.
 
 Please restart the shell to reload the plugin.
 ${*}
-[[*]]> print('Test Plugin Version: ' + repo.version())
+[[*]]print('Test Plugin Version: ' + repo.version())
 Test Plugin Version: 0.0.2
 
 #@<OUT> Downgrades the test plugin to the initial version
-[[*]]> plugins.install('repo', version='0.0.1', force_install=True)
+[[*]]plugins.install('repo', version='0.0.1', force_install=True)
 Fetching list of all plugins...
-${*}
+
 Installing Repo Testing Plugin ...
 Repo Testing Plugin has been installed successfully.
 
 Please restart the shell to load the plugin. To get help type  '\? repo' after restart.
 ${*}
-[[*]]> print('Test Plugin Version: ' + repo.version())
+[[*]]print('Test Plugin Version: ' + repo.version())
 Test Plugin Version: 0.0.1
 
 #@<OUT> Upgrades the test plugin again, using name
-[[*]]> plugins.list()
+[[*]]plugins.list()
 Fetching list of all plugins...
-${*}
+
    # Name                 Caption                            Version          Installed       
 ---- -------------------- ---------------------------------- ---------------- ----------------
-${*}
-Testing MySQL Shell Plugin Repository
-==============================================================================================
-*  [[*]] repo                 Repo Testing Plugin                0.0.2 PREVIEW    0.0.1 PREVIEW^  
+   1 cloud                Oracle Cloud Plugin                0.1.9 PREVIEW    No              
+     Plugin to manage the MySQL Database Service on OCI.
+
+*  2 repo                 Repo Testing Plugin                0.0.2 PREVIEW    0.0.1 PREVIEW^  
      Plugin to test the plugins builtin plugin.
 
-* 1 plugin installed, [[*]] plugin[[*]] total.
+* 1 plugin installed, 2 plugins total.
 ^ One update is available. Use plugins.update() to install the update.
 
 Use plugins.details() to get more information about a specific plugin.
 ${*}
-[[*]]> plugins.update('repo')
+[[*]]plugins.update('repo')
 Fetching list of updatable plugins...
-${*}
+
 Updating Repo Testing Plugin ...
-${*}
+
 The update has been completed successfully.
 
 Please restart the shell to reload the plugin.
 ${*}
-[[*]]> print('Test Plugin Version: ' + repo.version())
+[[*]]print('Test Plugin Version: ' + repo.version())
 Test Plugin Version: 0.0.2
 
 #@<OUT> Uninstalls the test plugin
-[[*]]> plugins.uninstall()
+[[*]]plugins.uninstall()
 Fetching list of installed plugins...
-${*}
+
    # Name                 Caption                            Version          Installed       
 ---- -------------------- ---------------------------------- ---------------- ----------------
-Testing MySQL Shell Plugin Repository
-==============================================================================================
-*  [[*]] repo                 Repo Testing Plugin                0.0.2 PREVIEW    0.0.2 PREVIEW   
+*  2 repo                 Repo Testing Plugin                0.0.2 PREVIEW    0.0.2 PREVIEW   
 
 
 
@@ -337,24 +304,24 @@ Repo Testing Plugin has been uninstalled successfully.
 
 Please restart the shell to unload the plugin.
 ${*}
-[[*]]> print('Test Plugin Version: ' + repo.version())
+[[*]]print('Test Plugin Version: ' + repo.version())
 Traceback (most recent call last):
   File "<string>", line 1, in <module>
 NameError: name 'repo' is not defined
 
 #@<OUT> Removes the test plugin repository
-[[*]]> plugins.repositories.remove(url='http://127.0.0.1:<<<PORT>>>/mysql-shell-plugins-manifest.json')
+[[*]]repositories.remove_plugin_repository(url='http://127.0.0.1:<<<PORT>>>/mysql-shell-plugins-manifest.json')
 
 Removing repository 'http://127.0.0.1:<<<PORT>>>/mysql-shell-plugins-manifest.json'...
 Repository successfully removed.
 
 #@<OUT> Lists the plugin repositories again
-[[*]]> plugins.repositories.list()
+[[*]]repositories.get_plugin_repositories()
 Registered MySQL Shell Plugin Repositories.
 
    1 Official MySQL Shell Plugin Repository
      The official MySQL Shell Plugin Repository maintained by the MySQL Team at Oracle.
-     https://cdn.mysql.com/windows/installer/manifest.zip
+     http://127.0.0.1:<<<PORT>>>/windows/installer/manifest.zip
 
 Total of 1 repository.
 
