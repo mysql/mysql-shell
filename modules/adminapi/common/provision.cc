@@ -256,7 +256,7 @@ void leave_cluster(const mysqlsh::dba::Instance &instance) {
                     "group_replication_recovery");
 
   // Disable and persist GR start on boot and reset values for
-  // group_replication_bootstrap_group, group_replication_force_members,
+  // group_replication_bootstrap_group,
   // group_replication_group_seeds and group_replication_local_address
   // NOTE: Only for server supporting SET PERSIST, version must be >= 8.0.11
   // due to BUG#26495619.
@@ -265,8 +265,8 @@ void leave_cluster(const mysqlsh::dba::Instance &instance) {
       "Replication, using SET PERSIST (if supported)");
   if (instance.get_version() >= mysqlshdk::utils::Version(8, 0, 11)) {
     const char *k_gr_remove_instance_vars_default[]{
-        "group_replication_bootstrap_group", "group_replication_force_members",
-        "group_replication_group_seeds", "group_replication_local_address"};
+        "group_replication_bootstrap_group", "group_replication_group_seeds",
+        "group_replication_local_address"};
     instance.set_sysvar("group_replication_start_on_boot", false,
                         mysqlshdk::mysql::Var_qualifier::PERSIST);
 

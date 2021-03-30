@@ -86,7 +86,6 @@ one server failure.
 group_replication_bootstrap_group = OFF
 group_replication_enforce_update_everywhere_checks = OFF
 group_replication_exit_state_action = READ_ONLY
-group_replication_force_members =
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>
@@ -156,7 +155,6 @@ group_replication_enforce_update_everywhere_checks = OFF
 ?{VER(<8.0.16)}
 group_replication_exit_state_action = READ_ONLY
 ?{}
-group_replication_force_members =
 group_replication_group_name = ca94447b-e6fc-11e7-b69d-4485005154dc
 group_replication_group_seeds =
 group_replication_local_address = <<<hostname>>>:<<<__mysql_sandbox_gr_port1>>>

@@ -1510,12 +1510,14 @@ void Cluster_impl::force_quorum_using_partition_of(
     // membership, triggering the necessary actions from GR upon being set to
     // force the quorum. Therefore, the variable can be cleared immediately
     // after it is set.
-    target_instance->set_sysvar("group_replication_force_members", group_peers);
+    target_instance->set_sysvar("group_replication_force_members", group_peers,
+                                mysqlshdk::mysql::Var_qualifier::GLOBAL);
 
     // Clear group_replication_force_members at the end to allow GR to be
     // restarted later on the instance (without error).
     target_instance->set_sysvar("group_replication_force_members",
-                                std::string());
+                                std::string(),
+                                mysqlshdk::mysql::Var_qualifier::GLOBAL);
   }
 
   if (interactive) {
