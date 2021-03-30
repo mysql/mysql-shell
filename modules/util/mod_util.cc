@@ -75,7 +75,6 @@ Util::Util(shcore::IShell_core *owner) : _shell_core(*owner) {
       ->cli();
   expose("importJson", &Util::import_json, "path", "?options")->cli();
   shcore::ssl::init();
-  expose("configureOci", &Util::configure_oci, "?profile")->cli();
   expose("importTable", &Util::import_table_file, "path", "?options")
       ->cli(false);
   expose("importTable", &Util::import_table_files, "files", "?options")->cli();
@@ -861,82 +860,6 @@ void Util::import_json(
     throw;
   }
   importer.print_stats();
-}
-
-REGISTER_HELP_TOPIC(OCI, TOPIC, TOPIC_OCI, Contents, ALL);
-REGISTER_HELP_TOPIC_TEXT(TOPIC_OCI, R"*(
-The MySQL Shell offers support for the Oracle Cloud Infrastructure (OCI).
-
-After starting the MySQL Shell with the --oci option an interactive wizard will help to create the correct OCI configuration file, load the OCI Python SDK and switch the shell to Python mode.
-
-The MySQL Shell can then be used to access the OCI APIs and manage the OCI account.
-
-The following Python objects are automatically initialized.
-
-@li <b>config</b> an OCI configuration object with data loaded from ~/.oci/config
-@li <b>identity</b> an OCI identity client object, offering APIs for managing users,
-              groups, compartments and policies.
-@li <b>compute</b> an OCI compute client object, offering APIs for Networking Service, Compute Service, and Block Volume Service.
-
-For more information about the OCI Python SDK please read the documentation at
-  https://oracle-cloud-infrastructure-python-sdk.readthedocs.io/en/latest/
-)*");
-
-REGISTER_HELP(TOPIC_OCI_EXAMPLE, "identity.get_user(config['user']).data");
-REGISTER_HELP(TOPIC_OCI_EXAMPLE_DESC,
-              "Fetches information about the OCI user account specified in the "
-              "config object.");
-REGISTER_HELP(TOPIC_OCI_EXAMPLE1,
-              "identity.list_compartments(config['tenancy']).data");
-REGISTER_HELP(TOPIC_OCI_EXAMPLE1_DESC,
-              "Fetches the list of top level compartments available in the "
-              "tenancy that was specified in the config object.");
-REGISTER_HELP(
-    TOPIC_OCI_EXAMPLE2,
-    "@code"
-    "compartment = identity.list_compartments(config['tenancy']).data[0]\n"
-    "images = compute.list_images(compartment.id).data\n"
-    "for image in images:\n"
-    "  print(image.display_name)"
-    "@endcode");
-REGISTER_HELP(TOPIC_OCI_EXAMPLE2_DESC,
-              "Assignes the first compartment of the tenancy to the "
-              "compartment variable, featches the available OS images for the "
-              "compartment and prints a list of their names.");
-
-REGISTER_HELP_FUNCTION(configureOci, util);
-REGISTER_HELP_FUNCTION_TEXT(UTIL_CONFIGUREOCI, R"*(
-Wizard to create a valid configuration for the OCI SDK.
-
-@param profile Optional parameter to specify the name profile to be configured.
-
-If the profile name is not specified 'DEFAULT' will be used.
-
-To properly create OCI configuration to use the OCI SDK the following
-information will be required:
-
-@li User OCID
-@li Tenancy OCID
-@li Tenancy region
-@li A valid API key
-
-For details about where to find the user and tenancy details go to
-https://docs.us-phoenix-1.oraclecloud.com/Content/API/Concepts/apisigningkey.htm#Other
-)*");
-/**
- * $(UTIL_CONFIGUREOCI_BRIEF)
- *
- * $(UTIL_CONFIGUREOCI)
- */
-#if DOXYGEN_JS
-Undefined Util::configureOci(String profile) {}
-#elif DOXYGEN_PY
-None Util::configure_oci(str profile) {}
-#endif
-void Util::configure_oci(const std::string &profile) {
-  mysqlshdk::oci::Oci_setup helper;
-
-  helper.create_profile(profile);
 }
 
 REGISTER_HELP_DETAIL_TEXT(IMPORT_EXPORT_URL_DETAIL, R"*(

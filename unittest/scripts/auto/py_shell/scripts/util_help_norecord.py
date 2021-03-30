@@ -44,15 +44,6 @@ util.help('import_json')
 #@ util import_json help, \? [USE:util import_json help]
 \? import_json
 
-#@ util configure_oci help
-util.help('configure_oci');
-
-#@ util configure_oci help, \? [USE:util configure_oci help]
-\? configure_oci
-
-#@ oci help
-\? oci
-
 #@ util import_table help
 util.help('import_table')
 

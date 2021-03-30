@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2020, 2021 Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -28,7 +28,6 @@ set(oci_SOURCES
   oci_options.cc
   oci_rest_service.cc
   oci_setup.cc
-  oci.cc
 )
 
 add_convenience_library(oci ${oci_SOURCES})

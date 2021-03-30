@@ -141,9 +141,6 @@ callMysqlsh(["--", "shell", "options", "unsetPersist", "-h"])
 //@ CLI util check-for-server-upgrade --help
 callMysqlsh(["--", "util", "check-for-server-upgrade", "--help"])
 
-//@ CLI util configure-oci --help
-callMysqlsh(["--", "util", "configure-oci", "--help"])
-
 //@ CLI util dump-instance --help
 callMysqlsh(["--", "util", "dump-instance", "--help"])
 
@@ -169,9 +166,6 @@ callMysqlsh(["--", "util", "load-dump", "--help"])
 
 //@ CLI util check-for-server-upgrade -h [USE:CLI util check-for-server-upgrade --help]
 callMysqlsh(["--", "util", "check-for-server-upgrade", "-h"])
-
-//@ CLI util configure-oci -h [USE:CLI util configure-oci --help]
-callMysqlsh(["--", "util", "configure-oci", "-h"])
 
 //@ CLI util dump-instance -h [USE:CLI util dump-instance --help]
 callMysqlsh(["--", "util", "dump-instance", "-h"])
@@ -199,9 +193,6 @@ callMysqlsh(["--", "util", "load-dump", "-h"])
 //@ CLI util checkForServerUpgrade --help [USE:CLI util check-for-server-upgrade --help]
 callMysqlsh(["--", "util", "checkForServerUpgrade", "--help"])
 
-//@ CLI util configureOci --help [USE:CLI util configure-oci --help]
-callMysqlsh(["--", "util", "configureOci", "--help"])
-
 //@ CLI util dumpInstance --help [USE:CLI util dump-instance --help]
 callMysqlsh(["--", "util", "dumpInstance", "--help"])
 
@@ -227,9 +218,6 @@ callMysqlsh(["--", "util", "loadDump", "--help"])
 
 //@ CLI util checkForServerUpgrade -h [USE:CLI util check-for-server-upgrade --help]
 callMysqlsh(["--", "util", "checkForServerUpgrade", "-h"])
-
-//@ CLI util configureOci -h [USE:CLI util configure-oci --help]
-callMysqlsh(["--", "util", "configureOci", "-h"])
 
 //@ CLI util dumpInstance -h [USE:CLI util dump-instance --help]
 callMysqlsh(["--", "util", "dumpInstance", "-h"])

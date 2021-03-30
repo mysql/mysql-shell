@@ -580,23 +580,6 @@ Shell_options::Shell_options(int argc, char **argv,
 #endif
         storage.dbug_options = value ? value : "";
       })
-#ifdef PYTHON_DEPS
-    (
-      cmdline("--oci[=<profile>]"),
-      "Starts the shell ready to work with OCI. "
-      "A wizard to configure the given profile will be launched if the profile is not configured. "
-      "If no profile is specified the value of shell option oci.profile will be used.",
-      [this](const std::string&, const char* value) {
-        storage.oci_wizard = true;
-        if (value) {
-          storage.oci_profile = value;
-        }
-#ifdef HAVE_PYTHON
-        if (storage.initial_mode == shcore::IShell_core::Mode::None)
-          storage.initial_mode = shcore::IShell_core::Mode::Python;
-#endif
-      })
-#endif
 ;  // <-- Note this is on purpose: Mark the termination of the option definition.
   // clang-format on
 
@@ -620,7 +603,6 @@ Shell_options::Shell_options(int argc, char **argv,
     check_file_execute_conflicts();
     check_import_options();
     check_result_format();
-    check_oci_conflicts();
     shcore::Logger::set_stderr_output_format(storage.wrap_json);
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
@@ -1050,19 +1032,6 @@ void Shell_options::check_host_conflicts() {
       throw std::runtime_error(error);
     }
   }
-}
-
-void Shell_options::check_oci_conflicts() {
-#ifdef HAVE_PYTHON
-  if (storage.oci_wizard) {
-    if (storage.initial_mode != shcore::IShell_core::Mode::Python) {
-      auto error =
-          "Conflicting options: --oci can not be used unless initial mode is "
-          "Python.";
-      throw std::runtime_error(error);
-    }
-  }
-#endif
 }
 
 #ifdef _WIN32

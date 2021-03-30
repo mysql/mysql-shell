@@ -61,9 +61,6 @@ The following operations are available at 'util':
       Performs series of tests on specified MySQL server to check if the
       upgrade process will succeed.
 
-   configure-oci
-      Wizard to create a valid configuration for the OCI SDK.
-
    dump-instance
       Dumps the whole database to files in the output directory.
 
@@ -196,16 +193,6 @@ OPTIONS
 
 --configPath=<str>
             Full path to MySQL server configuration file.
-
-//@<OUT> CLI util configure-oci --help
-NAME
-      configure-oci - Wizard to create a valid configuration for the OCI SDK.
-
-SYNTAX
-      util configure-oci [<profile>]
-
-WHERE
-      profile: Parameter to specify the name profile to be configured.
 
 //@<OUT> CLI util dump-instance --help
 NAME

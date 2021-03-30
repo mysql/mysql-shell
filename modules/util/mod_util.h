@@ -90,13 +90,6 @@ class SHCORE_PUBLIC Util : public shcore::Cpp_object_bridge,
       const shcore::Option_pack_ref<Import_json_options> &options = {});
 
 #if DOXYGEN_JS
-  Undefined configureOci(String profile) {}
-#elif DOXYGEN_PY
-  None configure_oci(str profile);
-#endif
-  void configure_oci(const std::string &profile = "");
-
-#if DOXYGEN_JS
   Undefined importTable(List files, Dictionary options);
 #elif DOXYGEN_PY
   None import_table(list files, dict options);

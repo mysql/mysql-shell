@@ -26,7 +26,6 @@
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlshdk/include/shellcore/interrupt_helper.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
-#include "mysqlshdk/libs/oci/oci.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/document_parser.h"
@@ -675,16 +674,6 @@ int main(int argc, char **argv) {
               " option requires a session to a member of an InnoDB cluster or "
               "ReplicaSet.");
           return 1;
-        }
-      }
-
-      if (options.oci_wizard) {
-        if (options.interactive) {
-          mysqlsh::oci::load_profile(options.oci_profile,
-                                     shell->shell_context());
-        } else {
-          mysqlsh::current_console()->print_warning(
-              "Option --oci requires interactive mode, ignoring option.");
         }
       }
 

@@ -51,7 +51,6 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/db/utils_error.h"
-#include "mysqlshdk/libs/oci/oci.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/shellcore/credential_manager.h"

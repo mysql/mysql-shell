@@ -44,15 +44,6 @@ util.help('importJson');
 //@ util importJson help, \? [USE:util importJson help]
 \? importJson
 
-//@ util configureOci help
-util.help('configureOci');
-
-//@ util configureOci help, \? [USE:util configureOci help]
-\? configureOci
-
-//@ oci help
-\? oci
-
 //@ util importTable help
 util.help('importTable');
 
