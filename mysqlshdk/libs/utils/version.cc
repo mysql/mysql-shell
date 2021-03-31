@@ -34,6 +34,23 @@ Version::Version() : _major(0) {}
 // for now
 Version::Version(const std::string &version) : _major(0) {
   auto tokens = shcore::str_split(version, "-", 1);
+  if (tokens.size() == 1 && version.size() == 5) {
+    // check if format is digits only:
+    bool invalid_format = false;
+    for (const auto &it : version) {
+      if (!isdigit(it)) {
+        invalid_format = true;
+        break;
+      }
+    }
+    if (!invalid_format) {
+      // it seems the format is digits only, we need to split by hand
+      _major = parse_token(version.substr(0, 1));
+      _minor = parse_token(version.substr(1, 2));
+      _patch = parse_token(version.substr(3, 2));
+      return;
+    }
+  }
 
   if (tokens.size() == 2) _extra = tokens[1];
   auto base_tokens = shcore::str_split(tokens[0], ".");
