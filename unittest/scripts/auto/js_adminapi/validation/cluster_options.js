@@ -910,6 +910,12 @@
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
                 },
+?{VER(>=8.0.25)}
+                {
+                    "value": "<<<__gr_view_change_uuid>>>",
+                    "variable": "group_replication_view_change_uuid"
+                },
+?{}
 ?{VER(<8.0.23)}
                 {
                     "value": "COMMIT_ORDER",
@@ -1218,6 +1224,12 @@
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
                 },
+?{VER(>=8.0.25)}
+                {
+                    "value": "<<<__gr_view_change_uuid>>>",
+                    "variable": "group_replication_view_change_uuid"
+                },
+?{}
 ?{VER(<8.0.23)}
                 {
                     "value": "COMMIT_ORDER",
@@ -1526,6 +1538,12 @@
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
                 },
+?{VER(>=8.0.25)}
+                {
+                    "value": "<<<__gr_view_change_uuid>>>",
+                    "variable": "group_replication_view_change_uuid"
+                },
+?{}
 ?{VER(<8.0.23)}
                 {
                     "value": "COMMIT_ORDER",
@@ -1776,6 +1794,12 @@
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
                 },
+?{VER(>=8.0.25)}
+                {
+                    "value": "<<<__gr_view_change_uuid>>>",
+                    "variable": "group_replication_view_change_uuid"
+                },
+?{}
 ?{VER(<8.0.23)}
                 {
                     "value": "COMMIT_ORDER",
@@ -1995,6 +2019,12 @@
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
                 },
+?{VER(>=8.0.25)}
+                {
+                    "value": "<<<__gr_view_change_uuid>>>",
+                    "variable": "group_replication_view_change_uuid"
+                },
+?{}
 ?{VER(<8.0.23)}
                 {
                     "value": "COMMIT_ORDER",
@@ -2214,6 +2244,12 @@
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
                 },
+?{VER(>=8.0.25)}
+                {
+                    "value": "<<<__gr_view_change_uuid>>>",
+                    "variable": "group_replication_view_change_uuid"
+                },
+?{}
 ?{VER(<8.0.23)}
                 {
                     "value": "COMMIT_ORDER",
