@@ -1965,7 +1965,10 @@ void Mysql_shell::add_devapi_completions() {
                                   {"startTransaction", "SqlResult", true},
                                   {"setSavepoint", "", true},
                                   {"releaseSavepoint", "", true},
-                                  {"rollbackTo", "", true}});
+                                  {"rollbackTo", "", true},
+                                  {"_enableNotices", "", true},
+                                  {"_fetchNotice", "", true},
+                                  {"_getSocketFd", "", true}});
 
   registry->add_completable_type("Schema",
                                  {{"name", "name", false},
@@ -2375,7 +2378,8 @@ void Mysql_shell::add_devapi_completions() {
                                   {"runSql", "ClassicResult", true},
                                   {"query", "ClassicResult", true},
                                   {"startTransaction", "ClassicResult", true},
-                                  {"uri", "", false}});
+                                  {"uri", "", false},
+                                  {"_getSocketFd", "", true}});
 
   registry->add_completable_type("ClassicResult",
                                  {{"executionTime", "", true},

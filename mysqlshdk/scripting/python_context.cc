@@ -767,7 +767,7 @@ void Python_context::get_members_of(
       PyObject *m = PySequence_ITEM(members, i);
       std::string s;
 
-      if (m && pystring_to_string(m, &s) && s[0] != '_') {
+      if (m && pystring_to_string(m, &s) && !shcore::str_beginswith(s, "__")) {
         PyObject *mem = PyObject_GetAttrString(object, s.c_str());
         out_keys->push_back(std::make_pair(PyCallable_Check(mem), s));
         Py_XDECREF(mem);

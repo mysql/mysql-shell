@@ -729,6 +729,84 @@ void XSession_impl::deallocate_prep_stmt(uint32_t stmt_id) {
   m_prepared_statements.erase(stmt_id);
 }
 
+void XSession_impl::enable_notices(
+    const std::vector<GlobalNotice::Type> &types) {
+  if (!m_handler_installed) {
+    m_handler_installed = true;
+
+    _mysql->get_protocol().add_notice_handler(
+        [this](const xcl::XProtocol *protocol, const bool is_global,
+               const Mysqlx::Notice::Frame::Type type, const char *data,
+               const uint32_t data_length) -> xcl::Handler_result {
+          return global_notice_handler(protocol, is_global, type, data,
+                                       data_length);
+        });
+  }
+
+  xcl::XError err;
+  xcl::Argument_value::Object arg_obj;
+  xcl::Argument_value arg_value;
+  arg_value = arg_obj;
+
+  for (auto type : types) {
+    switch (type) {
+      case GlobalNotice::GRViewChanged:
+
+        arg_obj["notice"] = xcl::Argument_value::Arguments{
+            xcl::Argument_value("group_replication/membership/quorum_loss",
+                                xcl::Argument_value::String_type::k_string),
+            xcl::Argument_value("group_replication/membership/view",
+                                xcl::Argument_value::String_type::k_string),
+            xcl::Argument_value("group_replication/status/role_change",
+                                xcl::Argument_value::String_type::k_string),
+            xcl::Argument_value("group_replication/status/state_change",
+                                xcl::Argument_value::String_type::k_string)};
+
+        _mysql->execute_stmt("mysqlx", "enable_notices",
+                             {xcl::Argument_value(arg_obj)}, &err);
+
+        check_error_and_throw(err);
+        break;
+    }
+  }
+}
+
+xcl::Handler_result XSession_impl::global_notice_handler(
+    const xcl::XProtocol *, const bool is_global,
+    const Mysqlx::Notice::Frame::Type type, const char *payload,
+    const uint32_t payload_size) {
+  if (is_global) {
+    bool notify = false;
+    GlobalNotice notice;
+
+    if (type == Mysqlx::Notice::Frame::GROUP_REPLICATION_STATE_CHANGED) {
+      Mysqlx::Notice::GroupReplicationStateChanged change;
+      change.ParseFromArray(payload, static_cast<int>(payload_size));
+
+      notice.type = GlobalNotice::GRViewChanged;
+      notice.info.gr_view_change.view_id = change.view_id();
+
+      notify = true;
+    }
+
+    if (notify) {
+      for (auto l = m_notice_listeners.begin();
+           l != m_notice_listeners.end();) {
+        auto current = l++;
+        if (!(*current)(notice)) {
+          m_notice_listeners.erase(current);
+        }
+      }
+    }
+  }
+  return xcl::Handler_result::Continue;
+}
+
+void XSession_impl::add_notice_listener(
+    const std::function<bool(const GlobalNotice &)> &listener) {
+  m_notice_listeners.push_back(listener);
+}
+
 void XSession_impl::check_error_and_throw(const xcl::XError &error,
                                           const char *context) {
   if (error) {

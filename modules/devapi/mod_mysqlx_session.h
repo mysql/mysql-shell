@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,8 +24,10 @@
 #ifndef MODULES_DEVAPI_MOD_MYSQLX_SESSION_H_
 #define MODULES_DEVAPI_MOD_MYSQLX_SESSION_H_
 
+#include <list>
 #include <memory>
 #include <string>
+#include <vector>
 #include "db/mysqlx/mysqlxclient_clean.h"
 #include "db/mysqlx/session.h"
 #include "modules/devapi/mod_mysqlx_resultset.h"
@@ -217,6 +219,11 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   void disable_prepared_statements() { m_allow_prepared_statements = false; }
   bool allow_prepared_statements() { return m_allow_prepared_statements; }
 
+  void _enable_notices(const std::vector<std::string> &notices);
+  shcore::Dictionary_t _fetch_notice();
+
+  socket_t _get_socket_fd() const;
+
  protected:
   friend class SqlExecute;
 
@@ -247,6 +254,9 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
 
  private:
   bool m_allow_prepared_statements = true;
+  std::list<shcore::Dictionary_t> m_notices;
+  bool m_notices_enabled = false;
+
   void reset_session();
 };
 

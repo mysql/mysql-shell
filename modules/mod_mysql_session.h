@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -120,6 +120,8 @@ class SHCORE_PUBLIC ClassicSession
   std::string get_ssl_cipher() const override;
   std::shared_ptr<mysqlshdk::db::IResult> execute_sql(
       const std::string &query, const shcore::Array_t &args = {}) override;
+
+  socket_t _get_socket_fd() const;
 
  public:
   SessionType session_type() const override { return SessionType::Classic; }

@@ -29,7 +29,10 @@ validateMembers(mySession, [
     'currentSchema',
     'setSavepoint',
     'releaseSavepoint',
-    'rollbackTo'])
+    'rollbackTo',
+    '_enableNotices',
+    '_fetchNotice',
+    '_getSocketFd'])
 
 //@<> BUG#30516645 character sets should be set to utf8mb4
 mySession.runSql("SHOW SESSION VARIABLES LIKE 'character\\_set\\_%'");

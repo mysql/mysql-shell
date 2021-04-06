@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -141,6 +141,10 @@ void Session::init() {
   expose("quoteName", &Session::quote_name, "id");
 
   expose("runSql", &Session::run_sql, "query", "?args");
+
+  expose("_getSocketFd", &Session::_get_socket_fd);
+  expose("_fetchNotice", &Session::_fetch_notice);
+  expose("_enableNotices", &Session::_enable_notices, "noticeTypes");
 
   _schemas.reset(new shcore::Value::Map_type);
 
@@ -1236,4 +1240,50 @@ std::shared_ptr<Schema> Session::_set_current_schema(const std::string &name) {
   }
 
   return get_schema(name);
+}
+
+socket_t Session::_get_socket_fd() const {
+  if (!_session || !_session->is_open())
+    throw std::invalid_argument("Session is not open");
+  return _session->get_socket_fd();
+}
+
+// This is a temporary API that may change
+void Session::_enable_notices(const std::vector<std::string> &notices) {
+  std::vector<mysqlshdk::db::mysqlx::GlobalNotice::Type> types;
+
+  for (const auto &n : notices) {
+    if (n == "GRViewChanged") {
+      types.push_back(mysqlshdk::db::mysqlx::GlobalNotice::GRViewChanged);
+    } else {
+      throw std::invalid_argument("Unknown notice type " + n);
+    }
+  }
+
+  if (!types.empty()) {
+    _session->enable_notices(types);
+
+    if (!m_notices_enabled) {
+      m_notices_enabled = true;
+      _session->add_notice_listener(
+          [this](const mysqlshdk::db::mysqlx::GlobalNotice &notice) {
+            if (notice.type ==
+                mysqlshdk::db::mysqlx::GlobalNotice::GRViewChanged) {
+              m_notices.push_back(shcore::make_dict(
+                  "type", shcore::Value("GRViewChanged"), "view_id",
+                  shcore::Value(notice.info.gr_view_change.view_id)));
+            }
+            return true;
+          });
+    }
+  }
+}
+
+shcore::Dictionary_t Session::_fetch_notice() {
+  if (!m_notices.empty()) {
+    auto tmp = m_notices.front();
+    m_notices.pop_front();
+    return tmp;
+  }
+  return nullptr;
 }
