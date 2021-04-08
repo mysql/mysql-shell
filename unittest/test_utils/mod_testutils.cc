@@ -954,10 +954,10 @@ list Testutils::fetch_dba_sql_log(bool);
 #endif
 ///@}
 shcore::Array_t Testutils::fetch_dba_sql_log(bool flush) {
-  shcore::Array_t log = dynamic_cast<Shell_core_test_wrapper *>(_test_env)
+  shcore::Array_t log = static_cast<Shell_core_test_wrapper *>(_test_env)
                             ->output_handler.dba_sql_log;
   if (flush)
-    dynamic_cast<Shell_core_test_wrapper *>(_test_env)
+    static_cast<Shell_core_test_wrapper *>(_test_env)
         ->output_handler.dba_sql_log.reset();
   return log;
 }

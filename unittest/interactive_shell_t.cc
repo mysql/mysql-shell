@@ -3216,8 +3216,8 @@ TEST_F(Interactive_shell_test, file_operations) {
       shcore::path::join_path(tempdir, "zażółć_gęślą_jaźń"));
   shcore::create_directory(
       shcore::path::join_path(tempdir, "zażółć/gęślą/jaźń"), true);
-  for (const std::string &f : {"zażółć_gęślą_jaźń", "zażółć/gęślą/jaźń",
-                               "zażółć/gęślą", "zażółć", ""}) {
+  for (const auto &f : {"zażółć_gęślą_jaźń", "zażółć/gęślą/jaźń",
+                        "zażółć/gęślą", "zażółć", ""}) {
     shcore::create_file(shcore::path::join_path(tempdir, f, "test.txt"),
                         "# mysqlsh file operations test\n");
     shcore::create_file(shcore::path::join_path(tempdir, f, "café.txt"),
