@@ -297,7 +297,7 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Shell_core::get_dev_session() {
 std::string Shell_core::get_main_delimiter() const {
   auto it = _langs.find(Mode::SQL);
   if (it == _langs.end()) return ";";
-  return dynamic_cast<Shell_sql *>(it->second)->get_main_delimiter();
+  return static_cast<Shell_sql *>(it->second)->get_main_delimiter();
 }
 
 void Shell_core::execute_module(const std::string &module_name,

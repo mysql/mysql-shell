@@ -1286,7 +1286,7 @@ void Replica_set_impl::set_primary_instance(const std::string &instance_def,
   const topology::Server *promoted =
       check_target_member(srv_topology, instance_def);
 
-  const topology::Server *demoted = dynamic_cast<const topology::Server *>(
+  const topology::Server *demoted = static_cast<const topology::Server *>(
       srv_topology->get_primary_master_node());
 
   if (promoted == demoted) {
@@ -1490,7 +1490,7 @@ void Replica_set_impl::force_primary_instance(const std::string &instance_def,
   topology::Server_global_topology *srv_topology = nullptr;
   auto topology = setup_topology_manager(&srv_topology);
 
-  const topology::Server *demoted = dynamic_cast<const topology::Server *>(
+  const topology::Server *demoted = static_cast<const topology::Server *>(
       srv_topology->get_primary_master_node());
 
   const topology::Server *promoted = nullptr;
@@ -2787,8 +2787,7 @@ shcore::Dictionary_t Replica_set_impl::get_topology_options() {
                                      k_async_cluster_channel_name, true));
 
   for (const topology::Server &server :
-       dynamic_cast<topology::Server_global_topology *>(topo.get())
-           ->servers()) {
+       static_cast<topology::Server_global_topology *>(topo.get())->servers()) {
     // Get the instance parallel applier options
     shcore::Array_t array = shcore::make_array();
 
