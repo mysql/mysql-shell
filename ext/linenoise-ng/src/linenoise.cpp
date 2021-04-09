@@ -87,8 +87,8 @@
 #ifdef _WIN32
 
 #include <conio.h>
-#include <windows.h>
 #include <io.h>
+#include <windows.h>
 
 #if defined(_MSC_VER) && _MSC_VER < 1900
 #define snprintf _snprintf  // Microsoft headers use underscores in some names
@@ -106,55 +106,55 @@
 #else /* _WIN32 */
 
 #include <signal.h>
-#include <termios.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
+#include <termios.h>
+#include <unistd.h>
 
 #ifdef __sun
 #include <sys/stat.h>
 #endif
 
-#include <cctype>
 #include <wctype.h>
+#include <cctype>
 
 #endif /* _WIN32 */
 
-#include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <stdexcept>
 
-#include "linenoise.h"
 #include "ConvertUTF.h"
+#include "linenoise.h"
 
 #include <map>
+#include <memory>
 #include <new>
 #include <string>
 #include <vector>
-#include <memory>
 
 using std::string;
-using std::vector;
 using std::unique_ptr;
+using std::vector;
 using namespace linenoise_ng;
 
 typedef unsigned char char8_t;
 
-static ConversionResult copyString8to32(char32_t* dst, size_t dstSize,
-                                        size_t& dstCount, const char* src) {
-  const UTF8* sourceStart = reinterpret_cast<const UTF8*>(src);
-  const UTF8* sourceEnd = sourceStart + strlen(src);
-  UTF32* targetStart = reinterpret_cast<UTF32*>(dst);
-  UTF32* targetEnd = targetStart + dstSize;
+static ConversionResult copyString8to32(char32_t *dst, size_t dstSize,
+                                        size_t &dstCount, const char *src) {
+  const UTF8 *sourceStart = reinterpret_cast<const UTF8 *>(src);
+  const UTF8 *sourceEnd = sourceStart + strlen(src);
+  UTF32 *targetStart = reinterpret_cast<UTF32 *>(dst);
+  UTF32 *targetEnd = targetStart + dstSize;
 
   ConversionResult res = ConvertUTF8toUTF32(
       &sourceStart, sourceEnd, &targetStart, targetEnd, lenientConversion);
 
   if (res == conversionOK) {
-    dstCount = targetStart - reinterpret_cast<UTF32*>(dst);
+    dstCount = targetStart - reinterpret_cast<UTF32 *>(dst);
 
     if (dstCount < dstSize) {
       *targetStart = 0;
@@ -164,14 +164,14 @@ static ConversionResult copyString8to32(char32_t* dst, size_t dstSize,
   return res;
 }
 
-static ConversionResult copyString8to32(char32_t* dst, size_t dstSize,
-                                        size_t& dstCount, const char8_t* src) {
+static ConversionResult copyString8to32(char32_t *dst, size_t dstSize,
+                                        size_t &dstCount, const char8_t *src) {
   return copyString8to32(dst, dstSize, dstCount,
-                         reinterpret_cast<const char*>(src));
+                         reinterpret_cast<const char *>(src));
 }
 
-static size_t strlen32(const char32_t* str) {
-  const char32_t* ptr = str;
+static size_t strlen32(const char32_t *str) {
+  const char32_t *ptr = str;
 
   while (*ptr) {
     ++ptr;
@@ -180,12 +180,12 @@ static size_t strlen32(const char32_t* str) {
   return ptr - str;
 }
 
-static size_t strlen8(const char8_t* str) {
-  return strlen(reinterpret_cast<const char*>(str));
+static size_t strlen8(const char8_t *str) {
+  return strlen(reinterpret_cast<const char *>(str));
 }
 
-static char8_t* strdup8(const char* src) {
-  return reinterpret_cast<char8_t*>(strdup(src));
+static char8_t *strdup8(const char *src) {
+  return reinterpret_cast<char8_t *>(strdup(src));
 }
 
 #ifdef _WIN32
@@ -219,18 +219,18 @@ class WinAttributes {
 
 static WinAttributes WIN_ATTR;
 
-static void copyString32to16(char16_t* dst, size_t dstSize, size_t* dstCount,
-                             const char32_t* src, size_t srcSize) {
-  const UTF32* sourceStart = reinterpret_cast<const UTF32*>(src);
-  const UTF32* sourceEnd = sourceStart + srcSize;
-  char16_t* targetStart = reinterpret_cast<char16_t*>(dst);
-  char16_t* targetEnd = targetStart + dstSize;
+static void copyString32to16(char16_t *dst, size_t dstSize, size_t *dstCount,
+                             const char32_t *src, size_t srcSize) {
+  const UTF32 *sourceStart = reinterpret_cast<const UTF32 *>(src);
+  const UTF32 *sourceEnd = sourceStart + srcSize;
+  char16_t *targetStart = reinterpret_cast<char16_t *>(dst);
+  char16_t *targetEnd = targetStart + dstSize;
 
   ConversionResult res = ConvertUTF32toUTF16(
       &sourceStart, sourceEnd, &targetStart, targetEnd, lenientConversion);
 
   if (res == conversionOK) {
-    *dstCount = targetStart - reinterpret_cast<char16_t*>(dst);
+    *dstCount = targetStart - reinterpret_cast<char16_t *>(dst);
 
     if (*dstCount < dstSize) {
       *targetStart = 0;
@@ -239,18 +239,18 @@ static void copyString32to16(char16_t* dst, size_t dstSize, size_t* dstCount,
 }
 #endif
 
-static void copyString32to8(char* dst, size_t dstSize, size_t* dstCount,
-                            const char32_t* src, size_t srcSize) {
-  const UTF32* sourceStart = reinterpret_cast<const UTF32*>(src);
-  const UTF32* sourceEnd = sourceStart + srcSize;
-  UTF8* targetStart = reinterpret_cast<UTF8*>(dst);
-  UTF8* targetEnd = targetStart + dstSize;
+static void copyString32to8(char *dst, size_t dstSize, size_t *dstCount,
+                            const char32_t *src, size_t srcSize) {
+  const UTF32 *sourceStart = reinterpret_cast<const UTF32 *>(src);
+  const UTF32 *sourceEnd = sourceStart + srcSize;
+  UTF8 *targetStart = reinterpret_cast<UTF8 *>(dst);
+  UTF8 *targetEnd = targetStart + dstSize;
 
   ConversionResult res = ConvertUTF32toUTF8(
       &sourceStart, sourceEnd, &targetStart, targetEnd, lenientConversion);
 
   if (res == conversionOK) {
-    *dstCount = targetStart - reinterpret_cast<UTF8*>(dst);
+    *dstCount = targetStart - reinterpret_cast<UTF8 *>(dst);
 
     if (*dstCount < dstSize) {
       *targetStart = 0;
@@ -258,12 +258,12 @@ static void copyString32to8(char* dst, size_t dstSize, size_t* dstCount,
   }
 }
 
-static void copyString32to8(char* dst, size_t dstLen, const char32_t* src) {
+static void copyString32to8(char *dst, size_t dstLen, const char32_t *src) {
   size_t dstCount = 0;
   copyString32to8(dst, dstLen, &dstCount, src, strlen32(src));
 }
 
-static void copyString32(char32_t* dst, const char32_t* src, size_t len) {
+static void copyString32(char32_t *dst, const char32_t *src, size_t len) {
   while (0 < len && *src) {
     *dst++ = *src++;
     --len;
@@ -272,7 +272,7 @@ static void copyString32(char32_t* dst, const char32_t* src, size_t len) {
   *dst = 0;
 }
 
-static int strncmp32(const char32_t* left, const char32_t* right, size_t len) {
+static int strncmp32(const char32_t *left, const char32_t *right, size_t len) {
   while (0 < len && *left) {
     if (*left != *right) {
       return *left - *right;
@@ -289,7 +289,7 @@ static int strncmp32(const char32_t* left, const char32_t* right, size_t len) {
 #ifdef _WIN32
 #include <iostream>
 
-static size_t OutputWin(char16_t* text16, char32_t* text32, size_t len32) {
+static size_t OutputWin(char16_t *text16, char32_t *text32, size_t len32) {
   size_t count16 = 0;
 
   copyString32to16(text16, len32, &count16, text32, len32);
@@ -299,7 +299,7 @@ static size_t OutputWin(char16_t* text16, char32_t* text32, size_t len32) {
   return count16;
 }
 
-static char32_t* HandleEsc(char32_t* p, char32_t* end) {
+static char32_t *HandleEsc(char32_t *p, char32_t *end) {
   if (*p == '[') {
     int code = 0;
 
@@ -382,10 +382,10 @@ static char32_t* HandleEsc(char32_t* p, char32_t* end) {
   return p;
 }
 
-static size_t WinWrite32(char16_t* text16, char32_t* text32, size_t len32) {
-  char32_t* p = text32;
-  char32_t* q = p;
-  char32_t* e = text32 + len32;
+static size_t WinWrite32(char16_t *text16, char32_t *text32, size_t len32) {
+  char32_t *p = text32;
+  char32_t *q = p;
+  char32_t *e = text32 + len32;
   size_t count16 = 0;
 
   while (p < e) {
@@ -408,7 +408,7 @@ static size_t WinWrite32(char16_t* text16, char32_t* text32, size_t len32) {
 }
 #endif
 
-static int write32(int fd, char32_t* text32, int len32) {
+static int write32(int fd, char32_t *text32, int len32) {
 #if defined(_WIN32) && defined(EMULATE_VT100_COLORS)
   if (isatty(fd)) {
     size_t len16 = 2 * len32 + 1;
@@ -443,21 +443,21 @@ class Utf32String {
     _data = new char32_t[1]();
   }
 
-  explicit Utf32String(const char* src) : _length(0), _data(nullptr) {
+  explicit Utf32String(const char *src) : _length(0), _data(nullptr) {
     size_t len = strlen(src);
     // note: parens intentional, _data must be properly initialized
     _data = new char32_t[len + 1]();
     copyString8to32(_data, len + 1, _length, src);
   }
 
-  explicit Utf32String(const char8_t* src) : _length(0), _data(nullptr) {
-    size_t len = strlen(reinterpret_cast<const char*>(src));
+  explicit Utf32String(const char8_t *src) : _length(0), _data(nullptr) {
+    size_t len = strlen(reinterpret_cast<const char *>(src));
     // note: parens intentional, _data must be properly initialized
     _data = new char32_t[len + 1]();
     copyString8to32(_data, len + 1, _length, src);
   }
 
-  explicit Utf32String(const char32_t* src) : _length(0), _data(nullptr) {
+  explicit Utf32String(const char32_t *src) : _length(0), _data(nullptr) {
     for (_length = 0; src[_length] != 0; ++_length) {
     }
 
@@ -466,7 +466,8 @@ class Utf32String {
     memcpy(_data, src, _length * sizeof(char32_t));
   }
 
-  explicit Utf32String(const char32_t* src, int len) : _length(len), _data(nullptr) {
+  explicit Utf32String(const char32_t *src, int len)
+      : _length(len), _data(nullptr) {
     // note: parens intentional, _data must be properly initialized
     _data = new char32_t[len + 1]();
     memcpy(_data, src, len * sizeof(char32_t));
@@ -477,13 +478,14 @@ class Utf32String {
     _data = new char32_t[len]();
   }
 
-  explicit Utf32String(const Utf32String& that) : _length(that._length), _data(nullptr) {
+  explicit Utf32String(const Utf32String &that)
+      : _length(that._length), _data(nullptr) {
     // note: parens intentional, _data must be properly initialized
     _data = new char32_t[_length + 1]();
     memcpy(_data, that._data, sizeof(char32_t) * _length);
   }
 
-  Utf32String& operator=(const Utf32String& that) {
+  Utf32String &operator=(const Utf32String &that) {
     if (this != &that) {
       delete[] _data;
       _data = new char32_t[that._length]();
@@ -497,7 +499,7 @@ class Utf32String {
   ~Utf32String() { delete[] _data; }
 
  public:
-  char32_t* get() const { return _data; }
+  char32_t *get() const { return _data; }
 
   size_t length() const { return _length; }
 
@@ -508,21 +510,21 @@ class Utf32String {
     }
   }
 
-  const char32_t& operator[](size_t pos) const { return _data[pos]; }
+  const char32_t &operator[](size_t pos) const { return _data[pos]; }
 
-  char32_t& operator[](size_t pos) { return _data[pos]; }
+  char32_t &operator[](size_t pos) { return _data[pos]; }
 
  private:
   size_t _length;
-  char32_t* _data;
+  char32_t *_data;
 };
 
 class Utf8String {
-  Utf8String(const Utf8String&) = delete;
-  Utf8String& operator=(const Utf8String&) = delete;
+  Utf8String(const Utf8String &) = delete;
+  Utf8String &operator=(const Utf8String &) = delete;
 
  public:
-  explicit Utf8String(const Utf32String& src) {
+  explicit Utf8String(const Utf32String &src) {
     size_t len = src.length() * 4 + 1;
     _data = new char[len];
     copyString32to8(_data, len, src.get());
@@ -531,10 +533,10 @@ class Utf8String {
   ~Utf8String() { delete[] _data; }
 
  public:
-  char* get() const { return _data; }
+  char *get() const { return _data; }
 
  private:
-  char* _data;
+  char *_data;
 };
 
 struct linenoiseCompletions {
@@ -557,11 +559,9 @@ namespace linenoise_ng {
 int mk_wcwidth(char32_t ucs);
 }
 
-int getWcwidth(char32_t ucs) {
-  return mk_wcwidth(ucs);
-}
+int getWcwidth(char32_t ucs) { return mk_wcwidth(ucs); }
 
-static void recomputeCharacterWidths(const char32_t* text, char* widths,
+static void recomputeCharacterWidths(const char32_t *text, char *widths,
                                      int charCount) {
   for (int i = 0; i < charCount; ++i) {
     widths[i] = mk_wcwidth(text[i]);
@@ -579,7 +579,7 @@ static void recomputeCharacterWidths(const char32_t* text, char* widths,
  * @param yOut          returned y position (zero-based)
  */
 static void calculateScreenPosition(int x, int y, int screenColumns,
-                                    int charCount, int& xOut, int& yOut) {
+                                    int charCount, int &xOut, int &yOut) {
   xOut = x;
   yOut = y;
   int charsRemaining = charCount;
@@ -604,14 +604,14 @@ static void calculateScreenPosition(int x, int y, int screenColumns,
  * @param len    length of text to calculate
  */
 namespace linenoise_ng {
-int mk_wcswidth(const char32_t* pwcs, size_t n);
+int mk_wcswidth(const char32_t *pwcs, size_t n);
 }
 
-static int calculateColumnPosition(char32_t* buf32, int len) {
+static int calculateColumnPosition(char32_t *buf32, int len) {
 #ifdef _WIN32
-  return len; // looks like accounting for dbl-width chars is not needed in win
+  return len;  // looks like accounting for dbl-width chars is not needed in win
 #endif
-  int width = mk_wcswidth(reinterpret_cast<const char32_t*>(buf32), len);
+  int width = mk_wcswidth(reinterpret_cast<const char32_t *>(buf32), len);
   if (width == -1)
     return len;
   else
@@ -625,7 +625,7 @@ static bool isControlChar(char32_t testChar) {
 
 struct PromptBase {            // a convenience struct for grouping prompt info
   Utf32String promptText;      // our copy of the prompt text, edited
-  char* promptCharWidths;      // character widths from mk_wcwidth()
+  char *promptCharWidths;      // character widths from mk_wcwidth()
   int promptChars;             // chars in promptText
   int promptBytes;             // bytes in promptText
   int promptExtraLines;        // extra lines (beyond 1) occupied by prompt
@@ -649,7 +649,7 @@ struct PromptBase {            // a convenience struct for grouping prompt info
 };
 
 struct PromptInfo : public PromptBase {
-  PromptInfo(const char* textPtr, int columns) {
+  PromptInfo(const char *textPtr, int columns) {
     promptExtraLines = 0;
     promptLastLinePosition = 0;
     promptPreviousLen = 0;
@@ -657,8 +657,8 @@ struct PromptInfo : public PromptBase {
     Utf32String tempUnicode(textPtr);
 
     // strip control characters from the prompt -- we do allow newline
-    char32_t* pIn = tempUnicode.get();
-    char32_t* pOut = pIn;
+    char32_t *pIn = tempUnicode.get();
+    char32_t *pOut = pIn;
 
     int len = 0;
     int x = 0;
@@ -737,17 +737,17 @@ static Utf32String
 //
 struct DynamicPrompt : public PromptBase {
   Utf32String searchText;  // text we are searching for
-  char* searchCharWidths;  // character widths from mk_wcwidth()
+  char *searchCharWidths;  // character widths from mk_wcwidth()
   int searchTextLen;       // chars in searchText
   int direction;           // current search direction, 1=forward, -1=reverse
 
-  DynamicPrompt(PromptBase& pi, int initialDirection)
+  DynamicPrompt(PromptBase &pi, int initialDirection)
       : searchTextLen(0), direction(initialDirection) {
     promptScreenColumns = pi.promptScreenColumns;
     promptCursorRowOffset = 0;
     Utf32String emptyString(1);
     searchText = emptyString;
-    const Utf32String* basePrompt =
+    const Utf32String *basePrompt =
         (direction > 0) ? &forwardSearchBasePrompt : &reverseSearchBasePrompt;
     size_t promptStartLength = basePrompt->length();
     promptChars =
@@ -769,7 +769,7 @@ struct DynamicPrompt : public PromptBase {
   }
 
   void updateSearchPrompt(void) {
-    const Utf32String* basePrompt =
+    const Utf32String *basePrompt =
         (direction > 0) ? &forwardSearchBasePrompt : &reverseSearchBasePrompt;
     size_t promptStartLength = basePrompt->length();
     promptChars = static_cast<int>(promptStartLength + searchTextLen +
@@ -787,7 +787,7 @@ struct DynamicPrompt : public PromptBase {
     promptText = tempUnicode;
   }
 
-  void updateSearchText(const char32_t* textPtr) {
+  void updateSearchText(const char32_t *textPtr) {
     Utf32String tempUnicode(textPtr);
     searchTextLen = static_cast<int>(tempUnicode.chars());
     searchText = tempUnicode;
@@ -811,7 +811,7 @@ class KillRing {
     theRing.reserve(capacity);
   }
 
-  void kill(const char32_t* text, int textLen, bool forward) {
+  void kill(const char32_t *text, int textLen, bool forward) {
     if (textLen == 0) {
       return;
     }
@@ -850,9 +850,9 @@ class KillRing {
     }
   }
 
-  Utf32String* yank() { return (size > 0) ? &theRing[indexToSlot[index]] : 0; }
+  Utf32String *yank() { return (size > 0) ? &theRing[indexToSlot[index]] : 0; }
 
-  Utf32String* yankPop() {
+  Utf32String *yankPop() {
     if (size == 0) {
       return 0;
     }
@@ -865,19 +865,19 @@ class KillRing {
 };
 
 class InputBuffer {
-  char32_t* buf32;   // input buffer
-  char* charWidths;  // character widths from mk_wcwidth()
+  char32_t *buf32;   // input buffer
+  char *charWidths;  // character widths from mk_wcwidth()
   int buflen;        // buffer size in characters
   int len;           // length of text in input buffer
   int pos;           // character position in buffer ( 0 <= pos <= len )
 
-  void clearScreen(PromptBase& pi);
-  int incrementalHistorySearch(PromptBase& pi, int startChar);
-  int completeLine(PromptBase& pi);
-  void refreshLine(PromptBase& pi);
+  void clearScreen(PromptBase &pi);
+  int incrementalHistorySearch(PromptBase &pi, int startChar);
+  int completeLine(PromptBase &pi);
+  void refreshLine(PromptBase &pi);
 
  public:
-  InputBuffer(char32_t* buffer, char* widthArray, int bufferLen)
+  InputBuffer(char32_t *buffer, char *widthArray, int bufferLen)
       : buf32(buffer),
         charWidths(widthArray),
         buflen(bufferLen - 1),
@@ -885,7 +885,7 @@ class InputBuffer {
         pos(0) {
     buf32[0] = 0;
   }
-  void preloadBuffer(const char* preloadText) {
+  void preloadBuffer(const char *preloadText) {
     size_t ucharCount = 0;
     copyString8to32(buf32, buflen + 1, ucharCount, preloadText);
     recomputeCharacterWidths(buf32, charWidths, static_cast<int>(ucharCount));
@@ -915,7 +915,7 @@ class InputBuffer {
     memcpy(&displayText[0], buf32, sizeof(char32_t) * startIndex);
     memcpy(&displayText[startIndex], &text[0], sizeof(char32_t) * textLength);
     memcpy(&displayText[tailIndex], &buf32[startIndex + *oldTextLength],
-            sizeof(char32_t) * tailLength + 1);
+           sizeof(char32_t) * tailLength + 1);
     copyString32(buf32, displayText.get(), newlen);
     pos = startIndex + textLength;
     len = newlen;
@@ -923,7 +923,7 @@ class InputBuffer {
     return ok;
   }
 
-  int getInputLine(PromptBase& pi);
+  int getInputLine(PromptBase &pi);
   int length(void) const { return len; }
 };
 
@@ -973,8 +973,8 @@ static const int DELETE_KEY = 0x10E00000;
 static const int PAGE_UP_KEY = 0x11000000;
 static const int PAGE_DOWN_KEY = 0x11200000;
 
-static const char* unsupported_term[] = {"dumb", "cons25", "emacs", NULL};
-static linenoiseCompletionCallback* completionCallback = NULL;
+static const char *unsupported_term[] = {"dumb", "cons25", "emacs", NULL};
+static linenoiseCompletionCallback *completionCallback = NULL;
 
 class Custom_commands {
  public:
@@ -1140,7 +1140,7 @@ static int atexit_registered = 0; /* register atexit just 1 time */
 static int historyMaxLen = LINENOISE_DEFAULT_HISTORY_MAX_LEN;
 static int historyLen = 0;
 static int historyIndex = 0;
-static char8_t** history = NULL;
+static char8_t **history = NULL;
 
 // used to emulate Windows command prompt on down-arrow after a recall
 // we use -2 as our "not set" value because we add 1 to the previous index on
@@ -1152,7 +1152,7 @@ static bool historyRecallMostRecent = false;
 static void linenoiseAtExit(void);
 
 static bool isUnsupportedTerm(void) {
-  char* term = getenv("TERM");
+  char *term = getenv("TERM");
   if (term == NULL) return false;
   for (int j = 0; unsupported_term[j]; ++j)
     if (!strcasecmp(term, unsupported_term[j])) {
@@ -1182,9 +1182,9 @@ static int enableRawMode(void) {
     console_out = GetStdHandle(STD_OUTPUT_HANDLE);
 
     GetConsoleMode(console_in, &oldMode);
-    SetConsoleMode(console_in, oldMode &
-                                   ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT |
-                                     ENABLE_PROCESSED_INPUT));
+    SetConsoleMode(console_in,
+                   oldMode & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT |
+                               ENABLE_PROCESSED_INPUT));
   }
   return 0;
 #else
@@ -1296,7 +1296,7 @@ static void setDisplayAttribute(bool enhancedDisplay, bool error) {
   }
 #else
   if (enhancedDisplay) {
-    char const* p = (error ? "\x1b[1;31m" : "\x1b[1;34m");
+    char const *p = (error ? "\x1b[1;31m" : "\x1b[1;34m");
     if (write(1, p, 7) == -1)
       return; /* bright blue (visible with both B&W bg) */
   } else {
@@ -1314,7 +1314,7 @@ static void setDisplayAttribute(bool enhancedDisplay, bool error) {
  * @param len  count of characters in the buffer
  * @param pos  current cursor position within the buffer (0 <= pos <= len)
  */
-static void dynamicRefresh(PromptBase& pi, char32_t* buf32, int len, int pos) {
+static void dynamicRefresh(PromptBase &pi, char32_t *buf32, int len, int pos) {
   // calculate the position of the end of the prompt
   int xEndOfPrompt, yEndOfPrompt;
   calculateScreenPosition(0, 0, pi.promptScreenColumns, pi.promptChars,
@@ -1342,12 +1342,14 @@ static void dynamicRefresh(PromptBase& pi, char32_t* buf32, int len, int pos) {
   inf.dwCursorPosition.Y -= pi.promptCursorRowOffset /*- pi.promptExtraLines*/;
   SetConsoleCursorPosition(console_out, inf.dwCursorPosition);
   DWORD count;
-  FillConsoleOutputCharacterA(console_out, ' ',
-                pi.promptPreviousLen + pi.promptPreviousInputLen + cursorPosX,
-                inf.dwCursorPosition, &count);
-  FillConsoleOutputAttribute(console_out, 0,
-                pi.promptPreviousLen + pi.promptPreviousInputLen + cursorPosX,
-                inf.dwCursorPosition, &count);
+  FillConsoleOutputCharacterA(
+      console_out, ' ',
+      pi.promptPreviousLen + pi.promptPreviousInputLen + cursorPosX,
+      inf.dwCursorPosition, &count);
+  FillConsoleOutputAttribute(
+      console_out, 0,
+      pi.promptPreviousLen + pi.promptPreviousInputLen + cursorPosX,
+      inf.dwCursorPosition, &count);
   pi.promptPreviousLen = pi.promptIndentation;
   pi.promptPreviousInputLen = len;
 
@@ -1404,7 +1406,7 @@ static void dynamicRefresh(PromptBase& pi, char32_t* buf32, int len, int pos) {
  * @param pi   PromptBase struct holding information about the prompt and our
  * screen position
  */
-void InputBuffer::refreshLine(PromptBase& pi) {
+void InputBuffer::refreshLine(PromptBase &pi) {
   // check for a matching brace/bracket/paren, remember its position if found
   int highlight = -1;
   bool indicateError = false;
@@ -1415,24 +1417,29 @@ void InputBuffer::refreshLine(PromptBase& pi) {
     if (strchr("}])", buf32[pos])) {
       scanDirection = -1; /* backwards */
       if (buf32[pos] == '}') {
-        part1 = '}'; part2 = '{';
+        part1 = '}';
+        part2 = '{';
       } else if (buf32[pos] == ']') {
-        part1 = ']'; part2 = '[';
+        part1 = ']';
+        part2 = '[';
       } else {
-        part1 = ')'; part2 = '(';
+        part1 = ')';
+        part2 = '(';
       }
-    }
-    else if (strchr("{[(", buf32[pos])) {
+    } else if (strchr("{[(", buf32[pos])) {
       scanDirection = 1; /* forwards */
       if (buf32[pos] == '{') {
-        //part1 = '{'; part2 = '}';
-        part1 = '}'; part2 = '{';
+        // part1 = '{'; part2 = '}';
+        part1 = '}';
+        part2 = '{';
       } else if (buf32[pos] == '[') {
-        //part1 = '['; part2 = ']';
-        part1 = ']'; part2 = '[';
+        // part1 = '['; part2 = ']';
+        part1 = ']';
+        part2 = '[';
       } else {
-        //part1 = '('; part2 = ')';
-        part1 = ')'; part2 = '(';
+        // part1 = '('; part2 = ')';
+        part1 = ')';
+        part2 = '(';
       }
     }
 
@@ -1454,12 +1461,12 @@ void InputBuffer::refreshLine(PromptBase& pi) {
             ++unmatchedOther;
           }
         }
-/*
-        if (strchr("}])", buf32[i]))
-          --unmatched;
-        else if (strchr("{[(", buf32[i]))
-          ++unmatched;
-*/
+        /*
+                if (strchr("}])", buf32[i]))
+                  --unmatched;
+                else if (strchr("{[(", buf32[i]))
+                  ++unmatched;
+        */
         if (unmatched == 0) {
           highlight = i;
           indicateError = (unmatchedOther != 0);
@@ -1499,7 +1506,8 @@ void InputBuffer::refreshLine(PromptBase& pi) {
     if (write32(1, buf32, len) == -1) return;
   } else {
     if (write32(1, buf32, highlight) == -1) return;
-    setDisplayAttribute(true, indicateError); /* bright blue (visible with both B&W bg) */
+    setDisplayAttribute(
+        true, indicateError); /* bright blue (visible with both B&W bg) */
     if (write32(1, &buf32[highlight], 1) == -1) return;
     setDisplayAttribute(false, indicateError);
     if (write32(1, buf32 + highlight + 1, len - highlight - 1) == -1) return;
@@ -1647,8 +1655,8 @@ typedef char32_t (*CharacterDispatchRoutine)(char32_t);
 //
 struct CharacterDispatch {
   unsigned int len;                    // length of the chars list
-  const char* chars;                   // chars to test
-  CharacterDispatchRoutine* dispatch;  // array of routines to call
+  const char *chars;                   // chars to test
+  CharacterDispatchRoutine *dispatch;  // array of routines to call
 };
 
 // This dispatch routine is given a dispatch table and then farms work out to
@@ -1660,7 +1668,7 @@ struct CharacterDispatch {
 // a called routine returns either a character or -1 to indicate parsing
 // failure.
 //
-static char32_t doDispatch(char32_t c, CharacterDispatch& dispatchTable) {
+static char32_t doDispatch(char32_t c, CharacterDispatch &dispatchTable) {
   for (unsigned int i = 0; i < dispatchTable.len; ++i) {
     if (static_cast<unsigned char>(dispatchTable.chars[i]) == c) {
       return dispatchTable.dispatch[i](c);
@@ -1909,7 +1917,7 @@ static char32_t setMetaRoutine(char32_t c) {
   return doDispatch(c, initialDispatch);
 }
 
-}  // namespace EscapeSequenceProcessing // move these out of global namespace
+}  // namespace EscapeSequenceProcessing
 
 #endif  // #ifndef _WIN32
 
@@ -2057,9 +2065,9 @@ static char32_t linenoiseReadChar(void) {
       }
       for (int i = 0; i < ret; ++i) {
         char32_t key = static_cast<char32_t>(keys[i]);
-        char* friendlyTextPtr;
+        char *friendlyTextPtr;
         char friendlyTextBuf[10];
-        const char* prefixText = (key < 0x80) ? "" : "0x80+";
+        const char *prefixText = (key < 0x80) ? "" : "0x80+";
         char32_t keyCopy = (key < 0x80) ? key : key - 0x80;
         if (keyCopy >= '!' && keyCopy <= '~') {  // printable
           friendlyTextBuf[0] = '\'';
@@ -2068,13 +2076,13 @@ static char32_t linenoiseReadChar(void) {
           friendlyTextBuf[3] = 0;
           friendlyTextPtr = friendlyTextBuf;
         } else if (keyCopy == ' ') {
-          friendlyTextPtr = const_cast<char*>("space");
+          friendlyTextPtr = const_cast<char *>("space");
         } else if (keyCopy == 27) {
-          friendlyTextPtr = const_cast<char*>("ESC");
+          friendlyTextPtr = const_cast<char *>("ESC");
         } else if (keyCopy == 0) {
-          friendlyTextPtr = const_cast<char*>("NUL");
+          friendlyTextPtr = const_cast<char *>("NUL");
         } else if (keyCopy == 127) {
-          friendlyTextPtr = const_cast<char*>("DEL");
+          friendlyTextPtr = const_cast<char *>("DEL");
         } else {
           friendlyTextBuf[0] = '^';
           friendlyTextBuf[1] = keyCopy + 0x40;
@@ -2107,7 +2115,7 @@ static char32_t linenoiseReadChar(void) {
  *
  * @param lc pointer to a linenoiseCompletions struct
  */
-static void freeCompletions(linenoiseCompletions* lc) {
+static void freeCompletions(linenoiseCompletions *lc) {
   lc->completionStrings.clear();
 }
 
@@ -2151,7 +2159,7 @@ static const size_t completionCountCutoff = 100;
  * @param pi     PromptBase struct holding information about the prompt and our
  * screen position
  */
-int InputBuffer::completeLine(PromptBase& pi) {
+int InputBuffer::completeLine(PromptBase &pi) {
   linenoiseCompletions lc;
   char32_t c = 0;
 
@@ -2199,8 +2207,7 @@ int InputBuffer::completeLine(PromptBase& pi) {
 
     if (activeChoice == 0) {
       // show original
-      if (!displayCompletion(startIndex, &oldTextLength, original))
-        beep();
+      if (!displayCompletion(startIndex, &oldTextLength, original)) beep();
       refreshLine(pi);
     } else {
       if (!displayCompletion(startIndex, &oldTextLength,
@@ -2223,8 +2230,7 @@ int InputBuffer::completeLine(PromptBase& pi) {
         beep();
         // abort
         done = true;
-        if (!displayCompletion(startIndex, &oldTextLength, original))
-          beep();
+        if (!displayCompletion(startIndex, &oldTextLength, original)) beep();
         refreshLine(pi);
         break;
       default:
@@ -2234,7 +2240,7 @@ int InputBuffer::completeLine(PromptBase& pi) {
   }
   freeCompletions(&lc);
   return 0;
-#else // !CYCLE_COMPLETIONS
+#else  // !CYCLE_COMPLETIONS
   // at least one completion
   int longestCommonPrefix = 0;
   int displayLength = 0;
@@ -2432,7 +2438,7 @@ int InputBuffer::completeLine(PromptBase& pi) {
 #endif
   pi.promptCursorRowOffset = pi.promptExtraLines;
   refreshLine(pi);
-#endif // !CYCLE_COMPLETIONS
+#endif  // !CYCLE_COMPLETIONS
   return 0;
 }
 
@@ -2467,7 +2473,7 @@ void linenoiseClearScreen(void) {
 #endif
 }
 
-void InputBuffer::clearScreen(PromptBase& pi) {
+void InputBuffer::clearScreen(PromptBase &pi) {
   linenoiseClearScreen();
   if (!pi.write()) return;
 #ifndef _WIN32
@@ -2491,7 +2497,7 @@ void InputBuffer::clearScreen(PromptBase& pi) {
  * @param startChar the character that began the search, used to set the initial
  * direction
  */
-int InputBuffer::incrementalHistorySearch(PromptBase& pi, int startChar) {
+int InputBuffer::incrementalHistorySearch(PromptBase &pi, int startChar) {
   size_t bufferSize;
   size_t ucharCount = 0;
 
@@ -2523,7 +2529,7 @@ int InputBuffer::incrementalHistorySearch(PromptBase& pi, int startChar) {
   bool keepLooping = true;
   bool useSearchedLine = true;
   bool searchAgain = false;
-  char32_t* activeHistoryLine = 0;
+  char32_t *activeHistoryLine = 0;
   while (keepLooping) {
     c = linenoiseReadChar();
     c = cleanupCtrl(c);  // convert CTRL + <char> into normal ctrl
@@ -2769,7 +2775,7 @@ static bool gotResize = false;
 #endif
 static int keyType = 0;
 
-int InputBuffer::getInputLine(PromptBase& pi) {
+int InputBuffer::getInputLine(PromptBase &pi) {
   keyType = 0;
 
   // The latest history entry is always our current buffer
@@ -2818,7 +2824,7 @@ int InputBuffer::getInputLine(PromptBase& pi) {
       // BUG27894642: on Windows, the character may have flags set to indicate
       // that i.e. CTRL key was pressed; need to remove them to correctly
       // identify the key type
-      c = cleanupCtrl(c);       // convert CTRL + <char> into normal ctrl
+      c = cleanupCtrl(c);  // convert CTRL + <char> into normal ctrl
 
       keyType = 0;
       if (c != 0) {
@@ -3240,7 +3246,7 @@ int InputBuffer::getInputLine(PromptBase& pi) {
       case ctrlChar('Y'):  // ctrl-Y, yank killed text
         historyRecallMostRecent = false;
         {
-          Utf32String* restoredText = killRing.yank();
+          Utf32String *restoredText = killRing.yank();
           if (restoredText) {
             bool truncated = false;
             size_t ucharCount = restoredText->length();
@@ -3270,7 +3276,7 @@ int InputBuffer::getInputLine(PromptBase& pi) {
       case META + 'Y':
         if (killRing.lastAction == KillRing::actionYank) {
           historyRecallMostRecent = false;
-          Utf32String* restoredText = killRing.yankPop();
+          Utf32String *restoredText = killRing.yankPop();
           if (restoredText) {
             bool truncated = false;
             size_t ucharCount = restoredText->length();
@@ -3377,7 +3383,7 @@ int InputBuffer::getInputLine(PromptBase& pi) {
                 pi.promptPreviousInputLen = inputLen;
               /* Avoid a full update of the line in the
                * trivial case. */
-              if (write32(1, reinterpret_cast<char32_t*>(&c), 1) == -1)
+              if (write32(1, reinterpret_cast<char32_t *>(&c), 1) == -1)
                 return -1;
             } else {
               refreshLine(pi);
@@ -3412,17 +3418,17 @@ static string preloadErrorMessage;
  *
  * @param preloadText text to begin with on the next call to linenoise()
  */
-void linenoisePreloadBuffer(const char* preloadText) {
+void linenoisePreloadBuffer(const char *preloadText) {
   if (!preloadText) {
     return;
   }
   int bufferSize = static_cast<int>(strlen(preloadText) + 1);
   unique_ptr<char[]> tempBuffer(new char[bufferSize]);
-  strncpy(&tempBuffer[0], preloadText, bufferSize);
+  strcpy(&tempBuffer[0], preloadText);
 
   // remove characters that won't display correctly
-  char* pIn = &tempBuffer[0];
-  char* pOut = pIn;
+  char *pIn = &tempBuffer[0];
+  char *pOut = pIn;
   bool controlsStripped = false;
   bool whitespaceSeen = false;
   while (*pIn) {
@@ -3479,7 +3485,7 @@ void linenoisePreloadBuffer(const char* preloadText) {
  * freed to prevent
  *               memory leaks
  */
-char* linenoise(const char* prompt) {
+char *linenoise(const char *prompt) {
 #ifndef _WIN32
   gotResize = false;
 #endif
@@ -3507,7 +3513,7 @@ char* linenoise(const char* prompt) {
         }
         return strdup(buf8.get());  // caller must free buffer
       } else {
-        char* buf8 = strdup(preloadedBufferContents.c_str());
+        char *buf8 = strdup(preloadedBufferContents.c_str());
         preloadedBufferContents.clear();
         return buf8;  // caller must free buffer
       }
@@ -3549,11 +3555,11 @@ char* linenoise(const char* prompt) {
 }
 
 /* Register a callback function to be called for tab-completion. */
-void linenoiseSetCompletionCallback(linenoiseCompletionCallback* fn) {
+void linenoiseSetCompletionCallback(linenoiseCompletionCallback *fn) {
   completionCallback = fn;
 }
 
-void linenoiseAddCompletion(linenoiseCompletions* lc, const char* str) {
+void linenoiseAddCompletion(linenoiseCompletions *lc, const char *str) {
   lc->completionStrings.push_back(Utf32String(str));
 }
 
@@ -3563,19 +3569,19 @@ int linenoiseHistoryAdd(const char *line, bool force) {
   }
   if (history == NULL) {
     history =
-        reinterpret_cast<char8_t**>(malloc(sizeof(char8_t*) * historyMaxLen));
+        reinterpret_cast<char8_t **>(malloc(sizeof(char8_t *) * historyMaxLen));
     if (history == NULL) {
       return 0;
     }
-    memset(history, 0, (sizeof(char*) * historyMaxLen));
+    memset(history, 0, (sizeof(char *) * historyMaxLen));
   }
-  char8_t* linecopy = strdup8(line);
+  char8_t *linecopy = strdup8(line);
   if (!linecopy) {
     return 0;
   }
 
   // convert newlines in multi-line code to spaces before storing
-  char8_t* p = linecopy;
+  char8_t *p = linecopy;
   while (*p) {
     if (*p == '\n') {
       *p = ' ';
@@ -3586,8 +3592,8 @@ int linenoiseHistoryAdd(const char *line, bool force) {
   if (!force) {
     // prevent duplicate history entries
     if (historyLen > 0 && history[historyLen - 1] != nullptr &&
-        strcmp(reinterpret_cast<char const*>(history[historyLen - 1]),
-               reinterpret_cast<char const*>(linecopy)) == 0) {
+        strcmp(reinterpret_cast<char const *>(history[historyLen - 1]),
+               reinterpret_cast<char const *>(linecopy)) == 0) {
       free(linecopy);
       return 0;
     }
@@ -3595,7 +3601,7 @@ int linenoiseHistoryAdd(const char *line, bool force) {
 
   if (historyLen == historyMaxLen) {
     free(history[0]);
-    memmove(history, history + 1, sizeof(char*) * (historyMaxLen - 1));
+    memmove(history, history + 1, sizeof(char *) * (historyMaxLen - 1));
     --historyLen;
     if (--historyPreviousIndex < -1) {
       historyPreviousIndex = -2;
@@ -3614,7 +3620,8 @@ int linenoiseHistoryDelete(int index) {
 
   if (history[index]) {
     free(history[index]);
-    memmove(history + index, history + index + 1, sizeof(char*) * (historyLen - index - 1));
+    memmove(history + index, history + index + 1,
+            sizeof(char *) * (historyLen - index - 1));
     --historyLen;
   }
   return 1;
@@ -3626,8 +3633,8 @@ int linenoiseHistorySetMaxLen(int len) {
   }
   if (history) {
     int tocopy = historyLen;
-    char8_t** newHistory =
-        reinterpret_cast<char8_t**>(malloc(sizeof(char8_t*) * len));
+    char8_t **newHistory =
+        reinterpret_cast<char8_t **>(malloc(sizeof(char8_t *) * len));
     if (newHistory == NULL) {
       return 0;
     }
@@ -3635,9 +3642,8 @@ int linenoiseHistorySetMaxLen(int len) {
       tocopy = len;
     }
     memcpy(newHistory, history + historyLen - tocopy,
-           sizeof(char8_t*) * tocopy);
-    for (int i = 0; i < historyLen - tocopy; i++)
-      free(history[i]);
+           sizeof(char8_t *) * tocopy);
+    for (int i = 0; i < historyLen - tocopy; i++) free(history[i]);
     free(history);
     history = newHistory;
   }
@@ -3648,31 +3654,29 @@ int linenoiseHistorySetMaxLen(int len) {
   return 1;
 }
 
-int linenoiseHistorySize(void) {
-  return historyLen;
-}
+int linenoiseHistorySize(void) { return historyLen; }
 
 /* Fetch a line of the history by (zero-based) index.  If the requested
  * line does not exist, NULL is returned.  The return value is a reference
  * to internal storage and must not be freed. */
-const char* linenoiseHistoryLine(int index) {
+const char *linenoiseHistoryLine(int index) {
   if (index < 0 || index >= historyLen) return NULL;
 
-  return reinterpret_cast<char const*>(history[index]);
+  return reinterpret_cast<char const *>(history[index]);
 }
 
 /* Save the history in the specified file. On success 0 is returned
  * otherwise -1 is returned. */
-int linenoiseHistorySave(const char* filename) {
+int linenoiseHistorySave(const char *filename) {
 #if _WIN32
-  FILE* fp = fopen(filename, "wt");
+  FILE *fp = fopen(filename, "wt");
 #else
   int fd = open(filename, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
   if (fd < 0) {
     return -1;
   }
 
-  FILE* fp = fdopen(fd, "wt");
+  FILE *fp = fdopen(fd, "wt");
 #endif
 
   if (fp == NULL) {
@@ -3695,15 +3699,15 @@ int linenoiseHistorySave(const char* filename) {
  *
  * If the file exists and the operation succeeded 0 is returned, otherwise
  * on error -1 is returned. */
-int linenoiseHistoryLoad(const char* filename) {
-  FILE* fp = fopen(filename, "rt");
+int linenoiseHistoryLoad(const char *filename) {
+  FILE *fp = fopen(filename, "rt");
   if (fp == NULL) {
     return -1;
   }
 
   char buf[LINENOISE_MAX_LINE];
   while (fgets(buf, LINENOISE_MAX_LINE, fp) != NULL) {
-    char* p = strchr(buf, '\r');
+    char *p = strchr(buf, '\r');
     if (!p) {
       p = strchr(buf, '\n');
     }
@@ -3776,9 +3780,7 @@ int linenoiseInstallWindowChangeHandler(void) {
   return 0;
 }
 
-int linenoiseKeyType(void) {
-  return keyType;
-}
+int linenoiseKeyType(void) { return keyType; }
 
 void linenoiseRegisterCustomCommand(const char *sequence,
                                     linenoiseCustomCommand *cmd, void *data) {
