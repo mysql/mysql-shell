@@ -877,6 +877,37 @@ except Exception as e:
 #@<> WL14506: cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
 
+#@<> BUG#32734880 progress file is not removed when resetProgress is used
+# create a dump
+shell.connect(__sandbox_uri1)
+
+dump_dir = os.path.join(outdir, "dump_all")
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "showProgress": False }), "Dumping the instance should not fail")
+
+# wipe the destination server
+wipeout_server(session2)
+
+# load the full dump
+shell.connect(__sandbox_uri2)
+WIPE_OUTPUT()
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Loading the dump should not fail")
+EXPECT_STDOUT_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
+
+# wipe the destination server again
+wipeout_server(session2)
+
+# reset the progress, load the dump again, this time just the DDL
+WIPE_OUTPUT()
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadData": False, "resetProgress": True, "showProgress": False }), "Loading the dump should not fail")
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected for the instance but 'resetProgress' option was enabled. Load progress will be discarded and the whole dump will be reloaded.")
+
+# load the data without resetting the progress
+WIPE_OUTPUT()
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadDdl": False, "showProgress": False }), "Loading the dump should not fail")
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+# ensure data was loaded
+EXPECT_STDOUT_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

@@ -114,6 +114,34 @@ EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zst: Records: ")
 #@<> Bad Bucket Name Option
 EXPECT_THROWS(lambda: util.load_dump("mydump", {"osBucketName":"bukkit"}), "RuntimeError: Util.load_dump: Failed opening object 'mydump/@.json' in READ mode: Not Found (404)")
 
+#@<> BUG#32734880 progress file is not removed when resetProgress is used
+dump_dir = "mydump"
+delete_object(OS_BUCKET_NAME, "mydump/load-progress."+uuid+".json", OS_NAMESPACE)
+
+# wipe the destination server
+wipeout_server(session2)
+
+# load the full dump
+shell.connect(__sandbox_uri2)
+WIPE_OUTPUT()
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file, "showProgress": False }), "Loading the dump should not fail")
+EXPECT_STDOUT_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
+
+# wipe the destination server again
+wipeout_server(session2)
+
+# reset the progress, load the dump again, this time just the DDL
+WIPE_OUTPUT()
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadData": False, "resetProgress": True, "osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file, "showProgress": False }), "Loading the dump should not fail")
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected for the instance but 'resetProgress' option was enabled. Load progress will be discarded and the whole dump will be reloaded.")
+
+# load the data without resetting the progress
+WIPE_OUTPUT()
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadDdl": False, "osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file, "showProgress": False }), "Loading the dump should not fail")
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+# ensure data was loaded
+EXPECT_STDOUT_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
+
 #@<> Cleanup
 testutil.rmfile("progress.txt")
 testutil.destroy_sandbox(__mysql_sandbox_port1)

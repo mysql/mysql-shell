@@ -145,17 +145,21 @@ class Load_progress_log final {
   }
 
   void reset_progress() {
-    if (m_memfile_contents) {
-      if (m_file) m_file->close();
+    if (m_file) {
+      m_file->close();
+      m_file->remove();
 
-      auto mem_file =
-          std::make_unique<mysqlshdk::storage::backend::Memory_file>("");
-      m_memfile_contents = &mem_file->content();
-      m_file = std::move(mem_file);
-    }
+      // m_real_file can be present only if m_file is present
+      if (m_real_file) {
+        m_real_file->remove();
 
-    if (m_real_file) {
-      m_real_file->remove();
+        auto mem_file =
+            std::make_unique<mysqlshdk::storage::backend::Memory_file>("");
+        m_memfile_contents = &mem_file->content();
+        m_file = std::move(mem_file);
+      }
+
+      m_file->open(mysqlshdk::storage::Mode::WRITE);
     }
 
     m_last_state.clear();
