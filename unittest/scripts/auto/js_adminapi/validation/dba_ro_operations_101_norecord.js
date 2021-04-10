@@ -43,10 +43,10 @@
 ?{VER(>=8.0.17)}
                         "lastQueued": {
                             "endTimestamp": "[[*]]",
-                            "immediateCommitTimestamp": "",
-                            "immediateCommitToEndTime": null,
-                            "originalCommitTimestamp": "",
-                            "originalCommitToEndTime": null,
+                            "immediateCommitTimestamp": "[[*]]",
+                            "immediateCommitToEndTime": [[*]],
+                            "originalCommitTimestamp": "[[*]]",
+                            "originalCommitToEndTime": [[*]],
                             "queueTime": [[*]],
                             "startTimestamp": "[[*]]",
                             "transaction": "[[*]]"
@@ -61,10 +61,10 @@
                         "lastProcessed": {
                             "bufferTime": [[*]],
                             "endTimestamp": "[[*]]",
-                            "immediateCommitTimestamp": "",
-                            "immediateCommitToEndTime": null,
-                            "originalCommitTimestamp": "",
-                            "originalCommitToEndTime": null,
+                            "immediateCommitTimestamp": "[[*]]",
+                            "immediateCommitToEndTime": [[*]],
+                            "originalCommitTimestamp": "[[*]]",
+                            "originalCommitToEndTime": [[*]],
                             "startTimestamp": "[[*]]",
                             "transaction": "[[*]]"
                         },
@@ -87,10 +87,10 @@ ${*}
                             "lastApplied": {
                                 "applyTime": [[*]],
                                 "endTimestamp": "[[*]]",
-                                "immediateCommitTimestamp": "",
-                                "immediateCommitToEndTime": null,
-                                "originalCommitTimestamp": "",
-                                "originalCommitToEndTime": null,
+                                "immediateCommitTimestamp": "[[*]]",
+                                "immediateCommitToEndTime": [[*]],
+                                "originalCommitTimestamp": "[[*]]",
+                                "originalCommitToEndTime": [[*]],
                                 "retries": 0,
                                 "startTimestamp": "[[*]]",
                                 "transaction": "<<<gr_uuid>>>:[[*]]"
@@ -137,8 +137,8 @@ ${*}
 ?{VER(>=8.0.17)}
                         "lastQueued": {
                             "endTimestamp": "[[*]]",
-                            "immediateCommitTimestamp": "",
-                            "immediateCommitToEndTime": null,
+                            "immediateCommitTimestamp": "[[*]]",
+                            "immediateCommitToEndTime": [[*]],
                             "originalCommitTimestamp": "[[*]]",
                             "originalCommitToEndTime": [[*]],
                             "queueTime": [[*]],
@@ -170,8 +170,8 @@ ${*}
                             "lastApplied": {
                                 "applyTime": [[*]],
                                 "endTimestamp": "[[*]]",
-                                "immediateCommitTimestamp": "",
-                                "immediateCommitToEndTime": null,
+                                "immediateCommitTimestamp": "[[*]]",
+                                "immediateCommitToEndTime": [[*]],
                                 "originalCommitTimestamp": "[[*]]",
                                 "originalCommitToEndTime": [[*]],
                                 "retries": 0,

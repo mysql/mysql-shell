@@ -431,6 +431,16 @@ const full_status_templ_80 = {
     "metadataVersion": ""
 };
 
+// Some values are set to null in 8.0.23 but in 8.0.25
+// changed to numbers
+function commitToEndTime() {
+    if (testutil.versionCheck(__version, ">=", "8.0.25")) {
+        return 0;
+    } else {
+        return null;
+    }
+}
+
 const full_status_templ_8023 = {
     "clusterName": "",
     "defaultReplicaSet": {
@@ -481,9 +491,9 @@ const full_status_templ_8023 = {
                             "bufferTime": 0.0,
                             "endTimestamp": "",
                             "immediateCommitTimestamp": "",
-                            "immediateCommitToEndTime": null,
+                            "immediateCommitToEndTime": commitToEndTime(),
                             "originalCommitTimestamp": "",
-                            "originalCommitToEndTime": null,
+                            "originalCommitToEndTime": commitToEndTime(),
                             "startTimestamp": "",
                             "transaction": ""
                         },
@@ -637,7 +647,7 @@ const coordinator_status_templ_80 = {
         "bufferTime": 0.0,
         "endTimestamp": "",
         "immediateCommitTimestamp": "",
-        "immediateCommitToEndTime": null,
+        "immediateCommitToEndTime": commitToEndTime(),
         "originalCommitTimestamp": "",
         "originalCommitToEndTime": 0,
         "startTimestamp": "",
