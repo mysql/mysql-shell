@@ -88,12 +88,9 @@ col.add_or_replace_one('document_001', {'name':'complex', 'state':'updated'});
 #@<OUT> add_or_replace_one: Verify replaced document {VER(>=8.0.3)}
 col.find();
 
-# WL10849-FR8.1
-#@ add_or_replace_one: replacing an existing document, ignoring new _id {VER(>=8.0.3)}
+# Bug#32753547
+#@ add_or_replace_one: replacing an existing document, wrong _id {VER(>=8.0.3)}
 col.add_or_replace_one('document_001', {'_id':'ignored_id', 'name':'medium'});
-
-#@<OUT> add_or_replace_one: Verify replaced document with ignored _id {VER(>=8.0.3)}
-col.find();
 
 # WL10849-FR6.2.1
 #@ add_or_replace_one: adding with key {VER(>=8.0.3)}
@@ -193,12 +190,9 @@ col.find();
 #@ replace_one: replacing unexisting document {VER(>=8.0.3)}
 col.replace_one('document_003', {'name':'complex', 'state':'updated'});
 
-# WL10849-FR5.1
-#@ replace_one: replacing an existing document, ignoring new _id {VER(>=8.0.3)}
+# Bug#32753547
+#@ replace_one: replacing an existing document, wrong _id {VER(>=8.0.3)}
 col.replace_one('document_001', {'_id':'ignored_id', 'name':'medium'});
-
-#@<OUT> replace_one: Verify replaced document with ignored _id {VER(>=8.0.3)}
-col.find();
 
 #@ replace_one: error replacing with key {VER(>=8.0.3)}
 result = col.create_index('_name', {'fields': [{'field': '$.name', 'type': 'TEXT(50)'}], 'unique':True});

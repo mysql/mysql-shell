@@ -58,18 +58,8 @@
     "name": "basic"
 }
 
-#@ add_or_replace_one: replacing an existing document, ignoring new _id
-|Query OK, 2 items affected|
-
-#@<OUT> add_or_replace_one: Verify replaced document with ignored _id
-{
-    "_id": "document_001",
-    "name": "medium"
-}
-{
-    "_id": "document_002",
-    "name": "basic"
-}
+#@ add_or_replace_one: replacing an existing document, wrong _id
+||Collection.add_or_replace_one: Replacement document has an _id that is different than the matched document
 
 #@ add_or_replace_one: adding with key
 |Query OK, 1 item affected|
@@ -172,19 +162,8 @@
 #@ replace_one: replacing unexisting document
 |Query OK, 0 items affected|
 
-#@ replace_one: replacing an existing document, ignoring new _id
-|Query OK, 1 item affected|
-
-#@<OUT> replace_one: Verify replaced document with ignored _id
-{
-    "_id": "document_001",
-    "name": "medium"
-}
-{
-    "_id": "document_002",
-    "name": "simple"
-}
-
+#@ replace_one: replacing an existing document, wrong _id
+||Collection.replace_one: Replacement document has an _id that is different than the matched document
 
 #@ replace_one: error replacing with key {VER(< 8.0.19)}
 ||Duplicate entry 'simple' for key '_name'
