@@ -83,6 +83,10 @@ std::string check_create_user_for_authentication_plugin(
     const std::set<std::string> &plugins =
         k_mysqlaas_allowed_authentication_plugins);
 
+bool check_create_user_for_empty_password(const std::string &create_user);
+
+std::string convert_create_user_to_create_role(const std::string &create_user);
+
 void add_pk_to_create_table(const std::string &statement,
                             std::string *rewritten);
 

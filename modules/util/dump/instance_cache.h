@@ -107,6 +107,7 @@ struct Instance_cache {
   std::string gtid_executed;
   std::unordered_map<std::string, Schema> schemas;
   std::vector<shcore::Account> users;
+  std::vector<shcore::Account> roles;
 };
 
 class Instance_cache_builder final {

@@ -97,6 +97,8 @@ namespace dump {
 
 namespace {
 
+using mysqlshdk::utils::Version;
+
 /* general_log or slow_log tables under mysql database */
 inline bool general_log_or_slow_log_tables(const std::string &db,
                                            const std::string &table) {
@@ -2623,6 +2625,11 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
 
   fputs("--\n-- Dumping user accounts\n--\n\n", file);
 
+  const auto roles = get_roles(included, excluded);
+  const auto is_role = [&roles](const shcore::Account &a) {
+    return roles.end() != std::find(roles.begin(), roles.end(), a);
+  };
+
   std::vector<std::string> users;
 
   for (const auto &u : get_users(included, excluded)) {
@@ -2644,7 +2651,9 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
                                      user);
       return problems;
     }
-    const auto create_user = row->get_string(0);
+
+    auto create_user = shcore::str_replace(row->get_string(0), "CREATE USER",
+                                           "CREATE USER IF NOT EXISTS");
     assert(!create_user.empty());
 
     bool add_user = true;
@@ -2671,14 +2680,33 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
                 ? Issue::Status::FIXED
                 : Issue::Status::USE_SKIP_INVALID_ACCOUNTS);
       }
+
+      if (add_user &&
+          compatibility::check_create_user_for_empty_password(create_user)) {
+        if (is_role(u)) {
+          // the account with an empty password is a role, convert it to
+          // CREATE ROLE statement, so that it is loaded without problems when
+          // validate_password is active
+          create_user =
+              compatibility::convert_create_user_to_create_role(create_user);
+        } else {
+          add_user = false;
+
+          problems.emplace_back(
+              "User " + user + " does not have a password set" +
+                  (opt_skip_invalid_accounts
+                       ? ", this account has been removed from the dump"
+                       : ""),
+              opt_skip_invalid_accounts
+                  ? Issue::Status::FIXED
+                  : Issue::Status::USE_SKIP_INVALID_ACCOUNTS);
+        }
+      }
     }
 
     if (add_user) {
       fputs("-- begin user " + user + "\n", file);
-      fputs(shcore::str_replace(create_user, "CREATE USER",
-                                "CREATE USER IF NOT EXISTS") +
-                ";\n",
-            file);
+      fputs(create_user + ";\n", file);
       fputs("-- end user " + user + "\n\n", file);
 
       users.emplace_back(std::move(user));
@@ -2755,70 +2783,49 @@ std::vector<shcore::Account> Schema_dumper::get_users(
     return m_cache->users;
   }
 
-  std::string where_filter;
-
-  {
-    const auto filter = [](const std::vector<shcore::Account> &accounts) {
-      std::vector<std::string> result;
-
-      for (const auto &account : accounts) {
-        if (account.host.empty()) {
-          result.emplace_back(shcore::sqlstring("(users.user=?)", 0)
-                              << account.user);
-        } else {
-          result.emplace_back(
-              shcore::sqlstring("(users.user=? AND users.host=?)", 0)
-              << account.user << account.host);
-        }
-      }
-
-      return result;
-    };
-    const auto include = filter(included);
-    const auto exclude = filter(excluded);
-
-    if (!include.empty()) {
-      where_filter += "(" + shcore::str_join(include, "OR") + ")";
+  try {
+    // mysql.user holds the account information data, but some users do not have
+    // access to this table, in such case fall back to
+    // information_schema.user_privileges, though on servers < 8.0.17, the
+    // grantee column is too short and the host name can be truncated
+    return fetch_users("SELECT DISTINCT user, host from mysql.user", "",
+                       included, excluded, false);
+  } catch (const mysqlshdk::db::Error &e) {
+    if (m_mysql->get_server_version() < Version(8, 0, 17)) {
+      log_warning(
+          "Failed to get account information from the mysql.user table: %s. "
+          "Falling back to information_schema.user_privileges, data might be "
+          "inaccurate if the host name is too long.",
+          e.format().c_str());
     }
 
-    if (!exclude.empty()) {
-      constexpr auto condition = "AND NOT";
+    constexpr auto users_query =
+        "SELECT * FROM (SELECT DISTINCT "
+        "SUBSTR(grantee, 2, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))-2)"
+        " AS user, "
+        "SUBSTR(grantee, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))+3,"
+        " LOCATE('@', REVERSE(grantee))-3) AS host "
+        "FROM information_schema.user_privileges) AS user";
 
-      if (!include.empty()) {
-        where_filter += condition;
-      } else {
-        where_filter += "NOT";
-      }
+    return fetch_users(users_query, "", included, excluded);
+  }
+}
 
-      where_filter += shcore::str_join(exclude, condition);
-    }
-
-    if (!where_filter.empty()) {
-      where_filter = " WHERE " + where_filter;
-    }
+std::vector<shcore::Account> Schema_dumper::get_roles(
+    const std::vector<shcore::Account> &included,
+    const std::vector<shcore::Account> &excluded) {
+  if (m_cache) {
+    return m_cache->roles;
   }
 
-  constexpr auto users_query =
-      "SELECT * FROM (SELECT DISTINCT "
-      "SUBSTR(grantee, 2, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))-2)"
-      "  AS user, "
-      "SUBSTR(grantee, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))+3,"
-      "  LOCATE('@', REVERSE(grantee))-3) AS host "
-      "FROM information_schema.user_privileges) AS users";
-
-  auto users_res = query_log_and_throw(users_query + where_filter);
-
-  std::set<shcore::Account> users;
-
-  while (const auto u = users_res->fetch_one()) {
-    shcore::Account account;
-    account.user = u->get_string(0);
-    account.host = u->get_string(1);
-    users.emplace(std::move(account));
+  if (m_mysql->get_server_version() < Version(8, 0, 0)) {
+    return {};
   }
 
-  return {std::make_move_iterator(users.begin()),
-          std::make_move_iterator(users.end())};
+  return fetch_users("SELECT DISTINCT user, host FROM mysql.user",
+                     "authentication_string='' AND account_locked='Y' AND "
+                     "password_expired='Y'",
+                     included, excluded);
 }
 
 const char *Schema_dumper::version() { return DUMP_VERSION; }
@@ -2898,6 +2905,77 @@ std::string Schema_dumper::preprocess_users_script(
   }
 
   return out;
+}
+
+std::vector<shcore::Account> Schema_dumper::fetch_users(
+    const std::string &select, const std::string &where,
+    const std::vector<shcore::Account> &included,
+    const std::vector<shcore::Account> &excluded, bool log_error) {
+  std::string where_filter = where;
+
+  if (!where_filter.empty()) {
+    where_filter += " ";
+  }
+
+  {
+    const auto filter = [](const std::vector<shcore::Account> &accounts) {
+      std::vector<std::string> result;
+
+      for (const auto &account : accounts) {
+        if (account.host.empty()) {
+          result.emplace_back(shcore::sqlstring("(user.user=?)", 0)
+                              << account.user);
+        } else {
+          result.emplace_back(
+              shcore::sqlstring("(user.user=? AND user.host=?)", 0)
+              << account.user << account.host);
+        }
+      }
+
+      return result;
+    };
+    const auto include = filter(included);
+    const auto exclude = filter(excluded);
+
+    if (!include.empty()) {
+      if (!where_filter.empty()) {
+        where_filter += "AND";
+      }
+
+      where_filter += "(" + shcore::str_join(include, "OR") + ")";
+    }
+
+    if (!exclude.empty()) {
+      constexpr auto condition = "AND NOT";
+
+      if (where_filter.empty()) {
+        where_filter += "NOT";
+      } else {
+        where_filter += condition;
+      }
+
+      where_filter += shcore::str_join(exclude, condition);
+    }
+
+    if (!where_filter.empty()) {
+      where_filter = " WHERE " + where_filter;
+    }
+  }
+
+  auto users_res = log_error ? query_log_and_throw(select + where_filter)
+                             : m_mysql->query(select + where_filter);
+
+  std::set<shcore::Account> users;
+
+  while (const auto u = users_res->fetch_one()) {
+    shcore::Account account;
+    account.user = u->get_string(0);
+    account.host = u->get_string(1);
+    users.emplace(std::move(account));
+  }
+
+  return {std::make_move_iterator(users.begin()),
+          std::make_move_iterator(users.end())};
 }
 
 }  // namespace dump

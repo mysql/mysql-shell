@@ -1188,33 +1188,37 @@ void Dumper::lock_all_tables() {
   lock_instance();
 
   // find out the max query size we can send
-  uint64_t max_packet_size;
+  uint64_t max_packet_size = 0;
+
   {
-    auto r = session()->query("select @@max_allowed_packet");
-    max_packet_size = r->fetch_one_or_throw()->get_uint(0);
+    const auto r = session()->query("select @@max_allowed_packet");
+    // 1024 is the minimum allowed value
+    max_packet_size = r->fetch_one_or_throw()->get_uint(0, 1024);
   }
 
-  auto console = current_console();
-
+  const auto console = current_console();
   const std::string k_lock_tables = "LOCK TABLES ";
 
-  // lock relevant tables in mysql so that grants, views, routines etc are
-  // consistent too
+  // lock relevant tables in mysql so that grants, views, routines etc. are
+  // consistent too, use the main thread to lock these tables, as it is going to
+  // read from them
   try {
-    std::vector<std::string> tables;
-    auto res = session()->query(
+    std::string stmt = k_lock_tables;
+    const auto result = session()->query(
         "SHOW TABLES IN mysql WHERE Tables_in_mysql IN"
         "('columns_priv', 'db', 'default_roles', 'func', 'global_grants', "
         "'proc', 'procs_priv', 'proxies_priv', 'role_edges', 'tables_priv', "
         "'user')");
-    while (auto row = res->fetch_one()) tables.emplace_back(row->get_string(0));
 
-    std::string stmt = k_lock_tables;
-    for (const auto &t : tables) {
-      stmt.append("mysql." + shcore::quote_identifier(t) + " READ,");
+    while (auto row = result->fetch_one()) {
+      stmt.append("mysql." + shcore::quote_identifier(row->get_string(0)) +
+                  " READ,");
     }
+
+    // remove last comma
     stmt.pop_back();
-    log_debug("Locking tables: %s", stmt.c_str());
+
+    log_info("Locking tables: %s", stmt.c_str());
     session()->execute(stmt);
   } catch (const mysqlshdk::db::Error &e) {
     if (e.code() == ER_DBACCESS_DENIED_ERROR ||
@@ -1232,30 +1236,56 @@ void Dumper::lock_all_tables() {
 
   initialize_instance_cache_minimal();
 
-  // iterate all tables that are going to be dumped and LOCK TABLES them
+  // get tables to be locked
+  std::vector<std::string> tables;
+
+  for (const auto &schema : m_cache.schemas) {
+    for (const auto &table : schema.second.tables) {
+      tables.emplace_back(quote(schema.first, table.first) + " READ,");
+    }
+  }
+
+  // iterate all tables that are going to be dumped and LOCK TABLES them, use
+  // separate sessions to run the queries as executing LOCK TABLES implicitly
+  // unlocks tables locked before
   try {
-    for (const auto &schema : m_cache.schemas) {
-      std::string stmt = k_lock_tables;
-      for (const auto &table : schema.second.tables) {
-        size_t prev = stmt.size();
-        stmt.append(shcore::quote_identifier(schema.first) + "." +
-                    shcore::quote_identifier(table.first) + " READ,");
-        // check if we're overflowing the SQL packet (256B slack is probably
-        // enough)
-        if (stmt.size() >= max_packet_size - 256 &&
-            prev > k_lock_tables.size()) {
-          std::string tmp = stmt.substr(0, prev - 1);
-          log_debug("Locking tables: %s", tmp.c_str());
-          session()->execute(tmp);
-          stmt = k_lock_tables + stmt.substr(prev);
-        }
+    std::string stmt = k_lock_tables;
+
+    const auto lock_tables = [this, &stmt]() {
+      // remove last comma
+      stmt.pop_back();
+
+      // initialize session
+      auto s = establish_session(session()->get_connection_options(), false);
+      on_init_thread_session(s);
+
+      log_info("Locking tables: %s", stmt.c_str());
+
+      s->execute(stmt);
+      m_lock_sessions.emplace_back(std::move(s));
+    };
+
+    const auto k_lock_tables_size = k_lock_tables.size();
+    auto size = std::string::npos;
+
+    for (const auto &table : tables) {
+      size = stmt.size();
+
+      // check if we're overflowing the SQL packet (256B slack is probably
+      // enough)
+      if (size + table.size() >= max_packet_size - 256 &&
+          size > k_lock_tables_size) {
+        lock_tables();
+
+        stmt = k_lock_tables;
       }
-      if (stmt.size() > k_lock_tables.size()) {
-        // flush the rest
-        stmt.pop_back();
-        log_debug("Locking tables: %s", stmt.c_str());
-        session()->execute(stmt);
-      }
+
+      stmt.append(table);
+    }
+
+    if (stmt.size() > k_lock_tables_size) {
+      // flush the rest
+      lock_tables();
     }
   } catch (const mysqlshdk::db::Error &e) {
     console->print_error("Error locking tables: " + e.format());
@@ -1323,6 +1353,13 @@ void Dumper::release_read_locks() const {
       // active, we start it here - existing table locks will be implicitly
       // released
       start_transaction(session());
+
+      log_info("Releasing the table locks");
+
+      // close the locking sessions, this will release the table locks
+      for (const auto &session : m_lock_sessions) {
+        session->close();
+      }
     } else {
       // FTWRL has succeeded, transaction is active, UNLOCK TABLES will not
       // automatically commit the transaction

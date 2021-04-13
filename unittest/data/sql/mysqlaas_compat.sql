@@ -1,5 +1,5 @@
 
--- 
+--
 -- Tests for things that can have MySQLaaS compatibility issues
 --
 -- Notes:
@@ -20,23 +20,23 @@ DROP USER IF EXISTS testusr6@localhost;
 
 -- only restricted privs
 
-CREATE USER testusr1@localhost;
+CREATE USER testusr1@localhost IDENTIFIED BY 'pass';
 GRANT SUPER, FILE, RELOAD/*!80000 , BINLOG_ADMIN */ ON *.* TO testusr1@localhost;
 
-CREATE USER testusr2@localhost;
+CREATE USER testusr2@localhost IDENTIFIED BY 'pass';
 GRANT SUPER ON *.* TO testusr2@localhost;
 
-CREATE USER testusr3@localhost;
+CREATE USER testusr3@localhost IDENTIFIED BY 'pass';
 GRANT FILE, RELOAD/*!80000 , BINLOG_ADMIN */ ON *.* TO testusr3@localhost WITH GRANT OPTION;
 
 -- mixed privs
-CREATE USER testusr4@localhost;
+CREATE USER testusr4@localhost IDENTIFIED BY 'pass';
 GRANT SUPER, REPLICATION SLAVE ON *.* TO testusr4@localhost;
 
-CREATE USER testusr5@localhost;
+CREATE USER testusr5@localhost IDENTIFIED BY 'pass';
 GRANT FILE, REPLICATION SLAVE, SELECT, INSERT, UPDATE, DELETE ON *.* TO testusr5@localhost;
 
-CREATE USER testusr6@localhost;
+CREATE USER testusr6@localhost IDENTIFIED BY 'pass';
 GRANT FILE ON *.* TO testusr6@localhost;
 GRANT SELECT, INSERT, UPDATE, DELETE ON mysqlaas_compat.* TO testusr6@localhost;
 GRANT SELECT, INSERT, UPDATE, DELETE ON mysql.* TO testusr6@localhost WITH GRANT OPTION;

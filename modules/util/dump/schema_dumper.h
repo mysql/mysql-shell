@@ -109,6 +109,9 @@ class Schema_dumper {
   std::vector<shcore::Account> get_users(
       const std::vector<shcore::Account> &included,
       const std::vector<shcore::Account> &excluded);
+  std::vector<shcore::Account> get_roles(
+      const std::vector<shcore::Account> &included,
+      const std::vector<shcore::Account> &excluded);
 
   std::vector<Instance_cache::Histogram> get_histograms(
       const std::string &db_name, const std::string &table_name);
@@ -300,6 +303,11 @@ class Schema_dumper {
   std::string expand_all_privileges(const std::string &stmt,
                                     const std::string &grantee,
                                     std::string *out_schema);
+
+  std::vector<shcore::Account> fetch_users(
+      const std::string &select, const std::string &where,
+      const std::vector<shcore::Account> &included,
+      const std::vector<shcore::Account> &excluded, bool log_error = true);
 };
 
 }  // namespace dump
