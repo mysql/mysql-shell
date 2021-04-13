@@ -33,6 +33,7 @@ test_view = "sample_view"
 test_role = "sample_role"
 test_user = "sample_user"
 test_user_pwd = "p4$$"
+test_user_no_pwd = "sample_user_no_pwd"
 test_privilege = "FILE" if __version_num < 80000 else "FILE, ROLE_ADMIN"
 test_all_allowed_privileges = "allowed_privileges"
 test_disallowed_privileges = "disallowed_privileges"
@@ -252,13 +253,16 @@ def create_authentication_plugin_user(name):
     full_name = test_user_name(name)
     session.run_sql("DROP USER IF EXISTS " + full_name)
     ensure_plugin_enabled(name, session)
-    session.run_sql("CREATE USER IF NOT EXISTS {0} IDENTIFIED WITH ?".format(full_name), [name])
+    session.run_sql("CREATE USER IF NOT EXISTS {0} IDENTIFIED WITH ? BY 'pwd'".format(full_name), [name])
 
 def create_users():
     # test user which has some disallowed privileges
     session.run_sql("DROP USER IF EXISTS !@!;", [test_user, __host])
     session.run_sql("CREATE USER IF NOT EXISTS !@! IDENTIFIED BY ?;", [test_user, __host, test_user_pwd])
     session.run_sql("GRANT {0} ON *.* TO !@!;".format(test_privilege), [test_user, __host])
+    # test user without password
+    session.run_sql("DROP USER IF EXISTS !@!;", [test_user_no_pwd, __host])
+    session.run_sql("CREATE USER IF NOT EXISTS !@!;", [test_user_no_pwd, __host])
     # accounts which use allowed authentication plugins
     global allowed_authentication_plugins
     allowed = []
@@ -283,7 +287,7 @@ def create_users():
     global allowed_privileges
     account_name = test_user_name(test_all_allowed_privileges)
     session.run_sql("DROP USER IF EXISTS " + account_name)
-    session.run_sql("CREATE USER IF NOT EXISTS " + account_name)
+    session.run_sql("CREATE USER IF NOT EXISTS " + account_name + " IDENTIFIED BY 'pwd'")
     for privilege in allowed_privileges:
         try:
             session.run_sql("GRANT {0} ON *.* TO {1}".format(privilege, account_name))
@@ -295,7 +299,7 @@ def create_users():
     disallowed = []
     account_name = test_user_name(test_disallowed_privileges)
     session.run_sql("DROP USER IF EXISTS " + account_name)
-    session.run_sql("CREATE USER IF NOT EXISTS " + account_name)
+    session.run_sql("CREATE USER IF NOT EXISTS " + account_name + " IDENTIFIED BY 'pwd'")
     for privilege in disallowed_privileges:
         try:
             session.run_sql("GRANT {0} ON *.* TO {1}".format(privilege, account_name))
@@ -1548,6 +1552,9 @@ EXPECT_STDOUT_NOT_CONTAINS(test_user_name(test_all_allowed_privileges))
 # all disallowed privileges should be reported
 EXPECT_STDOUT_CONTAINS("ERROR: User {0} is granted restricted privileges: {1} (fix this with 'strip_restricted_grants' compatibility option)".format(test_user_name(test_disallowed_privileges), ', '.join(sorted(disallowed_privileges))))
 
+# BUG#32741098 - list users which do not have a password
+EXPECT_STDOUT_CONTAINS("ERROR: User '{0}'@'{1}' does not have a password set (fix this with 'skip_invalid_accounts' compatibility option)".format(test_user_no_pwd, __host))
+
 # WL14506-FR1 - When a dump is executed with the ocimds option set to true, for each table that would be dumped which does not contain a primary key, an error must be reported.
 # WL14506-TSFR_1_8
 for table in missing_pks[incompatible_schema]:
@@ -1778,6 +1785,9 @@ EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [
 for plugin in disallowed_authentication_plugins:
     EXPECT_STDOUT_CONTAINS("NOTE: User {0} is using an unsupported authentication plugin '{1}', this account has been removed from the dump".format(test_user_name(plugin), plugin))
 
+# BUG#32741098 - users which do not have a passwords are removed from the dump by 'skip_invalid_accounts'
+EXPECT_STDOUT_CONTAINS("NOTE: User '{0}'@'{1}' does not have a password set, this account has been removed from the dump".format(test_user_no_pwd, __host))
+
 #@<> WL13807-FR16.2.2 - If the `compatibility` option is not given, a default value of `[]` must be used instead.
 # WL13807-TSFR16_6
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
@@ -1859,8 +1869,8 @@ if __version_num >= 80000:
     )
     # 8.0 has roles which are checked prior to running the dump, if user is missing the SELECT privilege, error will be reported at this stage
     required_privileges["SELECT"] = PrivilegeError(  # table-level privilege
-        "Unable to get roles information.",
-        "ERROR: Unable to check privileges for user '{0}'@'{1}'. User requires SELECT privilege on mysql.* to obtain information about all roles.".format(test_user, __host)
+        "Could not execute 'SELECT DISTINCT user, host FROM mysql.user WHERE authentication_string='' AND account_locked='Y' AND password_expired='Y'",
+        "MySQL Error 1142 (42000): SELECT command denied to user '{0}'@'{1}' for table '".format(test_user, __host)
     )
 
 # setup the user, grant only required privileges

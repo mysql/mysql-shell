@@ -91,11 +91,11 @@ def reset_server(session):
 
 reset_server(session2)
 
-session2.run_sql("create user testuser@'%'")
+session2.run_sql("create user testuser@'%' IDENTIFIED BY 'password'")
 session2.run_sql("grant select, delete on *.* to testuser@'%'")
-session2.run_sql("create user myuser@'%'")
-session2.run_sql("create user myuser2@'%'")
-session2.run_sql("create user myuser3@'%'")
+session2.run_sql("create user myuser@'%' IDENTIFIED BY 'password'")
+session2.run_sql("create user myuser2@'%' IDENTIFIED BY 'password'")
+session2.run_sql("create user myuser3@'%' IDENTIFIED BY 'password'")
 session2.run_sql("CREATE SCHEMA test_schema")
 
 #Bug #32526567 - strip_restricted_grants should allow GRANT ALL ON user schemas
@@ -120,10 +120,16 @@ shell.connect(__sandbox_uri2)
 # dump with root
 util.dump_instance(__tmp_dir+"/ldtest/dump_root", {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True})
 
+# CREATE USER for role is converted to CREATE ROLE
+EXPECT_FILE_CONTAINS("CREATE ROLE IF NOT EXISTS 'administrator'@'%'", os.path.join(__tmp_dir, "ldtest", "dump_root", "@.users.sql"))
+
 # dump with admin user
 shell.connect(f"mysql://admin:pass@localhost:{__mysql_sandbox_port2}")
 # disable consistency b/c we won't be able to acquire a backup lock
 util.dump_instance(__tmp_dir+"/ldtest/dump_admin", {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True, "consistent":False})
+
+# CREATE USER for role is converted to CREATE ROLE
+EXPECT_FILE_CONTAINS("CREATE ROLE IF NOT EXISTS 'administrator'@'%'", os.path.join(__tmp_dir, "ldtest", "dump_admin", "@.users.sql"))
 
 # load with admin user
 reset_server(session2)
@@ -231,11 +237,11 @@ session.run_sql("CREATE TABLE table1 (pk INT PRIMARY KEY)");
 session.run_sql("CREATE definer=uuuuuuser@localhost TRIGGER trigger1 BEFORE UPDATE ON table1 FOR EACH ROW BEGIN END")
 session.run_sql("CREATE definer=uuuuuuuser@localhost EVENT event1 ON SCHEDULE EVERY 1 year DISABLE DO BEGIN END")
 
-session.run_sql("CREATE USER uuuser@localhost")
-session.run_sql("CREATE USER uuuuser@localhost")
-session.run_sql("CREATE USER uuuuuser@localhost")
-session.run_sql("CREATE USER uuuuuuser@localhost")
-session.run_sql("CREATE USER uuuuuuuser@localhost")
+session.run_sql("CREATE USER uuuser@localhost IDENTIFIED BY 'pwd'")
+session.run_sql("CREATE USER uuuuser@localhost IDENTIFIED BY 'pwd'")
+session.run_sql("CREATE USER uuuuuser@localhost IDENTIFIED BY 'pwd'")
+session.run_sql("CREATE USER uuuuuuser@localhost IDENTIFIED BY 'pwd'")
+session.run_sql("CREATE USER uuuuuuuser@localhost IDENTIFIED BY 'pwd'")
 
 session.run_sql("GRANT SELECT ON TABLE schema1.table1 TO uuuser@localhost")
 session.run_sql("GRANT EXECUTE ON FUNCTION schema1.myfun1 TO uuuser@localhost")

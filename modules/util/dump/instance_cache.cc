@@ -212,7 +212,10 @@ Instance_cache_builder::Instance_cache_builder(
 
 Instance_cache_builder &Instance_cache_builder::users(const Users &included,
                                                       const Users &excluded) {
-  m_cache.users = Schema_dumper(m_session).get_users(included, excluded);
+  Schema_dumper sd{m_session};
+
+  m_cache.users = sd.get_users(included, excluded);
+  m_cache.roles = sd.get_roles(included, excluded);
 
   return *this;
 }

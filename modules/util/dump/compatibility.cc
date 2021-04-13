@@ -193,6 +193,54 @@ bool comment_out_option_with_string(
   return !offsets.empty();
 }
 
+inline bool is_quote(char c) { return '\'' == c || '"' == c || '`' == c; }
+
+std::string get_account(SQL_iterator *it) {
+  auto user = it->get_next_token();  // IF or user
+
+  if (shcore::str_caseeq(user.c_str(), "IF")) {
+    it->get_next_token();         // NOT
+    it->get_next_token();         // EXISTS
+    user = it->get_next_token();  // user
+  }
+
+  assert(!user.empty());
+
+  auto account = user;
+
+  // if the user name is quoted, @ and host are still remaining, if next token
+  // is equal to '@', host was quoted, needs to be read separately
+  // or
+  // the user name was not quoted, if it ends with '@', host was quoted, needs
+  // to be read separately
+  if (is_quote(user[0])) {
+    // @ or @host
+    account += it->get_next_token();
+  }
+
+  if ('@' == account.back()) {
+    // host
+    account += it->get_next_token();
+  }
+
+  return account;
+}
+
+/**
+ * Expects iterator to CREATE USER statement, will stop after account is found.
+ *
+ * @returns account parsed from the CREATE USER statement
+ */
+std::string create_user_parse_account(SQL_iterator *it) {
+  if (!shcore::str_caseeq(it->get_next_token().c_str(), "CREATE") ||
+      !shcore::str_caseeq(it->get_next_token().c_str(), "USER")) {
+    throw std::invalid_argument(
+        "This check can be only performed on CREATE USER statements");
+  }
+
+  return get_account(it);
+}
+
 }  // namespace
 
 std::vector<std::string> check_privileges(
@@ -782,39 +830,10 @@ std::string check_create_user_for_authentication_plugin(
     const std::string &create_user, const std::set<std::string> &plugins) {
   SQL_iterator it(create_user, 0, false);
 
-  if (!shcore::str_caseeq(it.get_next_token(), "CREATE") ||
-      !shcore::str_caseeq(it.get_next_token(), "USER")) {
-    throw std::runtime_error(
-        "Authentication plugin check can be only performed on CREATE USER "
-        "statements");
-  }
+  create_user_parse_account(&it);
 
-  auto user = it.get_next_token();  // IF or user
-
-  if (shcore::str_caseeq(user, "IF")) {
-    it.get_next_token();         // NOT
-    it.get_next_token();         // EXISTS
-    user = it.get_next_token();  // user
-  }
-
-  const auto is_quote = [](char c) {
-    return '\'' == c || '"' == c || '`' == c;
-  };
-
-  assert(!user.empty());
-
-  // if the user name is quoted, @ and host are still remaining, if next token
-  // is equal to '@', host was quoted, needs to be read separately
-  // or
-  // the user name was not quoted, if it ends with '@', host was quoted, needs
-  // to be read separately
-  if ((is_quote(user[0]) && (1 == it.get_next_token().size())) ||
-      ('@' == user.back())) {
-    it.get_next_token();  // host
-  }
-
-  if (shcore::str_caseeq(it.get_next_token(), "IDENTIFIED") &&
-      shcore::str_caseeq(it.get_next_token(), "WITH")) {
+  if (shcore::str_caseeq(it.get_next_token().c_str(), "IDENTIFIED") &&
+      shcore::str_caseeq(it.get_next_token().c_str(), "WITH")) {
     auto auth_plugin = it.get_next_token();
 
     if (!auth_plugin.empty() && is_quote(auth_plugin[0])) {
@@ -827,6 +846,117 @@ std::string check_create_user_for_authentication_plugin(
   }
 
   return "";
+}
+
+bool check_create_user_for_empty_password(const std::string &create_user) {
+  SQL_iterator it(create_user, 0, false);
+
+  create_user_parse_account(&it);
+
+  // end of statement, or there is no IDENTIFIED clause, there is no password
+  if (!it.valid() ||
+      !shcore::str_caseeq(it.get_next_token().c_str(), "IDENTIFIED")) {
+    return true;
+  }
+
+  std::string password;
+
+  if (shcore::str_caseeq(it.get_next_token().c_str(), "BY")) {
+    // IDENTIFIED BY
+    password = it.get_next_token();
+
+    if (shcore::str_caseeq(password, "PASSWORD")) {
+      password = it.get_next_token();
+    } else if (shcore::str_caseeq(password, "RANDOM")) {
+      // random password, not empty
+      return false;
+    }
+  } else {
+    // IDENTIFIED WITH, "WITH" already consumed, next is auth_plugin
+    it.get_next_token();
+
+    // end of statement, no password
+    if (!it.valid()) {
+      return true;
+    }
+
+    const auto token = it.get_next_token();
+
+    if (shcore::str_caseeq(token.c_str(), "BY")) {
+      password = it.get_next_token();
+
+      if (shcore::str_caseeq(password, "RANDOM")) {
+        // random password, not empty
+        return false;
+      }
+    } else if (shcore::str_caseeq(token.c_str(), "AS")) {
+      // AS 'auth_string', password cannot be checked
+      return false;
+    } else {
+      // no password
+      return true;
+    }
+  }
+
+  return password.empty() ||
+         shcore::unquote_string(password, password[0]).empty();
+}
+
+std::string convert_create_user_to_create_role(const std::string &create_user) {
+  SQL_iterator it(create_user, 0, false);
+
+  const auto account = create_user_parse_account(&it);
+  const auto begin_account_config = it.position();
+
+  std::string sql = "CREATE ROLE IF NOT EXISTS " + account;
+
+  // find beginning and end of DEFAULT ROLE clause
+  auto begin = std::string::npos;
+  auto end = begin;
+
+  while (it.valid()) {
+    const auto token = it.get_next_token_and_offset();
+
+    if (shcore::str_caseeq(token.first.c_str(), "DEFAULT") &&
+        shcore::str_caseeq(it.get_next_token().c_str(), "ROLE")) {
+      begin = token.second;
+
+      do {
+        // skip role
+        get_account(&it);
+        end = it.position();
+      } while (shcore::str_caseeq(it.get_next_token().c_str(), ","));
+
+      break;
+    }
+  }
+
+  const std::string alter_user = ";\nALTER USER " + account + " ";
+
+  // if there was a DEFAULT ROLE clause, add it to SQL
+  if (std::string::npos != begin) {
+    sql += alter_user + create_user.substr(begin, end - begin);
+  }
+
+  // get the account configuration minus the DEFAULT ROLE clause
+  std::string account_config;
+
+  if (std::string::npos != begin) {
+    account_config = shcore::str_strip(
+        create_user.substr(begin_account_config, begin - begin_account_config));
+    account_config += " ";
+    account_config += shcore::str_strip(create_user.substr(end));
+  } else {
+    account_config = create_user.substr(begin_account_config);
+  }
+
+  account_config = shcore::str_strip(account_config);
+
+  if (!account_config.empty()) {
+    sql += alter_user + account_config;
+  }
+
+  return sql;
 }
 
 void add_pk_to_create_table(const std::string &statement,

@@ -34,12 +34,16 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/test_utils.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 
 extern "C" const char *g_test_home;
 
 namespace mysqlsh {
 namespace dump {
 namespace tests {
+
+using ::testing::HasSubstr;
+using ::testing::Not;
 
 class Schema_dumper_test : public Shell_core_test_wrapper {
  public:
@@ -124,9 +128,7 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
     auto out = testutil->cat_file(file_path);
     if (output != nullptr) *output = out;
     for (const auto i : items) {
-      if (std::string::npos == out.find(i)) {
-        EXPECT_EQ(out, i);
-      }
+      EXPECT_THAT(out, HasSubstr(i));
     }
   }
 
@@ -687,7 +689,7 @@ TEST_F(Schema_dumper_test, dump_grants) {
   std::string out;
   expect_output_contains({"CREATE USER IF NOT EXISTS", "GRANT"}, &out);
 
-  EXPECT_NE(std::string::npos, out.find("'second'"));
+  EXPECT_THAT(out, HasSubstr("'second'"));
 
   auto filtered = Schema_dumper::preprocess_users_script(
       out,
@@ -695,7 +697,7 @@ TEST_F(Schema_dumper_test, dump_grants) {
         return !shcore::str_beginswith(user, "'second'");
       },
       {});
-  EXPECT_EQ(std::string::npos, filtered.find("'second'"));
+  EXPECT_THAT(filtered, Not(HasSubstr("'second'")));
 
   // cleanup
   session->execute("DROP USER 'first'@'localhost';");
@@ -744,7 +746,7 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
                          ->get_string(1);
     if (partial_revoke != "ON")
       session->execute("set global partial_revokes = 'ON';");
-    session->execute("CREATE USER IF NOT EXISTS `dave`@`%`");
+    session->execute("CREATE USER IF NOT EXISTS `dave`@`%` IDENTIFIED BY 'p'");
     session->execute(
         "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, PROCESS, "
         "REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, "
@@ -782,43 +784,44 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   auto out = testutil->cat_file(file_path);
 
   if (_target_server_version < mysqlshdk::utils::Version(8, 0, 0)) {
-    EXPECT_NE(
-        std::string::npos,
-        out.find("GRANT "
-                 "SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,PROCESS,REFERENCES,"
-                 "INDEX,ALTER,SHOW DATABASES,CREATE TEMPORARY TABLES,LOCK "
-                 "TABLES,EXECUTE,REPLICATION SLAVE,REPLICATION CLIENT,CREATE "
-                 "VIEW,SHOW VIEW,CREATE ROUTINE,ALTER ROUTINE,CREATE "
-                 "USER,EVENT,TRIGGER ON *.* TO 'admin'@'localhost';"));
-    EXPECT_NE(
-        std::string::npos,
-        out.find(
+    EXPECT_THAT(
+        out,
+        HasSubstr("GRANT "
+                  "SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,PROCESS,REFERENCES,"
+                  "INDEX,ALTER,SHOW DATABASES,CREATE TEMPORARY TABLES,LOCK "
+                  "TABLES,EXECUTE,REPLICATION SLAVE,REPLICATION CLIENT,CREATE "
+                  "VIEW,SHOW VIEW,CREATE ROUTINE,ALTER ROUTINE,CREATE "
+                  "USER,EVENT,TRIGGER ON *.* TO 'admin'@'localhost';"));
+    EXPECT_THAT(
+        out,
+        HasSubstr(
             "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,PROCESS,REFERENCES,"
             "INDEX,ALTER,SHOW DATABASES,CREATE TEMPORARY TABLES,LOCK "
             "TABLES,EXECUTE,REPLICATION SLAVE,REPLICATION CLIENT,CREATE "
             "VIEW,SHOW VIEW,CREATE ROUTINE,ALTER ROUTINE,CREATE "
             "USER,EVENT,TRIGGER ON *.* TO 'admin2'@'localhost' WITH GRANT "
             "OPTION;"));
-    EXPECT_EQ(std::string::npos, out.find("ALL PRIVILEGES"));
+    EXPECT_THAT(out, Not(HasSubstr("ALL PRIVILEGES")));
   }
 
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
-    EXPECT_NE(
-        std::string::npos,
-        out.find(
-            "CREATE USER IF NOT EXISTS 'da_dumper'@'%' IDENTIFIED WITH "
+    EXPECT_THAT(
+        out,
+        HasSubstr(
+            "CREATE ROLE IF NOT EXISTS 'da_dumper'@'%';\n"
+            "ALTER USER 'da_dumper'@'%' IDENTIFIED WITH "
             "'caching_sha2_password' REQUIRE NONE PASSWORD EXPIRE ACCOUNT "
             "LOCK PASSWORD HISTORY DEFAULT PASSWORD REUSE INTERVAL DEFAULT "
             "PASSWORD REQUIRE CURRENT DEFAULT;"));
 
-    EXPECT_NE(
-        std::string::npos,
-        out.find("GRANT INSERT, UPDATE, DELETE ON *.* TO `da_dumper`@`%`;"));
-    EXPECT_NE(std::string::npos,
-              out.find("GRANT `da_dumper`@`%` TO `dumptestuser`@`localhost`;"));
-    EXPECT_NE(
-        std::string::npos,
-        out.find(
+    EXPECT_THAT(
+        out,
+        HasSubstr("GRANT INSERT, UPDATE, DELETE ON *.* TO `da_dumper`@`%`;"));
+    EXPECT_THAT(
+        out, HasSubstr("GRANT `da_dumper`@`%` TO `dumptestuser`@`localhost`;"));
+    EXPECT_THAT(
+        out,
+        HasSubstr(
             "REVOKE SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, PROCESS, "
             "REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY "
             "TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION "
@@ -826,43 +829,41 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
             "CREATE USER, EVENT, TRIGGER ON `mysql`.* FROM `dave`@`%`;"));
   }
 
-  EXPECT_NE(std::string::npos,
-            out.find("CREATE USER IF NOT EXISTS 'dumptestuser'@'localhost'"));
-  EXPECT_NE(std::string::npos, out.find("-- begin user 'abr@dab'@'localhost'"));
+  EXPECT_THAT(
+      out, HasSubstr("CREATE USER IF NOT EXISTS 'dumptestuser'@'localhost'"));
+  EXPECT_THAT(out, HasSubstr("-- begin user 'abr@dab'@'localhost'"));
 
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
-    EXPECT_NE(std::string::npos,
-              out.find("GRANT SELECT ON *.* TO `dumptestuser`@`localhost`"));
-    EXPECT_NE(
-        std::string::npos,
-        out.find("GRANT LOCK TABLES ON *.* TO `superfirst`@`localhost`;"));
-    EXPECT_NE(
-        std::string::npos,
-        out.find("GRANT INSERT, UPDATE ON *.* TO `superafter`@`localhost`;"));
-    EXPECT_EQ(std::string::npos, out.find("TO `superonly`@`localhost`;"));
-    EXPECT_NE(std::string::npos, out.find(
-                                     R"(-- begin grants 'abr@dab'@'localhost'
+    EXPECT_THAT(out,
+                HasSubstr("GRANT SELECT ON *.* TO `dumptestuser`@`localhost`"));
+    EXPECT_THAT(
+        out,
+        HasSubstr("GRANT LOCK TABLES ON *.* TO `superfirst`@`localhost`;"));
+    EXPECT_THAT(
+        out,
+        HasSubstr("GRANT INSERT, UPDATE ON *.* TO `superafter`@`localhost`;"));
+    EXPECT_THAT(out, Not(HasSubstr("TO `superonly`@`localhost`;")));
+    EXPECT_THAT(out, HasSubstr(R"(-- begin grants 'abr@dab'@'localhost'
 GRANT SELECT, INSERT, LOCK TABLES ON *.* TO `abr@dab`@`localhost`;
 -- end grants 'abr@dab'@'localhost')"));
   } else {
-    EXPECT_NE(std::string::npos,
-              out.find("GRANT SELECT ON *.* TO 'dumptestuser'@'localhost';"));
-    EXPECT_NE(
-        std::string::npos,
-        out.find("GRANT LOCK TABLES ON *.* TO 'superfirst'@'localhost';"));
-    EXPECT_NE(
-        std::string::npos,
-        out.find("GRANT INSERT, UPDATE ON *.* TO 'superafter'@'localhost';"));
-    EXPECT_EQ(std::string::npos, out.find("TO 'superonly'@'localhost';"));
-    EXPECT_NE(std::string::npos,
-              out.find(R"(-- begin grants 'abr@dab'@'localhost'
+    EXPECT_THAT(
+        out, HasSubstr("GRANT SELECT ON *.* TO 'dumptestuser'@'localhost';"));
+    EXPECT_THAT(
+        out,
+        HasSubstr("GRANT LOCK TABLES ON *.* TO 'superfirst'@'localhost';"));
+    EXPECT_THAT(
+        out,
+        HasSubstr("GRANT INSERT, UPDATE ON *.* TO 'superafter'@'localhost';"));
+    EXPECT_THAT(out, Not(HasSubstr("TO 'superonly'@'localhost';")));
+    EXPECT_THAT(out, HasSubstr(R"(-- begin grants 'abr@dab'@'localhost'
 GRANT SELECT, INSERT, LOCK TABLES ON *.* TO 'abr@dab'@'localhost';
 -- end grants 'abr@dab'@'localhost')"));
   }
-  EXPECT_EQ(std::string::npos, out.find("SUPER"));
+  EXPECT_THAT(out, Not(HasSubstr("SUPER")));
 
-  EXPECT_EQ(std::string::npos, out.find("'root'"));
-  EXPECT_EQ(std::string::npos, out.find("EXISTS 'mysql"));
+  EXPECT_THAT(out, Not(HasSubstr("'root'")));
+  EXPECT_THAT(out, Not(HasSubstr("EXISTS 'mysql")));
 
   wipe_all();
   testutil->call_mysqlsh_c({_mysql_uri, "--sql", "-f", file_path});
@@ -1079,11 +1080,10 @@ TEST_F(Schema_dumper_test, compat_ddl) {
     file->close();
     if (ddl.empty()) return;
     const auto out = testutil->cat_file(file_path);
-    if (out.find(_target_server_version >= mysqlshdk::utils::Version(8, 0, 0)
-                     ? shcore::str_replace(ddl, "(11)", "")
-                     : ddl) == std::string::npos) {
-      EXPECT_EQ(out, ddl);
-    }
+    EXPECT_THAT(out, HasSubstr(_target_server_version >=
+                                       mysqlshdk::utils::Version(8, 0, 0)
+                                   ? shcore::str_replace(ddl, "(11)", "")
+                                   : ddl));
   };
 
   // Engines
@@ -1246,9 +1246,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
     out = shcore::str_replace(out, "`", "");
     out = shcore::str_replace(out, "(11)", "");
     for (const auto i : items) {
-      if (std::string::npos == out.find(shcore::str_replace(i, "`", ""))) {
-        EXPECT_EQ(out, i);
-      }
+      EXPECT_THAT(out, HasSubstr(shcore::str_replace(i, "`", "")));
     }
     file.reset(new mysqlshdk::storage::backend::File(file_path));
     file->open(mysqlshdk::storage::Mode::WRITE);

@@ -1478,8 +1478,8 @@ Primary Keys. Dumps created with this value cannot be used in MySQL Database
 Service instance with High Availability. Mutually exclusive with the
 <b>create_invisible_pks</b> value.
 
-<b>skip_invalid_accounts</b> - Skips accounts which use authentication methods
-(plugins) not supported by the MySQL Database Service.
+<b>skip_invalid_accounts</b> - Skips accounts which do not have a password or
+use authentication methods (plugins) not supported by the MySQL Database Service.
 
 <b>strip_definers</b> - Strips the "DEFINER=account" clause from views, routines,
 events and triggers. The MySQL Database Service requires special privileges to
