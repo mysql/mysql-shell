@@ -37,7 +37,7 @@ EXPECT_THROWS(lambda:util.dump_tables("sample", ["data"], prefix, {"osBucketName
 
 #@<> Doing a dump to OCI with ocimds set to True. Validate that PAR objects are generated for each file of the dump.
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
-util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants"]})
+util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants", "ignore_missing_pks"]})
 validate_full_dump(OS_NAMESPACE, OS_BUCKET_NAME, prefix, today_plus_days(7))
 
 #@<> Doing a dump to OCI with ociParManifest set to True. Validate that PAR objects are generated for each file of the dump.
@@ -53,19 +53,19 @@ validate_full_dump(OS_NAMESPACE, OS_BUCKET_NAME, prefix, tomorrow)
 
 #@<> dumping with 'ocimds' set to true and 'ociParManifest' to false should not create the manifest
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
-util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants"], "ociParManifest": False})
+util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants", "ignore_missing_pks"], "ociParManifest": False})
 EXPECT_THROWS(lambda:testutil.download_oci_object(OS_NAMESPACE, OS_BUCKET_NAME, prefix + '/@.manifest.json', "@.manifest.json"),
     "Testutils.download_oci_object: Failed opening object '{}/@.manifest.json' in READ mode: Not Found (404)".format(prefix))
 
 #@<> Doing a dump to OCI ociParManifest not set, ocimds set to True and ociParExpireTime set to a valid value. Validate that the dump success and the expiration date for the PAR objects matches the set to the option ociParExpireTime.
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 expire_time = today_plus_days(7, RFC3339)
-util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants"], "ociParExpireTime": expire_time})
+util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants", "ignore_missing_pks"], "ociParExpireTime": expire_time})
 validate_full_dump(OS_NAMESPACE, OS_BUCKET_NAME, prefix, expire_time)
 
 #@<> Doing a dump to OCI ociParManifest set to False, ocimds set to True and ociParExpireTime set to a valid value. Validate that the dump fail because ociParExpireTime it's valid only when ociParManifest is set to True.
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
-EXPECT_THROWS(lambda:util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants"], "ociParManifest": False, "ociParExpireTime":today_plus_days(1, RFC3339)}),
+EXPECT_THROWS(lambda:util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants", "ignore_missing_pks"], "ociParManifest": False, "ociParExpireTime":today_plus_days(1, RFC3339)}),
     "Util.dump_tables: Argument #4: The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.")
 
 #@<> ZSTD compression {not __dbug_off}
