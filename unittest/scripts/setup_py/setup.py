@@ -44,14 +44,7 @@ def has_oci_environment(context):
                'OS_NAMESPACE',
                'OS_BUCKET_NAME']
   if context == 'MDS':
-    variables = variables + ['OCI_INSTANCE_HOST',
-                             'OCI_INSTANCE_USER',
-                             'OCI_SSH_PKEY_PATH',
-                             'OCI_SSH_PKEY_PASSPHRASE',
-                             'OCI_INSTANCE_SHELL_PATH',
-                             'MDS_HOST',
-                             'MDS_USER',
-                             'MDS_PASSWORD']
+    variables = variables + ['MDS_URI']
   missing=[]
   for variable in variables:
     if variable not in globals():

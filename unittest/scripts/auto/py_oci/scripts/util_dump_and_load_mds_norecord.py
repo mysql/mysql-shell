@@ -47,9 +47,10 @@ EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
 WIPE_OUTPUT()
 
 #@<> Loading incompatible mysqlaas_compat will fail
-execute_oci_shell("--sql -e \"drop schema if exists mysqlaas_compat\"")
-execute_oci_shell("-e \"util.loadDump('', {osBucketName:'%s', osNamespace:'%s'})\"" % (OS_BUCKET_NAME, OS_NAMESPACE))
-EXPECT_STDERR_CONTAINS("Util.loadDump: Dump is not MDS compatible (RuntimeError)")
+shell.connect(MDS_URI)
+session.run_sql("drop schema if exists mysqlaas_compat")
+util.load_dump('', {'osBucketName':OS_BUCKET_NAME, 'osNamespace':OS_NAMESPACE})
+EXPECT_STDERR_CONTAINS("Util.load_dump: Dump is not MDS compatible")
 WIPE_OUTPUT()
 
 #@<> Dump mysqlaas_compat to OS with MDS compatibility
@@ -67,28 +68,33 @@ EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
 WIPE_OUTPUT()
 
 #@<> Loading incompatible mysqlaas_compat will succeed
-execute_oci_shell("--sql -e \"drop schema if exists mysqlaas_compat\"")
-execute_oci_shell("-e \"util.loadDump('', {osBucketName:'%s', osNamespace:'%s'})\"" % (OS_BUCKET_NAME, OS_NAMESPACE))
-EXPECT_STDERR_CONTAINS("Loading DDL and Data from OCI ObjectStorage bucket=mds-dump-test-bucket, prefix='' using 4 threads.")
-EXPECT_STDERR_CONTAINS("0 warnings were reported during the load.")
+shell.connect(MDS_URI)
+session.run_sql("drop schema if exists mysqlaas_compat")
+util.load_dump('', {'osBucketName':OS_BUCKET_NAME, 'osNamespace':OS_NAMESPACE})
+EXPECT_STDOUT_CONTAINS(f"Loading DDL and Data from OCI ObjectStorage bucket={OS_BUCKET_NAME}, prefix='' using 4 threads.")
+EXPECT_STDOUT_CONTAINS("0 warnings were reported during the load.")
 WIPE_OUTPUT()
 delete_progress_file()
 
 #@<> BUG#32009225 use 'updateGtidSet' when loading a dump into MDS, set it to 'append'
-execute_oci_shell("--sql -e \"drop schema if exists mysqlaas_compat\"")
-execute_oci_shell("-e \"util.loadDump('', {osBucketName:'{0}', osNamespace:'{1}', 'updateGtidSet': 'append'})\"".format(OS_BUCKET_NAME, OS_NAMESPACE))
-EXPECT_STDERR_CONTAINS("0 warnings were reported during the load.")
+session.run_sql("drop schema if exists mysqlaas_compat")
+util.load_dump('', {'osBucketName':OS_BUCKET_NAME, 'osNamespace':OS_NAMESPACE, 'updateGtidSet': 'append'})
+EXPECT_STDOUT_CONTAINS("0 warnings were reported during the load.")
 WIPE_OUTPUT()
 delete_progress_file()
 
-#@<> BUG#32009225 use 'updateGtidSet' when loading a dump into MDS, set it to 'replace'
-execute_oci_shell("--sql -e \"drop schema if exists mysqlaas_compat\"")
-execute_oci_shell("-e \"util.loadDump('', {osBucketName:'{0}', osNamespace:'{1}', 'updateGtidSet': 'replace'})\"".format(OS_BUCKET_NAME, OS_NAMESPACE))
-EXPECT_STDERR_CONTAINS("0 warnings were reported during the load.")
+# NOTE: This test has been disabled as it doesn't work on an MDS instance where tests are executed
+# once and again
+#@<> BUG#32009225 use 'updateGtidSet' when loading a dump into MDS, set it to 'replace' {False}
+session.run_sql("drop schema if exists mysqlaas_compat")
+util.load_dump('', {'osBucketName':OS_BUCKET_NAME, 'osNamespace':OS_NAMESPACE, 'updateGtidSet': 'replace'})
+EXPECT_STDOUT_CONTAINS("0 warnings were reported during the load.")
 WIPE_OUTPUT()
 delete_progress_file()
 
 #@<> cleanup
+session.run_sql("drop schema if exists mysqlaas_compat")
+session.close()
 delete_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 testutil.rmdir(datadir, True)
 testutil.destroy_sandbox(__mysql_sandbox_port1)

@@ -1,30 +1,59 @@
 import oci
 import datetime
 import time
+import queue
+import threading
+
 from oci.object_storage.models.create_preauthenticated_request_details import CreatePreauthenticatedRequestDetails
 
 config = oci.config.from_file(os.path.join(OCI_CONFIG_HOME, "config"))
 
-def wipeout_bucket(os_client, namespace, bucket):
-  print("Deleting objects in bucket {}".format(bucket))
-  objects = os_client.list_objects(namespace, bucket)
-  for o in objects.data.objects:
-    os_client.delete_object(namespace, bucket, o.name, retry_strategy=oci.retry.DEFAULT_RETRY_STRATEGY)
-  print("Aborting multi-part uploads for bucket {}".format(bucket))
-  multiparts = os_client.list_multipart_uploads(namespace, bucket)
-  for mp in multiparts.data:
-    os_client.abort_multipart_upload(namespace, bucket, mp.object, mp.upload_id, retry_strategy=oci.retry.DEFAULT_RETRY_STRATEGY)
-  print("Deleting PARs for bucket {}".format(bucket))
-  pars = os_client.list_preauthenticated_requests(namespace, bucket)
-  for par in pars.data:
-    os_client.delete_preauthenticated_request(namespace, bucket, par.id, retry_strategy=oci.retry.DEFAULT_RETRY_STRATEGY)
 
+def wipeout_bucket_mt(workers, bucket, ns="", config_file=os.path.join(OCI_CONFIG_HOME, "config")):
+    start = time.time()
+    q = queue.Queue()
+    def worker():
+        os = oci.object_storage.ObjectStorageClient(oci.config.from_file(config_file))
+        while True:
+            w = q.get()
+            if w is None:
+                q.task_done()
+                break
+            w(os)
+            q.task_done()
+    threads = []
+    for i in range(workers):
+        t = threading.Thread(target=worker)
+        t.start()
+        threads.append(t)
+    config = oci.config.from_file(config_file)
+    os = oci.object_storage.ObjectStorageClient(config)
+    if ns == "":
+      ns = os.get_namespace().data
+    def abort_multipart(mp):
+        return lambda os: os.abort_multipart_upload(ns, bucket, mp.object, mp.upload_id)
+    for mp in oci.pagination.list_call_get_all_results(os.list_multipart_uploads, ns, bucket).data:
+        q.put(abort_multipart(mp))
+    def delete_object(name):
+        return lambda os: os.delete_object(ns, bucket, name)
+    for o in oci.pagination.list_call_get_all_results(os.list_objects, ns, bucket).data.objects:
+        q.put(delete_object(o.name))
+    def delete_par(id):
+        return lambda os: os.delete_preauthenticated_request(ns, bucket, id)
+    for par in oci.pagination.list_call_get_all_results(os.list_preauthenticated_requests, ns, bucket).data:
+        q.put(delete_par(par.id))
+    for i in range(workers):
+        q.put(None)
+    q.join()
+    for t in threads:
+        t.join()
+    print("--- wipeout_bucket_mt() took {0} seconds ---".format(time.time() - start))
 
 def delete_bucket(bucket, namespace=""):
   os_client = oci.object_storage.ObjectStorageClient(config)
   if namespace == "":
     namespace = os_client.get_namespace().data
-  wipeout_bucket(os_client, namespace, bucket)
+  wipeout_bucket_mt(4, bucket, namespace)
   os_client.delete_bucket(namespace, bucket, retry_strategy=oci.retry.DEFAULT_RETRY_STRATEGY)
 
 def delete_object(bucket, name, namespace=""):
@@ -45,25 +74,13 @@ def prepare_empty_bucket(bucket, namespace=""):
     exists = False
     print(e)
   if exists:
-    wipeout_bucket(os_client, namespace, bucket)
+    wipeout_bucket_mt(4, bucket, namespace)
   else:
     os_client.create_bucket(namespace, oci.object_storage.models.CreateBucketDetails(
           name=bucket,
           compartment_id=OCI_COMPARTMENT_ID,
           storage_tier='Standard'
       ))
-      
-def execute_oci_shell(command):
-  import paramiko
-  client = paramiko.SSHClient()
-  client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy)
-  client.connect(OCI_INSTANCE_HOST, username=OCI_INSTANCE_USER, passphrase=OCI_SSH_PKEY_PASSPHRASE, key_filename=OCI_SSH_PKEY_PATH)
-  mds_uri="{}:{}@{}".format(MDS_USER, MDS_PASSWORD, MDS_HOST)
-  stdin, stdout, stderr = client.exec_command("{} {} {}".format(OCI_INSTANCE_SHELL_PATH, mds_uri, command))
-  for line in stdout.readlines():
-    sys.stdout.write(line)
-  for line in stderr.readlines():
-    sys.stderr.write(line)
 
 def get_manifest(namespace, bucket, prefix):
     manifest_file = '@.manifest.json'

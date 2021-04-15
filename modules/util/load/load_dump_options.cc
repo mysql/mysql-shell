@@ -31,6 +31,7 @@
 #include "modules/util/dump/dump_manifest.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -84,6 +85,7 @@ void parse_tables(const std::vector<std::string> &opt_tables,
 }  // namespace
 
 using mysqlsh::dump::Dump_manifest;
+using mysqlsh::dump::Manifest_mode;
 Load_dump_options::Load_dump_options() : Load_dump_options("") {}
 Load_dump_options::Load_dump_options(const std::string &url) : m_url(url) {}
 
@@ -260,8 +262,10 @@ void Load_dump_options::set_session(
 }
 
 void Load_dump_options::validate() {
-  dump::Par_structure url_par_data;
-  m_use_par = dump::parse_full_object_par(m_url, &url_par_data);
+  using mysqlshdk::storage::backend::oci::Par_structure;
+  using mysqlshdk::storage::backend::oci::parse_full_object_par;
+  Par_structure url_par_data;
+  m_use_par = parse_full_object_par(m_url, &url_par_data);
 
   if (m_use_par) {
     if (m_progress_file.is_null()) {
@@ -269,9 +273,9 @@ void Load_dump_options::validate() {
           "When using a PAR to a dump manifest, the progressFile option must "
           "be defined.");
     } else {
-      dump::Par_structure progress_par_data;
+      Par_structure progress_par_data;
       m_use_par_progress =
-          dump::parse_full_object_par(*m_progress_file, &progress_par_data);
+          parse_full_object_par(*m_progress_file, &progress_par_data);
     }
 
     m_oci_options.set_par(m_url);
@@ -386,8 +390,8 @@ void Load_dump_options::on_unpacked_options() {
 std::unique_ptr<mysqlshdk::storage::IDirectory>
 Load_dump_options::create_dump_handle() const {
   if (m_use_par) {
-    return std::make_unique<Dump_manifest>(Dump_manifest::Mode::READ,
-                                           m_oci_options, m_url);
+    return std::make_unique<Dump_manifest>(Manifest_mode::READ, m_oci_options,
+                                           nullptr, m_url);
   } else if (!m_oci_options.os_bucket_name.get_safe().empty()) {
     return mysqlshdk::storage::make_directory(m_url, m_oci_options);
   } else {

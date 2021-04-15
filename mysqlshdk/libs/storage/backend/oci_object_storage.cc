@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <regex>
 #include <utility>
 #include <vector>
 
@@ -53,6 +54,26 @@ using mysqlshdk::oci::Oci_options;
 using mysqlshdk::oci::Oci_rest_service;
 using mysqlshdk::oci::Oci_service;
 using mysqlshdk::oci::Response_error;
+
+const std::regex k_full_par_parser(
+    "^https:\\/\\/objectstorage\\.(.+)\\.oraclecloud\\.com(\\/"
+    "p\\/.+\\/n\\/(.+)\\/b\\/(.*)\\/o\\/((.*)\\/)?(.+))$");
+
+bool parse_full_object_par(const std::string &url, Par_structure *data) {
+  std::smatch results;
+  if (std::regex_match(url, results, k_full_par_parser)) {
+    data->par_url = url;
+    data->region = results[1];
+    data->object_url = results[2];
+    data->ns_name = results[3];
+    data->bucket = results[4];
+    data->object_prefix = results[6];
+    data->object_name = results[7];
+
+    return true;
+  }
+  return false;
+}
 
 Directory::Directory(const Oci_options &options, const std::string &name)
     : m_name(name),
@@ -181,6 +202,23 @@ Object::Object(const Oci_options &options, const std::string &name,
       m_writer{},
       m_reader{} {}
 
+Object::Object(const std::string &par) : m_writer{}, m_reader{} {
+  Par_structure data;
+  if (parse_full_object_par(par, &data)) {
+    m_name = data.object_name;
+    m_prefix = data.object_prefix;
+    Oci_options options;
+    options.set_par(par);
+    options.check_option_values();
+    m_bucket = std::make_unique<Bucket>(options);
+    m_par = data.object_url;
+    m_max_part_size = *options.part_size;
+  } else {
+    throw std::runtime_error(
+        "Invalid PAR provided for OCI Object Storage Object Handle");
+  }
+}
+
 void Object::set_max_part_size(size_t new_size) {
   assert(!is_open());
   m_max_part_size = new_size;
@@ -203,8 +241,8 @@ void Object::open(mysqlshdk::storage::Mode mode) {
           uploads.begin(), uploads.end(),
           [this](const Multipart_object &o) { return o.name == full_path(); });
 
-      // If there no active upload, the APPEND operation will be allowed if the
-      // file does not exist
+      // If there no active upload, the APPEND operation will be allowed if
+      // the file does not exist
       if (object == uploads.end()) {
         try {
           // Verifies if the file exists, if not, an error will be thrown by
@@ -265,11 +303,14 @@ bool Object::exists() const {
 }
 
 std::unique_ptr<IDirectory> Object::parent() const {
+  // No parent allowed in objects with PAR
+  assert(m_par.empty());
+
   const auto path = full_path();
   const auto pos = path.find_last_of('/');
 
-  // if the full path does not contain a backslash then the parent directory is
-  // the root directory
+  // if the full path does not contain a backslash then the parent directory
+  // is the root directory
   return make_directory(std::string::npos == pos ? "" : path.substr(0, pos),
                         m_bucket->get_options());
 }

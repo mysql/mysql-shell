@@ -937,9 +937,9 @@ Dumper::Dumper(const Dump_options &options)
   } else {
     using mysqlshdk::storage::make_directory;
     if (m_options.oci_options().oci_par_manifest.get_safe()) {
-      m_output_dir = std::make_unique<Dump_manifest>(Dump_manifest::Mode::WRITE,
-                                                     m_options.oci_options(),
-                                                     m_options.output_url());
+      m_output_dir = std::make_unique<Dump_manifest>(
+          Manifest_mode::WRITE, m_options.oci_options(), nullptr,
+          m_options.output_url());
     } else {
       m_output_dir =
           make_directory(m_options.output_url(), m_options.oci_options());
