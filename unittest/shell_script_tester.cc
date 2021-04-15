@@ -1678,14 +1678,7 @@ void Shell_script_tester::set_defaults() {
   def_string_var_from_env("OS_BUCKET_NAME");
 
   // Variables for MDS Tests
-  def_string_var_from_env("OCI_INSTANCE_HOST");
-  def_string_var_from_env("OCI_INSTANCE_USER");
-  def_string_var_from_env("OCI_SSH_PKEY_PATH");
-  def_string_var_from_env("OCI_SSH_PKEY_PASSPHRASE");
-  def_string_var_from_env("OCI_INSTANCE_SHELL_PATH");
-  def_string_var_from_env("MDS_HOST");
-  def_string_var_from_env("MDS_USER");
-  def_string_var_from_env("MDS_PASSWORD");
+  def_string_var_from_env("MDS_URI");
 
   def_var("__libmysql_version_id",
           shcore::str_format("'%d'", LIBMYSQL_VERSION_ID));

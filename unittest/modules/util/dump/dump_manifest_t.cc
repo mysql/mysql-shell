@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, Oracle and/or its affiliates.
+/* Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 namespace testing {
 
 using mysqlsh::dump::Dump_manifest;
+using mysqlsh::dump::Manifest_mode;
 
 struct Object {
   std::string name;
@@ -119,7 +120,7 @@ TEST_F(Oci_os_tests, dump_manifest_write_complete) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Dump_manifest manifest(Dump_manifest::Mode::WRITE, get_options());
+  Dump_manifest manifest(Manifest_mode::WRITE, get_options());
   Bucket bucket(get_options());
 
   shcore::Scoped_callback cleanup([this, &bucket]() { clean_bucket(bucket); });
@@ -175,7 +176,7 @@ TEST_F(Oci_os_tests, dump_manifest_write_incomplete) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Dump_manifest manifest(Dump_manifest::Mode::WRITE, get_options());
+  Dump_manifest manifest(Manifest_mode::WRITE, get_options());
   Bucket bucket(get_options());
 
   shcore::Scoped_callback cleanup([this, &bucket]() { clean_bucket(bucket); });
@@ -219,7 +220,7 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
-  Dump_manifest write_manifest(Dump_manifest::Mode::WRITE, get_options());
+  Dump_manifest write_manifest(Manifest_mode::WRITE, get_options());
   Bucket bucket(get_options());
 
   shcore::Scoped_callback cleanup([this, &bucket]() { clean_bucket(bucket); });
@@ -237,7 +238,7 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
       "@.manifest.json");
 
   Dump_manifest read_manifest(
-      Dump_manifest::Mode::READ, get_options(),
+      Manifest_mode::READ, get_options(), nullptr,
       bucket.get_rest_service()->end_point() + manifest_par.access_uri);
 
   auto manifest_files = read_manifest.list_files();
@@ -264,6 +265,27 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
   std::string final_data(buffer, read);
   first_file->close();
   EXPECT_STREQ(k_objects[Obj_index::FIRST].content.c_str(), final_data.c_str());
+
+  // BUG#32734817 SHELL LOAD: LOAD DURING DUMP USING PAR GIVES UNAUTHORIZED
+  // ERROR Problem was caused because at load idx file was being created from
+  // the table file
+  auto second_file =
+      first_file->parent()->file(k_objects[Obj_index::SECOND].name);
+
+  // Being a file in the manifest it MUST exist
+  EXPECT_TRUE(second_file->exists());
+
+  // The file in the manifest must match the expected size
+  EXPECT_EQ(k_objects[Obj_index::SECOND].content.size(),
+            second_file->file_size());
+
+  second_file->open(mysqlshdk::storage::Mode::READ);
+
+  read = second_file->read(buffer, k_objects[Obj_index::SECOND].content.size());
+  std::string second_file_data(buffer, read);
+  second_file->close();
+  EXPECT_STREQ(k_objects[Obj_index::SECOND].content.c_str(),
+               second_file_data.c_str());
 
   // Test the read manifest allows writing to file using Read/Write PAR
   auto rw_par = bucket.create_pre_authenticated_request(
@@ -295,7 +317,7 @@ TEST_F(Oci_os_tests, dump_manifest_read_mode) {
   EXPECT_STREQ("MY PROGRESS DATA", progress_data.c_str());
 
   EXPECT_THROW_LIKE(
-      Dump_manifest(Dump_manifest::Mode::READ, get_options(),
+      Dump_manifest(Manifest_mode::READ, get_options(), nullptr,
                     bucket.get_rest_service()->end_point() + rw_par.access_uri),
       std::runtime_error, "Invalid manifest PAR: ");
 }
