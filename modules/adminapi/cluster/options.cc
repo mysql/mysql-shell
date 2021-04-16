@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -192,7 +192,7 @@ shcore::Array_t Options::get_instance_options(
 
   // Get the parallel-appliers set of options
   auto parallel_applier_options_values =
-      parallel_applier_options.get_current_settings();
+      parallel_applier_options.get_current_settings(instance.get_version());
 
   for (const auto &cfg : parallel_applier_options_values) {
     shcore::Dictionary_t option = shcore::make_dict();

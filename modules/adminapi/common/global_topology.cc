@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -355,7 +355,8 @@ void Global_topology::load_instance_state(Instance *instance,
   load_instance_slaves(instance, conn);
 
   // Set parallel-applier options into instance
-  instance->parallel_appliers = parallel_applier_options.get_current_settings();
+  instance->parallel_appliers =
+      parallel_applier_options.get_current_settings(instance->version);
 }
 
 void Global_topology::load_instance_slaves(Instance *instance,

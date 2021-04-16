@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -401,6 +401,22 @@ std::string get_replica_keyword(const mysqlshdk::utils::Version &version);
  */
 std::string get_replication_source_keyword(
     const mysqlshdk::utils::Version &version, bool command = false);
+
+/**
+ * Get the correct replication option name to use regarding the target instance
+ * version.
+ *
+ * Terminology changed throughout the versions in regards to the terms "master"
+ * and "slave", in favor of "source" and "replica"
+ *
+ * @param version Version of the target server.
+ * @param options Replication Option
+ *
+ * @return a string with the right value of the sysvars to be used as
+ * Replication option
+ */
+std::string get_replication_option_keyword(
+    const mysqlshdk::utils::Version &version, const std::string &option);
 
 }  // namespace mysql
 }  // namespace mysqlshdk

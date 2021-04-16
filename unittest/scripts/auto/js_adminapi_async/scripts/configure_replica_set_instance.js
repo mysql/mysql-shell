@@ -1,6 +1,6 @@
 //@<> Setup
 testutil.deployRawSandbox(__mysql_sandbox_port1, "root");
-testutil.deploySandbox(__mysql_sandbox_port2, "root", {log_slave_updates:0});
+testutil.deploySandbox(__mysql_sandbox_port2, "root", {log_slave_updates:0, master_info_repository:"FILE"});
 
 //@<> configure nothing (should fail)
 EXPECT_THROWS(function(){dba.configureReplicaSetInstance()},

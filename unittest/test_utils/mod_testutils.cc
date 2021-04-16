@@ -3391,15 +3391,20 @@ bool Testutils::deploy_sandbox_from_boilerplate(
                                     "auto_increment_offset",
                                     "log_bin",
                                     "log_slave_updates",
+                                    "log_replica_updates",
                                     "relay_log_info_repository",
                                     "master_info_repository",
+                                    "source_info_repository",
                                     "binlog_format",
                                     "enforce_gtid_consistency",
                                     "report_port",
                                     "binlog_transaction_dependency_tracking",
                                     "slave_preserve_commit_order",
+                                    "replica_preserve_commit_order",
                                     "slave_parallel_type",
+                                    "replica_parallel_type",
                                     "slave_parallel_workers",
+                                    "replica_parallel_workers",
                                     NULL};
 
     for (const char **opt = options; *opt; ++opt) {

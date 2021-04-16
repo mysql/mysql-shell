@@ -14,11 +14,20 @@ No incompatible tables detected
 Checking instance configuration...
 
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.25)}
 +---------------------+---------------+----------------+----------------------------+
 | Variable            | Current Value | Required Value | Note                       |
 +---------------------+---------------+----------------+----------------------------+
 | slave_parallel_type | DATABASE      | LOGICAL_CLOCK  | Update the server variable |
 +---------------------+---------------+----------------+----------------------------+
+?{}
+?{VER(>=8.0.25)}
++-----------------------+---------------+----------------+----------------------------+
+| Variable              | Current Value | Required Value | Note                       |
++-----------------------+---------------+----------------+----------------------------+
+| replica_parallel_type | DATABASE      | LOGICAL_CLOCK  | Update the server variable |
++-----------------------+---------------+----------------+----------------------------+
+?{}
 
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
@@ -35,11 +44,20 @@ No incompatible tables detected
 Checking instance configuration...
 
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.25)}
 +---------------------+---------------+----------------+------------------------------------------------+
 | Variable            | Current Value | Required Value | Note                                           |
 +---------------------+---------------+----------------+------------------------------------------------+
 | slave_parallel_type | DATABASE      | LOGICAL_CLOCK  | Update the server variable and the config file |
 +---------------------+---------------+----------------+------------------------------------------------+
+?{}
+?{VER(>=8.0.25)}
++-----------------------+---------------+----------------+------------------------------------------------+
+| Variable              | Current Value | Required Value | Note                                           |
++-----------------------+---------------+----------------+------------------------------------------------+
+| replica_parallel_type | DATABASE      | LOGICAL_CLOCK  | Update the server variable and the config file |
++-----------------------+---------------+----------------+------------------------------------------------+
+?{}
 
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
@@ -65,11 +83,20 @@ No incompatible tables detected
 Checking instance configuration...
 
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.25)}
 +-----------------------------+---------------+----------------+----------------------------+
 | Variable                    | Current Value | Required Value | Note                       |
 +-----------------------------+---------------+----------------+----------------------------+
 | slave_preserve_commit_order | OFF           | ON             | Update the server variable |
 +-----------------------------+---------------+----------------+----------------------------+
+?{}
+?{VER(>=8.0.25)}
++-------------------------------+---------------+----------------+----------------------------+
+| Variable                      | Current Value | Required Value | Note                       |
++-------------------------------+---------------+----------------+----------------------------+
+| replica_preserve_commit_order | OFF           | ON             | Update the server variable |
++-------------------------------+---------------+----------------+----------------------------+
+?{}
 
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
@@ -86,11 +113,20 @@ No incompatible tables detected
 Checking instance configuration...
 
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.25)}
 +-----------------------------+---------------+----------------+------------------------------------------------+
 | Variable                    | Current Value | Required Value | Note                                           |
 +-----------------------------+---------------+----------------+------------------------------------------------+
 | slave_preserve_commit_order | OFF           | ON             | Update the server variable and the config file |
 +-----------------------------+---------------+----------------+------------------------------------------------+
+?{}
+?{VER(>=8.0.25)}
++-------------------------------+---------------+----------------+------------------------------------------------+
+| Variable                      | Current Value | Required Value | Note                                           |
++-------------------------------+---------------+----------------+------------------------------------------------+
+| replica_preserve_commit_order | OFF           | ON             | Update the server variable and the config file |
++-------------------------------+---------------+----------------+------------------------------------------------+
+?{}
 
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
@@ -111,12 +147,22 @@ No incompatible tables detected
 Checking instance configuration...
 
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.25)}
 +-----------------------------+---------------+----------------+----------------------------+
 | Variable                    | Current Value | Required Value | Note                       |
 +-----------------------------+---------------+----------------+----------------------------+
 | slave_parallel_type         | DATABASE      | LOGICAL_CLOCK  | Update the server variable |
 | slave_preserve_commit_order | OFF           | ON             | Update the server variable |
 +-----------------------------+---------------+----------------+----------------------------+
+?{}
+?{VER(>=8.0.25)}
++-------------------------------+---------------+----------------+----------------------------+
+| Variable                      | Current Value | Required Value | Note                       |
++-------------------------------+---------------+----------------+----------------------------+
+| replica_parallel_type         | DATABASE      | LOGICAL_CLOCK  | Update the server variable |
+| replica_preserve_commit_order | OFF           | ON             | Update the server variable |
++-------------------------------+---------------+----------------+----------------------------+
+?{}
 
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 
@@ -133,12 +179,22 @@ No incompatible tables detected
 Checking instance configuration...
 
 NOTE: Some configuration options need to be fixed:
+?{VER(<8.0.25)}
 +-----------------------------+---------------+----------------+------------------------------------------------+
 | Variable                    | Current Value | Required Value | Note                                           |
 +-----------------------------+---------------+----------------+------------------------------------------------+
 | slave_parallel_type         | DATABASE      | LOGICAL_CLOCK  | Update the server variable and the config file |
 | slave_preserve_commit_order | OFF           | ON             | Update the server variable and the config file |
 +-----------------------------+---------------+----------------+------------------------------------------------+
+?{}
+?{VER(>=8.0.25)}
++-------------------------------+---------------+----------------+------------------------------------------------+
+| Variable                      | Current Value | Required Value | Note                                           |
++-------------------------------+---------------+----------------+------------------------------------------------+
+| replica_parallel_type         | DATABASE      | LOGICAL_CLOCK  | Update the server variable and the config file |
+| replica_preserve_commit_order | OFF           | ON             | Update the server variable and the config file |
++-------------------------------+---------------+----------------+------------------------------------------------+
+?{}
 
 NOTE: Please use the dba.configureInstance() command to repair these issues.
 

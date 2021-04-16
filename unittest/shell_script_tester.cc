@@ -1631,11 +1631,26 @@ void Shell_script_tester::set_defaults() {
          _target_server_version.get_base() + "'";
   exec_and_out_equals(code);
 
-  code = get_variable_prefix() + "__version_num = " +
-         std::to_string(_target_server_version.get_major() * 10000 +
+  int64_t version_num = _target_server_version.get_major() * 10000 +
                         _target_server_version.get_minor() * 100 +
-                        _target_server_version.get_patch());
+                        _target_server_version.get_patch();
+
+  code =
+      get_variable_prefix() + "__version_num = " + std::to_string(version_num);
   exec_and_out_equals(code);
+
+  // Set terminology related variables
+  if (version_num >= 80025) {
+    def_var("__replica_keyword", "'replica'");
+    def_var("__replica_keyword_capital", "'Replica'");
+    def_var("__source_keyword", "'source'");
+    def_var("__source_keyword_capital", "'Source'");
+  } else {
+    def_var("__replica_keyword", "'slave'");
+    def_var("__replica_keyword_capital", "'Slave'");
+    def_var("__source_keyword", "'master'");
+    def_var("__source_keyword_capital", "'Master'");
+  }
 
   def_var("__mysqluripwd", "''");
   def_var("__os_type", "'" + shcore::to_string(shcore::get_os_type()) + "'");

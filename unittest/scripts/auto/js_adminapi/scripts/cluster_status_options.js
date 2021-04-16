@@ -612,9 +612,9 @@ const transaction_status_templ = {
             "bufferTime": 0.0,
             "endTimestamp": "",
             "immediateCommitTimestamp": "",
-            "immediateCommitToEndTime": null,
+            "immediateCommitToEndTime": 0.0,
             "originalCommitTimestamp": "",
-            "originalCommitToEndTime": null,
+            "originalCommitToEndTime": 0.0,
             "startTimestamp": "",
             "transaction": ""
         },

@@ -67,8 +67,8 @@ mysql_server_uuid: <<<uuid2>>>
 |"primary": "127.0.0.1:<<<__mysql_sandbox_port2>>>",|
 
 //@# Merge schema from different sources (rs then cluster)
-|               Slave_IO_State: Waiting for master to send event|
-|      Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates|
+|               Slave_IO_State: Waiting for <<<__source_keyword>>> to send event|
+|      Slave_SQL_Running_State: <<<__replica_keyword_capital>>> has read all relay log; waiting for more updates|
 |cluster_type	primary_mode	cluster_id	cluster_name	router_options|
 |ar	pm	<<<cluster_id1>>>	myrs	NULL|
 |gr	pm	<<<cluster_id2>>>	mycluster	NULL|

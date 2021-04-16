@@ -865,8 +865,10 @@ shcore::Array_t instance_diagnostics(
   // introduced in 8.0.23 so only check if the version is equal or higher to
   // that.
   if (instance_version >= mysqlshdk::utils::Version(8, 0, 23)) {
-    auto current_values = parallel_applier_options.get_current_settings();
-    auto required_values = parallel_applier_options.get_required_values();
+    auto current_values =
+        parallel_applier_options.get_current_settings(instance_version);
+    auto required_values =
+        parallel_applier_options.get_required_values(instance_version);
 
     for (const auto &setting : required_values) {
       std::string current_value =
@@ -1090,9 +1092,10 @@ shcore::Dictionary_t Status::get_topology(
         if (*m_extended >= 1) {
           fence_sysvars = instance->get_fence_sysvars();
 
-          auto workers = parallel_applier_options.slave_parallel_workers;
+          auto workers = parallel_applier_options.replica_parallel_workers;
 
-          if (parallel_applier_options.slave_parallel_workers.get_safe() > 0) {
+          if (parallel_applier_options.replica_parallel_workers.get_safe() >
+              0) {
             (*member)["applierWorkerThreads"] = shcore::Value(*workers);
           }
         }

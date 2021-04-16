@@ -18,7 +18,7 @@ NOTE: Some configuration options need to be fixed:
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
 ?{}
-?{VER(>=8.0.23)}
+?{VER(>=8.0.23) and VER(<8.0.25)}
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                               | Current Value | Required Value | Note                                             |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
@@ -28,6 +28,18 @@ NOTE: Some configuration options need to be fixed:
 | server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
 | slave_parallel_type                    | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
 | slave_preserve_commit_order            | OFF           | ON             | Update the server variable                       |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=8.0.25)}
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| Variable                               | Current Value | Required Value | Note                                             |
++----------------------------------------+---------------+----------------+--------------------------------------------------+
+| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |
+| enforce_gtid_consistency               | OFF           | ON             | Update read-only variable and restart the server |
+| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |
+| replica_parallel_type                  | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
+| replica_preserve_commit_order          | OFF           | ON             | Update the server variable                       |
+| server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 ?{}
 
@@ -193,7 +205,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 |                "mode": "R/O", |
 |                "replication": {|
 |                    "applierStatus": "APPLIED_ALL", |
-|                    "applierThreadState": "Slave has read all relay log; waiting for more updates", |
+|                    "applierThreadState": "<<<__replica_keyword_capital>>> has read all relay log; waiting for more updates", |
 |                    "receiverStatus": "ERROR", |
 |                    "receiverThreadState": "", |
 |                    "replicationLag": null|
@@ -206,7 +218,7 @@ The current PRIMARY is 127.0.0.1:<<<__mysql_sandbox_port1>>>.
 |                "mode": "R/O", |
 |                "replication": {|
 |                    "applierStatus": "APPLIED_ALL", |
-|                    "applierThreadState": "Slave has read all relay log; waiting for more updates", |
+|                    "applierThreadState": "<<<__replica_keyword_capital>>> has read all relay log; waiting for more updates", |
 |                    "receiverStatus": "ERROR", |
 |                    "receiverThreadState": "", |
 |                    "replicationLag": null|
