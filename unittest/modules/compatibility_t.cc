@@ -1289,18 +1289,17 @@ TEST_F(Compatibility_test, filter_grant_malformed) {
                std::runtime_error);
 }
 
-TEST_F(Compatibility_test, create_user) {
+TEST_F(Compatibility_test, check_create_user_for_authentication_plugin) {
   const std::string exception =
-      "Authentication plugin check can be only performed on CREATE USER "
-      "statements";
+      "This check can be only performed on CREATE USER statements";
 
   // unsupported statements
   EXPECT_THROW_LIKE(check_create_user_for_authentication_plugin(""),
-                    std::runtime_error, exception);
+                    std::invalid_argument, exception);
   EXPECT_THROW_LIKE(check_create_user_for_authentication_plugin("CREATE"),
-                    std::runtime_error, exception);
+                    std::invalid_argument, exception);
   EXPECT_THROW_LIKE(check_create_user_for_authentication_plugin("create Table"),
-                    std::runtime_error, exception);
+                    std::invalid_argument, exception);
 
   // statements without authentication plugin
   EXPECT_EQ("",
@@ -1376,6 +1375,152 @@ TEST_F(Compatibility_test, create_user) {
   EXPECT_EQ("plugin_b",
             check_create_user_for_authentication_plugin(
                 "CREATE USER r@l IDENTIFIED WITH 'plugin_b'", {"plugin_a"}));
+}
+
+TEST_F(Compatibility_test, check_create_user_for_empty_password) {
+  const std::string exception =
+      "This check can be only performed on CREATE USER statements";
+
+  // unsupported statements
+  EXPECT_THROW_LIKE(check_create_user_for_empty_password(""),
+                    std::invalid_argument, exception);
+  EXPECT_THROW_LIKE(check_create_user_for_empty_password("CREATE"),
+                    std::invalid_argument, exception);
+  EXPECT_THROW_LIKE(check_create_user_for_empty_password("create Table"),
+                    std::invalid_argument, exception);
+
+  // statements without authentication plugin
+  EXPECT_EQ(true, check_create_user_for_empty_password("CREATE USER r@l"));
+  EXPECT_EQ(true, check_create_user_for_empty_password("CREATE USER r@l;"));
+  EXPECT_EQ(true, check_create_user_for_empty_password("CREATE USER 'r'@'l';"));
+  EXPECT_EQ(true, check_create_user_for_empty_password("CREATE USER 'r'@l;"));
+  EXPECT_EQ(true, check_create_user_for_empty_password("CREATE USER r@'l';"));
+
+  EXPECT_EQ(true, check_create_user_for_empty_password(
+                      "CREATE USER r@l REQUIRE NONE"));
+
+  EXPECT_EQ(true, check_create_user_for_empty_password(
+                      "CREATE USER if not exists 'r'@'l';"));
+  EXPECT_EQ(false, check_create_user_for_empty_password(
+                       "CREATE USER if not exists r@l IDENTIFIED BY 'pass';"));
+
+  EXPECT_EQ(true, check_create_user_for_empty_password(
+                      "CREATE USER r@l IDENTIFIED BY \"\";"));
+  EXPECT_EQ(false, check_create_user_for_empty_password(
+                       "CREATE USER r@l IDENTIFIED BY \"pass\";"));
+
+  EXPECT_EQ(true, check_create_user_for_empty_password(
+                      "CREATE USER r@l IDENTIFIED BY PASSWORD '';"));
+  EXPECT_EQ(false, check_create_user_for_empty_password(
+                       "CREATE USER r@l IDENTIFIED BY PASSWORD 'pass';"));
+
+  EXPECT_EQ(false, check_create_user_for_empty_password(
+                       "CREATE USER r@l IDENTIFIED BY RANDOM PASSWORD;"));
+
+  EXPECT_EQ(true, check_create_user_for_empty_password(
+                      "CREATE USER r@l IDENTIFIED WITH 'sha256_password'"));
+
+  EXPECT_EQ(true, check_create_user_for_empty_password(
+                      "CREATE USER r@l IDENTIFIED WITH sha256_password BY ''"));
+  EXPECT_EQ(false,
+            check_create_user_for_empty_password(
+                "CREATE USER r@l IDENTIFIED WITH 'sha256_password' BY 'pass'"));
+
+  EXPECT_EQ(false, check_create_user_for_empty_password(
+                       "CREATE USER r@l IDENTIFIED WITH 'sha256_password' BY "
+                       "RANDOM PASSWORD;"));
+
+  EXPECT_EQ(false,
+            check_create_user_for_empty_password(
+                "CREATE USER r@l IDENTIFIED WITH 'sha256_password' AS '';"));
+
+  EXPECT_EQ(
+      true,
+      check_create_user_for_empty_password(
+          "CREATE USER r@l IDENTIFIED WITH 'sha256_password' REQUIRE NONE"));
+}
+
+TEST_F(Compatibility_test, convert_create_user_to_create_role) {
+  EXPECT_EQ("CREATE ROLE IF NOT EXISTS r@l",
+            convert_create_user_to_create_role("CREATE USER r@l"));
+  EXPECT_EQ("CREATE ROLE IF NOT EXISTS 'r'@'l'",
+            convert_create_user_to_create_role("CREATE USER 'r'@'l'"));
+  EXPECT_EQ("CREATE ROLE IF NOT EXISTS 'r'@l",
+            convert_create_user_to_create_role("CREATE USER 'r'@l"));
+  EXPECT_EQ("CREATE ROLE IF NOT EXISTS r@'l'",
+            convert_create_user_to_create_role("CREATE USER r@'l'"));
+
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l REQUIRE NONE",
+      convert_create_user_to_create_role("CREATE USER r@l REQUIRE NONE"));
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l IDENTIFIED BY \"\"",
+      convert_create_user_to_create_role("CREATE USER r@l IDENTIFIED BY \"\""));
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l IDENTIFIED BY 'pass'",
+      convert_create_user_to_create_role(
+          "CREATE USER r@l IDENTIFIED BY 'pass'"));
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l PASSWORD EXPIRE DEFAULT",
+      convert_create_user_to_create_role(
+          "CREATE USER r@l PASSWORD EXPIRE DEFAULT"));
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l PASSWORD EXPIRE DEFAULT PASSWORD HISTORY DEFAULT",
+      convert_create_user_to_create_role(
+          "CREATE USER r@l PASSWORD EXPIRE DEFAULT PASSWORD HISTORY DEFAULT"));
+
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l DEFAULT ROLE role",
+      convert_create_user_to_create_role("CREATE USER r@l DEFAULT ROLE role"));
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l DEFAULT ROLE role;\n"
+      "ALTER USER r@l IDENTIFIED WITH 'sha256_password'",
+      convert_create_user_to_create_role(
+          "CREATE USER r@l IDENTIFIED WITH 'sha256_password' DEFAULT ROLE "
+          "role"));
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l DEFAULT ROLE role;\n"
+      "ALTER USER r@l EXPIRE DEFAULT",
+      convert_create_user_to_create_role(
+          "CREATE USER r@l DEFAULT ROLE role EXPIRE DEFAULT"));
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l DEFAULT ROLE role;\n"
+      "ALTER USER r@l IDENTIFIED WITH 'sha256_password' EXPIRE DEFAULT",
+      convert_create_user_to_create_role(
+          "CREATE USER r@l IDENTIFIED WITH 'sha256_password' DEFAULT ROLE role "
+          "EXPIRE DEFAULT "));
+
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l DEFAULT ROLE r@l, 'r'@'l'",
+      convert_create_user_to_create_role(
+          "CREATE USER r@l DEFAULT ROLE r@l, 'r'@'l'"));
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l DEFAULT ROLE 'r'@'l' ,'r'@l",
+      convert_create_user_to_create_role(
+          "CREATE USER r@l DEFAULT ROLE 'r'@'l' ,'r'@l "));
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l DEFAULT ROLE 'r'@l , r@'l';\n"
+      "ALTER USER r@l EXPIRE DEFAULT",
+      convert_create_user_to_create_role(
+          "CREATE USER r@l DEFAULT ROLE 'r'@l , r@'l' EXPIRE DEFAULT"));
+  EXPECT_EQ(
+      "CREATE ROLE IF NOT EXISTS r@l;\n"
+      "ALTER USER r@l DEFAULT ROLE r@'l',r@l;\n"
+      "ALTER USER r@l EXPIRE DEFAULT",
+      convert_create_user_to_create_role(
+          "CREATE USER r@l DEFAULT ROLE r@'l',r@l EXPIRE DEFAULT"));
 }
 
 TEST_F(Compatibility_test, add_invisible_pk) {

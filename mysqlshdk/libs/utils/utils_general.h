@@ -183,6 +183,10 @@ struct Account {
   bool operator<(const Account &a) const {
     return std::tie(user, host) < std::tie(a.user, a.host);
   }
+
+  bool operator==(const Account &a) const {
+    return user == a.user && host == a.host;
+  }
 };
 
 void SHCORE_PUBLIC split_account(const std::string &account,

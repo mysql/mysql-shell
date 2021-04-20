@@ -362,8 +362,9 @@ DESCRIPTION
       Database Service instance with High Availability. Mutually exclusive with
       the create_invisible_pks value.
 
-      skip_invalid_accounts - Skips accounts which use authentication methods
-      (plugins) not supported by the MySQL Database Service.
+      skip_invalid_accounts - Skips accounts which do not have a password or
+      use authentication methods (plugins) not supported by the MySQL Database
+      Service.
 
       strip_definers - Strips the "DEFINER=account" clause from views,
       routines, events and triggers. The MySQL Database Service requires
@@ -661,8 +662,9 @@ DESCRIPTION
       Database Service instance with High Availability. Mutually exclusive with
       the create_invisible_pks value.
 
-      skip_invalid_accounts - Skips accounts which use authentication methods
-      (plugins) not supported by the MySQL Database Service.
+      skip_invalid_accounts - Skips accounts which do not have a password or
+      use authentication methods (plugins) not supported by the MySQL Database
+      Service.
 
       strip_definers - Strips the "DEFINER=account" clause from views,
       routines, events and triggers. The MySQL Database Service requires
@@ -954,8 +956,9 @@ DESCRIPTION
       Database Service instance with High Availability. Mutually exclusive with
       the create_invisible_pks value.
 
-      skip_invalid_accounts - Skips accounts which use authentication methods
-      (plugins) not supported by the MySQL Database Service.
+      skip_invalid_accounts - Skips accounts which do not have a password or
+      use authentication methods (plugins) not supported by the MySQL Database
+      Service.
 
       strip_definers - Strips the "DEFINER=account" clause from views,
       routines, events and triggers. The MySQL Database Service requires
