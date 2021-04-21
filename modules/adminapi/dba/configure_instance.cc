@@ -571,13 +571,13 @@ void Configure_instance::validate_applier_worker_threads() {
   auto target_instance_version = m_target_instance->get_version();
   Parallel_applier_options parallel_applier_options(*m_target_instance);
 
-  if (!m_options.slave_parallel_workers.is_null()) {
+  if (!m_options.replica_parallel_workers.is_null()) {
     // Validate if the target instance supports applierWorkerThreads
 
     validate_applier_worker_threads_option(target_instance_version);
 
-    if (*parallel_applier_options.slave_parallel_workers !=
-        m_options.slave_parallel_workers.get_safe()) {
+    if (*parallel_applier_options.replica_parallel_workers !=
+        m_options.replica_parallel_workers.get_safe()) {
       m_set_applier_worker_threads = true;
     }
   } else {
@@ -586,7 +586,7 @@ void Configure_instance::validate_applier_worker_threads() {
     if (target_instance_version >= mysqlshdk::utils::Version(8, 0, 23)) {
       auto console = mysqlsh::current_console();
 
-      m_options.slave_parallel_workers = kSlaveParallelWorkersDefault;
+      m_options.replica_parallel_workers = kReplicaParallelWorkersDefault;
       m_set_applier_worker_threads = true;
 
       console->print_info();
@@ -819,7 +819,9 @@ shcore::Value Configure_instance::execute() {
 
     // Handle applierWorkerThreads
     if (m_set_applier_worker_threads) {
-      m_cfg->set(kSlaveParallelWorkers, m_options.slave_parallel_workers);
+      m_cfg->set(mysqlshdk::mysql::get_replication_option_keyword(
+                     m_target_instance->get_version(), kReplicaParallelWorkers),
+                 m_options.replica_parallel_workers);
     }
   }
 
@@ -827,7 +829,7 @@ shcore::Value Configure_instance::execute() {
     // Execute the configure instance operation
     console->print_info("Configuring instance...");
     m_needs_restart = mysqlsh::dba::configure_instance(
-        m_cfg.get(), m_invalid_cfgs, m_options.cluster_type);
+        m_cfg.get(), m_invalid_cfgs, m_target_instance->get_version());
     if (!m_options.output_mycnf_path.empty() &&
         m_options.output_mycnf_path != m_options.mycnf_path &&
         m_needs_configuration_update) {
@@ -862,15 +864,19 @@ shcore::Value Configure_instance::execute() {
 
         console->print_warning(
             "The changes on the value of " +
-            std::string(kSlaveParallelWorkers) +
+            mysqlshdk::mysql::get_replication_option_keyword(
+                m_target_instance->get_version(), kReplicaParallelWorkers) +
             " will only take place after the instance leaves and rejoins the " +
             cluster_type + ".");
 
         m_cfg->apply();
 
         console->print_info();
-        console->print_info("Successfully set the value of " +
-                            std::string(kSlaveParallelWorkers) + ".");
+        console->print_info(
+            "Successfully set the value of " +
+            mysqlshdk::mysql::get_replication_option_keyword(
+                m_target_instance->get_version(), kReplicaParallelWorkers) +
+            ".");
       } else {
         console->print_info();
         console->print_info("Successfully enabled parallel appliers.");

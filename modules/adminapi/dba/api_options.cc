@@ -144,9 +144,9 @@ Configure_cluster_instance_options::Configure_cluster_instance_options()
   local = false;
 }
 
-void Configure_cluster_instance_options::set_slave_parallel_workers(
+void Configure_cluster_instance_options::set_replica_parallel_workers(
     int64_t value) {
-  slave_parallel_workers = value;
+  replica_parallel_workers = value;
 }
 
 const shcore::Option_pack_def<Configure_cluster_instance_options>
@@ -154,9 +154,8 @@ const shcore::Option_pack_def<Configure_cluster_instance_options>
   static const auto opts =
       shcore::Option_pack_def<Configure_cluster_instance_options>()
           .include<Configure_cluster_local_instance_options>()
-          .optional(
-              kApplierWorkerThreads,
-              &Configure_cluster_instance_options::set_slave_parallel_workers);
+          .optional(kApplierWorkerThreads, &Configure_cluster_instance_options::
+                                               set_replica_parallel_workers);
 
   return opts;
 }
@@ -167,9 +166,9 @@ Configure_replicaset_instance_options::Configure_replicaset_instance_options()
   clear_read_only = true;
 }
 
-void Configure_replicaset_instance_options::set_slave_parallel_workers(
+void Configure_replicaset_instance_options::set_replica_parallel_workers(
     int64_t value) {
-  slave_parallel_workers = value;
+  replica_parallel_workers = value;
 }
 
 const shcore::Option_pack_def<Configure_replicaset_instance_options>
@@ -179,7 +178,7 @@ const shcore::Option_pack_def<Configure_replicaset_instance_options>
           .include<Configure_instance_options>()
           .optional(kApplierWorkerThreads,
                     &Configure_replicaset_instance_options::
-                        set_slave_parallel_workers);
+                        set_replica_parallel_workers);
 
   return opts;
 }

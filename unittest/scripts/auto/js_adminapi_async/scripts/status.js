@@ -97,10 +97,10 @@ session2.runSql("START SLAVE");
 
 // Disable parallel-appliers
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "binlog_transaction_dependency_tracking");
-testutil.removeFromSandboxConf(__mysql_sandbox_port2, "slave_parallel_type");
-testutil.removeFromSandboxConf(__mysql_sandbox_port2, "slave_preserve_commit_order");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "replica_parallel_type");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "replica_preserve_commit_order");
 testutil.removeFromSandboxConf(__mysql_sandbox_port2, "transaction_write_set_extraction");
-testutil.removeFromSandboxConf(__mysql_sandbox_port2, "slave_parallel_workers");
+testutil.removeFromSandboxConf(__mysql_sandbox_port2, "replica_parallel_workers");
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
 testutil.restartSandbox(__mysql_sandbox_port2);
 // Instance must be back online
@@ -147,9 +147,9 @@ session1.runSql("START SLAVE");
 // Ignore SQL and IO Thread state output, because they can still be in an
 // intermediary state (slower machines running tests), ensuring determinism:
 // - SQL Thread: "Reading event from the relay log" instead of
-//               "Slave has read all relay log; waiting for more updates";
+//               "<<<__replica_keyword_capital>>> has read all relay log; waiting for more updates";
 // - IO Thread: "Queueing master event to the relay log" instead of
-//              "Waiting for master to send event";
+//              "Waiting for <<<__source_keyword>>> to send event";
 rs.status();
 
 session1.runSql("STOP SLAVE");

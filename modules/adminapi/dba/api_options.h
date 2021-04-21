@@ -25,6 +25,7 @@
 #define MODULES_ADMINAPI_DBA_API_OPTIONS_H_
 
 #include <string>
+#include <vector>
 
 #include "modules/adminapi/common/api_options.h"
 #include "modules/adminapi/common/async_replication_options.h"
@@ -77,7 +78,7 @@ struct Configure_instance_options : public Password_interactive_options {
   std::string cluster_admin;
   mysqlshdk::null_string cluster_admin_password;
   mysqlshdk::null_bool restart;
-  mysqlshdk::utils::nullable<int64_t> slave_parallel_workers;
+  mysqlshdk::utils::nullable<int64_t> replica_parallel_workers;
   std::string mycnf_path;
   std::string output_mycnf_path;
   mysqlshdk::null_bool clear_read_only;
@@ -98,7 +99,7 @@ struct Configure_cluster_instance_options
   Configure_cluster_instance_options();
   static const shcore::Option_pack_def<Configure_cluster_instance_options>
       &options();
-  void set_slave_parallel_workers(int64_t value);
+  void set_replica_parallel_workers(int64_t value);
 };
 
 struct Configure_replicaset_instance_options
@@ -106,7 +107,7 @@ struct Configure_replicaset_instance_options
   Configure_replicaset_instance_options();
   static const shcore::Option_pack_def<Configure_replicaset_instance_options>
       &options();
-  void set_slave_parallel_workers(int64_t value);
+  void set_replica_parallel_workers(int64_t value);
 };
 
 struct Create_cluster_options : public Force_interactive_options {

@@ -77,7 +77,7 @@ function rebuild_rs(gtid_set_is_complete) {
 
 function rebuild_rs_delayed(delay, gtid_set_is_complete) {
     if (gtid_set_is_complete == undefined) gtid_set_is_complete = true;
-    
+
     println("BEGIN REBUILD_RS");
     shell.connect(__sandbox_uri1);
     var s2 = mysql.getSession(__sandbox_uri2);
@@ -131,18 +131,18 @@ function setup_slave(session, master_port, channel_name) {
 function wait_slave(session) {
     while (true) {
         r = session.runSql("SHOW SLAVE STATUS").fetchOne();
-        if (r.Slave_SQL_Running_State == "Slave has read all relay log; waiting for more updates")
+        if (r.Slave_SQL_Running_State == "<<<__replica_keyword_capital>>> has read all relay log; waiting for more updates")
             break;
     }
 }
 
 function inject_applier_error(master, slave) {
-    // Will cause an applier error on the slave when it's added, 
+    // Will cause an applier error on the slave when it's added,
     // because existing schema will be created
     slave.runSql("SET GLOBAL super_read_only=0");
     run_nolog(slave, "CREATE SCHEMA testdb");
     slave.runSql("SET GLOBAL super_read_only=1");
-    master.runSql("CREATE SCHEMA testdb");    
+    master.runSql("CREATE SCHEMA testdb");
 }
 
 function inject_errant_gtid(slave) {
@@ -172,9 +172,9 @@ function repl_snapshot(session) {
         var clusters = session.runSql("SELECT * FROM mysql_innodb_cluster_metadata.clusters").fetchAll();
         var instances = session.runSql("SELECT * FROM mysql_innodb_cluster_metadata.instances").fetchAll();
         var members = session.runSql("SELECT * FROM mysql_innodb_cluster_metadata.v2_ar_members").fetchAll();
-    
+
         return {"super_read_only":sro, "read_only":ro, "slave_master_info": slaves, "users":users, "clusters":clusters, "instances": instances, "members": members};
-    } else {    
+    } else {
         return {"super_read_only":sro, "read_only":ro, "slave_master_info": slaves, "users":users};
     }
 }

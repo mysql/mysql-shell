@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -167,7 +167,8 @@ void instance_diagnostics(shcore::Dictionary_t status,
   if (instance.version >= mysqlshdk::utils::Version(8, 0, 23)) {
     Parallel_applier_options parallel_applier_aux;
     auto current_values = instance.parallel_appliers;
-    auto required_values = parallel_applier_aux.get_required_values();
+    auto required_values =
+        parallel_applier_aux.get_required_values(instance.version);
 
     for (const auto &setting : required_values) {
       std::string current_value =

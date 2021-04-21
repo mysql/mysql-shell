@@ -45,7 +45,7 @@
 !ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
 !!ReplicaSet.addInstance: Instance check failed (MYSQLSH 51150
 
-//@# bad config (should fail) {VER(>=8.0.23)}
+//@# bad config (should fail) {VER(>=8.0.23) && VER(<8.0.25)}
 !This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>!
 !+----------------------------------------+---------------+----------------+--------------------------------------------------+!
 !| Variable                               | Current Value | Required Value | Note                                             |!
@@ -56,6 +56,22 @@
 !| server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |!
 !| slave_parallel_type                    | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |!
 !| slave_preserve_commit_order            | OFF           | ON             | Update the server variable                       |!
+!+----------------------------------------+---------------+----------------+--------------------------------------------------+!
+!Some variables need to be changed, but cannot be done dynamically on the server.!
+!ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
+!!ReplicaSet.addInstance: Instance check failed (MYSQLSH 51150
+
+//@# bad config (should fail) {VER(>=8.0.25)}
+!This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>!
+!+----------------------------------------+---------------+----------------+--------------------------------------------------+!
+!| Variable                               | Current Value | Required Value | Note                                             |!
+!+----------------------------------------+---------------+----------------+--------------------------------------------------+!
+!| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |!
+!| enforce_gtid_consistency               | OFF           | ON             | Update read-only variable and restart the server |!
+!| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |!
+!| replica_parallel_type                  | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |!
+!| replica_preserve_commit_order          | OFF           | ON             | Update the server variable                       |!
+!| server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |!
 !+----------------------------------------+---------------+----------------+--------------------------------------------------+!
 !Some variables need to be changed, but cannot be done dynamically on the server.!
 !ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
@@ -161,7 +177,7 @@
 |3	<<<cluster_id>>>	2	<<<hostname_ip>>>:<<<__mysql_sandbox_port2>>>	5ef81566-9395-11e9-87e9-222222222222	SECONDARY	1	5ef81566-9395-11e9-87e9-111111111111|
 |2|
 |*************************** 1. row ***************************|
-|               Slave_IO_State: Waiting for master to send event|
+|               Slave_IO_State: Waiting for <<<__source_keyword>>> to send event|
 |                  Master_Host: <<<hostname_ip>>>|
 |                  Master_User: mysql_innodb_rs_22|
 |                  Master_Port: <<<__mysql_sandbox_port1>>>|
@@ -205,7 +221,7 @@
 |             Master_Info_File: mysql.slave_master_info|
 |                    SQL_Delay: 0|
 |          SQL_Remaining_Delay: NULL|
-|      Slave_SQL_Running_State: Slave has read all relay log; waiting for more updates|
+|      Slave_SQL_Running_State: <<<__replica_keyword_capital>>> has read all relay log; waiting for more updates|
 |           Master_Retry_Count: 86400|
 |                  Master_Bind: |
 |      Last_IO_Error_Timestamp: |

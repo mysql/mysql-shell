@@ -95,15 +95,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -113,15 +113,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -187,15 +187,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -205,15 +205,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -279,15 +279,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -297,15 +297,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -397,15 +397,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -415,15 +415,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -484,15 +484,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -502,15 +502,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -571,15 +571,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -589,15 +589,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -923,15 +923,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -941,15 +941,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -1237,15 +1237,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -1255,15 +1255,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -1551,15 +1551,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -1569,15 +1569,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -1807,15 +1807,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -1825,15 +1825,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -2032,15 +2032,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -2050,15 +2050,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -2257,15 +2257,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -2275,15 +2275,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -2301,8 +2301,8 @@
 |This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port2>>>|
 |The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is valid to be used in an InnoDB cluster.|
 |The instance '<<<hostname>>>:<<<__mysql_sandbox_port2>>>' is already ready to be used in an InnoDB cluster.|
-|WARNING: The changes on the value of slave_parallel_workers will only take place after the instance leaves and rejoins the Cluster.|
-|Successfully set the value of slave_parallel_workers.|
+|WARNING: The changes on the value of <<<__replica_keyword>>>_parallel_workers will only take place after the instance leaves and rejoins the Cluster.|
+|Successfully set the value of <<<__replica_keyword>>>_parallel_workers.|
 
 //@<OUT> Check the output of options after changing applierWorkerThreads {VER(>=8.0.23)}
 {
@@ -2383,15 +2383,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
                 {
                     "value": "XXHASH64",
@@ -2450,15 +2450,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "10",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
                 {
                     "value": "XXHASH64",
@@ -2517,15 +2517,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
                 {
                     "value": "XXHASH64",
@@ -2620,15 +2620,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -2638,15 +2638,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {
@@ -2749,15 +2749,15 @@
                 },
                 {
                     "value": "DATABASE",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "0",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "OFF",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
 ?{VER(>=8.0.23)}
@@ -2767,15 +2767,15 @@
                 },
                 {
                     "value": "LOGICAL_CLOCK",
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
                     "value": "4",
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
                     "value": "ON",
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
 ?{}
                 {

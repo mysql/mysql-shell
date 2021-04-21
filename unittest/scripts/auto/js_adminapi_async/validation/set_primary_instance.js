@@ -89,7 +89,7 @@ view_id	cluster_id	instance_id	label	member_id	member_role	master_instance_id	ma
                     "applierStatus": "APPLIED_ALL",
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
-                    "receiverThreadState": "Waiting for master to send event",
+                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": [[*]]
                 },
                 "status": "ONLINE"
@@ -108,7 +108,7 @@ view_id	cluster_id	instance_id	label	member_id	member_role	master_instance_id	ma
                     "applierStatus": "APPLIED_ALL",
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
-                    "receiverThreadState": "Waiting for master to send event",
+                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": [[*]]
                 },
                 "status": "ONLINE"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -93,13 +93,13 @@ std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
  *                        required information to update each configuration
  *                        (e.g., variable name, value required, type of
  *                        configuration, etc.).
- * @param cluster_type Type of cluster the instance is meant for.
+ * @param version Version of the target instance
  * @return bool value indicating if a restart is required (true) or not (false).
  */
 bool configure_instance(
     mysqlshdk::config::Config *config,
     const std::vector<mysqlshdk::mysql::Invalid_config> &invalid_configs,
-    Cluster_type cluster_type);
+    const mysqlshdk::utils::Version &version);
 
 /**
  * Persist Group Replication configuration.

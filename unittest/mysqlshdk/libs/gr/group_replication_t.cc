@@ -940,15 +940,20 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
                                                          &res);
   if (!log_slave_updates_correct) {
     // if the log_slave_updates is not correct, the issues list must at least
-    // have the log_slave_updates invalid config  and it must be at the position
-    // 0, since the two variables that could appear before are the dynamic ones
-    // and those have been set to correct values.
+    // have the log_slave_updates invalid config
     ASSERT_GE(res.size(), 1);
-    EXPECT_STREQ(res.at(0).var_name.c_str(), "log_slave_updates");
-    EXPECT_EQ(res.at(0).current_val, *cur_log_slave_updates);
-    EXPECT_STREQ(res.at(0).required_val.c_str(), "ON");
-    EXPECT_EQ(res.at(0).types, Config_type::SERVER);
-    EXPECT_EQ(res.at(0).restart, true);
+
+    auto it =
+        std::find_if(res.begin(), res.end(), [](const Invalid_config &ic) {
+          return ic.var_name == "log_slave_updates";
+        });
+
+    ASSERT_TRUE(it != res.end());
+
+    EXPECT_EQ(it->current_val, *cur_log_slave_updates);
+    EXPECT_STREQ(it->required_val.c_str(), "ON");
+    EXPECT_EQ(it->types, Config_type::SERVER);
+    EXPECT_EQ(it->restart, true);
   }
   // Create an empty test option file and add the option file config handler.
   create_file(m_cfg_path, "");
@@ -993,8 +998,8 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
     EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
     EXPECT_EQ(res.at(i).restart, false);
   } else {
-    if (parallel_appliers_required) {
-      ASSERT_EQ(10, res.size());
+    if (!parallel_appliers_required) {
+      ASSERT_EQ(6, res.size());
     } else {
       ASSERT_EQ(7, res.size());
     }
@@ -1007,13 +1012,15 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
   EXPECT_EQ(res.at(i).restart, false);
 
-  i = find("log_slave_updates");
-  EXPECT_STREQ(res.at(i).var_name.c_str(), "log_slave_updates");
-  EXPECT_STREQ(res.at(i).current_val.c_str(),
-               mysqlshdk::mysql::k_value_not_set);
-  EXPECT_STREQ(res.at(i).required_val.c_str(), "ON");
-  EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
-  EXPECT_EQ(res.at(i).restart, false);
+  if (m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 3)) {
+    i = find("log_slave_updates");
+    EXPECT_STREQ(res.at(i).var_name.c_str(), "log_slave_updates");
+    EXPECT_STREQ(res.at(i).current_val.c_str(),
+                 mysqlshdk::mysql::k_value_not_set);
+    EXPECT_STREQ(res.at(i).required_val.c_str(), "ON");
+    EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(i).restart, false);
+  }
 
   i = find("enforce_gtid_consistency");
   EXPECT_STREQ(res.at(i).var_name.c_str(), "enforce_gtid_consistency");
@@ -1031,21 +1038,23 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
   EXPECT_EQ(res.at(i).restart, false);
 
-  i = find("master_info_repository");
-  EXPECT_STREQ(res.at(i).var_name.c_str(), "master_info_repository");
-  EXPECT_STREQ(res.at(i).current_val.c_str(),
-               mysqlshdk::mysql::k_value_not_set);
-  EXPECT_STREQ(res.at(i).required_val.c_str(), "TABLE");
-  EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
-  EXPECT_EQ(res.at(i).restart, false);
+  if (m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 23)) {
+    i = find("master_info_repository");
+    EXPECT_STREQ(res.at(i).var_name.c_str(), "master_info_repository");
+    EXPECT_STREQ(res.at(i).current_val.c_str(),
+                 mysqlshdk::mysql::k_value_not_set);
+    EXPECT_STREQ(res.at(i).required_val.c_str(), "TABLE");
+    EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(i).restart, false);
 
-  i = find("relay_log_info_repository");
-  EXPECT_STREQ(res.at(i).var_name.c_str(), "relay_log_info_repository");
-  EXPECT_STREQ(res.at(i).current_val.c_str(),
-               mysqlshdk::mysql::k_value_not_set);
-  EXPECT_STREQ(res.at(i).required_val.c_str(), "TABLE");
-  EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
-  EXPECT_EQ(res.at(i).restart, false);
+    i = find("relay_log_info_repository");
+    EXPECT_STREQ(res.at(i).var_name.c_str(), "relay_log_info_repository");
+    EXPECT_STREQ(res.at(i).current_val.c_str(),
+                 mysqlshdk::mysql::k_value_not_set);
+    EXPECT_STREQ(res.at(i).required_val.c_str(), "TABLE");
+    EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
+    EXPECT_EQ(res.at(i).restart, false);
+  }
 
   i = find("transaction_write_set_extraction");
   EXPECT_STREQ(res.at(i).var_name.c_str(), "transaction_write_set_extraction");
@@ -1065,16 +1074,24 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
     EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
     EXPECT_EQ(res.at(i).restart, false);
 
-    i = find("slave_parallel_type");
-    EXPECT_STREQ(res.at(i).var_name.c_str(), "slave_parallel_type");
+    i = find(mysqlshdk::mysql::get_replication_option_keyword(
+        m_instance->get_version(), "slave_parallel_type"));
+    EXPECT_STREQ(res.at(i).var_name.c_str(),
+                 mysqlshdk::mysql::get_replication_option_keyword(
+                     m_instance->get_version(), "slave_parallel_type")
+                     .c_str());
     EXPECT_STREQ(res.at(i).current_val.c_str(),
                  mysqlshdk::mysql::k_value_not_set);
     EXPECT_STREQ(res.at(i).required_val.c_str(), "LOGICAL_CLOCK");
     EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
     EXPECT_EQ(res.at(i).restart, false);
 
-    i = find("slave_preserve_commit_order");
-    EXPECT_STREQ(res.at(i).var_name.c_str(), "slave_preserve_commit_order");
+    i = find(mysqlshdk::mysql::get_replication_option_keyword(
+        m_instance->get_version(), "slave_preserve_commit_order"));
+    EXPECT_STREQ(res.at(i).var_name.c_str(),
+                 mysqlshdk::mysql::get_replication_option_keyword(
+                     m_instance->get_version(), "slave_preserve_commit_order")
+                     .c_str());
     EXPECT_STREQ(res.at(i).current_val.c_str(),
                  mysqlshdk::mysql::k_value_not_set);
     EXPECT_STREQ(res.at(i).required_val.c_str(), "ON");
@@ -1118,9 +1135,9 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
     EXPECT_EQ(res.at(i).restart, false);
   } else {
     if (parallel_appliers_required) {
-      ASSERT_EQ(11, res.size());
-    } else {
       ASSERT_EQ(8, res.size());
+    } else {
+      ASSERT_EQ(7, res.size());
     }
   }
 
@@ -1131,21 +1148,24 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
   EXPECT_TRUE(res.at(i).types.is_set(Config_type::CONFIG));
   EXPECT_TRUE(res.at(i).types.is_set(Config_type::SERVER));
   EXPECT_EQ(res.at(i).restart, false);
-  i = find("log_slave_updates");
-  if (log_slave_updates_correct) {
-    EXPECT_STREQ(res.at(i).var_name.c_str(), "log_slave_updates");
-    EXPECT_STREQ(res.at(i).current_val.c_str(),
-                 mysqlshdk::mysql::k_value_not_set);
-    EXPECT_STREQ(res.at(i).required_val.c_str(), "ON");
-    EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
-    EXPECT_EQ(res.at(i).restart, false);
-  } else {
-    EXPECT_STREQ(res.at(i).var_name.c_str(), "log_slave_updates");
-    EXPECT_EQ(res.at(i).current_val, *cur_log_slave_updates);
-    EXPECT_STREQ(res.at(i).required_val.c_str(), "ON");
-    EXPECT_TRUE(res.at(i).types.is_set(Config_type::CONFIG));
-    EXPECT_TRUE(res.at(i).types.is_set(Config_type::SERVER));
-    EXPECT_EQ(res.at(i).restart, true);
+
+  if (m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 3)) {
+    i = find("log_slave_updates");
+    if (log_slave_updates_correct) {
+      EXPECT_STREQ(res.at(i).var_name.c_str(), "log_slave_updates");
+      EXPECT_STREQ(res.at(i).current_val.c_str(),
+                   mysqlshdk::mysql::k_value_not_set);
+      EXPECT_STREQ(res.at(i).required_val.c_str(), "ON");
+      EXPECT_EQ(res.at(i).types, Config_type::CONFIG);
+      EXPECT_EQ(res.at(i).restart, false);
+    } else {
+      EXPECT_STREQ(res.at(i).var_name.c_str(), "log_slave_updates");
+      EXPECT_EQ(res.at(i).current_val, *cur_log_slave_updates);
+      EXPECT_STREQ(res.at(i).required_val.c_str(), "ON");
+      EXPECT_TRUE(res.at(i).types.is_set(Config_type::CONFIG));
+      EXPECT_TRUE(res.at(i).types.is_set(Config_type::SERVER));
+      EXPECT_EQ(res.at(i).restart, true);
+    }
   }
 
   i = find("report_port");
@@ -1164,20 +1184,24 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
                                   nullable<std::string>("NONE"),
                                   mysqlshdk::config::k_dft_cfg_file_handler);
   }
-  cfg_file_only.set_for_handler("log_slave_updates",
-                                nullable<std::string>("ON"),
-                                mysqlshdk::config::k_dft_cfg_file_handler);
+  if (m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 3)) {
+    cfg_file_only.set_for_handler("log_slave_updates",
+                                  nullable<std::string>("ON"),
+                                  mysqlshdk::config::k_dft_cfg_file_handler);
+  }
   cfg_file_only.set_for_handler("enforce_gtid_consistency",
                                 nullable<std::string>("ON"),
                                 mysqlshdk::config::k_dft_cfg_file_handler);
   cfg_file_only.set_for_handler("gtid_mode", nullable<std::string>("ON"),
                                 mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg_file_only.set_for_handler("master_info_repository",
-                                nullable<std::string>("TABLE"),
-                                mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg_file_only.set_for_handler("relay_log_info_repository",
-                                nullable<std::string>("TABLE"),
-                                mysqlshdk::config::k_dft_cfg_file_handler);
+  if (m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 23)) {
+    cfg_file_only.set_for_handler("master_info_repository",
+                                  nullable<std::string>("TABLE"),
+                                  mysqlshdk::config::k_dft_cfg_file_handler);
+    cfg_file_only.set_for_handler("relay_log_info_repository",
+                                  nullable<std::string>("TABLE"),
+                                  mysqlshdk::config::k_dft_cfg_file_handler);
+  }
   cfg_file_only.set_for_handler(
       "transaction_write_set_extraction",
       nullable<std::string>("MURMUR32"),  // different but valid
@@ -1191,13 +1215,16 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
                                   nullable<std::string>("WRITESET"),
                                   mysqlshdk::config::k_dft_cfg_file_handler);
 
-    cfg_file_only.set_for_handler("slave_parallel_type",
-                                  nullable<std::string>("LOGICAL_CLOCK"),
-                                  mysqlshdk::config::k_dft_cfg_file_handler);
+    cfg_file_only.set_for_handler(
+        mysqlshdk::mysql::get_replication_option_keyword(
+            m_instance->get_version(), "slave_parallel_type"),
+        nullable<std::string>("LOGICAL_CLOCK"),
+        mysqlshdk::config::k_dft_cfg_file_handler);
 
-    cfg_file_only.set_for_handler("slave_preserve_commit_order",
-                                  nullable<std::string>("ON"),
-                                  mysqlshdk::config::k_dft_cfg_file_handler);
+    cfg_file_only.set_for_handler(
+        mysqlshdk::mysql::get_replication_option_keyword(
+            m_instance->get_version(), "slave_preserve_commit_order"),
+        nullable<std::string>("ON"), mysqlshdk::config::k_dft_cfg_file_handler);
   }
 
   cfg_file_only.apply();
@@ -1208,17 +1235,23 @@ TEST_F(Group_replication_test, check_server_variables_compatibility) {
     cfg.set_for_handler("binlog_checksum", nullable<std::string>("NONE"),
                         mysqlshdk::config::k_dft_cfg_file_handler);
   }
-  cfg.set_for_handler("log_slave_updates", nullable<std::string>("ON"),
-                      mysqlshdk::config::k_dft_cfg_file_handler);
+  if (m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 3)) {
+    cfg.set_for_handler("log_slave_updates", nullable<std::string>("ON"),
+                        mysqlshdk::config::k_dft_cfg_file_handler);
+  }
   cfg.set_for_handler("enforce_gtid_consistency", nullable<std::string>("ON"),
                       mysqlshdk::config::k_dft_cfg_file_handler);
   cfg.set_for_handler("gtid_mode", nullable<std::string>("ON"),
                       mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set_for_handler("master_info_repository", nullable<std::string>("TABLE"),
-                      mysqlshdk::config::k_dft_cfg_file_handler);
-  cfg.set_for_handler("relay_log_info_repository",
-                      nullable<std::string>("TABLE"),
-                      mysqlshdk::config::k_dft_cfg_file_handler);
+
+  if (m_instance->get_version() < mysqlshdk::utils::Version(8, 0, 23)) {
+    cfg.set_for_handler("master_info_repository",
+                        nullable<std::string>("TABLE"),
+                        mysqlshdk::config::k_dft_cfg_file_handler);
+    cfg.set_for_handler("relay_log_info_repository",
+                        nullable<std::string>("TABLE"),
+                        mysqlshdk::config::k_dft_cfg_file_handler);
+  }
   cfg.set_for_handler("transaction_write_set_extraction",
                       nullable<std::string>("MURMUR32"),  // different but valid
                       mysqlshdk::config::k_dft_cfg_file_handler);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,6 +42,7 @@
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/trandom.h"
@@ -81,16 +82,45 @@ void check_variable_compliance(const std::vector<std::string> &values,
   // convert value to a string that we can lookup in the valid_values vector
   try {
     auto nullable_value = handler.get_string(change->var_name);
-    if (nullable_value.is_null())
+    if (nullable_value.is_null()) {
       value = k_no_value;
-    else
+    } else {
       value = shcore::str_upper(*nullable_value);
-  } catch (const std::out_of_range &err) {
-    // variable is not defined
-    value = k_value_not_set;
+    }
+  } catch (const std::out_of_range &) {
+    // To keep backward and forward compatibility when setting the value
+    // of a configuration that has a different name regarding the target
+    // instance version, MySQL sets both of the variables equally and
+    // simultaneously. This means that if a setting, using the most up-to-date
+    // nomenclature is not set in the config file, we must verify whether it is
+    // define using the old nomenclature.
+
+    // Check if the variable is defined with the old name
+    std::string var_old_name = mysqlshdk::mysql::get_replication_option_keyword(
+        mysqlshdk::utils::Version(0, 0, 0), change->var_name);
+
+    // If it's not different, we can skip this check
+    if (var_old_name != change->var_name) {
+      try {
+        auto value_var_old_name = handler.get_string(var_old_name);
+
+        if (!value_var_old_name.is_null()) {
+          value = shcore::str_upper(*value_var_old_name);
+        }
+      } catch (const std::out_of_range &) {
+        // variable is not defined
+        value = k_value_not_set;
+      }
+    } else {
+      // variable is not defined
+      value = k_value_not_set;
+    }
   }
-  if (set_cur_val && change->current_val == k_must_be_initialized)
+
+  if (set_cur_val && change->current_val == k_must_be_initialized) {
     change->current_val = value;
+  }
+
   // If the value is not on the list of allowed values or if it is on the list
   // of forbidden values, then the configuration is not valid.
   auto found_it = std::find(values.begin(), values.end(), value);
@@ -175,16 +205,44 @@ void check_server_variables_compatibility(
   std::vector<std::tuple<std::string, std::vector<std::string>, bool>>
       requirements{std::make_tuple("binlog_format",
                                    std::vector<std::string>{"ROW"}, false),
-                   std::make_tuple("log_slave_updates",
-                                   std::vector<std::string>{"ON", "1"}, true),
                    std::make_tuple("enforce_gtid_consistency",
                                    std::vector<std::string>{"ON", "1"}, true),
                    std::make_tuple("gtid_mode",
-                                   std::vector<std::string>{"ON", "1"}, true),
-                   std::make_tuple("master_info_repository",
-                                   std::vector<std::string>{"TABLE"}, true),
-                   std::make_tuple("relay_log_info_repository",
-                                   std::vector<std::string>{"TABLE"}, true)};
+                                   std::vector<std::string>{"ON", "1"}, true)};
+
+  // master_info_repository and relay_log_info_repository were deprecated in
+  // 8.0.23 and the setting TABLE is the default since then. So for versions
+  // >= 8.0.23 we can allow that the setting is not set.
+  if (instance_version >= utils::Version(8, 0, 23)) {
+    requirements.push_back(std::make_tuple(
+        "master_info_repository",
+        std::vector<std::string>{"TABLE", k_value_not_set}, true));
+    requirements.push_back(std::make_tuple(
+        "relay_log_info_repository",
+        std::vector<std::string>{"TABLE", k_value_not_set}, true));
+  } else {
+    requirements.push_back(std::make_tuple(
+        "master_info_repository", std::vector<std::string>{"TABLE"}, true));
+    requirements.push_back(std::make_tuple(
+        "relay_log_info_repository", std::vector<std::string>{"TABLE"}, true));
+  }
+
+  // log_slave_updates is ON by default since 8.0.3
+  if (instance_version >= utils::Version(8, 0, 3)) {
+    requirements.push_back(std::make_tuple(
+        mysqlshdk::mysql::get_replication_option_keyword(instance.get_version(),
+                                                         "log_slave_updates"),
+        std::vector<std::string>{"ON", "1", k_value_not_set}, true));
+
+    // Also include the old nomenclature of the sysvar so we check its value
+    // when set in the config file
+    requirements.push_back(std::make_tuple(
+        "log_slave_updates",
+        std::vector<std::string>{"ON", "1", k_value_not_set}, true));
+  } else {
+    requirements.push_back(std::make_tuple(
+        "log_slave_updates", std::vector<std::string>{"ON", "1"}, true));
+  }
 
   // Option checks specific to GR
   if (group_replication) {
@@ -206,7 +264,7 @@ void check_server_variables_compatibility(
     // we can skip kTransactionWriteSetExtraction as it is already part of the
     // GR required settings
     for (const auto &setting :
-         parallel_applier_options.get_required_values(true)) {
+         parallel_applier_options.get_required_values(instance_version, true)) {
       requirements.push_back(std::make_tuple(
           std::get<0>(setting), std::vector<std::string>{std::get<1>(setting)},
           false));
@@ -223,15 +281,21 @@ void check_server_variables_compatibility(
     // Check if MTS is enabled (slave_parallel_workers > 0) and if so, add
     // extra requirements.
     utils::nullable<int64_t> slave_p_workers = config.get_int(
-        "slave_parallel_workers", mysqlshdk::config::k_dft_cfg_server_handler);
+        mysqlshdk::mysql::get_replication_option_keyword(
+            instance_version, mysqlsh::dba::kReplicaParallelWorkers),
+        mysqlshdk::config::k_dft_cfg_server_handler);
     if (group_replication && !slave_p_workers.is_null() &&
         *slave_p_workers > 0 && instance_version < utils::Version(8, 0, 23)) {
       std::vector<std::string> slave_parallel_vec = {"LOGICAL_CLOCK"};
       std::vector<std::string> slave_commit_vec = {"ON", "1"};
-      requirements.emplace_back("slave_parallel_type", slave_parallel_vec,
-                                false);
-      requirements.emplace_back("slave_preserve_commit_order", slave_commit_vec,
-                                false);
+      requirements.emplace_back(
+          mysqlshdk::mysql::get_replication_option_keyword(
+              instance_version, mysqlsh::dba::kReplicaParallelType),
+          slave_parallel_vec, false);
+      requirements.emplace_back(
+          mysqlshdk::mysql::get_replication_option_keyword(
+              instance_version, mysqlsh::dba::kReplicaPreserveCommitOrder),
+          slave_commit_vec, false);
     }
   }
 

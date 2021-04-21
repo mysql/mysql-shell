@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,18 +38,18 @@ namespace dba {
 
 constexpr const char kBinlogTransactionDependencyTracking[] =
     "binlog_transaction_dependency_tracking";
-constexpr const char kSlavePreserveCommitOrder[] =
-    "slave_preserve_commit_order";
-constexpr const char kSlaveParallelWorkers[] = "slave_parallel_workers";
-constexpr const int64_t kSlaveParallelWorkersDefault = 4;
-constexpr const char kSlaveParallelType[] = "slave_parallel_type";
+constexpr const char kReplicaPreserveCommitOrder[] =
+    "replica_preserve_commit_order";
+constexpr const char kReplicaParallelWorkers[] = "replica_parallel_workers";
+constexpr const int64_t kReplicaParallelWorkersDefault = 4;
+constexpr const char kReplicaParallelType[] = "replica_parallel_type";
 constexpr const char kTransactionWriteSetExtraction[] =
     "transaction_write_set_extraction";
 
 const std::vector<std::string> k_parallel_applier_settings{
-    kSlaveParallelType, kSlavePreserveCommitOrder,
+    kReplicaParallelType, kReplicaPreserveCommitOrder,
     kBinlogTransactionDependencyTracking, kTransactionWriteSetExtraction,
-    kSlaveParallelWorkers};
+    kReplicaParallelWorkers};
 
 struct Parallel_applier_options {
   Parallel_applier_options() {}
@@ -76,6 +76,7 @@ struct Parallel_applier_options {
    * required value.
    */
   std::vector<std::tuple<std::string, std::string>> get_required_values(
+      const mysqlshdk::utils::Version &version,
       bool skip_transaction_writeset_extraction = false) const;
 
   /**
@@ -94,14 +95,14 @@ struct Parallel_applier_options {
    * place
    */
   std::map<std::string, mysqlshdk::utils::nullable<std::string>>
-  get_current_settings() const;
+  get_current_settings(const mysqlshdk::utils::Version &version) const;
 
   mysqlshdk::utils::nullable<std::string>
       binlog_transaction_dependency_tracking;
-  mysqlshdk::utils::nullable<std::string> slave_preserve_commit_order;
-  mysqlshdk::utils::nullable<std::string> slave_parallel_type;
+  mysqlshdk::utils::nullable<std::string> replica_preserve_commit_order;
+  mysqlshdk::utils::nullable<std::string> replica_parallel_type;
   mysqlshdk::utils::nullable<std::string> transaction_write_set_extraction;
-  mysqlshdk::utils::nullable<int64_t> slave_parallel_workers;
+  mysqlshdk::utils::nullable<int64_t> replica_parallel_workers;
 };
 
 }  // namespace dba

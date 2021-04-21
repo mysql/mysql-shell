@@ -8,7 +8,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 |Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB ReplicaSet...|
 |The instance '<<<__address2>>>' is valid to be used in an InnoDB ReplicaSet.|
 
-//@# Verify that configureInstance() detects and fixes the wrong settings {VER(>=8.0.23)}
+//@# Verify that configureInstance() detects and fixes the wrong settings {VER(>=8.0.23) && VER(<8.0.25)}
 @The instance '<<<__address2>>>' belongs to an InnoDB ReplicaSet.@
 @Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB ReplicaSet...@
 @applierWorkerThreads will be set to the default value of 4.@
@@ -18,6 +18,18 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 @+-----------------------------+---------------+----------------+----------------------------+@
 @| slave_preserve_commit_order | OFF           | ON             | Update the server variable |@
 @+-----------------------------+---------------+----------------+----------------------------+@
+@The instance '<<<__address2>>>' was configured to be used in an InnoDB ReplicaSet.@
+
+//@# Verify that configureInstance() detects and fixes the wrong settings {VER(>=8.0.25)}
+@The instance '<<<__address2>>>' belongs to an InnoDB ReplicaSet.@
+@Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB ReplicaSet...@
+@applierWorkerThreads will be set to the default value of 4.@
+@NOTE: Some configuration options need to be fixed:@
+@+-------------------------------+---------------+----------------+----------------------------+@
+@| Variable                      | Current Value | Required Value | Note                       |@
+@+-------------------------------+---------------+----------------+----------------------------+@
+@| replica_preserve_commit_order | OFF           | ON             | Update the server variable |@
+@+-------------------------------+---------------+----------------+----------------------------+@
 @The instance '<<<__address2>>>' was configured to be used in an InnoDB ReplicaSet.@
 
 //@# configure and check admin user {VER(>8.0.0)}

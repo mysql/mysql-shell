@@ -83,7 +83,7 @@
 |                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
 //@# do stuff in the old primary to simulate split-brain
 |                    "receiverStatus": "ON", |
-|                    "receiverThreadState": "Waiting for master to send event", |
+|                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event", |
 |                    "replicationLag": null|
 |                }, |
 |                "status": "ONLINE"|
@@ -127,7 +127,7 @@
 |                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",'>>>|
 |                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
 |                    "receiverStatus": "ON", |
-|                    "receiverThreadState": "Waiting for master to send event", |
+|                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event", |
 |                    "replicationLag": null|
 |                }, |
 |                "status": "ONLINE"|
@@ -251,7 +251,7 @@
                     "applierStatus": "APPLIED_ALL",
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
-                    "receiverThreadState": "Waiting for master to send event",
+                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null
                 },
                 "status": "INVALIDATED",
@@ -300,7 +300,7 @@
                     "applierStatus": "APPLIED_ALL",
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
-                    "receiverThreadState": "Waiting for master to send event",
+                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null
                 },
                 "status": "INVALIDATED",
@@ -358,7 +358,7 @@
                     "applierStatus": "APPLIED_ALL",
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
-                    "receiverThreadState": "Waiting for master to send event",
+                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null
                 },
                 "status": "ONLINE"
@@ -371,7 +371,7 @@
                     "applierStatus": "APPLIED_ALL",
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
-                    "receiverThreadState": "Waiting for master to send event",
+                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null
                 },
                 "status": "ONLINE"

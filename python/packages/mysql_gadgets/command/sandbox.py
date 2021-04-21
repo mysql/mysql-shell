@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -561,11 +561,8 @@ def create_sandbox(**kwargs):
         "report_port": port,
         "report_host": "127.0.0.1",
         "log_error": os.path.join(datadir, "error.log").replace("\\", "/"),
-        "relay_log_info_repository": "TABLE",
         "binlog_checksum": "NONE",
-        "master_info_repository": "TABLE",
         "gtid_mode": "ON",
-        "log_slave_updates": "ON",
         "transaction_write_set_extraction": "XXHASH64",
         "binlog_format": "ROW",
         "log_bin": None,
@@ -576,6 +573,17 @@ def create_sandbox(**kwargs):
         "user": "root",
         "protocol": "TCP",
     }}
+
+    # master_info_repository and relay_log_info_repository were deprecated in
+    # 8.0.23 and the setting TABLE is the default since then
+    if mysqld_ver < (8, 0, 23):
+        opt_dict["mysqld"]["master_info_repository"] = "TABLE"
+        opt_dict["mysqld"]["relay_log_info_repository"] = "TABLE"
+
+    # log_slave_updates is ON by default since 8.0.3
+    if mysqld_ver < (8, 0, 3):
+        opt_dict["mysqld"]["log_slave_updates"] = "ON"
+
     # Enable mysql_cache_cleaner plugin on server versions = 8.0.4.
     # This plugin is required for the hash based authentication to work
     # (caching_sha2_password) to allow the shell to connect using the X
@@ -594,9 +602,16 @@ def create_sandbox(**kwargs):
     # So when deploying sandboxes, we already enable those settings
     if mysqld_ver >= (8, 0, 23):
         opt_dict["mysqld"]["binlog_transaction_dependency_tracking"] = "WRITESET"
-        opt_dict["mysqld"]["slave_preserve_commit_order"] = "ON"
-        opt_dict["mysqld"]["slave_parallel_type"] = "LOGICAL_CLOCK"
-        opt_dict["mysqld"]["slave_parallel_workers"] = 4;
+
+        if mysqld_ver >= (8, 0, 25):
+            opt_dict["mysqld"]["replica_preserve_commit_order"] = "ON"
+            opt_dict["mysqld"]["replica_parallel_type"] = "LOGICAL_CLOCK"
+            opt_dict["mysqld"]["replica_parallel_workers"] = 4;
+        else:
+            opt_dict["mysqld"]["slave_preserve_commit_order"] = "ON"
+            opt_dict["mysqld"]["slave_parallel_type"] = "LOGICAL_CLOCK"
+            opt_dict["mysqld"]["slave_parallel_workers"] = 4;
+
 
     # MySQLx plugin is automatically loaded starting from versions 8.0.11.
     if mysqld_ver < (8, 0, 11):

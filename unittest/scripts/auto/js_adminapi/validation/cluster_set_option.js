@@ -189,7 +189,7 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{VER(<8.0.23)}
                     "value": "DATABASE",
 ?{}
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -198,7 +198,7 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{VER(<8.0.23)}
                     "value": "0",
 ?{}
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -207,7 +207,7 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{VER(<8.0.23)}
                     "value": "OFF",
 ?{}
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
                 {
                     "value": "XXHASH64",
@@ -281,7 +281,7 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{VER(<8.0.23)}
                     "value": "DATABASE",
 ?{}
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -290,7 +290,7 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{VER(<8.0.23)}
                     "value": "0",
 ?{}
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -299,7 +299,7 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{VER(<8.0.23)}
                     "value": "OFF",
 ?{}
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
                 {
                     "value": "XXHASH64",
@@ -373,7 +373,7 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{VER(<8.0.23)}
                     "value": "DATABASE",
 ?{}
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -382,7 +382,7 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{VER(<8.0.23)}
                     "value": "0",
 ?{}
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -391,7 +391,7 @@ Successfully set the value of 'disableClone' to 'false' in the Cluster: 'newName
 ?{VER(<8.0.23)}
                     "value": "OFF",
 ?{}
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
                 {
                     "value": "XXHASH64",
@@ -502,7 +502,7 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{VER(<8.0.23)}
                     "value": "DATABASE",
 ?{}
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -511,7 +511,7 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{VER(<8.0.23)}
                     "value": "0",
 ?{}
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -520,7 +520,7 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{VER(<8.0.23)}
                     "value": "OFF",
 ?{}
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
                 {
                     "value": "XXHASH64",
@@ -594,7 +594,7 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{VER(<8.0.23)}
                     "value": "DATABASE",
 ?{}
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -603,7 +603,7 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{VER(<8.0.23)}
                     "value": "0",
 ?{}
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -612,7 +612,7 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{VER(<8.0.23)}
                     "value": "OFF",
 ?{}
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
                 {
                     "value": "XXHASH64",
@@ -686,7 +686,7 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{VER(<8.0.23)}
                     "value": "DATABASE",
 ?{}
-                    "variable": "slave_parallel_type"
+                    "variable": "<<<__replica_keyword>>>_parallel_type"
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -695,7 +695,7 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{VER(<8.0.23)}
                     "value": "0",
 ?{}
-                    "variable": "slave_parallel_workers"
+                    "variable": "<<<__replica_keyword>>>_parallel_workers"
                 },
                 {
 ?{VER(>=8.0.23)}
@@ -704,7 +704,7 @@ Successfully set the value of 'disableClone' to 'true' in the Cluster: 'newName'
 ?{VER(<8.0.23)}
                     "value": "OFF",
 ?{}
-                    "variable": "slave_preserve_commit_order"
+                    "variable": "<<<__replica_keyword>>>_preserve_commit_order"
                 },
                 {
                     "value": "XXHASH64",

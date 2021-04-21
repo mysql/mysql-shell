@@ -358,7 +358,7 @@ std::vector<mysqlshdk::mysql::Invalid_config> check_instance_config(
 bool configure_instance(
     mysqlshdk::config::Config *config,
     const std::vector<mysqlshdk::mysql::Invalid_config> &invalid_configs,
-    Cluster_type /*cluster_type*/) {
+    const mysqlshdk::utils::Version &version) {
   // An non-null Config with an server configuration handler is expected.
   // NOTE: a option file handler might not be needed/available.
   assert(config);
@@ -373,7 +373,18 @@ bool configure_instance(
                                           "relay_log_info_repository",
                                           "transaction_write_set_extraction",
                                           "server_id"};
+
+  if (version >= mysqlshdk::utils::Version(8, 0, 25)) {
+    read_only_cfgs.push_back((mysqlshdk::mysql::get_replication_option_keyword(
+        version, "log_slave_updates")));
+  }
+
   std::vector<std::string> only_opt_file_cfgs{"log_bin"};
+
+  // List of deprecated variables that should not be changed in the server
+  // (might be changed in the config file)
+  std::vector<std::string> deprecated_cfgs{"master_info_repository",
+                                           "relay_log_info_repository"};
 
   // Workaround for server BUG#27629719, requiring some GR required variables
   // to be set in a certain order, namely: enforce_gtid_consistency before
@@ -394,16 +405,19 @@ bool configure_instance(
 
   // Lambda functions to set server variables using PERSIST_ONLY.
   auto set_persist_only = [&srv_cfg_handler](
-                              mysqlshdk::mysql::Invalid_config &ic,
-                              uint32_t d) {
+                              mysqlshdk::mysql::Invalid_config &ic, uint32_t d,
+                              const mysqlshdk::utils::Version &iversion) {
     if (ic.val_type == shcore::Value_type::Integer) {
-      srv_cfg_handler->set(ic.var_name,
+      srv_cfg_handler->set(mysqlshdk::mysql::get_replication_option_keyword(
+                               iversion, ic.var_name),
                            mysqlshdk::utils::nullable<int64_t>(
                                shcore::lexical_cast<int64_t>(ic.required_val)),
                            mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY, d);
     } else {
       srv_cfg_handler->set(
-          ic.var_name, mysqlshdk::utils::nullable<std::string>(ic.required_val),
+          mysqlshdk::mysql::get_replication_option_keyword(iversion,
+                                                           ic.var_name),
+          mysqlshdk::utils::nullable<std::string>(ic.required_val),
           mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY, d);
     }
   };
@@ -434,6 +448,10 @@ bool configure_instance(
                   invalid_cfg.var_name) != read_only_cfgs.end();
     bool persist_only_var = use_set_persist && read_only_var;
 
+    bool deprecated_var =
+        std::find(deprecated_cfgs.begin(), deprecated_cfgs.end(),
+                  invalid_cfg.var_name) != deprecated_cfgs.end();
+
     // Determine if the variable requires a delay for SET PERSIST.
     // Workaround related with server BUG#27629719: wait 1 ms after each
     // SET PERSIST to ensure a different timestamp is produced.
@@ -452,24 +470,28 @@ bool configure_instance(
           "Setting '%s' to '%s' on server (no change actually applied yet).",
           invalid_cfg.var_name.c_str(), invalid_cfg.required_val.c_str());
 
-      if (persist_only_var) {
+      // NOTE: Deprecated sysvars must not be set
+      if (persist_only_var && !deprecated_var) {
         // Use SET PERSIST_ONLY for read-only variables if supported.
         // NOTE: The only variable that requires a delay is a PERSIST_ONLY one.
-        set_persist_only(invalid_cfg, delay);
-      } else if (!read_only_var) {
+        set_persist_only(invalid_cfg, delay, version);
+      } else if (!read_only_var && !deprecated_var) {
         // Otherwise set variable using server supported configuration, but only
         // if it is not a read_only variable.
         // NOTE: Convert value to set to the proper type (i.e., int) if needed.
         if (invalid_cfg.val_type == shcore::Value_type::Integer) {
           config->set_for_handler(
-              invalid_cfg.var_name,
+              mysqlshdk::mysql::get_replication_option_keyword(
+                  version, invalid_cfg.var_name),
               mysqlshdk::utils::nullable<int64_t>(
                   shcore::lexical_cast<int64_t>(invalid_cfg.required_val)),
               mysqlshdk::config::k_dft_cfg_server_handler);
         } else {
-          config->set_for_handler(invalid_cfg.var_name,
-                                  invalid_cfg.required_val,
-                                  mysqlshdk::config::k_dft_cfg_server_handler);
+          config->set_for_handler(
+              mysqlshdk::mysql::get_replication_option_keyword(
+                  version, invalid_cfg.var_name),
+              invalid_cfg.required_val,
+              mysqlshdk::config::k_dft_cfg_server_handler);
         }
       }
     }
