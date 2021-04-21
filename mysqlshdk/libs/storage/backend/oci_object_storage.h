@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,6 +49,19 @@ using mysqlshdk::oci::Multipart_object;
 using mysqlshdk::oci::Multipart_object_part;
 using mysqlshdk::oci::Oci_options;
 using mysqlshdk::oci::Oci_rest_service;
+
+struct Par_structure {
+  std::string par_url;
+  std::string region;
+  std::string ns_name;
+  std::string bucket;
+  std::string object_url;
+  std::string object_prefix;
+  std::string object_name;
+};
+
+// Parses full object PAR, including REST end point.
+bool parse_full_object_par(const std::string &url, Par_structure *data);
 
 /**
  * Emulates a directory behavior in a Bucket.
@@ -142,8 +155,10 @@ class Object : public mysqlshdk::storage::IFile {
    * @param prefix: a prefix to be appended to the real object name, i.e.
    * containing "folder"
    */
-  explicit Object(const Oci_options &options, const std::string &name,
-                  const std::string &prefix = "");
+  Object(const Oci_options &options, const std::string &name,
+         const std::string &prefix = "");
+
+  explicit Object(const std::string &par);
 
   Object(Object &&other) = default;
 
@@ -194,7 +209,9 @@ class Object : public mysqlshdk::storage::IFile {
   /**
    * Returns the full path to the object.
    */
-  std::string full_path() const override { return m_prefix + m_name; }
+  std::string full_path() const override {
+    return m_par.empty() ? m_prefix + m_name : m_par;
+  }
 
   /**
    * Returns the file name of the object within the bucket that contains it.
@@ -273,6 +290,7 @@ class Object : public mysqlshdk::storage::IFile {
   std::unique_ptr<Bucket> m_bucket;
   mysqlshdk::utils::nullable<Mode> m_open_mode;
   size_t m_max_part_size;
+  std::string m_par;
 
   /**
    * Base class for the Read and Write Object handlers

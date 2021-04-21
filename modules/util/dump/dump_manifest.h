@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,26 +24,96 @@
 #ifndef MODULES_UTIL_DUMP_DUMP_MANIFEST_H_
 #define MODULES_UTIL_DUMP_DUMP_MANIFEST_H_
 
-#include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
+
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
 namespace mysqlsh {
 namespace dump {
-struct Par_structure {
-  std::string region;
-  std::string ns_name;
-  std::string bucket;
-  std::string object_url;
-  std::string object_prefix;
-  std::string object_name;
+
+using mysqlshdk::storage::backend::oci::Par_structure;
+using File_info = mysqlshdk::storage::IDirectory::File_info;
+
+enum class Manifest_mode { READ, WRITE };
+
+/**
+ * Base class for Dump manifest handling
+ */
+class Manifest_base {
+ public:
+  Manifest_base(Manifest_mode mode,
+                std::unique_ptr<mysqlshdk::storage::IFile> file_handle)
+      : m_mode(mode), m_file{std::move(file_handle)} {}
+  virtual bool has_object(const std::string &name) const;
+  bool is_complete() const { return m_complete; }
+  virtual File_info get_object(const std::string &name);
+  std::vector<File_info> list_objects();
+  virtual const std::string &get_base_name() const = 0;
+  Manifest_mode get_mode() const { return m_mode; }
+
+ protected:
+  Manifest_mode m_mode;
+  std::unique_ptr<mysqlshdk::storage::IFile> m_file;
+  mutable std::mutex m_mutex;
+  std::unordered_map<std::string, File_info> m_objects;
+  bool m_complete = false;
 };
 
-// Parses full object PAR, including REST end point.
-bool parse_full_object_par(const std::string &url, Par_structure *data);
+/**
+ * Handles the creation of the dump manifest
+ */
+class Manifest_writer final : public Manifest_base {
+ public:
+  Manifest_writer(const std::string &base_name,
+                  const std::string &par_expire_time,
+                  std::unique_ptr<mysqlshdk::storage::IFile> file_handle);
+  void cache_par(const mysqlshdk::oci::PAR &par);
+  void add_par(const mysqlshdk::oci::PAR &par) { m_pars_queue.push(par); }
+  std::string serialize() const;
+  void flush();
+  void finalize();
+  const std::string &get_base_name() const override { return m_base_name; }
+
+ private:
+  std::string m_base_name;
+  std::string m_par_expire_time;
+  std::vector<mysqlshdk::oci::PAR> m_par_cache;
+  std::unique_ptr<std::thread> m_par_thread;
+  std::string m_par_thread_error;
+  std::string m_start_time;
+  shcore::Synchronized_queue<mysqlshdk::oci::PAR> m_pars_queue;
+};
+
+/**
+ * Handles reading the Dump manifest
+ */
+class Manifest_reader final : public Manifest_base {
+ public:
+  Manifest_reader(const Par_structure &par_data,
+                  std::unique_ptr<mysqlshdk::storage::IFile> file_handle)
+      : Manifest_base(Manifest_mode::READ, std::move(file_handle)),
+        m_meta(par_data) {}
+
+  const std::string &get_base_name() const override {
+    return m_meta.object_prefix;
+  }
+
+  File_info get_object(const std::string &name) override;
+  void unserialize(const std::string &data);
+  const std::string &get_object_prefix() const { return m_meta.object_prefix; }
+  const std::string &url() const { return m_meta.par_url; }
+  const std::string &region() const { return m_meta.region; }
+  void reload();
+
+ private:
+  Par_structure m_meta;
+  size_t m_last_manifest_size = 0;
+};
 
 /**
  * This class handles a dump manifest and for such reason it handles two
@@ -69,8 +139,8 @@ bool parse_full_object_par(const std::string &url, Par_structure *data);
  */
 class Dump_manifest : public mysqlshdk::storage::backend::oci::Directory {
  public:
-  enum class Mode { READ, WRITE };
-  Dump_manifest(Mode mode, const mysqlshdk::oci::Oci_options &options,
+  Dump_manifest(Manifest_mode mode, const mysqlshdk::oci::Oci_options &options,
+                const std::shared_ptr<Manifest_base> &manifest = nullptr,
                 const std::string &name = "");
   ~Dump_manifest() override;
 
@@ -89,48 +159,29 @@ class Dump_manifest : public mysqlshdk::storage::backend::oci::Directory {
    */
   std::vector<File_info> list_files(bool hidden_files = false) const override;
 
-  Mode mode() const { return m_mode; }
-
   bool is_local() const override { return false; }
+
+  bool has_object(const std::string &name) const;
+
+  File_info get_object(const std::string &name, bool fetch_size = false) const;
 
  private:
   friend class Dump_manifest_object;
 
   // Members for WRITE mode
-  void add_par(const mysqlshdk::oci::PAR &par) { m_pars_queue.push(par); }
-  void flush_manifest();
   void finalize();
 
   // Members for READ mode
-  File_info get_object(const std::string &name, bool fetch_size = false) const;
-  bool has_object(const std::string &name, bool fetch_if_needed = false) const;
-  void reload_manifest() const;
-  File_info list_file(const std::string &object_name);
   bool file_exists(const std::string &name) const;
-  size_t file_size(const std::string &name) const;
 
   // Global Members
-  Mode m_mode;
-  mutable bool m_full_manifest = false;
-
-  // Attributes for WRITE mode
-  shcore::Synchronized_queue<mysqlshdk::oci::PAR> m_pars_queue;
-  std::vector<mysqlshdk::oci::PAR> m_par_cache;
-  std::unique_ptr<std::thread> m_par_thread;
-  std::string m_par_thread_error;
-  std::string m_start_time;
-
-  // Attributes for READ mode
-  std::string m_manifest_url;
-  std::string m_region;
-  mutable std::mutex m_manifest_mutex;
-  mutable std::map<std::string, File_info> m_manifest_objects;
-  mutable std::map<std::string, File_info> m_created_objects;
+  std::shared_ptr<Manifest_base> m_manifest;
+  mutable std::unordered_map<std::string, File_info> m_created_objects;
 };
 
 class Dump_manifest_object : public mysqlshdk::storage::backend::oci::Object {
  public:
-  Dump_manifest_object(Dump_manifest *manifest,
+  Dump_manifest_object(const std::shared_ptr<Manifest_base> &manifest,
                        const mysqlshdk::oci::Oci_options &options,
                        const std::string &name, const std::string &prefix = "");
 
@@ -173,11 +224,13 @@ class Dump_manifest_object : public mysqlshdk::storage::backend::oci::Object {
    */
   void close() override;
 
+  std::unique_ptr<mysqlshdk::storage::IDirectory> parent() const override;
+
  private:
   void create_par(const mysqlshdk::oci::Oci_options &options);
   std::string object_name() const;
 
-  Dump_manifest *m_manifest;
+  std::shared_ptr<Manifest_base> m_manifest;
   mysqlshdk::utils::nullable<size_t> m_size;
   std::unique_ptr<std::thread> m_par_thread;
   std::unique_ptr<mysqlshdk::oci::PAR> m_par;
