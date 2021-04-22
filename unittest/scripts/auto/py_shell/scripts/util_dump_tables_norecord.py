@@ -2,9 +2,11 @@
 import json
 import os
 import os.path
+import random
 import re
 import shutil
 import stat
+import string
 import urllib.parse
 
 # constants
@@ -2097,6 +2099,8 @@ WIPE_STDOUT()
 EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_NOT_CONTAINS(expected_msg)
 
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
 #@<> BUG#32430402 metadata should contain information about binlog
 EXPECT_SUCCESS(types_schema, [types_schema_tables[0]], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 
@@ -2105,9 +2109,59 @@ with open(os.path.join(test_output_absolute, "@.json"), encoding="utf-8") as jso
     EXPECT_EQ(True, "binlogFile" in metadata, "'binlogFile' should be in metadata")
     EXPECT_EQ(True, "binlogPosition" in metadata, "'binlogPosition' should be in metadata")
 
+#@<> BUG#32773468 setup
+def validate_size(path, ext):
+    size = 0
+    for f in os.listdir(path):
+        if f.endswith(ext):
+            size += os.path.getsize(os.path.join(path, f))
+    EXPECT_STDOUT_CONTAINS(f"Compressed data size: {size} bytes")
+
+def test_bug_32773468(data):
+    session.run_sql("TRUNCATE TABLE !.!;", [ tested_schema, tested_table ])
+    session.run_sql(f"""INSERT INTO !.! VALUES {",".join([f"({v}, '{random.choices(string.ascii_letters + string.digits)[0]}')" for v in data])};""", [ tested_schema, tested_table ])
+    session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+    EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showProgress": False })
+    validate_size(test_output_absolute, ".zst")
+
+tested_schema = "test_schema"
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+
+#@<> BUG#32773468 setup table with signed integers
+tested_table = "test_signed"
+session.run_sql("CREATE TABLE !.! (a BIGINT PRIMARY KEY, b VARCHAR(32));", [ tested_schema, tested_table ])
+
+#@<> BUG#32773468 table holds values close to signed minimum
+test_bug_32773468(range(-9223372036854775808, -9223372036854775802))
+
+#@<> BUG#32773468 table holds values close to signed minimum, data range overflows the max
+test_bug_32773468(list(range(-9223372036854775808, -9223372036854775802)) + [ 1 ])
+
+#@<> BUG#32773468 table holds values close to signed maximum
+test_bug_32773468(range(9223372036854775802, 9223372036854775808))
+
+#@<> BUG#32773468 table holds values close to signed maximum, data range overflows the max
+test_bug_32773468([ -1 ] + list(range(9223372036854775802, 9223372036854775808)))
+
+#@<> BUG#32773468 setup table with unsigned integers
+tested_table = "test_unsigned"
+session.run_sql("CREATE TABLE !.! (a BIGINT UNSIGNED PRIMARY KEY, b VARCHAR(32));", [ tested_schema, tested_table ])
+
+#@<> BUG#32773468 table holds values close to unsigned minimum
+test_bug_32773468(range(0, 6))
+
+#@<> BUG#32773468 data range is maximum possible
+test_bug_32773468(list(range(0, 6)) + [ 18446744073709551615 ])
+
+#@<> BUG#32773468 table holds values close to unsigned maximum
+test_bug_32773468(range(18446744073709551610, 18446744073709551616))
+
+#@<> BUG#32773468 cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")
 session.close()
-testutil.destroy_sandbox(__mysql_sandbox_port1);
+testutil.destroy_sandbox(__mysql_sandbox_port1)
 shutil.rmtree(incompatible_table_directory, True)

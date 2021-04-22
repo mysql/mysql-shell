@@ -229,7 +229,7 @@ class Dumper {
 
   Dump_writer *get_table_data_writer(const std::string &filename);
 
-  void finish_writing(Dump_writer *writer, uint64_t total_bytes);
+  std::size_t finish_writing(Dump_writer *writer, uint64_t total_bytes);
 
   std::string close_file(const Dump_writer &writer) const;
 
@@ -262,6 +262,8 @@ class Dumper {
   std::string get_table_data_ext() const;
 
   void initialize_progress();
+
+  void update_bytes_written(uint64_t new_bytes);
 
   void update_progress(uint64_t new_rows, const Dump_write_result &new_bytes);
 

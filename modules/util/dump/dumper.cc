@@ -432,9 +432,18 @@ class Dumper::Table_worker final {
               table.writer->output()->full_path().c_str(),
               timer.total_seconds_elapsed());
 
-    m_dumper->finish_writing(table.writer, bytes_written_per_file.data_bytes());
+    const auto file_size = m_dumper->finish_writing(
+        table.writer, bytes_written_per_file.data_bytes());
     m_dumper->update_progress(rows_written_per_update,
                               bytes_written_per_update);
+
+    // if file is compressed, the final file size may differ from the bytes
+    // written so far, as i.e. bytes were not flushed until the whole block was
+    // ready
+    if (file_size > bytes_written_per_file.bytes_written()) {
+      m_dumper->update_bytes_written(file_size -
+                                     bytes_written_per_file.bytes_written());
+    }
   }
 
   void push_table_data_task(Table_data_task &&task) {
@@ -655,7 +664,13 @@ class Dumper::Table_worker final {
                 };
 
       auto current = min;
-      auto step = static_cast<step_t>(estimated_step);
+      // if estimated_step is greater than maximum possible value, casting will
+      // overflow, use max instead
+      auto step = estimated_step < static_cast<decltype(estimated_step)>(
+                                       std::numeric_limits<step_t>::max())
+                      ? static_cast<step_t>(estimated_step)
+                      : std::numeric_limits<step_t>::max();
+      auto step_accuracy = step;
 
       while (current <= max) {
         if (m_dumper->m_worker_interrupt) {
@@ -669,12 +684,16 @@ class Dumper::Table_worker final {
         range.begin = std::to_string(current);
 
         step = std::max(next_step(current, step), static_cast<step_t>(2));
+        step_accuracy = step / 4;
 
         // ensure that there's no integer overflow
         current = (current > max - step + 1 ? max : current + step - 1);
 
         // if current is close to max, finish the chunking
-        if (max - current <= step / 4) {
+        // step is always > 0, if max is > 0 => max - step will not overflow
+        // current is <= max, if max is < 0 => max - current will not overflow
+        if (max > 0 ? max - step_accuracy <= current
+                    : max - current <= step_accuracy) {
           current = max;
         }
 
@@ -2025,7 +2044,9 @@ Dump_writer *Dumper::get_table_data_writer(const std::string &filename) {
   return m_worker_writers.back().get();
 }
 
-void Dumper::finish_writing(Dump_writer *writer, uint64_t total_bytes) {
+std::size_t Dumper::finish_writing(Dump_writer *writer, uint64_t total_bytes) {
+  std::size_t file_size = 0;
+
   // close the file if we're writing to multiple files, otherwise the single
   // file is going to be closed when all tasks are finished
   if (!m_options.use_single_file()) {
@@ -2036,6 +2057,8 @@ void Dumper::finish_writing(Dump_writer *writer, uint64_t total_bytes) {
       m_chunk_file_bytes[final_filename] = total_bytes;
     }
 
+    file_size = writer->output()->file_size();
+
     {
       std::lock_guard<std::mutex> lock(m_worker_writers_mutex);
 
@@ -2045,6 +2068,8 @@ void Dumper::finish_writing(Dump_writer *writer, uint64_t total_bytes) {
           m_worker_writers.end());
     }
   }
+
+  return file_size;
 }
 
 std::string Dumper::close_file(const Dump_writer &writer) const {
@@ -2545,10 +2570,14 @@ void Dumper::initialize_progress() {
   m_dump_info = std::make_unique<Dump_info>();
 }
 
+void Dumper::update_bytes_written(uint64_t new_bytes) {
+  m_bytes_written += new_bytes;
+}
+
 void Dumper::update_progress(uint64_t new_rows,
                              const Dump_write_result &new_bytes) {
   m_rows_written += new_rows;
-  m_bytes_written += new_bytes.bytes_written();
+  update_bytes_written(new_bytes.bytes_written());
   m_data_bytes += new_bytes.data_bytes();
 
   {
