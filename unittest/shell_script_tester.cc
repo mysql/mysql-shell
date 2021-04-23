@@ -1627,6 +1627,10 @@ void Shell_script_tester::set_defaults() {
          std::string(MYSH_VERSION) + "'";
   exec_and_out_equals(code);
 
+  code = get_variable_prefix() + "__mysh_version_no_extra = '" +
+         mysqlshdk::utils::Version(MYSH_VERSION).get_base() + "'";
+  exec_and_out_equals(code);
+
   code = get_variable_prefix() + "__version = '" +
          _target_server_version.get_base() + "'";
   exec_and_out_equals(code);
