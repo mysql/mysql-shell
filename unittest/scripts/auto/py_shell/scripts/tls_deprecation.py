@@ -1,5 +1,6 @@
 #@{VER(>= 8.0)}
 import itertools
+import os
 
 connuri = [f"{__mysql_uri}", f"{__uri}", f"mysql://{__mysql_uri}", f"mysqlx://{__uri}"]
 tlsver = ["TLSv1", "TLSv1.1", "TLSv1.2"]
@@ -109,6 +110,38 @@ EXPECT_STDOUT_CONTAINS('''"warning": "TLS versions TLSv1 and TLSv1.1 are now dep
 #@<> connection url from command line - X protocol
 testutil.call_mysqlsh([f"mysqlx://{__uripwd}?tls-version=TLSv1.1", "--json", "--", "shell", "--help"])
 EXPECT_STDOUT_CONTAINS('''"warning": "TLS versions TLSv1 and TLSv1.1 are now deprecated and will be removed in a future release of MySQL Shell. Use TLSv1.2 or TLSv1.3."''')
+
+#@<> Run script file with deprecated tls mysql connection uri
+script_file = os.path.join(f"{__tmp_dir}, connect_with_old_tls.py")
+with open(script_file, "w") as fh:
+    fh.write(f'''shell.connect("mysql://{__mysqluripwd}?tls-version=TLSv1.1")''')
+testutil.call_mysqlsh(["--file", script_file])
+EXPECT_STDOUT_CONTAINS("TLS versions TLSv1 and TLSv1.1 are now deprecated and will be removed in a future release of MySQL Shell. Use TLSv1.2 or TLSv1.3.")
+testutil.rmfile(script_file)
+
+#@<> Run script file with deprecated tls mysqlx connection uri
+script_file = os.path.join(f"{__tmp_dir}, connect_with_old_tls.py")
+with open(script_file, "w") as fh:
+    fh.write(f'''shell.connect("mysqlx://{__uripwd}?tls-version=TLSv1.1")''')
+testutil.call_mysqlsh(["--file", script_file])
+EXPECT_STDOUT_CONTAINS("TLS versions TLSv1 and TLSv1.1 are now deprecated and will be removed in a future release of MySQL Shell. Use TLSv1.2 or TLSv1.3.")
+testutil.rmfile(script_file)
+
+#@<> Run script file in interactive mode with deprecated tls mysql connection uri
+script_file = os.path.join(f"{__tmp_dir}, connect_with_old_tls.py")
+with open(script_file, "w") as fh:
+    fh.write(f"\connect mysql://{__mysqluripwd}?tls-version=TLSv1.1")
+testutil.call_mysqlsh(["-i", "--file", script_file])
+EXPECT_STDOUT_CONTAINS("TLS versions TLSv1 and TLSv1.1 are now deprecated and will be removed in a future release of MySQL Shell. Use TLSv1.2 or TLSv1.3.")
+testutil.rmfile(script_file)
+
+#@<> Run script file in interactive mode with deprecated tls mysqlx connection uri
+script_file = os.path.join(f"{__tmp_dir}, connect_with_old_tls.py")
+with open(script_file, "w") as fh:
+    fh.write(f"\connect mysqlx://{__uripwd}?tls-version=TLSv1.1")
+testutil.call_mysqlsh(["-i", "--file", script_file])
+EXPECT_STDOUT_CONTAINS("TLS versions TLSv1 and TLSv1.1 are now deprecated and will be removed in a future release of MySQL Shell. Use TLSv1.2 or TLSv1.3.")
+testutil.rmfile(script_file)
 
 #@<> util.check_for_server_upgrade
 target = f"{__mysql_uri}?tls-version=TLSv1.1"
