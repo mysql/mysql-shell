@@ -1254,7 +1254,7 @@ TEST_BOOL_OPTION("ocimds")
 #   * Same restrictions for partitions.
 # * CHARSETS - checks whether db objects use any other character set than supported utf8mb4.
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", incompatible_schema, incompatible_schema_tables + incompatible_schema_views, test_output_relative, { "ocimds": True })
-EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {0}".format(__mysh_version))
+EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {0}".format(__mysh_version_no_extra))
 
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first.")
@@ -1275,7 +1275,7 @@ EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine
 
 EXPECT_STDOUT_CONTAINS("ERROR: View {0}.{1} - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)".format(incompatible_schema, incompatible_view))
 
-EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version))
+EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version_no_extra))
 
 # WL14506-FR1 - When a dump is executed with the ocimds option set to true, for each table that would be dumped which does not contain a primary key, an error must be reported.
 # WL14506-TSFR_1_14
