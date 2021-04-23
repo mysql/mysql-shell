@@ -1508,7 +1508,7 @@ for table in missing_pks[test_schema]:
 
 recreate_verification_schema()
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "excludeSchemas": excluded_schemas, "excludeTables": excluded_tables })
-EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {0}".format(__mysh_version))
+EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL Database Service {0}".format(__mysh_version_no_extra))
 
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first.")
@@ -1534,7 +1534,7 @@ EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine
 
 EXPECT_STDOUT_CONTAINS("ERROR: View {0}.{1} - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)".format(incompatible_schema, incompatible_view))
 
-EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version))
+EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version_no_extra))
 
 for plugin in allowed_authentication_plugins:
     EXPECT_STDOUT_NOT_CONTAINS("ERROR: User {0} is using an unsupported authentication plugin '{1}' (fix this with 'skip_invalid_accounts' compatibility option)".format(test_user_name(plugin), plugin))
