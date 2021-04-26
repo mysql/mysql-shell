@@ -910,7 +910,7 @@
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
                 },
-?{VER(>=8.0.25)}
+?{VER(>=8.0.26)}
                 {
                     "value": "<<<__gr_view_change_uuid>>>",
                     "variable": "group_replication_view_change_uuid"
@@ -1224,7 +1224,7 @@
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
                 },
-?{VER(>=8.0.25)}
+?{VER(>=8.0.26)}
                 {
                     "value": "<<<__gr_view_change_uuid>>>",
                     "variable": "group_replication_view_change_uuid"
@@ -1538,7 +1538,7 @@
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
                 },
-?{VER(>=8.0.25)}
+?{VER(>=8.0.26)}
                 {
                     "value": "<<<__gr_view_change_uuid>>>",
                     "variable": "group_replication_view_change_uuid"
@@ -1794,7 +1794,7 @@
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
                 },
-?{VER(>=8.0.25)}
+?{VER(>=8.0.26)}
                 {
                     "value": "<<<__gr_view_change_uuid>>>",
                     "variable": "group_replication_view_change_uuid"
@@ -2019,7 +2019,7 @@
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
                 },
-?{VER(>=8.0.25)}
+?{VER(>=8.0.26)}
                 {
                     "value": "<<<__gr_view_change_uuid>>>",
                     "variable": "group_replication_view_change_uuid"
@@ -2244,7 +2244,7 @@
                     "value": "0",
                     "variable": "group_replication_unreachable_majority_timeout"
                 },
-?{VER(>=8.0.25)}
+?{VER(>=8.0.26)}
                 {
                     "value": "<<<__gr_view_change_uuid>>>",
                     "variable": "group_replication_view_change_uuid"

@@ -45,7 +45,7 @@
 !ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
 !!ReplicaSet.addInstance: Instance check failed (MYSQLSH 51150
 
-//@# bad config (should fail) {VER(>=8.0.23) && VER(<8.0.25)}
+//@# bad config (should fail) {VER(>=8.0.23) && VER(<8.0.26)}
 !This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>!
 !+----------------------------------------+---------------+----------------+--------------------------------------------------+!
 !| Variable                               | Current Value | Required Value | Note                                             |!
@@ -61,7 +61,7 @@
 !ERROR: <<<__endpoint_uri3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.!
 !!ReplicaSet.addInstance: Instance check failed (MYSQLSH 51150
 
-//@# bad config (should fail) {VER(>=8.0.25)}
+//@# bad config (should fail) {VER(>=8.0.26)}
 !This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>!
 !+----------------------------------------+---------------+----------------+--------------------------------------------------+!
 !| Variable                               | Current Value | Required Value | Note                                             |!

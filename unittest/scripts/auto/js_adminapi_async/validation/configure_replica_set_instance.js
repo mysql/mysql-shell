@@ -8,7 +8,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 |Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB ReplicaSet...|
 |The instance '<<<__address2>>>' is valid to be used in an InnoDB ReplicaSet.|
 
-//@# Verify that configureInstance() detects and fixes the wrong settings {VER(>=8.0.23) && VER(<8.0.25)}
+//@# Verify that configureInstance() detects and fixes the wrong settings {VER(>=8.0.23) && VER(<8.0.26)}
 @The instance '<<<__address2>>>' belongs to an InnoDB ReplicaSet.@
 @Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB ReplicaSet...@
 @applierWorkerThreads will be set to the default value of 4.@
@@ -20,7 +20,7 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 @+-----------------------------+---------------+----------------+----------------------------+@
 @The instance '<<<__address2>>>' was configured to be used in an InnoDB ReplicaSet.@
 
-//@# Verify that configureInstance() detects and fixes the wrong settings {VER(>=8.0.25)}
+//@# Verify that configureInstance() detects and fixes the wrong settings {VER(>=8.0.26)}
 @The instance '<<<__address2>>>' belongs to an InnoDB ReplicaSet.@
 @Configuring local MySQL instance listening at port <<<__mysql_sandbox_port2>>> for use in an InnoDB ReplicaSet...@
 @applierWorkerThreads will be set to the default value of 4.@

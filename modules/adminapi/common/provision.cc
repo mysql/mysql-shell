@@ -374,7 +374,7 @@ bool configure_instance(
                                           "transaction_write_set_extraction",
                                           "server_id"};
 
-  if (version >= mysqlshdk::utils::Version(8, 0, 25)) {
+  if (version >= mysqlshdk::utils::Version(8, 0, 26)) {
     read_only_cfgs.push_back((mysqlshdk::mysql::get_replication_option_keyword(
         version, "log_slave_updates")));
   }

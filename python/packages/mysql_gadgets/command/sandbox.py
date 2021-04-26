@@ -603,7 +603,7 @@ def create_sandbox(**kwargs):
     if mysqld_ver >= (8, 0, 23):
         opt_dict["mysqld"]["binlog_transaction_dependency_tracking"] = "WRITESET"
 
-        if mysqld_ver >= (8, 0, 25):
+        if mysqld_ver >= (8, 0, 26):
             opt_dict["mysqld"]["replica_preserve_commit_order"] = "ON"
             opt_dict["mysqld"]["replica_parallel_type"] = "LOGICAL_CLOCK"
             opt_dict["mysqld"]["replica_parallel_workers"] = 4;

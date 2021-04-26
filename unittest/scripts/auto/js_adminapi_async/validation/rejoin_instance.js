@@ -55,7 +55,7 @@ ERROR: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>: Instance must be configure
 //@ Rejoin instance with wrong settings (fail) {VER(<8.0.23)}
 ||Instance check failed (MYSQLSH 51150)
 
-//@<OUT> Rejoin instance with wrong parallel-applier settings (fail) {VER(>=8.0.23) && VER(<8.0.25)}
+//@<OUT> Rejoin instance with wrong parallel-applier settings (fail) {VER(>=8.0.23) && VER(<8.0.26)}
 * Validating instance...
 
 This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>
@@ -69,7 +69,7 @@ NOTE: Some configuration options need to be fixed:
 
 ERROR: <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.
 
-//@<OUT> Rejoin instance with wrong parallel-applier settings (fail) {VER(>=8.0.25)}
+//@<OUT> Rejoin instance with wrong parallel-applier settings (fail) {VER(>=8.0.26)}
 * Validating instance...
 
 This instance reports its own address as <<<hostname_ip>>>:<<<__mysql_sandbox_port3>>>

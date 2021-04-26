@@ -890,7 +890,7 @@ std::string get_replication_option_keyword(
     const mysqlshdk::utils::Version &version, const std::string &option) {
   std::string ret = option;
 
-  if (version >= mysqlshdk::utils::Version(8, 0, 25)) {
+  if (version >= mysqlshdk::utils::Version(8, 0, 26)) {
     ret = shcore::str_replace(ret, "slave", "replica");
     ret = shcore::str_replace(ret, "master", "source");
   } else {

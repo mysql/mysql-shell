@@ -86,7 +86,7 @@ Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
-?{VER(>=8.0.23) && VER(<8.0.25)}
+?{VER(>=8.0.23) && VER(<8.0.26)}
 +----------------------------------------+---------------+----------------+------------------------------------------------+
 | Variable                               | Current Value | Required Value | Note                                           |
 +----------------------------------------+---------------+----------------+------------------------------------------------+
@@ -108,7 +108,7 @@ Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
-?{VER(>=8.0.25)}
+?{VER(>=8.0.26)}
 +----------------------------------------+---------------+----------------+------------------------------------------------+
 | Variable                               | Current Value | Required Value | Note                                           |
 +----------------------------------------+---------------+----------------+------------------------------------------------+

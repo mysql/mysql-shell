@@ -80,7 +80,7 @@ Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
-?{VER(>=8.0.23) && VER(<8.0.25)}
+?{VER(>=8.0.23) && VER(<8.0.26)}
 +----------------------------------------+---------------+----------------+------------------------------------------------+
 | Variable                               | Current Value | Required Value | Note                                           |
 +----------------------------------------+---------------+----------------+------------------------------------------------+
@@ -101,7 +101,7 @@ Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
-?{VER(>=8.0.25)}
+?{VER(>=8.0.26)}
 +----------------------------------------+---------------+----------------+------------------------------------------------+
 | Variable                               | Current Value | Required Value | Note                                           |
 +----------------------------------------+---------------+----------------+------------------------------------------------+
@@ -361,7 +361,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be u
 Restarting MySQL...
 NOTE: MySQL server at <<<hostname>>>:<<<__mysql_sandbox_port1>>> was restarted.
 
-//@<OUT> Run configure and restart instance BUG#29725222 {VER(>= 8.0.23) && VER(<8.0.25)}
+//@<OUT> Run configure and restart instance BUG#29725222 {VER(>= 8.0.23) && VER(<8.0.26)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
@@ -386,7 +386,7 @@ The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be u
 Restarting MySQL...
 NOTE: MySQL server at <<<hostname>>>:<<<__mysql_sandbox_port1>>> was restarted.
 
-//@<OUT> Run configure and restart instance BUG#29725222 {VER(>= 8.0.25)}
+//@<OUT> Run configure and restart instance BUG#29725222 {VER(>=8.0.26)}
 Configuring local MySQL instance listening at port <<<__mysql_sandbox_port1>>> for use in an InnoDB cluster...
 
 This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1>>>
