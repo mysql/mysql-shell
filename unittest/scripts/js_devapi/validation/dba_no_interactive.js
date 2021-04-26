@@ -79,7 +79,7 @@ NOTE: Some configuration options need to be fixed:
 | transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------+---------------+----------------+------------------------+
 
-//@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.23) && VER(<8.0.25)}
+//@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.23) && VER(<8.0.26)}
 +----------------------------------------+---------------+----------------+------------------------+
 | Variable                               | Current Value | Required Value | Note                   |
 +----------------------------------------+---------------+----------------+------------------------+
@@ -94,7 +94,7 @@ NOTE: Some configuration options need to be fixed:
 | transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------------+---------------+----------------+------------------------+
 
-//@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.25)}
+//@<OUT> Dba: checkInstanceConfiguration report with errors {VER(>=8.0.26)}
 +----------------------------------------+---------------+----------------+------------------------+
 | Variable                               | Current Value | Required Value | Note                   |
 +----------------------------------------+---------------+----------------+------------------------+
@@ -183,7 +183,7 @@ NOTE: Some configuration options need to be fixed:
 | transaction_write_set_extraction | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------+---------------+----------------+------------------------+
 
-//@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.23) && VER(<8.0.25)}
+//@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.23) && VER(<8.0.26)}
 +----------------------------------------+---------------+----------------+------------------------+
 | Variable                               | Current Value | Required Value | Note                   |
 +----------------------------------------+---------------+----------------+------------------------+
@@ -198,7 +198,7 @@ NOTE: Some configuration options need to be fixed:
 | transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file |
 +----------------------------------------+---------------+----------------+------------------------+
 
-//@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.25)}
+//@<OUT> Dba: configureLocalInstance updating config file {VER(>=8.0.26)}
 +----------------------------------------+---------------+----------------+------------------------+
 | Variable                               | Current Value | Required Value | Note                   |
 +----------------------------------------+---------------+----------------+------------------------+
