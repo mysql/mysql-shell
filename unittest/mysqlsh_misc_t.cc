@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/version.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/command_line_test.h"
 
@@ -55,10 +56,22 @@ TEST_F(Mysqlsh_misc, trace_proto) {
   // TODO(kg): optional fields are no longer send by X protocol. expected
   // string split for test backward compatibility. Merge when testing with
   // MySQL Server 8.0.3 will be dropped completely.
-  static const char *expected3 = R"*(length: 1
+  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 25)) {
+    static const char *expected3 = R"*(length: 1
   flags: 16
 })*";
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected3);
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(expected3);
+  } else {
+    // Introduced by MySQL Server commit 0077f1a68fdc82a702932
+    // Bug#31348202: Wrong result is returned with UNION syntax
+    //
+    // Change in integer and decimal precision calculation caused length change
+    // in column metadata information.
+    static const char *expected3 = R"*(length: 2
+  flags: 16
+})*";
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(expected3);
+  }
 }
 
 TEST_F(Mysqlsh_misc, load_builtin_modules) {
