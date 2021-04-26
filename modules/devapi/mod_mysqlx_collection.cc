@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -997,6 +997,22 @@ shcore::Value Collection::drop_index_(const shcore::Argument_list &args) {
   return shcore::Value();
 }
 
+namespace {
+void check_if_ids_match(const std::string &id,
+                        const shcore::Dictionary_t &document) {
+  const auto it = document->find("_id");
+  if (it == document->end()) return;
+
+  try {
+    if (it->second.get_string() == id) return;
+  } catch (...) {
+  }
+  throw shcore::Exception::argument_error(
+      "Replacement document has an _id that is different than the matched "
+      "document");
+}
+}  // namespace
+
 REGISTER_HELP_FUNCTION(replaceOne, Collection);
 REGISTER_HELP(COLLECTION_REPLACEONE_BRIEF,
               "Replaces an existing document with a new document.");
@@ -1056,6 +1072,7 @@ shcore::Value Collection::replace_one_(const Argument_list &args) {
   try {
     auto id = args.string_at(0);
     auto document = args.map_at(1);
+    check_if_ids_match(id, document);
 
     CollectionModify modify_op(shared_from_this());
     modify_op.set_filter("_id = :id").bind("id", args[0]);
@@ -1130,6 +1147,7 @@ shcore::Value Collection::add_or_replace_one(
   try {
     auto id = args.string_at(0);
     auto document = args.map_at(1);
+    check_if_ids_match(id, document);
 
     // The document gets updated with given id
     (*document)["_id"] = shcore::Value(id);

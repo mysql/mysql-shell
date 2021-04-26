@@ -87,12 +87,9 @@ col.addOrReplaceOne('document_001', {name:'complex', state:'updated'});
 //@<OUT> addOrReplaceOne: Verify replaced document {VER(>=8.0.3)}
 col.find();
 
-// WL10849-FR8.1
-//@ addOrReplaceOne: replacing an existing document, ignoring new _id {VER(>=8.0.3)}
+// Bug#32753547
+//@ addOrreplaceOne: replacing an existing document, wrong _id {VER(>=8.0.3)}
 col.addOrReplaceOne('document_001', {_id:'ignored_id', name:'medium'});
-
-//@<OUT> addOrReplaceOne: Verify replaced document with ignored _id {VER(>=8.0.3)}
-col.find();
 
 // WL10849-FR6.2.1
 //@ addOrReplaceOne: adding with key {VER(>=8.0.3)}
@@ -192,12 +189,9 @@ col.find();
 //@ replaceOne: replacing unexisting document {VER(>=8.0.3)}
 col.replaceOne('document_003', {name:'complex', state:'updated'});
 
-// WL10849-FR5.1
-//@ replaceOne: replacing an existing document, ignoring new _id {VER(>=8.0.3)}
+// Bug#32753547
+//@ replaceOne: replacing an existing document, wrong _id {VER(>=8.0.3)}
 col.replaceOne('document_001', {_id:'ignored_id', name:'medium'});
-
-//@<OUT> replaceOne: Verify replaced document with ignored _id {VER(>=8.0.3)}
-col.find();
 
 //@ replaceOne: error replacing with key {VER(>=8.0.3)}
 col.createIndex('_name', {fields: [{field: '$.name', type: 'TEXT(50)'}], unique:true});
