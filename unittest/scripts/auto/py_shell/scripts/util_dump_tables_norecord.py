@@ -1,3 +1,7 @@
+#@<> INCLUDE dump_utils.inc
+
+#@<> entry point
+
 # imports
 import json
 import os
@@ -2157,6 +2161,78 @@ test_bug_32773468(list(range(0, 6)) + [ 18446744073709551615 ])
 test_bug_32773468(range(18446744073709551610, 18446744073709551616))
 
 #@<> BUG#32773468 cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
+#@<> BUG#32602325 setup
+tested_schema = "test_schema"
+tested_table = "test_table"
+
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (a BIGINT PRIMARY KEY, b text);", [ tested_schema, tested_table ])
+
+gap_start = 1
+gap_items = 10000
+gap_step = 1000
+
+def test_bug_32602325(step):
+    def insert(r):
+        session.run_sql(f"""INSERT INTO !.! VALUES {",".join([f"({v}, '')" for v in r])};""", [ tested_schema, tested_table ])
+    def generate_gaps():
+        value = gap_start
+        while True:
+            yield value
+            value += next(step)
+    gen = generate_gaps()
+    # clear the data
+    session.run_sql("TRUNCATE TABLE !.!;", [ tested_schema, tested_table ])
+    # insert rows with gaps in the PK
+    insert([next(gen) for i in range(gap_items)])
+    # all the remaining data is continuous
+    start = next(gen)
+    insert(range(start, start + gap_items))
+    # use some dummy data
+    session.run_sql("UPDATE !.! SET b = repeat('x', 5000);", [ tested_schema, tested_table ])
+    # analyze the table for optimum results
+    session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+    # run the test
+    EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "bytesPerChunk": "1M", "compression": "none", "showProgress": False })
+    # expect at least 320 chunks
+    CHECK_OUTPUT_SANITY(test_output_absolute, 200000, 320)
+
+#@<> BUG#32602325 - equal gaps
+def equal_gaps():
+    while True:
+        yield gap_step
+
+test_bug_32602325(equal_gaps())
+
+#@<> BUG#32602325 - random gaps
+def random_gaps():
+    while True:
+        yield random.randrange(1, gap_step)
+
+test_bug_32602325(random_gaps())
+
+#@<> BUG#32602325 - increasing gaps
+def increasing_gaps():
+    step = 1
+    while True:
+        yield step
+        step += 1
+
+test_bug_32602325(increasing_gaps())
+
+#@<> BUG#32602325 - decreasing gaps
+def decreasing_gaps():
+    step = gap_step
+    while True:
+        yield step
+        if step > 2:
+            step -= 1
+
+test_bug_32602325(decreasing_gaps())
+
+#@<> BUG#32602325 cleanup
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
 #@<> Cleanup

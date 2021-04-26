@@ -83,8 +83,9 @@ static constexpr auto k_dump_in_progress_ext = ".dumping";
 static constexpr const int k_mysql_server_net_write_timeout = 30 * 60;
 static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
 
-const int k_chunker_retries = 10;
-const int k_chunker_iterations = 10;
+static constexpr const int k_chunker_retries = 10;
+static constexpr const int k_chunker_iterations = 20;
+static constexpr const int k_chunker_step_accuracy = 1;
 
 FI_DEFINE(dumper, [](const mysqlshdk::utils::FI::Args &args) {
   throw std::runtime_error(args.get_string("msg"));
@@ -577,13 +578,26 @@ class Dumper::Table_worker final {
               : table.cache->row_count;
       // it should be (max - min + 1), but this can potentially overflow and
       // `+ 1` is not significant, as the result is divided anyway
-      const auto estimated_step = (max - min) / estimated_chunks;
+      const auto estimated_step =
+          std::max((max - min) / estimated_chunks, UINT64_C(2));
       const auto accuracy = std::max(rows_per_chunk / 10, UINT64_C(10));
 
       std::string chunk_id;
       using step_t = decltype(min);
 
       const auto rows_idx = m_dumper->m_cache.server_is_5_6 ? 8 : 9;
+      const auto row_count = [&table, &index, &order_by, &rows_idx, this](
+                                 const auto lower, const auto upper,
+                                 const std::string &query_comment) {
+        return m_session
+            ->queryf(
+                "EXPLAIN SELECT COUNT(*) FROM !.! WHERE ! BETWEEN ? AND ? "
+                "ORDER BY " +
+                    order_by + " " + query_comment,
+                table.schema, table.name, index, lower, upper)
+            ->fetch_one_or_throw()
+            ->get_uint(rows_idx);
+      };
 
       const auto next_step =
           estimated_chunks < 2
@@ -591,19 +605,34 @@ class Dumper::Table_worker final {
                     [](const auto, const auto step) { return step; })
               // using the default capture [&] below results in problems with
               // GCC 5.4.0 (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80543)
-              : [&table, &rows_per_chunk, &accuracy, &chunk_id, &max, &index,
-                 &order_by, &rows_idx, this](const auto from, const auto step) {
-                  int retry = 0;
+              : [&table, &rows_per_chunk, &accuracy, &chunk_id, &max,
+                 &row_count, this](const auto from, const auto step) {
+                  const auto double_step = 2 * step;
                   auto middle = from;
 
-                  auto previous_row_count = rows_per_chunk;
+                  auto rows = rows_per_chunk;
                   const auto comment = this->get_query_comment(table, chunk_id);
 
-                  uint64_t delta = 2 * accuracy;
+                  int retry = 0;
+                  uint64_t delta = accuracy + 1;
 
                   while (delta > accuracy && retry < k_chunker_retries) {
-                    auto left = from;
-                    auto right = left + (2 * (retry + 1)) * step;
+                    if (max - retry * double_step <= from) {
+                      // if left boundary is greater than max, stop here
+                      middle = max;
+                      break;
+                    }
+
+                    // each time search in a different range, we didn't find the
+                    // answer in the previous one
+                    auto left = from + retry * double_step;
+                    // if right boundary is greater than max, use max instead
+                    auto right =
+                        std::numeric_limits<step_t>::max() - double_step <= left
+                            ? std::numeric_limits<step_t>::max()
+                            : left + double_step;
+
+                    assert(left < right);
 
                     for (int i = 0; i < k_chunker_iterations; ++i) {
                       middle = left + (right - left) / 2;
@@ -612,15 +641,20 @@ class Dumper::Table_worker final {
                         break;
                       }
 
-                      const auto rows =
-                          m_session
-                              ->queryf(
-                                  "EXPLAIN SELECT COUNT(*) FROM !.! WHERE ! "
-                                  "BETWEEN ? AND ? ORDER BY " +
-                                      order_by + " " + comment,
-                                  table.schema, table.name, index, from, middle)
-                              ->fetch_one()
-                              ->get_uint(rows_idx);
+                      rows = row_count(from, middle, comment);
+
+                      if (0 == i && rows < rows_per_chunk) {
+                        // if in the first iteration there's not enough rows,
+                        // check the whole range, if there's still not enough
+                        // rows we can skip this range
+                        const auto total_rows = row_count(from, right, comment);
+
+                        if (total_rows < rows_per_chunk) {
+                          middle = right;
+                          delta = rows_per_chunk - total_rows;
+                          break;
+                        }
+                      }
 
                       if (rows > rows_per_chunk) {
                         right = middle;
@@ -634,17 +668,10 @@ class Dumper::Table_worker final {
                         // we're close enough
                         break;
                       }
-
-                      if (rows == previous_row_count) {
-                        // we're stuck
-                        break;
-                      }
-
-                      previous_row_count = rows;
                     }
 
                     if (delta > accuracy) {
-                      if (previous_row_count >= rows_per_chunk) {
+                      if (rows >= rows_per_chunk) {
                         // we have too many rows, but that's OK...
                         retry = k_chunker_retries;
                       } else {
@@ -666,13 +693,12 @@ class Dumper::Table_worker final {
       auto current = min;
       // if estimated_step is greater than maximum possible value, casting will
       // overflow, use max instead
-      auto step = estimated_step < static_cast<decltype(estimated_step)>(
-                                       std::numeric_limits<step_t>::max())
-                      ? static_cast<step_t>(estimated_step)
-                      : std::numeric_limits<step_t>::max();
-      auto step_accuracy = step;
+      const auto step = estimated_step < static_cast<decltype(estimated_step)>(
+                                             std::numeric_limits<step_t>::max())
+                            ? static_cast<step_t>(estimated_step)
+                            : std::numeric_limits<step_t>::max();
 
-      while (current <= max) {
+      while (true) {
         if (m_dumper->m_worker_interrupt) {
           return;
         }
@@ -683,17 +709,17 @@ class Dumper::Table_worker final {
         range.type = total.type;
         range.begin = std::to_string(current);
 
-        step = std::max(next_step(current, step), static_cast<step_t>(2));
-        step_accuracy = step / 4;
+        const auto new_step =
+            std::max(next_step(current, step), static_cast<step_t>(2));
 
         // ensure that there's no integer overflow
-        current = (current > max - step + 1 ? max : current + step - 1);
+        current = (current > max - new_step + 1 ? max : current + new_step - 1);
 
         // if current is close to max, finish the chunking
         // step is always > 0, if max is > 0 => max - step will not overflow
         // current is <= max, if max is < 0 => max - current will not overflow
-        if (max > 0 ? max - step_accuracy <= current
-                    : max - current <= step_accuracy) {
+        if (max > 0 ? max - k_chunker_step_accuracy <= current
+                    : max - current <= k_chunker_step_accuracy) {
           current = max;
         }
 

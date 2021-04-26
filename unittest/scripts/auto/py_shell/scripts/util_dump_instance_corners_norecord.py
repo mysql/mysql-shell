@@ -7,31 +7,7 @@ import shutil
 import stat
 import urllib.parse
 
-def CHECK_OUTPUT_SANITY(outdir, min_chunk_size, min_chunks):
-    chunks_per_table = {}
-    files = []
-    print()
-    print(outdir)
-    for f in os.listdir(outdir):
-        if not f.endswith(".tsv"):
-            continue
-        fsize = os.stat(os.path.join(outdir, f)).st_size
-        print("%-30s\t%-10s"%(f, fsize))
-        files.append((f, fsize))
-        if f.count("@") >= 2:
-            table = "@".join(f.split("@")[:2])
-            if table not in chunks_per_table:
-                chunks_per_table[table] = 1
-            else:
-                chunks_per_table[table] += 1
-    for f, fsize in files:
-        # don't check the last file if there are many chunks
-        if "@@" not in f or len(files) == 1:
-            EXPECT_LE(min_chunk_size, fsize, "Size of "+f+" too small")
-    for t, c in chunks_per_table.items():
-        EXPECT_LE(min_chunks, c, "Too few chunks for "+t)
-
-
+#@<> INCLUDE dump_utils.inc
 
 #@<> deploy sandbox
 testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root")

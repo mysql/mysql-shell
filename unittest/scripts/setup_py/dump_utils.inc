@@ -77,3 +77,31 @@ def compare_servers(session1, session2, *, check_rows=True, check_users=True):
     compare_schemas(session1, session2, check_rows)
     if check_users:
         compare_users(session1, session2)
+
+def CHECK_OUTPUT_SANITY(outdir, min_chunk_size, min_chunks, allow_min_chunk_size_failures=0):
+    chunks_per_table = {}
+    files = []
+    print()
+    print(outdir)
+    for f in os.listdir(outdir):
+        if not f.endswith(".tsv"):
+            continue
+        fsize = os.stat(os.path.join(outdir, f)).st_size
+        print("%-30s\t%-10s"%(f, fsize))
+        files.append((f, fsize))
+        if f.count("@") >= 2:
+            table = "@".join(f.split("@")[:2])
+            if table not in chunks_per_table:
+                chunks_per_table[table] = 1
+            else:
+                chunks_per_table[table] += 1
+    min_chunk_size_failures = 0
+    for f, fsize in files:
+        # don't check the last file if there are many chunks
+        if "@@" not in f or len(files) == 1:
+            if fsize < min_chunk_size:
+                min_chunk_size_failures += 1
+            if min_chunk_size_failures > allow_min_chunk_size_failures:
+                EXPECT_LE(min_chunk_size, fsize, "Size of "+f+" too small")
+    for t, c in chunks_per_table.items():
+        EXPECT_LE(min_chunks, c, "Too few chunks for "+t)
