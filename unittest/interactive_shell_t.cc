@@ -3315,4 +3315,55 @@ TEST_F(Interactive_shell_test, show_warnings) {
   test_warnings(_mysql_uri);
 }
 
+#ifdef HAVE_V8
+TEST_F(Interactive_shell_test, redefine_let) {
+  // BUG#32470621
+  execute("\\js");
+  wipe_all();
+
+  // use variable before it is defined, variable ends up in TDZ
+  execute("z; let z = 0;");
+  EXPECT_TRUE(output_handler.std_out.empty());
+  EXPECT_EQ("ReferenceError: z is not defined\n", output_handler.std_err);
+  wipe_all();
+
+  // variable cannot be accessed any more
+  execute("z;");
+  EXPECT_TRUE(output_handler.std_out.empty());
+  EXPECT_EQ("ReferenceError: z is not defined\n", output_handler.std_err);
+  wipe_all();
+
+  // variable cannot be assigned any more
+  execute("z = 0;");
+  EXPECT_TRUE(output_handler.std_out.empty());
+  EXPECT_EQ("ReferenceError: Cannot access 'z' before initialization\n",
+            output_handler.std_err);
+  wipe_all();
+
+  // define it once again to fix it
+  execute("let z = 1;");
+  EXPECT_TRUE(output_handler.std_out.empty());
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  // check the value
+  execute("println(z);");
+  EXPECT_EQ("1\n", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  // define it one more time, overwrites the previous value
+  execute("let z = 2;");
+  EXPECT_TRUE(output_handler.std_out.empty());
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  // check the value
+  execute("println(z);");
+  EXPECT_EQ("2\n", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+}
+#endif  // HAVE_V8
+
 }  // namespace mysqlsh

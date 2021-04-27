@@ -108,9 +108,9 @@ print("Unable to get length with property: %s" %  row.length)
 
 #@ Resultset row as object
 result = mySession.run_sql('select name as alias, age, age as length, gender as alias from buffer_table where name = "jack"');
-object = result.fetch_one_object();
-print("Name with property: %s" % object.alias)
-print("Age with property: %s" % object["age"])
-print(object)
+obj = result.fetch_one_object();
+print("Name with property: %s" % obj.alias)
+print("Age with property: %s" % obj["age"])
+print(obj)
 
 mySession.close()

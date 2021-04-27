@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -95,7 +95,9 @@ class SHCORE_PUBLIC JScript_context {
   class Impl;
 
   Value get_v8_exception_data(const v8::TryCatch &exc, bool interactive);
-  std::string format_exception(const shcore::Value &exc);
+  Value get_v8_exception_data(v8::Local<v8::Value> exc,
+                              v8::Local<v8::Message> message, bool interactive);
+  static std::string format_exception(const shcore::Value &exc);
   v8::Local<v8::String> type_info(v8::Local<v8::Value> value) const;
 
   std::unique_ptr<Impl> m_impl;

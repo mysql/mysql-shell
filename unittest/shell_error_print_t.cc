@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -98,20 +98,30 @@ TEST_F(Shell_error_printing, js_stack) {
   execute("\\js");
   wipe_all();
   execute("foo.bar");
-  EXPECT_EQ("ReferenceError: foo is not defined at :1:0\nin foo.bar\n   ^\n",
-            output_handler.std_err);
+  EXPECT_EQ(
+      R"(ReferenceError: foo is not defined at (shell):1:1
+in foo.bar
+   ^
+)",
+      output_handler.std_err);
 
   wipe_all();
   execute("throw 'SomethingWrong'");
-  EXPECT_EQ("SomethingWrong at :1:0\nin throw 'SomethingWrong'\n   ^\n",
-            output_handler.std_err);
+  EXPECT_EQ(
+      R"(SomethingWrong at (shell):1:1
+in throw 'SomethingWrong'
+   ^
+)",
+      output_handler.std_err);
 
   wipe_all();
   execute("dba.deploySandboxInstance(-1, {'password':''})");
   EXPECT_EQ(
-      "Dba.deploySandboxInstance: Invalid value for 'port': Please use a valid "
-      "TCP port number >= 1024 and <= 65535 (ArgumentError)\n at :1:4\nin "
-      "dba.deploySandboxInstance(-1, {'password':''})\n       ^\n",
+      R"(Dba.deploySandboxInstance: Invalid value for 'port': Please use a valid TCP port number >= 1024 and <= 65535 (ArgumentError)
+ at (shell):1:5
+in dba.deploySandboxInstance(-1, {'password':''})
+       ^
+)",
       output_handler.std_err);
 }
 #endif

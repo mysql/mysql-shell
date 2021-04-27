@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,19 +50,18 @@ static void method_dealloc(PyShFuncObject *self) {
 }
 
 static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *) {
-  Python_context *ctx = Python_context::get_and_check();
-  if (!ctx) return NULL;
-
   const auto func = *self->func;
 
   Argument_list r;
 
   if (args) {
+    Python_context *ctx = nullptr;
+
     for (size_t c = (size_t)PyTuple_Size(args), i = 0; i < c; i++) {
       PyObject *argval = PyTuple_GetItem(args, i);
 
       try {
-        Value v = ctx->pyobj_to_shcore_value(argval);
+        Value v = py::convert(argval, &ctx);
         r.push_back(v);
       } catch (...) {
         translate_python_exception();
@@ -81,7 +80,7 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *) {
       result = func->invoke(r);
     }
 
-    return ctx->shcore_value_to_pyobj(result);
+    return py::convert(result);
   } catch (...) {
     translate_python_exception();
     return NULL;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,7 +41,7 @@ Python_function::Python_function(Python_context *context, PyObject *function)
     // kwargs or not
     auto fcode = PyFunction_GetCode(function);
     auto arg_count = PyObject_GetAttrString(fcode, "co_argcount");
-    auto varg_count = _py->pyobj_to_shcore_value(arg_count);
+    auto varg_count = _py->convert(arg_count);
     m_arg_count = varg_count.as_uint();
 
     Py_XDECREF(name);
@@ -105,14 +105,14 @@ Value Python_function::invoke(const Argument_list &args) {
         for (auto item = kwd_dictionary->begin(); item != kwd_dictionary->end();
              item++) {
           PyDict_SetItemString(kw_args, item->first.c_str(),
-                               _py->shcore_value_to_pyobj(item->second));
+                               _py->convert(item->second));
         }
       }
     }
 
     argv = PyTuple_New(argc);
     for (size_t index = 0; index < argc; ++index) {
-      PyTuple_SetItem(argv, index, _py->shcore_value_to_pyobj(args[index]));
+      PyTuple_SetItem(argv, index, _py->convert(args[index]));
     }
 
     ret_val = PyObject_Call(*function, argv, kw_args);
@@ -130,7 +130,7 @@ Value Python_function::invoke(const Argument_list &args) {
 
       throw Exception::scripting_error(error + details);
     } else {
-      const auto ret = _py->pyobj_to_shcore_value(ret_val);
+      const auto ret = _py->convert(ret_val);
       Py_DECREF(ret_val);
       return ret;
     }

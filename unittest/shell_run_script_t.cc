@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -468,7 +468,7 @@ end)";
   // error, exit code not-0
   EXPECT_EQ(1, rc);
   static const char *result2 = R"(1
-error at bad.js:2:0
+error at bad.js:2:1
 in throw 'error'
    ^)";
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result2);
@@ -479,7 +479,7 @@ in throw 'error'
   // error, exit code not-0
   EXPECT_EQ(1, rc);
   static const char *result3 =
-      R"(SyntaxError: Unexpected token ')' at badsyn.js:1:0
+      R"(SyntaxError: Unexpected token ')' at badsyn.js:1:1
 in ){}
    ^)";
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result3);

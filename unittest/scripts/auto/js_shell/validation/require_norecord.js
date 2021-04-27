@@ -147,10 +147,12 @@ Done
 |true|
 
 //@<ERR> load the module which throws an exception
-Error: Exception!!! at <<<exe_file>>>:[[*]]
+Error: Exception!!! at <<<exe_file>>>:2:7
 in throw new Error('Exception!!!');
-   ^
+         ^
 Error: Exception!!!
+    at <<<exe_file>>>:2:7
+    at <<<exe_file>>>:4:3
 
 //@ delete modules in the current working directory
 |Module has been removed.|

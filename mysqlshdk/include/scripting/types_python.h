@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,7 +54,7 @@ class SHCORE_PUBLIC Python_function : public Function_base {
 
  private:
   Python_context *_py;
-  std::weak_ptr<AutoPyObject> m_function;
+  std::weak_ptr<py::Store> m_function;
   std::string m_name;
   uint64_t m_arg_count;
 };

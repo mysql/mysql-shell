@@ -186,7 +186,7 @@ PyObject *py_run_string_interactive(const char *str, PyObject *globals,
   const auto arena = PyArena_New();
 
   if (nullptr != arena) {
-    AutoPyObject filename = PyString_FromString("<string>");
+    const py::Release filename{PyString_FromString("<string>")};
     const auto mod = PyParser_ASTFromStringObject(str, filename, Py_file_input,
                                                   flags, arena);
 
@@ -358,7 +358,7 @@ Python_init_singleton::Python_init_singleton() : m_local_initialization(false) {
 std::unique_ptr<Python_init_singleton> Python_init_singleton::s_instance;
 unsigned int Python_init_singleton::s_cnt = 0;
 
-Python_context::Python_context(bool redirect_stdio) : _types(this) {
+Python_context::Python_context(bool redirect_stdio) {
   m_compiler_flags.cf_flags = 0;
 #if PY_VERSION_HEX >= 0x03080000
   m_compiler_flags.cf_feature_version = PY_MINOR_VERSION;
@@ -460,8 +460,6 @@ Python_context::Python_context(bool redirect_stdio) : _types(this) {
   PyEval_InitThreads();
 #endif
   PyEval_SaveThread();
-
-  _types.init();
 }
 
 bool Python_context::raw_execute_helper(const std::string &statement,
@@ -647,7 +645,7 @@ Value Python_context::execute(const std::string &code,
     return Value();
   }
 
-  Value tmp(_types.pyobj_to_shcore_value(py_result));
+  auto tmp = convert(py_result);
   Py_XDECREF(py_result);
   return tmp;
 }
@@ -749,7 +747,7 @@ Value Python_context::execute_interactive(const std::string &code,
   }
 
   if (m_captured_eval_result) {
-    const auto tmp = _types.pyobj_to_shcore_value(m_captured_eval_result);
+    auto tmp = convert(m_captured_eval_result);
     m_captured_eval_result = nullptr;
     return tmp;
   }
@@ -802,11 +800,7 @@ std::vector<std::pair<bool, std::string>> Python_context::list_globals() {
 }
 
 Value Python_context::get_global(const std::string &value) {
-  PyObject *py_result;
-
-  py_result = PyDict_GetItemString(_globals, value.c_str());
-
-  return _types.pyobj_to_shcore_value(py_result);
+  return convert(PyDict_GetItemString(_globals, value.c_str()));
 }
 
 PyObject *Python_context::get_global_py(const std::string &value) {
@@ -817,7 +811,7 @@ PyObject *Python_context::get_global_py(const std::string &value) {
 
 void Python_context::set_global(const std::string &name, const Value &value) {
   WillEnterPython lock;
-  PyObject *p = _types.shcore_value_to_pyobj(value);
+  PyObject *p = convert(value);
   assert(p != nullptr);
   // incs ref
   PyDict_SetItemString(_globals, name.c_str(), p);
@@ -827,12 +821,12 @@ void Python_context::set_global(const std::string &name, const Value &value) {
   Py_XDECREF(p);
 }
 
-Value Python_context::pyobj_to_shcore_value(PyObject *value) {
-  return _types.pyobj_to_shcore_value(value);
+Value Python_context::convert(PyObject *value) {
+  return py::convert(value, this);
 }
 
-PyObject *Python_context::shcore_value_to_pyobj(const Value &value) {
-  return _types.shcore_value_to_pyobj(value);
+PyObject *Python_context::convert(const Value &value) {
+  return py::convert(value);
 }
 
 void Python_context::set_python_error(const std::exception &exc,
@@ -948,23 +942,23 @@ bool Python_context::pystring_to_string(PyObject *strobject,
   return false;
 }
 
-AutoPyObject Python_context::get_shell_list_class() {
+py::Store Python_context::get_shell_list_class() const {
   return _shell_list_class;
 }
 
-AutoPyObject Python_context::get_shell_dict_class() {
+py::Store Python_context::get_shell_dict_class() const {
   return _shell_dict_class;
 }
 
-AutoPyObject Python_context::get_shell_object_class() {
+py::Store Python_context::get_shell_object_class() const {
   return _shell_object_class;
 }
 
-AutoPyObject Python_context::get_shell_indexed_object_class() {
+py::Store Python_context::get_shell_indexed_object_class() const {
   return _shell_indexed_object_class;
 }
 
-AutoPyObject Python_context::get_shell_function_class() {
+py::Store Python_context::get_shell_function_class() const {
   return _shell_function_class;
 }
 
@@ -1210,7 +1204,7 @@ static void add_module_members(
     if (member.type == shcore::Function) {
       value = wrap(module, member_name);
     } else {
-      value = ctx->shcore_value_to_pyobj(member);
+      value = ctx->convert(member);
     }
     // incrs ref
     PyDict_SetItemString(py_dict, member_name.c_str(), value);
@@ -1358,25 +1352,29 @@ Value Python_context::execute_module(const std::string &module_name,
   shcore::Value ret_val;
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
 
-  AutoPyObject modname = PyString_FromString(module_name.c_str());
+  const py::Release modname{PyString_FromString(module_name.c_str())};
 
   set_argv(argv);
 
-  AutoPyObject runpy = PyImport_ImportModule("runpy");
+  const py::Release runpy{PyImport_ImportModule("runpy")};
+
   if (!runpy) {
     PyErr_Print();
     throw shcore::Exception::runtime_error("Could not import runpy module");
   }
 
-  AutoPyObject runmodule = PyObject_GetAttrString(runpy, "_run_module_as_main");
+  const py::Release runmodule{
+      PyObject_GetAttrString(runpy, "_run_module_as_main")};
+
   if (!runmodule) {
     PyErr_Print();
     throw shcore::Exception::runtime_error(
         "Could not access runpy._run_module_as_main");
   }
 
-  AutoPyObject runargs =
-      PyTuple_Pack(2, static_cast<PyObject *>(modname), Py_False);
+  const py::Release runargs{
+      PyTuple_Pack(2, static_cast<PyObject *>(modname), Py_False)};
+
   if (!runargs) {
     PyErr_Print();
     throw shcore::Exception::runtime_error(
@@ -1384,7 +1382,7 @@ Value Python_context::execute_module(const std::string &module_name,
   }
 
   module_processing = true;
-  AutoPyObject py_result = PyObject_Call(runmodule, runargs, NULL);
+  const py::Release py_result{PyObject_Call(runmodule, runargs, NULL)};
   module_processing = false;
 
   if (!py_result) {
@@ -1394,7 +1392,7 @@ Value Python_context::execute_module(const std::string &module_name,
   }
 
   if (py_result) {
-    ret_val = _types.pyobj_to_shcore_value(py_result);
+    ret_val = convert(py_result);
   }
 
   return ret_val;
@@ -1563,12 +1561,12 @@ std::string Python_context::fetch_and_clear_exception() {
   return exception;
 }
 
-std::weak_ptr<AutoPyObject> Python_context::store(PyObject *object) {
-  m_stored_objects.emplace_back(std::make_shared<AutoPyObject>(object));
+std::weak_ptr<py::Store> Python_context::store(PyObject *object) {
+  m_stored_objects.emplace_back(std::make_shared<py::Store>(object));
   return m_stored_objects.back();
 }
 
-void Python_context::erase(const std::shared_ptr<AutoPyObject> &object) {
+void Python_context::erase(const std::shared_ptr<py::Store> &object) {
   m_stored_objects.remove(object);
 }
 
