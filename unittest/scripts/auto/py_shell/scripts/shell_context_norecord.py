@@ -78,7 +78,7 @@ def thread_sample_report(thread_name):
         print('Output from a report')
         return {'report' : []}
     sh.register_report('report', 'print', report)
-    EXPECT_THROWS(lambda: shell.help('report'), "LogicError") # report shouldn't be available in the global ctx
+    EXPECT_THROWS(lambda: shell.help('report'), "RuntimeError") # report shouldn't be available in the global ctx
     print(sh.reports.help('report'))
     print(sh.reports.report(sess)) # check if report has been properly registered
     del sh
@@ -134,7 +134,7 @@ log_location = os.path.join("/usr", "context_test.log")
 if __os_type == "windows":
     log_location = os.environ["TMPDIR"]
 def thread_sample_log_permission(thread_name):
-    EXPECT_THROWS(lambda: shell.create_context({"logFile": log_location}), "LogicError")
+    EXPECT_THROWS(lambda: shell.create_context({"logFile": log_location}), "RuntimeError")
 th = threading.Thread(target = thread_sample_log_permission, args=("my thread", ))
 th.start()
 th.join()
@@ -145,7 +145,7 @@ log_directory = "/usr"
 if __os_type == "windows":
     log_directory = os.environ["WINDIR"]
 def thread_sample_log_dir(thread_name):
-    EXPECT_THROWS(lambda: shell.create_context({"logFile": log_directory}), "LogicError")
+    EXPECT_THROWS(lambda: shell.create_context({"logFile": log_directory}), "RuntimeError")
 th = threading.Thread(target = thread_sample_log_dir, args=("my thread", ))
 th.start()
 th.join()

@@ -389,6 +389,11 @@ Shell_options::Shell_options(int argc, char **argv,
     (&storage.force, false, SHCORE_BATCH_CONTINUE_ON_ERROR, cmdline("--force"),
         "In SQL batch mode, forces processing to continue if an error "
         "is found.", shcore::opts::Read_only<bool>())
+    (&storage.log_file,
+        shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log"),
+        SHCORE_LOG_FILE_NAME, cmdline("--log-file=<path>"),
+        "Override location of the Shell log file.",
+        shcore::opts::Read_only<std::string>()) // read-only in shell.options
     (reinterpret_cast<int*>(&storage.log_level),
         shcore::Logger::LOG_INFO, "logLevel", cmdline("--log-level=<value>"),
         std::string("Set logging level. ") +

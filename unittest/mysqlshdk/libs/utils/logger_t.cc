@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -184,19 +184,27 @@ TEST_F(Logger_test, parse_log_level) {
 }
 
 TEST_F(Logger_test, log_open_failure) {
+  std::string exctext;
+
+#ifdef _WIN32
+  exctext =
+      "Error opening log file '%s' for writing: No such file or directory";
+#else
+  exctext = "Error opening log file '%s' for writing: Is a directory";
+#endif
+
   EXPECT_THROW(
       {
         const std::string filename = get_log_file("");
         try {
           Logger::create_instance(filename.c_str(), false, Logger::LOG_WARNING);
-        } catch (const std::logic_error &e) {
-          EXPECT_EQ("Error in Logger::Logger when opening file '" + filename +
-                        "' for writing",
+        } catch (const std::runtime_error &e) {
+          EXPECT_EQ(shcore::str_format(exctext.c_str(), filename.c_str()),
                     e.what());
           throw;
         }
       },
-      std::logic_error);
+      std::runtime_error);
 }
 
 TEST_F(Logger_test, log_format) {

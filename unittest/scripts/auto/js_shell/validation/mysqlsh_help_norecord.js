@@ -124,6 +124,7 @@ Usage: mysqlsh [OPTIONS] [URI]
                                   interactive mode.
   --force                         In SQL batch mode, forces processing to
                                   continue if an error is found.
+  --log-file=<path>               Override location of the Shell log file.
   --log-level=<value>             Set logging level. The log level value must
                                   be an integer between 1 and 8 or any of
                                   [none, internal, error, warning, info, debug,

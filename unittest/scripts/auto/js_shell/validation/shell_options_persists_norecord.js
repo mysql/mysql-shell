@@ -302,6 +302,7 @@
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD*
  history.sql.syslog              false
  interactive                     true
+ logFile                         <<<testutil.getShellLogPath()>>>
  logLevel                        5
  mysqlPluginDir                  ""
  oci.configFile                  <<<_defaultOciConfigFile>>>
@@ -333,6 +334,7 @@
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD* (Compiled default)
  history.sql.syslog              false (Compiled default)
  interactive                     true (Compiled default)
+ logFile                         <<<testutil.getShellLogPath()>>> (Compiled default)
  logLevel                        5 (Compiled default)
  mysqlPluginDir                  "" (Compiled default)
  oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)
@@ -421,6 +423,7 @@
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD*
  history.sql.syslog              false
  interactive                     true
+ logFile                         <<<testutil.getShellLogPath()>>>
  logLevel                        5
  mysqlPluginDir                  ""
  oci.configFile                  <<<_defaultOciConfigFile>>>
@@ -453,6 +456,7 @@ Switching to SQL mode... Commands end with ;
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD* (Compiled default)
  history.sql.syslog              false (Compiled default)
  interactive                     true (Compiled default)
+ logFile                         <<<testutil.getShellLogPath()>>> (Compiled default)
  logLevel                        5 (Compiled default)
  mysqlPluginDir                  "" (Compiled default)
  oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)

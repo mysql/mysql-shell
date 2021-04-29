@@ -649,12 +649,18 @@ int main(int argc, char **argv) {
 
   if (options.exit_code != 0) return options.exit_code;
 
-  // Setup logging
-  std::string log_path =
-      shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
+  std::shared_ptr<shcore::Logger> logger;
+  try {
+    // Setup logging
+    logger = shcore::Logger::create_instance(
+        options.log_file.empty() ? nullptr : options.log_file.c_str(),
+        options.log_to_stderr, options.log_level);
+  } catch (const std::exception &e) {
+    fprintf(stderr, "%s\n", e.what());
+    exit(1);
+  }
 
-  mysqlsh::Scoped_logger logger(shcore::Logger::create_instance(
-      log_path.c_str(), options.log_to_stderr, options.log_level));
+  mysqlsh::Scoped_logger scoped_logger(logger);
 
   std::shared_ptr<mysqlsh::Command_line_shell> shell;
 #ifdef HAVE_PYTHON

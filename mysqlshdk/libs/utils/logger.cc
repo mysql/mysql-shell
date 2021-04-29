@@ -323,9 +323,9 @@ Logger::Logger(const char *filename, bool use_stderr) : m_dont_log(0) {
     m_log_file.open(filename, std::ios_base::app);
 #endif
     if (m_log_file.fail())
-      throw std::logic_error(
-          std::string("Error in Logger::Logger when opening file '") +
-          filename + "' for writing");
+      throw std::runtime_error(
+          std::string("Error opening log file '") + filename +
+          "' for writing: " + shcore::errno_to_string(errno));
   }
 
   if (use_stderr) {
