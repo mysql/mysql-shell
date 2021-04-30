@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,7 +53,6 @@ TEST(utils_net, resolve_hostname_ipv4) {
 #endif  // WIN32
 
   EXPECT_THROW(Net::resolve_hostname_ipv4("unknown_host"), net_error);
-  EXPECT_THROW(Net::resolve_hostname_ipv4("127.0.0.1.."), net_error);
   EXPECT_THROW(Net::resolve_hostname_ipv4("127.0.0.256"), net_error);
 }
 
