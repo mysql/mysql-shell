@@ -314,9 +314,9 @@ class Option_pack_def : public IOption_pack_def {
    * @param sname: short name for the option (if applicable).
    * @param cmd_line: whether the option is valid for CLI integration
    */
-  template <typename T>
+  template <typename T, typename SC>
   Option_pack_def<C> &optional(
-      const std::string &name, T C::*var, const std::string &sname = "",
+      const std::string &name, T SC::*var, const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
     add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
@@ -340,9 +340,9 @@ class Option_pack_def : public IOption_pack_def {
    * @param sname: short name for the option (if applicable).
    * @param cmd_line: whether the option is valid for CLI integration
    */
-  template <typename T>
+  template <typename T, typename SC>
   Option_pack_def<C> &optional(
-      const std::string &name, T C::*var,
+      const std::string &name, T SC::*var,
       const std::map<std::string, T> &mapping, const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
@@ -381,10 +381,10 @@ class Option_pack_def : public IOption_pack_def {
    * If the callback can be used as a proxy function for options having the same
    * data type.
    */
-  template <typename T>
+  template <typename T, typename SC>
   Option_pack_def<C> &optional(
       const std::string &name,
-      void (C::*callback)(const std::string &, const T &),
+      void (SC::*callback)(const std::string &, const T &),
       const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
@@ -406,10 +406,10 @@ class Option_pack_def : public IOption_pack_def {
     return *this;
   }
 
-  template <typename T>
+  template <typename T, typename SC>
   Option_pack_def<C> &optional(
       const std::string &name,
-      void (C::*callback)(const std::string &option, T value),
+      void (SC::*callback)(const std::string &option, T value),
       const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
@@ -449,9 +449,9 @@ class Option_pack_def : public IOption_pack_def {
    * If the callback can be used as a proxy function for options having the same
    * data type.
    */
-  template <typename T>
+  template <typename T, typename SC>
   Option_pack_def<C> &optional(
-      const std::string &name, void (C::*callback)(const T &),
+      const std::string &name, void (SC::*callback)(const T &),
       const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
@@ -473,9 +473,9 @@ class Option_pack_def : public IOption_pack_def {
     return *this;
   }
 
-  template <typename T>
+  template <typename T, typename SC>
   Option_pack_def<C> &optional(
-      const std::string &name, void (C::*callback)(T value),
+      const std::string &name, void (SC::*callback)(T value),
       const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
@@ -500,8 +500,8 @@ class Option_pack_def : public IOption_pack_def {
   /**
    * Same as the optional() equivalent, except that the option is mandatory
    */
-  template <typename T>
-  Option_pack_def<C> &required(const std::string &name, T C::*var,
+  template <typename T, typename SC>
+  Option_pack_def<C> &required(const std::string &name, T SC::*var,
                                const std::string &sname = "",
                                bool cmd_line = true) {
     add_option<T>(name, sname, cmd_line, Param_flag::Mandatory);
@@ -517,8 +517,8 @@ class Option_pack_def : public IOption_pack_def {
   /**
    * Same as the optional() equivalent, except that the option is mandatory
    */
-  template <typename T>
-  Option_pack_def<C> &required(const std::string &name, T C::*var,
+  template <typename T, typename SC>
+  Option_pack_def<C> &required(const std::string &name, T SC::*var,
                                const std::map<std::string, T> &mapping,
                                const std::string &sname = "",
                                bool cmd_line = true) {
@@ -541,10 +541,10 @@ class Option_pack_def : public IOption_pack_def {
   /**
    * Same as the optional() equivalent, except that the option is mandatory
    */
-  template <typename T>
+  template <typename T, typename SC>
   Option_pack_def<C> &required(const std::string &name,
-                               void (C::*callback)(const std::string &option,
-                                                   const T &),
+                               void (SC::*callback)(const std::string &option,
+                                                    const T &),
                                const std::string &sname = "",
                                bool cmd_line = true) {
     add_option<T>(name, sname, cmd_line, Param_flag::Mandatory);
@@ -564,9 +564,9 @@ class Option_pack_def : public IOption_pack_def {
   /**
    * Same as the optional() equivalent, except that the option is mandatory
    */
-  template <typename T>
+  template <typename T, typename SC>
   Option_pack_def<C> &required(const std::string &name,
-                               void (C::*callback)(const T &),
+                               void (SC::*callback)(const T &),
                                const std::string &sname = "",
                                bool cmd_line = true) {
     add_option<T>(name, sname, cmd_line, Param_flag::Mandatory);
@@ -589,8 +589,8 @@ class Option_pack_def : public IOption_pack_def {
    * It is expected that the option pack being included is a member of the C
    * class.
    */
-  template <typename T>
-  Option_pack_def<C> &include(T C::*var) {
+  template <typename T, typename SC>
+  Option_pack_def<C> &include(T SC::*var) {
     add_options<T>();
 
     m_unpack_callbacks.emplace_back(
