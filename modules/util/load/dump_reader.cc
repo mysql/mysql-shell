@@ -607,19 +607,19 @@ void Dump_reader::add_deferred_indexes(const std::string &schema,
   t->second->indexes = std::move(indexes);
   auto &idx = t->second->indexes;
   idx.erase(
-      std::remove_if(
-          idx.begin(), idx.end(),
-          [&s](const std::string &q) {
-            mysqlshdk::utils::SQL_iterator it(q);
-            while (it.valid() &&
-                   !shcore::str_caseeq(it.get_next_token(), "FOREIGN")) {
-            }
-            if (it.valid() && shcore::str_caseeq(it.get_next_token(), "KEY")) {
-              s->second->fk_queries.emplace_back(q);
-              return true;
-            }
-            return false;
-          }),
+      std::remove_if(idx.begin(), idx.end(),
+                     [&s](const std::string &q) {
+                       mysqlshdk::utils::SQL_iterator it(q);
+                       while (it.valid() &&
+                              !shcore::str_caseeq(it.next_token(), "FOREIGN")) {
+                       }
+                       if (it.valid() &&
+                           shcore::str_caseeq(it.next_token(), "KEY")) {
+                         s->second->fk_queries.emplace_back(q);
+                         return true;
+                       }
+                       return false;
+                     }),
       idx.end());
 }
 

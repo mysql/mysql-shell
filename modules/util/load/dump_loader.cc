@@ -111,8 +111,8 @@ std::vector<std::string> preprocess_table_script_for_indexes(
       [&](const char *s, size_t len, const std::string &delim, size_t) {
         auto sql = std::string(s, len) + delim + "\n";
         mysqlshdk::utils::SQL_iterator sit(sql);
-        if (shcore::str_caseeq(sit.get_next_token(), "CREATE") &&
-            shcore::str_caseeq(sit.get_next_token(), "TABLE")) {
+        if (shcore::str_caseeq(sit.next_token(), "CREATE") &&
+            shcore::str_caseeq(sit.next_token(), "TABLE")) {
           assert(indexes.empty());
           indexes = compatibility::check_create_table_for_indexes(
               sql, fulltext_only, &sql);
@@ -139,8 +139,8 @@ void add_invisible_pk(std::string *script, const std::string &key) {
         auto sql = std::string(s, len) + delim + "\n";
         mysqlshdk::utils::SQL_iterator sit(sql);
 
-        if (shcore::str_caseeq(sit.get_next_token(), "CREATE") &&
-            shcore::str_caseeq(sit.get_next_token(), "TABLE")) {
+        if (shcore::str_caseeq(sit.next_token(), "CREATE") &&
+            shcore::str_caseeq(sit.next_token(), "TABLE")) {
           compatibility::add_pk_to_create_table(sql, &sql);
         }
 
