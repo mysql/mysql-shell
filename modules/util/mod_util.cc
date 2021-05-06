@@ -946,6 +946,16 @@ suffixes, k - for Kilobytes (n * 1'000 bytes), M - for Megabytes (n * 1'000'000
 bytes), G - for Gigabytes (n * 1'000'000'000 bytes), bytesPerChunk="2k" - ~2
 kilobyte data chunk will send to the MySQL Server. Not available for multiple
 files import.
+@li <b>maxBytesPerTransaction</b>: string (default: empty) - Specifies the
+maximum number of bytes that can be loaded from a dump data file per single
+LOAD DATA statement. If a content size of data file is bigger than this option
+value, then multiple LOAD DATA statements will be executed per single file.
+If this option is not specified explicitly, dump data file sub-chunking will be
+disabled. Use this option with value less or equal to global variable
+'max_binlog_cache_size' to mitigate "MySQL Error 1197 (HY000): Multi-statement
+transaction required more than 'max_binlog_cache_size' bytes of storage".
+Unit suffixes: k (Kilobytes), M (Megabytes), G (Gigabytes).
+Minimum value: 4096.
 @li <b>maxRate</b>: string (default: "0") - Limit data send throughput to
 maxRate in bytes per second per thread.
 maxRate="0" - no limit. Unit suffixes, k - for Kilobytes (n * 1'000 bytes),
@@ -1276,7 +1286,7 @@ current user will be skipped.
 @li <b>maxBytesPerTransaction</b>: string (default taken from dump) - Specifies
 the maximum number of bytes that can be loaded from a dump data file per single
 LOAD DATA statement. Supports unit suffixes: k (kilobytes), M (Megabytes), G
-(Gigabytes). Minimum value: "128k". If this option is not specified explicitly,
+(Gigabytes). Minimum value: 4096. If this option is not specified explicitly,
 the value of the <b>bytesPerChunk</b> dump option is used, but only in case of
 the files with data size greater than <b>1.5 * bytesPerChunk</b>.
 @li <b>progressFile</b>: path (default: load-progress.@<server_uuid@>.progress)

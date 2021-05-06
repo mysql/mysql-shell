@@ -682,6 +682,19 @@ OPTIONS
             will send to the MySQL Server. Not available for multiple files
             import. Default: minimum: "131072", default: "50M".
 
+--maxBytesPerTransaction=<str>
+            Specifies the maximum number of bytes that can be loaded from a
+            dump data file per single LOAD DATA statement. If a content size of
+            data file is bigger than this option value, then multiple LOAD DATA
+            statements will be executed per single file. If this option is not
+            specified explicitly, dump data file sub-chunking will be disabled.
+            Use this option with value less or equal to global variable
+            'max_binlog_cache_size' to mitigate "MySQL Error 1197 (HY000):
+            Multi-statement transaction required more than
+            'max_binlog_cache_size' bytes of storage". Unit suffixes: k
+            (Kilobytes), M (Megabytes), G (Gigabytes). Minimum value: 4096.
+            Default: empty.
+
 --columns[:<type>]=<value>
             Array of strings and/or integers (default: empty array) - This
             option takes an array of column names as its value. The order of
@@ -915,9 +928,9 @@ OPTIONS
             Specifies the maximum number of bytes that can be loaded from a
             dump data file per single LOAD DATA statement. Supports unit
             suffixes: k (kilobytes), M (Megabytes), G (Gigabytes). Minimum
-            value: "128k". If this option is not specified explicitly, the
-            value of the bytesPerChunk dump option is used, but only in case of
-            the files with data size greater than 1.5 * bytesPerChunk. Default:
+            value: 4096. If this option is not specified explicitly, the value
+            of the bytesPerChunk dump option is used, but only in case of the
+            files with data size greater than 1.5 * bytesPerChunk. Default:
             taken from dump.
 
 --osNamespace=<str>

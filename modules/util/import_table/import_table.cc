@@ -143,10 +143,10 @@ void Import_table::build_queue() {
         File_import_info task;
         task.file_path = fh->full_path().real();
         task.file_size = file_info.size();
-        task.file_handler = fh.release();
         // todo(kg): impl. content size method. Extract content size information
         // from .gz and .zst headers
-        // task.content_size = fh.size();
+        // task.content_size = fh->content_size();
+        task.file_handler = fh.release();
         task.range_read = false;
         task.is_guard = false;
         m_total_bytes += task.file_size.get_safe();

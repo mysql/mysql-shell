@@ -56,14 +56,38 @@ struct Transaction_options {
 
 class Transaction_buffer {
  public:
-  Transaction_buffer() {}
+  struct Dumper_Tx_buffer {};
+  struct General_Tx_buffer {};
 
-  Transaction_buffer(Dialect dialect, mysqlshdk::storage::IFile *file,
+  Transaction_buffer() = default;
+
+  Transaction_buffer(Dumper_Tx_buffer, Dialect dialect,
+                     mysqlshdk::storage::IFile *file,
                      const Transaction_options &options = {})
-      : m_delimiter(dialect.lines_terminated_by[0]),
-        m_file(file),
-        m_options(options) {
+      : m_dialect(dialect), m_file(file), m_options(options) {
     assert(Dialect::default_() == dialect);
+    find_first_row_boundary_after =
+        &Transaction_buffer::find_first_row_boundary_after_impl_dumper;
+    find_last_row_boundary_before =
+        &Transaction_buffer::find_last_row_boundary_before_impl_dumper;
+  }
+
+  Transaction_buffer(General_Tx_buffer, Dialect dialect,
+                     mysqlshdk::storage::IFile *file,
+                     uint64_t max_transaction_size)
+      : m_dialect(dialect), m_file(file) {
+    m_options.max_trx_size = max_transaction_size;
+    if (m_dialect.fields_escaped_by.empty()) {
+      find_first_row_boundary_after =
+          &Transaction_buffer::find_first_row_boundary_after_impl_no_escape;
+      find_last_row_boundary_before =
+          &Transaction_buffer::find_last_row_boundary_before_impl_no_escape;
+    } else {
+      find_first_row_boundary_after =
+          &Transaction_buffer::find_first_row_boundary_after_impl_escape;
+      find_last_row_boundary_before =
+          &Transaction_buffer::find_last_row_boundary_before_impl_escape;
+    }
   }
 
   void before_query();
@@ -84,12 +108,21 @@ class Transaction_buffer {
 
   int64_t trx_bytes_left() const { return m_options.max_trx_size - m_trx_size; }
 
-  uint64_t find_first_row_boundary_after(uint64_t offset) const;
-  uint64_t find_last_row_boundary_before(uint64_t limit);
+  uint64_t (Transaction_buffer::*find_first_row_boundary_after)() const;
+  uint64_t (Transaction_buffer::*find_last_row_boundary_before)(uint64_t);
+
+  uint64_t find_first_row_boundary_after_impl_dumper() const;
+  uint64_t find_last_row_boundary_before_impl_dumper(uint64_t limit);
+
+  uint64_t find_first_row_boundary_after_impl_no_escape() const;
+  uint64_t find_last_row_boundary_before_impl_no_escape(uint64_t limit);
+
+  uint64_t find_first_row_boundary_after_impl_escape() const;
+  uint64_t find_last_row_boundary_before_impl_escape(uint64_t limit);
 
   void set_trx_end_offset(uint64_t end) { m_trx_end_offset = m_trx_size + end; }
 
-  char m_delimiter = 0;
+  Dialect m_dialect;
   mysqlshdk::storage::IFile *m_file = nullptr;
   Transaction_options m_options;
 
@@ -131,6 +164,8 @@ struct File_info {
   // data for transaction size limiter
   Transaction_buffer buffer;  //< buffered file wrapper
   std::exception_ptr last_error;
+  bool continuation = false;  //< True if we hit transaction limit and we have
+                              // more data waiting to sent in Transaction_buffer
 };
 
 // Functions for local infile callbacks.

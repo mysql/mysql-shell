@@ -199,7 +199,8 @@ retry:
   if (m_trx_end_offset == 0 && trx_bytes_left() > 0 &&
       static_cast<int64_t>(m_data.length()) >= trx_bytes_left()) {
     // calculate the last row that will fit
-    auto last_row_end = find_last_row_boundary_before(trx_bytes_left());
+    auto last_row_end =
+        (this->*find_last_row_boundary_before)(trx_bytes_left());
     if (last_row_end > 0) {
       set_trx_end_offset(last_row_end);
     }
@@ -215,7 +216,8 @@ retry:
       if (!m_partial_row_sent) {
         // we've already read more data than will fit in the transaction, so
         // just find the last row that will fit whole
-        auto last_row_end = find_last_row_boundary_before(trx_bytes_left());
+        auto last_row_end =
+            (this->*find_last_row_boundary_before)(trx_bytes_left());
 
         // if we don't find a newline here, it has to mean the row doesn't fit
         // in the transaction (otherwise there's a bug)
@@ -233,7 +235,7 @@ retry:
         }
       }
 
-      auto row_end = find_first_row_boundary_after(0);
+      auto row_end = (this->*find_first_row_boundary_after)();
       if (row_end > 0) {
         // we found EOR, send the rest of the row and flush
         set_trx_end_offset(row_end);
@@ -248,7 +250,7 @@ retry:
       return consume(buffer, length);
     } else {
       // otherwise, send data at a row boundary to allow safe flushing
-      auto last_row_end = find_last_row_boundary_before(length);
+      auto last_row_end = (this->*find_last_row_boundary_before)(length);
       if (last_row_end > 0) {
         // EOR found, if we sent a partial row, it's complete now
         m_partial_row_sent = false;
@@ -258,7 +260,7 @@ retry:
 
       // there's a full row in the buffer, but more data than we can return at
       // once
-      last_row_end = find_last_row_boundary_before(trx_bytes_left());
+      last_row_end = (this->*find_last_row_boundary_before)(trx_bytes_left());
       if (last_row_end > 0) {
         return consume(buffer, std::min<unsigned int>(length, last_row_end));
       }
@@ -292,17 +294,21 @@ retry:
   }
 }
 
-uint64_t Transaction_buffer::find_first_row_boundary_after(
-    uint64_t offset) const {
-  if (offset > m_data.length()) offset = m_data.length();
-  const auto end = m_data.find(m_delimiter, offset);
-  if (end >= offset && end < m_data.length()) {
+uint64_t Transaction_buffer::find_first_row_boundary_after_impl_dumper() const {
+  assert(m_dialect.lines_terminated_by.size() == 1);
+  const char delimiter = m_dialect.lines_terminated_by[0];
+  const auto end = m_data.find(delimiter);
+  if (end < m_data.length()) {
     return end + 1;
   }
   return 0;
 }
 
-uint64_t Transaction_buffer::find_last_row_boundary_before(uint64_t limit) {
+uint64_t Transaction_buffer::find_last_row_boundary_before_impl_dumper(
+    uint64_t limit) {
+  assert(m_dialect.lines_terminated_by.size() == 1);
+  const char delimiter = m_dialect.lines_terminated_by[0];
+
   // find boundary of the last row that will fit within the given limit
   const auto max_length = std::min<size_t>(limit, m_data.length());
   auto length = max_length;
@@ -333,9 +339,66 @@ uint64_t Transaction_buffer::find_last_row_boundary_before(uint64_t limit) {
 
   assert(length <= m_data.length());
   const auto last_row_end = m_data.rend() - length;
-  const auto delimiter_pos =
-      std::find(last_row_end, m_data.rend(), m_delimiter);
+  const auto delimiter_pos = std::find(last_row_end, m_data.rend(), delimiter);
   return std::distance(m_data.begin(), delimiter_pos.base());
+}
+
+uint64_t Transaction_buffer::find_first_row_boundary_after_impl_no_escape()
+    const {
+  const auto p = m_data.find(m_dialect.lines_terminated_by);
+  if (p < m_data.length()) {
+    return p + m_dialect.lines_terminated_by.size();
+  }
+  return 0;
+}
+
+uint64_t Transaction_buffer::find_last_row_boundary_before_impl_no_escape(
+    uint64_t limit) {
+  const size_t bound = std::min<size_t>(limit, m_data.length());
+  const std::string &needle = m_dialect.lines_terminated_by;
+  if (bound < needle.size()) return 0;
+  if (bound == 0) return 0;
+  size_t p = m_data.rfind(needle, bound - needle.size());
+  if (p == std::string::npos) return 0;
+  return p + needle.size();
+}
+
+uint64_t Transaction_buffer::find_first_row_boundary_after_impl_escape() const {
+  size_t p = m_data.find(m_dialect.lines_terminated_by);
+
+  while (p != std::string::npos) {
+    if (!(p > 0 && m_data[p - 1] == m_dialect.fields_escaped_by[0])) {
+      assert(p < m_data.length());
+      return p + m_dialect.lines_terminated_by.size();
+    }
+    p += m_dialect.lines_terminated_by.size();
+    p = m_data.find(m_dialect.lines_terminated_by, p);
+  }
+
+  return 0;
+}
+
+uint64_t Transaction_buffer::find_last_row_boundary_before_impl_escape(
+    uint64_t limit) {
+  const size_t bound = std::min<size_t>(limit, m_data.length());
+  const std::string &needle = m_dialect.lines_terminated_by;
+  if (bound < needle.size()) return 0;
+  if (bound == 0) return 0;
+
+  size_t p = m_data.rfind(needle, bound - needle.size());
+  while (p != std::string::npos) {
+    if (!(p > 0 && m_data[p - 1] == m_dialect.fields_escaped_by[0])) {
+      assert(p < m_data.length());
+      return p + needle.size();
+    }
+    if (p < needle.size()) {
+      break;
+    }
+    p -= needle.size();
+    p = m_data.rfind(needle, p);
+  }
+
+  return 0;
 }
 
 // ------
@@ -486,6 +549,7 @@ void Load_data_worker::execute(
     fi.prog_bytes = m_prog_sent_bytes;
     fi.user_interrupt = &m_interrupt;
     fi.max_rate = m_opt.max_rate();
+    uint64_t max_trx_size = 0;
 
     // this sets the character_set_database and collation_database server
     // variables to the values the schema has
@@ -607,44 +671,52 @@ void Load_data_worker::execute(
     uint64_t subchunk = 0;
     while (true) {
       ++subchunk;
-      bool has_more_data = false;
       mysqlsh::import_table::File_import_info r;
 
       if (m_range_queue) {
-        r = m_range_queue->pop();
+        if (!fi.continuation) {
+          r = m_range_queue->pop();
 
-        if (r.is_guard) {
-          break;
-        }
+          if (r.is_guard) {
+            break;
+          }
 
-        fi.filename = r.file_path;
-        if (r.file_handler) {
-          fi.filehandler.reset(r.file_handler);
-        } else {
-          // todo(kg): reuse open file handler (change in local infile init
-          // callback needed).
-          //
-          // This is a case when chunker chunks single raw file. IF current
-          // handler points to the same file THEN reuse it ELSE
-          // create_file_handler
-          // Same when current thread keep open connection to OCI.
-          fi.filehandler = m_opt.create_file_handle(r.file_path);
+          fi.filename = r.file_path;
+          if (r.file_handler) {
+            fi.filehandler.reset(r.file_handler);
+          } else {
+            // todo(kg): reuse open file handler (change in local infile init
+            // callback needed).
+            //
+            // This is a case when chunker chunks single raw file. IF current
+            // handler points to the same file THEN reuse it ELSE
+            // create_file_handler
+            // Same when current thread keep open connection to OCI.
+            fi.filehandler = m_opt.create_file_handle(r.file_path);
+          }
+          fi.range_read = r.range_read;
+
+          if (r.range_read) {
+            fi.chunk_start = r.range.first;
+            fi.bytes_left = r.range.second - r.range.first;
+            max_trx_size = 0;
+          } else {
+            fi.chunk_start = 0;
+            fi.bytes_left = 0;
+            max_trx_size = m_opt.max_transaction_size();
+          }
+
+          fi.buffer = Transaction_buffer(
+              Transaction_buffer::General_Tx_buffer{}, m_opt.dialect(),
+              fi.filehandler.get(), max_trx_size);
         }
-        fi.range_read = r.range_read;
-        if (r.range_read) {
-          fi.chunk_start = r.range.first;
-          fi.bytes_left = r.range.second - r.range.first;
-        } else {
-          fi.chunk_start = 0;
-          fi.bytes_left = 0;
-        }
-        fi.buffer = Transaction_buffer(Dialect(), fi.filehandler.get());
       } else {
         if (file != nullptr) {
           fi.filename = file->full_path().real();
           fi.filehandler = std::move(file);
           file.reset(nullptr);
-          fi.buffer = Transaction_buffer(m_opt.dialect(), fi.filehandler.get(),
+          fi.buffer = Transaction_buffer(Transaction_buffer::Dumper_Tx_buffer{},
+                                         m_opt.dialect(), fi.filehandler.get(),
                                          options);
           fi.filehandler->open(mysqlshdk::storage::Mode::READ);
         }
@@ -692,7 +764,7 @@ void Load_data_worker::execute(
       try {
         fi.buffer.before_query();
         load_result = session->query(m_query_comment + full_query);
-        fi.buffer.flush_done(&has_more_data);
+        fi.buffer.flush_done(&fi.continuation);
         m_stats.total_bytes += fi.bytes;
         ++m_stats.total_files_processed;
       } catch (const mysqlshdk::db::Error &e) {
@@ -727,9 +799,9 @@ void Load_data_worker::execute(
         const char *mysql_info = session->get_mysql_info();
         const auto status =
             worker_name + task + ": " + (mysql_info ? mysql_info : "ERROR") +
-            (options.max_trx_size == 0
+            ((options.max_trx_size == 0 && max_trx_size == 0)
                  ? ""
-                 : (has_more_data
+                 : (fi.continuation
                         ? " - flushed sub-chunk " + std::to_string(subchunk)
                         : " - loading finished in " + std::to_string(subchunk) +
                               " sub-chunks"));
@@ -807,7 +879,7 @@ void Load_data_worker::execute(
         }
       }
 
-      if (!m_range_queue && !has_more_data) break;
+      if (!m_range_queue && !fi.continuation) break;
     }
   } catch (...) {
     m_thread_exception[m_thread_id] = std::current_exception();

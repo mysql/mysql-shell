@@ -114,6 +114,8 @@ bool has_wildcard(const std::string &s) {
 namespace mysqlsh {
 namespace import_table {
 
+constexpr auto k_default_chunk_size = "50M";
+
 const shcore::Option_pack_def<Import_table_option_pack>
     &Import_table_option_pack::options() {
   static const auto opts =
@@ -122,11 +124,13 @@ const shcore::Option_pack_def<Import_table_option_pack>
           .optional("schema", &Import_table_option_pack::m_schema)
           .optional("threads", &Import_table_option_pack::m_threads_size)
           .optional("bytesPerChunk",
-                    &Import_table_option_pack::m_bytes_per_chunk)
+                    &Import_table_option_pack::set_bytes_per_chunk)
+          .optional("maxBytesPerTransaction",
+                    &Import_table_option_pack::set_max_transaction_size)
           .optional("columns", &Import_table_option_pack::m_columns)
           .optional("replaceDuplicates",
                     &Import_table_option_pack::m_replace_duplicates)
-          .optional("maxRate", &Import_table_option_pack::m_max_rate)
+          .optional("maxRate", &Import_table_option_pack::set_max_rate)
           .optional("showProgress", &Import_table_option_pack::m_show_progress)
           .optional("skipRows", &Import_table_option_pack::m_skip_rows_count)
           .optional("decodeColumns",
@@ -145,8 +149,9 @@ void Import_table_option_pack::set_filenames(
   if (!is_multifile()) {
     // If loading single file, chunk size defaults to 50M if not specified by
     // the user.
-    if (m_bytes_per_chunk.empty()) {
-      m_bytes_per_chunk = "50M";
+    if (m_bytes_per_chunk.is_null()) {
+      m_bytes_per_chunk =
+          mysqlshdk::utils::expand_to_bytes(k_default_chunk_size);
     }
 
     // If loading single file, table name is taken from the file if not
@@ -264,7 +269,7 @@ void Import_table_options::validate() {
   }
 
   if (is_multifile()) {
-    if (!m_bytes_per_chunk.empty()) {
+    if (!m_bytes_per_chunk.is_null()) {
       throw std::runtime_error(
           "The 'bytesPerChunk' option cannot be used when loading from "
           "multiple files.");
@@ -328,12 +333,12 @@ size_t Import_table_option_pack::calc_thread_size() {
   return threads_size;
 }
 
-size_t Import_table_option_pack::max_rate() const {
-  if (!m_max_rate.empty()) {
-    return std::max(static_cast<size_t>(0),
-                    mysqlshdk::utils::expand_to_bytes(m_max_rate));
+uint64_t Import_table_option_pack::max_rate() const { return m_max_rate; }
+
+void Import_table_option_pack::set_max_rate(const std::string &value) {
+  if (!value.empty()) {
+    m_max_rate = std::max<size_t>(0, mysqlshdk::utils::expand_to_bytes(value));
   }
-  return 0;
 }
 
 Connection_options Import_table_options::connection_options() const {
@@ -358,10 +363,42 @@ Connection_options Import_table_options::connection_options() const {
   return connection_options;
 }
 
-size_t Import_table_option_pack::bytes_per_chunk() const {
+uint64_t Import_table_option_pack::bytes_per_chunk() const {
+  return *m_bytes_per_chunk;
+}
+
+void Import_table_option_pack::set_bytes_per_chunk(const std::string &value) {
+  if (value.empty()) {
+    return;
+  }
+
   constexpr const size_t min_bytes_per_chunk = 2 * BUFFER_SIZE;
-  return std::max(mysqlshdk::utils::expand_to_bytes(m_bytes_per_chunk),
-                  min_bytes_per_chunk);
+  m_bytes_per_chunk =
+      std::max(mysqlshdk::utils::expand_to_bytes(value), min_bytes_per_chunk);
+}
+
+void Import_table_option_pack::set_max_transaction_size(
+    const std::string &value) {
+  if (value.empty()) {
+    throw std::invalid_argument(
+        "The option 'maxBytesPerTransaction' cannot be set to an empty "
+        "string.");
+  }
+
+  m_max_bytes_per_transaction = mysqlshdk::utils::expand_to_bytes(value);
+
+  // Minimal value of max_binlog_cache_size value is 4096.
+  constexpr const uint64_t minimum_max_bytes_per_transaction = 4096;
+  if (m_max_bytes_per_transaction < minimum_max_bytes_per_transaction) {
+    throw std::invalid_argument(
+        "The value of 'maxBytesPerTransaction' option must be greater than or "
+        "equal to " +
+        std::to_string(minimum_max_bytes_per_transaction) + " bytes.");
+  }
+}
+
+size_t Import_table_option_pack::max_transaction_size() const {
+  return m_max_bytes_per_transaction;
 }
 
 std::string Import_table_options::target_import_info() const {

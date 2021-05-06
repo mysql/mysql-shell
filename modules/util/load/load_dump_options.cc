@@ -45,7 +45,7 @@ const char *k_excluded_users[] = {"mysql.infoschema", "mysql.session",
 const char *k_oci_excluded_users[] = {"administrator", "ociadmin", "ocimonitor",
                                       "ocirpl"};
 
-constexpr auto k_minimum_max_bytes_per_transaction = "128k";
+constexpr auto k_minimum_max_bytes_per_transaction = 4096;
 
 bool is_mds(const mysqlshdk::utils::Version &version) {
   return shcore::str_endswith(version.get_extra(), "cloud");
@@ -234,12 +234,11 @@ void Load_dump_options::set_max_bytes_per_transaction(
   m_max_bytes_per_transaction = mysqlshdk::utils::expand_to_bytes(value);
 
   if (m_max_bytes_per_transaction &&
-      *m_max_bytes_per_transaction < mysqlshdk::utils::expand_to_bytes(
-                                         k_minimum_max_bytes_per_transaction)) {
+      *m_max_bytes_per_transaction < k_minimum_max_bytes_per_transaction) {
     throw std::invalid_argument(
         "The value of 'maxBytesPerTransaction' option must be greater than or "
         "equal to " +
-        std::string{k_minimum_max_bytes_per_transaction} + ".");
+        std::to_string(k_minimum_max_bytes_per_transaction) + " bytes.");
   }
 }
 

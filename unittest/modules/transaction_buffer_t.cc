@@ -31,11 +31,31 @@
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
 
+namespace {
+void hexify(const std::string &data, std::string *out) {
+  if (data.size() == 0) {
+    out->resize(0);
+    return;
+  }
+  out->resize(3 * data.size());
+
+  std::string::iterator k = out->begin();
+
+  for (const unsigned char i : data) {
+    *k++ = "0123456789abcdef"[i >> 4];
+    *k++ = "0123456789abcdef"[i & 0x0F];
+    *k++ = ' ';
+  }
+  out->resize(3 * data.size() - 1);
+}
+}  // namespace
+
 namespace mysqlsh {
 namespace import_table {
 
 void append_row(std::string *buffer, int length) {
   std::string s;
+  s.reserve(3 * length);
   for (int i = 0; i < length; i++) {
     s.push_back('!' + i % (127 - '!'));
   }
@@ -66,7 +86,8 @@ void test_subchunking(int max_trx_size, int net_buffer_size, int first_row_size,
       max_trx_size, net_buffer_size, first_row_size, num_rows, row_size,
       row_size_variance, data.size()));
 
-  bool debug = false;
+  const bool debug = false;
+  std::string hexdata;
 
   // debug = max_trx_size == 12 && net_buffer_size == 10 && first_row_size == 18
   // && num_rows == 4 && row_size == 0 && row_size_variance == 6 &&
@@ -76,7 +97,8 @@ void test_subchunking(int max_trx_size, int net_buffer_size, int first_row_size,
 
   Transaction_options options;
   options.max_trx_size = max_trx_size;
-  Transaction_buffer buffer(Dialect::default_(), &mfile, options);
+  Transaction_buffer buffer(Transaction_buffer::Dumper_Tx_buffer{},
+                            Dialect::default_(), &mfile, options);
 
   std::string net_buffer;
   net_buffer.resize(net_buffer_size);
@@ -84,9 +106,10 @@ void test_subchunking(int max_trx_size, int net_buffer_size, int first_row_size,
   std::string full_reassembled_data;
 
   if (debug) {
+    hexify(data, &hexdata);
     std::cout << "==begin data==\n";
-    std::cout << data;
-    std::cout << "==end data==\n";
+    std::cout << hexdata;
+    std::cout << "\n==end data==\n";
   }
 
   // this iterates over different transactions
@@ -106,11 +129,16 @@ void test_subchunking(int max_trx_size, int net_buffer_size, int first_row_size,
       EXPECT_LE(bytes, net_buffer.size()) << "buffer overrun!";
 
       if (debug) {
-        std::cout << "FEED(" << bytes << "): " << net_buffer.substr(0, bytes)
-                  << "\n";
+        hexify(net_buffer.substr(0, bytes), &hexdata);
+        std::cout << "FEED(" << bytes << "): " << hexdata << "\n";
       }
 
       transaction_data.append(&net_buffer[0], bytes);
+
+      if (debug) {
+        hexify(transaction_data, &hexdata);
+        std::cout << "Tx data: " << hexdata << '\n';
+      }
 
       // check trx overflows
       if (std::count(transaction_data.begin(), transaction_data.end(), '\n') <=
@@ -160,7 +188,7 @@ void test_subchunking(int max_trx_size, int net_buffer_size, int first_row_size,
   // data must match
   EXPECT_EQ(data, full_reassembled_data);
 
-  if (debug) throw std::logic_error("debug stop");
+  // if (debug) throw std::logic_error("debug stop");
 }
 
 TEST(Transaction_buffer, test_subchunking) {

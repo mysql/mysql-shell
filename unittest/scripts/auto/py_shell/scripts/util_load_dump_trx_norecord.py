@@ -5,12 +5,7 @@ import random
 import json
 
 def rand_text(size):
-    s = "["
-    alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&()*+,-./:;<=>?@^_{|}~'
-    for i in range(size-2):
-        s += random.choice(alphabet)
-    s += "]"
-    return s
+    return "["+ "".join(random.choices('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&()*+,-./:;<=>?@^_{|}~', k=size-2)) +"]"
 
 
 def TEST_LOAD(dump, net_buffer_length, max_binlog_cache_size, remove_progress = True, options = {}):
@@ -453,7 +448,7 @@ help_text="""
       - maxBytesPerTransaction: string (default taken from dump) - Specifies
         the maximum number of bytes that can be loaded from a dump data file
         per single LOAD DATA statement. Supports unit suffixes: k (kilobytes),
-        M (Megabytes), G (Gigabytes). Minimum value: "128k". If this option is
+        M (Megabytes), G (Gigabytes). Minimum value: 4096. If this option is
         not specified explicitly, the value of the bytesPerChunk dump option is
         used, but only in case of the files with data size greater than 1.5 *
         bytesPerChunk.
@@ -493,12 +488,12 @@ for value in [ "xyz", "1xyz", "2Mhz", "0.1k", "0,3M" ]:
 EXPECT_THROWS(lambda: util.load_dump(output_path, { "maxBytesPerTransaction" : "-1G" }), 'ValueError: Util.load_dump: Argument #2: Input number "-1G" cannot be negative')
 
 #@<> WL14577-TSFR_1_4
-for value in [ "1000k", "1M", "1G", "128000" ]:
+for value in ("1000k", "1M", "1G", "128000"):
     TEST_LOAD(output_folder, net_buffer_length, max_binlog_cache_size, options = { "maxBytesPerTransaction" : value })
 
 #@<> WL14577-TSFR_1_5
-for value in [ "127k", "127999", "1", "0" ]:
-    EXPECT_THROWS(lambda: util.load_dump(output_path, { "maxBytesPerTransaction" : value }), f"ValueError: Util.load_dump: Argument #2: The value of 'maxBytesPerTransaction' option must be greater than or equal to 128k.")
+for value in ("4k", "4095", "3999", "1", "0"):
+    EXPECT_THROWS(lambda: util.load_dump(output_path, { "maxBytesPerTransaction" : value }), f"ValueError: Util.load_dump: Argument #2: The value of 'maxBytesPerTransaction' option must be greater than or equal to 4096 bytes.")
 
 EXPECT_THROWS(lambda: util.load_dump(output_path, { "maxBytesPerTransaction" : "-1" }), 'ValueError: Util.load_dump: Argument #2: Input number "-1" cannot be negative')
 
