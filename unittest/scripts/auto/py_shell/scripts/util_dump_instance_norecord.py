@@ -374,7 +374,8 @@ def EXPECT_SUCCESS(schemas, outputUrl, options = {}):
         options["excludeSchemas"] = excluded
     util.dump_instance(outputUrl, options)
     excluded = options["excludeSchemas"] if "excludeSchemas" in options else []
-    EXPECT_STDOUT_CONTAINS("Schemas dumped: {0}".format(len(set(all_schemas) - set(excluded))))
+    if not "dryRun" in options:
+        EXPECT_STDOUT_CONTAINS("Schemas dumped: {0}".format(len(set(all_schemas) - set(excluded))))
 
 def EXPECT_FAIL(error, msg, outputUrl, options = {}, expect_dir_created = False):
     shutil.rmtree(test_output_absolute, True)
@@ -1066,9 +1067,14 @@ TEST_BOOL_OPTION("dryRun")
 # WL13807-TSFR4_27
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
+# BUG#32695301 - lock one of the tables, dry run should not attempt to execute FLUSH TABLES WITH READ LOCK and dump should succeed
+session.run_sql("LOCK TABLES !.! WRITE", [ test_schema, test_table_unique ])
 testutil.call_mysqlsh([uri, "--", "util", "dump-instance", test_output_absolute, "--dry-run", "--show-progress=false"])
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_NOT_CONTAINS("Schemas dumped: ")
+EXPECT_STDOUT_CONTAINS("dryRun enabled, no locks will be acquired and no files will be created.")
+# BUG#32695301 - unlock the tables
+session.run_sql("UNLOCK TABLES")
 
 #@<> WL13807-FR4.9.2 - If the `dryRun` option is not given, a default value of `false` must be used instead.
 # WL13807-TSFR4_26
@@ -1836,9 +1842,9 @@ required_privileges = {
     "EVENT": PrivilegeError(  # database-level privilege
         re.compile(r"User '{0}'@'{1}' is missing the following privilege\(s\) for schema `.+`: EVENT.".format(test_user, __host))
     ),
-    "RELOAD": PrivilegeError(  # global privilege
-        "Unable to lock tables: MySQL Error 1044 (42000): Access denied for user '{0}'@'{1}'".format(test_user, __host),
-        "ERROR: Unable to acquire global read lock neither table read locks."
+    "RELOAD": PrivilegeError(  # global privilege; if this privilege is missing, FTWRL will fail and dump will fallback to LOCK TABLES
+        re.compile(r"Unable to lock tables: User '{0}'@'{1}' is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES.".format(test_user, __host)),
+        "WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES..."
     ),
     "SELECT": PrivilegeError(  # table-level privilege
         "Fatal error during dump",
@@ -1863,14 +1869,13 @@ required_privileges = {
 if __version_num >= 80000:
     # when running a consistent dump on 8.0, LOCK INSTANCE FOR BACKUP is executed, which requires BACKUP_ADMIN privilege
     required_privileges["BACKUP_ADMIN"] = PrivilegeError(  # global privilege
-        "Access denied; you need (at least one of) the BACKUP_ADMIN privilege(s) for this operation",
-        "ERROR: Could not acquire backup lock: MySQL Error 1227 (42000): Access denied; you need (at least one of) the BACKUP_ADMIN privilege(s) for this operation",
-        "DBError: MySQL Error (1227)"
+        "Could not acquire the backup lock",
+        f"ERROR: User '{test_user}'@'{__host}' is missing the BACKUP_ADMIN privilege and cannot execute 'LOCK INSTANCE FOR BACKUP'."
     )
     # 8.0 has roles which are checked prior to running the dump, if user is missing the SELECT privilege, error will be reported at this stage
     required_privileges["SELECT"] = PrivilegeError(  # table-level privilege
-        "Could not execute 'SELECT DISTINCT user, host FROM mysql.user WHERE authentication_string='' AND account_locked='Y' AND password_expired='Y'",
-        "MySQL Error 1142 (42000): SELECT command denied to user '{0}'@'{1}' for table '".format(test_user, __host)
+        "Unable to get roles information.",
+        "ERROR: Unable to check privileges for user '{0}'@'{1}'. User requires SELECT privilege on mysql.* to obtain information about all roles.".format(test_user, __host)
     )
 
 # setup the user, grant only required privileges
@@ -1907,6 +1912,13 @@ for privilege, error in required_privileges.items():
     else:
         EXPECT_SUCCESS(all_schemas, test_output_absolute, { "showProgress": False })
     EXPECT_STDOUT_CONTAINS(error.error_message)
+    # repeat with dry run
+    WIPE_STDOUT()
+    if error.fatal:
+        EXPECT_FAIL(error.exception_type, error.exception_message, test_output_absolute, { "dryRun": True, "showProgress": False }, expect_dir_created=False)
+    else:
+        EXPECT_SUCCESS(all_schemas, test_output_absolute, { "dryRun": True, "showProgress": False })
+    EXPECT_STDOUT_CONTAINS(error.error_message)
     root_session.run_sql("GRANT {0} ON *.* TO !@!;".format(privilege), [test_user, __host])
 
 # cleanup
@@ -1937,15 +1949,39 @@ shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host,
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 
-#@<> revoke lock tables from mysql.*  {VER(>=8.0.0)}
+#@<> BUG#32695301 - lock one of the mysql tables, dry run should not attempt to execute LOCK TABLES and dump should succeed
+setup_session()
+session.run_sql("LOCK TABLES mysql.user WRITE")
+shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+
+setup_session()
+session.run_sql("UNLOCK TABLES")
+
+#@<> revoke lock tables from mysql.*  {VER(>=8.0.16)}
 setup_session()
 session.run_sql("SET GLOBAL partial_revokes=1")
 session.run_sql("REVOKE LOCK TABLES ON mysql.* FROM !@!;", [test_user, __host])
 shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
 
-#@<> try again, this time it should succeed but without locking mysql.* tables  {VER(>=8.0.0)}
+#@<> try again, this time it should succeed but without locking mysql.* tables  {VER(>=8.0.16)}
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_CONTAINS("WARNING: Could not lock mysql system tables: User 'sample_user'@'localhost' is missing the following privilege(s) for schema `mysql`: LOCK TABLES.")
+
+#@<> BUG#32695301 - lock one of the dumped tables, dry run should not attempt to execute LOCK TABLES and dump should succeed  {VER(>=8.0.16)}
+setup_session()
+session.run_sql("LOCK TABLES !.! WRITE", [ types_schema, types_schema_tables[0] ])
+shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_CONTAINS("WARNING: Could not lock mysql system tables: User 'sample_user'@'localhost' is missing the following privilege(s) for schema `mysql`: LOCK TABLES.")
+
+setup_session()
+session.run_sql("UNLOCK TABLES")
 
 #@<> revoke lock tables from the rest
 setup_session()
@@ -1953,7 +1989,12 @@ session.run_sql("REVOKE LOCK TABLES ON *.* FROM !@!;", [test_user, __host])
 shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
 
 #@<> try to run consistent dump using a user which does not have any required privileges
-EXPECT_FAIL("RuntimeError", "Unable to lock tables: MySQL Error 1044 (42000): Access denied for user 'sample_user'@'localhost' to database '", test_output_absolute, { "showProgress": False })
+EXPECT_FAIL("RuntimeError", re.compile(r"Unable to lock tables: User 'sample_user'@'localhost' is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES."), test_output_absolute, { "showProgress": False })
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table read locks")
+
+#@<> BUG#32695301 - dry run should fail as well
+EXPECT_FAIL("RuntimeError", re.compile(r"Unable to lock tables: User 'sample_user'@'localhost' is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES."), test_output_absolute, { "dryRun": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table read locks")
 

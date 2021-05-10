@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "unittest/mysqlshdk/libs/mysql/user_privileges_t.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 #include "unittest/test_utils/shell_base_test.h"
@@ -997,27 +998,22 @@ TEST_F(Instance_test, create_user) {
 TEST_F(Instance_test, get_user_privileges_user_does_not_exist) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);
-  mysqlshdk::mysql::Instance instance(_session);
 
   // Check non existing user.
-  session
-      .expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-          "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-          "WHERE GRANTEE = '\\'notexist_user\\'@\\'notexist_host\\''")
-      .then_return({{
-          "",
-          {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
-          {Type::String, Type::String},
-          {}  // No Records
-      }});
+  testing::user_privileges::Setup_options options;
 
+  options.user = "notexist_user";
+  options.host = "notexist_host";
+  options.user_exists = false;
   // Simulate 5.7 version is used (not relevant here, 5.7 used to avoid
   // executing additional queries to update the ALL privileges list).
-  EXPECT_CALL(session, get_server_version())
-      .WillRepeatedly(Return(mysqlshdk::utils::Version(5, 7, 28)));
+  options.is_8_0 = false;
 
-  auto up = instance.get_user_privileges("notexist_user", "notexist_host");
+  testing::user_privileges::setup(options, &session);
+
+  mysqlshdk::mysql::Instance instance(_session);
+
+  auto up = instance.get_user_privileges(options.user, options.host);
 
   ASSERT_TRUE(nullptr != up);
 
@@ -1030,90 +1026,28 @@ TEST_F(Instance_test, get_user_privileges_user_does_not_exist) {
 TEST_F(Instance_test, get_user_privileges_user_exists) {
   EXPECT_CALL(session, connect(_connection_options));
   _session->connect(_connection_options);
-  mysqlshdk::mysql::Instance instance(_session);
 
   // user with some privileges
-  session
-      .expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-          "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-          "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\''")
-      .then_return({{"",
-                     {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
-                     {Type::String, Type::String},
-                     {{"USAGE", "NO"}}}});
+  testing::user_privileges::Setup_options options;
 
-  std::vector<std::string> plugins = {"audit_log", "mysql_firewall",
-                                      "version_tokens"};
-  for (const auto &plugin_name : plugins) {
-    std::string query =
-        "SELECT plugin_status FROM information_schema.plugins "
-        "WHERE plugin_name = '" +
-        plugin_name + "'";
-    session.expect_query(query).then_return({{
-        "", {"plugin_status"}, {Type::String}, {}  // No record
-    }});
-  }
-
-  session
-      .expect_query(
-          "SELECT engine FROM information_schema.engines "
-          "WHERE engine = 'NDBCLUSTER'")
-      .then_return({{
-          "", {"engine"}, {Type::String}, {}  // No record
-      }});
-
-  session
-      .expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
-          "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
-          "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\'' "
-          "ORDER BY TABLE_SCHEMA")
-      .then_return({{"",
-                     {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
-                     {Type::String, Type::String, Type::String},
-                     {{"INSERT", "NO", "test_db"},
-                      {"SELECT", "NO", "test_db"},
-                      {"UPDATE", "NO", "test_db"},
-                      {"SELECT", "YES", "test_db2"}}}});
-  session
-      .expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
-          "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
-          "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\'' "
-          "ORDER BY TABLE_SCHEMA, TABLE_NAME")
-      .then_return(
-          {{"",
-            {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA", "TABLE_NAME"},
-            {Type::String, Type::String, Type::String, Type::String},
-            {{"DELETE", "NO", "test_db", "t1"},
-             {"DROP", "YES", "test_db", "t2"},
-             {"ALTER", "YES", "test_db", "t2"}}}});
-
+  options.user = "test_user";
+  options.host = "test_host";
   // Simulate 8.0.0 version is always used.
-  EXPECT_CALL(session, get_server_version())
-      .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 0)));
+  options.is_8_0 = true;
 
-  // User with no roles.
-  session
-      .expect_query("SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login'")
-      .then_return({{"",
-                     {"Variable_name", "Value"},
-                     {Type::String},
-                     {{"activate_all_roles_on_login", "OFF"}}}});
-  session
-      .expect_query(
-          "SELECT default_role_user, default_role_host "
-          "FROM mysql.default_roles "
-          "WHERE user = 'test_user' AND host = 'test_host'")
-      .then_return({{
-          "",
-          {"default_role_user", "default_role_host"},
-          {Type::String, Type::String},
-          {}  // No Records.
-      }});
+  options.grants = {
+      "GRANT USAGE ON *.* TO u@h",
+      "GRANT INSERT, SELECT, UPDATE ON `test_db`.* TO u@h",
+      "GRANT SELECT ON `test_db2`.* TO u@h WITH GRANT OPTION",
+      "GRANT DELETE ON `test_db`.`t1` TO u@h",
+      "GRANT DROP, ALTER ON `test_db`.`t2` TO u@h WITH GRANT OPTION",
+  };
 
-  auto up = instance.get_user_privileges("test_user", "test_host");
+  testing::user_privileges::setup(options, &session);
+
+  mysqlshdk::mysql::Instance instance(_session);
+
+  auto up = instance.get_user_privileges(options.user, options.host);
 
   ASSERT_TRUE(nullptr != up);
 

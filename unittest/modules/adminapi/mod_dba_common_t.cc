@@ -33,6 +33,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "scripting/types.h"
 #include "unittest/gtest_clean.h"
+#include "unittest/mysqlshdk/libs/mysql/user_privileges_t.h"
 #include "unittest/test_utils/admin_api_test.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 #include "unittest/test_utils/mod_testutils.h"
@@ -903,72 +904,27 @@ TEST_F(Dba_common_test, check_admin_account_access_restrictions) {
   // privileges, which is not the one currently used (passed as parameter):
   // - Return true independently of the interactive mode.
 
-  auto expect_all_privileges = [](std::shared_ptr<Mock_session> &session) {
-    session
-        ->expect_query(
-            "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-            "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-            "WHERE GRANTEE = '\\'admin\\'@\\'%\\''")
-        .then_return({{"",
-                       {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
-                       {Type::String, Type::String},
-                       {{"SELECT", "YES"},
-                        {"INSERT", "YES"},
-                        {"UPDATE", "YES"},
-                        {"DELETE", "YES"},
-                        {"CREATE", "YES"},
-                        {"DROP", "YES"},
-                        {"RELOAD", "YES"},
-                        {"SHUTDOWN", "YES"},
-                        {"PROCESS", "YES"},
-                        {"FILE", "YES"},
-                        {"REFERENCES", "YES"},
-                        {"INDEX", "YES"},
-                        {"ALTER", "YES"},
-                        {"SHOW DATABASES", "YES"},
-                        {"SUPER", "YES"},
-                        {"CREATE TEMPORARY TABLES", "YES"},
-                        {"LOCK TABLES", "YES"},
-                        {"EXECUTE", "YES"},
-                        {"REPLICATION SLAVE", "YES"},
-                        {"REPLICATION CLIENT", "YES"},
-                        {"CREATE VIEW", "YES"},
-                        {"SHOW VIEW", "YES"},
-                        {"CREATE ROUTINE", "YES"},
-                        {"ALTER ROUTINE", "YES"},
-                        {"CREATE USER", "YES"},
-                        {"EVENT", "YES"},
-                        {"TRIGGER", "YES"},
-                        {"CREATE TABLESPACE", "YES"}}}});
-    session
-        ->expect_query(
-            "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
-            "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
-            "WHERE GRANTEE = '\\'admin\\'@\\'%\\'' "
-            "ORDER BY TABLE_SCHEMA")
-        .then_return({{
-            "",
-            {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
-            {Type::String, Type::String, Type::String},
-            {}  // No Records.
-        }});
-    session
-        ->expect_query(
-            "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
-            "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
-            "WHERE GRANTEE = '\\'admin\\'@\\'%\\'' "
-            "ORDER BY TABLE_SCHEMA, TABLE_NAME")
-        .then_return({{
-            "",
-            {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA", "TABLE_NAME"},
-            {Type::String, Type::String, Type::String, Type::String},
-            {}  // No Records.
-        }});
+  auto expect_all_privileges =
+      [](const std::shared_ptr<Mock_session> &session) {
+        testing::user_privileges::Setup_options options;
 
-    // Simulate version is always < 8.0.0 (5.7.0) to skip reading roles data.
-    EXPECT_CALL(*session, get_server_version())
-        .WillRepeatedly(Return(mysqlshdk::utils::Version(5, 7, 0)));
-  };
+        options.user = "admin";
+        options.host = "%";
+        // Simulate version is always < 8.0.0 (5.7.0) to skip reading roles
+        // data.
+        options.is_8_0 = false;
+
+        options.grants = {
+            "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, "
+            "SHUTDOWN, PROCESS, FILE, REFERENCES, INDEX, ALTER, SHOW "
+            "DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, "
+            "REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, "
+            "CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, "
+            "CREATE TABLESPACE ON *.* TO 'admin'@'%' WITH GRANT OPTION",
+        };
+
+        testing::user_privileges::setup(options, session.get());
+      };
 
   mock_session
       ->expect_query(
