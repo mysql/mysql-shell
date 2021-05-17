@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -309,11 +309,11 @@ class SQL_iterator {
   /** Is iterator pointing to valid character inside SQL string */
   bool valid() const { return m_offset < m_s.length(); }
 
-  std::string get_next_token();
+  std::string next_token();
 
-  std::pair<std::string, size_t> get_next_token_and_offset();
+  std::pair<std::string, size_t> next_token_and_offset();
 
-  std::string get_next_sql_function();
+  std::string next_sql_function();
 
   bool inside_hint() const { return m_comment_hint; }
 

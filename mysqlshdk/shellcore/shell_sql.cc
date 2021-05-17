@@ -189,18 +189,20 @@ bool Shell_sql::process_sql(const char *query_str, size_t query_len,
   if (ret_val && query_len > 12 &&
       (query_str[2] == 't' || query_str[2] == 'T' || query_str[1] == '*')) {
     mysqlshdk::utils::SQL_iterator it(_last_handled);
-    auto next = shcore::str_upper(it.get_next_token());
+    auto next = shcore::str_upper(it.next_token());
     if (next.compare("SET") == 0) {
       constexpr std::array<const char *, 4> mods = {"GLOBAL", "PERSIST",
                                                     "SESSION", "LOCAL"};
-      next = shcore::str_upper(it.get_next_token());
+      next = shcore::str_upper(it.next_token());
       for (const char *mod : mods)
         if (next.compare(mod) == 0) {
-          next = shcore::str_upper(it.get_next_token());
+          next = it.next_token();
           break;
         }
 
-      if (next.find("SQL_MODE") != std::string::npos) {
+      while (next == "@") next = it.next_token();
+
+      if (shcore::str_upper(next).find("SQL_MODE") != std::string::npos) {
         session->refresh_sql_mode();
         splitter->set_ansi_quotes(session->ansi_quotes_enabled());
       }

@@ -828,7 +828,7 @@ class Removed_functions_check : public Sql_upgrade_check {
     std::string definition = row->get_as_string(4);
     mysqlshdk::utils::SQL_iterator it(definition);
     std::string func;
-    while (!(func = it.get_next_sql_function()).empty()) {
+    while (!(func = it.next_sql_function()).empty()) {
       auto i = functions.find(func);
       if (i != functions.end()) flagged_functions.emplace_back(*i);
     }
@@ -905,10 +905,10 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
     bool gb_found = false;
     std::string token;
 
-    while (!(token = it.get_next_token()).empty()) {
+    while (!(token = it.next_token()).empty()) {
       if (token == "GROUP") {
         auto pos = it.position();
-        if (it.get_next_token() == "BY")
+        if (it.next_token() == "BY")
           gb_found = true;
         else
           it.set_position(pos);
@@ -916,7 +916,7 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
         gb_found = false;
       } else if (token == "ORDER") {
         auto pos = it.position();
-        if (it.get_next_token() == "BY")
+        if (it.next_token() == "BY")
           gb_found = false;
         else
           it.set_position(pos);

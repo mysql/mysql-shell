@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -165,22 +165,15 @@ SQL_iterator &SQL_iterator::operator++() {
   return *this;
 }
 
-std::string SQL_iterator::get_next_token() {
-  return get_next_token_and_offset().first;
-}
+std::string SQL_iterator::next_token() { return next_token_and_offset().first; }
 
-std::pair<std::string, size_t> SQL_iterator::get_next_token_and_offset() {
+std::pair<std::string, size_t> SQL_iterator::next_token_and_offset() {
   while (valid() && std::isspace(get_char())) ++(*this);
   if (!valid()) return {std::string(), m_offset};
 
-  auto previous = m_offset;
-  const auto start = previous;
-
+  const auto start = m_offset;
   if (!m_skip_quoted) {
     switch (get_char()) {
-      case '`':
-        m_offset = span_quoted_sql_identifier_bt(m_s, m_offset);
-        return {m_s.substr(start, m_offset - start), start};
       case '\'':
         m_offset = span_quoted_string_sq(m_s, m_offset);
         return {m_s.substr(start, m_offset - start), start};
@@ -190,6 +183,7 @@ std::pair<std::string, size_t> SQL_iterator::get_next_token_and_offset() {
     }
   }
 
+  auto previous = m_offset;
   do {
     const auto c = get_char();
     bool break_time = false;
@@ -199,12 +193,23 @@ std::pair<std::string, size_t> SQL_iterator::get_next_token_and_offset() {
       case '(':
       case ')':
       case '=':
+      case '@':
         break_time = true;
         break;
       case '\'':
       case '"':
-      case '`':
         break_time = !m_skip_quoted;
+        break;
+      case '`':
+        if (!m_skip_quoted) {
+          if (m_offset == start || m_s[m_offset - 1] == '.') {
+            m_offset = span_quoted_sql_identifier_bt(m_s, m_offset);
+            if (!valid() || get_char() != '.')
+              return {m_s.substr(start, m_offset - start), start};
+          } else {
+            break_time = true;
+          }
+        }
         break;
       default:
         if (std::isspace(c) || m_offset - previous > 1) break_time = true;
@@ -223,9 +228,9 @@ std::pair<std::string, size_t> SQL_iterator::get_next_token_and_offset() {
   return {m_s.substr(start, previous + 1 - start), start};
 }
 
-std::string SQL_iterator::get_next_sql_function() {
+std::string SQL_iterator::next_sql_function() {
   std::string token;
-  while (!(token = get_next_token()).empty()) {
+  while (!(token = next_token()).empty()) {
     if (!std::isalpha(token.front())) continue;
     if (valid() && get_char() == '(') break;
   }
