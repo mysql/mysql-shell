@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -300,7 +300,11 @@ bool Result::pre_fetch_rows(bool persistent) {
 
 void Result::stop_pre_fetch() { _stop_pre_fetch = true; }
 
-bool Result::has_resultset() { return _result->has_resultset(); }
+bool Result::has_resultset() {
+  // Determining whether there is data or not is based on the metadata which is
+  // already cached on this result object
+  return !_metadata.empty();
+}
 
 bool Result::next_resultset() {
   bool ret_val = false;

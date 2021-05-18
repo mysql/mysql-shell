@@ -47,8 +47,8 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
   explicit BaseResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
   virtual ~BaseResult();
 
-  virtual shcore::Value get_member(const std::string &prop) const;
-  virtual void append_json(shcore::JSON_dumper &dumper) const;
+  shcore::Value get_member(const std::string &prop) const override;
+  void append_json(shcore::JSON_dumper &dumper) const override;
 
   // C++ Interface
   int64_t get_affected_items_count() const;
@@ -93,10 +93,17 @@ class SHCORE_PUBLIC BaseResult : public mysqlsh::ShellBaseResult {
   str get_execution_time();
 #endif
 
-  virtual mysqlshdk::db::IResult *get_result() const { return _result.get(); }
+  mysqlshdk::db::IResult *get_result() const override { return _result.get(); }
+  bool has_data() const override;
 
  protected:
   std::shared_ptr<mysqlshdk::db::mysqlx::Result> _result;
+
+ private:
+  std::string get_protocol() const override { return "mysqlx"; }
+  const std::vector<mysqlshdk::db::Column> &get_metadata() const override {
+    return _result->get_metadata();
+  }
 };
 
 /**
@@ -109,9 +116,9 @@ class SHCORE_PUBLIC Result : public BaseResult {
  public:
   explicit Result(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
 
-  virtual std::string class_name() const { return "Result"; }
-  virtual shcore::Value get_member(const std::string &prop) const;
-  virtual void append_json(shcore::JSON_dumper &dumper) const;
+  std::string class_name() const override { return "Result"; }
+  shcore::Value get_member(const std::string &prop) const override;
+  void append_json(shcore::JSON_dumper &dumper) const override;
 
   // C++ Interface
   int64_t get_auto_increment_value() const;
@@ -159,10 +166,8 @@ class SHCORE_PUBLIC DocResult : public BaseResult {
   shcore::Dictionary_t fetch_one() const;
   shcore::Array_t fetch_all() const;
 
-  virtual std::string class_name() const { return "DocResult"; }
-  virtual void append_json(shcore::JSON_dumper &dumper) const;
-
-  shcore::Value get_metadata() const;
+  std::string class_name() const override { return "DocResult"; }
+  void append_json(shcore::JSON_dumper &dumper) const override;
 
 #if DOXYGEN_JS
   Document fetchOne();
@@ -187,14 +192,10 @@ class SHCORE_PUBLIC RowResult : public BaseResult {
   std::shared_ptr<mysqlsh::Row> fetch_one() const;
   shcore::Array_t fetch_all() const;
   shcore::Dictionary_t _fetch_one_object();
-  virtual shcore::Value get_member(const std::string &prop) const;
+  shcore::Value get_member(const std::string &prop) const override;
 
-  virtual std::string class_name() const { return "RowResult"; }
-  virtual void append_json(shcore::JSON_dumper &dumper) const;
-
-  virtual std::shared_ptr<std::vector<std::string>> get_column_names() const {
-    return _column_names;
-  }
+  std::string class_name() const override { return "RowResult"; }
+  void append_json(shcore::JSON_dumper &dumper) const override;
 
   // C++ Interface
   int64_t get_column_count() const;
@@ -225,10 +226,6 @@ class SHCORE_PUBLIC RowResult : public BaseResult {
   list get_column_names();
   list get_columns();
 #endif
-
- private:
-  std::shared_ptr<std::vector<std::string>> _column_names;
-  mutable shcore::Value::Array_type_ref _columns;
 };
 
 /**
@@ -239,13 +236,12 @@ class SHCORE_PUBLIC SqlResult : public RowResult {
  public:
   explicit SqlResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result);
 
-  virtual std::string class_name() const { return "SqlResult"; }
-  virtual shcore::Value get_member(const std::string &prop) const;
+  std::string class_name() const override { return "SqlResult"; }
+  shcore::Value get_member(const std::string &prop) const override;
 
-  bool has_data() const;
   bool next_data_set();
   bool next_result();
-  virtual void append_json(shcore::JSON_dumper &dumper) const;
+  void append_json(shcore::JSON_dumper &dumper) const override;
 
   // C++ Interface
   int64_t get_affected_row_count() const;

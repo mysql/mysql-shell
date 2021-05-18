@@ -139,6 +139,10 @@ shcore::Value BaseResult::get_member(const std::string &prop) const {
   return ret_val;
 }
 
+bool BaseResult::has_data() const {
+  return _result && _result->has_resultset();
+}
+
 // Documentation of getAffectedItemCount function
 REGISTER_HELP_PROPERTY(affectedItemsCount, BaseResult);
 REGISTER_HELP(BASERESULT_AFFECTEDITEMSCOUNT_BRIEF,
@@ -518,19 +522,6 @@ shcore::Array_t DocResult::fetch_all() const {
   return array;
 }
 
-shcore::Value DocResult::get_metadata() const {
-  if (!_metadata) {
-    shcore::Value data_type = mysqlsh::Constant::get_constant(
-        "mysqlx", "Type", "JSON", shcore::Argument_list());
-
-    const mysqlshdk::db::Column &column_md(_result->get_metadata()[0]);
-
-    _metadata = shcore::Value::wrap(new mysqlsh::Column(column_md, data_type));
-  }
-
-  return _metadata;
-}
-
 void DocResult::append_json(shcore::JSON_dumper &dumper) const {
   dumper.start_object();
 
@@ -558,10 +549,6 @@ RowResult::RowResult(std::shared_ptr<mysqlshdk::db::mysqlx::Result> result)
   expose("fetchOne", &RowResult::fetch_one);
   expose("fetchAll", &RowResult::fetch_all);
   expose("fetchOneObject", &RowResult::_fetch_one_object);
-
-  _column_names.reset(new std::vector<std::string>());
-  for (auto &cmd : _result->get_metadata())
-    _column_names->push_back(cmd.get_column_label());
 }
 
 shcore::Value RowResult::get_member(const std::string &prop) const {
@@ -569,15 +556,24 @@ shcore::Value RowResult::get_member(const std::string &prop) const {
   if (prop == "columnCount") {
     ret_val = shcore::Value(get_column_count());
   } else if (prop == "columnNames") {
-    std::shared_ptr<shcore::Value::Array_type> array(
-        new shcore::Value::Array_type);
-    for (auto &column : *_column_names) {
-      array->push_back(shcore::Value(column));
+    update_column_cache();
+    auto array = shcore::make_array();
+
+    if (m_column_names) {
+      for (auto &column : *m_column_names) {
+        array->push_back(shcore::Value(column));
+      }
     }
 
     ret_val = shcore::Value(array);
   } else if (prop == "columns") {
-    ret_val = shcore::Value(get_columns());
+    update_column_cache();
+
+    if (m_columns) {
+      ret_val = shcore::Value(m_columns);
+    } else {
+      ret_val = shcore::Value(shcore::make_array());
+    }
   } else {
     ret_val = BaseResult::get_member(prop);
   }
@@ -647,92 +643,6 @@ List RowResult::getColumns() {}
 #elif DOXYGEN_PY
 list RowResult::get_columns() {}
 #endif
-shcore::Value::Array_type_ref RowResult::get_columns() const {
-  if (!_columns) {
-    _columns.reset(new shcore::Value::Array_type);
-
-    for (auto &column_meta : _result->get_metadata()) {
-      std::string type_name;
-      switch (column_meta.get_type()) {
-        case mysqlshdk::db::Type::Null:
-          break;
-        case mysqlshdk::db::Type::String:
-          type_name = "STRING";
-          break;
-        case mysqlshdk::db::Type::Integer:
-        case mysqlshdk::db::Type::UInteger:
-          type_name = "INT";
-          switch (column_meta.get_length()) {
-            case 3:
-            case 4:
-              type_name = "TINYINT";
-              break;
-            case 5:
-            case 6:
-              type_name = "SMALLINT";
-              break;
-            case 8:
-            case 9:
-              type_name = "MEDIUMINT";
-              break;
-            case 10:
-            case 11:
-              type_name = "INT";
-              break;
-            case 20:
-              type_name = "BIGINT";
-              break;
-          }
-          break;
-        case mysqlshdk::db::Type::Float:
-          type_name = "FLOAT";
-          break;
-        case mysqlshdk::db::Type::Double:
-          type_name = "DOUBLE";
-          break;
-        case mysqlshdk::db::Type::Decimal:
-          type_name = "DECIMAL";
-          break;
-        case mysqlshdk::db::Type::Bytes:
-          type_name = "BYTES";
-          break;
-        case mysqlshdk::db::Type::Geometry:
-          type_name = "GEOMETRY";
-          break;
-        case mysqlshdk::db::Type::Json:
-          type_name = "JSON";
-          break;
-        case mysqlshdk::db::Type::DateTime:
-          type_name = "DATETIME";
-          break;
-        case mysqlshdk::db::Type::Date:
-          type_name = "DATE";
-          break;
-        case mysqlshdk::db::Type::Time:
-          type_name = "TIME";
-          break;
-        case mysqlshdk::db::Type::Bit:
-          type_name = "BIT";
-          break;
-        case mysqlshdk::db::Type::Enum:
-          type_name = "ENUM";
-          break;
-        case mysqlshdk::db::Type::Set:
-          type_name = "SET";
-          break;
-      }
-      assert(!type_name.empty());
-      shcore::Value data_type = mysqlsh::Constant::get_constant(
-          "mysqlx", "Type", type_name, shcore::Argument_list());
-      assert(data_type);
-
-      _columns->push_back(
-          shcore::Value::wrap(new mysqlsh::Column(column_meta, data_type)));
-    }
-  }
-
-  return _columns;
-}
 
 // Documentation of fetchOne function
 REGISTER_HELP_FUNCTION(fetchOne, RowResult);
@@ -936,7 +846,6 @@ Bool SqlResult::hasData() {}
 #elif DOXYGEN_PY
 bool SqlResult::has_data() {}
 #endif
-bool SqlResult::has_data() const { return _result && _result->has_resultset(); }
 
 // Documentation of nextDataSet function
 REGISTER_HELP_FUNCTION(nextDataSet, SqlResult);
@@ -964,7 +873,7 @@ bool SqlResult::next_data_set() {
               get_function_name("nextDataSet").c_str(),
               get_function_name("nextResult").c_str());
 
-  return _result->next_resultset();
+  return next_result();
 }
 
 // Documentation of nextDataSet function
@@ -985,7 +894,10 @@ Bool SqlResult::nextResult() {}
 #elif DOXYGEN_PY
 bool SqlResult::next_result() {}
 #endif
-bool SqlResult::next_result() { return _result->next_resultset(); }
+bool SqlResult::next_result() {
+  reset_column_cache();
+  return _result->next_resultset();
+}
 
 void SqlResult::append_json(shcore::JSON_dumper &dumper) const {
   dumper.start_object();

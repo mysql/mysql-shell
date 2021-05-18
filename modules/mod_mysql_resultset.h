@@ -136,28 +136,25 @@ class SHCORE_PUBLIC ClassicResult : public ShellBaseResult {
 
   explicit ClassicResult(std::shared_ptr<mysqlshdk::db::mysql::Result> result);
 
-  virtual std::string class_name() const { return "ClassicResult"; }
-  virtual shcore::Value get_member(const std::string &prop) const;
-  virtual void append_json(shcore::JSON_dumper &dumper) const;
+  std::string class_name() const override { return "ClassicResult"; }
+  shcore::Value get_member(const std::string &prop) const override;
+  void append_json(shcore::JSON_dumper &dumper) const override;
 
-  bool has_data() const;
+  bool has_data() const override;
   std::shared_ptr<Row> fetch_one() const;
   shcore::Dictionary_t _fetch_one_object();
   shcore::Array_t fetch_all() const;
   bool next_data_set();
   bool next_result();
 
-  shcore::Value::Array_type_ref get_columns() const;
-
-  virtual mysqlshdk::db::IResult *get_result() const { return _result.get(); }
-  virtual std::shared_ptr<std::vector<std::string>> get_column_names() const {
-    return _column_names;
-  }
+  mysqlshdk::db::IResult *get_result() const override { return _result.get(); }
 
  private:
+  std::string get_protocol() const override { return "mysql"; }
+  const std::vector<mysqlshdk::db::Column> &get_metadata() const override {
+    return _result->get_metadata();
+  }
   std::shared_ptr<mysqlshdk::db::mysql::Result> _result;
-  std::shared_ptr<std::vector<std::string>> _column_names;
-  mutable shcore::Value::Array_type_ref _columns;
 };
 }  // namespace mysql
 }  // namespace mysqlsh

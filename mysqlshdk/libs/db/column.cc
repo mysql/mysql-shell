@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -102,6 +102,36 @@ Type string_to_type(const std::string &type) {
     return Type::Set;
   else
     throw std::logic_error("Unknown type " + type);
+}
+
+std::string type_to_dbstring(Type type, uint32_t length) {
+  std::string type_name = to_string(type);
+  if (type == mysqlshdk::db::Type::Integer ||
+      type == mysqlshdk::db::Type::UInteger) {
+    switch (length) {
+      case 3:
+      case 4:
+        type_name = "TinyInt";
+        break;
+      case 5:
+      case 6:
+        type_name = "SmallInt";
+        break;
+      case 8:
+      case 9:
+        type_name = "MediumInt";
+        break;
+      case 10:
+      case 11:
+        type_name = "Int";
+        break;
+      case 20:
+        type_name = "BigInt";
+        break;
+    }
+  }
+
+  return type_name;
 }
 
 Column::Column(const std::string &catalog, const std::string &schema,
