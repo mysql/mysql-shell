@@ -115,14 +115,15 @@ EXPECT_EQ(1, session1.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata
 // "wrong address" = address that can reach the instance but is not what's in the metadata
 // "correct address" = the address that the instance is known by in the metadata
 
-//@ removeInstance() while the instance is down - no force and wrong address (should fail)
+//@<> removeInstance() while the instance is down - no force and wrong address (should fail)
 // covers Bug #30625424	REMOVEINSTANCE() FORCE:TRUE SAYS INSTANCE REMOVED, BUT NOT REALLY
 c.addInstance(__sandbox_uri2);
 
 testutil.stopSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "UNREACHABLE,(MISSING)");
-
-c.removeInstance(__sandbox_uri2);
+EXPECT_THROWS(function() { c.removeInstance(__sandbox_uri2); }, "Metadata for instance <<<__sandbox2>>> not found", "MYSQLSH");
+EXPECT_OUTPUT_CONTAINS_ONE_OF(["WARNING: MySQL Error 2003 (HY000): Can't connect to MySQL server on '<<<libmysql_host_description('localhost', __mysql_sandbox_port2)>>>'","WARNING: MySQL Error 2013 (HY000): Lost connection to MySQL server at 'reading initial communication packet', system error: 104"]);
+EXPECT_OUTPUT_CONTAINS("ERROR: The instance <<<__sandbox2>>> is not reachable and does not belong to the cluster either. Please ensure the member is either connectable or remove it through the exact address as shown in the cluster status output.");
 
 //@ removeInstance() while the instance is down - force and wrong address (should fail)
 c.removeInstance(__sandbox_uri2, {force:1});
@@ -202,7 +203,7 @@ session1.runSql("UPDATE mysql_innodb_cluster_metadata.instances"+
           " addresses=JSON_SET(addresses,"+
           " '$.mysqlX', concat(?,':',substring_index(addresses->>'$.mysqlX', ':', -1)),"+
           " '$.grLocal', concat(?,':',substring_index(addresses->>'$.grLocal', ':', -1)),"+
-          " '$.mysqlClassic', concat(?,':',substring_index(addresses->>'$.mysqlClassic', ':', -1)))", 
+          " '$.mysqlClassic', concat(?,':',substring_index(addresses->>'$.mysqlClassic', ':', -1)))",
           [hostname_ip, hostname_ip, hostname_ip, hostname_ip, hostname_ip]);
 shell.dumpRows(session1.runSql("SELECT * FROM mysql_innodb_cluster_metadata.instances"));
 

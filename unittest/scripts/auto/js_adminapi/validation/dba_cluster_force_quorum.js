@@ -17,6 +17,9 @@ Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': Th
 
 WARNING: To avoid a split-brain scenario, ensure that all other members of the cluster are removed or joined back to the group that was restored.
 
-//@<OUT> BUG#30739252: Confirm instance 3 is never included as OFFLINE (no undefined behaviour) {VER(>=8.0.16)}
+//@<OUT> BUG#30739252: Confirm instance 3 is never included as OFFLINE (no undefined behaviour) {VER(>=8.0.16) && VER(<8.0.27)}
 CHANNEL_NAME	MEMBER_ID	MEMBER_HOST	MEMBER_PORT	MEMBER_STATE	MEMBER_ROLE	MEMBER_VERSION
 group_replication_applier	[[*]]	<<<hostname>>>	<<<__mysql_sandbox_port2>>>	ONLINE	PRIMARY	<<<__version>>>
+//@<OUT> BUG#30739252: Confirm instance 3 is never included as OFFLINE (no undefined behaviour) {VER(>=8.0.27)}
+CHANNEL_NAME	MEMBER_ID	MEMBER_HOST	MEMBER_PORT	MEMBER_STATE	MEMBER_ROLE	MEMBER_VERSION	MEMBER_COMMUNICATION_STACK
+group_replication_applier	[[*]]	<<<hostname>>>	<<<__mysql_sandbox_port2>>>	ONLINE	PRIMARY	<<<__version>>>	XCom

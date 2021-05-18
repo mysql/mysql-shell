@@ -734,6 +734,12 @@
                     "value": "10485760",
                     "variable": "group_replication_communication_max_message_size"
                 },
+?{VER(>=8.0.27)}
+                {
+                    "value": "XCOM",
+                    "variable": "group_replication_communication_stack"
+                },
+?{}
                 {
                     "value": "31536000",
                     "variable": "group_replication_components_stop_timeout"
@@ -1048,6 +1054,12 @@
                     "value": "10485760",
                     "variable": "group_replication_communication_max_message_size"
                 },
+?{VER(>=8.0.27)}
+                {
+                    "value": "XCOM",
+                    "variable": "group_replication_communication_stack"
+                },
+?{}
                 {
                     "value": "31536000",
                     "variable": "group_replication_components_stop_timeout"
@@ -1362,6 +1374,12 @@
                     "value": "10485760",
                     "variable": "group_replication_communication_max_message_size"
                 },
+?{VER(>=8.0.27)}
+                {
+                    "value": "XCOM",
+                    "variable": "group_replication_communication_stack"
+                },
+?{}
                 {
                     "value": "31536000",
                     "variable": "group_replication_components_stop_timeout"
