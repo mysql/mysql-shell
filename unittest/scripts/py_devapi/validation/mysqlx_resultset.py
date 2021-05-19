@@ -81,3 +81,21 @@
 |Name with property: jack|
 |Age with property: 17|
 |Unable to get length with property: 4|
+
+#@<OUT> Ensures columns corresponds to the active result (first)
+['id', 'city', 'country_id']
+["id", "city", "country_id"]
+
+#@<OUT> Ensures columns corresponds to the active result (second)
+true
+['id', 'country']
+["id", "country"]
+
+#@<OUT> Tests empty stored procedure
+[]
+[]
+
+#@<OUT> Tests select NULL
+['NULL']
+["NULL"]
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,9 +50,9 @@ class ShellBaseResult : public shcore::Cpp_object_bridge {
 
   bool operator==(const Object_bridge &other) const override;
   virtual mysqlshdk::db::IResult *get_result() const = 0;
-  virtual std::shared_ptr<std::vector<std::string>> get_column_names() const {
-    return {};
-  }
+  // shcore::Value::Array_type_ref get_columns() const { return m_columns; }
+  std::shared_ptr<std::vector<std::string>> get_column_names() const;
+
   std::vector<std::string> get_members() const override;
 
   std::unique_ptr<mysqlsh::Row> fetch_one_row() const;
@@ -60,6 +60,22 @@ class ShellBaseResult : public shcore::Cpp_object_bridge {
   shcore::Dictionary_t fetch_one_object() const;
 
   void dump();
+
+  virtual bool has_data() const = 0;
+
+ protected:
+  virtual const std::vector<mysqlshdk::db::Column> &get_metadata() const = 0;
+  virtual std::string get_protocol() const = 0;
+
+  // NOTE: In order to avoid filling the cache all the time, but only when
+  // needed, these functions are marked as const and the attributes mutable
+  // because the functions that will trigger filling the cache are const:
+  // get_member() and get_column_names()
+  void reset_column_cache() const;
+  void update_column_cache() const;
+
+  mutable shcore::Value::Array_type_ref m_columns;
+  mutable std::shared_ptr<std::vector<std::string>> m_column_names;
 };
 
 /**

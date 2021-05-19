@@ -28,6 +28,7 @@
 #include <memory>
 #include <string>
 
+#include "modules/devapi/base_constants.h"
 #include "modules/mod_utils.h"
 #include "mysqlshdk/include/scripting/common.h"
 #include "mysqlshdk/include/scripting/lang_base.h"
@@ -111,6 +112,39 @@ shcore::Dictionary_t ShellBaseResult::fetch_one_object() const {
     ret_val = row->as_object();
   }
   return ret_val;
+}
+
+std::shared_ptr<std::vector<std::string>> ShellBaseResult::get_column_names()
+    const {
+  update_column_cache();
+
+  return m_column_names;
+}
+
+void ShellBaseResult::reset_column_cache() const {
+  m_columns.reset();
+  m_column_names.reset();
+}
+
+void ShellBaseResult::update_column_cache() const {
+  if (has_data() && !m_columns && !m_column_names) {
+    m_columns = std::make_shared<shcore::Value::Array_type>();
+    m_column_names = std::make_shared<std::vector<std::string>>();
+
+    for (auto &column_meta : get_metadata()) {
+      std::string type_name = mysqlshdk::db::type_to_dbstring(
+          column_meta.get_type(), column_meta.get_length());
+
+      shcore::Value data_type = mysqlsh::Constant::get_constant(
+          get_protocol(), "Type", shcore::str_upper(type_name),
+          shcore::Argument_list());
+
+      m_columns->push_back(
+          shcore::Value::wrap(new mysqlsh::Column(column_meta, data_type)));
+
+      m_column_names->push_back(column_meta.get_column_label());
+    }
+  }
 }
 
 Column::Column(const mysqlshdk::db::Column &meta, shcore::Value type)
@@ -247,6 +281,8 @@ Row::Row() {
 Row::Row(std::shared_ptr<std::vector<std::string>> names_,
          const mysqlshdk::db::IRow &row)
     : names(names_) {
+  assert(names);
+
   add_property("length", "getLength");
   expose("getField", &Row::get_field, "fieldName");
 

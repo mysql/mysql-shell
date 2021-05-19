@@ -72,10 +72,6 @@ ClassicResult::ClassicResult(
   expose("nextDataSet", &ClassicResult::next_data_set);
   expose("nextResult", &ClassicResult::next_result);
   expose("hasData", &ClassicResult::has_data);
-
-  _column_names.reset(new std::vector<std::string>());
-  for (auto &cmd : _result->get_metadata())
-    _column_names->push_back(cmd.get_column_label());
 }
 
 // Documentation of the hasData function
@@ -169,7 +165,7 @@ bool ClassicResult::next_data_set() {
               get_function_name("nextDataSet").c_str(),
               get_function_name("nextResult").c_str());
 
-  return _result->next_resultset();
+  return next_result();
 }
 
 // Documentation of nextResult function
@@ -190,7 +186,10 @@ Bool ClassicResult::nextResult() {}
 #elif DOXYGEN_PY
 bool ClassicResult::next_result() {}
 #endif
-bool ClassicResult::next_result() { return _result->next_resultset(); }
+bool ClassicResult::next_result() {
+  reset_column_cache();
+  return _result->next_resultset();
+}
 
 // Documentation of the fetchAll function
 REGISTER_HELP_FUNCTION(fetchAll, ClassicResult);
@@ -573,108 +572,29 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
   }
 
   if (prop == "columnNames") {
-    std::shared_ptr<shcore::Value::Array_type> array(
-        new shcore::Value::Array_type);
-    for (auto &cmd : _result->get_metadata())
-      array->push_back(shcore::Value(cmd.get_column_label()));
+    auto array = shcore::make_array();
+
+    update_column_cache();
+
+    if (m_column_names) {
+      for (auto &column : *m_column_names)
+        array->push_back(shcore::Value(column));
+    }
 
     return shcore::Value(array);
   }
 
   if (prop == "columns") {
-    return shcore::Value(get_columns());
-  }
+    update_column_cache();
 
-  return ShellBaseResult::get_member(prop);
-}
-
-shcore::Value::Array_type_ref ClassicResult::get_columns() const {
-  if (!_columns) {
-    _columns.reset(new shcore::Value::Array_type);
-
-    for (auto &column_meta : _result->get_metadata()) {
-      std::string type_name;
-      switch (column_meta.get_type()) {
-        case mysqlshdk::db::Type::Null:
-          type_name = "NULL";
-          break;
-        case mysqlshdk::db::Type::String:
-          type_name = "STRING";
-          break;
-        case mysqlshdk::db::Type::Integer:
-        case mysqlshdk::db::Type::UInteger:
-          type_name = "INT";
-          switch (column_meta.get_length()) {
-            case 3:
-            case 4:
-              type_name = "TINYINT";
-              break;
-            case 5:
-            case 6:
-              type_name = "SMALLINT";
-              break;
-            case 8:
-            case 9:
-              type_name = "MEDIUMINT";
-              break;
-            case 10:
-            case 11:
-              type_name = "INT";
-              break;
-            case 20:
-              type_name = "BIGINT";
-              break;
-          }
-          break;
-        case mysqlshdk::db::Type::Float:
-          type_name = "FLOAT";
-          break;
-        case mysqlshdk::db::Type::Double:
-          type_name = "DOUBLE";
-          break;
-        case mysqlshdk::db::Type::Decimal:
-          type_name = "DECIMAL";
-          break;
-        case mysqlshdk::db::Type::Bytes:
-          type_name = "BYTES";
-          break;
-        case mysqlshdk::db::Type::Geometry:
-          type_name = "GEOMETRY";
-          break;
-        case mysqlshdk::db::Type::Json:
-          type_name = "JSON";
-          break;
-        case mysqlshdk::db::Type::DateTime:
-          type_name = "DATETIME";
-          break;
-        case mysqlshdk::db::Type::Date:
-          type_name = "DATE";
-          break;
-        case mysqlshdk::db::Type::Time:
-          type_name = "TIME";
-          break;
-        case mysqlshdk::db::Type::Bit:
-          type_name = "BIT";
-          break;
-        case mysqlshdk::db::Type::Enum:
-          type_name = "ENUM";
-          break;
-        case mysqlshdk::db::Type::Set:
-          type_name = "SET";
-          break;
-      }
-      assert(!type_name.empty());
-      shcore::Value data_type = mysqlsh::Constant::get_constant(
-          "mysql", "Type", type_name, shcore::Argument_list());
-
-      assert(data_type);
-
-      _columns->push_back(
-          shcore::Value::wrap(new mysqlsh::Column(column_meta, data_type)));
+    if (m_columns) {
+      return shcore::Value(m_columns);
+    } else {
+      return shcore::Value(shcore::make_array());
     }
   }
 
-  return _columns;
+  return ShellBaseResult::get_member(prop);
 }
 
 void ClassicResult::append_json(shcore::JSON_dumper &dumper) const {

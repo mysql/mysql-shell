@@ -50,6 +50,26 @@ result = mySession.run_sql('insert into buffer_table values("carol", 14, "female
 result = mySession.run_sql('insert into buffer_table values("donna", 16, "female")')
 result = mySession.run_sql('insert into buffer_table values("angel", 14, "male")')
 
+result = mySession.run_sql('CREATE TABLE country (id SMALLINT, country VARCHAR(50))')
+result = mySession.run_sql('CREATE TABLE city (id SMALLINT, city VARCHAR(50), country_id SMALLINT)')
+result = mySession.run_sql("INSERT INTO country VALUES (1,'Afghanistan'),(2,'Algeria')")
+result = mySession.run_sql("INSERT INTO city VALUES (1,'Kabul',1),(1,'Skikda',2)")
+
+procedure = """
+	create procedure multi_result()
+	begin
+    select * from city order by id;
+	  select * from country order by id;
+	end"""
+result = mySession.run_sql(procedure)
+
+procedure = """
+	create procedure empty_proc()
+	begin
+
+	end"""
+result = mySession.run_sql(procedure)
+
 
 #@ Resultset has_data() False
 result = mySession.run_sql('use js_shell_test')
@@ -113,4 +133,22 @@ print("Name with property: %s" % obj.alias)
 print("Age with property: %s" % obj["age"])
 print(obj)
 
-mySession.close()
+#@ Ensures columns corresponds to the active result (first)
+result = mySession.run_sql("call multi_result()")
+print([c.column_label for c in result.columns])
+print(result.column_names)
+
+#@ Ensures columns corresponds to the active result (second)
+result.next_result()
+print([c.column_label for c in result.columns])
+print(result.column_names)
+
+#@ Tests empty stored procedure
+result = mySession.run_sql("call empty_proc()")
+print([c.column_label for c in result.columns])
+print(result.column_names)
+
+#@ Tests select NULL
+result = mySession.run_sql("select NULL")
+print([c.column_label for c in result.columns])
+print(result.column_names)

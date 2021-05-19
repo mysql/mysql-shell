@@ -41,6 +41,25 @@ validate_members(result, [
   'get_warnings_count',
   'next_result'])
 
+result = mySession.run_sql('CREATE TABLE country (id SMALLINT, country VARCHAR(50))')
+result = mySession.run_sql('CREATE TABLE city (id SMALLINT, city VARCHAR(50), country_id SMALLINT)')
+result = mySession.run_sql("INSERT INTO country VALUES (1,'Afghanistan'),(2,'Algeria')")
+result = mySession.run_sql("INSERT INTO city VALUES (1,'Kabul',1),(1,'Skikda',2)")
+
+procedure = """
+	create procedure multi_result()
+	begin
+    select * from city order by id;
+	  select * from country order by id;
+	end"""
+result = mySession.run_sql(procedure)
+
+procedure = """
+	create procedure empty_proc()
+	begin
+
+	end"""
+result = mySession.run_sql(procedure)
 
 #@<> Result member validation
 table = schema.get_table('buffer_table')
@@ -265,6 +284,26 @@ print("Unable to get length with property: %s" %  row.length)
 mySession.sql('CREATE PROCEDURE my_proc() BEGIN SELECT name FROM js_shell_test.buffer_table; END;').execute()
 res = mySession.sql('CALL my_proc();').execute()
 res2 = mySession.sql('SELECT 1;').execute()
+
+#@ Ensures columns corresponds to the active result (first)
+result = mySession.run_sql("call multi_result()")
+print([c.column_label for c in result.columns])
+print(result.column_names)
+
+#@ Ensures columns corresponds to the active result (second)
+result.next_result()
+print([c.column_label for c in result.columns])
+print(result.column_names)
+
+#@ Tests empty stored procedure
+result = mySession.run_sql("call empty_proc()")
+print([c.column_label for c in result.columns])
+print(result.column_names)
+
+#@ Tests select NULL
+result = mySession.run_sql("select NULL")
+print([c.column_label for c in result.columns])
+print(result.column_names)
 
 #@<> cleanup
 mySession.close()

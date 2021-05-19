@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,6 +64,8 @@ inline bool is_string_type(Type type) {
           type == Type::Date || type == Type::Time || type == Type::DateTime ||
           type == Type::Enum || type == Type::Set || type == Type::String);
 }
+
+std::string type_to_dbstring(Type type, uint32_t length = 0);
 
 /**
  * These class represents a protocol independent Column
