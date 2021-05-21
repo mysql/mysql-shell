@@ -94,6 +94,27 @@ bool add_pk_to_create_table_if_missing(const std::string &statement,
                                        std::string *rewritten,
                                        bool ignore_pke = true);
 
+/**
+ * Converts the given 5.6 GRANT statement to a corresponding CREATE USER
+ * statement, the GRANT statement is converted to a version supported by 8.0
+ * (and 5.7) server.
+ *
+ * The returned CREATE USER statement will always contain the IDENTIFIED WITH
+ * clause. If it's missing in the input GRANT statement, the authentication
+ * plugin supplied as a parameter is going to be used.
+ *
+ * @param grant 5.6 GRANT statement to be converted
+ * @param authentication_plugin authentication plugin to use if it's missing in
+ *        the given GRANT statement
+ * @param[out] rewritten the input GRANT statement cleared of the clauses
+ *             which are not supported by the 8.0 server
+ *
+ * @returns CREATE USER statement which corresponds to the input GRANT statement
+ */
+std::string convert_grant_to_create_user(
+    const std::string &grant, const std::string &authentication_plugin,
+    std::string *rewritten);
+
 }  // namespace compatibility
 }  // namespace mysqlsh
 

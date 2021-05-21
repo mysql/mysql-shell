@@ -1243,5 +1243,77 @@ bool add_pk_to_create_table_if_missing(const std::string &statement,
   return true;
 }
 
+std::string convert_grant_to_create_user(
+    const std::string &statement, const std::string &authentication_plugin,
+    std::string *rewritten) {
+  assert(rewritten);
+
+  SQL_iterator it(statement, 0, false);
+
+  if (!shcore::str_caseeq(it.next_token().c_str(), "GRANT")) {
+    throw std::logic_error(
+        "Only GRANT statement can be converted to CREATE USER statement");
+  }
+
+  // move to the account name
+  while (it.valid() && !shcore::str_caseeq(it.next_token().c_str(), "TO"))
+    ;
+
+  auto create_user = "CREATE USER " + get_account(&it);
+  auto grant = statement.substr(0, it.position());
+
+  while (it.valid()) {
+    auto token = it.next_token();
+
+    if (shcore::str_caseeq(token.c_str(), "GRANT") &&
+        shcore::str_caseeq(it.next_token().c_str(), "OPTION")) {
+      grant += " WITH GRANT OPTION";
+    } else {
+      create_user += " " + token;
+
+      if (shcore::str_caseeq(token.c_str(), "IDENTIFIED")) {
+        const auto pos = it.position();
+        token = it.next_token();
+
+        if (shcore::str_caseeq(token.c_str(), "BY")) {
+          // add auth_plugin information
+          create_user += " WITH '" + authentication_plugin + "' ";
+          token = it.next_token();
+
+          if (shcore::str_caseeq(token.c_str(), "PASSWORD")) {
+            // hashed password
+            create_user += "AS";
+            // hash follows
+            token = it.next_token();
+          } else {
+            // clear-text password
+            throw std::logic_error(
+                "The GRANT statement contains clear-text password which is not "
+                "supported");
+          }
+
+          create_user += " " + token;
+        } else {
+          // it's a WITH token, statement has the auth_plugin information, step
+          // back and handle it normally
+          it.set_position(pos);
+        }
+      }
+    }
+  }
+
+  // if GRANT statement had only WITH GRANT OPTION clause, we're left with
+  // dangling WITH, we need to remove it
+  const std::string with = " WITH";
+
+  if (shcore::str_endswith(create_user, with)) {
+    create_user = create_user.substr(0, create_user.length() - with.length());
+  }
+
+  *rewritten = grant;
+
+  return create_user;
+}
+
 }  // namespace compatibility
 }  // namespace mysqlsh

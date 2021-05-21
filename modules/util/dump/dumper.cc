@@ -3036,6 +3036,13 @@ void Dumper::validate_privileges() const {
     table_required.emplace(std::move(trigger));
   }
 
+  if (m_cache.server_is_5_6 && m_options.dump_users()) {
+    // on 5.6, SUPER is required to get the real hash value from SHOW GRANTS
+    std::string super{"SUPER"};
+    all_required.emplace(super);
+    global_required.emplace(std::move(super));
+  }
+
   if (!all_required.empty()) {
     using mysqlshdk::mysql::Instance;
     using mysqlshdk::mysql::User_privileges;

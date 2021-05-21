@@ -1823,5 +1823,78 @@ TEST_F(Compatibility_test, add_invisible_pk_if_missing) {
             false, false);
 }
 
+TEST_F(Compatibility_test, convert_grant_to_create_user) {
+  {
+    const std::string exception =
+        "Only GRANT statement can be converted to CREATE USER statement";
+    std::string result;
+
+    // unsupported statements
+    EXPECT_THROW_LIKE(convert_grant_to_create_user("", "", &result),
+                      std::logic_error, exception);
+    EXPECT_THROW_LIKE(convert_grant_to_create_user("CREATE", "", &result),
+                      std::logic_error, exception);
+  }
+
+  const auto EXPECT = [](const std::string &statement,
+                         const std::string &create_user,
+                         const std::string &grant) {
+    SCOPED_TRACE(statement);
+
+    std::string g = statement;
+    const auto cr = convert_grant_to_create_user(g, "plugin", &g);
+
+    EXPECT_EQ(create_user, cr);
+    EXPECT_EQ(grant, g);
+  };
+
+  EXPECT("GRANT SELECT ON *.* TO \"u\"@`h`", "CREATE USER \"u\"@`h`",
+         "GRANT SELECT ON *.* TO \"u\"@`h`");
+
+  EXPECT("GRANT SELECT (`to`) ON `to`.`to` TO root@localhost",
+         "CREATE USER root@localhost",
+         "GRANT SELECT (`to`) ON `to`.`to` TO root@localhost");
+
+  EXPECT("GRANT SELECT ON *.* TO u@h WITH GRANT OPTION", "CREATE USER u@h",
+         "GRANT SELECT ON *.* TO u@h WITH GRANT OPTION");
+
+  EXPECT(
+      "GRANT SELECT ON *.* TO u@h IDENTIFIED WITH auth_plugin WITH GRANT "
+      "OPTION MAX_QUERIES_PER_HOUR 10",
+      "CREATE USER u@h IDENTIFIED WITH auth_plugin WITH MAX_QUERIES_PER_HOUR "
+      "10",
+      "GRANT SELECT ON *.* TO u@h WITH GRANT OPTION");
+
+  EXPECT(
+      "GRANT SELECT ON *.* TO u@h IDENTIFIED WITH 'auth_plugin' AS 'hash' WITH "
+      "MAX_QUERIES_PER_HOUR 10 GRANT OPTION",
+      "CREATE USER u@h IDENTIFIED WITH 'auth_plugin' AS 'hash' WITH "
+      "MAX_QUERIES_PER_HOUR 10",
+      "GRANT SELECT ON *.* TO u@h WITH GRANT OPTION");
+
+  EXPECT_THROW_LIKE(
+      EXPECT("GRANT SELECT ON *.* TO u@h IDENTIFIED BY 'pwd' WITH "
+             "MAX_QUERIES_PER_HOUR 10",
+             "", ""),
+      std::logic_error,
+      "The GRANT statement contains clear-text password which is not "
+      "supported");
+
+  EXPECT("GRANT SELECT ON *.* TO u@h IDENTIFIED BY PASSWORD 'hash'",
+         "CREATE USER u@h IDENTIFIED WITH 'plugin' AS 'hash'",
+         "GRANT SELECT ON *.* TO u@h");
+
+  EXPECT(
+      "GRANT ALL PRIVILEGES ON *.* TO u@h IDENTIFIED BY PASSWORD 'hash' "
+      "REQUIRE SSL AND X509 AND CIPHER 'cipher' AND ISSUER 'issuer' AND "
+      "SUBJECT 'subject' WITH MAX_QUERIES_PER_HOUR 7 MAX_UPDATES_PER_HOUR 6 "
+      "GRANT OPTION MAX_CONNECTIONS_PER_HOUR 5 MAX_USER_CONNECTIONS 4",
+      "CREATE USER u@h IDENTIFIED WITH 'plugin' AS 'hash' REQUIRE SSL AND X509 "
+      "AND CIPHER 'cipher' AND ISSUER 'issuer' AND SUBJECT 'subject' WITH "
+      "MAX_QUERIES_PER_HOUR 7 MAX_UPDATES_PER_HOUR 6 MAX_CONNECTIONS_PER_HOUR "
+      "5 MAX_USER_CONNECTIONS 4",
+      "GRANT ALL PRIVILEGES ON *.* TO u@h WITH GRANT OPTION");
+}
+
 }  // namespace compatibility
 }  // namespace mysqlsh
