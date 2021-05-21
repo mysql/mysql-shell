@@ -548,8 +548,6 @@ session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT, KEY (`id`)) ENGIN
 # table without key
 session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT, `tdata` INT) ENGINE=InnoDB;", [ test_schema, test_table_no_index ])
 
-session.run_sql("CREATE VIEW !.! AS SELECT `tdata` FROM !.!;", [ test_schema, test_view, test_schema, test_table_no_index ])
-
 session.run_sql("CREATE TRIGGER !.! BEFORE UPDATE ON ! FOR EACH ROW BEGIN SET NEW.tdata = NEW.data + 3; END;", [ test_schema, test_table_trigger, test_table_no_index ])
 
 session.run_sql("""
@@ -563,7 +561,9 @@ BEGIN
   END WHILE;
 END""", [ test_schema, test_schema_procedure, test_schema, test_table_primary ])
 
-session.run_sql("CREATE FUNCTION !.!(s CHAR(20)) RETURNS CHAR(50) DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');", [ test_schema, test_schema_function ])
+session.run_sql("CREATE FUNCTION !.!(a INT) RETURNS CHAR(12) DETERMINISTIC RETURN CONVERT(a, CHAR);", [ test_schema, test_schema_function ])
+
+session.run_sql("CREATE VIEW !.! AS SELECT !.!(`tdata`) FROM !.!;", [ test_schema, test_view, test_schema, test_schema_function, test_schema, test_table_no_index ])
 
 session.run_sql("CREATE EVENT !.! ON SCHEDULE EVERY 1 HOUR STARTS CURRENT_TIMESTAMP + INTERVAL 1 WEEK DO DELETE FROM !.!;", [ test_schema, test_schema_event, test_schema, test_table_no_index ])
 
@@ -1876,6 +1876,13 @@ if __version_num >= 80000:
     required_privileges["SELECT"] = PrivilegeError(  # table-level privilege
         "Unable to get roles information.",
         "ERROR: Unable to check privileges for user '{0}'@'{1}'. User requires SELECT privilege on mysql.* to obtain information about all roles.".format(test_user, __host)
+    )
+else:
+    # BUG#32865281 - when running a dump on < 8.0, if there's a view which uses a function to get data, EXECUTE privilege is required to run SHOW FIELDS FROM `view_name`
+    required_privileges["EXECUTE"] = PrivilegeError(  # global, database, routine privilege
+        "Fatal error during dump",
+        f"ERROR: Could not execute 'SHOW FIELDS FROM `{test_view}`': MySQL Error 1370 (42000): execute command denied to user '{test_user}'@'{__host}' for routine '{test_schema}.{test_schema_function}'",
+        output_dir_created=True
     )
 
 # setup the user, grant only required privileges
