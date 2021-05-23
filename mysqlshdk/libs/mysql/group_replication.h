@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -159,6 +159,15 @@ mysqlshdk::utils::Version get_group_protocol_version(
     const mysqlshdk::mysql::IInstance &instance);
 
 /**
+ * Gets the maximum GR protocol version supported by a instance of that version.
+ *
+ * Note that this only supports protocol version up to 8.0.16 and needs to be
+ * updated when a new version is added.
+ */
+mysqlshdk::utils::Version get_max_supported_group_protocol_version(
+    const mysqlshdk::utils::Version &server_version);
+
+/**
  * Set the Group Replication protocol version.
  *
  * This function reconfigures the Group Replication protocol version currently
@@ -173,39 +182,21 @@ void set_group_protocol_version(const mysqlshdk::mysql::IInstance &instance,
                                 mysqlshdk::utils::Version version);
 
 /**
- * Verify if a Group Replication protocol version downgrade is required
- *
- * This function verifies if a Group Replication protocol version downgrade is
- * required. This is necessary to verify if an instance that is joining a group
- * does not support the GR protocol version in use on the group (because it is
- * an older version) so the group protocol version must be downgraded
- *
- * @param version mysqlshdk::utils::Version object with the current GR protocol
- * version in used in the group
- * @param instance Instance object that points to the server that is joining the
- * cluster.
- */
-bool is_protocol_downgrade_required(
-    mysqlshdk::utils::Version current_group_version,
-    const mysqlshdk::mysql::IInstance &instance);
-
-/**
- * Verify if a Group Replication protocol version upgrade is required
+ * Verify if a Group Replication protocol version upgrade is possible
  *
  * This function verifies if a Group Replication protocol version upgrade is
- * required. This is necessary to verify if a group needs to upgrade its
+ * possible. This is necessary to verify if a group needs to upgrade its
  * protocol version after the removal of the target instance.
  *
  * @param instance Instance object that points to the server that is leaving the
  * cluster or a member of the cluster
- * @param server_uuid nullable string containing the instance server_uuid to be
- * skipped.
+ * @param skip_server_uuid instance server_uuid to be skipped.
  * @param out_protocol_version mysqlshdk::utils::Version object with the version
  * value that the group should be upgraded to.
  */
-bool is_protocol_upgrade_required(
+bool is_protocol_upgrade_possible(
     const mysqlshdk::mysql::IInstance &instance,
-    mysqlshdk::utils::nullable<std::string> server_uuid,
+    const std::string &skip_server_uuid,
     mysqlshdk::utils::Version *out_protocol_version);
 
 /**

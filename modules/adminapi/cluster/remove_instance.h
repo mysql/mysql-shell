@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -96,12 +96,9 @@ class Remove_instance : public Command_interface {
 
   std::string m_instance_address;
   std::shared_ptr<mysqlsh::dba::Instance> m_target_instance;
-  std::shared_ptr<mysqlsh::dba::Instance> m_target_instance_protocol_upgrade;
   std::string m_address_in_metadata;
-  bool m_upgrade_gr_protocol_version = false;
   bool m_skip_sync = false;
   std::string m_instance_gr_local_address;
-  mysqlshdk::utils::Version m_gr_protocol_version_to_upgrade;
 
   void validate_metadata_for_address(const std::string &address,
                                      Instance_metadata *out_metadata);
@@ -142,16 +139,12 @@ class Remove_instance : public Command_interface {
   void undo_remove_instance_metadata(const Instance_metadata &instance_def);
 
   /**
-   * Auxiliar method to prompt the to use the 'force' option if the instance is
+   * Helper method to prompt the to use the 'force' option if the instance is
    * not available.
    */
   bool prompt_to_force_remove();
 
-  /**
-   * Auxiliar method to verify if an upgrade of the protocol will be required
-   * after removing the target instance
-   */
-  bool is_protocol_upgrade_required();
+  void check_protocol_upgrade_possible();
 };
 
 }  // namespace cluster

@@ -187,6 +187,8 @@ class Rescan : public Command_interface {
    *                         from the metadata.
    */
   void remove_instance_from_metadata(const std::string &instance_address);
+
+  void upgrade_comm_protocol();
 };
 
 }  // namespace cluster
