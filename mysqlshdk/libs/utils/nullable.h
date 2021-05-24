@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,9 +25,12 @@
 #define __CORELIBS_UTILS_NULLABLE_H__
 
 #include <stdexcept>
+#include <string>
+#include <utility>
 
 namespace mysqlshdk {
 namespace utils {
+
 template <class C>
 class nullable {
  public:
@@ -35,15 +38,13 @@ class nullable {
 
   explicit nullable(std::nullptr_t) : _value(C()), _is_null(true) {}
 
-  nullable(const nullable<C> &other) {
-    _value = other._value;
-    _is_null = other._is_null;
-  }
+  nullable(const nullable<C> &other) { operator=(other); }
 
-  nullable(const C &value) {
-    _value = value;
-    _is_null = false;
-  }
+  nullable(nullable<C> &&other) { operator=(std::move(other)); }
+
+  nullable(const C &value) { operator=(value); }
+
+  nullable(C &&value) { operator=(std::move(value)); }
 
   void operator=(std::nullptr_t) { _is_null = true; }
 
@@ -53,7 +54,15 @@ class nullable {
     return *this;
   }
 
+  nullable<C> &operator=(C &&value) {
+    _value = std::move(value);
+    _is_null = false;
+    return *this;
+  }
+
   nullable<C> &operator=(const nullable<C> &value) = default;
+
+  nullable<C> &operator=(nullable<C> &&value) = default;
 
   explicit operator bool() const { return !_is_null; }
 

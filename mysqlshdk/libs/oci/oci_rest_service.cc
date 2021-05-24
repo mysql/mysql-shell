@@ -113,6 +113,49 @@ std::string encode_sha256(const char *data, size_t size) {
   return encoded;
 }
 
+std::string format_headers(const Headers &headers) {
+  std::string result;
+
+  if (headers.empty()) {
+    result = "<EMPTY>";
+  } else {
+    result = "  " + shcore::str_join(headers, "\n  ", [](const auto &header) {
+               return "'" + header.first + "' : '" + header.second + "'";
+             });
+  }
+
+  return result;
+}
+
+std::string format_code(Response::Status_code code) {
+  return std::to_string(static_cast<int>(code)) + " - " +
+         Response::status_code(code);
+}
+
+std::string format_exception(const std::exception &e) {
+  return std::string{"Exception: "} + e.what();
+}
+
+void log_failed_request(Type type, const std::string &path,
+                        const Headers &headers,
+                        const std::string &context = {}) {
+  std::string full_context;
+
+  if (!context.empty()) {
+    full_context = " (" + context + ")";
+  }
+
+  log_warning("Request failed: %s %s%s",
+              shcore::str_upper(type_name(type)).c_str(), path.c_str(),
+              full_context.c_str());
+  log_info("REQUEST HEADERS:\n%s", format_headers(headers).c_str());
+}
+
+void log_failed_response(const Headers &headers, Base_response_buffer *buffer) {
+  log_info("RESPONSE HEADERS:\n%s", format_headers(headers).c_str());
+  log_info("RESPONSE BODY:\n%s", buffer->size() ? buffer->data() : "<EMPTY>");
+}
+
 void check_and_throw(Response::Status_code code, const Headers &headers,
                      Base_response_buffer *buffer) {
   if (code < Response::Status_code::OK ||
@@ -127,8 +170,6 @@ void check_and_throw(Response::Status_code code, const Headers &headers,
       } catch (const shcore::Exception &error) {
         // This handles the case where the content/type indicates it's JSON but
         // parsing failed. The default error message is used on this case.
-        log_debug2("%s\n%.*s", error.what(), static_cast<int>(buffer->size()),
-                   buffer->data());
         throw Response_error(code);
       }
     }
@@ -203,7 +244,7 @@ void Oci_rest_service::set_service(Oci_service service) {
   }
 }
 
-Response::Status_code Oci_rest_service::get(const std::string &path,
+Response::Status_code Oci_rest_service::get(const Masked_string &path,
                                             const Headers &headers,
                                             Base_response_buffer *buffer,
                                             Headers *response_headers,
@@ -212,7 +253,7 @@ Response::Status_code Oci_rest_service::get(const std::string &path,
                  response_headers, sign_request);
 }
 
-Response::Status_code Oci_rest_service::head(const std::string &path,
+Response::Status_code Oci_rest_service::head(const Masked_string &path,
                                              const Headers &headers,
                                              Base_response_buffer *buffer,
                                              Headers *response_headers,
@@ -221,7 +262,7 @@ Response::Status_code Oci_rest_service::head(const std::string &path,
                  response_headers, sign_request);
 }
 
-Response::Status_code Oci_rest_service::post(const std::string &path,
+Response::Status_code Oci_rest_service::post(const Masked_string &path,
                                              const char *body, size_t size,
                                              const Headers &headers,
                                              Base_response_buffer *buffer,
@@ -230,7 +271,7 @@ Response::Status_code Oci_rest_service::post(const std::string &path,
                  response_headers);
 }
 
-Response::Status_code Oci_rest_service::put(const std::string &path,
+Response::Status_code Oci_rest_service::put(const Masked_string &path,
                                             const char *body, size_t size,
                                             const Headers &headers,
                                             Base_response_buffer *buffer,
@@ -240,7 +281,7 @@ Response::Status_code Oci_rest_service::put(const std::string &path,
                  sign_request);
 }
 
-Response::Status_code Oci_rest_service::delete_(const std::string &path,
+Response::Status_code Oci_rest_service::delete_(const Masked_string &path,
                                                 const char *body, size_t size,
                                                 const Headers &headers) {
   return execute(Type::DELETE, path, body, size, headers);
@@ -322,7 +363,7 @@ Headers Oci_rest_service::make_header(Type method, const std::string &path,
 }
 
 Response::Status_code Oci_rest_service::execute(
-    Type type, const std::string &path, const char *body, size_t size,
+    Type type, const Masked_string &path, const char *body, size_t size,
     const Headers &request_headers, Base_response_buffer *buffer,
     Headers *response_headers, bool sign_request) {
   Headers rheaders;
@@ -362,15 +403,34 @@ Response::Status_code Oci_rest_service::execute(
   Base_response_buffer *response_buffer_ptr = buffer;
   if (!response_buffer_ptr) response_buffer_ptr = &response_data;
 
-  auto code = m_rest->execute(
-      type, path, body, size,
-      sign_request ? make_header(type, path, body, size, request_headers)
-                   : request_headers,
-      response_buffer_ptr, response_headers, &retry_strategy);
+  const auto &headers_to_send =
+      sign_request ? make_header(type, path.real(), body, size, request_headers)
+                   : request_headers;
 
-  check_and_throw(code, *response_headers, response_buffer_ptr);
+  try {
+    auto code =
+        m_rest->execute(type, path, body, size, headers_to_send,
+                        response_buffer_ptr, response_headers, &retry_strategy);
 
-  return code;
+    check_and_throw(code, *response_headers, response_buffer_ptr);
+
+    return code;
+  } catch (const rest::Connection_error &e) {
+    // exception was thrown when connection was being established, there is no
+    // response
+    log_failed_request(type, path, headers_to_send, format_exception(e));
+    throw;
+  } catch (const Response_error &e) {
+    // exception was thrown after we got the response, log it as well
+    log_failed_request(type, path, headers_to_send, format_code(e.code()));
+    log_failed_response(*response_headers, response_buffer_ptr);
+    throw;
+  } catch (const std::exception &e) {
+    // we don't know when the exception was thrown, log response just in case
+    log_failed_request(type, path, headers_to_send, format_exception(e));
+    log_failed_response(*response_headers, response_buffer_ptr);
+    throw;
+  }
 }
 
 }  // namespace oci

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,33 +51,33 @@ class Oci_rest_service {
   Oci_rest_service &operator=(Oci_rest_service &&other) = delete;
   Oci_rest_service(Oci_service service, const Oci_options &options);
 
-  Response::Status_code get(const std::string &path,
+  Response::Status_code get(const Masked_string &path,
                             const Headers &headers = {},
                             Base_response_buffer *buffer = nullptr,
                             Headers *response_headers = nullptr,
                             bool sign_request = true);
 
-  Response::Status_code head(const std::string &path,
+  Response::Status_code head(const Masked_string &path,
                              const Headers &headers = {},
                              Base_response_buffer *buffer = nullptr,
                              Headers *response_headers = nullptr,
                              bool sign_request = true);
 
-  Response ::Status_code post(const std::string &path, const char *body,
+  Response ::Status_code post(const Masked_string &path, const char *body,
                               size_t size, const Headers &headers = {},
                               Base_response_buffer *buffer = nullptr,
                               Headers *response_headers = nullptr);
 
-  Response::Status_code put(const std::string &path, const char *body,
+  Response::Status_code put(const Masked_string &path, const char *body,
                             size_t size, const Headers &headers = {},
                             Base_response_buffer *buffer = nullptr,
                             Headers *response_headers = nullptr,
                             bool sign_request = true);
 
-  Response::Status_code delete_(const std::string &path, const char *body,
+  Response::Status_code delete_(const Masked_string &path, const char *body,
                                 size_t size, const Headers &headers = {});
 
-  Response::Status_code execute(Type type, const std::string &path,
+  Response::Status_code execute(Type type, const Masked_string &path,
                                 const char *body = nullptr, size_t size = 0,
                                 const Headers &request_headers = {},
                                 Base_response_buffer *buffer = nullptr,

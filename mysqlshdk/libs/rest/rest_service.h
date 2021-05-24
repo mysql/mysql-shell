@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,8 @@
 #include <string>
 
 #include "mysqlshdk/include/scripting/types.h"
+
+#include "mysqlshdk/libs/utils/masked_value.h"
 
 #include "mysqlshdk/libs/rest/authentication.h"
 #include "mysqlshdk/libs/rest/error.h"
@@ -123,7 +125,7 @@ class Rest_service {
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response get(const std::string &path, const Headers &headers = {});
+  Response get(const Masked_string &path, const Headers &headers = {});
 
   /**
    * Executes a HEAD request, blocks until response is available.
@@ -138,7 +140,7 @@ class Rest_service {
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response head(const std::string &path, const Headers &headers = {});
+  Response head(const Masked_string &path, const Headers &headers = {});
 
   /**
    * Executes a POST request, blocks until response is available.
@@ -156,7 +158,7 @@ class Rest_service {
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response post(const std::string &path, const shcore::Value &body = {},
+  Response post(const Masked_string &path, const shcore::Value &body = {},
                 const Headers &headers = {});
 
   /**
@@ -175,7 +177,7 @@ class Rest_service {
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response put(const std::string &path, const shcore::Value &body = {},
+  Response put(const Masked_string &path, const shcore::Value &body = {},
                const Headers &headers = {});
 
   /**
@@ -194,7 +196,7 @@ class Rest_service {
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response patch(const std::string &path, const shcore::Value &body = {},
+  Response patch(const Masked_string &path, const shcore::Value &body = {},
                  const Headers &headers = {});
 
   /**
@@ -213,7 +215,7 @@ class Rest_service {
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response delete_(const std::string &path, const shcore::Value &body = {},
+  Response delete_(const Masked_string &path, const shcore::Value &body = {},
                    const Headers &headers = {});
 
   /**
@@ -238,7 +240,7 @@ class Rest_service {
    *
    * @throw Connection_error In case of any connection-related problems.
    */
-  Response::Status_code execute(Type type, const std::string &path,
+  Response::Status_code execute(Type type, const Masked_string &path,
                                 const char *body = nullptr, size_t size = 0,
                                 const Headers &request_headers = {},
                                 Base_response_buffer *buffer = nullptr,
@@ -261,7 +263,7 @@ class Rest_service {
    *         method does not throw on its own, exception could be thrown from
    *         future object.
    */
-  std::future<Response> async_get(const std::string &path,
+  std::future<Response> async_get(const Masked_string &path,
                                   const Headers &headers = {});
 
   /**
@@ -280,7 +282,7 @@ class Rest_service {
    *         method does not throw on its own, exception could be thrown from
    *         future object.
    */
-  std::future<Response> async_head(const std::string &path,
+  std::future<Response> async_head(const Masked_string &path,
                                    const Headers &headers = {});
 
   /**
@@ -302,7 +304,7 @@ class Rest_service {
    *         method does not throw on its own, exception could be thrown from
    *         future object.
    */
-  std::future<Response> async_post(const std::string &path,
+  std::future<Response> async_post(const Masked_string &path,
                                    const shcore::Value &body = {},
                                    const Headers &headers = {});
 
@@ -325,7 +327,7 @@ class Rest_service {
    *         method does not throw on its own, exception could be thrown from
    *         future object.
    */
-  std::future<Response> async_put(const std::string &path,
+  std::future<Response> async_put(const Masked_string &path,
                                   const shcore::Value &body = {},
                                   const Headers &headers = {});
 
@@ -348,7 +350,7 @@ class Rest_service {
    *         method does not throw on its own, exception could be thrown from
    *         future object.
    */
-  std::future<Response> async_patch(const std::string &path,
+  std::future<Response> async_patch(const Masked_string &path,
                                     const shcore::Value &body = {},
                                     const Headers &headers = {});
 
@@ -372,7 +374,7 @@ class Rest_service {
    *         method does not throw on its own, exception could be thrown from
    *         future object.
    */
-  std::future<Response> async_delete(const std::string &path,
+  std::future<Response> async_delete(const Masked_string &path,
                                      const shcore::Value &body = {},
                                      const Headers &headers = {});
 

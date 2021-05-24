@@ -163,6 +163,17 @@ def WIPE_OUTPUT():
   WIPE_STDOUT()
   WIPE_STDERR()
 
+def WIPE_SHELL_LOG():
+    testutil.wipe_file_contents(testutil.get_shell_log_path())
+
+def EXPECT_SHELL_LOG_CONTAINS(text):
+    log_file = testutil.get_shell_log_path()
+    match_list = testutil.grep_file(log_file, text)
+    if len(match_list) == 0:
+        log_out = testutil.cat_file(log_file)
+        context = "<b>Context:</b> {0}\n<red>Missing log output:</red> {1}\n<yellow>Actual log output:</yellow> {2}".format(__test_context, text, log_out)
+        testutil.fail(context)
+
 def EXPECT_STDOUT_MATCHES(re):
     out = testutil.fetch_captured_stdout(False)
     err = testutil.fetch_captured_stderr(False)

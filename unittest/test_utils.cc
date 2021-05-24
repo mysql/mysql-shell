@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -53,10 +53,12 @@ Shell_test_output_handler::Shell_test_output_handler()
   full_output.clear();
   debug = false;
 
+  m_logger = shcore::current_logger();
+
   // Initialize the logger and attach the hook for error verification
   // Assumes logfile already initialized
-  if (getenv("TEST_DEBUG") != nullptr) shcore::Logger::log_to_stderr();
-  m_logger = shcore::current_logger();
+  if (getenv("TEST_DEBUG") != nullptr) m_logger->log_to_stderr();
+
   // By default we need to setup the logger to LOG_INFO.
   m_logger->set_log_level(shcore::Logger::LOG_INFO);
 

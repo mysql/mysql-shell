@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -295,13 +295,13 @@ std::shared_ptr<Logger> Logger::create_instance(const char *filename,
 }
 
 void Logger::log_to_stderr() {
-  const auto logger = current_logger();
-
   // attach hook only if not already logging to stderr
-  if (!logger->use_stderr()) {
-    logger->attach_log_hook(&Logger::out_to_stderr);
+  if (!use_stderr()) {
+    attach_log_hook(&Logger::out_to_stderr);
   }
 }
+
+void Logger::stop_log_to_stderr() { detach_log_hook(&Logger::out_to_stderr); }
 
 Logger::Logger(const char *filename, bool use_stderr) : m_dont_log(0) {
   if (filename != nullptr) {

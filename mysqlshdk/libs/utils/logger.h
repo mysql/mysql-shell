@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -85,6 +85,10 @@ class SHCORE_PUBLIC Logger final {
   void set_log_level(LOG_LEVEL log_level);
   LOG_LEVEL get_log_level() const { return m_log_level; }
 
+  void log_to_stderr();
+
+  void stop_log_to_stderr();
+
 #if __GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ > 4)
   static void log(LOG_LEVEL level, const char *format, ...)
       __attribute__((__format__(__printf__, 2, 3)));
@@ -98,8 +102,6 @@ class SHCORE_PUBLIC Logger final {
   static std::shared_ptr<Logger> create_instance(const char *filename,
                                                  bool use_stderr = false,
                                                  LOG_LEVEL level = LOG_INFO);
-
-  static void log_to_stderr();
 
   static LOG_LEVEL parse_log_level(const std::string &tag);
 
