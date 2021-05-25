@@ -248,7 +248,7 @@ def get_all_tables(schema):
 
 def compute_crc(schema, table, columns):
     session.run_sql("SET @crc = '';")
-    session.run_sql("SELECT @crc := MD5(CONCAT_WS('#',@crc,{0})) FROM !.! ORDER BY !;".format(",".join(columns)), [schema, table, columns[0]])
+    session.run_sql("SELECT @crc := MD5(CONCAT_WS('#',@crc,{0})) FROM !.! ORDER BY {0};".format(("!," * len(columns))[:-1]), columns + [schema, table] + columns)
     return session.run_sql("SELECT @crc;").fetch_one()[0]
 
 def TEST_LOAD(schema, table, chunked):
