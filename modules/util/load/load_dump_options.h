@@ -168,12 +168,19 @@ class Load_dump_options {
 
   bool auto_create_pks_supported() const { return m_auto_create_pks_supported; }
 
+  const mysqlshdk::utils::nullable<uint64_t> &max_bytes_per_transaction()
+      const {
+    return m_max_bytes_per_transaction;
+  }
+
  private:
   void set_wait_timeout(const double &timeout_seconds);
   void set_str_vector_option(const std::string &option,
                              const std::vector<std::string> &data);
   void set_str_unordered_set_option(
       const std::string &option, const std::unordered_set<std::string> &data);
+
+  void set_max_bytes_per_transaction(const std::string &value);
 
   std::string m_url;
   std::string m_prefix;
@@ -222,6 +229,8 @@ class Load_dump_options {
   bool m_show_metadata = false;
   mysqlshdk::null_bool m_create_invisible_pks;
   bool m_auto_create_pks_supported = false;
+
+  mysqlshdk::utils::nullable<uint64_t> m_max_bytes_per_transaction;
 };
 
 }  // namespace mysqlsh

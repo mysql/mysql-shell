@@ -902,6 +902,15 @@ OPTIONS
             create_invisible_pks compatibility option, false otherwise.
             Requires server 8.0.24 or newer. Default: taken from dump.
 
+--maxBytesPerTransaction=<str>
+            Specifies the maximum number of bytes that can be loaded from a
+            dump data file per single LOAD DATA statement. Supports unit
+            suffixes: k (kilobytes), M (Megabytes), G (Gigabytes). Minimum
+            value: "128k". If this option is not specified explicitly, the
+            value of the bytesPerChunk dump option is used, but only in case of
+            the files with data size greater than 1.5 * bytesPerChunk. Default:
+            taken from dump.
+
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
             it will be obtained using the tenancy id on the OCI configuration.

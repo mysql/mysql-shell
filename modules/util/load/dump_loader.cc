@@ -618,11 +618,23 @@ void Dump_loader::Worker::Load_chunk_task::load(
     // bytesPerChunk value will get sub-chunked, chunks that are smaller or just
     // a little bigger will be loaded whole. If they still don't fit, the user
     // should dump with a smaller bytesPerChunk value.
+    const auto &max_bytes_per_transaction =
+        loader->m_options.max_bytes_per_transaction();
+
     import_table::Transaction_options options;
 
-    options.max_trx_size = loader->m_dump->bytes_per_chunk();
-    uint64_t max_chunk_size =
-        options.max_trx_size * k_chunk_size_overshoot_tolerance;
+    // if the maxBytesPerTransaction is not given, it defaults to bytesPerChunk
+    // value used during the dump
+    options.max_trx_size =
+        max_bytes_per_transaction.get_safe(loader->m_dump->bytes_per_chunk());
+
+    uint64_t max_chunk_size = options.max_trx_size;
+
+    // if maxBytesPerTransaction is not given, only files bigger than
+    // k_chunk_size_overshoot_tolerance * bytesPerChunk are affected
+    if (!max_bytes_per_transaction) {
+      max_chunk_size *= k_chunk_size_overshoot_tolerance;
+    }
 
     Index_file idx_file{m_file.get()};
 

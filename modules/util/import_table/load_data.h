@@ -73,6 +73,12 @@ class Transaction_buffer {
   bool flush_pending() const;
   void flush_done(bool *out_has_more_data);
 
+  uint64_t oversized_rows() const { return m_oversized_rows; }
+
+  void on_oversized_row(const std::function<void(uint64_t)> &callback) {
+    m_on_oversized_row = callback;
+  }
+
  private:
   int consume(char *buffer, unsigned int length);
 
@@ -97,6 +103,10 @@ class Transaction_buffer {
   uint64_t m_current_offset = 0;
 
   std::string m_data;
+
+  uint64_t m_oversized_rows = 0;
+
+  std::function<void(uint64_t)> m_on_oversized_row;
 };
 
 /**

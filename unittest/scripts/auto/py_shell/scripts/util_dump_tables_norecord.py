@@ -866,10 +866,10 @@ EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "bytes
 
 #@<> WL13804: WL13807-FR4.13.3 - If the value of the `bytesPerChunk` option is smaller than `128k`, an exception must be thrown.
 # WL13804-TSFR_11_2_32
-EXPECT_FAIL("ValueError", "Argument #4: The value of 'bytesPerChunk' option must be greater or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "127k" })
-EXPECT_FAIL("ValueError", "Argument #4: The value of 'bytesPerChunk' option must be greater or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "127999" })
-EXPECT_FAIL("ValueError", "Argument #4: The value of 'bytesPerChunk' option must be greater or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "1" })
-EXPECT_FAIL("ValueError", "Argument #4: The value of 'bytesPerChunk' option must be greater or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "0" })
+EXPECT_FAIL("ValueError", "Argument #4: The value of 'bytesPerChunk' option must be greater than or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "127k" })
+EXPECT_FAIL("ValueError", "Argument #4: The value of 'bytesPerChunk' option must be greater than or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "127999" })
+EXPECT_FAIL("ValueError", "Argument #4: The value of 'bytesPerChunk' option must be greater than or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "1" })
+EXPECT_FAIL("ValueError", "Argument #4: The value of 'bytesPerChunk' option must be greater than or equal to 128k.", types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "0" })
 EXPECT_FAIL("ValueError", 'Argument #4: Input number "-1" cannot be negative', types_schema, types_schema_tables, test_output_relative, { "bytesPerChunk": "-1" })
 
 #@<> WL13804: WL13807-FR4.14 - The `options` dictionary may contain a `threads` key with an unsigned integer value, which specifies the number of threads to be used to perform the dump.

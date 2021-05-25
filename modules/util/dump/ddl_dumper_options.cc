@@ -99,7 +99,8 @@ void Ddl_dumper_options::on_unpacked_options() {
 
   if (m_bytes_per_chunk < expand_to_bytes(k_minimum_chunk_size)) {
     throw std::invalid_argument(
-        "The value of 'bytesPerChunk' option must be greater or equal to " +
+        "The value of 'bytesPerChunk' option must be greater than or equal "
+        "to " +
         std::string{k_minimum_chunk_size} + ".");
   }
 

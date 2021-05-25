@@ -1260,6 +1260,12 @@ at the end of the load. Useful when loading DDL and data separately.
 @li <b>loadUsers</b>: bool (default: false) - Executes SQL scripts for user
 accounts, roles and grants contained in the dump. Note: statements for the
 current user will be skipped.
+@li <b>maxBytesPerTransaction</b>: string (default taken from dump) - Specifies
+the maximum number of bytes that can be loaded from a dump data file per single
+LOAD DATA statement. Supports unit suffixes: k (kilobytes), M (Megabytes), G
+(Gigabytes). Minimum value: "128k". If this option is not specified explicitly,
+the value of the <b>bytesPerChunk</b> dump option is used, but only in case of
+the files with data size greater than <b>1.5 * bytesPerChunk</b>.
 @li <b>progressFile</b>: path (default: load-progress.@<server_uuid@>.progress)
 - Stores load progress information in the given local file path.
 @li <b>resetProgress</b>: bool (default: false) - Discards progress information

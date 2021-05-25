@@ -566,10 +566,10 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "bytesPerChunk": "128000"
 
 #@<> WL13807-FR4.13.3 - If the value of the `bytesPerChunk` option is smaller than `128k`, an exception must be thrown.
 # WL13807-TSFR_3_533_1
-EXPECT_FAIL("ValueError", "Argument #3: The value of 'bytesPerChunk' option must be greater or equal to 128k.", [types_schema], test_output_relative, { "bytesPerChunk": "127k" })
-EXPECT_FAIL("ValueError", "Argument #3: The value of 'bytesPerChunk' option must be greater or equal to 128k.", [types_schema], test_output_relative, { "bytesPerChunk": "127999" })
-EXPECT_FAIL("ValueError", "Argument #3: The value of 'bytesPerChunk' option must be greater or equal to 128k.", [types_schema], test_output_relative, { "bytesPerChunk": "1" })
-EXPECT_FAIL("ValueError", "Argument #3: The value of 'bytesPerChunk' option must be greater or equal to 128k.", [types_schema], test_output_relative, { "bytesPerChunk": "0" })
+EXPECT_FAIL("ValueError", "Argument #3: The value of 'bytesPerChunk' option must be greater than or equal to 128k.", [types_schema], test_output_relative, { "bytesPerChunk": "127k" })
+EXPECT_FAIL("ValueError", "Argument #3: The value of 'bytesPerChunk' option must be greater than or equal to 128k.", [types_schema], test_output_relative, { "bytesPerChunk": "127999" })
+EXPECT_FAIL("ValueError", "Argument #3: The value of 'bytesPerChunk' option must be greater than or equal to 128k.", [types_schema], test_output_relative, { "bytesPerChunk": "1" })
+EXPECT_FAIL("ValueError", "Argument #3: The value of 'bytesPerChunk' option must be greater than or equal to 128k.", [types_schema], test_output_relative, { "bytesPerChunk": "0" })
 EXPECT_FAIL("ValueError", 'Argument #3: Input number "-1" cannot be negative', [types_schema], test_output_relative, { "bytesPerChunk": "-1" })
 
 #@<> WL13807-FR4.14 - The `options` dictionary may contain a `threads` key with an unsigned integer value, which specifies the number of threads to be used to perform the dump.

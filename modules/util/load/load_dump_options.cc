@@ -33,6 +33,7 @@
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
@@ -42,6 +43,8 @@ const char *k_excluded_users[] = {"mysql.infoschema", "mysql.session",
                                   "mysql.sys"};
 const char *k_oci_excluded_users[] = {"administrator", "ociadmin", "ocimonitor",
                                       "ocirpl"};
+
+constexpr auto k_minimum_max_bytes_per_transaction = "128k";
 
 bool is_mds(const mysqlshdk::utils::Version &version) {
   return shcore::str_endswith(version.get_extra(), "cloud");
@@ -132,6 +135,8 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
           .optional("showMetadata", &Load_dump_options::m_show_metadata)
           .optional("createInvisiblePKs",
                     &Load_dump_options::m_create_invisible_pks)
+          .optional("maxBytesPerTransaction",
+                    &Load_dump_options::set_max_bytes_per_transaction)
           .include(&Load_dump_options::m_oci_option_pack)
           .on_done(&Load_dump_options::on_unpacked_options);
 
@@ -211,6 +216,26 @@ void Load_dump_options::set_str_unordered_set_option(
   } else {
     // This function should only be called with the options above.
     assert(false);
+  }
+}
+
+void Load_dump_options::set_max_bytes_per_transaction(
+    const std::string &value) {
+  if (value.empty()) {
+    throw std::invalid_argument(
+        "The option 'maxBytesPerTransaction' cannot be set to an empty "
+        "string.");
+  }
+
+  m_max_bytes_per_transaction = mysqlshdk::utils::expand_to_bytes(value);
+
+  if (m_max_bytes_per_transaction &&
+      *m_max_bytes_per_transaction < mysqlshdk::utils::expand_to_bytes(
+                                         k_minimum_max_bytes_per_transaction)) {
+    throw std::invalid_argument(
+        "The value of 'maxBytesPerTransaction' option must be greater than or "
+        "equal to " +
+        std::string{k_minimum_max_bytes_per_transaction} + ".");
   }
 }
 

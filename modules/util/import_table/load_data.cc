@@ -79,26 +79,27 @@ void Transaction_buffer::before_query() {
     if (m_options.transaction_started) {
       m_options.transaction_started();
     }
+  }
 
-    if (m_options.skip_bytes > 0) {
-      try {
-        m_file->seek(m_options.skip_bytes);
-        m_options.skip_bytes = 0;
-      } catch (const std::logic_error &) {
-        static constexpr std::size_t length = 1024;
-        static char buffer[length];
+  // always skip bytes if requested to
+  if (m_options.skip_bytes > 0) {
+    try {
+      m_file->seek(m_options.skip_bytes);
+      m_options.skip_bytes = 0;
+    } catch (const std::logic_error &) {
+      static constexpr std::size_t length = 1024;
+      static char buffer[length];
 
-        // seek() failed (i.e. it's not implemented), read beginning of the file
-        while (m_options.skip_bytes > 0) {
-          const auto bytes = m_file->read(
-              buffer, std::min<std::size_t>(m_options.skip_bytes, length));
+      // seek() failed (i.e. it's not implemented), read beginning of the file
+      while (m_options.skip_bytes > 0) {
+        const auto bytes = m_file->read(
+            buffer, std::min<std::size_t>(m_options.skip_bytes, length));
 
-          if (bytes <= 0) {
-            return;
-          }
-
-          m_options.skip_bytes -= bytes;
+        if (bytes <= 0) {
+          return;
         }
+
+        m_options.skip_bytes -= bytes;
       }
     }
   }
@@ -112,6 +113,7 @@ void Transaction_buffer::flush_done(bool *out_has_more_data) {
   m_trx_size = 0;
   m_trx_end_offset = 0;
   m_partial_row_sent = false;
+  m_oversized_rows = 0;
 
   *out_has_more_data =
       m_options.max_trx_size > 0 && (!m_eof || !m_data.empty());
@@ -143,6 +145,17 @@ int Transaction_buffer::consume(char *buffer, unsigned int length) {
 
     m_trx_size += length;
     m_current_offset += length;
+
+    if (length > m_options.max_trx_size) {
+      // in a single read, we got more bytes than the transaction limit, either
+      // we have the whole row in the buffer and its end is past the limit or
+      // end was not found in the buffer
+      ++m_oversized_rows;
+
+      if (m_on_oversized_row) {
+        m_on_oversized_row(m_oversized_rows);
+      }
+    }
   }
 
   return length;
@@ -670,6 +683,31 @@ void Load_data_worker::execute(
                 m_range_queue != nullptr);
 #endif
 
+      const auto format_error_message = [&worker_name, &task, &fi, &r](
+                                            const std::string &error,
+                                            const std::string &extra = {}) {
+        std::string msg = worker_name + task + ": " + error;
+
+        if (fi.range_read) {
+          msg += " @ file bytes range [" + std::to_string(r.range.first) +
+                 ", " + std::to_string(r.range.second) + ")";
+        }
+
+        if (!extra.empty()) {
+          msg += ": " + extra;
+        }
+
+        return msg;
+      };
+
+      fi.buffer.on_oversized_row([&format_error_message](uint64_t i) {
+        // this is only printed once
+        if (1 == i) {
+          mysqlsh::current_console()->print_warning(format_error_message(
+              "Attempting to load a row longer than maxBytesPerTransaction."));
+        }
+      });
+
       try {
         fi.buffer.before_query();
         load_result = session->query(m_query_comment + full_query);
@@ -678,33 +716,25 @@ void Load_data_worker::execute(
         ++m_stats.total_files_processed;
       } catch (const mysqlshdk::db::Error &e) {
         m_thread_exception[m_thread_id] = std::current_exception();
-        const std::string error_msg{
-            worker_name + task + ": " + e.format() +
-            (fi.range_read
-                 ? " @ file bytes range [" + std::to_string(r.range.first) +
-                       ", " + std::to_string(r.range.second) + "): "
-                 : ": ") +
-            full_query.c_str()};
+        const auto error_msg = format_error_message(e.format(), full_query);
         mysqlsh::current_console()->print_error(error_msg);
+
+        if (fi.buffer.oversized_rows()) {
+          mysqlsh::current_console()->print_note(format_error_message(
+              "This error has been reported for a sub-chunk which has at least "
+              "one row longer than maxBytesPerTransaction (" +
+              std::to_string(options.max_trx_size) + " bytes)."));
+        }
+
         throw std::runtime_error(error_msg);
       } catch (const mysqlshdk::rest::Connection_error &e) {
         m_thread_exception[m_thread_id] = std::current_exception();
-        const std::string error_msg{
-            worker_name + task + ": " + e.what() +
-            (fi.range_read
-                 ? " @ file bytes range [" + std::to_string(r.range.first) +
-                       ", " + std::to_string(r.range.second) + ")"
-                 : "")};
+        const auto error_msg = format_error_message(e.what());
         mysqlsh::current_console()->print_error(error_msg);
         throw std::runtime_error(error_msg);
       } catch (const std::exception &e) {
         m_thread_exception[m_thread_id] = std::current_exception();
-        const std::string error_msg{
-            worker_name + task + ": " + e.what() +
-            (fi.range_read
-                 ? " @ file bytes range [" + std::to_string(r.range.first) +
-                       ", " + std::to_string(r.range.second) + ")"
-                 : "")};
+        const auto error_msg = format_error_message(e.what());
         mysqlsh::current_console()->print_error(error_msg);
         throw std::exception(e);
       }

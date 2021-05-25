@@ -1562,6 +1562,13 @@ DESCRIPTION
       - loadUsers: bool (default: false) - Executes SQL scripts for user
         accounts, roles and grants contained in the dump. Note: statements for
         the current user will be skipped.
+      - maxBytesPerTransaction: string (default taken from dump) - Specifies
+        the maximum number of bytes that can be loaded from a dump data file
+        per single LOAD DATA statement. Supports unit suffixes: k (kilobytes),
+        M (Megabytes), G (Gigabytes). Minimum value: "128k". If this option is
+        not specified explicitly, the value of the bytesPerChunk dump option is
+        used, but only in case of the files with data size greater than 1.5 *
+        bytesPerChunk.
       - progressFile: path (default: load-progress.<server_uuid>.progress) -
         Stores load progress information in the given local file path.
       - resetProgress: bool (default: false) - Discards progress information of
