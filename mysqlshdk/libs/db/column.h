@@ -67,6 +67,9 @@ inline bool is_string_type(Type type) {
 
 std::string type_to_dbstring(Type type, uint32_t length = 0);
 
+Type dbstring_to_type(const std::string &data_type,
+                      const std::string &column_type);
+
 /**
  * These class represents a protocol independent Column
  * The Resultset implementation for each protocol should

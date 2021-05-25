@@ -3,6 +3,7 @@
 
 // constants
 const k_dump_dir = os.path.join(__tmp_dir, "ldtest");
+const k_users_dump = os.path.join(k_dump_dir, "dumpu");
 const k_instance_dump = os.path.join(k_dump_dir, "dumpi");
 const k_schemas_dump = os.path.join(k_dump_dir, "dumps");
 const k_tables_dump = os.path.join(k_dump_dir, "dumpt");
@@ -111,12 +112,53 @@ for (const table of all_tables) {
   checksums[table] = checksum(table);
 }
 
+// prepare accounts
+// remove any anonymous accounts
+for (const row of session.runSql("SELECT Host FROM mysql.user WHERE User = ''").fetchAll()) {
+  session.runSql("DROP USER ''@?;", [ row[0] ]);
+}
+
+// remove any leftovers
+function drop_user_if_exists(user, host = '%') {
+  if (session.runSql("SELECT User FROM mysql.user WHERE User = ? AND Host = ?", [ user, host ]).fetchOne()) {
+    session.runSql("DROP USER ?@?;", [ user, host ]);
+  }
+}
+
+drop_user_if_exists("almost_superuser");
+drop_user_if_exists("regular_user");
+
+// account with all privileges minus SUPER
+session.runSql("CREATE USER almost_superuser IDENTIFIED BY 'pwd';");
+session.runSql("GRANT ALL PRIVILEGES ON *.* TO almost_superuser REQUIRE NONE WITH MAX_USER_CONNECTIONS 100 GRANT OPTION;");
+session.runSql("REVOKE SUPER ON *.* FROM almost_superuser;");
+
+// URI to connect as this user
+let co = shell.parseUri(__mysql56_uri);
+co.user = "almost_superuser";
+co.password = "pwd";
+const almost_superuser_uri = shell.unparseUri(co);
+
+// account with some random privileges
+session.runSql("CREATE USER regular_user IDENTIFIED BY 'pwdpwd';");
+session.runSql("GRANT SELECT ON *.* TO regular_user;");
+session.runSql("GRANT INSERT ON sakila.* TO regular_user REQUIRE SSL WITH MAX_UPDATES_PER_HOUR 5;");
+session.runSql("GRANT update ON `sakila`.`actor` TO regular_user WITH GRANT OPTION;");
+
+// make sure changes are provisioned
+session.runSql("FLUSH PRIVILEGES;");
+
 // tests
 //
 // Basic tests to ensure dumpInstance(), dumpSchemas() and dumpTables() work in MySQL 5.6, loadDump() is not expected to work
 
-//@<> dumpInstance should error out unless user dumping is disabled
-EXPECT_THROWS(function() { util.dumpInstance(k_dump_dir); }, "Dumping user accounts is currently not supported in MySQL versions before 5.7. Set the 'users' option to false to continue.");
+//@<> BUG#32883314 - SUPER is required to dump users
+shell.connect(almost_superuser_uri);
+EXPECT_THROWS(function() { util.dumpInstance(k_users_dump); }, "Util.dumpInstance: User 'almost_superuser'@'%' is missing the following global privilege(s): SUPER.");
+shell.connect(__mysql56_uri);
+
+//@<> BUG#32883314 - dumpInstance should be able to dump users
+EXPECT_NO_THROWS(function() { util.dumpInstance(k_users_dump); }, "It should be possible to dump user information.");
 
 //@<> dumpInstance
 // BUG32376447 - use small bytesPerChunk to ensure some tables are chunked, triggering the bug
@@ -163,6 +205,15 @@ drop_all_schemas();
 
 util.loadDump(k_instance_dump, { ignoreVersion: true });
 
+EXPECT_EQ(all_objects, fetch_all_objects());
+EXPECT_CHECKSUMS(all_tables);
+
+//@<> BUG32376447 - loadDump instance with users
+drop_all_schemas();
+
+util.loadDump(k_users_dump, { loadUsers: true, ignoreVersion: true });
+
+EXPECT_STDOUT_CONTAINS("Executing user accounts SQL...");
 EXPECT_EQ(all_objects, fetch_all_objects());
 EXPECT_CHECKSUMS(all_tables);
 

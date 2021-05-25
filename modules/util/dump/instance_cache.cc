@@ -34,6 +34,7 @@
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "modules/util/dump/schema_dumper.h"
@@ -41,10 +42,22 @@
 namespace mysqlsh {
 namespace dump {
 
-std::string Instance_cache::Index::order_by() const {
-  return shcore::str_join(
-      columns, ",", [](const auto &c) { return shcore::quote_identifier(c); });
+void Instance_cache::Index::reset() {
+  m_columns.clear();
+  m_columns_sql.clear();
 }
+
+void Instance_cache::Index::add_column(Column *column) {
+  m_columns.emplace_back(column);
+
+  if (!m_columns_sql.empty()) {
+    m_columns_sql += ", ";
+  }
+
+  m_columns_sql += column->quoted_name;
+}
+
+void Instance_cache::Index::set_primary(bool primary) { m_primary = primary; }
 
 struct Instance_cache_builder::Iterate_schema {
   std::string schema_column;
@@ -230,7 +243,7 @@ Instance_cache_builder &Instance_cache_builder::events() {
 
   iterate_schemas(info, [](const std::string &, Instance_cache::Schema *schema,
                            const mysqlshdk::db::IRow *row) {
-    schema->events.emplace(row->get_string(1));
+    schema->events.emplace(row->get_string(1));  // EVENT_NAME
   });
 
   return *this;
@@ -250,10 +263,11 @@ Instance_cache_builder &Instance_cache_builder::routines() {
   iterate_schemas(
       info, [&procedure](const std::string &, Instance_cache::Schema *schema,
                          const mysqlshdk::db::IRow *row) {
-        auto &target = row->get_string(1) == procedure ? schema->procedures
-                                                       : schema->functions;
+        auto &target = row->get_string(1) == procedure
+                           ? schema->procedures
+                           : schema->functions;  // ROUTINE_TYPE
 
-        target.emplace(row->get_string(2));
+        target.emplace(row->get_string(2));  // ROUTINE_NAME
       });
 
   return *this;
@@ -280,8 +294,9 @@ Instance_cache_builder &Instance_cache_builder::triggers() {
                                      const std::string &table_name,
                                      Instance_cache::Table *,
                                      const mysqlshdk::db::IRow *row) {
-      triggers[schema_name][table_name].emplace(row->get_uint(3),
-                                                row->get_string(2));
+      triggers[schema_name][table_name].emplace(
+          row->get_uint(3),
+          row->get_string(2));  // ACTION_ORDER, TRIGGER_NAME
     });
 
     for (auto &schema : triggers) {
@@ -305,8 +320,8 @@ Instance_cache_builder &Instance_cache_builder::binlog_info() {
     const auto result = m_session->query("SHOW MASTER STATUS;");
 
     if (const auto row = result->fetch_one()) {
-      m_cache.binlog_file = row->get_string(0);
-      m_cache.binlog_position = row->get_uint(1);
+      m_cache.binlog_file = row->get_string(0);    // File
+      m_cache.binlog_position = row->get_uint(1);  // Position
     }
   } catch (const mysqlshdk::db::Error &e) {
     if (e.code() == ER_SPECIFIC_ACCESS_DENIED_ERROR) {
@@ -354,9 +369,10 @@ void Instance_cache_builder::filter_schemas(const Object_filters &included,
     const auto result = m_session->query(query);
 
     while (const auto row = result->fetch_one()) {
-      auto schema = row->get_string(0);
+      auto schema = row->get_string(0);  // SCHEMA_NAME
 
-      m_cache.schemas[schema].collation = row->get_string(1);
+      m_cache.schemas[schema].collation =
+          row->get_string(1);  // DEFAULT_COLLATION_NAME
       schemas.emplace_back(std::move(schema));
     }
   }
@@ -400,16 +416,16 @@ void Instance_cache_builder::filter_tables(const Table_filters &included,
   iterate_schemas(info, [this](const std::string &schema_name,
                                Instance_cache::Schema *schema,
                                const mysqlshdk::db::IRow *row) {
-    const auto table_name = row->get_string(1);
-    const auto table_type = row->get_string(2);
+    const auto table_name = row->get_string(1);  // TABLE_NAME
+    const auto table_type = row->get_string(2);  // TABLE_TYPE
 
     if ("BASE TABLE" == table_type) {
       auto &table = schema->tables[table_name];
-      table.row_count = row->get_uint(3, 0);
-      table.average_row_length = row->get_uint(4, 0);
-      table.engine = row->get_string(5, "");
-      table.create_options = row->get_string(6, "");
-      table.comment = row->get_string(7, "");
+      table.row_count = row->get_uint(3, 0);           // TABLE_ROWS
+      table.average_row_length = row->get_uint(4, 0);  // AVG_ROW_LENGTH
+      table.engine = row->get_string(5, "");           // ENGINE
+      table.create_options = row->get_string(6, "");   // CREATE_OPTIONS
+      table.comment = row->get_string(7, "");          // TABLE_COMMENT
 
       add_table(schema_name, table_name);
 
@@ -417,7 +433,7 @@ void Instance_cache_builder::filter_tables(const Table_filters &included,
                       { table.average_row_length = 0; });
     } else if ("VIEW" == table_type) {
       // nop, just to insert the view
-      schema->views[table_name].character_set_client = "";
+      schema->views[table_name].character_set_client.clear();
 
       add_view(schema_name, table_name);
     }
@@ -508,12 +524,12 @@ void Instance_cache_builder::fetch_view_metadata() {
   };
   info.table_name = "views";
 
-  iterate_views(info,
-                [](const std::string &, const std::string &,
-                   Instance_cache::View *view, const mysqlshdk::db::IRow *row) {
-                  view->character_set_client = row->get_string(2);
-                  view->collation_connection = row->get_string(3);
-                });
+  iterate_views(info, [](const std::string &, const std::string &,
+                         Instance_cache::View *view,
+                         const mysqlshdk::db::IRow *row) {
+    view->character_set_client = row->get_string(2);  // CHARACTER_SET_CLIENT
+    view->collation_connection = row->get_string(3);  // COLLATION_CONNECTION
+  });
 }
 
 void Instance_cache_builder::fetch_table_columns() {
@@ -525,12 +541,14 @@ void Instance_cache_builder::fetch_table_columns() {
   info.schema_column = "TABLE_SCHEMA";  // NOT NULL
   info.table_column = "TABLE_NAME";     // NOT NULL
   info.extra_columns = {
-      "COLUMN_NAME",      // can be NULL in 8.0
-      "DATA_TYPE",        // can be NULL in 8.0
-      "ORDINAL_POSITION"  // NOT NULL
+      "COLUMN_NAME",       // can be NULL in 8.0
+      "DATA_TYPE",         // can be NULL in 8.0
+      "ORDINAL_POSITION",  // NOT NULL
+      "IS_NULLABLE",       // NOT NULL
+      "COLUMN_TYPE",       // NOT NULL
+      "EXTRA",             // can be NULL in 8.0
   };
   info.table_name = "columns";
-  info.where = "EXTRA<>'VIRTUAL GENERATED' AND EXTRA<>'STORED GENERATED'";
 
   // schema -> table -> columns
   std::unordered_map<
@@ -538,23 +556,32 @@ void Instance_cache_builder::fetch_table_columns() {
                        std::string, std::map<uint64_t, Instance_cache::Column>>>
       columns;
 
-  iterate_tables(
-      info,
-      [&columns](const std::string &schema_name, const std::string &table_name,
-                 Instance_cache::Table *, const mysqlshdk::db::IRow *row) {
-        Instance_cache::Column column;
-        // these can be NULL in 8.0, as per output of 'SHOW COLUMNS', but it's
-        // not likely, as they're NOT NULL in definition of mysql.columns hidden
-        // table
-        column.name = row->get_string(2, "");
-        const auto type = row->get_string(3, "");
-        column.csv_unsafe = shcore::str_iendswith(
-            type, "binary", "bit", "blob", "geometry", "geomcollection",
-            "geometrycollection", "linestring", "point", "polygon");
+  iterate_tables(info, [&columns](const std::string &schema_name,
+                                  const std::string &table_name,
+                                  Instance_cache::Table *,
+                                  const mysqlshdk::db::IRow *row) {
+    Instance_cache::Column column;
+    // these can be NULL in 8.0, as per output of 'SHOW COLUMNS', but it's
+    // not likely, as they're NOT NULL in definition of mysql.columns hidden
+    // table
+    column.name = row->get_string(2, "");  // COLUMN_NAME
+    column.quoted_name = shcore::quote_identifier(column.name);
+    const auto data_type = row->get_string(3, "");  // DATA_TYPE
+    column.type = mysqlshdk::db::dbstring_to_type(
+        data_type, row->get_string(6));  // COLUMN_TYPE
+    column.csv_unsafe =
+        shcore::str_iendswith(data_type.c_str(), "binary", "blob") ||
+        mysqlshdk::db::Type::Bit == column.type ||
+        mysqlshdk::db::Type::Geometry == column.type;
+    column.generated = row->get_string(7, "").find(" GENERATED") !=
+                       std::string::npos;  // EXTRA
+    column.nullable =
+        shcore::str_caseeq(row->get_string(5).c_str(), "YES");  // IS_NULLABLE
 
-        columns[schema_name][table_name].emplace(row->get_uint(4),
-                                                 std::move(column));
-      });
+    columns[schema_name][table_name].emplace(
+        row->get_uint(4),
+        std::move(column));  // ORDINAL_POSITION
+  });
 
   for (auto &schema : columns) {
     auto &s = m_cache.schemas.at(schema.first);
@@ -562,8 +589,14 @@ void Instance_cache_builder::fetch_table_columns() {
     for (auto &table : schema.second) {
       auto &t = s.tables.at(table.first);
 
+      t.all_columns.reserve(table.second.size());
+
       for (auto &column : table.second) {
-        t.columns.emplace_back(std::move(column.second));
+        t.all_columns.emplace_back(std::move(column.second));
+
+        if (!t.all_columns.back().generated) {
+          t.columns.emplace_back(&t.all_columns.back());
+        }
       }
     }
   }
@@ -590,39 +623,132 @@ void Instance_cache_builder::fetch_table_indexes() {
   std::unordered_map<
       std::string,
       std::unordered_map<
-          std::string, std::map<std::string, std::map<uint64_t, std::string>>>>
+          std::string,
+          std::map<std::string, std::map<uint64_t, Instance_cache::Column *>>>>
       indexes;
 
   iterate_tables(
       info,
       [&indexes](const std::string &schema_name, const std::string &table_name,
-                 Instance_cache::Table *, const mysqlshdk::db::IRow *row) {
+                 Instance_cache::Table *t, const mysqlshdk::db::IRow *row) {
         // INDEX_NAME can be NULL in 8.0, as per output of 'SHOW COLUMNS', but
         // it's not likely, as it's NOT NULL in definition of mysql.indexes
         // hidden table
         //
         // NULL values in COLUMN_NAME are filtered out
-        indexes[schema_name][table_name][row->get_string(2, "")].emplace(
-            row->get_uint(4), row->get_string(3));
+        const auto column =
+            std::find_if(t->all_columns.begin(), t->all_columns.end(),
+                         [name = row->get_string(3)](const auto &c) {
+                           return name == c.name;
+                         });  // COLUMN_NAME
+
+        // column will not be found if user is missing SELECT privilege and it
+        // was not possible to fetch column information
+        if (t->all_columns.end() != column) {
+          indexes[schema_name][table_name][row->get_string(2, "")].emplace(
+              row->get_uint(4), &(*column));  // INDEX_NAME, SEQ_IN_INDEX
+        } else {
+          assert(t->all_columns.empty());
+        }
       });
 
-  for (auto &schema : indexes) {
+  for (const auto &schema : indexes) {
     auto &s = m_cache.schemas.at(schema.first);
 
-    for (auto &table : schema.second) {
+    for (const auto &table : schema.second) {
       auto &t = s.tables.at(table.first);
 
       auto index = table.second.find(primary_index);
+      bool primary = false;
 
       if (table.second.end() == index) {
-        index = table.second.begin();
-        t.index.primary = false;
+        std::vector<bool> current;
+
+        const auto mark_integer_columns = [](decltype(index) idx) {
+          std::vector<bool> result;
+
+          result.reserve(idx->second.size());
+
+          for (const auto &c : idx->second) {
+            result.emplace_back(
+                c.second->type == mysqlshdk::db::Type::Integer ||
+                c.second->type == mysqlshdk::db::Type::UInteger);
+          }
+
+          return result;
+        };
+
+        const auto use_given_index =
+            [&index, &current](decltype(index) idx, std::vector<bool> &&cols) {
+              index = idx;
+              current = std::move(cols);
+            };
+
+        const auto use_index = [&use_given_index,
+                                &mark_integer_columns](decltype(index) idx) {
+          use_given_index(idx, mark_integer_columns(idx));
+        };
+
+        use_index(table.second.begin());
+
+        // skip first index
+        for (auto it = std::next(index); it != table.second.end(); ++it) {
+          const auto size = it->second.size();
+
+          if (size < index->second.size()) {
+            // prefer shorter index
+            use_index(it);
+          } else if (size == index->second.size()) {
+            // if indexes have equal length, prefer the one with longer run of
+            // integer columns
+            auto candidate = mark_integer_columns(it);
+            auto candidate_column = it->second.begin();
+            auto current_column = index->second.begin();
+
+            for (std::size_t i = 0; i < size; ++i) {
+              if (candidate[i] == current[i]) {
+                // both columns are of the same type, check if they are nullable
+                if (candidate_column->second->nullable ==
+                    current_column->second->nullable) {
+                  // both columns are NULL or NOT NULL
+                  if (!current[i]) {
+                    // both columns are not integers, use the current index
+                    break;
+                  }
+                  // else, both column are integers, check next column
+                } else {
+                  // prefer NOT NULL column
+                  if (!candidate_column->second->nullable) {
+                    // candidate is NOT NULL, use that
+                    use_given_index(it, std::move(candidate));
+                  }
+                  // else current column is NOT NULL
+                  break;
+                }
+              } else {
+                // columns are different
+                if (candidate[i]) {
+                  // candidate column is an integer, use candidate index
+                  use_given_index(it, std::move(candidate));
+                }
+                // else, current column is an integer, use the current index
+                break;
+              }
+
+              ++candidate_column;
+              ++current_column;
+            }
+          }
+          // else, candidate is longer, ignore it
+        }
       } else {
-        t.index.primary = true;
+        primary = true;
       }
 
+      t.index.set_primary(primary);
+
       for (auto &column : index->second) {
-        t.index.columns.emplace_back(std::move(column.second));
+        t.index.add_column(column.second);
       }
     }
   }
@@ -644,16 +770,17 @@ void Instance_cache_builder::fetch_table_histograms() {
     };
     info.table_name = "column_statistics";
 
-    iterate_tables(info, [](const std::string &, const std::string &,
-                            Instance_cache::Table *table,
-                            const mysqlshdk::db::IRow *row) {
-      Instance_cache::Histogram histogram;
+    iterate_tables(
+        info, [](const std::string &, const std::string &,
+                 Instance_cache::Table *table, const mysqlshdk::db::IRow *row) {
+          Instance_cache::Histogram histogram;
 
-      histogram.column = row->get_string(2);
-      histogram.buckets = shcore::lexical_cast<std::size_t>(row->get_string(3));
+          histogram.column = row->get_string(2);  // COLUMN_NAME
+          histogram.buckets = shcore::lexical_cast<std::size_t>(
+              row->get_string(3));  // number-of-buckets-specified
 
-      table->histograms.emplace_back(std::move(histogram));
-    });
+          table->histograms.emplace_back(std::move(histogram));
+        });
 
     for (auto &schema : m_cache.schemas) {
       for (auto &table : schema.second.tables) {

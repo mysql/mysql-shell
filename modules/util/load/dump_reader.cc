@@ -64,6 +64,17 @@ shcore::Dictionary_t fetch_metadata(mysqlshdk::storage::IDirectory *dir,
   }
 }
 
+auto to_vector_of_strings(const shcore::Array_t &arr) {
+  std::vector<std::string> res;
+  res.reserve(arr->size());
+
+  for (const auto &s : *arr) {
+    res.emplace_back(s.as_string());
+  }
+
+  return res;
+}
+
 }  // namespace
 
 Dump_reader::Dump_reader(
@@ -728,10 +739,14 @@ void Dump_reader::Table_info::rescan(
       options = md->get_map("options");
 
       if (options) {
-        // Not used by chunk importer
+        // "compression" and "primaryIndex" are not used by the chunk importer
+        // and need to be removed
+        // these were misplaced in the options dictionary, code is kept for
+        // backward compatibility
         options->erase("compression");
+
         if (options->has_key("primaryIndex")) {
-          primary_index = options->get_string("primaryIndex");
+          primary_index.emplace_back(options->get_string("primaryIndex"));
           options->erase("primaryIndex");
         }
 
@@ -748,7 +763,13 @@ void Dump_reader::Table_info::rescan(
 
       extension = md->get_string("extension", "tsv");
       chunked = md->get_bool("chunking", false);
+
+      if (md->has_key("primaryIndex")) {
+        primary_index = to_vector_of_strings(md->get_array("primaryIndex"));
+      }
+
       auto histogram_list = md->get_array("histograms");
+
       if (histogram_list) {
         for (const auto &h : *histogram_list) {
           auto histogram = h.as_map();
@@ -924,12 +945,6 @@ void Dump_reader::Schema_info::rescan(
         }
         log_debug("%s has %zi views", schema.c_str(), views.size());
       }
-
-      const auto to_vector_of_strings = [](const shcore::Array_t &arr) {
-        std::vector<std::string> res;
-        for (const auto &s : *arr) res.emplace_back(s.as_string());
-        return res;
-      };
 
       if (md->has_key("functions"))
         function_names = to_vector_of_strings(md->get_array("functions"));

@@ -1,10 +1,16 @@
+#@<> INCLUDE dump_utils.inc
+
+#@<> entry point
+
 # imports
 import json
 import os
 import os.path
+import random
 import re
 import shutil
 import stat
+import string
 import urllib.parse
 
 # constants
@@ -807,8 +813,8 @@ EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "showPro
 
 # WL13804: WL13807-FR4.12.1 - If the `chunking` option is set to `true` and the index column cannot be selected automatically as described in FR3.1, the data must to written to a single dump file. A warning should be displayed to the user.
 # WL13804: WL13807-FR3.1 - For each table dumped, its index column (name of the column used to order the data and perform the chunking) must be selected automatically as the first column used in the primary key, or if there is no primary key, as the first column used in the first unique index. If the table to be dumped does not contain a primary key and does not contain an unique index, the index column will not be defined.
-EXPECT_STDOUT_CONTAINS("NOTE: Could not select a column to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_non_unique))
-EXPECT_STDOUT_CONTAINS("NOTE: Could not select a column to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_no_index))
+EXPECT_STDOUT_CONTAINS("NOTE: Could not select columns to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_non_unique))
+EXPECT_STDOUT_CONTAINS("NOTE: Could not select columns to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(test_schema, test_table_no_index))
 
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_non_unique) + ".tsv.zst")))
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".tsv.zst")))
@@ -1954,7 +1960,7 @@ session.run_sql("CREATE TABLE !.! (id INT);", [ tested_schema, tested_table ])
 session.run_sql("INSERT INTO !.! VALUES (1), (2), (3);", [ tested_schema, tested_table ])
 
 EXPECT_SUCCESS(tested_schema, [tested_table], test_output_absolute, { "chunking": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS("NOTE: Could not select a column to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(tested_schema, tested_table))
+EXPECT_STDOUT_CONTAINS("NOTE: Could not select columns to be used as an index for table `{0}`.`{1}`. Chunking has been disabled for this table, data will be dumped to a single file.".format(tested_schema, tested_table))
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(tested_schema, tested_table) + ".tsv.zst")))
 
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
@@ -2097,6 +2103,8 @@ WIPE_STDOUT()
 EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_NOT_CONTAINS(expected_msg)
 
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
 #@<> BUG#32430402 metadata should contain information about binlog
 EXPECT_SUCCESS(types_schema, [types_schema_tables[0]], test_output_absolute, { "ddlOnly": True, "showProgress": False })
 
@@ -2105,9 +2113,157 @@ with open(os.path.join(test_output_absolute, "@.json"), encoding="utf-8") as jso
     EXPECT_EQ(True, "binlogFile" in metadata, "'binlogFile' should be in metadata")
     EXPECT_EQ(True, "binlogPosition" in metadata, "'binlogPosition' should be in metadata")
 
+#@<> BUG#32773468 setup
+def validate_size(path, ext):
+    size = 0
+    for f in os.listdir(path):
+        if f.endswith(ext):
+            size += os.path.getsize(os.path.join(path, f))
+    EXPECT_STDOUT_CONTAINS(f"Compressed data size: {size} bytes")
+
+def test_bug_32773468(data):
+    session.run_sql("TRUNCATE TABLE !.!;", [ tested_schema, tested_table ])
+    session.run_sql(f"""INSERT INTO !.! VALUES {",".join([f"({v}, '{random.choices(string.ascii_letters + string.digits)[0]}')" for v in data])};""", [ tested_schema, tested_table ])
+    session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+    EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showProgress": False })
+    validate_size(test_output_absolute, ".zst")
+
+tested_schema = "test_schema"
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+
+#@<> BUG#32773468 setup table with signed integers
+tested_table = "test_signed"
+session.run_sql("CREATE TABLE !.! (a BIGINT PRIMARY KEY, b VARCHAR(32));", [ tested_schema, tested_table ])
+
+#@<> BUG#32773468 table holds values close to signed minimum
+test_bug_32773468(range(-9223372036854775808, -9223372036854775802))
+
+#@<> BUG#32773468 table holds values close to signed minimum, data range overflows the max
+test_bug_32773468(list(range(-9223372036854775808, -9223372036854775802)) + [ 1 ])
+
+#@<> BUG#32773468 table holds values close to signed maximum
+test_bug_32773468(range(9223372036854775802, 9223372036854775808))
+
+#@<> BUG#32773468 table holds values close to signed maximum, data range overflows the max
+test_bug_32773468([ -1 ] + list(range(9223372036854775802, 9223372036854775808)))
+
+#@<> BUG#32773468 setup table with unsigned integers
+tested_table = "test_unsigned"
+session.run_sql("CREATE TABLE !.! (a BIGINT UNSIGNED PRIMARY KEY, b VARCHAR(32));", [ tested_schema, tested_table ])
+
+#@<> BUG#32773468 table holds values close to unsigned minimum
+test_bug_32773468(range(0, 6))
+
+#@<> BUG#32773468 data range is maximum possible
+test_bug_32773468(list(range(0, 6)) + [ 18446744073709551615 ])
+
+#@<> BUG#32773468 table holds values close to unsigned maximum
+test_bug_32773468(range(18446744073709551610, 18446744073709551616))
+
+#@<> BUG#32773468 cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
+#@<> BUG#32602325 setup
+tested_schema = "test_schema"
+tested_table = "test_table"
+
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (a BIGINT PRIMARY KEY, b text);", [ tested_schema, tested_table ])
+
+gap_start = 1
+gap_items = 10000
+gap_step = 1000
+
+def test_bug_32602325(step):
+    def insert(r):
+        session.run_sql(f"""INSERT INTO !.! VALUES {",".join([f"({v}, '')" for v in r])};""", [ tested_schema, tested_table ])
+    def generate_gaps():
+        value = gap_start
+        while True:
+            yield value
+            value += next(step)
+    gen = generate_gaps()
+    # clear the data
+    session.run_sql("TRUNCATE TABLE !.!;", [ tested_schema, tested_table ])
+    # insert rows with gaps in the PK
+    insert([next(gen) for i in range(gap_items)])
+    # all the remaining data is continuous
+    start = next(gen)
+    insert(range(start, start + gap_items))
+    # use some dummy data
+    session.run_sql("UPDATE !.! SET b = repeat('x', 5000);", [ tested_schema, tested_table ])
+    # analyze the table for optimum results
+    session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+    # run the test
+    EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "bytesPerChunk": "1M", "compression": "none", "showProgress": False })
+    # expect at least 320 chunks
+    CHECK_OUTPUT_SANITY(test_output_absolute, 200000, 320)
+
+#@<> BUG#32602325 - equal gaps
+def equal_gaps():
+    while True:
+        yield gap_step
+
+test_bug_32602325(equal_gaps())
+
+#@<> BUG#32602325 - random gaps
+def random_gaps():
+    while True:
+        yield random.randrange(1, gap_step)
+
+test_bug_32602325(random_gaps())
+
+#@<> BUG#32602325 - increasing gaps
+def increasing_gaps():
+    step = 1
+    while True:
+        yield step
+        step += 1
+
+test_bug_32602325(increasing_gaps())
+
+#@<> BUG#32602325 - decreasing gaps
+def decreasing_gaps():
+    step = gap_step
+    while True:
+        yield step
+        if step > 2:
+            step -= 1
+
+test_bug_32602325(decreasing_gaps())
+
+#@<> BUG#32602325 cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
+#@<> composite non-integer key - setup
+tested_schema = "test_schema"
+tested_table = "char_hashes_4"
+items = 10000
+
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("""CREATE TABLE !.! (
+  `md5_1` varchar(8) NOT NULL,
+  `md5_2` varchar(8) NOT NULL,
+  `md5_3` varchar(8) GENERATED ALWAYS AS (substr(md5(email), 17, 8)) VIRTUAL NOT NULL,
+  `md5_4` varchar(8) GENERATED ALWAYS AS (substr(md5(email), 25, 8)) STORED NOT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  UNIQUE KEY `pk` (`md5_1`,`md5_2`,`md5_3`,`md5_4`)
+);""", [ tested_schema, tested_table ])
+session.run_sql(f"""INSERT INTO !.! (`md5_1`,`md5_2`, `email`) VALUES {",".join([f"('{md5sum(email)[0:8]}', '{md5sum(email)[8:16]}', '{email}')" for email in [random_email() for i in range(items)]])};""", [ tested_schema, tested_table ])
+session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+
+#@<> composite non-integer key - test
+EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "bytesPerChunk": "128k", "compression": "none", "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"Data dump for table `{tested_schema}`.`{tested_table}` will be chunked using columns `md5_1`, `md5_2`, `md5_3`, `md5_4`")
+CHECK_OUTPUT_SANITY(test_output_absolute, 55000, 10)
+TEST_LOAD(tested_schema, tested_table, True)
+
+#@<> composite non-integer key - cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")
 session.close()
-testutil.destroy_sandbox(__mysql_sandbox_port1);
+testutil.destroy_sandbox(__mysql_sandbox_port1)
 shutil.rmtree(incompatible_table_directory, True)

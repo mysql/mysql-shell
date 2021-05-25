@@ -29,6 +29,7 @@
 #include <cstdint>
 #include <functional>
 #include <iterator>
+#include <type_traits>
 #include <utility>
 
 #include <mysqld_error.h>
@@ -76,15 +77,14 @@ using mysqlshdk::storage::Mode;
 using mysqlshdk::storage::backend::Memory_file;
 using mysqlshdk::utils::Version;
 
+using Row = std::vector<std::string>;
+
 namespace {
 
 static constexpr auto k_dump_in_progress_ext = ".dumping";
 
 static constexpr const int k_mysql_server_net_write_timeout = 30 * 60;
 static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
-
-const int k_chunker_retries = 10;
-const int k_chunker_iterations = 10;
 
 FI_DEFINE(dumper, [](const mysqlshdk::utils::FI::Args &args) {
   throw std::runtime_error(args.get_string("msg"));
@@ -117,7 +117,7 @@ std::string trim_in_progress_extension(const std::string &s) {
   }
 }
 
-auto ref(const std::string &s) {
+auto refs(const std::string &s) {
   return rapidjson::StringRef(s.c_str(), s.length());
 }
 
@@ -180,6 +180,28 @@ Issue_status show_issues(const std::vector<Schema_dumper::Issue> &issues) {
   return status;
 }
 
+std::string quote(const std::string &schema, const std::string &table) {
+  return shcore::quote_identifier(schema) + "." +
+         shcore::quote_identifier(table);
+}
+
+Row fetch_row(const mysqlshdk::db::IRow *row) {
+  Row result;
+
+  if (row) {
+    for (uint32_t i = 0, size = row->num_fields(); i < size; ++i) {
+      assert(!row->is_null(i));
+      result.emplace_back(row->get_as_string(i));
+    }
+  }
+
+  return result;
+}
+
+int64_t to_int64_t(const std::string &s) { return std::stoll(s); }
+
+uint64_t to_uint64_t(const std::string &s) { return std::stoull(s); }
+
 }  // namespace
 
 class Dumper::Synchronize_workers final {
@@ -225,6 +247,8 @@ class Dumper::Table_worker final {
   ~Table_worker() = default;
 
   void run() {
+    std::string context;
+
     try {
 #ifndef NDEBUG
       try {
@@ -252,17 +276,19 @@ class Dumper::Table_worker final {
           mysqlshdk::utils::Rate_limit(m_dumper->m_options.max_rate());
 
       while (true) {
-        const auto func = m_dumper->m_worker_tasks.pop();
+        auto work = m_dumper->m_worker_tasks.pop();
 
         if (m_dumper->m_worker_interrupt) {
           return;
         }
 
-        if (!func) {
+        if (!work.task) {
           break;
         }
 
-        func(this);
+        context = std::move(work.info);
+
+        work.task(this);
 
         if (m_dumper->m_worker_interrupt) {
           return;
@@ -270,10 +296,12 @@ class Dumper::Table_worker final {
       }
 
       m_dumper->assert_transaction_is_open(m_session);
+    } catch (const mysqlshdk::db::Error &e) {
+      handle_exception(context, e.format().c_str());
     } catch (const std::exception &e) {
-      handle_exception(e.what());
+      handle_exception(context, e.what());
     } catch (...) {
-      handle_exception("Unknown exception");
+      handle_exception(context, "Unknown exception");
     }
   }
 
@@ -299,15 +327,14 @@ class Dumper::Table_worker final {
     std::string query = "SELECT SQL_NO_CACHE ";
 
     for (const auto &column : table.cache->columns) {
-      if (column.csv_unsafe) {
-        query += shcore::sqlstring(base64 ? "TO_BASE64(!)" : "HEX(!)", 0)
-                 << column.name;
+      if (column->csv_unsafe) {
+        query += (base64 ? "TO_BASE64(" : "HEX(") + column->quoted_name + ")";
 
         out_pre_encoded_columns->push_back(
             base64 ? Dump_writer::Encoding_type::BASE64
                    : Dump_writer::Encoding_type::HEX);
       } else {
-        query += shcore::sqlstring("!", 0) << column.name;
+        query += column->quoted_name;
 
         out_pre_encoded_columns->push_back(Dump_writer::Encoding_type::NONE);
       }
@@ -318,22 +345,12 @@ class Dumper::Table_worker final {
     // remove last comma
     query.pop_back();
 
-    query += shcore::sqlstring(" FROM !.!", 0) << table.schema << table.name;
+    query += " FROM " + table.quoted_name;
 
-    if (!table.range.begin.empty()) {
-      const auto &index = table.cache->index.first_column();
-      query += shcore::sqlstring(" WHERE ! BETWEEN ", 0) << index;
-      query += quote_value(table.range.begin, table.range.type);
-      query += " AND ";
-      query += quote_value(table.range.end, table.range.type);
-
-      if (table.include_nulls) {
-        query += shcore::sqlstring(" OR ! IS NULL", 0) << index;
-      }
-    }
+    query += where(table.where);
 
     if (table.cache->index.valid()) {
-      query += " ORDER BY " + table.cache->index.order_by();
+      query += " ORDER BY " + table.cache->index.columns_sql();
     }
 
     query += " " + m_dumper->get_query_comment(table, "dumping");
@@ -345,12 +362,17 @@ class Dumper::Table_worker final {
     Dump_write_result bytes_written_per_file;
     Dump_write_result bytes_written_per_update{table.schema, table.name};
     uint64_t rows_written_per_update = 0;
+    uint64_t rows_written_per_file = 0;
+    uint64_t max_row_size = 0;
     const uint64_t update_every = 2000;
     uint64_t bytes_written_per_idx = 0;
     const uint64_t write_idx_every = 1024 * 1024;  // bytes
     Dump_write_result bytes_written;
     mysqlshdk::utils::Profile_timer timer;
     std::vector<Dump_writer::Encoding_type> pre_encoded_columns;
+
+    log_debug("Dumping %s (chunk %s) using condition: %s",
+              table.quoted_name.c_str(), table.id.c_str(), table.where.c_str());
 
     timer.stage_begin("dumping");
 
@@ -388,6 +410,7 @@ class Dumper::Table_worker final {
       bytes_written_per_update += bytes_written;
       bytes_written_per_idx += bytes_written.data_bytes();
       ++rows_written_per_update;
+      ++rows_written_per_file;
 
       if (table.index_file && bytes_written_per_idx >= write_idx_every) {
         // the idx file contains offsets to the data stream, not to binary one
@@ -412,6 +435,10 @@ class Dumper::Table_worker final {
         rows_written_per_update = 0;
         bytes_written_per_update.reset();
       }
+
+      if (bytes_written.data_bytes() > max_row_size) {
+        max_row_size = bytes_written.data_bytes();
+      }
     }
 
     bytes_written = table.writer->write_postamble();
@@ -427,67 +454,90 @@ class Dumper::Table_worker final {
       table.index_file->close();
     }
 
-    log_debug("Dump of `%s`.`%s` into '%s' took %f seconds",
-              table.schema.c_str(), table.name.c_str(),
-              table.writer->output()->full_path().c_str(),
-              timer.total_seconds_elapsed());
+    log_info("Dump of %s into '%s' (chunk %s) took %f seconds, written %" PRIu64
+             " rows (%" PRIu64 " bytes), longest row has %" PRIu64 " bytes",
+             table.quoted_name.c_str(),
+             table.writer->output()->full_path().c_str(), table.id.c_str(),
+             timer.total_seconds_elapsed(), rows_written_per_file,
+             bytes_written_per_file.data_bytes(), max_row_size);
 
-    m_dumper->finish_writing(table.writer, bytes_written_per_file.data_bytes());
+    const auto file_size = m_dumper->finish_writing(
+        table.writer, bytes_written_per_file.data_bytes());
     m_dumper->update_progress(rows_written_per_update,
                               bytes_written_per_update);
+
+    // if file is compressed, the final file size may differ from the bytes
+    // written so far, as i.e. bytes were not flushed until the whole block was
+    // ready
+    if (file_size > bytes_written_per_file.bytes_written()) {
+      m_dumper->update_bytes_written(file_size -
+                                     bytes_written_per_file.bytes_written());
+    }
   }
 
   void push_table_data_task(Table_data_task &&task) {
-    // Table_data_task contains an unique_ptr, it's moved into shared_ptr so it
-    // can be move-captured by lambda
-    std::shared_ptr<Table_data_task> t =
-        std::make_shared<Table_data_task>(std::move(task));
-    m_dumper->m_worker_tasks.push(
-        [task = std::move(t)](Table_worker *worker) {
-          ++worker->m_dumper->m_num_threads_dumping;
+    std::string info = "dumping " + task.quoted_name;
+    // Table_data_task contains an unique_ptr, it's moved into shared_ptr and
+    // then move-captured by lambda, so that this lambda can be stored,
+    // otherwise compiler will complain about a call to implicitly-deleted
+    // copy constructor
+    auto t = std::make_shared<Table_data_task>(std::move(task));
 
-          worker->dump_table_data(*task);
+    m_dumper->m_worker_tasks.push({std::move(info),
+                                   [task = std::move(t)](Table_worker *worker) {
+                                     ++worker->m_dumper->m_num_threads_dumping;
 
-          --worker->m_dumper->m_num_threads_dumping;
-        },
-        shcore::Queue_priority::LOW);
+                                     worker->dump_table_data(*task);
+
+                                     --worker->m_dumper->m_num_threads_dumping;
+                                   }},
+                                  shcore::Queue_priority::LOW);
   }
 
-  void create_table_data_task(const Table_task &table) {
+  Table_data_task create_table_data_task(const Table_task &table,
+                                         const std::string &filename) {
     Table_data_task data_task;
 
     data_task.name = table.name;
+    data_task.quoted_name = table.quoted_name;
     data_task.schema = table.schema;
     data_task.cache = table.cache;
-    data_task.writer = m_dumper->get_table_data_writer(
-        m_dumper->get_table_data_filename(table.basename));
+    data_task.writer = m_dumper->get_table_data_writer(filename);
+
     if (!m_dumper->m_options.is_export_only()) {
-      data_task.index_file = m_dumper->make_file(
-          m_dumper->get_table_data_filename(table.basename) + ".idx");
+      data_task.index_file = m_dumper->make_file(filename + ".idx");
     }
+
+    return data_task;
+  }
+
+  void create_and_push_table_data_task(const Table_task &table) {
+    Table_data_task data_task = create_table_data_task(
+        table, m_dumper->get_table_data_filename(table.basename));
+
     data_task.id = "1";
 
     push_table_data_task(std::move(data_task));
   }
 
-  void create_table_data_task(const Table_task &table,
-                              Dumper::Range_info &&range, const std::string &id,
-                              std::size_t idx, bool last_chunk) {
-    Table_data_task data_task;
-
-    data_task.name = table.name;
-    data_task.schema = table.schema;
-    data_task.cache = table.cache;
-    data_task.range = std::move(range);
-    data_task.include_nulls = 0 == idx;
-    data_task.writer = m_dumper->get_table_data_writer(
+  void create_and_push_table_data_task(const Table_task &table,
+                                       const std::string &where,
+                                       const std::string &id, std::size_t idx,
+                                       bool last_chunk) {
+    Table_data_task data_task = create_table_data_task(
+        table,
         m_dumper->get_table_data_filename(table.basename, idx, last_chunk));
-    if (!m_dumper->m_options.is_export_only()) {
-      data_task.index_file = m_dumper->make_file(
-          m_dumper->get_table_data_filename(table.basename, idx, last_chunk) +
-          ".idx");
-    }
+
     data_task.id = id;
+    data_task.where = "(" + where + ")";
+
+    if (0 == idx) {
+      for (const auto &c : table.cache->index.columns()) {
+        if (c->nullable) {
+          data_task.where += "OR(" + c->quoted_name + " IS NULL)";
+        }
+      }
+    }
 
     push_table_data_task(std::move(data_task));
   }
@@ -500,33 +550,434 @@ class Dumper::Table_worker final {
     auto ranges = create_ranged_tasks(table);
 
     if (0 == ranges) {
-      create_table_data_task(table);
+      create_and_push_table_data_task(table);
       ++ranges;
     }
 
     current_console()->print_status(
-        "Data dump for table " + Dumper::quote(table.schema, table.name) +
-        " will be written to " + std::to_string(ranges) + " file" +
-        (ranges > 1 ? "s" : ""));
+        "Data dump for table " + table.quoted_name + " will be written to " +
+        std::to_string(ranges) + " file" + (ranges > 1 ? "s" : ""));
 
     m_dumper->chunking_task_finished();
   }
 
-  std::size_t create_ranged_tasks(const Table_task &table) {
-    if (!m_dumper->is_chunked(table)) {
+  template <typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>
+  static std::string between(const std::string &column, T begin, T end) {
+    return column + " BETWEEN " + std::to_string(begin) + " AND " +
+           std::to_string(end);
+  }
+
+  struct Chunking_info {
+    const Table_task *table;
+    uint64_t rows_per_chunk;
+    uint64_t accuracy;
+    int explain_rows_idx;
+    std::string where;
+    std::string order_by;
+    std::size_t index_column;
+  };
+
+  static std::string compare(const Chunking_info &info, const Row &value,
+                             const std::string &op, bool eq) {
+    const auto &columns = info.table->cache->index.columns();
+    const auto size = columns.size() - info.index_column;
+
+    assert(size == value.size());
+
+    auto column = columns.rbegin();
+    const auto end = column + size;
+    std::size_t idx = size;
+
+    const auto get_value = [&column, &value, &idx]() {
+      return quote_value(value[--idx], (*column)->type);
+    };
+
+    std::string result = (*column)->quoted_name + op;
+
+    if (eq) {
+      result += "=";
+    }
+
+    result += get_value();
+
+    while (++column != end) {
+      const auto val = get_value();
+      result = (*column)->quoted_name + op + val + " OR(" +
+               (*column)->quoted_name + "=" + val + " AND(" + result + "))";
+    }
+
+    return "(" + result + ")";
+  }
+
+  static std::string compare_ge(const Chunking_info &info, const Row &value) {
+    return compare(info, value, ">", true);
+  }
+
+  static std::string compare_le(const Chunking_info &info, const Row &value) {
+    return compare(info, value, "<", true);
+  }
+
+  static std::string ge(const Chunking_info &info, const Row &value) {
+    std::string result = info.where;
+
+    if (!result.empty()) {
+      result += " AND";
+    }
+
+    result += compare_ge(info, value);
+
+    return result;
+  }
+
+  static std::string between(const Chunking_info &info, const Row &begin,
+                             const Row &end) {
+    return ge(info, begin) + "AND" + compare_le(info, end);
+  }
+
+  template <typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>
+  static std::string between(const Chunking_info &info, T begin, T end) {
+    std::string result = info.where;
+
+    if (!result.empty()) {
+      result += " AND ";
+    }
+
+    return result +
+           between(info.table->cache->index.columns()[info.index_column]
+                       ->quoted_name,
+                   begin, end);
+  }
+
+  static std::string where(const std::string &condition) {
+    std::string result;
+
+    if (!condition.empty()) {
+      result = " WHERE " + condition;
+    }
+
+    return result;
+  }
+
+  template <typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>
+  static T constant_step(const T /* from */, const T step) {
+    return step;
+  }
+
+  template <typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>
+  T adaptive_step(const T from, const T step, const T max,
+                  const Chunking_info &info, const std::string &chunk_id) {
+    static constexpr int k_chunker_retries = 10;
+    static constexpr int k_chunker_iterations = 20;
+
+    const auto double_step = 2 * step;
+    auto middle = from;
+
+    auto rows = info.rows_per_chunk;
+    const auto comment = this->get_query_comment(*info.table, chunk_id);
+
+    int retry = 0;
+    uint64_t delta = info.accuracy + 1;
+
+    const auto row_count = [&info, &comment, this](const auto begin,
+                                                   const auto end) {
+      return m_session
+          ->query("EXPLAIN SELECT COUNT(*) FROM " + info.table->quoted_name +
+                  where(between(info, begin, end)) + info.order_by + comment)
+          ->fetch_one_or_throw()
+          ->get_uint(info.explain_rows_idx);
+    };
+
+    while (delta > info.accuracy && retry < k_chunker_retries) {
+      if (max - retry * double_step <= from) {
+        // if left boundary is greater than max, stop here
+        middle = max;
+        break;
+      }
+
+      // each time search in a different range, we didn't find the answer in the
+      // previous one
+      auto left = from + retry * double_step;
+      // if right boundary is greater than max, use max instead
+      auto right = std::numeric_limits<T>::max() - double_step <= left
+                       ? std::numeric_limits<T>::max()
+                       : left + double_step;
+
+      assert(left < right);
+
+      for (int i = 0; i < k_chunker_iterations; ++i) {
+        middle = left + (right - left) / 2;
+
+        if (middle >= right || middle <= left) {
+          break;
+        }
+
+        rows = row_count(from, middle);
+
+        if (0 == i && rows < info.rows_per_chunk) {
+          // if in the first iteration there's not enough rows, check the whole
+          // range, if there's still not enough rows we can skip this range
+          const auto total_rows = row_count(from, right);
+
+          if (total_rows < info.rows_per_chunk) {
+            middle = right;
+            delta = info.rows_per_chunk - total_rows;
+            break;
+          }
+        }
+
+        if (rows > info.rows_per_chunk) {
+          right = middle;
+          delta = rows - info.rows_per_chunk;
+        } else {
+          left = middle;
+          delta = info.rows_per_chunk - rows;
+        }
+
+        if (delta <= info.accuracy) {
+          // we're close enough
+          break;
+        }
+      }
+
+      if (delta > info.accuracy) {
+        if (rows >= info.rows_per_chunk) {
+          // we have too many rows, but that's OK...
+          retry = k_chunker_retries;
+        } else {
+          if (middle >= max) {
+            // we've reached the upper boundary, stop here
+            retry = k_chunker_retries;
+          } else {
+            // we didn't find enough rows here, move farther to
+            // the right
+            ++retry;
+          }
+        }
+      }
+    }
+
+    return middle - from;
+  }
+
+  template <typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>
+  std::size_t chunk_integer_column(const Chunking_info &info, const T min,
+                                   const T max) {
+    static constexpr int k_chunker_step_accuracy = 1;
+
+    std::size_t ranges_count = 0;
+
+    // if rows_per_chunk <= 1 it may mean that the rows are bigger than chunk
+    // size, which means we # chunks ~= # rows
+    const auto estimated_chunks =
+        info.rows_per_chunk > 0
+            ? std::max(info.table->cache->row_count / info.rows_per_chunk,
+                       UINT64_C(1))
+            : info.table->cache->row_count;
+    const auto index_range = static_cast<uint64_t>(max - min);
+    const auto row_count_accuracy =
+        std::max(info.table->cache->row_count / 10, UINT64_C(10));
+    // it should be (max - min + 1), but this can potentially overflow and `+ 1`
+    // is not significant, as the result is divided anyway
+    const auto estimated_step =
+        std::max(index_range / estimated_chunks, UINT64_C(2));
+
+    std::string chunk_id;
+    using step_t = decltype(min);
+
+    // use constant step if number of chunks is small or index range is close to
+    // the number of rows
+    const bool use_constant_step =
+        estimated_chunks < 2 ||
+        std::max(index_range, info.table->cache->row_count) -
+                std::min(index_range, info.table->cache->row_count) <=
+            row_count_accuracy;
+
+    const auto next_step =
+        use_constant_step
+            ? std::function<step_t(const step_t, const step_t)>(
+                  constant_step<T>)
+            // using the default capture [&] below results in problems with
+            // GCC 5.4.0 (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80543)
+            : [&info, &max, &chunk_id, this](const auto from, const auto step) {
+                return this->adaptive_step(from, step, max, info, chunk_id);
+              };
+
+    auto current = min;
+    // if estimated_step is greater than maximum possible value, casting will
+    // overflow, use max instead
+    const auto step = estimated_step < static_cast<decltype(estimated_step)>(
+                                           std::numeric_limits<step_t>::max())
+                          ? static_cast<step_t>(estimated_step)
+                          : std::numeric_limits<step_t>::max();
+
+    log_info("Chunking %s using integer algorithm with %s step",
+             info.table->quoted_name.c_str(),
+             use_constant_step ? "constant" : "adaptive");
+
+    while (true) {
+      if (m_dumper->m_worker_interrupt) {
+        return ranges_count;
+      }
+
+      chunk_id = std::to_string(ranges_count);
+      const auto begin = current;
+
+      const auto new_step =
+          std::max(next_step(current, step), static_cast<step_t>(2));
+
+      // ensure that there's no integer overflow
+      current = (current > max - new_step + 1 ? max : current + new_step - 1);
+
+      // step is always > 0, if max is > 0 => max - step will not overflow
+      // current is <= max, if max is < 0 => max - current will not overflow
+      if (max > 0 ? max - k_chunker_step_accuracy <= current
+                  : max - current <= k_chunker_step_accuracy) {
+        current = max;
+      }
+
+      const auto end = current;
+
+      const auto last_chunk = (current >= max);
+
+      create_and_push_table_data_task(*info.table, between(info, begin, end),
+                                      chunk_id, ranges_count++, last_chunk);
+
+      if (last_chunk) {
+        // exit here in case ++current overflows
+        break;
+      }
+
+      ++current;
+    }
+
+    return ranges_count;
+  }
+
+  std::size_t chunk_integer_column(const Chunking_info &info, const Row &begin,
+                                   const Row &end) {
+    log_info("Chunking %s using integer algorithm",
+             info.table->quoted_name.c_str());
+
+    const auto type =
+        info.table->cache->index.columns()[info.index_column]->type;
+
+    if (mysqlshdk::db::Type::Integer == type) {
+      return chunk_integer_column(info, to_int64_t(begin[info.index_column]),
+                                  to_int64_t(end[info.index_column]));
+    } else if (mysqlshdk::db::Type::UInteger == type) {
+      return chunk_integer_column(info, to_uint64_t(begin[info.index_column]),
+                                  to_uint64_t(end[info.index_column]));
+    }
+
+    throw std::logic_error(
+        "Unsupported column type for the integer algorithm: " +
+        mysqlshdk::db::to_string(type));
+  }
+
+  std::size_t chunk_non_integer_column(const Chunking_info &info,
+                                       const Row &begin, const Row &end) {
+    log_info("Chunking %s using non-integer algorithm",
+             info.table->quoted_name.c_str());
+
+    std::size_t ranges_count = 0;
+
+    Row range_begin = begin;
+    Row range_end;
+
+    const auto &columns = info.table->cache->index.columns();
+    const auto index =
+        shcore::str_join(columns.begin() + info.index_column, columns.end(),
+                         ",", [](const auto &c) { return c->quoted_name; });
+
+    const auto select = "SELECT SQL_NO_CACHE " + index + " FROM " +
+                        info.table->quoted_name + " ";
+    const auto order_by_and_limit = info.order_by + " LIMIT " +
+                                    std::to_string(info.rows_per_chunk - 1) +
+                                    ",2 ";
+
+    const auto fetch =
+        [&end](const std::shared_ptr<mysqlshdk::db::IResult> &res) {
+          const auto row = res->fetch_one();
+          return row ? fetch_row(row) : end;
+        };
+
+    std::shared_ptr<mysqlshdk::db::IResult> result;
+
+    do {
+      const auto condition = where(ge(info, range_begin));
+      const auto chunk_id = std::to_string(ranges_count);
+      const auto comment = get_query_comment(*info.table, chunk_id);
+
+      result =
+          m_session->query(select + condition + order_by_and_limit + comment);
+
+      if (m_dumper->m_worker_interrupt) {
+        return 0;
+      }
+
+      range_end = fetch(result);
+
+      create_and_push_table_data_task(
+          *info.table, between(info, range_begin, range_end), chunk_id,
+          ranges_count++, range_end == end);
+
+      range_begin = fetch(result);
+    } while (range_end != end);
+
+    return ranges_count;
+  }
+
+  std::size_t chunk_column(const Chunking_info &info) {
+    const auto query = "SELECT SQL_NO_CACHE " +
+                       info.table->cache->index.columns_sql() + " FROM " +
+                       info.table->quoted_name + where(info.where);
+
+    auto result = m_session->query(query + info.order_by + " LIMIT 1");
+    auto row = result->fetch_one();
+
+    if (!row) {
       return 0;
     }
 
-    const auto &index = table.cache->index.first_column();
-    const auto order_by = table.cache->index.order_by();
+    const Row begin = fetch_row(row);
 
-    auto result =
-        m_session->queryf("SELECT SQL_NO_CACHE MIN(!), MAX(!) FROM !.!;", index,
-                          index, table.schema, table.name);
-    result->buffer();
-    const auto min_max = result->fetch_one();
+    const auto desc_order_by =
+        shcore::str_join(shcore::str_split(info.order_by, ","), ",",
+                         [](const auto &s) { return s + " DESC"; });
 
-    if (min_max->is_null(0)) {
+    result = m_session->query(query + desc_order_by + " LIMIT 1");
+    row = result->fetch_one();
+
+    if (!row) {
+      return 0;
+    }
+
+    const Row end = fetch_row(row);
+
+    const auto type =
+        info.table->cache->index.columns()[info.index_column]->type;
+
+    log_info("Chunking %s, using columns: %s, min: [%s], max: [%s]",
+             info.table->quoted_name.c_str(),
+             shcore::str_join(info.table->cache->index.columns(), ", ",
+                              [](const auto &c) {
+                                return c->quoted_name + " (" +
+                                       mysqlshdk::db::to_string(c->type) + ")";
+                              })
+                 .c_str(),
+             shcore::str_join(begin, ", ").c_str(),
+             shcore::str_join(end, ", ").c_str());
+
+    if (mysqlshdk::db::Type::Integer == type ||
+        mysqlshdk::db::Type::UInteger == type) {
+      return chunk_integer_column(info, begin, end);
+    } else {
+      return chunk_non_integer_column(info, begin, end);
+    }
+  }
+
+  std::size_t create_ranged_tasks(const Table_task &table) {
+    if (!m_dumper->is_chunked(table)) {
       return 0;
     }
 
@@ -536,17 +987,12 @@ class Dumper::Table_worker final {
     // default row size to use when there's no known row size
     constexpr const uint64_t k_default_row_size = 256;
 
-    std::size_t ranges_count = 0;
-    std::string range_end;
-    const Range_info total = {min_max->get_as_string(0),
-                              min_max->get_as_string(1), min_max->get_type(0)};
-
     auto average_row_length = table.cache->average_row_length;
 
     if (0 == average_row_length) {
       average_row_length = k_default_row_size;
 
-      const auto quoted = Dumper::quote(table.schema, table.name);
+      const auto &quoted = table.quoted_name;
       current_console()->print_note("Table statistics not available for " +
                                     quoted +
                                     ", chunking operation may be not optimal. "
@@ -554,206 +1000,46 @@ class Dumper::Table_worker final {
                                     quoted + ";' first.");
     }
 
-    const auto rows_per_chunk =
+    Chunking_info info;
+
+    info.table = &table;
+    info.rows_per_chunk =
         m_dumper->m_options.bytes_per_chunk() / average_row_length;
+    info.accuracy = std::max(info.rows_per_chunk / 10, UINT64_C(10));
+    info.explain_rows_idx = m_dumper->m_cache.server_is_5_6 ? 8 : 9;
 
-    const auto generate_ranges = [&table, &ranges_count, &total,
-                                  &rows_per_chunk, &index, &order_by,
-                                  this](const auto min, const auto max) {
-      // if rows_per_chunk <= 1 it may mean that the rows are bigger than
-      // chunk size, which means we # chunks ~= # rows
-      const auto estimated_chunks =
-          rows_per_chunk > 0
-              ? std::max(table.cache->row_count / rows_per_chunk, UINT64_C(1))
-              : table.cache->row_count;
-      // it should be (max - min + 1), but this can potentially overflow and
-      // `+ 1` is not significant, as the result is divided anyway
-      const auto estimated_step = (max - min) / estimated_chunks;
-      const auto accuracy = std::max(rows_per_chunk / 10, UINT64_C(10));
-
-      std::string chunk_id;
-      using step_t = decltype(min);
-
-      const auto rows_idx = m_dumper->m_cache.server_is_5_6 ? 8 : 9;
-
-      const auto next_step =
-          estimated_chunks < 2
-              ? std::function<step_t(const step_t, const step_t)>(
-                    [](const auto, const auto step) { return step; })
-              // using the default capture [&] below results in problems with
-              // GCC 5.4.0 (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80543)
-              : [&table, &rows_per_chunk, &accuracy, &chunk_id, &max, &index,
-                 &order_by, &rows_idx, this](const auto from, const auto step) {
-                  int retry = 0;
-                  auto middle = from;
-
-                  auto previous_row_count = rows_per_chunk;
-                  const auto comment = this->get_query_comment(table, chunk_id);
-
-                  uint64_t delta = 2 * accuracy;
-
-                  while (delta > accuracy && retry < k_chunker_retries) {
-                    auto left = from;
-                    auto right = left + (2 * (retry + 1)) * step;
-
-                    for (int i = 0; i < k_chunker_iterations; ++i) {
-                      middle = left + (right - left) / 2;
-
-                      if (middle >= right || middle <= left) {
-                        break;
-                      }
-
-                      const auto rows =
-                          m_session
-                              ->queryf(
-                                  "EXPLAIN SELECT COUNT(*) FROM !.! WHERE ! "
-                                  "BETWEEN ? AND ? ORDER BY " +
-                                      order_by + " " + comment,
-                                  table.schema, table.name, index, from, middle)
-                              ->fetch_one()
-                              ->get_uint(rows_idx);
-
-                      if (rows > rows_per_chunk) {
-                        right = middle;
-                        delta = rows - rows_per_chunk;
-                      } else {
-                        left = middle;
-                        delta = rows_per_chunk - rows;
-                      }
-
-                      if (delta <= accuracy) {
-                        // we're close enough
-                        break;
-                      }
-
-                      if (rows == previous_row_count) {
-                        // we're stuck
-                        break;
-                      }
-
-                      previous_row_count = rows;
-                    }
-
-                    if (delta > accuracy) {
-                      if (previous_row_count >= rows_per_chunk) {
-                        // we have too many rows, but that's OK...
-                        retry = k_chunker_retries;
-                      } else {
-                        if (middle >= max) {
-                          // we've reached the upper boundary, stop here
-                          retry = k_chunker_retries;
-                        } else {
-                          // we didn't find enough rows here, move farther to
-                          // the right
-                          ++retry;
-                        }
-                      }
-                    }
-                  }
-
-                  return middle - from;
-                };
-
-      auto current = min;
-      auto step = static_cast<step_t>(estimated_step);
-
-      while (current <= max) {
-        if (m_dumper->m_worker_interrupt) {
-          return;
+    for (const auto &c : table.cache->index.columns()) {
+      if (c->nullable) {
+        if (!info.where.empty()) {
+          info.where += "AND";
         }
 
-        chunk_id = std::to_string(ranges_count);
-
-        Range_info range;
-        range.type = total.type;
-        range.begin = std::to_string(current);
-
-        step = std::max(next_step(current, step), static_cast<step_t>(2));
-
-        // ensure that there's no integer overflow
-        current = (current > max - step + 1 ? max : current + step - 1);
-
-        // if current is close to max, finish the chunking
-        if (max - current <= step / 4) {
-          current = max;
-        }
-
-        range.end = std::to_string(current);
-
-        const auto last_chunk = (current >= max);
-
-        create_table_data_task(table, std::move(range), chunk_id,
-                               ranges_count++, last_chunk);
-
-        if (last_chunk) {
-          // exit here in case ++current overflows
-          break;
-        }
-
-        ++current;
+        info.where += "(" + c->quoted_name + " IS NOT NULL)";
       }
-    };
-
-    if (mysqlshdk::db::Type::Integer == total.type) {
-      generate_ranges(min_max->get_int(0), min_max->get_int(1));
-    } else if (mysqlshdk::db::Type::UInteger == total.type) {
-      generate_ranges(min_max->get_uint(0), min_max->get_uint(1));
-    } else {
-      do {
-        const auto where =
-            0 == ranges_count
-                ? ""
-                : (shcore::sqlstring(
-                       " WHERE ! > " + quote_value(range_end, total.type), 0)
-                   << index)
-                      .str();
-
-        const auto chunk_id = std::to_string(ranges_count);
-        const auto comment = get_query_comment(table, chunk_id);
-
-        Range_info range;
-        range.type = total.type;
-        range.begin =
-            m_session
-                ->queryf("SELECT SQL_NO_CACHE ! FROM !.!" + where +
-                             " ORDER BY " + order_by + " LIMIT 0,1 " + comment,
-                         index, table.schema, table.name)
-                ->fetch_one()
-                ->get_as_string(0);
-
-        if (m_dumper->m_worker_interrupt) {
-          return 0;
-        }
-
-        result = m_session->queryf(
-            "SELECT SQL_NO_CACHE ! FROM !.!" + where + " ORDER BY " + order_by +
-                " LIMIT ?,1 " + comment,
-            index, table.schema, table.name, rows_per_chunk - 1);
-
-        if (m_dumper->m_worker_interrupt) {
-          return 0;
-        }
-
-        const auto end = result->fetch_one();
-        range.end = end && !end->is_null(0) ? end->get_as_string(0) : total.end;
-        range_end = range.end;
-
-        create_table_data_task(table, std::move(range), chunk_id,
-                               ranges_count++, range_end == total.end);
-      } while (range_end != total.end);
     }
 
+    info.order_by = " ORDER BY " + table.cache->index.columns_sql();
+    info.index_column = 0;
+
+    log_info("Chunking %s, rows: %" PRIu64 ", average row length: %" PRIu64
+             ", rows per chunk: %" PRIu64,
+             info.table->quoted_name.c_str(), info.table->cache->row_count,
+             average_row_length, info.rows_per_chunk);
+
+    const auto ranges_count = chunk_column(info);
+
     timer.stage_end();
-    log_debug("Chunking of `%s`.`%s` took %f seconds", table.schema.c_str(),
-              table.name.c_str(), timer.total_seconds_elapsed());
+    log_debug("Chunking of %s took %f seconds", table.quoted_name.c_str(),
+              timer.total_seconds_elapsed());
 
     return ranges_count;
   }
 
-  void handle_exception(const char *msg) {
+  void handle_exception(const std::string &context, const char *msg) {
     m_dumper->m_worker_exceptions[m_id] = std::current_exception();
-    current_console()->print_error(shcore::str_format("[Worker%03zu]: ", m_id) +
-                                   msg);
+    current_console()->print_error(
+        shcore::str_format("[Worker%03zu]: ", m_id) +
+        (context.empty() ? "" : "Error while " + context + ": ") + msg);
 
     if (Exception_strategy::ABORT == m_strategy) {
       m_dumper->emergency_shutdown();
@@ -761,8 +1047,8 @@ class Dumper::Table_worker final {
   }
 
   void dump_schema_ddl(const Schema_info &schema) const {
-    const auto quoted = quote(schema);
-    current_console()->print_status("Writing DDL for schema " + quoted);
+    current_console()->print_status("Writing DDL for schema " +
+                                    schema.quoted_name);
 
     const auto dumper = m_dumper->schema_dumper(m_session);
 
@@ -772,8 +1058,8 @@ class Dumper::Table_worker final {
 
   void dump_table_ddl(const Schema_info &schema,
                       const Table_info &table) const {
-    const auto quoted = quote(schema, table);
-    current_console()->print_status("Writing DDL for table " + quoted);
+    current_console()->print_status("Writing DDL for table " +
+                                    table.quoted_name);
 
     const auto dumper = m_dumper->schema_dumper(m_session);
 
@@ -790,8 +1076,7 @@ class Dumper::Table_worker final {
   }
 
   void dump_view_ddl(const Schema_info &schema, const View_info &view) const {
-    const auto quoted = quote(schema, view);
-    current_console()->print_status("Writing DDL for view " + quoted);
+    current_console()->print_status("Writing DDL for view " + view.quoted_name);
 
     const auto dumper = m_dumper->schema_dumper(m_session);
 
@@ -808,8 +1093,7 @@ class Dumper::Table_worker final {
 
   std::string get_query_comment(const Table_task &table,
                                 const std::string &id) const {
-    return m_dumper->get_query_comment(table.schema, table.name, id,
-                                       "chunking");
+    return m_dumper->get_query_comment(table.quoted_name, id, "chunking");
   }
 
   const std::size_t m_id;
@@ -1490,11 +1774,13 @@ void Dumper::create_schema_tasks() {
   for (const auto &s : m_cache.schemas) {
     Schema_info schema;
     schema.name = s.first;
+    schema.quoted_name = shcore::quote_identifier(schema.name);
     schema.basename = get_basename(encode_schema_basename(schema.name));
 
     for (const auto &t : s.second.tables) {
       Table_info table;
       table.name = t.first;
+      table.quoted_name = quote(schema.name, table.name);
       table.basename =
           get_basename(encode_table_basename(schema.name, table.name));
       table.cache = &t.second;
@@ -1505,6 +1791,7 @@ void Dumper::create_schema_tasks() {
     for (const auto &v : s.second.views) {
       View_info view;
       view.name = v.first;
+      view.quoted_name = quote(schema.name, view.name);
       view.basename =
           get_basename(encode_table_basename(schema.name, view.name));
 
@@ -1872,23 +2159,24 @@ void Dumper::create_schema_ddl_tasks() {
 
   for (const auto &schema : m_schema_infos) {
     m_worker_tasks.push(
-        [&schema](Table_worker *worker) { worker->dump_schema_ddl(schema); },
+        {"writing DDL of " + schema.quoted_name,
+         [&schema](Table_worker *worker) { worker->dump_schema_ddl(schema); }},
         shcore::Queue_priority::HIGH);
 
     for (const auto &view : schema.views) {
-      m_worker_tasks.push(
-          [&schema, &view](Table_worker *worker) {
-            worker->dump_view_ddl(schema, view);
-          },
-          shcore::Queue_priority::HIGH);
+      m_worker_tasks.push({"writing DDL of " + view.quoted_name,
+                           [&schema, &view](Table_worker *worker) {
+                             worker->dump_view_ddl(schema, view);
+                           }},
+                          shcore::Queue_priority::HIGH);
     }
 
-    for (auto &table : schema.tables) {
-      m_worker_tasks.push(
-          [&schema, &table](Table_worker *worker) {
-            worker->dump_table_ddl(schema, table);
-          },
-          shcore::Queue_priority::HIGH);
+    for (const auto &table : schema.tables) {
+      m_worker_tasks.push({"writing DDL of " + table.quoted_name,
+                           [&schema, &table](Table_worker *worker) {
+                             worker->dump_table_ddl(schema, table);
+                           }},
+                          shcore::Queue_priority::HIGH);
     }
   }
 }
@@ -1903,11 +2191,11 @@ void Dumper::create_table_tasks() {
       auto task = create_table_task(schema, table);
 
       if (!m_options.is_dry_run() && should_dump_data(task)) {
-        m_worker_tasks.push(
-            [task](Table_worker *worker) {
-              worker->write_table_metadata(task);
-            },
-            shcore::Queue_priority::HIGH);
+        m_worker_tasks.push({"writing metadata of " + table.quoted_name,
+                             [task](Table_worker *worker) {
+                               worker->write_table_metadata(task);
+                             }},
+                            shcore::Queue_priority::HIGH);
       }
 
       if (m_options.dump_data()) {
@@ -1923,6 +2211,7 @@ Dumper::Table_task Dumper::create_table_task(const Schema_info &schema,
                                              const Table_info &table) {
   Table_task task;
   task.name = table.name;
+  task.quoted_name = table.quoted_name;
   task.schema = schema.name;
   task.basename = table.basename;
   task.cache = table.cache;
@@ -1933,7 +2222,7 @@ Dumper::Table_task Dumper::create_table_task(const Schema_info &schema,
 }
 
 void Dumper::push_table_task(Table_task &&task) {
-  const auto quoted_name = quote(task);
+  const auto &quoted_name = task.quoted_name;
 
   if (!should_dump_data(task)) {
     current_console()->print_warning("Skipping data dump for table " +
@@ -1946,26 +2235,27 @@ void Dumper::push_table_task(Table_task &&task) {
 
   const auto &index = task.cache->index;
 
+  const auto get_index = [&index]() {
+    return std::string{"column"} + (index.columns().size() > 1 ? "s" : "") +
+           " " + index.columns_sql();
+  };
+
   if (m_options.split()) {
     if (!index.valid()) {
       current_console()->print_note(
-          "Could not select a column to be used as an index for table " +
+          "Could not select columns to be used as an index for table " +
           quoted_name +
           ". Chunking has been disabled for this table, data will be dumped to "
           "a single file.");
     } else {
-      current_console()->print_status(
-          "Data dump for table " + quoted_name +
-          " will be chunked using column " +
-          shcore::quote_identifier(index.first_column()));
+      current_console()->print_status("Data dump for table " + quoted_name +
+                                      " will be chunked using " + get_index());
     }
   } else {
     current_console()->print_status(
         "Data dump for table " + quoted_name +
         (!index.valid() ? " will not use an index"
-                        : " will use column " +
-                              shcore::quote_identifier(index.first_column()) +
-                              " as an index"));
+                        : " will use " + get_index() + " as an index"));
   }
 
   if (m_options.is_dry_run()) {
@@ -1974,15 +2264,16 @@ void Dumper::push_table_task(Table_task &&task) {
 
   ++m_chunking_tasks;
 
-  m_worker_tasks.push(
-      [task = std::move(task)](Table_worker *worker) {
-        ++worker->m_dumper->m_num_threads_chunking;
+  std::string info = "chunking " + task.quoted_name;
+  m_worker_tasks.push({std::move(info),
+                       [task = std::move(task)](Table_worker *worker) {
+                         ++worker->m_dumper->m_num_threads_chunking;
 
-        worker->create_table_data_tasks(task);
+                         worker->create_table_data_tasks(task);
 
-        --worker->m_dumper->m_num_threads_chunking;
-      },
-      shcore::Queue_priority::MEDIUM);
+                         --worker->m_dumper->m_num_threads_chunking;
+                       }},
+                      shcore::Queue_priority::MEDIUM);
 }
 
 Dump_writer *Dumper::get_table_data_writer(const std::string &filename) {
@@ -2025,7 +2316,9 @@ Dump_writer *Dumper::get_table_data_writer(const std::string &filename) {
   return m_worker_writers.back().get();
 }
 
-void Dumper::finish_writing(Dump_writer *writer, uint64_t total_bytes) {
+std::size_t Dumper::finish_writing(Dump_writer *writer, uint64_t total_bytes) {
+  std::size_t file_size = 0;
+
   // close the file if we're writing to multiple files, otherwise the single
   // file is going to be closed when all tasks are finished
   if (!m_options.use_single_file()) {
@@ -2036,6 +2329,8 @@ void Dumper::finish_writing(Dump_writer *writer, uint64_t total_bytes) {
       m_chunk_file_bytes[final_filename] = total_bytes;
     }
 
+    file_size = writer->output()->file_size();
+
     {
       std::lock_guard<std::mutex> lock(m_worker_writers_mutex);
 
@@ -2045,6 +2340,8 @@ void Dumper::finish_writing(Dump_writer *writer, uint64_t total_bytes) {
           m_worker_writers.end());
     }
   }
+
+  return file_size;
 }
 
 std::string Dumper::close_file(const Dump_writer &writer) const {
@@ -2089,7 +2386,7 @@ void Dumper::write_dump_started_metadata() const {
   auto &a = doc.GetAllocator();
 
   const auto mysqlsh = std::string("mysqlsh ") + shcore::get_long_version();
-  doc.AddMember(StringRef("dumper"), ref(mysqlsh), a);
+  doc.AddMember(StringRef("dumper"), refs(mysqlsh), a);
   doc.AddMember(StringRef("version"), StringRef(Schema_dumper::version()), a);
   doc.AddMember(StringRef("origin"), StringRef(name()), a);
 
@@ -2098,7 +2395,7 @@ void Dumper::write_dump_started_metadata() const {
     Value schemas{Type::kArrayType};
 
     for (const auto &schema : m_schema_infos) {
-      schemas.PushBack(ref(schema.name), a);
+      schemas.PushBack(refs(schema.name), a);
     }
 
     doc.AddMember(StringRef("schemas"), std::move(schemas), a);
@@ -2109,7 +2406,7 @@ void Dumper::write_dump_started_metadata() const {
     Value basenames{Type::kObjectType};
 
     for (const auto &schema : m_schema_infos) {
-      basenames.AddMember(ref(schema.name), ref(schema.basename), a);
+      basenames.AddMember(refs(schema.name), refs(schema.basename), a);
     }
 
     doc.AddMember(StringRef("basenames"), std::move(basenames), a);
@@ -2130,22 +2427,22 @@ void Dumper::write_dump_started_metadata() const {
   }
 
   doc.AddMember(StringRef("defaultCharacterSet"),
-                ref(m_options.character_set()), a);
+                refs(m_options.character_set()), a);
   doc.AddMember(StringRef("tzUtc"), m_options.use_timezone_utc(), a);
   doc.AddMember(StringRef("bytesPerChunk"), m_options.bytes_per_chunk(), a);
 
-  doc.AddMember(StringRef("user"), ref(m_cache.user), a);
-  doc.AddMember(StringRef("hostname"), ref(m_cache.hostname), a);
-  doc.AddMember(StringRef("server"), ref(m_cache.server), a);
+  doc.AddMember(StringRef("user"), refs(m_cache.user), a);
+  doc.AddMember(StringRef("hostname"), refs(m_cache.hostname), a);
+  doc.AddMember(StringRef("server"), refs(m_cache.server), a);
   doc.AddMember(StringRef("serverVersion"),
                 {m_cache.server_version.get_full().c_str(), a}, a);
 
   if (m_options.dump_binlog_info()) {
-    doc.AddMember(StringRef("binlogFile"), ref(m_cache.binlog_file), a);
+    doc.AddMember(StringRef("binlogFile"), refs(m_cache.binlog_file), a);
     doc.AddMember(StringRef("binlogPosition"), m_cache.binlog_position, a);
   }
 
-  doc.AddMember(StringRef("gtidExecuted"), ref(m_cache.gtid_executed), a);
+  doc.AddMember(StringRef("gtidExecuted"), refs(m_cache.gtid_executed), a);
   doc.AddMember(StringRef("gtidExecutedInconsistent"),
                 is_gtid_executed_inconsistent(), a);
   doc.AddMember(StringRef("consistent"), m_options.consistent_dump(), a);
@@ -2167,7 +2464,7 @@ void Dumper::write_dump_started_metadata() const {
                   a);
   }
 
-  doc.AddMember(StringRef("begin"), ref(m_dump_info->begin()), a);
+  doc.AddMember(StringRef("begin"), refs(m_dump_info->begin()), a);
 
   write_json(make_file("@.json"), &doc);
 }
@@ -2185,7 +2482,7 @@ void Dumper::write_dump_finished_metadata() const {
   Document doc{Type::kObjectType};
   auto &a = doc.GetAllocator();
 
-  doc.AddMember(StringRef("end"), ref(m_dump_info->end()), a);
+  doc.AddMember(StringRef("end"), refs(m_dump_info->end()), a);
   doc.AddMember(StringRef("dataBytes"), m_data_bytes.load(), a);
 
   {
@@ -2195,10 +2492,10 @@ void Dumper::write_dump_finished_metadata() const {
       Value tables{Type::kObjectType};
 
       for (const auto &table : schema.second) {
-        tables.AddMember(ref(table.first), table.second, a);
+        tables.AddMember(refs(table.first), table.second, a);
       }
 
-      schemas.AddMember(ref(schema.first), std::move(tables), a);
+      schemas.AddMember(refs(schema.first), std::move(tables), a);
     }
 
     doc.AddMember(StringRef("tableDataBytes"), std::move(schemas), a);
@@ -2210,7 +2507,7 @@ void Dumper::write_dump_finished_metadata() const {
     for (const auto &file : m_chunk_file_bytes) {
       Value tables{Type::kObjectType};
 
-      files.AddMember(ref(file.first), file.second, a);
+      files.AddMember(refs(file.first), file.second, a);
     }
     doc.AddMember(StringRef("chunkFileBytes"), std::move(files), a);
   }
@@ -2231,7 +2528,7 @@ void Dumper::write_schema_metadata(const Schema_info &schema) const {
   Document doc{Type::kObjectType};
   auto &a = doc.GetAllocator();
 
-  doc.AddMember(StringRef("schema"), ref(schema.name), a);
+  doc.AddMember(StringRef("schema"), refs(schema.name), a);
   doc.AddMember(StringRef("includesDdl"), m_options.dump_ddl(), a);
   doc.AddMember(StringRef("includesViewsDdl"), m_options.dump_ddl(), a);
   doc.AddMember(StringRef("includesData"), m_options.dump_data(), a);
@@ -2241,7 +2538,7 @@ void Dumper::write_schema_metadata(const Schema_info &schema) const {
     Value tables{Type::kArrayType};
 
     for (const auto &table : schema.tables) {
-      tables.PushBack(ref(table.name), a);
+      tables.PushBack(refs(table.name), a);
     }
 
     doc.AddMember(StringRef("tables"), std::move(tables), a);
@@ -2252,7 +2549,7 @@ void Dumper::write_schema_metadata(const Schema_info &schema) const {
     Value views{Type::kArrayType};
 
     for (const auto &view : schema.views) {
-      views.PushBack(ref(view.name), a);
+      views.PushBack(refs(view.name), a);
     }
 
     doc.AddMember(StringRef("views"), std::move(views), a);
@@ -2302,11 +2599,11 @@ void Dumper::write_schema_metadata(const Schema_info &schema) const {
     Value basenames{Type::kObjectType};
 
     for (const auto &table : schema.tables) {
-      basenames.AddMember(ref(table.name), ref(table.basename), a);
+      basenames.AddMember(refs(table.name), refs(table.basename), a);
     }
 
     for (const auto &view : schema.views) {
-      basenames.AddMember(ref(view.name), ref(view.basename), a);
+      basenames.AddMember(refs(view.name), refs(view.basename), a);
     }
 
     doc.AddMember(StringRef("basenames"), std::move(basenames), a);
@@ -2334,18 +2631,18 @@ void Dumper::write_table_metadata(
     // options - to be used by importer
     Value options{Type::kObjectType};
 
-    options.AddMember(StringRef("schema"), ref(table.schema), a);
-    options.AddMember(StringRef("table"), ref(table.name), a);
+    options.AddMember(StringRef("schema"), refs(table.schema), a);
+    options.AddMember(StringRef("table"), refs(table.name), a);
 
     Value cols{Type::kArrayType};
     Value decode{Type::kObjectType};
 
     for (const auto &c : table.cache->columns) {
-      cols.PushBack(ref(c.name), a);
+      cols.PushBack(refs(c->name), a);
 
-      if (c.csv_unsafe) {
+      if (c->csv_unsafe) {
         decode.AddMember(
-            ref(c.name),
+            refs(c->name),
             StringRef(m_options.use_base64() ? "FROM_BASE64" : "UNHEX"), a);
       }
     }
@@ -2356,29 +2653,19 @@ void Dumper::write_table_metadata(
       options.AddMember(StringRef("decodeColumns"), std::move(decode), a);
     }
 
-    options.AddMember(StringRef("primaryIndex"),
-                      table.cache->index.primary
-                          ? ref(table.cache->index.first_column())
-                          : StringRef(""),
-                      a);
-
-    options.AddMember(
-        StringRef("compression"),
-        {mysqlshdk::storage::to_string(m_options.compression()).c_str(), a}, a);
-
     options.AddMember(StringRef("defaultCharacterSet"),
-                      ref(m_options.character_set()), a);
+                      refs(m_options.character_set()), a);
 
     options.AddMember(StringRef("fieldsTerminatedBy"),
-                      ref(m_options.dialect().fields_terminated_by), a);
+                      refs(m_options.dialect().fields_terminated_by), a);
     options.AddMember(StringRef("fieldsEnclosedBy"),
-                      ref(m_options.dialect().fields_enclosed_by), a);
+                      refs(m_options.dialect().fields_enclosed_by), a);
     options.AddMember(StringRef("fieldsOptionallyEnclosed"),
                       m_options.dialect().fields_optionally_enclosed, a);
     options.AddMember(StringRef("fieldsEscapedBy"),
-                      ref(m_options.dialect().fields_escaped_by), a);
+                      refs(m_options.dialect().fields_escaped_by), a);
     options.AddMember(StringRef("linesTerminatedBy"),
-                      ref(m_options.dialect().lines_terminated_by), a);
+                      refs(m_options.dialect().lines_terminated_by), a);
 
     doc.AddMember(StringRef("options"), std::move(options), a);
   }
@@ -2405,7 +2692,7 @@ void Dumper::write_table_metadata(
     for (const auto &histogram : all_histograms) {
       Value h{Type::kObjectType};
 
-      h.AddMember(StringRef("column"), ref(histogram.column), a);
+      h.AddMember(StringRef("column"), refs(histogram.column), a);
       h.AddMember(StringRef("buckets"),
                   static_cast<uint64_t>(histogram.buckets), a);
 
@@ -2420,6 +2707,21 @@ void Dumper::write_table_metadata(
 
   doc.AddMember(StringRef("extension"), {get_table_data_ext().c_str(), a}, a);
   doc.AddMember(StringRef("chunking"), is_chunked(table), a);
+  doc.AddMember(
+      StringRef("compression"),
+      {mysqlshdk::storage::to_string(m_options.compression()).c_str(), a}, a);
+
+  {
+    Value primary{Type::kArrayType};
+
+    if (table.cache->index.primary()) {
+      for (const auto &column : table.cache->index.columns()) {
+        primary.PushBack(refs(column->name), a);
+      }
+    }
+
+    doc.AddMember(StringRef("primaryIndex"), std::move(primary), a);
+  }
 
   write_json(make_file(dump::get_table_data_filename(table.basename, "json")),
              &doc);
@@ -2545,10 +2847,14 @@ void Dumper::initialize_progress() {
   m_dump_info = std::make_unique<Dump_info>();
 }
 
+void Dumper::update_bytes_written(uint64_t new_bytes) {
+  m_bytes_written += new_bytes;
+}
+
 void Dumper::update_progress(uint64_t new_rows,
                              const Dump_write_result &new_bytes) {
   m_rows_written += new_rows;
-  m_bytes_written += new_bytes.bytes_written();
+  update_bytes_written(new_bytes.bytes_written());
   m_data_bytes += new_bytes.data_bytes();
 
   {
@@ -2604,27 +2910,6 @@ std::string Dumper::throughput() const {
                                  m_bytes_throughput->rate(), 1.0) +
                              " compressed"
                        : "");
-}
-
-std::string Dumper::quote(const Schema_info &schema) {
-  return shcore::quote_identifier(schema.name);
-}
-
-std::string Dumper::quote(const Schema_info &schema, const Object_info &table) {
-  return quote(schema, table.name);
-}
-
-std::string Dumper::quote(const Schema_info &schema, const std::string &view) {
-  return quote(schema.name, view);
-}
-
-std::string Dumper::quote(const Table_task &table) {
-  return quote(table.schema, table.name);
-}
-
-std::string Dumper::quote(const std::string &schema, const std::string &table) {
-  return shcore::quote_identifier(schema) + "." +
-         shcore::quote_identifier(table);
 }
 
 mysqlshdk::storage::IDirectory *Dumper::directory() const {
@@ -2701,8 +2986,7 @@ void Dumper::kill_query() const {
   }
 }
 
-std::string Dumper::get_query_comment(const std::string &schema,
-                                      const std::string &table,
+std::string Dumper::get_query_comment(const std::string &quoted_name,
                                       const std::string &id,
                                       const char *context) const {
   return "/* mysqlsh " +
@@ -2711,13 +2995,13 @@ std::string Dumper::get_query_comment(const std::string &schema,
          // sanitize schema/table names in case they contain a '*/'
          // *\/ isn't really a valid escape, but it doesn't matter because we
          // just want the lexer to not see */
-         shcore::str_replace(quote(schema, table), "*/", "*\\/") +
-         ", chunk ID: " + id + " */";
+         shcore::str_replace(quoted_name, "*/", "*\\/") + ", chunk ID: " + id +
+         " */";
 }
 
 std::string Dumper::get_query_comment(const Table_data_task &task,
                                       const char *context) const {
-  return get_query_comment(task.schema, task.name, task.id, context);
+  return get_query_comment(task.quoted_name, task.id, context);
 }
 
 bool Dumper::is_chunked(const Table_task &task) const {
@@ -2750,6 +3034,13 @@ void Dumper::validate_privileges() const {
     std::string trigger{"TRIGGER"};
     all_required.emplace(trigger);
     table_required.emplace(std::move(trigger));
+  }
+
+  if (m_cache.server_is_5_6 && m_options.dump_users()) {
+    // on 5.6, SUPER is required to get the real hash value from SHOW GRANTS
+    std::string super{"SUPER"};
+    all_required.emplace(super);
+    global_required.emplace(std::move(super));
   }
 
   if (!all_required.empty()) {
@@ -2811,8 +3102,8 @@ void Dumper::validate_privileges() const {
           throw std::runtime_error(
               "User " + account +
               " is missing the following privilege(s) for schema " +
-              quote(schema) + ": " + shcore::str_join(schema_missing, ", ") +
-              ".");
+              schema.quoted_name + ": " +
+              shcore::str_join(schema_missing, ", ") + ".");
         }
 
         if (schema_result.has_missing_privileges()) {
@@ -2828,7 +3119,7 @@ void Dumper::validate_privileges() const {
               throw std::runtime_error(
                   "User " + account +
                   " is missing the following privilege(s) for table " +
-                  quote(schema, table) + ": " +
+                  table.quoted_name + ": " +
                   shcore::str_join(table_result.missing_privileges(), ", ") +
                   ".");
             }

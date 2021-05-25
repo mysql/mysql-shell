@@ -1256,7 +1256,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
 
     if (opt_mysqlaas || opt_create_invisible_pks || opt_ignore_missing_pks) {
       if (m_cache) {
-        has_pk = m_cache->schemas.at(db).tables.at(table).index.primary;
+        has_pk = m_cache->schemas.at(db).tables.at(table).index.primary();
       } else {
         result = query_log_and_throw(shcore::sqlformat(
             "SELECT COUNT(*) FROM information_schema.statistics WHERE "
@@ -2630,10 +2630,79 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
     return roles.end() != std::find(roles.begin(), roles.end(), a);
   };
 
+  using get_grants_t =
+      std::function<std::vector<std::string>(const std::string &)>;
+
+  const get_grants_t get_grants_all = [this](const std::string &u) {
+    const auto result = query_log_and_throw("SHOW GRANTS FOR " + u);
+    std::vector<std::string> grants;
+
+    while (const auto row = result->fetch_one()) {
+      grants.emplace_back(row->get_string(0));
+    }
+
+    return grants;
+  };
+
+  std::unordered_map<std::string, std::vector<std::string>> all_grants_5_6;
+
+  const get_grants_t get_grants_5_6 = [&all_grants_5_6](const std::string &u) {
+    return all_grants_5_6.at(u);
+  };
+
+  const auto is_5_6 = m_cache
+                          ? m_cache->server_is_5_6
+                          : m_mysql->get_server_version() < Version(5, 7, 0);
+  const auto &get_grants = is_5_6 ? get_grants_5_6 : get_grants_all;
+
+  using get_create_user_t = std::function<std::string(const std::string &)>;
+
+  const get_create_user_t get_create_user_5_7_or_8_0 =
+      [this](const std::string &u) -> std::string {
+    const auto result = query_log_and_throw("SHOW CREATE USER " + u);
+
+    if (const auto row = result->fetch_one()) {
+      return row->get_string(0);
+    }
+
+    return "";
+  };
+
+  const get_create_user_t get_create_user_5_6 = [this, &get_grants_all,
+                                                 &all_grants_5_6](
+                                                    const std::string &u) {
+    auto grants = get_grants_all(u);
+    std::string create_user;
+
+    if (!grants.empty()) {
+      // CREATE USER needs to have information about the authentication plugin,
+      // so that it can be processed in the subsequent steps, GRANT statement
+      // may lack this information, fetch it from the DB
+      std::string user;
+      std::string host;
+      shcore::split_account(u, &user, &host);
+
+      const auto result = query_log_and_throw(shcore::sqlformat(
+          "SELECT plugin FROM mysql.user WHERE User=? AND Host=?", user, host));
+      const auto plugin = result->fetch_one_or_throw()->get_string(0);
+
+      // first grant contains the information required to recreate the account
+      create_user = compatibility::convert_grant_to_create_user(
+          grants[0], plugin, &grants[0]);
+
+      all_grants_5_6.emplace(u, std::move(grants));
+    }
+
+    return create_user;
+  };
+
+  const auto &get_create_user =
+      is_5_6 ? get_create_user_5_6 : get_create_user_5_7_or_8_0;
+
   std::vector<std::string> users;
 
   for (const auto &u : get_users(included, excluded)) {
-    std::string user = shcore::make_account(u);
+    const auto user = shcore::make_account(u);
 
     if (u.user.find('\'') != std::string::npos) {
       // we don't allow accounts with 's in them because they're incorrectly
@@ -2644,17 +2713,16 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
           " contains the ' character, which is not supported");
     }
 
-    auto res = query_log_and_throw("SHOW CREATE USER " + user);
-    auto row = res->fetch_one();
-    if (!row) {
+    auto create_user = get_create_user(user);
+
+    if (create_user.empty()) {
       current_console()->print_error("No create user statement for user " +
                                      user);
       return problems;
     }
 
-    auto create_user = shcore::str_replace(row->get_string(0), "CREATE USER",
-                                           "CREATE USER IF NOT EXISTS");
-    assert(!create_user.empty());
+    create_user = shcore::str_replace(create_user, "CREATE USER",
+                                      "CREATE USER IF NOT EXISTS");
 
     bool add_user = true;
 
@@ -2714,14 +2782,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
   }
 
   for (const auto &user : users) {
-    auto res = query_log_and_throw("SHOW GRANTS FOR " + user);
     std::set<std::string> restricted;
-    std::vector<std::string> grants;
+    auto grants = get_grants(user);
 
-    res->buffer();
-
-    while (auto row = res->fetch_one()) {
-      auto grant = row->get_string(0);
+    for (auto &grant : grants) {
       if (opt_mysqlaas || compatibility) {
         // In MySQL <= 5.7, if a user has all privs, the SHOW GRANTS will say
         // ALL PRIVILEGES, which isn't helpful for filtering out grants.
@@ -2748,7 +2812,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
           }
         }
       }
-      if (!grant.empty()) grants.emplace_back(grant);
     }
 
     if (!restricted.empty()) {
@@ -2766,6 +2829,11 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
             Issue::Status::USE_STRIP_RESTRICTED_GRANTS);
       }
     }
+
+    grants.erase(std::remove_if(grants.begin(), grants.end(),
+                                [](const auto &g) { return g.empty(); }),
+                 grants.end());
+
     if (!grants.empty()) {
       fputs("-- begin grants " + user + "\n", file);
       for (const auto &grant : grants) fputs(grant + ";\n", file);

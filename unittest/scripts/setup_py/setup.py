@@ -1,7 +1,10 @@
 from __future__ import print_function
 import difflib
+import hashlib
 import mysqlsh
+import random
 import re
+import string
 import sys
 
 def get_members(object):
@@ -287,3 +290,14 @@ def libmysql_host_description(hostname, port):
     return hostname + ":" + str(port)
 
   return hostname
+
+def random_string(lower, upper=None):
+  if upper is None:
+    upper = lower
+  return ''.join(random.choices(string.ascii_letters + string.digits, k=random.randint(lower, upper)))
+
+def random_email():
+  return random_string(10, 40) + "@" + random_string(10, 40) + "." + random_string(3)
+
+def md5sum(s):
+  return hashlib.md5(s.encode("utf-8")).hexdigest()

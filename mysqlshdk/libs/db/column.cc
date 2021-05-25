@@ -22,9 +22,13 @@
  */
 
 #include "mysqlshdk/libs/db/column.h"
+
+#include <cassert>
 #include <sstream>
 #include <stdexcept>
+
 #include "mysqlshdk/libs/db/charset.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -132,6 +136,51 @@ std::string type_to_dbstring(Type type, uint32_t length) {
   }
 
   return type_name;
+}
+
+Type dbstring_to_type(const std::string &data_type,
+                      const std::string &column_type) {
+  if (shcore::str_iendswith(data_type.c_str(), "geometry", "geomcollection",
+                            "geometrycollection", "linestring", "point",
+                            "polygon")) {
+    return mysqlshdk::db::Type::Geometry;
+  } else if (shcore::str_iendswith(data_type.c_str(), "int")) {
+    if (shcore::str_iendswith(column_type.c_str(), " unsigned")) {
+      return mysqlshdk::db::Type::UInteger;
+    } else {
+      return mysqlshdk::db::Type::Integer;
+    }
+  } else if (shcore::str_caseeq(data_type.c_str(), "decimal")) {
+    return mysqlshdk::db::Type::Decimal;
+  } else if (shcore::str_caseeq(data_type.c_str(), "double")) {
+    return mysqlshdk::db::Type::Double;
+  } else if (shcore::str_caseeq(data_type.c_str(), "float")) {
+    return mysqlshdk::db::Type::Float;
+  } else if (shcore::str_caseeq(data_type.c_str(), "date")) {
+    return mysqlshdk::db::Type::Date;
+  } else if (shcore::str_caseeq(data_type.c_str(), "time")) {
+    return mysqlshdk::db::Type::Time;
+  } else if (shcore::str_caseeq_mv(data_type.c_str(), "timestamp",
+                                   "datetime")) {
+    return mysqlshdk::db::Type::DateTime;
+  } else if (shcore::str_caseeq(data_type.c_str(), "year")) {
+    return mysqlshdk::db::Type::UInteger;
+  } else if (shcore::str_iendswith(data_type.c_str(), "blob", "text")) {
+    return mysqlshdk::db::Type::Bytes;
+  } else if (shcore::str_iendswith(data_type.c_str(), "binary", "char")) {
+    return mysqlshdk::db::Type::String;
+  } else if (shcore::str_caseeq(data_type.c_str(), "bit")) {
+    return mysqlshdk::db::Type::Bit;
+  } else if (shcore::str_caseeq(data_type.c_str(), "enum")) {
+    return mysqlshdk::db::Type::Enum;
+  } else if (shcore::str_caseeq(data_type.c_str(), "set")) {
+    return mysqlshdk::db::Type::Set;
+  } else if (shcore::str_caseeq(data_type.c_str(), "json")) {
+    return mysqlshdk::db::Type::Json;
+  }
+
+  throw std::logic_error("Unknown data_type: " + data_type +
+                         " and column_type: " + column_type);
 }
 
 Column::Column(const std::string &catalog, const std::string &schema,

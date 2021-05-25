@@ -657,7 +657,8 @@ testutil.callMysqlsh([__sandbox_uri1, "--js", "-e", "util.loadDump('" + filename
 
 EXPECT_STDOUT_CONTAINS("thds loading");
 // 3.24 MB is the total size of the dump, since we're excluding a lot of things it should be much less in reality
-EXPECT_STDOUT_NOT_CONTAINS("3.24 MB");
+// total size appears just before the closing parenthesis
+EXPECT_STDOUT_NOT_CONTAINS("3.24 MB)");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);

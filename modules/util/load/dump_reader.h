@@ -222,7 +222,7 @@ class Dump_reader {
 
     std::string basename;
 
-    std::string primary_index;
+    std::vector<std::string> primary_index;
 
     bool has_sql = true;
     bool has_data = true;

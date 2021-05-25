@@ -76,6 +76,7 @@ class Dumper {
  private:
   struct Object_info {
     std::string name;
+    std::string quoted_name;
     std::string basename;
   };
 
@@ -94,15 +95,8 @@ class Dumper {
     std::string schema;
   };
 
-  struct Range_info {
-    std::string begin;
-    std::string end;
-    mysqlshdk::db::Type type;
-  };
-
   struct Table_data_task : Table_task {
-    Range_info range;
-    bool include_nulls = false;
+    std::string where;
     Dump_writer *writer = nullptr;
     std::unique_ptr<mysqlshdk::storage::IFile> index_file;
     std::string id;
@@ -110,21 +104,16 @@ class Dumper {
 
   class Table_worker;
 
+  struct Task_info {
+    std::string info;
+    std::function<void(Table_worker *)> task;
+  };
+
   class Synchronize_workers;
 
   class Dump_info;
 
   class Memory_dumper;
-
-  static std::string quote(const Schema_info &schema);
-
-  static std::string quote(const Schema_info &schema, const Object_info &table);
-
-  static std::string quote(const Schema_info &schema, const std::string &view);
-
-  static std::string quote(const Table_task &table);
-
-  static std::string quote(const std::string &schema, const std::string &table);
 
   virtual const char *name() const = 0;
 
@@ -229,7 +218,7 @@ class Dumper {
 
   Dump_writer *get_table_data_writer(const std::string &filename);
 
-  void finish_writing(Dump_writer *writer, uint64_t total_bytes);
+  std::size_t finish_writing(Dump_writer *writer, uint64_t total_bytes);
 
   std::string close_file(const Dump_writer &writer) const;
 
@@ -263,6 +252,8 @@ class Dumper {
 
   void initialize_progress();
 
+  void update_bytes_written(uint64_t new_bytes);
+
   void update_progress(uint64_t new_rows, const Dump_write_result &new_bytes);
 
   void shutdown_progress();
@@ -280,8 +271,8 @@ class Dumper {
 
   void kill_query() const;
 
-  std::string get_query_comment(const std::string &schema,
-                                const std::string &table, const std::string &id,
+  std::string get_query_comment(const std::string &quoted_name,
+                                const std::string &id,
                                 const char *context) const;
 
   std::string get_query_comment(const Table_data_task &task,
@@ -341,8 +332,7 @@ class Dumper {
   // threads
   std::vector<std::thread> m_workers;
   std::vector<std::exception_ptr> m_worker_exceptions;
-  shcore::Synchronized_queue<std::function<void(Table_worker *)>>
-      m_worker_tasks;
+  shcore::Synchronized_queue<Task_info> m_worker_tasks;
   std::atomic<uint64_t> m_chunking_tasks;
   std::atomic<bool> m_main_thread_finished_producing_chunking_tasks;
   std::unique_ptr<Synchronize_workers> m_worker_synchronization;
