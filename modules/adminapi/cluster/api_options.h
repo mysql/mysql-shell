@@ -85,6 +85,7 @@ struct Rescan_options : public Interactive_option {
   std::vector<mysqlshdk::db::Connection_options> remove_instances_list;
   bool auto_add = false;
   bool auto_remove = false;
+  bool upgrade_comm_protocol = false;
 };
 
 }  // namespace cluster

@@ -1460,36 +1460,7 @@ TEST_F(Group_replication_test, get_group_protocol_version) {
             mysqlshdk::utils::Version("8.0.16"));
 }
 
-TEST_F(Group_replication_test, is_protocol_downgrade_required) {
-  using mysqlshdk::db::Type;
-
-  mysqlshdk::utils::Version current_group_version =
-      mysqlshdk::utils::Version(8, 0, 16);
-
-  std::shared_ptr<Mock_session> mock_session = std::make_shared<Mock_session>();
-  mysqlshdk::mysql::Instance instance{mock_session};
-
-  EXPECT_CALL(*mock_session, get_server_version())
-      .WillOnce(Return(mysqlshdk::utils::Version("8.0.15")));
-
-  EXPECT_TRUE(mysqlshdk::gr::is_protocol_downgrade_required(
-      current_group_version, instance));
-}
-
-TEST_F(Group_replication_test, is_protocol_downgrade_not_required) {
-  using mysqlshdk::db::Type;
-
-  mysqlshdk::utils::Version current_group_version =
-      mysqlshdk::utils::Version(8, 0, 15);
-
-  std::shared_ptr<Mock_session> mock_session = std::make_shared<Mock_session>();
-  mysqlshdk::mysql::Instance instance{mock_session};
-
-  EXPECT_FALSE(mysqlshdk::gr::is_protocol_downgrade_required(
-      current_group_version, instance));
-}
-
-TEST_F(Group_replication_test, is_protocol_upgrade_required) {
+TEST_F(Group_replication_test, is_protocol_upgrade_possible) {
   using mysqlshdk::db::Type;
 
   mysqlshdk::utils::Version out_protocol_version;
@@ -1539,7 +1510,7 @@ TEST_F(Group_replication_test, is_protocol_upgrade_required) {
             {Type::String, Type::String},
             {{"server_uuid", "2aebeab3-39d1-11e9-b4e9-9ed7ce0b544f"}}}});
 
-  EXPECT_TRUE(mysqlshdk::gr::is_protocol_upgrade_required(
+  EXPECT_TRUE(mysqlshdk::gr::is_protocol_upgrade_possible(
       instance, server_uuid, &out_protocol_version));
 
   EXPECT_EQ(out_protocol_version, mysqlshdk::utils::Version("8.0.16"));
@@ -1595,7 +1566,7 @@ TEST_F(Group_replication_test, is_protocol_upgrade_not_required) {
             {Type::String, Type::String},
             {{"server_uuid", "2aebeab3-39d1-11e9-b4e9-9ed7ce0b544e"}}}});
 
-  EXPECT_FALSE(mysqlshdk::gr::is_protocol_upgrade_required(
+  EXPECT_FALSE(mysqlshdk::gr::is_protocol_upgrade_possible(
       instance, server_uuid, &out_protocol_version));
 
   EXPECT_EQ(out_protocol_version, mysqlshdk::utils::Version());

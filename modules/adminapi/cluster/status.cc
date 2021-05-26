@@ -22,6 +22,7 @@
  */
 
 #include "modules/adminapi/cluster/status.h"
+#include <algorithm>
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/common_status.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -886,6 +887,52 @@ shcore::Array_t instance_diagnostics(
   return issues;
 }
 
+void check_comm_protocol_upgrade_possible(
+    shcore::Array_t issues,
+    const std::vector<mysqlshdk::gr::Member> &member_info,
+    const mysqlshdk::utils::Version &protocol_version) {
+  std::vector<mysqlshdk::utils::Version> all_protocol_versions;
+  // Check if protocol upgrade is possible
+  // If there's no version field in member_info it's because it was queried on
+  // an old version, but in that case it means there's at least 1 server
+  // < 8.0.16 so an upgrade isn't possible anyway
+  for (const auto &m : member_info) {
+    if (!m.version.empty()) {
+      auto version = mysqlshdk::gr::get_max_supported_group_protocol_version(
+          mysqlshdk::utils::Version(m.version));
+
+      all_protocol_versions.emplace_back(version);
+    }
+  }
+
+  if (!all_protocol_versions.empty()) {
+    std::sort(all_protocol_versions.begin(), all_protocol_versions.end());
+
+    // get the lowest protocol version supported by the group members
+    auto highest_possible_version = all_protocol_versions.front();
+    if (highest_possible_version > protocol_version) {
+      issues->emplace_back(shcore::Value(
+          "Group communication protocol in use is version " +
+          protocol_version.get_full() + " but it is possible to upgrade to " +
+          highest_possible_version.get_full() +
+          ". Message fragmentation for large transactions can only be "
+          "enabled after upgrade. Use "
+          "Cluster.rescan({upgradeCommProtocol:true}) to upgrade."));
+    }
+  }
+}
+
+shcore::Array_t group_diagnostics(
+    const std::vector<mysqlshdk::gr::Member> &member_info,
+    const mysqlshdk::utils::Version &protocol_version) {
+  shcore::Array_t issues = shcore::make_array();
+
+  if (protocol_version)
+    check_comm_protocol_upgrade_possible(issues, member_info, protocol_version);
+
+  return issues;
+}
+
 shcore::Array_t validate_instance_recovery_user(
     std::shared_ptr<Instance> instance,
     const std::map<std::string, std::string> &endpoints,
@@ -1252,21 +1299,21 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
   (*ret)["name"] = shcore::Value("default");
   (*ret)["topologyMode"] = shcore::Value(topology_mode);
 
-  if (!m_extended.is_null() && *m_extended >= 1) {
-    (*ret)["groupName"] = shcore::Value(m_cluster.get_group_name());
+  mysqlshdk::utils::Version protocol_version;
+  try {
+    protocol_version =
+        mysqlshdk::gr::get_group_protocol_version(*group_instance);
+  } catch (const shcore::Exception &e) {
+    if (e.code() == ER_CANT_INITIALIZE_UDF)
+      log_warning("Can't get protocol version from %s: %s",
+                  group_instance->descr().c_str(), e.format().c_str());
+    else
+      throw;
+  }
 
-    try {
-      (*ret)["GRProtocolVersion"] = shcore::Value(
-          mysqlshdk::gr::get_group_protocol_version(*group_instance)
-              .get_full());
-    } catch (const shcore::Exception &error) {
-      // The UDF may fail with MySQL Error 1123 if any of the members is
-      // RECOVERING or the group does not have quorum In such scenario we cannot
-      // provide the "GRProtocolVersion" information
-      if (error.code() != ER_CANT_INITIALIZE_UDF) {
-        throw;
-      }
-    }
+  if ((!m_extended.is_null() && *m_extended >= 1)) {
+    (*ret)["groupName"] = shcore::Value(m_cluster.get_group_name());
+    (*ret)["GRProtocolVersion"] = shcore::Value(protocol_version.get_full());
   }
 
   auto ssl_mode = group_instance->get_sysvar_string(
@@ -1310,6 +1357,13 @@ shcore::Dictionary_t Status::collect_replicaset_status() {
     }
   }
   (*ret)["topology"] = shcore::Value(get_topology(member_info));
+
+  if (!m_member_sessions.empty()) {
+    auto issues = group_diagnostics(member_info, protocol_version);
+
+    if (issues && !issues->empty())
+      (*ret)["clusterErrors"] = shcore::Value(issues);
+  }
 
   return ret;
 }

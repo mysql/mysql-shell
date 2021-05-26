@@ -125,15 +125,13 @@ bool Remove_instance::prompt_to_force_remove() {
   return false;
 }
 
-bool Remove_instance::is_protocol_upgrade_required() {
-  bool ret = false;
-
+void Remove_instance::check_protocol_upgrade_possible() {
   // Get the instance server_uuid
   mysqlshdk::utils::nullable<std::string> server_uuid;
   std::shared_ptr<Instance> group_instance = m_cluster->get_target_server();
 
   // Determine which instance shall be used to determine if an upgrade is
-  // required and afterwards to perform the upgrade.
+  // possible and afterwards to perform the upgrade.
   // If the target_instance is leaving the group and is the same as the group
   // session, we must use another instance
   if (m_target_instance) {
@@ -143,42 +141,36 @@ bool Remove_instance::is_protocol_upgrade_required() {
   std::string group_instance_uuid = group_instance->get_uuid();
 
   if (server_uuid == group_instance_uuid) {
-    m_target_instance_protocol_upgrade =
-        m_cluster->get_online_instance(group_instance_uuid);
+    group_instance = m_cluster->get_online_instance(group_instance_uuid);
 
-    if (m_target_instance_protocol_upgrade) {
+    if (group_instance) {
       log_info(
           "Using cluster member '%s' for Group Replication protocol upgrade.",
-          m_target_instance_protocol_upgrade->descr().c_str());
-    } else {
-      throw shcore::Exception::runtime_error(
-          "Unable to connect to another available cluster member for Group "
-          "Replication protocol upgrade.");
+          group_instance->descr().c_str());
     }
-  } else {
-    m_target_instance_protocol_upgrade = group_instance;
   }
 
+  auto console = mysqlsh::current_console();
   try {
-    ret = mysqlshdk::gr::is_protocol_upgrade_required(
-        *m_target_instance_protocol_upgrade, server_uuid,
-        &m_gr_protocol_version_to_upgrade);
-  } catch (const shcore::Exception &error) {
-    // The UDF may fail with MySQL Error 1123 if any of the members is
-    // RECOVERING In such scenario, we must abort the upgrade protocol version
-    // process and warn the user
-    if (error.code() == ER_CANT_INITIALIZE_UDF) {
-      auto console = mysqlsh::current_console();
-      console->print_note(
-          "Unable to determine the Group Replication protocol version, while "
-          "verifying if a protocol upgrade would be possible: " +
-          std::string(error.what()) + ".");
-    } else {
-      throw;
-    }
-  }
+    mysqlshdk::utils::Version version;
 
-  return ret;
+    if (mysqlshdk::gr::is_protocol_upgrade_possible(
+            *group_instance, server_uuid.get_safe(""), &version)) {
+      console->print_note(
+          "The communication protocol used by Group Replication can be "
+          "upgraded to version " +
+          version.get_full());
+      console->print_info(
+          "Message fragmentation for large transactions can only be enabled "
+          "after the protocol is upgraded. Use "
+          "Cluster.rescan({upgradeCommProtocol:true}) to perform the upgrade.");
+    }
+  } catch (const shcore::Exception &error) {
+    console->print_note(
+        "Unable to determine the Group Replication protocol version, while "
+        "verifying if a protocol upgrade would be possible: " +
+        error.format());
+  }
 }
 
 void Remove_instance::prepare() {
@@ -418,10 +410,7 @@ void Remove_instance::prepare() {
     ensure_user_privileges(*m_target_instance);
   }
 
-  // Handling of GR protocol version:
-  // Verify if an upgrade of the protocol will be required after removing the
-  // target instance
-  m_upgrade_gr_protocol_version = is_protocol_upgrade_required();
+  check_protocol_upgrade_possible();
 }
 
 shcore::Value Remove_instance::execute() {
@@ -564,14 +553,6 @@ shcore::Value Remove_instance::execute() {
       }
       // If force is used do not add the instance back to the metadata,
       // and ignore any leave-cluster error.
-    }
-
-    // Upgrade the protocol version if necessary
-    // Don't need to revert if this fails
-    if (m_upgrade_gr_protocol_version) {
-      mysqlshdk::gr::set_group_protocol_version(
-          *m_target_instance_protocol_upgrade,
-          m_gr_protocol_version_to_upgrade);
     }
   }
 

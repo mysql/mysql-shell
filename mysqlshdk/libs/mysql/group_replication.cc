@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -551,6 +551,15 @@ mysqlshdk::utils::Version get_group_protocol_version(
   }
 }
 
+mysqlshdk::utils::Version get_max_supported_group_protocol_version(
+    const mysqlshdk::utils::Version &server_version) {
+  if (server_version < mysqlshdk::utils::Version(8, 0, 16))
+    return mysqlshdk::utils::Version(5, 7, 14);
+
+  // we have to assume protocol version for any server >= 8.0.16 is 8.0.16
+  return mysqlshdk::utils::Version(8, 0, 16);
+}
+
 void set_group_protocol_version(const mysqlshdk::mysql::IInstance &instance,
                                 mysqlshdk::utils::Version version) {
   std::string query;
@@ -571,24 +580,9 @@ void set_group_protocol_version(const mysqlshdk::mysql::IInstance &instance,
   }
 }
 
-bool is_protocol_downgrade_required(
-    mysqlshdk::utils::Version current_group_version,
-    const mysqlshdk::mysql::IInstance &instance) {
-  if (current_group_version >= mysqlshdk::utils::Version(8, 0, 16)) {
-    if (instance.get_version() < current_group_version) {
-      log_debug(
-          "Group Replication protocol version downgrade required (to "
-          "instance version: %s)",
-          instance.get_version().get_full().c_str());
-      return true;
-    }
-  }
-  return false;
-}
-
-bool is_protocol_upgrade_required(
+bool is_protocol_upgrade_possible(
     const mysqlshdk::mysql::IInstance &instance,
-    mysqlshdk::utils::nullable<std::string> server_uuid,
+    const std::string &skip_server_uuid,
     mysqlshdk::utils::Version *out_protocol_version) {
   std::vector<Member> group_members = get_members(instance);
 
@@ -597,7 +591,6 @@ bool is_protocol_upgrade_required(
   // Get the current protocol version in use by the group
   mysqlshdk::utils::Version protocol_version_group =
       get_group_protocol_version(instance);
-
   // Check if any of the group_members has a version >= 8.0.16
   for (const auto &member : group_members) {
     // If version is not available, the instance is < 8.0, so an upgrade is not
@@ -608,18 +601,15 @@ bool is_protocol_upgrade_required(
 
     // If the instance is leaving the cluster we must skip checking it against
     // the cluster
-    if (!server_uuid.is_null() && (*server_uuid == member.uuid)) {
+    if (!skip_server_uuid.empty() && (skip_server_uuid == member.uuid)) {
       continue;
     } else {
-      // If the instance is >= 8.0.16, then check if
-      // protocol version in use is lower than than the instance version If it
-      // is, the protocol version must be upgraded
-      mysqlshdk::utils::Version ver(member.version);
-
-      if (ver >= mysqlshdk::utils::Version(8, 0, 16) &&
-          protocol_version_group < ver) {
+      // Check if protocol version in use is lower than than the instance's
+      // protocol version. If it is, the protocol version must be upgraded
+      mysqlshdk::utils::Version ver(get_max_supported_group_protocol_version(
+          mysqlshdk::utils::Version(member.version)));
+      if (protocol_version_group < ver) {
         upgrade_required = true;
-
         if (*out_protocol_version == mysqlshdk::utils::Version() ||
             *out_protocol_version > ver) {
           *out_protocol_version = ver;
@@ -629,12 +619,11 @@ bool is_protocol_upgrade_required(
       }
     }
   }
-
   if (upgrade_required) {
-    log_debug(
-        "Group Replication protocol version upgrade required (to "
-        "version: "
-        "%s)",
+    log_info(
+        "Group Replication protocol version upgrade required (current=%s, "
+        "new=%s)",
+        protocol_version_group.get_full().c_str(),
         out_protocol_version->get_full().c_str());
   }
 

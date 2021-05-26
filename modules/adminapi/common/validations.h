@@ -25,6 +25,7 @@
 #define MODULES_ADMINAPI_COMMON_VALIDATIONS_H_
 
 #include <memory>
+#include <string>
 
 #include "modules/adminapi/common/instance_pool.h"
 #include "mysqlshdk/libs/db/session.h"
@@ -87,6 +88,16 @@ bool ensure_gtid_no_errants(const mysqlshdk::mysql::IInstance &master,
  */
 void ensure_certificates_set(const mysqlshdk::mysql::IInstance &instance,
                              const mysqlshdk::null_string &ssl_mode);
+
+/**
+ * Check if an upgrade of the protocol is possible
+ *
+ * @param group_instance session to an instance member of the group
+ * @param skip_server_uuid skip that server when checking
+ */
+void check_protocol_upgrade_possible(
+    const mysqlshdk::mysql::IInstance &group_instance,
+    const std::string &skip_server_uuid = "");
 }  // namespace dba
 }  // namespace mysqlsh
 

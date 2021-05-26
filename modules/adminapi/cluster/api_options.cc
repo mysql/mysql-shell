@@ -133,7 +133,9 @@ const shcore::Option_pack_def<Rescan_options> &Rescan_options::options() {
           .optional(kUpdateTopologyMode,
                     &Rescan_options::set_update_topology_mode)
           .optional(kAddInstances, &Rescan_options::set_list_option)
-          .optional(kRemoveInstances, &Rescan_options::set_list_option);
+          .optional(kRemoveInstances, &Rescan_options::set_list_option)
+          .optional(kUpgradeCommProtocol,
+                    &Rescan_options::upgrade_comm_protocol);
 
   return opts;
 }
