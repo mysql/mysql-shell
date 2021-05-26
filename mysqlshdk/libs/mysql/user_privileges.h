@@ -77,9 +77,10 @@ class User_privileges {
    * specified schema.table and provides specific user privileges.
    *
    * Returns an object with the information on the user privileges. For more
-   * details see @see User_privileges_result. If required_privileges contains
-   * exactly one string "ALL" or "ALL PRIVILEGES", all known privileges are
-   * checked. Privileges in required_privileges are not case-sensitive.
+   * details see @see User_privileges_result.
+   *
+   * The "ALL" or "ALL PRIVILEGES" privilege is not supported, as it means
+   * different things at different privilege levels.
    *
    * @param required_privileges The privileges the user needs to have.
    * @param schema The schema to check. By default "*" is used.
@@ -89,8 +90,6 @@ class User_privileges {
    *         arguments.
    * @throw std::runtime_error if required_privileges contains an invalid
    *                           privilege.
-   * @throw std::runtime_error if required_privileges contains more than one
-   *                           privilege and "ALL" is specified.
    */
   User_privileges_result validate(
       const std::set<std::string> &required_privileges,
@@ -98,7 +97,8 @@ class User_privileges {
       const std::string &table = k_wildcard) const;
 
   /**
-   * Get the set of roles/users granted to the user.
+   * Get the set of roles/users granted to the user which are active when user
+   * logs in.
    *
    * @return set with the roles/user account granted to the target user of the
    *         User_privileges object (empty set if no roles/users are associated
@@ -109,67 +109,42 @@ class User_privileges {
  private:
   friend class User_privileges_result;
 
-  /**
-   * Helper structure, holds information about mapped row.
-   */
-  struct Mapped_row;
+  // Map with user privileges information:
+  // {`schema`.`table` -> {privileges}}
+  using Privileges = std::unordered_map<std::string, std::set<std::string>>;
 
   /**
-   * Converts a row from database into helper structure.
-   */
-  using Row_mapper = void (*)(const db::IRow *const, Mapped_row *);
-
-  /**
-   * Parses a result of database query, obtaining information about privileges
-   * and user grants.
+   * Checks if the account exists in the database.
    *
-   * @param result The result of database query.
-   * @param map_row Converts a single row into readable data.
-   * @param user_role string with the target user/role.
+   * @param instance The Instance object used to query the database.
+   *
+   * @returns true if account exists in the database
    */
-  void parse_privileges(const std::shared_ptr<db::IResult> &result,
-                        Row_mapper map_row, const std::string &user_role);
+  bool check_if_user_exists(const mysqlshdk::mysql::IInstance &instance) const;
 
+  /**
+   * Fetches and parses all the grants account has. If this account has roles
+   * which are active when user logs in, these are taken into account as well.
+   *
+   * @param instance The Instance object used to query the database.
+   */
+  void parse_user_grants(const mysqlshdk::mysql::IInstance &instance);
+
+  /**
+   * Parses the GRANT or REVOKE statement, updates the privileges granted to the
+   * account.
+   *
+   * @param statement GRANT or REVOKE statement.
+   */
+  void parse_grant(const std::string &statement);
+
+  /**
+   * Fetches all static and all currently registered dynamic privileges from the
+   * database.
+   *
+   * @param instance The Instance object used to query the database.
+   */
   void set_all_privileges(const mysqlshdk::mysql::IInstance &instance);
-
-  /**
-   * Reads global privileges of a user or role.
-   *
-   * @param instance A Instance object for communication with database.
-   * @param user_role string with the target user or role.
-   */
-  void read_global_privileges(const mysqlshdk::mysql::IInstance &instance,
-                              const std::string &user_role);
-
-  /**
-   * Reads privileges of a user or role on all schemas.
-   *
-   * @param instance A Instance object for communication with database.
-   * @param user_role string with the target user or role.
-   */
-  void read_schema_privileges(const mysqlshdk::mysql::IInstance &instance,
-                              const std::string &user_role);
-
-  /**
-   * Reads privileges of a user or role on all tables.
-   *
-   * @param instance A Instance object for communication with database.
-   * @param user_role string with the target user or role.
-   */
-  void read_table_privileges(const mysqlshdk::mysql::IInstance &instance,
-                             const std::string &user_role);
-
-  /**
-   * Reads privileges of a user/role from result of specified query.
-   *
-   * @param instance A Instance object for communication with database.
-   * @param query A query to be executed.
-   * @param map_row Converts a single row into readable data.
-   * @param user_role string with the target user/role.
-   */
-  void read_privileges(const mysqlshdk::mysql::IInstance &instance,
-                       const char *const query, Row_mapper map_row,
-                       const std::string &user_role);
 
   /**
    * Get the defined mandatory roles.
@@ -192,80 +167,68 @@ class User_privileges {
   void read_user_roles(const mysqlshdk::mysql::IInstance &instance);
 
   /**
+   * Gathers all privileges which are available at the given privilege level.
+   *
+   * Revokes are not taken into account.
+   *
+   * @param privileges privileges which are used to gather the resultant set
+   * @param schema schema name or *
+   * @param table table name or *
+   *
+   * @returns all privileges at the given privilege level
+   */
+  std::set<std::string> get_privileges_at_level(const Privileges &privileges,
+                                                const std::string &schema,
+                                                const std::string &table) const;
+
+  /**
    * Gets the list of privileges missing on the given user account of a
    * specific set of privileges.
    *
    * @param required_privileges The list of required privileges.
    * @param schema The schema to check.
    * @param table The table to check.
-   * @param check_is_grantable Boolean value to indicate whether a check to
-   * verify whether the privilege is grantable or not should be done.
+   * @param only_grantable Boolean value to indicate whether to check only
+   * grantable privileges.
    *
    * @return A set of privileges missing from the given list of required
    * privileges. This set is empty if user has all the required privileges.
    */
-  std::set<std::string> get_missing_privileges_from_set(
-      const std::set<std::string> &required_privileges,
-      const std::string &schema, const std::string &table,
-      bool check_is_grantable = false) const;
-
-  /**
-   * Checks if the given user account has GRANT OPTION privilege on
-   * specified schema.table.
-   *
-   * @param required_privileges The privileges the user needs to have.
-   * @param schema The schema to check. By default "*" is used.
-   * @param table The table to check. By default "*" is used.
-   *
-   * @return True if user has the GRANT OPTION.
-   */
-  bool has_grant_option(const std::set<std::string> &required_privileges,
-                        const std::string &schema = k_wildcard,
-                        const std::string &table = k_wildcard) const;
-
-  /**
-   * Checks if the given user account has all required privileges on specified
-   * schema.table and provides any missing ones.
-   *
-   * @param required_privileges The privileges the user needs to have.
-   * @param schema The schema to check. By default "*" is used.
-   * @param table The table to check. By default "*" is used.
-   *
-   * @return A set of privileges which user lacks. This set is empty if user has
-   *         all the required privileges.
-   */
   std::set<std::string> get_missing_privileges(
       const std::set<std::string> &required_privileges,
-      const std::string &schema = k_wildcard,
-      const std::string &table = k_wildcard) const;
+      const std::string &schema, const std::string &table,
+      bool only_grantable) const;
 
+  // user name
+  std::string m_user;
+
+  // host name
+  std::string m_host;
+
+  // account name ('m_user'@'m_host')
   std::string m_account;
 
+  // whether the given user exists
   bool m_user_exists = false;
 
-  struct Privilege {
-    std::string name;
-    bool grantable;
+  // all privileges where account has GRANT OPTION
+  Privileges m_grantable_privileges;
 
-    Privilege(std::string &&name_, bool grantable_)
-        : name(std::move(name_)), grantable(grantable_) {}
+  // privileges without the GRANT OPTION
+  Privileges m_privileges;
 
-    bool operator<(const Privilege &priv) const { return name < priv.name; }
-  };
-
-  // Map with user privileges information:
-  // {user/roles -> {schema -> {table -> {privileges}}}}
-  std::unordered_map<
-      std::string,
-      std::unordered_map<std::string,
-                         std::unordered_map<std::string, std::set<Privilege>>>>
-      m_privileges;
+  // revoked privileges
+  Privileges m_revoked_privileges;
 
   // Set of roles/users granted.
   std::set<std::string> m_roles;
 
   // Set of ALL privileges (NOTE: different depending on the server version).
   std::set<std::string> m_all_privileges;
+
+#ifdef FRIEND_TEST
+  FRIEND_TEST(User_privileges_test, parse_grants);
+#endif
 };
 
 /**

@@ -44,7 +44,6 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
-#include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/utils.h"
@@ -1289,6 +1288,12 @@ Dumper::Dumper(const Dump_options &options)
 Dumper::~Dumper() = default;
 
 void Dumper::run() {
+  if (m_options.is_dry_run()) {
+    current_console()->print_info(
+        "dryRun enabled, no locks will be acquired and no files will be "
+        "created.");
+  }
+
   try {
     do_run();
   } catch (...) {
@@ -1316,6 +1321,8 @@ void Dumper::do_run() {
   open_session();
 
   shcore::on_leave_scope terminate_session([this]() { close_session(); });
+
+  fetch_user_privileges();
 
   {
     shcore::on_leave_scope read_locks([this]() { release_read_locks(); });
@@ -1468,6 +1475,20 @@ void Dumper::close_session() {
   }
 }
 
+void Dumper::fetch_user_privileges() {
+  using mysqlshdk::mysql::Instance;
+  using mysqlshdk::mysql::User_privileges;
+
+  const auto instance = Instance(session());
+  std::string user;
+  std::string host;
+
+  instance.get_current_user(&user, &host);
+
+  m_user_privileges = std::make_unique<User_privileges>(instance, user, host);
+  m_user_account = shcore::make_account(user, host);
+}
+
 void Dumper::lock_all_tables() {
   lock_instance();
 
@@ -1483,11 +1504,39 @@ void Dumper::lock_all_tables() {
   const auto console = current_console();
   const std::string k_lock_tables = "LOCK TABLES ";
 
+  using mysqlshdk::mysql::User_privileges;
+  const std::set<std::string> privileges = {"LOCK TABLES", "SELECT"};
+
+  const auto validate_privileges = [this, &privileges](
+                                       const std::string &schema,
+                                       const std::string &table =
+                                           User_privileges::k_wildcard) {
+    const auto result = m_user_privileges->validate(privileges, schema, table);
+
+    if (result.has_missing_privileges()) {
+      const std::string object =
+          User_privileges::k_wildcard == table
+              ? "schema " + shcore::quote_identifier(schema)
+              : "table " + quote(schema, table);
+
+      throw std::runtime_error(
+          "User " + m_user_account +
+          " is missing the following privilege(s) for " + object + ": " +
+          shcore::str_join(result.missing_privileges(), ", ") + ".");
+    }
+  };
+
   // lock relevant tables in mysql so that grants, views, routines etc. are
   // consistent too, use the main thread to lock these tables, as it is going to
   // read from them
   try {
     std::string stmt = k_lock_tables;
+    const std::string mysql = "mysql";
+
+    // if user doesn't have the SELECT privilege on mysql.*, it's not going to
+    // be possible to list tables
+    validate_privileges(mysql);
+
     const auto result = session()->query(
         "SHOW TABLES IN mysql WHERE Tables_in_mysql IN"
         "('columns_priv', 'db', 'default_roles', 'func', 'global_grants', "
@@ -1495,27 +1544,30 @@ void Dumper::lock_all_tables() {
         "'user')");
 
     while (auto row = result->fetch_one()) {
-      stmt.append("mysql." + shcore::quote_identifier(row->get_string(0)) +
-                  " READ,");
+      const auto table = row->get_string(0);
+
+      validate_privileges(mysql, table);
+
+      stmt.append("mysql." + shcore::quote_identifier(table) + " READ,");
     }
 
     // remove last comma
     stmt.pop_back();
 
     log_info("Locking tables: %s", stmt.c_str());
-    session()->execute(stmt);
-  } catch (const mysqlshdk::db::Error &e) {
-    if (e.code() == ER_DBACCESS_DENIED_ERROR ||
-        e.code() == ER_ACCESS_DENIED_ERROR) {
-      console->print_warning("Could not lock mysql system tables: " +
-                             e.format());
-      console->print_warning(
-          "The dump will continue, but the dump may not be completely "
-          "consistent if changes to accounts or routines are made during it.");
-    } else {
-      console->print_error("Could not lock mysql system tables: " + e.format());
-      throw;
+
+    if (!m_options.is_dry_run()) {
+      session()->execute(stmt);
     }
+  } catch (const mysqlshdk::db::Error &e) {
+    console->print_error("Could not lock mysql system tables: " + e.format());
+    throw;
+  } catch (const std::runtime_error &e) {
+    console->print_warning("Could not lock mysql system tables: " +
+                           std::string{e.what()});
+    console->print_warning(
+        "The dump will continue, but the dump may not be completely consistent "
+        "if changes to accounts or routines are made during it.");
   }
 
   initialize_instance_cache_minimal();
@@ -1525,6 +1577,8 @@ void Dumper::lock_all_tables() {
 
   for (const auto &schema : m_cache.schemas) {
     for (const auto &table : schema.second.tables) {
+      validate_privileges(schema.first, table.first);
+
       tables.emplace_back(quote(schema.first, table.first) + " READ,");
     }
   }
@@ -1539,14 +1593,15 @@ void Dumper::lock_all_tables() {
       // remove last comma
       stmt.pop_back();
 
-      // initialize session
-      auto s = establish_session(session()->get_connection_options(), false);
-      on_init_thread_session(s);
-
       log_info("Locking tables: %s", stmt.c_str());
 
-      s->execute(stmt);
-      m_lock_sessions.emplace_back(std::move(s));
+      if (!m_options.is_dry_run()) {
+        // initialize session
+        auto s = establish_session(session()->get_connection_options(), false);
+        on_init_thread_session(s);
+        s->execute(stmt);
+        m_lock_sessions.emplace_back(std::move(s));
+      }
     };
 
     const auto k_lock_tables_size = k_lock_tables.size();
@@ -1582,49 +1637,62 @@ void Dumper::acquire_read_locks() {
     // This will block until lock_wait_timeout if there are any
     // sessions with open transactions/locks.
     current_console()->print_info("Acquiring global read lock");
-    try {
-      // We do first a FLUSH TABLES. If a long update is running, the FLUSH
-      // TABLES will wait but will not stall the whole mysqld, and when the long
-      // update is done the FLUSH TABLES WITH READ LOCK will start and succeed
-      // quickly. So, FLUSH TABLES is to lower the probability of a stage where
-      // both shell and most client connections are stalled. Of course, if a
-      // second long update starts between the two FLUSHes, we have that bad
-      // stall.
-      session()->execute("FLUSH NO_WRITE_TO_BINLOG TABLES;");
-      session()->execute("FLUSH TABLES WITH READ LOCK;");
+
+    // user can execute FLUSH statements if has RELOAD privilege or, starting
+    // with 8.0.23, FLUSH_TABLES privilege
+    if (!m_user_privileges->validate({"RELOAD"}).has_missing_privileges() ||
+        (session()->get_server_version() >= Version(8, 0, 23) &&
+         !m_user_privileges->validate({"FLUSH_TABLES"})
+              .has_missing_privileges())) {
+      if (!m_options.is_dry_run()) {
+        try {
+          // We do first a FLUSH TABLES. If a long update is running, the FLUSH
+          // TABLES will wait but will not stall the whole mysqld, and when the
+          // long update is done the FLUSH TABLES WITH READ LOCK will start and
+          // succeed quickly. So, FLUSH TABLES is to lower the probability of a
+          // stage where both shell and most client connections are stalled. Of
+          // course, if a second long update starts between the two FLUSHes, we
+          // have that bad stall.
+          session()->execute("FLUSH NO_WRITE_TO_BINLOG TABLES;");
+          session()->execute("FLUSH TABLES WITH READ LOCK;");
+        } catch (const mysqlshdk::db::Error &e) {
+          current_console()->print_error(
+              "Failed to acquire global read lock: " + e.format());
+          throw std::runtime_error("Unable to acquire global read lock");
+        }
+      }
+
       current_console()->print_info("Global read lock acquired");
 
       // FTWRL was used to lock the tables, it is safe to start a transaction,
       // as it will not release the global read lock
       start_transaction(session());
-    } catch (const mysqlshdk::db::Error &e) {
+    } else {
       m_ftwrl_failed = true;
 
-      current_console()->print_note("Error acquiring global read lock: " +
-                                    e.format());
-      if (ER_SPECIFIC_ACCESS_DENIED_ERROR == e.code() ||
-          ER_DBACCESS_DENIED_ERROR == e.code() ||
-          ER_ACCESS_DENIED_ERROR == e.code()) {
-        current_console()->print_warning(
-            "The current user lacks privileges to acquire a global read lock "
-            "using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK "
-            "TABLES...");
+      current_console()->print_warning(
+          "The current user lacks privileges to acquire a global read lock "
+          "using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK "
+          "TABLES...");
 
-        // if FTWRL isn't executable by the user, try LOCK TABLES instead
-        try {
-          lock_all_tables();
-          current_console()->print_info("Table locks acquired");
-          // a transaction would release the table locks, it cannot be started
-          // until tables are unlocked
-        } catch (const mysqlshdk::db::Error &ee) {
-          current_console()->print_error(
-              "Unable to acquire global read lock neither table read locks.");
+      const auto handle_error = [](const std::string &msg) {
+        current_console()->print_error(
+            "Unable to acquire global read lock neither table read locks.");
 
-          throw std::runtime_error("Unable to lock tables: " + ee.format());
-        }
-      } else {
-        throw std::runtime_error("Unable to acquire global read lock: " +
-                                 e.format());
+        throw std::runtime_error("Unable to lock tables: " + msg);
+      };
+
+      // if FTWRL isn't executable by the user, try LOCK TABLES instead
+      try {
+        lock_all_tables();
+
+        current_console()->print_info("Table locks acquired");
+        // a transaction would release the table locks, it cannot be started
+        // until tables are unlocked
+      } catch (const mysqlshdk::db::Error &e) {
+        handle_error(e.format());
+      } catch (const std::runtime_error &e) {
+        handle_error(e.what());
       }
     }
   }
@@ -1660,7 +1728,7 @@ void Dumper::release_read_locks() const {
 
 void Dumper::start_transaction(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
-  if (m_options.consistent_dump()) {
+  if (m_options.consistent_dump() && !m_options.is_dry_run()) {
     session->execute(
         "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;");
     session->execute("START TRANSACTION WITH CONSISTENT SNAPSHOT;");
@@ -1673,7 +1741,7 @@ void Dumper::assert_transaction_is_open(
   // no-op
   (void)session;
 #else   // !NDEBUG
-  if (m_options.consistent_dump()) {
+  if (m_options.consistent_dump() && !m_options.is_dry_run()) {
     try {
       // if there's an active transaction, this will throw
       session->execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
@@ -1700,12 +1768,23 @@ void Dumper::lock_instance() {
     const auto version = session()->get_server_version();
 
     if (version >= Version(8, 0, 0)) {
-      try {
-        session()->execute("LOCK INSTANCE FOR BACKUP;");
-      } catch (const shcore::Error &e) {
-        console->print_error("Could not acquire backup lock: " + e.format());
+      if (m_user_privileges->validate({"BACKUP_ADMIN"})
+              .has_missing_privileges()) {
+        console->print_error("User " + m_user_account +
+                             " is missing the BACKUP_ADMIN privilege and "
+                             "cannot execute 'LOCK INSTANCE FOR BACKUP'.");
+        throw std::runtime_error("Could not acquire the backup lock");
+      }
 
-        throw;
+      if (!m_options.is_dry_run()) {
+        try {
+          session()->execute("LOCK INSTANCE FOR BACKUP");
+        } catch (const shcore::Error &e) {
+          console->print_error("Could not acquire the backup lock: " +
+                               e.format());
+
+          throw;
+        }
       }
     } else {
       console->print_note("Backup lock is not supported in MySQL " +
@@ -3044,18 +3123,7 @@ void Dumper::validate_privileges() const {
   }
 
   if (!all_required.empty()) {
-    using mysqlshdk::mysql::Instance;
-    using mysqlshdk::mysql::User_privileges;
     using mysqlshdk::mysql::User_privileges_result;
-
-    const auto instance = Instance(session());
-    std::string user;
-    std::string host;
-
-    instance.get_current_user(&user, &host);
-
-    const auto privileges = User_privileges(instance, user, host);
-    const auto account = shcore::make_account(user, host);
 
     const auto get_missing = [](const User_privileges_result &result,
                                 const std::set<std::string> &required) {
@@ -3069,12 +3137,12 @@ void Dumper::validate_privileges() const {
       return missing;
     };
 
-    const auto global_result = privileges.validate(all_required);
+    const auto global_result = m_user_privileges->validate(all_required);
     const auto global_missing = get_missing(global_result, global_required);
 
     if (!global_missing.empty()) {
       throw std::runtime_error(
-          "User " + account +
+          "User " + m_user_account +
           " is missing the following global privilege(s): " +
           shcore::str_join(global_missing, ", ") + ".");
     }
@@ -3095,12 +3163,12 @@ void Dumper::validate_privileges() const {
       // user doesn't have *.* schema/table-level privileges, check schemas
       for (const auto &schema : m_schema_infos) {
         const auto schema_result =
-            privileges.validate(all_required, schema.name);
+            m_user_privileges->validate(all_required, schema.name);
         const auto schema_missing = get_missing(schema_result, schema_required);
 
         if (!schema_missing.empty()) {
           throw std::runtime_error(
-              "User " + account +
+              "User " + m_user_account +
               " is missing the following privilege(s) for schema " +
               schema.quoted_name + ": " +
               shcore::str_join(schema_missing, ", ") + ".");
@@ -3110,14 +3178,14 @@ void Dumper::validate_privileges() const {
           // user has all required schema-level privileges for this schema
           // user doesn't have schema.* table-level privileges, check tables
           for (const auto &table : schema.tables) {
-            const auto table_result =
-                privileges.validate(all_required, schema.name, table.name);
+            const auto table_result = m_user_privileges->validate(
+                all_required, schema.name, table.name);
 
             // if at this stage there are any missing privileges, they are all
             // table-level ones
             if (table_result.has_missing_privileges()) {
               throw std::runtime_error(
-                  "User " + account +
+                  "User " + m_user_account +
                   " is missing the following privilege(s) for table " +
                   table.quoted_name + ": " +
                   shcore::str_join(table_result.missing_privileges(), ", ") +

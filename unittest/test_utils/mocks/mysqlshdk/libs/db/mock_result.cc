@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -142,11 +142,11 @@ Fake_result &Mock_result::add_result(
 }
 
 void Mock_result::set_data(const std::vector<Fake_result_data> &data) {
-  for (auto result : data) {
+  for (const auto &result : data) {
     std::unique_ptr<Fake_result> fake_result(
         new Fake_result(result.names, result.types));
 
-    for (auto row : result.rows) fake_result->add_row(row);
+    for (const auto &row : result.rows) fake_result->add_row(row);
 
     _results.push_back(std::move(fake_result));
   }

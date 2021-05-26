@@ -1,110 +1,300 @@
-/* Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+/*
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License, version 2.0,
- as published by the Free Software Foundation.
-
- This program is also distributed with certain software (including
- but not limited to OpenSSL) that is licensed under separate terms, as
- designated in a particular file or component or in included license
- documentation.  The authors of MySQL hereby grant you an additional
- permission to link the program and your derivative works with the
- separately licensed software that they have included with MySQL.
- This program is distributed in the hope that it will be useful,  but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
- the GNU General Public License, version 2.0, for more details.
-
- You should have received a copy of the GNU General Public License
- along with this program; if not, write to the Free Software Foundation, Inc.,
- 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
-
-#include "mysqlshdk/libs/mysql/user_privileges.h"
+#include "unittest/mysqlshdk/libs/mysql/user_privileges_t.h"
 
 #include <memory>
 #include <set>
+
+// required for FRIEND_TEST
+#include "unittest/gprod_clean.h"
+
+#include "mysqlshdk/libs/mysql/user_privileges.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_result.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
 #include "unittest/test_utils/shell_base_test.h"
 
-#include "mysqlshdk/libs/utils/utils_general.h"
-
 using mysqlshdk::db::Type;
-using mysqlshdk::mysql::User_privileges;
+using mysqlshdk::mysql::Instance;
+using mysqlshdk::utils::Version;
+using testing::Mock_session;
+using testing::Return;
+
+namespace {
+
+std::set<std::string> k_all_privileges = {
+    "Alter",
+    "Alter routine",
+    "Create",
+    "Create routine",
+    "Create role",
+    "Create temporary tables",
+    "Create view",
+    "Create user",
+    "Delete",
+    "Drop",
+    "Drop role",
+    "Event",
+    "Execute",
+    "File",
+    "Grant option",
+    "Index",
+    "Insert",
+    "Lock tables",
+    "Process",
+    "Proxy",
+    "References",
+    "Reload",
+    "Replication client",
+    "Replication slave",
+    "Select",
+    "Show databases",
+    "Show view",
+    "Shutdown",
+    "Super",
+    "Trigger",
+    "Create tablespace",
+    "Update",
+    "Usage",
+    "XA_RECOVER_ADMIN",
+    "SHOW_ROUTINE",
+    "SET_USER_ID",
+    "SESSION_VARIABLES_ADMIN",
+    "RESOURCE_GROUP_USER",
+    "SYSTEM_VARIABLES_ADMIN",
+    "REPLICATION_SLAVE_ADMIN",
+    "REPLICATION_APPLIER",
+    "BINLOG_ENCRYPTION_ADMIN",
+    "RESOURCE_GROUP_ADMIN",
+    "INNODB_REDO_LOG_ARCHIVE",
+    "BINLOG_ADMIN",
+    "PERSIST_RO_VARIABLES_ADMIN",
+    "TABLE_ENCRYPTION_ADMIN",
+    "SERVICE_CONNECTION_ADMIN",
+    "AUDIT_ADMIN",
+    "SYSTEM_USER",
+    "APPLICATION_PASSWORD_ADMIN",
+    "ROLE_ADMIN",
+    "BACKUP_ADMIN",
+    "CONNECTION_ADMIN",
+    "ENCRYPTION_KEY_ADMIN",
+    "CLONE_ADMIN",
+    "FLUSH_OPTIMIZER_COSTS",
+    "FLUSH_STATUS",
+    "FLUSH_TABLES",
+    "FLUSH_USER_RESOURCES",
+    "GROUP_REPLICATION_ADMIN",
+    "INNODB_REDO_LOG_ENABLE",
+};
+
+}  // namespace
 
 namespace testing {
+namespace user_privileges {
+
+void setup(const Setup_options &options, Mock_session *session) {
+  const auto account = shcore::make_account(options.user, options.host);
+
+  {
+    std::vector<std::vector<std::string>> user_exists;
+
+    if (options.user_exists) {
+      user_exists.emplace_back(std::vector<std::string>{"USAGE"});
+    }
+
+    session
+        ->expect_query(shcore::sqlformat(
+            "SELECT PRIVILEGE_TYPE FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
+            "WHERE GRANTEE=? LIMIT 1",
+            account))
+        .then_return({{"", {"PRIVILEGE_TYPE"}, {Type::String}, user_exists}});
+  }
+
+  {
+    std::vector<std::vector<std::string>> all_privileges;
+
+    all_privileges.reserve(k_all_privileges.size());
+
+    for (const auto &privilege : k_all_privileges) {
+      all_privileges.emplace_back(std::vector<std::string>{privilege});
+    }
+
+    session->expect_query("SHOW PRIVILEGES")
+        .then_return({{"", {"Privilege"}, {Type::String}, all_privileges}});
+  }
+
+  if (options.user_exists) {
+    EXPECT_CALL(*session, get_server_version())
+        .WillRepeatedly(
+            Return(options.is_8_0 ? Version(8, 0, 0) : Version(5, 7, 28)));
+
+    std::set<std::string> all_roles;
+
+    if (options.is_8_0) {
+      {
+        std::vector<std::string> activate_all;
+
+        activate_all.emplace_back(options.activate_all_roles_on_login ? "1"
+                                                                      : "0");
+
+        session->expect_query("SELECT @@GLOBAL.activate_all_roles_on_login")
+            .then_return({{"",
+                           {"@@GLOBAL.activate_all_roles_on_login"},
+                           {Type::String},
+                           {activate_all}}});
+      }
+
+      std::string query;
+
+      if (options.activate_all_roles_on_login) {
+        for (const auto &role : options.mandatory_roles) {
+          std::string user;
+          std::string host;
+
+          shcore::split_account(role, &user, &host, false);
+
+          if (host.empty()) {
+            host = '%';
+          }
+
+          all_roles.emplace(shcore::make_account(user, host));
+        }
+
+        session->expect_query("SHOW GLOBAL VARIABLES LIKE 'mandatory_roles'")
+            .then_return(
+                {{"",
+                  {"Variable_name", "Value"},
+                  {Type::String, Type::String},
+                  {{"mandatory_roles",
+                    shcore::str_join(options.mandatory_roles, ",")}}}});
+
+        query =
+            "SELECT from_user, from_host FROM mysql.role_edges WHERE "
+            "to_user=? AND to_host=?";
+      } else {
+        query =
+            "SELECT default_role_user, default_role_host FROM "
+            "mysql.default_roles WHERE user=? AND host=?";
+      }
+
+      std::vector<std::vector<std::string>> active_roles;
+
+      for (const auto &role : options.active_roles) {
+        active_roles.emplace_back(
+            std::vector<std::string>{role.user, role.host});
+        all_roles.emplace(shcore::make_account(role));
+      }
+
+      session
+          ->expect_query(shcore::sqlformat(query, options.user, options.host))
+          .then_return({{"",
+                         {"user", "host"},
+                         {Type::String, Type::String},
+                         active_roles}});
+    }
+
+    std::vector<std::vector<std::string>> grants;
+
+    for (const auto &grant : options.grants) {
+      grants.emplace_back(std::vector<std::string>{grant});
+    }
+
+    std::string query = "SHOW GRANTS FOR " + account;
+
+    if (!all_roles.empty()) {
+      query += " USING " + shcore::str_join(all_roles, ",");
+    }
+
+    session->expect_query(query).then_return(
+        {{"", {"grant"}, {Type::String}, grants}});
+  }
+}
+
+std::set<std::string> all_privileges() {
+  std::set<std::string> result;
+
+  for (const auto &privilege : k_all_privileges) {
+    result.emplace(shcore::str_upper(privilege));
+  }
+
+  result.erase("GRANT OPTION");
+  result.erase("PROXY");
+
+  return result;
+}
+
+}  // namespace user_privileges
+}  // namespace testing
+
+namespace mysqlshdk {
+namespace mysql {
+
+using testing::user_privileges::all_privileges;
+using testing::user_privileges::setup;
+using testing::user_privileges::Setup_options;
 
 class User_privileges_test : public tests::Shell_base_test {
  protected:
   void SetUp() override {
     tests::Shell_base_test::SetUp();
 
-    m_mock_session = std::make_shared<Mock_session>();
-    m_session = m_mock_session;
+    m_session = std::make_shared<Mock_session>();
 
-    m_connection_options = shcore::get_connection_options(_mysql_uri);
+    const auto connection_options = shcore::get_connection_options(_mysql_uri);
 
-    EXPECT_CALL(*m_mock_session, connect(m_connection_options));
-    m_session->connect(m_connection_options);
+    EXPECT_CALL(*m_session, connect(connection_options));
+    m_session->connect(connection_options);
   }
 
   void TearDown() override {
-    EXPECT_CALL(*m_mock_session, close());
+    EXPECT_CALL(*m_session, close());
     m_session->close();
   }
 
-  std::shared_ptr<Mock_session> m_mock_session;
+  User_privileges setup_test(const Setup_options &options) {
+    setup(options, m_session.get());
 
-  // Required for User_privileges
-  std::shared_ptr<mysqlshdk::db::ISession> m_session;
-
- private:
-  mysqlshdk::db::Connection_options m_connection_options;
-};
-
-void set_all_privileges_queries(std::shared_ptr<Mock_session> &mock_session) {
-  std::vector<std::string> plugins = {"audit_log", "mysql_firewall",
-                                      "version_tokens"};
-  for (const auto &plugin_name : plugins) {
-    std::string query =
-        "SELECT plugin_status FROM information_schema.plugins "
-        "WHERE plugin_name = '" +
-        plugin_name + "'";
-    mock_session->expect_query(query).then_return({{
-        "", {"plugin_status"}, {Type::String}, {}  // No record
-    }});
+    return {Instance(m_session), options.user, options.host};
   }
 
-  mock_session
-      ->expect_query(
-          "SELECT engine FROM information_schema.engines "
-          "WHERE engine = 'NDBCLUSTER'")
-      .then_return({{
-          "", {"engine"}, {Type::String}, {}  // No record
-      }});
-}
+ private:
+  std::shared_ptr<Mock_session> m_session;
+};
 
 TEST_F(User_privileges_test, validate_user_does_not_exist) {
   // Check non existing user.
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-          "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-          "WHERE GRANTEE = '\\'notexist_user\\'@\\'notexist_host\\''")
-      .then_return({{
-          "",
-          {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
-          {Type::String, Type::String},
-          {}  // No Records
-      }});
+  Setup_options setup;
 
+  setup.user = "notexist_user";
+  setup.host = "notexist_host";
+  setup.user_exists = false;
   // Simulate a 5.7 version is used (not relevant for this test).
-  EXPECT_CALL(*m_mock_session, get_server_version())
-      .WillRepeatedly(Return(mysqlshdk::utils::Version(5, 7, 28)));
+  setup.is_8_0 = false;
 
-  User_privileges up{mysqlshdk::mysql::Instance(m_session), "notexist_user",
-                     "notexist_host"};
+  const auto up = setup_test(setup);
+
   EXPECT_FALSE(up.user_exists());
 
   auto test = [&up](const std::set<std::string> &tested_privileges,
@@ -120,79 +310,29 @@ TEST_F(User_privileges_test, validate_user_does_not_exist) {
   };
 
   test({}, {});
-  test({"all"}, {"ALL"});
+  EXPECT_THROW_LIKE(up.validate({"all"}), std::runtime_error,
+                    "Invalid privilege in the privileges list: ALL.");
   test({"select", "Insert", "UPDATE"}, {"SELECT", "INSERT", "UPDATE"});
 }
 
 TEST_F(User_privileges_test, validate_invalid_privileges) {
   // user with some privileges
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-          "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-          "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\''")
-      .then_return({{"",
-                     {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
-                     {Type::String, Type::String},
-                     {{"USAGE", "NO"}}}});
+  Setup_options setup;
 
-  set_all_privileges_queries(m_mock_session);
-
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
-          "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
-          "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\'' "
-          "ORDER BY TABLE_SCHEMA")
-      .then_return({{"",
-                     {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
-                     {Type::String, Type::String, Type::String},
-                     {{"INSERT", "NO", "test_db"},
-                      {"SELECT", "NO", "test_db"},
-                      {"UPDATE", "NO", "test_db"},
-                      {"SELECT", "YES", "test_db2"}}}});
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
-          "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
-          "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\'' "
-          "ORDER BY TABLE_SCHEMA, TABLE_NAME")
-      .then_return(
-          {{"",
-            {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA", "TABLE_NAME"},
-            {Type::String, Type::String, Type::String, Type::String},
-            {{"DELETE", "NO", "test_db", "t1"},
-             {"DROP", "YES", "test_db", "t2"},
-             {"ALTER", "YES", "test_db", "t2"}}}});
-
+  setup.user = "test_user";
+  setup.host = "test_host";
   // Simulate 8.0.0 version is always used.
-  EXPECT_CALL(*m_mock_session, get_server_version())
-      .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 0)));
-  m_mock_session
-      ->expect_query("SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login'")
-      .then_return({{"",
-                     {"Variable_name", "Value"},
-                     {Type::String},
-                     {{"activate_all_roles_on_login", "OFF"}}}});
-  m_mock_session
-      ->expect_query(
-          "SELECT default_role_user, default_role_host "
-          "FROM mysql.default_roles "
-          "WHERE user = 'test_user' AND host = 'test_host'")
-      .then_return({{
-          "",
-          {"default_role_user", "default_role_host"},
-          {Type::String, Type::String},
-          {}  // No Records.
-      }});
-  m_mock_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'mandatory_roles'")
-      .then_return({{"",
-                     {"Variable_name", "Value"},
-                     {Type::String},
-                     {{"mandatory_roles", ""}}}});
+  setup.is_8_0 = true;
 
-  User_privileges up{mysqlshdk::mysql::Instance(m_session), "test_user",
-                     "test_host"};
+  setup.grants = {
+      "GRANT USAGE ON *.* TO u@h",
+      "GRANT INSERT, SELECT, UPDATE ON `test_db`.* TO u@h",
+      "GRANT SELECT ON `test_db2`.* TO u@h WITH GRANT OPTION",
+      "GRANT DELETE ON `test_db`.`t1` TO u@h",
+      "GRANT DROP, ALTER ON `test_db`.`t2` TO u@h WITH GRANT OPTION",
+  };
+
+  const auto up = setup_test(setup);
 
   EXPECT_TRUE(up.user_exists());
 
@@ -210,81 +350,31 @@ TEST_F(User_privileges_test, validate_invalid_privileges) {
 TEST_F(User_privileges_test, validate_specific_privileges) {
   // Verify privileges for user with SELECT,INSERT,UPDATE on test_db.*,
   // DELETE on test_db.t1, ALTER,DROP on test_db.t2, and SELECT on test_db2.*.
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-          "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-          "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\''")
-      .then_return({{"",
-                     {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
-                     {Type::String, Type::String},
-                     {{"USAGE", "NO"}}}});
+  Setup_options setup;
 
-  set_all_privileges_queries(m_mock_session);
-
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
-          "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
-          "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\'' "
-          "ORDER BY TABLE_SCHEMA")
-      .then_return({{"",
-                     {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
-                     {Type::String, Type::String, Type::String},
-                     {{"INSERT", "NO", "test_db"},
-                      {"SELECT", "NO", "test_db"},
-                      {"UPDATE", "NO", "test_db"},
-                      {"SELECT", "YES", "test_db2"}}}});
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
-          "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
-          "WHERE GRANTEE = '\\'test_user\\'@\\'test_host\\'' "
-          "ORDER BY TABLE_SCHEMA, TABLE_NAME")
-      .then_return(
-          {{"",
-            {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA", "TABLE_NAME"},
-            {Type::String, Type::String, Type::String, Type::String},
-            {{"DELETE", "NO", "test_db", "t1"},
-             {"DROP", "YES", "test_db", "t2"},
-             {"ALTER", "YES", "test_db", "t2"}}}});
-
+  setup.user = "test_user";
+  setup.host = "test_host";
   // Simulate 8.0.0 version is always used.
-  EXPECT_CALL(*m_mock_session, get_server_version())
-      .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 0)));
-  m_mock_session
-      ->expect_query("SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login'")
-      .then_return({{"",
-                     {"Variable_name", "Value"},
-                     {Type::String},
-                     {{"activate_all_roles_on_login", "OFF"}}}});
-  m_mock_session
-      ->expect_query(
-          "SELECT default_role_user, default_role_host "
-          "FROM mysql.default_roles "
-          "WHERE user = 'test_user' AND host = 'test_host'")
-      .then_return({{
-          "",
-          {"default_role_user", "default_role_host"},
-          {Type::String, Type::String},
-          {}  // No Records.
-      }});
-  m_mock_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'mandatory_roles'")
-      .then_return({{"",
-                     {"Variable_name", "Value"},
-                     {Type::String},
-                     {{"mandatory_roles", ""}}}});
+  setup.is_8_0 = true;
+
+  setup.grants = {
+      "GRANT USAGE ON *.* TO u@h",
+      "GRANT INSERT, SELECT, UPDATE ON `test_db`.* TO u@h",
+      "GRANT SELECT ON `test_db2`.* TO u@h WITH GRANT OPTION",
+      "GRANT DELETE ON `test_db`.`t1` TO u@h",
+      "GRANT DROP, ALTER ON `test_db`.`t2` TO u@h WITH GRANT OPTION",
+  };
+
+  const auto up = setup_test(setup);
+
+  EXPECT_TRUE(up.user_exists());
 
   // Test subset of privileges for *.*, test_db.*, test_db2.*, mysql.*,
   // test_db.t1, test_db.t2, test_db.t3, test_db2.t1 and mysql.user
   std::set<std::string> test_priv = {"SELECT", "Insert", "UPDATE"};
 
-  User_privileges up{mysqlshdk::mysql::Instance(m_session), "test_user",
-                     "test_host"};
-  EXPECT_TRUE(up.user_exists());
-
   auto test = [&up, &test_priv](
-                  const std::set<std::string> &expected_privileges,
+                  const std::set<std::string> &missing_privileges,
                   bool expected_has_grant_option,
                   const std::string &schema = User_privileges::k_wildcard,
                   const std::string &table = User_privileges::k_wildcard) {
@@ -294,8 +384,8 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
     auto sup = up.validate(test_priv, schema, table);
 
     EXPECT_TRUE(sup.user_exists());
-    EXPECT_EQ(expected_privileges, sup.missing_privileges());
-    EXPECT_EQ(expected_privileges.size() != 0, sup.has_missing_privileges());
+    EXPECT_EQ(missing_privileges, sup.missing_privileges());
+    EXPECT_EQ(missing_privileges.size() != 0, sup.has_missing_privileges());
     EXPECT_EQ(expected_has_grant_option, sup.has_grant_option());
   };
 
@@ -322,231 +412,29 @@ TEST_F(User_privileges_test, validate_specific_privileges) {
   test({"DELETE"}, false, "test_db", "t3");
   test({"INSERT", "UPDATE", "DELETE"}, false, "test_db2", "t1");
   test({"SELECT", "INSERT", "UPDATE", "DELETE"}, false, "mysql", "user");
-
-  // Test ALL privileges for *.*, test_db.*, test_db2.*, mysql.*, test_db.t1,
-  // test_db.t2, test_db.t3, test_db2.t1 and mysql.user
-  test_priv = {"ALL"};
-
-  const std::set<std::string> all_expected_priv{"ALTER",
-                                                "ALTER ROUTINE",
-                                                "CREATE",
-                                                "CREATE ROLE",
-                                                "CREATE ROUTINE",
-                                                "CREATE TABLESPACE",
-                                                "CREATE TEMPORARY TABLES",
-                                                "CREATE USER",
-                                                "CREATE VIEW",
-                                                "DELETE",
-                                                "DROP",
-                                                "DROP ROLE",
-                                                "EVENT",
-                                                "EXECUTE",
-                                                "FILE",
-                                                "INDEX",
-                                                "INSERT",
-                                                "LOCK TABLES",
-                                                "PROCESS",
-                                                "REFERENCES",
-                                                "RELOAD",
-                                                "REPLICATION CLIENT",
-                                                "REPLICATION SLAVE",
-                                                "SELECT",
-                                                "SHOW DATABASES",
-                                                "SHOW VIEW",
-                                                "SHUTDOWN",
-                                                "SUPER",
-                                                "TRIGGER",
-                                                "UPDATE",
-                                                "APPLICATION_PASSWORD_ADMIN",
-                                                "BINLOG_ADMIN",
-                                                "BINLOG_ENCRYPTION_ADMIN",
-                                                "CONNECTION_ADMIN",
-                                                "ENCRYPTION_KEY_ADMIN",
-                                                "GROUP_REPLICATION_ADMIN",
-                                                "INNODB_REDO_LOG_ARCHIVE",
-                                                "PERSIST_RO_VARIABLES_ADMIN",
-                                                "REPLICATION_SLAVE_ADMIN",
-                                                "RESOURCE_GROUP_ADMIN",
-                                                "RESOURCE_GROUP_USER",
-                                                "ROLE_ADMIN",
-                                                "SESSION_VARIABLES_ADMIN",
-                                                "SET_USER_ID",
-                                                "SYSTEM_USER",
-                                                "SYSTEM_VARIABLES_ADMIN",
-                                                "TABLE_ENCRYPTION_ADMIN",
-                                                "XA_RECOVER_ADMIN"};
-  // Note: This list doesn't include BACKUP_ADMIN, CLONE_ADMIN or
-  // REPLICATION_APPLIER because we are simulating a 8.0.0 server when we mock
-  // the get_server_version() call Instead of updating the server version on the
-  // mock, we decided to leave it as is, since on user_privileges.cc the list
-  // starts with all privileges and we drop the ones that are not supported by a
-  // given server_version. So, by using mocking an 8.0 server we are testing if
-  // the privileges are indeed being dropped from the list of ALL privileges.
-
-  test({"ALL"}, false);
-  // User with SELECT,INSERT,UPDATE on test_db.*.
-  auto expected_priv = all_expected_priv;
-  expected_priv.erase("INSERT");
-  expected_priv.erase("SELECT");
-  expected_priv.erase("UPDATE");
-  test(expected_priv, false, "test_db");
-  // User with SELECT on test_db2.*.
-  expected_priv = all_expected_priv;
-  expected_priv.erase("SELECT");
-  test(expected_priv, false, "test_db2");
-  test({"ALL"}, false, "mysql");
-  // User with SELECT,INSERT,UPDATE on test_db.* and DELETE on test_db.t1.
-  expected_priv = all_expected_priv;
-  expected_priv.erase("INSERT");
-  expected_priv.erase("SELECT");
-  expected_priv.erase("UPDATE");
-  expected_priv.erase("DELETE");
-  test(expected_priv, false, "test_db", "t1");
-  // User with SELECT,INSERT,UPDATE on test_db.* and ALTER, DROP on test_db.t2.
-  expected_priv = all_expected_priv;
-  expected_priv.erase("INSERT");
-  expected_priv.erase("SELECT");
-  expected_priv.erase("UPDATE");
-  expected_priv.erase("ALTER");
-  expected_priv.erase("DROP");
-  test(expected_priv, false, "test_db", "t2");
-  // User with SELECT,INSERT,UPDATE on test_db.*.
-  expected_priv = all_expected_priv;
-  expected_priv.erase("INSERT");
-  expected_priv.erase("SELECT");
-  expected_priv.erase("UPDATE");
-  test(expected_priv, false, "test_db", "t3");
-  // User with SELECT on test_db2.*.
-  expected_priv = all_expected_priv;
-  expected_priv.erase("SELECT");
-  test(expected_priv, false, "test_db2", "t1");
-  test({"ALL"}, false, "mysql", "user");
-}  // NOLINT(readability/fn_size)
+}
 
 TEST_F(User_privileges_test, validate_all_privileges) {
   // Verify privileges for dba_user with ALL on *.* WITH GRANT OPTION.
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-          "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-          "WHERE GRANTEE = '\\'dba_user\\'@\\'dba_host\\''")
-      .then_return({{"",
-                     {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
-                     {Type::String, Type::String},
-                     {{"SELECT", "YES"},
-                      {"INSERT", "YES"},
-                      {"UPDATE", "YES"},
-                      {"DELETE", "YES"},
-                      {"CREATE", "YES"},
-                      {"DROP", "YES"},
-                      {"RELOAD", "YES"},
-                      {"SHUTDOWN", "YES"},
-                      {"PROCESS", "YES"},
-                      {"FILE", "YES"},
-                      {"REFERENCES", "YES"},
-                      {"INDEX", "YES"},
-                      {"ALTER", "YES"},
-                      {"SHOW DATABASES", "YES"},
-                      {"SUPER", "YES"},
-                      {"CREATE TEMPORARY TABLES", "YES"},
-                      {"LOCK TABLES", "YES"},
-                      {"EXECUTE", "YES"},
-                      {"REPLICATION SLAVE", "YES"},
-                      {"REPLICATION CLIENT", "YES"},
-                      {"CREATE VIEW", "YES"},
-                      {"SHOW VIEW", "YES"},
-                      {"CREATE ROUTINE", "YES"},
-                      {"ALTER ROUTINE", "YES"},
-                      {"CREATE USER", "YES"},
-                      {"EVENT", "YES"},
-                      {"TRIGGER", "YES"},
-                      {"CREATE TABLESPACE", "YES"},
-                      {"CREATE ROLE", "YES"},
-                      {"DROP ROLE", "YES"},
-                      {"APPLICATION_PASSWORD_ADMIN", "YES"},
-                      {"BACKUP_ADMIN", "YES"},
-                      {"BINLOG_ADMIN", "YES"},
-                      {"BINLOG_ENCRYPTION_ADMIN", "YES"},
-                      {"CLONE_ADMIN", "YES"},
-                      {"CONNECTION_ADMIN", "YES"},
-                      {"ENCRYPTION_KEY_ADMIN", "YES"},
-                      {"GROUP_REPLICATION_ADMIN", "YES"},
-                      {"INNODB_REDO_LOG_ARCHIVE", "YES"},
-                      {"PERSIST_RO_VARIABLES_ADMIN", "YES"},
-                      {"REPLICATION_APPLIER", "YES"},
-                      {"REPLICATION_SLAVE_ADMIN", "YES"},
-                      {"RESOURCE_GROUP_ADMIN", "YES"},
-                      {"RESOURCE_GROUP_USER", "YES"},
-                      {"ROLE_ADMIN", "YES"},
-                      {"SESSION_VARIABLES_ADMIN", "YES"},
-                      {"SET_USER_ID", "YES"},
-                      {"SYSTEM_USER", "YES"},
-                      {"SYSTEM_VARIABLES_ADMIN", "YES"},
-                      {"TABLE_ENCRYPTION_ADMIN", "YES"},
-                      {"XA_RECOVER_ADMIN", "YES"}}}});
+  Setup_options setup;
 
-  set_all_privileges_queries(m_mock_session);
-
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
-          "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
-          "WHERE GRANTEE = '\\'dba_user\\'@\\'dba_host\\'' "
-          "ORDER BY TABLE_SCHEMA")
-      .then_return({{
-          "",
-          {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
-          {Type::String, Type::String, Type::String},
-          {}  // No Records.
-      }});
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
-          "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
-          "WHERE GRANTEE = '\\'dba_user\\'@\\'dba_host\\'' "
-          "ORDER BY TABLE_SCHEMA, TABLE_NAME")
-      .then_return({{
-          "",
-          {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA", "TABLE_NAME"},
-          {Type::String, Type::String, Type::String, Type::String},
-          {}  // No Records.
-      }});
-
+  setup.user = "dba_user";
+  setup.host = "dba_host";
   // Simulate 8.0.0 version is always used.
-  EXPECT_CALL(*m_mock_session, get_server_version())
-      .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 0)));
-  m_mock_session
-      ->expect_query("SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login'")
-      .then_return({{"",
-                     {"Variable_name", "Value"},
-                     {Type::String},
-                     {{"activate_all_roles_on_login", "OFF"}}}});
-  m_mock_session
-      ->expect_query(
-          "SELECT default_role_user, default_role_host "
-          "FROM mysql.default_roles "
-          "WHERE user = 'dba_user' AND host = 'dba_host'")
-      .then_return({{
-          "",
-          {"default_role_user", "default_role_host"},
-          {Type::String, Type::String},
-          {}  // No Records.
-      }});
-  m_mock_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'mandatory_roles'")
-      .then_return({{"",
-                     {"Variable_name", "Value"},
-                     {Type::String},
-                     {{"mandatory_roles", ""}}}});
+  setup.is_8_0 = true;
 
-  // Test ALL privileges for *.*, test_db.*, test_db2.*, mysql.*, test_db.t1,
-  // test_db.t2, test_db.t3, test_db2.t1, and mysql.user
-  std::set<std::string> test_priv = {"All"};
+  setup.grants = {
+      "GRANT ALL PRIVILEGES ON *.* TO u@h WITH GRANT OPTION",
+  };
 
-  User_privileges up{mysqlshdk::mysql::Instance(m_session), "dba_user",
-                     "dba_host"};
+  const auto up = setup_test(setup);
+
+  // Test a subset of privileges for *.*, test_db.*, test_db2.*, mysql.*,
+  // test_db.t1, test_db.t2, test_db.t3, test_db2.t1 and mysql.user
+  std::set<std::string> test_priv = {"Select", "INSERT", "UPDATE", "DELETE"};
+
   EXPECT_TRUE(up.user_exists());
 
-  using User_privileges = mysqlshdk::mysql::User_privileges;
   auto test = [&up, &test_priv](
                   const std::string &schema = User_privileges::k_wildcard,
                   const std::string &table = User_privileges::k_wildcard) {
@@ -570,457 +458,127 @@ TEST_F(User_privileges_test, validate_all_privileges) {
   test("test_db", "t3");
   test("test_db2", "t1");
   test("mysql", "user");
-
-  // Test a subset of privileges for *.*, test_db.*, test_db2.*, mysql.*,
-  // test_db.t1, test_db.t2, test_db.t3, test_db2.t1 and mysql.user
-  test_priv = {"Select", "INSERT", "UPDATE", "DELETE"};
-
-  test();
-  test("test_db");
-  test("test_db2");
-  test("mysql");
-  test("test_db", "t1");
-  test("test_db", "t2");
-  test("test_db", "t3");
-  test("test_db2", "t1");
-  test("mysql", "user");
 }
 
 TEST_F(User_privileges_test, get_user_roles) {
   // Test retrieval of user roles.
-  auto expect_no_privileges = [](std::shared_ptr<Mock_session> &mock_session,
-                                 const std::string &user_account,
-                                 bool is_role = false) {
-    mock_session
-        ->expect_query(
-            "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-            "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-            "WHERE GRANTEE = '" +
-            user_account + "'")
-        .then_return({{"",
-                       {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
-                       {Type::String, Type::String},
-                       {{"USAGE", "NO"}}}});
-
-    if (!is_role) {
-      set_all_privileges_queries(mock_session);
-    }
-
-    mock_session
-        ->expect_query(
-            "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
-            "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
-            "WHERE GRANTEE = '" +
-            user_account +
-            "' "
-            "ORDER BY TABLE_SCHEMA")
-        .then_return({{
-            "",
-            {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
-            {Type::String, Type::String, Type::String},
-            {}  // No Records.
-        }});
-    mock_session
-        ->expect_query(
-            "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
-            "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
-            "WHERE GRANTEE = '" +
-            user_account +
-            "' "
-            "ORDER BY TABLE_SCHEMA, TABLE_NAME")
-        .then_return({{
-            "",
-            {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA", "TABLE_NAME"},
-            {Type::String, Type::String, Type::String, Type::String},
-            {}  // No Records.
-        }});
-  };
 
   // User with no roles.
   {
     SCOPED_TRACE("User with no roles.");
-    expect_no_privileges(m_mock_session, "\\'dba_user\\'@\\'dba_host\\'");
 
+    Setup_options setup;
+
+    setup.user = "dba_user";
+    setup.host = "dba_host";
     // Simulate 8.0.0 version is always used.
-    EXPECT_CALL(*m_mock_session, get_server_version())
-        .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 0)));
+    setup.is_8_0 = true;
 
-    m_mock_session
-        ->expect_query(
-            "SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login'")
-        .then_return({{"",
-                       {"Variable_name", "Value"},
-                       {Type::String},
-                       {{"activate_all_roles_on_login", "OFF"}}}});
-    m_mock_session
-        ->expect_query(
-            "SELECT default_role_user, default_role_host "
-            "FROM mysql.default_roles "
-            "WHERE user = 'dba_user' AND host = 'dba_host'")
-        .then_return({{
-            "",
-            {"default_role_user", "default_role_host"},
-            {Type::String, Type::String},
-            {}  // No Records.
-        }});
+    setup.grants = {
+        "GRANT USAGE *.* TO u@h",
+    };
 
-    User_privileges up_no_roles{mysqlshdk::mysql::Instance(m_session),
-                                "dba_user", "dba_host"};
-    std::set<std::string> res = up_no_roles.get_user_roles();
-    EXPECT_TRUE(res.empty());
+    const auto up = setup_test(setup);
+
+    EXPECT_TRUE(up.get_user_roles().empty());
   }
 
   // User with roles (no mandatory roles).
   {
     SCOPED_TRACE("User with roles but no mandatory roles.");
-    expect_no_privileges(m_mock_session, "\\'dba_user\\'@\\'dba_host\\'");
 
+    Setup_options setup;
+
+    setup.user = "dba_user";
+    setup.host = "dba_host";
     // Simulate 8.0.0 version is always used.
-    EXPECT_CALL(*m_mock_session, get_server_version())
-        .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 0)));
+    setup.is_8_0 = true;
 
-    m_mock_session
-        ->expect_query(
-            "SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login'")
-        .then_return({{"",
-                       {"Variable_name", "Value"},
-                       {Type::String},
-                       {{"activate_all_roles_on_login", "OFF"}}}});
-    m_mock_session
-        ->expect_query(
-            "SELECT default_role_user, default_role_host "
-            "FROM mysql.default_roles "
-            "WHERE user = 'dba_user' AND host = 'dba_host'")
-        .then_return({{"",
-                       {"default_role_user", "default_role_host"},
-                       {Type::String, Type::String},
-                       {{"admin_role", "dba_host"}}}});
-    m_mock_session
-        ->expect_query(
-            "SELECT from_user, from_host, to_user, to_host "
-            "FROM mysql.role_edges")
-        .then_return({{"",
-                       {"from_user", "from_host", "to_user", "to_host"},
-                       {Type::String, Type::String, Type::String, Type::String},
-                       {{"dba_user", "dba_host", "admin_role", "dba_host"},
-                        {"admin_role", "dba_host", "dba_user", "dba_host"},
-                        {"root", "dba_host", "admin_role", "dba_host"}}}});
-    m_mock_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'mandatory_roles'")
-        .then_return({{"",
-                       {"Variable_name", "Value"},
-                       {Type::String},
-                       {{"mandatory_roles", ""}}}});
+    setup.grants = {
+        "GRANT USAGE *.* TO u@h",
+    };
 
-    expect_no_privileges(m_mock_session, "\\'admin_role\\'@\\'dba_host\\'",
-                         true);
-    expect_no_privileges(m_mock_session, "\\'root\\'@\\'dba_host\\'", true);
+    setup.active_roles = {
+        {"admin_role", "dba_host"},
+    };
 
-    User_privileges up_roles{mysqlshdk::mysql::Instance(m_session), "dba_user",
-                             "dba_host"};
-    std::set<std::string> res = up_roles.get_user_roles();
-    EXPECT_EQ(res.size(), 2);
-    EXPECT_THAT(res, UnorderedElementsAre("'admin_role'@'dba_host'",
-                                          "'root'@'dba_host'"));
+    const auto up = setup_test(setup);
+
+    EXPECT_EQ((std::set<std::string>{"'admin_role'@'dba_host'"}),
+              up.get_user_roles());
   }
 
   // User with roles (both granted and mandatory roles).
   {
     SCOPED_TRACE("User with both granted and mandatory roles.");
-    expect_no_privileges(m_mock_session, "\\'dba_user\\'@\\'dba_host\\'");
 
+    Setup_options setup;
+
+    setup.user = "dba_user";
+    setup.host = "dba_host";
     // Simulate 8.0.0 version is always used.
-    EXPECT_CALL(*m_mock_session, get_server_version())
-        .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 0)));
+    setup.is_8_0 = true;
 
-    m_mock_session
-        ->expect_query(
-            "SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login'")
-        .then_return({{"",
-                       {"Variable_name", "Value"},
-                       {Type::String},
-                       {{"activate_all_roles_on_login", "OFF"}}}});
-    m_mock_session
-        ->expect_query(
-            "SELECT default_role_user, default_role_host "
-            "FROM mysql.default_roles "
-            "WHERE user = 'dba_user' AND host = 'dba_host'")
-        .then_return({{"",
-                       {"default_role_user", "default_role_host"},
-                       {Type::String, Type::String},
-                       {{"admin_role", "dba_host"}}}});
-    m_mock_session
-        ->expect_query(
-            "SELECT from_user, from_host, to_user, to_host "
-            "FROM mysql.role_edges")
-        .then_return({{"",
-                       {"from_user", "from_host", "to_user", "to_host"},
-                       {Type::String, Type::String, Type::String, Type::String},
-                       {{"dba_user", "dba_host", "admin_role", "dba_host"},
-                        {"admin_role", "dba_host", "dba_user", "dba_host"},
-                        {"read_role", "dba_host", "dba_user", "dba_host"},
-                        {"write_role", "dba_host", "admin_role", "dba_host"},
-                        {"root", "dba_host", "admin_role", "dba_host"}}}});
-    m_mock_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'mandatory_roles'")
-        .then_return(
-            {{"",
-              {"Variable_name", "Value"},
-              {Type::String},
-              {{"mandatory_roles",
-                "m_role@dba_host,read_role@dba_host,write_role@dba_host"}}}});
+    setup.grants = {
+        "GRANT USAGE *.* TO u@h",
+    };
 
-    expect_no_privileges(m_mock_session, "\\'admin_role\\'@\\'dba_host\\'",
-                         true);
-    expect_no_privileges(m_mock_session, "\\'root\\'@\\'dba_host\\'", true);
-    expect_no_privileges(m_mock_session, "\\'write_role\\'@\\'dba_host\\'",
-                         true);
+    setup.activate_all_roles_on_login = true;
+    setup.active_roles = {
+        {"admin_role", "dba_host"},
+        {"read_role", "dba_host"},
+    };
+    setup.mandatory_roles = {
+        "m_role@dba_host",
+        "read_role@dba_host",
+        "write_role@dba_host",
+    };
 
-    User_privileges up_all_roles{mysqlshdk::mysql::Instance(m_session),
-                                 "dba_user", "dba_host"};
-    std::set<std::string> res = up_all_roles.get_user_roles();
-    EXPECT_EQ(res.size(), 3);
-    EXPECT_THAT(res, UnorderedElementsAre("'admin_role'@'dba_host'",
-                                          "'write_role'@'dba_host'",
-                                          "'root'@'dba_host'"));
+    const auto up = setup_test(setup);
+
+    EXPECT_EQ((std::set<std::string>{
+                  "'admin_role'@'dba_host'", "'read_role'@'dba_host'",
+                  "'m_role'@'dba_host'", "'write_role'@'dba_host'"}),
+              up.get_user_roles());
   }
 
   // User only with mandatory roles and activate all roles.
   {
     SCOPED_TRACE(
         "User only with mandatory roles and activate_all_roles_on_login=ON.");
-    expect_no_privileges(m_mock_session, "\\'dba_user\\'@\\'dba_host\\'");
 
+    Setup_options setup;
+
+    setup.user = "dba_user";
+    setup.host = "dba_host";
     // Simulate 8.0.0 version is always used.
-    EXPECT_CALL(*m_mock_session, get_server_version())
-        .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 0)));
+    setup.is_8_0 = true;
 
-    m_mock_session
-        ->expect_query(
-            "SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login'")
-        .then_return({{"",
-                       {"Variable_name", "Value"},
-                       {Type::String},
-                       {{"activate_all_roles_on_login", "ON"}}}});
-    m_mock_session
-        ->expect_query(
-            "SELECT from_user, from_host, to_user, to_host "
-            "FROM mysql.role_edges")
-        .then_return({{"",
-                       {"from_user", "from_host", "to_user", "to_host"},
-                       {Type::String, Type::String, Type::String, Type::String},
-                       {}}});  // No record
-    m_mock_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'mandatory_roles'")
-        .then_return({{"",
-                       {"Variable_name", "Value"},
-                       {Type::String},
-                       {{"mandatory_roles",
-                         "`role1`@`%`,`role2`,role3,role4@localhost"}}}});
+    setup.grants = {
+        "GRANT USAGE *.* TO u@h",
+    };
 
-    expect_no_privileges(m_mock_session, "\\'role1\\'@\\'%\\'", true);
-    expect_no_privileges(m_mock_session, "\\'role2\\'@\\'%\\'", true);
-    expect_no_privileges(m_mock_session, "\\'role3\\'@\\'%\\'", true);
-    expect_no_privileges(m_mock_session, "\\'role4\\'@\\'localhost\\'", true);
+    setup.activate_all_roles_on_login = true;
+    setup.mandatory_roles = {
+        "`role1`@`%`",         "`role2`",        "'role3'", "role4@localhost",
+        "role5@%.example.com", "\"weird,role\"",
+    };
 
-    User_privileges up_mr_roles{mysqlshdk::mysql::Instance(m_session),
-                                "dba_user", "dba_host"};
-    std::set<std::string> res = up_mr_roles.get_user_roles();
-    EXPECT_EQ(res.size(), 4);
-    EXPECT_THAT(
-        res, UnorderedElementsAre("'role1'@'%'", "'role2'@'%'", "'role3'@'%'",
-                                  "'role4'@'localhost'"));
+    const auto up = setup_test(setup);
+
+    EXPECT_EQ(
+        (std::set<std::string>{"'role1'@'%'", "'role2'@'%'", "'role3'@'%'",
+                               "'role4'@'localhost'", "'role5'@'%.example.com'",
+                               "'weird,role'@'%'"}),
+        up.get_user_roles());
   }
 }
 
-TEST_F(User_privileges_test, validate_role_privileges) {
-  // Verify privileges for test_user with privileges associated to roles.
-  // Individual privileges by user/role (without considering granted roles):
-  // test_user -> USAGE ON *.* (no privileges)
-  // create_role -> CREATE, ALTER ON *.*
-  // write_role -> INSERT, UPDATE, DELETE ON *.*
-  // read_role -> SELECT ON *.*
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-          "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-          "WHERE GRANTEE = '\\'test_user\\'@\\'%\\''")
-      .then_return({{"",
-                     {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
-                     {Type::String, Type::String},
-                     {{"USAGE", "NO"}}}});
+namespace {
 
-  set_all_privileges_queries(m_mock_session);
-
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
-          "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
-          "WHERE GRANTEE = '\\'test_user\\'@\\'%\\'' "
-          "ORDER BY TABLE_SCHEMA")
-      .then_return({{
-          "",
-          {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
-          {Type::String, Type::String, Type::String},
-          {}  // No Records.
-      }});
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
-          "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
-          "WHERE GRANTEE = '\\'test_user\\'@\\'%\\'' "
-          "ORDER BY TABLE_SCHEMA, TABLE_NAME")
-      .then_return({{
-          "",
-          {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA", "TABLE_NAME"},
-          {Type::String, Type::String, Type::String, Type::String},
-          {}  // No Records.
-      }});
-
-  // Simulate 8.0.0 version is always used.
-  EXPECT_CALL(*m_mock_session, get_server_version())
-      .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 0)));
-
-  // Active role for test_user: create_role
-  m_mock_session
-      ->expect_query("SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login'")
-      .then_return({{"",
-                     {"Variable_name", "Value"},
-                     {Type::String},
-                     {{"activate_all_roles_on_login", "OFF"}}}});
-  m_mock_session
-      ->expect_query(
-          "SELECT default_role_user, default_role_host "
-          "FROM mysql.default_roles "
-          "WHERE user = 'test_user' AND host = '%'")
-      .then_return({{"",
-                     {"default_role_user", "default_role_host"},
-                     {Type::String, Type::String},
-                     {{"create_role", "%"}}}});
-  // All granted roles:
-  //  - read_role -> test_user
-  //  - create_role -> test_user
-  //  - read_role -> write_role
-  //  - write_role -> create_role
-  m_mock_session
-      ->expect_query(
-          "SELECT from_user, from_host, to_user, to_host "
-          "FROM mysql.role_edges")
-      .then_return({{"",
-                     {"from_user", "from_host", "to_user", "to_host"},
-                     {Type::String, Type::String, Type::String, Type::String},
-                     {{"create_role", "%", "test_user", "%"},
-                      {"read_role", "%", "test_user", "%"},
-                      {"read_role", "%", "write_role", "%"},
-                      {"write_role", "%", "create_role", "%"}}}});
-  m_mock_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'mandatory_roles'")
-      .then_return({{"",
-                     {"Variable_name", "Value"},
-                     {Type::String},
-                     {{"mandatory_roles", ""}}}});
-
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-          "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-          "WHERE GRANTEE = '\\'create_role\\'@\\'%\\''")
-      .then_return({{"",
-                     {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
-                     {Type::String, Type::String},
-                     {{"CREATE", "NO"}, {"ALTER", "NO"}}}});
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
-          "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
-          "WHERE GRANTEE = '\\'create_role\\'@\\'%\\'' "
-          "ORDER BY TABLE_SCHEMA")
-      .then_return({{
-          "",
-          {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
-          {Type::String, Type::String, Type::String},
-          {}  // No Records.
-      }});
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
-          "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
-          "WHERE GRANTEE = '\\'create_role\\'@\\'%\\'' "
-          "ORDER BY TABLE_SCHEMA, TABLE_NAME")
-      .then_return({{
-          "",
-          {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA", "TABLE_NAME"},
-          {Type::String, Type::String, Type::String, Type::String},
-          {}  // No Records.
-      }});
-
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-          "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-          "WHERE GRANTEE = '\\'read_role\\'@\\'%\\''")
-      .then_return({{"",
-                     {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
-                     {Type::String, Type::String},
-                     {{"SELECT", "NO"}}}});
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
-          "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
-          "WHERE GRANTEE = '\\'read_role\\'@\\'%\\'' "
-          "ORDER BY TABLE_SCHEMA")
-      .then_return({{
-          "",
-          {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
-          {Type::String, Type::String, Type::String},
-          {}  // No Records.
-      }});
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
-          "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
-          "WHERE GRANTEE = '\\'read_role\\'@\\'%\\'' "
-          "ORDER BY TABLE_SCHEMA, TABLE_NAME")
-      .then_return({{
-          "",
-          {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA", "TABLE_NAME"},
-          {Type::String, Type::String, Type::String, Type::String},
-          {}  // No Records.
-      }});
-
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE "
-          "FROM INFORMATION_SCHEMA.USER_PRIVILEGES "
-          "WHERE GRANTEE = '\\'write_role\\'@\\'%\\''")
-      .then_return({{"",
-                     {"PRIVILEGE_TYPE", "IS_GRANTABLE"},
-                     {Type::String, Type::String},
-                     {{"INSERT", "NO"}, {"UPDATE", "NO"}, {"DELETE", "NO"}}}});
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA "
-          "FROM INFORMATION_SCHEMA.SCHEMA_PRIVILEGES "
-          "WHERE GRANTEE = '\\'write_role\\'@\\'%\\'' "
-          "ORDER BY TABLE_SCHEMA")
-      .then_return({{
-          "",
-          {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA"},
-          {Type::String, Type::String, Type::String},
-          {}  // No Records.
-      }});
-  m_mock_session
-      ->expect_query(
-          "SELECT PRIVILEGE_TYPE, IS_GRANTABLE, TABLE_SCHEMA, TABLE_NAME "
-          "FROM INFORMATION_SCHEMA.TABLE_PRIVILEGES "
-          "WHERE GRANTEE = '\\'write_role\\'@\\'%\\'' "
-          "ORDER BY TABLE_SCHEMA, TABLE_NAME")
-      .then_return({{
-          "",
-          {"PRIVILEGE_TYPE", "IS_GRANTABLE", "TABLE_SCHEMA", "TABLE_NAME"},
-          {Type::String, Type::String, Type::String, Type::String},
-          {}  // No Records.
-      }});
-
+void validate_role_privileges(const User_privileges &up) {
   // Test test_user has all expected privileges inherited from its roles:
   // SELECT, INSERT, UPDATE; DELETE, CREATE, ALTER ON *.* (no grant option)
-  User_privileges up{mysqlshdk::mysql::Instance(m_session), "test_user", "%"};
   std::set<std::string> test_priv = {"Select", "INSERT", "UPDATE",
                                      "DELETE", "create", "ALTER"};
 
@@ -1047,4 +605,250 @@ TEST_F(User_privileges_test, validate_role_privileges) {
   EXPECT_FALSE(upr.has_grant_option());
 }
 
-}  // namespace testing
+}  // namespace
+
+TEST_F(User_privileges_test, validate_role_privileges) {
+  // Verify privileges for test_user with privileges associated to roles.
+  // Individual privileges by user/role (without considering granted roles):
+  // test_user -> USAGE ON *.* (no privileges)
+  // create_role -> CREATE, ALTER ON *.*
+  // write_role -> INSERT, UPDATE, DELETE ON *.*
+  // read_role -> SELECT ON *.*
+  Setup_options setup;
+
+  setup.user = "test_user";
+  setup.host = "%";
+  // Simulate 8.0.0 version is always used.
+  setup.is_8_0 = true;
+
+  setup.grants = {"GRANT USAGE ON *.* TO u@h",
+                  "GRANT CREATE, ALTER ON *.* TO u@h",
+                  "GRANT SELECT ON *.* TO u@h",
+                  "GRANT INSERT, UPDATE, DELETE ON *.* TO u@h",
+                  "GRANT `create_role`@`%` TO u@h"};
+
+  setup.active_roles = {
+      {"create_role", "%"},
+  };
+
+  validate_role_privileges(setup_test(setup));
+}
+
+TEST_F(User_privileges_test, validate_role_privileges_direct) {
+  if (_target_server_version < Version(8, 0, 0)) {
+    SKIP_TEST("This test requires running against MySQL server version 8.0");
+  }
+
+  // Verify privileges for test_user with privileges associated to roles.
+
+  // setup
+  const auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(shcore::get_connection_options(_mysql_uri));
+
+  session->execute("DROP USER IF EXISTS test_user");
+  session->execute("DROP ROLE IF EXISTS create_role");
+  session->execute("DROP ROLE IF EXISTS write_role");
+  session->execute("DROP ROLE IF EXISTS read_role");
+
+  // Individual privileges by user/role (without considering granted roles):
+  // test_user -> USAGE ON *.* (no privileges)
+  // create_role -> CREATE, ALTER ON *.*
+  // write_role -> INSERT, UPDATE, DELETE ON *.*
+  // read_role -> SELECT ON *.*
+  session->execute("CREATE USER test_user");
+
+  session->execute("CREATE ROLE create_role");
+  session->execute("GRANT CREATE, ALTER ON *.* TO create_role");
+
+  session->execute("CREATE ROLE write_role");
+  session->execute("GRANT INSERT, UPDATE, DELETE ON *.* TO write_role");
+
+  session->execute("CREATE ROLE read_role");
+  session->execute("GRANT SELECT ON *.* TO read_role");
+
+  // All granted roles:
+  //  - read_role -> test_user
+  //  - create_role -> test_user
+  //  - read_role -> write_role
+  //  - write_role -> create_role
+  session->execute("GRANT read_role TO test_user");
+  session->execute("GRANT create_role TO test_user");
+  session->execute("SET DEFAULT ROLE create_role TO test_user");
+  session->execute("GRANT read_role TO write_role");
+  session->execute("GRANT write_role TO create_role");
+
+  // test
+  validate_role_privileges(
+      User_privileges{Instance{session}, "test_user", "%"});
+
+  // cleanup
+  session->execute("DROP USER test_user");
+  session->execute("DROP ROLE create_role");
+  session->execute("DROP ROLE write_role");
+  session->execute("DROP ROLE read_role");
+}
+
+TEST_F(User_privileges_test, partial_revokes) {
+  if (_target_server_version < Version(8, 0, 16)) {
+    SKIP_TEST("This test requires running against MySQL server version 8.0.16");
+  }
+
+  // Verify privileges for test_user with privileges associated to roles.
+
+  // setup
+  const auto session = mysqlshdk::db::mysql::Session::create();
+  session->connect(shcore::get_connection_options(_mysql_uri));
+
+  session->execute("DROP USER IF EXISTS test_user");
+  session->execute("DROP ROLE IF EXISTS app_dev");
+  session->execute("DROP ROLE IF EXISTS app_user");
+
+  session->execute("SET @saved_partial_revokes = @@GLOBAL.partial_revokes");
+  session->execute("SET @@GLOBAL.partial_revokes = ON");
+
+  // Individual privileges by user/role (without considering granted roles):
+  // test_user -> USAGE ON *.* (no privileges)
+  // app_dev -> SELECT ON *.*
+  // app_user -> SELECT ON *.*, REVOKE SELECT ON `mysql`.*
+  session->execute("CREATE USER test_user");
+
+  session->execute("CREATE ROLE app_dev");
+  session->execute("GRANT SELECT ON *.* TO app_dev");
+
+  session->execute("CREATE ROLE app_user");
+  session->execute("GRANT SELECT ON *.* TO app_user");
+  session->execute("REVOKE SELECT ON `mysql`.* FROM app_user");
+
+  // All granted roles:
+  //  - app_dev -> test_user
+  //  - app_user -> test_user
+  session->execute("GRANT app_dev, app_user TO test_user");
+
+  const auto test = [&session](bool has_global_select, bool has_mysql_select) {
+    const auto up = User_privileges{Instance{session}, "test_user", "%"};
+
+    EXPECT_EQ(has_global_select,
+              !up.validate({"SELECT"}).has_missing_privileges());
+    EXPECT_EQ(has_global_select,
+              !up.validate({"SELECT"}, "sys").has_missing_privileges());
+    EXPECT_EQ(has_mysql_select,
+              !up.validate({"SELECT"}, "mysql").has_missing_privileges());
+  };
+
+  // no default roles, user has just USAGE
+  test(false, false);
+
+  // app_user is default, user has SELECT, but not on `mysql` schema
+  session->execute("SET DEFAULT ROLE app_user TO test_user");
+  test(true, false);
+
+  // app_dev is default, user has SELECT ON *.*
+  session->execute("SET DEFAULT ROLE app_dev TO test_user");
+  test(true, true);
+
+  // both are default, user has SELECT ON *.* (partial revoke is cancelled out)
+  session->execute("SET DEFAULT ROLE app_dev, app_user TO test_user");
+  test(true, true);
+
+  // cleanup
+  session->execute("DROP USER test_user");
+  session->execute("DROP ROLE app_dev");
+  session->execute("DROP ROLE app_user");
+
+  session->execute("SET @@GLOBAL.partial_revokes = @saved_partial_revokes");
+}
+
+TEST_F(User_privileges_test, parse_grants) {
+  Setup_options setup;
+
+  setup.grants = {
+      "REVOKE SELECT ON `1`.* FROM u@h",
+      "REVOKE CREATE TEMPORARY TABLES ON `1`.* FROM u@h",
+      "REVOKE CREATE TEMPORARY TABLES, CREATE VIEW, SELECT ON `2`.* FROM u@h",
+      "REVOKE SELECT, CREATE VIEW, CREATE TEMPORARY TABLES ON `3`.* FROM u@h",
+      "GRANT SELECT, INSERT (`id`) ON `4`.`4` TO u@h WITH GRANT OPTION",
+      "GRANT INSERT (`id`), SELECT ON `5`.`5` TO u@h WITH GRANT OPTION",
+      "GRANT INSERT (`id`, data), SELECT (x) ON `6`.`6` TO u@h WITH GRANT "
+      "OPTION",
+      "GRANT ALL PRIVILEGES ON *.* TO u@h REQUIRE NONE WITH GRANT OPTION",
+      "GRANT ALL PRIVILEGES ON `7`.* TO u@h WITH GRANT OPTION",
+      "GRANT ALL PRIVILEGES ON `8`.`8` TO u@h WITH GRANT OPTION",
+      "GRANT r1, `r2`@`h`, \"r3\", 'r4'@'hh', 'r5,x' TO u@h WITH ADMIN OPTION",
+      "REVOKE r1, `r2`@`h`, \"r3\", 'r4'@'hh', 'r5,x' FROM u@h",
+      "GRANT EXECUTE ON FUNCTION `9`.`9` TO u@h",
+      "GRANT EXECUTE ON PROCEDURE `10`.`10` TO u@h",
+      "GRANT INSERT ON TABLE `11`.`11` TO u@h",
+      "GRANT SELECT, SHOW DATABASES, INSERT, UPDATE, CREATE ROUTINE ON `12`.* "
+      "TO u@h IDENTIFIED BY PASSWORD 'hash' WITH GRANT OPTION "
+      "MAX_USER_CONNECTIONS 100",
+  };
+
+  const auto up = setup_test(setup);
+
+  ASSERT_EQ(3, up.m_revoked_privileges.size());
+  EXPECT_EQ((std::set<std::string>{"CREATE TEMPORARY TABLES", "SELECT"}),
+            up.m_revoked_privileges.at("`1`.*"));
+  EXPECT_EQ((std::set<std::string>{"CREATE TEMPORARY TABLES", "CREATE VIEW",
+                                   "SELECT"}),
+            up.m_revoked_privileges.at("`2`.*"));
+  EXPECT_EQ((std::set<std::string>{"CREATE TEMPORARY TABLES", "CREATE VIEW",
+                                   "SELECT"}),
+            up.m_revoked_privileges.at("`3`.*"));
+
+  ASSERT_EQ(6, up.m_grantable_privileges.size());
+  EXPECT_EQ((std::set<std::string>{"SELECT"}),
+            up.m_grantable_privileges.at("`4`.`4`"));
+  EXPECT_EQ((std::set<std::string>{"SELECT"}),
+            up.m_grantable_privileges.at("`5`.`5`"));
+  EXPECT_EQ(all_privileges(), up.m_grantable_privileges.at("*.*"));
+  EXPECT_EQ((std::set<std::string>{
+                "ALTER",
+                "ALTER ROUTINE",
+                "CREATE",
+                "CREATE ROUTINE",
+                "CREATE TEMPORARY TABLES",
+                "CREATE VIEW",
+                "DELETE",
+                "DROP",
+                "EVENT",
+                "EXECUTE",
+                "INDEX",
+                "INSERT",
+                "LOCK TABLES",
+                "REFERENCES",
+                "SELECT",
+                "SHOW VIEW",
+                "TRIGGER",
+                "UPDATE",
+            }),
+            up.m_grantable_privileges.at("`7`.*"));
+  EXPECT_EQ((std::set<std::string>{
+                "ALTER",
+                "CREATE",
+                "CREATE VIEW",
+                "DELETE",
+                "DROP",
+                "INDEX",
+                "INSERT",
+                "REFERENCES",
+                "SELECT",
+                "SHOW VIEW",
+                "TRIGGER",
+                "UPDATE",
+            }),
+            up.m_grantable_privileges.at("`8`.`8`"));
+  EXPECT_EQ((std::set<std::string>{
+                "SELECT",
+                "SHOW DATABASES",
+                "INSERT",
+                "UPDATE",
+                "CREATE ROUTINE",
+            }),
+            up.m_grantable_privileges.at("`12`.*"));
+
+  ASSERT_EQ(1, up.m_privileges.size());
+  EXPECT_EQ((std::set<std::string>{"INSERT"}), up.m_privileges.at("`11`.`11`"));
+}
+
+}  // namespace mysql
+}  // namespace mysqlshdk

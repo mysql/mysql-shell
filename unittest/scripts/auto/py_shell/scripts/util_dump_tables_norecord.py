@@ -182,7 +182,10 @@ def EXPECT_SUCCESS(schema, tables, output_url, options = {}, views = [], expecte
 
 def EXPECT_FAIL(error, msg, schema, tables, output_url, options = {}, expect_dir_created = False):
     shutil.rmtree(test_output_absolute, True)
-    EXPECT_THROWS(lambda: util.dump_tables(schema, tables, output_url, options), "{0}: Util.dump_tables: {1}".format(error, msg))
+    full_msg = "{0}: Util.dump_tables: {1}".format(error, msg.pattern if is_re_instance(msg) else msg)
+    if is_re_instance(msg):
+        full_msg = re.compile("^" + full_msg)
+    EXPECT_THROWS(lambda: util.dump_tables(schema, tables, output_url, options), full_msg)
     EXPECT_EQ(expect_dir_created, os.path.isdir(test_output_absolute))
 
 def TEST_BOOL_OPTION(option):
@@ -248,7 +251,7 @@ def get_all_tables(schema):
 
 def compute_crc(schema, table, columns):
     session.run_sql("SET @crc = '';")
-    session.run_sql("SELECT @crc := MD5(CONCAT_WS('#',@crc,{0})) FROM !.! ORDER BY !;".format(",".join(columns)), [schema, table, columns[0]])
+    session.run_sql("SELECT @crc := MD5(CONCAT_WS('#',@crc,{0})) FROM !.! ORDER BY {0};".format(("!," * len(columns))[:-1]), columns + [schema, table] + columns)
     return session.run_sql("SELECT @crc;").fetch_one()[0]
 
 def TEST_LOAD(schema, table, chunked):
@@ -791,6 +794,7 @@ util.dump_tables(test_schema, test_schema_tables, test_output_absolute, { "dryRu
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_NOT_CONTAINS("Tables dumped: ")
 EXPECT_STDOUT_CONTAINS("Writing global DDL files")
+EXPECT_STDOUT_CONTAINS("dryRun enabled, no locks will be acquired and no files will be created.")
 
 for table in test_schema_tables:
     EXPECT_STDOUT_CONTAINS("Writing DDL for table `{0}`.`{1}`".format(test_schema, table))
@@ -1568,15 +1572,16 @@ shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host,
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 
-#@<> revoke lock tables from mysql.* {VER(>=8.0.0)}
+#@<> revoke lock tables from mysql.* {VER(>=8.0.16)}
 setup_session()
 session.run_sql("SET GLOBAL partial_revokes=1")
 session.run_sql("REVOKE LOCK TABLES ON mysql.* FROM !@!;", [test_user, __host])
 shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
 
-#@<> try again, this time it should succeed but without locking mysql.* tables {VER(>=8.0.0)}
+#@<> try again, this time it should succeed but without locking mysql.* tables {VER(>=8.0.16)}
 EXPECT_SUCCESS(world_x_schema, [world_x_table], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_CONTAINS("WARNING: Could not lock mysql system tables: User 'sample_user'@'localhost' is missing the following privilege(s) for schema `mysql`: LOCK TABLES.")
 
 #@<> revoke lock tables from the rest
 setup_session()
@@ -1584,7 +1589,7 @@ session.run_sql("REVOKE LOCK TABLES ON *.* FROM !@!;", [test_user, __host])
 shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
 
 #@<> try to run consistent dump using a user which does not have any required privileges
-EXPECT_FAIL("RuntimeError", "Unable to lock tables: MySQL Error 1044 (42000): Access denied for user 'sample_user'@'localhost' to database 'xtest'", types_schema, types_schema_tables, test_output_absolute, { "showProgress": False })
+EXPECT_FAIL("RuntimeError", re.compile(r"Unable to lock tables: User 'sample_user'@'localhost' is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES."), types_schema, types_schema_tables, test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table read locks")
 

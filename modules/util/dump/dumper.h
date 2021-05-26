@@ -35,6 +35,7 @@
 
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/db/column.h"
+#include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/storage/backend/memory_file.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
@@ -131,6 +132,8 @@ class Dumper {
   void open_session();
 
   void close_session();
+
+  void fetch_user_privileges();
 
   void acquire_read_locks();
 
@@ -286,6 +289,10 @@ class Dumper {
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 
   std::vector<std::shared_ptr<mysqlshdk::db::ISession>> m_lock_sessions;
+
+  // user privileges
+  std::unique_ptr<mysqlshdk::mysql::User_privileges> m_user_privileges;
+  std::string m_user_account;
 
   // console
   Scoped_console m_console;

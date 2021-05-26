@@ -7,7 +7,7 @@
 
 var check_instance_sql = [
     "SELECT `major`, `minor`, `patch` FROM `mysql_innodb_cluster_metadata`.`schema_version`",
-    "SELECT PRIVILEGE_TYPE, IS_GRANTABLE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE =",
+    "SELECT PRIVILEGE_TYPE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE GRANTEE=",
     "show GLOBAL variables where `variable_name` in ('server_id')",
     "show GLOBAL variables where `variable_name` in ('gtid_mode')"
 ];
