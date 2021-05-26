@@ -29,6 +29,7 @@
 #include <utility>
 
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/validations.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
@@ -522,6 +523,30 @@ void Rescan::update_metadata_for_instances(
   }
 }
 
+void Rescan::upgrade_comm_protocol() {
+  auto console = mysqlsh::current_console();
+
+  std::shared_ptr<Instance> cluster_instance = m_cluster->get_target_server();
+
+  mysqlshdk::utils::Version gr_protocol_version_to_upgrade;
+
+  // After removing instance, the remove command must set
+  // the GR protocol of the group to the lowest MySQL version on the group.
+  if (m_options.upgrade_comm_protocol) {
+    if (mysqlshdk::gr::is_protocol_upgrade_possible(
+            *cluster_instance, "", &gr_protocol_version_to_upgrade)) {
+      console->print_note(
+          "Upgrading Group Replication communication protocol to version " +
+          gr_protocol_version_to_upgrade.get_full());
+
+      mysqlshdk::gr::set_group_protocol_version(*cluster_instance,
+                                                gr_protocol_version_to_upgrade);
+    }
+  } else {
+    check_protocol_upgrade_possible(*cluster_instance, "");
+  }
+}
+
 shcore::Value Rescan::execute() {
   auto console = mysqlsh::current_console();
   console->print_info("Rescanning the cluster...");
@@ -608,36 +633,7 @@ shcore::Value Rescan::execute() {
     }
   }
 
-  // Handling of GR protocol version:
-  // Verify if an upgrade of the protocol is required
-  if (!missing_instances.get()->empty()) {
-    std::shared_ptr<Instance> cluster_instance = m_cluster->get_target_server();
-
-    mysqlshdk::utils::Version gr_protocol_version_to_upgrade;
-
-    // After removing instance, the remove command must set
-    // the GR protocol of the group to the lowest MySQL version on the group.
-    try {
-      if (mysqlshdk::gr::is_protocol_upgrade_required(
-              *cluster_instance, mysqlshdk::utils::nullable<std::string>(),
-              &gr_protocol_version_to_upgrade)) {
-        mysqlshdk::gr::set_group_protocol_version(
-            *cluster_instance, gr_protocol_version_to_upgrade);
-      }
-    } catch (const shcore::Exception &error) {
-      // The UDF may fail with MySQL Error 1123 if any of the members is
-      // RECOVERING In such scenario, we must abort the upgrade protocol version
-      // process and warn the user
-      if (error.code() == ER_CANT_INITIALIZE_UDF) {
-        console->print_note(
-            "Unable to determine the Group Replication protocol version, while "
-            "verifying if a protocol upgrade would be possible: " +
-            std::string(error.what()) + ".");
-      } else {
-        throw;
-      }
-    }
-  }
+  if (m_options.upgrade_comm_protocol) upgrade_comm_protocol();
 
   return shcore::Value();
 }

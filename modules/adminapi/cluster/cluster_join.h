@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -106,7 +106,6 @@ class Cluster_join {
                              checks::Check_type check_type);
 
   void resolve_ssl_mode();
-  void handle_gr_protocol_version();
   bool handle_replication_user();
   void clean_replication_user();
   void log_used_gr_options();

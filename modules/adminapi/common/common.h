@@ -223,6 +223,7 @@ constexpr const char kQueryMembers[] = "queryMembers";
 constexpr const char kOnlyUpgradeRequired[] = "onlyUpgradeRequired";
 constexpr const char kUpdate[] = "update";
 constexpr const char kUpdateTopologyMode[] = "updateTopologyMode";
+constexpr const char kUpgradeCommProtocol[] = "upgradeCommProtocol";
 constexpr const char kAll[] = "all";
 constexpr const char kTimeout[] = "timeout";
 constexpr const char kInvalidateErrorInstances[] = "invalidateErrorInstances";

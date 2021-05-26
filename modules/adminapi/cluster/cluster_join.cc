@@ -716,37 +716,6 @@ bool Cluster_join::prepare_rejoin(bool *out_uuid_mistmatch) {
   return true;
 }
 
-void Cluster_join::handle_gr_protocol_version() {
-  // Get the current protocol version in use in the group
-  try {
-    mysqlshdk::utils::Version gr_protocol_version =
-        mysqlshdk::gr::get_group_protocol_version(*m_primary_instance);
-
-    // If the target instance being added does not support the GR protocol
-    // version in use on the group (because it is an older version), the
-    // addInstance command must set the GR protocol of the cluster to the
-    // version of the target instance.
-    if (mysqlshdk::gr::is_protocol_downgrade_required(gr_protocol_version,
-                                                      *m_target_instance)) {
-      mysqlshdk::gr::set_group_protocol_version(
-          *m_primary_instance, m_target_instance->get_version());
-    }
-  } catch (const shcore::Exception &error) {
-    // The UDF may fail with MySQL Error 1123 if any of the members is
-    // RECOVERING In such scenario, we must abort the upgrade protocol
-    // version process and warn the user
-    if (error.code() == ER_CANT_INITIALIZE_UDF) {
-      auto console = mysqlsh::current_console();
-      console->print_note(
-          "Unable to determine the Group Replication protocol version, "
-          "while verifying if a protocol downgrade is required: " +
-          std::string(error.what()) + ".");
-    } else {
-      throw;
-    }
-  }
-}
-
 bool Cluster_join::handle_replication_user() {
   // Creates the replication user ONLY if not already given.
   // NOTE: User always created at the seed instance.
@@ -937,8 +906,8 @@ void Cluster_join::join(Recovery_progress_style progress_style) {
   m_cluster->validate_variable_compatibility(
       *m_target_instance, "group_replication_gtid_assignment_block_size");
 
-  // Handle GR protocol version.
-  handle_gr_protocol_version();
+  // Note: We used to auto-downgrade the GR protocol version if the joining
+  // member is too old, but that's not allowed for other reasons anyway
 
   // Get the current number of cluster members
   uint64_t cluster_member_count =
@@ -1129,8 +1098,6 @@ void Cluster_join::rejoin() {
   // operation which covers the rejoin and rebootCluster operations.
   m_cluster->validate_variable_compatibility(
       *m_target_instance, "group_replication_gtid_assignment_block_size");
-
-  handle_gr_protocol_version();
 
   // TODO(alfredo) - when clone support is added to rejoin, join() can probably
   // be simplified into create repl user + rejoin() + update metadata

@@ -228,5 +228,36 @@ void ensure_certificates_set(const mysqlshdk::mysql::IInstance &instance,
     }
   }
 }
+
+void check_protocol_upgrade_possible(
+    const mysqlshdk::mysql::IInstance &group_instance,
+    const std::string &skip_server_uuid) {
+  try {
+    mysqlshdk::utils::Version target_protocol_version;
+
+    if (mysqlshdk::gr::is_protocol_upgrade_possible(
+            group_instance, skip_server_uuid, &target_protocol_version)) {
+      current_console()->print_note(
+          "Group Replication protocol can be upgraded to version " +
+          target_protocol_version.get_full() +
+          ". You can use Cluster.rescan({upgradeCommProtocol:true}) to upgrade "
+          "it.");
+    }
+  } catch (const shcore::Exception &error) {
+    // The UDF may fail with MySQL Error 1123 if any of the members is
+    // RECOVERING In such scenario, we must abort the upgrade protocol version
+    // process and warn the user
+    if (error.code() == ER_CANT_INITIALIZE_UDF) {
+      auto console = mysqlsh::current_console();
+      console->print_note(
+          "Unable to determine the Group Replication protocol version, while "
+          "verifying if a protocol upgrade would be possible: " +
+          std::string(error.what()) + ".");
+    } else {
+      throw;
+    }
+  }
+}
+
 }  // namespace dba
 }  // namespace mysqlsh

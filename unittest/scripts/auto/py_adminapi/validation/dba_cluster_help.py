@@ -971,6 +971,8 @@ DESCRIPTION
         (single-primary or multi-primary) in the metadata should be updated
         (true) or not (false) to match the one being used by the cluster. By
         default, the metadata is not updated (false). Deprecated.
+      - upgradeCommProtocol: boolean. Set to true to upgrade the Group
+        Replication communication protocol to the highest version possible.
 
       The value for addInstances and removeInstances is used to specify which
       instances to add or remove from the metadata, respectively. Both options
