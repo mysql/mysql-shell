@@ -75,6 +75,11 @@ std::string SHCORE_PUBLIC type_name(Value_type type);
 class Object_bridge;
 typedef std::shared_ptr<Object_bridge> Object_bridge_ref;
 
+/** Pointer to a function that may be implemented in any language.
+ */
+class Function_base;
+using Function_base_ref = std::shared_ptr<Function_base>;
+
 /** A generic value that can be used from any language we support.
 
  Anything that can be represented using this can be passed as a parameter to
@@ -736,6 +741,14 @@ struct value_type_for_native<mysqlshdk::utils::nullable<T>> {
   }
 };
 
+template <>
+struct value_type_for_native<Function_base_ref> {
+  static const Value_type type = Function;
+  static shcore::Function_base_ref extract(const Value &value) {
+    return value.as_function();
+  }
+};
+
 // Extract option values from an options dictionary, with validations
 // Replaces Argument_map
 class Option_unpacker {
@@ -922,10 +935,6 @@ class SHCORE_PUBLIC Function_base {
 
   virtual void append_json(JSON_dumper *dumper) const;
 };
-
-/** Pointer to a function that may be implemented in any language.
- */
-typedef std::shared_ptr<Function_base> Function_base_ref;
 
 bool my_strnicmp(const char *c1, const char *c2, size_t n);
 }  // namespace shcore

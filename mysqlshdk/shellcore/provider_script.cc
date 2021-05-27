@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -101,6 +101,7 @@ class Placeholder : public Object {
 void Object_registry::add_completable_type(
     const std::string &type_name,
     const std::vector<Object_registry::Member> &members) {
+  std::lock_guard<std::mutex> lock(m_mtx);
   placeholders_[type_name].reset(new Placeholder(this, type_name, members));
 }
 

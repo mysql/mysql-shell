@@ -26,6 +26,7 @@
 
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/threads.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
@@ -108,6 +109,15 @@ void Base_shell::finish_init() {
 #endif
 #endif
   }
+
+  // If we're not in the main thread, it means the shell object is created
+  // again, because of this we don't need need any mode initialized by default
+  // as it's very unlikely that we will be parsing any input directly. If
+  // however this will be needed, switch_shell_mode can be used to fix this.
+  if (!mysqlshdk::utils::in_main_thread()) {
+    initial_mode = shcore::IShell_core::Mode::None;
+  }
+
   // Final initialization that must happen outside the constructor
   switch_shell_mode(initial_mode, {}, true);
 

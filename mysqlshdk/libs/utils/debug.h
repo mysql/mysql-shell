@@ -24,13 +24,13 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_DEBUG_H_
 #define MYSQLSHDK_LIBS_UTILS_DEBUG_H_
 
+#include <my_dbug.h>
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <mutex>
 #include <set>
 #include <string>
-
-#include <my_dbug.h>
 
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -108,7 +108,8 @@ class Debug_object_info {
  public:
   std::string name;
   uint32_t allocs = 0;
-  uint32_t deallocs = 0;
+  uint32_t m_deallocs = 0;
+  std::mutex m_mtx;
   bool track_instances = false;
   bool fatal_leaks = false;
   std::set<void *> instances;

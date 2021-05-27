@@ -242,7 +242,7 @@ bool Help_topic::is_member() const {
 }
 
 bool Help_topic::is_enabled(IShell_core::Mode mode) const {
-  return m_help->is_enabled(this, mode);
+  return Help_registry::get()->is_enabled(this, mode);
 }
 
 std::string Help_topic::get_name(IShell_core::Mode mode) const {
@@ -276,7 +276,7 @@ std::string Help_topic::get_base_name() const {
 
 Help_topic *Help_topic::get_category() {
   Help_topic *category = this;
-  while (category->m_parent &&
+  while (category->m_parent != nullptr &&
          category->m_parent->m_name != Help_registry::HELP_ROOT) {
     category = category->m_parent;
   }
@@ -289,7 +289,7 @@ void Help_topic::get_id_tokens(IShell_core::Mode mode,
                                Topic_id_mode id_mode) const {
   assert(tokens);
 
-  if (m_parent) {
+  if (m_parent != nullptr) {
     // With id_mode = FULL, every single parent is considered
     if (id_mode == Topic_id_mode::FULL) {
       m_parent->get_id_tokens(mode, tokens, id_mode);
@@ -353,7 +353,13 @@ Topic_mask Help_registry::get_parent_topic_types() {
 }
 
 Help_registry::Help_registry(bool threaded)
-    : m_help_data(Help_registry::icomp), m_keywords(Help_registry::icomp) {
+    : m_help_data(Help_registry::icomp),
+      m_keywords(Help_registry::icomp),
+      m_threaded(threaded),
+      m_global_removed(false) {
+  m_c_tor = true;
+  shcore::Scoped_callback leave([this]() { m_c_tor = false; });
+
   if (!threaded) {
     // The Contents category is registered right away since it is the root
     // Of the help system
@@ -364,6 +370,37 @@ Help_registry::Help_registry(bool threaded)
     // at the client side but will be used as parent for SQL topics
     add_help_topic(HELP_SQL, Topic_type::SQL, "SQL_CONTENTS", HELP_ROOT,
                    Mode_mask::all());
+  } else {
+    auto lock = get()->ensure_lock_threaded();
+    get()->m_threaded_help.push_back(this);
+  }
+}
+
+Help_registry::~Help_registry() {
+  // The cleanup needs to be done only and only from the thread scope so we get
+  // rid of dangling pointers.
+  if (m_threaded) {
+    if (!m_global_removed) {
+      for (auto &it : m_topics) {
+        remove_topic(&it, Keyword_location::GLOBAL_CTX);
+      }
+
+      auto lock = get()->ensure_lock_threaded();
+      get()->m_threaded_help.erase(
+          std::remove_if(get()->m_threaded_help.begin(),
+                         get()->m_threaded_help.end(),
+                         [this](auto &it) { return it == this; }),
+          get()->m_threaded_help.end());
+    }
+  } else {  // we need to go through the m_threaded_help and do a cleanup cause
+            // it seems that sometimes global_ctx is removed before a local_ctx
+    auto lock = ensure_lock_threaded();
+    for (const auto &it : m_threaded_help) {
+      it->m_global_removed = true;
+      for (auto &sit : it->m_topics) {
+        remove_topic(&sit);
+      }
+    }
   }
 }
 
@@ -502,6 +539,7 @@ void Help_registry::add_split_help(const std::string &prefix,
 
 void Help_registry::add_help(const std::string &token, const std::string &data,
                              Keyword_location loc) {
+  auto lock = ensure_lock();
   if (loc == Keyword_location::LOCAL_CTX) {
     get_thread_context_help()->m_help_data[token] = data;
   } else if (loc == Keyword_location::GLOBAL_CTX) {
@@ -590,8 +628,9 @@ Help_topic *Help_registry::add_help_topic(const std::string &name,
                                           const std::string &tag,
                                           const std::string &parent_id,
                                           Help_topic *parent, Mode_mask mode) {
+  auto lock = ensure_lock();
   Help_topic *new_topic = &(*m_topics.insert(
-      m_topics.end(), {name, name, type, tag, nullptr, {}, this, true}));
+      m_topics.end(), {name, name, type, tag, nullptr, {}, true}));
   m_topics_by_type[type].push_back(new_topic);
 
   std::string splitter;
@@ -616,12 +655,84 @@ Help_topic *Help_registry::add_help_topic(const std::string &name,
   return new_topic;
 }
 
+void Help_registry::remove_topic(Help_topic *topic, Keyword_location loc) {
+  if (loc == Keyword_location::LOCAL_CTX) {
+    get_thread_context_help()->remove_topic(topic);
+  } else if (loc == Keyword_location::GLOBAL_CTX) {
+    // The explicit call to the global ctx is needed because we're calling this
+    // from the d-tor of the thread context.
+    // it won't be possible to do this without it.
+    get()->remove_topic(topic);
+  } else {
+    get_thread_context_help()->remove_topic(topic);
+    get()->remove_topic(topic);
+  }
+}
+
+void Help_registry::remove_topic(Help_topic *topic) {
+  auto lock = ensure_lock();
+  for (auto it = m_cs_keywords.begin(); it != m_cs_keywords.end();) {
+    it->second.erase(topic);
+    if (it->second.empty()) {
+      it = m_cs_keywords.erase(it);
+    } else {
+      it = std::next(it);
+    }
+  }
+
+  for (auto it = m_keywords.begin(); it != m_keywords.end();) {
+    it->second.erase(topic);
+    if (it->second.empty()) {
+      it = m_keywords.erase(it);
+    } else {
+      it = std::next(it);
+    }
+  }
+
+  if (topic->m_parent != nullptr) {
+    topic->m_parent->m_childs.erase(topic);
+    topic->m_parent = nullptr;
+  }
+
+  auto it = std::find_if(m_topics.begin(), m_topics.end(),
+                         [topic](const Help_topic &t) { return &t == topic; });
+
+  if (it != m_topics.end()) {
+    m_topics.erase(it);
+  }
+}
+
+bool Help_registry::is_enabled(const Keyword_registry &registry,
+                               const Help_topic *topic,
+                               IShell_core::Mode mode) const {
+  bool ret_val = false;
+  if (topic->is_enabled()) {
+    auto it = registry.find(topic->get_id(mode));
+    if (it != registry.end()) {
+      auto mask_it = it->second.find(const_cast<Help_topic *>(topic));
+      if (mask_it != it->second.end()) {
+        ret_val = mask_it->second.is_set(mode);
+      }
+    }
+  }
+  return ret_val;
+}
+
+std::unique_lock<std::recursive_mutex> Help_registry::ensure_lock() {
+  std::unique_lock<std::recursive_mutex> lock(m_mutex);
+  return lock;
+}
+
+std::unique_lock<std::recursive_mutex> Help_registry::ensure_lock_threaded() {
+  std::unique_lock<std::recursive_mutex> lock(m_th_help);
+  return lock;
+}
+
 void Help_registry::add_help_class(const std::string &name,
                                    const std::string &parent,
-                                   const std::string &upper_class) {
-  Mode_mask mode(IShell_core::Mode::JavaScript);
-  mode.set(IShell_core::Mode::Python);
-
+                                   const std::string &upper_class,
+                                   IShell_core::Mode_mask mode) {
+  auto lock = ensure_lock();
   Help_topic *topic =
       add_help_topic(name, Topic_type::CLASS, name, parent, mode).back();
 
@@ -645,6 +756,7 @@ void Help_registry::inherit_members(Help_topic *parent, Help_topic *child) {
   m_class_parents[child] = parent;
 
   // Propagates inherited members to the child
+  auto lock = ensure_lock();
   for (auto member : parent->m_childs) {
     inherit_member(child, member);
   }
@@ -675,6 +787,7 @@ void Help_registry::inherit_member(Help_topic *parent, Help_topic *member) {
 
 void Help_registry::register_topic(Help_topic *topic, bool new_topic,
                                    Mode_mask mode) {
+  auto lock = ensure_lock();
   if (topic->m_parent) {
     if (topic->is_api()) {
       if (topic->m_parent->is_api()) {
@@ -840,6 +953,7 @@ Help_registry *Help_registry::get_thread_context_help() const {
 void Help_registry::register_keyword(const std::string &keyword,
                                      IShell_core::Mode mode, Help_topic *topic,
                                      bool case_sensitive) {
+  auto lock = ensure_lock();
   if (!case_sensitive) {
     // The keywords topics will be created here if it doesn't exist.
     auto &topics = m_keywords[keyword];
@@ -964,7 +1078,7 @@ Help_topic *Help_registry::get_topic(const std::string &id,
                                      bool allow_unexisting,
                                      const Topic_mask &type) const {
   auto topics = get_topic(this, id, true, type);
-  if (topics == nullptr) {
+  if (topics == nullptr && !m_c_tor) {
     topics = get_topic(get_thread_context_help(), id, allow_unexisting, type);
   }
 
@@ -1019,19 +1133,35 @@ Help_topic *Help_registry::get_class_parent(Help_topic *topic) const {
 
 bool Help_registry::is_enabled(const Help_topic *topic,
                                IShell_core::Mode mode) const {
-  bool ret_val = false;
-  try {
-    if (topic->is_enabled()) {
-      auto topics = m_keywords.at(topic->get_id(mode));
-      auto mask = topics.at(const_cast<Help_topic *>(topic));
-      ret_val = mask.is_set(mode);
-    }
-  } catch (...) {
+  auto ret_val = is_enabled(m_keywords, topic, mode);
+  if (ret_val == false) {
+    ret_val = is_enabled(get_thread_context_help()->m_keywords, topic, mode);
+  }
+
+  if (ret_val == false) {
     log_error("Help_registry::is_enabled: using an unregistered topic '%s'.",
               topic->m_id.c_str());
   }
-
   return ret_val;
+}
+
+Help_class_register::Help_class_register(const std::string &child,
+                                         const std::string &parent,
+                                         const std::string &upper_class,
+                                         Help_mode mode) {
+  IShell_core::Mode_mask mask;
+  using Mode = IShell_core::Mode;
+  if (mode == Help_mode::SCRIPTING) {
+    mask = IShell_core::Mode_mask(Mode::JavaScript).set(Mode::Python);
+  } else if (mode == Help_mode::JAVASCRIPT) {
+    mask = IShell_core::Mode_mask(Mode::JavaScript);
+  } else if (mode == Help_mode::PYTHON) {
+    mask = IShell_core::Mode_mask(Mode::Python);
+  } else {
+    throw std::logic_error("Invalid mode for a scripting class.");
+  }
+
+  Help_registry::get()->add_help_class(child, parent, upper_class, mask);
 }
 
 Help_manager::Help_manager() {
@@ -1052,7 +1182,7 @@ Help_manager::Help_manager() {
 
 std::vector<Help_topic *> Help_manager::search_topics(
     const std::string &pattern) {
-  return m_registry->search_topics(pattern, m_mode);
+  return Help_registry::get()->search_topics(pattern, m_mode);
 }
 
 std::vector<std::string> Help_manager::resolve_help_text(
@@ -1769,36 +1899,39 @@ std::string Help_manager::format_object_help(const Help_topic &object,
 
   // Classifies the child topics
   std::vector<Help_topic *> cat, prop, func, mod, cls, obj, consts, others;
-  for (auto child : object.m_childs) {
-    if (child->is_enabled(m_mode)) {
-      switch (child->m_type) {
-        case Topic_type::MODULE:
-          mod.push_back(child);
-          break;
-        case Topic_type::CLASS:
-          cls.push_back(child);
-          break;
-        case Topic_type::GLOBAL_OBJECT:
-          obj.push_back(child);
-          break;
-        case Topic_type::CONSTANTS:
-          consts.push_back(child);
-          break;
-        case Topic_type::FUNCTION:
-          func.push_back(child);
-          break;
-        case Topic_type::PROPERTY:
-        case Topic_type::OBJECT:
-          prop.push_back(child);
-          break;
-        case Topic_type::CATEGORY:
-        case Topic_type::SQL:
-          cat.push_back(child);
-          break;
-        case Topic_type::TOPIC:
-        case Topic_type::COMMAND:
-          others.push_back(child);
-          break;
+  {
+    auto lock = Help_registry::get()->ensure_lock();
+    for (auto child : object.m_childs) {
+      if (child->is_enabled(m_mode)) {
+        switch (child->m_type) {
+          case Topic_type::MODULE:
+            mod.push_back(child);
+            break;
+          case Topic_type::CLASS:
+            cls.push_back(child);
+            break;
+          case Topic_type::GLOBAL_OBJECT:
+            obj.push_back(child);
+            break;
+          case Topic_type::CONSTANTS:
+            consts.push_back(child);
+            break;
+          case Topic_type::FUNCTION:
+            func.push_back(child);
+            break;
+          case Topic_type::PROPERTY:
+          case Topic_type::OBJECT:
+            prop.push_back(child);
+            break;
+          case Topic_type::CATEGORY:
+          case Topic_type::SQL:
+            cat.push_back(child);
+            break;
+          case Topic_type::TOPIC:
+          case Topic_type::COMMAND:
+            others.push_back(child);
+            break;
+        }
       }
     }
   }

@@ -694,6 +694,10 @@ void setup_test_environment() {
 }
 
 int main(int argc, char **argv) {
+  // Has to be called once in main so internal static variable is properly set
+  // with the main thread id.
+  mysqlshdk::utils::in_main_thread();
+
   mysqlshdk::utils::init_stacktrace();
 #ifdef WIN32
   UINT origcp = GetConsoleCP();

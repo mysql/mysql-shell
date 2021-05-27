@@ -26,8 +26,10 @@
 
 #include <memory>
 #include <string>
+
 #include "modules/devapi/base_resultset.h"
 #include "modules/mod_extensible_object.h"
+#include "modules/mod_shell_context.h"
 #include "modules/mod_shell_options.h"
 #include "modules/mod_shell_reports.h"
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -138,6 +140,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   None delete_credential(str url);
   None delete_all_credentials();
   list list_credentials();
+  ShellContextWrapper create_context(dict options);
   None enable_pager();
   None disable_pager();
   None register_report(str name, str type, Function report, dict description);
@@ -166,6 +169,9 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
     return m_reports;
   }
 
+  std::shared_ptr<Shell_context_wrapper> create_context(
+      const shcore::Option_pack_ref<Shell_context_wrapper_options> &callbacks);
+
   void enable_pager();
   void disable_pager();
 
@@ -181,6 +187,8 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   void register_global(const std::string &name,
                        std::shared_ptr<Extensible_object> object,
                        const shcore::Dictionary_t &definition = {});
+
+  shcore::Dictionary_t get_globals(shcore::IShell_core::Mode mode) const;
 
   int dump_rows(const std::shared_ptr<ShellBaseResult> &resultset,
                 const std::string &format);

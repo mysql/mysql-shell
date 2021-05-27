@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,33 +21,16 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/include/scripting/naming_style.h"
+#include "mysqlshdk/libs/utils/threads.h"
+#include <thread>
 
-#include <mutex>
-#include <vector>
+namespace mysqlshdk {
+namespace utils {
 
-namespace shcore {
-
-namespace {
-
-std::vector<NamingStyle> g_naming_style{NamingStyle::LowerCamelCase};
-std::recursive_mutex g_naming_mutex;
-
-}  // namespace
-
-Scoped_naming_style::Scoped_naming_style(NamingStyle style) {
-  std::unique_lock<std::recursive_mutex> lock(g_naming_mutex);
-  g_naming_style.push_back(style);
+bool in_main_thread() {
+  static std::thread::id main_thread_id = std::this_thread::get_id();
+  return main_thread_id == std::this_thread::get_id();
 }
 
-Scoped_naming_style::~Scoped_naming_style() {
-  std::unique_lock<std::recursive_mutex> lock(g_naming_mutex);
-  g_naming_style.pop_back();
-}
-
-NamingStyle current_naming_style() {
-  std::unique_lock<std::recursive_mutex> lock(g_naming_mutex);
-  return g_naming_style.back();
-}
-
-}  // namespace shcore
+}  // namespace utils
+}  // namespace mysqlshdk

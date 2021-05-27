@@ -23,6 +23,10 @@ FUNCTIONS
             Establishes the shell global session, connecting to a primary of an
             InnoDB cluster or ReplicaSet.
 
+      create_context(options)
+            Create a shell context wrapper used in multiuser environments. The
+            returned object should be explicitly deleted when no longer needed.
+
       create_extension_object()
             Creates an extension object, it can be used to extend shell
             functionality.
@@ -95,6 +99,10 @@ FUNCTIONS
       unparse_uri(options)
             Formats the given connection options to a URI string suitable for
             mysqlsh.
+
+CLASSES
+ - ShellContextWrapper Holds shell context which is used by a thread, gives
+                       access to the shell context object through get_shell().
 
 #@<OUT> shell.add_extension_object_member
 NAME
@@ -1038,6 +1046,51 @@ EXCEPTIONS
       - if configured credential helper is invalid.
       - if storing the credential fails.
 
+#@<OUT> shell.create_context
+NAME
+      create_context - Create a shell context wrapper used in multiuser
+                       environments. The returned object should be explicitly
+                       deleted when no longer needed.
+
+SYNTAX
+      shell.create_context(options)
+
+WHERE
+      options: Dictionary that holds optional callbacks and additional options.
+
+RETURNS
+      ShellContextWrapper Wrapper around context isolating the shell scope.
+
+DESCRIPTION
+      This function is meant to be used only inside of the Python in new
+      thread. It's creating a scope which will isolate logger, interrupt
+      handlers and delegates. All the delegates can run into infinite loop if
+      one would try to print to stdout directly from the callback functions.
+
+      - printDelegate: function (default not set) which will be called when
+        shell function will need to print something to stdout, expected
+        signature: None printDelegate(str).
+      - errorDelegate: function (default not set) which will be called when
+        shell function will need to print something to stderr, expected
+        signature: None errorDelegate(str).
+      - diagDelegate: function (default not set) which will be called when
+        shell function will need to print something diagnostics, expected
+        signature: None diagDelegate(str).
+      - promptDelegate: function (default not set) which will be called when
+        shell function will need to ask user for input, this should return a
+        tuple where first arguments is boolean indicating if user did input
+        something, and second is a user input string, expected signature:
+        tuple<bool,str> promptDelegate(str).
+      - passwordDelegate: function (default not set) which will be called when
+        shell function will need to ask user for input, this should return a
+        tuple where first arguments is boolean indicating if user did input
+        anything, and second is a user input string, expected signature:
+        tuple<bool,str> passwordDelegate(str).
+      - logFile string which spcifies the location for the log file for new
+        context. If this is not specified, logs from all threads will be stored
+        in the mysqlsh.log file. If the file cannot be created, and exception
+        will be thrown.
+
 #@<OUT> BUG28393119 UNABLE TO GET HELP ON CONNECTION DATA, before session
 The connection data may be specified in the following formats:
 
@@ -1764,3 +1817,43 @@ DESCRIPTION
 
       Note that the resultset will be consumed by the function.
 
+#@<OUT> ShellContextWrapper
+NAME
+      ShellContextWrapper - Holds shell context which is used by a thread,
+                            gives access to the shell context object through
+                            get_shell().
+
+DESCRIPTION
+      Holds shell context which is used by a thread, gives access to the shell
+      context object through get_shell().
+
+PROPERTIES
+      globals
+            Gives access to the global objects registered on the context.
+
+FUNCTIONS
+      get_shell()
+              Shell object in its own context
+
+      help([member])
+            Provides help about this class and it's members
+
+#@<OUT> ShellContextWrapper.globals
+NAME
+      globals - Gives access to the global objects registered on the context.
+
+SYNTAX
+      <ShellContextWrapper>.globals
+
+#@<OUT> ShellContextWrapper.get_shell
+NAME
+      get_shell -   Shell object in its own context
+
+SYNTAX
+      <ShellContextWrapper>.get_shell()
+
+RETURNS
+      Shell
+
+DESCRIPTION
+        This function returns shell object that has its own scope.

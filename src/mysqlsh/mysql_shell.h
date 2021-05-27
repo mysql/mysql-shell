@@ -104,6 +104,8 @@ class Mysql_shell : public mysqlsh::Base_shell {
 
   void init_extra_globals();
 
+  std::shared_ptr<mysqlsh::Shell> get_shell() const { return _global_shell; }
+
  protected:
   static void set_sql_safe_for_logging(const std::string &patterns);
 

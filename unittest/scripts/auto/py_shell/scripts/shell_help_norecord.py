@@ -232,6 +232,15 @@ shell.help('store_credential')
 #@ global help for store_credential [USE:shell.store_credential]
 \help Shell.store_credential
 
+#@ shell.create_context
+shell.help('create_context')
+
+#@ global ? for create_context [USE:shell.create_context]
+\? Shell.create_context
+
+#@ global help for create_context [USE:shell.create_context]
+\help Shell.create_context
+
 #@ BUG28393119 UNABLE TO GET HELP ON CONNECTION DATA, before session
 \? connection
 
@@ -252,3 +261,11 @@ session.close()
 #@ dump_rows
 \? dump_rows
 
+#@ ShellContextWrapper
+\? ShellContextWrapper
+
+#@ ShellContextWrapper.globals
+\? globals
+
+#@ ShellContextWrapper.get_shell
+\? get_shell

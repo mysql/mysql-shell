@@ -29,6 +29,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -1469,6 +1470,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   // Returns the base name of the given member
   std::string get_base_name(const std::string &member) const;
 
+  static std::mutex s_mtx;
   static std::map<std::string, Cpp_function::Metadata> mdtable;
   static void clear_metadata();
   static Cpp_function::Metadata &get_metadata(const std::string &method);
@@ -1571,7 +1573,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
         (pcodes.append(Type_info<A>::code()), 0)...};
     mangled_name.append(pcodes);
     auto &md = get_metadata(mangled_name);
-
+    std::lock_guard<std::mutex> lock(s_mtx);
     if (md.name[0].empty()) {
       std::vector<std::pair<std::string, Value_type>> ptypes;
       std::vector<Value_type> vtypes = {Type_info<A>::vtype()...};

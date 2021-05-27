@@ -669,6 +669,7 @@ TEST_F(Completer_frontend, js_shell) {
   EXPECT_AFTER_TAB_TAB("shell.", strv({"addExtensionObjectMember()",
                                        "connect()",
                                        "connectToPrimary()",
+                                       "createContext()",
                                        "createExtensionObject()",
                                        "deleteAllCredentials()",
                                        "deleteCredential()",
@@ -1175,6 +1176,7 @@ TEST_F(Completer_frontend, py_shell) {
   EXPECT_AFTER_TAB_TAB("shell.", strv({"add_extension_object_member()",
                                        "connect()",
                                        "connect_to_primary()",
+                                       "create_context()",
                                        "create_extension_object()",
                                        "delete_all_credentials()",
                                        "delete_credential()",
@@ -1477,7 +1479,7 @@ TEST_F(Completer_frontend, py_devapi_table) {
                    "productTable.select([]).execute()");
   EXPECT_AFTER_TAB("f = productTable.select([]).b",
                    "f = productTable.select([]).bind()");
-  execute("findOp = db.productTable.select();");
+  execute("findOp = " DB_PRODUCTTABLE ".select();");
 
   EXPECT_TAB_DOES_NOTHING("findOp.sel");
   EXPECT_AFTER_TAB("findOp.exe", "findOp.execute()");
