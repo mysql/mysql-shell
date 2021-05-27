@@ -254,6 +254,9 @@ def compute_crc(schema, table, columns):
     session.run_sql("SELECT @crc := MD5(CONCAT_WS('#',@crc,{0})) FROM !.! ORDER BY {0};".format(("!," * len(columns))[:-1]), columns + [schema, table] + columns)
     return session.run_sql("SELECT @crc;").fetch_one()[0]
 
+def compute_checksum(schema, table):
+    return session.run_sql("CHECKSUM TABLE !.!", [ schema, table ]).fetch_one()[1]
+
 def TEST_LOAD(schema, table, chunked):
     print("---> testing: `{0}`.`{1}`".format(schema, table))
     # only uncompressed files are supported
@@ -2264,6 +2267,29 @@ CHECK_OUTPUT_SANITY(test_output_absolute, 55000, 10)
 TEST_LOAD(tested_schema, tested_table, True)
 
 #@<> composite non-integer key - cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
+#@<> BUG#32926856 setup
+tested_schema = "test_schema"
+tested_table = "test_table"
+
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("SET @saved_sql_mode = @@SQL_MODE;")
+session.run_sql("SET SQL_MODE='no_auto_value_on_zero';")
+session.run_sql("CREATE TABLE !.!  (a INT PRIMARY KEY AUTO_INCREMENT) AS SELECT 0 as a UNION SELECT 1;", [ tested_schema, tested_table ])
+session.run_sql("SET @@SQL_MODE = @saved_sql_mode;")
+
+checksum = compute_checksum(tested_schema, tested_table)
+
+#@<> BUG#32926856 - test
+EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showProgress": False })
+
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute), "dump should be loaded without problems")
+
+EXPECT_EQ(checksum, compute_checksum(tested_schema, tested_table), "checksum mismatch")
+
+#@<> BUG#32926856 cleanup
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
 #@<> Cleanup
