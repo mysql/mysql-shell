@@ -719,18 +719,17 @@ std::string Dump_reader::Table_info::triggers_script_name() const {
 }
 
 bool Dump_reader::Table_info::ready() const {
-  return md_seen && (!has_sql || sql_seen);
+  return md_done && (!has_sql || sql_seen);
 }
 
 void Dump_reader::Table_info::rescan(
     mysqlshdk::storage::IDirectory *dir,
     const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
   // MD not included for tables if data is not dumped
-  if (!md_seen) {
+  if (!md_done) {
     // schema@table.json
     std::string mdpath = dump::get_table_data_filename(basename, "json");
     if (files.find(mdpath) != files.end()) {
-      md_seen = true;
       auto md = fetch_metadata(dir, mdpath);
 
       has_sql = md->get_bool("includesDdl", true);
@@ -785,6 +784,8 @@ void Dump_reader::Table_info::rescan(
           }
         }
       }
+
+      md_done = true;
     }
   }
 
@@ -835,9 +836,9 @@ void Dump_reader::Table_info::rescan_data(
               dump::get_table_data_filename(basename, extension, i, true));
           if (it != files.end()) {
             num_chunks = i + 1;
-            last_chunk_seen = true;
             available_chunk_sizes.resize(num_chunks, -1);
             available_chunk_sizes[i] = it->second;
+            last_chunk_seen = true;
             reader->m_contents.dump_size += it->second;
 
             found_data = true;
@@ -901,7 +902,6 @@ void Dump_reader::Schema_info::rescan(
     // schema.json
     std::string mdpath = dump::get_schema_filename(basename, "json");
     if (files.find(mdpath) != files.end()) {
-      md_loaded = true;
       auto md = fetch_metadata(dir, mdpath);
 
       has_sql = md->get_bool("includesDdl", true);
@@ -965,25 +965,30 @@ void Dump_reader::Schema_info::rescan(
             "Fetching %zu table metadata files for schema `%s`...",
             tables.size(), schema.c_str()));
       }
+
+      md_loaded = true;
     }
   }
 
   // we have the list of tables, so check for their metadata and data files
   if (md_loaded && !md_done) {
-    md_done = true;
+    bool children_done = true;
+
     for (auto &t : tables) {
       if (!t.second->ready()) {
         t.second->rescan(dir, files, reader);
       }
 
-      if (!t.second->ready()) md_done = false;
+      if (!t.second->ready()) children_done = false;
     }
 
     for (auto &v : views) {
       if (!v.ready()) v.rescan(dir, files, reader);
 
-      if (!v.ready()) md_done = false;
+      if (!v.ready()) children_done = false;
     }
+
+    md_done = children_done;
 
     if (md_done)
       log_debug("All metadata for schema `%s` was scanned", schema.c_str());
@@ -1034,7 +1039,8 @@ void Dump_reader::Dump_info::rescan(
   }
 
   if (!md_done) {
-    md_done = true;
+    bool children_done = true;
+
     for (const auto &s : schemas) {
       log_debug("Scanning contents of schema '%s'", s.second->schema.c_str());
 
@@ -1042,8 +1048,11 @@ void Dump_reader::Dump_info::rescan(
         s.second->rescan(dir, files, reader);
         if (s.second->ready()) s.second->rescan_data(dir, files, reader);
       }
-      if (!s.second->ready()) md_done = false;
+      if (!s.second->ready()) children_done = false;
     }
+
+    md_done = children_done;
+
     if (md_done) log_debug("All metadata for dump was scanned");
   } else {
     for (const auto &s : schemas) {
