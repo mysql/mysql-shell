@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cassert>
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/db/uri_parser.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -505,7 +506,13 @@ mysqlsh::SessionType Connection_options::get_session_type() const {
 
 void Connection_options::set_default_connection_data() {
   // Default values
-  if (!has_user()) set_user(shcore::get_system_user());
+  if (!has_user() && !is_kerberos_authentication()) {
+    // The system user is not used with kerberos to trigger the client lib
+    // functionality of using cashed TGT
+    set_user(shcore::get_system_user());
+  }
+
+  set_plugins_dir();
 
   if (!has_host() &&
       (!has_transport_type() || get_transport_type() == mysqlshdk::db::Tcp))
@@ -520,6 +527,20 @@ void Connection_options::set_default_connection_data() {
     set_scheme("mysql");
   }
 #endif  // _WIN32
+}
+
+void Connection_options::set_plugins_dir() {
+  // Use the plugin dir from the shell options if not included on the connection
+  // options already
+  if (!has(mysqlshdk::db::kMysqlPluginDir)) {
+    // NOTE:Allowing empty options as required for many tests
+    // In the case of the shell binary that will never be the case
+    auto options = mysqlsh::current_shell_options(true);
+    if (options && !options->get().mysql_plugin_dir.empty()) {
+      set(mysqlshdk::db::kMysqlPluginDir,
+          mysqlsh::current_shell_options()->get().mysql_plugin_dir);
+    }
+  }
 }
 
 void Connection_options::throw_invalid_connect_timeout(
@@ -538,6 +559,20 @@ void Connection_options::show_tls_deprecation_warning(bool show) const {
       mysqlsh::current_console()->print_warning(msg);
     }
   }
+}
+
+bool Connection_options::is_kerberos_authentication() const {
+  bool ret_val = false;
+
+  if (has_value(mysqlshdk::db::kAuthMethod)) {
+    auto auth_method = get(mysqlshdk::db::kAuthMethod);
+    if (auth_method == mysqlshdk::db::kAuthMethodKerberos ||
+        auth_method == mysqlshdk::db::kAuthMethodLdapSasl) {
+      ret_val = true;
+    }
+  }
+
+  return ret_val;
 }
 
 void Connection_options::set_connection_attribute(const std::string &attribute,

@@ -140,6 +140,7 @@ DESCRIPTION
       - interactive: read-only, boolean value that indicates if the shell is
         running in interactive mode
       - logLevel: current log level
+      - mysqlPluginDir: Directory for client-side authentication plugins
       - oci.configFile: Path to OCI (Oracle Cloud Infrastructure) configuration
         file
       - oci.profile: Specify which section in oci.configFile will be used as

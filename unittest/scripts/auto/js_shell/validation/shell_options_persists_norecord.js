@@ -303,6 +303,7 @@
  history.sql.syslog              false
  interactive                     true
  logLevel                        5
+ mysqlPluginDir                  ""
  oci.configFile                  <<<_defaultOciConfigFile>>>
  oci.profile                     DEFAULT
  outputFormat                    table
@@ -333,6 +334,7 @@
  history.sql.syslog              false (Compiled default)
  interactive                     true (Compiled default)
  logLevel                        5 (Compiled default)
+ mysqlPluginDir                  "" (Compiled default)
  oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)
  oci.profile                     DEFAULT (Compiled default)
  outputFormat                    table (Compiled default)
@@ -420,6 +422,7 @@
  history.sql.syslog              false
  interactive                     true
  logLevel                        5
+ mysqlPluginDir                  ""
  oci.configFile                  <<<_defaultOciConfigFile>>>
  oci.profile                     DEFAULT
  outputFormat                    table
@@ -451,6 +454,7 @@ Switching to SQL mode... Commands end with ;
  history.sql.syslog              false (Compiled default)
  interactive                     true (Compiled default)
  logLevel                        5 (Compiled default)
+ mysqlPluginDir                  "" (Compiled default)
  oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)
  oci.profile                     DEFAULT (Compiled default)
  outputFormat                    table (Compiled default)

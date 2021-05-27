@@ -51,6 +51,7 @@
 
 #define SHCORE_VERBOSE "verbose"
 #define SHCORE_DEBUG "debug"
+#define SHCORE_MYSQL_PLUGIN_DIR "mysqlPluginDir"
 
 #include <stdlib.h>
 #include <iostream>
@@ -149,6 +150,7 @@ class Shell_options : public shcore::Options {
 
     // override default plugin search path ; separated in windows, : elsewhere
     mysqlshdk::null_string plugins_path;
+    std::string mysql_plugin_dir;
 
     int exit_code = 0;
 

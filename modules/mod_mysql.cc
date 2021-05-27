@@ -304,6 +304,11 @@ std::shared_ptr<shcore::Object_bridge> Mysql::get_session(
   auto co = co_;
   co.show_tls_deprecation_warning(true);
   set_password_from_string(&co, password);
+
+  // Sessions through the classic protocol will use the plugin dir from the
+  // shell options if not included on the connection options already
+  co.set_plugins_dir();
+
   return ClassicSession::create(co);
 }
 #endif

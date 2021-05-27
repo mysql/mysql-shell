@@ -149,6 +149,59 @@ function hasOciEnvironment(context) {
   return true;
 }
 
+
+function hasAuthEnvironment(context) {
+  if (['LDAP_SIMPLE', 'LDAP_SASL', 'LDAP_KERBEROS', 'KERBEROS'].indexOf(context) == -1) {
+    return false
+  }
+
+  var variables = [];
+
+  if (context == 'LDAP_SIMPLE') {
+    variables = ['LDAP_SIMPLE_SERVER_HOST',
+                 'LDAP_SIMPLE_SERVER_PORT',
+                 'LDAP_SIMPLE_BIND_BASE_DN',
+                 'LDAP_SIMPLE_USER',
+                 'LDAP_SIMPLE_PWD',
+                 'LDAP_SIMPLE_AUTH_STRING'];
+  } else if (context == 'LDAP_SASL') {
+    variables = ['LDAP_SASL_SERVER_HOST',
+                 'LDAP_SASL_SERVER_PORT',
+                 'LDAP_SASL_BIND_BASE_DN',
+                 'LDAP_SASL_USER',
+                 'LDAP_SASL_PWD',
+                 'LDAP_SASL_GROUP_SEARCH_FILTER',
+                 'MYSQL_PLUGIN_DIR'];
+  } else if (context == 'LDAP_KERBEROS') {
+    variables = ['LDAP_KERBEROS_SERVER_HOST',
+                 'LDAP_KERBEROS_SERVER_PORT',
+                 'LDAP_KERBEROS_BIND_BASE_DN',
+                 'LDAP_KERBEROS_USER_SEARCH_ATTR',
+                 'LDAP_KERBEROS_USER',
+                 'LDAP_KERBEROS_PWD',
+                 'LDAP_KERBEROS_AUTH_STRING',
+                 'MYSQL_PLUGIN_DIR'];
+  } else if (context == 'KERBEROS') {
+    variables = ['KERBEROS_USER',
+                 'KERBEROS_PWD',
+                 'MYSQL_PLUGIN_DIR'];
+  }
+
+  let missing=[];
+  for (var index = 0; index < variables.length; index ++) {
+    if (!defined(function(){eval(variables[index])})) {
+      missing.push(variables[index])
+    }
+  }
+
+  if (missing.length) {
+    shell.log("warning", `Missing Variables: ${missing}`)
+    return false;
+  }
+  return true;
+}
+
+
 function set_sysvar(session, variable, value) {
   session.runSql("SET GLOBAL " + variable + " = ?", [value]);
 }

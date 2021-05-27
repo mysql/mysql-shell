@@ -1699,6 +1699,38 @@ void Shell_script_tester::set_defaults() {
   // Variables for MDS Tests
   def_string_var_from_env("MDS_URI");
 
+  // Simple LDAP Authentication Variables
+  def_string_var_from_env("LDAP_SIMPLE_SERVER_HOST");
+  def_string_var_from_env("LDAP_SIMPLE_SERVER_PORT");
+  def_string_var_from_env("LDAP_SIMPLE_BIND_BASE_DN");
+  def_string_var_from_env("LDAP_SIMPLE_USER");
+  def_string_var_from_env("LDAP_SIMPLE_PWD");
+  def_string_var_from_env("LDAP_SIMPLE_AUTH_STRING");
+
+  // Simple LDAP SASL Authentication Variables
+  def_string_var_from_env("LDAP_SASL_SERVER_HOST");
+  def_string_var_from_env("LDAP_SASL_SERVER_PORT");
+  def_string_var_from_env("LDAP_SASL_BIND_BASE_DN");
+  def_string_var_from_env("LDAP_SASL_USER");
+  def_string_var_from_env("LDAP_SASL_PWD");
+  def_string_var_from_env("LDAP_SASL_GROUP_SEARCH_FILTER");
+  def_string_var_from_env("MYSQL_PLUGIN_DIR");
+
+  // Simple LDAP SASL Authentication Variables
+  def_string_var_from_env("LDAP_KERBEROS_SERVER_HOST");
+  def_string_var_from_env("LDAP_KERBEROS_SERVER_PORT");
+  def_string_var_from_env("LDAP_KERBEROS_BIND_BASE_DN");
+  def_string_var_from_env("LDAP_KERBEROS_USER_SEARCH_ATTR");
+  def_string_var_from_env("LDAP_KERBEROS_BIND_ROOT_DN");
+  def_string_var_from_env("LDAP_KERBEROS_BIND_ROOT_PWD");
+  def_string_var_from_env("LDAP_KERBEROS_USER");
+  def_string_var_from_env("LDAP_KERBEROS_PWD");
+  def_string_var_from_env("LDAP_KERBEROS_AUTH_STRING");
+  def_string_var_from_env("LDAP_KERBEROS_GROUP_SEARCH_FILTER");
+
+  def_string_var_from_env("KERBEROS_USER");
+  def_string_var_from_env("KERBEROS_PWD");
+
   def_var("__libmysql_version_id",
           shcore::str_format("'%d'", LIBMYSQL_VERSION_ID));
   const char *oci_config_home = getenv("OCI_CONFIG_HOME");

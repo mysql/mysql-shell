@@ -89,6 +89,8 @@ running in interactive mode
 
 @li logLevel: current log level
 
+@li mysqlPluginDir: Directory for client-side authentication plugins
+
 @li oci.configFile: Path to OCI (Oracle Cloud Infrastructure) configuration
 file
 

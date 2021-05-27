@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,14 +40,17 @@ std::string Uri_encoder::encode_uri(const Connection_options &info,
   if (format.is_set(Tokens::Scheme) && info.has_scheme())
     ret_val.append(encode_scheme(info.get_scheme())).append("://");
 
+  std::string user_data;
   if (format.is_set(Tokens::User) && info.has_user()) {
-    ret_val.append(encode_userinfo(info.get_user()));
+    user_data = encode_userinfo(info.get_user());
 
     if (format.is_set(Tokens::Password) && info.has_password())
-      ret_val.append(":").append(encode_userinfo(info.get_password()));
+      user_data.append(":").append(encode_userinfo(info.get_password()));
   }
 
-  if (!ret_val.empty()) ret_val.append("@");
+  if (!user_data.empty()) {
+    ret_val.append(user_data).append("@");
+  }
 
   if (format.is_set(Tokens::Transport)) {
     if (info.has_transport_type()) {

@@ -154,6 +154,8 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return AS__STRING(options->show_column_type_info);
     else if (option == "compress")
       return options->compress;
+    else if (option == "mysqlPluginDir")
+      return options->mysql_plugin_dir;
 
     return "";
   }
@@ -832,6 +834,9 @@ TEST_F(Shell_cmdline_options, app) {
 
   test_option_with_value("file", "f", "/some/file", "", !IS_CONNECTION_DATA,
                          !IS_NULLABLE, "run_file");
+
+  test_option_with_value("mysql-plugin-dir", "", "/some/path", "",
+                         !IS_CONNECTION_DATA, IS_NULLABLE, "mysqlPluginDir");
 }
 
 TEST_F(Shell_cmdline_options, test_session_type_conflicts) {

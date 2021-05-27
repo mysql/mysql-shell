@@ -116,10 +116,7 @@ std::string strip_password(const std::string &connstring) {
   p = s.rfind('@');
   std::string user_part;
 
-  if (p == std::string::npos) {
-    // by default, connect using the current OS username
-    user_part = get_system_user();
-  } else {
+  if (p != std::string::npos) {
     user_part = s.substr(0, p);
   }
 

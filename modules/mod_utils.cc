@@ -459,7 +459,7 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     copy.set_default_connection_data();
     copy.show_tls_deprecation_warning(show_tls_deprecation);
 
-    if (!copy.has_password()) {
+    if (!copy.has_password() && copy.has_user()) {
       if (shcore::Credential_manager::get().get_password(&copy)) {
         try {
           return create_session(copy);
@@ -484,7 +484,8 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
       do {
         bool prompted_for_password = false;
 
-        if (!copy.has_password()) {
+        if (!copy.has_password() && copy.has_user() &&
+            !copy.is_kerberos_authentication()) {
           password_prompt(&copy);
           prompted_for_password = true;
         }

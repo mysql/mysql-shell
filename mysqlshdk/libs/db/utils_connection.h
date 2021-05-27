@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -92,6 +92,7 @@ constexpr const char kCompressionLevel[] = "compression-level";
 constexpr const char kLocalInfile[] = "local-infile";
 constexpr const char kNetBufferLength[] = "net-buffer-length";
 constexpr const char kMaxAllowedPacket[] = "max-allowed-packet";
+constexpr const char kMysqlPluginDir[] = "mysql-plugin-dir";
 constexpr const char kConnectionAttributes[] = "connection-attributes";
 
 constexpr const char kSslModeDisabled[] = "disabled";
@@ -103,6 +104,10 @@ constexpr const char kSslModeVerifyIdentity[] = "verify_identity";
 constexpr const char kCompressionRequired[] = "REQUIRED";
 constexpr const char kCompressionPreferred[] = "PREFERRED";
 constexpr const char kCompressionDisabled[] = "DISABLED";
+
+constexpr char kAuthMethodClearPassword[] = "mysql_clear_password";
+constexpr char kAuthMethodLdapSasl[] = "authentication_ldap_sasl_client";
+constexpr char kAuthMethodKerberos[] = "authentication_kerberos_client";
 
 const std::set<std::string> connection_attributes = {kHost,
                                                      kPort,
@@ -157,7 +162,7 @@ const std::set<std::string> uri_extra_options = {
     kAuthMethod,      kGetServerPublicKey,    kServerPublicKeyPath,
     kConnectTimeout,  kNetReadTimeout,        kNetWriteTimeout,
     kCompression,     kCompressionAlgorithms, kLocalInfile,
-    kNetBufferLength, kMaxAllowedPacket};
+    kNetBufferLength, kMaxAllowedPacket,      kMysqlPluginDir};
 
 const std::vector<std::string> ssl_modes = {"",
                                             kSslModeDisabled,

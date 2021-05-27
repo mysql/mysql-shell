@@ -39,7 +39,6 @@ typedef unsigned int uint;
 namespace mysqlshdk {
 namespace db {
 namespace mysql {
-
 FI_DEFINE(mysql, [](const mysqlshdk::utils::FI::Args &args) {
   if (args.get_int("abort", 0)) {
     abort();
@@ -70,7 +69,7 @@ void Session_impl::connect(
 
   _connection_options = connection_options;
 
-  setup_ssl(_connection_options.get_ssl_options());
+  auto used_ssl_mode = setup_ssl(_connection_options.get_ssl_options());
   if (_connection_options.has_transport_type() &&
       _connection_options.get_transport_type() == mysqlshdk::db::Tcp) {
     unsigned int tcp = MYSQL_PROTOCOL_TCP;
@@ -113,6 +112,26 @@ void Session_impl::connect(
 
   if (connection_options.has(mysqlshdk::db::kAuthMethod)) {
     const auto &auth = connection_options.get(mysqlshdk::db::kAuthMethod);
+
+    if (auth == kAuthMethodClearPassword) {
+      if (!connection_options.has_socket() && !connection_options.has_pipe()) {
+        auto final_ssl_mode =
+            used_ssl_mode.get_safe(mysqlshdk::db::Ssl_mode::Disabled);
+
+        if (final_ssl_mode == mysqlshdk::db::Ssl_mode::Disabled) {
+          throw std::runtime_error(
+              "Clear password authentication is not supported over insecure "
+              "channels.");
+        } else if (final_ssl_mode == mysqlshdk::db::Ssl_mode::Preferred) {
+          throw std::runtime_error(
+              "Clear password authentication requires a secure channel, please "
+              "use ssl-mode=REQUIRED to guarantee a secure channel.");
+        }
+      }
+      uint value = 1;
+      mysql_options(_mysql, MYSQL_ENABLE_CLEARTEXT_PLUGIN, &value);
+    }
+
     mysql_options(_mysql, MYSQL_DEFAULT_AUTH, auth.c_str());
   }
 
@@ -212,6 +231,14 @@ void Session_impl::connect(
     mysql_options(_mysql, MYSQL_OPT_NET_BUFFER_LENGTH, &opt_net_buffer_length);
   }
 
+  if (connection_options.has(mysqlshdk::db::kMysqlPluginDir)) {
+    auto mysql_plugin_dir =
+        connection_options.get(mysqlshdk::db::kMysqlPluginDir);
+    if (!mysql_plugin_dir.empty()) {
+      mysql_options(_mysql, MYSQL_PLUGIN_DIR, mysql_plugin_dir.c_str());
+    }
+  }
+
   DBUG_LOG("sqlall", "CONNECT: " << _connection_options.uri_endpoint());
 
   if (!mysql_real_connect(
@@ -262,11 +289,11 @@ void Session_impl::connect(
   }
 }
 
-bool Session_impl::setup_ssl(
+mysqlshdk::utils::nullable<mysqlshdk::db::Ssl_mode> Session_impl::setup_ssl(
     const mysqlshdk::db::Ssl_options &ssl_options) const {
   int value;
 
-  mysqlshdk::db::Ssl_mode ssl_mode;
+  mysqlshdk::utils::nullable<mysqlshdk::db::Ssl_mode> ssl_mode;
   if (ssl_options.has_data()) {
     ssl_options.validate();
 
@@ -319,11 +346,11 @@ bool Session_impl::setup_ssl(
     if (ssl_options.has_key())
       mysql_options(_mysql, MYSQL_OPT_SSL_KEY, (ssl_options.get_key().c_str()));
 
-    value = static_cast<int>(ssl_mode);
+    value = static_cast<int>(*ssl_mode);
     mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &value);
   }
 
-  return true;
+  return ssl_mode;
 }
 
 void Session_impl::close() {

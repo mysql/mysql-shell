@@ -158,6 +158,8 @@ Usage: mysqlsh [OPTIONS] [URI]
                                   taken from your ENV variable PAGER. This
                                   option only works in interactive mode. This
                                   option is disabled by default.
+  --mysql-plugin-dir[=<path>]     Directory for client-side authentication
+                                  plugins.
   --name-cache                    Enable database name caching for
                                   autocompletion and DevAPI (default).
   -A, --no-name-cache             Disable automatic database name caching for

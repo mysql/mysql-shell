@@ -173,6 +173,8 @@ class SHCORE_PUBLIC Connection_options {
    */
   void set_default_connection_data();
 
+  void set_plugins_dir();
+
   int compare(const std::string &lhs, const std::string &rhs) const {
     return m_options.compare(lhs, rhs);
   }
@@ -180,6 +182,8 @@ class SHCORE_PUBLIC Connection_options {
   static void throw_invalid_connect_timeout(const std::string &value);
 
   void show_tls_deprecation_warning(bool show) const;
+
+  bool is_kerberos_authentication() const;
 
  private:
   void _set_fixed(const std::string &key, const std::string &val);

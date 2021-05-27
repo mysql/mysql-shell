@@ -158,7 +158,9 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   std::shared_ptr<IResult> run_sql(const char *sql, size_t len,
                                    bool lazy_fetch = true);
-  bool setup_ssl(const mysqlshdk::db::Ssl_options &ssl_options) const;
+  // Will return the SSL mode set in the connection, if any
+  mysqlshdk::utils::nullable<mysqlshdk::db::Ssl_mode> setup_ssl(
+      const mysqlshdk::db::Ssl_options &ssl_options) const;
   void throw_on_connection_fail();
 
   void setup_default_character_set();

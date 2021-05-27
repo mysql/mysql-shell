@@ -481,7 +481,11 @@ Shell_options::Shell_options(int argc, char **argv,
         "oci.configFile",
         "Path to Oracle Cloud Infrastructure (OCI) configuration file.")
     (&storage.oci_profile, std::string{"DEFAULT"}, "oci.profile",
-        "Oracle Cloud Infrastructure (OCI) configuration file profile name.");
+        "Oracle Cloud Infrastructure (OCI) configuration file profile name.")
+    (&storage.mysql_plugin_dir, "", SHCORE_MYSQL_PLUGIN_DIR,
+        cmdline("--mysql-plugin-dir[=<path>]"),
+        "Directory for client-side authentication plugins.");
+
 
   add_startup_options()
     (cmdline("--name-cache"),
@@ -586,6 +590,7 @@ Shell_options::Shell_options(int argc, char **argv,
           throw std::invalid_argument("Value for --quiet-start if any, must be any of 1 or 2");
         }
       })
+
       (cmdline("--debug=<control>"),
       [this](const std::string &, const char* value) {
 #ifdef NDEBUG
