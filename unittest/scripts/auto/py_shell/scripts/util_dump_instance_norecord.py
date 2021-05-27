@@ -592,7 +592,7 @@ for table in [test_table_primary, test_table_unique, test_table_non_unique, test
 
 #@<> schema with MySQLaaS incompatibilities
 session.run_sql("ALTER DATABASE ! CHARACTER SET latin1;", [ incompatible_schema ])
-session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT) ENGINE=MyISAM DEFAULT CHARSET=latin1;", [ incompatible_schema, incompatible_table_wrong_engine ])
+session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT) ENGINE=MyISAM DEFAULT CHARSET=latin1 ROW_FORMAT=FIXED;", [ incompatible_schema, incompatible_table_wrong_engine ])
 session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT) ENGINE=InnoDB ENCRYPTION = 'Y' DEFAULT CHARSET=latin1;", [ incompatible_schema, incompatible_table_encryption ])
 session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT) ENGINE=InnoDB DATA DIRECTORY = '{0}' DEFAULT CHARSET=latin1;".format(filename_for_file(table_data_directory)), [ incompatible_schema, incompatible_table_data_directory ])
 session.run_sql("CREATE TABLE !.! (`id` MEDIUMINT, `data` INT) ENGINE=MyISAM INDEX DIRECTORY = '{0}' DEFAULT CHARSET=latin1;".format(filename_for_file(table_index_directory)), [ incompatible_schema, incompatible_table_index_directory ])
@@ -1537,6 +1537,7 @@ EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine
 EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported tablespace option (fix this with 'strip_tablespaces' compatibility option)".format(incompatible_schema, incompatible_table_tablespace))
 
 EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM (fix this with 'force_innodb' compatibility option)".format(incompatible_schema, incompatible_table_wrong_engine))
+EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported ROW_FORMAT=FIXED option (fix this with 'force_innodb' compatibility option)".format(incompatible_schema, incompatible_table_wrong_engine))
 
 EXPECT_STDOUT_CONTAINS("ERROR: View {0}.{1} - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)".format(incompatible_schema, incompatible_view))
 
@@ -1761,6 +1762,7 @@ EXPECT_FAIL("ValueError", "Argument #2: The 'create_invisible_pks' and 'ignore_m
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "force_innodb" ] , "ddlOnly": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_index_directory))
 EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_wrong_engine))
+EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported ROW_FORMAT=FIXED option removed".format(incompatible_schema, incompatible_table_wrong_engine))
 
 #@<> WL14506-FR2.1 - When a dump is executed with the ocimds option set to true and the compatibility option contains the ignore_missing_pks value, for each table that would be dumped which does not contain a primary key, a note must be displayed, stating that this issue is ignored.
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "ignore_missing_pks" ] , "ddlOnly": True, "showProgress": False })

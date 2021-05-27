@@ -348,6 +348,48 @@ TEST_F(Compatibility_test, tablespace_removal) {
             rewritten);
 }
 
+TEST_F(Compatibility_test, check_create_table_for_fixed_row_format) {
+  EXPECT_FALSE(
+      check_create_table_for_fixed_row_format("CREATE TABLE t (a int);"));
+
+  const auto validate = [](const std::string &statement, bool changed,
+                           const std::string &result = {}) {
+    SCOPED_TRACE(statement);
+
+    auto s = statement;
+
+    EXPECT_EQ(changed, check_create_table_for_fixed_row_format(s, &s));
+
+    if (changed) {
+      EXPECT_EQ(result, s);
+    } else {
+      EXPECT_EQ(statement, s);
+    }
+  };
+
+  validate("CREATE TABLE t (a int);", false);
+
+  validate("CREATE TABLE t (a int) COMMENT = 'tmp', ROW_FORMAT DYNAMIC", false);
+  validate("CREATE TABLE t (a int) COMMENT = 'tmp' ROW_FORMAT DYNAMIC", false);
+  validate("CREATE TABLE t (a int) ROW_FORMAT = DYNAMIC", false);
+  validate("CREATE TABLE t (a int) ROW_FORMAT=DYNAMIC,COMMENT='tmp'", false);
+
+  validate("CREATE TABLE t (a int) COMMENT = 'tmp', ROW_FORMAT FIXED", true,
+           "CREATE TABLE t (a int) COMMENT = 'tmp'");
+  validate("CREATE TABLE t (a int) COMMENT = 'tmp' ROW_FORMAT FIXED", true,
+           "CREATE TABLE t (a int) COMMENT = 'tmp'");
+  validate("CREATE TABLE t (a int) ROW_FORMAT = FIXED", true,
+           "CREATE TABLE t (a int)");
+  validate("CREATE TABLE t (a int) ROW_FORMAT=FIXED,COMMENT='tmp'", true,
+           "CREATE TABLE t (a int) COMMENT='tmp'");
+  validate(
+      "CREATE TABLE t (a int) COMPRESSION=NONE ROW_FORMAT=FIXED,COMMENT='tmp'",
+      true, "CREATE TABLE t (a int) COMPRESSION=NONE COMMENT='tmp'");
+  validate(
+      "CREATE TABLE t (a int) COMPRESSION=NONE,ROW_FORMAT=FIXED,COMMENT='tmp'",
+      true, "CREATE TABLE t (a int) COMPRESSION=NONE,COMMENT='tmp'");
+}
+
 TEST_F(Compatibility_test, charset_option) {
   std::string rewritten;
   EXPECT_EQ(2, compatibility::check_statement_for_charset_option(

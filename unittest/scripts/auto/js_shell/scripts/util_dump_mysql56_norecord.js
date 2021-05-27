@@ -7,7 +7,7 @@ const k_users_dump = os.path.join(k_dump_dir, "dumpu");
 const k_instance_dump = os.path.join(k_dump_dir, "dumpi");
 const k_schemas_dump = os.path.join(k_dump_dir, "dumps");
 const k_tables_dump = os.path.join(k_dump_dir, "dumpt");
-const k_all_schemas = [ "sakila", "all_features", "all_features2", "xtest" ];
+const k_all_schemas = [ "sakila", "all_features", "all_features2", "xtest", "test" ];
 
 // helpers
 function cleanup_dump_dir() {
@@ -102,6 +102,10 @@ testutil.importData(__mysql56_uri, os.path.join(__data_path, "sql", "sakila-data
 testutil.importData(__mysql56_uri, os.path.join(__data_path, "sql", "misc_features.sql")); // all_features, all_features2
 testutil.importData(__mysql56_uri, os.path.join(__data_path, "sql", "fieldtypes_all.sql")); // xtest
 
+// BUG#32925914 - create an InnoDB table that will use fixed row format
+session.runSql("CREATE SCHEMA test;");
+session.runSql("CREATE TABLE test.fixed_row_format (a int) ENGINE=InnoDB;");
+
 const all_objects = fetch_all_objects();
 const [all_tables, all_views, all_routines, all_triggers, all_events] = all_objects;
 
@@ -160,6 +164,12 @@ shell.connect(__mysql56_uri);
 //@<> BUG#32883314 - dumpInstance should be able to dump users
 EXPECT_NO_THROWS(function() { util.dumpInstance(k_users_dump); }, "It should be possible to dump user information.");
 
+//@<> BUG#32925914 set ROW_FORMAT=FIXED
+// a warning will be reported saying:
+//   Warning (code 1478): InnoDB: assuming ROW_FORMAT=COMPACT.
+// but SHOW CREATE TABLE will still output FIXED
+session.runSql("ALTER TABLE test.fixed_row_format ROW_FORMAT=FIXED;");
+
 //@<> dumpInstance
 // BUG32376447 - use small bytesPerChunk to ensure some tables are chunked, triggering the bug
 util.dumpInstance(k_instance_dump, { "users": false, "bytesPerChunk": "128k", "ocimds": true, "compatibility": [ "ignore_missing_pks", "strip_definers" ] });
@@ -168,6 +178,11 @@ EXPECT_STDOUT_CONTAINS("NOTE: Backup lock is not supported in MySQL 5.6 and DDL 
 EXPECT_STDOUT_MATCHES(/Data dump for table `\w+`.`\w+` will be written to \d+ files/);
 // util.checkForServerUpgrade() does not support 5.6 and it should not be suggested when using the 'ocimds' option
 EXPECT_STDOUT_NOT_CONTAINS("checkForServerUpgrade");
+// BUG#32925914 - FIXED row format will be removed even though 'force_innodb' is not specified, because table uses InnoDB engine
+EXPECT_STDOUT_CONTAINS("NOTE: Table 'test'.'fixed_row_format' had unsupported ROW_FORMAT=FIXED option removed")
+
+//@<> BUG#32925914 remove ROW_FORMAT=FIXED, so the remaining tests can work without ocimds/force_innodb options
+session.runSql("ALTER TABLE test.fixed_row_format ROW_FORMAT=DEFAULT;");
 
 //@<> dumpSchemas
 util.dumpSchemas(k_all_schemas, k_schemas_dump);

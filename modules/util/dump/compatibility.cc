@@ -566,6 +566,51 @@ bool check_create_table_for_tablespace_option(
   return !offsets.empty();
 }
 
+bool check_create_table_for_fixed_row_format(const std::string &create_table,
+                                             std::string *rewritten) {
+  Offsets offsets;
+  SQL_iterator it(create_table);
+
+  skip_columns_definition(&it);
+
+  while (it.valid()) {
+    auto token = it.next_token();
+
+    if (shcore::str_caseeq(token.c_str(), "ROW_FORMAT")) {
+      Offset offset;
+
+      offset.first = it.position() - token.length();
+
+      token = it.next_token();
+
+      if (shcore::str_caseeq(token.c_str(), "=")) {
+        token = it.next_token();
+      }
+
+      if (shcore::str_caseeq(token.c_str(), "FIXED")) {
+        offset.second = it.position();
+
+        // consume comma, if it's there
+        if (shcore::str_caseeq(it.next_token().c_str(), ",")) {
+          offset.second = it.position();
+        }
+
+        offsets.emplace_back(std::move(offset));
+      }
+
+      // no need to parse the rest
+      break;
+    }
+  }
+
+  // if new statement ends with comma, strip it as well
+  if (rewritten)
+    *rewritten = shcore::str_strip(
+        replace_at_offsets(create_table, offsets, ""), " \r\n\t,");
+
+  return !offsets.empty();
+}
+
 std::vector<std::string> check_statement_for_charset_option(
     const std::string &statement, std::string *rewritten,
     const std::vector<std::string> &whitelist) {
