@@ -2732,6 +2732,13 @@ void Dumper::write_table_metadata(
       options.AddMember(StringRef("decodeColumns"), std::move(decode), a);
     }
 
+    // backward compatibility - remove when major version of dumper is changed
+    options.AddMember(StringRef("primaryIndex"),
+                      table.cache->index.primary()
+                          ? refs(table.cache->index.columns()[0]->name)
+                          : StringRef(""),
+                      a);
+
     options.AddMember(StringRef("defaultCharacterSet"),
                       refs(m_options.character_set()), a);
 
