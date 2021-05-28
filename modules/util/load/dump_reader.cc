@@ -746,7 +746,12 @@ void Dump_reader::Table_info::rescan(
         options->erase("compression");
 
         if (options->has_key("primaryIndex")) {
-          primary_index.emplace_back(options->get_string("primaryIndex"));
+          auto index = options->get_string("primaryIndex");
+
+          if (!index.empty()) {
+            primary_index.emplace_back(std::move(index));
+          }
+
           options->erase("primaryIndex");
         }
 
