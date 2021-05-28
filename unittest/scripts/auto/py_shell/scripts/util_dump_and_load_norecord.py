@@ -740,6 +740,14 @@ wipeout_server(session2)
 
 util.load_dump(dump_dir)
 
+#@<> cleanup the schemas with lots of things
+for i in range(500):
+    session1.run_sql(f"drop user if exists rando_____________________{i}@'l{'o'*user_length}calhost'")
+
+for s in range(500):
+    dbname = f"randodb{s}{'_'*30}"
+    session1.run_sql(f"drop schema if exists {dbname}")
+
 #@<> WL14506: create tables and dumps with and without 'create_invisible_pks' compatibility option
 dump_pks_dir = os.path.join(outdir, "invisible_pks")
 dump_no_pks_dir = os.path.join(outdir, "no_invisible_pks")
@@ -916,6 +924,130 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadDdl": False, "showProgr
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
 # ensure data was loaded
 EXPECT_STDOUT_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
+
+#@<> WL14632: create tables with partitions
+dump_dir = os.path.join(outdir, "part")
+schema_name = "wl14632"
+partitions_table_name = "partitions"
+subpartitions_table_name = "subpartitions"
+all_tables = [ partitions_table_name, subpartitions_table_name ]
+subpartition_prefix = "@o" if __os_type == "windows" else "@ó"
+
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [schema_name])
+
+session.run_sql("""CREATE TABLE !.!
+(`id` int NOT NULL AUTO_INCREMENT PRIMARY KEY, `data` blob)
+PARTITION BY RANGE (`id`)
+(PARTITION x0 VALUES LESS THAN (10000),
+ PARTITION x1 VALUES LESS THAN (20000),
+ PARTITION x2 VALUES LESS THAN (30000),
+ PARTITION x3 VALUES LESS THAN MAXVALUE)""", [ schema_name, partitions_table_name ])
+
+session.run_sql(f"""CREATE TABLE !.!
+(`id` int, `data` blob)
+PARTITION BY RANGE (`id`)
+SUBPARTITION BY KEY (id)
+SUBPARTITIONS 2
+(PARTITION `{subpartition_prefix}0` VALUES LESS THAN (10000),
+ PARTITION `{subpartition_prefix}1` VALUES LESS THAN (20000),
+ PARTITION `{subpartition_prefix}2` VALUES LESS THAN (30000),
+ PARTITION `{subpartition_prefix}3` VALUES LESS THAN MAXVALUE)""", [ schema_name, subpartitions_table_name ])
+
+for x in range(4):
+    session.run_sql(f"""INSERT INTO !.! (`data`) VALUES {",".join([f"('{random_string(100,200)}')" for i in range(10000)])}""", [ schema_name, partitions_table_name ])
+session.run_sql("INSERT INTO !.! SELECT * FROM !.!", [ schema_name, subpartitions_table_name, schema_name, partitions_table_name ])
+
+for table in all_tables:
+    session.run_sql("ANALYZE TABLE !.!;", [ schema_name, table ])
+
+partition_names = {}
+for table in all_tables:
+    partition_names[table] = []
+    for row in session.run_sql("SELECT IFNULL(SUBPARTITION_NAME, PARTITION_NAME) FROM information_schema.partitions WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?;", [ schema_name, table ]).fetch_all():
+        partition_names[table].append(row[0])
+
+# helper functions
+def compute_checksum(schema, table):
+    return session.run_sql("CHECKSUM TABLE !.!", [ schema, table ]).fetch_one()[1]
+
+def EXPECT_DUMP_AND_LOAD_PARTITIONED(dump, tables = all_tables):
+    try:
+        testutil.rmdir(dump_dir, True)
+    except:
+        pass
+    shell.connect(__sandbox_uri1)
+    WIPE_OUTPUT()
+    EXPECT_NO_THROWS(dump, "Dumping the data should not fail")
+    files = os.listdir(dump_dir)
+    for table in tables:
+        # there should be a metadata file for the table
+        EXPECT_TRUE(f"{schema_name}@{table}.json" in files)
+        # there should be an SQL file for the table
+        EXPECT_TRUE(f"{schema_name}@{table}.sql" in files)
+        for partition in partition_names[table]:
+            # there should be at least one partition-based data file
+            EXPECT_TRUE([f for f in files if f.startswith(encode_partition_basename(schema_name, table, partition)) and f.endswith(".tsv.zst")])
+            # dumper should mention the partition as a separate entity
+            EXPECT_STDOUT_CONTAINS(f"Data dump for table `{schema_name}`.`{table}` partition `{partition}` will be written to ")
+    shell.connect(__sandbox_uri2)
+    wipeout_server(session)
+    WIPE_OUTPUT()
+    # WL14632-TSFR_2_1
+    EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Loading the dump should not fail")
+    for table in tables:
+        for partition in partition_names[table]:
+            # loader should mention the partition as a separate entity
+            EXPECT_STDOUT_MATCHES(re.compile(f"\\[Worker00\\d\\] {encode_partition_basename(schema_name, table, partition)}.*tsv.zst: Records: \\d+  Deleted: 0  Skipped: 0  Warnings: 0"))
+    # verify consistency
+    for table in tables:
+        EXPECT_EQ(checksums[table], compute_checksum(schema_name, table))
+
+checksums = {}
+for table in all_tables:
+    checksums[table] = compute_checksum(schema_name, table)
+
+#@<> WL14632-TSFR_1_1
+EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_instance(dump_dir, { "showProgress": False }))
+EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_instance(dump_dir, { "bytesPerChunk": "128k", "showProgress": False }))
+
+#@<> WL14632-TSFR_1_2
+EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_schemas([ schema_name ], dump_dir, { "showProgress": False }))
+EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_schemas([ schema_name ], dump_dir, { "bytesPerChunk": "128k", "showProgress": False }))
+
+#@<> WL14632-TSFR_1_3
+EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_tables(schema_name, [ partitions_table_name ], dump_dir, { "showProgress": False }), [ partitions_table_name ])
+EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_tables(schema_name, [ partitions_table_name ], dump_dir, { "bytesPerChunk": "128k", "showProgress": False }), [ partitions_table_name ])
+
+EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_tables(schema_name, [ subpartitions_table_name ], dump_dir, { "showProgress": False }), [ subpartitions_table_name ])
+EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_tables(schema_name, [ subpartitions_table_name ], dump_dir, { "bytesPerChunk": "128k", "showProgress": False }), [ subpartitions_table_name ])
+
+#@<> WL14632-TSFR_3_1
+exported_file = os.path.join(outdir, "part.tsv")
+
+for table in all_tables:
+    try:
+        os.remove(exported_file)
+    except:
+        pass
+    shell.connect(__sandbox_uri1)
+    WIPE_OUTPUT()
+    EXPECT_NO_THROWS(lambda: util.export_table(f"{schema_name}.{table}", exported_file, { "showProgress": False }), "Exporting the table should not fail")
+    # dumper should not mention the partitions
+    EXPECT_STDOUT_CONTAINS(f"Data dump for table `{schema_name}`.`{table}` will be written to ")
+    create_statement = session.run_sql("SHOW CREATE TABLE !.!", [ schema_name, table ]).fetch_one()[1]
+    shell.connect(__sandbox_uri2)
+    wipeout_server(session)
+    session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [schema_name])
+    session.run_sql("USE !", [schema_name])
+    session.run_sql(create_statement)
+    WIPE_OUTPUT()
+    util.import_table(exported_file, { "schema": schema_name, "table": table, "columns": [ "id", "data" ], "decodeColumns": { "data": "FROM_BASE64" } })
+    EXPECT_EQ(checksums[table], compute_checksum(schema_name, table))
+
+#@<> WL14632: cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

@@ -373,10 +373,10 @@ std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
 // Thus, smaller tables must get fewer threads allocated so they take longer
 // to load, while bigger threads get more, with the hope that the total time
 // to load all tables is minimized.
-std::unordered_set<Dump_reader::Table_info *>::iterator
+std::unordered_set<Dump_reader::Table_data_info *>::iterator
 Dump_reader::schedule_chunk_proportionally(
     const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
-    std::unordered_set<Dump_reader::Table_info *> *tables_with_data) {
+    std::unordered_set<Dump_reader::Table_data_info *> *tables_with_data) {
   if (tables_with_data->empty()) return tables_with_data->end();
 
   // first check if there's any table that's not being loaded
@@ -385,7 +385,8 @@ Dump_reader::schedule_chunk_proportionally(
 
     for (auto it = tables_with_data->begin(); it != tables_with_data->end();
          ++it) {
-      std::string key = schema_table_key((*it)->schema, (*it)->table);
+      std::string key = partition_key((*it)->owner->schema, (*it)->owner->table,
+                                      (*it)->partition);
       if (tables_being_loaded.find(key) == tables_being_loaded.end()) {
         if (best == tables_with_data->end() ||
             (*it)->bytes_available() > (*best)->bytes_available())
@@ -399,8 +400,8 @@ Dump_reader::schedule_chunk_proportionally(
 
   // if all available tables are already loaded, then schedule proportionally
   std::unordered_map<std::string, double> worker_weights;
-  std::vector<std::pair<std::unordered_set<Dump_reader::Table_info *>::iterator,
-                        double>>
+  std::vector<std::pair<
+      std::unordered_set<Dump_reader::Table_data_info *>::iterator, double>>
       candidate_weights;
   // calc ratio of data being loaded per table / total data being loaded
   double total_bytes_loading = std::accumulate(
@@ -419,11 +420,12 @@ Dump_reader::schedule_chunk_proportionally(
   }
 
   // calc ratio of data available per table / total data available
-  double total_bytes_available = std::accumulate(
-      tables_with_data->begin(), tables_with_data->end(),
-      static_cast<size_t>(0), [](size_t size, Dump_reader::Table_info *table) {
-        return size + table->bytes_available();
-      });
+  double total_bytes_available =
+      std::accumulate(tables_with_data->begin(), tables_with_data->end(),
+                      static_cast<size_t>(0),
+                      [](size_t size, Dump_reader::Table_data_info *table) {
+                        return size + table->bytes_available();
+                      });
   if (total_bytes_available > 0) {
     for (auto it = tables_with_data->begin(); it != tables_with_data->end();
          ++it) {
@@ -438,12 +440,13 @@ Dump_reader::schedule_chunk_proportionally(
 
   // pick a chunk from the table that has the biggest difference between both
   double best_diff = 0;
-  std::unordered_set<Dump_reader::Table_info *>::iterator best =
+  std::unordered_set<Dump_reader::Table_data_info *>::iterator best =
       tables_with_data->begin();
 
   for (const auto &cand : candidate_weights) {
     std::string key =
-        schema_table_key((*cand.first)->schema, (*cand.first)->table);
+        partition_key((*cand.first)->owner->schema, (*cand.first)->owner->table,
+                      (*cand.first)->partition);
     auto it = worker_weights.find(key);
     if (it != worker_weights.end()) {
       double d = cand.second - it->second;
@@ -464,8 +467,8 @@ Dump_reader::schedule_chunk_proportionally(
 
 bool Dump_reader::next_table_chunk(
     const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
-    std::string *out_schema, std::string *out_table, bool *out_chunked,
-    size_t *out_chunk_index, size_t *out_chunks_total,
+    std::string *out_schema, std::string *out_table, std::string *out_partition,
+    bool *out_chunked, size_t *out_chunk_index, size_t *out_chunks_total,
     std::unique_ptr<mysqlshdk::storage::IFile> *out_file,
     size_t *out_chunk_size, shcore::Dictionary_t *out_options) {
   auto iter =
@@ -473,9 +476,10 @@ bool Dump_reader::next_table_chunk(
 
   if (iter != m_tables_with_data.end()) {
     *out_chunked = (*iter)->chunked;
-    *out_schema = (*iter)->schema;
-    *out_table = (*iter)->table;
-    *out_options = (*iter)->options;
+    *out_schema = (*iter)->owner->schema;
+    *out_table = (*iter)->owner->table;
+    *out_partition = (*iter)->partition;
+    *out_options = (*iter)->owner->options;
 
     if ((*iter)->chunked) {
       *out_chunk_index = (*iter)->chunks_consumed;
@@ -510,16 +514,25 @@ bool Dump_reader::next_table_chunk(
 bool Dump_reader::next_deferred_index(
     std::string *out_schema, std::string *out_table,
     std::vector<std::string> **out_indexes,
-    const std::function<bool(const std::string &)> &load_finished) {
+    const std::function<bool(const std::vector<std::string> &)>
+        &load_finished) {
   for (auto &schema : m_contents.schemas) {
     for (auto &table : schema.second->tables) {
-      if (!table.second->indexes_done && table.second->data_done() &&
-          load_finished(schema_table_key(schema.first, table.first))) {
-        table.second->indexes_done = true;
-        *out_schema = schema.second->schema;
-        *out_table = table.second->table;
-        *out_indexes = &table.second->indexes;
-        return true;
+      if (!table.second->indexes_done && table.second->all_data_done()) {
+        std::vector<std::string> keys;
+
+        for (const auto &di : table.second->data_info) {
+          keys.emplace_back(
+              partition_key(schema.first, table.first, di.partition));
+        }
+
+        if (load_finished(keys)) {
+          table.second->indexes_done = true;
+          *out_schema = schema.second->schema;
+          *out_table = table.second->table;
+          *out_indexes = &table.second->indexes;
+          return true;
+        }
       }
     }
   }
@@ -531,7 +544,7 @@ bool Dump_reader::next_table_analyze(std::string *out_schema,
                                      std::vector<Histogram> *out_histograms) {
   for (auto &schema : m_contents.schemas) {
     for (auto &table : schema.second->tables) {
-      if (table.second->data_done() && table.second->indexes_done &&
+      if (table.second->all_data_done() && table.second->indexes_done &&
           !table.second->analyze_done) {
         table.second->analyze_done = true;
         *out_schema = schema.second->schema;
@@ -549,7 +562,7 @@ bool Dump_reader::data_available() const { return !m_tables_with_data.empty(); }
 bool Dump_reader::work_available() const {
   for (auto &schema : m_contents.schemas) {
     for (auto &table : schema.second->tables) {
-      if (table.second->data_done() && !table.second->analyze_done) {
+      if (table.second->all_data_done() && !table.second->analyze_done) {
         return true;
       }
     }
@@ -659,8 +672,8 @@ void Dump_reader::replace_target_schema(const std::string &schema) {
   }
 
   for (const auto &table : m_tables_with_data) {
-    table->schema = schema;
-    table->options->set("schema", shcore::Value(schema));
+    table->owner->schema = schema;
+    table->owner->options->set("schema", shcore::Value(schema));
   }
 }
 
@@ -734,8 +747,11 @@ void Dump_reader::Table_info::rescan(
     if (files.find(mdpath) != files.end()) {
       auto md = fetch_metadata(dir, mdpath);
 
+      Table_data_info di;
+      di.owner = this;
+
       has_sql = md->get_bool("includesDdl", true);
-      has_data = md->get_bool("includesData", true);
+      di.has_data = md->get_bool("includesData", true);
 
       options = md->get_map("options");
 
@@ -767,8 +783,8 @@ void Dump_reader::Table_info::rescan(
         }
       }
 
-      extension = md->get_string("extension", "tsv");
-      chunked = md->get_bool("chunking", false);
+      di.extension = md->get_string("extension", "tsv");
+      di.chunked = md->get_bool("chunking", false);
 
       if (md->has_key("primaryIndex")) {
         primary_index = to_vector_of_strings(md->get_array("primaryIndex"));
@@ -784,6 +800,25 @@ void Dump_reader::Table_info::rescan(
                 Histogram{histogram->get_string("column"),
                           static_cast<size_t>(histogram->get_int("buckets"))});
           }
+        }
+      }
+
+      {
+        // maps partition names to basenames
+        const auto basenames = md->get_map("basenames");
+
+        if (basenames && !basenames->empty()) {
+          for (const auto &p : *basenames) {
+            auto copy = di;
+
+            copy.partition = p.first;
+            copy.basename = p.second.as_string();
+
+            data_info.emplace_back(std::move(copy));
+          }
+        } else {
+          di.basename = basename;
+          data_info.emplace_back(std::move(di));
         }
       }
 
@@ -804,7 +839,15 @@ void Dump_reader::Table_info::rescan(
   }
 }
 
-void Dump_reader::Table_info::rescan_data(
+bool Dump_reader::Table_info::all_data_done() const {
+  for (const auto &di : data_info) {
+    if (!di.data_done()) return false;
+  }
+
+  return true;
+}
+
+void Dump_reader::Table_data_info::rescan_data(
     mysqlshdk::storage::IDirectory *,
     const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
   // check for data files
@@ -849,6 +892,7 @@ void Dump_reader::Table_info::rescan_data(
         }
       }
     }
+
     if (found_data) reader->m_tables_with_data.insert(this);
   }
 }
@@ -920,16 +964,12 @@ void Dump_reader::Schema_info::rescan(
             info->schema = schema;
             info->table = t.as_string();
 
-            // inherit defaults from schema in case the table has no MD file
-            info->has_sql = has_sql;
-            info->has_data = has_data;
-
             if (basenames->has_key(info->table))
               info->basename = basenames->get_string(info->table);
             else
               info->basename = basename + "@" + info->table;
 
-            tables.emplace(info->table, info);
+            tables.emplace(info->table, std::move(info));
           }
         }
         log_debug("%s has %zi tables", schema.c_str(), tables.size());
@@ -1010,15 +1050,17 @@ void Dump_reader::Schema_info::rescan_data(
     mysqlshdk::storage::IDirectory *dir,
     const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
   for (auto &t : tables) {
-    if (!t.second->data_done()) {
-      t.second->rescan_data(dir, files, reader);
+    for (auto &di : t.second->data_info) {
+      if (!di.data_done()) {
+        di.rescan_data(dir, files, reader);
+      }
     }
   }
 }
 
 bool Dump_reader::Schema_info::data_done() const {
   for (const auto &t : tables) {
-    if (!t.second->data_done()) return false;
+    if (!t.second->all_data_done()) return false;
   }
   return true;
 }

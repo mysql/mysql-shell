@@ -162,7 +162,8 @@ class Dump_loader {
     class Load_chunk_task : public Task {
      public:
       Load_chunk_task(size_t id, const std::string &schema,
-                      const std::string &table, ssize_t chunk_index,
+                      const std::string &table, const std::string &partition,
+                      ssize_t chunk_index,
                       std::unique_ptr<mysqlshdk::storage::IFile> file,
                       shcore::Dictionary_t options, bool resume,
                       uint64_t bytes_to_skip)
@@ -171,7 +172,8 @@ class Dump_loader {
             m_file(std::move(file)),
             m_options(options),
             m_resume(resume),
-            m_bytes_to_skip(bytes_to_skip) {}
+            m_bytes_to_skip(bytes_to_skip),
+            m_partition(partition) {}
 
       size_t bytes_loaded = 0;
       size_t raw_bytes_loaded = 0;
@@ -184,6 +186,8 @@ class Dump_loader {
 
       ssize_t chunk_index() const { return m_chunk_index; }
 
+      const std::string &partition() const { return m_partition; }
+
      private:
       std::string query_comment() const;
 
@@ -192,6 +196,7 @@ class Dump_loader {
       shcore::Dictionary_t m_options;
       bool m_resume = false;
       uint64_t m_bytes_to_skip = 0;
+      std::string m_partition;
     };
 
     class Analyze_table_task : public Task {
@@ -235,6 +240,7 @@ class Dump_loader {
                            Load_progress_log::Status status);
 
     void load_chunk_file(const std::string &schema, const std::string &table,
+                         const std::string &partition,
                          std::unique_ptr<mysqlshdk::storage::IFile> file,
                          ssize_t chunk_index, size_t chunk_size,
                          const shcore::Dictionary_t &options, bool resuming,
@@ -312,7 +318,8 @@ class Dump_loader {
   void switch_schema(const std::string &schema, bool load_done);
 
   bool schedule_table_chunk(const std::string &schema, const std::string &table,
-                            ssize_t chunk_index, Worker *worker,
+                            const std::string &partition, ssize_t chunk_index,
+                            Worker *worker,
                             std::unique_ptr<mysqlshdk::storage::IFile> file,
                             size_t size, shcore::Dictionary_t options,
                             bool resuming, uint64_t bytes_to_skip);
@@ -353,16 +360,18 @@ class Dump_loader {
                         const std::function<void(std::string &&)> &fn);
 
   void on_chunk_load_start(const std::string &schema, const std::string &table,
-                           ssize_t index);
+                           const std::string &partition, ssize_t index);
   void on_chunk_load_end(const std::string &schema, const std::string &table,
-                         ssize_t index, size_t bytes_loaded,
-                         size_t raw_bytes_loaded);
+                         const std::string &partition, ssize_t index,
+                         size_t bytes_loaded, size_t raw_bytes_loaded);
 
   void on_subchunk_load_start(const std::string &schema,
-                              const std::string &table, ssize_t index,
+                              const std::string &table,
+                              const std::string &partition, ssize_t index,
                               uint64_t subchunk);
   void on_subchunk_load_end(const std::string &schema, const std::string &table,
-                            ssize_t index, uint64_t subchunk, uint64_t bytes);
+                            const std::string &partition, ssize_t index,
+                            uint64_t subchunk, uint64_t bytes);
 
   friend class Worker;
   friend class Worker::Table_ddl_task;

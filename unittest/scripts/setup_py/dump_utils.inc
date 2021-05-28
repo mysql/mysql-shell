@@ -1,4 +1,4 @@
-
+import urllib.parse
 
 def wipeout_server(session):
     session.run_sql("set foreign_key_checks=0")
@@ -201,6 +201,59 @@ def ignore_missing_pks(schema, table):
     error = f"Table '{schema}'.'{table}' does not have a Primary Key, which is required for High Availability in MDS"
     fixed = f"Table '{schema}'.'{table}' does not have a Primary Key, this is ignored"
     return Compatibility_issue(error, fixed)
+
+def urlencode_object_name(s):
+    ret = ""
+    for c in s:
+        if ord(c) <= 127:
+            ret += urllib.parse.quote(c)
+        else:
+            ret += c
+    return ret
+
+def truncate_basename(basename):
+    if len(basename) > 225:
+        # there are no names which would create the same truncated basename,
+        # always append "0" as ordinal number
+        return basename[:225] + "0"
+    else:
+        return basename
+
+# WL13807-FR8 - The base name of any schema-related file created during the dump must be in the form of `schema`, where:
+# * schema - percent-encoded name of the schema.
+# Only code points up to and including `U+007F` which are not Unreserved Characters (as specified in RFC3986) must be encoded, all remaining code points must not be encoded. If the length of base name exceeds `225` characters, it must be truncated to `225` characters and an ordinal number must be appended.
+# WL13807-TSFR8_1
+# WL13807-TSFR8_2
+def encode_schema_basename(schema):
+    return truncate_basename(urlencode_object_name(schema))
+
+# WL13807-FR7.1 - The base name of any file created during the dump must be in the format `schema@table`, where:
+# * `schema` - percent-encoded name of the schema which contains the table to be exported,
+# * `table` - percent-encoded name of the table to be exported.
+# Only code points up to and including `U+007F` which are not Unreserved Characters (as specified in RFC3986) must be encoded, all remaining code points must not be encoded. If the length of base name exceeds `225` characters, it must be truncated to `225` characters and an ordinal number must be appended.
+
+def encode_table_basename(schema, table):
+    return truncate_basename(urlencode_object_name(schema) + "@" + urlencode_object_name(table))
+
+def encode_partition_basename(schema, table, partition):
+    return truncate_basename(urlencode_object_name(schema) + "@" + urlencode_object_name(table) + "@" + urlencode_object_name(partition))
+
+def count_files_with_basename(directory, basename):
+    cnt = 0
+    for f in os.listdir(directory):
+        if f.startswith(basename):
+            cnt += 1
+    return cnt
+
+def has_file_with_basename(directory, basename):
+    return count_files_with_basename(directory, basename) > 0
+
+def count_files_with_extension(directory, ext):
+    cnt = 0
+    for f in os.listdir(directory):
+        if f.endswith(ext):
+            cnt += 1
+    return cnt
 
 # constants
 test_user = "sample_user"

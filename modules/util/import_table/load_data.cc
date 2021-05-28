@@ -550,8 +550,15 @@ void Load_data_worker::execute(
             : "CHARACTER SET " +
                   shcore::quote_sql_string(m_opt.character_set()) + " ";
 
+    const std::string partition =
+        m_opt.partition().empty()
+            ? ""
+            : "PARTITION (" + shcore::quote_identifier(m_opt.partition()) +
+                  ") ";
+
     std::string query_template = on_duplicate_rows + "INTO TABLE !.! " +
-                                 character_set + m_opt.dialect().build_sql();
+                                 partition + character_set +
+                                 m_opt.dialect().build_sql();
 
     const auto &decode_columns = m_opt.decode_columns();
 

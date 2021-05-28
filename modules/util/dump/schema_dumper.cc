@@ -25,7 +25,7 @@
 // Dump a table's contents and format to a text file.
 // Adapted from mysqldump.cc
 
-#define DUMP_VERSION "1.0.2"
+#define DUMP_VERSION "2.0.0"
 
 #include "include/mysh_config.h"
 

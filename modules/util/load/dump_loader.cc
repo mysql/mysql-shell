@@ -71,7 +71,7 @@ static constexpr const int k_mysql_server_net_read_timeout = 30 * 60;
 static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
 
 // the version of the dump we support in this code
-static constexpr const int k_supported_dump_version_major = 1;
+static constexpr const int k_supported_dump_version_major = 2;
 static constexpr const int k_supported_dump_version_minor = 0;
 
 // Multiplier for bytesPerChunk which determines how big a chunk can actually be
@@ -297,6 +297,13 @@ class Index_file {
 
   bool m_offsets_loaded = false;
 };
+
+std::string format_table(const std::string &schema, const std::string &table,
+                         const std::string &partition, ssize_t chunk) {
+  return "`" + schema + "`.`" + table + "`" +
+         (partition.empty() ? "" : " partition `" + partition + "`") +
+         " (chunk " + std::to_string(chunk) + ")";
+}
 
 }  // namespace
 
@@ -533,7 +540,10 @@ bool Dump_loader::Worker::Load_chunk_task::execute(
 std::string Dump_loader::Worker::Load_chunk_task::query_comment() const {
   std::string query_comment =
       "/* mysqlsh loadDump(), thread " + std::to_string(id()) + ", table " +
-      shcore::str_replace("`" + schema() + "`.`" + table() + "`", "*/", "*\\/");
+      shcore::str_replace(
+          "`" + schema() + "`.`" + table() + "`" +
+              (partition().empty() ? "" : ".`" + partition() + "`"),
+          "*/", "*\\/");
   if (chunk_index() >= 0) {
     query_comment += ", chunk ID: " + std::to_string(chunk_index());
   }
@@ -553,6 +563,8 @@ void Dump_loader::Worker::Load_chunk_task::load(
   import_options.set_replace_duplicates(true);
 
   import_options.set_base_session(session);
+
+  import_options.set_partition(partition());
 
   import_table::Stats stats;
   if (m_resume) {
@@ -579,7 +591,7 @@ void Dump_loader::Worker::Load_chunk_task::load(
 
   shcore::on_leave_scope cleanup([this, loader]() {
     std::lock_guard<std::mutex> lock(loader->m_tables_being_loaded_mutex);
-    auto key = schema_table_key(schema(), table());
+    auto key = partition_key(schema(), table(), partition());
     auto it = loader->m_tables_being_loaded.find(key);
     while (it != loader->m_tables_being_loaded.end() && it->first == key) {
       if (it->second == raw_bytes_loaded) {
@@ -921,11 +933,12 @@ void Dump_loader::Worker::fetch_object_ddl(
 
 void Dump_loader::Worker::load_chunk_file(
     const std::string &schema, const std::string &table,
+    const std::string &partition,
     std::unique_ptr<mysqlshdk::storage::IFile> file, ssize_t chunk_index,
     size_t chunk_size, const shcore::Dictionary_t &options, bool resuming,
     uint64_t bytes_to_skip) {
-  log_debug("Loading data for `%s`.`%s` (chunk %zi)", schema.c_str(),
-            table.c_str(), chunk_index);
+  log_debug("Loading data for %s",
+            format_table(schema, table, partition, chunk_index).c_str());
   assert(!schema.empty());
   assert(!table.empty());
   assert(file);
@@ -936,9 +949,9 @@ void Dump_loader::Worker::load_chunk_file(
   // schedule chunks based on the current conditions at the time each new
   // chunk needs to be scheduled.
 
-  m_task = std::make_unique<Load_chunk_task>(m_id, schema, table, chunk_index,
-                                             std::move(file), options, resuming,
-                                             bytes_to_skip);
+  m_task = std::make_unique<Load_chunk_task>(m_id, schema, table, partition,
+                                             chunk_index, std::move(file),
+                                             options, resuming, bytes_to_skip);
   static_cast<Load_chunk_task *>(m_task.get())->raw_bytes_loaded = chunk_size;
 
   m_work_ready.push(true);
@@ -1355,17 +1368,20 @@ bool Dump_loader::handle_table_data(Worker *worker) {
   std::unordered_multimap<std::string, size_t> tables_being_loaded;
   std::string schema;
   std::string table;
+  std::string partition;
   shcore::Dictionary_t options;
 
-  // Note: job scheduling should preferably load different tables per thread
+  // Note: job scheduling should preferably load different tables per thread,
+  //       each partition is treated as a different table
 
   do {
     {
       std::lock_guard<std::mutex> lock(m_tables_being_loaded_mutex);
       tables_being_loaded = m_tables_being_loaded;
     }
-    if (m_dump->next_table_chunk(tables_being_loaded, &schema, &table, &chunked,
-                                 &index, &total, &data_file, &size, &options)) {
+    if (m_dump->next_table_chunk(tables_being_loaded, &schema, &table,
+                                 &partition, &chunked, &index, &total,
+                                 &data_file, &size, &options)) {
       options->set("showProgress", m_options.show_progress()
                                        ? shcore::Value::True()
                                        : shcore::Value::False());
@@ -1376,10 +1392,12 @@ bool Dump_loader::handle_table_data(Worker *worker) {
       }
 
       const auto chunk = chunked ? index : -1;
-      auto status = m_load_log->table_chunk_status(schema, table, chunk);
+      auto status =
+          m_load_log->table_chunk_status(schema, table, partition, chunk);
 
-      log_debug("Table data for '%s'.'%s'/%zi (%s)", schema.c_str(),
-                table.c_str(), chunk, to_string(status).c_str());
+      log_debug("Table data for %s (%s)",
+                format_table(schema, table, partition, chunk).c_str(),
+                to_string(status).c_str());
 
       uint64_t bytes_to_skip = 0;
 
@@ -1388,26 +1406,29 @@ bool Dump_loader::handle_table_data(Worker *worker) {
       if (status == Load_progress_log::INTERRUPTED) {
         uint64_t subchunk = 0;
 
-        while (m_load_log->table_subchunk_status(
-                   schema, table, chunk, subchunk) == Load_progress_log::DONE) {
-          bytes_to_skip +=
-              m_load_log->table_subchunk_size(schema, table, chunk, subchunk);
+        while (m_load_log->table_subchunk_status(schema, table, partition,
+                                                 chunk, subchunk) ==
+               Load_progress_log::DONE) {
+          bytes_to_skip += m_load_log->table_subchunk_size(
+              schema, table, partition, chunk, subchunk);
           ++subchunk;
         }
 
         if (subchunk > 0) {
           log_debug(
-              "Loading table data for '%s'.'%s'/%zi was interrupted after "
+              "Loading table data for %s was interrupted after "
               "%" PRIu64 " subchunks were loaded, skipping %" PRIu64 " bytes",
-              schema.c_str(), table.c_str(), chunk, subchunk, bytes_to_skip);
+              format_table(schema, table, partition, chunk).c_str(), subchunk,
+              bytes_to_skip);
         }
       }
 
       if (m_options.load_data()) {
         if (status != Load_progress_log::DONE) {
           scheduled = schedule_table_chunk(
-              schema, table, chunk, worker, std::move(data_file), size, options,
-              status == Load_progress_log::INTERRUPTED, bytes_to_skip);
+              schema, table, partition, chunk, worker, std::move(data_file),
+              size, options, status == Load_progress_log::INTERRUPTED,
+              bytes_to_skip);
         }
       }
     } else {
@@ -1420,10 +1441,10 @@ bool Dump_loader::handle_table_data(Worker *worker) {
 }
 
 bool Dump_loader::schedule_table_chunk(
-    const std::string &schema, const std::string &table, ssize_t chunk_index,
-    Worker *worker, std::unique_ptr<mysqlshdk::storage::IFile> file,
-    size_t size, shcore::Dictionary_t options, bool resuming,
-    uint64_t bytes_to_skip) {
+    const std::string &schema, const std::string &table,
+    const std::string &partition, ssize_t chunk_index, Worker *worker,
+    std::unique_ptr<mysqlshdk::storage::IFile> file, size_t size,
+    shcore::Dictionary_t options, bool resuming, uint64_t bytes_to_skip) {
   if (m_skip_schemas.find(schema) != m_skip_schemas.end() ||
       m_skip_tables.find(schema_table_key(schema, table)) !=
           m_skip_tables.end() ||
@@ -1432,15 +1453,16 @@ bool Dump_loader::schedule_table_chunk(
 
   {
     std::lock_guard<std::mutex> lock(m_tables_being_loaded_mutex);
-    m_tables_being_loaded.emplace(schema_table_key(schema, table),
+    m_tables_being_loaded.emplace(partition_key(schema, table, partition),
                                   file->file_size());
   }
 
-  log_debug("Scheduling chunk for table %s.%s (%s) - worker%zi", schema.c_str(),
-            table.c_str(), file->full_path().c_str(), worker->id());
+  log_debug("Scheduling chunk for table %s (%s) - worker%zi",
+            format_table(schema, table, partition, chunk_index).c_str(),
+            file->full_path().c_str(), worker->id());
 
-  worker->load_chunk_file(schema, table, std::move(file), chunk_index, size,
-                          options, resuming, bytes_to_skip);
+  worker->load_chunk_file(schema, table, partition, std::move(file),
+                          chunk_index, size, options, resuming, bytes_to_skip);
 
   return true;
 }
@@ -1506,7 +1528,8 @@ size_t Dump_loader::handle_worker_events(
         auto task = static_cast<Worker::Load_chunk_task *>(
             event.worker->current_task());
 
-        on_chunk_load_start(task->schema(), task->table(), task->chunk_index());
+        on_chunk_load_start(task->schema(), task->table(), task->partition(),
+                            task->chunk_index());
         break;
       }
 
@@ -1514,8 +1537,9 @@ size_t Dump_loader::handle_worker_events(
         auto task = static_cast<Worker::Load_chunk_task *>(
             event.worker->current_task());
 
-        on_chunk_load_end(task->schema(), task->table(), task->chunk_index(),
-                          task->bytes_loaded, task->raw_bytes_loaded);
+        on_chunk_load_end(task->schema(), task->table(), task->partition(),
+                          task->chunk_index(), task->bytes_loaded,
+                          task->raw_bytes_loaded);
 
         event.event = Worker_event::READY;
         break;
@@ -1525,7 +1549,7 @@ size_t Dump_loader::handle_worker_events(
         const auto task = static_cast<Worker::Load_chunk_task *>(
             event.worker->current_task());
 
-        on_subchunk_load_start(task->schema(), task->table(),
+        on_subchunk_load_start(task->schema(), task->table(), task->partition(),
                                task->chunk_index(),
                                event.details->get_uint("subchunk"));
         break;
@@ -1535,7 +1559,8 @@ size_t Dump_loader::handle_worker_events(
         const auto task = static_cast<Worker::Load_chunk_task *>(
             event.worker->current_task());
 
-        on_subchunk_load_end(task->schema(), task->table(), task->chunk_index(),
+        on_subchunk_load_end(task->schema(), task->table(), task->partition(),
+                             task->chunk_index(),
                              event.details->get_uint("subchunk"),
                              event.details->get_uint("bytes"));
         break;
@@ -1629,9 +1654,15 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
     std::string schema;
     std::string table;
     if (m_options.load_deferred_indexes()) {
-      const auto load_finished = [this](const std::string &key) {
+      const auto load_finished = [this](const std::vector<std::string> &keys) {
         std::lock_guard<std::mutex> lock(m_tables_being_loaded_mutex);
-        return m_tables_being_loaded.find(key) == m_tables_being_loaded.end();
+        for (const auto &key : keys) {
+          if (m_tables_being_loaded.find(key) != m_tables_being_loaded.end()) {
+            return false;
+          }
+        }
+
+        return true;
       };
       std::vector<std::string> *indexes = nullptr;
       if (m_dump->next_deferred_index(&schema, &table, &indexes,
@@ -2671,35 +2702,42 @@ void Dump_loader::on_fetch_ddl_end(
 }
 
 void Dump_loader::on_chunk_load_start(const std::string &schema,
-                                      const std::string &table, ssize_t index) {
-  m_load_log->start_table_chunk(schema, table, index);
+                                      const std::string &table,
+                                      const std::string &partition,
+                                      ssize_t index) {
+  m_load_log->start_table_chunk(schema, table, partition, index);
 }
 
 void Dump_loader::on_chunk_load_end(const std::string &schema,
-                                    const std::string &table, ssize_t index,
+                                    const std::string &table,
+                                    const std::string &partition, ssize_t index,
                                     size_t bytes_loaded,
                                     size_t raw_bytes_loaded) {
-  m_load_log->end_table_chunk(schema, table, index, bytes_loaded,
+  m_load_log->end_table_chunk(schema, table, partition, index, bytes_loaded,
                               raw_bytes_loaded);
 
-  m_unique_tables_loaded.insert(schema_table_key(schema, table));
+  m_unique_tables_loaded.insert(partition_key(schema, table, partition));
 
-  log_debug("Ended loading chunk `%s`.`%s`/%s (%s, %s)", schema.c_str(),
-            table.c_str(), std::to_string(index).c_str(),
+  log_debug("Ended loading chunk %s (%s, %s)",
+            format_table(schema, table, partition, index).c_str(),
             std::to_string(bytes_loaded).c_str(),
             std::to_string(raw_bytes_loaded).c_str());
 }
 
 void Dump_loader::on_subchunk_load_start(const std::string &schema,
                                          const std::string &table,
+                                         const std::string &partition,
                                          ssize_t index, uint64_t subchunk) {
-  m_load_log->start_table_subchunk(schema, table, index, subchunk);
+  m_load_log->start_table_subchunk(schema, table, partition, index, subchunk);
 }
 
 void Dump_loader::on_subchunk_load_end(const std::string &schema,
-                                       const std::string &table, ssize_t index,
-                                       uint64_t subchunk, uint64_t bytes) {
-  m_load_log->end_table_subchunk(schema, table, index, subchunk, bytes);
+                                       const std::string &table,
+                                       const std::string &partition,
+                                       ssize_t index, uint64_t subchunk,
+                                       uint64_t bytes) {
+  m_load_log->end_table_subchunk(schema, table, partition, index, subchunk,
+                                 bytes);
 }
 
 void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {

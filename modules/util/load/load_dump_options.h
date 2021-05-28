@@ -50,6 +50,13 @@ inline std::string schema_table_key(const std::string &schema,
          shcore::quote_identifier(table);
 }
 
+inline std::string partition_key(const std::string &schema,
+                                 const std::string &table,
+                                 const std::string &partition) {
+  return schema_table_key(schema, table) +
+         (partition.empty() ? "" : "." + shcore::quote_identifier(partition));
+}
+
 class Load_dump_options {
  public:
   using Connection_options = mysqlshdk::db::Connection_options;

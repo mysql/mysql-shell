@@ -97,6 +97,10 @@ class Import_table_option_pack {
 
   const std::string &schema() const { return m_schema; }
 
+  const std::string &partition() const { return m_partition; }
+
+  void set_partition(const std::string &partition) { m_partition = partition; }
+
   const std::string &character_set() const { return m_character_set; }
 
   size_t file_size() const { return m_file_size; }
@@ -125,6 +129,7 @@ class Import_table_option_pack {
   size_t m_file_size;
   std::string m_table;
   std::string m_schema;
+  std::string m_partition;
   std::string m_character_set;
   int64_t m_threads_size = 8;
   std::string m_bytes_per_chunk;

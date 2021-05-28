@@ -325,7 +325,7 @@ class Dumper::Table_worker final {
     const auto base64 = m_dumper->m_options.use_base64();
     std::string query = "SELECT SQL_NO_CACHE ";
 
-    for (const auto &column : table.cache->columns) {
+    for (const auto &column : table.info->columns) {
       if (column->csv_unsafe) {
         query += (base64 ? "TO_BASE64(" : "HEX(") + column->quoted_name + ")";
 
@@ -346,10 +346,14 @@ class Dumper::Table_worker final {
 
     query += " FROM " + table.quoted_name;
 
+    if (table.partition) {
+      query += " PARTITION (" + table.partition->quoted_name + ")";
+    }
+
     query += where(table.where);
 
-    if (table.cache->index.valid()) {
-      query += " ORDER BY " + table.cache->index.columns_sql();
+    if (table.info->index.valid()) {
+      query += " ORDER BY " + table.info->index.columns_sql();
     }
 
     query += " " + m_dumper->get_query_comment(table, "dumping");
@@ -371,7 +375,7 @@ class Dumper::Table_worker final {
     std::vector<Dump_writer::Encoding_type> pre_encoded_columns;
 
     log_debug("Dumping %s (chunk %s) using condition: %s",
-              table.quoted_name.c_str(), table.id.c_str(), table.where.c_str());
+              table.task_name.c_str(), table.id.c_str(), table.where.c_str());
 
     timer.stage_begin("dumping");
 
@@ -455,7 +459,7 @@ class Dumper::Table_worker final {
 
     log_info("Dump of %s into '%s' (chunk %s) took %f seconds, written %" PRIu64
              " rows (%" PRIu64 " bytes), longest row has %" PRIu64 " bytes",
-             table.quoted_name.c_str(),
+             table.task_name.c_str(),
              table.writer->output()->full_path().c_str(), table.id.c_str(),
              timer.total_seconds_elapsed(), rows_written_per_file,
              bytes_written_per_file.data_bytes(), max_row_size);
@@ -475,7 +479,7 @@ class Dumper::Table_worker final {
   }
 
   void push_table_data_task(Table_data_task &&task) {
-    std::string info = "dumping " + task.quoted_name;
+    std::string info = "dumping " + task.task_name;
     // Table_data_task contains an unique_ptr, it's moved into shared_ptr and
     // then move-captured by lambda, so that this lambda can be stored,
     // otherwise compiler will complain about a call to implicitly-deleted
@@ -497,10 +501,12 @@ class Dumper::Table_worker final {
                                          const std::string &filename) {
     Table_data_task data_task;
 
+    data_task.task_name = table.task_name;
     data_task.name = table.name;
     data_task.quoted_name = table.quoted_name;
     data_task.schema = table.schema;
-    data_task.cache = table.cache;
+    data_task.info = table.info;
+    data_task.partition = table.partition;
     data_task.writer = m_dumper->get_table_data_writer(filename);
 
     if (!m_dumper->m_options.is_export_only()) {
@@ -528,10 +534,13 @@ class Dumper::Table_worker final {
         m_dumper->get_table_data_filename(table.basename, idx, last_chunk));
 
     data_task.id = id;
-    data_task.where = "(" + where + ")";
+
+    if (!where.empty()) {
+      data_task.where = "(" + where + ")";
+    }
 
     if (0 == idx) {
-      for (const auto &c : table.cache->index.columns()) {
+      for (const auto &c : table.info->index.columns()) {
         if (c->nullable) {
           data_task.where += "OR(" + c->quoted_name + " IS NULL)";
         }
@@ -554,7 +563,7 @@ class Dumper::Table_worker final {
     }
 
     current_console()->print_status(
-        "Data dump for table " + table.quoted_name + " will be written to " +
+        "Data dump for table " + table.task_name + " will be written to " +
         std::to_string(ranges) + " file" + (ranges > 1 ? "s" : ""));
 
     m_dumper->chunking_task_finished();
@@ -568,9 +577,11 @@ class Dumper::Table_worker final {
 
   struct Chunking_info {
     const Table_task *table;
+    uint64_t row_count;
     uint64_t rows_per_chunk;
     uint64_t accuracy;
     int explain_rows_idx;
+    std::string partition;
     std::string where;
     std::string order_by;
     std::size_t index_column;
@@ -578,7 +589,7 @@ class Dumper::Table_worker final {
 
   static std::string compare(const Chunking_info &info, const Row &value,
                              const std::string &op, bool eq) {
-    const auto &columns = info.table->cache->index.columns();
+    const auto &columns = info.table->info->index.columns();
     const auto size = columns.size() - info.index_column;
 
     assert(size == value.size());
@@ -642,7 +653,7 @@ class Dumper::Table_worker final {
     }
 
     return result +
-           between(info.table->cache->index.columns()[info.index_column]
+           between(info.table->info->index.columns()[info.index_column]
                        ->quoted_name,
                    begin, end);
   }
@@ -681,7 +692,8 @@ class Dumper::Table_worker final {
                                                    const auto end) {
       return m_session
           ->query("EXPLAIN SELECT COUNT(*) FROM " + info.table->quoted_name +
-                  where(between(info, begin, end)) + info.order_by + comment)
+                  info.partition + where(between(info, begin, end)) +
+                  info.order_by + comment)
           ->fetch_one_or_throw()
           ->get_uint(info.explain_rows_idx);
     };
@@ -769,12 +781,10 @@ class Dumper::Table_worker final {
     // size, which means we # chunks ~= # rows
     const auto estimated_chunks =
         info.rows_per_chunk > 0
-            ? std::max(info.table->cache->row_count / info.rows_per_chunk,
-                       UINT64_C(1))
-            : info.table->cache->row_count;
+            ? std::max(info.row_count / info.rows_per_chunk, UINT64_C(1))
+            : info.row_count;
     const auto index_range = static_cast<uint64_t>(max - min);
-    const auto row_count_accuracy =
-        std::max(info.table->cache->row_count / 10, UINT64_C(10));
+    const auto row_count_accuracy = std::max(info.row_count / 10, UINT64_C(10));
     // it should be (max - min + 1), but this can potentially overflow and `+ 1`
     // is not significant, as the result is divided anyway
     const auto estimated_step =
@@ -786,10 +796,9 @@ class Dumper::Table_worker final {
     // use constant step if number of chunks is small or index range is close to
     // the number of rows
     const bool use_constant_step =
-        estimated_chunks < 2 ||
-        std::max(index_range, info.table->cache->row_count) -
-                std::min(index_range, info.table->cache->row_count) <=
-            row_count_accuracy;
+        estimated_chunks < 2 || std::max(index_range, info.row_count) -
+                                        std::min(index_range, info.row_count) <=
+                                    row_count_accuracy;
 
     const auto next_step =
         use_constant_step
@@ -810,7 +819,7 @@ class Dumper::Table_worker final {
                           : std::numeric_limits<step_t>::max();
 
     log_info("Chunking %s using integer algorithm with %s step",
-             info.table->quoted_name.c_str(),
+             info.table->task_name.c_str(),
              use_constant_step ? "constant" : "adaptive");
 
     while (true) {
@@ -855,10 +864,10 @@ class Dumper::Table_worker final {
   std::size_t chunk_integer_column(const Chunking_info &info, const Row &begin,
                                    const Row &end) {
     log_info("Chunking %s using integer algorithm",
-             info.table->quoted_name.c_str());
+             info.table->task_name.c_str());
 
     const auto type =
-        info.table->cache->index.columns()[info.index_column]->type;
+        info.table->info->index.columns()[info.index_column]->type;
 
     if (mysqlshdk::db::Type::Integer == type) {
       return chunk_integer_column(info, to_int64_t(begin[info.index_column]),
@@ -876,20 +885,20 @@ class Dumper::Table_worker final {
   std::size_t chunk_non_integer_column(const Chunking_info &info,
                                        const Row &begin, const Row &end) {
     log_info("Chunking %s using non-integer algorithm",
-             info.table->quoted_name.c_str());
+             info.table->task_name.c_str());
 
     std::size_t ranges_count = 0;
 
     Row range_begin = begin;
     Row range_end;
 
-    const auto &columns = info.table->cache->index.columns();
+    const auto &columns = info.table->info->index.columns();
     const auto index =
         shcore::str_join(columns.begin() + info.index_column, columns.end(),
                          ",", [](const auto &c) { return c->quoted_name; });
 
     const auto select = "SELECT SQL_NO_CACHE " + index + " FROM " +
-                        info.table->quoted_name + " ";
+                        info.table->quoted_name + info.partition + " ";
     const auto order_by_and_limit = info.order_by + " LIMIT " +
                                     std::to_string(info.rows_per_chunk - 1) +
                                     ",2 ";
@@ -927,15 +936,20 @@ class Dumper::Table_worker final {
   }
 
   std::size_t chunk_column(const Chunking_info &info) {
-    const auto query = "SELECT SQL_NO_CACHE " +
-                       info.table->cache->index.columns_sql() + " FROM " +
-                       info.table->quoted_name + where(info.where);
+    const auto query =
+        "SELECT SQL_NO_CACHE " + info.table->info->index.columns_sql() +
+        " FROM " + info.table->quoted_name + info.partition + where(info.where);
 
     auto result = m_session->query(query + info.order_by + " LIMIT 1");
     auto row = result->fetch_one();
 
+    const auto handle_empty_table = [&info, this]() {
+      create_and_push_table_data_task(*info.table, info.where, "0", 0, true);
+      return 1;
+    };
+
     if (!row) {
-      return 0;
+      return handle_empty_table();
     }
 
     const Row begin = fetch_row(row);
@@ -948,17 +962,17 @@ class Dumper::Table_worker final {
     row = result->fetch_one();
 
     if (!row) {
-      return 0;
+      return handle_empty_table();
     }
 
     const Row end = fetch_row(row);
 
     const auto type =
-        info.table->cache->index.columns()[info.index_column]->type;
+        info.table->info->index.columns()[info.index_column]->type;
 
     log_info("Chunking %s, using columns: %s, min: [%s], max: [%s]",
-             info.table->quoted_name.c_str(),
-             shcore::str_join(info.table->cache->index.columns(), ", ",
+             info.table->task_name.c_str(),
+             shcore::str_join(info.table->info->index.columns(), ", ",
                               [](const auto &c) {
                                 return c->quoted_name + " (" +
                                        mysqlshdk::db::to_string(c->type) + ")";
@@ -983,31 +997,48 @@ class Dumper::Table_worker final {
     mysqlshdk::utils::Profile_timer timer;
     timer.stage_begin("chunking");
 
+    const auto &task_name = table.task_name;
+
     // default row size to use when there's no known row size
     constexpr const uint64_t k_default_row_size = 256;
 
-    auto average_row_length = table.cache->average_row_length;
+    auto average_row_length = table.partition
+                                  ? table.partition->average_row_length
+                                  : table.info->average_row_length;
 
     if (0 == average_row_length) {
       average_row_length = k_default_row_size;
 
-      const auto &quoted = table.quoted_name;
-      current_console()->print_note("Table statistics not available for " +
-                                    quoted +
-                                    ", chunking operation may be not optimal. "
-                                    "Please consider running 'ANALYZE TABLE " +
-                                    quoted + ";' first.");
+      auto msg = "Table statistics not available for " + task_name +
+                 ", chunking operation may be not optimal. "
+                 "Please consider running 'ANALYZE TABLE " +
+                 table.quoted_name + ";'";
+
+      if (table.partition) {
+        msg += " or 'ALTER TABLE " + table.quoted_name + " ANALYZE PARTITION " +
+               table.partition->quoted_name + ";'";
+      }
+
+      msg += " first.";
+
+      current_console()->print_note(msg);
     }
 
     Chunking_info info;
 
     info.table = &table;
+    info.row_count =
+        table.partition ? table.partition->row_count : table.info->row_count;
     info.rows_per_chunk =
         m_dumper->m_options.bytes_per_chunk() / average_row_length;
     info.accuracy = std::max(info.rows_per_chunk / 10, UINT64_C(10));
     info.explain_rows_idx = m_dumper->m_cache.server_is_5_6 ? 8 : 9;
 
-    for (const auto &c : table.cache->index.columns()) {
+    info.partition = table.partition
+                         ? " PARTITION (" + table.partition->quoted_name + ")"
+                         : "";
+
+    for (const auto &c : table.info->index.columns()) {
       if (c->nullable) {
         if (!info.where.empty()) {
           info.where += "AND";
@@ -1017,18 +1048,18 @@ class Dumper::Table_worker final {
       }
     }
 
-    info.order_by = " ORDER BY " + table.cache->index.columns_sql();
+    info.order_by = " ORDER BY " + table.info->index.columns_sql();
     info.index_column = 0;
 
     log_info("Chunking %s, rows: %" PRIu64 ", average row length: %" PRIu64
              ", rows per chunk: %" PRIu64,
-             info.table->quoted_name.c_str(), info.table->cache->row_count,
-             average_row_length, info.rows_per_chunk);
+             task_name.c_str(), info.row_count, average_row_length,
+             info.rows_per_chunk);
 
     const auto ranges_count = chunk_column(info);
 
     timer.stage_end();
-    log_debug("Chunking of %s took %f seconds", table.quoted_name.c_str(),
+    log_debug("Chunking of %s took %f seconds", task_name.c_str(),
               timer.total_seconds_elapsed());
 
     return ranges_count;
@@ -1092,7 +1123,7 @@ class Dumper::Table_worker final {
 
   std::string get_query_comment(const Table_task &table,
                                 const std::string &id) const {
-    return m_dumper->get_query_comment(table.quoted_name, id, "chunking");
+    return m_dumper->get_query_comment(table.task_name, id, "chunking");
   }
 
   const std::size_t m_id;
@@ -1861,7 +1892,16 @@ void Dumper::create_schema_tasks() {
       table.quoted_name = quote(schema.name, table.name);
       table.basename =
           get_basename(encode_table_basename(schema.name, table.name));
-      table.cache = &t.second;
+      table.info = &t.second;
+
+      for (const auto &p : t.second.partitions) {
+        Partition_info partition;
+        partition.info = &p;
+        partition.basename = get_basename(
+            encode_partition_basename(schema.name, table.name, p.name));
+
+        table.partitions.emplace_back(std::move(partition));
+      }
 
       schema.tables.emplace_back(std::move(table));
     }
@@ -2017,7 +2057,7 @@ void Dumper::initialize_counters() {
     m_total_views += schema.views.size();
 
     for (auto &table : schema.tables) {
-      m_total_rows += table.cache->row_count;
+      m_total_rows += table.info->row_count;
     }
   }
 }
@@ -2288,30 +2328,31 @@ void Dumper::create_table_tasks() {
 Dumper::Table_task Dumper::create_table_task(const Schema_info &schema,
                                              const Table_info &table) {
   Table_task task;
+  task.task_name = table.quoted_name;
   task.name = table.name;
   task.quoted_name = table.quoted_name;
   task.schema = schema.name;
   task.basename = table.basename;
-  task.cache = table.cache;
+  task.info = table.info;
+  task.partitions = table.partitions;
 
-  on_create_table_task(task.schema, task.name, task.cache);
+  on_create_table_task(task.schema, task.name, task.info);
 
   return task;
 }
 
 void Dumper::push_table_task(Table_task &&task) {
-  const auto &quoted_name = task.quoted_name;
+  const auto &task_name = task.task_name;
 
   if (!should_dump_data(task)) {
     current_console()->print_warning("Skipping data dump for table " +
-                                     quoted_name);
+                                     task_name);
     return;
   }
 
-  current_console()->print_status("Preparing data dump for table " +
-                                  quoted_name);
+  current_console()->print_status("Preparing data dump for table " + task_name);
 
-  const auto &index = task.cache->index;
+  const auto &index = task.info->index;
 
   const auto get_index = [&index]() {
     return std::string{"column"} + (index.columns().size() > 1 ? "s" : "") +
@@ -2322,16 +2363,16 @@ void Dumper::push_table_task(Table_task &&task) {
     if (!index.valid()) {
       current_console()->print_note(
           "Could not select columns to be used as an index for table " +
-          quoted_name +
+          task_name +
           ". Chunking has been disabled for this table, data will be dumped to "
           "a single file.");
     } else {
-      current_console()->print_status("Data dump for table " + quoted_name +
+      current_console()->print_status("Data dump for table " + task_name +
                                       " will be chunked using " + get_index());
     }
   } else {
     current_console()->print_status(
-        "Data dump for table " + quoted_name +
+        "Data dump for table " + task_name +
         (!index.valid() ? " will not use an index"
                         : " will use " + get_index() + " as an index"));
   }
@@ -2340,9 +2381,26 @@ void Dumper::push_table_task(Table_task &&task) {
     return;
   }
 
+  if (m_options.is_export_only() || task.partitions.empty()) {
+    push_table_chunking_task(std::move(task));
+  } else {
+    for (const auto &partition : task.partitions) {
+      auto copy = task;
+
+      copy.task_name =
+          task.task_name + " partition " + partition.info->quoted_name;
+      copy.basename = partition.basename;
+      copy.partition = partition.info;
+
+      push_table_chunking_task(std::move(copy));
+    }
+  }
+}
+
+void Dumper::push_table_chunking_task(Table_task &&task) {
   ++m_chunking_tasks;
 
-  std::string info = "chunking " + task.quoted_name;
+  std::string info = "chunking " + task.task_name;
   m_worker_tasks.push({std::move(info),
                        [task = std::move(task)](Table_worker *worker) {
                          ++worker->m_dumper->m_num_threads_chunking;
@@ -2715,7 +2773,7 @@ void Dumper::write_table_metadata(
     Value cols{Type::kArrayType};
     Value decode{Type::kObjectType};
 
-    for (const auto &c : table.cache->columns) {
+    for (const auto &c : table.info->columns) {
       cols.PushBack(refs(c->name), a);
 
       if (c->csv_unsafe) {
@@ -2730,13 +2788,6 @@ void Dumper::write_table_metadata(
     if (!decode.ObjectEmpty()) {
       options.AddMember(StringRef("decodeColumns"), std::move(decode), a);
     }
-
-    // backward compatibility - remove when major version of dumper is changed
-    options.AddMember(StringRef("primaryIndex"),
-                      table.cache->index.primary()
-                          ? refs(table.cache->index.columns()[0]->name)
-                          : StringRef(""),
-                      a);
 
     options.AddMember(StringRef("defaultCharacterSet"),
                       refs(m_options.character_set()), a);
@@ -2799,13 +2850,36 @@ void Dumper::write_table_metadata(
   {
     Value primary{Type::kArrayType};
 
-    if (table.cache->index.primary()) {
-      for (const auto &column : table.cache->index.columns()) {
+    if (table.info->index.primary()) {
+      for (const auto &column : table.info->index.columns()) {
         primary.PushBack(refs(column->name), a);
       }
     }
 
     doc.AddMember(StringRef("primaryIndex"), std::move(primary), a);
+  }
+
+  {
+    // list of partitions
+    Value partitions{Type::kArrayType};
+
+    for (const auto &partition : table.partitions) {
+      partitions.PushBack(refs(partition.info->name), a);
+    }
+
+    doc.AddMember(StringRef("partitions"), std::move(partitions), a);
+  }
+
+  {
+    // map of partition basenames
+    Value basenames{Type::kObjectType};
+
+    for (const auto &partition : table.partitions) {
+      basenames.AddMember(refs(partition.info->name), refs(partition.basename),
+                          a);
+    }
+
+    doc.AddMember(StringRef("basenames"), std::move(basenames), a);
   }
 
   write_json(make_file(dump::get_table_data_filename(table.basename, "json")),
@@ -3086,11 +3160,11 @@ std::string Dumper::get_query_comment(const std::string &quoted_name,
 
 std::string Dumper::get_query_comment(const Table_data_task &task,
                                       const char *context) const {
-  return get_query_comment(task.quoted_name, task.id, context);
+  return get_query_comment(task.task_name, task.id, context);
 }
 
 bool Dumper::is_chunked(const Table_task &task) const {
-  return m_options.split() && task.cache->index.valid();
+  return m_options.split() && task.info->index.valid();
 }
 
 bool Dumper::should_dump_data(const Table_task &table) {

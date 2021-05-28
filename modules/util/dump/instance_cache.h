@@ -89,6 +89,13 @@ struct Instance_cache {
     std::size_t buckets = 0;
   };
 
+  struct Partition {
+    std::string name;
+    std::string quoted_name;
+    uint64_t row_count = 0;
+    uint64_t average_row_length = 0;
+  };
+
   struct Table {
     uint64_t row_count = 0;
     uint64_t average_row_length = 0;
@@ -100,6 +107,7 @@ struct Instance_cache {
     std::vector<Column> all_columns;
     std::vector<Histogram> histograms;
     std::vector<std::string> triggers;  // order of triggers is important
+    std::vector<Partition> partitions;
   };
 
   struct View {
@@ -210,6 +218,8 @@ class Instance_cache_builder final {
   void fetch_table_indexes();
 
   void fetch_table_histograms();
+
+  void fetch_table_partitions();
 
   void iterate_schemas(
       const Iterate_schema &info,

@@ -131,8 +131,9 @@ class Dump_reader {
 
   bool next_table_chunk(
       const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
-      std::string *out_schema, std::string *out_table, bool *out_chunked,
-      size_t *out_chunk_index, size_t *out_chunks_total,
+      std::string *out_schema, std::string *out_table,
+      std::string *out_partition, bool *out_chunked, size_t *out_chunk_index,
+      size_t *out_chunks_total,
       std::unique_ptr<mysqlshdk::storage::IFile> *out_file,
       size_t *out_chunk_size, shcore::Dictionary_t *out_options);
 
@@ -144,7 +145,8 @@ class Dump_reader {
   bool next_deferred_index(
       std::string *out_schema, std::string *out_table,
       std::vector<std::string> **out_indexes,
-      const std::function<bool(const std::string &)> &load_finished);
+      const std::function<bool(const std::vector<std::string> &)>
+          &load_finished);
 
   bool next_table_analyze(std::string *out_schema, std::string *out_table,
                           std::vector<Histogram> *out_histograms);
@@ -216,38 +218,22 @@ class Dump_reader {
     bool sql_pre_seen = false;
   };
 
-  struct Table_info {
-    std::string schema;
-    std::string table;
+  struct Table_info;
 
+  struct Table_data_info {
+    Table_info *owner = nullptr;
+
+    std::string partition;
     std::string basename;
-
-    std::vector<std::string> primary_index;
-
-    bool has_sql = true;
-    bool has_data = true;
-
-    volatile bool md_done = false;
-    bool sql_seen = false;
-
-    shcore::Dictionary_t options = nullptr;
-    std::vector<std::string> indexes;
-    bool indexes_done = true;
-    std::vector<Histogram> histograms;
-    bool analyze_done = false;
-
     std::string extension;
 
+    bool has_data = true;
     bool chunked = false;
     bool last_chunk_seen = false;
-    bool has_triggers = false;
 
     size_t num_chunks = 0;
     std::vector<ssize_t> available_chunk_sizes;
     size_t chunks_consumed = 0;
-
-    std::string script_name() const;
-    std::string triggers_script_name() const;
 
     bool has_data_available() const {
       return chunks_consumed < available_chunk_sizes.size() &&
@@ -269,15 +255,42 @@ class Dump_reader {
       return !has_data || (last_chunk_seen && chunks_consumed == num_chunks);
     }
 
+    void rescan_data(mysqlshdk::storage::IDirectory *dir,
+                     const std::unordered_map<std::string, size_t> &files,
+                     Dump_reader *reader);
+  };
+
+  struct Table_info {
+    std::string schema;
+    std::string table;
+
+    std::string basename;
+
+    std::vector<std::string> primary_index;
+
+    bool has_sql = true;
+    volatile bool md_done = false;
+    bool sql_seen = false;
+
+    shcore::Dictionary_t options = nullptr;
+    std::vector<std::string> indexes;
+    bool indexes_done = true;
+    std::vector<Histogram> histograms;
+    bool analyze_done = false;
+    bool has_triggers = false;
+
+    std::vector<Table_data_info> data_info;
+
+    std::string script_name() const;
+    std::string triggers_script_name() const;
+
     bool ready() const;
 
     void rescan(mysqlshdk::storage::IDirectory *dir,
                 const std::unordered_map<std::string, size_t> &files,
                 Dump_reader *reader);
 
-    void rescan_data(mysqlshdk::storage::IDirectory *dir,
-                     const std::unordered_map<std::string, size_t> &files,
-                     Dump_reader *reader);
+    bool all_data_done() const;
   };
 
   struct Schema_info {
@@ -371,12 +384,12 @@ class Dump_reader {
   Dump_info m_contents;
 
   // Tables that are ready to be loaded
-  std::unordered_set<Table_info *> m_tables_with_data;
+  std::unordered_set<Table_data_info *> m_tables_with_data;
 
-  static std::unordered_set<Dump_reader::Table_info *>::iterator
+  static std::unordered_set<Dump_reader::Table_data_info *>::iterator
   schedule_chunk_proportionally(
       const std::unordered_multimap<std::string, size_t> &tables_being_loaded,
-      std::unordered_set<Dump_reader::Table_info *> *tables_with_data);
+      std::unordered_set<Dump_reader::Table_data_info *> *tables_with_data);
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Dump_scheduler, load_scheduler);

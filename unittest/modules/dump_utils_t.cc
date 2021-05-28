@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -125,18 +125,25 @@ class Dump_scheduler : public ::testing::Test {
     info.schema = "myschema";
     info.table = name;
     info.basename = info.table;
-    info.extension = "csv";
-    info.last_chunk_seen = true;
+    info.data_info.emplace_back();
 
-    info.chunked = chunks > 0;
-    info.num_chunks = chunks > 0 ? chunks : 1;
+    auto &di = info.data_info.back();
 
-    while (info.available_chunk_sizes.size() < info.num_chunks) {
+    // di.owner will be set by test_scheduling()
+
+    di.basename = info.basename;
+    di.extension = "csv";
+    di.last_chunk_seen = true;
+
+    di.chunked = chunks > 0;
+    di.num_chunks = chunks > 0 ? chunks : 1;
+
+    while (di.available_chunk_sizes.size() < di.num_chunks) {
       size_t size = min_chunk_size + rand() % size_variation;
-      if (size > 0) info.available_chunk_sizes.push_back(size);
+      if (size > 0) di.available_chunk_sizes.push_back(size);
     }
 
-    assert(info.has_data_available());
+    assert(di.has_data_available());
 
     return info;
   }
@@ -148,11 +155,14 @@ class Dump_scheduler : public ::testing::Test {
     std::vector<std::string> schedule_order;
 
     std::unordered_multimap<std::string, size_t> tables_being_loaded;
-    std::unordered_set<Dump_reader::Table_info *> tables_with_data;
+    std::unordered_set<Dump_reader::Table_data_info *> tables_with_data;
 
     auto copy = tables;
     for (auto &t : copy) {
-      tables_with_data.insert(&t);
+      for (auto &di : t.data_info) {
+        di.owner = &t;
+        tables_with_data.insert(&di);
+      }
     }
 
     auto schedule_one = [&](std::string *out_table, std::string *out_file,
@@ -160,7 +170,8 @@ class Dump_scheduler : public ::testing::Test {
       auto iter = f(tables_being_loaded, &tables_with_data);
 
       if (iter != tables_with_data.end()) {
-        *out_table = schema_table_key((*iter)->schema, (*iter)->table);
+        *out_table = partition_key((*iter)->owner->schema,
+                                   (*iter)->owner->table, (*iter)->partition);
 
         size_t chunk_index;
         size_t chunks_total;
@@ -213,7 +224,7 @@ class Dump_scheduler : public ::testing::Test {
 
       std::cout << "\nTables with data:\n";
       for (auto t : tables_with_data) {
-        std::cout << t->schema << "." << t->table << "\t"
+        std::cout << t->owner->schema << "." << t->owner->table << "\t"
                   << t->bytes_available() << "\n";
       }
       std::cout << "\n";
@@ -257,7 +268,8 @@ class Dump_scheduler : public ::testing::Test {
         // std::cout << "Proportion per table:\n";
         // check that all pending tables are scheduled
         for (auto tbl : old_tables_with_data) {
-          auto table_key = schema_table_key(tbl->schema, tbl->table);
+          auto table_key = partition_key(tbl->owner->schema, tbl->owner->table,
+                                         tbl->partition);
           if (std::count_if(threads.begin(), threads.end(),
                             [&](const Thread &thd) {
                               return thd.table == table_key;

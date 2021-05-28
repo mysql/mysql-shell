@@ -98,6 +98,9 @@ class Load_progress_log final {
                 if (entry->has_key("table"))
                   key += ":`" + entry->get_string("table") + "`";
 
+                if (entry->has_key("partition"))
+                  key += ":`" + entry->get_string("partition") + "`";
+
                 if (entry->has_key("chunk"))
                   key += ":" + std::to_string(entry->get_int("chunk"));
 
@@ -195,27 +198,30 @@ class Load_progress_log final {
   }
 
   Status table_chunk_status(const std::string &schema, const std::string &table,
-                            ssize_t chunk) const {
+                            const std::string &partition, ssize_t chunk) const {
     auto it = m_last_state.find("TABLE-DATA:`" + schema + "`:`" + table +
+                                (partition.empty() ? "" : "`:`" + partition) +
                                 "`:" + std::to_string(chunk));
     if (it == m_last_state.end()) return Status::PENDING;
     return it->second.status;
   }
 
   Status table_subchunk_status(const std::string &schema,
-                               const std::string &table, ssize_t chunk,
+                               const std::string &table,
+                               const std::string &partition, ssize_t chunk,
                                uint64_t subchunk) const {
-    auto it =
-        m_last_state.find(encode_subchunk(schema, table, chunk, subchunk));
+    auto it = m_last_state.find(
+        encode_subchunk(schema, table, partition, chunk, subchunk));
     if (it == m_last_state.end()) return Status::PENDING;
     return it->second.status;
   }
 
   uint64_t table_subchunk_size(const std::string &schema,
-                               const std::string &table, ssize_t chunk,
+                               const std::string &table,
+                               const std::string &partition, ssize_t chunk,
                                uint64_t subchunk) const {
-    auto it =
-        m_last_state.find(encode_subchunk(schema, table, chunk, subchunk));
+    auto it = m_last_state.find(
+        encode_subchunk(schema, table, partition, chunk, subchunk));
     if (it == m_last_state.end()) return 0;
     return it->second.details->get_uint("transaction_bytes");
   }
@@ -258,28 +264,34 @@ class Load_progress_log final {
   }
 
   void start_table_chunk(const std::string &schema, const std::string &table,
-                         ssize_t index) {
-    if (table_chunk_status(schema, table, index) != Status::DONE)
-      log_chunk_started(schema, table, index);
+                         const std::string &partition, ssize_t index) {
+    if (table_chunk_status(schema, table, partition, index) != Status::DONE)
+      log_chunk_started(schema, table, partition, index);
   }
 
   void end_table_chunk(const std::string &schema, const std::string &table,
-                       ssize_t index, size_t bytes_loaded,
-                       size_t raw_bytes_loaded) {
-    if (table_chunk_status(schema, table, index) != Status::DONE)
-      log_chunk_finished(schema, table, index, bytes_loaded, raw_bytes_loaded);
+                       const std::string &partition, ssize_t index,
+                       size_t bytes_loaded, size_t raw_bytes_loaded) {
+    if (table_chunk_status(schema, table, partition, index) != Status::DONE)
+      log_chunk_finished(schema, table, partition, index, bytes_loaded,
+                         raw_bytes_loaded);
   }
 
   void start_table_subchunk(const std::string &schema, const std::string &table,
-                            ssize_t index, uint64_t subchunk) {
-    if (table_subchunk_status(schema, table, index, subchunk) != Status::DONE) {
-      log_subchunk_started(schema, table, index, subchunk);
+                            const std::string &partition, ssize_t index,
+                            uint64_t subchunk) {
+    if (table_subchunk_status(schema, table, partition, index, subchunk) !=
+        Status::DONE) {
+      log_subchunk_started(schema, table, partition, index, subchunk);
     }
   }
+
   void end_table_subchunk(const std::string &schema, const std::string &table,
-                          ssize_t index, uint64_t subchunk, uint64_t bytes) {
-    if (table_subchunk_status(schema, table, index, subchunk) != Status::DONE) {
-      log_subchunk_finished(schema, table, index, subchunk, bytes);
+                          const std::string &partition, ssize_t index,
+                          uint64_t subchunk, uint64_t bytes) {
+    if (table_subchunk_status(schema, table, partition, index, subchunk) !=
+        Status::DONE) {
+      log_subchunk_finished(schema, table, partition, index, subchunk, bytes);
     }
   }
 
@@ -307,7 +319,8 @@ class Load_progress_log final {
   std::unordered_map<std::string, Status_details> m_last_state;
 
   void log(bool end, const std::string &op, const std::string &schema = "",
-           const std::string &table = "", const Callback &more = {}) {
+           const std::string &table = "", const std::string &partition = "",
+           const Callback &more = {}) {
     if (m_file) {
       Dumper json;
 
@@ -318,6 +331,9 @@ class Load_progress_log final {
         json.append_string("schema", schema);
         if (!table.empty()) {
           json.append_string("table", table);
+          if (!partition.empty()) {
+            json.append_string("partition", partition);
+          }
         }
       }
       if (more) {
@@ -331,9 +347,9 @@ class Load_progress_log final {
   }
 
   void log(bool end, const std::string &op, const std::string &schema,
-           const std::string &table, ssize_t chunk_index,
-           const Callback &more = {}) {
-    log(end, op, schema, table, [&](Dumper *json) {
+           const std::string &table, const std::string &partition,
+           ssize_t chunk_index, const Callback &more = {}) {
+    log(end, op, schema, table, partition, [&](Dumper *json) {
       json->append_int("chunk", chunk_index);
 
       if (more) {
@@ -343,47 +359,52 @@ class Load_progress_log final {
   }
 
   void log_chunk(bool end, const std::string &schema, const std::string &table,
-                 ssize_t chunk_index, const Callback &more = {}) {
-    log(end, "TABLE-DATA", schema, table, chunk_index, more);
+                 const std::string &partition, ssize_t chunk_index,
+                 const Callback &more = {}) {
+    log(end, "TABLE-DATA", schema, table, partition, chunk_index, more);
   }
 
   void log_chunk_started(const std::string &schema, const std::string &table,
-                         ssize_t chunk_index) {
-    log_chunk(false, schema, table, chunk_index);
+                         const std::string &partition, ssize_t chunk_index) {
+    log_chunk(false, schema, table, partition, chunk_index);
   }
 
   void log_chunk_finished(const std::string &schema, const std::string &table,
-                          ssize_t chunk_index, size_t bytes_loaded,
-                          size_t raw_bytes_loaded) {
-    log_chunk(true, schema, table, chunk_index, [&](Dumper *json) {
+                          const std::string &partition, ssize_t chunk_index,
+                          size_t bytes_loaded, size_t raw_bytes_loaded) {
+    log_chunk(true, schema, table, partition, chunk_index, [&](Dumper *json) {
       json->append_uint64("bytes", bytes_loaded);
       json->append_uint64("raw_bytes", raw_bytes_loaded);
     });
   }
 
   void log_subchunk(bool end, const std::string &schema,
-                    const std::string &table, ssize_t chunk_index,
-                    uint64_t subchunk, const Callback &more = {}) {
-    log(end, "TABLE-SUB-DATA", schema, table, chunk_index, [&](Dumper *json) {
-      json->append_int("subchunk", subchunk);
+                    const std::string &table, const std::string &partition,
+                    ssize_t chunk_index, uint64_t subchunk,
+                    const Callback &more = {}) {
+    log(end, "TABLE-SUB-DATA", schema, table, partition, chunk_index,
+        [&](Dumper *json) {
+          json->append_int("subchunk", subchunk);
 
-      if (more) {
-        more(json);
-      }
-    });
+          if (more) {
+            more(json);
+          }
+        });
   }
 
   void log_subchunk_started(const std::string &schema, const std::string &table,
-                            ssize_t chunk_index, uint64_t subchunk) {
-    log_subchunk(false, schema, table, chunk_index, subchunk);
+                            const std::string &partition, ssize_t chunk_index,
+                            uint64_t subchunk) {
+    log_subchunk(false, schema, table, partition, chunk_index, subchunk);
   }
 
   void log_subchunk_finished(const std::string &schema,
-                             const std::string &table, ssize_t chunk_index,
+                             const std::string &table,
+                             const std::string &partition, ssize_t chunk_index,
                              uint64_t subchunk, uint64_t bytes) {
-    log_subchunk(true, schema, table, chunk_index, subchunk, [&](Dumper *json) {
-      json->append_uint64("transaction_bytes", bytes);
-    });
+    log_subchunk(
+        true, schema, table, partition, chunk_index, subchunk,
+        [&](Dumper *json) { json->append_uint64("transaction_bytes", bytes); });
   }
 
   void flush() {
@@ -399,9 +420,11 @@ class Load_progress_log final {
   }
 
   std::string encode_subchunk(const std::string &schema,
-                              const std::string &table, ssize_t chunk,
+                              const std::string &table,
+                              const std::string &partition, ssize_t chunk,
                               uint64_t subchunk) const {
     return "TABLE-SUB-DATA:`" + schema + "`:`" + table +
+           (partition.empty() ? "" : "`:`" + partition) +
            "`:" + std::to_string(chunk) + ":" + std::to_string(subchunk);
   }
 };

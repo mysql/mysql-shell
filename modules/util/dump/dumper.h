@@ -81,8 +81,14 @@ class Dumper {
     std::string basename;
   };
 
+  struct Partition_info {
+    std::string basename;
+    const Instance_cache::Partition *info = nullptr;
+  };
+
   struct Table_info : public Object_info {
-    const Instance_cache::Table *cache = nullptr;
+    const Instance_cache::Table *info = nullptr;
+    std::vector<Partition_info> partitions;
   };
 
   struct View_info : public Object_info {};
@@ -93,7 +99,9 @@ class Dumper {
   };
 
   struct Table_task : Table_info {
+    std::string task_name;
     std::string schema;
+    const Instance_cache::Partition *partition = nullptr;
   };
 
   struct Table_data_task : Table_task {
@@ -214,6 +222,8 @@ class Dumper {
                                const Table_info &table);
 
   void push_table_task(Table_task &&task);
+
+  void push_table_chunking_task(Table_task &&task);
 
   bool is_chunked(const Table_task &task) const;
 

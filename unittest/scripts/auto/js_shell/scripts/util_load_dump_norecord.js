@@ -46,7 +46,7 @@ function check_load_progress(path) {
         EXPECT_TRUE(table_ddl[key]===undefined);
       table_ddl[key]=entry.done;
     } else if(entry.op=="TABLE-DATA") {
-      key=entry.schema+"."+entry.table+"."+entry.chunk;
+      key=entry.schema+"."+entry.table+"."+entry.chunk+"."+entry.partition;
       if(entry.done)
         EXPECT_TRUE(table_data[key]==false);
       else
@@ -946,17 +946,25 @@ wipe_instance(session);
 //@<> dump version is newer than supported
 data=JSON.parse(os.loadTextFile(__tmp_dir+"/ldtest/dump/@.json"));
 testutil.rename(__tmp_dir+"/ldtest/dump/@.json", __tmp_dir+"/ldtest/dump/@.json.bak");
-data["version"]="2.0.0";
+const dump_version = data["version"].split(".").map(x => parseInt(x));
+
+new_version = [...dump_version];
+new_version[0] += 1;
+data["version"] = new_version.join(".");
 testutil.createFile(__tmp_dir+"/ldtest/dump/@.json", JSON.stringify(data));
 
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: Unsupported dump version");
 
-data["version"]="1.1.0";
+new_version = [...dump_version];
+new_version[1] += 1;
+data["version"] = new_version.join(".");
 testutil.createFile(__tmp_dir+"/ldtest/dump/@.json", JSON.stringify(data));
 
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: Unsupported dump version");
 
-data["version"]="1.0.1";
+new_version = [...dump_version];
+new_version[2] += 1;
+data["version"] = new_version.join(".");
 testutil.createFile(__tmp_dir+"/ldtest/dump/@.json", JSON.stringify(data));
 
 util.loadDump(__tmp_dir+"/ldtest/dump", {dryRun: 1});
@@ -1222,12 +1230,19 @@ wipe_instance(session);
 cluster=dba.createCluster("cluster");
 
 // xtest has tables without PK, so we skip it
-util.loadDump(__tmp_dir+"/ldtest/dump", {excludeSchemas: ["xtest"], excludeTables:["all_features.findextable","all_features.findextable3"]});
+// mysqlaas_compat has some tables which fail due to: The table does not comply with the requirements by an external plugin.
+util.loadDump(__tmp_dir+"/ldtest/dump", {excludeSchemas: ["xtest"], excludeTables:["all_features.findextable","all_features.findextable3","mysqlaas_compat.blackhole_tbl1","mysqlaas_compat.myisam_tbl1","mysqlaas_compat.myisam_tbl2","mysqlaas_compat.path_tbl2","mysqlaas_compat.path_tbl3","mysqlaas_compat.path_tbl4"]});
 
 var noxtest=JSON.parse(JSON.stringify(reference));
 delete noxtest["schemas"]["xtest"];
 delete noxtest["schemas"]["all_features"]["tables"]["findextable"];
 delete noxtest["schemas"]["all_features"]["tables"]["findextable3"];
+delete noxtest["schemas"]["mysqlaas_compat"]["tables"]["blackhole_tbl1"];
+delete noxtest["schemas"]["mysqlaas_compat"]["tables"]["myisam_tbl1"];
+delete noxtest["schemas"]["mysqlaas_compat"]["tables"]["myisam_tbl2"];
+delete noxtest["schemas"]["mysqlaas_compat"]["tables"]["path_tbl2"];
+delete noxtest["schemas"]["mysqlaas_compat"]["tables"]["path_tbl3"];
+delete noxtest["schemas"]["mysqlaas_compat"]["tables"]["path_tbl4"];
 
 var stripped=snapshot_instance(session);
 delete stripped["schemas"]["mysql_innodb_cluster_metadata"];

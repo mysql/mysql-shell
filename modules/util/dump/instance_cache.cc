@@ -447,6 +447,7 @@ void Instance_cache_builder::fetch_metadata() {
   fetch_table_columns();
   fetch_table_indexes();
   fetch_table_histograms();
+  fetch_table_partitions();
 }
 
 void Instance_cache_builder::fetch_version() {
@@ -793,6 +794,32 @@ void Instance_cache_builder::fetch_table_histograms() {
     log_error("Failed to fetch table histograms: %s.", e.format().c_str());
     current_console()->print_warning("Failed to fetch table histograms.");
   }
+}
+
+void Instance_cache_builder::fetch_table_partitions() {
+  Iterate_table info;
+  info.schema_column = "TABLE_SCHEMA";  // NOT NULL
+  info.table_column = "TABLE_NAME";     // NOT NULL
+  info.extra_columns = {
+      "IFNULL(SUBPARTITION_NAME, PARTITION_NAME)",  // NOT NULL
+      "TABLE_ROWS",                                 // NOT NULL
+      "AVG_ROW_LENGTH",                             // NOT NULL
+  };
+  info.table_name = "partitions";
+  info.where = "PARTITION_NAME IS NOT NULL";
+
+  iterate_tables(info, [](const std::string &, const std::string &,
+                          Instance_cache::Table *table,
+                          const mysqlshdk::db::IRow *row) {
+    Instance_cache::Partition partition;
+
+    partition.name = row->get_string(2);  // PARTITION_NAME or SUBPARTITION_NAME
+    partition.quoted_name = shcore::quote_identifier(partition.name);
+    partition.row_count = row->get_uint(3, 0);           // TABLE_ROWS
+    partition.average_row_length = row->get_uint(4, 0);  // AVG_ROW_LENGTH
+
+    table->partitions.emplace_back(std::move(partition));
+  });
 }
 
 void Instance_cache_builder::iterate_schemas(

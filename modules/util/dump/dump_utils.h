@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,10 @@ std::string encode_schema_basename(const std::string &schema);
 
 std::string encode_table_basename(const std::string &schema,
                                   const std::string &table);
+
+std::string encode_partition_basename(const std::string &schema,
+                                      const std::string &table,
+                                      const std::string &partition);
 
 std::string get_schema_filename(const std::string &basename);
 
