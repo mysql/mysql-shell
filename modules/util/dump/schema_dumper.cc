@@ -969,6 +969,22 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
         res.emplace_back(prefix + "uses unsupported storage engine " + engine,
                          Issue::Status::USE_FORCE_INNODB);
     }
+
+    // if engine is empty, table is already using InnoDB, we want to remove
+    // FIXED row format right away
+    const auto remove_fixed_row_format = opt_force_innodb || engine.empty();
+
+    if (compatibility::check_create_table_for_fixed_row_format(
+            *create_table, remove_fixed_row_format ? create_table : nullptr)) {
+      if (remove_fixed_row_format) {
+        res.emplace_back(
+            prefix + "had unsupported ROW_FORMAT=FIXED option removed",
+            Issue::Status::FIXED);
+      } else {
+        res.emplace_back(prefix + "uses unsupported ROW_FORMAT=FIXED option",
+                         Issue::Status::USE_FORCE_INNODB);
+      }
+    }
   }
 
   if (opt_mysqlaas || opt_strip_tablespaces) {

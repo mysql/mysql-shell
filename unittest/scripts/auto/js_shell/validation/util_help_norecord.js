@@ -354,7 +354,8 @@ DESCRIPTION
       force_innodb - The MySQL Database Service requires use of the InnoDB
       storage engine. This option will modify the ENGINE= clause of CREATE
       TABLE statements that use incompatible storage engines and replace them
-      with InnoDB.
+      with InnoDB. It will also remove the ROW_FORMAT=FIXED option, as it is
+      not supported by the InnoDB storage engine.
 
       ignore_missing_pks - Ignore errors caused by tables which do not have
       Primary Keys. Dumps created with this value cannot be used in MySQL
@@ -654,7 +655,8 @@ DESCRIPTION
       force_innodb - The MySQL Database Service requires use of the InnoDB
       storage engine. This option will modify the ENGINE= clause of CREATE
       TABLE statements that use incompatible storage engines and replace them
-      with InnoDB.
+      with InnoDB. It will also remove the ROW_FORMAT=FIXED option, as it is
+      not supported by the InnoDB storage engine.
 
       ignore_missing_pks - Ignore errors caused by tables which do not have
       Primary Keys. Dumps created with this value cannot be used in MySQL
@@ -948,7 +950,8 @@ DESCRIPTION
       force_innodb - The MySQL Database Service requires use of the InnoDB
       storage engine. This option will modify the ENGINE= clause of CREATE
       TABLE statements that use incompatible storage engines and replace them
-      with InnoDB.
+      with InnoDB. It will also remove the ROW_FORMAT=FIXED option, as it is
+      not supported by the InnoDB storage engine.
 
       ignore_missing_pks - Ignore errors caused by tables which do not have
       Primary Keys. Dumps created with this value cannot be used in MySQL

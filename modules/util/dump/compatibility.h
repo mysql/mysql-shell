@@ -64,6 +64,9 @@ bool check_create_table_for_tablespace_option(
     const std::string &create_table, std::string *rewritten = nullptr,
     const std::vector<std::string> &whitelist = {"innodb_"});
 
+bool check_create_table_for_fixed_row_format(const std::string &create_table,
+                                             std::string *rewritten = nullptr);
+
 std::vector<std::string> check_statement_for_charset_option(
     const std::string &statement, std::string *rewritten = nullptr,
     const std::vector<std::string> &whitelist = {"utf8mb4"});

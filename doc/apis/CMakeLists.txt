@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -270,6 +270,9 @@ function (generate_docs type)
     file(GLOB_RECURSE html_files "${CMAKE_BINARY_DIR}/${DOX_OUTDIR}/*.html")
   endif()
 
+  # remove variables which appear in the docs and are false-positives
+  list(REMOVE_ITEM all_variables "ROW")
+
   foreach(file ${html_files})
     file(READ "${file}" contents)
 
@@ -287,4 +290,3 @@ endfunction()
 
 generate_docs("JS")
 generate_docs("PY")
-
