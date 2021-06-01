@@ -88,8 +88,17 @@ progress_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "manife
 EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": progress_par}), "Util.load_dump: The provided PAR must be a file on the dump location:")
 
 #@<> WL14154-TSFR9_4 - When doing a load using a PAR for a manifest file with the progressFile option set to a read PAR object for a file that is in the same bucket and location where the dump is. Validate that the load fails because the file to store the progress has not the right permissions.
+WIPE_SHELL_LOG()
+
 progress_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectRead", "manifest-par", today_plus_days(1, RFC3339), "shell-test/read-only-progress.json")
 EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": progress_par}), "RuntimeError: Util.load_dump: Failed to put object")
+
+# BUG#32593125 - check if details of failed operation are logged
+EXPECT_SHELL_LOG_CONTAINS(f"Warning: Request failed: PUT /p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/shell-test/read-only-progress.json (404 - Not Found)")
+EXPECT_SHELL_LOG_CONTAINS("Info: REQUEST HEADERS:")
+EXPECT_SHELL_LOG_CONTAINS("Info: RESPONSE HEADERS:")
+EXPECT_SHELL_LOG_CONTAINS("Info: RESPONSE BODY:")
+EXPECT_SHELL_LOG_CONTAINS(f"""{{"code":"BucketNotFound","message":"Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it"}}""")
 
 #@<> WL14154-TSFR6_1
 # create PAR for the progress file

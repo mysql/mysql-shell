@@ -395,11 +395,27 @@ Shell_options::Shell_options(int argc, char **argv,
         shcore::Logger::get_level_range_info(),
         [this](const std::string &val, Source) {
           const char* value = val.c_str();
+
           if (*value == '@') {
             storage.log_to_stderr = true;
             value++;
+          } else {
+            storage.log_to_stderr = false;
           }
-          return shcore::Logger::parse_log_level(value);
+
+          const auto level = shcore::Logger::parse_log_level(value);
+
+          if (const auto logger = shcore::current_logger(true)) {
+            if (storage.log_to_stderr) {
+              logger->log_to_stderr();
+            } else {
+              logger->stop_log_to_stderr();
+            }
+
+            logger->set_log_level(level);
+          }
+
+          return level;
         })
     (&storage.dba_log_sql, 0, SHCORE_DBA_LOG_SQL,
         cmdline("--dba-log-sql[={0|1|2}]"),

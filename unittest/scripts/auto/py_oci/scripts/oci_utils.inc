@@ -26,22 +26,25 @@ def wipeout_bucket_mt(workers, bucket, ns="", config_file=os.path.join(OCI_CONFI
         t = threading.Thread(target=worker)
         t.start()
         threads.append(t)
-    config = oci.config.from_file(config_file)
-    os = oci.object_storage.ObjectStorageClient(config)
-    if ns == "":
-      ns = os.get_namespace().data
-    def abort_multipart(mp):
-        return lambda os: os.abort_multipart_upload(ns, bucket, mp.object, mp.upload_id)
-    for mp in oci.pagination.list_call_get_all_results(os.list_multipart_uploads, ns, bucket).data:
-        q.put(abort_multipart(mp))
-    def delete_object(name):
-        return lambda os: os.delete_object(ns, bucket, name)
-    for o in oci.pagination.list_call_get_all_results(os.list_objects, ns, bucket).data.objects:
-        q.put(delete_object(o.name))
-    def delete_par(id):
-        return lambda os: os.delete_preauthenticated_request(ns, bucket, id)
-    for par in oci.pagination.list_call_get_all_results(os.list_preauthenticated_requests, ns, bucket).data:
-        q.put(delete_par(par.id))
+    try:
+        config = oci.config.from_file(config_file)
+        os = oci.object_storage.ObjectStorageClient(config)
+        if ns == "":
+            ns = os.get_namespace().data
+        def abort_multipart(mp):
+            return lambda os: os.abort_multipart_upload(ns, bucket, mp.object, mp.upload_id)
+        for mp in oci.pagination.list_call_get_all_results(os.list_multipart_uploads, ns, bucket).data:
+            q.put(abort_multipart(mp))
+        def delete_object(name):
+            return lambda os: os.delete_object(ns, bucket, name)
+        for o in oci.pagination.list_call_get_all_results(os.list_objects, ns, bucket).data.objects:
+            q.put(delete_object(o.name))
+        def delete_par(id):
+            return lambda os: os.delete_preauthenticated_request(ns, bucket, id)
+        for par in oci.pagination.list_call_get_all_results(os.list_preauthenticated_requests, ns, bucket).data:
+            q.put(delete_par(par.id))
+    except:
+        print("--- wipeout_bucket_mt() - exception: {0} ---".format(sys.exc_info()[0]))
     for i in range(workers):
         q.put(None)
     q.join()

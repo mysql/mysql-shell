@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -246,14 +246,14 @@ class Rest_service::Impl {
     }
   }
 
-  Response execute(Type type, const std::string &path,
+  Response execute(Type type, const Masked_string &path,
                    const shcore::Value &body, const Headers &headers,
                    bool synch = true) {
     m_request_sequence++;
 
     log_request(type, path, headers);
 
-    set_url(path);
+    set_url(path.real());
     // body needs to be set before the type, because it implicitly sets type to
     // POST
     // NOTE: This variable is required here so in synch requests the buffer is
@@ -294,7 +294,7 @@ class Rest_service::Impl {
     return response;
   }
 
-  Response::Status_code execute(Type type, const std::string &path,
+  Response::Status_code execute(Type type, const Masked_string &path,
                                 const char *body, size_t size,
                                 const Headers &request_headers,
                                 Base_response_buffer *buffer,
@@ -303,7 +303,7 @@ class Rest_service::Impl {
 
     log_request(type, path, request_headers);
 
-    set_url(path);
+    set_url(path.real());
     // body needs to be set before the type, because it implicitly sets type
     // to POST
     set_body(body, size, true);
@@ -342,7 +342,7 @@ class Rest_service::Impl {
     }
   }
 
-  std::future<Response> execute_async(Type type, const std::string &path,
+  std::future<Response> execute_async(Type type, const Masked_string &path,
                                       const shcore::Value &body,
                                       const Headers &headers) {
     auto current_logger = shcore::current_logger();
@@ -519,41 +519,40 @@ Rest_service &Rest_service::set_timeout(long timeout, long low_speed_limit,
   return *this;
 }
 
-Response Rest_service::get(const std::string &path, const Headers &headers) {
+Response Rest_service::get(const Masked_string &path, const Headers &headers) {
   return m_impl->execute(Type::GET, path, {}, headers);
 }
 
-Response Rest_service::head(const std::string &path, const Headers &headers) {
+Response Rest_service::head(const Masked_string &path, const Headers &headers) {
   return m_impl->execute(Type::HEAD, path, {}, headers);
 }
 
-Response Rest_service::post(const std::string &path, const shcore::Value &body,
-                            const Headers &headers) {
+Response Rest_service::post(const Masked_string &path,
+                            const shcore::Value &body, const Headers &headers) {
   return m_impl->execute(Type::POST, path, body, headers);
 }
 
-Response Rest_service::put(const std::string &path, const shcore::Value &body,
+Response Rest_service::put(const Masked_string &path, const shcore::Value &body,
                            const Headers &headers) {
   return m_impl->execute(Type::PUT, path, body, headers);
 }
 
-Response Rest_service::patch(const std::string &path, const shcore::Value &body,
+Response Rest_service::patch(const Masked_string &path,
+                             const shcore::Value &body,
                              const Headers &headers) {
   return m_impl->execute(Type::PATCH, path, body, headers);
 }
 
-Response Rest_service::delete_(const std::string &path,
+Response Rest_service::delete_(const Masked_string &path,
                                const shcore::Value &body,
                                const Headers &headers) {
   return m_impl->execute(Type::DELETE, path, body, headers);
 }
 
-Response::Status_code Rest_service::execute(Type type, const std::string &path,
-                                            const char *body, size_t size,
-                                            const Headers &request_headers,
-                                            Base_response_buffer *buffer,
-                                            Headers *response_headers,
-                                            Retry_strategy *retry_strategy) {
+Response::Status_code Rest_service::execute(
+    Type type, const Masked_string &path, const char *body, size_t size,
+    const Headers &request_headers, Base_response_buffer *buffer,
+    Headers *response_headers, Retry_strategy *retry_strategy) {
   if (retry_strategy) retry_strategy->init();
 
   while (true) {
@@ -586,35 +585,35 @@ Response::Status_code Rest_service::execute(Type type, const std::string &path,
   }
 }
 
-std::future<Response> Rest_service::async_get(const std::string &path,
+std::future<Response> Rest_service::async_get(const Masked_string &path,
                                               const Headers &headers) {
   return m_impl->execute_async(Type::GET, path, {}, headers);
 }
 
-std::future<Response> Rest_service::async_head(const std::string &path,
+std::future<Response> Rest_service::async_head(const Masked_string &path,
                                                const Headers &headers) {
   return m_impl->execute_async(Type::HEAD, path, {}, headers);
 }
 
-std::future<Response> Rest_service::async_post(const std::string &path,
+std::future<Response> Rest_service::async_post(const Masked_string &path,
                                                const shcore::Value &body,
                                                const Headers &headers) {
   return m_impl->execute_async(Type::POST, path, body, headers);
 }
 
-std::future<Response> Rest_service::async_put(const std::string &path,
+std::future<Response> Rest_service::async_put(const Masked_string &path,
                                               const shcore::Value &body,
                                               const Headers &headers) {
   return m_impl->execute_async(Type::PUT, path, body, headers);
 }
 
 std::future<Response> Rest_service::Rest_service::async_patch(
-    const std::string &path, const shcore::Value &body,
+    const Masked_string &path, const shcore::Value &body,
     const Headers &headers) {
   return m_impl->execute_async(Type::PATCH, path, body, headers);
 }
 
-std::future<Response> Rest_service::async_delete(const std::string &path,
+std::future<Response> Rest_service::async_delete(const Masked_string &path,
                                                  const shcore::Value &body,
                                                  const Headers &headers) {
   return m_impl->execute_async(Type::DELETE, path, body, headers);

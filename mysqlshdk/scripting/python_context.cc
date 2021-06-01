@@ -531,7 +531,6 @@ Python_context::~Python_context() {
 
   PyEval_RestoreThread(_main_thread_state);
   _main_thread_state = nullptr;
-  shcore::Python_init_singleton::destroy_python();
 }
 
 /*

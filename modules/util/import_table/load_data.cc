@@ -504,8 +504,11 @@ void Load_data_worker::execute(
     // variables to the values the schema has
     session->executef("USE !;", m_opt.schema());
 
-    // clear the SQL mode
-    session->execute("SET SQL_MODE = '';");
+    // SQL mode:
+    //  - no_auto_value_on_zero - normally, 0 generates the next sequence
+    //    number, use this mode to prevent this behaviour (solves problems if
+    //    dump has 0 stored in an AUTO_INCREMENT column)
+    session->execute("SET SQL_MODE = 'no_auto_value_on_zero';");
 
     // if user has specified the character set, set the session variables
     // related to the client connection

@@ -54,6 +54,10 @@ bool is_par(const std::string &url) {
   return std::regex_match(url, k_par_regex);
 }
 
+Masked_string anonimize_par(const std::string &par) {
+  return {par, "/p/<secret>" + par.substr(par.find("/n/"))};
+}
+
 namespace detail {
 
 template <typename K, typename V>
@@ -259,8 +263,8 @@ void Bucket::put_object(const std::string &objectName, const char *body,
 
   try {
     if (is_par(objectName)) {
-      m_rest_service->put(objectName, body, size, headers, nullptr, nullptr,
-                          false);
+      m_rest_service->put(anonimize_par(objectName), body, size, headers,
+                          nullptr, nullptr, false);
     } else {
       m_rest_service->put(shcore::str_format(kObjectActionFormat.c_str(),
                                              encode_path(objectName).c_str()),
@@ -281,8 +285,8 @@ void Bucket::delete_object(const std::string &objectName) {
       // truncate the file, a PAR URL does not support DELETE
       Headers headers{{"content-type", "application/octet-stream"}};
       char body = 0;
-      m_rest_service->put(objectName, &body, 0, headers, nullptr, nullptr,
-                          false);
+      m_rest_service->put(anonimize_par(objectName), &body, 0, headers, nullptr,
+                          nullptr, false);
     } else {
       m_rest_service->delete_(
           shcore::str_format(kObjectActionFormat.c_str(),
@@ -302,7 +306,8 @@ size_t Bucket::head_object(const std::string &objectName) {
   Headers response_headers;
   try {
     if (is_par(objectName)) {
-      m_rest_service->head(objectName, {}, nullptr, &response_headers, false);
+      m_rest_service->head(anonimize_par(objectName), {}, nullptr,
+                           &response_headers, false);
     } else {
       m_rest_service->head(shcore::str_format(kObjectActionFormat.c_str(),
                                               encode_path(objectName).c_str()),
@@ -333,7 +338,8 @@ size_t Bucket::get_object(const std::string &objectName,
 
   try {
     if (is_par(objectName)) {
-      m_rest_service->get(objectName, headers, buffer, nullptr, false);
+      m_rest_service->get(anonimize_par(objectName), headers, buffer, nullptr,
+                          false);
     } else {
       m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
                                              encode_path(objectName).c_str()),
@@ -359,7 +365,8 @@ size_t Bucket::get_object(const std::string &objectName,
 
   try {
     if (is_par(objectName)) {
-      m_rest_service->get(objectName, headers, buffer, nullptr, false);
+      m_rest_service->get(anonimize_par(objectName), headers, buffer, nullptr,
+                          false);
     } else {
       m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
                                              encode_path(objectName).c_str()),
@@ -401,7 +408,8 @@ size_t Bucket::get_object(const std::string &objectName,
 
   try {
     if (is_par(objectName)) {
-      m_rest_service->get(objectName, {}, buffer, nullptr, false);
+      m_rest_service->get(anonimize_par(objectName), {}, buffer, nullptr,
+                          false);
     } else {
       m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
                                              encode_path(objectName).c_str()),
