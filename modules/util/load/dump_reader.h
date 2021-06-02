@@ -227,8 +227,7 @@ class Dump_reader {
     bool has_sql = true;
     bool has_data = true;
 
-    bool md_seen = false;
-    bool md_done = false;
+    volatile bool md_done = false;
     bool sql_seen = false;
 
     shcore::Dictionary_t options = nullptr;
@@ -294,7 +293,7 @@ class Dump_reader {
     std::vector<std::string> event_names;
     std::vector<std::string> fk_queries;
 
-    bool md_loaded = false;
+    volatile bool md_loaded = false;
     bool md_done = false;
 
     bool has_sql = true;
@@ -344,7 +343,7 @@ class Dump_reader {
     uint64_t bytes_per_chunk = 0;
     std::unordered_map<std::string, uint64_t> chunk_sizes;
 
-    bool md_done = false;
+    volatile bool md_done = false;
 
     // total uncompressed bytes of table data the dump contains
     size_t data_size = 0;
