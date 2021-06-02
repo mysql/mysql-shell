@@ -741,7 +741,12 @@
                 },
 ?{}
                 {
+?{VER(>=8.0.27)}
+                    "value": "300",
+?{}
+?{VER(<8.0.27)}
                     "value": "31536000",
+?{}
                     "variable": "group_replication_components_stop_timeout"
                 },
                 {
@@ -1061,7 +1066,12 @@
                 },
 ?{}
                 {
+?{VER(>=8.0.27)}
+                    "value": "300",
+?{}
+?{VER(<8.0.27)}
                     "value": "31536000",
+?{}
                     "variable": "group_replication_components_stop_timeout"
                 },
                 {
@@ -1381,7 +1391,12 @@
                 },
 ?{}
                 {
+?{VER(>=8.0.27)}
+                    "value": "300",
+?{}
+?{VER(<8.0.27)}
                     "value": "31536000",
+?{}
                     "variable": "group_replication_components_stop_timeout"
                 },
                 {
@@ -1705,7 +1720,12 @@
                     "variable": "group_replication_bootstrap_group"
                 },
                 {
+?{VER(>=8.0.27)}
+                    "value": "300",
+?{}
+?{VER(<8.0.27)}
                     "value": "31536000",
+?{}
                     "variable": "group_replication_components_stop_timeout"
                 },
                 {
@@ -1930,7 +1950,12 @@
                     "variable": "group_replication_bootstrap_group"
                 },
                 {
+?{VER(>=8.0.27)}
+                    "value": "300",
+?{}
+?{VER(<8.0.27)}
                     "value": "31536000",
+?{}
                     "variable": "group_replication_components_stop_timeout"
                 },
                 {
@@ -2155,7 +2180,12 @@
                     "variable": "group_replication_bootstrap_group"
                 },
                 {
+?{VER(>=8.0.27)}
+                    "value": "300",
+?{}
+?{VER(<8.0.27)}
                     "value": "31536000",
+?{}
                     "variable": "group_replication_components_stop_timeout"
                 },
                 {
