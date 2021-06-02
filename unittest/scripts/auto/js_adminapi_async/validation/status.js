@@ -72,7 +72,7 @@
                     "applierQueuedTransactionSetSize": 0,
                     "applierState": "ON",
                     "applierStatus": "APPLIED_ALL",
-                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,\n                    "coordinatorState": "ON",\n                    "coordinatorThreadState": "Replica has read all relay log; waiting for more updates",'>>>
+                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,\n                    "coordinatorState": "ON",\n                    "coordinatorThreadState": "'+__replica_keyword_capital+' has read all relay log; waiting for more updates",'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "receiverTimeSinceLastMessage": "[[*]]",
@@ -120,7 +120,7 @@
                     "applierQueuedTransactionSetSize": 0,
                     "applierState": "ON",
                     "applierStatus": "APPLIED_ALL",
-                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,\n                    "coordinatorState": "ON",\n                    "coordinatorThreadState": "Replica has read all relay log; waiting for more updates",'>>>
+                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,\n                    "coordinatorState": "ON",\n                    "coordinatorThreadState": "'+__replica_keyword_capital+' has read all relay log; waiting for more updates",'>>>
                     "options": {
                         "connectRetry": 60,
                         "delay": 0,
@@ -209,7 +209,7 @@
                     "applierQueuedTransactionSetSize": 0,
                     "applierState": "ON",
                     "applierStatus": "APPLIED_ALL",
-                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",\n                    "applierWorkerThreads": 1,':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,\n                    "coordinatorState": "ON",\n                    "coordinatorThreadState": "Replica has read all relay log; waiting for more updates",'>>>
+                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",\n                    "applierWorkerThreads": 1,':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,\n                    "coordinatorState": "ON",\n                    "coordinatorThreadState": "'+__replica_keyword_capital+' has read all relay log; waiting for more updates",'>>>
 //@<OUT> Heartbeat interval, extended:2
                     "options": {
                         "connectRetry": 60,
@@ -288,7 +288,7 @@
                 "mode": "R/O",
                 "replication": {
                     "applierStatus": "APPLIED_ALL",
-                    "applierThreadState": "<<<__replica_keyword_capital>>> has read all relay log; waiting for more updates",
+                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",\n                    "applierWorkerThreads": 1,':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "replicationLag": null

@@ -147,8 +147,8 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
 | Variable                               | Current Value | Required Value | Note                                             |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 | binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |
-| replica_parallel_type                  | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
-| replica_preserve_commit_order          | OFF           | ON             | Update the server variable                       |
+| <<<__version_num<=80025?"slave_parallel_type  " : "replica_parallel_type">>>                  | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |
+| <<<__version_num<=80025?"slave_preserve_commit_order  " : "replica_preserve_commit_order">>>          | OFF           | ON             | Update the server variable                       |
 | transaction_write_set_extraction       | OFF           | XXHASH64       | Update read-only variable and restart the server |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 
@@ -166,13 +166,13 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
         {
             "action": "server_update",
             "current": "DATABASE",
-            "option": "replica_parallel_type",
+            "option": "<<<__replica_keyword>>>_parallel_type",
             "required": "LOGICAL_CLOCK"
         },
         {
             "action": "server_update",
             "current": "OFF",
-            "option": "replica_preserve_commit_order",
+            "option": "<<<__replica_keyword>>>_preserve_commit_order",
             "required": "ON"
         },
         {

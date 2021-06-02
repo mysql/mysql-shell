@@ -576,9 +576,13 @@ void Cluster_impl::ensure_metadata_has_recovery_accounts() {
   }
 }
 
-std::vector<Instance_metadata> Cluster_impl::get_active_instances() const {
-  return get_instances({mysqlshdk::gr::Member_state::ONLINE,
-                        mysqlshdk::gr::Member_state::RECOVERING});
+std::vector<Instance_metadata> Cluster_impl::get_active_instances(
+    bool online_only) const {
+  if (online_only)
+    return get_instances({mysqlshdk::gr::Member_state::ONLINE});
+  else
+    return get_instances({mysqlshdk::gr::Member_state::ONLINE,
+                          mysqlshdk::gr::Member_state::RECOVERING});
 }
 
 std::shared_ptr<mysqlsh::dba::Instance> Cluster_impl::get_online_instance(

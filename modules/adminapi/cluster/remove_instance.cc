@@ -71,7 +71,8 @@ Instance_metadata Remove_instance::lookup_metadata_for_uuid(
   return m_cluster->get_metadata_storage()->get_instance_by_uuid(uuid);
 }
 
-void Remove_instance::ensure_not_last_instance_in_cluster() {
+void Remove_instance::ensure_not_last_instance_in_cluster(
+    const std::string &removed_uuid) {
   // Check if it is the last instance in the Cluster and issue an error.
   // NOTE: When multiple clusters are supported this check needs to be moved
   //       to a higher level (to check if the instance is the last one of the
@@ -82,6 +83,22 @@ void Remove_instance::ensure_not_last_instance_in_cluster() {
     mysqlsh::current_console()->print_error(
         "The instance '" + m_instance_address +
         "' cannot be removed because it is the only member of the Cluster. "
+        "Please use <Cluster>.<<<dissolve>>>" +
+        "() instead to remove the last instance and dissolve the Cluster.");
+
+    std::string err_msg = "The instance '" + m_instance_address +
+                          "' is the last member of the cluster";
+    throw shcore::Exception::runtime_error(err_msg);
+  }
+
+  log_debug("Checking if the instance is the last ONLINE one in the cluster");
+  auto online_instances = m_cluster->get_active_instances(true);
+  if (online_instances.size() == 1 &&
+      online_instances[0].uuid == removed_uuid) {
+    mysqlsh::current_console()->print_error(
+        "The instance '" + m_instance_address +
+        "' cannot be removed because it is the only ONLINE member of the "
+        "Cluster. "
         "Please use <Cluster>.<<<dissolve>>>" +
         "() instead to remove the last instance and dissolve the Cluster.");
 
@@ -198,6 +215,7 @@ void Remove_instance::prepare() {
 
   // Make sure the target instance is not set if an connection error occurs.
   m_target_instance.reset();
+  std::string target_uuid;
 
   // Try to establish a connection to the target instance, although it might
   // fail if the instance is down.
@@ -277,6 +295,7 @@ void Remove_instance::prepare() {
       validate_metadata_for_address(m_instance_address, &md);
       m_instance_gr_local_address = md.grendpoint;
       m_address_in_metadata = m_instance_address;
+      target_uuid = md.uuid;
     } catch (const std::exception &e) {
       log_warning("Couldn't get metadata for %s: %s",
                   m_instance_address.c_str(), e.what());
@@ -326,6 +345,7 @@ void Remove_instance::prepare() {
       validate_metadata_for_address(m_instance_address, &md);
       m_instance_gr_local_address = md.grendpoint;
       m_address_in_metadata = m_instance_address;
+      target_uuid = md.uuid;
     } catch (const shcore::Exception &e) {
       if (e.code() != SHERR_DBA_MEMBER_METADATA_MISSING) throw;
 
@@ -342,6 +362,7 @@ void Remove_instance::prepare() {
         auto md = lookup_metadata_for_uuid(uuid);
         m_instance_gr_local_address = md.grendpoint;
         m_address_in_metadata = md.address;
+        target_uuid = md.uuid;
 
         log_debug(
             "Given instance address '%s' was not in metadata, but found a "
@@ -402,7 +423,7 @@ void Remove_instance::prepare() {
   // Ensure instance is not the last in the cluster.
   // Should be called after we know there's any chance the instance actually
   // belongs to the cluster.
-  ensure_not_last_instance_in_cluster();
+  ensure_not_last_instance_in_cluster(target_uuid);
 
   // Validate user privileges to use the command (only if the instance is
   // available).

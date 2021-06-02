@@ -46,6 +46,22 @@ EXPECT_EQ("ONLINE", status["defaultReplicaSet"]["topology"][`${hostname}:${__mys
 EXPECT_EQ("R/W", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]["mode"])
 EXPECT_EQ("R/O", status["defaultReplicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["mode"])
 
+
+//@<> Remove instance while all other members are OFFLINE
+// Bug#32955287 REMOVEINSTANCE() FAILS ON CLUSTER WHEN ALL OTHER MEMBERS HAVE OFFLINE
+
+session2 = mysql.getSession(__sandbox_uri2);
+session2.runSql("stop group_replication");
+
+EXPECT_THROWS(function(){cluster.removeInstance(__sandbox_uri1);}, "Cluster.removeInstance: The instance 'localhost:"+__mysql_sandbox_port1+"' is the last member of the cluster");
+
+// remove instance that's OFFLINE
+EXPECT_THROWS(function(){cluster.removeInstance(__sandbox_uri2);}, "Cluster.removeInstance: Instance is not ONLINE and cannot be safely removed");
+
+session2.runSql("start group_replication");
+
+testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
+
 //@<> Remove instance failure due to wrong credentials
 // WL#11862 - FR1_2, FR2_2
 cluster.removeInstance({Host: hostname, PORT: __mysql_sandbox_port2, User: "foo", PassWord: "bar"});
@@ -324,7 +340,7 @@ cluster.addInstance(__sandbox_uri3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
 //@ Stop instance on port3 again
-testutil.stopSandbox(__mysql_sandbox_port3);
+testutil.stopSandbox(__mysql_sandbox_port3, {wait:1});
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
 
 //@<> Remove unreachable instance (interactive: true, force: false) - error
