@@ -284,21 +284,6 @@
                 "instanceErrors": [
                     "NOTE: The required parallel-appliers settings are not enabled on the instance. Use dba.configureReplicaSetInstance() to fix it."
                 ],
-                "instanceRole": "SECONDARY",
-                "mode": "R/O",
-                "replication": {
-                    "applierStatus": "APPLIED_ALL",
-                    "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",\n                    "applierWorkerThreads": 1,':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
-                    "receiverStatus": "ON",
-                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null
-                },
-                "status": "ONLINE"
-            }
-        },
-        "type": "ASYNC"
-    }
-}
 
 //@<OUT> BUG#32015164: status should be fine now
 {
