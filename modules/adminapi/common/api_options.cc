@@ -59,7 +59,7 @@ const shcore::Option_pack_def<Password_interactive_options>
           .optional(mysqlshdk::db::kDbPassword,
                     &Password_interactive_options::set_password, "",
                     shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::CLI_DISABLED)
+                    shcore::Option_scope::DEPRECATED)
           .include<Interactive_option>();
 
   return opts;

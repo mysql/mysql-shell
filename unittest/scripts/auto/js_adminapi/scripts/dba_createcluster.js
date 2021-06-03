@@ -768,7 +768,7 @@ shell.connect(__sandbox_uri1);
 //@ WL#12773: FR4 - The ipWhitelist shall not change the behavior defined by FR1
 var result = session.runSql("SELECT COUNT(*) FROM mysql.user");
 var old_account_number = result.fetchOne()[0];
-dba.createCluster('test', {ipWhitelist:"192.168.2.1/15,127.0.0.1," + hostname_ip});
+testutil.callMysqlsh([__sandbox_uri1, "--", "dba", "create-cluster", "test", "--ip-whitelist=192.168.2.1/15,127.0.0.1," + hostname_ip])
 print(get_all_gr_recovery_accounts(session));
 
 result = session.runSql("SELECT COUNT(*) FROM mysql.user");

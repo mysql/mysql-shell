@@ -158,8 +158,13 @@ struct Parameter final {
   Parameter() = default;
 
   Parameter(const std::string &n, Value_type t, Param_flag f,
-            const std::string &sname = "", bool cmd_line = true)
-      : name(n), flag(f), short_name(sname), cmd_line_enabled(cmd_line) {
+            const std::string &sname = "", bool cmd_line = true,
+            bool deprecated = false)
+      : name(n),
+        flag(f),
+        short_name(sname),
+        cmd_line_enabled(cmd_line),
+        is_deprecated(deprecated) {
     set_type(t);
   }
 
@@ -177,6 +182,8 @@ struct Parameter final {
   // i.e. Sandbox Operations support password option both in instance and
   // options param.
   bool cmd_line_enabled;
+
+  bool is_deprecated;
 
   void validate(const Value &data, Parameter_context *context) const;
 
@@ -278,7 +285,7 @@ enum class Option_extract_mode {
   EXACT = 1 << 2              // Restricts data type conversion
 };
 
-enum class Option_scope { GLOBAL, CLI_DISABLED };
+enum class Option_scope { GLOBAL, CLI_DISABLED, DEPRECATED };
 
 template <typename C>
 class Option_pack_def : public IOption_pack_def {
@@ -290,8 +297,7 @@ class Option_pack_def : public IOption_pack_def {
       const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
-    add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
-                  Param_flag::Optional);
+    add_option<T>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
         [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
@@ -320,8 +326,7 @@ class Option_pack_def : public IOption_pack_def {
       const std::string &name, T C::*var, const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
-    add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
-                  Param_flag::Optional);
+    add_option<T>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
         [name, var, extract_mode, this](shcore::Option_unpacker *unpacker,
@@ -347,8 +352,7 @@ class Option_pack_def : public IOption_pack_def {
       const std::map<std::string, T> &mapping, const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
-    add_option<std::string>(name, sname, option_scope == Option_scope::GLOBAL,
-                            Param_flag::Optional);
+    add_option<std::string>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
         [name, var, mapping, extract_mode, this](
@@ -389,8 +393,7 @@ class Option_pack_def : public IOption_pack_def {
       const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
-    add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
-                  Param_flag::Optional);
+    add_option<T>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
         [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
@@ -414,8 +417,7 @@ class Option_pack_def : public IOption_pack_def {
       const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
-    add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
-                  Param_flag::Optional);
+    add_option<T>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
         [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
@@ -456,8 +458,7 @@ class Option_pack_def : public IOption_pack_def {
       const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
-    add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
-                  Param_flag::Optional);
+    add_option<T>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
         [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
@@ -480,8 +481,7 @@ class Option_pack_def : public IOption_pack_def {
       const std::string &sname = "",
       Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
       Option_scope option_scope = Option_scope::GLOBAL) {
-    add_option<T>(name, sname, option_scope == Option_scope::GLOBAL,
-                  Param_flag::Optional);
+    add_option<T>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
         [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
@@ -502,10 +502,10 @@ class Option_pack_def : public IOption_pack_def {
    * Same as the optional() equivalent, except that the option is mandatory
    */
   template <typename T>
-  Option_pack_def<C> &required(const std::string &name, T C::*var,
-                               const std::string &sname = "",
-                               bool cmd_line = true) {
-    add_option<T>(name, sname, cmd_line, Param_flag::Mandatory);
+  Option_pack_def<C> &required(
+      const std::string &name, T C::*var, const std::string &sname = "",
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    add_option<T>(name, sname, option_scope, Param_flag::Mandatory);
 
     m_unpack_callbacks.emplace_back(
         [name, var](shcore::Option_unpacker *unpacker, C *instance) {
@@ -519,11 +519,11 @@ class Option_pack_def : public IOption_pack_def {
    * Same as the optional() equivalent, except that the option is mandatory
    */
   template <typename T>
-  Option_pack_def<C> &required(const std::string &name, T C::*var,
-                               const std::map<std::string, T> &mapping,
-                               const std::string &sname = "",
-                               bool cmd_line = true) {
-    add_option<std::string>(name, sname, cmd_line, Param_flag::Optional);
+  Option_pack_def<C> &required(
+      const std::string &name, T C::*var,
+      const std::map<std::string, T> &mapping, const std::string &sname = "",
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    add_option<std::string>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
         [name, var, mapping, this](shcore::Option_unpacker *unpacker,
@@ -543,12 +543,12 @@ class Option_pack_def : public IOption_pack_def {
    * Same as the optional() equivalent, except that the option is mandatory
    */
   template <typename T>
-  Option_pack_def<C> &required(const std::string &name,
-                               void (C::*callback)(const std::string &option,
-                                                   const T &),
-                               const std::string &sname = "",
-                               bool cmd_line = true) {
-    add_option<T>(name, sname, cmd_line, Param_flag::Mandatory);
+  Option_pack_def<C> &required(
+      const std::string &name,
+      void (C::*callback)(const std::string &option, const T &),
+      const std::string &sname = "",
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    add_option<T>(name, sname, option_scope, Param_flag::Mandatory);
 
     m_unpack_callbacks.emplace_back(
         [name, callback](shcore::Option_unpacker *unpacker, C *instance) {
@@ -566,11 +566,11 @@ class Option_pack_def : public IOption_pack_def {
    * Same as the optional() equivalent, except that the option is mandatory
    */
   template <typename T>
-  Option_pack_def<C> &required(const std::string &name,
-                               void (C::*callback)(const T &),
-                               const std::string &sname = "",
-                               bool cmd_line = true) {
-    add_option<T>(name, sname, cmd_line, Param_flag::Mandatory);
+  Option_pack_def<C> &required(
+      const std::string &name, void (C::*callback)(const T &),
+      const std::string &sname = "",
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    add_option<T>(name, sname, option_scope, Param_flag::Mandatory);
 
     m_unpack_callbacks.emplace_back(
         [name, callback](shcore::Option_unpacker *unpacker, C *instance) {
@@ -701,9 +701,11 @@ class Option_pack_def : public IOption_pack_def {
 
   template <typename T>
   void add_option(const std::string &name, const std::string &sname,
-                  bool cmd_line, shcore::Param_flag flag) {
+                  Option_scope scope, shcore::Param_flag flag) {
     m_option_md.push_back(std::make_shared<shcore::Parameter>(
-        name, shcore::Type_info<T>::vtype(), flag, sname, cmd_line));
+        name, shcore::Type_info<T>::vtype(), flag, sname,
+        scope != Option_scope::CLI_DISABLED,
+        scope == Option_scope::DEPRECATED));
 
     auto validator = Type_info<T>::validator();
     if (validator) {

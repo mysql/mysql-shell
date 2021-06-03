@@ -192,7 +192,7 @@ const shcore::Option_pack_def<Create_cluster_options>
           .optional(kMultiPrimary, &Create_cluster_options::set_multi_primary)
           .optional(kMultiMaster, &Create_cluster_options::set_multi_primary,
                     "", shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::CLI_DISABLED)
+                    shcore::Option_scope::DEPRECATED)
           .optional(kAdoptFromGR, &Create_cluster_options::adopt_from_gr)
           .optional(kClearReadOnly,
                     &Create_cluster_options::set_clear_read_only)
@@ -268,13 +268,13 @@ const shcore::Option_pack_def<Reboot_cluster_options>
           .optional(mysqlshdk::db::kUser, &Reboot_cluster_options::set_user)
           .optional(mysqlshdk::db::kDbUser, &Reboot_cluster_options::set_user,
                     "", shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::CLI_DISABLED)
+                    shcore::Option_scope::DEPRECATED)
           .optional(mysqlshdk::db::kPassword,
                     &Reboot_cluster_options::set_password)
           .optional(mysqlshdk::db::kDbPassword,
                     &Reboot_cluster_options::set_password, "",
                     shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::CLI_DISABLED);
+                    shcore::Option_scope::DEPRECATED);
 
   return opts;
 }
