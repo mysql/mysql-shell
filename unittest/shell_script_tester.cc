@@ -1644,7 +1644,7 @@ void Shell_script_tester::set_defaults() {
   exec_and_out_equals(code);
 
   // Set terminology related variables
-  if (version_num >= 80025) {
+  if (version_num > 80025) {
     def_var("__replica_keyword", "'replica'");
     def_var("__replica_keyword_capital", "'Replica'");
     def_var("__source_keyword", "'source'");

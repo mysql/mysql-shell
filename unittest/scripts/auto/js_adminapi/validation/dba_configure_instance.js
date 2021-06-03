@@ -212,11 +212,20 @@ This instance reports its own address as <<<hostname>>>:<<<__mysql_sandbox_port1
 applierWorkerThreads will be set to the default value of 4.
 
 NOTE: Some configuration options need to be fixed:
+?{VER(>8.0.25)}
 +-------------------------------+---------------+----------------+----------------------------+
 | Variable                      | Current Value | Required Value | Note                       |
 +-------------------------------+---------------+----------------+----------------------------+
 | <<<__replica_keyword>>>_preserve_commit_order | OFF           | ON             | Update the server variable |
 +-------------------------------+---------------+----------------+----------------------------+
+?{}
+?{VER(<=8.0.25)}
++-----------------------------+---------------+----------------+----------------------------+
+| Variable                    | Current Value | Required Value | Note                       |
++-----------------------------+---------------+----------------+----------------------------+
+| <<<__replica_keyword>>>_preserve_commit_order | OFF           | ON             | Update the server variable |
++-----------------------------+---------------+----------------+----------------------------+
+?{}
 
 Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB cluster.

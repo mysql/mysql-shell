@@ -108,7 +108,7 @@ class Remove_instance : public Command_interface {
    * Verify if it is the last instance in the cluster, otherwise it cannot
    * be removed (dissolve must be used instead).
    */
-  void ensure_not_last_instance_in_cluster();
+  void ensure_not_last_instance_in_cluster(const std::string &removed_uuid);
 
   /**
    * Remove the target instance from metadata.

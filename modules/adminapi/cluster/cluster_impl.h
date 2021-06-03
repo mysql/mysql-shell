@@ -281,7 +281,8 @@ class Cluster_impl : public Base_cluster_impl {
    * @return vector with the Instance definition of the ONLINE
    * and RECOVERING instances.
    */
-  std::vector<Instance_metadata> get_active_instances() const;
+  std::vector<Instance_metadata> get_active_instances(
+      bool online_only = false) const;
 
   /**
    * Get the list of instances in the states described in the states vector.

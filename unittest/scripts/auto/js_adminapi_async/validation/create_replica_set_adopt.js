@@ -103,8 +103,8 @@
 @| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |@
 @| enforce_gtid_consistency               | OFF           | ON             | Update read-only variable and restart the server |@
 @| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |@
-@| <<<__replica_keyword>>>_parallel_type                  | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |@
-@| <<<__replica_keyword>>>_preserve_commit_order          | OFF           | ON             | Update the server variable                       |@
+@| <<<__replica_keyword>>>_parallel_type[[*]]                  | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |@
+@| <<<__replica_keyword>>>_preserve_commit_order[[*]]          | OFF           | ON             | Update the server variable                       |@
 |Some variables need to be changed, but cannot be done dynamically on the server.|
 |ERROR: 127.0.0.1:<<<__mysql_sandbox_port1>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.|
 ||Instance check failed (MYSQLSH 51150)
