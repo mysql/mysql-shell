@@ -1,4 +1,4 @@
-#@{False} Disabled until plugins.repositories is available.
+#@<> Setup
 import http.server
 import threading
 import os
@@ -38,8 +38,11 @@ def find_free_port():
         return s.getsockname()[1]
 
 
-REPO_PATH = os.path.join(__user_config_path, "plugin_repo")
-PLUGIN_PATH = os.path.join(REPO_PATH, "repo")
+DEFAULT_HTTP_ROOT=os.path.join(__user_config_path, "default_plugin_repo")
+
+HTTP_ROOT = os.path.join(__user_config_path, "plugin_repo")
+DEFAULT_REPO_PATH = os.path.join(HTTP_ROOT, "windows", "")
+PLUGIN_PATH = os.path.join(HTTP_ROOT, "repo")
 PLUGIN_CODE = '''
 from mysqlsh.plugin_manager import plugin, plugin_function
 
@@ -59,6 +62,51 @@ def version():
     """
     return "--plugin-version-placeholder--"
 '''
+default_manifest = {
+    "fileType": "MySQL Shell Plugins Manifest",
+    "version": "0.0.1",
+    "releaseVersion": "2021.02.26.17.00",
+    "repository": {
+        "name": "Official MySQL Shell Plugin Repository",
+        "description": "The official MySQL Shell Plugin Repository maintained by the MySQL Team at Oracle Corp."
+    },
+    "plugins": [
+        {
+            "caption": "Oracle Cloud Plugin",
+            "name": "cloud",
+            "moduleName": "cloud_plugin",
+            "description": "Plugin to manage the MySQL Database Service on OCI.",
+            "latestVersion": "0.1.9",
+            "editions": [
+                {
+                    "name": "community",
+                    "packagePrefix": "mysql-shell-cloud-plugin",
+                    "licenseHeader": "./resources/license_header_community.txt",
+                    "licenseFile": "./resources/LICENSE_gpl.txt"
+                },
+                {
+                    "name": "commercial",
+                    "packagePrefix": "mysql-shell-commercial-cloud-plugin",
+                    "licenseHeader": "./resources/license_header_commercial.txt",
+                    "licenseFile": "./resources/LICENSE_commercial.txt"
+                }
+            ],
+            "versions": [
+                {
+                    "version": "0.1.9",
+                    "developmentStage": "preview",
+                    "changes": [
+                        "Added support for host_image_id and tags in create.mysqlDbSystem and tags for compute instances."
+                    ],
+                    "urls": {
+                        "community": "https://insidemysql.com/downloads/mysql-shell-cloud-plugin-0.1.9.zip",
+                        "commercial": "https://insidemysql.com/downloads/mysql-shell-commercial-cloud-plugin-0.1.9.zip"
+                    }
+                }
+            ]
+        }
+    ]
+}
 
 base_manifest = {
     "fileType": "MySQL Shell Plugins Manifest",
@@ -107,27 +155,46 @@ def add_version_to_manifest(version, changes):
         }
     })
 
+def create_manifest(folder, data):
+    manifest_fh = open(os.path.join(folder, 'mysql-shell-plugins-manifest.json'), 'w')
+    manifest_fh.write(json.dumps(data, indent=4))
+    manifest_fh.close()
+
+def zip_folder(source_folder, target_path):
+    zip_fh = zipfile.ZipFile(target_path, 'w', zipfile.ZIP_DEFLATED)
+    for root, dirs, files in os.walk(source_folder):
+        for file in files:
+            full_path = os.path.join(root, file)
+            arc_path=full_path[len(source_folder)+1:]
+            zip_fh.write(full_path, arc_path)
+    zip_fh.close()
+
+def create_default_manifest():
+    # Updates the manifest
+    testutil.mkdir("manifest/AdditionalPayload", True)
+    create_manifest("manifest/AdditionalPayload", default_manifest)
+    manifest_folder=os.path.join(HTTP_ROOT, "windows", "installer")
+    testutil.mkdir(manifest_folder, True)
+    zip_folder("manifest", os.path.join(manifest_folder, "manifest.zip"))
+    testutil.rmdir("manifest", True)
+
+
 def update_plugin(version, changes):
     # Updates the manifest
     add_version_to_manifest(version, changes)
-    manifest_fh = open(os.path.join(REPO_PATH, 'mysql-shell-plugins-manifest.json'), 'w')
-    manifest_fh.write(json.dumps(base_manifest, indent=4))
-    manifest_fh.close()
+    create_manifest(HTTP_ROOT, base_manifest)
     testutil.mkdir(PLUGIN_PATH)
     new_code = PLUGIN_CODE.replace("--plugin-version-placeholder--", version)
-    plugin_fh = open(os.path.join(PLUGIN_PATH, "init.py"), 'w')
-    plugin_fh.write(new_code)
-    plugin_fh.close()
-    zip_fh = zipfile.ZipFile(os.path.join(REPO_PATH, "mysql-shell-test-plugin-" + version + ".zip"), 'w', zipfile.ZIP_DEFLATED)
-    for root, dirs, files in os.walk(PLUGIN_PATH):
-        for file in files:
-            full_path = os.path.join(root, file)
-            arc_path=full_path[len(PLUGIN_PATH)+1:]
-            zip_fh.write(full_path, arc_path)
-    zip_fh.close()
+    testutil.create_file(os.path.join(PLUGIN_PATH, "init.py"), new_code)
+    zip_folder(PLUGIN_PATH, os.path.join(HTTP_ROOT, "mysql-shell-test-plugin-" + version + ".zip"))
     testutil.rmdir(PLUGIN_PATH, True)
 
-testutil.mkdir(REPO_PATH)
+testutil.rmfile(os.path.join(__user_config_path, 'plugin-repositories.json'))
+testutil.mkdir(HTTP_ROOT)
+
+print("---->" + HTTP_ROOT)
+
+create_default_manifest()
 
 update_plugin("0.0.1", ["Initial Version"])
 
@@ -140,7 +207,7 @@ class CustomHTTPRequestHandler(Handler):
     def translate_path(self, path):
         """
         This function has been taken from Python 3.8 to adapt enable Python 3.6
-        to serve files from a custom path (REPO_PATH), this is because in 3.6
+        to serve files from a custom path (HTTP_ROOT), this is because in 3.6
         the target folder can not be customized.
         """
         # abandon query parameters
@@ -155,7 +222,7 @@ class CustomHTTPRequestHandler(Handler):
         path = posixpath.normpath(path)
         words = path.split('/')
         words = filter(None, words)
-        path = REPO_PATH
+        path = HTTP_ROOT
         for word in words:
             if os.path.dirname(word) or word in (os.curdir, os.pardir):
                 # Ignore components that are not a simple file/directory name
@@ -182,14 +249,17 @@ x.start()
 def execute(command, prompt_answers=""):
     args = ["--py", "--quiet-start=2", "-ifull", "-e"]
     env = ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + __user_config_path]
+    # Hacks the official plugin for all calls except the help ones
+    if not command.startswith("\\?"):
+        command = "from mysqlsh.plugin_manager import repositories;repositories.DEFAULT_PLUGIN_REPOSITORIES[0]['url']='http://127.0.0.1:" + str(PORT) + "/windows/installer/manifest.zip';" + command
     rc = testutil.call_mysqlsh(args + [command], prompt_answers, env)
 
 
 #@<> Install the test repository
 TEST_REPOSITORY="http://127.0.0.1:" + str(PORT) + '/mysql-shell-plugins-manifest.json'
 # Sends the answer to the following prompts as 'repo' and 'yes':
-# - Are you sure you want to add the repository 'Testing MySQL Shell Plugin Repository' [yes/NO]: 
-execute("plugins.repositories.add('" + TEST_REPOSITORY + "')", "yes")
+# - Are you sure you want to add the repository 'Testing MySQL Shell Plugin Repository' [yes/NO]:
+execute("from mysqlsh.plugin_manager import repositories; repositories.add_plugin_repository('" + TEST_REPOSITORY + "')", "yes")
 
 #@<> Help on built-in plugins plugin
 execute("\\? plugins")
@@ -198,7 +268,7 @@ execute("\\? plugins")
 execute("plugins.about()")
 
 #@<> Help on built-in plugins.repositories object
-execute("\\? plugins.repositories")
+#execute("\\? plugins.repositories")
 
 #@<> Tests the info function
 execute("plugins.info()")
@@ -212,7 +282,7 @@ execute("plugins.details()", "repo")
 execute("plugins.details('repo')")
 
 #@<> Lists the plugin repositories
-execute("plugins.repositories.list()")
+execute("from mysqlsh.plugin_manager import repositories; repositories.get_plugin_repositories()")
 
 #@<> Lists the plugins
 execute("plugins.list()")
@@ -260,15 +330,15 @@ execute("plugins.uninstall()", "repo\nyes")
 execute("print('Test Plugin Version: ' + repo.version())")
 
 #@<> Removes the test plugin repository
-execute("plugins.repositories.remove(url='" + TEST_REPOSITORY + "')", "repo\nyes")
+execute("repositories.remove_plugin_repository(url='" + TEST_REPOSITORY + "')", "repo\nyes")
 
 #@<> Lists the plugin repositories again
-execute("plugins.repositories.list()")
+execute("from mysqlsh.plugin_manager import repositories; repositories.get_plugin_repositories()")
 
 #@<> Finalize
 print("Shutting down...")
 httpd.shutdown()
-testutil.rmdir(REPO_PATH, True)
+testutil.rmdir(HTTP_ROOT, True)
 testutil.rmdir(os.path.join(__user_config_path, 'plugins'))
 testutil.rmfile(os.path.join(__user_config_path, 'plugin-repositories.json'))
 

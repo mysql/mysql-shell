@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -27,7 +27,6 @@ import zipfile
 
 import mysqlsh
 
-from pkg_resources import parse_version
 from enum import Enum
 
 from . import general
@@ -39,6 +38,11 @@ class Filter(Enum):
     ONLY_INSTALLED = "installed plugins"
     NOT_INSTALLED = "available plugins for installation"
     UPDATABLE = "updatable plugins"
+
+
+def parse_version(version):
+    ret_val = tuple(int(x) if x.isnumeric() else x for x in version.split("."))
+    return ret_val
 
 
 def get_repositories_with_plugins(plugin_filter=Filter.NONE,
