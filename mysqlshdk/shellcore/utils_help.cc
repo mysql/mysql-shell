@@ -2035,7 +2035,7 @@ void Help_manager::add_cli_options_section(
           const auto &allowed_list = validator->allowed();
           for (const auto &allowed : allowed_list) {
             // Only options that are enabled for CLI
-            if (allowed->cmd_line_enabled) {
+            if (allowed->cmd_line_enabled && !allowed->is_deprecated) {
               std::string option_detail = format_cli_option(allowed);
 
               auto param_data = option_data.find(allowed->name);

@@ -490,7 +490,7 @@ const shcore::Option_pack_def<Rejoin_group_replication_options>
           .optional(kIpWhitelist,
                     &Rejoin_group_replication_options::set_ip_allowlist, "",
                     shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::CLI_DISABLED);
+                    shcore::Option_scope::DEPRECATED);
 
   return opts;
 }
@@ -609,7 +609,7 @@ const shcore::Option_pack_def<Create_group_replication_options>
           .optional(kFailoverConsistency,
                     &Create_group_replication_options::set_consistency, "",
                     shcore::Option_extract_mode::CASE_INSENSITIVE,
-                    shcore::Option_scope::CLI_DISABLED)
+                    shcore::Option_scope::DEPRECATED)
           .optional(kExpelTimeout,
                     &Create_group_replication_options::set_expel_timeout, "",
                     shcore::Option_extract_mode::EXACT);

@@ -36,7 +36,7 @@ debug = False
 
 ## helpers
 def exception(exc):
-    return tuple([item.replace('mysqlsh.__shell_python_support__.List', 'list') if isinstance(item, str) else item for idx, item in enumerate(exc.args)])if exc is not None else exc
+    return tuple([item.replace('mysqlsh.__shell_python_support__.List', 'list').replace("List.", "list.") if isinstance(item, str) else item for idx, item in enumerate(exc.args)])if exc is not None else exc
 
 def random_list(*args):
     return [random.randint(0, 100000) for _ in range(*args)]
@@ -157,7 +157,7 @@ EXPECT_EQ("L.sort(key=None, reverse=False) -> None -- stable sort *IN PLACE*", s
 EXPECT_TRUE(isinstance(shlist(), list))
 
 #@<> available members
-EXPECT_EQ([
+list_members = [
     "__add__",
     "__class__",
     "__contains__",
@@ -207,7 +207,13 @@ EXPECT_EQ([
     "remove_all",
     "reverse",
     "sort"
-], dir(shlist()))
+]
+
+if '__class_getitem__' in dir([]):
+    list_members.insert(2, '__class_getitem__')
+
+
+EXPECT_EQ(list_members, dir(shlist()))
 
 #@<> constructors
 EXPECT_EQ(list(), shlist())
@@ -450,7 +456,7 @@ EXPECT_EQ(shlist, s.__class__)
 
 #@<> __init_subclass__
 # we should be using default method from object, which throws if it's called with any arguments (correct implementation takes one)
-EXPECT_THROWS(lambda: shlist.__init_subclass__(1), "TypeError: __init_subclass__() takes no arguments (1 given)")
+EXPECT_THROWS(lambda: shlist.__init_subclass__(1), "__init_subclass__() takes no arguments (1 given)")
 
 #@<> __iter__
 SETUP("__iter__")

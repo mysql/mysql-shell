@@ -316,6 +316,10 @@ OPTIONS
             from the metadata, or "auto" to automatically remove obsolete
             instances from the metadata.
 
+--upgradeCommProtocol=<bool>
+            Boolean. Set to true to upgrade the Group Replication communication
+            protocol to the highest version possible.
+
 //@<OUT> CLI cluster reset-recovery-accounts-password --help
 NAME
       reset-recovery-accounts-password - Reset the password of the recovery
