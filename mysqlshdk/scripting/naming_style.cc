@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,24 +30,17 @@ namespace shcore {
 
 namespace {
 
-std::vector<NamingStyle> g_naming_style{NamingStyle::LowerCamelCase};
-std::recursive_mutex g_naming_mutex;
+thread_local std::vector<NamingStyle> g_naming_style{
+    NamingStyle::LowerCamelCase};
 
 }  // namespace
 
 Scoped_naming_style::Scoped_naming_style(NamingStyle style) {
-  std::unique_lock<std::recursive_mutex> lock(g_naming_mutex);
   g_naming_style.push_back(style);
 }
 
-Scoped_naming_style::~Scoped_naming_style() {
-  std::unique_lock<std::recursive_mutex> lock(g_naming_mutex);
-  g_naming_style.pop_back();
-}
+Scoped_naming_style::~Scoped_naming_style() { g_naming_style.pop_back(); }
 
-NamingStyle current_naming_style() {
-  std::unique_lock<std::recursive_mutex> lock(g_naming_mutex);
-  return g_naming_style.back();
-}
+NamingStyle current_naming_style() { return g_naming_style.back(); }
 
 }  // namespace shcore

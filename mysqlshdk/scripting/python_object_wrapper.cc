@@ -494,6 +494,7 @@ static PyObject *object_callmethod(PyShObjObject *self, PyObject *args) {
 }
 
 static PyObject *object_dir_method(PyShObjObject *self, PyObject *) {
+  shcore::Scoped_naming_style lower(shcore::LowerCaseUnderscores);
   const auto cobj = std::static_pointer_cast<Cpp_object_bridge>(*self->object);
   const auto members = cobj->get_members();
   std::set<std::string> unique_names(members.begin(), members.end());
