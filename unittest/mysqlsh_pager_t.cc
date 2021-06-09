@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -565,6 +565,8 @@ end)";
 TEST_F(Pager_script_test, WL10755_TS12_2) {
   static constexpr auto expected_mysqlsh_output =
       "sh: invalid_command: command not found";
+  static constexpr auto fedora_specific_output =
+      "sh: line 1: invalid_command: command not found";
   static constexpr auto platform_specific_output =
 #if defined(_WIN32)
       R"('invalid_command' is not recognized as an internal or external command,
@@ -589,7 +591,8 @@ operable program or batch file.)";
   // Verify that running the specified command reported an error.
   EXPECT_THAT(_output,
               ::testing::AnyOf(::testing::HasSubstr(expected_mysqlsh_output),
-                               ::testing::HasSubstr(platform_specific_output)));
+                               ::testing::HasSubstr(platform_specific_output),
+                               ::testing::HasSubstr(fedora_specific_output)));
   wipe_out();
 }
 
