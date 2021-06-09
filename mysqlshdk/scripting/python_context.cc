@@ -404,16 +404,8 @@ Python_context::Python_context(bool redirect_stdio) {
     python_packages_path =
         shcore::path::join_path(shcore::get_library_folder(), PYTHON_DEPS_PATH);
 
-// OSX uses wheels for the python deps, so just the root path is needed
-#ifdef __APPLE__
+    // we're using wheels for the python deps, so just the root path is needed
     add_path(python_packages_path);
-#else
-    for (const auto &path : shcore::listdir(python_packages_path)) {
-      if (!shcore::str_iendswith(path, ".pth")) {
-        add_path(shcore::path::join_path(python_packages_path, path));
-      }
-    }
-#endif
 #endif
   }
 
