@@ -238,22 +238,21 @@ IF(HAVE_PYTHON)
     ENDIF()
 
     # This should be there for both MD and non MD windows builds
-    set(PY_DLL ${PYTHON_LIBRARIES})
-    string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
-    get_filename_component(PY_FILE ${PY_DLL} NAME)
-    get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
-    get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
-    install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin COMPONENT main)
+    set(PY_ROOT ${PYTHON_LIBRARIES})
+    get_filename_component(PY_ROOT ${PY_ROOT} DIRECTORY)
+    get_filename_component(PY_ROOT ${PY_ROOT} DIRECTORY)
 
-    IF(WITH_DEV)
-      install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION lib COMPONENT dev)
-    ENDIF()
+    file(GLOB PYTHON_DLLS "${PY_ROOT}/python*.dll")
+    foreach(PY_DLL IN LISTS PYTHON_DLLS)
+      install(FILES "${PY_DLL}" DESTINATION bin COMPONENT main)
 
-    # Copies the dll to the binary location to enable debugging
-    add_custom_command(TARGET mysqlsh PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy
-                        "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:mysqlsh>/${PY_FILE})
-    # Copy the Python runtime
+      # Copies the dll to the binary location to enable debugging
+      add_custom_command(TARGET mysqlsh PRE_BUILD
+                          COMMAND ${CMAKE_COMMAND} -E copy
+                          "${PY_DLL}" $<TARGET_FILE_DIR:mysqlsh>)
+    endforeach()
+
+                        # Copy the Python runtime
     add_custom_command(TARGET mysqlsh PRE_BUILD
                       COMMAND ${CMAKE_COMMAND} -E copy_directory
                       "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/Lib)
@@ -267,18 +266,18 @@ IF(HAVE_PYTHON)
                         "${PYTHON_DEPS_PATH}/"
                         $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/Lib/site-packages)
     ENDIF()
-    # Copy sqlite3 shared library
-    FIND_FILE(PYTHON_SQLITE3_SHARED
-      NAMES
-        "sqlite3.dll"
-      HINTS
-        "${PY_DLL}"
-      NO_DEFAULT_PATH
-    )
-    install(FILES "${PYTHON_SQLITE3_SHARED}" DESTINATION lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs COMPONENT main)
-    add_custom_command(TARGET mysqlsh PRE_BUILD
-                      COMMAND ${CMAKE_COMMAND} -E copy
-                      "${PYTHON_SQLITE3_SHARED}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs)
+    file(GLOB PYTHON_ADDITIONAL_DLLS
+      "${PY_ROOT}/libffi.dll"
+      "${PY_ROOT}/sqlite3.dll")
+
+    foreach(PY_ADDITIONAL_DLL IN LISTS PYTHON_ADDITIONAL_DLLS)
+      install(FILES "${PY_ADDITIONAL_DLL}" DESTINATION lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs COMPONENT main)
+
+      # Copies the dll to the binary location to enable debugging
+      add_custom_command(TARGET mysqlsh PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        "${PY_ADDITIONAL_DLL}" $<TARGET_FILE_DIR:mysqlsh>/../lib/Python${PYTHONLIBS_MAJOR_MINOR}/DLLs)
+    endforeach()
   elseif(BUNDLED_PYTHON_DIR)
     GET_FILENAME_COMPONENT(PYTHON_INCLUDE_DIR_NAME "${PYTHON_INCLUDE_DIRS}" NAME)
     INSTALL(DIRECTORY "${BUNDLED_PYTHON_DIR}/lib/python${PYTHONLIBS_MAJOR_MINOR}" DESTINATION "${INSTALL_LIBDIR}/lib" COMPONENT main
