@@ -145,7 +145,6 @@ if(BUNDLED_SSH_DIR)
   list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_SSH_DIR=${BUNDLED_SSH_DIR}")
 else()
   list(APPEND DEB_BUILD_DEPS "libssh-dev (>=0.9.2)")
-  list(APPEND DEB_DEPS "libssh (>=0.9.2)")
 endif()
 
 if(WITH_SSL)
@@ -194,11 +193,7 @@ if(HAVE_PYTHON)
   if (BUNDLED_PYTHON_DIR)
     list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_PYTHON_DIR=${BUNDLED_PYTHON_DIR}")
   else()
-    list(APPEND DEB_BUILD_DEPS "python3-dev (>= 3.6)")
-    # Most runtime deps the Deb build tools figures out, like the dependency
-    # on "libpythonVER.so". But it can't know about the dependency on the
-    # standard Python modules, i.e. almost all of a normal Python install
-    list(APPEND DEB_DEPS "python3 (>= 3.6)")
+    list(APPEND DEB_BUILD_DEPS "python3-dev (>= 3.8)")
   endif()
 endif()
 

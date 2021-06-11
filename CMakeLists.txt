@@ -589,7 +589,7 @@ ADD_DEFINITIONS(-DOPENSSL_VERSION_ID=${OPENSSL_VERSION_ID})
 
 if(HAVE_PYTHON)
   IF(NOT USE_PYTHON_VERSION)
-    SET(USE_PYTHON_VERSION "3.6")
+    SET(USE_PYTHON_VERSION "3.8")
   ENDIF()
 
   FUNCTION(GET_PYTHON_VERSION python_dir output_var)
@@ -706,9 +706,9 @@ IF(PYTHONLIBS_FOUND OR BUNDLED_PYTHON_DIR)
     MESSAGE(FATAL_ERROR "Couldn't detect Python's version")
   ENDIF()
 
-  # supported Python versions: (v >= 3.6)
-  IF(PYTHONLIBS_VERSION_STRING VERSION_LESS "3.6")
-    MESSAGE(FATAL_ERROR "Python support requires Python 3.6 or greater")
+  # supported Python versions: (v >= 3.8)
+  IF(PYTHONLIBS_VERSION_STRING VERSION_LESS "3.8")
+    MESSAGE(FATAL_ERROR "Python support requires Python 3.8 or greater")
   ENDIF()
 
   GET_MAJOR_MINOR("${PYTHONLIBS_VERSION_STRING}" PYTHONLIBS_MAJOR_MINOR)
