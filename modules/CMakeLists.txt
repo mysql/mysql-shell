@@ -30,8 +30,6 @@ INCLUDE_DIRECTORIES(BEFORE
     ${CMAKE_SOURCE_DIR}/common/uuid/include
     ${MYSQL_INCLUDE_DIRS})
 
-INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/generate_metadata_source.cmake)
-
 file(GLOB api_module_SOURCES
       "devapi/*.cc"
       "dynamic_*.cc"
@@ -163,3 +161,16 @@ add_convenience_library(api_modules ${api_module_SOURCES})
 target_link_libraries(api_modules utils)
 
 ADD_STAN_TARGET(api_modules ${api_module_SOURCES})
+
+
+# install metadata scripts
+FILE(GLOB METADATA_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/adminapi/common/metadata/*.sql)
+
+ADD_CUSTOM_COMMAND(OUTPUT metadata_scripts
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/adminapi-metadata
+    DEPENDS ${METADATA_SCRIPTS}
+    COMMAND ${CMAKE_COMMAND} -E copy ${METADATA_SCRIPTS} ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/adminapi-metadata/
+)
+
+ADD_CUSTOM_TARGET(module_data ALL DEPENDS metadata_scripts)
+INSTALL(DIRECTORY ${CONFIG_BINARY_DIR}/${INSTALL_SHAREDIR}/adminapi-metadata COMPONENT main DESTINATION ${INSTALL_SHAREDIR})

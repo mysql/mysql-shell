@@ -252,6 +252,7 @@ usr/share/mysqlsh/README     usr/share/doc/mysqlsh
 usr/share/mysqlsh/Docs/INFO_SRC     usr/share/mysqlsh/Docs
 usr/share/mysqlsh/Docs/INFO_BIN     usr/share/mysqlsh/Docs
 usr/share/mysqlsh/prompt/*   usr/share/mysqlsh/prompt
+usr/share/mysqlsh/adminapi-metadata/* usr/share/mysqlsh/adminapi-metadata
 usr/share/mysqlsh/upgrade_checker.msg
 usr/lib/mysqlsh/plugins
 usr/lib/mysqlsh/python-packages

@@ -31,6 +31,7 @@
 
 #include "modules/adminapi/common/metadata_management_mysql.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -38,7 +39,6 @@
 
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
-#include "modules/adminapi/common/metadata-model_definitions.h"
 #include "modules/adminapi/common/metadata_backup_handler.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -46,12 +46,20 @@
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 using mysqlshdk::utils::Version;
 
 namespace mysqlsh {
 namespace dba {
 namespace metadata {
+
+// Must be kept up-to-date with the latest version of the metadata schema
+constexpr const char k_metadata_schema_version[] = "2.0.0";
+// Must be kept up-to-date with the list of all schema versions ever released
+constexpr const char *k_metadata_schema_version_history[] = {"1.0.1", "2.0.0"};
 
 namespace {
 constexpr char kMetadataSchemaPreviousName[] =
@@ -111,6 +119,50 @@ bool schema_exists(const std::shared_ptr<Instance> &group_server,
   return row ? true : false;
 }
 }  // namespace
+
+namespace scripts {
+
+namespace {
+std::string get_script_path(const std::string &file) {
+  std::string path;
+  path = shcore::path::join_path(shcore::get_share_folder(),
+                                 "adminapi-metadata", file);
+
+  if (!shcore::path::exists(path))
+    throw std::runtime_error(path +
+                             ": not found, shell installation likely invalid");
+
+  return path;
+}
+
+std::string strip_comments(const std::string &text) {
+  return shcore::str_subvars(
+      text, [](const std::string &) { return ""; }, "/*", "*/");
+}
+}  // namespace
+
+std::string get_metadata_script(const mysqlshdk::utils::Version &version) {
+  return strip_comments(
+      shcore::get_text_file(get_script_path(shcore::str_format(
+          "metadata-model-%s.sql", version.get_base().c_str()))));
+}
+
+std::string get_metadata_upgrade_script(
+    const mysqlshdk::utils::Version &version) {
+  auto full_script = get_metadata_script(version);
+
+  auto script =
+      strip_comments(shcore::get_text_file(get_script_path(shcore::str_format(
+          "metadata-upgrade-%s.sql", version.get_base().c_str()))));
+
+  return shcore::str_replace(
+      script,
+      "-- Deploy: METADATA_MODEL_" +
+          shcore::str_replace(version.get_base(), ".", "_"),
+      full_script);
+}
+
+}  // namespace scripts
 
 namespace upgrade {
 enum class Stage {
@@ -272,7 +324,9 @@ void upgrade_101_200(const std::shared_ptr<Instance> &group_server) {
             .c_str());
   }
 
-  execute_script(group_server, k_metadata_upgrade_scripts.at("2.0.0"),
+  execute_script(group_server,
+                 scripts::get_metadata_upgrade_script(
+                     mysqlshdk::utils::Version(k_metadata_schema_version)),
                  "While upgrading Metadata schema");
 }
 }  // namespace steps
@@ -591,7 +645,8 @@ State check_installed_schema_version(
 void install(const std::shared_ptr<Instance> &group_server) {
   try {
     execute_script(group_server,
-                   k_metadata_schema_scripts.at(k_metadata_schema_version),
+                   scripts::get_metadata_script(
+                       mysqlshdk::utils::Version(k_metadata_schema_version)),
                    "While installing metadata schema:");
 
     // The MD script sets the default DB to the MD schema
@@ -895,8 +950,11 @@ void upgrade_or_restore_schema(const std::shared_ptr<Instance> &group_server,
 bool is_valid_version(const mysqlshdk::utils::Version &version) {
   DBUG_EXECUTE_IF("dba_EMULATE_UNEXISTING_MD", { return true; });
 
-  return k_metadata_schema_scripts.find(version.get_base()) !=
-             k_metadata_schema_scripts.end() ||
+  return std::find_if(std::begin(k_metadata_schema_version_history),
+                      std::end(k_metadata_schema_version_history),
+                      [version](const char *v) -> bool {
+                        return version.get_base().compare(v) == 0;
+                      }) != std::end(k_metadata_schema_version_history) ||
          version == kUpgradingVersion;
 }
 

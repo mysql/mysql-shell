@@ -40,6 +40,7 @@
 
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/shellcore/shell_console.h"

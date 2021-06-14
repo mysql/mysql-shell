@@ -214,6 +214,7 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_bindir}/mysqlsh
 %{_bindir}/mysql-secret-store-login-path
 %{_datadir}/mysqlsh/prompt/*
+%{_datadir}/mysqlsh/adminapi-metadata/*
 %{_datadir}/mysqlsh/upgrade_checker.msg
 %{_datadir}/mysqlsh/Docs/INFO_SRC
 %{_datadir}/mysqlsh/Docs/INFO_BIN
@@ -234,6 +235,9 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_prefix}/lib/mysqlsh/python-packages/*
 
 %changelog
+* Mon Jun 14 2021 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 8.0.27
+- Install adminapi-metadata
+
 * Tue Jan 26 2021 Rene Ramirez <j.rene.ramirez@oracle.com> - 8.0.24
 - Relocating python dependencies to the embedded site-packages folder
 

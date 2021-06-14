@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,7 +24,6 @@
 #include "modules/adminapi/common/metadata_backup_handler.h"
 
 #include "modules/adminapi/common/common.h"
-#include "modules/adminapi/common/metadata-model_definitions.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
@@ -78,7 +77,7 @@ class Base_backup_handler {
     // - Recreate the schema
     // - Recreate schema_version
 
-    std::string script = k_metadata_schema_scripts.at(m_version.get_base());
+    std::string script = scripts::get_metadata_script(m_version);
 
     if (m_keep_schema_version) {
       script = shcore::str_replace(script,
@@ -237,7 +236,7 @@ class MD_1_0_backup_handler : public Base_backup_handler {
     // - Recreate the schema
     // - Recreate schema_version
 
-    std::string script = k_metadata_schema_scripts.at(m_version.get_base());
+    std::string script = scripts::get_metadata_script(m_version);
 
     if (m_keep_schema_version) {
       script = shcore::str_replace(
@@ -290,8 +289,7 @@ std::unique_ptr<Base_backup_handler> generate_backup_handler(
     const Version &version, const std::string &src_schema,
     const std::string &tgt_schema, const std::shared_ptr<Instance> &instance,
     const std::string &context, bool keep_upgrading_version) {
-  bool found = k_metadata_schema_scripts.find(version.get_base()) !=
-               k_metadata_schema_scripts.end();
+  bool found = is_valid_version(version);
 
   bool emulating = false;
   DBUG_EXECUTE_IF("dba_EMULATE_UNEXISTING_MD", {

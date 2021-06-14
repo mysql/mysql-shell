@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,6 +39,13 @@ void prepare_metadata_schema(const std::shared_ptr<Instance> &target_instance,
                              bool force_overwrite, bool dry_run);
 
 namespace metadata {
+
+namespace scripts {
+std::string get_metadata_script(const mysqlshdk::utils::Version &version);
+
+std::string get_metadata_upgrade_script();
+}  // namespace scripts
+
 namespace upgrade {
 enum class Stage;
 }
