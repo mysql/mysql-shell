@@ -520,7 +520,7 @@ class SHCORE_PUBLIC Argument_list {
 
   template <class T>
   void emplace_back(const T &value) {
-    return _args.emplace_back(Value(value));
+    _args.emplace_back(Value(value));
   }
 
  private:

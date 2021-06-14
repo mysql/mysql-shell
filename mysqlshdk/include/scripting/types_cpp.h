@@ -1568,11 +1568,8 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
     const auto size = docs.size();
 
     std::string pcodes;
+    (..., pcodes.append(Type_info<A>::code()));
     auto mangled_name = class_name() + "::" + name + ":";
-    // fold expressions are available in C++17, use
-    // std::initializer_list + comma operator trick instead
-    (void)std::initializer_list<int>{
-        (pcodes.append(Type_info<A>::code()), 0)...};
     mangled_name.append(pcodes);
     auto &md = get_metadata(mangled_name);
     std::lock_guard<std::mutex> lock(s_mtx);

@@ -21,8 +21,8 @@
 
 include(CheckCXXCompilerFlag)
 
-# Check for C++ 14 support
-set(CXX_STD "14")
+# Check for C++ 17 support
+set(CXX_STD "17")
 
 macro(APPEND_FLAG _string_var _addition)
   set(${_string_var} "${${_string_var}} ${_addition}")
