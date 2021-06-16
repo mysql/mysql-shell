@@ -27,6 +27,7 @@
 #include <utility>
 #include "modules/util/dump/dump_utils.h"
 #include "modules/util/dump/schema_dumper.h"
+#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
@@ -1102,7 +1103,9 @@ void Dump_reader::Dump_info::parse_done_metadata(
 
 std::unique_ptr<mysqlshdk::storage::IFile>
 Dump_reader::create_progress_file_handle() const {
-  if (m_options.use_par() && m_options.use_par_progress()) {
+  if (m_options.par_type() ==
+          mysqlshdk::storage::backend::oci::Par_type::MANIFEST &&
+      m_options.use_par_progress()) {
     return m_dir->file(*m_options.progress_file());
   } else {
     return m_options.create_progress_file_handle();

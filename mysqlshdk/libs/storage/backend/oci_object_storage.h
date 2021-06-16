@@ -50,18 +50,24 @@ using mysqlshdk::oci::Multipart_object_part;
 using mysqlshdk::oci::Oci_options;
 using mysqlshdk::oci::Oci_rest_service;
 
+static constexpr auto k_at_manifest_json = "@.manifest.json";
+
+enum class Par_type { MANIFEST, PREFIX, GENERAL, NONE };
 struct Par_structure {
-  std::string par_url;
+  std::string full_url;
   std::string region;
+  std::string par_id;
   std::string ns_name;
   std::string bucket;
-  std::string object_url;
   std::string object_prefix;
   std::string object_name;
+
+  std::string get_par_url() const;
+  std::string get_object_path() const;
 };
 
 // Parses full object PAR, including REST end point.
-bool parse_full_object_par(const std::string &url, Par_structure *data);
+Par_type parse_par(const std::string &url, Par_structure *data);
 
 /**
  * Emulates a directory behavior in a Bucket.

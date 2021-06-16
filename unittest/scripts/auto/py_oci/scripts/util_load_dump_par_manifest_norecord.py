@@ -57,8 +57,10 @@ shell.connect(__sandbox_uri2)
 manifest_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectRead", "manifest-par", today_plus_days(1, RFC3339), "shell-test/@.manifest.json")
 
 #@<> WL14154-TSFR7_1 - When doing a load using a PAR for a manifest file with the progressFile option not set. Validate that the load fail because progressFile option is mandatory.
-EXPECT_THROWS(lambda:util.load_dump(manifest_par), "Util.load_dump: When using a PAR to a dump manifest, the progressFile option must be defined.")
+EXPECT_THROWS(lambda:util.load_dump(manifest_par), "Util.load_dump: When using a PAR to load a dump, the progressFile option must be defined")
 
+#@<> Attempt to load using a manifest PAR as progress PAR.
+EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": manifest_par}), "Util.load_dump: Invalid PAR for progress file, use a PAR to a specific file different than the manifest")
 
 #@<> WL14154-TSFR7_2 - When doing a load using a PAR for a manifest file with the progressFile option set to a file system. Validate that the load success and the file given stores the load progress.
 EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": "my_load_progress.txt"}), "load_dump() using local progress file")

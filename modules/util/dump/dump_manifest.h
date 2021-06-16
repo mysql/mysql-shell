@@ -37,6 +37,7 @@ namespace mysqlsh {
 namespace dump {
 
 using mysqlshdk::storage::backend::oci::Par_structure;
+using mysqlshdk::storage::backend::oci::Par_type;
 using File_info = mysqlshdk::storage::IDirectory::File_info;
 
 enum class Manifest_mode { READ, WRITE };
@@ -106,7 +107,7 @@ class Manifest_reader final : public Manifest_base {
   File_info get_object(const std::string &name) override;
   void unserialize(const std::string &data);
   const std::string &get_object_prefix() const { return m_meta.object_prefix; }
-  const std::string &url() const { return m_meta.par_url; }
+  const std::string &url() const { return m_meta.full_url; }
   const std::string &region() const { return m_meta.region; }
   void reload();
 

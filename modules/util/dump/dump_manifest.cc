@@ -297,7 +297,7 @@ Dump_manifest::Dump_manifest(Manifest_mode mode,
                              const std::string &name)
     : Directory(options, name), m_manifest(manifest) {
   if (m_manifest == nullptr) {
-    using mysqlshdk::storage::backend::oci::parse_full_object_par;
+    using mysqlshdk::storage::backend::oci::parse_par;
 
     // This class is a Directory interface to handle dump and load operations
     // using Pre-authenticated requests (PARs), it works dual mode as follows:
@@ -311,10 +311,14 @@ Dump_manifest::Dump_manifest(Manifest_mode mode,
     // containing the relation between files and PARs.
     if (mode == Manifest_mode::READ) {
       Par_structure data;
-      if (parse_full_object_par(name, &data) &&
-          data.object_name == k_at_manifest_json) {
-        // The directory name
-        m_name = data.object_prefix;
+      Par_type par_type = parse_par(name, &data);
+
+      if (par_type == Par_type::MANIFEST) {
+        // The directory name (removes the trailing / from the prefix)
+        m_name = "";
+        if (!data.object_prefix.empty()) {
+          m_name = data.object_prefix.substr(0, data.object_prefix.size() - 1);
+        }
         m_manifest = std::make_shared<Manifest_reader>(
             data,
             std::make_unique<mysqlshdk::storage::backend::oci::Object>(name));
@@ -354,17 +358,18 @@ std::unique_ptr<mysqlshdk::storage::IFile> Dump_manifest::file(
     // additional files
     auto reader = manifest_reader(m_manifest);
 
-    Par_structure data;
     // In READ mode, if a PAR is provided (i.e. a PAR to the progress file),
     // then the file is "created" and it is kept on a different registry (i.e.
     // not part of the manifest)
-    if (parse_full_object_par(name, &data)) {
+    Par_structure data;
+    Par_type par_type = parse_par(name, &data);
+    if (par_type != Par_type::NONE) {
       if (data.region == reader->region() &&
           data.ns_name == *m_bucket->get_options().os_namespace &&
           data.bucket == *m_bucket->get_options().os_bucket_name &&
-          data.object_prefix == m_name) {
+          data.object_prefix == prefix) {
         object_name = data.object_name;
-        m_created_objects[object_name] = {data.object_url, 0};
+        m_created_objects[object_name] = {data.get_object_path(), 0};
         // prefix = "";
         return std::make_unique<mysqlshdk::storage::backend::oci::Object>(name);
       } else {

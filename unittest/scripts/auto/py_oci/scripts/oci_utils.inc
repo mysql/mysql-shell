@@ -147,9 +147,12 @@ def today_plus_days(count, rfc_3339_format=False):
     else:
         return new_date.isoformat()
 
-def create_par(namespace, bucket, access_type, name, time_expires, object_name = None):
-    details = CreatePreauthenticatedRequestDetails(name=name, object_name=object_name, access_type=access_type, time_expires=time_expires)
+def create_par(namespace, bucket, access_type, name, time_expires, object_name = None, bucket_listing_action=None):
+    details = CreatePreauthenticatedRequestDetails(name=name, object_name=object_name, access_type=access_type, time_expires=time_expires, bucket_listing_action=bucket_listing_action)
     config = oci.config.from_file(os.path.join(OCI_CONFIG_HOME, "config"))
     os_client = oci.object_storage.ObjectStorageClient(config)
     par = os_client.create_preauthenticated_request(namespace, bucket, details)
-    return "https://objectstorage.{}.oraclecloud.com{}".format(config["region"], par.data.access_uri)
+    if par.data.access_type.startswith("Any") and object_name is not None:
+        return "https://objectstorage.{}.oraclecloud.com{}{}".format(config["region"], par.data.access_uri,par.data.object_name)
+    else:
+        return "https://objectstorage.{}.oraclecloud.com{}".format(config["region"], par.data.access_uri)

@@ -326,9 +326,10 @@ TEST_F(Oci_os_tests, file_append_existing_file) {
 
   // APPEND is forbidden here as the file exist and there' no active multipart
   // upload
-  EXPECT_THROW_LIKE(file->open(Mode::APPEND), std::invalid_argument,
-                    "Object Storage only supports APPEND mode for in-progress "
-                    "multipart uploads or new files.");
+  EXPECT_THROW_LIKE(
+      file->open(Mode::APPEND), std::invalid_argument,
+      "OCI Object Storage only supports APPEND mode for in-progress "
+      "multipart uploads or new files.");
 
   // Now APPEND should be allowed
   bucket.create_multipart_upload("sample.txt");

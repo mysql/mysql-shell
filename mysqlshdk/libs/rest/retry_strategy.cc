@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,6 +31,29 @@
 
 namespace mysqlshdk {
 namespace rest {
+
+Exponential_backoff_retry default_retry_strategy() {
+  mysqlshdk::rest::Exponential_backoff_retry retry_strategy(1, 2, 60);
+
+  // Retry up to 10 times
+  retry_strategy.set_max_attempts(10);
+
+  // Keep retrying for 10 minutes
+  retry_strategy.set_max_ellapsed_time(600);
+
+  // Throttling handling: a response with TOO_MANY_REQUESTS makes the retry
+  // strategy to continue
+  retry_strategy.add_retriable_status(Response::Status_code::TOO_MANY_REQUESTS);
+
+  // Throttling handling: equal jitter guarantees some wait time before next
+  // attempt
+  retry_strategy.set_equal_jitter_for_throttling(true);
+
+  // Retry continues in responses with codes about server errors >=500
+  retry_strategy.set_retry_on_server_errors(true);
+
+  return retry_strategy;
+}
 
 void Retry_strategy::init() {
   if (m_max_attempts.is_null() && m_max_ellapsed_time.is_null()) {

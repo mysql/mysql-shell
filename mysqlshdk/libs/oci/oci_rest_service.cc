@@ -156,27 +156,6 @@ void log_failed_response(const Headers &headers, Base_response_buffer *buffer) {
   log_info("RESPONSE BODY:\n%s", buffer->size() ? buffer->data() : "<EMPTY>");
 }
 
-void check_and_throw(Response::Status_code code, const Headers &headers,
-                     Base_response_buffer *buffer) {
-  if (code < Response::Status_code::OK ||
-      code >= Response::Status_code::MULTIPLE_CHOICES) {
-    if (Response::is_json(headers) && buffer->size()) {
-      try {
-        auto json =
-            shcore::Value::parse(buffer->data(), buffer->size()).as_map();
-        if (json->get_type("message") == shcore::Value_type::String) {
-          throw Response_error(code, json->get_string("message"));
-        }
-      } catch (const shcore::Exception &error) {
-        // This handles the case where the content/type indicates it's JSON but
-        // parsing failed. The default error message is used on this case.
-        throw Response_error(code);
-      }
-    }
-    throw Response_error(code);
-  }
-}
-
 }  // namespace
 
 Oci_rest_service::Oci_rest_service(Oci_service service,
@@ -372,28 +351,7 @@ Response::Status_code Oci_rest_service::execute(
 
   if (!response_headers) response_headers = &rheaders;
 
-  // Using exponential backoff retry logic with:
-  // 1 second as base sleep time
-  // 2 as the exponential factor
-  // 60 seconds as max time between retries
-  mysqlshdk::rest::Exponential_backoff_retry retry_strategy(1, 2, 60);
-
-  // Retry up to 10 times
-  retry_strategy.set_max_attempts(10);
-
-  // Keep retrying for 10 minutes
-  retry_strategy.set_max_ellapsed_time(600);
-
-  // Throttling handling: a response with TOO_MANY_REQUESTS makes the retry
-  // strategy to continue
-  retry_strategy.add_retriable_status(Response::Status_code::TOO_MANY_REQUESTS);
-
-  // Throttling handling: equal jitter guarantees some wait time before next
-  // attempt
-  retry_strategy.set_equal_jitter_for_throttling(true);
-
-  // Retry continues in responses with codes about server errors >=500
-  retry_strategy.set_retry_on_server_errors(true);
+  auto retry_strategy = rest::default_retry_strategy();
 
   // Caller might not be interested on handling the response data directly, i.e.
   // if just expecting the call to either succeed or fail.
@@ -412,7 +370,9 @@ Response::Status_code Oci_rest_service::execute(
         m_rest->execute(type, path, body, size, headers_to_send,
                         response_buffer_ptr, response_headers, &retry_strategy);
 
-    check_and_throw(code, *response_headers, response_buffer_ptr);
+    mysqlshdk::rest::Response::check_and_throw(code, *response_headers,
+                                               response_buffer_ptr->data(),
+                                               response_buffer_ptr->size());
 
     return code;
   } catch (const rest::Connection_error &e) {

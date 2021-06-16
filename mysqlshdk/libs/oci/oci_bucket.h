@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 #define MYSQLSHDK_LIBS_OCI_OCI_BUCKET_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -71,8 +72,16 @@ enum class PAR_access_type {
   OBJECT_READ,
   OBJECT_WRITE,
   OBJECT_READ_WRITE,
-  ANY_OBJECT_WRITE
+  ANY_OBJECT_READ,
+  ANY_OBJECT_WRITE,
+  ANY_OBJECT_READ_WRITE
 };
+
+std::string to_string(PAR_access_type access_type);
+
+enum class PAR_list_action { DENY, LIST_OBJECTS };
+
+std::string to_string(PAR_list_action list_action);
 
 struct PAR {
   std::string id;
@@ -82,6 +91,7 @@ struct PAR {
   std::string object_name;
   std::string time_created;
   std::string time_expires;
+  std::string list_action;
   size_t size;
 };
 
@@ -273,10 +283,10 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
    */
   void abort_multipart_upload(const Multipart_object &object);
 
-  PAR create_pre_authenticated_request(PAR_access_type access_type,
-                                       const std::string &expiration_time,
-                                       const std::string &par_name,
-                                       const std::string &object_name = "");
+  PAR create_pre_authenticated_request(
+      PAR_access_type access_type, const std::string &expiration_time,
+      const std::string &par_name, const std::string &object_name = "",
+      std::optional<PAR_list_action> list_action = {});
 
   void delete_pre_authenticated_request(const std::string &id);
 

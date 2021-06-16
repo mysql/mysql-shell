@@ -23,15 +23,16 @@
 
 #include "modules/util/load/load_dump_options.h"
 
-#include <algorithm>
-
 #include <mysqld_error.h>
+
+#include <algorithm>
 
 #include "modules/mod_utils.h"
 #include "modules/util/dump/dump_manifest.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
+#include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -288,22 +289,53 @@ void Load_dump_options::set_session(
 
 void Load_dump_options::validate() {
   using mysqlshdk::storage::backend::oci::Par_structure;
-  using mysqlshdk::storage::backend::oci::parse_full_object_par;
+  using mysqlshdk::storage::backend::oci::Par_type;
+  using mysqlshdk::storage::backend::oci::parse_par;
   Par_structure url_par_data;
-  m_use_par = parse_full_object_par(m_url, &url_par_data);
+  m_par_type = parse_par(m_url, &url_par_data);
 
-  if (m_use_par) {
+  if (m_par_type == Par_type::MANIFEST || m_par_type == Par_type::PREFIX) {
     if (m_progress_file.is_null()) {
       throw shcore::Exception::argument_error(
-          "When using a PAR to a dump manifest, the progressFile option must "
-          "be defined.");
+          "When using a PAR to load a dump, the progressFile option must "
+          "be defined");
     } else {
-      Par_structure progress_par_data;
-      m_use_par_progress =
-          parse_full_object_par(*m_progress_file, &progress_par_data);
+      m_progress_file = shcore::str_strip(*m_progress_file);
+
+      const auto scheme =
+          mysqlshdk::storage::utils::get_scheme(*m_progress_file);
+
+      bool is_remote_progress = false;
+      Par_type progress_par_type = Par_type::NONE;
+
+      if (!scheme.empty()) {
+        if (mysqlshdk::storage::utils::scheme_matches(scheme, "http")) {
+          is_remote_progress = true;
+        } else if (mysqlshdk::storage::utils::scheme_matches(scheme, "https")) {
+          is_remote_progress = true;
+          Par_structure progress_par_data;
+          progress_par_type = parse_par(*m_progress_file, &progress_par_data);
+        }
+      }
+
+      if (m_par_type == Par_type::PREFIX && is_remote_progress) {
+        throw shcore::Exception::argument_error(
+            "When using a prefix PAR to load a dump, the progressFile option "
+            "must be a local file");
+      } else if (progress_par_type != Par_type::NONE &&
+                 progress_par_type != Par_type::GENERAL) {
+        throw shcore::Exception::argument_error(
+            "Invalid PAR for progress file, use a PAR to a specific file "
+            "different than the manifest");
+      }
+
+      m_use_par_progress = (progress_par_type == Par_type::GENERAL);
     }
 
-    m_oci_options.set_par(m_url);
+    // TODO(rennox): this should NOT be needed!!
+    if (m_par_type == Par_type::MANIFEST) {
+      m_oci_options.set_par(m_url);
+    }
     m_prefix = url_par_data.object_prefix;
   }
 
@@ -345,9 +377,10 @@ std::string Load_dump_options::target_import_info() const {
   if (load_data()) what_to_load.push_back("Data");
   if (load_users()) what_to_load.push_back("Users");
 
+  using mysqlshdk::storage::backend::oci::Par_type;
   std::string where;
   if (m_oci_options) {
-    if (m_use_par) {
+    if (m_par_type == Par_type::MANIFEST || m_par_type == Par_type::PREFIX) {
       where = "OCI PAR=" + m_url + ", prefix='" + m_prefix + "'";
     } else {
       where = "OCI ObjectStorage bucket=" + *m_oci_options.os_bucket_name +
@@ -414,7 +447,8 @@ void Load_dump_options::on_unpacked_options() {
 
 std::unique_ptr<mysqlshdk::storage::IDirectory>
 Load_dump_options::create_dump_handle() const {
-  if (m_use_par) {
+  using mysqlshdk::storage::backend::oci::Par_type;
+  if (m_par_type == Par_type::MANIFEST) {
     return std::make_unique<Dump_manifest>(Manifest_mode::READ, m_oci_options,
                                            nullptr, m_url);
   } else if (!m_oci_options.os_bucket_name.get_safe().empty()) {

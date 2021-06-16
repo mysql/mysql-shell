@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,9 +25,12 @@
 #define MYSQLSHDK_LIBS_STORAGE_BACKEND_HTTP_H_
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 #include "mysqlshdk/libs/rest/rest_service.h"
+#include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 
 namespace mysqlshdk {
@@ -37,7 +40,8 @@ namespace backend {
 class Http_get : public IFile {
  public:
   Http_get() = delete;
-  explicit Http_get(const std::string &uri);
+  explicit Http_get(const std::string &uri, bool use_retry = false,
+                    bool verify_ssl = true);
   Http_get(const Http_get &other) = delete;
   Http_get(Http_get &&other) = default;
 
@@ -60,9 +64,7 @@ class Http_get : public IFile {
 
   bool exists() const override;
 
-  std::unique_ptr<IDirectory> parent() const override {
-    throw std::logic_error("Http_get::parent() - not implemented");
-  }
+  std::unique_ptr<IDirectory> parent() const override;
 
   off64_t seek(off64_t offset) override;
   off64_t tell() const override {
@@ -89,9 +91,73 @@ class Http_get : public IFile {
  private:
   std::unique_ptr<mysqlshdk::rest::Rest_service> m_rest;
   off64_t m_offset = 0;
-  mysqlshdk::rest::Response::Status_code m_open_status_code;
-  size_t m_file_size = 0;
   std::string m_uri;
+  mutable std::optional<bool> m_exists;
+  mutable size_t m_file_size = 0;
+  bool m_open = false;
+  bool m_use_retry = false;
+};
+
+class Http_directory : public IDirectory {
+ public:
+  explicit Http_directory(const std::string &url, bool use_retry = false,
+                          bool verify_ssl = true);
+
+  Http_directory(const Http_directory &other) = delete;
+  Http_directory(Http_directory &&other) = default;
+
+  Http_directory &operator=(const Http_directory &other) = delete;
+  Http_directory &operator=(Http_directory &&other) = default;
+
+  ~Http_directory() override = default;
+
+  bool exists() const override;
+
+  void create() override;
+
+  void close() override;
+
+  std::string full_path() const override;
+
+  std::vector<IDirectory::File_info> list_files(
+      bool hidden_files = false) const override;
+
+  std::vector<IDirectory::File_info> filter_files(
+      const std::string &pattern) const override;
+
+  std::unique_ptr<IFile> file(const std::string &name,
+                              const File_options &options = {}) const override;
+
+  bool is_local() const override;
+
+  std::string join_path(const std::string &a,
+                        const std::string &b) const override;
+
+ protected:
+  explicit Http_directory(bool use_retry = false) : m_use_retry(use_retry) {}
+  void init_rest(const std::string &url, bool verify_ssl);
+
+  /**
+   * Returns the URL to be used to pull the file list.
+   *
+   * The URL might either be exactly m_url or some modified version of it.
+   */
+  virtual std::string get_list_url() const { return ""; }
+
+  /**
+   * Parses the response from the list GET request to generate the file list
+   */
+  virtual std::vector<IDirectory::File_info> parse_file_list(
+      const std::string &data, const std::string &pattern = "") const = 0;
+
+ protected:
+  std::vector<IDirectory::File_info> get_file_list(
+      const std::string &context, const std::string &pattern = "") const;
+
+  std::string m_url;
+  std::unique_ptr<mysqlshdk::rest::Rest_service> m_rest;
+  mysqlshdk::rest::Response::Status_code m_open_status_code;
+  bool m_use_retry = false;
 };
 
 }  // namespace backend

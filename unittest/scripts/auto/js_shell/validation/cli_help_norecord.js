@@ -762,8 +762,8 @@ OPTIONS
             Default: not set.
 
 --osBucketName=<str>
-            Name of the Object Storage bucket to use. The bucket must already
-            exist. Default: not set.
+            Name of the OCI Object Storage bucket to use. The bucket must
+            already exist. Default: not set.
 
 --ociConfigFile=<str>
             Override oci.configFile shell option, to specify the path to the
@@ -781,7 +781,7 @@ SYNTAX
       util load-dump <url> [<options>]
 
 WHERE
-      url: URL or path to the dump directory
+      url: defines the location of the dump to be loaded
 
 OPTIONS
 --threads=<int>
@@ -927,3 +927,4 @@ OPTIONS
 --ociProfile=<str>
             Use the specified OCI profile instead of the default one. Default:
             not set.
+

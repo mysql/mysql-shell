@@ -424,16 +424,28 @@ DESCRIPTION
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
 
-      Enabling dump loading using preauthenticated requests
+      Enabling dump loading using pre-authenticated requests
 
-      To enable loading a dump without requiring an OCI Profile, the dump
-      operations can automatically generate a preauthenticated request (PAR)
-      for every file generated on the dump operation, this is done by enabling
-      the ociParManifest option.
+      The loadDump utility supports loading a dump using a pre-authenticated
+      request (PAR). The simplest way to do this is by providing a PAR to the
+      location of the dump in a bucket, the PAR must be created with the
+      following permissions:
 
-      When the ociParManifest option is enabled, a file named "@.manifest.json"
-      is generated, it contains the PAR for each file generated on the dump.
-      The manifest is updated as the dump operation progresses.
+      - Permits object reads
+      - Enables object listing
+
+      The generated URL can be used to load the dump, see \? loadDump for more
+      details.
+
+      Another way to enable loading a dump without requiring an OCI Profile, is
+      to execute the dump operations enabling the ociParManifest option which
+      will cause the dump operation automatically generates a PAR for every
+      file in the dump, and will store them as part of the dump in a file named
+      "@.manifest.json". The manifest is updated as the dump operation
+      progresses.
+
+      Using a PAR with permissions to read the manifest is another option to
+      load the dump using PAR.
 
       The ociParManifest option cannot be used if osBucketName is not set. The
       default value of this option depends on the dump settings: if ocimds is
@@ -725,16 +737,28 @@ DESCRIPTION
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
 
-      Enabling dump loading using preauthenticated requests
+      Enabling dump loading using pre-authenticated requests
 
-      To enable loading a dump without requiring an OCI Profile, the dump
-      operations can automatically generate a preauthenticated request (PAR)
-      for every file generated on the dump operation, this is done by enabling
-      the ociParManifest option.
+      The loadDump utility supports loading a dump using a pre-authenticated
+      request (PAR). The simplest way to do this is by providing a PAR to the
+      location of the dump in a bucket, the PAR must be created with the
+      following permissions:
 
-      When the ociParManifest option is enabled, a file named "@.manifest.json"
-      is generated, it contains the PAR for each file generated on the dump.
-      The manifest is updated as the dump operation progresses.
+      - Permits object reads
+      - Enables object listing
+
+      The generated URL can be used to load the dump, see \? loadDump for more
+      details.
+
+      Another way to enable loading a dump without requiring an OCI Profile, is
+      to execute the dump operations enabling the ociParManifest option which
+      will cause the dump operation automatically generates a PAR for every
+      file in the dump, and will store them as part of the dump in a file named
+      "@.manifest.json". The manifest is updated as the dump operation
+      progresses.
+
+      Using a PAR with permissions to read the manifest is another option to
+      load the dump using PAR.
 
       The ociParManifest option cannot be used if osBucketName is not set. The
       default value of this option depends on the dump settings: if ocimds is
@@ -1020,16 +1044,28 @@ DESCRIPTION
       The osNamespace option overrides the OCI namespace obtained based on the
       tenancy ID from the local OCI profile.
 
-      Enabling dump loading using preauthenticated requests
+      Enabling dump loading using pre-authenticated requests
 
-      To enable loading a dump without requiring an OCI Profile, the dump
-      operations can automatically generate a preauthenticated request (PAR)
-      for every file generated on the dump operation, this is done by enabling
-      the ociParManifest option.
+      The loadDump utility supports loading a dump using a pre-authenticated
+      request (PAR). The simplest way to do this is by providing a PAR to the
+      location of the dump in a bucket, the PAR must be created with the
+      following permissions:
 
-      When the ociParManifest option is enabled, a file named "@.manifest.json"
-      is generated, it contains the PAR for each file generated on the dump.
-      The manifest is updated as the dump operation progresses.
+      - Permits object reads
+      - Enables object listing
+
+      The generated URL can be used to load the dump, see \? loadDump for more
+      details.
+
+      Another way to enable loading a dump without requiring an OCI Profile, is
+      to execute the dump operations enabling the ociParManifest option which
+      will cause the dump operation automatically generates a PAR for every
+      file in the dump, and will store them as part of the dump in a file named
+      "@.manifest.json". The manifest is updated as the dump operation
+      progresses.
+
+      Using a PAR with permissions to read the manifest is another option to
+      load the dump using PAR.
 
       The ociParManifest option cannot be used if osBucketName is not set. The
       default value of this option depends on the dump settings: if ocimds is
@@ -1389,8 +1425,8 @@ DESCRIPTION
 
       OCI Object Storage Options
 
-      - osBucketName: string (default: not set) - Name of the Object Storage
-        bucket to use. The bucket must already exist.
+      - osBucketName: string (default: not set) - Name of the OCI Object
+        Storage bucket to use. The bucket must already exist.
       - osNamespace: string (default: not set) - Specifies the namespace where
         the bucket is located, if not given it will be obtained using the
         tenancy id on the OCI configuration.
@@ -1442,25 +1478,21 @@ SYNTAX
       util.loadDump(url[, options])
 
 WHERE
-      url: URL or path to the dump directory
+      url: defines the location of the dump to be loaded
       options: Dictionary with load options
 
 DESCRIPTION
-      url can be one of:
+      Depending on how the dump was created, the url identifies the location
+      and in some cases the access method to the dump, i.e. for dumps to be
+      loaded using pre-authenticated requests (PAR). Allowed values:
 
-      - /path/to/file - Path to a locally or remotely (e.g. in OCI Object
-        Storage) accessible file or directory
-      - file:///path/to/file - Path to a locally accessible file or directory
-      - http[s]://host.domain[:port]/path/to/file - Location of a remote file
-        accessible through HTTP(s) (importTable() only)
-
-      If the osBucketName option is given, the path argument must specify a
-      plain path in that OCI (Oracle Cloud Infrastructure) Object Storage
-      bucket.
-
-      The OCI configuration profile is located through the oci.profile and
-      oci.configFile global shell options and can be overridden with ociProfile
-      and ociConfigFile, respectively.
+      - /path/to/folder - to load a dump from local storage
+      - /oci/bucket/path - to load a dump from OCI Object Storage using an OCI
+        profile
+      - PAR to the dump manifest - to load a dump from OCI Object Storage
+        created with the ociParManifest option
+      - PAR to the dump location - to load a dump from OCI Object Storage using
+        a single PAR
 
       loadDump() will load a dump from the specified path. It transparently
       handles compressed files and directly streams data when loading from
@@ -1605,32 +1637,73 @@ DESCRIPTION
       Connection options set in the global session, such as compression,
       ssl-mode, etc. are inherited by load sessions.
 
-      Loading a dump using Preauthenticated Requests (PAR)
+      Examples: 
 
-      When dumping to an Object Storage Bucket, the dump functions can be
-      enabled to generate a dump that can be loaded using a PAR. When this is
-      enabled, a manifest file "@.manifest.json" will be generated, it is the
-      entry point to load the dump using a PAR.
-
-      To do it, create an ObjectRead PAR for this file and use it on the url
-      argument of this function.
-
-      When using a PAR to load a dump, the progressFile option is mandatory,
-      and it is possible to store the load progress either on the local file
-      system, or on the dump location.
-
-      To store the progress file locally, specify a path to a file on the local
-      system in the progressFile option.
-
-      To store the progress on dump location, create an ObjectReadWrite PAR to
-      the desired progress file (it does not need to exist), it should be
-      located on the same location of the "@.manifest.json" file. Finally
-      specify the PAR URL on the progressFile option.
-
-      Examples:
       util.loadDump("sakila_dump")
 
       util.loadDump("mysql/sales", {
           "osBucketName": "mybucket",    // OCI Object Storage bucket
           "waitDumpTimeout": 1800        // wait for new data for up to 30mins
       })
+
+      Loading a dump using Pre-authenticated Requests (PAR)
+
+      When a dump is created in OCI Object Storage, it is possible to load it
+      using a single pre-authenticated request which gives access to the
+      location of the dump. The requirements for this PAR include:
+
+      - Permits object reads
+      - Enables object listing
+
+      Given a dump located at a bucket root and a PAR created for the bucket,
+      the dump can be loaded by providing the PAR as the url parameter:
+
+      Example: 
+
+      Dump Location: root of 'test' bucket
+
+      util.loadDump(
+          "https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/",
+          {"progressFile":"load_progress.txt"})
+
+      Given a dump located at some folder within a bucket and a PAR created for
+      the given folder, the dump can be loaded by providing the PAR and the
+      prefix as the url parameter:
+
+      Example: 
+
+      Dump Location: folder 'dump' at the 'test' bucket
+      PAR created using the 'dump/' prefix.
+
+      util.loadDump(
+          "https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/",
+          {progressFile:"load_progress.txt"})
+
+      In both of the above cases the load is done using pure HTTP GET requests,
+      for that reason the progressFile option is mandatory and should be the
+      path to a local file.
+
+      A legacy method to create a dump loadable through PAR is still supported,
+      this is done by using the ociParManifest option when creating the dump.
+      When this is enabled, a manifest file "@.manifest.json" will be
+      generated, to be used as the entry point to load the dump using a PAR to
+      this file.
+
+      When using a Manifest PAR to load a dump, the progressFile option is
+      mandatory, and it is possible to store the load progress either on the
+      local file system, or on the dump location.
+
+      To store the progress on dump location, create an ObjectReadWrite PAR to
+      the desired progress file (it does not need to exist), it should be
+      located on the same location of the "@.manifest.json" file. Finally
+      specify the PAR URL on the progressFile option.
+
+      Example: 
+
+      Dump Location: root of 'test' bucket:
+
+      util.loadDump(
+      
+      "https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json",
+        {progressFile:"load_progress.txt"})
+

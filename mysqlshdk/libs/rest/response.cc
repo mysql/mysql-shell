@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,31 @@ namespace {
 static constexpr auto k_content_type = "Content-Type";
 static constexpr auto k_application_json = "application/json";
 }  // namespace
+
+void Response::check_and_throw(Response::Status_code code,
+                               const Headers &headers, const char *buffer,
+                               size_t size) {
+  if (code < Response::Status_code::OK ||
+      code >= Response::Status_code::MULTIPLE_CHOICES) {
+    if (Response::is_json(headers) && size) {
+      try {
+        auto json = shcore::Value::parse(buffer, size).as_map();
+        if (json->get_type("message") == shcore::Value_type::String) {
+          throw Response_error(code, json->get_string("message"));
+        }
+      } catch (const shcore::Exception &error) {
+        // This handles the case where the content/type indicates it's JSON but
+        // parsing failed. The default error message is used on this case.
+        throw Response_error(code);
+      }
+    }
+    throw Response_error(code);
+  }
+}
+
+void Response::check_and_throw() {
+  check_and_throw(status, headers, body.data(), body.size());
+}
 
 std::string Response::status_code(Status_code c) {
   switch (c) {

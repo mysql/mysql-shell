@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -87,6 +87,12 @@ struct Response {
     GATEWAY_TIMEOUT = 504,
     HTTP_VERSION_NOT_SUPPORTED = 505,
   };
+
+  static void check_and_throw(Response::Status_code code,
+                              const Headers &headers, const char *buffer,
+                              size_t size);
+
+  void check_and_throw();
 
   static std::string status_code(Status_code c);
 

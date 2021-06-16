@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+/* Copyright (c) 2015, 2021, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -604,7 +604,18 @@ std::shared_ptr<shcore::Logger> setup_logger() {
     shcore::delete_file(log_path);
   }
 
-  return shcore::Logger::create_instance(log_path.c_str(), false);
+  shcore::Logger::LOG_LEVEL log_level = shcore::Logger::LOG_LEVEL::LOG_INFO;
+  const char *rut_log_level = getenv("RUT_LOG_LEVEL");
+  if (rut_log_level) {
+    try {
+      log_level = shcore::Logger::parse_log_level(rut_log_level);
+    } catch (const std::invalid_argument &err) {
+      std::cerr << err.what() << std::endl;
+      std::cerr << "Using default log level: info" << std::endl;
+    }
+  }
+
+  return shcore::Logger::create_instance(log_path.c_str(), false, log_level);
 }
 
 void setup_test_environment() {

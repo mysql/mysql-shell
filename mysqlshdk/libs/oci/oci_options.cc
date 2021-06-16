@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -188,12 +188,12 @@ void Oci_options::set_par(const mysqlshdk::null_string &url) {
       if (!os_namespace.is_null() && *os_namespace != par_data[1]) {
         throw std::invalid_argument(
             "The option 'osNamespace' doesn't match the namespace of the "
-            "provided preauthenticated request.");
+            "provided pre-authenticated request.");
       }
       if (!os_bucket_name.is_null() && *os_bucket_name != par_data[2]) {
         throw std::invalid_argument(
             "The option 'osBucketName' doesn't match the bucket name of "
-            "the provided preauthenticated request.");
+            "the provided pre-authenticated request.");
       }
     }
   }

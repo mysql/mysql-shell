@@ -33,6 +33,7 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/oci/oci_options.h"
+#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/nullable.h"
@@ -148,7 +149,9 @@ class Load_dump_options {
 
   const std::string &current_schema() const { return m_current_schema; }
 
-  bool use_par() const { return m_use_par; }
+  mysqlshdk::storage::backend::oci::Par_type par_type() const {
+    return m_par_type;
+  }
 
   bool use_par_progress() const { return m_use_par_progress; }
 
@@ -184,7 +187,7 @@ class Load_dump_options {
 
   std::string m_url;
   std::string m_prefix;
-  bool m_use_par = false;
+  mysqlshdk::storage::backend::oci::Par_type m_par_type;
   bool m_use_par_progress = false;
   int64_t m_threads_count = 4;
   bool m_show_progress = isatty(fileno(stdout)) ? true : false;

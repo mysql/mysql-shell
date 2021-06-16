@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include "mysqlshdk/libs/oci/oci_options.h"
 #include "mysqlshdk/libs/storage/backend/directory.h"
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
+#include "mysqlshdk/libs/storage/backend/oci_par_directory.h"
 #include "mysqlshdk/libs/storage/utils.h"
 
 namespace mysqlshdk {
@@ -54,8 +55,13 @@ std::unique_ptr<IDirectory> make_directory(
   const auto scheme = utils::get_scheme(path);
   if (scheme.empty() || utils::scheme_matches(scheme, "file")) {
     return std::make_unique<backend::Directory>(path);
+  } else if (utils::scheme_matches(scheme, "https")) {
+    backend::oci::Par_structure par;
+    if (backend::oci::parse_par(path, &par) == backend::oci::Par_type::PREFIX) {
+      return std::make_unique<backend::oci::Oci_par_directory>(par);
+    }
   }
-
+  // TODO(rennox): improve the error message?
   throw std::invalid_argument("Directory handling for " + scheme +
                               " protocol is not supported.");
 }

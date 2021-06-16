@@ -56,23 +56,54 @@ using mysqlshdk::oci::Oci_service;
 using mysqlshdk::oci::Response_error;
 
 const std::regex k_full_par_parser(
-    "^https:\\/\\/objectstorage\\.(.+)\\.oraclecloud\\.com(\\/"
-    "p\\/.+\\/n\\/(.+)\\/b\\/(.*)\\/o\\/((.*)\\/)?(.+))$");
+    "^https:\\/\\/objectstorage\\.(.+)\\.oraclecloud\\.com\\/"
+    "p\\/(.+)\\/n\\/(.+)\\/b\\/(.*)\\/o\\/((.*)\\/)?(.*)$");
 
-bool parse_full_object_par(const std::string &url, Par_structure *data) {
+namespace par_tokens {
+const size_t REGION = 1;
+const size_t PARID = 2;
+const size_t NAMESPACE = 3;
+const size_t BUCKET = 4;
+const size_t PREFIX = 5;
+[[maybe_unused]] const size_t DIRNAME = 6;
+const size_t BASENAME = 7;
+}  // namespace par_tokens
+
+std::string Par_structure::get_par_url() const {
+  return shcore::str_format(
+      "https://objectstorage.%s.oraclecloud.com/p/%s/n/%s/b/%s/o/",
+      region.c_str(), par_id.c_str(), ns_name.c_str(), bucket.c_str());
+}
+
+std::string Par_structure::get_object_path() const {
+  return shcore::str_format("/p/%s/n/%s/b/%s/o/%s%s", par_id.c_str(),
+                            ns_name.c_str(), bucket.c_str(),
+                            object_prefix.c_str(), object_name.c_str());
+}
+
+Par_type parse_par(const std::string &url, Par_structure *data) {
+  Par_type ret_val = Par_type::NONE;
+
   std::smatch results;
   if (std::regex_match(url, results, k_full_par_parser)) {
-    data->par_url = url;
-    data->region = results[1];
-    data->object_url = results[2];
-    data->ns_name = results[3];
-    data->bucket = results[4];
-    data->object_prefix = results[6];
-    data->object_name = results[7];
+    data->full_url = url;
+    data->region = results[par_tokens::REGION];
+    data->par_id = results[par_tokens::PARID];
+    data->ns_name = results[par_tokens::NAMESPACE];
+    data->bucket = results[par_tokens::BUCKET];
+    data->object_prefix = results[par_tokens::PREFIX];
+    data->object_name = results[par_tokens::BASENAME];
 
-    return true;
+    if (data->object_name.empty()) {
+      ret_val = Par_type::PREFIX;
+    } else if (data->object_name == k_at_manifest_json) {
+      ret_val = Par_type::MANIFEST;
+    } else {
+      // Any other PAR
+      ret_val = Par_type::GENERAL;
+    }
   }
-  return false;
+  return ret_val;
 }
 
 Directory::Directory(const Oci_options &options, const std::string &name)
@@ -204,14 +235,15 @@ Object::Object(const Oci_options &options, const std::string &name,
 
 Object::Object(const std::string &par) : m_writer{}, m_reader{} {
   Par_structure data;
-  if (parse_full_object_par(par, &data)) {
-    m_name = data.object_name;
+  auto par_type = parse_par(par, &data);
+  if (par_type != Par_type::NONE && par_type != Par_type::PREFIX) {
+    m_name = data.get_object_path();
     m_prefix = data.object_prefix;
     Oci_options options;
     options.set_par(par);
     options.check_option_values();
     m_bucket = std::make_unique<Bucket>(options);
-    m_par = data.object_url;
+    m_par = data.get_object_path();
     m_max_part_size = *options.part_size;
   } else {
     throw std::runtime_error(
@@ -250,7 +282,7 @@ void Object::open(mysqlshdk::storage::Mode mode) {
           m_bucket->head_object(full_path());
 
           throw std::invalid_argument(
-              "Object Storage only supports APPEND mode for in-progress "
+              "OCI Object Storage only supports APPEND mode for in-progress "
               "multipart uploads or new files.");
         } catch (const mysqlshdk::rest::Response_error &error) {
           // If the file did not exist then OK to continue as a new file

@@ -85,6 +85,47 @@ std::string encode_json(Args &&... args) {
 
 }  // namespace
 
+std::string to_string(PAR_access_type access_type) {
+  std::string access_type_str;
+
+  switch (access_type) {
+    case PAR_access_type::OBJECT_READ:
+      access_type_str = "ObjectRead";
+      break;
+    case PAR_access_type::OBJECT_WRITE:
+      access_type_str = "ObjectWrite";
+      break;
+    case PAR_access_type::OBJECT_READ_WRITE:
+      access_type_str = "ObjectReadWrite";
+      break;
+    case PAR_access_type::ANY_OBJECT_READ:
+      access_type_str = "AnyObjectRead";
+      break;
+    case PAR_access_type::ANY_OBJECT_WRITE:
+      access_type_str = "AnyObjectWrite";
+      break;
+    case PAR_access_type::ANY_OBJECT_READ_WRITE:
+      access_type_str = "AnyObjectReadWrite";
+      break;
+  }
+
+  return access_type_str;
+}
+
+std::string to_string(PAR_list_action list_action) {
+  std::string par_list_action_str;
+  switch (list_action) {
+    case PAR_list_action::DENY:
+      par_list_action_str = "Deny";
+      break;
+    case PAR_list_action::LIST_OBJECTS:
+      par_list_action_str = "ListObjects";
+      break;
+  }
+
+  return par_list_action_str;
+}
+
 Bucket::Bucket(const Oci_options &options)
     : m_options(options),
       kNamespacePath{shcore::str_format(
@@ -623,27 +664,18 @@ void Bucket::abort_multipart_upload(const Multipart_object &object) {
   }
 }
 
-PAR Bucket::create_pre_authenticated_request(PAR_access_type access_type,
-                                             const std::string &expiration_time,
-                                             const std::string &par_name,
-                                             const std::string &object_name) {
+PAR Bucket::create_pre_authenticated_request(
+    PAR_access_type access_type, const std::string &expiration_time,
+    const std::string &par_name, const std::string &object_name,
+    std::optional<PAR_list_action> list_action) {
   // Ensures the REST connection is established
   ensure_connection();
 
-  std::string access_type_str;
-  switch (access_type) {
-    case PAR_access_type::OBJECT_READ:
-      access_type_str = "ObjectRead";
-      break;
-    case PAR_access_type::OBJECT_WRITE:
-      access_type_str = "ObjectWrite";
-      break;
-    case PAR_access_type::OBJECT_READ_WRITE:
-      access_type_str = "ObjectReadWrite";
-      break;
-    case PAR_access_type::ANY_OBJECT_WRITE:
-      access_type_str = "AnyObjectWrite";
-      break;
+  std::string access_type_str = to_string(access_type);
+
+  std::string par_list_action_str;
+  if (list_action.has_value()) {
+    par_list_action_str = to_string(list_action.value());
   }
 
   // TODO(rennox): Formatting of the request bodies on all the functions should
@@ -651,8 +683,20 @@ PAR Bucket::create_pre_authenticated_request(PAR_access_type access_type,
   std::string body = "{\"accessType\":\"" + access_type_str +
                      "\", \"name\":\"" + par_name + "\"";
 
-  if (access_type != PAR_access_type::ANY_OBJECT_WRITE) {
+  // For the OBJECT* access types, the name is mandatory and it is set as
+  // provided, for the ANY_OBJECT* access types, it is optional and it is set
+  // only if not empty
+  bool set_object_name = access_type == PAR_access_type::OBJECT_READ ||
+                         access_type == PAR_access_type::OBJECT_WRITE ||
+                         access_type == PAR_access_type::OBJECT_READ_WRITE ||
+                         !object_name.empty();
+
+  if (set_object_name) {
     body.append(", \"objectName\":\"" + object_name + "\"");
+  }
+
+  if (!par_list_action_str.empty()) {
+    body.append(", \"bucketListingAction\":\"" + par_list_action_str + "\"");
   }
 
   body.append(", \"timeExpires\":\"" + expiration_time + "\"}");
@@ -690,11 +734,12 @@ PAR Bucket::create_pre_authenticated_request(PAR_access_type access_type,
           map->get_string("name"),
           map->get_string("accessUri"),
           map->get_string("accessType"),
-          access_type != PAR_access_type::ANY_OBJECT_WRITE
-              ? map->get_string("objectName")
-              : "",
+          set_object_name ? map->get_string("objectName") : "",
           map->get_string("timeCreated"),
           map->get_string("timeExpires"),
+          map->is_null("bucketListingAction")
+              ? ""
+              : map->get_string("bucketListingAction"),
           0};
 }
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -41,6 +41,7 @@ set(library_SRC
   backend/file.cc
   backend/http.cc
   backend/oci_object_storage.cc
+  backend/oci_par_directory.cc
   backend/memory_file.cc
   compression/gz_file.cc
   compression/zstd_file.cc

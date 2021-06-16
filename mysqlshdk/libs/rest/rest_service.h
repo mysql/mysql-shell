@@ -36,7 +36,6 @@
 #include "mysqlshdk/libs/rest/error.h"
 #include "mysqlshdk/libs/rest/headers.h"
 #include "mysqlshdk/libs/rest/response.h"
-#include "mysqlshdk/libs/rest/retry_strategy.h"
 
 namespace mysqlshdk {
 namespace rest {
@@ -45,6 +44,7 @@ enum class Type { GET, HEAD, POST, PUT, PATCH, DELETE };
 
 std::string type_name(Type t);
 
+class Retry_strategy;
 /**
  * A REST service. By default, requests will follow redirections and
  * keep the connections alive.
@@ -106,7 +106,7 @@ class Rest_service {
    *
    * A timeout will occurs in two situations:
    * - A HEAD or DELETE request took more than timeout milliseconds to complete.
-   * - The transfaer/rate has been lower than low_speed_limit for more than
+   * - The transfer/rate has been lower than low_speed_limit for more than
    *   low_speed_time.
    */
   Rest_service &set_timeout(long timeout, long low_speed_limit,
@@ -125,7 +125,8 @@ class Rest_service {
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response get(const Masked_string &path, const Headers &headers = {});
+  Response get(const Masked_string &path, const Headers &headers = {},
+               Retry_strategy *retry_strategy = nullptr);
 
   /**
    * Executes a HEAD request, blocks until response is available.
@@ -140,7 +141,8 @@ class Rest_service {
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response head(const Masked_string &path, const Headers &headers = {});
+  Response head(const Masked_string &path, const Headers &headers = {},
+                Retry_strategy *retry_strategy = nullptr);
 
   /**
    * Executes a POST request, blocks until response is available.
@@ -159,7 +161,8 @@ class Rest_service {
    * @throws Connection_error In case of any connection-related problems.
    */
   Response post(const Masked_string &path, const shcore::Value &body = {},
-                const Headers &headers = {});
+                const Headers &headers = {},
+                Retry_strategy *retry_strategy = nullptr);
 
   /**
    * Executes a PUT request, blocks until response is available.
@@ -178,7 +181,8 @@ class Rest_service {
    * @throws Connection_error In case of any connection-related problems.
    */
   Response put(const Masked_string &path, const shcore::Value &body = {},
-               const Headers &headers = {});
+               const Headers &headers = {},
+               Retry_strategy *retry_strategy = nullptr);
 
   /**
    * Executes a PATCH request, blocks until response is available.
@@ -197,7 +201,8 @@ class Rest_service {
    * @throws Connection_error In case of any connection-related problems.
    */
   Response patch(const Masked_string &path, const shcore::Value &body = {},
-                 const Headers &headers = {});
+                 const Headers &headers = {},
+                 Retry_strategy *retry_strategy = nullptr);
 
   /**
    * Executes a DELETE request, blocks until response is available.
@@ -216,7 +221,8 @@ class Rest_service {
    * @throws Connection_error In case of any connection-related problems.
    */
   Response delete_(const Masked_string &path, const shcore::Value &body = {},
-                   const Headers &headers = {});
+                   const Headers &headers = {},
+                   Retry_strategy *retry_strategy = nullptr);
 
   /**
    * Executes a request, blocks until response is available.
@@ -379,6 +385,11 @@ class Rest_service {
                                      const Headers &headers = {});
 
  private:
+  Response execute_internal(Type type, const Masked_string &path,
+                            const shcore::Value &body = shcore::Value(),
+                            const Headers &request_headers = {},
+                            Retry_strategy *retry_strategy = nullptr);
+
   class Impl;
   std::unique_ptr<Impl> m_impl;
 };

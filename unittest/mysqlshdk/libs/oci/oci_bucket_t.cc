@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, Oracle and/or its affiliates.
+/* Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -19,9 +19,10 @@
  along with this program; if not, write to the Free Software Foundation, Inc.,
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
-#include "unittest/mysqlshdk/libs/oci/oci_tests.h"
+#include <optional>
 
 #include "mysqlshdk/libs/utils/utils_time.h"
+#include "unittest/mysqlshdk/libs/oci/oci_tests.h"
 
 namespace testing {
 
@@ -357,6 +358,8 @@ TEST_F(Oci_os_tests, bucket_error_conditions) {
 }
 
 TEST_F(Oci_os_tests, bucket_par) {
+  using mysqlshdk::oci::PAR_access_type;
+  using mysqlshdk::oci::PAR_list_action;
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   // Ensures the bucket is empty
@@ -367,11 +370,45 @@ TEST_F(Oci_os_tests, bucket_par) {
 
   auto time = shcore::future_time_rfc3339(std::chrono::hours(24));
 
-  auto par = bucket.create_pre_authenticated_request(
-      mysqlshdk::oci::PAR_access_type::OBJECT_READ, time.c_str(), "sample-par",
-      "sample.txt");
+  std::vector<
+      std::tuple<PAR_access_type, std::optional<PAR_list_action>, std::string>>
+      tests = {
+          {PAR_access_type::OBJECT_READ, {}, "sample.txt"},
+          {PAR_access_type::OBJECT_WRITE, {}, "sample.txt"},
+          {PAR_access_type::OBJECT_READ_WRITE, {}, "sample.txt"},
+          {PAR_access_type::ANY_OBJECT_READ, PAR_list_action::DENY, ""},
+          {PAR_access_type::ANY_OBJECT_READ, PAR_list_action::LIST_OBJECTS, ""},
+          {PAR_access_type::ANY_OBJECT_WRITE, PAR_list_action::DENY, ""},
+          {PAR_access_type::ANY_OBJECT_WRITE, PAR_list_action::LIST_OBJECTS,
+           ""},
+          {PAR_access_type::ANY_OBJECT_READ_WRITE, PAR_list_action::DENY, ""},
+          {PAR_access_type::ANY_OBJECT_READ_WRITE,
+           PAR_list_action::LIST_OBJECTS, ""},
+      };
 
-  bucket.delete_pre_authenticated_request(par.id);
+  for (const auto &test : tests) {
+    const auto &access_type = std::get<0>(test);
+    const auto &list_action = std::get<1>(test);
+    const auto &object_name = std::get<2>(test);
+
+    SCOPED_TRACE("ACCESS: " + to_string(access_type));
+    SCOPED_TRACE("LISTING: " + (list_action.has_value()
+                                    ? to_string(list_action.value())
+                                    : ""));
+    SCOPED_TRACE("OBJECT: " + object_name);
+    auto par = bucket.create_pre_authenticated_request(
+        access_type, time.c_str(), "sample-par", object_name, list_action);
+
+    EXPECT_EQ(to_string(access_type), par.access_type);
+    if (list_action.has_value()) {
+      EXPECT_EQ(to_string(list_action.value()), par.list_action);
+    } else {
+      EXPECT_EQ("", par.list_action);
+    }
+    EXPECT_EQ(object_name, par.object_name);
+
+    bucket.delete_pre_authenticated_request(par.id);
+  }
 
   bucket.delete_object("sample.txt");
 }
