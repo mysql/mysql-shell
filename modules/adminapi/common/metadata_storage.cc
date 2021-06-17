@@ -32,6 +32,7 @@
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_management_mysql.h"
+#include "modules/adminapi/common/router.h"
 #include "modules/adminapi/common/sql.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "mysql/group_replication.h"
@@ -2073,6 +2074,124 @@ std::vector<Router_metadata> MetadataStorage::get_routers(
   return ret_val;
 }
 
+std::vector<Router_metadata> MetadataStorage::get_clusterset_routers(
+    const Cluster_set_id &cs) {
+  std::vector<Router_metadata> ret_val;
+  constexpr auto query =
+      "SELECT r.router_id, r.router_name, r.address as host_name, "
+      "r.attributes->>'$.ROEndpoint' AS ro_port,  "
+      "r.attributes->>'$.RWEndpoint' AS rw_port, "
+      "r.attributes->>'$.ROXEndpoint' AS ro_x_port, "
+      "r.attributes->>'$.RWXEndpoint' AS rw_x_port, r.last_check_in, "
+      "r.version, r.options->>'$.target_cluster' as targetCluster FROM "
+      "mysql_innodb_cluster_metadata.v2_routers r WHERE r.clusterset_id = ?";
+
+  auto result = execute_sqlf(query, cs);
+
+  while (auto row = result->fetch_one_named()) {
+    auto router = unserialize_router(row);
+    if (!row.is_null("targetCluster"))
+      router.target_cluster = row.get_string("targetCluster");
+    ret_val.push_back(router);
+  }
+  return ret_val;
+}
+
+std::vector<Router_options_metadata> MetadataStorage::get_routing_options(
+    const Cluster_set_id &clusterset_id) {
+  const auto ro_select = [](const char *prefix) {
+    std::string ret;
+    for (const auto &opt : k_router_options) {
+      if (opt == k_router_option_target_cluster) {
+        ret +=
+            ", IF(r.router_options->>'$.target_cluster'='primary', "
+            "'primary', "
+            "(SELECT cluster_name FROM "
+            "mysql_innodb_cluster_metadata.clusters c "
+            "WHERE c.attributes->>'$.group_replication_group_name' = "
+            "r.router_options->>'$.target_cluster' limit 1)) AS "
+            "target_cluster";
+      } else {
+        ret += ", ";
+        ret += prefix;
+        ret += "->>'$.";
+        ret += opt;
+        ret += "' as ";
+        ret += opt;
+      }
+    }
+    return ret + " ";
+  };
+
+  const auto query =
+      "SELECT router_id" + ro_select("router_options") +
+      "FROM mysql_innodb_cluster_metadata.v2_router_options AS r WHERE "
+      "clusterset_id = ?";
+
+  std::vector<Router_options_metadata> ret;
+  std::shared_ptr<mysqlshdk::db::IResult> result =
+      execute_sqlf(query, clusterset_id);
+
+  while (auto row = result->fetch_one_named()) {
+    Router_options_metadata rom;
+    if (!row.is_null("router_id")) {
+      rom.router_id = row.get_string("router_id");
+    } else {
+      rom.router_id = nullptr;
+    }
+
+    for (const auto &option : k_router_options) {
+      if (!row.is_null(option)) {
+        std::string value = row.get_string(option);
+
+        rom.defined_options.emplace(option, shcore::Value(value));
+      }
+    }
+
+    ret.emplace_back(std::move(rom));
+  }
+
+  return ret;
+}
+
+std::string MetadataStorage::get_cluster_name(
+    const std::string &group_replication_group_name) {
+  constexpr auto query =
+      "SELECT cluster_name from mysql_innodb_cluster_metadata.clusters WHERE "
+      "attributes->>'$.group_replication_group_name' = ?";
+
+  auto result = execute_sqlf(query, group_replication_group_name);
+
+  if (auto row = result->fetch_one()) {
+    if (!row->is_null(0)) {
+      return row->get_as_string(0);
+    }
+  }
+
+  throw shcore::Exception::logic_error(
+      "No cluster found with group_replication_group_name '" +
+      group_replication_group_name + "'");
+}
+
+std::string MetadataStorage::get_cluster_group_name(
+    const std::string &cluster_name) {
+  constexpr auto query =
+      "SELECT attributes->>'$.group_replication_group_name' as group_name from "
+      "mysql_innodb_cluster_metadata.clusters WHERE "
+      "cluster_name = ?";
+
+  auto result = execute_sqlf(query, cluster_name);
+
+  if (auto row = result->fetch_one()) {
+    if (!row->is_null(0)) {
+      return row->get_as_string(0);
+    }
+  }
+
+  throw shcore::Exception::logic_error("No cluster found with name '" +
+                                       cluster_name + "'");
+}
+
 static void parse_router_definition(const std::string &router_def,
                                     std::string *out_address,
                                     std::string *out_name) {
@@ -2176,7 +2295,7 @@ MetadataStorage::get_routers_using_cluster_as_target(
 
   if (m_md_version.get_major() >= 2 && m_md_version.get_minor() >= 1 &&
       !target_cluster_group_name.empty()) {
-    query.append(" WHERE r.options->>'$.targetCluster' = ?");
+    query.append(" WHERE r.options->>'$.target_cluster' = ?");
     result = execute_sqlf(query, target_cluster_group_name);
   } else {
     throw std::logic_error(
@@ -2188,6 +2307,53 @@ MetadataStorage::get_routers_using_cluster_as_target(
     ret_val.push_back(router);
   }
   return ret_val;
+}
+
+namespace {
+void throw_router_not_found(std::string error) {
+  const auto pos = error.find("Router");
+  if (pos != std::string::npos) error = error.substr(pos);
+  throw shcore::Exception::argument_error(error);
+}
+}  // namespace
+
+void MetadataStorage::set_global_routing_option(const Cluster_set_id &id,
+                                                const std::string option,
+                                                const shcore::Value &value) {
+  static const std::string update_call_prefix =
+      "call mysql_innodb_cluster_metadata.v2_set_global_router_option("
+      "?, ?, ";
+
+  try {
+    if (value == shcore::Value::Null())
+      execute_sqlf(update_call_prefix + "NULL);", id, option);
+    else
+      execute_sqlf(update_call_prefix + "JSON_QUOTE(?));", id, option,
+                   value.as_string());
+  } catch (const shcore::Exception &e) {
+    if (e.code() == ER_SIGNAL_EXCEPTION) throw_router_not_found(e.what());
+    throw;
+  }
+}
+
+void MetadataStorage::set_routing_option(const std::string &router,
+                                         const std::string &clusterset_id,
+                                         const std::string option,
+                                         const shcore::Value &value) {
+  static const std::string update_call_prefix =
+      "call mysql_innodb_cluster_metadata.v2_set_routing_option(?, ?, ?, ";
+
+  try {
+    if (value == shcore::Value::Null())
+      execute_sqlf(update_call_prefix + "NULL);", router, clusterset_id,
+                   option);
+    else
+      execute_sqlf(update_call_prefix + "JSON_QUOTE(?));", router,
+                   clusterset_id, option, value.as_string());
+  } catch (const shcore::Exception &e) {
+    if (e.code() == ER_SIGNAL_EXCEPTION) throw_router_not_found(e.what());
+    throw;
+  }
 }
 
 // ----------------------------------------------------------------------------

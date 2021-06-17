@@ -117,6 +117,12 @@ struct Router_metadata {
   mysqlshdk::utils::nullable<uint64_t> ro_x_port;
   mysqlshdk::utils::nullable<std::string> last_checkin;
   mysqlshdk::utils::nullable<std::string> version;
+  mysqlshdk::utils::nullable<std::string> target_cluster;
+};
+
+struct Router_options_metadata {
+  mysqlshdk::utils::nullable<std::string> router_id;
+  std::map<std::string, shcore::Value> defined_options;
 };
 
 class Cluster_impl;
@@ -378,6 +384,19 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
       const Cluster_id &rs_id);
 
   std::vector<Router_metadata> get_routers(const Cluster_id &cluster_id);
+  std::vector<Router_metadata> get_clusterset_routers(const Cluster_set_id &cs);
+  std::vector<Router_options_metadata> get_routing_options(
+      const Cluster_set_id &clusterset_id);
+  std::string get_cluster_name(const std::string &group_replication_group_name);
+  std::string get_cluster_group_name(const std::string &cluster_name);
+
+  void set_global_routing_option(const Cluster_set_id &id,
+                                 const std::string option,
+                                 const shcore::Value &value);
+
+  void set_routing_option(const std::string &router,
+                          const std::string &clusterset_id,
+                          const std::string option, const shcore::Value &value);
 
   /**
    * Get the topology mode of the cluster from the metadata.

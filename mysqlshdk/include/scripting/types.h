@@ -327,6 +327,7 @@ struct SHCORE_PUBLIC Value {
   std::string &append_repr(std::string &s_out) const;
 
   void check_type(Value_type t) const;
+  Value_type get_type() const { return type; }
 
   bool as_bool() const;
   int64_t as_int() const;

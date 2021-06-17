@@ -927,4 +927,70 @@ BEGIN
         WHERE clusterset_id = cs_id);
 END //
 
+
+DROP PROCEDURE IF EXISTS v2_set_global_router_option//
+CREATE PROCEDURE v2_set_global_router_option(
+  id VARCHAR(36),
+  option_name VARCHAR(100),
+  option_value JSON)
+SQL SECURITY INVOKER
+MODIFIES SQL DATA
+BEGIN
+  if option_value IS NULL then
+      UPDATE mysql_innodb_cluster_metadata.clustersets
+        SET router_options = JSON_REMOVE(router_options, concat('$.', option_name))
+        WHERE clusterset_id = id;
+  else
+      UPDATE mysql_innodb_cluster_metadata.clustersets
+        SET router_options = JSON_SET(IFNULL(router_options, '{}'), concat('$.', option_name), option_value)
+        WHERE clusterset_id = id;
+  end if;
+END //
+
+
+DROP PROCEDURE IF EXISTS v2_set_routing_option//
+CREATE PROCEDURE v2_set_routing_option(
+  router VARCHAR(512),
+  clusterset_id VARCHAR(36),
+  option_name VARCHAR(100),
+  option_value JSON)
+SQL SECURITY INVOKER
+MODIFIES SQL DATA
+BEGIN
+  DECLARE router_address VARCHAR(512);
+  DECLARE router_name VARCHAR(512);
+  DECLARE errmsg VARCHAR(600);
+  SET router_address = SUBSTRING_INDEX(router, '::', 1);
+  SET router_name = '';
+  if router_address <> router then
+    SET router_name = SUBSTRING_INDEX(router, '::', -1);
+  end if;
+
+  if 0 = (select count(*) from mysql_innodb_cluster_metadata.routers r
+          where r.clusterset_id = clusterset_id and
+          r.address = router_address and r.router_name = router_name) then
+    SET errmsg = concat('Router ', QUOTE(router), ' is not part of this ClusterSet');
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = errmsg;
+  end if;
+
+  if option_value IS NULL then
+      UPDATE mysql_innodb_cluster_metadata.routers r
+        SET r.options = JSON_REMOVE(r.options, concat('$.', option_name))
+        WHERE r.clusterset_id = clusterset_id AND r.address = router_address AND r.router_name = router_name;
+  else
+      UPDATE mysql_innodb_cluster_metadata.routers r
+        SET r.options = JSON_SET(IFNULL(r.options, '{}'), concat('$.', option_name), option_value)
+        WHERE r.clusterset_id = clusterset_id AND r.address = router_address AND r.router_name = router_name;
+  end if;
+END //
+
 DELIMITER ;
+
+
+DROP VIEW IF EXISTS v2_router_options;
+CREATE SQL SECURITY INVOKER VIEW v2_router_options AS
+  select concat(r.address, '::', r.router_name) as router_id,
+  r.clusterset_id, r.options as router_options
+  from mysql_innodb_cluster_metadata.routers r
+  union select NULL, clusterset_id, router_options
+  from mysql_innodb_cluster_metadata.clustersets;

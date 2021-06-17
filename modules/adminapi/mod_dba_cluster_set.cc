@@ -104,6 +104,14 @@ void ClusterSet::init() {
       ->cli();
   expose("status", &ClusterSet::status, "?options")->cli();
   expose("describe", &ClusterSet::describe)->cli();
+  expose("listRouters", &ClusterSet::list_routers, "?router")->cli();
+  expose("routingOptions", &ClusterSet::routing_options, "?router")->cli();
+
+  // TODO(konrad): cli does not support yet such overloads
+  expose("setRoutingOption", &ClusterSet::set_routing_option, "option",
+         "value");
+  expose("setRoutingOption", &ClusterSet::set_routing_option, "router",
+         "option", "value");
 }
 
 void ClusterSet::assert_valid(const std::string &function_name) {
@@ -775,5 +783,128 @@ void ClusterSet::rejoin_cluster(
 
   impl()->rejoin_cluster(cluster_name, *options);
 }
+
+REGISTER_HELP_FUNCTION(listRouters, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_LISTROUTERS, R"*(
+Lists the Router instances of the ClusterSet, or a single Router instance.
+
+@param router optional identifier of the target router instance (e.g. 192.168.45.70@::system)
+
+@returns A JSON object listing the Router instances registered in the ClusterSet.
+
+This function lists and provides information about all Router instances registered
+on the Clusters members of the ClusteSet.
+)*");
+
+/**
+ * $(CLUSTERSET_LISTROUTERS_BRIEF)
+ *
+ * $(CLUSTERSET_LISTROUTERS)
+ */
+#if DOXYGEN_JS
+Dictionary ClusterSet::listRouters(String router) {}
+#elif DOXYGEN_PY
+dict ClusterSet::list_routers(str router) {}
+#endif
+shcore::Value ClusterSet::list_routers(const std::string &router) {
+  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
+                                   current_shell_options()->get().wizards,
+                                   impl()->default_admin_credentials());
+
+  return impl()->list_routers(router);
+}
+
+REGISTER_HELP_FUNCTION(setRoutingOption, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_SETROUTINGOPTION, R"*(
+Changes the value of either a global Routing option or of a single Router instance.
+
+@param router optional identifier of the target router instance (e.g. 192.168.45.70@::system).
+@param option The Router option to be changed.
+@param value The value that the option shall get.
+
+@returns Nothing.
+
+The accepted options are:
+
+@li target_cluster: Target Cluster for Router routing operations.
+@li invalidated_cluster_policy: Routing policy to be taken when the target
+cluster is detected as being invalidated.
+
+The target_cluster option supports the following values:
+
+@li primary: follow the Primary Cluster whenever it changes in runtime
+@li @<clusterName@>: Use the Cluster named @<clusterName@> as target.
+
+The invalidated_cluster_policy option supports the following values:
+
+@li accept_ro: all the RW connections are be dropped and no new RW connections
+are be accepted. RO connections keep being accepted and handled.
+@li drop_all: all connections to the target Cluster are closed and no new
+connections will be accepted.
+)*");
+
+#if DOXYGEN_JS
+Undefined ClusterSet::setRoutingOption(String option, String value) {}
+#elif DOXYGEN_PY
+None ClusterSet::set_routing_option(str option, str value) {}
+#endif
+void ClusterSet::set_routing_option(const std::string &option,
+                                    const shcore::Value &value) {
+  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
+                                   current_shell_options()->get().wizards,
+                                   impl()->default_admin_credentials());
+
+  impl()->set_routing_option("", option, value);
+}
+
+/**
+ * $(CLUSTERSET_SETROUTINGOPTION_BRIEF)
+ *
+ * $(CLUSTERSET_SETROUTINGOPTION)
+ */
+#if DOXYGEN_JS
+Undefined ClusterSet::setRoutingOption(String router, String option,
+                                       String value) {}
+#elif DOXYGEN_PY
+None ClusterSet::set_routing_option(str router, str option, str value) {}
+#endif
+void ClusterSet::set_routing_option(const std::string &router,
+                                    const std::string &option,
+                                    const shcore::Value &value) {
+  assert_valid("setRoutingOption");
+  m_impl->set_routing_option(router, option, value);
+}
+
+REGISTER_HELP_FUNCTION(routingOptions, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_ROUTINGOPTIONS, R"*(
+Lists the ClusterSet Routers configuration options.
+
+@param router Optional identifier of the router instance to query for the options.
+
+@returns A JSON object describing the configuration options of all router 
+instances of the ClusterSet and its global options or just the given Router.
+
+This function lists the Router configuration options of all Routers of the 
+ClusterSet or the target Router.
+)*");
+
+/**
+ * $(CLUSTERSET_ROUTINGOPTIONS_BRIEF)
+ *
+ * $(CLUSTERSET_ROUTINGOPTIONS)
+ */
+#if DOXYGEN_JS
+Dictionary ClusterSet::routingOptions(String router) {}
+#elif DOXYGEN_PY
+dict ClusterSet::routing_options(str router) {}
+#endif
+shcore::Value ClusterSet::routing_options(const std::string &router) {
+  Scoped_instance_pool scoped_pool(impl()->get_metadata_storage(),
+                                   current_shell_options()->get().wizards,
+                                   impl()->default_admin_credentials());
+
+  return impl()->routing_options(router);
+}
+
 }  // namespace dba
 }  // namespace mysqlsh

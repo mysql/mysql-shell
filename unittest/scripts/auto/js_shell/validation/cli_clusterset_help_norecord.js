@@ -10,12 +10,19 @@ The following operations are available at 'clusterset':
    force-primary-cluster
       Performs a failover of the PRIMARY Cluster of the ClusterSet.
 
+   list-routers
+      Lists the Router instances of the ClusterSet, or a single Router
+      instance.
+
    rejoin-cluster
       Rejoin an invalidated Cluster back to the ClusterSet and update
       replication.
 
    remove-cluster
       Removes a Replica cluster from a ClusterSet.
+
+   routing-options
+      Lists the ClusterSet Routers configuration options.
 
    set-primary-cluster
       Performs a safe switchover of the PRIMARY Cluster of the ClusterSet.

@@ -186,7 +186,7 @@ function CHECK_GTID_CONSISTENT(master_session, replica_session) {
 }
 
 function CHECK_ROUTER_OPTIONS_REMOVED_CLUSTER(session) {
-  var res = session.runSql("select options->>'$.targetCluster' as target_cluster from mysql_innodb_cluster_metadata.routers");
+  var res = session.runSql("select options->>'$.target_cluster' as target_cluster from mysql_innodb_cluster_metadata.routers");
     while (r = res.fetchOne()) {
       EXPECT_EQ("primary", r["target_cluster"]);
     }

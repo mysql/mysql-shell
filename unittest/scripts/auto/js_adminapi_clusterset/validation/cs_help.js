@@ -40,6 +40,10 @@ FUNCTIONS
       help([member])
             Provides help about this class and it's members
 
+      listRouters([router])
+            Lists the Router instances of the ClusterSet, or a single Router
+            instance.
+
       rejoinCluster(clusterName[, options])
             Rejoin an invalidated Cluster back to the ClusterSet and update
             replication.
@@ -47,9 +51,16 @@ FUNCTIONS
       removeCluster(clusterName[, options])
             Removes a Replica cluster from a ClusterSet.
 
+      routingOptions([router])
+            Lists the ClusterSet Routers configuration options.
+
       setPrimaryCluster(clusterName[, options])
             Performs a safe switchover of the PRIMARY Cluster of the
             ClusterSet.
+
+      setRoutingOption([router], option, value)
+            Changes the value of either a global Routing option or of a single
+            Router instance.
 
       status([options])
             Describe the status of the ClusterSet.
@@ -641,3 +652,79 @@ DESCRIPTION
 
       - address: the instance address in the form of host:port
       - label: the instance name identifier
+
+//@<OUT> listRouters
+NAME
+      listRouters - Lists the Router instances of the ClusterSet, or a single
+                    Router instance.
+
+SYNTAX
+      <ClusterSet>.listRouters([router])
+
+WHERE
+      router: Identifier of the target router instance (e.g.
+              192.168.45.70::system)
+
+RETURNS
+      A JSON object listing the Router instances registered in the ClusterSet.
+
+DESCRIPTION
+      This function lists and provides information about all Router instances
+      registered on the Clusters members of the ClusteSet.
+
+//@<OUT> routingOptions
+NAME
+      routingOptions - Lists the ClusterSet Routers configuration options.
+
+SYNTAX
+      <ClusterSet>.routingOptions([router])
+
+WHERE
+      router: Identifier of the router instance to query for the options.
+
+RETURNS
+      A JSON object describing the configuration options of all router
+      instances of the ClusterSet and its global options or just the given
+      Router.
+
+DESCRIPTION
+      This function lists the Router configuration options of all Routers of
+      the ClusterSet or the target Router.
+
+//@<OUT> setRoutingOption
+NAME
+      setRoutingOption - Changes the value of either a global Routing option or
+                         of a single Router instance.
+
+SYNTAX
+      <ClusterSet>.setRoutingOption([router], option, value)
+
+WHERE
+      router: Identifier of the target router instance (e.g.
+              192.168.45.70::system).
+      option: The Router option to be changed.
+      value: The value that the option shall get.
+
+RETURNS
+      Nothing.
+
+DESCRIPTION
+      The accepted options are:
+
+      - target_cluster: Target Cluster for Router routing operations.
+      - invalidated_cluster_policy: Routing policy to be taken when the target
+        cluster is detected as being invalidated.
+
+      The target_cluster option supports the following values:
+
+      - primary: follow the Primary Cluster whenever it changes in runtime
+      - <clusterName>: Use the Cluster named <clusterName> as target.
+
+      The invalidated_cluster_policy option supports the following values:
+
+      - accept_ro: all the RW connections are be dropped and no new RW
+        connections are be accepted. RO connections keep being accepted and
+        handled.
+      - drop_all: all connections to the target Cluster are closed and no new
+        connections will be accepted.
+

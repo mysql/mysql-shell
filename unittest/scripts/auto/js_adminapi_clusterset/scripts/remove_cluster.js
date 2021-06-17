@@ -62,15 +62,15 @@ var __cluster_id = session1.runSql("select cluster_id from mysql_innodb_cluster_
 var __cluster_group_name = session4.runSql("select @@group_replication_group_name").fetchOne()[0];
 session1.runSql("INSERT INTO mysql_innodb_cluster_metadata.v2_routers (address, product_name, router_name) VALUES ('foo', 'MySQL Router', 'router_primary')");
 session1.runSql("INSERT INTO mysql_innodb_cluster_metadata.v2_routers (address, product_name, router_name) VALUES ('bar', 'MySQL Router', 'router_secondary')");
-session1.runSql("UPDATE mysql_innodb_cluster_metadata.v2_routers SET attributes = JSON_SET(JSON_SET(JSON_SET(JSON_SET(JSON_SET(IF(attributes IS NULL, '{}', attributes), '$.RWEndpoint', '6446'), '$.ROEndpoint', '6447'), '$.RWXEndpoint', '6448'), '$.ROXEndpoint', '6449'), '$.MetadataUser', 'router'), options = JSON_SET(IF(options IS NULL, '{}', options), '$.targetCluster', ?), version = '8.0.25', cluster_id = ? WHERE router_id = 1", [__cluster_group_name, __cluster_id]);
-session1.runSql("UPDATE mysql_innodb_cluster_metadata.v2_routers SET attributes = JSON_SET(JSON_SET(JSON_SET(JSON_SET(JSON_SET(IF(attributes IS NULL, '{}', attributes), '$.RWEndpoint', '6446'), '$.ROEndpoint', '6447'), '$.RWXEndpoint', '6448'), '$.ROXEndpoint', '6449'), '$.MetadataUser', 'router'), options = JSON_SET(IF(options IS NULL, '{}', options), '$.targetCluster', ?), version = '8.0.25', cluster_id = ? WHERE router_id = 2", [__cluster_group_name, __cluster_id]);
+session1.runSql("UPDATE mysql_innodb_cluster_metadata.v2_routers SET attributes = JSON_SET(JSON_SET(JSON_SET(JSON_SET(JSON_SET(IF(attributes IS NULL, '{}', attributes), '$.RWEndpoint', '6446'), '$.ROEndpoint', '6447'), '$.RWXEndpoint', '6448'), '$.ROXEndpoint', '6449'), '$.MetadataUser', 'router'), options = JSON_SET(IF(options IS NULL, '{}', options), '$.target_cluster', ?), version = '8.0.25', cluster_id = ? WHERE router_id = 1", [__cluster_group_name, __cluster_id]);
+session1.runSql("UPDATE mysql_innodb_cluster_metadata.v2_routers SET attributes = JSON_SET(JSON_SET(JSON_SET(JSON_SET(JSON_SET(IF(attributes IS NULL, '{}', attributes), '$.RWEndpoint', '6446'), '$.ROEndpoint', '6447'), '$.RWXEndpoint', '6448'), '$.ROXEndpoint', '6449'), '$.MetadataUser', 'router'), options = JSON_SET(IF(options IS NULL, '{}', options), '$.target_cluster', ?), version = '8.0.25', cluster_id = ? WHERE router_id = 2", [__cluster_group_name, __cluster_id]);
 
 EXPECT_THROWS_TYPE(function(){clusterset.removeCluster("replicacluster"); }, "The Cluster 'replicacluster' is an active Target Cluster for Routing operations.", "MYSQLSH");
 EXPECT_OUTPUT_CONTAINS("ERROR: The following Routers are using the Cluster 'replicacluster' as a target cluster: [foo::router_primary, bar::router_secondary]. Please ensure no Routers are using the cluster as target with .setRoutingOption()");
 
 //@<> Remove a cluster (success)
 //Clear up the Routers having the replica cluster as target
-session1.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET options = json_set(options, '$.targetCluster', 'primary') WHERE cluster_id = ?", [__cluster_id]);
+session1.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET options = json_set(options, '$.target_cluster', 'primary') WHERE cluster_id = ?", [__cluster_id]);
 
 CHECK_GTID_CONSISTENT(session1, session4);
 

@@ -41,8 +41,6 @@ EXPECT_NO_THROWS(function(){ cluster.describe(); });
 EXPECT_NO_THROWS(function(){ rc.describe(); });
 EXPECT_NO_THROWS(function(){ cluster.options(); });
 EXPECT_NO_THROWS(function(){ rc.options(); });
-EXPECT_NO_THROWS(function(){ cluster.listRouters(); });
-EXPECT_NO_THROWS(function(){ rc.listRouters(); });
 EXPECT_NO_THROWS(function(){ cluster.checkInstanceState(__sandbox_uri4); });
 EXPECT_NO_THROWS(function(){ rc.checkInstanceState(__sandbox_uri4); });
 

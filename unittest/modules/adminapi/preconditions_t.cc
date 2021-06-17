@@ -417,8 +417,10 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
 
   std::set<std::string> cset_exclusive_expected = {
       "Cluster.getClusterSet",          "ClusterSet.createReplicaCluster",
-      "ClusterSet.forcePrimaryCluster", "ClusterSet.rejoinCluster",
-      "ClusterSet.removeCluster",       "ClusterSet.setPrimaryCluster"};
+      "ClusterSet.forcePrimaryCluster", "ClusterSet.listRouters",
+      "ClusterSet.rejoinCluster",       "ClusterSet.removeCluster",
+      "ClusterSet.routingOptions",      "ClusterSet.setPrimaryCluster",
+      "ClusterSet.setRoutingOption"};
 
   std::set<std::string> cset_offline_expected = {
       "ClusterSet.describe",

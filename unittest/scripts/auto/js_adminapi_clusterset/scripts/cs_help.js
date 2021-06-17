@@ -61,6 +61,24 @@ cs.help("describe");
 //@ Describe \? [USE:Describe]
 \? ClusterSet.Describe
 
+//@ listRouters
+cs.help("listRouters");
+
+//@ listRouters \? [USE:listRouters]
+\? ClusterSet.listRouters
+
+//@ routingOptions
+cs.help("routingOptions");
+
+//@ routingOptions \? [USE:routingOptions]
+\? ClusterSet.routingOptions
+
+//@ setRoutingOption
+cs.help("setRoutingOption");
+
+//@ setRoutingOption \? [USE:setRoutingOption]
+\? ClusterSet.setRoutingOption
+
 //@<> Clean-up.
 cs.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);

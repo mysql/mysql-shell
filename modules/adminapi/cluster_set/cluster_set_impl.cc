@@ -34,6 +34,7 @@
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/async_utils.h"
 #include "modules/adminapi/common/dba_errors.h"
+#include "modules/adminapi/common/router.h"
 #include "modules/adminapi/dba/create_cluster.h"
 #include "modules/adminapi/replica_set/replica_set_status.h"
 #include "mysqlshdk/include/shellcore/shell_notifications.h"
@@ -1461,6 +1462,68 @@ void Cluster_set_impl::ensure_replica_settings(Cluster_impl *replica,
 
         return true;
       });
+}
+
+shcore::Value Cluster_set_impl::list_routers(const std::string &router) {
+  check_preconditions("listRouters");
+
+  auto routers =
+      clusterset_list_routers(get_metadata_storage().get(), get_id(), router);
+
+  if (router.empty()) {
+    auto dict = shcore::make_dict();
+    (*dict)["routers"] = routers;
+    (*dict)["domainName"] = shcore::Value(get_name());
+    return shcore::Value(dict);
+  }
+
+  return routers;
+}
+
+void Cluster_set_impl::set_routing_option(const std::string &router,
+                                          const std::string &option,
+                                          const shcore::Value &value) {
+  // Preconditions the same to sister function
+  check_preconditions("setRoutingOption");
+  shcore::Value value_copy = value;
+
+  acquire_primary();
+  auto finally_primary =
+      shcore::on_leave_scope([this]() { release_primary(); });
+
+  validate_router_option(*this, option, value);
+
+  if (value.get_type() != shcore::Value_type::Null &&
+      option == k_router_option_target_cluster &&
+      value.get_string() != "primary") {
+    // Translate the clusterName into the Cluster's UUID
+    // (group_replication_group_name)
+    value_copy = shcore::Value(
+        get_metadata_storage()->get_cluster_group_name(value.get_string()));
+  }
+
+  auto msg = "Routing option '" + option + "' successfully updated";
+  if (router.empty()) {
+    get_metadata_storage()->set_global_routing_option(get_id(), option,
+                                                      value_copy);
+    msg += ".";
+  } else {
+    get_metadata_storage()->set_routing_option(router, get_id(), option,
+                                               value_copy);
+    msg += " in router '" + router + "'.";
+  }
+
+  auto console = mysqlsh::current_console();
+  console->print_info(msg);
+}
+
+shcore::Value Cluster_set_impl::routing_options(const std::string &router) {
+  check_preconditions("routingOptions");
+
+  auto dict = router_options(get_metadata_storage().get(), get_id(), router);
+  if (router.empty()) (*dict)["domainName"] = shcore::Value(get_name());
+
+  return shcore::Value(dict);
 }
 
 void Cluster_set_impl::delete_async_channel(Cluster_impl *cluster,

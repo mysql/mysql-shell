@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,17 +24,38 @@
 #ifndef MODULES_ADMINAPI_COMMON_ROUTER_H_
 #define MODULES_ADMINAPI_COMMON_ROUTER_H_
 
-#include <map>
+#include <array>
 #include <string>
-#include <vector>
 
 #include "modules/adminapi/common/metadata_storage.h"
 
 namespace mysqlsh {
 namespace dba {
 
+constexpr auto k_router_option_invalidated_cluster_routing_policy =
+    "invalidated_cluster_policy";
+constexpr auto k_router_option_target_cluster = "target_cluster";
+constexpr auto k_router_option_target_cluster_primary = "primary";
+
+constexpr std::array<decltype(k_router_option_target_cluster), 2>
+    k_router_options = {k_router_option_invalidated_cluster_routing_policy,
+                        k_router_option_target_cluster};
+
+class Cluster_set_impl;
+
 shcore::Value router_list(MetadataStorage *md, const Cluster_id &cluster_id,
                           bool only_upgrade_required);
+
+shcore::Value clusterset_list_routers(MetadataStorage *md,
+                                      const Cluster_set_id &clusterset_id,
+                                      const std::string &router);
+
+shcore::Dictionary_t router_options(MetadataStorage *md,
+                                    const std::string &clusterset_id,
+                                    const std::string &router_id = "");
+
+void validate_router_option(const Cluster_set_impl &cluster_set,
+                            std::string name, const shcore::Value &value);
 
 }  // namespace dba
 }  // namespace mysqlsh

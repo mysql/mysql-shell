@@ -191,6 +191,11 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   void ensure_replica_settings(Cluster_impl *replica, bool dry_run);
 
+  shcore::Value list_routers(const std::string &router);
+  void set_routing_option(const std::string &router, const std::string &option,
+                          const shcore::Value &value);
+  shcore::Value routing_options(const std::string &router);
+
   void record_in_metadata(
       const Cluster_id &seed_cluster_id,
       const clusterset::Create_cluster_set_options &m_options);
@@ -204,6 +209,13 @@ class Cluster_set_impl : public Base_cluster_impl,
       const mysqlshdk::mysql::Gtid_set &missing_view_gtids = {});
 
  private:
+  // workaround for possible clang bug:
+  //  error: 'mysqlsh::dba::Cluster_set_impl::list_routers' hides overloaded
+  //  virtual function
+  shcore::Value list_routers(bool) override {
+    throw std::logic_error("invalid call");
+  }
+
   Cluster_set_member_metadata get_primary_cluster_metadata() const;
 
   Cluster_set_member_metadata get_cluster_metadata(

@@ -1474,6 +1474,17 @@ shcore::Value Cluster_impl::status(int64_t extended) {
 }
 
 shcore::Value Cluster_impl::list_routers(bool only_upgrade_required) {
+  if (is_cluster_set_member()) {
+    auto cs = get_cluster_set();
+    current_console()->print_error(
+        "Cluster '" + get_name() + "' is a member of ClusterSet '" +
+        cs->get_name() +
+        "', use <ClusterSet>.<<<listRouters>>>() to list "
+        "the ClusterSet Router instances");
+    throw shcore::Exception::runtime_error(
+        "Function not available for ClusterSet members");
+  }
+
   shcore::Dictionary_t dict = shcore::make_dict();
 
   (*dict)["clusterName"] = shcore::Value(get_name());
