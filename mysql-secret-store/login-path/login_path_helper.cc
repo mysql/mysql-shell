@@ -335,7 +335,7 @@ std::string Login_path_helper::load(const Entry &entry) {
 
   MEM_ROOT argv_alloc{};  // uses: PSI_NOT_INSTRUMENTED, 512
   shcore::Scoped_callback release_argv_alloc(
-      [&argv_alloc]() { free_root(&argv_alloc, MYF(0)); });
+      [&argv_alloc]() { argv_alloc.Clear(); });
   std::string argv_name = name();
   char *argv_name_ptr = const_cast<char *>(argv_name.c_str());
   // my_load_defaults() requires argv[0] is not null
