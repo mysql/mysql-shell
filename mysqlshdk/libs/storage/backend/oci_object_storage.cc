@@ -130,9 +130,9 @@ bool Directory::exists() const {
 
 void Directory::create() { m_created = true; }
 
-std::vector<IDirectory::File_info> Directory::list_files(
+std::unordered_set<IDirectory::File_info> Directory::list_files(
     bool hidden_files) const {
-  std::vector<IDirectory::File_info> files;
+  std::unordered_set<IDirectory::File_info> files;
   std::string prefix = m_name.empty() ? "" : m_name + "/";
 
   std::vector<mysqlshdk::oci::Object_details> objects;
@@ -143,12 +143,12 @@ std::vector<IDirectory::File_info> Directory::list_files(
   }
 
   if (prefix.empty()) {
-    for (const auto &object : objects) {
-      files.push_back({object.name, object.size});
+    for (auto &object : objects) {
+      files.emplace(std::move(object.name), object.size);
     }
   } else {
     for (const auto &object : objects) {
-      files.push_back({object.name.substr(prefix.size()), object.size});
+      files.emplace(object.name.substr(prefix.size()), object.size);
     }
   }
 
@@ -163,16 +163,16 @@ std::vector<IDirectory::File_info> Directory::list_files(
     }
 
     if (prefix.empty()) {
-      for (const auto &upload : uploads) {
+      for (auto &upload : uploads) {
         // Only uploads not having '/' in the name belong to the root folder
         if (upload.name.find("/") == std::string::npos) {
-          files.push_back({upload.name, 0});
+          files.emplace(std::move(upload.name), 0);
         }
       }
     } else {
       for (const auto &upload : uploads) {
         if (shcore::str_beginswith(upload.name, prefix)) {
-          files.push_back({upload.name.substr(prefix.size()), 0});
+          files.emplace(upload.name.substr(prefix.size()), 0);
         }
       }
     }
@@ -181,9 +181,9 @@ std::vector<IDirectory::File_info> Directory::list_files(
   return files;
 }
 
-std::vector<IDirectory::File_info> Directory::filter_files(
+std::unordered_set<IDirectory::File_info> Directory::filter_files(
     const std::string &pattern) const {
-  std::vector<IDirectory::File_info> files;
+  std::unordered_set<IDirectory::File_info> files;
   std::string prefix = m_name.empty() ? "" : m_name + "/";
 
   std::vector<mysqlshdk::oci::Object_details> objects;
@@ -194,16 +194,16 @@ std::vector<IDirectory::File_info> Directory::filter_files(
   }
 
   if (prefix.empty()) {
-    for (const auto &object : objects) {
+    for (auto &object : objects) {
       if (shcore::match_glob(pattern, object.name)) {
-        files.push_back({object.name, object.size});
+        files.emplace(std::move(object.name), object.size);
       }
     }
   } else {
     for (const auto &object : objects) {
       auto file_name = object.name.substr(prefix.size());
       if (!file_name.empty() && shcore::match_glob(pattern, file_name)) {
-        files.push_back({std::move(file_name), object.size});
+        files.emplace(std::move(file_name), object.size);
       }
     }
   }

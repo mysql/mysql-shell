@@ -114,7 +114,8 @@ EXPECT_STDOUT_CONTAINS("ERROR: Destination MySQL version is older than the one w
 
 #@<> Force loading of 8.0 dump in 5.7
 # Currently expected failure
-EXPECT_THROWS(lambda: util.load_dump(__tmp_dir+"/ldtest/dump2", {"ignoreVersion":True}), "Util.load_dump: Unknown collation: 'utf8mb4_0900_ai_ci'")
+EXPECT_THROWS(lambda: util.load_dump(__tmp_dir+"/ldtest/dump2", {"ignoreVersion":True}), "Util.load_dump: Error loading dump")
+EXPECT_STDOUT_CONTAINS("Unknown collation: 'utf8mb4_0900_ai_ci'")
 
 EXPECT_STDOUT_CONTAINS("Target is MySQL "+version_57+". Dump was produced from MySQL "+version_80)
 EXPECT_STDOUT_CONTAINS("WARNING: Destination MySQL version is older than the one where the dump was created. Loading dumps from different major MySQL versions is not fully supported and may not work. The 'ignoreVersion' option is enabled, so loading anyway.")
@@ -126,4 +127,3 @@ testutil.destroy_sandbox(__mysql_sandbox_port2)
 testutil.destroy_sandbox(__mysql_sandbox_port3)
 testutil.destroy_sandbox(__mysql_sandbox_port4)
 testutil.rmdir(__tmp_dir+"/ldtest", True)
-

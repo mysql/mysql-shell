@@ -74,9 +74,10 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_list_files) {
     // DEFAULT LIST: returns name and size only
     ASSERT_EQ(expected_objects.size(), objects.size());
 
-    for (size_t i = 0; i < expected_objects.size(); ++i) {
-      EXPECT_EQ(expected_objects[i], objects[i].name);
-      EXPECT_EQ(1, objects[i].size);
+    for (const auto &object : expected_objects) {
+      const auto o = objects.find(object);
+      ASSERT_NE(objects.end(), o);
+      EXPECT_EQ(1, o->size());
     }
 
     bucket.delete_pre_authenticated_request(par.id);
@@ -136,9 +137,10 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_filter_files) {
     // DEFAULT LIST: returns name and size only
     ASSERT_EQ(expected_objects.size(), objects.size());
 
-    for (size_t i = 0; i < expected_objects.size(); ++i) {
-      EXPECT_EQ(expected_objects[i], objects[i].name);
-      EXPECT_EQ(1, objects[i].size);
+    for (const auto &object : expected_objects) {
+      const auto o = objects.find(object);
+      ASSERT_NE(objects.end(), o);
+      EXPECT_EQ(1, o->size());
     }
 
     bucket.delete_pre_authenticated_request(par.id);

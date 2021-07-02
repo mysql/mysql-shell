@@ -136,6 +136,52 @@ IF(UNIX)
   ENDIF()
 ENDIF()
 
+IF(MY_HOST_SYSTEM_NAME MATCHES "SunOS")
+  SET(SOLARIS 1)
+ENDIF()
+
+IF(MY_HOST_SYSTEM_NAME MATCHES "Linux")
+  # Trust 'rpm -qf /' rather than 'uname -s'
+  STRING(REGEX MATCH "\\.el([678])\\." MATCH_FSYS "${MY_HOST_FILESYSTEM_NAME}")
+
+  # Set LINUX_RHEL6 or LINUX_RHEL7 or LINUX_RHEL8
+  IF(CMAKE_MATCH_1)
+    SET(LINUX_RHEL 1)
+    SET(LINUX_RHEL${CMAKE_MATCH_1} 1)
+  ENDIF()
+ENDIF()
+
+IF(NOT LINUX_RHEL AND MY_HOST_SYSTEM_NAME MATCHES "Linux")
+  IF(EXISTS "/etc/os-release")
+    FILE(READ "/etc/os-release" MY_OS_RELEASE)
+    IF(MY_OS_RELEASE MATCHES "Debian")
+      SET(LINUX_DEBIAN 1)
+    ELSEIF(MY_OS_RELEASE MATCHES "Ubuntu")
+      SET(LINUX_UBUNTU 1)
+      IF(MY_OS_RELEASE MATCHES "16.04")
+        SET(LINUX_UBUNTU_16_04 1)
+      ELSEIF(MY_OS_RELEASE MATCHES "18.04")
+        SET(LINUX_UBUNTU_18_04 1)
+      ENDIF()
+    ENDIF()
+  ENDIF()
+ENDIF()
+
+IF(EXISTS "/etc/SuSE-release")
+  SET(LINUX_SUSE 1)
+ENDIF()
+
+IF(LINUX_SUSE)
+  FILE(READ "/etc/SuSE-release" MY_OS_RELEASE)
+  IF(MY_OS_RELEASE MATCHES "SUSE Linux Enterprise Server 12")
+    SET(LINUX_SUSE_12 1)
+  ELSEIF(MY_OS_RELEASE MATCHES "SUSE Linux Enterprise Server 15" OR
+      MY_OS_RELEASE MATCHES "openSUSE .* 15")
+    SET(LINUX_SUSE_15 1)
+  ELSE()
+    MESSAGE(WARNING "Unknown SUSE version.")
+  ENDIF()
+ENDIF()
 
 IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
     AND NOT CMAKE_C_COMPILER AND NOT CMAKE_CXX_COMPILER)
@@ -143,66 +189,178 @@ IF(CMAKE_HOST_UNIX AND NOT FORCE_UNSUPPORTED_COMPILER
   SET (ENV_CC "$ENV{CC}")
   SET (ENV_CXX "$ENV{CXX}")
   IF (ENV_CC STREQUAL "" AND ENV_CXX STREQUAL "")
-    IF(MY_UNAME)
-      IF(MY_HOST_SYSTEM_NAME MATCHES "Linux" AND
-          (MY_HOST_SYSTEM_VERSION MATCHES "\\.el[678](uek)?\\.")
-          OR
-          (MY_HOST_FILESYSTEM_NAME MATCHES "\\.el[678]\\."))
-        MESSAGE(STATUS
-          "This is el6, el7 or el8 as found from 'uname -r' or 'rpm -qf /'")
-        MESSAGE(STATUS "We probably need some devtoolset compiler")
-        # el6 /opt/rh/devtoolset-8/root/usr/bin/gcc
-        # el7 /opt/rh/devtoolset-9/root/usr/bin/gcc
-        # el8 /opt/rh/gcc-toolset-9/root/usr/bin/gcc
-        SET(ALTERNATIVE_PATHS
-          "/opt/rh/devtoolset-9"
-          "/opt/rh/gcc-toolset-9"
-          "/opt/rh/devtoolset-8"
-          )
-        FOREACH(OPT_PATH ${ALTERNATIVE_PATHS})
-          FIND_PROGRAM(ALTERNATIVE_GCC gcc
-            NO_DEFAULT_PATH
-            PATHS "${OPT_PATH}/root/usr/bin")
-          FIND_PROGRAM(ALTERNATIVE_GPP g++
-            NO_DEFAULT_PATH
-            PATHS "${OPT_PATH}/root/usr/bin")
-          FIND_PROGRAM(ALTERNATIVE_ENABLE enable
-            NO_DEFAULT_PATH
-            PATHS "${OPT_PATH}")
-        ENDFOREACH()
+    IF(LINUX_RHEL)
+      MESSAGE(STATUS "This is ${MATCH_FSYS} as found from 'rpm -qf /'")
+      MESSAGE(STATUS "Looking for a devtoolset compiler")
+      IF(LINUX_RHEL6)
+        SET(ALTERNATIVE_PATHS "/opt/rh/devtoolset-8")
+      ELSEIF(LINUX_RHEL7)
+        SET(ALTERNATIVE_PATHS "/opt/rh/devtoolset-10")
+      ELSEIF(LINUX_RHEL8)
+        SET(ALTERNATIVE_PATHS "/opt/rh/gcc-toolset-10")
+      ENDIF()
 
-        IF(ALTERNATIVE_GCC AND ALTERNATIVE_GPP)
-          SET(CMAKE_C_COMPILER ${ALTERNATIVE_GCC})
-          SET(CMAKE_CXX_COMPILER ${ALTERNATIVE_GPP})
-          MESSAGE(STATUS "Using ${ALTERNATIVE_GCC}")
-          MESSAGE(STATUS "Using ${ALTERNATIVE_GPP}")
+      FOREACH(OPT_PATH ${ALTERNATIVE_PATHS})
+        FIND_PROGRAM(ALTERNATIVE_GCC gcc
+          NO_DEFAULT_PATH
+          PATHS "${OPT_PATH}/root/usr/bin")
+        FIND_PROGRAM(ALTERNATIVE_GPP g++
+          NO_DEFAULT_PATH
+          PATHS "${OPT_PATH}/root/usr/bin")
+        FIND_PROGRAM(ALTERNATIVE_LD ld
+          NO_DEFAULT_PATH
+          PATHS "${OPT_PATH}/root/usr/bin")
+        FIND_PROGRAM(ALTERNATIVE_AR ar
+          NO_DEFAULT_PATH
+          PATHS "${OPT_PATH}/root/usr/bin")
+        FIND_PROGRAM(ALTERNATIVE_RANLIB ranlib
+          NO_DEFAULT_PATH
+          PATHS "${OPT_PATH}/root/usr/bin")
+        FIND_PROGRAM(ALTERNATIVE_ENABLE enable
+          NO_DEFAULT_PATH
+          PATHS "${OPT_PATH}")
+      ENDFOREACH()
+      # A missing ALTERNATIVE_LD may generate bad executables.
+      IF(ALTERNATIVE_GCC AND ALTERNATIVE_GPP AND ALTERNATIVE_LD)
+        SET(CMAKE_C_COMPILER ${ALTERNATIVE_GCC})
+        SET(CMAKE_CXX_COMPILER ${ALTERNATIVE_GPP})
+        SET(CMAKE_LINKER ${ALTERNATIVE_LD})
+        SET(CMAKE_LINKER ${ALTERNATIVE_LD} CACHE PATH "Alternative ld")
+        IF(ALTERNATIVE_AR)
+          SET(CMAKE_AR ${ALTERNATIVE_AR})
+          SET(CMAKE_AR ${ALTERNATIVE_AR} CACHE PATH "Alternative ar")
+        ENDIF()
+        IF(ALTERNATIVE_RANLIB)
+          SET(CMAKE_RANLIB ${ALTERNATIVE_RANLIB})
+          SET(CMAKE_RANLIB ${ALTERNATIVE_RANLIB} CACHE PATH "Alternative ranlib")
+        ENDIF()
+        MESSAGE(STATUS "Using ${ALTERNATIVE_GCC}")
+        MESSAGE(STATUS "Using ${ALTERNATIVE_GPP}")
+      ELSE()
+        IF(LINUX_RHEL6)
+          SET(DEV_PACKAGES
+            "devtoolset-8-gcc devtoolset-8-gcc-c++ devtoolset-8-binutils")
+        ELSEIF(LINUX_RHEL7)
+          SET(DEV_PACKAGES
+            "devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-binutils")
+        ELSEIF(LINUX_RHEL8)
+          SET(DEV_PACKAGES
+            "gcc-toolset-10-gcc gcc-toolset-10-gcc-c++ gcc-toolset-10-binutils")
+        ENDIF()
+        MESSAGE(WARNING
+          "Could not find devtoolset compiler/linker in ${ALTERNATIVE_PATHS}")
+        MESSAGE(WARNING "You need to install the required packages:\n"
+          " yum install ${DEV_PACKAGES}\n")
+        MESSAGE(FATAL_ERROR
+          "Or you can set CMAKE_C_COMPILER and CMAKE_CXX_COMPILER explicitly.")
+      ENDIF()
+
+    ELSEIF(LINUX_UBUNTU_18_04)
+      MESSAGE(STATUS "Looking for gcc-8 on Ubuntu 18.04")
+      FIND_PROGRAM(ALTERNATIVE_GCC gcc-8
+        NO_DEFAULT_PATH
+        PATHS "/usr/bin")
+      FIND_PROGRAM(ALTERNATIVE_GPP g++-8
+        NO_DEFAULT_PATH
+        PATHS "/usr/bin")
+      FIND_PROGRAM(GCC_AR_EXECUTABLE gcc-ar-8
+        NO_DEFAULT_PATH
+        PATHS "/usr/bin")
+      FIND_PROGRAM(GCC_RANLIB_EXECUTABLE gcc-ranlib-8
+        NO_DEFAULT_PATH
+        PATHS "/usr/bin")
+      IF(GCC_AR_EXECUTABLE)
+        SET(CMAKE_AR ${GCC_AR_EXECUTABLE})
+        SET(CMAKE_AR ${GCC_AR_EXECUTABLE} CACHE PATH "Alternative ar")
+      ENDIF()
+      IF(GCC_RANLIB_EXECUTABLE)
+        SET(CMAKE_RANLIB ${GCC_RANLIB_EXECUTABLE})
+        SET(CMAKE_RANLIB ${GCC_RANLIB_EXECUTABLE} CACHE PATH "Alternative ranlib")
+      ENDIF()
+      IF (ALTERNATIVE_GCC AND ALTERNATIVE_GPP)
+        SET(CMAKE_C_COMPILER ${ALTERNATIVE_GCC})
+        SET(CMAKE_CXX_COMPILER ${ALTERNATIVE_GPP})
+        MESSAGE(STATUS "Using ${ALTERNATIVE_GCC}")
+        MESSAGE(STATUS "Using ${ALTERNATIVE_GPP}")
+      ELSE()
+        MESSAGE(WARNING "Could not find gcc-8")
+        MESSAGE(FATAL_ERROR
+          "Please do 'apt install gcc-8 g++-8'\n"
+          "or set CMAKE_C_COMPILER and CMAKE_CXX_COMPILER explicitly.")
+      ENDIF()
+
+    ELSEIF(LINUX_SUSE_12 OR LINUX_SUSE_15)
+      MESSAGE(STATUS "We need to look for a newer GCC on SUSE Linux.")
+      IF(LINUX_SUSE_12)
+        FIND_PROGRAM(ALTERNATIVE_GCC gcc-10
+          NO_DEFAULT_PATH
+          PATHS "/usr/bin")
+        FIND_PROGRAM(ALTERNATIVE_GPP g++-10
+          NO_DEFAULT_PATH
+          PATHS "/usr/bin")
+        FIND_PROGRAM(GCC_AR_EXECUTABLE gcc-ar-10
+          NO_DEFAULT_PATH
+          PATHS "/usr/bin")
+        FIND_PROGRAM(GCC_RANLIB_EXECUTABLE gcc-ranlib-10
+          NO_DEFAULT_PATH
+          PATHS "/usr/bin")
+      ELSEIF(LINUX_SUSE_15)
+        FIND_PROGRAM(ALTERNATIVE_GCC gcc-9
+          NO_DEFAULT_PATH
+          PATHS "/usr/bin")
+        FIND_PROGRAM(ALTERNATIVE_GPP g++-9
+          NO_DEFAULT_PATH
+          PATHS "/usr/bin")
+        FIND_PROGRAM(GCC_AR_EXECUTABLE gcc-ar-9
+          NO_DEFAULT_PATH
+          PATHS "/usr/bin")
+        FIND_PROGRAM(GCC_RANLIB_EXECUTABLE gcc-ranlib-9
+          NO_DEFAULT_PATH
+          PATHS "/usr/bin")
+      ENDIF()
+      IF(GCC_AR_EXECUTABLE)
+        SET(CMAKE_AR ${GCC_AR_EXECUTABLE})
+        SET(CMAKE_AR ${GCC_AR_EXECUTABLE} CACHE PATH "Alternative ar")
+      ENDIF()
+      IF(GCC_RANLIB_EXECUTABLE)
+        SET(CMAKE_RANLIB ${GCC_RANLIB_EXECUTABLE})
+        SET(CMAKE_RANLIB ${GCC_RANLIB_EXECUTABLE} CACHE PATH "Alternative ranlib")
+      ENDIF()
+      IF (ALTERNATIVE_GCC AND ALTERNATIVE_GPP)
+        SET(CMAKE_C_COMPILER ${ALTERNATIVE_GCC})
+        SET(CMAKE_CXX_COMPILER ${ALTERNATIVE_GPP})
+        MESSAGE(STATUS "Using ${ALTERNATIVE_GCC}")
+        MESSAGE(STATUS "Using ${ALTERNATIVE_GPP}")
+        # Use the new ABI so that std::string can be used with allocators
+        # that are not default-constructible (e.g. Memroot_allocator)
+        IF(LINUX_SUSE_12)
+          ADD_DEFINITIONS(-D_GLIBCXX_USE_CXX11_ABI=1)
+        ENDIF()
+      ELSE()
+        MESSAGE(WARNING "Could not find newer gcc.")
+        IF(LINUX_SUSE_12)
+          MESSAGE(FATAL_ERROR "Please do zypper install gcc10 gcc10-c++\n"
+            "or set CMAKE_C_COMPILER and CMAKE_CXX_COMPILER explicitly.")
         ELSE()
-          MESSAGE(WARNING "Could not find devtoolset gcc")
+          MESSAGE(FATAL_ERROR "Please do zypper install gcc9 gcc9-c++\n"
+            "or set CMAKE_C_COMPILER and CMAKE_CXX_COMPILER explicitly.")
         ENDIF()
-      ELSEIF(MY_HOST_SYSTEM_NAME MATCHES "Linux" AND
-          EXISTS "/etc/os-release")
-        FILE(READ "/etc/os-release" MY_OS_RELEASE)
-        IF (MY_OS_RELEASE MATCHES "SUSE Linux Enterprise Server 12")
-          MESSAGE(STATUS "We need to look for a newer GCC on SLES 12")
-
-          FIND_PROGRAM(ALTERNATIVE_GCC gcc-7
-            NO_DEFAULT_PATH
-            PATHS "/usr/bin")
-          FIND_PROGRAM(ALTERNATIVE_GPP g++-7
-            NO_DEFAULT_PATH
-            PATHS "/usr/bin")
-          IF (ALTERNATIVE_GCC AND ALTERNATIVE_GPP)
-            SET(CMAKE_C_COMPILER ${ALTERNATIVE_GCC})
-            SET(CMAKE_CXX_COMPILER ${ALTERNATIVE_GPP})
-            MESSAGE(STATUS "Using ${ALTERNATIVE_GCC}")
-            MESSAGE(STATUS "Using ${ALTERNATIVE_GPP}")
-            # Use the new ABI so that std::string can be used with allocators
-            # that are not default-constructible (e.g. Memroot_allocator)
-            ADD_DEFINITIONS(-D_GLIBCXX_USE_CXX11_ABI=1)
-          ELSE()
-            MESSAGE(WARNING "Could not find newer gcc")
-          ENDIF()
-        ENDIF()
+      ENDIF()
+    ELSEIF(SOLARIS)
+      MESSAGE(STATUS "Looking for GCC 10 on Solaris.")
+      FIND_PROGRAM(ALTERNATIVE_GCC gcc
+        NO_DEFAULT_PATH
+        PATHS "/usr/gcc/10/bin")
+      FIND_PROGRAM(ALTERNATIVE_GPP g++
+        NO_DEFAULT_PATH
+        PATHS "/usr/gcc/10/bin")
+      IF (ALTERNATIVE_GCC AND ALTERNATIVE_GPP)
+        SET(CMAKE_C_COMPILER ${ALTERNATIVE_GCC})
+        SET(CMAKE_CXX_COMPILER ${ALTERNATIVE_GPP})
+        MESSAGE(STATUS "Using ${ALTERNATIVE_GCC}")
+        MESSAGE(STATUS "Using ${ALTERNATIVE_GPP}")
+      ELSE()
+        MESSAGE(WARNING "Could not find /usr/gcc/10/bin/gcc")
       ENDIF()
     ENDIF()
   ENDIF()

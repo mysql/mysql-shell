@@ -121,9 +121,10 @@ class Directory : public mysqlshdk::storage::IDirectory {
    * object names that reside on the emulated directory but dont have / as part
    * of their name.
    */
-  std::vector<File_info> list_files(bool hidden_files = false) const override;
+  std::unordered_set<File_info> list_files(
+      bool hidden_files = false) const override;
 
-  std::vector<File_info> filter_files(
+  std::unordered_set<File_info> filter_files(
       const std::string &pattern) const override;
 
   /**

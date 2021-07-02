@@ -123,10 +123,10 @@ class Http_directory : public IDirectory {
 
   Masked_string full_path() const override;
 
-  std::vector<IDirectory::File_info> list_files(
+  std::unordered_set<IDirectory::File_info> list_files(
       bool hidden_files = false) const override;
 
-  std::vector<IDirectory::File_info> filter_files(
+  std::unordered_set<IDirectory::File_info> filter_files(
       const std::string &pattern) const override;
 
   std::unique_ptr<IFile> file(const std::string &name,
@@ -151,13 +151,13 @@ class Http_directory : public IDirectory {
   /**
    * Parses the response from the list GET request to generate the file list
    */
-  virtual std::vector<IDirectory::File_info> parse_file_list(
+  virtual std::unordered_set<IDirectory::File_info> parse_file_list(
       const std::string &data, const std::string &pattern = "") const = 0;
 
   virtual bool is_list_files_complete() const = 0;
 
  protected:
-  std::vector<IDirectory::File_info> get_file_list(
+  std::unordered_set<IDirectory::File_info> get_file_list(
       const std::string &context, const std::string &pattern = "") const;
 
   Masked_string m_url;

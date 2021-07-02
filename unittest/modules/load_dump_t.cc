@@ -237,6 +237,10 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
       }
     }
 
+    mock_main_session->expect_query("SELECT @@server_uuid")
+        .then({"@@server_uuid"})
+        .add_row({"UUID"});
+
     mock_main_session
         ->expect_query(
             "SELECT VARIABLE_VALUE = 'OFF' FROM "
@@ -285,10 +289,10 @@ class Schedule_checker {
                    size_t file_list_size, size_t num_threads)
       : m_num_threads(num_threads) {
     for (size_t i = 0; i < file_list_size; i++) {
-      if (shcore::str_endswith(file_list[i].name, ".zst")) {
-        m_chunks_available.insert(file_list[i].name);
+      if (shcore::str_endswith(file_list[i].name(), ".zst")) {
+        m_chunks_available.insert(file_list[i].name());
       }
-      m_file_sizes[file_list[i].name] = file_list[i].size;
+      m_file_sizes[file_list[i].name()] = file_list[i].size();
     }
     tables_by_size();
   }
@@ -534,6 +538,10 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
       .then_throw(
           "Unknown system variable 'sql_generate_invisible_primary_key'",
           ER_UNKNOWN_SYSTEM_VARIABLE, "HY000");
+
+  mock_main_session->expect_query("SELECT @@server_uuid")
+      .then({"@@server_uuid"})
+      .add_row({"UUID"});
 
   options.set_session(mock_main_session, "");
 

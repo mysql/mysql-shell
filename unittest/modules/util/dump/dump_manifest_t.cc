@@ -89,10 +89,11 @@ bool manifest_object_exists(Obj_index index,
 
 bool manifest_object_exists(
     Obj_index index,
-    const std::vector<mysqlshdk::storage::IDirectory::File_info> &files) {
+    const std::unordered_set<mysqlshdk::storage::IDirectory::File_info>
+        &files) {
   for (const auto &file : files) {
-    if (k_objects[index].name == file.name &&
-        k_objects[index].content.size() == file.size)
+    if (k_objects[index].name == file.name() &&
+        k_objects[index].content.size() == file.size())
       return true;
   }
   return false;

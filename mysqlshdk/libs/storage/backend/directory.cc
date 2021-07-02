@@ -23,6 +23,7 @@
 
 #include "mysqlshdk/libs/storage/backend/directory.h"
 
+#include <filesystem>
 #include <utility>
 
 #include "mysqlshdk/libs/storage/utils.h"
@@ -49,37 +50,40 @@ void Directory::create() {
 
 Masked_string Directory::full_path() const { return m_path; }
 
-std::vector<IDirectory::File_info> Directory::list_files(
+std::unordered_set<IDirectory::File_info> Directory::list_files(
     bool /*hidden_files*/) const {
-  const auto path = full_path().real();
-  std::vector<IDirectory::File_info> files;
-
-  shcore::iterdir(path, [this, &path, &files](const std::string &name) {
-    auto file_path = join_path(path, name);
-    if (shcore::is_file(file_path)) {
-      IDirectory::File_info fi = {name, shcore::file_size(file_path)};
-      files.emplace_back(std::move(fi));
-    }
-    return true;
-  });
-
-  return files;
+  return filter_files("");
 }
 
-std::vector<IDirectory::File_info> Directory::filter_files(
+std::unordered_set<IDirectory::File_info> Directory::filter_files(
     const std::string &pattern) const {
-  const auto path = full_path().real();
-  std::vector<IDirectory::File_info> files;
+  const auto path =
+#ifdef _WIN32
+      shcore::utf8_to_wide
+#endif  // _WIN32
+      (full_path().real());
+  std::unordered_set<IDirectory::File_info> files;
+  std::error_code ec;
 
-  shcore::iterdir(
-      path, [this, &path, &files, &pattern](const std::string &name) {
-        auto file_path = join_path(path, name);
-        if (shcore::match_glob(pattern, name) && shcore::is_file(file_path)) {
-          IDirectory::File_info fi = {name, shcore::file_size(file_path)};
-          files.emplace_back(std::move(fi));
-        }
-        return true;
-      });
+  for (auto &entry : std::filesystem::directory_iterator(path, ec)) {
+    if (entry.is_regular_file()) {
+      auto name =
+#ifdef _WIN32
+          shcore::wide_to_utf8
+#endif  // _WIN32
+          (entry.path().filename().native());
+
+      if (pattern.empty() || shcore::match_glob(pattern, name)) {
+        files.emplace(std::move(name), [entry = std::move(entry)]() {
+          return entry.file_size();
+        });
+      }
+    }
+  }
+
+  if (ec) {
+    throw std::runtime_error(full_path().masked() + ": " + ec.message());
+  }
 
   return files;
 }

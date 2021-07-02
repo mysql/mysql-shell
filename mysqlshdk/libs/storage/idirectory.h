@@ -24,9 +24,13 @@
 #ifndef MYSQLSHDK_LIBS_STORAGE_IDIRECTORY_H_
 #define MYSQLSHDK_LIBS_STORAGE_IDIRECTORY_H_
 
+#include <functional>
 #include <memory>
+#include <optional>
+#include <set>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "mysqlshdk/libs/utils/masked_value.h"
@@ -41,9 +45,55 @@ namespace storage {
 
 class IDirectory {
  public:
-  struct File_info {
-    std::string name;
-    size_t size = 0;
+  class File_info final {
+   public:
+    File_info() = delete;
+
+    /**
+     * Constructor is not marked as explicit in order to make
+     *    std::[unordered_]set&lt;File_info&gt;::find(std::string)
+     * more natural.
+     */
+    File_info(std::string name, std::size_t size = 0);
+
+    /**
+     * Size if fetched on first usage.
+     */
+    File_info(std::string name, std::function<std::size_t()> &&get_size);
+
+    File_info(const File_info &) = default;
+
+    File_info(File_info &&) = default;
+
+    File_info &operator=(const File_info &) = default;
+
+    File_info &operator=(File_info &&) = default;
+
+    /**
+     * Name of the file.
+     */
+    const std::string &name() const { return m_name; }
+
+    /**
+     * File size.
+     */
+    std::size_t size() const;
+
+    /**
+     * Sets the size.
+     */
+    void set_size(std::size_t s);
+
+    bool operator<(const File_info &other) const;
+
+    bool operator==(const File_info &other) const {
+      return name() == other.name();
+    }
+
+   private:
+    std::string m_name;
+    std::optional<std::size_t> m_size;
+    std::function<std::size_t()> m_get_size;
   };
 
   IDirectory() = default;
@@ -68,18 +118,36 @@ class IDirectory {
    *
    * @returns All files in this directory.
    */
-  virtual std::vector<File_info> list_files(
+  virtual std::unordered_set<File_info> list_files(
       bool hidden_files = false) const = 0;
 
   /**
-   * Return file list matching glob pattern.
+   * Lists all files in this directory in sorted order.
+   *
+   * @returns All files in this directory, sorted.
+   */
+  std::set<File_info> list_files_sorted(bool hidden_files = false) const;
+
+  /**
+   * Returns file list matching glob pattern.
    *
    * @param pattern Glob pattern. Available wildcards '*' and '?'. Wildcard
    * escaping available on linux using backslash '\' char.
-   * @return std::vector<File_info>
+   *
+   * @return Files which match the pattern.
    */
-  virtual std::vector<File_info> filter_files(
+  virtual std::unordered_set<File_info> filter_files(
       const std::string &pattern) const = 0;
+
+  /**
+   * Returns sorted file list matching glob pattern.
+   *
+   * @param pattern Glob pattern. Available wildcards '*' and '?'. Wildcard
+   * escaping available on linux using backslash '\' char.
+   *
+   * @return Files which match the pattern, sorted.
+   */
+  std::set<File_info> filter_files_sorted(const std::string &pattern) const;
 
   /**
    * Provides handle to the file with the specified name in this directory.
@@ -107,5 +175,17 @@ std::unique_ptr<IDirectory> make_directory(
 
 }  // namespace storage
 }  // namespace mysqlshdk
+
+namespace std {
+
+template <>
+struct hash<mysqlshdk::storage::IDirectory::File_info> {
+  size_t operator()(
+      const mysqlshdk::storage::IDirectory::File_info &info) const {
+    return std::hash<std::string>()(info.name());
+  }
+};
+
+}  // namespace std
 
 #endif  // MYSQLSHDK_LIBS_STORAGE_IDIRECTORY_H_

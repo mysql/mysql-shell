@@ -134,19 +134,15 @@ void Import_table::build_queue() {
         noncritical_errors.emplace_back(std::move(errmsg));
         continue;
       }
-      auto list_files = dir->filter_files(shcore::path::basename(glob_item));
-      std::sort(list_files.begin(), list_files.end(),
-                [](const auto &lhs, const auto &rhs) {
-                  return shcore::natural_compare(
-                      lhs.name.begin(), lhs.name.end(), rhs.name.begin(),
-                      rhs.name.end());
-                });
+
+      const auto list_files =
+          dir->filter_files_sorted(shcore::path::basename(glob_item));
 
       for (const auto &file_info : list_files) {
-        auto fh = m_opt.create_file_handle(dir->file(file_info.name));
+        auto fh = m_opt.create_file_handle(dir->file(file_info.name()));
         File_import_info task;
         task.file_path = fh->full_path().real();
-        task.file_size = file_info.size;
+        task.file_size = file_info.size();
         task.file_handler = fh.release();
         // todo(kg): impl. content size method. Extract content size information
         // from .gz and .zst headers

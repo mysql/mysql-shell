@@ -1226,6 +1226,10 @@ Options dictionary:
 executes ANALYZE TABLE for all tables, once loaded. If set to 'histogram', only
 tables that have histogram information stored in the dump will be analyzed. This
 option can be used even if all 'load' options are disabled.
+@li <b>backgroundThreads</b>: int (default not set) - Number of additional
+threads to use to fetch contents of metadata and DDL files. If not set, loader
+will use the value of the <b>threads</b> option in case of a local dump, or four
+times that value in case on a non-local dump.
 @li <b>characterSet</b>: string (default taken from dump) - Overrides
 the character set to be used for loading dump data. By default, the same
 character set used for dumping will be used (utf8mb4 if not set on dump).

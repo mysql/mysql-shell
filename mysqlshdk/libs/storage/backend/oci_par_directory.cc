@@ -73,9 +73,9 @@ std::string Oci_par_directory::get_list_url() const {
   return url;
 }
 
-std::vector<IDirectory::File_info> Oci_par_directory::parse_file_list(
+std::unordered_set<IDirectory::File_info> Oci_par_directory::parse_file_list(
     const std::string &data, const std::string &pattern) const {
-  std::vector<IDirectory::File_info> list;
+  std::unordered_set<IDirectory::File_info> list;
 
   const auto response = shcore::Value::parse(data.data(), data.size()).as_map();
   const auto objects = response->get_array("objects");
@@ -89,8 +89,8 @@ std::vector<IDirectory::File_info> Oci_par_directory::parse_file_list(
     auto name = file->get_string("name").substr(prefix_length);
 
     if (pattern.empty() || shcore::match_glob(pattern, name)) {
-      list.emplace_back(IDirectory::File_info{
-          std::move(name), static_cast<size_t>(file->get_uint("size"))});
+      list.emplace(std::move(name),
+                   static_cast<size_t>(file->get_uint("size")));
     }
   }
 

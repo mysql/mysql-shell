@@ -250,9 +250,9 @@ void Http_directory::close() {
 
 Masked_string Http_directory::full_path() const { return m_url; }
 
-std::vector<IDirectory::File_info> Http_directory::get_file_list(
+std::unordered_set<IDirectory::File_info> Http_directory::get_file_list(
     const std::string &context, const std::string &pattern) const {
-  std::vector<IDirectory::File_info> file_info;
+  std::unordered_set<IDirectory::File_info> file_info;
   const auto rest = get_rest_service(m_url);
 
   do {
@@ -266,7 +266,8 @@ std::vector<IDirectory::File_info> Http_directory::get_file_list(
     try {
       auto list = parse_file_list(response.body, pattern);
       file_info.reserve(list.size() + file_info.size());
-      std::move(list.begin(), list.end(), std::back_inserter(file_info));
+      std::move(list.begin(), list.end(),
+                std::inserter(file_info, file_info.begin()));
     } catch (const shcore::Exception &error) {
       std::string msg = "Error " + context;
       msg.append(": ").append(error.what());
@@ -280,12 +281,12 @@ std::vector<IDirectory::File_info> Http_directory::get_file_list(
   return file_info;
 }
 
-std::vector<IDirectory::File_info> Http_directory::list_files(
+std::unordered_set<IDirectory::File_info> Http_directory::list_files(
     bool /*hidden_files*/) const {
   return get_file_list("listing files");
 }
 
-std::vector<IDirectory::File_info> Http_directory::filter_files(
+std::unordered_set<IDirectory::File_info> Http_directory::filter_files(
     const std::string &pattern) const {
   return get_file_list("listing files matching " + pattern, pattern);
 }

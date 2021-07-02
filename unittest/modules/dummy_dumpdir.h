@@ -107,14 +107,16 @@ class Dummy_dump_directory : public mysqlshdk::storage::IDirectory {
 
   mysqlshdk::Masked_string full_path() const override { return m_dumpdir; }
 
-  std::vector<File_info> list_files(bool) const override { return m_file_list; }
+  std::unordered_set<File_info> list_files(bool) const override {
+    return {m_file_list.begin(), m_file_list.end()};
+  }
 
-  std::vector<File_info> filter_files(
+  std::unordered_set<File_info> filter_files(
       const std::string &pattern) const override {
-    std::vector<File_info> filtered_files;
+    std::unordered_set<File_info> filtered_files;
     for (const auto &f : m_file_list) {
-      if (shcore::match_glob(pattern, f.name)) {
-        filtered_files.push_back(f);
+      if (shcore::match_glob(pattern, f.name())) {
+        filtered_files.emplace(f);
       }
     }
     return filtered_files;
@@ -129,8 +131,8 @@ class Dummy_dump_directory : public mysqlshdk::storage::IDirectory {
     } else if (shcore::str_endswith(name, ".zst") ||
                shcore::str_endswith(name, ".idx")) {
       for (const auto &f : m_file_list) {
-        if (f.name == name) {
-          return std::make_unique<Dummy_dump_file>(this, name, f.size);
+        if (f.name() == name) {
+          return std::make_unique<Dummy_dump_file>(this, name, f.size());
         }
       }
       throw std::runtime_error(name + ": File not found");

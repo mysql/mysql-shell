@@ -46,8 +46,8 @@ namespace mysqlsh {
 
 inline std::string schema_table_key(const std::string &schema,
                                     const std::string &table) {
-  return shcore::quote_identifier(schema) + "." +
-         shcore::quote_identifier(table);
+  return shcore::quote_identifier(schema) +
+         (table.empty() ? "" : "." + shcore::quote_identifier(table));
 }
 
 inline std::string partition_key(const std::string &schema,
@@ -117,7 +117,11 @@ class Load_dump_options {
 
   bool show_progress() const { return m_show_progress; }
 
-  int64_t threads_count() const { return m_threads_count; }
+  uint64_t threads_count() const { return m_threads_count; }
+
+  uint64_t background_threads_count(uint64_t def) const {
+    return m_background_threads_count.get_safe(def);
+  }
 
   uint64_t dump_wait_timeout_ms() const { return m_wait_dump_timeout_ms; }
 
@@ -185,6 +189,8 @@ class Load_dump_options {
     return m_max_bytes_per_transaction;
   }
 
+  const std::string &server_uuid() const { return m_server_uuid; }
+
  private:
   void set_wait_timeout(const double &timeout_seconds);
   void set_str_vector_option(const std::string &option,
@@ -199,7 +205,8 @@ class Load_dump_options {
   mysqlshdk::storage::backend::oci::Par_type m_par_type;
   std::string m_par_object;
   bool m_use_par_progress = false;
-  int64_t m_threads_count = 4;
+  uint64_t m_threads_count = 4;
+  mysqlshdk::utils::nullable<uint64_t> m_background_threads_count;
   bool m_show_progress = isatty(fileno(stdout)) ? true : false;
 
   mysqlshdk::oci::Oci_option_unpacker<
@@ -244,6 +251,8 @@ class Load_dump_options {
   bool m_auto_create_pks_supported = false;
 
   mysqlshdk::utils::nullable<uint64_t> m_max_bytes_per_transaction;
+
+  std::string m_server_uuid;
 };
 
 }  // namespace mysqlsh

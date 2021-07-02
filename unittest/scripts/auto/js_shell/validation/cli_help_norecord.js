@@ -787,8 +787,14 @@ WHERE
       url: defines the location of the dump to be loaded
 
 OPTIONS
---threads=<int>
+--threads=<uint>
             Number of threads to use to import table data. Default: 4.
+
+--backgroundThreads=<uint>
+            Number of additional threads to use to fetch contents of metadata
+            and DDL files. If not set, loader will use the value of the threads
+            option in case of a local dump, or four times that value in case on
+            a non-local dump. Default: not set.
 
 --showProgress=<bool>
             Enable or disable import progress information. Default: true if
@@ -930,4 +936,3 @@ OPTIONS
 --ociProfile=<str>
             Use the specified OCI profile instead of the default one. Default:
             not set.
-

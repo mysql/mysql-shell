@@ -157,6 +157,16 @@ def create_par(namespace, bucket, access_type, name, time_expires, object_name =
     else:
         return "https://objectstorage.{}.oraclecloud.com{}".format(config["region"], par.data.access_uri)
 
+def put_object(namespace, bucket, name, content):
+    config = oci.config.from_file(os.path.join(OCI_CONFIG_HOME, "config"))
+    os_client = oci.object_storage.ObjectStorageClient(config)
+    os_client.put_object(namespace, bucket, name, content)
+
+local_progress_file = "my_load_progress.txt"
+
+def remove_local_progress_file():
+    remove_file("my_load_progress.txt")
+
 prev_log_level = shell.options["logLevel"]
 
 def PREPARE_PAR_IS_SECRET_TEST():

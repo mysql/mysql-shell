@@ -166,8 +166,9 @@ void Text_progress::reset(const char *items_full, const char *items_abbrev,
 
   m_last_status_size = 0;
   m_prev_status.clear();
-  m_hide = 0;
   was_shown = false;
+  // do not reset m_hide, if we interleave reset() with hide(true) and
+  // hide(false), we're going to hit the assert
 }
 
 void Text_progress::clear_status() {

@@ -42,10 +42,8 @@
 #include "modules/util/load/load_dump_options.h"
 #include "modules/util/load/load_progress_log.h"
 
-#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
-#include "mysqlshdk/libs/textui/text_progress.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
 namespace mysqlsh {
@@ -72,8 +70,10 @@ class Dump_loader {
    public:
     class Task {
      public:
-      Task(size_t aid, const std::string &schema, const std::string &table)
-          : m_id(aid), m_schema(schema), m_table(table) {}
+      Task(const std::string &schema, const std::string &table)
+          : m_schema(schema),
+            m_table(table),
+            m_key(schema_table_key(schema, table)) {}
       virtual ~Task() {}
 
       virtual bool execute(
@@ -83,25 +83,47 @@ class Dump_loader {
       size_t id() const { return m_id; }
       const std::string &schema() const { return m_schema; }
       const std::string &table() const { return m_table; }
+      const std::string &key() const { return m_key; }
 
      protected:
       static void handle_current_exception(Worker *worker, Dump_loader *loader,
                                            const std::string &error);
 
      protected:
-      size_t m_id;
+      size_t m_id = std::numeric_limits<size_t>::max();
       std::string m_schema;
       std::string m_table;
+      std::string m_key;
+
+     private:
+      friend class Worker;
+
+      void set_id(size_t id) { m_id = id; }
+    };
+
+    class Schema_ddl_task : public Task {
+     public:
+      Schema_ddl_task(const std::string &schema, std::string &&script,
+                      bool resuming)
+          : Task(schema, ""),
+            m_script(std::move(script)),
+            m_resuming(resuming) {}
+
+      bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
+                   Worker *, Dump_loader *) override;
+
+     private:
+      std::string m_script;
+      bool m_resuming;
     };
 
     class Table_ddl_task : public Task {
      public:
-      Table_ddl_task(size_t id, const std::string &schema,
-                     const std::string &table,
-                     std::unique_ptr<mysqlshdk::storage::IFile> file,
-                     bool placeholder, Load_progress_log::Status status)
-          : Task(id, schema, table),
-            m_file(std::move(file)),
+      Table_ddl_task(const std::string &schema, const std::string &table,
+                     std::string &&script, bool placeholder,
+                     Load_progress_log::Status status)
+          : Task(schema, table),
+            m_script(std::move(script)),
             m_placeholder(placeholder),
             m_status(status) {}
 
@@ -117,67 +139,40 @@ class Dump_loader {
      private:
       void process(
           const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-          std::string *out_script, Dump_loader *loader);
+          Dump_loader *loader);
 
       void load_ddl(
           const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-          const std::string &script, Dump_loader *loader);
+          Dump_loader *loader);
 
       void extract_pending_indexes(
           const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
-          std::string *script, bool fulltext_only, bool check_recreated,
-          Dump_loader *loader);
+          bool fulltext_only, bool check_recreated, Dump_loader *loader);
 
      private:
-      std::unique_ptr<mysqlshdk::storage::IFile> m_file;
+      std::string m_script;
       bool m_placeholder = false;
       Load_progress_log::Status m_status;
 
       std::unique_ptr<std::vector<std::string>> m_deferred_indexes;
     };
 
-    class Ddl_fetch_task : public Task {
-     public:
-      Ddl_fetch_task(size_t id, const std::string &schema,
-                     const std::string &object,
-                     std::unique_ptr<mysqlshdk::storage::IFile> file,
-                     const std::function<void(std::string &&)> &fn)
-          : Task(id, schema, object),
-            m_file(std::move(file)),
-            m_process_fn(fn) {}
-
-      bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
-                   Worker *, Dump_loader *) override;
-
-      std::unique_ptr<std::string> steal_script() {
-        return std::move(m_script);
-      }
-
-      const std::function<void(std::string &&)> &process_fn() const {
-        return m_process_fn;
-      }
-
-     private:
-      std::unique_ptr<mysqlshdk::storage::IFile> m_file;
-      std::function<void(std::string &&)> m_process_fn;
-      std::unique_ptr<std::string> m_script;
-    };
-
     class Load_chunk_task : public Task {
      public:
-      Load_chunk_task(size_t id, const std::string &schema,
-                      const std::string &table, const std::string &partition,
-                      ssize_t chunk_index,
+      Load_chunk_task(const std::string &schema, const std::string &table,
+                      const std::string &partition, ssize_t chunk_index,
                       std::unique_ptr<mysqlshdk::storage::IFile> file,
                       shcore::Dictionary_t options, bool resume,
                       uint64_t bytes_to_skip)
-          : Task(id, schema, table),
+          : Task(schema, table),
             m_chunk_index(chunk_index),
             m_file(std::move(file)),
             m_options(options),
             m_resume(resume),
             m_bytes_to_skip(bytes_to_skip),
-            m_partition(partition) {}
+            m_partition(partition) {
+        m_key = partition_key(schema, table, partition);
+      }
 
       size_t bytes_loaded = 0;
       size_t raw_bytes_loaded = 0;
@@ -205,10 +200,9 @@ class Dump_loader {
 
     class Analyze_table_task : public Task {
      public:
-      Analyze_table_task(size_t id, const std::string &schema,
-                         const std::string &table,
+      Analyze_table_task(const std::string &schema, const std::string &table,
                          const std::vector<Dump_reader::Histogram> &histograms)
-          : Task(id, schema, table), m_histograms(histograms) {}
+          : Task(schema, table), m_histograms(histograms) {}
 
       bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
                    Worker *, Dump_loader *) override;
@@ -219,10 +213,9 @@ class Dump_loader {
 
     class Index_recreation_task : public Task {
      public:
-      Index_recreation_task(size_t id, const std::string &schema,
-                            const std::string &table,
+      Index_recreation_task(const std::string &schema, const std::string &table,
                             const std::vector<std::string> &queries)
-          : Task(id, schema, table), m_queries(queries) {}
+          : Task(schema, table), m_queries(queries) {}
 
       bool execute(const std::shared_ptr<mysqlshdk::db::mysql::Session> &,
                    Worker *, Dump_loader *) override;
@@ -234,14 +227,7 @@ class Dump_loader {
     Worker(size_t id, Dump_loader *owner);
     size_t id() const { return m_id; }
 
-    void fetch_object_ddl(const std::string &schema, const std::string &object,
-                          std::unique_ptr<mysqlshdk::storage::IFile> file,
-                          const std::function<void(std::string &&)> &fn);
-
-    void process_table_ddl(const std::string &schema, const std::string &table,
-                           std::unique_ptr<mysqlshdk::storage::IFile> file,
-                           bool is_placeholder,
-                           Load_progress_log::Status status);
+    void schedule(std::unique_ptr<Task> task);
 
     void load_chunk_file(const std::string &schema, const std::string &table,
                          const std::string &partition,
@@ -280,10 +266,10 @@ class Dump_loader {
     enum Event {
       READY,
       FATAL_ERROR,
+      SCHEMA_DDL_START,
+      SCHEMA_DDL_END,
       TABLE_DDL_START,
       TABLE_DDL_END,
-      FETCH_DDL_START,
-      FETCH_DDL_END,
       LOAD_START,
       LOAD_END,
       INDEX_START,
@@ -318,8 +304,9 @@ class Dump_loader {
   bool handle_table_data(Worker *worker);
   void handle_schema_post_scripts();
 
-  void handle_schema(const std::string &schema, bool resuming);
   void switch_schema(const std::string &schema, bool load_done);
+
+  bool should_fetch_table_ddl(bool placeholder) const;
 
   bool schedule_table_chunk(const std::string &schema, const std::string &table,
                             const std::string &partition, ssize_t chunk_index,
@@ -351,17 +338,14 @@ class Dump_loader {
 
   void on_schema_end(const std::string &schema);
 
+  void on_schema_ddl_start(const std::string &schema);
+  void on_schema_ddl_end(const std::string &schema);
+
   void on_table_ddl_start(const std::string &schema, const std::string &table,
                           bool placeholder);
   void on_table_ddl_end(
-      const std::string &schema, const std::string &table,
-      std::unique_ptr<std::vector<std::string>> deferred_indexes,
-      bool placeholder);
-
-  void on_fetch_ddl_start(const std::string &schema, const std::string &object);
-  void on_fetch_ddl_end(const std::string &schema, const std::string &object,
-                        std::unique_ptr<std::string> script,
-                        const std::function<void(std::string &&)> &fn);
+      const std::string &schema, const std::string &table, bool placeholder,
+      std::unique_ptr<std::vector<std::string>> deferred_indexes);
 
   void on_chunk_load_start(const std::string &schema, const std::string &table,
                            const std::string &partition, ssize_t index);
@@ -378,7 +362,6 @@ class Dump_loader {
                             uint64_t subchunk, uint64_t bytes);
 
   friend class Worker;
-  friend class Worker::Table_ddl_task;
   friend class Worker::Load_chunk_task;
 
   const std::string &pre_data_script() const;
@@ -398,6 +381,10 @@ class Dump_loader {
   void setup_create_indexes_progress();
 
   void setup_analyze_tables_progress();
+
+  void add_skipped_schema(const std::string &schema);
+
+  void on_ddl_done_for_schema(const std::string &schema);
 
  private:
 #ifdef FRIEND_TEST
@@ -454,6 +441,7 @@ class Dump_loader {
   Sql_transform m_default_sql_transforms;
 
   shcore::Synchronized_queue<Worker_event> m_worker_events;
+  std::recursive_mutex m_skip_schemas_mutex;
   std::unordered_set<std::string> m_skip_schemas;
   std::unordered_set<std::string> m_skip_tables;
   std::vector<std::exception_ptr> m_thread_exceptions;
@@ -491,6 +479,9 @@ class Dump_loader {
   std::atomic<uint64_t> m_tables_analyzed;
   uint64_t m_tables_to_analyze;
   bool m_all_analyze_tasks_scheduled;
+
+  std::unordered_map<std::string, bool> m_schema_ddl_ready;
+  std::unordered_map<std::string, uint64_t> m_ddl_in_progress_per_schema;
 };
 
 }  // namespace mysqlsh

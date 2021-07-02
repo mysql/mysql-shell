@@ -48,79 +48,71 @@ TEST_F(Oci_os_tests, directory_list_files) {
 
   // Normal listing doesn't include multipart uploads
   auto root_files = root_directory.list_files();
+  auto expected_files = root_files;
   EXPECT_TRUE(root_files.empty());
 
   // With hidden files we get active multipart uploads
   root_files = root_directory.list_files(true);
-  EXPECT_EQ(1, root_files.size());
+  expected_files = {{"multipart_object.txt"}};
+  EXPECT_EQ(expected_files, root_files);
 
   create_objects(bucket);
 
   EXPECT_STREQ("", root_directory.full_path().real().c_str());
 
   root_files = root_directory.list_files();
-  EXPECT_EQ(5, root_files.size());
-  EXPECT_STREQ("sakila.sql", root_files[0].name.c_str());
-  EXPECT_STREQ("sakila_metadata.txt", root_files[1].name.c_str());
-  EXPECT_STREQ("sakila_tables.txt", root_files[2].name.c_str());
-  EXPECT_STREQ("uncommon%25%name.txt", root_files[3].name.c_str());
-  EXPECT_STREQ("uncommon's name.txt", root_files[4].name.c_str());
+  expected_files = {{"sakila.sql"},
+                    {"sakila_metadata.txt"},
+                    {"sakila_tables.txt"},
+                    {"uncommon%25%name.txt"},
+                    {"uncommon's name.txt"}};
+  EXPECT_EQ(expected_files, root_files);
 
   root_files = root_directory.list_files(true);
-  EXPECT_EQ(6, root_files.size());
-  EXPECT_STREQ("sakila.sql", root_files[0].name.c_str());
-  EXPECT_STREQ("sakila_metadata.txt", root_files[1].name.c_str());
-  EXPECT_STREQ("sakila_tables.txt", root_files[2].name.c_str());
-  EXPECT_STREQ("uncommon%25%name.txt", root_files[3].name.c_str());
-  EXPECT_STREQ("uncommon's name.txt", root_files[4].name.c_str());
-  EXPECT_STREQ("multipart_object.txt", root_files[5].name.c_str());
+  expected_files = {{"sakila.sql"},          {"sakila_metadata.txt"},
+                    {"sakila_tables.txt"},   {"uncommon%25%name.txt"},
+                    {"uncommon's name.txt"}, {"multipart_object.txt"}};
+  EXPECT_EQ(expected_files, root_files);
 
   EXPECT_STREQ("sakila", sakila.full_path().real().c_str());
 
   auto files = sakila.list_files();
-  EXPECT_EQ(6, files.size());
-  EXPECT_STREQ("actor.csv", files[0].name.c_str());
-  EXPECT_STREQ("actor_metadata.txt", files[1].name.c_str());
-  EXPECT_STREQ("address.csv", files[2].name.c_str());
-  EXPECT_STREQ("address_metadata.txt", files[3].name.c_str());
-  EXPECT_STREQ("category.csv", files[4].name.c_str());
-  EXPECT_STREQ("category_metadata.txt", files[5].name.c_str());
+  expected_files = {{"actor.csv"},    {"actor_metadata.txt"},
+                    {"address.csv"},  {"address_metadata.txt"},
+                    {"category.csv"}, {"category_metadata.txt"}};
+  EXPECT_EQ(expected_files, files);
 
   files = sakila.list_files(true);
-  EXPECT_EQ(7, files.size());
-  EXPECT_STREQ("actor.csv", files[0].name.c_str());
-  EXPECT_STREQ("actor_metadata.txt", files[1].name.c_str());
-  EXPECT_STREQ("address.csv", files[2].name.c_str());
-  EXPECT_STREQ("address_metadata.txt", files[3].name.c_str());
-  EXPECT_STREQ("category.csv", files[4].name.c_str());
-  EXPECT_STREQ("category_metadata.txt", files[5].name.c_str());
-  EXPECT_STREQ("sakila_multipart_object.txt", files[6].name.c_str());
+  expected_files = {{"actor.csv"},
+                    {"actor_metadata.txt"},
+                    {"address.csv"},
+                    {"address_metadata.txt"},
+                    {"category.csv"},
+                    {"category_metadata.txt"},
+                    {"sakila_multipart_object.txt"}};
+  EXPECT_EQ(expected_files, files);
 
   {
     auto filtered = root_directory.filter_files("*");
-    EXPECT_EQ(5, filtered.size());
-    EXPECT_STREQ("sakila.sql", filtered[0].name.c_str());
-    EXPECT_STREQ("sakila_metadata.txt", filtered[1].name.c_str());
-    EXPECT_STREQ("sakila_tables.txt", filtered[2].name.c_str());
-    EXPECT_STREQ("uncommon%25%name.txt", filtered[3].name.c_str());
-    EXPECT_STREQ("uncommon's name.txt", filtered[4].name.c_str());
+    expected_files = {{"sakila.sql"},
+                      {"sakila_metadata.txt"},
+                      {"sakila_tables.txt"},
+                      {"uncommon%25%name.txt"},
+                      {"uncommon's name.txt"}};
+    EXPECT_EQ(expected_files, filtered);
   }
   {
     auto filtered = root_directory.filter_files("sakila*");
-    EXPECT_EQ(3, filtered.size());
-    EXPECT_STREQ("sakila.sql", filtered[0].name.c_str());
-    EXPECT_STREQ("sakila_metadata.txt", filtered[1].name.c_str());
-    EXPECT_STREQ("sakila_tables.txt", filtered[2].name.c_str());
+    expected_files = {
+        {"sakila.sql"}, {"sakila_metadata.txt"}, {"sakila_tables.txt"}};
+    EXPECT_EQ(expected_files, filtered);
   }
   {
     auto filtered = sakila.filter_files("*");
-    EXPECT_EQ(6, filtered.size());
-    EXPECT_STREQ("actor.csv", filtered[0].name.c_str());
-    EXPECT_STREQ("actor_metadata.txt", filtered[1].name.c_str());
-    EXPECT_STREQ("address.csv", filtered[2].name.c_str());
-    EXPECT_STREQ("address_metadata.txt", filtered[3].name.c_str());
-    EXPECT_STREQ("category.csv", filtered[4].name.c_str());
-    EXPECT_STREQ("category_metadata.txt", filtered[5].name.c_str());
+    expected_files = {{"actor.csv"},    {"actor_metadata.txt"},
+                      {"address.csv"},  {"address_metadata.txt"},
+                      {"category.csv"}, {"category_metadata.txt"}};
+    EXPECT_EQ(expected_files, filtered);
   }
 
   Directory unexisting(options, "unexisting");
@@ -455,8 +447,9 @@ TEST_F(Oci_os_tests, file_rename) {
   EXPECT_STREQ("testing.txt", file->full_path().real().c_str());
 
   auto files = root.list_files();
-  EXPECT_EQ(1, files.size());
-  EXPECT_STREQ("testing.txt", files[0].name.c_str());
+  auto expected_files = files;
+  expected_files = {{"testing.txt"}};
+  EXPECT_EQ(expected_files, files);
 
   file->rename("`test`");
   EXPECT_STREQ("`test`", file->filename().c_str());
@@ -486,8 +479,7 @@ TEST_F(Oci_os_tests, file_rename) {
   EXPECT_STREQ("other/testing.txt", file->full_path().real().c_str());
 
   files = other.list_files();
-  EXPECT_EQ(1, files.size());
-  EXPECT_STREQ("testing.txt", files[0].name.c_str());
+  EXPECT_EQ(expected_files, files);
 
   bucket.delete_object("other/testing.txt");
 }

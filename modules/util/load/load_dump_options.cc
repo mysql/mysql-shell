@@ -97,6 +97,8 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Load_dump_options>()
           .optional("threads", &Load_dump_options::m_threads_count)
+          .optional("backgroundThreads",
+                    &Load_dump_options::m_background_threads_count)
           .optional("showProgress", &Load_dump_options::m_show_progress)
           .optional("waitDumpTimeout", &Load_dump_options::set_wait_timeout)
           .optional("loadData", &Load_dump_options::m_load_data)
@@ -286,6 +288,10 @@ void Load_dump_options::set_session(
       throw;
     }
   }
+
+  m_server_uuid = m_base_session->query("SELECT @@server_uuid")
+                      ->fetch_one_or_throw()
+                      ->get_string(0);
 }
 
 void Load_dump_options::validate() {
@@ -367,10 +373,7 @@ void Load_dump_options::validate() {
   }
 
   if (m_progress_file.is_null()) {
-    std::string uuid = m_base_session->query("SELECT @@server_uuid")
-                           ->fetch_one_or_throw()
-                           ->get_string(0);
-    m_default_progress_file = "load-progress." + uuid + ".json";
+    m_default_progress_file = "load-progress." + m_server_uuid + ".json";
   }
 
   m_excluded_users.emplace_back(

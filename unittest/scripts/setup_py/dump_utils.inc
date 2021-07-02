@@ -255,6 +255,24 @@ def count_files_with_extension(directory, ext):
             cnt += 1
     return cnt
 
+def validate_load_progress(file_name):
+    with open(file_name) as fp:
+        while True:
+            line = fp.readline()
+            if line:
+                content = json.loads(line)
+                EXPECT_TRUE("op" in content)
+                EXPECT_TRUE("done" in content)
+                EXPECT_TRUE("schema" in content or content["op"] in ["GTID-UPDATE", "SERVER-UUID"])
+            else:
+                break
+
+def remove_file(name):
+    try:
+        os.remove(name)
+    except:
+        pass
+
 # constants
 test_user = "sample_user"
 test_user_account = get_test_user_account(test_user)

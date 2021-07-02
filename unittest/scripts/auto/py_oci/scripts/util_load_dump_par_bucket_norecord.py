@@ -25,29 +25,10 @@ session1.run_sql("create table sample.data_copy(id int, name varchar(20))")
 session1.run_sql("insert into sample.data_copy values (5, 'Jane Doe')")
 session1.close()
 
-def put_object(namespace, bucket, name, content):
-    config = oci.config.from_file(os.path.join(OCI_CONFIG_HOME, "config"))
-    os_client = oci.object_storage.ObjectStorageClient(config)
-    os_client.put_object(namespace, bucket, name, content)
-
-
-def validate_load_progress(file_name):
-    with open(file_name) as fp:
-        while True:
-            line = fp.readline()
-            if line:
-                content = json.loads(line)
-                EXPECT_TRUE("op" in content)
-                EXPECT_TRUE("done" in content)
-                EXPECT_TRUE("schema" in content)
-            else:
-                break
-
 # ------------
 # Defaults
 RFC3339 = True
 shell.connect(__sandbox_uri1)
-
 
 # Prepare dump on bucket location (using prefix)
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
@@ -59,56 +40,59 @@ EXPECT_PAR_IS_SECRET()
 testutil.deploy_sandbox(__mysql_sandbox_port2, "root", {"local_infile":1})
 shell.connect(__sandbox_uri2)
 
-try:
-    os.remove("my_load_progress.txt")
-except:
-    pass
-
 #@<> WL14645-TSFR_1_1 - Successfully load dump with bucket AnyObjectRead PAR
 all_read_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead", "all-read-par", today_plus_days(1, RFC3339), None, "ListObjects")
 
+remove_local_progress_file()
+
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_NO_THROWS(lambda: util.load_dump(all_read_par, {"progressFile": "my_load_progress.txt"}), "load_dump() using local progress file")
+EXPECT_NO_THROWS(lambda: util.load_dump(all_read_par, {"progressFile": local_progress_file}), "load_dump() using local progress file")
 EXPECT_PAR_IS_SECRET()
 
 EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
-validate_load_progress("my_load_progress.txt")
-os.remove("my_load_progress.txt")
+validate_load_progress(local_progress_file)
 session.run_sql("drop schema if exists sample")
 
 
 #@<> WL14645-TSFR_1_3 - Successfully load dump with bucket AnyObjectReadWrite PAR
 all_read_write_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectReadWrite", "all-read-write-par", today_plus_days(1, RFC3339), None, "ListObjects")
 
+remove_local_progress_file()
+
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_NO_THROWS(lambda: util.load_dump(all_read_write_par, {"progressFile": "my_load_progress.txt"}), "load_dump() using local progress file")
+EXPECT_NO_THROWS(lambda: util.load_dump(all_read_write_par, {"progressFile": local_progress_file}), "load_dump() using local progress file")
 EXPECT_PAR_IS_SECRET()
 
 EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
-validate_load_progress("my_load_progress.txt")
-os.remove("my_load_progress.txt")
+validate_load_progress(local_progress_file)
 session.run_sql("drop schema if exists sample")
 
 #@<> WL14645-TSFR_1_5 - Failed load dump with bucket AnyObjectWrite PAR
 all_write_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite", "all-read-par", today_plus_days(1, RFC3339))
 
+remove_local_progress_file()
+
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par, {"progressFile": "my_load_progress.txt"}), "Util.load_dump: Not Found")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par, {"progressFile": local_progress_file}), "Util.load_dump: Not Found")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_7 - Failed load dump with bucket AnyObjectRead PAR without ListObjects
 all_read_par_no_list=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead", "all-read-par", today_plus_days(1, RFC3339))
 
+remove_local_progress_file()
+
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_read_par_no_list, {"progressFile": "my_load_progress.txt"}),
+EXPECT_THROWS(lambda: util.load_dump(all_read_par_no_list, {"progressFile": local_progress_file}),
   f"Util.load_dump: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_9 - Failed load dump with bucket AnyObjectWrite PAR and ListObjects
 all_write_par_and_list=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite", "all-read-par", today_plus_days(1, RFC3339), None, "ListObjects")
 
+remove_local_progress_file()
+
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": "my_load_progress.txt"}), "Util.load_dump: Not Found")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": local_progress_file}), "Util.load_dump: Not Found")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_11 - Failed load dump, missing progress file
@@ -127,8 +111,10 @@ EXPECT_PAR_IS_SECRET()
 #@<> WL14645-TSFR_1_13 - Failed load dump, missing dump
 all_write_par_and_list_no_dump=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead", "all-read-par", today_plus_days(1, RFC3339), "random-folder/", "ListObjects")
 
+remove_local_progress_file()
+
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressFile": "my_load_progress.txt"}),
+EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressFile": local_progress_file}),
   "Util.load_dump: Not Found")
 EXPECT_PAR_IS_SECRET()
 

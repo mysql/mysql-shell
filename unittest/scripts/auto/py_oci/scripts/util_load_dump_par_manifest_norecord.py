@@ -25,24 +25,6 @@ session1.run_sql("create table sample.data_copy(id int, name varchar(20))")
 session1.run_sql("insert into sample.data_copy values (5, 'Jane Doe')")
 session1.close()
 
-def put_object(namespace, bucket, name, content):
-    config = oci.config.from_file(os.path.join(OCI_CONFIG_HOME, "config"))
-    os_client = oci.object_storage.ObjectStorageClient(config)
-    os_client.put_object(namespace, bucket, name, content)
-
-
-def validate_load_progress(file_name):
-    with open(file_name) as fp:
-        while True:
-            line = fp.readline()
-            if line:
-                content = json.loads(line)
-                EXPECT_TRUE("op" in content)
-                EXPECT_TRUE("done" in content)
-                EXPECT_TRUE("schema" in content)
-            else:
-                break
-
 # ------------
 # Defaults
 RFC3339 = True
@@ -70,13 +52,14 @@ EXPECT_THROWS(lambda:util.load_dump(manifest_par, {"progressFile": manifest_par}
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14154-TSFR7_2 - When doing a load using a PAR for a manifest file with the progressFile option set to a file system. Validate that the load success and the file given stores the load progress.
+remove_local_progress_file()
+
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": "my_load_progress.txt"}), "load_dump() using local progress file")
+EXPECT_NO_THROWS(lambda: util.load_dump(manifest_par, {"progressFile": local_progress_file}), "load_dump() using local progress file")
 EXPECT_PAR_IS_SECRET()
 
 EXPECT_STDOUT_CONTAINS("2 tables in 1 schemas were loaded")
-validate_load_progress("my_load_progress.txt")
-os.remove("my_load_progress.txt")
+validate_load_progress(local_progress_file)
 session.run_sql("drop schema if exists sample")
 
 #@<> WL14154-TSFR8_1 - When doing a load using a PAR for a manifest file with the progressFile option set to a file system. Validate that the load success and the file given stores the load progress.

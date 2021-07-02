@@ -250,21 +250,24 @@ void Manifest_reader::unserialize(const std::string &data) {
 
   m_objects.clear();
 
-  auto contents = manifest_map->get_array("contents");
+  const auto contents = manifest_map->get_array("contents");
 
-  std::string done_path = m_meta.object_prefix.empty()
-                              ? k_at_done_json
-                              : m_meta.object_prefix + "/" + k_at_done_json;
+  const auto done_path = m_meta.object_prefix.empty()
+                             ? k_at_done_json
+                             : m_meta.object_prefix + "/" + k_at_done_json;
 
   for (const auto &val : (*contents)) {
-    auto entry = val.as_map();
+    const auto entry = val.as_map();
     auto object_name = entry->get_string("objectName");
-    m_objects[object_name] = {
-        entry->get_string("parUrl"),
-        static_cast<size_t>(entry->get_int("objectSize"))};
+    const auto done_found = object_name == done_path;
+
+    m_objects.emplace(
+        std::move(object_name),
+        File_info{entry->get_string("parUrl"),
+                  static_cast<size_t>(entry->get_int("objectSize"))});
 
     // When the @.done.json is found on the manifest, it's fully loaded
-    if (object_name == done_path) m_complete = true;
+    if (done_found) m_complete = true;
   }
 }
 
@@ -287,14 +290,13 @@ void Manifest_reader::reload() {
   m_file->close();
 }
 
-std::vector<IDirectory::File_info> Manifest_base::list_objects() {
+std::unordered_set<IDirectory::File_info> Manifest_base::list_objects() {
   std::lock_guard<std::mutex> lock(m_mutex);
-  std::vector<IDirectory::File_info> ret_val;
+  std::unordered_set<IDirectory::File_info> ret_val;
   for (const auto &entry : m_objects) {
     // The manifest also contains the bucket write PAR which has an empty
     // name, it should not be returned on the file list
-    if (!entry.first.empty())
-      ret_val.push_back({entry.first, entry.second.size});
+    if (!entry.first.empty()) ret_val.emplace(entry.first, entry.second.size());
   }
   return ret_val;
 }
@@ -377,7 +379,8 @@ std::unique_ptr<mysqlshdk::storage::IFile> Dump_manifest::file(
           data.bucket == *m_bucket->get_options().os_bucket_name &&
           data.object_prefix == prefix) {
         object_name = data.object_name;
-        m_created_objects[object_name] = {data.get_object_path(), 0};
+        m_created_objects.emplace(std::move(data.object_name),
+                                  File_info{data.get_object_path(), 0});
         // prefix = "";
         return std::make_unique<mysqlshdk::storage::backend::oci::Object>(name);
       } else {
@@ -400,7 +403,7 @@ const IDirectory::File_info &Dump_manifest::get_object(const std::string &name,
     auto &info = created_object->second;
 
     if (fetch_size) {
-      info.size = m_bucket->head_object(info.name);
+      info.set_size(m_bucket->head_object(info.name()));
     }
 
     return info;
@@ -450,7 +453,7 @@ void Dump_manifest::close() {
   }
 }
 
-std::vector<IDirectory::File_info> Dump_manifest::list_files(
+std::unordered_set<IDirectory::File_info> Dump_manifest::list_files(
     bool hidden_files) const {
   if (m_manifest->get_mode() == Manifest_mode::READ) {
     if (!m_manifest->is_complete()) {
@@ -461,10 +464,10 @@ std::vector<IDirectory::File_info> Dump_manifest::list_files(
 
     // File list must exclude the PAR portion
     size_t prefix_length = m_name.empty() ? 0 : m_name.size() + 1;
-    std::vector<IDirectory::File_info> files;
+    std::unordered_set<IDirectory::File_info> files;
 
     for (const auto &object : objects) {
-      files.push_back({object.name.substr(prefix_length), object.size});
+      files.emplace(object.name().substr(prefix_length), object.size());
     }
     return files;
   } else {
@@ -483,7 +486,7 @@ mysqlshdk::Masked_string Dump_manifest_object::full_path() const {
 
   if (m_manifest->get_mode() == Manifest_mode::READ) {
     return mysqlshdk::oci::anonymize_par(
-        manifest_reader(m_manifest)->get_object(full_path.real()).name);
+        manifest_reader(m_manifest)->get_object(full_path.real()).name());
   } else {
     return full_path;
   }
@@ -504,7 +507,7 @@ size_t Dump_manifest_object::file_size() const {
   if (m_manifest->get_mode() == Manifest_mode::READ) {
     return manifest_reader(m_manifest)
         ->get_object(Object::full_path().real())
-        .size;
+        .size();
   } else {
     return Object::file_size();
   }

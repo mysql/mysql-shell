@@ -30,13 +30,63 @@
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
 #include "mysqlshdk/libs/storage/backend/oci_par_directory.h"
 #include "mysqlshdk/libs/storage/utils.h"
+#include "mysqlshdk/libs/utils/natural_compare.h"
 
 namespace mysqlshdk {
 namespace storage {
 
+namespace {
+
+std::set<IDirectory::File_info> sort(
+    std::unordered_set<IDirectory::File_info> &&input) {
+  std::set<IDirectory::File_info> output;
+
+  std::move(input.begin(), input.end(), std::inserter(output, output.begin()));
+
+  return output;
+}
+
+}  // namespace
+
+IDirectory::File_info::File_info(std::string name, std::size_t size)
+    : m_name(std::move(name)), m_size(size) {}
+
+IDirectory::File_info::File_info(std::string name,
+                                 std::function<std::size_t()> &&get_size)
+    : m_name(std::move(name)), m_get_size(std::move(get_size)) {}
+
+std::size_t IDirectory::File_info::size() const {
+  if (!m_size) {
+    assert(m_get_size);
+    const_cast<File_info *>(this)->set_size(m_get_size());
+  }
+
+  return m_size.value();
+}
+
+void IDirectory::File_info::set_size(std::size_t s) {
+  m_size = s;
+  m_get_size = nullptr;
+}
+
+bool IDirectory::File_info::operator<(const File_info &other) const {
+  return shcore::natural_compare(name().begin(), name().end(),
+                                 other.name().begin(), other.name().end());
+}
+
 std::unique_ptr<IFile> IDirectory::file(const std::string &name,
                                         const File_options &options) const {
   return make_file(join_path(full_path().real(), name), options);
+}
+
+std::set<IDirectory::File_info> IDirectory::list_files_sorted(
+    bool hidden_files) const {
+  return sort(list_files(hidden_files));
+}
+
+std::set<IDirectory::File_info> IDirectory::filter_files_sorted(
+    const std::string &pattern) const {
+  return sort(filter_files(pattern));
 }
 
 std::unique_ptr<IDirectory> make_directory(

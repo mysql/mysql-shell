@@ -53,7 +53,7 @@ class Manifest_base {
   virtual bool has_object(const std::string &name) const;
   bool is_complete() const { return m_complete; }
   virtual const File_info &get_object(const std::string &name);
-  std::vector<File_info> list_objects();
+  std::unordered_set<File_info> list_objects();
   virtual const std::string &get_base_name() const = 0;
   Manifest_mode get_mode() const { return m_mode; }
 
@@ -158,7 +158,8 @@ class Dump_manifest : public mysqlshdk::storage::backend::oci::Directory {
   /**
    * Retrieves the list of files on the manifest.
    */
-  std::vector<File_info> list_files(bool hidden_files = false) const override;
+  std::unordered_set<File_info> list_files(
+      bool hidden_files = false) const override;
 
   bool is_local() const override { return false; }
 

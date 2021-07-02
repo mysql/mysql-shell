@@ -1555,6 +1555,10 @@ DESCRIPTION
         'histogram', only tables that have histogram information stored in the
         dump will be analyzed. This option can be used even if all 'load'
         options are disabled.
+      - backgroundThreads: int (default not set) - Number of additional threads
+        to use to fetch contents of metadata and DDL files. If not set, loader
+        will use the value of the threads option in case of a local dump, or
+        four times that value in case on a non-local dump.
       - characterSet: string (default taken from dump) - Overrides the
         character set to be used for loading dump data. By default, the same
         character set used for dumping will be used (utf8mb4 if not set on
@@ -1643,7 +1647,7 @@ DESCRIPTION
       Connection options set in the global session, such as compression,
       ssl-mode, etc. are inherited by load sessions.
 
-      Examples: 
+      Examples:
 
       util.loadDump("sakila_dump")
 
@@ -1664,7 +1668,7 @@ DESCRIPTION
       Given a dump located at a bucket root and a PAR created for the bucket,
       the dump can be loaded by providing the PAR as the url parameter:
 
-      Example: 
+      Example:
 
       Dump Location: root of 'test' bucket
 
@@ -1676,7 +1680,7 @@ DESCRIPTION
       the given folder, the dump can be loaded by providing the PAR and the
       prefix as the url parameter:
 
-      Example: 
+      Example:
 
       Dump Location: folder 'dump' at the 'test' bucket
       PAR created using the 'dump/' prefix.
@@ -1704,12 +1708,11 @@ DESCRIPTION
       located on the same location of the "@.manifest.json" file. Finally
       specify the PAR URL on the progressFile option.
 
-      Example: 
+      Example:
 
       Dump Location: root of 'test' bucket:
 
       util.loadDump(
-      
+
       "https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json",
         {progressFile:"load_progress.txt"})
-

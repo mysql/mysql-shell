@@ -752,19 +752,28 @@ testutil.rmfile(__tmp_dir+"/ldtest/dump-nochunk/load-progress*");
 wipe_instance(session);
 
 //@<> try to load using an account with missing privs
-session.runSql("create user user@localhost");
-session.runSql("grant all on sakila.* to user@localhost with grant option");
-session.runSql("grant select,insert,update on xtest.* to user@localhost with grant option");
-session.runSql("grant select on test.* to user@localhost with grant option");
-session.runSql("grant create,insert on mysqlaas_compat.* to user@localhost with grant option");
+var grants_and_errors = [];
 
-shell.connect("mysql://user@localhost:"+__mysql_sandbox_port1);
+grants_and_errors.push({ schema: "sakila", grant: "grant all on sakila.* to user@localhost with grant option", error: "ERROR: Error processing schema `sakila`: Access denied; you need (at least one of) the SUPER " });
+grants_and_errors.push({ schema: "xtest", grant: "grant select,insert,update on xtest.* to user@localhost with grant option", error: "ERROR: Error processing schema `xtest`: Access denied for user 'user'@'localhost' to database 'xtest'" });
+grants_and_errors.push({ schema: "mysqlaas_compat", grant: "grant create,insert on mysqlaas_compat.* to user@localhost with grant option", error: "Error processing schema `mysqlaas_compat`: Access denied for user 'user'@'localhost' to database 'mysqlaas_compat'" });
 
-EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nochunk");}, "Util.loadDump: Access denied");
+for (const data of grants_and_errors) {
+  println(`---> testing schema: ${data.schema}`);
+  shell.connect(__sandbox_uri1);
+  session.runSql("create user user@localhost");
+  session.runSql(data.grant);
 
-shell.connect(__sandbox_uri1);
-testutil.rmfile(__tmp_dir+"/ldtest/dump-nochunk/load-progress*");
-wipe_instance(session);
+  shell.connect("mysql://user@localhost:"+__mysql_sandbox_port1);
+
+  WIPE_OUTPUT();
+  EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-nochunk", { "includeSchemas": [ data.schema ]});}, "Util.loadDump: Error loading dump");
+  EXPECT_STDOUT_CONTAINS(data.error);
+
+  shell.connect(__sandbox_uri1);
+  wipe_instance(session);
+  testutil.rmfile(__tmp_dir+"/ldtest/dump-nochunk/load-progress*");
+}
 
 // Progress File
 // -------------

@@ -1250,7 +1250,7 @@ Dumper::Dumper(const Dump_options &options)
     }
 
     if (m_output_dir->exists()) {
-      auto files = m_output_dir->list_files(true);
+      const auto files = m_output_dir->list_files_sorted(true);
 
       if (!files.empty()) {
         std::vector<std::string> file_data;
@@ -1259,8 +1259,8 @@ Dumper::Dumper(const Dump_options &options)
         for (const auto &file : files) {
           file_data.push_back(shcore::str_format(
               "%s [size %zu]",
-              m_output_dir->join_path(full_path.masked(), file.name).c_str(),
-              file.size));
+              m_output_dir->join_path(full_path.masked(), file.name()).c_str(),
+              file.size()));
         }
 
         log_error(

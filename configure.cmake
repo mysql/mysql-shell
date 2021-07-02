@@ -1,4 +1,4 @@
-# Copyright (c) 2009, 2019, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2009, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -212,6 +212,38 @@ IF(UNIX)
   ENDIF()
 ENDIF()
 
+# std::filesystem
+
+SET(STD_FILESYSTEM_TEST [[
+#include <filesystem>
+
+int main() {
+  const auto cwd = std::filesystem::current_path();
+}
+]])
+
+SET(SAVE_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
+
+FOREACH(CANDIDATE "" c++fs stdc++fs)
+  IF(NOT STD_FILESYSTEM_COMPILES)
+    UNSET(STD_FILESYSTEM_COMPILES CACHE)
+    SET(STD_FILESYSTEM_LIB ${CANDIDATE})
+    SET(CMAKE_REQUIRED_LIBRARIES ${SAVE_CMAKE_REQUIRED_LIBRARIES} ${STD_FILESYSTEM_LIB})
+    CHECK_CXX_SOURCE_COMPILES("${STD_FILESYSTEM_TEST}" STD_FILESYSTEM_COMPILES)
+  ENDIF()
+ENDFOREACH()
+
+IF(NOT STD_FILESYSTEM_COMPILES)
+  MESSAGE(FATAL_ERROR "Could not find the linker flag for std::filesystem")
+ENDIF()
+
+IF(STD_FILESYSTEM_LIB)
+  SET(STD_FILESYSTEM_LIB ${STD_FILESYSTEM_LIB} CACHE STRING "std::filesystem library" FORCE)
+  LINK_LIBRARIES(${STD_FILESYSTEM_LIB})
+ENDIF()
+
+SET(CMAKE_REQUIRED_LIBRARIES ${SAVE_CMAKE_REQUIRED_LIBRARIES})
+
 #
 # Tests for header files
 #
@@ -227,4 +259,3 @@ CHECK_FUNCTION_EXISTS (getpwuid_r HAVE_GETPWUID_R)
 CHECK_FUNCTION_EXISTS (getlogin_r HAVE_GETLOGIN_R)
 CHECK_FUNCTION_EXISTS (memset_s HAVE_MEMSET_S)
 CHECK_FUNCTION_EXISTS (explicit_bzero HAVE_EXPLICIT_BZERO)
-

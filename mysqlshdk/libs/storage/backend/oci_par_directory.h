@@ -58,7 +58,7 @@ class Oci_par_directory : public Http_directory {
 
   void init_rest();
 
-  std::vector<IDirectory::File_info> parse_file_list(
+  std::unordered_set<IDirectory::File_info> parse_file_list(
       const std::string &data, const std::string &pattern = "") const override;
 
   Par_structure m_par_data;

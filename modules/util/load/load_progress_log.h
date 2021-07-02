@@ -24,6 +24,7 @@
 #ifndef MODULES_UTIL_LOAD_SCHEMA_LOAD_PROGRESS_LOG_H_
 #define MODULES_UTIL_LOAD_SCHEMA_LOAD_PROGRESS_LOG_H_
 
+#include <chrono>
 #include <fstream>
 #include <functional>
 #include <memory>
@@ -233,6 +234,25 @@ class Load_progress_log final {
     return it->second.status;
   }
 
+  std::string server_uuid() const {
+    auto it = m_last_state.find("SERVER-UUID");
+    if (it == m_last_state.end()) return {};
+    return it->second.details->get_string("uuid");
+  }
+
+  void set_server_uuid(const std::string &uuid) {
+    const auto saved_uuid = server_uuid();
+
+    if (saved_uuid.empty()) {
+      log(true, "SERVER-UUID", {}, {}, {},
+          [&](Dumper *json) { json->append_string("uuid", uuid); });
+    } else if (!shcore::str_caseeq(uuid, saved_uuid)) {
+      throw std::runtime_error(
+          "Progress file was created for a server with UUID " + saved_uuid +
+          ", while the target server has UUID: " + uuid);
+    }
+  }
+
   // schema DDL includes the schema script and views
   void start_schema_ddl(const std::string &schema) {
     if (schema_ddl_status(schema) != Status::DONE)
@@ -328,6 +348,10 @@ class Load_progress_log final {
       json.start_object();
       json.append_string("op", op);
       json.append_bool("done", end);
+      json.append_int64("timestamp",
+                        std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::system_clock::now().time_since_epoch())
+                            .count());
       if (!schema.empty()) {
         json.append_string("schema", schema);
         if (!table.empty()) {

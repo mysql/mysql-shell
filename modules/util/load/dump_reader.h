@@ -32,10 +32,16 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+#include "modules/util/dump/progress_thread.h"
+
 #include "modules/util/import_table/dialect.h"
+
 #include "modules/util/load/load_dump_options.h"
+
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
+#include "mysqlshdk/libs/utils/thread_pool.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
@@ -43,7 +49,8 @@ namespace mysqlsh {
 class Dump_reader {
  public:
   using Name_and_file =
-      std::pair<std::string, std::unique_ptr<mysqlshdk::storage::IFile>>;
+      std::pair<std::string, std::shared_ptr<mysqlshdk::storage::IFile>>;
+  using Files = std::unordered_set<mysqlshdk::storage::IDirectory::File_info>;
 
   Dump_reader(std::unique_ptr<mysqlshdk::storage::IDirectory> dump_dir,
               const Load_dump_options &options);
@@ -176,7 +183,7 @@ class Dump_reader {
     }
   }
 
-  void rescan();
+  void rescan(dump::Progress_thread *progress_thread = nullptr);
 
   void add_deferred_indexes(const std::string &schema, const std::string &table,
                             std::vector<std::string> &&indexes);
@@ -200,6 +207,16 @@ class Dump_reader {
 
   void show_metadata() const;
 
+  std::unique_ptr<shcore::Thread_pool> create_thread_pool() const;
+
+  void on_metadata_available() { ++m_metadata_available; }
+
+  uint64_t metadata_available() { return m_metadata_available; }
+
+  void on_metadata_parsed() { ++m_metadata_parsed; }
+
+  uint64_t metadata_parsed() { return m_metadata_parsed; }
+
   struct View_info {
     std::string schema;
     std::string table;
@@ -211,9 +228,7 @@ class Dump_reader {
     std::string pre_script_name() const;
     std::string script_name() const;
 
-    void rescan(mysqlshdk::storage::IDirectory *dir,
-                const std::unordered_map<std::string, size_t> &files,
-                Dump_reader *reader);
+    void rescan(const Files &files);
 
     bool sql_seen = false;
     bool sql_pre_seen = false;
@@ -256,9 +271,7 @@ class Dump_reader {
       return !has_data || (last_chunk_seen && chunks_consumed == num_chunks);
     }
 
-    void rescan_data(mysqlshdk::storage::IDirectory *dir,
-                     const std::unordered_map<std::string, size_t> &files,
-                     Dump_reader *reader);
+    void rescan_data(const Files &files, Dump_reader *reader);
   };
 
   struct Table_info {
@@ -287,9 +300,15 @@ class Dump_reader {
 
     bool ready() const;
 
-    void rescan(mysqlshdk::storage::IDirectory *dir,
-                const std::unordered_map<std::string, size_t> &files,
-                Dump_reader *reader);
+    std::string metadata_name() const;
+
+    bool should_fetch_metadata_file(const Files &files) const;
+
+    void update_metadata(const std::string &data, Dump_reader *reader);
+
+    void rescan(const Files &files);
+
+    void rescan_data(const Files &files, Dump_reader *reader);
 
     bool all_data_done() const;
   };
@@ -322,15 +341,20 @@ class Dump_reader {
 
     std::string script_name() const;
 
+    std::string metadata_name() const;
+
     bool data_done() const;
 
-    void rescan(mysqlshdk::storage::IDirectory *dir,
-                const std::unordered_map<std::string, size_t> &files,
-                Dump_reader *reader);
+    bool should_fetch_metadata_file(const Files &files) const;
 
-    void rescan_data(mysqlshdk::storage::IDirectory *dir,
-                     const std::unordered_map<std::string, size_t> &files,
-                     Dump_reader *reader);
+    void update_metadata(const std::string &data, Dump_reader *reader);
+
+    void rescan(mysqlshdk::storage::IDirectory *dir, const Files &files,
+                Dump_reader *reader, shcore::Thread_pool *pool);
+
+    void check_if_ready();
+
+    void rescan_data(const Files &files, Dump_reader *reader);
   };
 
   struct Dump_info {
@@ -369,11 +393,20 @@ class Dump_reader {
 
     bool ready() const;
 
-    void rescan(mysqlshdk::storage::IDirectory *dir,
-                const std::unordered_map<std::string, size_t> &files,
-                Dump_reader *reader);
+    void rescan(mysqlshdk::storage::IDirectory *dir, const Files &files,
+                Dump_reader *reader,
+                dump::Progress_thread *progress_thread = nullptr);
+
+    void check_if_ready();
 
     void parse_done_metadata(mysqlshdk::storage::IDirectory *dir);
+
+   private:
+    void rescan_metadata(mysqlshdk::storage::IDirectory *dir,
+                         const Files &files, Dump_reader *reader,
+                         dump::Progress_thread *progress_thread);
+
+    void rescan_data(const Files &files, Dump_reader *reader);
   };
 
  private:
@@ -387,6 +420,9 @@ class Dump_reader {
 
   // Tables that are ready to be loaded
   std::unordered_set<Table_data_info *> m_tables_with_data;
+
+  std::atomic<uint64_t> m_metadata_available{0};
+  std::atomic<uint64_t> m_metadata_parsed{0};
 
   static std::unordered_set<Dump_reader::Table_data_info *>::iterator
   schedule_chunk_proportionally(

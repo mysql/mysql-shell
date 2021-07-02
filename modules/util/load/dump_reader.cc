@@ -22,9 +22,12 @@
  */
 
 #include "modules/util/load/dump_reader.h"
+
 #include <algorithm>
+#include <atomic>
 #include <numeric>
 #include <utility>
+
 #include "modules/util/dump/dump_utils.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
@@ -49,10 +52,8 @@ std::string fetch_file(mysqlshdk::storage::IDirectory *dir,
   return data;
 }
 
-shcore::Dictionary_t fetch_metadata(mysqlshdk::storage::IDirectory *dir,
+shcore::Dictionary_t parse_metadata(const std::string &data,
                                     const std::string &fn) {
-  std::string data = fetch_file(dir, fn);
-
   try {
     auto metadata = shcore::Value::parse(data);
     if (metadata.type != shcore::Map) {
@@ -63,6 +64,11 @@ shcore::Dictionary_t fetch_metadata(mysqlshdk::storage::IDirectory *dir,
     throw shcore::Exception::runtime_error("Could not parse metadata file " +
                                            fn + ": " + e.format());
   }
+}
+
+shcore::Dictionary_t fetch_metadata(mysqlshdk::storage::IDirectory *dir,
+                                    const std::string &fn) {
+  return parse_metadata(fetch_file(dir, fn), fn);
 }
 
 auto to_vector_of_strings(const shcore::Array_t &arr) {
@@ -596,23 +602,36 @@ void Dump_reader::compute_filtered_data_size() {
 }
 
 // Scan directory for new files and adds them to the pending file list
-void Dump_reader::rescan() {
-  using mysqlshdk::storage::IDirectory;
-  auto console = mysqlsh::current_console();
+void Dump_reader::rescan(dump::Progress_thread *progress_thread) {
+  Files files;
 
-  if (!m_dir->is_local()) {
-    console->print_status("Fetching dump data from remote location...");
+  {
+    dump::Progress_thread::Stage *stage = nullptr;
+    shcore::on_leave_scope finish_stage([&stage]() {
+      if (stage) {
+        stage->finish();
+      }
+    });
+
+    if (!m_dir->is_local()) {
+      current_console()->print_status(
+          "Fetching dump data from remote location...");
+
+      if (progress_thread) {
+        stage = progress_thread->start_stage("Listing files");
+      }
+    }
+
+    files = m_dir->list_files();
   }
 
-  std::vector<IDirectory::File_info> files = m_dir->list_files();
-  std::unordered_map<std::string, size_t> file_by_name;
-  for (const auto &f : files) {
-    file_by_name[f.name] = f.size;
-  }
+  log_debug("Finished listing files, starting rescan");
 
-  m_contents.rescan(m_dir.get(), file_by_name, this);
+  m_contents.rescan(m_dir.get(), files, this, progress_thread);
 
-  if (file_by_name.find("@.done.json") != file_by_name.end() &&
+  log_debug("Rescan done");
+
+  if (files.find({"@.done.json"}) != files.end() &&
       m_dump_status != Status::COMPLETE) {
     m_contents.parse_done_metadata(m_dir.get());
     m_dump_status = Status::COMPLETE;
@@ -740,94 +759,105 @@ bool Dump_reader::Table_info::ready() const {
   return md_done && (!has_sql || sql_seen);
 }
 
-void Dump_reader::Table_info::rescan(
-    mysqlshdk::storage::IDirectory *dir,
-    const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
-  // MD not included for tables if data is not dumped
-  if (!md_done) {
-    // schema@table.json
-    std::string mdpath = dump::get_table_data_filename(basename, "json");
-    if (files.find(mdpath) != files.end()) {
-      auto md = fetch_metadata(dir, mdpath);
+std::string Dump_reader::Table_info::metadata_name() const {
+  // schema@table.json
+  return dump::get_table_data_filename(basename, "json");
+}
 
-      Table_data_info di;
-      di.owner = this;
+bool Dump_reader::Table_info::should_fetch_metadata_file(
+    const Files &files) const {
+  if (!md_done && files.find(metadata_name()) != files.end()) {
+    return true;
+  }
 
-      has_sql = md->get_bool("includesDdl", true);
-      di.has_data = md->get_bool("includesData", true);
+  return false;
+}
 
-      options = md->get_map("options");
+void Dump_reader::Table_info::update_metadata(const std::string &data,
+                                              Dump_reader *reader) {
+  auto md = parse_metadata(data, metadata_name());
 
-      if (options) {
-        // "compression" and "primaryIndex" are not used by the chunk importer
-        // and need to be removed
-        // these were misplaced in the options dictionary, code is kept for
-        // backward compatibility
-        options->erase("compression");
+  Table_data_info di;
+  di.owner = this;
 
-        if (options->has_key("primaryIndex")) {
-          auto index = options->get_string("primaryIndex");
+  has_sql = md->get_bool("includesDdl", true);
+  di.has_data = md->get_bool("includesData", true);
 
-          if (!index.empty()) {
-            primary_index.emplace_back(std::move(index));
-          }
+  options = md->get_map("options");
 
-          options->erase("primaryIndex");
-        }
+  if (options) {
+    // "compression" and "primaryIndex" are not used by the chunk importer
+    // and need to be removed
+    // these were misplaced in the options dictionary, code is kept for
+    // backward compatibility
+    options->erase("compression");
 
-        // chunk importer uses characterSet instead of defaultCharacterSet
-        if (options->has_key("defaultCharacterSet")) {
-          options->set("characterSet", options->at("defaultCharacterSet"));
-          options->erase("defaultCharacterSet");
-        } else {
-          // By default, we use the character set from the source DB
-          options->set("characterSet",
-                       shcore::Value(reader->default_character_set()));
-        }
+    if (options->has_key("primaryIndex")) {
+      auto index = options->get_string("primaryIndex");
+
+      if (!index.empty()) {
+        primary_index.emplace_back(std::move(index));
       }
 
-      di.extension = md->get_string("extension", "tsv");
-      di.chunked = md->get_bool("chunking", false);
+      options->erase("primaryIndex");
+    }
 
-      if (md->has_key("primaryIndex")) {
-        primary_index = to_vector_of_strings(md->get_array("primaryIndex"));
-      }
-
-      auto histogram_list = md->get_array("histograms");
-
-      if (histogram_list) {
-        for (const auto &h : *histogram_list) {
-          auto histogram = h.as_map();
-          if (histogram) {
-            histograms.emplace_back(
-                Histogram{histogram->get_string("column"),
-                          static_cast<size_t>(histogram->get_int("buckets"))});
-          }
-        }
-      }
-
-      {
-        // maps partition names to basenames
-        const auto basenames = md->get_map("basenames");
-
-        if (basenames && !basenames->empty()) {
-          for (const auto &p : *basenames) {
-            auto copy = di;
-
-            copy.partition = p.first;
-            copy.basename = p.second.as_string();
-
-            data_info.emplace_back(std::move(copy));
-          }
-        } else {
-          di.basename = basename;
-          data_info.emplace_back(std::move(di));
-        }
-      }
-
-      md_done = true;
+    // chunk importer uses characterSet instead of defaultCharacterSet
+    if (options->has_key("defaultCharacterSet")) {
+      options->set("characterSet", options->at("defaultCharacterSet"));
+      options->erase("defaultCharacterSet");
+    } else {
+      // By default, we use the character set from the source DB
+      options->set("characterSet",
+                   shcore::Value(reader->default_character_set()));
     }
   }
+
+  di.extension = md->get_string("extension", "tsv");
+  di.chunked = md->get_bool("chunking", false);
+
+  if (md->has_key("primaryIndex")) {
+    primary_index = to_vector_of_strings(md->get_array("primaryIndex"));
+  }
+
+  auto histogram_list = md->get_array("histograms");
+
+  if (histogram_list) {
+    for (const auto &h : *histogram_list) {
+      auto histogram = h.as_map();
+      if (histogram) {
+        histograms.emplace_back(
+            Histogram{histogram->get_string("column"),
+                      static_cast<size_t>(histogram->get_int("buckets"))});
+      }
+    }
+  }
+
+  {
+    // maps partition names to basenames
+    const auto basenames = md->get_map("basenames");
+
+    if (basenames && !basenames->empty()) {
+      for (const auto &p : *basenames) {
+        auto copy = di;
+
+        copy.partition = p.first;
+        copy.basename = p.second.as_string();
+
+        data_info.emplace_back(std::move(copy));
+      }
+    } else {
+      di.basename = basename;
+      data_info.emplace_back(std::move(di));
+    }
+  }
+
+  md_done = true;
+  reader->on_metadata_parsed();
+}
+
+void Dump_reader::Table_info::rescan(const Files &files) {
+  // MD not included for tables if data is not dumped
 
   // check for the sql file for the schema
   if (!sql_seen) {
@@ -835,6 +865,7 @@ void Dump_reader::Table_info::rescan(
       sql_seen = true;
     }
   }
+
   if (!has_triggers) {
     if (files.find(triggers_script_name()) != files.end()) {
       has_triggers = true;
@@ -850,9 +881,8 @@ bool Dump_reader::Table_info::all_data_done() const {
   return true;
 }
 
-void Dump_reader::Table_data_info::rescan_data(
-    mysqlshdk::storage::IDirectory *,
-    const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
+void Dump_reader::Table_data_info::rescan_data(const Files &files,
+                                               Dump_reader *reader) {
   // check for data files
   if (!last_chunk_seen && has_data) {
     bool found_data = false;
@@ -862,9 +892,9 @@ void Dump_reader::Table_data_info::rescan_data(
       if (it != files.end()) {
         num_chunks = 1;
         available_chunk_sizes.resize(1, -1);
-        available_chunk_sizes[0] = it->second;
+        available_chunk_sizes[0] = it->size();
         last_chunk_seen = true;
-        reader->m_contents.dump_size += it->second;
+        reader->m_contents.dump_size += it->size();
 
         found_data = true;
       }
@@ -875,8 +905,8 @@ void Dump_reader::Table_data_info::rescan_data(
         if (it != files.end()) {
           num_chunks = i + 1;
           available_chunk_sizes.resize(num_chunks, -1);
-          available_chunk_sizes[i] = it->second;
-          reader->m_contents.dump_size += it->second;
+          available_chunk_sizes[i] = it->size();
+          reader->m_contents.dump_size += it->size();
 
           found_data = true;
         } else {
@@ -885,9 +915,9 @@ void Dump_reader::Table_data_info::rescan_data(
           if (it != files.end()) {
             num_chunks = i + 1;
             available_chunk_sizes.resize(num_chunks, -1);
-            available_chunk_sizes[i] = it->second;
+            available_chunk_sizes[i] = it->size();
             last_chunk_seen = true;
-            reader->m_contents.dump_size += it->second;
+            reader->m_contents.dump_size += it->size();
 
             found_data = true;
           }
@@ -908,9 +938,7 @@ std::string Dump_reader::View_info::pre_script_name() const {
   return dump::get_table_data_filename(basename, "pre.sql");
 }
 
-void Dump_reader::View_info::rescan(
-    mysqlshdk::storage::IDirectory *,
-    const std::unordered_map<std::string, size_t> &files, Dump_reader *) {
+void Dump_reader::View_info::rescan(const Files &files) {
   // check for the sql file for the schema
   if (!sql_seen) {
     if (files.find(script_name()) != files.end()) {
@@ -926,16 +954,10 @@ void Dump_reader::View_info::rescan(
 }
 
 bool Dump_reader::Schema_info::ready() const {
-  if (md_loaded && (!has_sql || sql_seen)) {
-    for (const auto &t : tables) {
-      if (!t.second->ready()) return false;
-    }
-
-    for (const auto &v : views) {
-      if (!v.ready()) return false;
-    }
+  if (md_done && (!has_sql || sql_seen)) {
     return true;
   }
+
   return false;
 }
 
@@ -943,99 +965,120 @@ std::string Dump_reader::Schema_info::script_name() const {
   return dump::get_schema_filename(basename);
 }
 
-void Dump_reader::Schema_info::rescan(
-    mysqlshdk::storage::IDirectory *dir,
-    const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
-  // look for list of tables and views for this schema in the md file
-  if (!md_loaded) {
-    // schema.json
-    std::string mdpath = dump::get_schema_filename(basename, "json");
-    if (files.find(mdpath) != files.end()) {
-      auto md = fetch_metadata(dir, mdpath);
+std::string Dump_reader::Schema_info::metadata_name() const {
+  // schema.json
+  return dump::get_schema_filename(basename, "json");
+}
 
-      has_sql = md->get_bool("includesDdl", true);
-      has_view_sql = md->get_bool("includesViewsDdl", has_sql);
-      has_data = md->get_bool("includesData", true);
-
-      shcore::Dictionary_t basenames = md->get_map("basenames");
-
-      if (md->has_key("tables")) {
-        for (const auto &t : *md->get_array("tables")) {
-          if (reader->m_options.include_table(schema, t.as_string())) {
-            auto info = std::make_shared<Table_info>();
-
-            info->schema = schema;
-            info->table = t.as_string();
-
-            if (basenames->has_key(info->table))
-              info->basename = basenames->get_string(info->table);
-            else
-              info->basename = basename + "@" + info->table;
-
-            tables.emplace(info->table, std::move(info));
-          }
-        }
-        log_debug("%s has %zi tables", schema.c_str(), tables.size());
-      }
-
-      if (md->has_key("views")) {
-        for (const auto &v : *md->get_array("views")) {
-          if (reader->m_options.include_table(schema, v.as_string())) {
-            View_info info;
-
-            info.schema = schema;
-            info.table = v.as_string();
-            if (basenames->has_key(info.table))
-              info.basename = basenames->get_string(info.table);
-            else
-              info.basename = basename + "@" + info.table;
-
-            views.push_back(info);
-          }
-        }
-        log_debug("%s has %zi views", schema.c_str(), views.size());
-      }
-
-      if (md->has_key("functions"))
-        function_names = to_vector_of_strings(md->get_array("functions"));
-
-      if (md->has_key("procedures"))
-        procedure_names = to_vector_of_strings(md->get_array("procedures"));
-
-      if (md->has_key("events"))
-        event_names = to_vector_of_strings(md->get_array("events"));
-
-      if (!dir->is_local()) {
-        log_info("Fetching %zu table metadata files for schema `%s`...",
-                 tables.size(), schema.c_str());
-      }
-
-      md_loaded = true;
-    }
+bool Dump_reader::Schema_info::should_fetch_metadata_file(
+    const Files &files) const {
+  if (!md_loaded && files.find(metadata_name()) != files.end()) {
+    return true;
   }
 
-  // we have the list of tables, so check for their metadata and data files
-  if (md_loaded && !md_done) {
-    bool children_done = true;
+  return false;
+}
 
+void Dump_reader::Schema_info::update_metadata(const std::string &data,
+                                               Dump_reader *reader) {
+  auto md = parse_metadata(data, metadata_name());
+
+  has_sql = md->get_bool("includesDdl", true);
+  has_view_sql = md->get_bool("includesViewsDdl", has_sql);
+  has_data = md->get_bool("includesData", true);
+
+  shcore::Dictionary_t basenames = md->get_map("basenames");
+
+  if (md->has_key("tables")) {
+    for (const auto &t : *md->get_array("tables")) {
+      if (reader->m_options.include_table(schema, t.as_string())) {
+        auto info = std::make_shared<Table_info>();
+
+        info->schema = schema;
+        info->table = t.as_string();
+
+        if (basenames->has_key(info->table))
+          info->basename = basenames->get_string(info->table);
+        else
+          info->basename = basename + "@" + info->table;
+
+        tables.emplace(info->table, std::move(info));
+      }
+    }
+    log_debug("%s has %zi tables", schema.c_str(), tables.size());
+  }
+
+  if (md->has_key("views")) {
+    for (const auto &v : *md->get_array("views")) {
+      if (reader->m_options.include_table(schema, v.as_string())) {
+        View_info info;
+
+        info.schema = schema;
+        info.table = v.as_string();
+        if (basenames->has_key(info.table))
+          info.basename = basenames->get_string(info.table);
+        else
+          info.basename = basename + "@" + info.table;
+
+        views.emplace_back(std::move(info));
+      }
+    }
+    log_debug("%s has %zi views", schema.c_str(), views.size());
+  }
+
+  if (md->has_key("functions"))
+    function_names = to_vector_of_strings(md->get_array("functions"));
+
+  if (md->has_key("procedures"))
+    procedure_names = to_vector_of_strings(md->get_array("procedures"));
+
+  if (md->has_key("events"))
+    event_names = to_vector_of_strings(md->get_array("events"));
+
+  md_loaded = true;
+  reader->on_metadata_parsed();
+}
+
+void Dump_reader::Schema_info::rescan(mysqlshdk::storage::IDirectory *dir,
+                                      const Files &files, Dump_reader *reader,
+                                      shcore::Thread_pool *pool) {
+  log_debug("Scanning contents of schema '%s'", schema.c_str());
+
+  if (md_loaded && !md_done) {
+    // we have the list of tables, so check for their metadata and data files
+    std::size_t files_to_fetch = 0;
     for (auto &t : tables) {
       if (!t.second->ready()) {
-        t.second->rescan(dir, files, reader);
-      }
+        if (t.second->should_fetch_metadata_file(files)) {
+          // metadata available, fetch it, parse it, then rescan asynchronously
+          reader->on_metadata_available();
+          ++files_to_fetch;
 
-      if (!t.second->ready()) children_done = false;
+          pool->add_task(
+              [dir, mdpath = t.second->metadata_name()]() {
+                return fetch_file(dir, mdpath);
+              },
+              [table = t.second.get(), &files, reader](std::string &&data) {
+                table->update_metadata(data, reader);
+                table->rescan(files);
+              });
+        } else {
+          // metadata already parsed, scan synchronously
+          t.second->rescan(files);
+        }
+      }
+    }
+
+    if (files_to_fetch > 0 && !dir->is_local()) {
+      log_info("Fetching %zu table metadata files for schema `%s`...",
+               files_to_fetch, schema.c_str());
     }
 
     for (auto &v : views) {
-      if (!v.ready()) v.rescan(dir, files, reader);
-
-      if (!v.ready()) children_done = false;
+      if (!v.ready()) {
+        v.rescan(files);
+      }
     }
-
-    md_done = children_done;
-
-    if (md_done)
-      log_debug("All metadata for schema `%s` was scanned", schema.c_str());
   }
 
   // check for the sql file for the schema
@@ -1044,17 +1087,42 @@ void Dump_reader::Schema_info::rescan(
       sql_seen = true;
     }
   }
-
-  assert(reader->m_dump_status != Status::COMPLETE || ready());
 }
 
-void Dump_reader::Schema_info::rescan_data(
-    mysqlshdk::storage::IDirectory *dir,
-    const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
+void Dump_reader::Schema_info::check_if_ready() {
+  if (md_loaded && !md_done) {
+    bool children_done = true;
+
+    for (const auto &t : tables) {
+      if (!t.second->ready()) {
+        children_done = false;
+        break;
+      }
+    }
+
+    if (children_done) {
+      for (const auto &v : views) {
+        if (!v.ready()) {
+          children_done = false;
+          break;
+        }
+      }
+    }
+
+    md_done = children_done;
+
+    if (md_done) {
+      log_debug("All metadata for schema `%s` was scanned", schema.c_str());
+    }
+  }
+}
+
+void Dump_reader::Schema_info::rescan_data(const Files &files,
+                                           Dump_reader *reader) {
   for (auto &t : tables) {
     for (auto &di : t.second->data_info) {
       if (!di.data_done()) {
-        di.rescan_data(dir, files, reader);
+        di.rescan_data(files, reader);
       }
     }
   }
@@ -1071,40 +1139,118 @@ bool Dump_reader::Dump_info::ready() const {
   return sql && post_sql && has_users == !!users_sql && md_done;
 }
 
-void Dump_reader::Dump_info::rescan(
-    mysqlshdk::storage::IDirectory *dir,
-    const std::unordered_map<std::string, size_t> &files, Dump_reader *reader) {
-  if (!sql && files.find("@.sql") != files.end()) {
+void Dump_reader::Dump_info::rescan(mysqlshdk::storage::IDirectory *dir,
+                                    const Files &files, Dump_reader *reader,
+                                    dump::Progress_thread *progress_thread) {
+  if (!sql && files.find({"@.sql"}) != files.end()) {
     sql = std::make_unique<std::string>(fetch_file(dir, "@.sql"));
   }
-  if (!post_sql && files.find("@.post.sql") != files.end()) {
+  if (!post_sql && files.find({"@.post.sql"}) != files.end()) {
     post_sql = std::make_unique<std::string>(fetch_file(dir, "@.post.sql"));
   }
-  if (has_users && !users_sql && files.find("@.users.sql") != files.end()) {
+  if (has_users && !users_sql && files.find({"@.users.sql"}) != files.end()) {
     users_sql = std::make_unique<std::string>(fetch_file(dir, "@.users.sql"));
   }
 
   if (!md_done) {
+    rescan_metadata(dir, files, reader, progress_thread);
+  }
+
+  rescan_data(files, reader);
+}
+
+void Dump_reader::Dump_info::rescan_metadata(
+    mysqlshdk::storage::IDirectory *dir, const Files &files,
+    Dump_reader *reader, dump::Progress_thread *progress_thread) {
+  const auto thread_pool_ptr = reader->create_thread_pool();
+  const auto pool = thread_pool_ptr.get();
+
+  std::atomic<uint64_t> task_producers{0};
+
+  const auto maybe_shutdown = [&task_producers, pool]() {
+    if (0 == --task_producers) {
+      pool->tasks_done();
+    }
+  };
+
+  ++task_producers;
+
+  dump::Progress_thread::Stage *stage = nullptr;
+  shcore::on_leave_scope finish_stage([&stage]() {
+    if (stage) {
+      stage->finish();
+    }
+  });
+
+  if (progress_thread) {
+    dump::Progress_thread::Progress_config config;
+    config.current = [reader]() { return reader->metadata_parsed(); };
+    config.total = [reader]() { return reader->metadata_available(); };
+    config.is_total_known = [&task_producers]() { return 0 == task_producers; };
+
+    stage =
+        progress_thread->start_stage("Scanning metadata", std::move(config));
+  }
+
+  pool->start_threads();
+
+  for (const auto &s : schemas) {
+    if (!s.second->ready()) {
+      if (s.second->should_fetch_metadata_file(files)) {
+        // metadata available, fetch it, parse it, then rescan asynchronously
+        reader->on_metadata_available();
+        ++task_producers;
+
+        pool->add_task(
+            [dir, mdpath = s.second->metadata_name()]() {
+              return fetch_file(dir, mdpath);
+            },
+            [&maybe_shutdown, schema = s.second.get(), dir, &files, reader,
+             pool](std::string &&data) {
+              shcore::on_leave_scope cleanup(
+                  [&maybe_shutdown]() { maybe_shutdown(); });
+
+              schema->update_metadata(data, reader);
+              schema->rescan(dir, files, reader, pool);
+            });
+      } else {
+        // metadata already parsed, scan synchronously
+        s.second->rescan(dir, files, reader, pool);
+      }
+    }
+  }
+
+  maybe_shutdown();
+  pool->process();
+
+  check_if_ready();
+}
+
+void Dump_reader::Dump_info::check_if_ready() {
+  if (!md_done) {
     bool children_done = true;
 
     for (const auto &s : schemas) {
-      log_debug("Scanning contents of schema '%s'", s.second->schema.c_str());
+      s.second->check_if_ready();
 
       if (!s.second->ready()) {
-        s.second->rescan(dir, files, reader);
-        if (s.second->ready()) s.second->rescan_data(dir, files, reader);
+        children_done = false;
       }
-      if (!s.second->ready()) children_done = false;
     }
 
     md_done = children_done;
 
     if (md_done) log_debug("All metadata for dump was scanned");
-  } else {
-    for (const auto &s : schemas) {
+  }
+}
+
+void Dump_reader::Dump_info::rescan_data(const Files &files,
+                                         Dump_reader *reader) {
+  for (const auto &s : schemas) {
+    if (s.second->ready()) {
       log_debug("Scanning data of schema '%s'", s.second->schema.c_str());
 
-      s.second->rescan_data(dir, files, reader);
+      s.second->rescan_data(files, reader);
     }
   }
 }
@@ -1174,6 +1320,19 @@ void Dump_reader::show_metadata() const {
 
 bool Dump_reader::should_create_pks() const {
   return m_options.should_create_pks(m_contents.create_invisible_pks);
+}
+
+std::unique_ptr<shcore::Thread_pool> Dump_reader::create_thread_pool() const {
+  auto threads = m_options.threads_count();
+
+  if (!m_dir->is_local()) {
+    // in case of remote dumps we're using more threads, in order to compensate
+    // for download times
+    threads *= 4;
+  }
+
+  return std::make_unique<shcore::Thread_pool>(
+      m_options.background_threads_count(threads));
 }
 
 }  // namespace mysqlsh
