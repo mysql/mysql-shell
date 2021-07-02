@@ -158,6 +158,7 @@ class Dump_reader {
   size_t dump_size() const { return m_contents.dump_size; }
   size_t total_data_size() const { return m_contents.data_size; }
   size_t filtered_data_size() const;
+  void compute_filtered_data_size();
 
   uint64_t bytes_per_chunk() const { return m_contents.bytes_per_chunk; }
 
@@ -382,6 +383,7 @@ class Dump_reader {
 
   Status m_dump_status = Status::INVALID;
   Dump_info m_contents;
+  size_t m_filtered_data_size = 0;
 
   // Tables that are ready to be loaded
   std::unordered_set<Table_data_info *> m_tables_with_data;

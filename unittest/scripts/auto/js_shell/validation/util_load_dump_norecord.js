@@ -31,12 +31,3 @@ Util.loadDump: Argument #2: Option 'updateGtidSet' is expected to be of type Str
 |Target is MySQL |
 ||
 ||Util.loadDump: Cannot open file '<<<__os_type=="windows"?'\\\\?\\invalid\\unwritable':'/invalid/unwritable'>>>': No such file or directory
-
-//@# Plain load of plain dump (compressed and chunked)
-|Loading DDL and Data from '[[*]]ldtest/dump' using 4 threads.|
-|Executing common preamble SQL|
-|Executing DDL script for schema|
-|Executing DDL script for `xtest`.`t_tinyint`|
-|Executing triggers SQL for `sakila`.`payment`|
-|Executing common postamble SQL|
-|0 warnings were reported during the load.|

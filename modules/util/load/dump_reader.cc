@@ -157,7 +157,6 @@ Dump_reader::Status Dump_reader::open() {
 
   try {
     m_contents.parse_done_metadata(m_dir.get());
-
     m_dump_status = Status::COMPLETE;
   } catch (const std::exception &e) {
     log_info("@.done.json: %s", e.what());
@@ -572,25 +571,27 @@ bool Dump_reader::work_available() const {
 
 size_t Dump_reader::filtered_data_size() const {
   if (m_dump_status == Status::COMPLETE) {
-    size_t size = 0;
+    return m_filtered_data_size;
+  } else {
+    return total_data_size();
+  }
+}
 
-    for (const auto &schema : m_contents.schemas) {
+void Dump_reader::compute_filtered_data_size() {
+  m_filtered_data_size = 0;
+
+  for (const auto &schema : m_contents.schemas) {
+    const auto s = m_contents.table_data_size.find(schema.first);
+
+    if (s != m_contents.table_data_size.end()) {
       for (const auto &table : schema.second->tables) {
-        const auto s = m_contents.table_data_size.find(table.second->schema);
+        const auto t = s->second.find(table.second->table);
 
-        if (s != m_contents.table_data_size.end()) {
-          const auto t = s->second.find(table.second->table);
-
-          if (t != s->second.end()) {
-            size += t->second;
-          }
+        if (t != s->second.end()) {
+          m_filtered_data_size += t->second;
         }
       }
     }
-
-    return size;
-  } else {
-    return total_data_size();
   }
 }
 
@@ -613,9 +614,11 @@ void Dump_reader::rescan() {
 
   if (file_by_name.find("@.done.json") != file_by_name.end() &&
       m_dump_status != Status::COMPLETE) {
-    m_dump_status = Status::COMPLETE;
     m_contents.parse_done_metadata(m_dir.get());
+    m_dump_status = Status::COMPLETE;
   }
+
+  compute_filtered_data_size();
 }
 
 void Dump_reader::add_deferred_indexes(const std::string &schema,
@@ -1003,9 +1006,8 @@ void Dump_reader::Schema_info::rescan(
         event_names = to_vector_of_strings(md->get_array("events"));
 
       if (!dir->is_local()) {
-        current_console()->print_status(shcore::str_format(
-            "Fetching %zu table metadata files for schema `%s`...",
-            tables.size(), schema.c_str()));
+        log_info("Fetching %zu table metadata files for schema `%s`...",
+                 tables.size(), schema.c_str());
       }
 
       md_loaded = true;

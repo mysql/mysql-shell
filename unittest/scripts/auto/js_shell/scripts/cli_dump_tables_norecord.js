@@ -1,7 +1,7 @@
 //@<> Initialization
 function callMysqlsh(additional_args) {
     base_args = [__mysqluripwd, "--quiet-start=2", "--log-level=debug"]
-    testutil.callMysqlsh(base_args.concat(additional_args), "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=."])
+    testutil.callMysqlsh(base_args.concat(additional_args), "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
 }
 
 shell.connect(__mysqluripwd)
@@ -19,13 +19,13 @@ for (index in tables) {
 // All of the tests should contain the same content on the dump
 // at wl14297-tsfr_5_1_1/wl14297-tsfr_5_1_1.json
 function validate() {
-    EXPECT_STDOUT_CONTAINS("Writing DDL for table `wl14297-tsfr_5_1_1`.`table_a`");
-    EXPECT_STDOUT_CONTAINS("Writing DDL for table `wl14297-tsfr_5_1_1`.`table_b`");
-    EXPECT_STDOUT_CONTAINS("Writing DDL for table `wl14297-tsfr_5_1_1`.`table_c`");
-    EXPECT_STDOUT_CONTAINS("Data dump for table `wl14297-tsfr_5_1_1`.`table_a` will be written to 1 file");
-    EXPECT_STDOUT_CONTAINS("Data dump for table `wl14297-tsfr_5_1_1`.`table_b` will be written to 1 file");
-    EXPECT_STDOUT_CONTAINS("Data dump for table `wl14297-tsfr_5_1_1`.`table_c` will be written to 1 file");
-    WIPE_OUTPUT();
+    EXPECT_SHELL_LOG_CONTAINS("Writing DDL for table `wl14297-tsfr_5_1_1`.`table_a`");
+    EXPECT_SHELL_LOG_CONTAINS("Writing DDL for table `wl14297-tsfr_5_1_1`.`table_b`");
+    EXPECT_SHELL_LOG_CONTAINS("Writing DDL for table `wl14297-tsfr_5_1_1`.`table_c`");
+    EXPECT_SHELL_LOG_CONTAINS("Data dump for table `wl14297-tsfr_5_1_1`.`table_a` will be written to 1 file");
+    EXPECT_SHELL_LOG_CONTAINS("Data dump for table `wl14297-tsfr_5_1_1`.`table_b` will be written to 1 file");
+    EXPECT_SHELL_LOG_CONTAINS("Data dump for table `wl14297-tsfr_5_1_1`.`table_c` will be written to 1 file");
+    WIPE_SHELL_LOG();
 }
 //@<> CLI import table - WL14297 - TSFR_5_1_1 - 1
 callMysqlsh(["--", "util", "dump-tables", `${schema}`, '[\"table_a\",\"table_b\",\"table_c\"]', `--outputUrl=${schema}`]);

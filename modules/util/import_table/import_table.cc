@@ -43,25 +43,11 @@ namespace mysqlsh {
 namespace import_table {
 
 Import_table::Import_table(const Import_table_options &options)
-    : m_console(std::make_shared<dump::Console_with_progress>(m_progress,
-                                                              &m_output_mutex)),
+    : m_progress_thread("Import table", options.show_progress()),
       m_opt(options),
       m_interrupt(nullptr) {
   m_thread_exception.resize(options.threads_size(), nullptr);
-
-  m_use_json = (mysqlsh::current_shell_options()->get().wrap_json != "off");
-
-  if (m_opt.show_progress()) {
-    if (m_use_json) {
-      m_progress = std::make_unique<mysqlshdk::textui::Json_progress>();
-    } else {
-      m_progress = std::make_unique<mysqlshdk::textui::Text_progress>();
-    }
-  } else {
-    m_progress = std::make_unique<mysqlshdk::textui::IProgress>();
-  }
-
-  m_progress->total(m_opt.file_size());
+  m_total_bytes = m_opt.file_size();
 }
 
 Import_table::~Import_table() {
@@ -96,18 +82,23 @@ bool Import_table::any_exception() {
                      [](std::exception_ptr p) -> bool { return p != nullptr; });
 }
 
-void Import_table::progress_shutdown() {
-  m_progress->current(m_prog_sent_bytes);
-  m_progress->show_status(true);
-  m_progress->shutdown();
+void Import_table::progress_setup() {
+  dump::Progress_thread::Throughput_config config;
+
+  config.space_before_item = false;
+  config.current = [this]() -> uint64_t { return m_prog_sent_bytes; };
+  config.total = [this]() { return m_total_bytes; };
+
+  m_progress_thread.start_stage("Parallel load data", std::move(config));
 }
+
+void Import_table::progress_shutdown() { m_progress_thread.finish(); }
 
 void Import_table::spawn_workers() {
   const int64_t num_workers = m_opt.threads_size();
   for (int64_t i = 0; i < num_workers; i++) {
-    Load_data_worker worker(m_opt, i, m_progress.get(), &m_output_mutex,
-                            &m_prog_sent_bytes, m_interrupt, &m_range_queue,
-                            &m_thread_exception, &m_stats);
+    Load_data_worker worker(m_opt, i, &m_prog_sent_bytes, m_interrupt,
+                            &m_range_queue, &m_thread_exception, &m_stats);
     std::thread t = mysqlsh::spawn_scoped_thread(&Load_data_worker::operator(),
                                                  std::move(worker));
     m_threads.emplace_back(std::move(t));
@@ -127,7 +118,7 @@ void Import_table::chunk_file() {
 }
 
 void Import_table::build_queue() {
-  size_t total_bytes = 0;
+  m_total_bytes = 0;
   for (const auto &glob_item : m_opt.filelist_from_user()) {
     const auto &oci_opts = m_opt.get_oci_options();
     if (glob_item.find('*') != std::string::npos ||
@@ -139,7 +130,7 @@ void Import_table::build_queue() {
       if (!dir->exists()) {
         std::string errmsg{"Directory " + dir->full_path().masked() +
                            " does not exists."};
-        m_console.get()->print_error(errmsg);
+        current_console()->print_error(errmsg);
         noncritical_errors.emplace_back(std::move(errmsg));
         continue;
       }
@@ -162,8 +153,7 @@ void Import_table::build_queue() {
         // task.content_size = fh.size();
         task.range_read = false;
         task.is_guard = false;
-        total_bytes += task.file_size.get_safe();
-        m_progress->total(total_bytes);
+        m_total_bytes += task.file_size.get_safe();
         m_range_queue.push(std::move(task));
       }
     } else {
@@ -171,7 +161,7 @@ void Import_table::build_queue() {
       if (!glob_fh->exists()) {
         std::string errmsg{"File " + glob_fh->full_path().masked() +
                            " does not exists."};
-        m_console.get()->print_error(errmsg);
+        current_console()->print_error(errmsg);
         noncritical_errors.emplace_back(std::move(errmsg));
         continue;
       }
@@ -182,8 +172,7 @@ void Import_table::build_queue() {
       task.range_read = false;
       task.is_guard = false;
 
-      total_bytes += task.file_size.get_safe();
-      m_progress->total(total_bytes);
+      m_total_bytes += task.file_size.get_safe();
       m_range_queue.push(std::move(task));
     }
   }
@@ -191,7 +180,7 @@ void Import_table::build_queue() {
 }
 
 void Import_table::import() {
-  m_timer.stage_begin("Parallel load data");
+  progress_setup();
   spawn_workers();
 
   if (m_opt.is_multifile()) {
@@ -208,7 +197,6 @@ void Import_table::import() {
   }
 
   join_workers();
-  m_timer.stage_end();
   progress_shutdown();
 }
 
@@ -217,20 +205,19 @@ std::string Import_table::import_summary() const {
   using mysqlshdk::utils::format_seconds;
   using mysqlshdk::utils::format_throughput_bytes;
 
+  const auto seconds = m_progress_thread.duration().seconds();
+
   if (m_opt.is_multifile()) {
-    return std::string{
-        std::to_string(m_stats.total_files_processed) + " file(s) (" +
-        format_bytes(m_stats.total_bytes) + ") was imported in " +
-        format_seconds(m_timer.total_seconds_elapsed()) + " at " +
-        format_throughput_bytes(m_stats.total_bytes,
-                                m_timer.total_seconds_elapsed())};
+    return std::string{std::to_string(m_stats.total_files_processed) +
+                       " file(s) (" + format_bytes(m_stats.total_bytes) +
+                       ") was imported in " + format_seconds(seconds) + " at " +
+                       format_throughput_bytes(m_stats.total_bytes, seconds)};
   }
   const auto filesize = m_opt.file_size();
-  return std::string{
-      "File '" + m_opt.full_path().masked() + "' (" + format_bytes(filesize) +
-      ") was imported in " + format_seconds(m_timer.total_seconds_elapsed()) +
-      " at " +
-      format_throughput_bytes(filesize, m_timer.total_seconds_elapsed())};
+  return std::string{"File '" + m_opt.full_path().masked() + "' (" +
+                     format_bytes(filesize) + ") was imported in " +
+                     format_seconds(seconds) + " at " +
+                     format_throughput_bytes(filesize, seconds)};
 }
 
 std::string Import_table::rows_affected_info() {

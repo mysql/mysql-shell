@@ -907,8 +907,9 @@ wipeout_server(session2)
 # load the full dump
 shell.connect(__sandbox_uri2)
 WIPE_OUTPUT()
+WIPE_SHELL_LOG()
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Loading the dump should not fail")
-EXPECT_STDOUT_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
+EXPECT_SHELL_LOG_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
 
 # wipe the destination server again
 wipeout_server(session2)
@@ -920,10 +921,11 @@ EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected for the instance but '
 
 # load the data without resetting the progress
 WIPE_OUTPUT()
+WIPE_SHELL_LOG()
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadDdl": False, "showProgress": False }), "Loading the dump should not fail")
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
 # ensure data was loaded
-EXPECT_STDOUT_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
+EXPECT_SHELL_LOG_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> WL14632: create tables with partitions
 dump_dir = os.path.join(outdir, "part")
@@ -979,6 +981,7 @@ def EXPECT_DUMP_AND_LOAD_PARTITIONED(dump, tables = all_tables):
         pass
     shell.connect(__sandbox_uri1)
     WIPE_OUTPUT()
+    WIPE_SHELL_LOG()
     EXPECT_NO_THROWS(dump, "Dumping the data should not fail")
     files = os.listdir(dump_dir)
     for table in tables:
@@ -990,16 +993,17 @@ def EXPECT_DUMP_AND_LOAD_PARTITIONED(dump, tables = all_tables):
             # there should be at least one partition-based data file
             EXPECT_TRUE([f for f in files if f.startswith(encode_partition_basename(schema_name, table, partition)) and f.endswith(".tsv.zst")])
             # dumper should mention the partition as a separate entity
-            EXPECT_STDOUT_CONTAINS(f"Data dump for table `{schema_name}`.`{table}` partition `{partition}` will be written to ")
+            EXPECT_SHELL_LOG_CONTAINS(f"Data dump for table `{schema_name}`.`{table}` partition `{partition}` will be written to ")
     shell.connect(__sandbox_uri2)
     wipeout_server(session)
     WIPE_OUTPUT()
+    WIPE_SHELL_LOG()
     # WL14632-TSFR_2_1
     EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Loading the dump should not fail")
     for table in tables:
         for partition in partition_names[table]:
             # loader should mention the partition as a separate entity
-            EXPECT_STDOUT_MATCHES(re.compile(f"\\[Worker00\\d\\] {encode_partition_basename(schema_name, table, partition)}.*tsv.zst: Records: \\d+  Deleted: 0  Skipped: 0  Warnings: 0"))
+            EXPECT_SHELL_LOG_MATCHES(re.compile(f"\\[Worker00\\d\\] {encode_partition_basename(schema_name, table, partition)}.*tsv.zst: Records: \\d+  Deleted: 0  Skipped: 0  Warnings: 0"))
     # verify consistency
     for table in tables:
         EXPECT_EQ(checksums[table], compute_checksum(schema_name, table))
@@ -1033,9 +1037,10 @@ for table in all_tables:
         pass
     shell.connect(__sandbox_uri1)
     WIPE_OUTPUT()
+    WIPE_SHELL_LOG()
     EXPECT_NO_THROWS(lambda: util.export_table(f"{schema_name}.{table}", exported_file, { "showProgress": False }), "Exporting the table should not fail")
     # dumper should not mention the partitions
-    EXPECT_STDOUT_CONTAINS(f"Data dump for table `{schema_name}`.`{table}` will be written to ")
+    EXPECT_SHELL_LOG_CONTAINS(f"Data dump for table `{schema_name}`.`{table}` will be written to ")
     create_statement = session.run_sql("SHOW CREATE TABLE !.!", [ schema_name, table ]).fetch_one()[1]
     shell.connect(__sandbox_uri2)
     wipeout_server(session)

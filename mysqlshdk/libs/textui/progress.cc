@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -170,14 +170,16 @@ void Progress_vt100::draw_bar(const Item &item, int indent,
 constexpr const char k_spinny_sticks[] = "\\|/-";
 
 void Spinny_stick::update() {
-  printf("%s %c\r", m_label.c_str(), k_spinny_sticks[m_step]);
+  printf("%s %c %s\r", m_label.c_str(), k_spinny_sticks[m_step],
+         m_right_label.c_str());
   fflush(stdout);
   m_step++;
-  if (m_step >= int(sizeof(k_spinny_sticks) - 1)) m_step = 0;
+  if (m_step >= int(std::size(k_spinny_sticks) - 1)) m_step = 0;
 }
 
 void Spinny_stick::done(const std::string &text) {
-  printf("%s %s\n", m_label.c_str(), text.c_str());
+  printf("%s %s %s\n", m_label.c_str(), text.c_str(),
+         std::string(m_right_label.size(), ' ').c_str());
 }
 
 class Threaded_spinny_stick::Impl {

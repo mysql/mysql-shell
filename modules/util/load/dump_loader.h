@@ -35,9 +35,13 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#include "modules/util/dump/progress_thread.h"
+
 #include "modules/util/load/dump_reader.h"
 #include "modules/util/load/load_dump_options.h"
 #include "modules/util/load/load_progress_log.h"
+
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
@@ -336,7 +340,7 @@ class Dump_loader {
 
   void open_dump();
   void open_dump(std::unique_ptr<mysqlshdk::storage::IDirectory> dumpdir);
-  void setup_progress(bool *out_is_resuming);
+  void setup_progress_file(bool *out_is_resuming);
   void spawn_workers();
   void join_workers();
 
@@ -380,8 +384,6 @@ class Dump_loader {
   const std::string &pre_data_script() const;
   const std::string &post_data_script() const;
 
-  void update_progress(bool force = false);
-
   void check_server_version();
   void check_tables_without_primary_key();
 
@@ -390,6 +392,12 @@ class Dump_loader {
   std::string filter_user_script_for_mds(const std::string &script);
 
   bool should_create_pks() const;
+
+  void setup_load_data_progress();
+
+  void setup_create_indexes_progress();
+
+  void setup_analyze_tables_progress();
 
  private:
 #ifdef FRIEND_TEST
@@ -458,14 +466,14 @@ class Dump_loader {
   bool m_init_done = false;
   bool m_workers_killed = false;
 
-  std::unique_ptr<mysqlshdk::textui::IProgress> m_progress;
-  std::recursive_mutex m_output_mutex;
-  Scoped_console m_console;
+  dump::Progress_thread m_progress_thread;
+  dump::Progress_thread::Stage *m_load_data_stage = nullptr;
+  dump::Progress_thread::Stage *m_create_indexes_stage = nullptr;
+  dump::Progress_thread::Stage *m_analyze_tables_stage = nullptr;
 
   std::unordered_set<std::string> m_unique_tables_loaded;
   size_t m_total_tables_with_data = 0;
 
-  std::chrono::system_clock::time_point m_begin_time;
   size_t m_num_bytes_previously_loaded = 0;
   std::atomic<size_t> m_num_rows_loaded;
   std::atomic<size_t> m_num_bytes_loaded;
@@ -474,7 +482,15 @@ class Dump_loader {
   std::atomic<size_t> m_num_warnings;
   std::atomic<size_t> m_num_errors;
 
-  int m_progress_spin = 0;
+  std::atomic<uint64_t> m_ddl_executed;
+
+  std::atomic<uint64_t> m_indexes_recreated;
+  uint64_t m_indexes_to_recreate;
+  bool m_all_index_tasks_scheduled;
+
+  std::atomic<uint64_t> m_tables_analyzed;
+  uint64_t m_tables_to_analyze;
+  bool m_all_analyze_tasks_scheduled;
 };
 
 }  // namespace mysqlsh

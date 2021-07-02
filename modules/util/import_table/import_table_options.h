@@ -116,6 +116,10 @@ class Import_table_option_pack {
   std::unique_ptr<mysqlshdk::storage::IFile> create_file_handle(
       std::unique_ptr<mysqlshdk::storage::IFile> file_handler) const;
 
+  bool verbose() const { return m_verbose; }
+
+  void set_verbose(bool verbose) { m_verbose = verbose; }
+
  private:
   void unpack(const shcore::Dictionary_t &options);
 
@@ -140,6 +144,7 @@ class Import_table_option_pack {
   mysqlshdk::oci::Oci_option_unpacker<
       mysqlshdk::oci::Oci_options::Unpack_target::OBJECT_STORAGE_NO_PAR_OPTIONS>
       m_oci_options;
+  bool m_verbose = true;
 };
 
 class Import_table_options : public Import_table_option_pack {

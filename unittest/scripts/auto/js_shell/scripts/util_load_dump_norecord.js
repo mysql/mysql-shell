@@ -350,10 +350,19 @@ util.loadDump(__tmp_dir+"/ldtest/dump", {updateGtidSet: true});
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 util.loadDump(__tmp_dir+"/ldtest/dump", {progressFile:"/invalid/unwritable"});
 
-//@ Plain load of plain dump (compressed and chunked)
+//@<> Plain load of plain dump (compressed and chunked)
 old_gtid_executed=session.runSql("SELECT concat(@@global.gtid_executed,':',@@global.gtid_purged)").fetchOne()[0];
 
+WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump");
+
+EXPECT_STDOUT_MATCHES(/Loading DDL and Data from '.*ldtest\/dump' using 4 threads\./);
+EXPECT_STDOUT_CONTAINS("Executing common preamble SQL");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for schema");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `xtest`.`t_tinyint`");
+EXPECT_SHELL_LOG_CONTAINS("Executing triggers SQL for `sakila`.`payment`");
+EXPECT_STDOUT_CONTAINS("Executing common postamble SQL");
+EXPECT_STDOUT_CONTAINS("0 warnings were reported during the load.");
 
 // users not loaded, so don't compare accounts list
 EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
@@ -412,6 +421,7 @@ session.runSql("set global character_set_server = 'sjis'");
 session.runSql("set global character_set_connection = 'sjis'");
 session.runSql("set global character_set_client = 'sjis'");
 session.runSql("set global character_set_results = 'sjis'");
+WIPE_SHELL_LOG();
 util.loadDump("file://"+__tmp_dir+"/ldtest/dump-nogz", {progressFile: __tmp_dir+"/ldtest/load-progress.txt"});
 
 EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
@@ -420,31 +430,31 @@ EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
 EXPECT_OUTPUT_CONTAINS("using 4 threads");
 
 // ensure all 4 threads did something
-EXPECT_OUTPUT_CONTAINS("[Worker000] Executing DDL script for `")
-EXPECT_OUTPUT_CONTAINS("[Worker001] Executing DDL script for `")
-EXPECT_OUTPUT_CONTAINS("[Worker002] Executing DDL script for `")
-EXPECT_OUTPUT_CONTAINS("[Worker003] Executing DDL script for `")
+EXPECT_SHELL_LOG_CONTAINS("[Worker000] Executing DDL script for `")
+EXPECT_SHELL_LOG_CONTAINS("[Worker001] Executing DDL script for `")
+EXPECT_SHELL_LOG_CONTAINS("[Worker002] Executing DDL script for `")
+EXPECT_SHELL_LOG_CONTAINS("[Worker003] Executing DDL script for `")
 
-EXPECT_OUTPUT_CONTAINS("[Worker000] sakila@")
-EXPECT_OUTPUT_CONTAINS("[Worker001] sakila@")
-EXPECT_OUTPUT_CONTAINS("[Worker002] sakila@")
-EXPECT_OUTPUT_CONTAINS("[Worker003] sakila@")
+EXPECT_SHELL_LOG_CONTAINS("[Worker000] sakila@")
+EXPECT_SHELL_LOG_CONTAINS("[Worker001] sakila@")
+EXPECT_SHELL_LOG_CONTAINS("[Worker002] sakila@")
+EXPECT_SHELL_LOG_CONTAINS("[Worker003] sakila@")
 
 // schema and view DDL should not be executed in workers
-EXPECT_OUTPUT_NOT_CONTAINS("] Executing DDL script for schema")
-EXPECT_OUTPUT_NOT_CONTAINS("] Executing DDL script for view")
+EXPECT_SHELL_LOG_NOT_CONTAINS("] Executing DDL script for schema")
+EXPECT_SHELL_LOG_NOT_CONTAINS("] Executing DDL script for view")
 
 // ensure views got created through placeholders
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for `sakila`.`actor_info` (placeholder for view)");
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for `all_features`.`v1` (placeholder for view)");
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for `all_features`.`v2` (placeholder for view)");
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for `all_features2`.`v1` (placeholder for view)");
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for `all_features2`.`v2` (placeholder for view)");
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for view `all_features`.`v1`");
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for view `all_features`.`v2`");
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for view `all_features2`.`v1`");
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for view `all_features2`.`v2`");
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for view `sakila`.`actor_info`");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `sakila`.`actor_info` (placeholder for view)");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `all_features`.`v1` (placeholder for view)");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `all_features`.`v2` (placeholder for view)");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `all_features2`.`v1` (placeholder for view)");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `all_features2`.`v2` (placeholder for view)");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for view `all_features`.`v1`");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for view `all_features`.`v2`");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for view `all_features2`.`v1`");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for view `all_features2`.`v2`");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for view `sakila`.`actor_info`");
 
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump-nogz/load-progress*");
@@ -643,10 +653,7 @@ wipe_instance(session);
 //@<> showProgress:true
 // TSFR11_1
 testutil.callMysqlsh([__sandbox_uri1, "--", "util", "load-dump", __tmp_dir+"/ldtest/dump", "--showProgress=true", "--deferTableIndexes=all"]);
-
-EXPECT_STDOUT_CONTAINS("thds loading");
-// this doesn't appear for long enough for the periodic refresh to reliably catch
-// EXPECT_STDOUT_CONTAINS("thds indexing");
+EXPECT_STDOUT_MATCHES(/, \d+ \/ \d+ tables done/);
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -655,7 +662,7 @@ wipe_instance(session);
 // Bug #31482289  SHELL DUMP/LOAD: LOAD PROGRESS BAR HAS WRONG TOTAL GB WHEN USING EXCLUDETABLES
 testutil.callMysqlsh([__sandbox_uri1, "--js", "-e", "util.loadDump('" + filename_for_file(__tmp_dir) + "/ldtest/dump', {showProgress:1, deferTableIndexes:'off', excludeTables:['sakila.rental', 'sakila.sales_by_film_category', 'sakila.sales_by_store'],  excludeSchemas:['xtest', 'mysqlaas_compat', 'world', 'all_features', 'all_features2']})"]);
 
-EXPECT_STDOUT_CONTAINS("thds loading");
+EXPECT_STDOUT_MATCHES(/, \d+ \/ \d+ tables done/);
 // 3.24 MB is the total size of the dump, since we're excluding a lot of things it should be much less in reality
 // total size appears just before the closing parenthesis
 EXPECT_STDOUT_NOT_CONTAINS("3.24 MB)");
@@ -667,8 +674,8 @@ wipe_instance(session);
 // TSFR11_2
 testutil.callMysqlsh([__sandbox_uri1, "--", "util", "load-dump", __tmp_dir+"/ldtest/dump", "--showProgress=false", "--deferTableIndexes=all"]);
 
-EXPECT_STDOUT_NOT_CONTAINS("thds loading");
-EXPECT_STDOUT_NOT_CONTAINS("thds indexing");
+// this only appears if showProgress is false
+EXPECT_STDOUT_CONTAINS("Loading data...");
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);
@@ -830,6 +837,7 @@ EXPECT_NO_CHANGES(session, before);
 testutil.cpfile(__tmp_dir+"/ldtest/dump/xtest@t_json.sql", __tmp_dir+"/ldtest/dump/xtest@t_json.sql.bak");
 testutil.createFile(__tmp_dir+"/ldtest/dump/xtest@t_json.sql", "call invalid()\n");
 
+WIPE_SHELL_LOG();
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Util.loadDump: Error loading dump");
 
 EXPECT_STDOUT_CONTAINS("Error processing table `xtest`.`t_json`: MySQL Error 1305 (42000): PROCEDURE xtest.invalid does not exist: call invalid()");
@@ -844,30 +852,31 @@ for(i in entries) {
   }
 }
 
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for `xtest`.`t_json`");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `xtest`.`t_json`");
 for(t in done_tables) {
   table=done_tables[t];
-  EXPECT_OUTPUT_CONTAINS("Executing DDL script for "+table);
+  EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for "+table);
 }
 // data shouldn't have started loading yet
-EXPECT_OUTPUT_NOT_CONTAINS("] sakila@");
+EXPECT_SHELL_LOG_NOT_CONTAINS("] sakila@");
 
 // restore corrupted file
 testutil.cpfile(__tmp_dir+"/ldtest/dump/xtest@t_json.sql.bak", __tmp_dir+"/ldtest/dump/xtest@t_json.sql");
 
 //@<> resume should re-execute the failed DDL now
 // TSFR12_4
+WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump");
 
 // this should have succeeded
 for(t in done_tables) {
   table=done_tables[t];
-  EXPECT_OUTPUT_NOT_CONTAINS("Executing DDL script for "+table);
-  EXPECT_OUTPUT_NOT_CONTAINS("Re-executing DDL script for "+table);
+  EXPECT_SHELL_LOG_NOT_CONTAINS("Executing DDL script for "+table);
+  EXPECT_SHELL_LOG_NOT_CONTAINS("Re-executing DDL script for "+table);
 }
 
 // this is where it failed
-EXPECT_OUTPUT_CONTAINS("Re-executing DDL script for `xtest`.`t_json`");
+EXPECT_SHELL_LOG_CONTAINS("Re-executing DDL script for `xtest`.`t_json`");
 
 EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session);
 
@@ -891,9 +900,10 @@ for (let idx = 130; idx >= 0; --idx) {
 testutil.cpfile(corrupted_file, corrupted_file + ".bak");
 testutil.createFile(corrupted_file, "badfile");
 
+WIPE_SHELL_LOG();
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-big");}, "Error loading dump");
 
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for ");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for ");
 
 // restore corrupted file
 testutil.cpfile(corrupted_file + ".bak", corrupted_file);
@@ -901,13 +911,13 @@ testutil.cpfile(corrupted_file + ".bak", corrupted_file);
 //@<> resume partial load of data
 // TSFR12_3
 // DDL shouldn't be re-executed but sakila.film should be loaded
+WIPE_SHELL_LOG();
 testutil.callMysqlsh([__sandbox_uri1, "--", "util", "load-dump", __tmp_dir+"/ldtest/dump-big", "--showProgress=true"]);
 
-EXPECT_STDOUT_NOT_CONTAINS("Executing DDL script for ");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Executing DDL script for ");
 EXPECT_STDOUT_CONTAINS("Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.");
 // also check that progress didn't restart from 0, since some data was already loaded
-EXPECT_STDOUT_CONTAINS(" 100% ");
-EXPECT_STDOUT_CONTAINS(" thds loading");
+EXPECT_STDOUT_CONTAINS("100%");
 
 // TSFR12_5 - ensures everything including data was loaded completely
 EXPECT_DUMP_LOADED_IGNORE_ACCOUNTS(session, reference_big);
@@ -922,18 +932,20 @@ EXPECT_OUTPUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed 
 util.loadDump(__tmp_dir+"/ldtest/dump-big");
 
 //@<> try loading an already loaded dump after resetting progress (will fail because of duplicate objects)
+WIPE_SHELL_LOG();
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump-big", {resetProgress: 1});}, "Util.loadDump: Duplicate objects found in destination database");
 
-EXPECT_OUTPUT_NOT_CONTAINS("test@primer-dataset-id@1.tsv.zst: Records:");
+EXPECT_SHELL_LOG_NOT_CONTAINS("test@primer-dataset-id@1.tsv.zst: Records:");
 EXPECT_OUTPUT_CONTAINS("ERROR: Schema `sakila` already contains a view named ");
 
 //@<> try again after wiping out the server
 wipe_instance(session);
 
+WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-big", {resetProgress: 1});
 
-EXPECT_OUTPUT_CONTAINS("test@primer-dataset-id@1.tsv.zst: Records:");
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for ");
+EXPECT_SHELL_LOG_CONTAINS("test@primer-dataset-id@1.tsv.zst: Records:");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for ");
 
 // cleanup
 testutil.rmfile(__tmp_dir+"/ldtest/dump-big/load-progress*");
@@ -1008,48 +1020,51 @@ util.dumpSchemas(["sakila"], __tmp_dir+"/ldtest/dump-sakila");
 wipe_instance(session);
 
 //@<> Load everything with no analyze, indexes deferred
+WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "off", deferTableIndexes:"all"});
-EXPECT_OUTPUT_CONTAINS("(indexes removed for deferred creation)");
-EXPECT_OUTPUT_CONTAINS("Recreating indexes for `sakila`.`store`");
-EXPECT_OUTPUT_CONTAINS("Recreating indexes for `sakila`.`inventory`");
-EXPECT_OUTPUT_CONTAINS("Recreating FOREIGN KEY constraints for schema `sakila`");
+EXPECT_SHELL_LOG_CONTAINS("(indexes removed for deferred creation)");
+EXPECT_SHELL_LOG_CONTAINS("Recreating indexes for `sakila`.`store`");
+EXPECT_SHELL_LOG_CONTAINS("Recreating indexes for `sakila`.`inventory`");
+EXPECT_SHELL_LOG_CONTAINS("Recreating FOREIGN KEY constraints for schema `sakila`");
 
 //@<> Analyze only
+WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "on", deferTableIndexes:"off", loadData: false, loadDdl: false});
 
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`store`");
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`staff`");
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`language`");
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`category`");
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`country`");
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`inventory`");
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`film_text`");
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`customer`");
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`film_category`");
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`city`");
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`film_actor`");
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`actor`");
-EXPECT_OUTPUT_CONTAINS("Analyzing table `sakila`.`address`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`store`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`staff`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`language`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`category`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`country`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`inventory`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`film_text`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`customer`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`film_category`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`city`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`film_actor`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`actor`");
+EXPECT_SHELL_LOG_CONTAINS("Analyzing table `sakila`.`address`");
 
 if(__version_num>80000) {
-  EXPECT_OUTPUT_CONTAINS("Updating histogram for table `sakila`.`payment`");
-  EXPECT_OUTPUT_CONTAINS("Updating histogram for table `sakila`.`rental`");
-  EXPECT_OUTPUT_CONTAINS("Updating histogram for table `sakila`.`film`");
+  EXPECT_SHELL_LOG_CONTAINS("Updating histogram for table `sakila`.`payment`");
+  EXPECT_SHELL_LOG_CONTAINS("Updating histogram for table `sakila`.`rental`");
+  EXPECT_SHELL_LOG_CONTAINS("Updating histogram for table `sakila`.`film`");
 }
 
 //@<> Load everything without deferring indexes and analyze only for histograms
 wipe_instance(session);
 testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
+WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "histogram", deferTableIndexes: "off"});
 
-EXPECT_OUTPUT_NOT_CONTAINS("indexes removed for deferred creation");
-EXPECT_OUTPUT_NOT_CONTAINS("Recreating indexes");
-EXPECT_OUTPUT_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
+EXPECT_SHELL_LOG_NOT_CONTAINS("indexes removed for deferred creation");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating indexes for");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
 
 if(__version_num>80000) {
-  EXPECT_OUTPUT_CONTAINS("Updating histogram for table `sakila`.`film`");
-  EXPECT_OUTPUT_CONTAINS("Updating histogram for table `sakila`.`rental`");
-  EXPECT_OUTPUT_CONTAINS("Updating histogram for table `sakila`.`payment`");
+  EXPECT_SHELL_LOG_CONTAINS("Updating histogram for table `sakila`.`film`");
+  EXPECT_SHELL_LOG_CONTAINS("Updating histogram for table `sakila`.`rental`");
+  EXPECT_SHELL_LOG_CONTAINS("Updating histogram for table `sakila`.`payment`");
 } else {
   EXPECT_OUTPUT_CONTAINS("WARNING: Histogram creation enabled but MySQL Server "+__version+" does not support it.");
 }
@@ -1057,38 +1072,43 @@ if(__version_num>80000) {
 //@<> Load everything with fulltext index deferment (the default)
 wipe_instance(session);
 testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
+WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila");
 
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for `sakila`.`film_text` (indexes removed for deferred creation)")
-EXPECT_OUTPUT_CONTAINS("Recreating indexes for `sakila`.`film_text`");
-EXPECT_OUTPUT_CONTAINS("Executing DDL script for `sakila`.`city`");
-EXPECT_OUTPUT_NOT_CONTAINS("Executing DDL script for `sakila`.`city` (indexes removed for deferred creation)");
-EXPECT_OUTPUT_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `sakila`.`film_text` (indexes removed for deferred creation)")
+EXPECT_SHELL_LOG_CONTAINS("Recreating indexes for `sakila`.`film_text`");
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `sakila`.`city`");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Executing DDL script for `sakila`.`city` (indexes removed for deferred creation)");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
 
 //@<> Load DDL first (indexes recreated), then data
 wipe_instance(session);
 testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
+WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadData: false, deferTableIndexes: "all", loadIndexes: true});
-EXPECT_OUTPUT_CONTAINS("indexes removed for deferred creation");
-EXPECT_OUTPUT_CONTAINS("Recreating indexes");
-EXPECT_OUTPUT_CONTAINS("Recreating FOREIGN KEY constraints");
+EXPECT_SHELL_LOG_CONTAINS("indexes removed for deferred creation");
+EXPECT_SHELL_LOG_CONTAINS("Recreating indexes for");
+EXPECT_SHELL_LOG_CONTAINS("Recreating FOREIGN KEY constraints");
 
 testutil.wipeAllOutput();
+WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadDdl: false, deferTableIndexes: "all", loadIndexes: true});
-EXPECT_OUTPUT_NOT_CONTAINS("Recreating indexes");
-EXPECT_OUTPUT_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating indexes for");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
 
 //@<> Load DDL first then data with indexes recreation
 wipe_instance(session);
 testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
+WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadData: false, deferTableIndexes: "all", loadIndexes: false});
-EXPECT_OUTPUT_CONTAINS("indexes removed for deferred creation");
-EXPECT_OUTPUT_NOT_CONTAINS("Recreating indexes");
-EXPECT_OUTPUT_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
+EXPECT_SHELL_LOG_CONTAINS("indexes removed for deferred creation");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating indexes for");
+EXPECT_SHELL_LOG_NOT_CONTAINS("Recreating FOREIGN KEY constraints");
 
+WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {loadDdl: false, deferTableIndexes: "all", loadIndexes: true});
-EXPECT_OUTPUT_CONTAINS("Recreating indexes");
-EXPECT_OUTPUT_CONTAINS("Recreating FOREIGN KEY constraints");
+EXPECT_SHELL_LOG_CONTAINS("Recreating indexes for");
+EXPECT_SHELL_LOG_CONTAINS("Recreating FOREIGN KEY constraints");
 
 //@<> Ensure tables with no PK are truncated before reloading during a resume
 session.runSql("set global local_infile=1");

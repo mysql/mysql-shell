@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,10 +62,9 @@ class Profile_timer {
   }
 
   uint64_t total_nanoseconds_elapsed() const {
-    high_resolution_clock::duration dur(
-        high_resolution_clock::duration::zero());
-    for (auto &tp : _trace_points) {
-      if (tp.depth == 0) dur += tp.end - tp.start;
+    auto dur = high_resolution_clock::duration::zero();
+    for (const auto &tp : _trace_points) {
+      if (tp.depth == 0) dur += tp.elapsed();
     }
     return std::chrono::duration_cast<std::chrono::nanoseconds>(dur).count();
   }
@@ -88,6 +87,21 @@ class Profile_timer {
     Trace_point(const char *n, high_resolution_clock::time_point &&t, int d)
         : start(std::move(t)), depth(d) {
       snprintf(note, sizeof(note), "%s", n);
+    }
+
+    high_resolution_clock::duration elapsed() const { return end - start; }
+
+    uint64_t nanoseconds_elapsed() const {
+      return std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed())
+          .count();
+    }
+
+    double milliseconds_elapsed() const {
+      return nanoseconds_elapsed() / 1000000.0;
+    }
+
+    double seconds_elapsed() const {
+      return nanoseconds_elapsed() / 1000000000.0;
     }
   };
 

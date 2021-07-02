@@ -96,20 +96,22 @@ os.remove(backup_file)
 os.remove("sakila@film_text@@0.tsv.zst")
 
 #@<> Resume partial load
+WIPE_SHELL_LOG()
 util.load_dump("mydump", {"osBucketName":OS_BUCKET_NAME, "osNamespace":OS_NAMESPACE, "ociConfigFile":oci_config_file})
 
-EXPECT_STDOUT_NOT_CONTAINS("Executing DDL script for ")
-EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zst: Records: ")
+EXPECT_SHELL_LOG_NOT_CONTAINS("Executing DDL script for ")
+EXPECT_SHELL_LOG_CONTAINS("sakila@film_text@@0.tsv.zst: Records: ")
 compare_servers(session1, session2)
 wipeout_server(session2)
 
 #@<> Load dump with a local progress file
 testutil.rmfile("progress.txt")
+WIPE_SHELL_LOG()
 util.load_dump("mydump", {"osBucketName":OS_BUCKET_NAME, "osNamespace":OS_NAMESPACE,  "ociConfigFile":oci_config_file, "progressFile":"progress.txt"})
 open("progress.txt").read()
 
-EXPECT_STDOUT_CONTAINS("Executing DDL script for ")
-EXPECT_STDOUT_CONTAINS("sakila@film_text@@0.tsv.zst: Records: ")
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for ")
+EXPECT_SHELL_LOG_CONTAINS("sakila@film_text@@0.tsv.zst: Records: ")
 
 #@<> Bad Bucket Name Option
 EXPECT_THROWS(lambda: util.load_dump("mydump", {"osBucketName":"bukkit"}), "RuntimeError: Util.load_dump: Failed opening object 'mydump/@.json' in READ mode: Not Found (404)")
@@ -124,8 +126,9 @@ wipeout_server(session2)
 # load the full dump
 shell.connect(__sandbox_uri2)
 WIPE_OUTPUT()
+WIPE_SHELL_LOG()
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file, "showProgress": False }), "Loading the dump should not fail")
-EXPECT_STDOUT_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
+EXPECT_SHELL_LOG_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
 
 # wipe the destination server again
 wipeout_server(session2)
@@ -137,10 +140,11 @@ EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected for the instance but '
 
 # load the data without resetting the progress
 WIPE_OUTPUT()
+WIPE_SHELL_LOG()
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadDdl": False, "osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file, "showProgress": False }), "Loading the dump should not fail")
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
 # ensure data was loaded
-EXPECT_STDOUT_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
+EXPECT_SHELL_LOG_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> Bug #31188854: USING THE OCIPROFILE OPTION IN A DUMP MAKE THE DUMP TO ALWAYS FAIL
 # This error now confirms the reported issue is fixed

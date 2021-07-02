@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,9 +49,10 @@ Throughput::Throughput() {
 }
 
 uint64_t Throughput::rate() const {
-  const auto current_point = m_history[(m_index + k_moving_average_points - 1) %
-                                       k_moving_average_points];
-  const auto past_point = m_history[(m_index + 1) % k_moving_average_points];
+  const auto &current_point =
+      m_history[(m_index + k_moving_average_points - 1) %
+                k_moving_average_points];
+  const auto &past_point = m_history[(m_index + 1) % k_moving_average_points];
 
   const auto bytes_diff = current_point.bytes - past_point.bytes;
   const auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -63,12 +64,56 @@ uint64_t Throughput::rate() const {
   return bytes_diff * 1000 / time_diff;  // bytes per second
 }
 
-void Text_progress::set_left_label(const std::string &label) {
-  m_left_label = label;
+void Throughput::reset() {
+  m_index = 0;
+  m_index_prev = 0;
+
+  for (unsigned int i = 0; i < k_moving_average_points; ++i) {
+    m_history[i].bytes = 0;
+    m_history[i].time = {};
+  }
 }
 
-void Text_progress::set_right_label(const std::string &label) {
-  m_right_label = label;
+void Base_progress::reset(const char *items_full, const char *items_abbrev,
+                          const char *item_singular, const char *item_plural,
+                          bool space_before_item, bool total_is_approx) {
+  m_initial = 0;
+  m_current = 0;
+  m_total = 0;
+  m_changed = true;
+  m_throughput.reset();
+  m_status = std::string(80, ' ');
+  m_refresh_clock = {};
+  m_items_full = items_full;
+  m_items_abbrev = items_abbrev;
+  m_item_singular = item_singular;
+  m_item_plural = item_plural;
+  m_left_label.clear();
+  m_right_label.clear();
+  m_space_before_item = space_before_item;
+  m_total_is_approx = total_is_approx;
+}
+
+std::string Base_progress::progress() const {
+  return (0 == m_total ? "?" : std::to_string(percent())) + "%";
+}
+
+std::string Base_progress::current() const { return format_value(m_current); }
+
+std::string Base_progress::total() const {
+  return 0 == m_total ? "?"
+                      : (m_total_is_approx ? "~" : "") + format_value(m_total);
+}
+
+std::string Base_progress::throughput() const {
+  return mysqlshdk::utils::format_throughput_items(
+      m_item_singular, m_item_plural, m_throughput.rate(), 1.0,
+      m_space_before_item);
+}
+
+std::string Base_progress::format_value(uint64_t value) const {
+  return mysqlshdk::utils::format_items(m_items_full, m_items_abbrev, value,
+                                        m_space_before_item);
 }
 
 void Text_progress::show_status(bool force) {
@@ -113,6 +158,18 @@ void Text_progress::hide(bool flag) {
   assert(m_hide >= 0);
 }
 
+void Text_progress::reset(const char *items_full, const char *items_abbrev,
+                          const char *item_singular, const char *item_plural,
+                          bool space_before_item, bool total_is_approx) {
+  Base_progress::reset(items_full, items_abbrev, item_singular, item_plural,
+                       space_before_item, total_is_approx);
+
+  m_last_status_size = 0;
+  m_prev_status.clear();
+  m_hide = 0;
+  was_shown = false;
+}
+
 void Text_progress::clear_status() {
   std::string space(m_last_status_size + 2, ' ');
   space[0] = '\r';
@@ -131,26 +188,10 @@ void Text_progress::shutdown() {
 void Text_progress::render_status() {
   // 100% (1024.00 MB / 1024.00 MB), 1024.00 MB/s
   m_status.clear();
-  if (m_total == 0)
-    m_status += "\r" + m_left_label + "?% (" +
-                mysqlshdk::utils::format_items(m_items_full, m_items_abbrev,
-                                               m_current, m_space_before_item) +
-                " / ?), " +
-                mysqlshdk::utils::format_throughput_items(
-                    m_item_singular, m_item_plural, m_throughput.rate(), 1.0,
-                    m_space_before_item);
-  else
-    m_status += "\r" + m_left_label + std::to_string(percent()) + "% (" +
-                mysqlshdk::utils::format_items(m_items_full, m_items_abbrev,
-                                               m_current, m_space_before_item) +
-                (m_total_is_approx ? " / ~" : " / ") +
-                mysqlshdk::utils::format_items(m_items_full, m_items_abbrev,
-                                               m_total, m_space_before_item) +
-                "), " +
-                mysqlshdk::utils::format_throughput_items(
-                    m_item_singular, m_item_plural, m_throughput.rate(), 1.0,
-                    m_space_before_item);
-
+  m_status += "\r";
+  m_status += m_left_label;
+  m_status +=
+      progress() + " (" + current() + " / " + total() + "), " + throughput();
   m_status += m_right_label;
 }
 
@@ -174,16 +215,8 @@ void Json_progress::render_status() {
   // todo(kg): build proper json doc
   m_status.clear();
   m_status += m_left_label;
-  m_status += std::to_string(percent()) + "% (" +
-              mysqlshdk::utils::format_items(m_items_full, m_items_abbrev,
-                                             m_current, m_space_before_item) +
-              " / " +
-              mysqlshdk::utils::format_items(m_items_full, m_items_abbrev,
-                                             m_total, m_space_before_item) +
-              "), " +
-              mysqlshdk::utils::format_throughput_items(
-                  m_item_singular, m_item_plural, m_throughput.rate(), 1.0,
-                  m_space_before_item);
+  m_status +=
+      progress() + " (" + current() + " / " + total() + "), " + throughput();
   m_status += m_right_label;
 }
 

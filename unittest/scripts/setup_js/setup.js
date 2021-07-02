@@ -1326,6 +1326,15 @@ function EXPECT_SHELL_LOG_NOT_CONTAINS(text) {
   }
 }
 
+function EXPECT_SHELL_LOG_MATCHES(re) {
+  const log_path = testutil.getShellLogPath();
+  const log_out = testutil.catFile(log_path);
+  if (!re.test(log_out)) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing match for:</red> " + re.source + "\n<yellow>Full log output:</yellow> " + log_out;
+    testutil.fail(context);
+  }
+}
+
 function WIPE_SHELL_LOG() {
   var log_path = testutil.getShellLogPath();
   testutil.wipeFileContents(log_path);

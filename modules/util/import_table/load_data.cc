@@ -410,31 +410,10 @@ int local_infile_read(void *userdata, char *buffer,
     return -1;
   }
 
-  if (file_info->prog) {
-    std::unique_lock<std::recursive_mutex> lock(*(file_info->prog_mutex),
-                                                std::try_to_lock);
-    if (lock.owns_lock()) {
-      file_info->prog->current(*(file_info->prog_bytes));
-      file_info->prog->show_status();
-    }
-  }
-
   return bytes;
 }
 
-void local_infile_end(void *userdata) noexcept {
-  assert(userdata);
-  File_info *file_info = static_cast<File_info *>(userdata);
-
-  if (file_info->prog) {
-    std::unique_lock<std::recursive_mutex> lock(*(file_info->prog_mutex),
-                                                std::try_to_lock);
-    if (lock.owns_lock()) {
-      file_info->prog->current(*(file_info->prog_bytes));
-      file_info->prog->show_status();
-    }
-  }
-}
+void local_infile_end(void *) noexcept {}
 
 int local_infile_error(void *userdata, char *error_msg,
                        unsigned int error_msg_len) noexcept {
@@ -459,16 +438,13 @@ int local_infile_error(void *userdata, char *error_msg,
 
 Load_data_worker::Load_data_worker(
     const Import_table_options &options, int64_t thread_id,
-    mysqlshdk::textui::IProgress *progress, std::recursive_mutex *output_mutex,
     std::atomic<size_t> *prog_sent_bytes, volatile bool *interrupt,
     shcore::Synchronized_queue<File_import_info> *range_queue,
     std::vector<std::exception_ptr> *thread_exception, Stats *stats,
     const std::string &query_comment)
     : m_opt(options),
       m_thread_id(thread_id),
-      m_progress(progress),
-      m_prog_sent_bytes(*prog_sent_bytes),
-      m_output_mutex(*output_mutex),
+      m_prog_sent_bytes(prog_sent_bytes),
       m_interrupt(*interrupt),
       m_range_queue(range_queue),
       m_thread_exception(*thread_exception),
@@ -507,9 +483,7 @@ void Load_data_worker::execute(
   try {
     File_info fi;
     fi.worker_id = m_thread_id;
-    fi.prog = m_opt.show_progress() ? m_progress : nullptr;
-    fi.prog_bytes = &m_prog_sent_bytes;
-    fi.prog_mutex = &m_output_mutex;
+    fi.prog_bytes = m_prog_sent_bytes;
     fi.user_interrupt = &m_interrupt;
     fi.max_rate = m_opt.max_rate();
 
@@ -750,16 +724,21 @@ void Load_data_worker::execute(
           load_result ? load_result->get_warning_count() : 0;
 
       {
-        std::lock_guard<std::recursive_mutex> lock(*(fi.prog_mutex));
         const char *mysql_info = session->get_mysql_info();
-        mysqlsh::current_console()->print_info(
+        const auto status =
             worker_name + task + ": " + (mysql_info ? mysql_info : "ERROR") +
             (options.max_trx_size == 0
                  ? ""
                  : (has_more_data
                         ? " - flushed sub-chunk " + std::to_string(subchunk)
                         : " - loading finished in " + std::to_string(subchunk) +
-                              " sub-chunks")));
+                              " sub-chunks"));
+
+        if (m_opt.verbose()) {
+          mysqlsh::current_console()->print_info(status);
+        } else {
+          log_info("%s", status.c_str());
+        }
 
         if (mysql_info) {
           size_t records = 0;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,9 +39,8 @@ class Console_with_progress final : public IConsole {
  public:
   Console_with_progress() = delete;
 
-  Console_with_progress(
-      const std::unique_ptr<mysqlshdk::textui::IProgress> &progress,
-      std::recursive_mutex *mutex);
+  Console_with_progress(mysqlshdk::textui::IProgress *progress,
+                        std::recursive_mutex *mutex);
 
   Console_with_progress(const Console_with_progress &) = delete;
   Console_with_progress(Console_with_progress &&) = delete;
@@ -107,7 +106,7 @@ class Console_with_progress final : public IConsole {
       shcore::Interpreter_print_handler *handler) override;
 
  private:
-  const std::unique_ptr<mysqlshdk::textui::IProgress> &m_progress;
+  mysqlshdk::textui::IProgress *m_progress;
   std::recursive_mutex *m_mutex;
   std::shared_ptr<IConsole> m_console;
 };

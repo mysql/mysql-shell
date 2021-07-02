@@ -123,10 +123,7 @@ struct File_info {
   size_t bytes_left = 0;    //< Bytes left to read from file
   bool range_read = false;  //< Reading whole file vs chunk range
 
-  std::recursive_mutex
-      *prog_mutex;  //< Pointer to mutex for progress bar access
-  mysqlshdk::textui::IProgress *prog;  //< Pointer to current progress bar
-  size_t bytes = 0;                    //< bytes send to MySQL server
+  size_t bytes = 0;  //< bytes send to MySQL server
   std::atomic<size_t>
       *prog_bytes;  //< Pointer cumulative bytes send to MySQL Server
   volatile bool *user_interrupt = nullptr;  //< Pointer to user interrupt flag
@@ -149,8 +146,6 @@ class Load_data_worker final {
  public:
   Load_data_worker() = delete;
   Load_data_worker(const Import_table_options &opt, int64_t thread_id,
-                   mysqlshdk::textui::IProgress *progress,
-                   std::recursive_mutex *output_mutex,
                    std::atomic<size_t> *prog_sent_bytes,
                    volatile bool *interrupt,
                    shcore::Synchronized_queue<File_import_info> *range_queue,
@@ -172,9 +167,7 @@ class Load_data_worker final {
  private:
   const Import_table_options &m_opt;
   int64_t m_thread_id;
-  mysqlshdk::textui::IProgress *m_progress;
-  std::atomic<size_t> &m_prog_sent_bytes;
-  std::recursive_mutex &m_output_mutex;
+  std::atomic<size_t> *m_prog_sent_bytes;
   volatile bool &m_interrupt;
   shcore::Synchronized_queue<File_import_info> *m_range_queue;
   std::vector<std::exception_ptr> &m_thread_exception;

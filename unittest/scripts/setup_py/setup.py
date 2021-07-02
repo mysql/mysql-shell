@@ -191,8 +191,21 @@ def EXPECT_SHELL_LOG_CONTAINS(text):
     match_list = testutil.grep_file(log_file, text)
     if len(match_list) == 0:
         log_out = testutil.cat_file(log_file)
-        context = "<b>Context:</b> {0}\n<red>Missing log output:</red> {1}\n<yellow>Actual log output:</yellow> {2}".format(__test_context, text, log_out)
-        testutil.fail(context)
+        testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Missing log output:</red> {text}\n<yellow>Actual log output:</yellow> {log_out}")
+
+def EXPECT_SHELL_LOG_NOT_CONTAINS(text):
+    log_file = testutil.get_shell_log_path()
+    match_list = testutil.grep_file(log_file, text)
+    if len(match_list) != 0:
+        log_out = testutil.cat_file(log_file)
+        testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Unexpected log output:</red> {text}\n<yellow>Actual log output:</yellow> {log_out}")
+
+def EXPECT_SHELL_LOG_MATCHES(re):
+    log_file = testutil.get_shell_log_path()
+    with open(log_file, "r", encoding="utf-8") as f:
+        log_out = f.read()
+    if re.search(log_out) is None:
+        testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Missing match for:</red> {re.pattern}\n<yellow>Actual log output:</yellow> {log_out}")
 
 def EXPECT_STDOUT_MATCHES(re):
     out = testutil.fetch_captured_stdout(False)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -110,11 +110,13 @@ class Spinny_stick {
   explicit Spinny_stick(const std::string &label) : m_label(label) {}
   virtual ~Spinny_stick() = default;
 
+  void set_right_label(const std::string &label) { m_right_label = label; }
   void update();
   void done(const std::string &text);
 
  private:
   std::string m_label;
+  std::string m_right_label;
   int m_step = 0;
 };
 

@@ -459,8 +459,7 @@ TEST_F(Load_dump_mocked, chunk_scheduling_more_threads) {
     shcore::on_leave_scope cleanup([&loader]() {
       loader.join_workers();
 
-      loader.m_progress->hide(true);
-      loader.m_progress->shutdown();
+      loader.m_progress_thread.finish();
     });
 
     loader.execute_tasks();
@@ -508,8 +507,7 @@ TEST_F(Load_dump_mocked, chunk_scheduling_more_tables) {
     shcore::on_leave_scope cleanup([&loader]() {
       loader.join_workers();
 
-      loader.m_progress->hide(true);
-      loader.m_progress->shutdown();
+      loader.m_progress_thread.finish();
     });
 
     loader.execute_tasks();
@@ -622,8 +620,7 @@ TEST_F(Load_dump_mocked, sql_generate_invisible_primary_key) {
     shcore::on_leave_scope cleanup([&loader]() {
       loader.join_workers();
 
-      loader.m_progress->hide(true);
-      loader.m_progress->shutdown();
+      loader.m_progress_thread.finish();
     });
 
     loader.execute_tasks();

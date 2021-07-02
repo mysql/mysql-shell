@@ -35,7 +35,6 @@
 
 #include "modules/mod_utils.h"
 #include "modules/util/dump/compatibility.h"
-#include "modules/util/dump/console_with_progress.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/import_table/load_data.h"
 #include "modules/util/load/load_progress_log.h"
@@ -363,6 +362,7 @@ bool Dump_loader::Worker::Table_ddl_task::execute(
   }
 
   log_debug("worker%zu done", id());
+  ++loader->m_ddl_executed;
   loader->post_worker_event(worker, Worker_event::TABLE_DDL_END);
 
   return true;
@@ -448,7 +448,7 @@ void Dump_loader::Worker::Table_ddl_task::load_ddl(
               m_placeholder ? "placeholder " : "", key.c_str());
 
     try {
-      current_console()->print_status(shcore::str_format(
+      log_info(
           "[Worker%03zu] %s DDL script for %s%s", id(),
           (m_status == Load_progress_log::INTERRUPTED ? "Re-executing"
                                                       : "Executing"),
@@ -456,7 +456,7 @@ void Dump_loader::Worker::Table_ddl_task::load_ddl(
           (m_placeholder ? " (placeholder for view)"
                          : (m_deferred_indexes && !m_deferred_indexes->empty()
                                 ? " (indexes removed for deferred creation)"
-                                : ""))));
+                                : "")));
       if (!loader->m_options.dry_run()) {
         // execute sql
         execute_script(
@@ -578,6 +578,8 @@ void Dump_loader::Worker::Load_chunk_task::load(
 
   import_options.set_base_session(session);
 
+  import_options.set_verbose(false);
+
   import_options.set_partition(partition());
 
   import_table::Stats stats;
@@ -596,12 +598,11 @@ void Dump_loader::Worker::Load_chunk_task::load(
   }
 
   import_table::Load_data_worker op(
-      import_options, id(), loader->m_progress.get(), &loader->m_output_mutex,
-      &loader->m_num_bytes_loaded, &loader->m_worker_hard_interrupt, nullptr,
-      &loader->m_thread_exceptions, &stats, query_comment());
+      import_options, id(), &loader->m_num_bytes_loaded,
+      &loader->m_worker_hard_interrupt, nullptr, &loader->m_thread_exceptions,
+      &stats, query_comment());
 
   loader->m_num_threads_loading++;
-  loader->update_progress();
 
   shcore::on_leave_scope cleanup([this, loader]() {
     std::lock_guard<std::mutex> lock(loader->m_tables_being_loaded_mutex);
@@ -769,12 +770,10 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
 
   if (m_histograms.empty() ||
       !histograms_supported(loader->m_options.target_server_version()))
-    console->print_status(shcore::str_format(
-        "Analyzing table `%s`.`%s`", schema().c_str(), table().c_str()));
+    log_info("Analyzing table `%s`.`%s`", schema().c_str(), table().c_str());
   else
-    console->print_status(
-        shcore::str_format("Updating histogram for table `%s`.`%s`",
-                           schema().c_str(), table().c_str()));
+    log_info("Updating histogram for table `%s`.`%s`", schema().c_str(),
+             table().c_str());
 
   loader->post_worker_event(worker, Worker_event::ANALYZE_START);
 
@@ -806,6 +805,7 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
   }
 
   log_debug("worker%zu done", id());
+  ++loader->m_tables_analyzed;
 
   // signal for more work
   loader->post_worker_event(worker, Worker_event::ANALYZE_END);
@@ -821,16 +821,14 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
   const auto console = current_console();
 
   if (!m_queries.empty())
-    console->print_status(
-        shcore::str_format("[Worker%03zu] Recreating indexes for `%s`.`%s`",
-                           id(), schema().c_str(), table().c_str()));
+    log_info("[Worker%03zu] Recreating indexes for `%s`.`%s`", id(),
+             schema().c_str(), table().c_str());
 
   loader->post_worker_event(worker, Worker_event::INDEX_START);
 
   // do work
   if (!loader->m_options.dry_run()) {
     loader->m_num_threads_recreating_indexes++;
-    loader->update_progress();
     shcore::on_leave_scope cleanup(
         [loader]() { loader->m_num_threads_recreating_indexes--; });
 
@@ -860,6 +858,7 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
   }
 
   log_debug("worker%zu done", id());
+  ++loader->m_indexes_recreated;
 
   // signal for more work
   loader->post_worker_event(worker, Worker_event::INDEX_END);
@@ -994,28 +993,14 @@ Dump_loader::Dump_loader(const Load_dump_options &options)
     : m_options(options),
       m_num_threads_loading(0),
       m_num_threads_recreating_indexes(0),
-      m_console(std::make_shared<dump::Console_with_progress>(m_progress,
-                                                              &m_output_mutex)),
+      m_character_set(options.character_set()),
+      m_progress_thread("Load dump", options.show_progress()),
       m_num_rows_loaded(0),
       m_num_bytes_loaded(0),
       m_num_raw_bytes_loaded(0),
       m_num_chunks_loaded(0),
       m_num_warnings(0),
       m_num_errors(0) {
-  bool use_json = (mysqlsh::current_shell_options()->get().wrap_json != "off");
-
-  if (m_options.show_progress()) {
-    if (use_json) {
-      m_progress = std::make_unique<mysqlshdk::textui::Json_progress>();
-    } else {
-      m_progress = std::make_unique<mysqlshdk::textui::Text_progress>();
-    }
-  } else {
-    m_progress = std::make_unique<mysqlshdk::textui::IProgress>();
-  }
-
-  m_progress->hide(true);
-
   if (m_options.ignore_version()) {
     m_default_sql_transforms.add_strip_removed_sql_modes();
   }
@@ -1262,9 +1247,8 @@ void Dump_loader::on_schema_end(const std::string &schema) {
   if (m_options.load_deferred_indexes()) {
     const auto &fks = m_dump->deferred_schema_fks(schema);
     if (!fks.empty()) {
-      current_console()->print_status(
-          "Recreating FOREIGN KEY constraints for schema " +
-          shcore::quote_identifier(schema));
+      log_info("Recreating FOREIGN KEY constraints for schema %s",
+               shcore::quote_identifier(schema).c_str());
       if (!m_options.dry_run()) {
         for (const auto &q : fks) {
           try {
@@ -1294,8 +1278,8 @@ void Dump_loader::on_schema_end(const std::string &schema) {
       m_load_log->start_triggers_ddl(schema, it.first);
 
       if (status != Load_progress_log::DONE) {
-        current_console()->print_status("Executing triggers SQL for `" +
-                                        schema + "`.`" + it.first + "`");
+        log_info("Executing triggers SQL for `%s`.`%s`", schema.c_str(),
+                 it.first.c_str());
 
         it.second->open(mysqlshdk::storage::Mode::READ);
         std::string script = mysqlshdk::storage::read_file(it.second.get());
@@ -1326,10 +1310,8 @@ void Dump_loader::handle_schema(const std::string &schema, bool resuming) {
   log_debug("Executing schema DDL for %s", schema.c_str());
 
   try {
-    current_console()->print_info((resuming
-                                       ? "Re-executing DDL script for schema `"
-                                       : "Executing DDL script for schema `") +
-                                  schema + "`");
+    log_info("%s DDL script for schema `%s`",
+             resuming ? "Re-executing" : "Executing", schema.c_str());
     if (!m_options.dry_run()) {
       // execute sql
       execute_script(
@@ -1521,8 +1503,6 @@ size_t Dump_loader::handle_worker_events(
     // Wait for events from workers, but update progress and check for ^C
     // every now and then
     for (;;) {
-      update_progress();
-
       event = m_worker_events.try_pop(1000);
       if (event.worker) break;
     }
@@ -1660,7 +1640,10 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
   if (!handle_table_data(worker)) {
     std::string schema;
     std::string table;
+
     if (m_options.load_deferred_indexes()) {
+      setup_create_indexes_progress();
+
       const auto load_finished = [this](const std::vector<std::string> &keys) {
         std::lock_guard<std::mutex> lock(m_tables_being_loaded_mutex);
         for (const auto &key : keys) {
@@ -1671,37 +1654,41 @@ bool Dump_loader::schedule_next_task(Worker *worker) {
 
         return true;
       };
+
       std::vector<std::string> *indexes = nullptr;
+
       if (m_dump->next_deferred_index(&schema, &table, &indexes,
                                       load_finished)) {
         assert(indexes != nullptr);
+        ++m_indexes_to_recreate;
         worker->recreate_indexes(schema, table, *indexes);
         return true;
+      } else if (Dump_reader::Status::COMPLETE == m_dump->status()) {
+        m_all_index_tasks_scheduled = true;
       }
     }
 
-    std::vector<Dump_reader::Histogram> histograms;
+    const auto analyze_tables = m_options.analyze_tables();
 
-    switch (m_options.analyze_tables()) {
-      case Load_dump_options::Analyze_table_mode::OFF:
-        break;
+    if (Load_dump_options::Analyze_table_mode::OFF != analyze_tables) {
+      setup_analyze_tables_progress();
 
-      case Load_dump_options::Analyze_table_mode::ON:
-        if (!m_dump->next_table_analyze(&schema, &table, &histograms)) break;
+      std::vector<Dump_reader::Histogram> histograms;
 
-        worker->analyze_table(schema, table, histograms);
-        return true;
-
-      case Load_dump_options::Analyze_table_mode::HISTOGRAM:
-        if (!m_dump->next_table_analyze(&schema, &table, &histograms)) break;
-
-        // Only analyze tables with histogram info in the dump
-        if (!histograms.empty()) {
+      if (m_dump->next_table_analyze(&schema, &table, &histograms)) {
+        // if Analyze_table_mode is HISTOGRAM, only analyze tables with
+        // histogram info in the dump
+        if (Load_dump_options::Analyze_table_mode::ON == analyze_tables ||
+            !histograms.empty()) {
+          ++m_tables_to_analyze;
           worker->analyze_table(schema, table, histograms);
           return true;
         }
-        break;
+      } else if (Dump_reader::Status::COMPLETE == m_dump->status()) {
+        m_all_analyze_tasks_scheduled = true;
+      }
     }
+
     return false;
   } else {
     return true;
@@ -1725,7 +1712,7 @@ void Dump_loader::interrupt() {
 }
 
 void Dump_loader::run() {
-  m_begin_time = std::chrono::system_clock::now();
+  m_progress_thread.start();
 
   open_dump();
 
@@ -1734,8 +1721,7 @@ void Dump_loader::run() {
     shcore::on_leave_scope cleanup([this]() {
       join_workers();
 
-      m_progress->hide(true);
-      m_progress->shutdown();
+      m_progress_thread.finish();
     });
 
     execute_tasks();
@@ -1758,19 +1744,17 @@ void Dump_loader::run() {
 void Dump_loader::show_summary() {
   using namespace mysqlshdk::utils;
 
-  auto console = current_console();
-  auto end_time = std::chrono::system_clock::now();
+  const auto console = current_console();
 
-  const auto seconds = std::max(
-      1L, static_cast<long>(std::chrono::duration_cast<std::chrono::seconds>(
-                                end_time - m_begin_time)
-                                .count()));
   if (m_num_rows_loaded == 0) {
     if (m_resuming)
       console->print_info("There was no remaining data left to be loaded.");
     else
       console->print_info("No data loaded.");
   } else {
+    const auto seconds = m_progress_thread.duration().seconds();
+    const auto load_seconds = m_load_data_stage->duration().seconds();
+
     console->print_info(shcore::str_format(
         "%zi chunks (%s, %s) for %zi tables in %zi schemas were "
         "loaded in %s (avg throughput %s)",
@@ -1780,7 +1764,8 @@ void Dump_loader::show_summary() {
         m_unique_tables_loaded.size(), m_dump->schemas().size(),
         format_seconds(seconds, false).c_str(),
         format_throughput_bytes(
-            m_num_bytes_loaded.load() - m_num_bytes_previously_loaded, seconds)
+            m_num_bytes_loaded.load() - m_num_bytes_previously_loaded,
+            load_seconds)
             .c_str()));
   }
   if (m_num_errors > 0) {
@@ -1790,54 +1775,6 @@ void Dump_loader::show_summary() {
   } else {
     console->print_info(shcore::str_format(
         "%zi warnings were reported during the load.", m_num_warnings.load()));
-  }
-}
-
-void Dump_loader::update_progress(bool force) {
-  static const char k_progress_spin[] = "-\\|/";
-
-  auto lock = force ? std::unique_lock<std::recursive_mutex>(m_output_mutex)
-                    : std::unique_lock<std::recursive_mutex>(m_output_mutex,
-                                                             std::try_to_lock);
-
-  if (lock.owns_lock()) {
-    m_progress->set_right_label(shcore::str_format(
-        ", %zu / %zu tables done", m_unique_tables_loaded.size(),
-        m_total_tables_with_data));
-
-    if (m_dump->status() == Dump_reader::Status::COMPLETE &&
-        m_num_threads_loading.load() == 0 &&
-        m_num_threads_recreating_indexes.load() > 0 &&
-        m_options.show_progress() &&
-        (mysqlsh::current_shell_options()->get().wrap_json == "off")) {
-      printf("\r%s thds indexing %c",
-             std::to_string(m_num_threads_recreating_indexes.load()).c_str(),
-             k_progress_spin[m_progress_spin]);
-      fflush(stdout);
-      m_progress->show_status(false);
-    } else {
-      std::string label;
-      if (m_dump->status() != Dump_reader::Status::COMPLETE)
-        label += "Dump still in progress, " +
-                 mysqlshdk::utils::format_bytes(m_dump->dump_size()) +
-                 " ready (compr.) - ";
-      if (m_num_threads_loading.load())
-        label +=
-            std::to_string(m_num_threads_loading.load()) + " thds loading - ";
-      if (m_num_threads_recreating_indexes.load())
-        label += std::to_string(m_num_threads_recreating_indexes.load()) +
-                 " thds indexing - ";
-
-      if (label.length() > 2)
-        label[label.length() - 2] = k_progress_spin[m_progress_spin];
-
-      m_progress->set_left_label(label);
-      m_progress->show_status(true);
-    }
-
-    m_progress_spin++;
-    if (m_progress_spin >= static_cast<int>(sizeof(k_progress_spin)) - 1)
-      m_progress_spin = 0;
   }
 }
 
@@ -1887,6 +1824,11 @@ void Dump_loader::open_dump(
   m_dump->validate_options();
 
   m_dump->show_metadata();
+
+  // Pick charset
+  if (m_character_set.empty()) {
+    m_character_set = m_dump->default_character_set();
+  }
 }
 
 void Dump_loader::check_server_version() {
@@ -2257,11 +2199,10 @@ void Dump_loader::check_existing_objects() {
   }
 }
 
-void Dump_loader::setup_progress(bool *out_is_resuming) {
+void Dump_loader::setup_progress_file(bool *out_is_resuming) {
   auto console = current_console();
 
   m_load_log = std::make_unique<Load_progress_log>();
-  uint64_t initial = 0;
 
   if (m_options.progress_file().is_null() ||
       !m_options.progress_file()->empty()) {
@@ -2288,8 +2229,6 @@ void Dump_loader::setup_progress(bool *out_is_resuming) {
         m_num_bytes_previously_loaded = progress.bytes_completed;
         m_num_bytes_loaded.store(progress.bytes_completed);
         m_num_raw_bytes_loaded.store(progress.raw_bytes_completed);
-
-        initial = m_num_bytes_loaded.load();
       } else {
         console->print_note(
             "Load progress file detected for the instance but "
@@ -2302,22 +2241,6 @@ void Dump_loader::setup_progress(bool *out_is_resuming) {
       log_info("Logging load progress to %s", path.c_str());
     }
   }
-
-  // Progress mechanics:
-  // - if the dump is complete when it's opened, we show progress and
-  // throughput relative to total uncompressed size
-  //      pct% (current GB / total GB), thrp MB/s
-
-  // - if the dump is incomplete when it's opened, we show # of uncompressed
-  // bytes loaded so far and the throughput
-  //      current GB compressed ready; current GB loaded, thrp MB/s
-
-  // - when the dump completes during load, we switch to displaying progress
-  // relative to the total size
-
-  m_progress->total(m_dump->filtered_data_size(), initial);
-
-  update_progress();
 }
 
 void Dump_loader::execute_threaded(
@@ -2338,6 +2261,21 @@ void Dump_loader::execute_threaded(
 }
 
 void Dump_loader::execute_table_ddl_tasks() {
+  m_ddl_executed = 0;
+  uint64_t ddl_to_execute = 0;
+  bool all_tasks_scheduled = false;
+
+  dump::Progress_thread::Progress_config config;
+  config.current = [this]() -> uint64_t { return m_ddl_executed; };
+  config.total = [&ddl_to_execute]() { return ddl_to_execute; };
+  config.is_total_known = [&all_tasks_scheduled]() {
+    return all_tasks_scheduled;
+  };
+
+  const auto stage =
+      m_progress_thread.start_stage("Executing DDL", std::move(config));
+  shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
+
   // Create all schemas, all tables and all view placeholders.
   // Views and other objects must only be created after all
   // tables/placeholders from all schemas are created, because there may be
@@ -2398,12 +2336,16 @@ void Dump_loader::execute_table_ddl_tasks() {
         view_placeholders.clear();
       }
 
+      ddl_to_execute += view_placeholders.size() + tables.size();
+
       if (m_options.load_ddl()) {
         m_load_log->start_schema_ddl(schema);
 
         if (schema_load_status != Load_progress_log::DONE) {
+          ++ddl_to_execute;
           handle_schema(schema, schema_load_status ==
                                     mysqlsh::Load_progress_log::INTERRUPTED);
+          ++m_ddl_executed;
         }
       }
     }
@@ -2414,10 +2356,27 @@ void Dump_loader::execute_table_ddl_tasks() {
 
   execute_threaded(schedule_next_table);
 
+  all_tasks_scheduled = true;
+
   log_debug("End loading table DDL");
 }
 
 void Dump_loader::execute_view_ddl_tasks() {
+  m_ddl_executed = 0;
+  uint64_t ddl_to_execute = 0;
+  bool all_tasks_scheduled = false;
+
+  dump::Progress_thread::Progress_config config;
+  config.current = [this]() -> uint64_t { return m_ddl_executed; };
+  config.total = [&ddl_to_execute]() { return ddl_to_execute; };
+  config.is_total_known = [&all_tasks_scheduled]() {
+    return all_tasks_scheduled;
+  };
+
+  const auto stage =
+      m_progress_thread.start_stage("Executing view DDL", std::move(config));
+  shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
+
   Load_progress_log::Status schema_load_status;
   std::string schema;
   std::list<Dump_reader::Name_and_file> views;
@@ -2436,10 +2395,9 @@ void Dump_loader::execute_view_ddl_tasks() {
               if (!m_options.dry_run()) {
                 m_session->executef("use !", schema.c_str());
 
-                current_console()->print_status(shcore::str_format(
-                    "%s DDL script for view `%s`.`%s`",
-                    (resuming ? "Re-executing" : "Executing"), schema.c_str(),
-                    view.c_str()));
+                log_info("%s DDL script for view `%s`.`%s`",
+                         (resuming ? "Re-executing" : "Executing"),
+                         schema.c_str(), view.c_str());
 
                 // execute sql
                 execute_script(
@@ -2448,6 +2406,8 @@ void Dump_loader::execute_view_ddl_tasks() {
                         "Error executing DDL script for view `%s`.`%s`",
                         schema.c_str(), view.c_str()),
                     m_default_sql_transforms);
+
+                ++m_ddl_executed;
               }
             });
         views.pop_front();
@@ -2474,6 +2434,8 @@ void Dump_loader::execute_view_ddl_tasks() {
         views.clear();
         schema.clear();
       }
+
+      ddl_to_execute += views.size();
     }
   };
 
@@ -2481,6 +2443,8 @@ void Dump_loader::execute_view_ddl_tasks() {
     log_debug("Begin loading view DDL");
 
     execute_threaded(schedule_next_view);
+
+    all_tasks_scheduled = true;
 
     for (const auto &s : done_schemas) {
       // mark schema DDL as done after views are done
@@ -2497,25 +2461,20 @@ void Dump_loader::execute_tasks() {
   if (m_options.dry_run())
     console->print_info("dryRun enabled, no changes will be made.");
 
-  // Pick charset
-  m_character_set = m_options.character_set();
-  if (m_character_set.empty()) {
-    m_character_set = m_dump->default_character_set();
-  }
-
   check_server_version();
 
   m_session = create_session();
 
-  setup_progress(&m_resuming);
+  setup_progress_file(&m_resuming);
 
   // the 1st potentially slow operation, as many errors should be detected
   // before this as possible
-  m_dump->rescan();
-  if (m_dump->status() == Dump_reader::Status::COMPLETE) {
-    m_progress->total(m_dump->filtered_data_size());
+  {
+    const auto stage = m_progress_thread.start_stage("Scanning metadata");
+    shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
+
+    m_dump->rescan();
   }
-  update_progress(true);
 
   handle_schema_option();
 
@@ -2528,11 +2487,6 @@ void Dump_loader::execute_tasks() {
   do {
     if (m_dump->status() != Dump_reader::Status::COMPLETE) {
       wait_for_more_data();
-
-      if (m_dump->status() == Dump_reader::Status::COMPLETE) {
-        m_progress->total(m_dump->filtered_data_size());
-      }
-      update_progress();
     }
 
     if (!m_init_done) {
@@ -2553,7 +2507,9 @@ void Dump_loader::execute_tasks() {
 
       m_init_done = true;
 
-      m_progress->hide(false);
+      if (!m_worker_interrupt) {
+        setup_load_data_progress();
+      }
     }
 
     m_total_tables_with_data = m_dump->tables_with_data();
@@ -2574,10 +2530,6 @@ void Dump_loader::execute_tasks() {
       break;
     }
   } while (!m_worker_interrupt);
-
-  m_progress->current(m_num_bytes_loaded);
-
-  update_progress(true);
 
   if (!m_worker_interrupt) {
     on_dump_end();
@@ -2624,7 +2576,6 @@ bool Dump_loader::wait_for_more_data() {
 
       if (!waited) {
         console->print_status("Waiting for more data to become available...");
-        update_progress();
       }
       waited = true;
       if (m_options.dump_wait_timeout_ms() < 1000) {
@@ -2779,6 +2730,126 @@ void Dump_loader::handle_schema_option() {
 
 bool Dump_loader::should_create_pks() const {
   return m_dump->should_create_pks();
+}
+
+void Dump_loader::setup_load_data_progress() {
+  // Progress mechanics:
+  // - if the dump is complete when it's opened, we show progress and
+  // throughput relative to total uncompressed size
+  //      pct% (current GB / total GB), thrp MB/s
+
+  // - if the dump is incomplete when it's opened, we show # of uncompressed
+  // bytes loaded so far and the throughput
+  //      current GB compressed ready; current GB loaded, thrp MB/s
+
+  // - when the dump completes during load, we switch to displaying progress
+  // relative to the total size
+  if (m_load_data_stage) {
+    return;
+  }
+
+  dump::Progress_thread::Throughput_config config;
+
+  config.space_before_item = false;
+  config.initial = [this]() { return m_num_bytes_previously_loaded; };
+  config.current = [this]() {
+    const uint64_t current = m_num_bytes_loaded;
+    const auto total = m_dump->filtered_data_size();
+
+    if (Dump_reader::Status::COMPLETE == m_dump->status() && current >= total) {
+      // this callback can be called before m_load_data_stage is assigned to
+      if (m_load_data_stage) {
+        // finish the stage when all data is loaded
+        m_load_data_stage->finish(false);
+      }
+    }
+
+    return current;
+  };
+  config.total = [this]() { return m_dump->filtered_data_size(); };
+
+  config.left_label = [this]() {
+    std::string label;
+
+    if (m_dump->status() != Dump_reader::Status::COMPLETE) {
+      label += "Dump still in progress, " +
+               mysqlshdk::utils::format_bytes(m_dump->dump_size()) +
+               " ready (compr.) - ";
+    }
+
+    const auto threads_loading = m_num_threads_loading.load();
+
+    if (threads_loading) {
+      label += std::to_string(threads_loading) + " thds loading - ";
+    }
+
+    const auto threads_indexing = m_num_threads_recreating_indexes.load();
+
+    if (threads_indexing) {
+      label += std::to_string(threads_indexing) + " thds indexing - ";
+    }
+
+    static const char k_progress_spin[] = "-\\|/";
+    static size_t progress_idx = 0;
+
+    if (label.length() > 2) {
+      label[label.length() - 2] = k_progress_spin[progress_idx++];
+
+      if (progress_idx >= shcore::array_size(k_progress_spin) - 1) {
+        progress_idx = 0;
+      }
+    }
+
+    return label;
+  };
+
+  config.right_label = [this]() {
+    return shcore::str_format(", %zu / %zu tables done",
+                              m_unique_tables_loaded.size(),
+                              m_total_tables_with_data);
+  };
+  config.on_display_started = []() {
+    current_console()->print_status("Starting data load");
+  };
+
+  m_load_data_stage =
+      m_progress_thread.start_stage("Loading data", std::move(config));
+}
+
+void Dump_loader::setup_create_indexes_progress() {
+  if (m_create_indexes_stage) {
+    return;
+  }
+
+  m_indexes_recreated = 0;
+  m_indexes_to_recreate = 0;
+  m_all_index_tasks_scheduled = false;
+
+  dump::Progress_thread::Progress_config config;
+  config.current = [this]() -> uint64_t { return m_indexes_recreated; };
+  config.total = [this]() { return m_indexes_to_recreate; };
+  config.is_total_known = [this]() { return m_all_index_tasks_scheduled; };
+
+  m_create_indexes_stage =
+      m_progress_thread.start_stage("Recreating indexes", std::move(config));
+}
+
+void Dump_loader::setup_analyze_tables_progress() {
+  if (m_analyze_tables_stage) {
+    return;
+  }
+
+  m_tables_analyzed = 0;
+  m_tables_to_analyze = 0;
+  m_all_analyze_tasks_scheduled = false;
+
+  dump::Progress_thread::Progress_config config;
+  config.current = [this]() -> uint64_t { return m_tables_analyzed; };
+  config.total = [this]() { return m_tables_to_analyze; };
+  config.is_total_known = [this]() { return m_all_analyze_tasks_scheduled; };
+
+  m_analyze_tables_stage =
+      m_progress_thread.start_stage("Analyzing tables", std::move(config));
 }
 
 }  // namespace mysqlsh

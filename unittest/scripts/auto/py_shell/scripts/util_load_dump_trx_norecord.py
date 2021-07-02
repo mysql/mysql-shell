@@ -14,6 +14,7 @@ def rand_text(size):
 
 
 def TEST_LOAD(dump, net_buffer_length, max_binlog_cache_size, remove_progress = True, options = {}):
+    WIPE_SHELL_LOG()
     WIPE_STDOUT()
     if remove_progress:
         wipeout_server(session)
@@ -142,10 +143,10 @@ TEST_LOAD("dump-trxlimit", trx_size_limit*3, trx_size_limit)
 #@<> net_buffer > trx_limit 3
 TEST_LOAD("dump-trxlimit", trx_size_limit*4, trx_size_limit*2)
 
-EXPECT_STDOUT_CONTAINS("testdb@data0.tsv.zst: Records: 1  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 9 sub-chunks")
-EXPECT_STDOUT_CONTAINS("testdb@data1.tsv.zst: Records: 1  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 9 sub-chunks")
-EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
-EXPECT_STDOUT_CONTAINS("testdb@data3.tsv.zst: Records: 5  Deleted: 0  Skipped: 0  Warnings: 0")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data0.tsv.zst: Records: 1  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 9 sub-chunks")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data1.tsv.zst: Records: 1  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 9 sub-chunks")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data3.tsv.zst: Records: 5  Deleted: 0  Skipped: 0  Warnings: 0")
 
 #@<> BUG#31961688 - fail after loading a sub-chunk from table which does not have PK, then resume {not __dbug_off}
 # EXPECT: when resuming, table is truncated, all sub-chunks are loaded again
@@ -159,7 +160,7 @@ testutil.clear_traps("dump_loader")
 TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
 EXPECT_STDOUT_CONTAINS("NOTE: Truncating table `testdb`.`data0` because of resume and it has no PK or equivalent key")
-EXPECT_STDOUT_CONTAINS("testdb@data0.tsv.zst: Records: 1  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 9 sub-chunks")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data0.tsv.zst: Records: 1  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 9 sub-chunks")
 
 #@<> BUG#31961688 - fail before start of the data load has been logged, then resume {not __dbug_off}
 # EXPECT: when resuming, all sub-chunks are loaded
@@ -172,7 +173,7 @@ testutil.clear_traps("dump_loader")
 
 TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
-EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
 
 #@<> BUG#31961688 - fail after start of the data load has been logged, then resume {not __dbug_off}
 # EXPECT: when resuming, all sub-chunks are loaded
@@ -185,7 +186,7 @@ testutil.clear_traps("dump_loader")
 
 TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
-EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
 
 #@<> BUG#31961688 - fail before start of the sub-chunk transaction has been logged, then resume {not __dbug_off}
 # EXPECT: when resuming, all sub-chunks are loaded again
@@ -198,7 +199,7 @@ testutil.clear_traps("dump_loader")
 
 TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
-EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
 
 #@<> BUG#31961688 - fail after start of the sub-chunk transaction has been logged, then resume {not __dbug_off}
 # EXPECT: when resuming, all sub-chunks are loaded again
@@ -211,7 +212,7 @@ testutil.clear_traps("dump_loader")
 
 TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
-EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
 
 #@<> BUG#31961688 - fail before end of the sub-chunk transaction has been logged, then resume {not __dbug_off}
 # EXPECT: when resuming, all sub-chunks are loaded again
@@ -224,7 +225,7 @@ testutil.clear_traps("dump_loader")
 
 TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
-EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 14 sub-chunks")
 
 #@<> BUG#31961688 - fail after end of the sub-chunk transaction has been logged, then resume {not __dbug_off}
 # EXPECT: when resuming, sub-chunks which were finished are not loaded again
@@ -236,7 +237,7 @@ for subchunk in range(13):
   testutil.clear_traps("dump_loader")
   TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
   EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
-  EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in {0} sub-chunks".format(13 - subchunk))
+  EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in {0} sub-chunks".format(13 - subchunk))
 
 #@<> BUG#31961688 - fail after the last end of the sub-chunk transaction has been logged, then resume {not __dbug_off}
 # EXPECT: when resuming, an empty sub-chunk is loaded
@@ -249,7 +250,7 @@ testutil.clear_traps("dump_loader")
 
 TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
-EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 1 sub-chunks")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 1 sub-chunks")
 
 #@<> BUG#31961688 - fail before end of the data load has been logged, then resume {not __dbug_off}
 # EXPECT: when resuming, an empty sub-chunk is loaded
@@ -262,7 +263,7 @@ testutil.clear_traps("dump_loader")
 
 TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False)
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
-EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 1 sub-chunks")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 0  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 1 sub-chunks")
 
 #@<> BUG#31961688 - table which is not sub-chunked does not generate sub-chunking events {not __dbug_off}
 # EXPECT: trap should not be triggered
@@ -285,7 +286,7 @@ testutil.clear_traps("dump_loader")
 
 TEST_LOAD("dump-trxlimit-none", trx_size_limit, trx_size_limit, False)
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
-EXPECT_STDOUT_CONTAINS("testdb@data2.tsv: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 8 sub-chunks")
+EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 8 sub-chunks")
 
 ##
 
@@ -469,21 +470,21 @@ EXPECT_STDOUT_CONTAINS(help_text)
 #@<> WL14577-TSFR_1_2
 TEST_LOAD(output_folder, net_buffer_length, max_binlog_cache_size, options = { "maxBytesPerTransaction" : "128k" })
 # one table is smaller than maxBytesPerTransaction, two are bigger
-EXPECT_STDOUT_MATCHES(re.compile(r"testdb@data0.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0$", re.MULTILINE))
-EXPECT_STDOUT_MATCHES(re.compile(r"testdb@data1.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in \d+ sub-chunks$", re.MULTILINE))
-EXPECT_STDOUT_MATCHES(re.compile(r"testdb@data2.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in \d+ sub-chunks$", re.MULTILINE))
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data0.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0$", re.MULTILINE))
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data1.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in \d+ sub-chunks$", re.MULTILINE))
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data2.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in \d+ sub-chunks$", re.MULTILINE))
 
 # WL14577-TSFR_3_1 - row longer than maxBytesPerTransaction, the whole file is subchunked
 EXPECT_STDOUT_MATCHES(re.compile(r"WARNING: \[Worker\d+\] testdb@data3.tsv.zst: Attempting to load a row longer than maxBytesPerTransaction."))
-EXPECT_STDOUT_CONTAINS("testdb@data3.tsv.zst: Records: 1  Deleted: 0  Skipped: 0  Warnings: 0 - flushed sub-chunk 1")
-EXPECT_STDOUT_MATCHES(re.compile(r"testdb@data3.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in \d+ sub-chunks$", re.MULTILINE))
+EXPECT_SHELL_LOG_CONTAINS("testdb@data3.tsv.zst: Records: 1  Deleted: 0  Skipped: 0  Warnings: 0 - flushed sub-chunk 1")
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data3.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in \d+ sub-chunks$", re.MULTILINE))
 
 #@<> WL14577-TSFR_1_3
 TEST_LOAD(output_folder, net_buffer_length, max_binlog_cache_size)
 # hacked value of bytesPerChunk (256k) is used, two tables are smaller than 384k (1.5 * bytesPerChunk), one is bigger
-EXPECT_STDOUT_MATCHES(re.compile(r"testdb@data0.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0$", re.MULTILINE))
-EXPECT_STDOUT_MATCHES(re.compile(r"testdb@data1.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0$", re.MULTILINE))
-EXPECT_STDOUT_MATCHES(re.compile(r"testdb@data2.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in \d+ sub-chunks$", re.MULTILINE))
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data0.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0$", re.MULTILINE))
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data1.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0$", re.MULTILINE))
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data2.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in \d+ sub-chunks$", re.MULTILINE))
 
 #@<> WL14577 - invalid values
 for value in [ "xyz", "1xyz", "2Mhz", "0.1k", "0,3M" ]:
@@ -505,14 +506,14 @@ EXPECT_THROWS(lambda: util.load_dump(output_path, { "maxBytesPerTransaction" : "
 # throw exception after loading the first subchunk of table `data1`
 testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_END", "schema == testdb", "table == data1", "chunk == -1", "subchunk == 1"], {"msg": "Injected exception"})
 EXPECT_THROWS(lambda: TEST_LOAD(output_folder, net_buffer_length, max_binlog_cache_size, options = { "maxBytesPerTransaction" : "128k" }), "RuntimeError: Util.load_dump: Error loading dump")
-EXPECT_STDOUT_MATCHES(re.compile(r"testdb@data1.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - flushed sub-chunk 1$", re.MULTILINE))
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data1.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0 - flushed sub-chunk 1$", re.MULTILINE))
 EXPECT_STDOUT_CONTAINS("testdb@data1.tsv.zst: Injected exception")
 testutil.clear_traps("dump_loader")
 
 # load once again, do not set maxBytesPerTransaction, table `data1` is loaded without subchunking
 TEST_LOAD(output_folder, net_buffer_length, max_binlog_cache_size, False)
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
-EXPECT_STDOUT_MATCHES(re.compile(r"testdb@data1.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0$", re.MULTILINE))
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"testdb@data1.tsv.zst: Records: \d+  Deleted: 0  Skipped: 0  Warnings: 0$", re.MULTILINE))
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

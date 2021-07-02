@@ -33,7 +33,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/db/column.h"
 #include "mysqlshdk/libs/mysql/user_privileges.h"
 #include "mysqlshdk/libs/storage/backend/memory_file.h"
@@ -47,6 +46,7 @@
 #include "modules/util/dump/dump_options.h"
 #include "modules/util/dump/dump_writer.h"
 #include "modules/util/dump/instance_cache.h"
+#include "modules/util/dump/progress_thread.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -304,14 +304,10 @@ class Dumper {
   std::unique_ptr<mysqlshdk::mysql::User_privileges> m_user_privileges;
   std::string m_user_account;
 
-  // console
-  Scoped_console m_console;
-
   // input data
   const Dump_options &m_options;
   std::unique_ptr<mysqlshdk::storage::IDirectory> m_output_dir;
   std::unique_ptr<mysqlshdk::storage::IFile> m_output_file;
-  bool m_use_json = false;
   Instance_cache m_cache;
   std::vector<Schema_info> m_schema_infos;
   std::unordered_map<std::string, std::size_t> m_truncated_basenames;
@@ -326,18 +322,28 @@ class Dumper {
   uint64_t m_total_schemas = 0;
   uint64_t m_total_tables = 0;
   uint64_t m_total_views = 0;
+  uint64_t m_total_objects = 0;
 
   // progress information
-  std::unique_ptr<Dump_info> m_dump_info;
+  mutable Progress_thread m_progress_thread;
+  mutable Progress_thread::Stage *m_current_stage = nullptr;
+  Progress_thread::Stage *m_data_dump_stage = nullptr;
+
   std::atomic<uint64_t> m_data_bytes;
   std::atomic<uint64_t> m_bytes_written;
   std::atomic<uint64_t> m_rows_written;
-  std::unique_ptr<mysqlshdk::textui::IProgress> m_progress;
-  std::recursive_mutex m_progress_mutex;
-  std::unique_ptr<mysqlshdk::textui::Throughput> m_data_throughput;
-  std::unique_ptr<mysqlshdk::textui::Throughput> m_bytes_throughput;
   std::atomic<uint64_t> m_num_threads_chunking;
   std::atomic<uint64_t> m_num_threads_dumping;
+  std::atomic<uint64_t> m_ddl_written;
+
+  std::atomic<uint64_t> m_table_metadata_to_write;
+  std::atomic<uint64_t> m_table_metadata_written;
+  bool m_all_table_metadata_tasks_scheduled = false;
+
+  mutable std::recursive_mutex m_throughput_mutex;
+  std::unique_ptr<mysqlshdk::textui::Throughput> m_data_throughput;
+  std::unique_ptr<mysqlshdk::textui::Throughput> m_bytes_throughput;
+
   std::mutex m_table_data_bytes_mutex;
   // schema -> table -> data bytes
   std::unordered_map<std::string, std::unordered_map<std::string, uint64_t>>

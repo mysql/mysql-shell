@@ -557,7 +557,7 @@ EXPECT_STDOUT_CONTAINS("The following required option is missing: --output-url")
 rc = testutil.call_mysqlsh([uri, "--", "util", "dump-tables", types_schema] + types_schema_tables + ["--outputUrl", test_output_relative, "--showProgress", "true"])
 EXPECT_EQ(0, rc)
 EXPECT_TRUE(os.path.isdir(test_output_absolute))
-EXPECT_STDOUT_MATCHES(re.compile(r'\d+ thds dumping - \d+% \(\d+\.?\d*[TGMK]? rows / ~\d+\.?\d*[TGMK]? rows\), \d+\.?\d*[TGMK]? rows?/s, \d+\.?\d* [TGMK]?B/s', re.MULTILINE))
+EXPECT_STDOUT_MATCHES(re.compile(r'\d+% \(\d+\.?\d*[TGMK]? rows / ~\d+\.?\d*[TGMK]? rows\), \d+\.?\d*[TGMK]? rows?/s, \d+\.?\d* [TGMK]?B/s', re.MULTILINE))
 
 #@<> WL13804-FR5.2.2 - If the `showProgress` option is not given, a default value of `true` must be used instead if shell is used interactively. Otherwise, it is set to `false`.
 shutil.rmtree(test_output_absolute, True)
@@ -739,6 +739,7 @@ TEST_BOOL_OPTION("dryRun")
 # WL13804-TSFR_11_2_17
 shutil.rmtree(test_output_absolute, True)
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
+WIPE_SHELL_LOG()
 util.dump_tables(test_schema, test_schema_tables, test_output_absolute, { "dryRun": True, "showProgress": False })
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_NOT_CONTAINS("Tables dumped: ")
@@ -746,8 +747,8 @@ EXPECT_STDOUT_CONTAINS("Writing global DDL files")
 EXPECT_STDOUT_CONTAINS("dryRun enabled, no locks will be acquired and no files will be created.")
 
 for table in test_schema_tables:
-    EXPECT_STDOUT_CONTAINS("Writing DDL for table `{0}`.`{1}`".format(test_schema, table))
-    EXPECT_STDOUT_CONTAINS("Preparing data dump for table `{0}`.`{1}`".format(test_schema, table))
+    EXPECT_SHELL_LOG_CONTAINS("Writing DDL for table `{0}`.`{1}`".format(test_schema, table))
+    EXPECT_SHELL_LOG_CONTAINS("Preparing data dump for table `{0}`.`{1}`".format(test_schema, table))
 
 #@<> WL13804: WL13807-FR4.9.2 - If the `dryRun` option is not given, a default value of `false` must be used instead.
 EXPECT_SUCCESS(test_schema, test_schema_tables, test_output_absolute, { "ddlOnly": True, "showProgress": False })
@@ -2206,8 +2207,9 @@ session.run_sql(f"""INSERT INTO !.! (`md5_1`,`md5_2`, `email`) VALUES {",".join(
 session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
 
 #@<> composite non-integer key - test
+WIPE_SHELL_LOG()
 EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "bytesPerChunk": "128k", "compression": "none", "showProgress": False })
-EXPECT_STDOUT_CONTAINS(f"Data dump for table `{tested_schema}`.`{tested_table}` will be chunked using columns `md5_1`, `md5_2`, `md5_3`, `md5_4`")
+EXPECT_SHELL_LOG_CONTAINS(f"Data dump for table `{tested_schema}`.`{tested_table}` will be chunked using columns `md5_1`, `md5_2`, `md5_3`, `md5_4`")
 CHECK_OUTPUT_SANITY(test_output_absolute, 55000, 10)
 TEST_LOAD(tested_schema, tested_table)
 

@@ -31,6 +31,7 @@
 #include <thread>
 #include <vector>
 
+#include "modules/util/dump/progress_thread.h"
 #include "modules/util/import_table/chunk_file.h"
 #include "modules/util/import_table/import_table_options.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
@@ -83,21 +84,19 @@ class Import_table final {
   void join_workers();
   void chunk_file();
   void build_queue();
+  void progress_setup();
   void progress_shutdown();
 
   std::atomic<size_t> m_prog_sent_bytes{0};
-  std::unique_ptr<mysqlshdk::textui::IProgress> m_progress = nullptr;
-  std::recursive_mutex m_output_mutex;
-  Scoped_console m_console;
+  dump::Progress_thread m_progress_thread;
+  size_t m_total_bytes = 0;
 
   shcore::Synchronized_queue<File_import_info> m_range_queue;
 
   const Import_table_options &m_opt;
   Stats m_stats;
 
-  bool m_use_json = false;
   volatile bool *m_interrupt;
-  mysqlshdk::utils::Profile_timer m_timer;
   std::vector<std::thread> m_threads;
   std::vector<std::exception_ptr> m_thread_exception;
 

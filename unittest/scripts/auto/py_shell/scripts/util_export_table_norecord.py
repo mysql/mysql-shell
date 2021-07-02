@@ -510,7 +510,7 @@ EXPECT_FALSE(os.path.isfile(test_output_relative))
 rc = testutil.call_mysqlsh([uri, "--json=pretty", "--schema=" + types_schema, "--", "util", "export-table", types_schema_tables[0], test_output_relative, "--show-progress"])
 EXPECT_EQ(0, rc)
 EXPECT_TRUE(os.path.isfile(test_output_relative))
-EXPECT_STDOUT_MATCHES(re.compile(r'\"info\": \"\d+% \(\d+\.?\d*[TGMK]? rows / \d+\.?\d*[TGMK]? rows\), \d+\.?\d*[TGMK]? rows?/s, \d+\.?\d* [TGMK]?B/s\"', re.MULTILINE))
+EXPECT_STDOUT_MATCHES(re.compile(r'\"info\": \"\d+% \(\d+\.?\d*[TGMK]? rows / ~\d+\.?\d*[TGMK]? rows\), \d+\.?\d*[TGMK]? rows?/s, \d+\.?\d* [TGMK]?B/s\"', re.MULTILINE))
 
 #@<> WL13804-FR5.2.2 - If the `showProgress` option is not given, a default value of `true` must be used instead if shell is used interactively. Otherwise, it is set to `false`.
 shutil.rmtree(test_output_absolute_parent, True)

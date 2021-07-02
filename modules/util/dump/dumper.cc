@@ -47,7 +47,6 @@
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/utils.h"
-#include "mysqlshdk/libs/textui/progress.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
@@ -552,7 +551,11 @@ class Dumper::Table_worker final {
   }
 
   void write_table_metadata(const Table_task &table) {
+    log_info("Writing metadata for table %s", table.quoted_name.c_str());
+
     m_dumper->write_table_metadata(table, m_session);
+
+    ++m_dumper->m_table_metadata_written;
   }
 
   void create_table_data_tasks(const Table_task &table) {
@@ -563,9 +566,8 @@ class Dumper::Table_worker final {
       ++ranges;
     }
 
-    current_console()->print_status(
-        "Data dump for table " + table.task_name + " will be written to " +
-        std::to_string(ranges) + " file" + (ranges > 1 ? "s" : ""));
+    log_info("Data dump for table %s will be written to %zu file%s",
+             table.task_name.c_str(), ranges, ranges > 1 ? "s" : "");
 
     m_dumper->chunking_task_finished();
   }
@@ -1000,23 +1002,33 @@ class Dumper::Table_worker final {
     auto average_row_length = table.partition
                                   ? table.partition->average_row_length
                                   : table.info->average_row_length;
+    auto partition = table.partition
+                         ? " PARTITION (" + table.partition->quoted_name + ")"
+                         : "";
 
     if (0 == average_row_length) {
       average_row_length = k_default_row_size;
 
-      auto msg = "Table statistics not available for " + task_name +
-                 ", chunking operation may be not optimal. "
-                 "Please consider running 'ANALYZE TABLE " +
-                 table.quoted_name + ";'";
+      const auto result = m_session->query(
+          "SELECT " + table.info->index.columns_sql() + " FROM " +
+          table.quoted_name + partition + " LIMIT 1");
 
-      if (table.partition) {
-        msg += " or 'ALTER TABLE " + table.quoted_name + " ANALYZE PARTITION " +
-               table.partition->quoted_name + ";'";
+      // print the message only if table is not empty
+      if (result->fetch_one()) {
+        auto msg = "Table statistics not available for " + task_name +
+                   ", chunking operation may be not optimal. "
+                   "Please consider running 'ANALYZE TABLE " +
+                   table.quoted_name + ";'";
+
+        if (table.partition) {
+          msg += " or 'ALTER TABLE " + table.quoted_name +
+                 " ANALYZE PARTITION " + table.partition->quoted_name + ";'";
+        }
+
+        msg += " first.";
+
+        current_console()->print_note(msg);
       }
-
-      msg += " first.";
-
-      current_console()->print_note(msg);
     }
 
     Chunking_info info;
@@ -1028,10 +1040,7 @@ class Dumper::Table_worker final {
         m_dumper->m_options.bytes_per_chunk() / average_row_length;
     info.accuracy = std::max(info.rows_per_chunk / 10, UINT64_C(10));
     info.explain_rows_idx = m_dumper->m_cache.explain_rows_idx;
-
-    info.partition = table.partition
-                         ? " PARTITION (" + table.partition->quoted_name + ")"
-                         : "";
+    info.partition = std::move(partition);
 
     for (const auto &c : table.info->index.columns()) {
       if (c->nullable) {
@@ -1072,19 +1081,19 @@ class Dumper::Table_worker final {
   }
 
   void dump_schema_ddl(const Schema_info &schema) const {
-    current_console()->print_status("Writing DDL for schema " +
-                                    schema.quoted_name);
+    log_info("Writing DDL for schema %s", schema.quoted_name.c_str());
 
     const auto dumper = m_dumper->schema_dumper(m_session);
 
     m_dumper->write_ddl(*m_dumper->dump_schema(dumper.get(), schema.name),
                         get_schema_filename(schema.basename));
+
+    ++m_dumper->m_ddl_written;
   }
 
   void dump_table_ddl(const Schema_info &schema,
                       const Table_info &table) const {
-    current_console()->print_status("Writing DDL for table " +
-                                    table.quoted_name);
+    log_info("Writing DDL for table %s", table.quoted_name.c_str());
 
     const auto dumper = m_dumper->schema_dumper(m_session);
 
@@ -1098,10 +1107,12 @@ class Dumper::Table_worker final {
           *m_dumper->dump_triggers(dumper.get(), schema.name, table.name),
           dump::get_table_data_filename(table.basename, "triggers.sql"));
     }
+
+    ++m_dumper->m_ddl_written;
   }
 
   void dump_view_ddl(const Schema_info &schema, const View_info &view) const {
-    current_console()->print_status("Writing DDL for view " + view.quoted_name);
+    log_info("Writing DDL for view %s", view.quoted_name.c_str());
 
     const auto dumper = m_dumper->schema_dumper(m_session);
 
@@ -1114,6 +1125,8 @@ class Dumper::Table_worker final {
     m_dumper->write_ddl(
         *m_dumper->dump_view(dumper.get(), schema.name, view.name),
         get_table_filename(view.basename));
+
+    ++m_dumper->m_ddl_written;
   }
 
   std::string get_query_comment(const Table_task &table,
@@ -1126,48 +1139,6 @@ class Dumper::Table_worker final {
   Exception_strategy m_strategy;
   mysqlshdk::utils::Rate_limit m_rate_limit;
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
-};
-
-class Dumper::Dump_info final {
- public:
-  Dump_info() {
-    m_begin = mysqlshdk::utils::fmttime("%Y-%m-%d %T");
-
-    m_timer.stage_begin("total");
-  }
-
-  Dump_info(const Dump_info &) = default;
-  Dump_info(Dump_info &&) = default;
-
-  Dump_info &operator=(const Dump_info &) = default;
-  Dump_info &operator=(Dump_info &&) = default;
-
-  ~Dump_info() = default;
-
-  void finish() {
-    m_timer.stage_end();
-
-    m_end = mysqlshdk::utils::fmttime("%Y-%m-%d %T");
-
-    const auto sec = static_cast<unsigned long long int>(seconds());
-
-    m_duration = shcore::str_format("%02llu:%02llu:%02llus", sec / 3600ull,
-                                    (sec % 3600ull) / 60ull, sec % 60ull);
-  }
-
-  const std::string &begin() const { return m_begin; }
-
-  const std::string &end() const { return m_end; }
-
-  const std::string &duration() const { return m_duration; }
-
-  double seconds() const { return m_timer.total_seconds_elapsed(); }
-
- private:
-  mysqlshdk::utils::Profile_timer m_timer;
-  std::string m_begin;
-  std::string m_end;
-  std::string m_duration;
 };
 
 class Dumper::Memory_dumper final {
@@ -1224,9 +1195,7 @@ class Dumper::Memory_dumper final {
 };
 
 Dumper::Dumper(const Dump_options &options)
-    : m_console(std::make_shared<Console_with_progress>(m_progress,
-                                                        &m_progress_mutex)),
-      m_options(options) {
+    : m_options(options), m_progress_thread("Dump", options.show_progress()) {
   m_options.validate();
 
   if (m_options.use_single_file()) {
@@ -1337,6 +1306,8 @@ void Dumper::run() {
 
 void Dumper::do_run() {
   m_worker_interrupt = false;
+  m_progress_thread.start();
+  m_current_stage = m_progress_thread.start_stage("Initializing");
 
   shcore::Interrupt_handler intr_handler([this]() -> bool {
     current_console()->print_warning("Interrupted by user. Canceling...");
@@ -1362,6 +1333,8 @@ void Dumper::do_run() {
 
     create_worker_threads();
 
+    m_current_stage->finish();
+
     // initialize cache while threads are starting up
     initialize_instance_cache();
 
@@ -1383,9 +1356,8 @@ void Dumper::do_run() {
   create_schema_tasks();
 
   validate_privileges();
-  validate_mds();
   initialize_counters();
-  initialize_progress();
+  validate_mds();
 
   initialize_dump();
 
@@ -1405,6 +1377,8 @@ void Dumper::do_run() {
           "accurate.");
     }
   }
+
+  initialize_progress();
 
   maybe_push_shutdown_tasks();
   wait_for_all_tasks();
@@ -1833,14 +1807,8 @@ void Dumper::initialize_instance_cache_minimal() {
 }
 
 void Dumper::initialize_instance_cache() {
-  const std::string status_msg = "Gathering information";
-  mysqlshdk::textui::Threaded_spinny_stick spinner{status_msg, "- done"};
-
-  if (m_options.show_progress()) {
-    spinner.start();
-  } else {
-    current_console()->print_status(status_msg + "...");
-  }
+  m_current_stage = m_progress_thread.start_stage("Gathering information");
+  shcore::on_leave_scope finish_stage([this]() { m_current_stage->finish(); });
 
   auto builder =
       m_cache.schemas.empty()
@@ -1941,6 +1909,16 @@ void Dumper::validate_mds() const {
     }
   }
 
+  Progress_thread::Progress_config config;
+  std::atomic<uint64_t> objects_checked{0};
+
+  config.current = [&objects_checked]() -> uint64_t { return objects_checked; };
+  config.total = [this]() { return m_total_objects; };
+
+  m_current_stage = m_progress_thread.start_stage(
+      "Validating MDS compatibility", std::move(config));
+  shcore::on_leave_scope finish_stage([this]() { m_current_stage->finish(); });
+
   Issue_status status = Issue_status::NONE;
 
   const auto issues = [&status](const auto &memory) {
@@ -1956,6 +1934,7 @@ void Dumper::validate_mds() const {
   if (m_options.dump_ddl()) {
     for (const auto &schema : m_schema_infos) {
       issues(dump_schema(dumper.get(), schema.name));
+      ++objects_checked;
     }
 
     for (const auto &schema : m_schema_infos) {
@@ -1966,11 +1945,15 @@ void Dumper::validate_mds() const {
             dumper->count_triggers_for_table(schema.name, table.name) > 0) {
           issues(dump_triggers(dumper.get(), schema.name, table.name));
         }
+
+        ++objects_checked;
       }
 
       for (const auto &view : schema.views) {
         issues(dump_temporary_view(dumper.get(), schema.name, view.name));
         issues(dump_view(dumper.get(), schema.name, view.name));
+
+        ++objects_checked;
       }
     }
   }
@@ -2056,6 +2039,23 @@ void Dumper::initialize_counters() {
       m_total_rows += table.info->row_count;
     }
   }
+
+  m_total_objects = m_total_schemas + m_total_tables + m_total_views;
+
+  m_rows_written = 0;
+  m_bytes_written = 0;
+  m_data_bytes = 0;
+  m_table_data_bytes.clear();
+
+  m_data_throughput = std::make_unique<mysqlshdk::textui::Throughput>();
+  m_bytes_throughput = std::make_unique<mysqlshdk::textui::Throughput>();
+
+  m_num_threads_chunking = 0;
+  m_num_threads_dumping = 0;
+
+  m_ddl_written = 0;
+  m_table_metadata_to_write = 0;
+  m_table_metadata_written = 0;
 }
 
 void Dumper::initialize_dump() {
@@ -2271,6 +2271,14 @@ void Dumper::create_schema_ddl_tasks() {
     return;
   }
 
+  Progress_thread::Progress_config config;
+
+  config.current = [this]() -> uint64_t { return m_ddl_written; };
+  config.total = [this]() { return m_total_objects; };
+
+  m_current_stage =
+      m_progress_thread.start_stage("Writing DDL", std::move(config));
+
   for (const auto &schema : m_schema_infos) {
     m_worker_tasks.push(
         {"writing DDL of " + schema.quoted_name,
@@ -2300,11 +2308,28 @@ void Dumper::create_table_tasks() {
 
   m_main_thread_finished_producing_chunking_tasks = false;
 
+  m_all_table_metadata_tasks_scheduled = false;
+
+  if (!m_options.is_dry_run()) {
+    Progress_thread::Progress_config config;
+
+    config.current = [this]() -> uint64_t { return m_table_metadata_written; };
+    config.total = [this]() -> uint64_t { return m_table_metadata_to_write; };
+    config.is_total_known = [this]() {
+      return m_all_table_metadata_tasks_scheduled;
+    };
+
+    m_current_stage = m_progress_thread.start_stage("Writing table metadata",
+                                                    std::move(config));
+  }
+
   for (const auto &schema : m_schema_infos) {
     for (const auto &table : schema.tables) {
       auto task = create_table_task(schema, table);
 
       if (!m_options.is_dry_run() && should_dump_data(task)) {
+        ++m_table_metadata_to_write;
+
         m_worker_tasks.push({"writing metadata of " + table.quoted_name,
                              [task](Table_worker *worker) {
                                worker->write_table_metadata(task);
@@ -2317,6 +2342,8 @@ void Dumper::create_table_tasks() {
       }
     }
   }
+
+  m_all_table_metadata_tasks_scheduled = true;
 
   m_main_thread_finished_producing_chunking_tasks = true;
 }
@@ -2346,7 +2373,7 @@ void Dumper::push_table_task(Table_task &&task) {
     return;
   }
 
-  current_console()->print_status("Preparing data dump for table " + task_name);
+  log_info("Preparing data dump for table %s", task_name.c_str());
 
   const auto &index = task.info->index;
 
@@ -2363,14 +2390,15 @@ void Dumper::push_table_task(Table_task &&task) {
           ". Chunking has been disabled for this table, data will be dumped to "
           "a single file.");
     } else {
-      current_console()->print_status("Data dump for table " + task_name +
-                                      " will be chunked using " + get_index());
+      log_info("Data dump for table %s will be chunked using %s",
+               task_name.c_str(), get_index().c_str());
     }
   } else {
-    current_console()->print_status(
-        "Data dump for table " + task_name +
-        (!index.valid() ? " will not use an index"
-                        : " will use " + get_index() + " as an index"));
+    const auto index_info =
+        (!index.valid() ? "will not use an index"
+                        : "will use " + get_index() + " as an index");
+    log_info("Data dump for table %s %s", task_name.c_str(),
+             index_info.c_str());
   }
 
   if (m_options.is_dry_run()) {
@@ -2499,8 +2527,21 @@ void Dumper::write_metadata() const {
 
   write_dump_started_metadata();
 
+  Progress_thread::Progress_config config;
+  uint64_t schema_metadata_written = 0;
+
+  config.current = [&schema_metadata_written]() -> uint64_t {
+    return schema_metadata_written;
+  };
+  config.total = [this]() { return m_total_schemas; };
+
+  m_current_stage = m_progress_thread.start_stage("Writing schema metadata",
+                                                  std::move(config));
+  shcore::on_leave_scope finish_stage([this]() { m_current_stage->finish(); });
+
   for (const auto &schema : m_schema_infos) {
     write_schema_metadata(schema);
+    ++schema_metadata_written;
   }
 }
 
@@ -2596,7 +2637,8 @@ void Dumper::write_dump_started_metadata() const {
                   a);
   }
 
-  doc.AddMember(StringRef("begin"), refs(m_dump_info->begin()), a);
+  doc.AddMember(StringRef("begin"),
+                refs(m_progress_thread.duration().started_at()), a);
 
   write_json(make_file("@.json"), &doc);
 }
@@ -2614,7 +2656,8 @@ void Dumper::write_dump_finished_metadata() const {
   Document doc{Type::kObjectType};
   auto &a = doc.GetAllocator();
 
-  doc.AddMember(StringRef("end"), refs(m_dump_info->end()), a);
+  doc.AddMember(StringRef("end"),
+                refs(m_progress_thread.duration().finished_at()), a);
   doc.AddMember(StringRef("dataBytes"), m_data_bytes.load(), a);
 
   {
@@ -2885,7 +2928,10 @@ void Dumper::write_table_metadata(
 void Dumper::summarize() const {
   const auto console = current_console();
 
-  console->print_status("Duration: " + m_dump_info->duration());
+  console->print_status("Dump duration: " +
+                        m_data_dump_stage->duration().to_string());
+  console->print_status("Total duration: " +
+                        m_progress_thread.duration().to_string());
 
   if (!m_options.is_export_only()) {
     console->print_status("Schemas dumped: " + std::to_string(m_total_schemas));
@@ -2907,15 +2953,17 @@ void Dumper::summarize() const {
   console->print_status("Rows written: " + std::to_string(m_rows_written));
   console->print_status("Bytes written: " +
                         mysqlshdk::utils::format_bytes(m_bytes_written));
-  console->print_status(std::string{"Average "} +
-                        (compressed() ? "uncompressed " : "") + "throughput: " +
-                        mysqlshdk::utils::format_throughput_bytes(
-                            m_data_bytes, m_dump_info->seconds()));
+  console->print_status(
+      std::string{"Average "} + (compressed() ? "uncompressed " : "") +
+      "throughput: " +
+      mysqlshdk::utils::format_throughput_bytes(
+          m_data_bytes, m_data_dump_stage->duration().seconds()));
 
   if (compressed()) {
-    console->print_status("Average compressed throughput: " +
-                          mysqlshdk::utils::format_throughput_bytes(
-                              m_bytes_written, m_dump_info->seconds()));
+    console->print_status(
+        "Average compressed throughput: " +
+        mysqlshdk::utils::format_throughput_bytes(
+            m_bytes_written, m_data_dump_stage->duration().seconds()));
   }
 
   summary();
@@ -2973,33 +3021,45 @@ std::string Dumper::get_table_data_ext() const {
 }
 
 void Dumper::initialize_progress() {
-  m_rows_written = 0;
-  m_bytes_written = 0;
-  m_data_bytes = 0;
-  m_table_data_bytes.clear();
+  Progress_thread::Throughput_config config;
 
-  m_data_throughput = std::make_unique<mysqlshdk::textui::Throughput>();
-  m_bytes_throughput = std::make_unique<mysqlshdk::textui::Throughput>();
+  config.items_full = "rows";
+  config.items_abbrev = "rows";
+  config.item_singular = "row";
+  config.item_plural = "rows";
+  config.space_before_item = true;
+  config.total_is_approx = true;
+  config.current = [this]() -> uint64_t { return m_rows_written; };
+  config.total = [this]() { return m_total_rows; };
 
-  m_num_threads_chunking = 0;
-  m_num_threads_dumping = 0;
+  if (!m_options.is_export_only()) {
+    config.left_label = [this]() {
+      const uint64_t chunking = m_num_threads_chunking;
+      const uint64_t dumping = m_num_threads_dumping;
+      std::string label;
 
-  m_use_json = "off" != mysqlsh::current_shell_options()->get().wrap_json;
+      if (0 != chunking || 0 != dumping) {
+        if (0 == chunking) {
+          label = std::to_string(dumping) + " thds";
+        } else {
+          label = std::to_string(chunking) + " thds chunking, " +
+                  std::to_string(dumping);
+        }
 
-  if (m_options.show_progress()) {
-    if (m_use_json) {
-      m_progress = std::make_unique<mysqlshdk::textui::Json_progress>(
-          "rows", "rows", "row", "rows");
-    } else {
-      m_progress = std::make_unique<mysqlshdk::textui::Text_progress>(
-          "rows", "rows", "row", "rows", true, true);
-    }
-  } else {
-    m_progress = std::make_unique<mysqlshdk::textui::IProgress>();
+        label += " dumping - ";
+      }
+
+      return label;
+    };
   }
 
-  m_progress->total(m_total_rows);
-  m_dump_info = std::make_unique<Dump_info>();
+  config.right_label = [this]() { return ", " + throughput(); };
+  config.on_display_started = []() {
+    current_console()->print_status("Starting data dump");
+  };
+
+  m_data_dump_stage = m_current_stage =
+      m_progress_thread.start_stage("Dumping data", std::move(config));
 }
 
 void Dumper::update_bytes_written(uint64_t new_bytes) {
@@ -3019,45 +3079,20 @@ void Dumper::update_progress(uint64_t new_rows,
   }
 
   {
-    std::unique_lock<std::recursive_mutex> lock(m_progress_mutex,
+    std::unique_lock<std::recursive_mutex> lock(m_throughput_mutex,
                                                 std::try_to_lock);
     if (lock.owns_lock()) {
       m_data_throughput->push(m_data_bytes);
       m_bytes_throughput->push(m_bytes_written);
-      m_progress->current(m_rows_written);
-
-      if (!m_options.is_export_only()) {
-        const uint64_t chunking = m_num_threads_chunking;
-        const uint64_t dumping = m_num_threads_dumping;
-
-        if (0 == chunking) {
-          m_progress->set_left_label(std::to_string(dumping) +
-                                     " thds dumping - ");
-        } else {
-          m_progress->set_left_label(std::to_string(chunking) +
-                                     " thds chunking, " +
-                                     std::to_string(dumping) + " dumping - ");
-        }
-      }
-
-      m_progress->set_right_label(", " + throughput());
-      m_progress->show_status(false);
     }
   }
 }
 
-void Dumper::shutdown_progress() {
-  if (m_dump_info) {
-    m_dump_info->finish();
-  }
-
-  m_progress->current(m_rows_written);
-  m_progress->set_right_label(", " + throughput());
-  m_progress->show_status(true);
-  m_progress->shutdown();
-}
+void Dumper::shutdown_progress() { m_progress_thread.finish(); }
 
 std::string Dumper::throughput() const {
+  std::lock_guard<std::recursive_mutex> lock(m_throughput_mutex);
+
   return mysqlshdk::utils::format_throughput_bytes(m_data_throughput->rate(),
                                                    1.0) +
          (compressed() ? " uncompressed, " +

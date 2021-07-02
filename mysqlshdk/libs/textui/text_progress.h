@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,9 +58,14 @@ class Throughput final {
    */
   uint64_t rate() const;
 
+  /**
+   * Resets the status.
+   */
+  void reset();
+
  private:
   struct Snapshot {
-    int64_t bytes;
+    int64_t bytes = 0;
     std::chrono::steady_clock::time_point time;
   };
 
@@ -76,8 +81,17 @@ inline void Throughput::push(uint64_t total_bytes) {
                              current_time - m_history[m_index_prev].time)
                              .count();
   if (time_diff >= 500 /* ms */) {
-    m_history[m_index].bytes = total_bytes;
-    m_history[m_index].time = current_time;
+    if (m_index == m_index_prev) {
+      // first insert, fill the whole array
+      for (unsigned int i = 0; i < k_moving_average_points; ++i) {
+        m_history[i].bytes = total_bytes;
+        m_history[i].time = current_time;
+      }
+    } else {
+      m_history[m_index].bytes = total_bytes;
+      m_history[m_index].time = current_time;
+    }
+
     m_index_prev = m_index;
     m_index = (m_index + 1) % k_moving_average_points;
   }
@@ -99,75 +113,53 @@ class IProgress {
   virtual ~IProgress() = default;
 
   virtual void show_status(bool = false) {}
-  virtual void current(uint64_t /* value */) {}
-  virtual void total(uint64_t /* value */) {}
-  virtual void total(uint64_t /* value */, uint64_t /* initial */) {}
+  virtual void set_current(uint64_t /* value */) {}
+  virtual void set_total(uint64_t /* value */) {}
+  virtual void set_total(uint64_t /* value */, uint64_t /* initial */) {}
   virtual void set_left_label(const std::string &) {}
   virtual void set_right_label(const std::string &) {}
   virtual void hide(bool) {}
   virtual void shutdown() {}
 };
 
-/**
- * Class that generates one-line text progress information.
- */
-class Text_progress final : public IProgress {
+class Base_progress : public IProgress {
  public:
-  Text_progress() : Text_progress("bytes", "B", "B", "B", false) {}
+  Base_progress() : Base_progress("bytes", "B", "B", "B", false) {}
 
-  Text_progress(const char *items_full, const char *items_abbrev,
+  Base_progress(const char *items_full, const char *items_abbrev,
                 const char *item_singular, const char *item_plural,
-                bool space_before_item = true, bool total_is_approx = false)
-      : m_status(80, ' '),
-        m_items_full(items_full),
-        m_items_abbrev(items_abbrev),
-        m_item_singular(item_singular),
-        m_item_plural(item_plural),
-        m_space_before_item(space_before_item),
-        m_total_is_approx(total_is_approx) {}
+                bool space_before_item = true, bool total_is_approx = false) {
+    // this is a virtual call, but that's OK, if something is not initialized
+    // by this call, was initialized by fields initializers
+    reset(items_full, items_abbrev, item_singular, item_plural,
+          space_before_item, total_is_approx);
+  }
 
-  Text_progress(const Text_progress &other) = default;
-  Text_progress(Text_progress &&other) = default;
+  Base_progress(const Base_progress &other) = default;
+  Base_progress(Base_progress &&other) = default;
 
-  Text_progress &operator=(const Text_progress &other) = default;
-  Text_progress &operator=(Text_progress &&other) = default;
+  Base_progress &operator=(const Base_progress &other) = default;
+  Base_progress &operator=(Base_progress &&other) = default;
 
-  ~Text_progress() override = default;
-
-  void set_left_label(const std::string &label) override;
-  void set_right_label(const std::string &label) override;
-
-  /**
-   * Update and print progress information status.
-   *
-   * @param force If true, force status refresh and print.
-   */
-  void show_status(bool force = false) override;
+  ~Base_progress() override = default;
 
   /**
    * Update done work value.
    *
    * @param value Absolute value of done work.
    */
-  void current(uint64_t value) override {
+  void set_current(uint64_t value) override {
     m_current = value;
     m_throughput.push(value - m_initial);
     m_changed = true;
   }
 
   /**
-   * Hide progress text.
-   *
-   * @param flag If true, hides/clears the text, false shows it again.
-   */
-  void hide(bool flag) override;
-
-  /**
    * Set total value of work to-do.
    *
    * @param value Absolute value of work to-do.
    */
-  void total(uint64_t value) override { m_total = value; }
+  void set_total(uint64_t value) override { set_total(value, 0); }
 
   /**
    * Set total value of work to-do.
@@ -175,37 +167,59 @@ class Text_progress final : public IProgress {
    * @param value Absolute value of work to-do.
    * @param initial Initial value for "current"
    */
-  void total(uint64_t value, uint64_t initial) override {
+  void set_total(uint64_t value, uint64_t initial) override {
     m_total = value;
     m_initial = initial;
   }
 
-  /**
-   * Finish progress status display.
-   */
-  void shutdown() override;
+  void set_left_label(const std::string &label) override {
+    m_left_label = label;
+  }
 
- private:
-  uint64_t m_initial = 0;
-  uint64_t m_current = 0;
-  uint64_t m_total = 0;
-  bool m_changed = true;
-  Throughput m_throughput;
-  unsigned int m_last_status_size = 0;  //< Last displayed status length
+  void set_right_label(const std::string &label) override {
+    m_right_label = label;
+  }
+
+  virtual void reset(const char *items_full, const char *items_abbrev,
+                     const char *item_singular, const char *item_plural,
+                     bool space_before_item = true,
+                     bool total_is_approx = false);
+
+ protected:
+  /**
+   * Renders progress information status string.
+   */
+  virtual void render_status() = 0;
+
+  /**
+   * Formats current progress.
+   */
+  std::string progress() const;
+
+  /**
+   * Formats current value.
+   */
+  std::string current() const;
+
+  /**
+   * Formats total value.
+   */
+  std::string total() const;
+
+  /**
+   * Formats current throughput.
+   */
+  std::string throughput() const;
+
   std::string m_status;
-  std::string m_prev_status;
-  std::chrono::steady_clock::time_point
-      m_refresh_clock;  //< Last status refresh
-  std::string m_items_full;
-  std::string m_items_abbrev;
-  std::string m_item_singular;
-  std::string m_item_plural;
   std::string m_left_label;
   std::string m_right_label;
-  bool m_space_before_item;
-  bool m_total_is_approx = false;
-  int m_hide = 0;
-  bool was_shown = false;
+  std::chrono::steady_clock::time_point
+      m_refresh_clock;  //< Last status refresh
+  bool m_changed = true;
+
+ private:
+  std::string format_value(uint64_t value) const;
 
   /**
    * Calculates work done to total work to-do ratio.
@@ -223,6 +237,57 @@ class Text_progress final : public IProgress {
    */
   int percent() const noexcept { return ratio() * 100; }
 
+  uint64_t m_initial = 0;
+  uint64_t m_current = 0;
+  uint64_t m_total = 0;
+  Throughput m_throughput;
+  std::string m_items_full;
+  std::string m_items_abbrev;
+  std::string m_item_singular;
+  std::string m_item_plural;
+  bool m_space_before_item;
+  bool m_total_is_approx = false;
+};
+
+/**
+ * Class that generates one-line text progress information.
+ */
+class Text_progress final : public Base_progress {
+ public:
+  using Base_progress::Base_progress;
+
+  Text_progress(const Text_progress &other) = default;
+  Text_progress(Text_progress &&other) = default;
+
+  Text_progress &operator=(const Text_progress &other) = default;
+  Text_progress &operator=(Text_progress &&other) = default;
+
+  ~Text_progress() override = default;
+
+  /**
+   * Update and print progress information status.
+   *
+   * @param force If true, force status refresh and print.
+   */
+  void show_status(bool force = false) override;
+
+  /**
+   * Hide progress text.
+   *
+   * @param flag If true, hides/clears the text, false shows it again.
+   */
+  void hide(bool flag) override;
+
+  /**
+   * Finish progress status display.
+   */
+  void shutdown() override;
+
+ private:
+  void reset(const char *items_full, const char *items_abbrev,
+             const char *item_singular, const char *item_plural,
+             bool space_before_item, bool total_is_approx) override;
+
   /**
    * Erase currently visible progress information status.
    */
@@ -231,22 +296,17 @@ class Text_progress final : public IProgress {
   /**
    * Renders progress information status string.
    */
-  void render_status();
+  void render_status() override;
+
+  unsigned int m_last_status_size = 0;  //< Last displayed status length
+  std::string m_prev_status;
+  int m_hide = 0;
+  bool was_shown = false;
 };
 
-class Json_progress final : public IProgress {
+class Json_progress final : public Base_progress {
  public:
-  Json_progress() : Json_progress("bytes", "B", "B", "B", false) {}
-
-  Json_progress(const char *items_full, const char *items_abbrev,
-                const char *item_singular, const char *item_plural,
-                bool space_before_item = true)
-      : m_status(80, ' '),
-        m_items_full(items_full),
-        m_items_abbrev(items_abbrev),
-        m_item_singular(item_singular),
-        m_item_plural(item_plural),
-        m_space_before_item(space_before_item) {}
+  using Base_progress::Base_progress;
 
   Json_progress(const Json_progress &other) = default;
   Json_progress(Json_progress &&other) = default;
@@ -263,71 +323,14 @@ class Json_progress final : public IProgress {
    */
   void show_status(bool force = false) override;
 
-  /**
-   * Update done work value.
-   *
-   * @param value Absolute value of done work.
-   */
-  void current(uint64_t value) override {
-    m_current = value;
-    m_throughput.push(value - m_initial);
-    m_changed = true;
-  }
-
-  /**
-   * Set total value of work to-do.
-   *
-   * @param value Absolute value of work to-do.
-   */
-  void total(uint64_t value) override { m_total = value; }
-
-  /**
-   * Set total value of work to-do.
-   *
-   * @param value Absolute value of work to-do.
-   * @param initial Initial value for "current"
-   */
-  void total(uint64_t value, uint64_t initial) override {
-    m_total = value;
-    m_initial = initial;
-  }
-
-  void set_left_label(const std::string &label) override {
-    m_left_label = label;
-  }
-
-  void set_right_label(const std::string &label) override {
-    m_right_label = label;
-  }
-
  private:
-  uint64_t m_initial = 0;
-  uint64_t m_current = 0;
-  uint64_t m_total = 0;
-  bool m_changed = true;
-  Throughput m_throughput;
-  std::string m_status;
-  std::chrono::steady_clock::time_point
-      m_refresh_clock;  //< Last status refresh
-  std::string m_items_full;
-  std::string m_items_abbrev;
-  std::string m_item_singular;
-  std::string m_item_plural;
-  std::string m_left_label;
-  std::string m_right_label;
-  bool m_space_before_item;
-
-  double ratio() const noexcept {
-    return (m_total > 0) ? (static_cast<double>(m_current) / m_total) : 0;
-  }
-
-  int percent() const noexcept { return ratio() * 100; }
-
   /**
    * Renders progress information status string.
    */
-  void render_status();
+  void render_status() override;
 };
+
 }  // namespace textui
 }  // namespace mysqlshdk
+
 #endif  // MYSQLSHDK_LIBS_TEXTUI_TEXT_PROGRESS_H_
