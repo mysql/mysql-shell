@@ -245,5 +245,50 @@ bool parse_oci_options(
   return os_bucket_found;
 }
 
+std::string Oci_options::to_string(Unpack_target target) {
+  switch (target) {
+    case OBJECT_STORAGE:
+      return "OBJECT STORAGE";
+
+    case OBJECT_STORAGE_NO_PAR_OPTIONS:
+      return "OBJECT STORAGE NO PAR OPTIONS";
+
+    case OBJECT_STORAGE_NO_PAR_SUPPORT:
+      return "OBJECT STORAGE NO PAR SUPPORT";
+  }
+
+  throw std::logic_error("Should not happen");
+}
+
+const std::string &Oci_options::get_hash() const {
+  if (m_hash.empty()) {
+    m_hash.reserve(512);
+
+    m_hash.append(to_string(target));
+    m_hash.append(1, '-');
+    m_hash.append(oci_region.get_safe());
+    m_hash.append(1, '-');
+    m_hash.append(os_namespace.get_safe());
+    m_hash.append(1, '-');
+    m_hash.append(os_bucket_name.get_safe());
+    m_hash.append(1, '-');
+    m_hash.append(config_path.get_safe());
+    m_hash.append(1, '-');
+    m_hash.append(config_profile.get_safe());
+    m_hash.append(1, '-');
+    m_hash.append(os_par.get_safe());
+    m_hash.append(1, '-');
+    m_hash.append(oci_par_expire_time.get_safe());
+    m_hash.append(1, '-');
+    m_hash.append(std::to_string(part_size.get_safe(0)));
+    m_hash.append(1, '-');
+    m_hash.append(std::to_string(oci_par_manifest.get_safe()));
+    m_hash.append(1, '-');
+    m_hash.append(std::to_string(par_manifest_default));
+  }
+
+  return m_hash;
+}
+
 }  // namespace oci
 }  // namespace mysqlshdk

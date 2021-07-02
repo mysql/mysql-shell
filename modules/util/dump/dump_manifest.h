@@ -73,8 +73,8 @@ class Manifest_writer final : public Manifest_base {
   Manifest_writer(const std::string &base_name,
                   const std::string &par_expire_time,
                   std::unique_ptr<mysqlshdk::storage::IFile> file_handle);
-  void cache_par(const mysqlshdk::oci::PAR &par);
-  void add_par(const mysqlshdk::oci::PAR &par) { m_pars_queue.push(par); }
+  void cache_par(mysqlshdk::oci::PAR &&par);
+  void add_par(mysqlshdk::oci::PAR &&par) { m_pars_queue.push(std::move(par)); }
   std::string serialize() const;
   void flush();
   void finalize();

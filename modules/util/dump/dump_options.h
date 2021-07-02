@@ -216,6 +216,8 @@ class Dump_options {
   // data NOT coming on the user options, i.e. a session
   virtual void validate_options() const {}
 
+  void on_log_options(const char *msg) const;
+
  private:
   virtual void on_set_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) = 0;

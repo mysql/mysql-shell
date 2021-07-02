@@ -214,6 +214,8 @@ class Dumper {
 
   std::unique_ptr<Memory_dumper> dump_users(Schema_dumper *dumper) const;
 
+  void create_schema_metadata_tasks();
+
   void create_schema_ddl_tasks();
 
   void create_table_tasks();
@@ -335,6 +337,8 @@ class Dumper {
   std::atomic<uint64_t> m_num_threads_chunking;
   std::atomic<uint64_t> m_num_threads_dumping;
   std::atomic<uint64_t> m_ddl_written;
+
+  std::atomic<uint64_t> m_schema_metadata_written;
 
   std::atomic<uint64_t> m_table_metadata_to_write;
   std::atomic<uint64_t> m_table_metadata_written;

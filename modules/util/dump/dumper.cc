@@ -550,6 +550,14 @@ class Dumper::Table_worker final {
     push_table_data_task(std::move(data_task));
   }
 
+  void write_schema_metadata(const Schema_info &schema) const {
+    log_info("Writing metadata for schema %s", schema.quoted_name.c_str());
+
+    m_dumper->write_schema_metadata(schema);
+
+    ++m_dumper->m_schema_metadata_written;
+  }
+
   void write_table_metadata(const Table_task &table) {
     log_info("Writing metadata for table %s", table.quoted_name.c_str());
 
@@ -1361,6 +1369,8 @@ void Dumper::do_run() {
 
   initialize_dump();
 
+  create_schema_metadata_tasks();
+
   dump_ddl();
 
   create_schema_ddl_tasks();
@@ -1802,7 +1812,7 @@ void Dumper::initialize_instance_cache_minimal() {
   m_cache = Instance_cache_builder(session(), m_options.included_schemas(),
                                    m_options.included_tables(),
                                    m_options.excluded_schemas(),
-                                   m_options.excluded_tables(), false)
+                                   m_options.excluded_tables(), {}, false)
                 .build();
 }
 
@@ -1810,13 +1820,10 @@ void Dumper::initialize_instance_cache() {
   m_current_stage = m_progress_thread.start_stage("Gathering information");
   shcore::on_leave_scope finish_stage([this]() { m_current_stage->finish(); });
 
-  auto builder =
-      m_cache.schemas.empty()
-          ? Instance_cache_builder(session(), m_options.included_schemas(),
-                                   m_options.included_tables(),
-                                   m_options.excluded_schemas(),
-                                   m_options.excluded_tables())
-          : Instance_cache_builder(session(), std::move(m_cache));
+  auto builder = Instance_cache_builder(
+      session(), m_options.included_schemas(), m_options.included_tables(),
+      m_options.excluded_schemas(), m_options.excluded_tables(),
+      std::move(m_cache));
 
   if (m_options.dump_users()) {
     builder.users(m_options.included_users(), m_options.excluded_users());
@@ -2054,6 +2061,7 @@ void Dumper::initialize_counters() {
   m_num_threads_dumping = 0;
 
   m_ddl_written = 0;
+  m_schema_metadata_written = 0;
   m_table_metadata_to_write = 0;
   m_table_metadata_written = 0;
 }
@@ -2264,6 +2272,27 @@ std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_users(
     m->dump(&Schema_dumper::dump_grants, m_options.included_users(),
             m_options.excluded_users());
   });
+}
+
+void Dumper::create_schema_metadata_tasks() {
+  if (m_options.is_dry_run() || m_options.is_export_only()) {
+    return;
+  }
+
+  Progress_thread::Progress_config config;
+  config.current = [this]() -> uint64_t { return m_schema_metadata_written; };
+  config.total = [this]() { return m_total_schemas; };
+
+  m_current_stage = m_progress_thread.start_stage("Writing schema metadata",
+                                                  std::move(config));
+
+  for (const auto &schema : m_schema_infos) {
+    m_worker_tasks.push({"writing metadata of " + schema.quoted_name,
+                         [&schema](Table_worker *worker) {
+                           worker->write_schema_metadata(schema);
+                         }},
+                        shcore::Queue_priority::HIGH);
+  }
 }
 
 void Dumper::create_schema_ddl_tasks() {
@@ -2526,23 +2555,6 @@ void Dumper::write_metadata() const {
   }
 
   write_dump_started_metadata();
-
-  Progress_thread::Progress_config config;
-  uint64_t schema_metadata_written = 0;
-
-  config.current = [&schema_metadata_written]() -> uint64_t {
-    return schema_metadata_written;
-  };
-  config.total = [this]() { return m_total_schemas; };
-
-  m_current_stage = m_progress_thread.start_stage("Writing schema metadata",
-                                                  std::move(config));
-  shcore::on_leave_scope finish_stage([this]() { m_current_stage->finish(); });
-
-  for (const auto &schema : m_schema_infos) {
-    write_schema_metadata(schema);
-    ++schema_metadata_written;
-  }
 }
 
 void Dumper::write_dump_started_metadata() const {
@@ -3224,6 +3236,14 @@ void Dumper::validate_privileges() const {
     std::string trigger{"TRIGGER"};
     all_required.emplace(trigger);
     table_required.emplace(std::move(trigger));
+  }
+
+  if (!m_cache.server_is_8_0) {
+    // need to explicitly check for SELECT privilege, otherwise some queries
+    // will return empty results
+    std::string select{"SELECT"};
+    all_required.emplace(select);
+    table_required.emplace(std::move(select));
   }
 
   if (m_cache.server_is_5_6 && m_options.dump_users()) {

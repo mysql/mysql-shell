@@ -31,6 +31,7 @@
 #include <io.h>
 #include <windows.h>
 #else  // !_WIN32
+#include <sys/time.h>
 #include <unistd.h>
 #endif  // !_WIN32
 
@@ -262,7 +263,7 @@ std::string Logger::format_message(const Log_entry &entry) {
     gmtime_r(&entry.timestamp, &tm);
 #endif  // !_WIN32
 
-    static constexpr auto date_format = "%Y-%m-%d %H:%M:%S: ";
+    static constexpr auto date_format = "%Y-%m-%d %H:%M:%S";
     strftime(timestamp, sizeof(timestamp), date_format, &tm);
   }
 
@@ -271,6 +272,15 @@ std::string Logger::format_message(const Log_entry &entry) {
   {
     result.reserve(512);
     result += timestamp;
+#ifdef MYSQLSH_PRECISE_TIMESTAMP
+    {
+      timeval now;
+      gettimeofday(&now, nullptr);
+      result += "." + shcore::str_rjust(std::to_string(now.tv_usec), 6, '0');
+    }
+#endif  // MYSQLSH_PRECISE_TIMESTAMP
+    result += ':';
+    result += ' ';
     result += to_string(entry.level);
     result += ':';
     result += ' ';

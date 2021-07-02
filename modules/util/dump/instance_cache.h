@@ -46,6 +46,7 @@ struct Instance_cache {
     std::string quoted_name;
     bool csv_unsafe = false;
     bool generated = false;
+    bool auto_increment = false;
     bool nullable = true;
     mysqlshdk::db::Type type = mysqlshdk::db::Type::Null;
   };
@@ -113,6 +114,7 @@ struct Instance_cache {
   struct View {
     std::string character_set_client;
     std::string collation_connection;
+    std::vector<std::string> all_columns;
   };
 
   struct Schema {
@@ -155,11 +157,8 @@ class Instance_cache_builder final {
       const Object_filters &included_schemas,
       const Table_filters &included_tables,
       const Object_filters &excluded_schemas,
-      const Table_filters &excluded_tables, bool include_metadata = true);
-
-  Instance_cache_builder(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      Instance_cache &&cache, bool include_metadata = true);
+      const Table_filters &excluded_tables, Instance_cache &&cache = {},
+      bool include_metadata = true);
 
   Instance_cache_builder(const Instance_cache_builder &) = delete;
   Instance_cache_builder(Instance_cache_builder &&) = default;
@@ -195,14 +194,9 @@ class Instance_cache_builder final {
     std::string name;
   };
 
-  using Schemas = std::vector<std::string>;
-  using Tables = std::vector<Object>;
+  void filter_schemas();
 
-  void filter_schemas(const Object_filters &included,
-                      const Object_filters &excluded);
-
-  void filter_tables(const Table_filters &included,
-                     const Table_filters &excluded);
+  void filter_tables();
 
   void fetch_metadata();
 
@@ -216,7 +210,7 @@ class Instance_cache_builder final {
 
   void fetch_view_metadata();
 
-  void fetch_table_columns();
+  void fetch_columns();
 
   void fetch_table_indexes();
 
@@ -241,23 +235,51 @@ class Instance_cache_builder final {
                                Instance_cache::View *,
                                const mysqlshdk::db::IRow *)> &callback);
 
-  void set_schemas_list(Schemas &&schemas);
+  void iterate_tables_and_views(
+      const Iterate_table &info,
+      const std::function<void(const std::string &, const std::string &,
+                               Instance_cache::Table *,
+                               const mysqlshdk::db::IRow *)> &table_callback,
+      const std::function<void(const std::string &, const std::string &,
+                               Instance_cache::View *,
+                               const mysqlshdk::db::IRow *)> &view_callback);
 
-  bool has_tables() const { return !m_tables.empty(); }
+  void validate_schemas_list() const;
 
-  bool has_views() const { return !m_views.empty(); }
+  inline bool has_tables() const { return m_has_tables; }
 
-  void add_table(const std::string &schema, const std::string &table);
+  inline void set_has_tables() { m_has_tables = true; }
 
-  void add_view(const std::string &schema, const std::string &view);
+  inline bool has_views() const { return m_has_views; }
+
+  inline void set_has_views() { m_has_views = true; }
+
+  void set_schema_filter(const Object_filters &included,
+                         const Object_filters &excluded);
+
+  void set_table_filter(const Table_filters &included,
+                        const Table_filters &excluded);
+
+  std::string schema_filter(const std::string &schema_column) const;
+
+  std::string schema_filter(const Iterate_schema &info) const;
+
+  std::string table_filter(const std::string &schema_column,
+                           const std::string &table_column) const;
+
+  std::string schema_and_table_filter(const Iterate_table &info) const;
 
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 
   Instance_cache m_cache;
 
-  Schemas m_schemas;
-  Tables m_tables;
-  Tables m_views;
+  std::string m_schema_filter;
+
+  std::string m_table_filter;
+
+  bool m_has_tables = false;
+
+  bool m_has_views = false;
 };
 
 }  // namespace dump

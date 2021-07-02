@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,7 +35,8 @@ const shcore::Option_pack_def<Dump_tables_options>
   static const auto opts =
       shcore::Option_pack_def<Dump_tables_options>()
           .include<Ddl_dumper_options>()
-          .optional("all", &Dump_tables_options::m_dump_all);
+          .optional("all", &Dump_tables_options::m_dump_all)
+          .on_log(&Dump_tables_options::on_log_options);
 
   return opts;
 }

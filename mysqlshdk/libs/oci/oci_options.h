@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,6 +60,9 @@ struct Oci_options {
     OBJECT_STORAGE_NO_PAR_OPTIONS,
     OBJECT_STORAGE_NO_PAR_SUPPORT
   };
+
+  static std::string to_string(Unpack_target target);
+
   explicit operator bool() const {
     return !os_bucket_name.get_safe().empty() || !os_par.get_safe().empty();
   }
@@ -85,6 +88,8 @@ struct Oci_options {
   void set_par_manifest_default(bool value) { par_manifest_default = value; }
   const mysqlshdk::null_string &get_par() const { return os_par; }
 
+  const std::string &get_hash() const;
+
  private:
   static std::mutex s_tenancy_name_mutex;
   static std::map<std::string, std::string> s_tenancy_names;
@@ -102,6 +107,7 @@ struct Oci_options {
   mysqlshdk::utils::nullable<std::string> os_par;
   std::vector<std::string> par_data;
   bool par_manifest_default = false;
+  mutable std::string m_hash;
 };
 
 /**

@@ -244,9 +244,11 @@ class Schema_dumper {
                                 const std::string &name, std::string *ddl,
                                 std::vector<Issue> *issues);
 
-  std::vector<Issue> get_table_structure(
-      IFile *sql_file, const std::string &table, const std::string &db,
-      std::string *out_table_type, char *ignore_flag, bool real_columns[]);
+  std::vector<Issue> get_table_structure(IFile *sql_file,
+                                         const std::string &table,
+                                         const std::string &db,
+                                         std::string *out_table_type,
+                                         char *ignore_flag);
 
   std::vector<Issue> dump_trigger(
       IFile *sql_file,

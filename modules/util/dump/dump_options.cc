@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,7 +53,8 @@ const shcore::Option_pack_def<Dump_options> &Dump_options::options() {
           .optional("maxRate", &Dump_options::set_string_option)
           .optional("showProgress", &Dump_options::m_show_progress)
           .optional("compression", &Dump_options::set_string_option)
-          .optional("defaultCharacterSet", &Dump_options::m_character_set);
+          .optional("defaultCharacterSet", &Dump_options::m_character_set)
+          .on_log(&Dump_options::on_log_options);
 
   return opts;
 }
@@ -86,6 +87,10 @@ void Dump_options::set_oci_options(
   m_oci_options = oci_options;
 
   m_oci_options.check_option_values();
+}
+
+void Dump_options::on_log_options(const char *msg) const {
+  log_info("Dump options: %s", msg);
 }
 
 void Dump_options::set_session(

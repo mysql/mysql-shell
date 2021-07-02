@@ -120,10 +120,11 @@ Manifest_writer::Manifest_writer(
             // If any cleanup is to be done, this is the place. OTOH the
             // pars are prefixed with shell-dump-<prefix> so they can be
             // identified.
+            flush();
             break;
           } else {
             // If PAR is received, adds it to the cache
-            cache_par(par);
+            cache_par(std::move(par));
 
             auto waited_for =
                 std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -134,8 +135,10 @@ Manifest_writer::Manifest_writer(
             // - When close() is called
             // - Or if waited for five seconds and new PARs arrived in the
             //   mean time
-            if (last_count == 0 || (waited_for >= five_seconds &&
-                                    last_count < m_par_cache.size())) {
+            if (last_count == 0 ||
+                (waited_for >= five_seconds &&
+                 last_count < m_par_cache.size()) ||
+                is_complete()) {
               last_update = std::chrono::system_clock::now();
               try {
                 flush();
@@ -154,10 +157,10 @@ Manifest_writer::Manifest_writer(
       }));
 }
 
-void Manifest_writer::cache_par(const mysqlshdk::oci::PAR &par) {
+void Manifest_writer::cache_par(mysqlshdk::oci::PAR &&par) {
   if (!par.name.empty()) {
     if (shcore::str_endswith(par.name, k_at_done_json)) m_complete = true;
-    m_par_cache.emplace_back(par);
+    m_par_cache.emplace_back(std::move(par));
   }
 }
 
@@ -228,7 +231,6 @@ void Manifest_writer::finalize() {
     m_pars_queue.push(std::move(done_guard));
     m_par_thread->join();
     m_par_thread.reset();
-    flush();
   }
 }
 
@@ -270,6 +272,7 @@ void Manifest_reader::reload() {
   // If the manifest is fully loaded, avoids rework
   if (is_complete()) return;
 
+  m_file->open(mysqlshdk::storage::Mode::READ);
   size_t new_size = m_file->file_size();
 
   if (m_last_manifest_size != new_size) {
@@ -277,10 +280,11 @@ void Manifest_reader::reload() {
     buffer.resize(new_size);
     m_last_manifest_size = new_size;
 
-    m_file->open(mysqlshdk::storage::Mode::READ);
     m_file->read(&buffer[0], new_size);
     unserialize(buffer);
   }
+
+  m_file->close();
 }
 
 std::vector<IDirectory::File_info> Manifest_base::list_objects() {
@@ -488,9 +492,9 @@ mysqlshdk::Masked_string Dump_manifest_object::full_path() const {
 void Dump_manifest_object::open(mysqlshdk::storage::Mode mode) {
   if (m_manifest->get_mode() == Manifest_mode::WRITE) {
     // The PAR creation is done in parallel
-    auto options = m_bucket->get_options();
+    const auto &options = m_bucket->get_options();
     m_par_thread = std::make_unique<std::thread>(mysqlsh::spawn_scoped_thread(
-        [this, options]() { create_par(options); }));
+        [this, &options]() { create_par(options); }));
   }
 
   Object::open(mode);
@@ -522,7 +526,7 @@ void Dump_manifest_object::close() {
     auto writer = manifest_writer(m_manifest);
 
     if (m_par) {
-      writer->add_par(*m_par.get());
+      writer->add_par(std::move(*m_par));
     } else {
       try {
         this->remove();
@@ -578,8 +582,7 @@ void Dump_manifest_object::create_par(
     auto par = bucket.create_pre_authenticated_request(
         mysqlshdk::oci::PAR_access_type::OBJECT_READ, expire_time.c_str(),
         par_name, name);
-
-    m_par = std::make_unique<mysqlshdk::oci::PAR>(par);
+    m_par = std::make_unique<mysqlshdk::oci::PAR>(std::move(par));
   } catch (const mysqlshdk::oci::Response_error &error) {
     m_par_thread_error = error.what();
     log_error("Error creating PAR for object '%s': %s", name.c_str(),

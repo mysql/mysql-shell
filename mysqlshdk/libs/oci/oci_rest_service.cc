@@ -42,6 +42,9 @@ std::string service_identifier(Oci_service service) {
 }
 
 namespace {
+
+constexpr time_t k_header_cache_ttl = 60;
+
 std::string sign(EVP_PKEY *sigkey, const std::string &string_to_sign) {
 // EVP_MD_CTX_create() and EVP_MD_CTX_destroy() were renamed to EVP_MD_CTX_new()
 // and EVP_MD_CTX_free() in OpenSSL 1.1.
@@ -156,6 +159,21 @@ void log_failed_response(const Headers &headers, Base_response_buffer *buffer) {
   log_info("RESPONSE BODY:\n%s", buffer->size() ? buffer->data() : "<EMPTY>");
 }
 
+mysqlshdk::rest::Rest_service *get_rest_service(const std::string &uri,
+                                                const std::string &label) {
+  static thread_local std::unordered_map<
+      std::string, std::unique_ptr<mysqlshdk::rest::Rest_service>>
+      services;
+
+  auto &service = services[uri];
+
+  if (!service) {
+    service = std::make_unique<mysqlshdk::rest::Rest_service>(uri, true, label);
+  }
+
+  return service.get();
+}
+
 }  // namespace
 
 Oci_rest_service::Oci_rest_service(Oci_service service,
@@ -202,25 +220,22 @@ Oci_rest_service::Oci_rest_service(Oci_service service,
     m_auth_keyId = m_tenancy_id + "/" + user_id + "/" + fingerprint;
   }
 
-  m_service = service;
+  set_service(service);
 }
 
 void Oci_rest_service::set_service(Oci_service service) {
-  if (!m_rest || m_service != service) {
-    switch (service) {
-      case Oci_service::IDENTITY:
-        m_host = "identity." + m_region + ".oraclecloud.com";
-        break;
-      case Oci_service::OBJECT_STORAGE:
-        m_host = "objectstorage." + m_region + ".oraclecloud.com";
-        break;
-    }
-
-    m_service = service;
-
-    m_rest = std::make_unique<mysqlshdk::rest::Rest_service>(
-        "https://" + m_host, true, service_identifier(service));
+  switch (service) {
+    case Oci_service::IDENTITY:
+      m_host = "identity." + m_region + ".oraclecloud.com";
+      break;
+    case Oci_service::OBJECT_STORAGE:
+      m_host = "objectstorage." + m_region + ".oraclecloud.com";
+      break;
   }
+
+  m_service = service;
+  m_service_label = service_identifier(m_service);
+  m_end_point = "https://" + m_host;
 }
 
 Response::Status_code Oci_rest_service::get(const Masked_string &path,
@@ -266,20 +281,49 @@ Response::Status_code Oci_rest_service::delete_(const Masked_string &path,
   return execute(Type::DELETE, path, body, size, headers);
 }
 
+void Oci_rest_service::clear_cache(time_t now) {
+  if (0 == m_cache_cleared_at) {
+    m_cache_cleared_at = now;
+  }
+
+  if (now - m_cache_cleared_at > k_header_cache_ttl) {
+    std::vector<std::pair<std::reference_wrapper<const std::string>, Type>>
+        entries;
+
+    for (const auto &path : m_signed_header_cache_time) {
+      for (const auto &method : path.second) {
+        if (now - method.second > k_header_cache_ttl) {
+          entries.emplace_back(path.first, method.first);
+        }
+      }
+    }
+
+    log_debug("Removing %zu entries from header cache", entries.size());
+
+    for (const auto &entry : entries) {
+      auto &cached_path = m_signed_header_cache_time[entry.first];
+
+      m_cached_header[entry.first].erase(entry.second);
+      cached_path.erase(entry.second);
+
+      if (cached_path.empty()) {
+        m_cached_header.erase(entry.first);
+        m_signed_header_cache_time.erase(entry.first);
+      }
+    }
+
+    m_cache_cleared_at = now;
+  }
+}
+
 Headers Oci_rest_service::make_header(Type method, const std::string &path,
                                       const char *body, size_t size,
                                       const Headers headers) {
   time_t now = time(nullptr);
 
-  if (m_signed_header_cache_time.find(path) ==
-      m_signed_header_cache_time.end()) {
-    if (m_signed_header_cache_time[path].find(method) ==
-        m_signed_header_cache_time[path].end()) {
-      m_signed_header_cache_time[path][method] = 0;
-    }
-  }
+  clear_cache(now);
 
-  Headers all_headers;
+  auto &cached_time = m_signed_header_cache_time[path][method];
 
   // Maximum Allowed Client Clock Skew from the server's clock for OCI
   // requests is 5 minutes. We can exploit that feature to cache auth header,
@@ -287,8 +331,9 @@ Headers Oci_rest_service::make_header(Type method, const std::string &path,
   //
   // PUT and POST requests are exceptions as the signature includes the body
   // sha256
-  if (now - m_signed_header_cache_time[path][method] > 60 ||
-      method == Type::POST) {
+  if (now - cached_time > k_header_cache_ttl || method == Type::POST) {
+    Headers all_headers;
+
     const auto date = mysqlshdk::utils::fmttime(
         "%a, %d %b %Y %H:%M:%S GMT", mysqlshdk::utils::Time_type::GMT, &now);
 
@@ -323,12 +368,12 @@ Headers Oci_rest_service::make_header(Type method, const std::string &path,
                        "\",algorithm=\"rsa-sha256\",signature=\"" +
                        signature_b64 + "\"");
 
-    m_signed_header_cache_time[path][method] = now;
+    cached_time = now;
 
-    all_headers["authorization"] = auth_header;
-    all_headers["x-date"] = date;
+    all_headers["authorization"] = std::move(auth_header);
+    all_headers["x-date"] = std::move(date);
 
-    m_cached_header[path][method] = all_headers;
+    m_cached_header[path][method] = std::move(all_headers);
   }
 
   auto final_headers = m_cached_header[path][method];
@@ -347,7 +392,7 @@ Response::Status_code Oci_rest_service::execute(
     Headers *response_headers, bool sign_request) {
   Headers rheaders;
 
-  if (!m_rest) set_service(m_service);
+  const auto rest = get_rest_service(end_point(), m_service_label);
 
   if (!response_headers) response_headers = &rheaders;
 
@@ -367,8 +412,8 @@ Response::Status_code Oci_rest_service::execute(
 
   try {
     auto code =
-        m_rest->execute(type, path, body, size, headers_to_send,
-                        response_buffer_ptr, response_headers, &retry_strategy);
+        rest->execute(type, path, body, size, headers_to_send,
+                      response_buffer_ptr, response_headers, &retry_strategy);
 
     mysqlshdk::rest::Response::check_and_throw(code, *response_headers,
                                                response_buffer_ptr->data(),

@@ -208,7 +208,7 @@ class Object : public mysqlshdk::storage::IFile {
    * Returns the size of the object.
    *
    * If the object was opened in READ mode it returns the total size of the
-   * object, otherwize returns the number of bytes written so far.
+   * object, otherwise returns the number of bytes written so far.
    */
   size_t file_size() const override;
 
@@ -304,7 +304,7 @@ class Object : public mysqlshdk::storage::IFile {
    */
   class File_handler {
    public:
-    explicit File_handler(Object *owner) : m_object(owner), m_size(0){};
+    explicit File_handler(Object *owner) : m_object(owner), m_size(0) {}
     size_t size() const { return m_size; }
 
    protected:
@@ -323,7 +323,6 @@ class Object : public mysqlshdk::storage::IFile {
     off64_t seek(off64_t offset);
     off64_t tell() const;
     ssize_t write(const void *incoming, size_t length);
-    size_t size() const { return m_size; }
     void close();
 
    private:
@@ -345,7 +344,6 @@ class Object : public mysqlshdk::storage::IFile {
     off64_t seek(off64_t offset);
     off64_t tell() const;
     ssize_t read(void *buffer, size_t length);
-    size_t size() const { return m_size; }
 
    private:
     off64_t m_offset;

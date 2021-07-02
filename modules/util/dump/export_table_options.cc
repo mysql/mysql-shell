@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,7 +41,8 @@ const shcore::Option_pack_def<Export_table_options>
           .include<Dump_options>()
           .include(&Export_table_options::m_dialect_unpacker)
           .include(&Export_table_options::m_oci_option_unpacker)
-          .on_done(&Export_table_options::on_unpacked_options);
+          .on_done(&Export_table_options::on_unpacked_options)
+          .on_log(&Export_table_options::on_log_options);
 
   return opts;
 }

@@ -1131,6 +1131,7 @@ TEST_F(Instance_cache_test, view_metadata) {
       const auto &one = cache.schemas.at("second").views.at("one");
       EXPECT_EQ("latin1", one.character_set_client);
       EXPECT_EQ("latin1_spanish_ci", one.collation_connection);
+      EXPECT_EQ(std::vector<std::string>{"id"}, one.all_columns);
     }
 
     {
@@ -2862,11 +2863,12 @@ TEST_F(Instance_cache_test, bug32540460) {
   {
     // create the cache, do not fetch metadata, this will return just list of
     // schemas, tables and views
-    auto cache =
-        Instance_cache_builder(m_session, {}, {}, excluded_schemas, {}, false)
-            .build();
+    auto cache = Instance_cache_builder(m_session, {}, {}, excluded_schemas, {},
+                                        {}, false)
+                     .build();
     // recreate the cache, use the existing one, fetch metadata
-    auto builder = Instance_cache_builder(m_session, std::move(cache));
+    auto builder = Instance_cache_builder(m_session, {}, {}, excluded_schemas,
+                                          {}, std::move(cache), true);
     cache = builder.build();
 
     EXPECT_EQ(schemas, cache.schemas.size());

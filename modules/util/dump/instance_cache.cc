@@ -33,6 +33,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -41,6 +42,47 @@
 
 namespace mysqlsh {
 namespace dump {
+
+namespace {
+
+// ASCII NUL (U+0000) is not permitted in quoted or unquoted identifiers
+const std::string k_template_marker{"\0", 1};
+const std::string k_schema_var{"s"};
+const std::string k_schema_template =
+    k_template_marker + k_schema_var + k_template_marker;
+const std::string k_table_var{"t"};
+const std::string k_table_template =
+    k_template_marker + k_table_var + k_template_marker;
+
+class Profiler final {
+ public:
+  Profiler() = delete;
+
+  explicit Profiler(const char *msg) : m_msg(msg) {
+    log_debug("-> %s", m_msg);
+
+    m_timer.stage_begin(m_msg);
+  }
+
+  Profiler(const Profiler &) = delete;
+  Profiler(Profiler &&) = delete;
+
+  Profiler &operator=(const Profiler &) = delete;
+  Profiler &operator=(Profiler &&) = delete;
+
+  ~Profiler() {
+    m_timer.stage_end();
+
+    log_debug("<- %s took %f seconds", m_msg, m_timer.total_seconds_elapsed());
+  }
+
+ private:
+  const char *m_msg = nullptr;
+
+  mysqlshdk::utils::Profile_timer m_timer;
+};
+
+}  // namespace
 
 void Instance_cache::Index::reset() {
   m_columns.clear();
@@ -98,37 +140,21 @@ struct Instance_cache_builder::Query_helper {
     return case_sensitive_compare(column, c.begin(), c.end(), equals);
   }
 
-  static std::string build_query(const Iterate_schema &info) {
-    std::string query;
+  static std::string build_query(const Iterate_schema &info,
+                                 const std::string &filter) {
+    std::string query = "SELECT " + info.schema_column;
 
-    query = "SELECT " + info.schema_column;
-
-    if (!info.extra_columns.empty()) {
-      query += "," + shcore::str_join(info.extra_columns, ",");
-    }
-
-    query += " FROM information_schema." + info.table_name + " WHERE ";
-
-    if (!info.where.empty()) {
-      query += info.where + " AND ";
-    }
+    build_query(info, filter, &query);
 
     return query;
   }
 
-  static std::string build_query(const Iterate_table &info) {
+  static std::string build_query(const Iterate_table &info,
+                                 const std::string &filter) {
     std::string query =
         "SELECT " + info.schema_column + "," + info.table_column;
 
-    if (!info.extra_columns.empty()) {
-      query += "," + shcore::str_join(info.extra_columns, ",");
-    }
-
-    query += " FROM information_schema." + info.table_name + " WHERE ";
-
-    if (!info.where.empty()) {
-      query += info.where + " AND ";
-    }
+    build_query(info, filter, &query);
 
     return query;
   }
@@ -179,6 +205,26 @@ struct Instance_cache_builder::Query_helper {
 
     return filter;
   }
+
+ private:
+  static void build_query(const Iterate_schema &info, const std::string &filter,
+                          std::string *query) {
+    if (!info.extra_columns.empty()) {
+      *query += "," + shcore::str_join(info.extra_columns, ",");
+    }
+
+    *query += " FROM information_schema." + info.table_name;
+
+    if (!info.where.empty() || !filter.empty()) {
+      *query += " WHERE " + info.where;
+
+      if (!info.where.empty() && !filter.empty()) {
+        *query += " AND ";
+      }
+
+      *query += filter;
+    }
+  }
 };
 
 Instance_cache_builder::Instance_cache_builder(
@@ -186,38 +232,35 @@ Instance_cache_builder::Instance_cache_builder(
     const Object_filters &included_schemas,
     const Table_filters &included_tables,
     const Object_filters &excluded_schemas,
-    const Table_filters &excluded_tables, bool include_metadata)
-    : m_session(session) {
-  fetch_version();
-  fetch_explain_select_rows_index();
-
-  filter_schemas(included_schemas, excluded_schemas);
-  filter_tables(included_tables, excluded_tables);
-
-  if (include_metadata) {
-    fetch_metadata();
-  }
-}
-
-Instance_cache_builder::Instance_cache_builder(
-    const std::shared_ptr<mysqlshdk::db::ISession> &session,
-    Instance_cache &&cache, bool include_metadata)
+    const Table_filters &excluded_tables, Instance_cache &&cache,
+    bool include_metadata)
     : m_session(session), m_cache(std::move(cache)) {
-  Schemas schemas;
+  set_schema_filter(included_schemas, excluded_schemas);
+  set_table_filter(included_tables, excluded_tables);
 
   for (const auto &schema : m_cache.schemas) {
-    schemas.emplace_back(schema.first);
-
-    for (const auto &table : schema.second.tables) {
-      add_table(schema.first, table.first);
+    if (!schema.second.tables.empty()) {
+      set_has_tables();
     }
 
-    for (const auto &view : schema.second.views) {
-      add_view(schema.first, view.first);
+    if (!schema.second.views.empty()) {
+      set_has_views();
+    }
+
+    if (has_tables() && has_views()) {
+      break;
     }
   }
 
-  set_schemas_list(std::move(schemas));
+  if (m_cache.schemas.empty()) {
+    fetch_version();
+    fetch_explain_select_rows_index();
+
+    filter_schemas();
+    filter_tables();
+  }
+
+  validate_schemas_list();
 
   if (include_metadata) {
     fetch_metadata();
@@ -226,6 +269,8 @@ Instance_cache_builder::Instance_cache_builder(
 
 Instance_cache_builder &Instance_cache_builder::users(const Users &included,
                                                       const Users &excluded) {
+  Profiler profiler{"fetching users"};
+
   Schema_dumper sd{m_session};
 
   m_cache.users = sd.get_users(included, excluded);
@@ -235,6 +280,8 @@ Instance_cache_builder &Instance_cache_builder::users(const Users &included,
 }
 
 Instance_cache_builder &Instance_cache_builder::events() {
+  Profiler profiler{"fetching events"};
+
   Iterate_schema info;
   info.schema_column = "EVENT_SCHEMA";  // NOT NULL
   info.extra_columns = {
@@ -251,6 +298,8 @@ Instance_cache_builder &Instance_cache_builder::events() {
 }
 
 Instance_cache_builder &Instance_cache_builder::routines() {
+  Profiler profiler{"fetching routines"};
+
   Iterate_schema info;
   info.schema_column = "ROUTINE_SCHEMA";  // NOT NULL
   info.extra_columns = {
@@ -275,6 +324,8 @@ Instance_cache_builder &Instance_cache_builder::routines() {
 }
 
 Instance_cache_builder &Instance_cache_builder::triggers() {
+  Profiler profiler{"fetching triggers"};
+
   if (has_tables()) {
     Iterate_table info;
     info.schema_column = "TRIGGER_SCHEMA";     // NOT NULL
@@ -317,6 +368,8 @@ Instance_cache_builder &Instance_cache_builder::triggers() {
 }
 
 Instance_cache_builder &Instance_cache_builder::binlog_info() {
+  Profiler profiler{"fetching binlog info"};
+
   try {
     const auto result = m_session->query("SHOW MASTER STATUS;");
 
@@ -338,51 +391,36 @@ Instance_cache_builder &Instance_cache_builder::binlog_info() {
 
 Instance_cache Instance_cache_builder::build() { return std::move(m_cache); }
 
-void Instance_cache_builder::filter_schemas(const Object_filters &included,
-                                            const Object_filters &excluded) {
+void Instance_cache_builder::filter_schemas() {
+  Profiler profiler{"filtering schemas"};
+
   std::string query =
       "SELECT "
       "SCHEMA_NAME,"             // NOT NULL
       "DEFAULT_COLLATION_NAME "  // NOT NULL
       "FROM information_schema.schemata";
 
-  if (!included.empty() || !excluded.empty()) {
-    query += " WHERE ";
+  const auto filter = schema_filter("SCHEMA_NAME");
+
+  if (!filter.empty()) {
+    query += " WHERE " + filter;
   }
-
-  const std::string schema_column = "SCHEMA_NAME";
-
-  if (!included.empty()) {
-    query += QH::case_sensitive_compare(schema_column, included, true);
-  }
-
-  if (!excluded.empty()) {
-    if (!included.empty()) {
-      query += " AND ";
-    }
-
-    query += QH::case_sensitive_compare(schema_column, excluded, false);
-  }
-
-  Schemas schemas;
 
   {
     const auto result = m_session->query(query);
 
     while (const auto row = result->fetch_one()) {
-      auto schema = row->get_string(0);  // SCHEMA_NAME
+      const auto schema = row->get_string(0);  // SCHEMA_NAME
 
       m_cache.schemas[schema].collation =
           row->get_string(1);  // DEFAULT_COLLATION_NAME
-      schemas.emplace_back(std::move(schema));
     }
   }
-
-  set_schemas_list(std::move(schemas));
 }
 
-void Instance_cache_builder::filter_tables(const Table_filters &included,
-                                           const Table_filters &excluded) {
+void Instance_cache_builder::filter_tables() {
+  Profiler profiler{"filtering tables"};
+
   const std::string schema_column = "TABLE_SCHEMA";
   const std::string table_column = "TABLE_NAME";
 
@@ -398,60 +436,50 @@ void Instance_cache_builder::filter_tables(const Table_filters &included,
       "TABLE_COMMENT"    // can be NULL in 8.0
   };
   info.table_name = "tables";
+  info.where = table_filter(schema_column, table_column);
 
-  if (!included.empty()) {
-    info.where +=
-        "(" + QH::build_objects_filter(included, schema_column, table_column) +
-        ")";
-  }
+  iterate_schemas(
+      info, [this](const std::string &, Instance_cache::Schema *schema,
+                   const mysqlshdk::db::IRow *row) {
+        const auto table_name = row->get_string(1);  // TABLE_NAME
+        const auto table_type = row->get_string(2);  // TABLE_TYPE
 
-  for (const auto &schema : excluded) {
-    if (!info.where.empty()) {
-      info.where += " AND ";
-    }
+        if ("BASE TABLE" == table_type) {
+          auto &table = schema->tables[table_name];
+          table.row_count = row->get_uint(3, 0);           // TABLE_ROWS
+          table.average_row_length = row->get_uint(4, 0);  // AVG_ROW_LENGTH
+          table.engine = row->get_string(5, "");           // ENGINE
+          table.create_options = row->get_string(6, "");   // CREATE_OPTIONS
+          table.comment = row->get_string(7, "");          // TABLE_COMMENT
 
-    info.where += "NOT " + QH::match_tables(schema.first, schema.second,
-                                            schema_column, table_column);
-  }
+          set_has_tables();
 
-  iterate_schemas(info, [this](const std::string &schema_name,
-                               Instance_cache::Schema *schema,
-                               const mysqlshdk::db::IRow *row) {
-    const auto table_name = row->get_string(1);  // TABLE_NAME
-    const auto table_type = row->get_string(2);  // TABLE_TYPE
+          DBUG_EXECUTE_IF("dumper_average_row_length_0",
+                          { table.average_row_length = 0; });
+        } else if ("VIEW" == table_type) {
+          // nop, just to insert the view
+          schema->views[table_name].character_set_client.clear();
 
-    if ("BASE TABLE" == table_type) {
-      auto &table = schema->tables[table_name];
-      table.row_count = row->get_uint(3, 0);           // TABLE_ROWS
-      table.average_row_length = row->get_uint(4, 0);  // AVG_ROW_LENGTH
-      table.engine = row->get_string(5, "");           // ENGINE
-      table.create_options = row->get_string(6, "");   // CREATE_OPTIONS
-      table.comment = row->get_string(7, "");          // TABLE_COMMENT
-
-      add_table(schema_name, table_name);
-
-      DBUG_EXECUTE_IF("dumper_average_row_length_0",
-                      { table.average_row_length = 0; });
-    } else if ("VIEW" == table_type) {
-      // nop, just to insert the view
-      schema->views[table_name].character_set_client.clear();
-
-      add_view(schema_name, table_name);
-    }
-  });
+          set_has_views();
+        }
+      });
 }
 
 void Instance_cache_builder::fetch_metadata() {
+  Profiler profiler{"fetching metadata"};
+
   fetch_ndbinfo();
   fetch_server_metadata();
   fetch_view_metadata();
-  fetch_table_columns();
+  fetch_columns();
   fetch_table_indexes();
   fetch_table_histograms();
   fetch_table_partitions();
 }
 
 void Instance_cache_builder::fetch_version() {
+  Profiler profiler{"fetching version"};
+
   const auto result = m_session->query("SELECT @@GLOBAL.VERSION;");
 
   if (const auto row = result->fetch_one()) {
@@ -477,6 +505,8 @@ void Instance_cache_builder::fetch_explain_select_rows_index() {
 }
 
 void Instance_cache_builder::fetch_server_metadata() {
+  Profiler profiler{"fetching server metadata"};
+
   const auto &co = m_session->get_connection_options();
 
   m_cache.user = co.get_user();
@@ -508,6 +538,8 @@ void Instance_cache_builder::fetch_server_metadata() {
 }
 
 void Instance_cache_builder::fetch_ndbinfo() {
+  Profiler profiler{"fetching ndbinfo"};
+
   try {
     const auto result =
         m_session->query("SHOW VARIABLES LIKE 'ndbinfo\\_version'");
@@ -518,6 +550,8 @@ void Instance_cache_builder::fetch_ndbinfo() {
 }
 
 void Instance_cache_builder::fetch_view_metadata() {
+  Profiler profiler{"fetching view metadata"};
+
   if (!has_views()) {
     return;
   }
@@ -539,8 +573,10 @@ void Instance_cache_builder::fetch_view_metadata() {
   });
 }
 
-void Instance_cache_builder::fetch_table_columns() {
-  if (!has_tables()) {
+void Instance_cache_builder::fetch_columns() {
+  Profiler profiler{"fetching columns"};
+
+  if (!has_tables() && !has_views()) {
     return;
   }
 
@@ -561,36 +597,51 @@ void Instance_cache_builder::fetch_table_columns() {
   std::unordered_map<
       std::string, std::unordered_map<
                        std::string, std::map<uint64_t, Instance_cache::Column>>>
-      columns;
+      table_columns;
+  // schema -> view -> columns
+  std::unordered_map<
+      std::string,
+      std::unordered_map<std::string, std::map<uint64_t, std::string>>>
+      view_columns;
 
-  iterate_tables(info, [&columns](const std::string &schema_name,
-                                  const std::string &table_name,
-                                  Instance_cache::Table *,
-                                  const mysqlshdk::db::IRow *row) {
-    Instance_cache::Column column;
-    // these can be NULL in 8.0, as per output of 'SHOW COLUMNS', but it's
-    // not likely, as they're NOT NULL in definition of mysql.columns hidden
-    // table
-    column.name = row->get_string(2, "");  // COLUMN_NAME
-    column.quoted_name = shcore::quote_identifier(column.name);
-    const auto data_type = row->get_string(3, "");  // DATA_TYPE
-    column.type = mysqlshdk::db::dbstring_to_type(
-        data_type, row->get_string(6));  // COLUMN_TYPE
-    column.csv_unsafe =
-        shcore::str_iendswith(data_type.c_str(), "binary", "blob") ||
-        mysqlshdk::db::Type::Bit == column.type ||
-        mysqlshdk::db::Type::Geometry == column.type;
-    column.generated = row->get_string(7, "").find(" GENERATED") !=
-                       std::string::npos;  // EXTRA
-    column.nullable =
-        shcore::str_caseeq(row->get_string(5).c_str(), "YES");  // IS_NULLABLE
+  iterate_tables_and_views(
+      info,
+      [&table_columns](const std::string &schema_name,
+                       const std::string &table_name, Instance_cache::Table *,
+                       const mysqlshdk::db::IRow *row) {
+        Instance_cache::Column column;
+        // these can be NULL in 8.0, as per output of 'SHOW COLUMNS', but it's
+        // not likely, as they're NOT NULL in definition of mysql.columns hidden
+        // table
+        column.name = row->get_string(2, "");  // COLUMN_NAME
+        column.quoted_name = shcore::quote_identifier(column.name);
+        const auto data_type = row->get_string(3, "");  // DATA_TYPE
+        column.type = mysqlshdk::db::dbstring_to_type(
+            data_type, row->get_string(6));  // COLUMN_TYPE
+        column.csv_unsafe =
+            shcore::str_iendswith(data_type.c_str(), "binary", "blob") ||
+            mysqlshdk::db::Type::Bit == column.type ||
+            mysqlshdk::db::Type::Geometry == column.type;
+        const auto extra = row->get_string(7, "");  // EXTRA
+        column.generated = extra.find(" GENERATED") != std::string::npos;
+        column.auto_increment =
+            extra.find("auto_increment") != std::string::npos;
+        column.nullable = shcore::str_caseeq(row->get_string(5).c_str(),
+                                             "YES");  // IS_NULLABLE
 
-    columns[schema_name][table_name].emplace(
-        row->get_uint(4),
-        std::move(column));  // ORDINAL_POSITION
-  });
+        table_columns[schema_name][table_name].emplace(
+            row->get_uint(4),
+            std::move(column));  // ORDINAL_POSITION
+      },
+      [&view_columns](const std::string &schema_name,
+                      const std::string &view_name, Instance_cache::View *,
+                      const mysqlshdk::db::IRow *row) {
+        view_columns[schema_name][view_name].emplace(
+            row->get_uint(4),
+            row->get_string(2, ""));  // ORDINAL_POSITION, COLUMN_NAME
+      });
 
-  for (auto &schema : columns) {
+  for (auto &schema : table_columns) {
     auto &s = m_cache.schemas.at(schema.first);
 
     for (auto &table : schema.second) {
@@ -607,9 +658,25 @@ void Instance_cache_builder::fetch_table_columns() {
       }
     }
   }
+
+  for (auto &schema : view_columns) {
+    auto &s = m_cache.schemas.at(schema.first);
+
+    for (auto &view : schema.second) {
+      auto &v = s.views.at(view.first);
+
+      v.all_columns.reserve(view.second.size());
+
+      for (auto &column : view.second) {
+        v.all_columns.emplace_back(std::move(column.second));
+      }
+    }
+  }
 }
 
 void Instance_cache_builder::fetch_table_indexes() {
+  Profiler profiler{"fetching table indexes"};
+
   if (!has_tables()) {
     return;
   }
@@ -762,6 +829,8 @@ void Instance_cache_builder::fetch_table_indexes() {
 }
 
 void Instance_cache_builder::fetch_table_histograms() {
+  Profiler profiler{"fetching table histograms"};
+
   if (!has_tables() || !m_cache.server_is_8_0) {
     return;
   }
@@ -832,48 +901,108 @@ void Instance_cache_builder::iterate_schemas(
     const Iterate_schema &info,
     const std::function<void(const std::string &, Instance_cache::Schema *,
                              const mysqlshdk::db::IRow *)> &callback) {
-  const auto query = QH::build_query(info);
+  Profiler profiler{"iterating schemas"};
 
-  auto begin = m_schemas.begin();
-  const auto end = m_schemas.end();
-  auto size = m_schemas.size();
+  const auto result =
+      m_session->query(QH::build_query(info, schema_filter(info)));
 
-  while (end != begin) {
-    size = std::min<decltype(size)>(size, std::distance(begin, end));
+  std::string current_schema;
+  Instance_cache::Schema *schema = nullptr;
 
-    try {
-      const auto full_query =
-          query + QH::case_sensitive_compare(info.schema_column, begin,
-                                             begin + size, true);
+  while (const auto row = result->fetch_one()) {
+    {
+      auto schema_name = row->get_string(0);
 
-      const auto result = m_session->query(full_query);
+      if (schema_name != current_schema) {
+        current_schema = std::move(schema_name);
 
-      std::string current_schema;
-      Instance_cache::Schema *schema = nullptr;
+        const auto it = m_cache.schemas.find(current_schema);
 
-      while (const auto row = result->fetch_one()) {
-        {
-          auto schema_name = row->get_string(0);
+        if (it != m_cache.schemas.end()) {
+          schema = &it->second;
+        } else {
+          schema = nullptr;
+        }
+      }
+    }
 
-          if (schema_name != current_schema) {
-            current_schema = std::move(schema_name);
-            schema = &m_cache.schemas.at(current_schema);
+    if (schema) {
+      callback(current_schema, schema, row);
+    }
+  }
+}
+
+void Instance_cache_builder::iterate_tables_and_views(
+    const Iterate_table &info,
+    const std::function<void(const std::string &, const std::string &,
+                             Instance_cache::Table *,
+                             const mysqlshdk::db::IRow *)> &table_callback,
+    const std::function<void(const std::string &, const std::string &,
+                             Instance_cache::View *,
+                             const mysqlshdk::db::IRow *)> &view_callback) {
+  Profiler profiler{"iterating tables and views"};
+
+  const auto result =
+      m_session->query(QH::build_query(info, schema_and_table_filter(info)));
+
+  std::string current_schema;
+  Instance_cache::Schema *schema = nullptr;
+
+  std::string current_object;
+  Instance_cache::Table *table = nullptr;
+  Instance_cache::View *view = nullptr;
+
+  while (const auto row = result->fetch_one()) {
+    {
+      auto schema_name = row->get_string(0);
+
+      if (schema_name != current_schema) {
+        current_schema = std::move(schema_name);
+        current_object.clear();
+
+        const auto it = m_cache.schemas.find(current_schema);
+
+        if (it != m_cache.schemas.end()) {
+          schema = &it->second;
+        } else {
+          schema = nullptr;
+          table = nullptr;
+          view = nullptr;
+        }
+      }
+    }
+
+    if (schema) {
+      auto object_name = row->get_string(1);
+
+      if (object_name != current_object) {
+        current_object = std::move(object_name);
+
+        const auto table_it = schema->tables.find(current_object);
+
+        if (table_it != schema->tables.end()) {
+          table = &table_it->second;
+          view = nullptr;
+        } else {
+          table = nullptr;
+
+          const auto view_it = schema->views.find(current_object);
+
+          if (view_it != schema->views.end()) {
+            view = &view_it->second;
+          } else {
+            view = nullptr;
           }
         }
-
-        callback(current_schema, schema, row);
       }
+    }
 
-      begin = begin + size;
-    } catch (const mysqlshdk::db::Error &e) {
-      size /= 2;
+    if (table && table_callback) {
+      table_callback(current_schema, current_object, table, row);
+    }
 
-      log_error("Failed to iterate schemas: %s, %s...", e.format().c_str(),
-                size ? "retrying" : "aborting");
-
-      if (!size) {
-        throw;
-      }
+    if (view && view_callback) {
+      view_callback(current_schema, current_object, view, row);
     }
   }
 }
@@ -883,61 +1012,9 @@ void Instance_cache_builder::iterate_tables(
     const std::function<void(const std::string &, const std::string &,
                              Instance_cache::Table *,
                              const mysqlshdk::db::IRow *)> &callback) {
-  const auto query = QH::build_query(info);
+  Profiler profiler{"iterating tables"};
 
-  auto begin = m_tables.begin();
-  const auto end = m_tables.end();
-  auto size = m_tables.size();
-
-  while (end != begin) {
-    size = std::min<decltype(size)>(size, std::distance(begin, end));
-
-    try {
-      const auto full_query =
-          query + QH::match_tables(info, begin, begin + size);
-      const auto result = m_session->query(full_query);
-
-      std::string current_schema;
-      Instance_cache::Schema *schema = nullptr;
-
-      std::string current_table;
-      Instance_cache::Table *table = nullptr;
-
-      while (const auto row = result->fetch_one()) {
-        {
-          auto schema_name = row->get_string(0);
-
-          if (schema_name != current_schema) {
-            current_schema = std::move(schema_name);
-            current_table.clear();
-            schema = &m_cache.schemas.at(current_schema);
-          }
-        }
-
-        {
-          auto table_name = row->get_string(1);
-
-          if (table_name != current_table) {
-            current_table = std::move(table_name);
-            table = &schema->tables.at(current_table);
-          }
-        }
-
-        callback(current_schema, current_table, table, row);
-      }
-
-      begin = begin + size;
-    } catch (const mysqlshdk::db::Error &e) {
-      size /= 2;
-
-      log_error("Failed to iterate tables: %s, %s...", e.format().c_str(),
-                size ? "retrying" : "aborting");
-
-      if (!size) {
-        throw;
-      }
-    }
-  }
+  iterate_tables_and_views(info, callback, {});
 }
 
 void Instance_cache_builder::iterate_views(
@@ -945,79 +1022,99 @@ void Instance_cache_builder::iterate_views(
     const std::function<void(const std::string &, const std::string &,
                              Instance_cache::View *,
                              const mysqlshdk::db::IRow *)> &callback) {
-  const auto query = QH::build_query(info);
+  Profiler profiler{"iterating views"};
 
-  auto begin = m_views.begin();
-  const auto end = m_views.end();
-  auto size = m_views.size();
-
-  while (end != begin) {
-    size = std::min<decltype(size)>(size, std::distance(begin, end));
-
-    try {
-      const auto full_query =
-          query + QH::match_tables(info, begin, begin + size);
-      const auto result = m_session->query(full_query);
-
-      std::string current_schema;
-      Instance_cache::Schema *schema = nullptr;
-
-      std::string current_view;
-      Instance_cache::View *view = nullptr;
-
-      while (const auto row = result->fetch_one()) {
-        {
-          auto schema_name = row->get_string(0);
-
-          if (schema_name != current_schema) {
-            current_schema = std::move(schema_name);
-            current_view.clear();
-            schema = &m_cache.schemas.at(current_schema);
-          }
-        }
-
-        {
-          auto view_name = row->get_string(1);
-
-          if (view_name != current_view) {
-            current_view = std::move(view_name);
-            view = &schema->views.at(current_view);
-          }
-        }
-
-        callback(current_schema, current_view, view, row);
-      }
-
-      begin = begin + size;
-    } catch (const mysqlshdk::db::Error &e) {
-      size /= 2;
-
-      log_error("Failed to iterate views: %s, %s...", e.format().c_str(),
-                size ? "retrying" : "aborting");
-
-      if (!size) {
-        throw;
-      }
-    }
-  }
+  iterate_tables_and_views(info, {}, callback);
 }
 
-void Instance_cache_builder::set_schemas_list(Schemas &&schemas) {
-  if (schemas.empty()) {
+void Instance_cache_builder::validate_schemas_list() const {
+  if (m_cache.schemas.empty()) {
     throw std::logic_error("Filters for schemas result in an empty set.");
   }
-
-  m_schemas = std::move(schemas);
 }
 
-void Instance_cache_builder::add_table(const std::string &schema,
-                                       const std::string &table) {
-  m_tables.emplace_back(Object{schema, table});
+void Instance_cache_builder::set_schema_filter(const Object_filters &included,
+                                               const Object_filters &excluded) {
+  m_schema_filter = "";
+
+  if (!included.empty()) {
+    m_schema_filter +=
+        QH::case_sensitive_compare(k_schema_template, included, true);
+  }
+
+  if (!excluded.empty()) {
+    if (!included.empty()) {
+      m_schema_filter += " AND ";
+    }
+
+    m_schema_filter +=
+        QH::case_sensitive_compare(k_schema_template, excluded, false);
+  }
 }
 
-void Instance_cache_builder::add_view(const std::string &schema,
-                                      const std::string &view) {
-  m_views.emplace_back(Object{schema, view});
+void Instance_cache_builder::set_table_filter(const Table_filters &included,
+                                              const Table_filters &excluded) {
+  m_table_filter = "";
+
+  if (!included.empty()) {
+    m_table_filter += "(" +
+                      QH::build_objects_filter(included, k_schema_template,
+                                               k_table_template) +
+                      ")";
+  }
+
+  for (const auto &schema : excluded) {
+    if (!m_table_filter.empty()) {
+      m_table_filter += " AND ";
+    }
+
+    m_table_filter +=
+        "NOT " + QH::match_tables(schema.first, schema.second,
+                                  k_schema_template, k_table_template);
+  }
+}
+
+std::string Instance_cache_builder::schema_filter(
+    const std::string &schema_column) const {
+  return shcore::str_subvars(
+      m_schema_filter,
+      [&schema_column](const std::string &) { return schema_column; },
+      k_template_marker, k_template_marker);
+}
+
+std::string Instance_cache_builder::schema_filter(
+    const Iterate_schema &info) const {
+  return schema_filter(info.schema_column);
+}
+
+std::string Instance_cache_builder::table_filter(
+    const std::string &schema_column, const std::string &table_column) const {
+  return shcore::str_subvars(
+      m_table_filter,
+      [&schema_column, &table_column](const std::string &var) {
+        if (var == k_schema_var) {
+          return schema_column;
+        } else if (var == k_table_var) {
+          return table_column;
+        } else {
+          throw std::logic_error("Unknown variable: " + var);
+        }
+      },
+      k_template_marker, k_template_marker);
+}
+
+std::string Instance_cache_builder::schema_and_table_filter(
+    const Iterate_table &info) const {
+  auto result = schema_filter(info.schema_column);
+  auto filter = table_filter(info.schema_column, info.table_column);
+
+  if (!result.empty() && !filter.empty()) {
+    result += " AND ";
+  }
+
+  result += filter;
+
+  return result;
 }
 
 }  // namespace dump

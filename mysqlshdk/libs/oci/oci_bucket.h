@@ -95,17 +95,11 @@ struct PAR {
   size_t size;
 };
 
+std::string hide_par_secret(const std::string &par, std::size_t start_at = 0);
+
 template <typename T>
 Masked_string anonymize_par(T &&par) {
-  const auto p = par.find("/p/");
-  const auto n = par.find("/n/");
-
-  if (std::string::npos == p || std::string::npos == n) {
-    throw std::logic_error("This is not a PAR: " + par);
-  }
-
-  return {std::forward<T>(par),
-          par.substr(0, p + 3) + "<secret>" + par.substr(n)};
+  return {std::forward<T>(par), hide_par_secret(par)};
 }
 
 class Object;
@@ -307,9 +301,8 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
       const std::string &prefix = "", size_t limit = 0,
       const std::string &page = "");
 
-  std::shared_ptr<Oci_rest_service> get_rest_service() {
-    return m_rest_service;
-  }
+  // Only used for testing purposes
+  Oci_rest_service *get_rest_service() { return m_rest_service; }
 
   const Oci_options &get_options() { return m_options; }
 
@@ -321,7 +314,7 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
 
  private:
   Oci_options m_options;
-  std::shared_ptr<Oci_rest_service> m_rest_service;
+  Oci_rest_service *m_rest_service = nullptr;
 
   const std::string kNamespacePath;
   const std::string kBucketPath;

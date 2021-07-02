@@ -71,7 +71,8 @@ const shcore::Option_pack_def<Ddl_dumper_options>
           .optional("compatibility",
                     &Ddl_dumper_options::set_compatibility_options)
           .include(&Ddl_dumper_options::m_oci_option_unpacker)
-          .on_done(&Ddl_dumper_options::on_unpacked_options);
+          .on_done(&Ddl_dumper_options::on_unpacked_options)
+          .on_log(&Ddl_dumper_options::on_log_options);
 
   return opts;
 }

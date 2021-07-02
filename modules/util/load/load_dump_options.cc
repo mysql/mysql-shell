@@ -139,7 +139,8 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
           .optional("maxBytesPerTransaction",
                     &Load_dump_options::set_max_bytes_per_transaction)
           .include(&Load_dump_options::m_oci_option_pack)
-          .on_done(&Load_dump_options::on_unpacked_options);
+          .on_done(&Load_dump_options::on_unpacked_options)
+          .on_log(&Load_dump_options::on_log_options);
 
   return opts;
 }
@@ -457,6 +458,17 @@ void Load_dump_options::on_unpacked_options() {
     throw std::invalid_argument(
         "'deferTableIndexes' option needs to be enabled when "
         "'loadIndexes' option is disabled");
+}
+
+void Load_dump_options::on_log_options(const char *msg) const {
+  std::string s = msg;
+  const auto pos = s.find("\"progressFile\":\"https://objectstorage.");
+
+  if (std::string::npos != pos) {
+    s = mysqlshdk::oci::hide_par_secret(s, pos);
+  }
+
+  log_info("Load options: %s", s.c_str());
 }
 
 std::unique_ptr<mysqlshdk::storage::IDirectory>

@@ -1794,9 +1794,7 @@ required_privileges = {
         "WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES..."
     ),
     "SELECT": PrivilegeError(  # table-level privilege
-        "Fatal error during dump",
-        f"MySQL Error 1142 (42000): SELECT command denied to user {test_user_account} for table '",
-        output_dir_created=True
+        re.compile(r"User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: SELECT.".format(test_user_account))
     ),
     "SHOW VIEW": PrivilegeError(  # table-level privilege
         "Fatal error during dump",
@@ -1823,13 +1821,6 @@ if __version_num >= 80000:
     required_privileges["SELECT"] = PrivilegeError(  # table-level privilege
         "Unable to get roles information.",
         f"ERROR: Unable to check privileges for user {test_user_account}. User requires SELECT privilege on mysql.* to obtain information about all roles."
-    )
-else:
-    # BUG#32865281 - when running a dump on < 8.0, if there's a view which uses a function to get data, EXECUTE privilege is required to run SHOW FIELDS FROM `view_name`
-    required_privileges["EXECUTE"] = PrivilegeError(  # global, database, routine privilege
-        "Fatal error during dump",
-        f"ERROR: Could not execute 'SHOW FIELDS FROM `{test_view}`': MySQL Error 1370 (42000): execute command denied to user {test_user_account} for routine '{test_schema}.{test_schema_function}'",
-        output_dir_created=True
     )
 
 # setup the user, grant only required privileges

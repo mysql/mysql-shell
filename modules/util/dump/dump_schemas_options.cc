@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,7 +40,8 @@ const shcore::Option_pack_def<Dump_schemas_options>
           .optional("excludeTables", &Dump_schemas_options::set_exclude_tables)
           .optional("events", &Dump_schemas_options::m_dump_events)
           .optional("routines", &Dump_schemas_options::m_dump_routines)
-          .on_done(&Dump_schemas_options::on_unpacked_options);
+          .on_done(&Dump_schemas_options::on_unpacked_options)
+          .on_log(&Dump_schemas_options::on_log_options);
 
   return opts;
 }

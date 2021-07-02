@@ -299,12 +299,15 @@ class Option_pack_def : public IOption_pack_def {
       Option_scope option_scope = Option_scope::GLOBAL) {
     add_option<T>(name, sname, option_scope, Param_flag::Optional);
 
+    // cannot capture this here, static instances are initialized via copy/move,
+    // original object will no longer exist when unpack callback is called
     m_unpack_callbacks.emplace_back(
-        [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
-                                             C *instance) {
+        [name, callback, extract_mode](const Option_pack_def<C> *self,
+                                       shcore::Option_unpacker *unpacker,
+                                       C *instance) {
           mysqlshdk::utils::nullable<T> value;
 
-          get_optional(unpacker, extract_mode, name, &value);
+          self->get_optional(unpacker, extract_mode, name, &value);
 
           if (!value.is_null()) {
             callback(instance, *value);
@@ -329,9 +332,10 @@ class Option_pack_def : public IOption_pack_def {
     add_option<T>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, var, extract_mode, this](shcore::Option_unpacker *unpacker,
-                                        C *instance) {
-          get_optional(unpacker, extract_mode, name, &((*instance).*var));
+        [name, var, extract_mode](const Option_pack_def<C> *self,
+                                  shcore::Option_unpacker *unpacker,
+                                  C *instance) {
+          self->get_optional(unpacker, extract_mode, name, &((*instance).*var));
         });
     return *this;
   }
@@ -355,12 +359,13 @@ class Option_pack_def : public IOption_pack_def {
     add_option<std::string>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, var, mapping, extract_mode, this](
-            shcore::Option_unpacker *unpacker, C *instance) {
+        [name, var, mapping, extract_mode](const Option_pack_def<C> *self,
+                                           shcore::Option_unpacker *unpacker,
+                                           C *instance) {
           // this is where the magic happens
           mysqlshdk::null_string value;
 
-          get_optional(unpacker, extract_mode, name, &value);
+          self->get_optional(unpacker, extract_mode, name, &value);
 
           if (!value.is_null()) {
             (*instance).*var = get_enum_value(name, *value, mapping);
@@ -396,11 +401,12 @@ class Option_pack_def : public IOption_pack_def {
     add_option<T>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
-                                             C *instance) {
+        [name, callback, extract_mode](const Option_pack_def<C> *self,
+                                       shcore::Option_unpacker *unpacker,
+                                       C *instance) {
           mysqlshdk::utils::nullable<T> value;
 
-          get_optional(unpacker, extract_mode, name, &value);
+          self->get_optional(unpacker, extract_mode, name, &value);
 
           if (!value.is_null()) {
             ((*instance).*callback)(name, *value);
@@ -420,11 +426,12 @@ class Option_pack_def : public IOption_pack_def {
     add_option<T>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
-                                             C *instance) {
+        [name, callback, extract_mode](const Option_pack_def<C> *self,
+                                       shcore::Option_unpacker *unpacker,
+                                       C *instance) {
           mysqlshdk::utils::nullable<T> value;
 
-          get_optional(unpacker, extract_mode, name, &value);
+          self->get_optional(unpacker, extract_mode, name, &value);
 
           unpacker->optional(name.c_str(), &value);
           if (!value.is_null()) {
@@ -461,11 +468,12 @@ class Option_pack_def : public IOption_pack_def {
     add_option<T>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
-                                             C *instance) {
+        [name, callback, extract_mode](const Option_pack_def<C> *self,
+                                       shcore::Option_unpacker *unpacker,
+                                       C *instance) {
           mysqlshdk::utils::nullable<T> value;
 
-          get_optional(unpacker, extract_mode, name, &value);
+          self->get_optional(unpacker, extract_mode, name, &value);
 
           if (!value.is_null()) {
             ((*instance).*callback)(*value);
@@ -484,11 +492,12 @@ class Option_pack_def : public IOption_pack_def {
     add_option<T>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, callback, extract_mode, this](shcore::Option_unpacker *unpacker,
-                                             C *instance) {
+        [name, callback, extract_mode](const Option_pack_def<C> *self,
+                                       shcore::Option_unpacker *unpacker,
+                                       C *instance) {
           mysqlshdk::utils::nullable<T> value;
 
-          get_optional(unpacker, extract_mode, name, &value);
+          self->get_optional(unpacker, extract_mode, name, &value);
 
           if (!value.is_null()) {
             ((*instance).*callback)(*value);
@@ -508,7 +517,8 @@ class Option_pack_def : public IOption_pack_def {
     add_option<T>(name, sname, option_scope, Param_flag::Mandatory);
 
     m_unpack_callbacks.emplace_back(
-        [name, var](shcore::Option_unpacker *unpacker, C *instance) {
+        [name, var](const Option_pack_def<C> *,
+                    shcore::Option_unpacker *unpacker, C *instance) {
           // this is where the magic happens
           unpacker->required(name.c_str(), &((*instance).*var));
         });
@@ -526,8 +536,8 @@ class Option_pack_def : public IOption_pack_def {
     add_option<std::string>(name, sname, option_scope, Param_flag::Optional);
 
     m_unpack_callbacks.emplace_back(
-        [name, var, mapping, this](shcore::Option_unpacker *unpacker,
-                                   C *instance) {
+        [name, var, mapping](const Option_pack_def<C> *,
+                             shcore::Option_unpacker *unpacker, C *instance) {
           // this is where the magic happens
           mysqlshdk::null_string value;
           unpacker->required(name.c_str(), &value);
@@ -551,7 +561,8 @@ class Option_pack_def : public IOption_pack_def {
     add_option<T>(name, sname, option_scope, Param_flag::Mandatory);
 
     m_unpack_callbacks.emplace_back(
-        [name, callback](shcore::Option_unpacker *unpacker, C *instance) {
+        [name, callback](const Option_pack_def<C> *,
+                         shcore::Option_unpacker *unpacker, C *instance) {
           mysqlshdk::utils::nullable<T> value;
           unpacker->required(name.c_str(), &value);
           if (!value.is_null()) {
@@ -573,7 +584,8 @@ class Option_pack_def : public IOption_pack_def {
     add_option<T>(name, sname, option_scope, Param_flag::Mandatory);
 
     m_unpack_callbacks.emplace_back(
-        [name, callback](shcore::Option_unpacker *unpacker, C *instance) {
+        [name, callback](const Option_pack_def<C> *,
+                         shcore::Option_unpacker *unpacker, C *instance) {
           mysqlshdk::utils::nullable<T> value;
           unpacker->required(name.c_str(), &value);
           if (!value.is_null()) {
@@ -594,10 +606,11 @@ class Option_pack_def : public IOption_pack_def {
   Option_pack_def<C> &include(T SC::*var) {
     add_options<T>();
 
-    m_unpack_callbacks.emplace_back(
-        [var](shcore::Option_unpacker *unpacker, C *instance) {
-          T::options().unpack(unpacker, &((*instance).*var));
-        });
+    m_unpack_callbacks.emplace_back([var](const Option_pack_def<C> *,
+                                          shcore::Option_unpacker *unpacker,
+                                          C *instance) {
+      T::options().unpack(unpacker, &((*instance).*var));
+    });
 
     return *this;
   }
@@ -612,9 +625,8 @@ class Option_pack_def : public IOption_pack_def {
     add_options<T>();
 
     m_unpack_callbacks.emplace_back(
-        [](shcore::Option_unpacker *unpacker, C *instance) {
-          T::options().unpack(unpacker, instance);
-        });
+        [](const Option_pack_def<C> *, shcore::Option_unpacker *unpacker,
+           C *instance) { T::options().unpack(unpacker, instance); });
 
     return *this;
   }
@@ -646,6 +658,13 @@ class Option_pack_def : public IOption_pack_def {
     return *this;
   }
 
+  Option_pack_def<C> &on_log(
+      const std::function<void(C *, const char *)> &callback) {
+    m_log_callback = callback;
+
+    return *this;
+  }
+
   /**
    * Unpacks the options on this pack.
    *
@@ -653,6 +672,8 @@ class Option_pack_def : public IOption_pack_def {
    * called for primary option packs.
    */
   void unpack(const Dictionary_t &options, C *instance) const {
+    log(instance, Value(options).json());
+
     Option_unpacker unpacker;
     unpacker.set_options(options);
 
@@ -670,7 +691,7 @@ class Option_pack_def : public IOption_pack_def {
     if (m_start_callback) m_start_callback(instance, unpacker->options());
 
     for (const auto &unpack_cb : m_unpack_callbacks) {
-      unpack_cb(unpacker, instance);
+      unpack_cb(this, unpacker, instance);
     }
 
     if (m_done_callback) m_done_callback(instance);
@@ -685,7 +706,7 @@ class Option_pack_def : public IOption_pack_def {
 
   template <typename T>
   void get_optional(Option_unpacker *unpacker, Option_extract_mode extract_mode,
-                    const std::string &name, T *value) {
+                    const std::string &name, T *value) const {
     switch (extract_mode) {
       case Option_extract_mode::CASE_INSENSITIVE:
         unpacker->optional_ci(name.c_str(), value);
@@ -715,8 +736,8 @@ class Option_pack_def : public IOption_pack_def {
   }
 
   template <typename T>
-  T get_enum_value(const std::string &option, const std::string &value,
-                   const std::map<std::string, T> &mapping) {
+  static T get_enum_value(const std::string &option, const std::string &value,
+                          const std::map<std::string, T> &mapping) {
     auto lc_value = value;
     std::transform(lc_value.begin(), lc_value.end(), lc_value.begin(),
                    ::tolower);
@@ -750,11 +771,21 @@ class Option_pack_def : public IOption_pack_def {
     return pos->second;
   }
 
-  std::vector<std::function<void(shcore::Option_unpacker *, C *)>>
+  bool should_log() const { return !!m_log_callback; }
+
+  void log(C *instance, const std::string &s) const {
+    if (should_log()) {
+      m_log_callback(instance, s.c_str());
+    }
+  }
+
+  std::vector<std::function<void(const Option_pack_def<C> *,
+                                 shcore::Option_unpacker *, C *)>>
       m_unpack_callbacks;
 
   std::function<void(C *, const shcore::Dictionary_t &)> m_start_callback;
   std::function<void(C *)> m_done_callback;
+  std::function<void(C *, const char *)> m_log_callback;
 };
 
 /**

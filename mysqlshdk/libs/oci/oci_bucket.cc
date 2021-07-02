@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <regex>
+#include <unordered_map>
 #include <vector>
 
 #include "mysqlshdk/libs/db/uri_encoder.h"
@@ -122,6 +123,18 @@ std::string to_string(PAR_list_action list_action) {
   return par_list_action_str;
 }
 
+std::string hide_par_secret(const std::string &par, std::size_t start_at) {
+  const auto p = par.find("/p/", start_at);
+  // if p is std::string::npos, this will simply return std::string::npos
+  const auto n = par.find("/n/", p);
+
+  if (std::string::npos == p || std::string::npos == n) {
+    throw std::logic_error("This is not a PAR: " + par);
+  }
+
+  return par.substr(0, p + 3) + "<secret>" + par.substr(n);
+}
+
 Bucket::Bucket(const Oci_options &options)
     : m_options(options),
       kNamespacePath{shcore::str_format(
@@ -137,9 +150,19 @@ Bucket::Bucket(const Oci_options &options)
       kParActionPath{kBucketPath + "p/"} {}
 
 void Bucket::ensure_connection() {
+  static thread_local std::unordered_map<std::string,
+                                         std::unique_ptr<Oci_rest_service>>
+      services;
+
   if (!m_rest_service) {
-    m_rest_service = std::make_shared<Oci_rest_service>(
-        Oci_service::OBJECT_STORAGE, m_options);
+    auto &service = services[m_options.get_hash()];
+
+    if (!service) {
+      service = std::make_unique<Oci_rest_service>(Oci_service::OBJECT_STORAGE,
+                                                   m_options);
+    }
+
+    m_rest_service = service.get();
   }
 }
 

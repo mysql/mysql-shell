@@ -66,7 +66,8 @@ const shcore::Option_pack_def<Dump_instance_options>
                     &Dump_instance_options::set_string_list_option)
           .optional("includeUsers",
                     &Dump_instance_options::set_string_list_option)
-          .on_done(&Dump_instance_options::on_unpacked_options);
+          .on_done(&Dump_instance_options::on_unpacked_options)
+          .on_log(&Dump_instance_options::on_log_options);
 
   return opts;
 }

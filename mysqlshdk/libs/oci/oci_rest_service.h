@@ -97,7 +97,7 @@ class Oci_rest_service {
    */
   void set_service(Oci_service service);
 
-  std::string end_point() const { return "https://" + m_host; }
+  const std::string &end_point() const { return m_end_point; }
 
  private:
   Oci_service m_service;
@@ -106,15 +106,20 @@ class Oci_rest_service {
   std::string m_host;
   std::string m_auth_keyId;
   std::shared_ptr<EVP_PKEY> m_private_key;
-  std::unique_ptr<mysqlshdk::rest::Rest_service> m_rest;
 
-  using Method_time = std::map<Type, time_t>;
-  std::map<std::string, Method_time> m_signed_header_cache_time;
-  using Header_method = std::map<Type, Headers>;
-  std::map<std::string, Header_method> m_cached_header;
+  using Method_time = std::unordered_map<Type, time_t>;
+  std::unordered_map<std::string, Method_time> m_signed_header_cache_time;
+  using Header_method = std::unordered_map<Type, Headers>;
+  std::unordered_map<std::string, Header_method> m_cached_header;
+  time_t m_cache_cleared_at = 0;
+
+  std::string m_end_point;
+  std::string m_service_label;
 
   Headers make_header(Type method, const std::string &path, const char *body,
                       size_t size, const Headers headers);
+
+  void clear_cache(time_t now);
 };
 }  // namespace oci
 }  // namespace mysqlshdk

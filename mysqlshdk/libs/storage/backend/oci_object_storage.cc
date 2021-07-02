@@ -310,7 +310,9 @@ void Object::close() {
 }
 
 size_t Object::file_size() const {
-  if (!m_open_mode.is_null() && *m_open_mode != Mode::READ) {
+  if (m_reader) {
+    return m_reader->size();
+  } else if (m_writer) {
     return m_writer->size();
   } else {
     return m_bucket->head_object(full_path().real());

@@ -1061,15 +1061,13 @@ void Schema_dumper::check_object_for_definer(const std::string &db,
     db          - db name
     table_type  - table type, e.g. "MyISAM" or "InnoDB", but also "VIEW"
     ignore_flag - what we must particularly ignore - see IGNORE_ defines above
-    real_columns- Contains one byte per column, 0 means unused, 1 is used
-                  Generated columns are marked as unused
   RETURN
     vector with compatibility issues with mysqlaas
 */
 
 std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
     IFile *sql_file, const std::string &table, const std::string &db,
-    std::string *out_table_type, char *ignore_flag, bool real_columns[]) {
+    std::string *out_table_type, char *ignore_flag) {
   std::vector<Issue> res;
   bool init = false, skip_ddl;
   std::string result_table, opt_quoted_table;
@@ -1086,7 +1084,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
       "ORDER BY ORDINAL_POSITION";
   bool is_log_table;
   bool is_replication_metadata_table;
-  unsigned int colno;
   std::shared_ptr<mysqlshdk::db::IResult> result;
   mysqlshdk::db::Error error;
   bool has_pk = false;
@@ -1162,25 +1159,37 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
           This will not be necessary once we can determine dependencies
           between views and can simply dump them in the appropriate order.
         */
-        mysqlshdk::db::Error err;
-        if (query_with_binary_charset("SHOW FIELDS FROM " + result_table,
-                                      &result, &err)) {
-          /*
-            View references invalid or privileged table/col/fun (err 1356),
-            so we cannot create a stand-in table.  Be defensive and dump
-            a comment with the view's 'show create' statement. (Bug #17371)
-          */
+        std::vector<std::string> columns;
 
-          if (err.code() == ER_VIEW_INVALID)
-            fprintf(sql_file, "\n-- failed on view %s: %s\n\n",
-                    result_table.c_str(), create_table.c_str());
+        if (!m_cache) {
+          mysqlshdk::db::Error err;
 
-          throw std::runtime_error("SHOW FIELDS FROM failed on view: " +
-                                   result_table);
+          if (query_with_binary_charset("SHOW FIELDS FROM " + result_table,
+                                        &result, &err)) {
+            /*
+              View references invalid or privileged table/col/fun (err 1356),
+              so we cannot create a stand-in table.  Be defensive and dump
+              a comment with the view's 'show create' statement. (Bug #17371)
+            */
+
+            if (err.code() == ER_VIEW_INVALID)
+              fprintf(sql_file, "\n-- failed on view %s: %s\n\n",
+                      result_table.c_str(), create_table.c_str());
+
+            throw std::runtime_error("SHOW FIELDS FROM failed on view: " +
+                                     result_table);
+          }
+
+          while ((row = result->fetch_one())) {
+            columns.emplace_back(row->get_string(0));
+          }
         }
 
-        row = result->fetch_one();
-        if (row != nullptr) {
+        const auto &all_columns =
+            m_cache ? m_cache->schemas.at(db).views.at(table).all_columns
+                    : columns;
+
+        if (!all_columns.empty()) {
           if (opt_drop_view) {
             /*
               We have already dropped any table of the same name above, so
@@ -1208,15 +1217,14 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
             A temporary view is created to resolve the view interdependencies.
             This temporary view is dropped when the actual view is created.
           */
+          auto column = all_columns.begin();
 
-          fprintf(
-              sql_file, " 1 AS %s",
-              shcore::quote_identifier_if_needed(row->get_string(0)).c_str());
+          fprintf(sql_file, " 1 AS %s",
+                  shcore::quote_identifier_if_needed(*column).c_str());
 
-          while ((row = result->fetch_one())) {
-            fprintf(
-                sql_file, ",\n 1 AS %s",
-                shcore::quote_identifier_if_needed(row->get_string(0)).c_str());
+          while (++column != all_columns.end()) {
+            fprintf(sql_file, ",\n 1 AS %s",
+                    shcore::quote_identifier_if_needed(*column).c_str());
           }
 
           fprintf(sql_file,
@@ -1262,24 +1270,34 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
 
       check_io(sql_file);
     }
-    result = query_log_and_throw("show fields from " + result_table);
-    colno = 0;
-    while (auto row = result->fetch_one()) {
-      if (!row->is_null(SHOW_EXTRA)) {
-        std::string extra = row->get_string(SHOW_EXTRA);
-        real_columns[colno] =
-            extra != "STORED GENERATED" && extra != "VIRTUAL GENERATED";
 
-        if (opt_create_invisible_pks) {
-          has_auto_increment |= extra.find(auto_increment) != std::string::npos;
+    if (opt_create_invisible_pks) {
+      std::vector<Instance_cache::Column> columns;
+
+      if (!m_cache) {
+        result = query_log_and_throw("show fields from " + result_table);
+
+        while (auto row = result->fetch_one()) {
+          Instance_cache::Column column;
+          column.name = row->get_string(SHOW_FIELDNAME);
+
+          if (!row->is_null(SHOW_EXTRA)) {
+            column.auto_increment =
+                row->get_string(SHOW_EXTRA).find(auto_increment) !=
+                std::string::npos;
+          }
+
+          columns.emplace_back(std::move(column));
         }
-      } else {
-        real_columns[colno] = true;
       }
 
-      if (opt_create_invisible_pks) {
-        has_my_row_id |= shcore::str_caseeq(
-            row->get_string(SHOW_FIELDNAME).c_str(), my_row_id);
+      const auto &all_columns =
+          m_cache ? m_cache->schemas.at(db).tables.at(table).all_columns
+                  : columns;
+
+      for (const auto &column : all_columns) {
+        has_auto_increment |= column.auto_increment;
+        has_my_row_id |= shcore::str_caseeq(column.name.c_str(), my_row_id);
       }
     }
 
@@ -1310,17 +1328,17 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
       check_io(sql_file);
     }
 
-    colno = 0;
     while (auto row = result->fetch_one()) {
+      bool real_column = false;
       if (!row->is_null(SHOW_EXTRA)) {
         std::string extra = row->get_string(SHOW_EXTRA);
-        real_columns[colno] =
+        real_column =
             extra != "STORED GENERATED" && extra != "VIRTUAL GENERATED";
       } else {
-        real_columns[colno] = true;
+        real_column = true;
       }
 
-      if (!real_columns[colno++]) continue;
+      if (!real_column) continue;
 
       if (init) {
         fputs(",\n", sql_file);
@@ -1697,12 +1715,9 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_table(
   std::string extended_row;
   std::string table_type;
   std::string result_table, opt_quoted_table;
-  //  uint32_t num_fields;
-  bool real_columns[MAX_FIELDS];
   std::string order_by;
 
-  return get_table_structure(file, table, db, &table_type, &ignore_flag,
-                             real_columns);
+  return get_table_structure(file, table, db, &table_type, &ignore_flag);
 } /* dump_table */
 
 /*
@@ -2434,13 +2449,10 @@ void Schema_dumper::dump_temporary_view_ddl(IFile *file, const std::string &db,
   try {
     char ignore_flag;
     std::string table_type;
-    //  uint32_t num_fields;
-    bool real_columns[MAX_FIELDS];
     log_debug("Dumping view %s temporary ddll from database %s", view.c_str(),
               db.c_str());
     init_dumping(file, db, nullptr);
-    get_table_structure(file, view, db, &table_type, &ignore_flag,
-                        real_columns);
+    get_table_structure(file, view, db, &table_type, &ignore_flag);
   } catch (const std::exception &e) {
     throw std::runtime_error("Error while dumping temporary DDL for view '" +
                              view + "': " + e.what());

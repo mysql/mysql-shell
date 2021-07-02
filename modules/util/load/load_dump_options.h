@@ -85,6 +85,8 @@ class Load_dump_options {
 
   void on_unpacked_options();
 
+  void on_log_options(const char *msg) const;
+
   void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session,
                    const std::string &current_schema);
 
