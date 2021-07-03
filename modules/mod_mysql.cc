@@ -140,6 +140,8 @@ static const Mysqlclient_ername k_client_error_names[] = {
     {"CR_LOAD_DATA_LOCAL_INFILE_REALPATH_FAIL",
      CR_LOAD_DATA_LOCAL_INFILE_REALPATH_FAIL},
     {"CR_DNS_SRV_LOOKUP_FAILED", CR_DNS_SRV_LOOKUP_FAILED},
+    {"CR_MANDATORY_TRACKER_NOT_FOUND", CR_MANDATORY_TRACKER_NOT_FOUND},
+    {"CR_INVALID_FACTOR_NO", CR_INVALID_FACTOR_NO},
     {"CR_ERROR_LAST", CR_ERROR_LAST},
     {"CR_MAX_ERROR", CR_MAX_ERROR}};
 
@@ -200,7 +202,7 @@ shcore::Value Mysql::get_member(const std::string &prop) const {
       auto dict = shcore::make_dict();
 
       // If this assert fails, the list of client error names has to be updated
-      assert(CR_ERROR_LAST <= 2070);
+      assert(CR_ERROR_LAST <= 2072);
 
       for (const auto &e : k_client_error_names) {
         dict->set(e.name, shcore::Value(e.code));
