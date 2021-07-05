@@ -52,9 +52,12 @@ testutil.rmdir(output_url, true);
 //@<> CLI dump-instance - WL14297 - TSFR_6_1_1 - 3
 var rc = callMysqlsh(["--", "util", "dump-instance", `${output_url}`, '--compatibility=[\"force_innodb\",\"strip_definers\"]']);
 EXPECT_EQ(0, rc);
-EXPECT_OUTPUT_CONTAINS("NOTE: View schema_a.table_c_v had definer clause removed and SQL SECURITY characteristic set to INVOKER");
-EXPECT_OUTPUT_CONTAINS("NOTE: View schema_b.table_c_v had definer clause removed and SQL SECURITY characteristic set to INVOKER");
-EXPECT_OUTPUT_CONTAINS("NOTE: View schema_c.table_c_v had definer clause removed and SQL SECURITY characteristic set to INVOKER");
+EXPECT_OUTPUT_CONTAINS("NOTE: View schema_a.table_c_v had definer clause removed");
+EXPECT_OUTPUT_CONTAINS("NOTE: View schema_a.table_c_v had SQL SECURITY characteristic set to INVOKER");
+EXPECT_OUTPUT_CONTAINS("NOTE: View schema_b.table_c_v had definer clause removed");
+EXPECT_OUTPUT_CONTAINS("NOTE: View schema_b.table_c_v had SQL SECURITY characteristic set to INVOKER");
+EXPECT_OUTPUT_CONTAINS("NOTE: View schema_c.table_c_v had definer clause removed");
+EXPECT_OUTPUT_CONTAINS("NOTE: View schema_c.table_c_v had SQL SECURITY characteristic set to INVOKER");
 WIPE_OUTPUT()
 testutil.rmdir(output_url, true);
 

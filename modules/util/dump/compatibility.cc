@@ -132,13 +132,6 @@ std::size_t eat_string_val(const std::string &s, std::size_t i) {
   return std::string::npos;
 }
 
-std::size_t eat_quoted_string(const std::string &s, std::size_t i) {
-  if (s[i] == '\'') return mysqlshdk::utils::span_quoted_string_sq(s, i);
-  if (s[i] == '"') return mysqlshdk::utils::span_quoted_string_dq(s, i);
-  if (s[i] == '`') return mysqlshdk::utils::span_quoted_sql_identifier_bt(s, i);
-  return std::string::npos;
-}
-
 void skip_columns_definition(SQL_iterator *it) {
   if (!shcore::str_caseeq(it->next_token(), "CREATE") ||
       !shcore::str_caseeq(it->next_token(), "TABLE"))
@@ -682,82 +675,233 @@ std::vector<std::string> check_statement_for_charset_option(
 std::string check_statement_for_definer_clause(const std::string &statement,
                                                std::string *rewritten) {
   std::string user;
-  SQL_iterator it(statement, 0);
+  SQL_iterator it(statement, 0, false);
   std::string token = it.next_token();
+
   if (!shcore::str_caseeq(token, "CREATE")) return user;
 
   while (!(token = it.next_token()).empty()) {
     if (shcore::str_caseeq_mv(token, "VIEW", "EVENT", "FUNCTION", "PROCEDURE",
-                              "TRIGGER"))
+                              "TRIGGER")) {
       break;
-    if (!shcore::str_caseeq(token, "DEFINER")) continue;
-    // definer is in the form of DEFINER = user@host
-    std::size_t i = it.position();
-    std::size_t start = i - token.size();
-    while (std::isspace(statement[i]) || statement[i] == '=') ++i;
-
-    // user part
-    std::size_t us = i;
-    i = eat_quoted_string(statement, i);
-    if (i == std::string::npos) continue;
-
-    // now we need @
-    while (std::isspace(statement[i])) ++i;
-    if (statement[i++] != '@') continue;
-    while (std::isspace(statement[i])) ++i;
-
-    // host part
-    i = eat_quoted_string(statement, i);
-    if (i == std::string::npos) continue;
-
-    user = shcore::str_replace(statement.substr(us, i - us), " ", "");
-    if (rewritten) {
-      while (std::isblank(statement[i])) ++i;
-      *rewritten = statement.substr(0, start) + statement.substr(i);
     }
-    break;
+
+    if (!shcore::str_caseeq(token, "DEFINER")) continue;
+
+    const auto start = it.position() - token.size();
+
+    // definer is in the form of DEFINER = user, this could also be SQL SECURITY
+    // DEFINER clause in a CREATE VIEW statement
+    if (shcore::str_caseeq((token = it.next_token()), "=")) {
+      // user
+      user = get_account(&it);
+
+      if (rewritten) {
+        auto i = it.position();
+
+        while (std::isblank(statement[i])) ++i;
+
+        *rewritten = statement.substr(0, start) + statement.substr(i);
+      }
+
+      break;
+    }
   }
+
   return user;
 }
 
 bool check_statement_for_sqlsecurity_clause(const std::string &statement,
                                             std::string *rewritten) {
-  SQL_iterator it(statement, 0);
+  SQL_iterator it(statement, 0, false);
   std::string token = it.next_token();
-  if (!shcore::str_caseeq(token, "CREATE")) return false;
-  bool func_or_proc = false;
 
-  while (!(token = it.next_token()).empty()) {
-  loop_start:
-    if (shcore::str_caseeq_mv(token, "PROCEDURE", "FUNCTION")) {
-      func_or_proc = true;
-      continue;
+  if (!shcore::str_caseeq(token, "CREATE")) return false;
+
+  const auto add_sql_security_invoker = [rewritten, &statement, &it, &token]() {
+    if (rewritten) {
+      const auto pos = it.position() - token.size();
+      *rewritten = statement.substr(0, pos) + "SQL SECURITY INVOKER\n" +
+                   statement.substr(pos);
     }
-    if (func_or_proc &&
-        (shcore::str_caseeq_mv(token, "BEGIN", "RETURN", "SELECT", "UPDATE",
-                               "DELETE", "INSERT", "REPLACE", "CREATE", "ALTER",
-                               "DROP", "RENAME", "TRUNCATE", "CALL", "PREPARE",
-                               "EXECUTE", "REPEAT", "DO", "WHILE", "LOOP",
-                               "IMPORT", "LOAD", "TABLE", "WITH") ||
-         shcore::str_iendswith(token, ":"))) {
-      if (rewritten) {
-        const auto pos = it.position() - token.size();
-        *rewritten = statement.substr(0, pos) + "SQL SECURITY INVOKER\n" +
-                     statement.substr(pos);
-      }
+  };
+
+  const auto is_sql_security_clause = [&it, &token]() {
+    if (shcore::str_caseeq(token, "SQL") &&
+        shcore::str_caseeq((token = it.next_token()), "SECURITY")) {
       return true;
     }
-    if (!shcore::str_caseeq(token, "SQL")) continue;
-    if (!shcore::str_caseeq((token = it.next_token()), "SECURITY"))
-      goto loop_start;
+
+    return false;
+  };
+
+  const auto set_sql_security_invoker = [rewritten, &statement, &it, &token]() {
     token = it.next_token();
-    if (shcore::str_caseeq(token, "INVOKER")) return false;
-    if (!shcore::str_caseeq(token, "DEFINER")) continue;
-    if (rewritten)
-      *rewritten = statement.substr(0, it.position() - token.size()) +
-                   "INVOKER" + statement.substr(it.position());
-    return true;
+
+    if (shcore::str_caseeq(token, "INVOKER")) {
+      return false;
+    } else {
+      if (rewritten) {
+        *rewritten = statement.substr(0, it.position() - token.size()) +
+                     "INVOKER" + statement.substr(it.position());
+      }
+
+      return true;
+    }
+  };
+
+  bool func_or_proc = false;
+
+  while (it.valid()) {
+    token = it.next_token();
+
+    if (shcore::str_caseeq_mv(token, "PROCEDURE", "FUNCTION")) {
+      func_or_proc = true;
+      break;
+    }
+
+    if (shcore::str_caseeq(token, "VIEW")) {
+      // this is a CREATE VIEW statement, there was no SQL SECURITY clause
+      add_sql_security_invoker();
+      return true;
+    }
+
+    if (is_sql_security_clause()) {
+      return set_sql_security_invoker();
+    }
   }
+
+  if (func_or_proc) {
+    // find starting parenthesis
+    while (!shcore::str_caseeq((token = it.next_token()), "("))
+      ;
+
+    const auto find_closing_parenthesis = [&it, &token]() {
+      assert(shcore::str_caseeq(token, "("));
+
+      std::size_t count = 1;
+
+      while (count) {
+        token = it.next_token();
+
+        if (shcore::str_caseeq(token, "(")) {
+          ++count;
+        } else if (shcore::str_caseeq(token, ")")) {
+          --count;
+        }
+      }
+    };
+
+    // move past parameters
+    find_closing_parenthesis();
+
+    while (it.valid()) {
+      token = it.next_token();
+
+      if (shcore::str_caseeq(token, "RETURNS")) {
+        // move past type
+
+        // data type
+        token = it.next_token();
+
+        if (shcore::str_caseeq(token, "NATIONAL")) {
+          // it was NATIONAL keyword, data type follows
+          token = it.next_token();
+        } else if (shcore::str_caseeq(token, "NCHAR")) {
+          const auto pos = it.position();
+          token = it.next_token();
+
+          // NCHAR can be followed by VARCHAR, VARCHARACTER, check if that's the
+          // case
+          if (!shcore::str_caseeq_mv(token, "VARCHAR", "VARCHARACTER")) {
+            // it's not, step back
+            it.set_position(pos);
+          }
+        } else if (shcore::str_caseeq(token, "LONG")) {
+          const auto pos = it.position();
+          token = it.next_token();
+
+          // LONG can be followed by VARBINARY, VARCHAR, VARCHARACTER
+          // or by { CHAR | CHARACTER } VARYING
+          if (!shcore::str_caseeq_mv(token, "VARBINARY", "VARCHAR",
+                                     "VARCHARACTER") &&
+              !(shcore::str_caseeq_mv(token, "CHAR", "CHARACTER") &&
+                shcore::str_caseeq((token = it.next_token()), "VARYING"))) {
+            // this is not the case, step back
+            it.set_position(pos);
+          }
+        }
+
+        bool parentheses = false;
+
+        while (it.valid()) {
+          const auto pos = it.position();
+          token = it.next_token();
+
+          if (!parentheses && shcore::str_caseeq(token, "(")) {
+            // (M), (M,D), ('value1','value2',...), (fsp)
+            find_closing_parenthesis();
+            parentheses = true;
+          } else if (shcore::str_caseeq_mv(
+                         token, "SIGNED", "UNSIGNED", "ZEROFILL", "BINARY",
+                         "ASCII", "UNICODE", "BYTE", "PRECISION", "VARYING")) {
+            // field_options:
+            //   [ SIGNED ] [ UNSIGNED ] [ ZEROFILL ]
+            // opt_charset_with_opt_binary:
+            //   ASCII | BINARY ASCII | ASCII BINARY
+            //   UNICODE | UNICODE BINARY | BINARY UNICODE
+            //   BYTE
+            //   BINARY
+            //   character_set charset_name [ BINARY ]
+            //   BINARY character_set charset_name
+            // real_type:
+            //   { DOUBLE | FLOAT8 } PRECISION
+            // VARYING - suffix for CHAR, specifies VARCHAR
+            // nothing to do
+          } else if (shcore::str_caseeq_mv(token, "CHAR", "CHARACTER")) {
+            // CHAR SET charset_name
+            // CHARACTER SET charset_name
+            // consume two subsequent tokens
+            it.next_token();
+            it.next_token();
+          } else if (shcore::str_caseeq_mv(token, "CHARSET", "COLLATE")) {
+            // CHARSET charset_name
+            // COLLATE collation_name
+            // consume subsequent token
+            it.next_token();
+          } else {
+            // we're past the data type, move back
+            it.set_position(pos);
+            break;
+          }
+        }
+      } else if (shcore::str_caseeq_mv(token, "COMMENT", "LANGUAGE", "NOT",
+                                       "CONTAINS", "NO")) {
+        // COMMENT 'string'
+        // LANGUAGE SQL
+        // NOT DETERMINISTIC
+        // CONTAINS SQL
+        // NO SQL
+        // consume subsequent token
+        it.next_token();
+      } else if (shcore::str_caseeq_mv(token, "READS", "MODIFIES")) {
+        // READS SQL DATA
+        // MODIFIES SQL DATA
+        // consume two subsequent tokens
+        it.next_token();
+        it.next_token();
+      } else if (shcore::str_caseeq(token, "DETERMINISTIC")) {
+        // nothing to do
+      } else if (is_sql_security_clause()) {
+        return set_sql_security_invoker();
+      } else {
+        // beginning of the routine_body, there was no SQL SECURITY clause
+        add_sql_security_invoker();
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 

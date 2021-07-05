@@ -105,3 +105,104 @@ def CHECK_OUTPUT_SANITY(outdir, min_chunk_size, min_chunks, allow_min_chunk_size
                 EXPECT_LE(min_chunk_size, fsize, "Size of "+f+" too small")
     for t, c in chunks_per_table.items():
         EXPECT_LE(min_chunks, c, "Too few chunks for "+t)
+
+def get_test_user_name(name):
+    return f"test_{name}"
+
+def get_test_user_account(name):
+    return f"'{get_test_user_name(name)}'@'{__host}'"
+
+def test_user_uri(port):
+    return f"mysql://{get_test_user_name(test_user)}:{test_user_pwd}@{__host}:{port}"
+
+class Compatibility_issue:
+    def __init__(self, error, fixed):
+        self.__error_msg = "ERROR: " + error if error else ""
+        self.__fixed_msg = "NOTE: " + fixed if fixed else ""
+    def error(self):
+        if self.__error_msg:
+            return self.__error_msg
+        else:
+            raise Exception("No error message")
+    def fixed(self):
+        if self.__fixed_msg:
+            return self.__fixed_msg
+        else:
+            raise Exception("No fixed message")
+
+def strip_restricted_grants(user, privileges):
+    all_privileges = ", ".join(sorted(privileges))
+    plural = "s" if len(privileges) > 1 else ""
+    error = f"User {user} is granted restricted privilege{plural}: {all_privileges} (fix this with 'strip_restricted_grants' compatibility option)"
+    fixed = f"User {user} had restricted privilege{plural} ({all_privileges}) removed"
+    return Compatibility_issue(error, fixed)
+
+def comment_data_index_directory(schema, table):
+    error = ""
+    fixed = f"Table '{schema}'.'{table}' had {{DATA|INDEX}} DIRECTORY table option commented out"
+    return Compatibility_issue(error, fixed)
+
+def comment_encryption(schema, table):
+    error = ""
+    fixed = f"Table '{schema}'.'{table}' had ENCRYPTION table option commented out"
+    return Compatibility_issue(error, fixed)
+
+def force_innodb_unsupported_storage(schema, table, engine = "MyISAM"):
+    error = f"Table '{schema}'.'{table}' uses unsupported storage engine {engine} (fix this with 'force_innodb' compatibility option)"
+    fixed = f"Table '{schema}'.'{table}' had unsupported engine {engine} changed to InnoDB"
+    return Compatibility_issue(error, fixed)
+
+def force_innodb_row_format_fixed(schema, table):
+    error = f"Table '{schema}'.'{table}' uses unsupported ROW_FORMAT=FIXED option (fix this with 'force_innodb' compatibility option)"
+    fixed = f"Table '{schema}'.'{table}' had unsupported ROW_FORMAT=FIXED option removed"
+    return Compatibility_issue(error, fixed)
+
+def strip_tablespaces(schema, table):
+    error = f"Table '{schema}'.'{table}' uses unsupported tablespace option (fix this with 'strip_tablespaces' compatibility option)"
+    fixed = f"Table '{schema}'.'{table}' had unsupported tablespace option removed"
+    return Compatibility_issue(error, fixed)
+
+def strip_definers_definer_clause(schema, name, label = "View"):
+    error = f"{label} {schema}.{name} - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)"
+    fixed = f"{label} {schema}.{name} had definer clause removed"
+    return Compatibility_issue(error, fixed)
+
+def strip_definers_security_clause(schema, name, label = "View"):
+    error = f"{label} {schema}.{name} - definition does not use SQL SECURITY INVOKER characteristic, which is required (fix this with 'strip_definers' compatibility option)"
+    fixed = f"{label} {schema}.{name} had SQL SECURITY characteristic set to INVOKER"
+    return Compatibility_issue(error, fixed)
+
+def skip_invalid_accounts_plugin(user, plugin):
+    error = f"User {user} is using an unsupported authentication plugin '{plugin}' (fix this with 'skip_invalid_accounts' compatibility option)"
+    fixed = f"User {user} is using an unsupported authentication plugin '{plugin}', this account has been removed from the dump"
+    return Compatibility_issue(error, fixed)
+
+def skip_invalid_accounts_no_password(user):
+    error = f"User {user} does not have a password set (fix this with 'skip_invalid_accounts' compatibility option)"
+    fixed = f"User {user} does not have a password set, this account has been removed from the dump"
+    return Compatibility_issue(error, fixed)
+
+def create_invisible_pks(schema, table):
+    error = f"Table '{schema}'.'{table}' does not have a Primary Key, which is required for High Availability in MDS"
+    fixed = f"Table '{schema}'.'{table}' does not have a Primary Key, this will be fixed when the dump is loaded"
+    return Compatibility_issue(error, fixed)
+
+def create_invisible_pks_name_conflict(schema, table):
+    error = f"Table '{schema}'.'{table}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)"
+    fixed = ""
+    return Compatibility_issue(error, fixed)
+
+def create_invisible_pks_auto_increment_conflict(schema, table):
+    error = f"Table '{schema}'.'{table}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)"
+    fixed = ""
+    return Compatibility_issue(error, fixed)
+
+def ignore_missing_pks(schema, table):
+    error = f"Table '{schema}'.'{table}' does not have a Primary Key, which is required for High Availability in MDS"
+    fixed = f"Table '{schema}'.'{table}' does not have a Primary Key, this is ignored"
+    return Compatibility_issue(error, fixed)
+
+# constants
+test_user = "sample_user"
+test_user_account = get_test_user_account(test_user)
+test_user_pwd = "p4$$"

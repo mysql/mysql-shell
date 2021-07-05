@@ -1,3 +1,7 @@
+#@<> INCLUDE dump_utils.inc
+
+#@<> entry point
+
 # imports
 import json
 import os
@@ -30,8 +34,6 @@ test_schema_procedure = "sample_procedure"
 test_schema_function = "sample_function"
 test_schema_event = "sample_event"
 test_view = "sample_view"
-test_user = "sample_user"
-test_user_pwd = "p4$$"
 test_privilege = "FILE"
 
 verification_schema = "wl13807_ver"
@@ -110,9 +112,9 @@ def create_all_schemas():
         session.run_sql("CREATE SCHEMA !;", [ schema ])
 
 def create_user():
-    session.run_sql("DROP USER IF EXISTS !@!;", [test_user, __host])
-    session.run_sql("CREATE USER IF NOT EXISTS !@! IDENTIFIED BY ?;", [test_user, __host, test_user_pwd])
-    session.run_sql("GRANT {0} ON *.* TO !@!;".format(test_privilege), [test_user, __host])
+    session.run_sql(f"DROP USER IF EXISTS {test_user_account};")
+    session.run_sql(f"CREATE USER IF NOT EXISTS {test_user_account} IDENTIFIED BY ?;", [test_user_pwd])
+    session.run_sql(f"GRANT {test_privilege} ON *.* TO {test_user_account};")
 
 def recreate_verification_schema():
     session.run_sql("DROP SCHEMA IF EXISTS !;", [ verification_schema ])
@@ -1176,27 +1178,28 @@ if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first.")
     EXPECT_STDOUT_CONTAINS("NOTE: You can check for potential upgrade issues using util.check_for_server_upgrade().")
 
-EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_data_directory))
+EXPECT_STDOUT_CONTAINS(comment_data_index_directory(incompatible_schema, incompatible_table_data_directory).fixed())
 
-EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had ENCRYPTION table option commented out".format(incompatible_schema, incompatible_table_encryption))
+EXPECT_STDOUT_CONTAINS(comment_encryption(incompatible_schema, incompatible_table_encryption).fixed())
 
 if __version_num < 80000 and __os_type != "windows":
-    EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_index_directory))
+    EXPECT_STDOUT_CONTAINS(comment_data_index_directory(incompatible_schema, incompatible_table_index_directory).fixed())
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM (fix this with 'force_innodb' compatibility option)".format(incompatible_schema, incompatible_table_index_directory))
+EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, incompatible_table_index_directory).error())
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported tablespace option (fix this with 'strip_tablespaces' compatibility option)".format(incompatible_schema, incompatible_table_tablespace))
+EXPECT_STDOUT_CONTAINS(strip_tablespaces(incompatible_schema, incompatible_table_tablespace).error())
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM (fix this with 'force_innodb' compatibility option)".format(incompatible_schema, incompatible_table_wrong_engine))
+EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, incompatible_table_wrong_engine).error())
 
-EXPECT_STDOUT_CONTAINS("ERROR: View {0}.{1} - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)".format(incompatible_schema, incompatible_view))
+EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(incompatible_schema, incompatible_view).error())
+EXPECT_STDOUT_CONTAINS(strip_definers_security_clause(incompatible_schema, incompatible_view).error())
 
 EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version_no_extra))
 
 # WL14506-FR1 - When a dump is executed with the ocimds option set to true, for each table that would be dumped which does not contain a primary key, an error must be reported.
 # WL14506-TSFR_1_11
 for table in missing_pks[incompatible_schema]:
-    EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, which is required for High Availability in MDS".format(incompatible_schema, table))
+    EXPECT_STDOUT_CONTAINS(create_invisible_pks(incompatible_schema, table).error())
 
 # WL14506-TSFR_1_6
 for table in missing_pks["xtest"] + missing_pks[test_schema]:
@@ -1309,7 +1312,7 @@ NOTE: One or more tables without Primary Keys were found.
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "create_invisible_pks" ] , "ddlOnly": True, "showProgress": False })
 
 for table in missing_pks[incompatible_schema]:
-    EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' does not have a Primary Key, this will be fixed when the dump is loaded".format(incompatible_schema, table))
+    EXPECT_STDOUT_CONTAINS(create_invisible_pks(incompatible_schema, table).fixed())
 
 #@<> WL14506-FR3.2 - When a dump is executed and the compatibility option contains the create_invisible_pks value, for each table that would be dumped which does not contain a primary key but has a column named my_row_id, an error must be reported.
 # WL14506-TSFR_3.2_2
@@ -1317,12 +1320,12 @@ table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schema, table])
 
 EXPECT_FAIL("RuntimeError", "Fatal error during dump", [incompatible_schema], test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
 
@@ -1331,12 +1334,12 @@ table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
 EXPECT_FAIL("RuntimeError", "Fatal error during dump", [incompatible_schema], test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table])
 
@@ -1345,14 +1348,14 @@ table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
 EXPECT_FAIL("RuntimeError", "Fatal error during dump", [incompatible_schema], test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
 
@@ -1362,14 +1365,14 @@ session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schem
 session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
 EXPECT_FAIL("RuntimeError", "Fatal error during dump", [incompatible_schema], test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
 session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table])
@@ -1381,31 +1384,33 @@ EXPECT_FAIL("ValueError", "Argument #3: The 'create_invisible_pks' and 'ignore_m
 #@<> WL13807-FR16.2.1 - force_innodb
 # WL13807-TSFR16_3
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "force_innodb" ] , "ddlOnly": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_index_directory))
-EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_wrong_engine))
+EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, incompatible_table_index_directory).fixed())
+EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, incompatible_table_wrong_engine).fixed())
 
 #@<> WL14506-FR2.1 - When a dump is executed with the ocimds option set to true and the compatibility option contains the ignore_missing_pks value, for each table that would be dumped which does not contain a primary key, a note must be displayed, stating that this issue is ignored.
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "ignore_missing_pks" ] , "ddlOnly": True, "showProgress": False })
 
 for table in missing_pks[incompatible_schema]:
-    EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' does not have a Primary Key, this is ignored".format(incompatible_schema, table))
+    EXPECT_STDOUT_CONTAINS(ignore_missing_pks(incompatible_schema, table).fixed())
 
 #@<> WL13807-FR16.2.1 - strip_definers
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_definers" ] , "ddlOnly": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQL SECURITY characteristic set to INVOKER".format(incompatible_schema, incompatible_view))
+EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(incompatible_schema, incompatible_view).fixed())
+EXPECT_STDOUT_CONTAINS(strip_definers_security_clause(incompatible_schema, incompatible_view).fixed())
 
 #@<> WL13807-FR16.2.1 - strip_tablespaces
 # WL13807-TSFR16_4
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported tablespace option removed".format(incompatible_schema, incompatible_table_tablespace))
+EXPECT_STDOUT_CONTAINS(strip_tablespaces(incompatible_schema, incompatible_table_tablespace).fixed())
 
 #@<> WL13807-FR16.2.2 - If the `compatibility` option is not given, a default value of `[]` must be used instead.
 # WL13807-TSFR16_6
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
-EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_index_directory))
-EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_wrong_engine))
-EXPECT_STDOUT_NOT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQL SECURITY characteristic set to INVOKER".format(incompatible_schema, incompatible_view))
-EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported tablespace option removed".format(incompatible_schema, incompatible_table_tablespace))
+EXPECT_STDOUT_NOT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, incompatible_table_index_directory).fixed())
+EXPECT_STDOUT_NOT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, incompatible_table_wrong_engine).fixed())
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(incompatible_schema, incompatible_view).fixed())
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_security_clause(incompatible_schema, incompatible_view).fixed())
+EXPECT_STDOUT_NOT_CONTAINS(strip_tablespaces(incompatible_schema, incompatible_table_tablespace).fixed())
 
 # WL13807-FR7 - The table data dump must be written in the output directory, to a file with a base name as specified in FR7.1, and a `.tsv` extension.
 # For WL13807-FR7.1 please see above.
@@ -1443,9 +1448,9 @@ session.run_sql("SET NAMES 'utf8mb4';")
 session.run_sql("SET GLOBAL SQL_MODE='';")
 
 #@<> prepare user privileges, switch user
-session.run_sql("GRANT ALL ON *.* TO !@!;", [test_user, __host])
-session.run_sql("REVOKE RELOAD /*!80023 , FLUSH_TABLES */ ON *.* FROM !@!;", [test_user, __host])
-shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+session.run_sql(f"GRANT ALL ON *.* TO {test_user_account};")
+session.run_sql(f"REVOKE RELOAD /*!80023 , FLUSH_TABLES */ ON *.* FROM {test_user_account};")
+shell.connect(test_user_uri(__mysql_sandbox_port1))
 
 #@<> try to run consistent dump using a user which does not have required privileges for FTWRL but LOCK TABLES are ok
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
@@ -1454,21 +1459,21 @@ EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a 
 #@<> revoke lock tables from mysql.* {VER(>=8.0.16)}
 setup_session()
 session.run_sql("SET GLOBAL partial_revokes=1")
-session.run_sql("REVOKE LOCK TABLES ON mysql.* FROM !@!;", [test_user, __host])
-shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+session.run_sql(f"REVOKE LOCK TABLES ON mysql.* FROM {test_user_account};")
+shell.connect(test_user_uri(__mysql_sandbox_port1))
 
 #@<> try again, this time it should succeed but without locking mysql.* tables {VER(>=8.0.16)}
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
-EXPECT_STDOUT_CONTAINS("WARNING: Could not lock mysql system tables: User 'sample_user'@'localhost' is missing the following privilege(s) for schema `mysql`: LOCK TABLES.")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Could not lock mysql system tables: User {test_user_account} is missing the following privilege(s) for schema `mysql`: LOCK TABLES.")
 
 #@<> revoke lock tables from the rest
 setup_session()
-session.run_sql("REVOKE LOCK TABLES ON *.* FROM !@!;", [test_user, __host])
-shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+session.run_sql(f"REVOKE LOCK TABLES ON *.* FROM {test_user_account};")
+shell.connect(test_user_uri(__mysql_sandbox_port1))
 
 #@<> try to run consistent dump using a user which does not have any required privileges
-EXPECT_FAIL("RuntimeError", re.compile(r"Unable to lock tables: User 'sample_user'@'localhost' is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES."), [types_schema], test_output_absolute, { "showProgress": False })
+EXPECT_FAIL("RuntimeError", re.compile(r"Unable to lock tables: User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES.".format(test_user_account)), [types_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table read locks")
 

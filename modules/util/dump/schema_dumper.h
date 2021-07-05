@@ -308,6 +308,10 @@ class Schema_dumper {
       const std::string &select, const std::string &where,
       const std::vector<shcore::Account> &included,
       const std::vector<shcore::Account> &excluded, bool log_error = true);
+
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Schema_dumper_test, check_object_for_definer);
+#endif  // FRIEND_TEST
 };
 
 }  // namespace dump

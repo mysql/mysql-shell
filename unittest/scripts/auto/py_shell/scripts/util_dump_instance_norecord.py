@@ -1,3 +1,7 @@
+#@<> INCLUDE dump_utils.inc
+
+#@<> entry point
+
 # imports
 import json
 import os
@@ -31,10 +35,10 @@ test_schema_function = "sample_function"
 test_schema_event = "sample_event"
 test_view = "sample_view"
 test_role = "sample_role"
-test_user = "sample_user"
-test_user_pwd = "p4$$"
-test_user_no_pwd = "sample_user_no_pwd"
-test_privilege = "FILE" if __version_num < 80000 else "FILE, ROLE_ADMIN"
+test_user_no_pwd = get_test_user_account("sample_user_no_pwd")
+test_privileges = [ "FILE" ]
+if __version_num >= 80000:
+    test_privileges.append("ROLE_ADMIN")
 test_all_allowed_privileges = "allowed_privileges"
 test_disallowed_privileges = "disallowed_privileges"
 
@@ -246,23 +250,20 @@ def create_all_schemas():
     for schema in all_schemas:
         session.run_sql("CREATE SCHEMA !;", [ schema ])
 
-def test_user_name(name):
-    return "'test_{0}'@'{1}'".format(name, __host)
-
 def create_authentication_plugin_user(name):
-    full_name = test_user_name(name)
+    full_name = get_test_user_account(name)
     session.run_sql("DROP USER IF EXISTS " + full_name)
     ensure_plugin_enabled(name, session)
     session.run_sql("CREATE USER IF NOT EXISTS {0} IDENTIFIED WITH ? BY 'pwd'".format(full_name), [name])
 
 def create_users():
     # test user which has some disallowed privileges
-    session.run_sql("DROP USER IF EXISTS !@!;", [test_user, __host])
-    session.run_sql("CREATE USER IF NOT EXISTS !@! IDENTIFIED BY ?;", [test_user, __host, test_user_pwd])
-    session.run_sql("GRANT {0} ON *.* TO !@!;".format(test_privilege), [test_user, __host])
+    session.run_sql(f"DROP USER IF EXISTS {test_user_account};")
+    session.run_sql(f"CREATE USER IF NOT EXISTS {test_user_account} IDENTIFIED BY ?;", [test_user_pwd])
+    session.run_sql(f"GRANT {','.join(test_privileges)} ON *.* TO {test_user_account};")
     # test user without password
-    session.run_sql("DROP USER IF EXISTS !@!;", [test_user_no_pwd, __host])
-    session.run_sql("CREATE USER IF NOT EXISTS !@!;", [test_user_no_pwd, __host])
+    session.run_sql(f"DROP USER IF EXISTS {test_user_no_pwd};")
+    session.run_sql(f"CREATE USER IF NOT EXISTS {test_user_no_pwd};")
     # accounts which use allowed authentication plugins
     global allowed_authentication_plugins
     allowed = []
@@ -285,7 +286,7 @@ def create_users():
     disallowed_authentication_plugins = disallowed
     # user which has all allowed privileges
     global allowed_privileges
-    account_name = test_user_name(test_all_allowed_privileges)
+    account_name = get_test_user_account(test_all_allowed_privileges)
     session.run_sql("DROP USER IF EXISTS " + account_name)
     session.run_sql("CREATE USER IF NOT EXISTS " + account_name + " IDENTIFIED BY 'pwd'")
     for privilege in allowed_privileges:
@@ -297,7 +298,7 @@ def create_users():
     # user which has only disallowed privileges
     global disallowed_privileges
     disallowed = []
-    account_name = test_user_name(test_disallowed_privileges)
+    account_name = get_test_user_account(test_disallowed_privileges)
     session.run_sql("DROP USER IF EXISTS " + account_name)
     session.run_sql("CREATE USER IF NOT EXISTS " + account_name + " IDENTIFIED BY 'pwd'")
     for privilege in disallowed_privileges:
@@ -1520,52 +1521,51 @@ if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first.")
     EXPECT_STDOUT_CONTAINS("NOTE: You can check for potential upgrade issues using util.check_for_server_upgrade().")
 
-if __version_num < 80000:
-    EXPECT_STDOUT_CONTAINS("ERROR: User '{0}'@'localhost' is granted restricted privilege: {1} (fix this with 'strip_restricted_grants' compatibility option)".format(test_user, test_privilege))
-else:
-    EXPECT_STDOUT_CONTAINS("ERROR: User '{0}'@'localhost' is granted restricted privileges: {1} (fix this with 'strip_restricted_grants' compatibility option)".format(test_user, test_privilege))
+EXPECT_STDOUT_CONTAINS(strip_restricted_grants(test_user_account, test_privileges).error())
 
-EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_data_directory))
+EXPECT_STDOUT_CONTAINS(comment_data_index_directory(incompatible_schema, incompatible_table_data_directory).fixed())
 
-EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had ENCRYPTION table option commented out".format(incompatible_schema, incompatible_table_encryption))
+EXPECT_STDOUT_CONTAINS(comment_encryption(incompatible_schema, incompatible_table_encryption).fixed())
 
 if __version_num < 80000 and __os_type != "windows":
-    EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had {{DATA|INDEX}} DIRECTORY table option commented out".format(incompatible_schema, incompatible_table_index_directory))
+    EXPECT_STDOUT_CONTAINS(comment_data_index_directory(incompatible_schema, incompatible_table_index_directory).fixed())
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM (fix this with 'force_innodb' compatibility option)".format(incompatible_schema, incompatible_table_index_directory))
+EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, incompatible_table_index_directory).error())
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported tablespace option (fix this with 'strip_tablespaces' compatibility option)".format(incompatible_schema, incompatible_table_tablespace))
+EXPECT_STDOUT_CONTAINS(strip_tablespaces(incompatible_schema, incompatible_table_tablespace).error())
 
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported storage engine MyISAM (fix this with 'force_innodb' compatibility option)".format(incompatible_schema, incompatible_table_wrong_engine))
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' uses unsupported ROW_FORMAT=FIXED option (fix this with 'force_innodb' compatibility option)".format(incompatible_schema, incompatible_table_wrong_engine))
+EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, incompatible_table_wrong_engine).error())
+EXPECT_STDOUT_CONTAINS(force_innodb_row_format_fixed(incompatible_schema, incompatible_table_wrong_engine).error())
 
-EXPECT_STDOUT_CONTAINS("ERROR: View {0}.{1} - definition uses DEFINER clause set to user `root`@`localhost` which can only be executed by this user or a user with SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)".format(incompatible_schema, incompatible_view))
+EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(incompatible_schema, incompatible_view).error())
+EXPECT_STDOUT_CONTAINS(strip_definers_security_clause(incompatible_schema, incompatible_view).error())
 
 EXPECT_STDOUT_CONTAINS("Compatibility issues with MySQL Database Service {0} were found. Please use the 'compatibility' option to apply compatibility adaptations to the dumped DDL.".format(__mysh_version_no_extra))
 
 for plugin in allowed_authentication_plugins:
-    EXPECT_STDOUT_NOT_CONTAINS("ERROR: User {0} is using an unsupported authentication plugin '{1}' (fix this with 'skip_invalid_accounts' compatibility option)".format(test_user_name(plugin), plugin))
+    EXPECT_STDOUT_NOT_CONTAINS(skip_invalid_accounts_plugin(get_test_user_account(plugin), plugin).error())
 
 for plugin in disallowed_authentication_plugins:
-    EXPECT_STDOUT_CONTAINS("ERROR: User {0} is using an unsupported authentication plugin '{1}' (fix this with 'skip_invalid_accounts' compatibility option)".format(test_user_name(plugin), plugin))
+    EXPECT_STDOUT_CONTAINS(skip_invalid_accounts_plugin(get_test_user_account(plugin), plugin).error())
     # invalid user is removed from further checks, there should be no errors about restricted privileges
-    EXPECT_STDOUT_NOT_CONTAINS("ERROR: User {0} is granted restricted privilege".format(test_user_name(plugin)))
+    msg = strip_restricted_grants(get_test_user_account(plugin), []).error()
+    EXPECT_STDOUT_NOT_CONTAINS(msg[:msg.find("privilege")])
 
 # BUG#32213605 - list of privileges allowed in MDS
 # there should be no errors on USAGE privilege
 EXPECT_STDOUT_NOT_CONTAINS("USAGE")
 # there should be no errors about the user which only has allowed privileges
-EXPECT_STDOUT_NOT_CONTAINS(test_user_name(test_all_allowed_privileges))
+EXPECT_STDOUT_NOT_CONTAINS(get_test_user_account(test_all_allowed_privileges))
 # all disallowed privileges should be reported
-EXPECT_STDOUT_CONTAINS("ERROR: User {0} is granted restricted privileges: {1} (fix this with 'strip_restricted_grants' compatibility option)".format(test_user_name(test_disallowed_privileges), ', '.join(sorted(disallowed_privileges))))
+EXPECT_STDOUT_CONTAINS(strip_restricted_grants(get_test_user_account(test_disallowed_privileges), disallowed_privileges).error())
 
 # BUG#32741098 - list users which do not have a password
-EXPECT_STDOUT_CONTAINS("ERROR: User '{0}'@'{1}' does not have a password set (fix this with 'skip_invalid_accounts' compatibility option)".format(test_user_no_pwd, __host))
+EXPECT_STDOUT_CONTAINS(skip_invalid_accounts_no_password(test_user_no_pwd).error())
 
 # WL14506-FR1 - When a dump is executed with the ocimds option set to true, for each table that would be dumped which does not contain a primary key, an error must be reported.
 # WL14506-TSFR_1_8
 for table in missing_pks[incompatible_schema]:
-    EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, which is required for High Availability in MDS".format(incompatible_schema, table))
+    EXPECT_STDOUT_CONTAINS(create_invisible_pks(incompatible_schema, table).error())
 
 # WL14506-TSFR_1_2
 # WL14506-TSFR_1_3
@@ -1630,10 +1630,10 @@ EXPECT_STDOUT_CONTAINS("""
 
 #@<> BUG#31403104: if users is false, errors about the users should not be included
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "users": False })
-EXPECT_STDOUT_NOT_CONTAINS("ERROR: User '{0}'@'localhost' is granted restricted privilege: {1}".format(test_user, "FILE"))
+EXPECT_STDOUT_NOT_CONTAINS(strip_restricted_grants(test_user_account, test_privileges).error())
 
 for plugin in disallowed_authentication_plugins:
-    EXPECT_STDOUT_NOT_CONTAINS("ERROR: User {0} is using an unsupported authentication plugin '{1}' (fix this with 'skip_invalid_accounts' compatibility option)".format(test_user_name(plugin), plugin))
+    EXPECT_STDOUT_NOT_CONTAINS(skip_invalid_accounts_plugin(get_test_user_account(plugin), plugin).error())
 
 #@<> BUG#31403104: compatibility checks are enabled, but users and SQL is not dumped, this should succeed
 # WL14506-TSFR_1_4
@@ -1688,7 +1688,7 @@ NOTE: One or more tables without Primary Keys were found.
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "create_invisible_pks" ] , "ddlOnly": True, "showProgress": False })
 
 for table in missing_pks[incompatible_schema]:
-    EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' does not have a Primary Key, this will be fixed when the dump is loaded".format(incompatible_schema, table))
+    EXPECT_STDOUT_CONTAINS(create_invisible_pks(incompatible_schema, table).fixed())
 
 #@<> WL14506-FR3.2 - When a dump is executed and the compatibility option contains the create_invisible_pks value, for each table that would be dumped which does not contain a primary key but has a column named my_row_id, an error must be reported.
 # WL14506-TSFR_3.2_1
@@ -1696,12 +1696,12 @@ table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schema, table])
 
 EXPECT_FAIL("RuntimeError", "Fatal error during dump", test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
 
@@ -1710,12 +1710,12 @@ table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
 EXPECT_FAIL("RuntimeError", "Fatal error during dump", test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table])
 
@@ -1724,14 +1724,14 @@ table = missing_pks[incompatible_schema][0]
 session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
 EXPECT_FAIL("RuntimeError", "Fatal error during dump", test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
 
@@ -1741,14 +1741,14 @@ session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schem
 session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [incompatible_schema, table])
 
 EXPECT_FAIL("RuntimeError", "Fatal error during dump", test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column named `my_row_id` (this issue needs to be fixed manually)".format(incompatible_schema, table))
-EXPECT_STDOUT_CONTAINS("ERROR: Table '{0}'.'{1}' does not have a Primary Key, this cannot be fixed automatically because the table has a column with 'AUTO_INCREMENT' attribute (this issue needs to be fixed manually)".format(incompatible_schema, table))
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
 
 session.run_sql("ALTER TABLE !.! DROP COLUMN my_row_id;", [incompatible_schema, table])
 session.run_sql("ALTER TABLE !.! DROP COLUMN idx;", [incompatible_schema, table])
@@ -1760,50 +1760,49 @@ EXPECT_FAIL("ValueError", "Argument #2: The 'create_invisible_pks' and 'ignore_m
 #@<> WL13807-FR16.2.1 - force_innodb
 # WL13807-TSFR16_3
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "force_innodb" ] , "ddlOnly": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_index_directory))
-EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_wrong_engine))
-EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported ROW_FORMAT=FIXED option removed".format(incompatible_schema, incompatible_table_wrong_engine))
+EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, incompatible_table_index_directory).fixed())
+EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, incompatible_table_wrong_engine).fixed())
+EXPECT_STDOUT_CONTAINS(force_innodb_row_format_fixed(incompatible_schema, incompatible_table_wrong_engine).fixed())
 
 #@<> WL14506-FR2.1 - When a dump is executed with the ocimds option set to true and the compatibility option contains the ignore_missing_pks value, for each table that would be dumped which does not contain a primary key, a note must be displayed, stating that this issue is ignored.
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "ignore_missing_pks" ] , "ddlOnly": True, "showProgress": False })
 
 for table in missing_pks[incompatible_schema]:
-    EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' does not have a Primary Key, this is ignored".format(incompatible_schema, table))
+    EXPECT_STDOUT_CONTAINS(ignore_missing_pks(incompatible_schema, table).fixed())
 
 #@<> WL13807-FR16.2.1 - strip_definers
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_definers" ] , "ddlOnly": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQL SECURITY characteristic set to INVOKER".format(incompatible_schema, incompatible_view))
+EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(incompatible_schema, incompatible_view).fixed())
+EXPECT_STDOUT_CONTAINS(strip_definers_security_clause(incompatible_schema, incompatible_view).fixed())
 
 #@<> WL13807-FR16.2.1 - strip_restricted_grants
 # WL13807-TSFR16_5
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_restricted_grants" ] , "ddlOnly": True, "showProgress": False })
-if __version_num < 80000:
-    EXPECT_STDOUT_CONTAINS("NOTE: User '{0}'@'localhost' had restricted privilege ({1}) removed".format(test_user, test_privilege))
-else:
-    EXPECT_STDOUT_CONTAINS("NOTE: User '{0}'@'localhost' had restricted privileges ({1}) removed".format(test_user, test_privilege))
+EXPECT_STDOUT_CONTAINS(strip_restricted_grants(test_user_account, test_privileges).fixed())
 
 #@<> WL13807-FR16.2.1 - strip_tablespaces
 # WL13807-TSFR16_4
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported tablespace option removed".format(incompatible_schema, incompatible_table_tablespace))
+EXPECT_STDOUT_CONTAINS(strip_tablespaces(incompatible_schema, incompatible_table_tablespace).fixed())
 
 # BUG#32115948 - added `skip_invalid_accounts` - removes users using unsupported authentication plugins
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "skip_invalid_accounts" ] , "ddlOnly": True, "showProgress": False })
 
 for plugin in disallowed_authentication_plugins:
-    EXPECT_STDOUT_CONTAINS("NOTE: User {0} is using an unsupported authentication plugin '{1}', this account has been removed from the dump".format(test_user_name(plugin), plugin))
+    EXPECT_STDOUT_CONTAINS(skip_invalid_accounts_plugin(get_test_user_account(plugin), plugin).fixed())
 
 # BUG#32741098 - users which do not have a passwords are removed from the dump by 'skip_invalid_accounts'
-EXPECT_STDOUT_CONTAINS("NOTE: User '{0}'@'{1}' does not have a password set, this account has been removed from the dump".format(test_user_no_pwd, __host))
+EXPECT_STDOUT_CONTAINS(skip_invalid_accounts_no_password(test_user_no_pwd).fixed())
 
 #@<> WL13807-FR16.2.2 - If the `compatibility` option is not given, a default value of `[]` must be used instead.
 # WL13807-TSFR16_6
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
-EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_index_directory))
-EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported engine MyISAM changed to InnoDB".format(incompatible_schema, incompatible_table_wrong_engine))
-EXPECT_STDOUT_NOT_CONTAINS("NOTE: View {0}.{1} had definer clause removed and SQL SECURITY characteristic set to INVOKER".format(incompatible_schema, incompatible_view))
-EXPECT_STDOUT_NOT_CONTAINS("NOTE: User '{0}'@'localhost' had restricted privilege ({1}) removed".format(test_user, test_privilege))
-EXPECT_STDOUT_NOT_CONTAINS("NOTE: Table '{0}'.'{1}' had unsupported tablespace option removed".format(incompatible_schema, incompatible_table_tablespace))
+EXPECT_STDOUT_NOT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, incompatible_table_index_directory).fixed())
+EXPECT_STDOUT_NOT_CONTAINS(force_innodb_unsupported_storage(incompatible_schema, incompatible_table_wrong_engine).fixed())
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(incompatible_schema, incompatible_view).fixed())
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_security_clause(incompatible_schema, incompatible_view).fixed())
+EXPECT_STDOUT_NOT_CONTAINS(strip_restricted_grants(test_user_account, test_privileges).fixed())
+EXPECT_STDOUT_NOT_CONTAINS(strip_tablespaces(incompatible_schema, incompatible_table_tablespace).fixed())
 
 # WL13807-FR7 - The table data dump must be written in the output directory, to a file with a base name as specified in FR7.1, and a `.tsv` extension.
 # For WL13807-FR7.1 please see above.
@@ -1842,24 +1841,24 @@ class PrivilegeError:
 # if this list ever changes, online docs need to be updated
 required_privileges = {
     "EVENT": PrivilegeError(  # database-level privilege
-        re.compile(r"User '{0}'@'{1}' is missing the following privilege\(s\) for schema `.+`: EVENT.".format(test_user, __host))
+        re.compile(r"User {0} is missing the following privilege\(s\) for schema `.+`: EVENT.".format(test_user_account))
     ),
     "RELOAD": PrivilegeError(  # global privilege; if this privilege is missing, FTWRL will fail and dump will fallback to LOCK TABLES
-        re.compile(r"Unable to lock tables: User '{0}'@'{1}' is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES.".format(test_user, __host)),
+        re.compile(r"Unable to lock tables: User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES.".format(test_user_account)),
         "WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES..."
     ),
     "SELECT": PrivilegeError(  # table-level privilege
         "Fatal error during dump",
-        "MySQL Error 1142 (42000): SELECT command denied to user '{0}'@'{1}' for table '".format(test_user, __host),
+        f"MySQL Error 1142 (42000): SELECT command denied to user {test_user_account} for table '",
         output_dir_created=True
     ),
     "SHOW VIEW": PrivilegeError(  # table-level privilege
         "Fatal error during dump",
-        "MySQL Error 1142 (42000): SHOW VIEW command denied to user '{0}'@'{1}'".format(test_user, __host),
+        f"MySQL Error 1142 (42000): SHOW VIEW command denied to user {test_user_account}",
         output_dir_created=True
     ),
     "TRIGGER": PrivilegeError(  # table-level privilege
-        re.compile(r"User '{0}'@'{1}' is missing the following privilege\(s\) for table `.+`\.`.+`: TRIGGER.".format(test_user, __host))
+        re.compile(r"User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: TRIGGER.".format(test_user_account))
     ),
     "REPLICATION CLIENT": PrivilegeError(  # global privilege
         "NO EXCEPTION!",
@@ -1872,29 +1871,29 @@ if __version_num >= 80000:
     # when running a consistent dump on 8.0, LOCK INSTANCE FOR BACKUP is executed, which requires BACKUP_ADMIN privilege
     required_privileges["BACKUP_ADMIN"] = PrivilegeError(  # global privilege
         "Could not acquire the backup lock",
-        f"ERROR: User '{test_user}'@'{__host}' is missing the BACKUP_ADMIN privilege and cannot execute 'LOCK INSTANCE FOR BACKUP'."
+        f"ERROR: User {test_user_account} is missing the BACKUP_ADMIN privilege and cannot execute 'LOCK INSTANCE FOR BACKUP'."
     )
     # 8.0 has roles which are checked prior to running the dump, if user is missing the SELECT privilege, error will be reported at this stage
     required_privileges["SELECT"] = PrivilegeError(  # table-level privilege
         "Unable to get roles information.",
-        "ERROR: Unable to check privileges for user '{0}'@'{1}'. User requires SELECT privilege on mysql.* to obtain information about all roles.".format(test_user, __host)
+        f"ERROR: Unable to check privileges for user {test_user_account}. User requires SELECT privilege on mysql.* to obtain information about all roles."
     )
 else:
     # BUG#32865281 - when running a dump on < 8.0, if there's a view which uses a function to get data, EXECUTE privilege is required to run SHOW FIELDS FROM `view_name`
     required_privileges["EXECUTE"] = PrivilegeError(  # global, database, routine privilege
         "Fatal error during dump",
-        f"ERROR: Could not execute 'SHOW FIELDS FROM `{test_view}`': MySQL Error 1370 (42000): execute command denied to user '{test_user}'@'{__host}' for routine '{test_schema}.{test_schema_function}'",
+        f"ERROR: Could not execute 'SHOW FIELDS FROM `{test_view}`': MySQL Error 1370 (42000): execute command denied to user {test_user_account} for routine '{test_schema}.{test_schema_function}'",
         output_dir_created=True
     )
 
 # setup the user, grant only required privileges
 create_users()
-session.run_sql("REVOKE ALL PRIVILEGES ON *.* FROM !@!;", [test_user, __host])
+session.run_sql(f"REVOKE ALL PRIVILEGES ON *.* FROM {test_user_account};")
 for privilege in required_privileges.keys():
-    session.run_sql("GRANT {0} ON *.* TO !@!;".format(privilege), [test_user, __host])
+    session.run_sql(f"GRANT {privilege} ON *.* TO {test_user_account};")
 
 # reconnect as test user
-setup_session("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+setup_session(test_user_uri(__mysql_sandbox_port1))
 
 # create session for root
 root_session = mysql.get_session(uri)
@@ -1914,7 +1913,7 @@ EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basen
 # check if revoking one of the privileges results in a failure
 for privilege, error in required_privileges.items():
     print("--> testing:", privilege)
-    root_session.run_sql("REVOKE {0} ON *.* FROM !@!;".format(privilege), [test_user, __host])
+    root_session.run_sql(f"REVOKE {privilege} ON *.* FROM {test_user_account};")
     WIPE_STDOUT()
     if error.fatal:
         EXPECT_FAIL(error.exception_type, error.exception_message, test_output_absolute, { "showProgress": False }, expect_dir_created=error.output_dir_created)
@@ -1928,7 +1927,7 @@ for privilege, error in required_privileges.items():
     else:
         EXPECT_SUCCESS(all_schemas, test_output_absolute, { "dryRun": True, "showProgress": False })
     EXPECT_STDOUT_CONTAINS(error.error_message)
-    root_session.run_sql("GRANT {0} ON *.* TO !@!;".format(privilege), [test_user, __host])
+    root_session.run_sql(f"GRANT {privilege} ON *.* TO {test_user_account};")
 
 # cleanup
 root_session.close()
@@ -1950,9 +1949,9 @@ session.run_sql("SET NAMES 'utf8mb4';")
 session.run_sql("SET GLOBAL SQL_MODE='';")
 
 #@<> prepare user privileges, switch user
-session.run_sql("GRANT ALL ON *.* TO !@!;", [test_user, __host])
-session.run_sql("REVOKE RELOAD /*!80023 , FLUSH_TABLES */ ON *.* FROM !@!;", [test_user, __host])
-shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+session.run_sql(f"GRANT ALL ON *.* TO {test_user_account};")
+session.run_sql(f"REVOKE RELOAD /*!80023 , FLUSH_TABLES */ ON *.* FROM {test_user_account};")
+shell.connect(test_user_uri(__mysql_sandbox_port1))
 
 #@<> try to run consistent dump using a user which does not have required privileges for FTWRL but LOCK TABLES are ok
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
@@ -1961,7 +1960,7 @@ EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a 
 #@<> BUG#32695301 - lock one of the mysql tables, dry run should not attempt to execute LOCK TABLES and dump should succeed
 setup_session()
 session.run_sql("LOCK TABLES mysql.user WRITE")
-shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+shell.connect(test_user_uri(__mysql_sandbox_port1))
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "dryRun": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
@@ -1972,38 +1971,38 @@ session.run_sql("UNLOCK TABLES")
 #@<> revoke lock tables from mysql.*  {VER(>=8.0.16)}
 setup_session()
 session.run_sql("SET GLOBAL partial_revokes=1")
-session.run_sql("REVOKE LOCK TABLES ON mysql.* FROM !@!;", [test_user, __host])
-shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+session.run_sql(f"REVOKE LOCK TABLES ON mysql.* FROM {test_user_account};")
+shell.connect(test_user_uri(__mysql_sandbox_port1))
 
 #@<> try again, this time it should succeed but without locking mysql.* tables  {VER(>=8.0.16)}
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
-EXPECT_STDOUT_CONTAINS("WARNING: Could not lock mysql system tables: User 'sample_user'@'localhost' is missing the following privilege(s) for schema `mysql`: LOCK TABLES.")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Could not lock mysql system tables: User {test_user_account} is missing the following privilege(s) for schema `mysql`: LOCK TABLES.")
 
 #@<> BUG#32695301 - lock one of the dumped tables, dry run should not attempt to execute LOCK TABLES and dump should succeed  {VER(>=8.0.16)}
 setup_session()
 session.run_sql("LOCK TABLES !.! WRITE", [ types_schema, types_schema_tables[0] ])
-shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+shell.connect(test_user_uri(__mysql_sandbox_port1))
 
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "dryRun": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
-EXPECT_STDOUT_CONTAINS("WARNING: Could not lock mysql system tables: User 'sample_user'@'localhost' is missing the following privilege(s) for schema `mysql`: LOCK TABLES.")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Could not lock mysql system tables: User {test_user_account} is missing the following privilege(s) for schema `mysql`: LOCK TABLES.")
 
 setup_session()
 session.run_sql("UNLOCK TABLES")
 
 #@<> revoke lock tables from the rest
 setup_session()
-session.run_sql("REVOKE LOCK TABLES ON *.* FROM !@!;", [test_user, __host])
-shell.connect("mysql://{0}:{1}@{2}:{3}".format(test_user, test_user_pwd, __host, __mysql_sandbox_port1))
+session.run_sql(f"REVOKE LOCK TABLES ON *.* FROM {test_user_account};")
+shell.connect(test_user_uri(__mysql_sandbox_port1))
 
 #@<> try to run consistent dump using a user which does not have any required privileges
-EXPECT_FAIL("RuntimeError", re.compile(r"Unable to lock tables: User 'sample_user'@'localhost' is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES."), test_output_absolute, { "showProgress": False })
+EXPECT_FAIL("RuntimeError", re.compile(r"Unable to lock tables: User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES.".format(test_user_account)), test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table read locks")
 
 #@<> BUG#32695301 - dry run should fail as well
-EXPECT_FAIL("RuntimeError", re.compile(r"Unable to lock tables: User 'sample_user'@'localhost' is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES."), test_output_absolute, { "dryRun": True, "showProgress": False })
+EXPECT_FAIL("RuntimeError", re.compile(r"Unable to lock tables: User {0} is missing the following privilege\(s\) for table `.+`\.`.+`: LOCK TABLES.".format(test_user_account)), test_output_absolute, { "dryRun": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_CONTAINS("ERROR: Unable to acquire global read lock neither table read locks")
 

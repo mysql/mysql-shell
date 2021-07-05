@@ -371,13 +371,15 @@ DESCRIPTION
       routines, events and triggers. The MySQL Database Service requires
       special privileges to create these objects with a definer other than the
       user loading the schema. By stripping the DEFINER clause, these objects
-      will be created with that default definer. Views and Routines will
+      will be created with that default definer. Views and routines will
       additionally have their SQL SECURITY clause changed from DEFINER to
-      INVOKER. This ensures that the access permissions of the account querying
-      or calling these are applied, instead of the user that created them. This
-      should be sufficient for most users, but if your database security model
-      requires that views and routines have more privileges than their invoker,
-      you will need to manually modify the schema before loading it.
+      INVOKER. If this characteristic is missing, SQL SECURITY INVOKER clause
+      will be added. This ensures that the access permissions of the account
+      querying or calling these are applied, instead of the user that created
+      them. This should be sufficient for most users, but if your database
+      security model requires that views and routines have more privileges than
+      their invoker, you will need to manually modify the schema before loading
+      it.
 
       Please refer to the MySQL manual for details about DEFINER and SQL
       SECURITY.
@@ -672,13 +674,15 @@ DESCRIPTION
       routines, events and triggers. The MySQL Database Service requires
       special privileges to create these objects with a definer other than the
       user loading the schema. By stripping the DEFINER clause, these objects
-      will be created with that default definer. Views and Routines will
+      will be created with that default definer. Views and routines will
       additionally have their SQL SECURITY clause changed from DEFINER to
-      INVOKER. This ensures that the access permissions of the account querying
-      or calling these are applied, instead of the user that created them. This
-      should be sufficient for most users, but if your database security model
-      requires that views and routines have more privileges than their invoker,
-      you will need to manually modify the schema before loading it.
+      INVOKER. If this characteristic is missing, SQL SECURITY INVOKER clause
+      will be added. This ensures that the access permissions of the account
+      querying or calling these are applied, instead of the user that created
+      them. This should be sufficient for most users, but if your database
+      security model requires that views and routines have more privileges than
+      their invoker, you will need to manually modify the schema before loading
+      it.
 
       Please refer to the MySQL manual for details about DEFINER and SQL
       SECURITY.
@@ -967,13 +971,15 @@ DESCRIPTION
       routines, events and triggers. The MySQL Database Service requires
       special privileges to create these objects with a definer other than the
       user loading the schema. By stripping the DEFINER clause, these objects
-      will be created with that default definer. Views and Routines will
+      will be created with that default definer. Views and routines will
       additionally have their SQL SECURITY clause changed from DEFINER to
-      INVOKER. This ensures that the access permissions of the account querying
-      or calling these are applied, instead of the user that created them. This
-      should be sufficient for most users, but if your database security model
-      requires that views and routines have more privileges than their invoker,
-      you will need to manually modify the schema before loading it.
+      INVOKER. If this characteristic is missing, SQL SECURITY INVOKER clause
+      will be added. This ensures that the access permissions of the account
+      querying or calling these are applied, instead of the user that created
+      them. This should be sufficient for most users, but if your database
+      security model requires that views and routines have more privileges than
+      their invoker, you will need to manually modify the schema before loading
+      it.
 
       Please refer to the MySQL manual for details about DEFINER and SQL
       SECURITY.
