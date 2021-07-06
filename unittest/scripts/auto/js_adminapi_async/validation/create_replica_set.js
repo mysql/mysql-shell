@@ -69,7 +69,7 @@
 @ERROR: <<<__address3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.@
 @@Dba.createReplicaSet: Instance check failed (MYSQLSH 51150)
 
-//@# create with bad configs (should fail) {VER(>=8.0.26)}
+//@# create with bad configs (should fail) {VER(==8.0.26)}
 |NOTE: Some configuration options need to be fixed:|
 @+----------------------------------------+---------------+----------------+--------------------------------------------------+@
 @| Variable                               | Current Value | Required Value | Note                                             |@
@@ -79,6 +79,20 @@
 @| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |@
 @| replica_parallel_type                  | DATABASE      | LOGICAL_CLOCK  | Update the server variable                       |@
 @| replica_preserve_commit_order          | OFF           | ON             | Update the server variable                       |@
+@| server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |@
+@+----------------------------------------+---------------+----------------+--------------------------------------------------+@
+@Some variables need to be changed, but cannot be done dynamically on the server.@
+@ERROR: <<<__address3>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.@
+@@Dba.createReplicaSet: Instance check failed (MYSQLSH 51150)
+
+//@# create with bad configs (should fail) {VER(>=8.0.27)}
+|NOTE: Some configuration options need to be fixed:|
+@+----------------------------------------+---------------+----------------+--------------------------------------------------+@
+@| Variable                               | Current Value | Required Value | Note                                             |@
+@+----------------------------------------+---------------+----------------+--------------------------------------------------+@
+@| binlog_transaction_dependency_tracking | COMMIT_ORDER  | WRITESET       | Update the server variable                       |@
+@| enforce_gtid_consistency               | OFF           | ON             | Update read-only variable and restart the server |@
+@| gtid_mode                              | OFF           | ON             | Update read-only variable and restart the server |@
 @| server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |@
 @+----------------------------------------+---------------+----------------+--------------------------------------------------+@
 @Some variables need to be changed, but cannot be done dynamically on the server.@

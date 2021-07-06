@@ -85,7 +85,6 @@ shell.connect(uri_repl_admin);
 dba.createCluster("test");
 
 //@<> Manually disable some parallel-applier settings {VER(>=8.0.23)}
-session.runSql("RESET PERSIST slave_preserve_commit_order");
 session.runSql("RESET PERSIST slave_parallel_workers");
 session.runSql("SET global slave_preserve_commit_order=OFF");
 session.runSql("SET global slave_parallel_workers=0");
