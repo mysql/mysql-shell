@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -132,7 +132,9 @@ Value Constant::get_constant_value(const std::string &module,
         ret_val = Value("SMALLINT");
       } else if (id == "MEDIUMINT") {
         ret_val = Value("MEDIUMINT");
-      } else if (id == "INT") {
+        // These 3 are treated as integer as the difference is determined by the
+        // flags on the column metadata
+      } else if (id == "INT" || id == "INTEGER" || id == "UINTEGER") {
         ret_val = Value("INT");
       } else if (id == "BIGINT") {
         ret_val = Value("BIGINT");

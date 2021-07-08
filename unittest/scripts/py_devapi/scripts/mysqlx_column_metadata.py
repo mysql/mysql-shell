@@ -566,4 +566,9 @@ print('Collation Name:', formatCollation(column.get_collation_name()))
 print('Charset Name:', column.get_character_set_name())
 print('Is ZeroFill:', column.is_zero_fill())
 
+#@ Aggregated column type
+result = mySession.run_sql("select count(*) from mysql.user")
+columns = result.get_columns()
+print("Count(*) Type:", columns[0].get_type().data)
+
 mySession.close()

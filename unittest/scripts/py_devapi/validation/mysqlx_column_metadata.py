@@ -403,3 +403,6 @@
 |Collation Name: binary|
 |Charset Name: binary|
 |Is ZeroFill: False|
+
+#@<OUT> Aggregated column type
+Count(*) Type: INT
