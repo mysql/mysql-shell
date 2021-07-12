@@ -34,6 +34,8 @@
 #include <io.h>
 #define isatty _isatty
 #else
+#include <fcntl.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #endif
 
@@ -227,6 +229,78 @@ void display_info(const std::shared_ptr<T> &object, const std::string &variable,
         "get status of this ${context} or \\? ${class} for more commands.",
         replace, var_begin, var_end));
   }
+}
+
+/**
+ * Checks if standard input is a TTY.
+ *
+ * @return true if standard input is a TTY
+ */
+bool is_stdin_a_tty() {
+  const auto fd =
+#ifdef _WIN32
+      _fileno(stdin)
+#else   // !_WIN32
+      STDIN_FILENO
+#endif  // !_WIN32
+      ;
+  return isatty(fd);
+}
+
+/**
+ * Sends CTRL-C sequence to the controlling terminal/console.
+ *
+ * @return true if sequence was sent
+ */
+bool send_ctrl_c_to_terminal() {
+  bool success = false;
+#ifdef _WIN32
+  const auto handle = CreateFile("CONIN$",         // lpFileName
+                                 GENERIC_WRITE,    // dwDesiredAccess
+                                 FILE_SHARE_READ,  // dwShareMode
+                                 nullptr,          // lpSecurityAttributes
+                                 OPEN_EXISTING,    // dwCreationDisposition
+                                 0,                // dwFlagsAndAttributes
+                                 nullptr           // hTemplateFile
+  );
+
+  if (INVALID_HANDLE_VALUE != handle) {
+    constexpr DWORD count = 1;
+    INPUT_RECORD ir[count];
+
+    ir[0].EventType = KEY_EVENT;
+    ir[0].Event.KeyEvent.bKeyDown = TRUE;
+    ir[0].Event.KeyEvent.dwControlKeyState = 0;
+    ir[0].Event.KeyEvent.uChar.UnicodeChar =
+        MapVirtualKey(VK_CANCEL, MAPVK_VK_TO_CHAR);
+    ir[0].Event.KeyEvent.wRepeatCount = 1;
+    ir[0].Event.KeyEvent.wVirtualKeyCode = VK_CANCEL;
+    ir[0].Event.KeyEvent.wVirtualScanCode =
+        MapVirtualKey(VK_CANCEL, MAPVK_VK_TO_VSC);
+
+    DWORD written = 0;
+    success = WriteConsoleInput(handle, ir, count, &written);
+
+    CloseHandle(handle);
+  }
+#else   // !_WIN32
+  char controlling_terminal[L_ctermid];
+  int fd = -1;
+
+  // get controlling terminal name, open it only for writing, do not set that
+  // terminal as a controlling if process does not have one
+  if (ctermid(controlling_terminal) &&
+      (fd = ::open(controlling_terminal, O_WRONLY | O_NOCTTY)) >= 0) {
+    // simulate user input
+    if (-1 != ioctl(fd, TIOCSTI, CTRL_C_STR)) {
+      success = true;
+    }
+
+    ::close(fd);
+  }
+#endif  // !_WIN32
+
+  return success;
 }
 
 }  // namespace
@@ -837,50 +911,107 @@ void Command_line_shell::handle_interrupt() { _interrupted = true; }
 shcore::Prompt_result Command_line_shell::deleg_prompt(void *cdata,
                                                        const char *prompt,
                                                        std::string *ret) {
-  Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
-  self->_interrupted = false;
-  char *tmp = Command_line_shell::readline(prompt);
-  if (tmp && strcmp(tmp, CTRL_C_STR) == 0) self->_interrupted = true;
-  if (!tmp || self->_interrupted) {
-    if (tmp) free(tmp);
-    *ret = "";
-    if (self->_interrupted)
-      return shcore::Prompt_result::Cancel;
-    else
-      return shcore::Prompt_result::CTRL_D;
-  }
-  *ret = tmp;
-  free(tmp);
-  return shcore::Prompt_result::Ok;
+  const auto self = reinterpret_cast<Command_line_shell *>(cdata);
+
+  return self->do_prompt(Command_line_shell::readline, false, prompt, ret);
 }
 
 shcore::Prompt_result Command_line_shell::deleg_password(void *cdata,
                                                          const char *prompt,
                                                          std::string *ret) {
-  Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
-  self->_interrupted = false;
-  shcore::Interrupt_handler inth([self]() {
-    self->handle_interrupt();
+  const auto self = reinterpret_cast<Command_line_shell *>(cdata);
+  const auto passwords_from_stdin = self->options().passwords_from_stdin;
+
+  return self->do_prompt(passwords_from_stdin ? shcore::mysh_get_stdin_password
+                                              : mysh_get_tty_password,
+                         true, prompt, ret);
+}
+
+shcore::Prompt_result Command_line_shell::do_prompt(
+    char *(*get_response)(const char *), bool is_password, const char *text,
+    std::string *ret) {
+  char *tmp = nullptr;
+
+  shcore::on_leave_scope cleanup([tmp, is_password]() {
+    if (tmp) {
+      if (is_password) {
+        // BUG#28915716: Cleans up the memory containing the password
+        shcore::clear_buffer(tmp, ::strlen(tmp));
+      }
+
+      free(tmp);
+    }
+  });
+
+  shcore::Interrupt_handler second_handler([get_response]() {
+#ifdef _WIN32
+    // this handler is not called if shell is running interactively
+    // this handler is called when shell is running interactively with
+    // --passwords-from-stdin option and a password prompt is canceled
+    // this handler is called when shell is running in non-interactive mode
+    // (i.e. launched by another process)
+
+    // cancel any pending I/O, if signal was sent using
+    // GenerateConsoleCtrlEvent() these are not going to be interrupted on its
+    // own
+    CancelIoEx(GetStdHandle(STD_INPUT_HANDLE), nullptr);
+
+    // mysh_get_tty_password() reads directly from the console, CancelIoEx()
+    // will not interrupt this, need to send CTRL-C
+    if (mysh_get_tty_password == get_response) {
+#else   // !_WIN32
+    // if signal is sent to us from another process and we're reading from
+    // terminal, we need to generate CTRL-C sequence to interrupt read loops
+    if (mysh_get_tty_password == get_response || is_stdin_a_tty()) {
+#endif  // !_WIN32
+      send_ctrl_c_to_terminal();
+    }
+
+    // always suppress further processing of the interrupt handlers, if a call
+    // to prompt*() throws in response to Prompt_result::Cancel, we want to make
+    // sure that this exception is properly propagated
+    return false;
+  });
+
+  shcore::Interrupt_handler first_handler([this]() {
+    // we need another Interrupt_handler, which is going to be executed first
+    // and returns true, to make sure that any interrupts generated by the
+    // handler registered first (and executed second) are suppressed
+    handle_interrupt();
     return true;
   });
-  char *tmp = self->options().passwords_from_stdin
-                  ? shcore::mysh_get_stdin_password(prompt)
-                  : mysh_get_tty_password(prompt);
-  if (tmp && strcmp(tmp, CTRL_C_STR) == 0) self->_interrupted = true;
-  if (!tmp || self->_interrupted) {
-    if (tmp) free(tmp);
+
+  _interrupted = false;
+
+  tmp = get_response(text);
+
+#ifdef _WIN32
+  if (!tmp && !_interrupted) {
+    // If prompt returned no result but it was not interrupted, it means that
+    // either user pressed CTRL-D/CTRL-Z or there was a signal which
+    // interrupted read(), but was not yet delivered (signals are asynchronous
+    // on Windows) - this may happen i.e. if shell was started with
+    // --passwords-from-stdin and password prompt is interrupted with CTRL-C.
+    // Wait a bit here, if signal arrives, sleep is going to be interrupted.
+    // Worst case scenario: CTRL-D/CTRL-Z was pressed or signal arrived after
+    // flag was checked but before we went to sleep.
+    shcore::sleep_ms(100);
+  }
+#endif  // _WIN32
+
+  if (tmp && strcmp(tmp, CTRL_C_STR) == 0) _interrupted = true;
+
+  if (!tmp || _interrupted) {
     *ret = "";
-    if (self->_interrupted)
+
+    if (_interrupted)
       return shcore::Prompt_result::Cancel;
     else
       return shcore::Prompt_result::CTRL_D;
   }
+
   *ret = tmp;
 
-  // BUG#28915716: Cleans up the memory containing the password
-  shcore::clear_buffer(tmp, ret->size());
-
-  free(tmp);
   return shcore::Prompt_result::Ok;
 }
 
@@ -899,12 +1030,7 @@ void Command_line_shell::pre_command_loop() {
 }
 
 void Command_line_shell::command_loop() {
-  bool using_tty = false;
-#if defined(WIN32)
-  using_tty = isatty(_fileno(stdin));
-#else
-  using_tty = isatty(STDIN_FILENO);
-#endif
+  bool using_tty = is_stdin_a_tty();
 
   if (_deferred_output && !_deferred_output->empty()) {
     println(*_deferred_output);

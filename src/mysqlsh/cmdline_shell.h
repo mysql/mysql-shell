@@ -123,6 +123,10 @@ class Command_line_shell : public Mysql_shell,
   static shcore::Prompt_result deleg_password(void *self, const char *text,
                                               std::string *ret);
 
+  shcore::Prompt_result do_prompt(char *(*get_response)(const char *),
+                                  bool is_password, const char *text,
+                                  std::string *ret);
+
   std::string history_file(
       shcore::Shell_core::Mode mode = shcore::Shell_core::Mode::None);
 

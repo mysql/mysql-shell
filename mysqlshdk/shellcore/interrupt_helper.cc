@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,18 +60,22 @@ Interrupt_windows_helper::~Interrupt_windows_helper() {
   m_scoped_thread.join();
 }
 
+static std::atomic<uint64_t> windows_ctrl_handler_blocked = 0;
+
 static BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
   switch (fdwCtrlType) {
     case CTRL_C_EVENT:
     case CTRL_BREAK_EVENT:
-      try {
-        // we're being called from another thread, first notify the condition
-        // so thread_scope can do it's job and properly pass the interrupts with
-        // scoped contexts
-        hprops.our_interrupt = true;
-        hprops.interrupt.notify_one();
-      } catch (const std::exception &e) {
-        log_error("Unhandled exception in SIGINT handler: %s", e.what());
+      if (0 == windows_ctrl_handler_blocked) {
+        try {
+          // we're being called from another thread, first notify the condition
+          // so thread_scope can do it's job and properly pass the interrupts
+          // with scoped contexts
+          hprops.our_interrupt = true;
+          hprops.interrupt.notify_one();
+        } catch (const std::exception &e) {
+          log_error("Unhandled exception in SIGINT handler: %s", e.what());
+        }
       }
       // Don't let the default handler terminate us
       return TRUE;
@@ -85,9 +89,12 @@ static BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
   return FALSE;
 }
 
-void Interrupt_helper::block() {}
+void Interrupt_helper::block() { ++windows_ctrl_handler_blocked; }
 
-void Interrupt_helper::unblock(bool) {}
+void Interrupt_helper::unblock(bool) {
+  assert(windows_ctrl_handler_blocked > 0);
+  --windows_ctrl_handler_blocked;
+}
 
 void Interrupt_helper::setup() {
   // if we're being executed using CreateProcess() with
@@ -108,7 +115,7 @@ SIGINT signal handler.
 @description
 This function handles SIGINT (Ctrl-C). It will call a shell function
 which should handle the interruption in an appropriate fashion.
-If the interrupt() function returns false, it will interret as a signal
+If the interrupt() function returns false, it will interpret as a signal
 that the shell itself should abort immediately.
 
 @param [IN]               Signal number
@@ -131,14 +138,23 @@ static void handle_ctrlc_signal(int /* sig */) {
 }
 
 static void install_signal_handler() {
-  // install signal handler
   struct sigaction sa;
-  memset(&sa, '\0', sizeof(sa));
+
+  // install signal handler
+  memset(&sa, 0, sizeof(sa));
   sa.sa_handler = &handle_ctrlc_signal;
-  sa.sa_flags = SA_RESTART;
-  sigaction(SIGINT, &sa, NULL);
+  sigemptyset(&sa.sa_mask);
+  // allow system calls to be interrupted, do not set SA_RESTART flag, behaviour
+  // introduced by a fix for BUG#27894642, restored by a fix for BUG#33096667
+  sa.sa_flags = 0;
+  sigaction(SIGINT, &sa, nullptr);
+
   // Ignore broken pipe signal
-  signal(SIGPIPE, SIG_IGN);
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler = SIG_IGN;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  sigaction(SIGPIPE, &sa, nullptr);
 }
 
 void Interrupt_helper::setup() { install_signal_handler(); }
@@ -155,7 +171,10 @@ void Interrupt_helper::unblock(bool clear_pending) {
   sigemptyset(&sigset);
   sigaddset(&sigset, SIGINT);
 
-  if (clear_pending && sigpending(&sigset)) {
+  // do not use sigpending() to check if signal is pending, because it can be
+  // delivered during sigprocmask(SIG_UNBLOCK) call, always clear pending
+  // signals if instructed to do so
+  if (clear_pending) {
     struct sigaction ign, old;
     // set to ignore SIGINT
     ign.sa_handler = SIG_IGN;

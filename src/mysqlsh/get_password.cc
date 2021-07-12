@@ -1,23 +1,25 @@
-/* Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License, version 2.0,
-   as published by the Free Software Foundation.
-
-   This program is also distributed with certain software (including
-   but not limited to OpenSSL) that is licensed under separate terms, as
-   designated in a particular file or component or in included license
-   documentation.  The authors of MySQL hereby grant you an additional
-   permission to link the program and your derivative works with the
-   separately licensed software that they have included with MySQL.
-   This program is distributed in the hope that it will be useful,  but
-   WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
-   the GNU General Public License, version 2.0, for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software Foundation, Inc.,
-   51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
+/*
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License, version 2.0,
+ * as published by the Free Software Foundation.
+ *
+ * This program is also distributed with certain software (including
+ * but not limited to OpenSSL) that is licensed under separate terms, as
+ * designated in a particular file or component or in included license
+ * documentation.  The authors of MySQL hereby grant you an additional
+ * permission to link the program and your derivative works with the
+ * separately licensed software that they have included with MySQL.
+ * This program is distributed in the hope that it will be useful,  but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See
+ * the GNU General Public License, version 2.0, for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+ */
 
 /*
 ** Ask for a password from tty
@@ -85,7 +87,8 @@ const size_t k_password_length = 80;
 
 #ifndef HAVE_GETPASS
 const char k_end_of_text = 3;  // Ctrl+C
-#endif                         // ! HAVE_GETPASS
+const char k_end_of_text_str[] = {k_end_of_text, '\0'};
+#endif  // ! HAVE_GETPASS
 
 const char *get_password_prompt(const char *prompt) {
   return prompt ? prompt : "Enter password: ";
@@ -129,12 +132,10 @@ char *mysh_get_tty_password(const char *opt_message) {
 
   _cputs("\n");
 
-  char *ret_val = nullptr;
-  if (tmp != k_end_of_text) {
-    ret_val = strdup(to);
-    // BUG#28915716: Cleans up the memory containing the password
-    shcore::clear_buffer(to, k_password_length);
-  }
+  auto ret_val = tmp == k_end_of_text ? strdup(k_end_of_text_str) : strdup(to);
+
+  // BUG#28915716: Cleans up the memory containing the password
+  shcore::clear_buffer(to, k_password_length);
 
   return ret_val;
 }
@@ -300,7 +301,7 @@ char *mysh_get_tty_password(const char *opt_message) {
   Prompt_password prompt{message};
 
   if (!prompt.get(buff, sizeof(buff))) {
-    return nullptr;
+    return strdup(k_end_of_text_str);
   }
 #endif
   char *ret_val = strdup(buff);

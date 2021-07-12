@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -286,6 +286,23 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
     session.reset();
 
     tests::Command_line_test::TearDown();
+  }
+
+  void test_prompt(bool js, bool is_password, bool use_stdin) {
+    kill_on_ready();
+
+    std::string code = "shell.prompt('ready: '";
+    if (is_password) code += ", {'type': 'password'}";
+    code += ")";
+
+    std::vector<const char *> args = {_mysqlsh, js ? "--js" : "--py",
+                                      "--interactive=full", "-e", code.c_str()};
+    if (use_stdin) args.push_back("--passwords-from-stdin");
+    args.push_back(nullptr);
+
+    execute(args);
+
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("Cancelled");
   }
 
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
@@ -651,6 +668,38 @@ TEST_F(Interrupt_mysqlsh, command_show_watch) {
     }
   }
 }
+
+TEST_F(Interrupt_mysqlsh, prompt) { test_prompt(false, false, false); }
+
+TEST_F(Interrupt_mysqlsh, prompt_password) {
+  if (shcore::OperatingSystem::MACOS == shcore::get_os_type() &&
+      getenv("PB2WORKDIR")) {
+    SKIP_TEST("This test does not work in PB2");
+  }
+
+  test_prompt(false, true, false);
+}
+
+TEST_F(Interrupt_mysqlsh, prompt_password_from_stdin) {
+  test_prompt(false, true, true);
+}
+
+#ifdef HAVE_V8
+TEST_F(Interrupt_mysqlsh, js_prompt) { test_prompt(true, false, false); }
+
+TEST_F(Interrupt_mysqlsh, js_prompt_password) {
+  if (shcore::OperatingSystem::MACOS == shcore::get_os_type() &&
+      getenv("PB2WORKDIR")) {
+    SKIP_TEST("This test does not work in PB2");
+  }
+
+  test_prompt(true, true, false);
+}
+
+TEST_F(Interrupt_mysqlsh, js_prompt_password_from_stdin) {
+  test_prompt(true, true, true);
+}
+#endif  // HAVE_V8
 
 }  // namespace mysqlsh
 

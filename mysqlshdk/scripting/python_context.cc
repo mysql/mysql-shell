@@ -343,9 +343,32 @@ Python_init_singleton::Python_init_singleton() : m_local_initialization(false) {
     // initialization of signal module will overwrite the default signal
     // handler and the mechanism used by Python 2.7 to wake up will not work.
     {
+#ifdef _WIN32
+      // on Windows there's no sigaction() and no siginterrupt()
       const auto prev_signal = signal(SIGINT, SIG_DFL);
+#else   // !_WIN32
+      // we need to use sigaction() here to make sure sa_flags are properly
+      // restored, signal() would explicitly set them to 0 or SA_RESTART,
+      // depending on whether siginterrupt() was called
+      struct sigaction default_action;
+      memset(&default_action, 0, sizeof(default_action));
+      default_action.sa_handler = SIG_DFL;
+      sigemptyset(&default_action.sa_mask);
+      default_action.sa_flags = 0;
+
+      struct sigaction prev_action;
+      memset(&prev_action, 0, sizeof(prev_action));
+
+      sigaction(SIGINT, &default_action, &prev_action);
+#endif  // !_WIN32
+
       PyOS_InitInterrupts();
+
+#ifdef _WIN32
       signal(SIGINT, prev_signal);
+#else   // !_WIN32
+      sigaction(SIGINT, &prev_action, nullptr);
+#endif  // !_WIN32
     }
 
     py_char_t *argv[] = {const_cast<py_char_t *>(PY_CHAR_T_LITERAL(""))};
