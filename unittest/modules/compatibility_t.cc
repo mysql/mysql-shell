@@ -612,6 +612,312 @@ RETURN 0)",
       "SECURITY INVOKER VIEW `v3` AS select `tv1`.`a` AS `a`,`tv1`.`b` AS "
       "`b`,`tv1`.`c` AS `c` from `tv1` */;",
       &rewritten));
+
+  EXPECT_TRUE(compatibility::check_statement_for_sqlsecurity_clause(
+      R"(create view tmp as select count(*) from s.t)", &rewritten));
+  EXPECT_EQ(R"(create SQL SECURITY INVOKER
+view tmp as select count(*) from s.t)",
+            rewritten);
+
+  EXPECT_TRUE(compatibility::check_statement_for_sqlsecurity_clause(
+      R"(create function tmp() returns integer deterministic
+return 1)",
+      &rewritten));
+  EXPECT_EQ(R"(create function tmp() returns integer deterministic
+SQL SECURITY INVOKER
+return 1)",
+            rewritten);
+
+  const std::vector<std::string> statements = {
+      "IF @v > 0 THEN SELECT 1; ELSE SELECT 2; END IF",
+      "case @v when 1 then select 1; else select 2; end case",
+      "label1: BEGIN END",
+      "label1:BEGIN END",
+      "BEGIN END",
+      "LOOP select 1; end loop",
+      "while @v > 1 do select 1; end while",
+      "repeat select 1; until @v > 1 end repeat",
+      "alter table s.t",
+      "analyze table s.t",
+      "BINLOG 'str'",
+      "call tmp",
+      "change replication source to source_PORT = 1234",
+      "check table s.t",
+      "checksum table s.t",
+      "clone LOCAL DATA DIRECTORY 'clone_dir'",
+      "commit",
+      "create table s.t1 (a int)",
+      "deallocate prepare stmt",
+      "delete from s.t",
+      "desc s.t",
+      "describe s.t",
+      "explain s.t",
+      "do 1",
+      "drop table s.t",
+      "execute stmt",
+      "flush tables",
+      "GET DIAGNOSTICS @v = ROW_COUNT",
+      "start group_replication",
+      "stop group_replication",
+      "grant select on *.* to sample_user",
+      "handler s.t OPEN",
+      "IMPORT TABLE FROM 'sdi_file'",
+      "Insert into s.t values (1)",
+      "INSTALL PLUGIN name SONAME 'so'",
+      "kill query 1",
+      "lock instance for backup",
+      "optimize table s.t",
+      "CACHE INDEX i IN hot_cache",
+      "load INDEX INto cache s.t",
+      "PREPARE stmt FROM 'select 1'",
+      "purge binary logs to 'log'",
+      "release savepoint x",
+      "rename table s.t to s.t1",
+      "repair table s.t",
+      "replace s.t VALUES (1)",
+      "reset replica",
+      "resignal",
+      "restart",
+      "revoke select on *.* from sample_user",
+      "rollback",
+      "savepoint x",
+      "select 1",
+      "(select 1)",
+      "values row(1)",
+      "(values row(1))",
+      "table s.t",
+      "(table s.t)",
+      "set password to random",
+      "show tables",
+      "shutdown",
+      "SIGNAL SQLSTATE '01000'",
+      "truncate s.t",
+      "UNINSTALL PLUGIN plugin_name",
+      "UNlock instance",
+      "update s.t set a = 1",
+      "WITH cte1 AS (SELECT 1) update s.t set a = 1",
+      "xa start 'xid'",
+  };
+  const std::string create_procedure = "create procedure ";
+  const std::string routine_params = "() ";
+  const std::string create_procedure_tmp =
+      create_procedure + "tmp" + routine_params;
+  const std::string sql_security_invoker = "SQL SECURITY INVOKER";
+  const std::string sql_security_invoker_n = sql_security_invoker + "\n";
+
+  for (const auto &stmt : statements) {
+    SCOPED_TRACE(stmt);
+
+    // create procedure statement with the given body
+    EXPECT_TRUE(compatibility::check_statement_for_sqlsecurity_clause(
+        create_procedure_tmp + stmt, &rewritten));
+    EXPECT_EQ(create_procedure_tmp + sql_security_invoker_n + stmt, rewritten);
+
+    const auto keyword = shcore::str_split(stmt, " ")[0];
+
+    if ('(' != keyword[0]) {
+      // create procedure statement with the given body, procedure name is the
+      // first word from a statement (in most cases this is not a valid SQL)
+      EXPECT_TRUE(compatibility::check_statement_for_sqlsecurity_clause(
+          create_procedure + keyword + routine_params + stmt, &rewritten));
+      EXPECT_EQ(create_procedure + keyword + routine_params +
+                    sql_security_invoker_n + stmt,
+                rewritten);
+
+      const auto quoted_keyword = shcore::quote_identifier(keyword);
+
+      // create procedure statement with the given body, procedure name is the
+      // first word from a statement, quoted
+      EXPECT_TRUE(compatibility::check_statement_for_sqlsecurity_clause(
+          create_procedure + quoted_keyword + routine_params + stmt,
+          &rewritten));
+      EXPECT_EQ(create_procedure + quoted_keyword + routine_params +
+                    sql_security_invoker_n + stmt,
+                rewritten);
+    }
+  }
+
+  const std::vector<std::string> types = {
+      // int_type [ '(' NUM ')' ] [ SIGNED ] [ UNSIGNED ] [ ZEROFILL ]
+      "INT4 (2) SIGNED",
+      "MIDDLEINT UNSIGNED",
+      // { REAL | DOUBLE | FLOAT8 } [ '(' NUM ',' NUM ')' ] [ SIGNED ]
+      //                                                    [ UNSIGNED ]
+      //                                                    [ ZEROFILL ]
+      "REAL(4, 3) ZEROFILL",
+      "DOUBLE SIGNED UNSIGNED",
+      // { DOUBLE | FLOAT8 } PRECISION [ '(' NUM ',' NUM ')' ] [ SIGNED ]
+      //                                                       [ UNSIGNED ]
+      //                                                       [ ZEROFILL ]
+      "FLOAT8 PRECISION (2,1) SIGNED ZEROFILL",
+      "DOUBLE PRECISION UNSIGNED ZEROFILL",
+      // numeric_type [ '(' NUM ',' NUM ')' ]  [ SIGNED ] [ UNSIGNED ]
+      //                                       [ ZEROFILL ]
+      "FLOAT4 (33, 4) UNSIGNED SIGNED",
+      "DEC ZEROFILL SIGNED",
+      // numeric_type '(' NUM ')'  [ SIGNED ] [ UNSIGNED ] [ ZEROFILL ]
+      "FIXED(2) ZEROFILL UNSIGNED",
+      // BIT
+      "BIT",
+      // BIT '(' NUM ')'
+      "BIT(7)",
+      // BOOL
+      "BOOL",
+      // BOOLEAN
+      "BOOLEAN",
+      // { CHAR | CHARACTER } '(' NUM ')' opt_charset_with_opt_binary
+      "CHAR(8)",
+      "CHARACTER (1) ASCII",
+      // { CHAR | CHARACTER } opt_charset_with_opt_binary
+      "CHAR BINARY ASCII",
+      "CHARACTER ASCII BINARY",
+      // NCHAR '(' NUM ')' [ BINARY ]
+      "NCHAR(4)",
+      "NCHAR(10) BINARY",
+      // NATIONAL { CHAR | CHARACTER } '(' NUM ')' [ BINARY ]
+      "NATIONAL CHAR (2)",
+      "NATIONAL CHARACTER (2) BINARY",
+      // NCHAR [ BINARY ]
+      "NCHAR",
+      "NCHAR BINARY",
+      // NATIONAL { CHAR | CHARACTER } [ BINARY ]
+      "NATIONAL CHAR BINARY",
+      "NATIONAL CHARACTER",
+      // BINARY '(' NUM ')'
+      "BINARY(11)",
+      // BINARY
+      "BINARY",
+      // { CHAR | CHARACTER } VARYING '(' NUM ')' opt_charset_with_opt_binary
+      "CHAR VARYING (9) UNICODE",
+      "CHARACTER VARYING (33) UNICODE BINARY",
+      // { VARCHAR | VARCHARACTER } '(' NUM ')' opt_charset_with_opt_binary
+      "VARCHAR (5) BINARY UNICODE",
+      "VARCHARACTER (44) BYTE",
+      // NATIONAL { VARCHAR | VARCHARACTER } '(' NUM ')' [ BINARY ]
+      "NATIONAL VARCHAR(13)",
+      "NATIONAL VARCHARACTER( 8 ) BINARY",
+      // NVARCHAR '(' NUM ')' [ BINARY ]
+      "NVARCHAR (6)",
+      "NVARCHAR (7) BINARY",
+      // NCHAR { VARCHAR | VARCHARACTER } '(' NUM ')' [ BINARY ]
+      "NCHAR VARCHAR (4) BINARY",
+      "NCHAR VARCHARACTER (32)",
+      // NATIONAL { CHAR | CHARACTER } VARYING '(' NUM ')' [ BINARY ]
+      "NATIONAL CHAR VARYING(2)",
+      "NATIONAL CHARACTER VARYING(02) BINARY",
+      // NCHAR VARYING '(' NUM ')' [ BINARY ]
+      "NCHAR VARYING (77)",
+      "NCHAR VARYING (77)BINARY",
+      // VARBINARY '(' NUM ')'
+      "VARBINARY(1)",
+      // { SQL_TSI_YEAR | YEAR } [ '(' NUM ')' ]  [ SIGNED ] [ UNSIGNED ]
+      //                                          [ ZEROFILL ]
+      "SQL_TSI_YEAR(4) ZEROFILL UNSIGNED SIGNED",
+      "YEAR SIGNED UNSIGNED SIGNED UNSIGNED",
+      // DATE
+      "DATE",
+      // TIME [ '(' NUM ')' ]
+      "TIME",
+      "TIME (5)",
+      // TIMESTAMP [ '(' NUM ')' ]
+      "TIMESTAMP",
+      "TIMESTAMP(6)",
+      // DATETIME [ '(' NUM ')' ]
+      "DATETIME",
+      "DATETIME (2)",
+      // TINYBLOB
+      "TINYBLOB",
+      // BLOB [ '(' NUM ')' ]
+      "BLOB",
+      "BLOB (55)",
+      // spatial_type: GEOMETRY | GEOMCOLLECTION | GEOMETRYCOLLECTION | POINT |
+      //               MULTIPOINT | LINESTRING | MULTILINESTRING | POLYGON |
+      //               MULTIPOLYGON
+      "GEOMETRY",
+      // MEDIUMBLOB
+      "MEDIUMBLOB",
+      // LONGBLOB
+      "LONGBLOB",
+      // LONG VARBINARY
+      "LONG VARBINARY",
+      // LONG { CHAR | CHARACTER } VARYING opt_charset_with_opt_binary
+      "LONG CHAR VARYING CHAR SET utf8mb4",
+      "LONG CHARACTER VARYING CHARACTER SET latin1 BINARY",
+      // LONG { VARCHAR | VARCHARACTER } opt_charset_with_opt_binary
+      "LONG VARCHAR CHARSET BINARY",
+      "LONG VARCHARACTER CHARSET BINARY BINARY",
+      // TINYTEXT opt_charset_with_opt_binary
+      "TINYTEXT BINARY",
+      // TEXT [ '(' NUM ')' ] opt_charset_with_opt_binary
+      "TEXT (8) BINARY CHAR SET ascii",
+      "TEXT BINARY CHARACTER SET BINARY",
+      // MEDIUMTEXT opt_charset_with_opt_binary
+      "MEDIUMTEXT BINARY CHARSET greek",
+      // LONGTEXT opt_charset_with_opt_binary
+      "LONGTEXT CHARSET hebrew COLLATE hebrew_general_ci",
+      // ENUM '(' string_list ')' opt_charset_with_opt_binary
+      "ENUM ('a') CHARSET binary COLLATE BINARY",
+      // SET '(' string_list ')' opt_charset_with_opt_binary
+      "SET ('a','b' ,'c', 'd') CHARSET utf8mb4 COLLATE utf8mb4_esperanto_ci",
+      // LONG opt_charset_with_opt_binary
+      "LONG CHAR SET ascii",
+      "LONG CHARACTER SET ascii COLLATE ascii_bin",
+      "LONG",
+      // SERIAL
+      "SERIAL",
+      // JSON
+      "JSON",
+  };
+
+  const std::vector<std::string> characteristics = {
+      "",
+      "COMMENT 'string'",
+      "LANGUAGE SQL",
+      "NOT DETERMINISTIC",
+      "CONTAINS SQL",
+      "NO SQL",
+      "READS SQL DATA",
+      "MODIFIES SQL DATA",
+      "SQL SECURITY DEFINER",
+      sql_security_invoker.c_str(),
+      "LANGUAGE SQL CONTAINS SQL MODIFIES SQL DATA",
+  };
+
+  const std::string create_function = "create function ";
+  const std::string create_function_tmp =
+      create_function + "tmp" + routine_params + "returns ";
+
+  for (const auto &stmt : statements) {
+    for (const auto &type : types) {
+      for (const auto &chistics : characteristics) {
+        SCOPED_TRACE(type + " - " + stmt + " - " + chistics);
+
+        // functions cannot use (SELECT 1) type statements, as it is not allowed
+        // to return a result set from a function
+        if ('(' != stmt[0]) {
+          const auto result = chistics != sql_security_invoker;
+
+          // create function statement with the given body and return type, most
+          // of these combinations are not valid SQL statements
+          EXPECT_EQ(
+              result,
+              compatibility::check_statement_for_sqlsecurity_clause(
+                  create_function_tmp + type + " " + chistics + " " + stmt,
+                  &rewritten));
+
+          if (result) {
+            EXPECT_EQ(
+                create_function_tmp + type + " " +
+                    (shcore::str_beginswith(chistics.c_str(), "SQL SECURITY")
+                         ? sql_security_invoker + " "
+                         : chistics + " " + sql_security_invoker_n) +
+                    stmt,
+                rewritten);
+          }
+        }
+      }
+    }
+  }
 }
 
 TEST_F(Compatibility_test, create_table_combo) {

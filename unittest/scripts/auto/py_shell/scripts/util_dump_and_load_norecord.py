@@ -52,6 +52,9 @@ session1.run_sql("set names utf8mb4")
 session1.run_sql("create schema world")
 testutil.import_data(__sandbox_uri1, __data_path+"/sql/world.sql", "world")
 testutil.import_data(__sandbox_uri1, __data_path+"/sql/misc_features.sql")
+session1.run_sql("create schema tests")
+# BUG#33079172 "SQL SECURITY INVOKER" INSERTED AT WRONG LOCATION
+session1.run_sql("create procedure tests.tmp() IF @v > 0 THEN SELECT 1; ELSE SELECT 2; END IF;;")
 
 prepare(__mysql_sandbox_port2)
 session2 = mysql.get_session(__sandbox_uri2)

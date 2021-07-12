@@ -1018,22 +1018,35 @@ void Schema_dumper::check_object_for_definer(const std::string &db,
                                              std::string *ddl,
                                              std::vector<Issue> *issues) {
   if (opt_mysqlaas || opt_strip_definer) {
-    const auto user = compatibility::check_statement_for_definer_clause(
-        *ddl, opt_strip_definer ? ddl : nullptr);
+    const auto rewritten = opt_strip_definer ? ddl : nullptr;
+    const auto user =
+        compatibility::check_statement_for_definer_clause(*ddl, rewritten);
+    const auto prefix = get_object_err_prefix(db, object, name);
+
     if (!user.empty()) {
-      const auto prefix = get_object_err_prefix(db, object, name);
       if (opt_strip_definer) {
         issues->emplace_back(prefix + "had definer clause removed",
                              Issue::Status::FIXED);
-        if (compatibility::check_statement_for_sqlsecurity_clause(*ddl, ddl))
-          issues->back().description +=
-              " and SQL SECURITY characteristic set to INVOKER";
       } else {
         issues->emplace_back(
             prefix + "- definition uses DEFINER clause set to user " + user +
                 " which can only be executed by this user or a user with "
                 "SET_USER_ID or SUPER privileges",
             Issue::Status::USE_STRIP_DEFINERS);
+      }
+    }
+
+    if (compatibility::check_statement_for_sqlsecurity_clause(*ddl,
+                                                              rewritten)) {
+      if (opt_strip_definer) {
+        issues->emplace_back(
+            prefix + "had SQL SECURITY characteristic set to INVOKER",
+            Issue::Status::FIXED);
+      } else {
+        issues->emplace_back(prefix +
+                                 "- definition does not use SQL SECURITY "
+                                 "INVOKER characteristic, which is required",
+                             Issue::Status::USE_STRIP_DEFINERS);
       }
     }
   }

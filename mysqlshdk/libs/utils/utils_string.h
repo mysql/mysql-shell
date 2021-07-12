@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -84,6 +84,14 @@ inline bool str_caseeq(const char *a, const char *b, size_t n) {
 #else
   return ::strncasecmp(a, b, n) == 0;
 #endif
+}
+
+inline bool str_caseeq(const std::string &a, const char *b) {
+  return str_caseeq(a.c_str(), b);
+}
+
+inline bool str_caseeq(const char *a, const std::string &b) {
+  return str_caseeq(a, b.c_str());
 }
 
 inline bool str_caseeq(const std::string &a, const std::string &b) {

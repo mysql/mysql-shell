@@ -25,7 +25,11 @@
 #include <algorithm>
 #include <set>
 
+// needs to be included first for FRIEND_TEST
+#include "unittest/gprod_clean.h"
+
 #include "modules/util/dump/schema_dumper.h"
+
 #include "modules/util/load/dump_loader.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/backend/file.h"
@@ -40,7 +44,6 @@ extern "C" const char *g_test_home;
 
 namespace mysqlsh {
 namespace dump {
-namespace tests {
 
 using ::testing::HasSubstr;
 using ::testing::Not;
@@ -952,7 +955,7 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
 
   const auto user = "`" + _user + "`@`" + _host + "`";
   EXPECT_NO_THROW(iss = sd.dump_routines_ddl(file.get(), compat_db_name));
-  ASSERT_EQ(5, iss.size());
+  ASSERT_EQ(8, iss.size());
   EXPECT_EQ(
       "Function mysqlaas_compat.func1 - definition uses DEFINER clause set to "
       "user " +
@@ -961,43 +964,59 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
           "user with SET_USER_ID or SUPER privileges",
       iss[0].description);
   EXPECT_EQ(
+      "Function mysqlaas_compat.func1 - definition does not use SQL SECURITY "
+      "INVOKER characteristic, which is required",
+      iss[1].description);
+  EXPECT_EQ(
       "Function mysqlaas_compat.func2 - definition uses DEFINER clause set to "
       "user " +
           user +
           " which can only be executed by this user or a "
           "user with SET_USER_ID or SUPER privileges",
-      iss[1].description);
+      iss[2].description);
   EXPECT_EQ(
       "Procedure mysqlaas_compat.labeled - definition uses DEFINER clause set "
       "to user " +
           user +
           " which can only be executed by this user or a "
           "user with SET_USER_ID or SUPER privileges",
-      iss[2].description);
+      iss[3].description);
+  EXPECT_EQ(
+      "Procedure mysqlaas_compat.labeled - definition does not use SQL "
+      "SECURITY INVOKER characteristic, which is required",
+      iss[4].description);
   EXPECT_EQ(
       "Procedure mysqlaas_compat.proc1 - definition uses DEFINER clause set to "
       "user " +
           user +
           " which can only be executed by this user or a "
           "user with SET_USER_ID or SUPER privileges",
-      iss[3].description);
+      iss[5].description);
+  EXPECT_EQ(
+      "Procedure mysqlaas_compat.proc1 - definition does not use SQL SECURITY "
+      "INVOKER characteristic, which is required",
+      iss[6].description);
   EXPECT_EQ(
       "Procedure mysqlaas_compat.proc2 - definition uses DEFINER clause set to "
       "user " +
           user +
           " which can only be executed by this user or a "
           "user with SET_USER_ID or SUPER privileges",
-      iss[4].description);
+      iss[7].description);
 
   EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view1"));
-  ASSERT_EQ(1, iss.size());
+  ASSERT_EQ(2, iss.size());
   EXPECT_EQ(
       "View mysqlaas_compat.view1 - definition uses DEFINER clause set to "
       "user " +
           user +
           " which can only be executed by this user or a user "
           "with SET_USER_ID or SUPER privileges",
-      iss.front().description);
+      iss[0].description);
+  EXPECT_EQ(
+      "View mysqlaas_compat.view1 - definition does not use SQL SECURITY "
+      "INVOKER characteristic, which is required",
+      iss[1].description);
 
   EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view3"));
   ASSERT_EQ(1, iss.size());
@@ -1007,7 +1026,7 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
           user +
           " which can only be executed by this user or a user "
           "with SET_USER_ID or SUPER privileges",
-      iss.front().description);
+      iss[0].description);
 
   // Users
   EXPECT_NO_THROW(
@@ -1270,23 +1289,30 @@ TEST_F(Schema_dumper_test, compat_ddl) {
   EXPECT_DUMP_CONTAINS({"/*!50106 CREATE EVENT IF NOT EXISTS `event2`"});
 
   EXPECT_NO_THROW(iss = sd.dump_routines_ddl(file.get(), compat_db_name));
-  ASSERT_EQ(5, iss.size());
+  ASSERT_EQ(8, iss.size());
+  EXPECT_EQ("Function mysqlaas_compat.func1 had definer clause removed",
+            iss[0].description);
   EXPECT_EQ(
-      "Function mysqlaas_compat.func1 had definer clause removed and SQL "
-      "SECURITY characteristic set to INVOKER",
-      iss[0].description);
+      "Function mysqlaas_compat.func1 had SQL SECURITY characteristic set to "
+      "INVOKER",
+      iss[1].description);
   EXPECT_EQ("Function mysqlaas_compat.func2 had definer clause removed",
-            iss[1].description);
+            iss[2].description);
+  EXPECT_EQ("Procedure mysqlaas_compat.labeled had definer clause removed",
+            iss[3].description);
   EXPECT_EQ(
-      "Procedure mysqlaas_compat.labeled had definer clause removed and SQL "
-      "SECURITY characteristic set to INVOKER",
-      iss[2].description);
+      "Procedure mysqlaas_compat.labeled had SQL SECURITY characteristic set "
+      "to INVOKER",
+      iss[4].description);
+  EXPECT_EQ("Procedure mysqlaas_compat.proc1 had definer clause removed",
+            iss[5].description);
   EXPECT_EQ(
-      "Procedure mysqlaas_compat.proc1 had definer clause removed and SQL "
-      "SECURITY characteristic set to INVOKER",
-      iss[3].description);
+      "Procedure mysqlaas_compat.proc1 had SQL SECURITY characteristic set to "
+      "INVOKER",
+      iss[6].description);
   EXPECT_EQ("Procedure mysqlaas_compat.proc2 had definer clause removed",
-            iss[4].description);
+            iss[7].description);
+
   EXPECT_DUMP_CONTAINS(
       {"CREATE FUNCTION `func1`() RETURNS int\n"
        "    NO SQL\n"
@@ -1322,11 +1348,13 @@ TEST_F(Schema_dumper_test, compat_ddl) {
        "INVOKER\nBEGIN\nEND"});
 
   EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view1"));
-  ASSERT_EQ(1, iss.size());
+  ASSERT_EQ(2, iss.size());
+  EXPECT_EQ("View mysqlaas_compat.view1 had definer clause removed",
+            iss[0].description);
   EXPECT_EQ(
-      "View mysqlaas_compat.view1 had definer clause removed and SQL SECURITY "
-      "characteristic set to INVOKER",
-      iss.front().description);
+      "View mysqlaas_compat.view1 had SQL SECURITY characteristic set to "
+      "INVOKER",
+      iss[1].description);
   EXPECT_DUMP_CONTAINS(
       {"/*!50001 CREATE ALGORITHM=UNDEFINED SQL SECURITY INVOKER VIEW view1 AS "
        "select 1 AS 1 */;"});
@@ -1334,7 +1362,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
   EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view3"));
   ASSERT_EQ(1, iss.size());
   EXPECT_EQ("View mysqlaas_compat.view3 had definer clause removed",
-            iss.front().description);
+            iss[0].description);
   EXPECT_DUMP_CONTAINS(
       {"/*!50001 CREATE ALGORITHM=UNDEFINED SQL SECURITY INVOKER VIEW view3 AS "
        "select 1 AS 1 */"});
@@ -1535,6 +1563,59 @@ TEST_F(Schema_dumper_test, get_users) {
   session->execute("DROP USER 'second'@'10.11.12.14';");
 }
 
-}  // namespace tests
+TEST_F(Schema_dumper_test, check_object_for_definer) {
+  // BUG#33087120
+  Schema_dumper sd(session);
+
+  sd.opt_strip_definer = true;
+
+  std::vector<std::string> statements = {
+      "CREATE ${definer} PROCEDURE ${schema}.${object}() ${security} BEGIN END",
+      "CREATE ${definer} FUNCTION ${schema}.${object}() RETURNS integer "
+      "DETERMINISTIC ${security} RETURN 1",
+      "CREATE ${definer} ${security} VIEW ${schema}.${object}() AS SELECT "
+      "COUNT(*) FROM s.t",
+  };
+
+  const std::string schema = "test_schema";
+  const std::string object = "test_object";
+  const std::string sql_security_invoker = "SQL SECURITY INVOKER";
+
+  for (const auto &stmt : statements) {
+    for (const auto &definer :
+         {"DEFINER=root", "DEFINER = root@`host`", "DEFINER = 'root'@host",
+          "DEFINER = \"root\"@\"host\"", ""}) {
+      for (const auto &security :
+           {sql_security_invoker.c_str(), "SQL SECURITY DEFINER", ""}) {
+        SCOPED_TRACE("statement: " + stmt + ", definer: " + definer +
+                     ", security: " + security);
+
+        auto ddl = shcore::str_subvars(
+            stmt,
+            [&](const std::string &var) -> std::string {
+              if ("schema" == var) {
+                return schema;
+              } else if ("object" == var) {
+                return object;
+              } else if ("definer" == var) {
+                return definer;
+              } else if ("security" == var) {
+                return security;
+              }
+
+              throw std::logic_error("Unknown variable: " + var);
+            },
+            "${", "}");
+        std::vector<Schema_dumper::Issue> issues;
+
+        sd.check_object_for_definer(schema, "OBJECT", object, &ddl, &issues);
+
+        EXPECT_THAT(ddl, HasSubstr(sql_security_invoker));
+        EXPECT_THAT(ddl, Not(HasSubstr("DEFINER")));
+      }
+    }
+  }
+}
+
 }  // namespace dump
 }  // namespace mysqlsh
