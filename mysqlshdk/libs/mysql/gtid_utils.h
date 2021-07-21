@@ -50,6 +50,10 @@ class Gtid_set {
     return Gtid_set(gtid_set, false);
   }
 
+  static Gtid_set from_normalized_string(const std::string &gtid_set) {
+    return Gtid_set(gtid_set, true);
+  }
+
   static Gtid_set from_gtid_executed(
       const mysqlshdk::mysql::IInstance &server) {
     return Gtid_set(server.queryf_one_string(0, "", "select @@gtid_executed"),

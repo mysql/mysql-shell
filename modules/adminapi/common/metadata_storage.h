@@ -83,6 +83,7 @@ struct Cluster_metadata {
 
   // GR specific
   std::string group_name;
+  std::string view_change_uuid;
 
   mysqlshdk::gr::Topology_mode cluster_topology_type =
       mysqlshdk::gr::Topology_mode::NONE;

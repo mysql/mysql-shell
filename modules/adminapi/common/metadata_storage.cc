@@ -517,6 +517,8 @@ Cluster_metadata MetadataStorage::unserialize_cluster_metadata(
   rs.cluster_name = row.get_string("cluster_name");
   rs.description = row.get_string("description", "");
   rs.group_name = row.get_string("group_name", "");
+  if (row.has_field("view_uuid"))
+    rs.view_change_uuid = row.get_string("view_uuid", "");
 
   return rs;
 }
@@ -2406,7 +2408,8 @@ bool MetadataStorage::get_cluster_set(
     if (out_cs_members) {
       result = execute_sqlf(
           "SELECT c.*, m.view_id, m.member_role, m.master_cluster_id,"
-          "  m.invalidated"
+          "  m.invalidated,"
+          "  c.attributes->>'$.group_replication_view_change_uuid' as view_uuid"
           " FROM mysql_innodb_cluster_metadata.v2_cs_members m"
           " JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
           "  ON c.cluster_id = m.cluster_id"
@@ -2439,7 +2442,8 @@ bool MetadataStorage::get_cluster_set_member_for_cluster_name(
 
   auto result = execute_sqlf(
       "SELECT c.*, m.view_id, m.member_role, m.master_cluster_id,"
-      "  m.invalidated"
+      "  m.invalidated,"
+      "  c.attributes->>'$.group_replication_view_change_uuid' as view_uuid"
       " FROM mysql_innodb_cluster_metadata.v2_cs_members m"
       " JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
       "  ON c.cluster_id = m.cluster_id"
@@ -2469,7 +2473,8 @@ bool MetadataStorage::get_cluster_set_member(
 
   auto result = execute_sqlf(
       "SELECT c.*, m.view_id, m.member_role, m.master_cluster_id,"
-      "  m.invalidated"
+      "  m.invalidated,"
+      "  c.attributes->>'$.group_replication_view_change_uuid' as view_uuid"
       " FROM mysql_innodb_cluster_metadata.v2_cs_members m"
       " JOIN mysql_innodb_cluster_metadata.v2_gr_clusters c"
       "  ON c.cluster_id = m.cluster_id"

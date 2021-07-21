@@ -7,6 +7,7 @@ import re
 import mysqlsh
 import threading
 
+
 class SQLLogAnalyzer:
     def __init__(self, sbports):
         self.sbports = sbports
@@ -23,7 +24,8 @@ class SQLLogAnalyzer:
     def discard(self):
         self.logs = []
     def filter(self, pat):
-        self.logs = [l for l in self.logs if not re.match(pat, l[2], re.IGNORECASE)]
+        self.logs = [l for l in self.logs if not re.match(
+            pat, l[2], re.IGNORECASE)]
     def __str__(self):
         return "\n".join([f"{l[0]}\t{l[1]}\t{l[2]}" for l in self.logs])
     def find(self, port, pat):
@@ -54,6 +56,7 @@ class SQLLogAnalyzer:
             if re.match(pat, sql, re.IGNORECASE):
                 return t, sql
         return None
+
 
 def EXPECT_SYNC_AT_PROMOTED_BEFORE_FTWRL(logs, promoted_sb, demoted_sb):
     ftwrl = logs.find(demoted_sb, "FLUSH TABLES WITH READ LOCK")
@@ -88,26 +91,28 @@ def CHECK_SRO_CLEAR_AT_PROMOTED(logs, promoted_sb, demoted_sb):
     unlock = logs.find_after(demoted_sb, ftwrl[0], "UNLOCK TABLES")
     EXPECT_TRUE(unlock, "unlock tables")
     EXPECT_BETWEEN(ftwrl[0], unlock[0], clear_sro[0])
-    clear_sro_too_soon = logs.find_before(promoted_sb, ftwrl[0], "SET.*SUPER_READ_ONLY.*(OFF|0)")
+    clear_sro_too_soon = logs.find_before(
+        promoted_sb, ftwrl[0], "SET.*SUPER_READ_ONLY.*(OFF|0)")
     EXPECT_FALSE(clear_sro_too_soon, "clear_sro_too_soon    ")
 
 
 class Inserter(threading.Thread):
-    def __init__(self, sbindex, uri):
+    def __init__(self, sbindex, uri, table_name):
         super().__init__()
         self.sbindex = sbindex
         self.session = mysql.get_session(uri)
         self.done = 0
         self.errors = []
-        self.table_name = f"testdb{self.sbindex}.sink"
+        self.table_name = f"testdb{self.sbindex}.{table_name}"
     def prepare(self, session):
-        session.run_sql(f"CREATE SCHEMA testdb{self.sbindex}")
-        session.run_sql(f"CREATE TABLE {self.table_name} (pk int primary key auto_increment, ts timestamp(6))")
+        session.run_sql(f"CREATE SCHEMA IF NOT EXISTS testdb{self.sbindex}")
+        session.run_sql(
+            f"CREATE TABLE {self.table_name} (pk int primary key auto_increment, ts timestamp(6))")
     def start(self):
-        self.done=0
+        self.done = 0
         super().start()
     def stop(self):
-        self.done=1
+        self.done = 1
         self.join()
     def run(self):
         while not self.done:
@@ -122,22 +127,32 @@ class Inserter(threading.Thread):
                 print("QUERY:", sql)
                 raise
 
+
 def EXPECT_NO_INSERTS(inserter, session):
-    nrows = session.run_sql(f"SELECT count(*) FROM {inserter.table_name}").fetch_one()[0]
+    nrows = session.run_sql(
+        f"SELECT count(*) FROM {inserter.table_name}").fetch_one()[0]
     EXPECT_EQ(0, nrows, f"no rows inserted to sandbox{inserter.sbindex}")
 
+
 def EXPECT_HAS_INSERTS(inserter, session):
-    nrows = session.run_sql(f"SELECT count(*) FROM {inserter.table_name}").fetch_one()[0]
+    nrows = session.run_sql(
+        f"SELECT count(*) FROM {inserter.table_name}").fetch_one()[0]
     EXPECT_LT(0, nrows, f"rows inserted to sandbox{inserter.sbindex}")
 
 
 #@<> Setup
-testutil.deploy_sandbox(__mysql_sandbox_port1, "root", {"report_host": hostname})
-testutil.deploy_sandbox(__mysql_sandbox_port2, "root", {"report_host": hostname})
-testutil.deploy_sandbox(__mysql_sandbox_port3, "root", {"report_host": hostname})
-testutil.deploy_sandbox(__mysql_sandbox_port4, "root", {"report_host": hostname})
-testutil.deploy_sandbox(__mysql_sandbox_port5, "root", {"report_host": hostname})
-testutil.deploy_sandbox(__mysql_sandbox_port6, "root", {"report_host": hostname})
+testutil.deploy_sandbox(__mysql_sandbox_port1, "root",
+                        {"report_host": hostname})
+testutil.deploy_sandbox(__mysql_sandbox_port2, "root",
+                        {"report_host": hostname})
+testutil.deploy_sandbox(__mysql_sandbox_port3, "root",
+                        {"report_host": hostname})
+testutil.deploy_sandbox(__mysql_sandbox_port4, "root",
+                        {"report_host": hostname})
+testutil.deploy_sandbox(__mysql_sandbox_port5, "root",
+                        {"report_host": hostname})
+testutil.deploy_sandbox(__mysql_sandbox_port6, "root",
+                        {"report_host": hostname})
 
 session1 = mysql.get_session(__sandbox_uri1)
 session2 = mysql.get_session(__sandbox_uri2)
@@ -152,31 +167,37 @@ for s in [session2, session3, session4, session5, session6]:
 
 # start a thread per sandbox and make all of them try to insert stuff at the same time
 thds = []
+thds2 = []
 for sbi, uri in enumerate([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3, __sandbox_uri4, __sandbox_uri5, __sandbox_uri6]):
-    thds.append(Inserter(sbi+1, uri))
+    thds.append(Inserter(sbi+1, uri, "sink1"))
+    #thds2.append(Inserter(sbi+1, uri, "sink2"))
     # prepare using session from primary
     thds[sbi].prepare(thds[0].session)
+    #thds2[sbi].prepare(thds2[0].session)
 
 
 shell.connect(__sandbox_uri1)
-c1 = dba.create_cluster("cluster1", {"gtidSetIsComplete": 1, "ipAllowlist":"127.0.0.1," + hostname_ip})
-c1.add_instance(__sandbox_uri2, {"ipAllowlist":"127.0.0.1," + hostname_ip})
-c1.add_instance(__sandbox_uri3, {"ipAllowlist":"127.0.0.1," + hostname_ip})
+c1 = dba.create_cluster(
+    "cluster1", {"gtidSetIsComplete": 1, "ipAllowlist": "127.0.0.1," + hostname_ip})
+c1.add_instance(__sandbox_uri2, {"ipAllowlist": "127.0.0.1," + hostname_ip})
+c1.add_instance(__sandbox_uri3, {"ipAllowlist": "127.0.0.1," + hostname_ip})
 
 cs = c1.create_cluster_set("cs")
-c2 = cs.create_replica_cluster(__sandbox_uri4, "cluster2", {"ipAllowlist":"127.0.0.1," + hostname_ip})
-c2.add_instance(__sandbox_uri5, {"ipAllowlist":"127.0.0.1," + hostname_ip})
+c2 = cs.create_replica_cluster(__sandbox_uri4, "cluster2", {
+                               "ipAllowlist": "127.0.0.1," + hostname_ip})
+c2.add_instance(__sandbox_uri5, {"ipAllowlist": "127.0.0.1," + hostname_ip})
 
-c3 = cs.create_replica_cluster(__sandbox_uri6, "cluster3", {"ipAllowlist":"127.0.0.1," + hostname_ip})
+c3 = cs.create_replica_cluster(__sandbox_uri6, "cluster3", {
+                               "ipAllowlist": "127.0.0.1," + hostname_ip})
 
 logs = SQLLogAnalyzer(
     [__mysql_sandbox_port1, __mysql_sandbox_port4, __mysql_sandbox_port6])
 
 
-for thd in thds:
+for thd in thds + thds2:
     thd.start()
 
-s = cs.status({"extended":1})
+s = cs.status({"extended": 1})
 EXPECT_EQ("OK", s["clusters"]["cluster2"]["transactionSetConsistencyStatus"])
 EXPECT_EQ("OK", s["clusters"]["cluster3"]["transactionSetConsistencyStatus"])
 
@@ -193,7 +214,7 @@ EXPECT_NO_INSERTS(thds[5], session6)
 #@<> switch to cluster2
 logs.discard()
 
-s = cs.status({"extended":1})
+s = cs.status({"extended": 1})
 EXPECT_EQ("OK", s["clusters"]["cluster2"]["transactionSetConsistencyStatus"])
 EXPECT_EQ("OK", s["clusters"]["cluster3"]["transactionSetConsistencyStatus"])
 cs.set_primary_cluster("cluster2")
@@ -203,11 +224,12 @@ logs.filter(r"SELECT.*FROM|SELECT (gtid_sub|@@)|SET (SESSION|@)|SHOW|.*testdb.*|
 print(logs)
 
 # check order of operations
-#@<> cluster2: ensure it's impossible for 2 instances to be R/W at the same time 
+#@<> cluster2: ensure it's impossible for 2 instances to be R/W at the same time
 CHECK_SRO_CLEAR_AT_PROMOTED(logs, __mysql_sandbox_port4, __mysql_sandbox_port1)
 
 #@<> cluster2: ensure that there's a sync on promoted before FTWRL is attempted, to minimize sync wait while FTWRL is held
-EXPECT_SYNC_AT_PROMOTED_BEFORE_FTWRL(logs, __mysql_sandbox_port4, __mysql_sandbox_port1)
+EXPECT_SYNC_AT_PROMOTED_BEFORE_FTWRL(
+    logs, __mysql_sandbox_port4, __mysql_sandbox_port1)
 
 #@<> cluster2: ensure no GR changes during FTWRL
 EXPECT_NO_GR_OPS_DURING_FTWRL(logs)
@@ -215,7 +237,7 @@ EXPECT_NO_GR_OPS_DURING_FTWRL(logs)
 #@<> switch to cluster1
 logs.discard()
 
-s = cs.status({"extended":1})
+s = cs.status({"extended": 1})
 EXPECT_EQ("OK", s["clusters"]["cluster1"]["transactionSetConsistencyStatus"])
 EXPECT_EQ("OK", s["clusters"]["cluster3"]["transactionSetConsistencyStatus"])
 
@@ -225,21 +247,22 @@ logs.read()
 logs.filter(r"SELECT.*FROM|SELECT (gtid_sub|@@)|SET (SESSION|@)|SHOW|.*testdb.*|BEGIN|START TRANSACT|COMMIT|.*@@hostname|.*@@server_uuid")
 print(logs)
 
-#@<> cluster1: ensure it's impossible for 2 instances to be R/W at the same time 
+#@<> cluster1: ensure it's impossible for 2 instances to be R/W at the same time
 CHECK_SRO_CLEAR_AT_PROMOTED(logs, __mysql_sandbox_port1, __mysql_sandbox_port4)
 
 #@<> cluster1: ensure that there's a sync on promoted before FTWRL is attempted, to minimize sync wait while FTWRL is held
-EXPECT_SYNC_AT_PROMOTED_BEFORE_FTWRL(logs, __mysql_sandbox_port1, __mysql_sandbox_port4)
+EXPECT_SYNC_AT_PROMOTED_BEFORE_FTWRL(
+    logs, __mysql_sandbox_port1, __mysql_sandbox_port4)
 
 
 #@<> switch back and forth a few times
-s = cs.status({"extended":1})
+s = cs.status({"extended": 1})
 EXPECT_EQ("OK", s["clusters"]["cluster2"]["transactionSetConsistencyStatus"])
 EXPECT_EQ("OK", s["clusters"]["cluster3"]["transactionSetConsistencyStatus"])
 
 cs.set_primary_cluster("cluster2")
 
-s = cs.status({"extended":1})
+s = cs.status({"extended": 1})
 EXPECT_EQ("OK", s["clusters"]["cluster1"]["transactionSetConsistencyStatus"])
 EXPECT_EQ("OK", s["clusters"]["cluster3"]["transactionSetConsistencyStatus"])
 
@@ -248,7 +271,7 @@ cs.set_primary_cluster("cluster1")
 #@<> check for errant trxs
 
 # stop threads
-for thd in thds:
+for thd in thds + thds2:
     thd.stop()
 
 EXPECT_HAS_INSERTS(thds[0], session1)
@@ -258,16 +281,23 @@ EXPECT_HAS_INSERTS(thds[3], session4)
 EXPECT_NO_INSERTS(thds[4], session5)
 EXPECT_NO_INSERTS(thds[5], session6)
 
+if thds2:
+    EXPECT_HAS_INSERTS(thds2[0], session1)
+    EXPECT_NO_INSERTS(thds2[1], session2)
+    EXPECT_NO_INSERTS(thds2[2], session3)
+    EXPECT_HAS_INSERTS(thds2[3], session4)
+    EXPECT_NO_INSERTS(thds2[4], session5)
+    EXPECT_NO_INSERTS(thds2[5], session6)
+
 #@<> check what happens during dryRun
 logs.read()
 logs.discard()
 
-cs.set_primary_cluster("cluster2", {"dryRun":1})
+cs.set_primary_cluster("cluster2", {"dryRun": 1})
 
 logs.read()
 logs.filter(r"SELECT.*FROM|SELECT (gtid_sub|@@)|SET (SESSION|@)|SHOW|.*testdb.*|BEGIN|START TRANSACT|COMMIT|.*@@hostname|.*@@server_uuid")
 print(logs)
-
 
 #@<> Destroy
 testutil.destroy_sandbox(__mysql_sandbox_port1)

@@ -1384,7 +1384,8 @@ void Cluster_set_impl::update_replica_settings(Instance *instance,
     throw;
   }
 
-  log_info("Configuring the managed connection failover configurations");
+  log_info("Configuring the managed connection failover configurations for %s",
+           instance->descr().c_str());
   if (!dry_run) {
     try {
       // Delete any previous managed connection failover configurations
@@ -1805,20 +1806,9 @@ void Cluster_set_impl::set_primary_cluster(
                                    static_cast<int64_t>(options.timeout),
                                    mysqlshdk::mysql::Var_qualifier::SESSION);
 
-  std::string missing_view_change_gtids;
-
-  check_transaction_set_recoverable(promoted.get(), primary,
-                                    &missing_view_change_gtids);
   console->print_info();
 
-  if (!missing_view_change_gtids.empty()) {
-    console->print_info("* Reconciling internally generated GTIDs");
-    if (!options.dry_run)
-      reconcile_view_change_gtids(
-          promoted.get(),
-          mysqlshdk::mysql::Gtid_set::from_string(missing_view_change_gtids));
-    console->print_info();
-  }
+  ensure_transaction_set_consistent(promoted.get(), primary, options.dry_run);
 
   // Get the current settings for the ClusterSet replication channel
   Async_replication_options ar_options = get_clusterset_replication_options();
@@ -1908,6 +1898,14 @@ void Cluster_set_impl::set_primary_cluster(
     promote_to_primary(promoted_cluster.get(), true, options.dry_run);
 
     console->print_info("* Updating replica clusters");
+
+    DBUG_EXECUTE_IF("set_primary_cluster_skip_update_replicas", {
+      std::cerr << "Skipping replica update "
+                   "(set_primary_cluster_skip_update_replicas)\n";
+      undo_list.cancel();
+      return;
+    });
+
     for (const auto &replica : clusters) {
       if (promoted_cluster->get_name() != replica->get_name() &&
           primary_cluster->get_name() != replica->get_name()) {
@@ -2327,9 +2325,13 @@ void Cluster_set_impl::force_primary_cluster(
   }
 }
 
-void Cluster_set_impl::check_transaction_set_recoverable(
+void Cluster_set_impl::ensure_transaction_set_consistent(
     mysqlshdk::mysql::IInstance *replica, mysqlshdk::mysql::IInstance *primary,
-    std::string *out_missing_view_gtids) const {
+    bool dry_run) {
+  auto console = current_console();
+
+  std::string missing_view_gtids;
+
   std::string errant_gtids;
   std::string missing_gtids;
   auto state = check_replica_group_gtid_state(*primary, *replica,
@@ -2341,19 +2343,39 @@ void Cluster_set_impl::check_transaction_set_recoverable(
            errant_gtids.c_str());
 
   if (state == mysqlshdk::mysql::Replica_gtid_state::DIVERGED) {
-    if (out_missing_view_gtids) *out_missing_view_gtids = missing_gtids;
+    missing_view_gtids = missing_gtids;
 
     if (!errant_gtids.empty()) {
-      current_console()->print_info(shcore::str_format(
-          "%s has the following errant transactions not present at %s: %s",
-          replica->descr().c_str(), primary->descr().c_str(),
-          errant_gtids.c_str()));
-      throw shcore::Exception(
-          "Errant transactions detected at " + replica->descr(),
-          SHERR_DBA_DATA_ERRANT_TRANSACTIONS);
+      // check if the errant transactions are from view changes belonging to
+      // other replica clusters, which could be introduced in case it's not
+      // replicating from the correct source (e.g. replication couldn't be
+      // updated during last primary cluster change)
+      std::vector<Cluster_set_member_metadata> members;
+      auto errants =
+          mysqlshdk::mysql::Gtid_set::from_normalized_string(errant_gtids);
+
+      get_metadata_storage()->get_cluster_set(get_id(), true, nullptr,
+                                              &members);
+      for (const auto &m : members) {
+        errants.subtract(errants.get_gtids_from(m.cluster.view_change_uuid),
+                         *primary);
+      }
+
+      if (!missing_view_gtids.empty()) missing_view_gtids += ",";
+      missing_view_gtids += errant_gtids;
+
+      if (!errants.empty()) {
+        console->print_info(shcore::str_format(
+            "%s has the following errant transactions not present at %s: %s",
+            replica->descr().c_str(), primary->descr().c_str(),
+            errant_gtids.c_str()));
+        throw shcore::Exception(
+            "Errant transactions detected at " + replica->descr(),
+            SHERR_DBA_DATA_ERRANT_TRANSACTIONS);
+      }
     }
   } else if (state == mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE) {
-    current_console()->print_error(
+    console->print_error(
         shcore::str_format("The following transactions were purged from %s and "
                            "not present at %s: %s",
                            primary->descr().c_str(), replica->descr().c_str(),
@@ -2364,45 +2386,14 @@ void Cluster_set_impl::check_transaction_set_recoverable(
         "purged from the PRIMARY cluster",
         SHERR_DBA_DATA_RECOVERY_NOT_POSSIBLE);
   }
-}
 
-void Cluster_set_impl::validate_rejoin(
-    Cluster_impl *rejoining_cluster,
-    mysqlshdk::mysql::IInstance *rejoining_primary,
-    mysqlshdk::mysql::IInstance *primary, bool *out_refresh_only) {
-  auto console = current_console();
-
-  // check if the cluster is invalidated
-  if (!rejoining_cluster->is_invalidated()) {
-    console->print_note("Cluster '" + rejoining_cluster->get_name() +
-                        "' is not invalidated");
-    *out_refresh_only = true;
-  } else {
-    console->print_note("Cluster '" + rejoining_cluster->get_name() +
-                        "' is invalidated");
-    *out_refresh_only = false;
-  }
-
-  // check gtid set
-  try {
-    check_transaction_set_recoverable(rejoining_primary, primary, nullptr);
-  } catch (const shcore::Exception &e) {
-    if (e.code() == SHERR_DBA_DATA_RECOVERY_NOT_POSSIBLE) {
-      console->print_error(
-          "Cluster '" + rejoining_cluster->get_name() +
-          "' cannot be rejoined because it's missing transactions that have "
-          "been purged from the binary log of '" +
-          primary->descr() + "'");
-      console->print_info(
-          "The cluster must be re-provisioned with clone or some other "
-          "method.");
-    } else if (e.code() == SHERR_DBA_DATA_ERRANT_TRANSACTIONS) {
-      console->print_error(
-          "Cluster '" + rejoining_cluster->get_name() +
-          "' cannot be rejoined because it contains transactions that are not "
-          "present in the rest of the clusterset.");
-    }
-    throw;
+  if (!missing_view_gtids.empty()) {
+    console->print_info("* Reconciling internally generated GTIDs");
+    if (!dry_run)
+      reconcile_view_change_gtids(
+          replica, mysqlshdk::mysql::Gtid_set::from_normalized_string(
+                       missing_view_gtids));
+    console->print_info();
   }
 }
 
@@ -2432,8 +2423,39 @@ void Cluster_set_impl::rejoin_cluster(
 
   bool refresh_only = false;
 
-  validate_rejoin(rejoining_cluster.get(), rejoining_primary.get(), primary,
-                  &refresh_only);
+  // check if the cluster is invalidated
+  if (!rejoining_cluster->is_invalidated()) {
+    console->print_note("Cluster '" + rejoining_cluster->get_name() +
+                        "' is not invalidated");
+    refresh_only = true;
+  } else {
+    console->print_note("Cluster '" + rejoining_cluster->get_name() +
+                        "' is invalidated");
+    refresh_only = false;
+  }
+
+  // check gtid set
+  try {
+    ensure_transaction_set_consistent(rejoining_primary.get(), primary,
+                                      options.dry_run);
+  } catch (const shcore::Exception &e) {
+    if (e.code() == SHERR_DBA_DATA_RECOVERY_NOT_POSSIBLE) {
+      console->print_error(
+          "Cluster '" + rejoining_cluster->get_name() +
+          "' cannot be rejoined because it's missing transactions that have "
+          "been purged from the binary log of '" +
+          primary->descr() + "'");
+      console->print_info(
+          "The cluster must be re-provisioned with clone or some other "
+          "method.");
+    } else if (e.code() == SHERR_DBA_DATA_ERRANT_TRANSACTIONS) {
+      console->print_error(
+          "Cluster '" + rejoining_cluster->get_name() +
+          "' cannot be rejoined because it contains transactions that did not "
+          "originate from the primary of the clusterset.");
+    }
+    throw;
+  }
 
   mysqlsh::dba::Async_replication_options ar_options =
       get_clusterset_replication_options();

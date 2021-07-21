@@ -224,15 +224,9 @@ class Cluster_set_impl : public Base_cluster_impl,
   std::pair<std::string, std::string> get_cluster_repl_account(
       Cluster_impl *cluster) const;
 
-  void validate_rejoin(Cluster_impl *rejoining_cluster,
-                       mysqlshdk::mysql::IInstance *rejoining_primary,
-                       mysqlshdk::mysql::IInstance *primary,
-                       bool *out_refresh_only);
-
-  void check_transaction_set_recoverable(
-      mysqlshdk::mysql::IInstance *replica,
-      mysqlshdk::mysql::IInstance *primary,
-      std::string *out_missing_view_gtids = nullptr) const;
+  void ensure_transaction_set_consistent(mysqlshdk::mysql::IInstance *replica,
+                                         mysqlshdk::mysql::IInstance *primary,
+                                         bool dry_run);
 
   void primary_instance_did_change(
       const std::shared_ptr<Instance> &new_primary);

@@ -247,18 +247,18 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
   return shcore::Value(res);
 }
 
-void check_cluster_consistency(Cluster_impl *cluster,
-                               shcore::Dictionary_t status,
-                               const mysqlshdk::mysql::Gtid_set &cluster_gtid,
-                               const std::string &view_change_uuid,
-                               const mysqlshdk::mysql::Gtid_set &primary_gtid,
-                               int extended) {
+void check_cluster_consistency(
+    Cluster_impl *cluster, shcore::Dictionary_t status,
+    const mysqlshdk::mysql::Gtid_set &cluster_gtid,
+    const std::vector<std::string> &view_change_uuids,
+    const mysqlshdk::mysql::Gtid_set &primary_gtid, int extended) {
   mysqlshdk::mysql::Gtid_set gtid_missing = primary_gtid;
   gtid_missing.subtract(cluster_gtid, *cluster->get_cluster_server());
 
   mysqlshdk::mysql::Gtid_set gtid_errant = cluster_gtid;
-  gtid_errant.subtract(gtid_errant.get_gtids_from(view_change_uuid),
-                       *cluster->get_cluster_server());
+  for (const auto &uuid : view_change_uuids)
+    gtid_errant.subtract(gtid_errant.get_gtids_from(uuid),
+                         *cluster->get_cluster_server());
   gtid_errant.subtract(primary_gtid, *cluster->get_cluster_server());
 
   if (extended > 0 || !gtid_errant.empty()) {
@@ -343,6 +343,8 @@ shcore::Dictionary_t cluster_set_status(Cluster_set_impl *cluster_set,
                         mysqlshdk::mysql::Gtid_set, std::string>>
         gtid_sets;
 
+    std::vector<std::string> view_change_uuids;
+
     for (const auto &cluster_md : clusters) {
       auto cluster = cluster_set->get_cluster_object(cluster_md, true);
       auto cl_status = cluster_set->get_cluster_global_status(cluster.get());
@@ -352,6 +354,8 @@ shcore::Dictionary_t cluster_set_status(Cluster_set_impl *cluster_set,
       auto status =
           cluster_status(cluster_md, cluster_set, cluster.get(), cl_status,
                          extended, &gtid_executed, &view_change_uuid);
+
+      view_change_uuids.emplace_back(view_change_uuid);
 
       gtid_sets.emplace(cluster_md.cluster.cluster_id,
                         std::make_tuple(cluster, status.as_map(), gtid_executed,
@@ -395,7 +399,7 @@ shcore::Dictionary_t cluster_set_status(Cluster_set_impl *cluster_set,
           cluster_md.cluster.cluster_id != primary_cluster_id) {
         if (cluster->get_cluster_server())
           check_cluster_consistency(cluster.get(), status, cluster_gtid,
-                                    view_change_uuid, primary_gtid_set,
+                                    view_change_uuids, primary_gtid_set,
                                     extended);
       }
     }
