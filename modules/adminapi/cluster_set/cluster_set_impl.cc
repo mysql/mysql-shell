@@ -991,6 +991,7 @@ void Cluster_set_impl::remove_cluster(
             throw shcore::Exception("Replication channel does not exist",
                                     SHERR_DBA_REPLICATION_OFF);
           } else {
+            skip_channel_check = true;
             console->print_warning(
                 "Ignoring non-existing ClusterSet Replication channel because "
                 "of 'force' option");
@@ -1008,6 +1009,7 @@ void Cluster_set_impl::remove_cluster(
                   "ClusterSet Replication Channel not in expected state",
                   SHERR_DBA_REPLICATION_INVALID);
             } else {
+              skip_channel_check = true;
               console->print_warning(
                   "ClusterSet Replication channel has invalid state '" +
                   to_string(channel.status()) +
@@ -1025,7 +1027,7 @@ void Cluster_set_impl::remove_cluster(
       if (!target_cluster->get_primary_master()) {
         console->print_note(
             "Transaction sync was skipped because cluster is unavailable");
-      } else {
+      } else if (!skip_channel_check) {
         try {
           sync_transactions(*target_cluster->get_cluster_server(),
                             {k_clusterset_async_channel_name}, options.timeout);
@@ -1130,7 +1132,7 @@ void Cluster_set_impl::remove_cluster(
         // Sync again to catch-up the drop user and metadata update
         if (target_cluster->cluster_availability() ==
                 Cluster_availability::ONLINE &&
-            options.timeout >= 0) {
+            !skip_channel_check && options.timeout >= 0) {
           try {
             sync_transactions(*target_cluster->get_cluster_server(),
                               {k_clusterset_async_channel_name},

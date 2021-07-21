@@ -211,8 +211,7 @@ EXPECT_EQ("OFFLINE", s["clusters"]["cluster2"]["status"]);
 EXPECT_EQ(undefined, s["clusters"]["cluster3"]);
 EXPECT_EQ("OK", s["clusters"]["cluster4"]["globalStatus"]);
 
-// XXX doesn't work because of bug in WL13815 (bug#33081064)
-//@<> get clusterset from cluster1 while cluster2 up (but removed from cs) {false}
+//@<> get clusterset from cluster1 while cluster2 up (but removed from cs)
 // should fail and be stuck to cluster1
 
 cs.removeCluster("cluster2", {force:1});
@@ -222,11 +221,11 @@ cs = dba.getClusterSet();
 
 s = cs.status();
 
-EXPECT_EQ("cluster1", s["primaryCluster"]);
+EXPECT_EQ("cluster4", s["primaryCluster"]);
 EXPECT_EQ("OFFLINE", s["clusters"]["cluster1"]["status"]);
-EXPECT_EQ("UNREACHABLE", s["clusters"]["cluster2"]["status"]);
-EXPECT_EQ("OK_NO_TOLERANCE", s["clusters"]["cluster3"]["status"]);
-EXPECT_EQ(undefined, s["clusters"]["cluster4"]);
+EXPECT_EQ(undefined, s["clusters"]["cluster2"]);
+EXPECT_EQ(undefined, s["clusters"]["cluster3"]);
+EXPECT_EQ("OK", s["clusters"]["cluster4"]["globalStatus"]);
 
 
 //@<> Destroy

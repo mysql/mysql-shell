@@ -168,6 +168,7 @@ EXPECT_OUTPUT_CONTAINS("ERROR: The ClusterSet Replication channel could not be f
 wipeout_cluster(session1, replicacluster);
 replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster", {recoveryMethod: "incremental"});
 session4.runSql("stop replica for channel 'clusterset_replication'");
+session4.runSql("reset replica all for channel 'clusterset_replication'");
 
 shell.options["logLevel"]=8
 clusterset.removeCluster("replicacluster", {force:1});
@@ -249,8 +250,7 @@ testutil.waitMemberState(__mysql_sandbox_port6, "UNREACHABLE");
 
 EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51011: Cluster 'replicacluster' has no quorum'");
 
-//@<> Remove NO_QUORUM cluster + force (should still fail) {false}
-// TODO enable it back after wl11894
+//@<> Remove NO_QUORUM cluster + force (should still fail)
 // we can't remove a NO_QUORUM cluster because STOP REPLICA and most things will just freeze
 EXPECT_THROWS(function(){clusterset.removeCluster("replicacluster");}, "PRIMARY instance of Cluster 'replicacluster' is unavailable: 'MYSQLSH 51011: Cluster 'replicacluster' has no quorum'");
 
