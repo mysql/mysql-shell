@@ -441,6 +441,7 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       "Cluster.describe",
       "Cluster.forceQuorumUsingPartitionOf",
       "Cluster.listRouters",
+      "Cluster.setPrimaryInstance",
       "Cluster.options",
       "Cluster.status",
       "Dba.getCluster",
@@ -455,7 +456,6 @@ TEST_F(Preconditions, check_cluster_set_preconditions) {
       "Cluster.resetRecoveryAccountsPassword",
       "Cluster.setInstanceOption",
       "Cluster.setOption",
-      "Cluster.setPrimaryInstance",
       "Cluster.setupAdminAccount",
       "Cluster.setupRouterAccount"};
 

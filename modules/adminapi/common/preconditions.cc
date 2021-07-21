@@ -381,7 +381,7 @@ const std::map<std::string, Function_availability>
           ReplicationQuorum::State(ReplicationQuorum::States::All_online),
           ManagedInstance::State::OnlineRW | ManagedInstance::State::OnlineRO,
           {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
-          kClusterGlobalStateAnyOk}},
+          kClusterGlobalStateAny}},
         {"Cluster.setOption",
          {k_min_gr_version,
           TargetType::InnoDBCluster | TargetType::InnoDBClusterSet,

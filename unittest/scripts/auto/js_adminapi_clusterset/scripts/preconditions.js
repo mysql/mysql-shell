@@ -124,8 +124,8 @@ EXPECT_THROWS(function(){ cs.createReplicaCluster(__sandbox_uri4, "replica2"); }
 //@<> removeCluster() with PRIMARY unavailable
 EXPECT_THROWS(function(){ cs.removeCluster("replica"); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
 
-// Topology changes on a REPLICA cluster must be allowed IFF the Cluster and the PRIMARY Cluster are OK.
-EXPECT_THROWS(function(){ rc.setPrimaryInstance(__sandbox_uri4); }, "The InnoDB Cluster is part of an InnoDB ClusterSet and has global state of NOT_OK within the ClusterSet. Operation is not possible when in that state");
+//@<> Primary changes on a REPLICA cluster must be allowed IFF the Cluster is OK, even if primary cluster is not
+EXPECT_NO_THROWS(function(){ rc.setPrimaryInstance(__sandbox_uri3); });
 
 //@<> setPrimaryCluster should fail without a primary
 EXPECT_THROWS(function(){ cs.setPrimaryCluster("replica2"); }, "Could not connect to any ONLINE member of Primary Cluster 'cluster'");
