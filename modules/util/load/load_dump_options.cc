@@ -365,7 +365,8 @@ void Load_dump_options::validate() {
   m_excluded_users.emplace_back(
       shcore::split_account(m_base_session->query("SELECT current_user()")
                                 ->fetch_one()
-                                ->get_string(0)));
+                                ->get_string(0),
+                            true));
 }
 
 std::string Load_dump_options::target_import_info() const {

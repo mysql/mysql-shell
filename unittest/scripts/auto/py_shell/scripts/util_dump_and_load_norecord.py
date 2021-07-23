@@ -1049,6 +1049,52 @@ for table in all_tables:
 #@<> WL14632: cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
 
+#@<> BUG#33144419: setup
+dumper_user = "dumper"
+loader_user = "loader"
+password = "pass"
+host_with_netmask = "127.0.0.0/255.0.0.0"
+dump_dir = os.path.join(outdir, "host_with_netmask")
+
+def create_account_with_netmask(name):
+    session.run_sql(f"DROP USER IF EXISTS '{name}'@'{host_with_netmask}'")
+    session.run_sql(f"CREATE USER '{name}'@'{host_with_netmask}' IDENTIFIED BY '{password}'")
+    session.run_sql(f"GRANT ALL ON *.* TO '{name}'@'{host_with_netmask}' WITH GRANT OPTION")
+
+# source server has two accounts with IPv4 and a netmask, one of them is used to do the dump
+shell.connect(__sandbox_uri1)
+create_account_with_netmask(dumper_user)
+create_account_with_netmask(loader_user)
+
+# wipe the destination server
+wipeout_server(session2)
+
+# destination server has one of the accounts created above, it is going to load the dump; the other account is going to be recreated
+shell.connect(__sandbox_uri2)
+create_account_with_netmask(loader_user)
+
+#@<> BUG#33144419: dump
+shell.connect(f"{dumper_user}:{password}@127.0.0.1:{__mysql_sandbox_port1}")
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "users": True, "ddlOnly": True, "showProgress": False }), "dump should succeed")
+
+#@<> BUG#33144419: load
+# dumper user does not exist
+EXPECT_THROWS(lambda: shell.connect(f"{dumper_user}:{password}@127.0.0.1:{__mysql_sandbox_port2}"), f"Access denied for user '{dumper_user}'@'localhost'")
+
+# load the dump, users are created
+shell.connect(f"{loader_user}:{password}@127.0.0.1:{__mysql_sandbox_port2}")
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "root@%", "root@localhost" ], "showProgress": False }), "load should succeed")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Skipping CREATE/ALTER USER statements for user '{loader_user}'@'{host_with_netmask}'")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Skipping GRANT statements for user '{loader_user}'@'{host_with_netmask}'")
+
+# dumper user was created
+EXPECT_NO_THROWS(lambda: shell.connect(f"{dumper_user}:{password}@127.0.0.1:{__mysql_sandbox_port2}"), "user should exist")
+
+#@<> BUG#33144419: cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql(f"DROP USER IF EXISTS '{dumper_user}'@'{host_with_netmask}'")
+session.run_sql(f"DROP USER IF EXISTS '{loader_user}'@'{host_with_netmask}'")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
