@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,7 +48,7 @@ Zstd_file::~Zstd_file() {
 Zstd_file::Buf_view Zstd_file::peek(const size_t length) {
   const auto avail = m_buffer.size();
   if (avail < length) {
-    const auto want = align(length);
+    const auto want = align(std::max<size_t>(length, 4 * 1024 * 1024));
     extend_to_fit(want);
     uint8_t *p = &m_buffer[avail];
     const auto bytes_read = file()->read(p, want);
