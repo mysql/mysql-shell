@@ -189,6 +189,7 @@ Instance_cache_builder::Instance_cache_builder(
     const Table_filters &excluded_tables, bool include_metadata)
     : m_session(session) {
   fetch_version();
+  fetch_explain_select_rows_index();
 
   filter_schemas(included_schemas, excluded_schemas);
   filter_tables(included_tables, excluded_tables);
@@ -468,6 +469,11 @@ void Instance_cache_builder::fetch_version() {
   } else {
     throw std::runtime_error("Failed to fetch version of the server.");
   }
+}
+
+void Instance_cache_builder::fetch_explain_select_rows_index() {
+  m_cache.explain_rows_idx =
+      m_session->query("EXPLAIN SELECT 1")->field_names()->field_index("rows");
 }
 
 void Instance_cache_builder::fetch_server_metadata() {

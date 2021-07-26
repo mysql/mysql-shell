@@ -2919,6 +2919,20 @@ std::vector<shcore::Account> Schema_dumper::get_roles(
     return {};
   }
 
+  try {
+    // check if server supports roles
+    m_mysql->query("SELECT @@GLOBAL.activate_all_roles_on_login");
+  } catch (const mysqlshdk::db::Error &e) {
+    if (ER_UNKNOWN_SYSTEM_VARIABLE == e.code()) {
+      // roles are not supported
+      current_console()->print_warning("Failed to fetch role information.");
+      return {};
+    } else {
+      // report any other error
+      throw;
+    }
+  }
+
   return fetch_users("SELECT DISTINCT user, host FROM mysql.user",
                      "authentication_string='' AND account_locked='Y' AND "
                      "password_expired='Y'",

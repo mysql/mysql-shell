@@ -24,9 +24,9 @@
 #ifndef UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_SESSION_H_
 #define UNITTEST_MOCKS_MYSQLSHDK_LIBS_DB_MOCK_SESSION_H_
 
-#include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "mysqlshdk/libs/db/session.h"
@@ -62,7 +62,7 @@ class Mock_session_common {
   void then_return(const std::vector<Fake_result_data> &data);
   Fake_result &then(const std::vector<std::string> &names,
                     const std::vector<mysqlshdk::db::Type> &types = {});
-  void then_throw();
+  void then_throw(const char *what, int code, const char *sqlstate = nullptr);
 
   void set_query_handler(
       const std::function<std::shared_ptr<mysqlshdk::db::IResult>(
@@ -71,10 +71,11 @@ class Mock_session_common {
   }
 
  protected:
-  size_t _last_query;
-  std::vector<std::string> _queries;
-  std::map<std::string, std::shared_ptr<mysqlshdk::db::IResult>> _results;
-  std::vector<bool> _throws;
+  size_t m_last_query;
+  std::vector<std::string> m_queries;
+  std::unordered_map<std::string, std::shared_ptr<mysqlshdk::db::IResult>>
+      m_results;
+  std::vector<std::unique_ptr<mysqlshdk::db::Error>> m_throws;
 
   std::function<std::shared_ptr<mysqlshdk::db::IResult>(const std::string &)>
       m_query_handler;

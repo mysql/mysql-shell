@@ -213,6 +213,10 @@ void setup(const Setup_options &options, Mock_session *session) {
                          {"user", "host"},
                          {Type::String, Type::String},
                          active_roles}});
+    } else {
+      session->expect_query("SELECT @@GLOBAL.activate_all_roles_on_login")
+          .then_throw("Unknown system variable 'activate_all_roles_on_login'",
+                      ER_UNKNOWN_SYSTEM_VARIABLE, "HY000");
     }
 
     std::vector<std::vector<std::string>> grants;
@@ -462,6 +466,26 @@ TEST_F(User_privileges_test, validate_all_privileges) {
 
 TEST_F(User_privileges_test, get_user_roles) {
   // Test retrieval of user roles.
+
+  // Server does not support roles.
+  {
+    SCOPED_TRACE("Server does not support roles.");
+
+    Setup_options setup;
+
+    setup.user = "dba_user";
+    setup.host = "dba_host";
+    // 5.7 server, does not support roles
+    setup.is_8_0 = false;
+
+    setup.grants = {
+        "GRANT USAGE *.* TO u@h",
+    };
+
+    const auto up = setup_test(setup);
+
+    EXPECT_TRUE(up.get_user_roles().empty());
+  }
 
   // User with no roles.
   {

@@ -1032,7 +1032,7 @@ class Dumper::Table_worker final {
     info.rows_per_chunk =
         m_dumper->m_options.bytes_per_chunk() / average_row_length;
     info.accuracy = std::max(info.rows_per_chunk / 10, UINT64_C(10));
-    info.explain_rows_idx = m_dumper->m_cache.server_is_5_6 ? 8 : 9;
+    info.explain_rows_idx = m_dumper->m_cache.explain_rows_idx;
 
     info.partition = table.partition
                          ? " PARTITION (" + table.partition->quoted_name + ")"

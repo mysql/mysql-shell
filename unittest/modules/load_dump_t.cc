@@ -231,7 +231,9 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
       if (m_auto_generate_pk_value) {
         r.then({""}).add_row({*m_auto_generate_pk_value ? "1" : "0"});
       } else {
-        r.then_throw();
+        r.then_throw(
+            "Unknown system variable 'sql_generate_invisible_primary_key'",
+            ER_UNKNOWN_SYSTEM_VARIABLE, "HY000");
       }
     }
 
@@ -531,7 +533,9 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
 
   mock_main_session
       ->expect_query("SELECT @@SESSION.sql_generate_invisible_primary_key;")
-      .then_throw();
+      .then_throw(
+          "Unknown system variable 'sql_generate_invisible_primary_key'",
+          ER_UNKNOWN_SYSTEM_VARIABLE, "HY000");
 
   options.set_session(mock_main_session, "");
 

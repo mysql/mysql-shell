@@ -151,27 +151,23 @@ User_privileges::User_privileges(const mysqlshdk::mysql::IInstance &instance,
     return;
   }
 
-  // Use of roles is only supported starting from MySQL 8.0.0.
-  if (instance.get_version() >= Version(8, 0, 0)) {
-    // Read user roles.
-    try {
-      log_debug("Reading roles information for user %s", m_account.c_str());
-      read_user_roles(instance);
-    } catch (const mysqlshdk::db::Error &err) {
-      log_debug("Failed to read user roles: %s", err.format().c_str());
+  // Read user roles, if they are not supported, method will simply exit
+  try {
+    log_debug("Reading roles information for user %s", m_account.c_str());
+    read_user_roles(instance);
+  } catch (const mysqlshdk::db::Error &err) {
+    log_debug("Failed to read user roles: %s", err.format().c_str());
 
-      if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
-        const auto console = mysqlsh::current_console();
+    if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
+      const auto console = mysqlsh::current_console();
 
-        console->print_error("Unable to check privileges for user " +
-                             m_account +
-                             ". User requires SELECT privilege on mysql.* to "
-                             "obtain information about all roles.");
+      console->print_error("Unable to check privileges for user " + m_account +
+                           ". User requires SELECT privilege on mysql.* to "
+                           "obtain information about all roles.");
 
-        throw std::runtime_error{"Unable to get roles information."};
-      } else {
-        throw;
-      }
+      throw std::runtime_error{"Unable to get roles information."};
+    } else {
+      throw;
     }
   }
 
@@ -446,10 +442,18 @@ void User_privileges::read_user_roles(
   // Get value of system variable that indicates if all roles are active.
   bool all_roles_active = false;
 
-  {
+  try {
     const auto result =
         instance.query("SELECT @@GLOBAL.activate_all_roles_on_login");
-    all_roles_active = result->fetch_one()->get_int(0) == 1;
+    all_roles_active = result->fetch_one_or_throw()->get_int(0) == 1;
+  } catch (const mysqlshdk::db::Error &e) {
+    if (ER_UNKNOWN_SYSTEM_VARIABLE == e.code()) {
+      // roles are not supported
+      return;
+    } else {
+      // report any other error
+      throw;
+    }
   }
 
   std::string query;

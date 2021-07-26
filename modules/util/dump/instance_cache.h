@@ -132,6 +132,7 @@ struct Instance_cache {
   bool server_is_5_6 = false;
   bool server_is_5_7 = false;
   bool server_is_8_0 = false;
+  uint32_t explain_rows_idx = 0;
   std::string binlog_file;
   uint64_t binlog_position;
   std::string gtid_executed;
@@ -206,6 +207,8 @@ class Instance_cache_builder final {
   void fetch_metadata();
 
   void fetch_version();
+
+  void fetch_explain_select_rows_index();
 
   void fetch_server_metadata();
 

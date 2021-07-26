@@ -33,9 +33,9 @@ Mock_session::Mock_session() {
 }
 
 void Mock_session_common::do_expect_query(const std::string &query) {
-  _last_query = _queries.size();
-  _queries.push_back(query);
-  _throws.push_back(false);
+  m_last_query = m_queries.size();
+  m_queries.emplace_back(query);
+  m_throws.emplace_back();
 }
 
 std::string Mock_session::escape_string(const std::string &s) const {
@@ -56,12 +56,12 @@ std::string Mock_session::escape_string(const char *buffer, size_t len) const {
 
 void Mock_session_common::then_return(
     const std::vector<Fake_result_data> &data) {
-  if (_last_query < _queries.size()) {
+  if (m_last_query < m_queries.size()) {
     auto result = std::shared_ptr<Mock_result>(new Mock_result());
 
     result->set_data(data);
 
-    _results[_queries[_last_query++]] = result;
+    m_results[m_queries[m_last_query++]] = result;
   } else {
     throw std::logic_error("Attempted to set result with no query.");
   }
@@ -70,10 +70,10 @@ void Mock_session_common::then_return(
 Fake_result &Mock_session_common::then(
     const std::vector<std::string> &names,
     const std::vector<mysqlshdk::db::Type> &types) {
-  if (_last_query < _queries.size()) {
+  if (m_last_query < m_queries.size()) {
     auto result = std::shared_ptr<Mock_result>(new Mock_result());
 
-    _results[_queries[_last_query++]] = result;
+    m_results[m_queries[m_last_query++]] = result;
 
     if (types.empty()) {
       return result->add_result(
@@ -87,9 +87,11 @@ Fake_result &Mock_session_common::then(
   }
 }
 
-void Mock_session_common::then_throw() {
-  if (_last_query < _queries.size())
-    _throws[_last_query++] = true;
+void Mock_session_common::then_throw(const char *what, int code,
+                                     const char *sqlstate) {
+  if (m_last_query < m_queries.size())
+    m_throws[m_last_query++] =
+        std::make_unique<mysqlshdk::db::Error>(what, code, sqlstate);
   else
     throw std::logic_error("Attempted to set throw condition with no query.");
 }
@@ -103,22 +105,25 @@ std::shared_ptr<mysqlshdk::db::IResult> Mock_session_common::do_querys(
     if (res) return res;
   }
 
-  if (_queries.empty()) throw std::logic_error("Unexpected query: " + s);
+  if (m_queries.empty()) throw std::logic_error("Unexpected query: " + s);
 
   // Ensures the expected query got received
-  EXPECT_EQ(s, _queries[0]);
+  EXPECT_EQ(s, m_queries[0]);
 
   // Removes the query
-  _queries.erase(_queries.begin());
+  m_queries.erase(m_queries.begin());
+
+  // Removes the exception
+  const auto exception = std::move(m_throws[0]);
+  m_throws.erase(m_throws.begin());
 
   // Throws if that's the plan
-  if (_throws[0]) {
-    _throws.erase(_throws.begin());
-    throw std::runtime_error("Error executing session.query");
+  if (exception) {
+    throw *exception;
   }
 
   // Returns the assigned result if that's the plan
-  return _results[s];
+  return m_results[s];
 }
 
 }  // namespace testing
