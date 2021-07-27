@@ -48,13 +48,13 @@ session.run_sql("show table status in test")
 outdir = os.path.join(dumpdir, "bigrows2")
 util.dump_schemas(["test"], outdir, {"bytesPerChunk": "300K", "compression":"none"})
 # there are 10 rows with 200K per row each, we want 128K chunks, so we should get ~10 chunks ideally but fewer is ok (as long as not just 1)
-CHECK_OUTPUT_SANITY(outdir, min_chunk_size=256*1024, min_chunks=5)
+CHECK_OUTPUT_SANITY(outdir, min_chunk_size=200000, min_chunks=5)
 
 
 ## dump with chunks smaller than the rows
 outdir = os.path.join(dumpdir, "bigrows")
 util.dump_schemas(["test"], outdir, {"bytesPerChunk": "128K", "compression":"none"})
-CHECK_OUTPUT_SANITY(outdir, min_chunk_size=256*1024, min_chunks=5)
+CHECK_OUTPUT_SANITY(outdir, min_chunk_size=200000, min_chunks=10)
 
 #@<> a table with small avg rows, but a few very large ones
 session.run_sql("create schema test2")
@@ -80,6 +80,29 @@ CHECK_OUTPUT_SANITY(outdir, min_chunk_size=128, min_chunks=5)
 outdir = os.path.join(dumpdir, "mostsmall2")
 util.dump_schemas(["test2"], outdir, {"bytesPerChunk": "128K", "compression":"none"})
 CHECK_OUTPUT_SANITY(outdir, min_chunk_size=100, min_chunks=5)
+
+#@<> BUG#32955616 - setup
+dump_dir = os.path.join(dumpdir, "bug32955616")
+tested_schema = "test_schema"
+tested_table = "test_table"
+rows = 5
+row_length = 1500000
+
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (id INT AUTO_INCREMENT PRIMARY KEY, data LONGBLOB)", [ tested_schema, tested_table ])
+
+for i in range(rows):
+    session.run_sql(f"INSERT INTO !.! (data) VALUES ('{random_string(row_length)}')", [ tested_schema, tested_table ])
+
+session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+
+#@<> BUG#32955616 - test
+# table has rows much bigger than bytesPerChunk, dumper should create a chunk for each row
+util.dump_schemas([ tested_schema ], dump_dir, { "bytesPerChunk": "128K", "compression": "none" })
+CHECK_OUTPUT_SANITY(dump_dir, min_chunk_size = row_length, min_chunks = rows)
+
+#@<> BUG#32955616 - cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
 #@<> cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

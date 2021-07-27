@@ -773,8 +773,6 @@ class Dumper::Table_worker final {
   template <typename T, std::enable_if_t<std::is_integral<T>::value, int> = 0>
   std::size_t chunk_integer_column(const Chunking_info &info, const T min,
                                    const T max) {
-    static constexpr int k_chunker_step_accuracy = 1;
-
     std::size_t ranges_count = 0;
 
     // if rows_per_chunk <= 1 it may mean that the rows are bigger than chunk
@@ -783,12 +781,18 @@ class Dumper::Table_worker final {
         info.rows_per_chunk > 0
             ? std::max(info.row_count / info.rows_per_chunk, UINT64_C(1))
             : info.row_count;
-    const auto index_range = static_cast<uint64_t>(max - min);
+
+    // it should be (max - min + 1), but this can potentially overflow, check
+    // for overflow first
+    uint64_t index_range = max - min;
+
+    if (index_range < std::numeric_limits<uint64_t>::max()) {
+      ++index_range;
+    }
+
     const auto row_count_accuracy = std::max(info.row_count / 10, UINT64_C(10));
-    // it should be (max - min + 1), but this can potentially overflow and `+ 1`
-    // is not significant, as the result is divided anyway
     const auto estimated_step =
-        std::max(index_range / estimated_chunks, UINT64_C(2));
+        std::max(index_range / estimated_chunks, UINT64_C(1));
 
     std::string chunk_id;
     using step_t = decltype(min);
@@ -822,7 +826,9 @@ class Dumper::Table_worker final {
              info.table->task_name.c_str(),
              use_constant_step ? "constant" : "adaptive");
 
-    while (true) {
+    bool last_chunk = false;
+
+    while (!last_chunk) {
       if (m_dumper->m_worker_interrupt) {
         return ranges_count;
       }
@@ -831,29 +837,17 @@ class Dumper::Table_worker final {
       const auto begin = current;
 
       const auto new_step =
-          std::max(next_step(current, step), static_cast<step_t>(2));
+          std::max(next_step(current, step), static_cast<step_t>(1));
 
       // ensure that there's no integer overflow
       current = (current > max - new_step + 1 ? max : current + new_step - 1);
 
-      // step is always > 0, if max is > 0 => max - step will not overflow
-      // current is <= max, if max is < 0 => max - current will not overflow
-      if (max > 0 ? max - k_chunker_step_accuracy <= current
-                  : max - current <= k_chunker_step_accuracy) {
-        current = max;
-      }
-
       const auto end = current;
 
-      const auto last_chunk = (current >= max);
+      last_chunk = (current >= max);
 
       create_and_push_table_data_task(*info.table, between(info, begin, end),
                                       chunk_id, ranges_count++, last_chunk);
-
-      if (last_chunk) {
-        // exit here in case ++current overflows
-        break;
-      }
 
       ++current;
     }
