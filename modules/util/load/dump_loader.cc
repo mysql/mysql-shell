@@ -29,6 +29,7 @@
 #include <cinttypes>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -153,18 +154,55 @@ void add_invisible_pk(std::string *script, const std::string &key) {
       });
 }
 
+void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
+                       const std::string_view &stmt,
+                       const std::string &error_prefix) {
+  assert(!error_prefix.empty());
+
+  constexpr uint32_t k_max_retry_time = 5 * 60 * 1000;  // 5 minutes
+  uint32_t sleep_time = 200;  // start with 200 ms, double it with each sleep
+  uint32_t total_sleep_time = 0;
+
+  while (true) {
+    try {
+      session->executes(stmt.data(), stmt.length());
+      return;
+    } catch (const mysqlshdk::db::Error &e) {
+      log_info("Error executing SQL: %s:\n%.*s", e.format().c_str(),
+               static_cast<int>(stmt.length()), stmt.data());
+
+      if (ER_LOCK_DEADLOCK == e.code() && total_sleep_time < k_max_retry_time) {
+        current_console()->print_note(
+            error_prefix + ", will retry after delay: " + e.format());
+
+        if (total_sleep_time + sleep_time > k_max_retry_time) {
+          sleep_time = k_max_retry_time - total_sleep_time;
+        }
+
+        shcore::sleep_ms(sleep_time);
+
+        total_sleep_time += sleep_time;
+        sleep_time *= 2;
+      } else {
+        current_console()->print_error(shcore::str_format(
+            "%s: %s: %.*s", error_prefix.c_str(), e.format().c_str(),
+            static_cast<int>(stmt.length()), stmt.data()));
+        throw;
+      }
+    }
+  }
+}
+
 void execute_script(const std::shared_ptr<mysqlshdk::db::ISession> &session,
                     const std::string &script, const std::string &error_prefix,
                     const std::function<bool(const char *, size_t,
                                              std::string *)> &process_stmt) {
-  auto console = mysqlsh::current_console();
-
   std::stringstream stream(script);
-  size_t count = 0;
+
   mysqlshdk::utils::iterate_sql_stream(
       &stream, 1024 * 64,
-      [error_prefix, &session, &count, process_stmt](
-          const char *s, size_t len, const std::string &, size_t) {
+      [&error_prefix, &session, &process_stmt](const char *s, size_t len,
+                                               const std::string &, size_t) {
         std::string new_stmt;
 
         if (process_stmt && process_stmt(s, len, &new_stmt)) {
@@ -173,36 +211,12 @@ void execute_script(const std::shared_ptr<mysqlshdk::db::ISession> &session,
         }
 
         if (len > 0) {
-          int retries = 0;
-          for (;;) {
-            try {
-              session->executes(s, len);
-              break;
-            } catch (const mysqlshdk::db::Error &e) {
-              log_info("Error executing SQL: %s:\t\n%.*s", e.format().c_str(),
-                       static_cast<int>(len), s);
-
-              if (e.code() == ER_LOCK_DEADLOCK && retries < 20) {
-                current_console()->print_note(
-                    error_prefix + ", will retry after delay: " + e.format());
-                shcore::sleep_ms(200);
-                ++retries;
-                continue;
-              }
-
-              if (!error_prefix.empty())
-                current_console()->print_error(error_prefix + ": " +
-                                               e.format() + ": " +
-                                               std::string(s, len));
-
-              throw;
-            }
-          }
+          execute_statement(session, {s, len}, error_prefix);
         }
-        ++count;
+
         return true;
       },
-      [console](const std::string &err) { console->print_error(err); });
+      [](const std::string &err) { current_console()->print_error(err); });
 }
 
 class Index_file {
@@ -804,7 +818,7 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
   log_debug("worker%zu will recreate indexes for table `%s`.`%s`", id(),
             schema().c_str(), table().c_str());
 
-  auto console = current_console();
+  const auto console = current_console();
 
   if (!m_queries.empty())
     console->print_status(
@@ -821,23 +835,16 @@ bool Dump_loader::Worker::Index_recreation_task::execute(
         [loader]() { loader->m_num_threads_recreating_indexes--; });
 
     try {
-      for (size_t i = 0; i < m_queries.size(); i++) {
-        int retries = 0;
+      for (const auto &query : m_queries) {
         try {
-          session->execute(m_queries[i]);
+          execute_statement(
+              session, query,
+              "While recreating indexes for table `" + m_table + "`");
         } catch (const shcore::Error &e) {
           // Deadlocks and duplicate key errors should not happen but if they
           // do they can be ignored at least for a while
-          if (e.code() == ER_LOCK_DEADLOCK && retries < 20) {
-            console->print_note(
-                "Deadlock detected when recreating indexes for table `" +
-                m_table + "`, will retry after " + std::to_string(++retries) +
-                " seconds");
-            shcore::sleep_ms(retries * 1000);
-            --i;
-          } else if (e.code() == ER_DUP_KEYNAME) {
-            console->print_note("Index already existed for query: " +
-                                m_queries[i]);
+          if (e.code() == ER_DUP_KEYNAME) {
+            console->print_note("Index already existed for query: " + query);
           } else {
             throw;
           }
