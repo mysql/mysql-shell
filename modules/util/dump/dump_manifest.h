@@ -52,7 +52,7 @@ class Manifest_base {
       : m_mode(mode), m_file{std::move(file_handle)} {}
   virtual bool has_object(const std::string &name) const;
   bool is_complete() const { return m_complete; }
-  virtual File_info get_object(const std::string &name);
+  virtual const File_info &get_object(const std::string &name);
   std::vector<File_info> list_objects();
   virtual const std::string &get_base_name() const = 0;
   Manifest_mode get_mode() const { return m_mode; }
@@ -104,7 +104,7 @@ class Manifest_reader final : public Manifest_base {
     return m_meta.object_prefix;
   }
 
-  File_info get_object(const std::string &name) override;
+  const File_info &get_object(const std::string &name) override;
   void unserialize(const std::string &data);
   const std::string &get_object_prefix() const { return m_meta.object_prefix; }
   const std::string &url() const { return m_meta.full_url; }
@@ -164,7 +164,8 @@ class Dump_manifest : public mysqlshdk::storage::backend::oci::Directory {
 
   bool has_object(const std::string &name) const;
 
-  File_info get_object(const std::string &name, bool fetch_size = false) const;
+  const File_info &get_object(const std::string &name,
+                              bool fetch_size = false) const;
 
  private:
   friend class Dump_manifest_object;
@@ -188,7 +189,7 @@ class Dump_manifest_object : public mysqlshdk::storage::backend::oci::Object {
 
   ~Dump_manifest_object() override = default;
 
-  std::string full_path() const override;
+  mysqlshdk::Masked_string full_path() const override;
 
   /**
    * Opens the object for data operations:

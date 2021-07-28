@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -115,7 +115,7 @@ void File::open(Mode m) {
 #endif  // !_WIN32
 
   if (!is_open()) {
-    throw std::runtime_error("Cannot open file '" + full_path() +
+    throw std::runtime_error("Cannot open file '" + full_path().masked() +
                              "': " + shcore::errno_to_string(errno));
   }
 
@@ -131,7 +131,7 @@ void File::open(Mode m) {
 
     if (ret) {
       throw std::runtime_error("Unable to set permissions on file '" +
-                               full_path() +
+                               full_path().masked() +
                                "': " + shcore::errno_to_string(errno));
     }
   }
@@ -164,7 +164,8 @@ void File::do_close() {
 
           fclose(m_file);
           m_file = nullptr;
-          throw std::runtime_error("Error truncating file '" + full_path() +
+          throw std::runtime_error("Error truncating file '" +
+                                   full_path().masked() +
                                    "': " + shcore::errno_to_string(e));
         }
       }
@@ -189,7 +190,7 @@ size_t File::file_size() const {
   return shcore::file_size(m_filepath);
 }
 
-std::string File::full_path() const { return m_filepath; }
+Masked_string File::full_path() const { return m_filepath; }
 
 off64_t File::seek(off64_t offset) {
   assert(is_open());
@@ -241,7 +242,8 @@ bool File::flush() {
     msync(m_mmap_ptr, m_mmap_used, MS_ASYNC);
     if (m_file) {
       if (ftruncate(fileno(m_file), m_mmap_used) < 0) {
-        throw std::runtime_error("Error truncating file '" + full_path() +
+        throw std::runtime_error("Error truncating file '" +
+                                 full_path().masked() +
                                  "': " + shcore::errno_to_string(errno));
       }
     }
@@ -251,10 +253,10 @@ bool File::flush() {
   return fflush(m_file);
 }
 
-bool File::exists() const { return shcore::is_file(full_path()); }
+bool File::exists() const { return shcore::is_file(full_path().real()); }
 
 std::unique_ptr<IDirectory> File::parent() const {
-  return make_directory(shcore::path::dirname(full_path()));
+  return make_directory(shcore::path::dirname(full_path().real()));
 }
 
 void File::rename(const std::string &new_name) {
@@ -265,11 +267,11 @@ void File::rename(const std::string &new_name) {
     throw std::logic_error("Move operation is not supported.");
   }
 
-  auto new_path =
-      shcore::path::join_path(shcore::path::dirname(full_path()), new_name);
+  auto new_path = shcore::path::join_path(
+      shcore::path::dirname(full_path().real()), new_name);
 
   if (exists()) {
-    shcore::rename_file(full_path(), new_path);
+    shcore::rename_file(full_path().real(), new_path);
   }
 
   m_filepath = std::move(new_path);
@@ -278,7 +280,7 @@ void File::rename(const std::string &new_name) {
 void File::remove() { shcore::delete_file(m_filepath); }
 
 std::string File::filename() const {
-  return shcore::path::basename(full_path());
+  return shcore::path::basename(full_path().real());
 }
 
 char *File::mmap_will_write(size_t length, size_t *out_avail) {
@@ -293,12 +295,13 @@ char *File::mmap_will_write(size_t length, size_t *out_avail) {
   if (!m_mmap_ptr || m_mmap_offset + length > m_mmap_available) {
     if (m_mmap_ptr) {
       if (m_mmap_used > 0 && msync(m_mmap_ptr, m_mmap_used, MS_ASYNC) < 0) {
-        throw std::runtime_error("Could not sync mmapped file '" + full_path() +
+        throw std::runtime_error("Could not sync mmapped file '" +
+                                 full_path().masked() +
                                  "': " + shcore::errno_to_string(errno));
       }
       if (munmap(m_mmap_ptr, m_mmap_available) < 0) {
         throw std::runtime_error("Could not unmap mmapped file '" +
-                                 full_path() +
+                                 full_path().masked() +
                                  "': " + shcore::errno_to_string(errno));
       }
       m_mmap_ptr = nullptr;
@@ -316,7 +319,7 @@ char *File::mmap_will_write(size_t length, size_t *out_avail) {
     if (::ftruncate(fd, m_mmap_available - 1) < 0) {
       if (m_use_mmap == Mmap_preference::REQUIRED) {
         throw std::runtime_error("Could not extend mmapped file '" +
-                                 full_path() +
+                                 full_path().masked() +
                                  "': " + shcore::errno_to_string(errno));
       } else {
         m_mmap_available = 0;
@@ -337,7 +340,8 @@ char *File::mmap_will_write(size_t length, size_t *out_avail) {
       m_mmap_ptr = nullptr;
 
       if (m_use_mmap == Mmap_preference::REQUIRED)
-        throw std::runtime_error("Could not mmap file '" + full_path() +
+        throw std::runtime_error("Could not mmap file '" +
+                                 full_path().masked() +
                                  "': " + shcore::errno_to_string(errno));
       return nullptr;
     }

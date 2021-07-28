@@ -38,7 +38,6 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
-using Rest_service = mysqlshdk::rest::Rest_service;
 using Response = mysqlshdk::rest::Response;
 using BIO_ptr = std::unique_ptr<BIO, decltype(&::BIO_free)>;
 
@@ -279,7 +278,7 @@ void Object::open(mysqlshdk::storage::Mode mode) {
         try {
           // Verifies if the file exists, if not, an error will be thrown by
           // head_object
-          m_bucket->head_object(full_path());
+          m_bucket->head_object(full_path().real());
 
           throw std::invalid_argument(
               "OCI Object Storage only supports APPEND mode for in-progress "
@@ -314,7 +313,7 @@ size_t Object::file_size() const {
   if (!m_open_mode.is_null() && *m_open_mode != Mode::READ) {
     return m_writer->size();
   } else {
-    return m_bucket->head_object(full_path());
+    return m_bucket->head_object(full_path().real());
   }
 }
 
@@ -338,7 +337,7 @@ std::unique_ptr<IDirectory> Object::parent() const {
   // No parent allowed in objects with PAR
   assert(m_par.empty());
 
-  const auto path = full_path();
+  const auto path = full_path().real();
   const auto pos = path.find_last_of('/');
 
   // if the full path does not contain a backslash then the parent directory
@@ -396,7 +395,7 @@ void Object::rename(const std::string &new_name) {
   m_name = new_name;
 }
 
-void Object::remove() { m_bucket->delete_object(full_path()); }
+void Object::remove() { m_bucket->delete_object(full_path().real()); }
 
 Object::Writer::Writer(Object *owner, Multipart_object *object)
     : File_handler(owner), m_is_multipart(false) {
@@ -430,8 +429,8 @@ ssize_t Object::Writer::write(const void *buffer, size_t length) {
   // Initializes the multipart as soon as FILE_PART_SIZE data is provided
   if (!m_is_multipart && to_send > MY_MAX_PART_SIZE) {
     try {
-      m_multipart =
-          m_object->m_bucket->create_multipart_upload(m_object->full_path());
+      m_multipart = m_object->m_bucket->create_multipart_upload(
+          m_object->full_path().real());
     } catch (const Response_error &error) {
       throw shcore::Exception::runtime_error(error.format());
     }
@@ -551,8 +550,8 @@ void Object::Writer::close() {
   } else {
     // NO UPLOAD STARTED: Sends whatever buffered data in a single PUT
     try {
-      m_object->m_bucket->put_object(m_object->full_path(), m_buffer.data(),
-                                     m_buffer.size());
+      m_object->m_bucket->put_object(m_object->full_path().real(),
+                                     m_buffer.data(), m_buffer.size());
     } catch (const Response_error &error) {
       throw shcore::Exception::runtime_error(error.format());
     } catch (const mysqlshdk::rest::Connection_error &error) {
@@ -563,13 +562,13 @@ void Object::Writer::close() {
 
 Object::Reader::Reader(Object *owner) : File_handler(owner), m_offset(0) {
   try {
-    m_size = m_object->m_bucket->head_object(m_object->full_path());
+    m_size = m_object->m_bucket->head_object(m_object->full_path().real());
   } catch (const Response_error &error) {
     if (error.code() == Response::Status_code::NOT_FOUND) {
       // For Not Found generates a custom message as the one for the get()
       // doesn't make much sense
       throw shcore::Exception::runtime_error(
-          "Failed opening object '" + m_object->full_path() +
+          "Failed opening object '" + m_object->full_path().masked() +
           "' in READ mode: " + Response_error(error.code()).format());
     } else {
       throw shcore::Exception::runtime_error(error.format());
@@ -604,8 +603,8 @@ ssize_t Object::Reader::read(void *buffer, size_t length) {
 
   size_t read = 0;
   try {
-    read = m_object->m_bucket->get_object(m_object->full_path(), &rbuffer,
-                                          first, last);
+    read = m_object->m_bucket->get_object(m_object->full_path().real(),
+                                          &rbuffer, first, last);
   } catch (const Response_error &error) {
     throw shcore::Exception::runtime_error(error.format());
   }

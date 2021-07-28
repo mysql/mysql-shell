@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include "mysqlshdk/libs/utils/masked_value.h"
 
 #include "mysqlshdk/libs/storage/ifile.h"
 
@@ -59,7 +61,7 @@ class IDirectory {
 
   virtual void close() = 0;
 
-  virtual std::string full_path() const = 0;
+  virtual Masked_string full_path() const = 0;
 
   /**
    * Lists all files in this directory.

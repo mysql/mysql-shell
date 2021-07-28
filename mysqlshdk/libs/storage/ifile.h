@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,8 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+
+#include "mysqlshdk/libs/utils/masked_value.h"
 
 #if defined(_WIN32)
 using off64_t = __int64;
@@ -68,7 +70,7 @@ class IFile {
   virtual void close() = 0;
 
   virtual size_t file_size() const = 0;
-  virtual std::string full_path() const = 0;
+  virtual Masked_string full_path() const = 0;
   virtual std::string filename() const = 0;
   virtual bool exists() const = 0;
   virtual std::unique_ptr<IDirectory> parent() const = 0;

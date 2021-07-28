@@ -27,6 +27,7 @@
 #include "mysqlshdk/libs/rest/response.h"
 #include "mysqlshdk/libs/rest/rest_service.h"
 #include "mysqlshdk/libs/rest/retry_strategy.h"
+#include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -41,15 +42,75 @@ namespace mysqlshdk {
 namespace storage {
 namespace backend {
 
-Http_get::Http_get(const std::string &uri, bool use_retry, bool verify_ssl)
-    : m_uri(uri), m_use_retry(use_retry) {
-  m_rest = std::make_unique<Rest_service>(m_uri, verify_ssl);
+namespace {
 
-  // Timeout conditions:
-  // - 30 seconds for HEAD and DELETE requests
-  // - The rest will timeout if less than 1K is received in 60 seconds
-  m_rest->set_timeout(30000, 1024, 60);
+Rest_service *get_rest_service(const Masked_string &base) {
+  static thread_local std::unordered_map<std::string,
+                                         std::unique_ptr<Rest_service>>
+      services;
+
+  auto &service = services[base.real()];
+
+  if (!service) {
+    service = std::make_unique<mysqlshdk::rest::Rest_service>(base, true);
+
+    // Timeout conditions:
+    // - 30 seconds for HEAD and DELETE requests
+    // - The rest will timeout if less than 1K is received in 60 seconds
+    service->set_timeout(30000, 1024, 60);
+  }
+
+  return service.get();
 }
+
+std::size_t span_uri_base(const std::string &uri) {
+  if (uri.empty()) {
+    throw std::logic_error("URI is empty");
+  }
+
+  const auto uri_no_scheme = mysqlshdk::storage::utils::strip_scheme(uri);
+
+  if (uri.length() == uri_no_scheme.length()) {
+    throw std::logic_error("URI does not have a scheme");
+  }
+
+  const auto pos = uri_no_scheme.rfind('/');
+
+  if (std::string::npos == pos) {
+    return uri.size();
+  } else {
+    return uri.size() - uri_no_scheme.size() + pos;
+  }
+}
+
+std::string get_uri_base(const std::string &uri) {
+  auto base = uri.substr(0, span_uri_base(uri));
+
+  if ('/' != base.back()) {
+    base += '/';
+  }
+
+  return base;
+}
+
+std::string get_uri_path(const std::string &uri) {
+  const auto pos = span_uri_base(uri);
+
+  if (pos >= uri.length()) {
+    return {};
+  } else {
+    return uri.substr(pos + 1);
+  }
+}
+
+}  // namespace
+
+Http_get::Http_get(const std::string &full_path, bool use_retry)
+    : Http_get(get_uri_base(full_path), get_uri_path(full_path), use_retry) {}
+
+Http_get::Http_get(const Masked_string &base, const std::string &path,
+                   bool use_retry)
+    : m_base(base), m_path(path), m_use_retry(use_retry) {}
 
 void Http_get::open(Mode m) {
   if (Mode::READ != m) {
@@ -65,7 +126,7 @@ void Http_get::open(Mode m) {
 bool Http_get::is_open() const { return m_open; }
 
 std::string Http_get::filename() const {
-  std::string fname(m_uri);
+  std::string fname = full_path().real();
   {
     auto p = fname.find("#");
     if (p != std::string::npos) {
@@ -90,8 +151,8 @@ std::string Http_get::filename() const {
 bool Http_get::exists() const {
   if (!m_exists.has_value()) {
     auto retry_strategy = mysqlshdk::rest::default_retry_strategy();
-    auto response = m_rest->head(std::string{}, {},
-                                 m_use_retry ? &retry_strategy : nullptr);
+    auto response = get_rest_service(m_base)->head(
+        m_path, {}, m_use_retry ? &retry_strategy : nullptr);
 
     response.check_and_throw();
 
@@ -108,7 +169,7 @@ bool Http_get::exists() const {
 }
 
 std::unique_ptr<IDirectory> Http_get::parent() const {
-  return make_directory(shcore::path::dirname(m_uri) + "/");
+  return make_directory(m_base.real());
 }
 
 void Http_get::close() { m_open = false; }
@@ -120,7 +181,9 @@ size_t Http_get::file_size() const {
   return m_file_size;
 }
 
-std::string Http_get::full_path() const { return m_uri; }
+Masked_string Http_get::full_path() const {
+  return {m_base.real() + m_path, m_base.masked() + m_path};
+}
 
 off64_t Http_get::seek(off64_t offset) {
   assert(is_open());
@@ -146,8 +209,8 @@ ssize_t Http_get::read(void *buffer, size_t length) {
   Headers h{{"range", range}};
 
   auto retry_strategy = mysqlshdk::rest::default_retry_strategy();
-  auto response =
-      m_rest->get(std::string{}, h, m_use_retry ? &retry_strategy : nullptr);
+  auto response = get_rest_service(m_base)->get(
+      m_path, h, m_use_retry ? &retry_strategy : nullptr);
   if (Response::Status_code::PARTIAL_CONTENT == response.status) {
     const auto &content = response.body;
     if (length < content.size()) {
@@ -166,24 +229,15 @@ ssize_t Http_get::read(void *buffer, size_t length) {
   return 0;
 }
 
-Http_directory::Http_directory(const std::string &url, bool use_retry,
-                               bool verify_ssl)
+Http_directory::Http_directory(const std::string &url, bool use_retry)
     : Http_directory(use_retry) {
-  init_rest(url, verify_ssl);
+  init_rest(url);
 }
 
-void Http_directory::init_rest(const std::string &url, bool verify_ssl) {
-  m_url = url;
-  m_rest = std::make_unique<Rest_service>(m_url, verify_ssl);
-
-  // Timeout conditions:
-  // - 30 seconds for HEAD and DELETE requests
-  // - The rest will timeout if less than 1K is received in 60 seconds
-  m_rest->set_timeout(30000, 1024, 60);
-}
+void Http_directory::init_rest(const Masked_string &url) { m_url = url; }
 
 bool Http_directory::exists() const {
-  return m_open_status_code == Response::Status_code::OK;
+  throw std::logic_error("Http_directory::exists() - not implemented");
 }
 
 void Http_directory::create() {
@@ -194,27 +248,36 @@ void Http_directory::close() {
   // NO-OP
 }
 
-std::string Http_directory::full_path() const { return m_url; }
+Masked_string Http_directory::full_path() const { return m_url; }
 
 std::vector<IDirectory::File_info> Http_directory::get_file_list(
     const std::string &context, const std::string &pattern) const {
-  // This may throw but we just let it bubble up
-  auto retry_strategy = mysqlshdk::rest::default_retry_strategy();
-  mysqlshdk::rest::Response response =
-      m_rest->get(get_list_url(), {}, m_use_retry ? &retry_strategy : nullptr);
+  std::vector<IDirectory::File_info> file_info;
+  const auto rest = get_rest_service(m_url);
 
-  response.check_and_throw();
+  do {
+    // This may throw but we just let it bubble up
+    auto retry_strategy = mysqlshdk::rest::default_retry_strategy();
+    mysqlshdk::rest::Response response =
+        rest->get(get_list_url(), {}, m_use_retry ? &retry_strategy : nullptr);
 
-  try {
-    return parse_file_list(response.body, pattern);
-  } catch (const shcore::Exception &error) {
-    std::string msg = "Error " + context;
-    msg.append(": ").append(error.what());
+    response.check_and_throw();
 
-    log_debug2("%s\n%s", msg.c_str(), response.body.c_str());
+    try {
+      auto list = parse_file_list(response.body, pattern);
+      file_info.reserve(list.size() + file_info.size());
+      std::move(list.begin(), list.end(), std::back_inserter(file_info));
+    } catch (const shcore::Exception &error) {
+      std::string msg = "Error " + context;
+      msg.append(": ").append(error.what());
 
-    throw shcore::Exception::runtime_error(msg);
-  }
+      log_debug2("%s\n%s", msg.c_str(), response.body.c_str());
+
+      throw shcore::Exception::runtime_error(msg);
+    }
+  } while (!is_list_files_complete());
+
+  return file_info;
 }
 
 std::vector<IDirectory::File_info> Http_directory::list_files(
@@ -229,7 +292,7 @@ std::vector<IDirectory::File_info> Http_directory::filter_files(
 
 std::unique_ptr<IFile> Http_directory::file(
     const std::string &name, const File_options & /*options*/) const {
-  return std::make_unique<Http_get>(full_path() + name);
+  return std::make_unique<Http_get>(full_path(), name);
 }
 
 bool Http_directory::is_local() const { return false; }

@@ -142,6 +142,13 @@ EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed 
 # ensure data was loaded
 EXPECT_STDOUT_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warnings: 0")
 
+#@<> Bug #31188854: USING THE OCIPROFILE OPTION IN A DUMP MAKE THE DUMP TO ALWAYS FAIL
+# This error now confirms the reported issue is fixed
+dump_dir = "mydump-31188854"
+EXPECT_THROWS(lambda: util.dump_instance(dump_dir, {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), "Failed to get object list")
+EXPECT_THROWS(lambda: util.dump_schemas(["world"], dump_dir, {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), "Failed to get object list")
+EXPECT_THROWS(lambda: util.dump_tables("sakila", ["actor"], dump_dir, {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), "Failed to get object list")
+
 #@<> Cleanup
 testutil.rmfile("progress.txt")
 testutil.destroy_sandbox(__mysql_sandbox_port1)

@@ -77,10 +77,13 @@ bool Manifest_base::has_object(const std::string &name) const {
   return m_objects.find(name) != m_objects.end();
 }
 
-IDirectory::File_info Manifest_base::get_object(const std::string &name) {
+const IDirectory::File_info &Manifest_base::get_object(
+    const std::string &name) {
   std::lock_guard<std::mutex> lock(m_mutex);
-  if (m_objects.find(name) != m_objects.end()) {
-    return m_objects.at(name);
+  const auto object = m_objects.find(name);
+
+  if (object != m_objects.end()) {
+    return object->second;
   } else {
     throw std::logic_error(
         shcore::str_format("Unknown object in manifest: %s", name.c_str()));
@@ -229,7 +232,8 @@ void Manifest_writer::finalize() {
   }
 }
 
-IDirectory::File_info Manifest_reader::get_object(const std::string &name) {
+const IDirectory::File_info &Manifest_reader::get_object(
+    const std::string &name) {
   if (!has_object(name) && !is_complete()) {
     reload();
   }
@@ -384,8 +388,8 @@ std::unique_ptr<mysqlshdk::storage::IFile> Dump_manifest::file(
       m_manifest, m_bucket->get_options(), object_name, prefix);
 }
 
-IDirectory::File_info Dump_manifest::get_object(const std::string &name,
-                                                bool fetch_size) const {
+const IDirectory::File_info &Dump_manifest::get_object(const std::string &name,
+                                                       bool fetch_size) const {
   auto created_object = m_created_objects.find(name);
 
   if (created_object != m_created_objects.end()) {
@@ -470,11 +474,14 @@ Dump_manifest_object::Dump_manifest_object(
     const std::string &prefix)
     : Object(options, name, prefix), m_manifest(manifest) {}
 
-std::string Dump_manifest_object::full_path() const {
+mysqlshdk::Masked_string Dump_manifest_object::full_path() const {
+  auto full_path = Object::full_path();
+
   if (m_manifest->get_mode() == Manifest_mode::READ) {
-    return manifest_reader(m_manifest)->get_object(Object::full_path()).name;
+    return mysqlshdk::oci::anonymize_par(
+        manifest_reader(m_manifest)->get_object(full_path.real()).name);
   } else {
-    return Object::full_path();
+    return full_path;
   }
 }
 
@@ -491,7 +498,9 @@ void Dump_manifest_object::open(mysqlshdk::storage::Mode mode) {
 
 size_t Dump_manifest_object::file_size() const {
   if (m_manifest->get_mode() == Manifest_mode::READ) {
-    return manifest_reader(m_manifest)->get_object(Object::full_path()).size;
+    return manifest_reader(m_manifest)
+        ->get_object(Object::full_path().real())
+        .size;
   } else {
     return Object::file_size();
   }
@@ -519,10 +528,10 @@ void Dump_manifest_object::close() {
         this->remove();
       } catch (const mysqlshdk::oci::Response_error &error) {
         log_error("Failed removing object '%s' after PAR creation failed: %s",
-                  Object::full_path().c_str(), error.what());
+                  Object::full_path().masked().c_str(), error.what());
       } catch (const mysqlshdk::rest::Connection_error &error) {
         log_error("Failed removing object '%s' after PAR creation failed: %s",
-                  Object::full_path().c_str(), error.what());
+                  Object::full_path().masked().c_str(), error.what());
       }
     }
   }
@@ -583,7 +592,8 @@ void Dump_manifest_object::create_par(
 }
 
 std::string Dump_manifest_object::object_name() const {
-  auto name = Object::full_path();
+  auto name = Object::full_path().real();
+
   if (shcore::str_endswith(name, k_dumping_suffix)) {
     name = shcore::str_replace(name, k_dumping_suffix, "");
   }

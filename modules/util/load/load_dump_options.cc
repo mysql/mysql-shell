@@ -336,7 +336,17 @@ void Load_dump_options::validate() {
     if (m_par_type == Par_type::MANIFEST) {
       m_oci_options.set_par(m_url);
     }
+  } else if (m_par_type == Par_type::GENERAL) {
+    current_console()->print_warning(
+        "The given URL is not a prefix PAR or a PAR to the @.manifest.json "
+        "file.");
+  }
+
+  if (Par_type::NONE != m_par_type) {
+    // always get the data, we will display it to the user, this will help to
+    // figure out what's wrong in case of an error
     m_prefix = url_par_data.object_prefix;
+    m_par_object = url_par_data.get_object_path();
   }
 
   m_oci_options.check_option_values();
@@ -380,13 +390,16 @@ std::string Load_dump_options::target_import_info() const {
 
   using mysqlshdk::storage::backend::oci::Par_type;
   std::string where;
-  if (m_oci_options) {
-    if (m_par_type == Par_type::MANIFEST || m_par_type == Par_type::PREFIX) {
-      where = "OCI PAR=" + m_url + ", prefix='" + m_prefix + "'";
-    } else {
-      where = "OCI ObjectStorage bucket=" + *m_oci_options.os_bucket_name +
-              ", prefix='" + m_url + "'";
-    }
+
+  // Par_type::GENERAL is not a valid type for loader, but we check it here to
+  // potentially hide the secret information
+  if (m_par_type == Par_type::MANIFEST || m_par_type == Par_type::PREFIX ||
+      m_par_type == Par_type::GENERAL) {
+    where = "OCI PAR=" + mysqlshdk::oci::anonymize_par(m_par_object).masked() +
+            ", prefix='" + m_prefix + "'";
+  } else if (m_oci_options) {
+    where = "OCI ObjectStorage bucket=" + *m_oci_options.os_bucket_name +
+            ", prefix='" + m_url + "'";
   } else {
     where = "'" + m_url + "'";
   }

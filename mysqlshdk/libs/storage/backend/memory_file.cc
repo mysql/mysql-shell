@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,7 +58,7 @@ void Memory_file::close() { m_open_mode.reset(); }
 
 size_t Memory_file::file_size() const { return m_content.size(); }
 
-std::string Memory_file::full_path() const {
+Masked_string Memory_file::full_path() const {
 #ifdef _WIN32
   return "NUL";
 #else

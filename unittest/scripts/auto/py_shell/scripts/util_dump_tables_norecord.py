@@ -439,7 +439,7 @@ EXPECT_SUCCESS(types_schema, types_schema_tables, "file://" + test_output_absolu
 
 #@<> WL13804-TSFR_10_1_5
 EXPECT_FAIL("ValueError", "Directory handling for http protocol is not supported.", types_schema, types_schema_tables, "http://example.com", { "showProgress": False })
-EXPECT_FAIL("ValueError", "Directory handling for HTTPS protocol is not supported.", types_schema, types_schema_tables, "HTTPS://www.example.com", { "showProgress": False })
+EXPECT_FAIL("ValueError", "Invalid PAR, expected: https://objectstorage.<region>.oraclecloud.com/p/<secret>/n/<namespace>/b/<bucket>/o/[<prefix>/][@.manifest.json]", types_schema, types_schema_tables, "HTTPS://www.example.com", { "showProgress": False })
 
 #@<> WL13804: WL13807-FR1.1.2 - If the dump is going to be stored on the local filesystem and the `outputUrl` parameter holds a relative path, its absolute value is computed as relative to the current working directory.
 EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_relative, { "ddlOnly": True, "showProgress": False })
@@ -1551,10 +1551,6 @@ EXPECT_SUCCESS(types_schema, types_schema_tables, test_output_absolute, { "consi
 #@<> reconnect to the user with full privilages, restore test user account
 setup_session()
 create_user()
-
-#@<> Bug #31188854: USING THE OCIPROFILE OPTION IN A DUMP MAKE THE DUMP TO ALWAYS FAIL {has_oci_environment('OS')}
-# This error now confirms the reported issue is fixed
-EXPECT_FAIL("RuntimeError", "Failed to get object list", types_schema, types_schema_tables, '', {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"})
 
 #@<> An error should occur when dumping using oci+os://
 EXPECT_FAIL("ValueError", "Directory handling for oci+os protocol is not supported.", types_schema, types_schema_tables, 'oci+os://sakila')

@@ -40,8 +40,9 @@ namespace backend {
 class Http_get : public IFile {
  public:
   Http_get() = delete;
-  explicit Http_get(const std::string &uri, bool use_retry = false,
-                    bool verify_ssl = true);
+  explicit Http_get(const std::string &full_path, bool use_retry = false);
+  Http_get(const Masked_string &base, const std::string &path,
+           bool use_retry = false);
   Http_get(const Http_get &other) = delete;
   Http_get(Http_get &&other) = default;
 
@@ -58,7 +59,7 @@ class Http_get : public IFile {
   void close() override;
 
   size_t file_size() const override;
-  std::string full_path() const override;
+  Masked_string full_path() const override;
 
   std::string filename() const override;
 
@@ -89,9 +90,13 @@ class Http_get : public IFile {
   }
 
  private:
-  std::unique_ptr<mysqlshdk::rest::Rest_service> m_rest;
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Http_get_test, full_path_constructor);
+#endif  // FRIEND_TEST
+
   off64_t m_offset = 0;
-  std::string m_uri;
+  Masked_string m_base;
+  std::string m_path;
   mutable std::optional<bool> m_exists;
   mutable size_t m_file_size = 0;
   bool m_open = false;
@@ -100,8 +105,7 @@ class Http_get : public IFile {
 
 class Http_directory : public IDirectory {
  public:
-  explicit Http_directory(const std::string &url, bool use_retry = false,
-                          bool verify_ssl = true);
+  explicit Http_directory(const std::string &url, bool use_retry = false);
 
   Http_directory(const Http_directory &other) = delete;
   Http_directory(Http_directory &&other) = default;
@@ -117,7 +121,7 @@ class Http_directory : public IDirectory {
 
   void close() override;
 
-  std::string full_path() const override;
+  Masked_string full_path() const override;
 
   std::vector<IDirectory::File_info> list_files(
       bool hidden_files = false) const override;
@@ -135,7 +139,7 @@ class Http_directory : public IDirectory {
 
  protected:
   explicit Http_directory(bool use_retry = false) : m_use_retry(use_retry) {}
-  void init_rest(const std::string &url, bool verify_ssl);
+  void init_rest(const Masked_string &url);
 
   /**
    * Returns the URL to be used to pull the file list.
@@ -150,13 +154,13 @@ class Http_directory : public IDirectory {
   virtual std::vector<IDirectory::File_info> parse_file_list(
       const std::string &data, const std::string &pattern = "") const = 0;
 
+  virtual bool is_list_files_complete() const = 0;
+
  protected:
   std::vector<IDirectory::File_info> get_file_list(
       const std::string &context, const std::string &pattern = "") const;
 
-  std::string m_url;
-  std::unique_ptr<mysqlshdk::rest::Rest_service> m_rest;
-  mysqlshdk::rest::Response::Status_code m_open_status_code;
+  Masked_string m_url;
   bool m_use_retry = false;
 };
 

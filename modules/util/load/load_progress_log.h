@@ -127,7 +127,8 @@ class Load_progress_log final {
             "\n");
       } catch (const std::exception &e) {
         throw std::runtime_error("Error loading load progress file '" +
-                                 existing_file->full_path() + "': " + e.what());
+                                 existing_file->full_path().masked() +
+                                 "': " + e.what());
       }
     }
 

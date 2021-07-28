@@ -63,7 +63,7 @@ class Rest_service {
    * @param service_label Label to be used when logging requests for this
    *        service.
    */
-  explicit Rest_service(const std::string &base_url, bool verify_ssl = true,
+  explicit Rest_service(const Masked_string &base_url, bool verify_ssl = true,
                         const std::string &service_label = "");
 
   Rest_service(const Rest_service &) = delete;

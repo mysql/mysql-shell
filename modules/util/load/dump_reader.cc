@@ -1110,7 +1110,7 @@ void Dump_reader::Dump_info::rescan(
 void Dump_reader::Dump_info::parse_done_metadata(
     mysqlshdk::storage::IDirectory *dir) {
   shcore::Dictionary_t metadata = fetch_metadata(dir, "@.done.json");
-  log_info("Dump %s is complete", dir->full_path().c_str());
+  log_info("Dump %s is complete", dir->full_path().masked().c_str());
 
   if (metadata) {
     if (metadata->has_key("dataBytes")) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,7 +51,7 @@ class Dummy_dump_file : public mysqlshdk::storage::IFile {
 
   size_t file_size() const override { return m_size; }
 
-  std::string full_path() const override { return m_name; }
+  mysqlshdk::Masked_string full_path() const override { return m_name; }
 
   std::string filename() const override { return m_name; }
 
@@ -105,7 +105,7 @@ class Dummy_dump_directory : public mysqlshdk::storage::IDirectory {
 
   void close() override {}
 
-  std::string full_path() const override { return m_dumpdir; }
+  mysqlshdk::Masked_string full_path() const override { return m_dumpdir; }
 
   std::vector<File_info> list_files(bool) const override { return m_file_list; }
 

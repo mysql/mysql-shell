@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -21,54 +21,41 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_PAR_DIRECTORY_H_
-#define MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_PAR_DIRECTORY_H_
-
-#include <string>
-#include <vector>
+#include "unittest/gprod_clean.h"
+#include "unittest/gtest_clean.h"
+#include "unittest/test_utils/shell_test_env.h"
 
 #include "mysqlshdk/libs/storage/backend/http.h"
-#include "mysqlshdk/libs/storage/backend/oci_object_storage.h"
-#include "mysqlshdk/libs/storage/backend/oci_par_directory.h"
 
 namespace mysqlshdk {
 namespace storage {
 namespace backend {
-namespace oci {
 
-class Oci_par_directory : public Http_directory {
- public:
-  explicit Oci_par_directory(const std::string &url);
-  explicit Oci_par_directory(const Par_structure &par);
+TEST(Http_get_test, full_path_constructor) {
+  const auto EXPECT_BASE_AND_PATH = [](const std::string &base,
+                                       const std::string &path) {
+    SCOPED_TRACE("base: '" + base + "', path: '" + path + "'");
 
-  Oci_par_directory(const Oci_par_directory &other) = delete;
-  Oci_par_directory(Oci_par_directory &&other) = default;
+    const auto expected_base = base + ('/' == base.back() ? "" : "/");
+    const auto expected_url = expected_base + path;
+    const auto get = Http_get(expected_url);
 
-  Oci_par_directory &operator=(const Oci_par_directory &other) = delete;
-  Oci_par_directory &operator=(Oci_par_directory &&other) = default;
+    EXPECT_EQ(expected_base, get.m_base.real());
+    EXPECT_EQ(path, get.m_path);
+    EXPECT_EQ(expected_url, get.full_path().real());
+  };
 
-  ~Oci_par_directory() override {}
+  EXPECT_THROW_LIKE(Http_get(""), std::logic_error, "URI is empty");
+  EXPECT_THROW_LIKE(Http_get("no scheme"), std::logic_error,
+                    "URI does not have a scheme");
 
-  Masked_string full_path() const override;
+  EXPECT_BASE_AND_PATH("https://example.com", "");
+  EXPECT_BASE_AND_PATH("https://example.com/", "");
+  EXPECT_BASE_AND_PATH("https://example.com/", "exe.txt");
+  EXPECT_BASE_AND_PATH("https://example.com/dir/", "exe.txt");
+  EXPECT_BASE_AND_PATH("https://example.com/dir/dir2/", "exe.txt");
+}
 
- private:
-  std::string get_list_url() const override;
-
-  bool is_list_files_complete() const override;
-
-  void init_rest();
-
-  std::vector<IDirectory::File_info> parse_file_list(
-      const std::string &data, const std::string &pattern = "") const override;
-
-  Par_structure m_par_data;
-
-  mutable std::string m_next_start_with;
-};
-
-}  // namespace oci
 }  // namespace backend
 }  // namespace storage
 }  // namespace mysqlshdk
-
-#endif  // MYSQLSHDK_LIBS_STORAGE_BACKEND_OCI_PAR_DIRECTORY_H_

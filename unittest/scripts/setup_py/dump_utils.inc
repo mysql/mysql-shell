@@ -78,7 +78,7 @@ def compare_servers(session1, session2, *, check_rows=True, check_users=True):
     if check_users:
         compare_users(session1, session2)
 
-def CHECK_OUTPUT_SANITY(outdir, min_chunk_size, min_chunks, allow_min_chunk_size_failures=0):
+def CHECK_OUTPUT_SANITY(outdir, min_chunk_size, min_chunks, allow_min_chunk_size_errors=0):
     chunks_per_table = {}
     files = []
     print()
@@ -101,7 +101,7 @@ def CHECK_OUTPUT_SANITY(outdir, min_chunk_size, min_chunks, allow_min_chunk_size
         if "@@" not in f or len(files) == 1:
             if fsize < min_chunk_size:
                 min_chunk_size_failures += 1
-            if min_chunk_size_failures > allow_min_chunk_size_failures:
+            if min_chunk_size_failures > allow_min_chunk_size_errors:
                 EXPECT_LE(min_chunk_size, fsize, "Size of "+f+" too small")
     for t, c in chunks_per_table.items():
         EXPECT_LE(min_chunks, c, "Too few chunks for "+t)

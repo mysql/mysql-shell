@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,7 +53,7 @@ class Directory : public IDirectory {
 
   void close() override {}
 
-  std::string full_path() const override;
+  Masked_string full_path() const override;
 
   std::vector<IDirectory::File_info> list_files(
       bool hidden_files = false) const override;

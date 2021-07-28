@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,7 +52,7 @@ class Memory_file : public IFile {
   void close() override;
 
   size_t file_size() const override;
-  std::string full_path() const override;
+  Masked_string full_path() const override;
   std::string filename() const override;
   bool exists() const override;
 

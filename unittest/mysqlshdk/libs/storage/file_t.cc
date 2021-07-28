@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -146,7 +146,7 @@ TEST(Storage, file_mmap_option) {
     file->write("xxx", 3);
     file->close();
 
-    shcore::create_file(file->full_path(), "123");
+    shcore::create_file(file->full_path().real(), "123");
 
     file->open(Mode::READ);
     if (sizeof(void *) < 8)
@@ -195,7 +195,7 @@ TEST(Storage, file_mmap_option) {
       file->close();
     }
 
-    shcore::create_file(file->full_path(), "xxx");
+    shcore::create_file(file->full_path().real(), "xxx");
 
     file->open(Mode::READ);
     if (sizeof(void *) < 8)
@@ -285,7 +285,7 @@ TEST(Storage, file_mmap_write) {
   EXPECT_EQ(line.size() + line2.size(), file->file_size());
 
   EXPECT_EQ("hello world\nSECOND line\n",
-            shcore::get_text_file(ifile->full_path()));
+            shcore::get_text_file(ifile->full_path().real()));
 
   file->remove();
 }

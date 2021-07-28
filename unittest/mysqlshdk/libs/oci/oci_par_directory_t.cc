@@ -39,49 +39,51 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_list_files) {
 
   auto time = shcore::future_time_rfc3339(std::chrono::hours(24));
 
-  {
+  const auto EXPECT_LIST_FILES = [&](const std::string &prefix) {
+    SCOPED_TRACE(prefix);
+
+    std::vector<std::string> expected_objects;
+
+    for (auto object : m_objects) {
+      bool match = false;
+
+      if (prefix.empty()) {
+        match = true;
+      } else {
+        if (shcore::str_beginswith(object, prefix)) {
+          object = object.substr(prefix.length());
+
+          match = true;
+        }
+      }
+
+      if (match && std::string::npos == object.find('/')) {
+        expected_objects.emplace_back(std::move(object));
+      }
+    }
+
     auto par = bucket.create_pre_authenticated_request(
         mysqlshdk::oci::PAR_access_type::ANY_OBJECT_READ, time.c_str(),
-        "sample-par", "", mysqlshdk::oci::PAR_list_action::LIST_OBJECTS);
+        "sample-par", prefix, mysqlshdk::oci::PAR_list_action::LIST_OBJECTS);
 
     Oci_par_directory par_dir(bucket.get_rest_service()->end_point() +
                               par.access_uri + par.object_name);
 
-    auto objects = par_dir.list_files();
+    const auto objects = par_dir.list_files();
 
     // DEFAULT LIST: returns name and size only
-    EXPECT_EQ(11, objects.size());
+    ASSERT_EQ(expected_objects.size(), objects.size());
 
-    for (size_t index = 0; index < m_objects.size(); index++) {
-      EXPECT_STREQ(m_objects[index].c_str(), objects[index].name.c_str());
-      EXPECT_EQ(1, objects[index].size);
+    for (size_t i = 0; i < expected_objects.size(); ++i) {
+      EXPECT_EQ(expected_objects[i], objects[i].name);
+      EXPECT_EQ(1, objects[i].size);
     }
 
     bucket.delete_pre_authenticated_request(par.id);
-  }
+  };
 
-  {
-    auto par = bucket.create_pre_authenticated_request(
-        mysqlshdk::oci::PAR_access_type::ANY_OBJECT_READ, time.c_str(),
-        "sample-par", "sakila/", mysqlshdk::oci::PAR_list_action::LIST_OBJECTS);
-
-    Oci_par_directory par_dir(bucket.get_rest_service()->end_point() +
-                              par.access_uri + par.object_name);
-
-    auto objects = par_dir.list_files();
-    const size_t PREFIX_LENGTH = 7;  // "sakila/"
-
-    // DEFAULT LIST: returns name and size only
-    EXPECT_EQ(6, objects.size());
-
-    for (size_t index = 0; index < objects.size(); index++) {
-      EXPECT_STREQ(m_objects[index + 1].substr(PREFIX_LENGTH).c_str(),
-                   objects[index].name.c_str());
-      EXPECT_EQ(1, objects[index].size);
-    }
-
-    bucket.delete_pre_authenticated_request(par.id);
-  }
+  EXPECT_LIST_FILES("");
+  EXPECT_LIST_FILES("sakila/");
 
   clean_bucket(bucket);
 }
@@ -97,26 +99,53 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_filter_files) {
 
   auto time = shcore::future_time_rfc3339(std::chrono::hours(24));
 
-  {
+  const auto EXPECT_FILTER_FILES = [&](const std::string &prefix,
+                                       const std::string &filter) {
+    SCOPED_TRACE(prefix);
+
+    std::vector<std::string> expected_objects;
+
+    for (auto object : m_objects) {
+      bool match = false;
+
+      if (prefix.empty()) {
+        match = true;
+      } else {
+        if (shcore::str_beginswith(object, prefix)) {
+          object = object.substr(prefix.length());
+
+          match = true;
+        }
+      }
+
+      if (match && std::string::npos == object.find('/') &&
+          shcore::match_glob(filter, object)) {
+        expected_objects.emplace_back(std::move(object));
+      }
+    }
+
     auto par = bucket.create_pre_authenticated_request(
         mysqlshdk::oci::PAR_access_type::ANY_OBJECT_READ, time.c_str(),
-        "sample-par", "", mysqlshdk::oci::PAR_list_action::LIST_OBJECTS);
+        "sample-par", prefix, mysqlshdk::oci::PAR_list_action::LIST_OBJECTS);
 
     Oci_par_directory par_dir(bucket.get_rest_service()->end_point() +
                               par.access_uri + par.object_name);
 
-    auto objects = par_dir.filter_files("sakila*");
+    const auto objects = par_dir.filter_files(filter);
 
     // DEFAULT LIST: returns name and size only
-    EXPECT_EQ(9, objects.size());
+    ASSERT_EQ(expected_objects.size(), objects.size());
 
-    for (size_t index = 0; index < objects.size(); index++) {
-      EXPECT_STREQ(m_objects[index].c_str(), objects[index].name.c_str());
-      EXPECT_EQ(1, objects[index].size);
+    for (size_t i = 0; i < expected_objects.size(); ++i) {
+      EXPECT_EQ(expected_objects[i], objects[i].name);
+      EXPECT_EQ(1, objects[i].size);
     }
 
     bucket.delete_pre_authenticated_request(par.id);
-  }
+  };
+
+  EXPECT_FILTER_FILES("", "sakila*");
+  EXPECT_FILTER_FILES("sakila/", "category*");
 
   clean_bucket(bucket);
 }

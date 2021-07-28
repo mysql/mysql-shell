@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,15 +41,17 @@ Directory::Directory(const std::string &dir) {
   m_path = shcore::get_absolute_path(expanded);
 }
 
-bool Directory::exists() const { return shcore::is_folder(full_path()); }
+bool Directory::exists() const { return shcore::is_folder(full_path().real()); }
 
-void Directory::create() { shcore::create_directory(full_path(), false, 0750); }
+void Directory::create() {
+  shcore::create_directory(full_path().real(), false, 0750);
+}
 
-std::string Directory::full_path() const { return m_path; }
+Masked_string Directory::full_path() const { return m_path; }
 
 std::vector<IDirectory::File_info> Directory::list_files(
     bool /*hidden_files*/) const {
-  const auto path = full_path();
+  const auto path = full_path().real();
   std::vector<IDirectory::File_info> files;
 
   shcore::iterdir(path, [this, &path, &files](const std::string &name) {
@@ -66,7 +68,7 @@ std::vector<IDirectory::File_info> Directory::list_files(
 
 std::vector<IDirectory::File_info> Directory::filter_files(
     const std::string &pattern) const {
-  const auto path = full_path();
+  const auto path = full_path().real();
   std::vector<IDirectory::File_info> files;
 
   shcore::iterdir(

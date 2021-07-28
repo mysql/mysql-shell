@@ -195,6 +195,7 @@ class Load_dump_options {
   std::string m_url;
   std::string m_prefix;
   mysqlshdk::storage::backend::oci::Par_type m_par_type;
+  std::string m_par_object;
   bool m_use_par_progress = false;
   int64_t m_threads_count = 4;
   bool m_show_progress = isatty(fileno(stdout)) ? true : false;

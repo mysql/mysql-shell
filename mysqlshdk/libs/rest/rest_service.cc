@@ -156,7 +156,7 @@ class Rest_service::Impl {
   /**
    * Type of the HTTP request.
    */
-  Impl(const std::string &base_url, bool verify, const std::string &label)
+  Impl(const Masked_string &base_url, bool verify, const std::string &label)
       : m_handle(curl_easy_init(), &curl_easy_cleanup),
         m_base_url{base_url},
         m_request_sequence(0) {
@@ -215,7 +215,8 @@ class Rest_service::Impl {
   void log_request(Type type, const std::string &path, const Headers &headers) {
     if (shcore::current_logger()->get_log_level() >=
         shcore::Logger::LOG_LEVEL::LOG_DEBUG) {
-      log_debug("%s-%d: %s %s", m_id.c_str(), m_request_sequence,
+      log_debug("%s-%d: %s %s %s", m_id.c_str(), m_request_sequence,
+                m_base_url.masked().c_str(),
                 shcore::str_upper(type_name(type)).c_str(), path.c_str());
 
       if (!headers.empty() && shcore::current_logger()->get_log_level() >=
@@ -274,7 +275,7 @@ class Rest_service::Impl {
                                 Headers *response_headers) {
     m_request_sequence++;
 
-    log_request(type, path, request_headers);
+    log_request(type, path.masked(), request_headers);
 
     set_url(path.real());
     // body needs to be set before the type, because it implicitly sets type
@@ -402,7 +403,8 @@ class Rest_service::Impl {
   }
 
   void set_url(const std::string &path) {
-    curl_easy_setopt(m_handle.get(), CURLOPT_URL, (m_base_url + path).c_str());
+    curl_easy_setopt(m_handle.get(), CURLOPT_URL,
+                     (m_base_url.real() + path).c_str());
   }
 
   std::unique_ptr<curl_slist, void (*)(curl_slist *)> set_headers(
@@ -455,7 +457,7 @@ class Rest_service::Impl {
 
   char m_error_buffer[CURL_ERROR_SIZE];
 
-  std::string m_base_url;
+  Masked_string m_base_url;
 
   Headers m_default_headers;
 
@@ -466,7 +468,7 @@ class Rest_service::Impl {
   long m_default_timeout;
 };
 
-Rest_service::Rest_service(const std::string &base_url, bool verify_ssl,
+Rest_service::Rest_service(const Masked_string &base_url, bool verify_ssl,
                            const std::string &service_label)
     : m_impl(std::make_unique<Impl>(base_url, verify_ssl, service_label)) {}
 

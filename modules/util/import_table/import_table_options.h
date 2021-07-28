@@ -69,8 +69,6 @@ class Import_table_option_pack {
 
   void set_filenames(const std::vector<std::string> &filenames);
 
-  const std::string &full_path() const { return m_full_path; }
-
   const std::vector<std::string> &filelist_from_user() const {
     return m_filelist_from_user;
   }
@@ -125,7 +123,6 @@ class Import_table_option_pack {
   size_t calc_thread_size();
 
   std::vector<std::string> m_filelist_from_user;
-  std::string m_full_path;
   size_t m_file_size;
   std::string m_table;
   std::string m_schema;
@@ -152,6 +149,10 @@ class Import_table_options : public Import_table_option_pack {
   void set_base_session(
       const std::shared_ptr<mysqlshdk::db::mysql::Session> &session) {
     m_base_session = session;
+  }
+
+  mysqlshdk::Masked_string full_path() const {
+    return m_file_handle->full_path();
   }
 
   /**

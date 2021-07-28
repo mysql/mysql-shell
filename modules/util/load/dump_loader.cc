@@ -338,10 +338,10 @@ void Dump_loader::Worker::Task::handle_current_exception(
 bool Dump_loader::Worker::Table_ddl_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Worker *worker, Dump_loader *loader) {
-  std::string path = m_file->full_path();
+  const auto masked_path = m_file->full_path().masked();
 
   log_debug("worker%zu will load DDL file %s for table `%s`.`%s`", id(),
-            path.c_str(), schema().c_str(), table().c_str());
+            masked_path.c_str(), schema().c_str(), table().c_str());
 
   loader->post_worker_event(worker, Worker_event::TABLE_DDL_START);
 
@@ -357,8 +357,8 @@ bool Dump_loader::Worker::Table_ddl_task::execute(
   } catch (const std::exception &e) {
     handle_current_exception(
         worker, loader,
-        shcore::str_format("While executing DDL script %s: %s", path.c_str(),
-                           e.what()));
+        shcore::str_format("While executing DDL script %s: %s",
+                           masked_path.c_str(), e.what()));
     return false;
   }
 
@@ -474,9 +474,9 @@ void Dump_loader::Worker::Table_ddl_task::load_ddl(
 bool Dump_loader::Worker::Ddl_fetch_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &, Worker *worker,
     Dump_loader *loader) {
-  std::string path = m_file->full_path();
+  const auto masked_path = m_file->full_path().masked();
 
-  log_info("worker%zu will fetch DDL file %s", id(), path.c_str());
+  log_info("worker%zu will fetch DDL file %s", id(), masked_path.c_str());
 
   loader->post_worker_event(worker, Worker_event::FETCH_DDL_START);
 
@@ -489,7 +489,7 @@ bool Dump_loader::Worker::Ddl_fetch_task::execute(
     handle_current_exception(
         worker, loader,
         shcore::str_format("While fetching view DDL script %s: %s",
-                           path.c_str(), e.what()));
+                           masked_path.c_str(), e.what()));
     return false;
   }
 
@@ -502,10 +502,10 @@ bool Dump_loader::Worker::Ddl_fetch_task::execute(
 bool Dump_loader::Worker::Load_chunk_task::execute(
     const std::shared_ptr<mysqlshdk::db::mysql::Session> &session,
     Worker *worker, Dump_loader *loader) {
-  std::string path = m_file->full_path();
+  const auto masked_path = m_file->full_path().masked();
 
   log_debug("worker%zu will load chunk %s for table `%s`.`%s`", id(),
-            path.c_str(), schema().c_str(), table().c_str());
+            masked_path.c_str(), schema().c_str(), table().c_str());
 
   try {
     FI_TRIGGER_TRAP(dump_loader,
@@ -537,9 +537,9 @@ bool Dump_loader::Worker::Load_chunk_task::execute(
                          {"table", table()},
                          {"chunk", std::to_string(chunk_index())}}));
   } catch (const std::exception &e) {
-    handle_current_exception(
-        worker, loader,
-        shcore::str_format("While loading %s: %s", path.c_str(), e.what()));
+    handle_current_exception(worker, loader,
+                             shcore::str_format("While loading %s: %s",
+                                                masked_path.c_str(), e.what()));
     return false;
   }
 
@@ -1466,7 +1466,7 @@ bool Dump_loader::schedule_table_chunk(
 
   log_debug("Scheduling chunk for table %s (%s) - worker%zi",
             format_table(schema, table, partition, chunk_index).c_str(),
-            file->full_path().c_str(), worker->id());
+            file->full_path().masked().c_str(), worker->id());
 
   worker->load_chunk_file(schema, table, partition, std::move(file),
                           chunk_index, size, options, resuming, bytes_to_skip);
@@ -2266,7 +2266,7 @@ void Dump_loader::setup_progress(bool *out_is_resuming) {
   if (m_options.progress_file().is_null() ||
       !m_options.progress_file()->empty()) {
     auto progress_file = m_dump->create_progress_file_handle();
-    std::string path = progress_file->full_path();
+    const auto path = progress_file->full_path().masked();
     bool rewrite_on_flush = m_options.oci_options() ? true : false;
 
     auto progress = m_load_log->init(std::move(progress_file),

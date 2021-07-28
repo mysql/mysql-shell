@@ -56,7 +56,7 @@ TEST_F(Oci_os_tests, directory_list_files) {
 
   create_objects(bucket);
 
-  EXPECT_STREQ("", root_directory.full_path().c_str());
+  EXPECT_STREQ("", root_directory.full_path().real().c_str());
 
   root_files = root_directory.list_files();
   EXPECT_EQ(5, root_files.size());
@@ -75,7 +75,7 @@ TEST_F(Oci_os_tests, directory_list_files) {
   EXPECT_STREQ("uncommon's name.txt", root_files[4].name.c_str());
   EXPECT_STREQ("multipart_object.txt", root_files[5].name.c_str());
 
-  EXPECT_STREQ("sakila", sakila.full_path().c_str());
+  EXPECT_STREQ("sakila", sakila.full_path().real().c_str());
 
   auto files = sakila.list_files();
   EXPECT_EQ(6, files.size());
@@ -448,11 +448,11 @@ TEST_F(Oci_os_tests, file_rename) {
   file->close();
 
   EXPECT_STREQ("sample.txt", file->filename().c_str());
-  EXPECT_STREQ("sample.txt", file->full_path().c_str());
+  EXPECT_STREQ("sample.txt", file->full_path().real().c_str());
 
   file->rename("testing.txt");
   EXPECT_STREQ("testing.txt", file->filename().c_str());
-  EXPECT_STREQ("testing.txt", file->full_path().c_str());
+  EXPECT_STREQ("testing.txt", file->full_path().real().c_str());
 
   auto files = root.list_files();
   EXPECT_EQ(1, files.size());
@@ -460,15 +460,15 @@ TEST_F(Oci_os_tests, file_rename) {
 
   file->rename("`test`");
   EXPECT_STREQ("`test`", file->filename().c_str());
-  EXPECT_STREQ("`test`", file->full_path().c_str());
+  EXPECT_STREQ("`test`", file->full_path().real().c_str());
 
   file->rename("_test1~");
   EXPECT_STREQ("_test1~", file->filename().c_str());
-  EXPECT_STREQ("_test1~", file->full_path().c_str());
+  EXPECT_STREQ("_test1~", file->full_path().real().c_str());
 
   file->rename("\"ois\"");
   EXPECT_STREQ("\"ois\"", file->filename().c_str());
-  EXPECT_STREQ("\"ois\"", file->full_path().c_str());
+  EXPECT_STREQ("\"ois\"", file->full_path().real().c_str());
 
   bucket.delete_object("\"ois\"");
 
@@ -479,11 +479,11 @@ TEST_F(Oci_os_tests, file_rename) {
   file->close();
 
   EXPECT_STREQ("sample.txt", file->filename().c_str());
-  EXPECT_STREQ("other/sample.txt", file->full_path().c_str());
+  EXPECT_STREQ("other/sample.txt", file->full_path().real().c_str());
 
   file->rename("testing.txt");
   EXPECT_STREQ("testing.txt", file->filename().c_str());
-  EXPECT_STREQ("other/testing.txt", file->full_path().c_str());
+  EXPECT_STREQ("other/testing.txt", file->full_path().real().c_str());
 
   files = other.list_files();
   EXPECT_EQ(1, files.size());
@@ -491,4 +491,5 @@ TEST_F(Oci_os_tests, file_rename) {
 
   bucket.delete_object("other/testing.txt");
 }
+
 }  // namespace testing

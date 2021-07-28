@@ -460,9 +460,10 @@ class Dumper::Table_worker final {
     log_info("Dump of %s into '%s' (chunk %s) took %f seconds, written %" PRIu64
              " rows (%" PRIu64 " bytes), longest row has %" PRIu64 " bytes",
              table.task_name.c_str(),
-             table.writer->output()->full_path().c_str(), table.id.c_str(),
-             timer.total_seconds_elapsed(), rows_written_per_file,
-             bytes_written_per_file.data_bytes(), max_row_size);
+             table.writer->output()->full_path().masked().c_str(),
+             table.id.c_str(), timer.total_seconds_elapsed(),
+             rows_written_per_file, bytes_written_per_file.data_bytes(),
+             max_row_size);
 
     const auto file_size = m_dumper->finish_writing(
         table.writer, bytes_written_per_file.data_bytes());
@@ -1258,7 +1259,7 @@ Dumper::Dumper(const Dump_options &options)
       throw std::invalid_argument(
           "Cannot proceed with the dump, the directory containing '" +
           m_options.output_url() + "' does not exist at the target location " +
-          m_output_dir->full_path() + ".");
+          m_output_dir->full_path().masked() + ".");
     }
   } else {
     using mysqlshdk::storage::make_directory;
@@ -1281,14 +1282,15 @@ Dumper::Dumper(const Dump_options &options)
         for (const auto &file : files) {
           file_data.push_back(shcore::str_format(
               "%s [size %zu]",
-              m_output_dir->join_path(full_path, file.name).c_str(),
+              m_output_dir->join_path(full_path.masked(), file.name).c_str(),
               file.size));
         }
 
         log_error(
             "Unable to dump to %s, the directory exists and is not empty:\n  "
             "%s",
-            full_path.c_str(), shcore::str_join(file_data, "\n  ").c_str());
+            full_path.masked().c_str(),
+            shcore::str_join(file_data, "\n  ").c_str());
 
         if (m_options.oci_options()) {
           throw std::invalid_argument(
@@ -1300,7 +1302,7 @@ Dumper::Dumper(const Dump_options &options)
           throw std::invalid_argument(
               "Cannot proceed with the dump, the specified directory '" +
               m_options.output_url() +
-              "' already exists at the target location " + full_path +
+              "' already exists at the target location " + full_path.masked() +
               " and is not empty.");
         }
       }

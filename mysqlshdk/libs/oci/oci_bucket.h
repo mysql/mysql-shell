@@ -95,6 +95,19 @@ struct PAR {
   size_t size;
 };
 
+template <typename T>
+Masked_string anonymize_par(T &&par) {
+  const auto p = par.find("/p/");
+  const auto n = par.find("/n/");
+
+  if (std::string::npos == p || std::string::npos == n) {
+    throw std::logic_error("This is not a PAR: " + par);
+  }
+
+  return {std::forward<T>(par),
+          par.substr(0, p + 3) + "<secret>" + par.substr(n)};
+}
+
 class Object;
 /**
  * C++ Implementation for Bucket operations through the OCI Object Store REST

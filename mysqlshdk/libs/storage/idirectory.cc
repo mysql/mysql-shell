@@ -36,7 +36,7 @@ namespace storage {
 
 std::unique_ptr<IFile> IDirectory::file(const std::string &name,
                                         const File_options &options) const {
-  return make_file(join_path(full_path(), name), options);
+  return make_file(join_path(full_path().real(), name), options);
 }
 
 std::unique_ptr<IDirectory> make_directory(
@@ -57,11 +57,17 @@ std::unique_ptr<IDirectory> make_directory(
     return std::make_unique<backend::Directory>(path);
   } else if (utils::scheme_matches(scheme, "https")) {
     backend::oci::Par_structure par;
+
     if (backend::oci::parse_par(path, &par) == backend::oci::Par_type::PREFIX) {
       return std::make_unique<backend::oci::Oci_par_directory>(par);
     }
+
+    throw std::invalid_argument(
+        "Invalid PAR, expected: "
+        "https://objectstorage.<region>.oraclecloud.com/p/<secret>/n/"
+        "<namespace>/b/<bucket>/o/[<prefix>/][@.manifest.json]");
   }
-  // TODO(rennox): improve the error message?
+
   throw std::invalid_argument("Directory handling for " + scheme +
                               " protocol is not supported.");
 }

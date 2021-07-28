@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -172,7 +172,7 @@ class Compression
     } else {
       std::string buffer;
       buffer.resize(nbytes);
-      auto ff = make_file(f->full_path());
+      auto ff = make_file(f->full_path().real());
       ff->open(mysqlshdk::storage::Mode::READ);
       ff->read(&buffer[0], nbytes);
       ff->close();

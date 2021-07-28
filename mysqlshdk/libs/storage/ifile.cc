@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -117,8 +117,8 @@ std::string read_file(IFile *file) {
 
   auto data_read = file->read(&buffer[0], size);
   if (data_read < 0) {
-    throw std::runtime_error("Error reading " + file->full_path() + ": " +
-                             shcore::errno_to_string(file->error()));
+    throw std::runtime_error("Error reading " + file->full_path().masked() +
+                             ": " + shcore::errno_to_string(file->error()));
   }
 
   buffer.resize(data_read);

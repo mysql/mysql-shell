@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -177,7 +177,7 @@ Dump_write_result Dump_writer::write_buffer(const char *context) const {
 
     if (bytes_written < 0) {
       throw std::runtime_error("Failed to write " + std::string(context) +
-                               " into file " + output()->full_path());
+                               " into file " + output()->full_path().masked());
     }
 
     result.m_bytes_written =

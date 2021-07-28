@@ -165,26 +165,5 @@ TEST(Masked_value_test, constructors) {
   }
 }
 
-TEST(Masked_value_test, implicit_conversion) {
-  const std::string expected_real_value = "real value";
-  const std::string expected_masked_value = "masked value";
-
-  {
-    Masked_string ms{expected_real_value};
-
-    [&expected_real_value](const std::string &s) {
-      EXPECT_EQ(expected_real_value, s);
-    }(ms);
-  }
-
-  {
-    Masked_string ms{expected_real_value, expected_masked_value};
-
-    [&expected_masked_value](const std::string &s) {
-      EXPECT_EQ(expected_masked_value, s);
-    }(ms);
-  }
-}
-
 }  // namespace utils
 }  // namespace mysqlshdk

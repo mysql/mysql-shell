@@ -279,7 +279,6 @@ void Import_table_options::validate() {
 
       m_file_handle = create_file_handle(m_filelist_from_user[0]);
       m_file_handle->open(mysqlshdk::storage::Mode::READ);
-      m_full_path = m_file_handle->full_path();
       m_file_size = m_file_handle->file_size();
       m_file_handle->close();
     }
@@ -369,7 +368,7 @@ std::string Import_table_options::target_import_info() const {
   auto connection_options = m_base_session->get_connection_options();
 
   if (!is_multifile()) {
-    std::string info_msg = "Importing from file '" + full_path() +
+    std::string info_msg = "Importing from file '" + full_path().masked() +
                            "' to table `" + schema() + "`.`" + table() +
                            "` in MySQL Server at " +
                            connection_options.as_uri(

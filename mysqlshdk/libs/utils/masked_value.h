@@ -24,6 +24,7 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_MASKED_VALUE_H_
 #define MYSQLSHDK_LIBS_UTILS_MASKED_VALUE_H_
 
+#include <functional>
 #include <string>
 #include <type_traits>
 
@@ -34,13 +35,11 @@ namespace mysqlshdk {
 namespace utils {
 
 /**
- * Helper class which is designed to be a drop-in replacement for the wrapped
- * type. Stores two values: the real one, and optionally a masked one. If the
- * masked value is given, the real one is considered unsafe (i.e. to be logged),
- * and it can only be accessed explicitly via real() method, while implicit
- * conversion returns the masked value. If the masked value is not given, then
- * the real one is "safe" and both real() method and implicit conversion return
- * the real value.
+ * Stores two values: the real one, and optionally a masked one. If the masked
+ * value is given, the real one is considered unsafe (i.e. to be logged),
+ * and it can only be accessed via real() method. If the masked value is not
+ * given, then the real one is "safe" and both real() and masked() methods
+ * return the real value.
  *
  * If the real value is given as lvalue reference, value is not copied, but
  * reference is stored instead.
@@ -48,7 +47,7 @@ namespace utils {
 template <typename T>
 class Masked_value final {
  public:
-  Masked_value() = delete;
+  Masked_value() : Masked_value("") {}
 
   /**
    * Implicit conversion, masked and real values are the same.
@@ -93,11 +92,41 @@ class Masked_value final {
   Masked_value(const T &real, V &&masked)
       : m_real_ref(real), m_masked(std::forward<V>(masked)) {}
 
-  Masked_value(const Masked_value &v) = default;
-  Masked_value(Masked_value &&v) = default;
+  Masked_value(const Masked_value &v) : m_real_ref(m_real) { *this = v; }
 
-  Masked_value &operator=(const Masked_value &v) = default;
-  Masked_value &operator=(Masked_value &&v) = default;
+  Masked_value(Masked_value &&v) : m_real_ref(m_real) { *this = std::move(v); }
+
+  Masked_value &operator=(const Masked_value &v) {
+    if (&v.m_real == &v.m_real_ref.get()) {
+      // reference points to the v.m_real, need to copy the value
+      m_real = v.m_real;
+      m_real_ref = m_real;
+    } else {
+      // reference points to a value stored somewhere else, copy the reference
+      m_real = {};
+      m_real_ref = v.m_real_ref;
+    }
+
+    m_masked = v.m_masked;
+
+    return *this;
+  }
+
+  Masked_value &operator=(Masked_value &&v) {
+    if (&v.m_real == &v.m_real_ref.get()) {
+      // reference points to the v.m_real, need to move the value
+      m_real = std::move(v.m_real);
+      m_real_ref = m_real;
+    } else {
+      // reference points to a value stored somewhere else, move the reference
+      m_real = {};
+      m_real_ref = std::move(v.m_real_ref);
+    }
+
+    m_masked = std::move(v.m_masked);
+
+    return *this;
+  }
 
   ~Masked_value() = default;
 
@@ -105,15 +134,20 @@ class Masked_value final {
 
   const T &masked() const { return m_masked.get_safe(real()); }
 
+  bool operator==(const Masked_value &mv) const {
+    // call the other comparison operator
+    return *this == mv.real();
+  }
+
   /**
-   * Implicit conversion, uses the masked value.
+   * Compares the given value with the real value.
    */
-  operator const T &() const { return masked(); }
+  bool operator==(const T &v) const { return real() == v; }
 
  private:
   T m_real;
 
-  const T &m_real_ref;
+  std::reference_wrapper<const T> m_real_ref;
 
   nullable<T> m_masked;
 
@@ -121,6 +155,12 @@ class Masked_value final {
   FRIEND_TEST(Masked_value_test, constructors);
 #endif
 };
+
+template <typename T>
+bool operator==(const T &v, const Masked_value<T> &mv) {
+  // call the comparison operator from Masked_value class
+  return mv == v;
+}
 
 }  // namespace utils
 

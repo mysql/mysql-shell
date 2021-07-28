@@ -378,16 +378,19 @@ Response::Status_code Oci_rest_service::execute(
   } catch (const rest::Connection_error &e) {
     // exception was thrown when connection was being established, there is no
     // response
-    log_failed_request(type, path, headers_to_send, format_exception(e));
+    log_failed_request(type, path.masked(), headers_to_send,
+                       format_exception(e));
     throw;
   } catch (const Response_error &e) {
     // exception was thrown after we got the response, log it as well
-    log_failed_request(type, path, headers_to_send, format_code(e.code()));
+    log_failed_request(type, path.masked(), headers_to_send,
+                       format_code(e.code()));
     log_failed_response(*response_headers, response_buffer_ptr);
     throw;
   } catch (const std::exception &e) {
     // we don't know when the exception was thrown, log response just in case
-    log_failed_request(type, path, headers_to_send, format_exception(e));
+    log_failed_request(type, path.masked(), headers_to_send,
+                       format_exception(e));
     log_failed_response(*response_headers, response_buffer_ptr);
     throw;
   }

@@ -230,7 +230,8 @@ void Zstd_file::init_write() {
 
     // try to enable mmap if available
     if (mfile && mfile->mmap_will_write(0, nullptr)) {
-      log_debug("mmap() enabled for file %s", mfile->full_path().c_str());
+      log_debug("mmap() enabled for file %s",
+                mfile->full_path().masked().c_str());
       m_write_f = &Zstd_file::do_write_mmap;
     } else {
       m_write_f = &Zstd_file::do_write;
@@ -250,7 +251,8 @@ void Zstd_file::init_read() {
     auto *mfile = dynamic_cast<backend::File *>(file());
     // try to enable mmap if available
     if (mfile && mfile->mmap_will_read(nullptr)) {
-      log_debug("mmap() enabled for file %s", mfile->full_path().c_str());
+      log_debug("mmap() enabled for file %s",
+                mfile->full_path().masked().c_str());
       m_read_f = &Zstd_file::do_read_mmap;
     } else {
       m_read_f = &Zstd_file::do_read;

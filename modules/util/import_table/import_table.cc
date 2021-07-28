@@ -135,9 +135,9 @@ void Import_table::build_queue() {
       auto glob_fh = mysqlshdk::storage::make_file(glob_item, oci_opts);
       auto glob_full_path = glob_fh->full_path();
       auto dir = mysqlshdk::storage::make_directory(
-          glob_fh->parent()->full_path(), oci_opts);
+          glob_fh->parent()->full_path().real(), oci_opts);
       if (!dir->exists()) {
-        std::string errmsg{"Directory " + dir->full_path() +
+        std::string errmsg{"Directory " + dir->full_path().masked() +
                            " does not exists."};
         m_console.get()->print_error(errmsg);
         noncritical_errors.emplace_back(std::move(errmsg));
@@ -154,7 +154,7 @@ void Import_table::build_queue() {
       for (const auto &file_info : list_files) {
         auto fh = m_opt.create_file_handle(dir->file(file_info.name));
         File_import_info task;
-        task.file_path = fh->full_path();
+        task.file_path = fh->full_path().real();
         task.file_size = file_info.size;
         task.file_handler = fh.release();
         // todo(kg): impl. content size method. Extract content size information
@@ -169,7 +169,7 @@ void Import_table::build_queue() {
     } else {
       auto glob_fh = mysqlshdk::storage::make_file(glob_item, oci_opts);
       if (!glob_fh->exists()) {
-        std::string errmsg{"File " + glob_fh->full_path() +
+        std::string errmsg{"File " + glob_fh->full_path().masked() +
                            " does not exists."};
         m_console.get()->print_error(errmsg);
         noncritical_errors.emplace_back(std::move(errmsg));
@@ -227,7 +227,7 @@ std::string Import_table::import_summary() const {
   }
   const auto filesize = m_opt.file_size();
   return std::string{
-      "File '" + m_opt.full_path() + "' (" + format_bytes(filesize) +
+      "File '" + m_opt.full_path().masked() + "' (" + format_bytes(filesize) +
       ") was imported in " + format_seconds(m_timer.total_seconds_elapsed()) +
       " at " +
       format_throughput_bytes(filesize, m_timer.total_seconds_elapsed())};

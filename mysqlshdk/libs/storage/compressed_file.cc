@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,7 +57,7 @@ void Compressed_file::close() { m_file->close(); }
 // to do that
 size_t Compressed_file::file_size() const { return m_file->file_size(); }
 
-std::string Compressed_file::full_path() const { return m_file->full_path(); }
+Masked_string Compressed_file::full_path() const { return m_file->full_path(); }
 
 bool Compressed_file::exists() const { return m_file->exists(); }
 

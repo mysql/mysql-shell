@@ -156,3 +156,25 @@ def create_par(namespace, bucket, access_type, name, time_expires, object_name =
         return "https://objectstorage.{}.oraclecloud.com{}{}".format(config["region"], par.data.access_uri,par.data.object_name)
     else:
         return "https://objectstorage.{}.oraclecloud.com{}".format(config["region"], par.data.access_uri)
+
+prev_log_level = shell.options["logLevel"]
+
+def PREPARE_PAR_IS_SECRET_TEST():
+    global prev_log_level
+    prev_log_level = shell.options["logLevel"]
+    shell.options["logLevel"] = 8
+    WIPE_OUTPUT()
+    WIPE_SHELL_LOG()
+
+def EXPECT_PAR_IS_SECRET():
+    global prev_log_level
+    shell.options["logLevel"] = prev_log_level
+    def check_text(text, context):
+        expr = re.compile(r"/p/(.+)/n/")
+        for line in text.splitlines():
+            match = expr.search(line)
+            if match is not None and "<secret>" != match.group(1):
+                testutil.fail(context + " contains unmasked PAR: " + line)
+    check_text(testutil.fetch_captured_stdout(False), "stdout")
+    check_text(testutil.fetch_captured_stderr(False), "stderr")
+    check_text(testutil.cat_file(testutil.get_shell_log_path()), "Shell log")

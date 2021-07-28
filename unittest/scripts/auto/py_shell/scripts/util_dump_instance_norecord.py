@@ -1958,10 +1958,6 @@ EXPECT_SUCCESS([types_schema], test_output_absolute, { "consistent": False, "ddl
 setup_session()
 create_users()
 
-#@<> Bug #31188854: USING THE OCIPROFILE OPTION IN A DUMP MAKE THE DUMP TO ALWAYS FAIL {has_oci_environment('OS')}
-# This error now confirms the reported issue is fixed
-EXPECT_FAIL("RuntimeError", "Failed to get object list", '', {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"})
-
 #@<> An error should occur when dumping using oci+os://
 EXPECT_FAIL("ValueError", "Directory handling for oci+os protocol is not supported.", 'oci+os://sakila')
 

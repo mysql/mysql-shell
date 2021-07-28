@@ -112,7 +112,7 @@ class Directory : public mysqlshdk::storage::IDirectory {
   /**
    * Returns the full path to the directory.
    */
-  std::string full_path() const override { return m_name; }
+  Masked_string full_path() const override { return m_name; }
 
   /**
    * Retrieves a list of files on the directory.
@@ -215,8 +215,9 @@ class Object : public mysqlshdk::storage::IFile {
   /**
    * Returns the full path to the object.
    */
-  std::string full_path() const override {
-    return m_par.empty() ? m_prefix + m_name : m_par;
+  Masked_string full_path() const override {
+    return m_par.empty() ? m_prefix + m_name
+                         : mysqlshdk::oci::anonymize_par(m_par);
   }
 
   /**

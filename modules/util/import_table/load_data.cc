@@ -667,7 +667,7 @@ void Load_data_worker::execute(
         fi.buffer = Transaction_buffer(Dialect(), fi.filehandler.get());
       } else {
         if (file != nullptr) {
-          fi.filename = file->full_path();
+          fi.filename = file->full_path().real();
           fi.filehandler = std::move(file);
           file.reset(nullptr);
           fi.buffer = Transaction_buffer(m_opt.dialect(), fi.filehandler.get(),
@@ -682,7 +682,7 @@ void Load_data_worker::execute(
       const std::string task = fi.filehandler->filename();
       std::shared_ptr<mysqlshdk::db::IResult> load_result = nullptr;
       const std::string query_prefix = shcore::sqlformat(
-          "LOAD DATA LOCAL INFILE ? ", fi.filehandler->full_path());
+          "LOAD DATA LOCAL INFILE ? ", fi.filehandler->full_path().masked());
       const std::string full_query = query_prefix + query_body;
 
 #ifndef NDEBUG
