@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -39,7 +39,14 @@ macro(MYSQL_USE_BUNDLED_ZSTD)
   if(MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
     set(WITH_ZSTD "bundled" CACHE STRING "By default use bundled zstd library")
     set(BUILD_BUNDLED_ZSTD 1)
-    include_directories(BEFORE SYSTEM ${MYSQL_SOURCE_DIR}/extra/zstd/lib ${MYSQL_BUILD_DIR}/extra/zstd/lib)
+    file(GLOB_RECURSE ZSTD_INCLUDE_FILE ${MYSQL_SOURCE_DIR}/extra/zstd/*/lib/zstd.h)
+
+    if(NOT ZSTD_INCLUDE_FILE)
+      message(FATAL_ERROR "Could not find \"zstd.h\"")
+    endif()
+
+    get_filename_component(ZSTD_INCLUDE_DIR ${ZSTD_INCLUDE_FILE} DIRECTORY)
+    include_directories(BEFORE SYSTEM ${ZSTD_INCLUDE_DIR})
 
     if(WIN32)
       find_file(ZSTD_LIBRARY NAMES zstd.lib PATHS "${MYSQL_BUILD_DIR}/archive_output_directory/"
