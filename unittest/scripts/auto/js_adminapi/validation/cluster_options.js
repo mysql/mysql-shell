@@ -813,6 +813,12 @@
                     "value": "1073741824",
                     "variable": "group_replication_message_cache_size"
                 },
+?{VER(>=8.0.27)}
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_paxos_single_leader"
+                },
+?{}
                 {
                     "value": "0",
                     "variable": "group_replication_poll_spin_loops"
@@ -1138,6 +1144,12 @@
                     "value": "1073741824",
                     "variable": "group_replication_message_cache_size"
                 },
+?{VER(>=8.0.27)}
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_paxos_single_leader"
+                },
+?{}
                 {
                     "value": "0",
                     "variable": "group_replication_poll_spin_loops"
@@ -1463,6 +1475,12 @@
                     "value": "1073741824",
                     "variable": "group_replication_message_cache_size"
                 },
+?{VER(>=8.0.27)}
+                {
+                    "value": "OFF",
+                    "variable": "group_replication_paxos_single_leader"
+                },
+?{}
                 {
                     "value": "0",
                     "variable": "group_replication_poll_spin_loops"
