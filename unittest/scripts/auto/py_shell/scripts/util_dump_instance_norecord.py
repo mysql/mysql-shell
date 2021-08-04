@@ -1540,6 +1540,22 @@ ERROR: One or more tables without Primary Keys were found.
          It will not be possible to load the dump in an HA enabled MDS instance.
 """)
 
+#@<> BUG#33159903 table with too many columns
+# setup
+tested_schema = "tested_schema"
+tested_table = "too_many_columns"
+columns_count = 1018
+
+session.run_sql(f"CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql(f"CREATE TABLE !.! ({', '.join(f'col{i} int' for i in range(columns_count))}) ENGINE=MyISAM;", [ tested_schema, tested_table ])
+
+# test
+EXPECT_FAIL("RuntimeError", "Compatibility issues were found", test_output_relative, { "ocimds": True })
+EXPECT_STDOUT_CONTAINS(too_many_columns(tested_schema, tested_table, columns_count).error())
+
+# cleanup
+session.run_sql(f"DROP SCHEMA !;", [ tested_schema ])
+
 #@<> WL14506-TSFR_2_1
 util.help("dump_instance")
 

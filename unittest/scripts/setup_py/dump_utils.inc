@@ -202,6 +202,11 @@ def ignore_missing_pks(schema, table):
     fixed = f"Table '{schema}'.'{table}' does not have a Primary Key, this is ignored"
     return Compatibility_issue(error, fixed)
 
+def too_many_columns(schema, table, columns):
+    error = f"Table '{schema}'.'{table}' has {columns} columns, while the limit for the InnoDB engine is 1017 columns (this issue needs to be fixed manually)"
+    fixed = ""
+    return Compatibility_issue(error, fixed)
+
 def urlencode_object_name(s):
     ret = ""
     for c in s:

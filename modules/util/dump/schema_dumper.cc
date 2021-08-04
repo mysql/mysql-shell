@@ -97,6 +97,8 @@ namespace dump {
 
 namespace {
 
+const std::size_t k_max_innodb_columns = 1017;
+
 using mysqlshdk::utils::Version;
 
 /* general_log or slow_log tables under mysql database */
@@ -998,6 +1000,34 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
                          Issue::Status::USE_STRIP_TABLESPACES);
     }
   }
+
+  if (opt_mysqlaas) {
+    std::size_t count = 0;
+
+    if (m_cache) {
+      count = m_cache->schemas.at(db).tables.at(table).all_columns.size();
+    } else {
+      const auto result = m_mysql->queryf(
+          "SELECT COUNT(column_name) FROM information_schema.columns WHERE "
+          "table_schema=? AND table_name=?",
+          db, table);
+
+      if (const auto row = result->fetch_one()) {
+        count = row->get_uint(0);
+      } else {
+        throw std::runtime_error(prefix + "not present in information_schema");
+      }
+    }
+
+    if (count > k_max_innodb_columns) {
+      res.emplace_back(
+          prefix + "has " + std::to_string(count) +
+              " columns, while the limit for the InnoDB engine is " +
+              std::to_string(k_max_innodb_columns) + " columns",
+          Issue::Status::FIX_MANUALLY);
+    }
+  }
+
   return res;
 }
 
