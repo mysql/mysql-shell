@@ -304,16 +304,31 @@ session.run_sql("CREATE USER IF NOT EXISTS 'first'@'10.11.12.13' IDENTIFIED BY '
 session.run_sql("CREATE USER IF NOT EXISTS 'firstfirst'@'localhost' IDENTIFIED BY 'pwd';")
 session.run_sql("CREATE USER IF NOT EXISTS 'second'@'localhost' IDENTIFIED BY 'pwd';")
 session.run_sql("CREATE USER IF NOT EXISTS 'second'@'10.11.12.14' IDENTIFIED BY 'pwd';")
+# account which is excluded always, dumper also excludes it, so we need to hack the sql file
+session.run_sql("CREATE USER IF NOT EXISTS 'mysql.sys-ex'@'localhost' IDENTIFIED BY 'pwd';")
+# account which is excluded when loading into MDS
+session.run_sql("CREATE USER IF NOT EXISTS 'ocimonitor'@'localhost' IDENTIFIED BY 'pwd';")
 
 users_outdir = os.path.join(outdir, "users")
 util.dump_instance(users_outdir, { "users": True, "ddlOnly": True, "showProgress": False })
+
+# replace 'mysql.sys-ex'@'localhost' with 'mysql.sys'@'localhost' in the SQL
+with open(os.path.join(users_outdir, "@.users.sql"), "r+", encoding="utf-8") as f:
+    new_contents = f.read().replace("mysql.sys-ex", "mysql.sys")
+    # overwrite the file
+    f.seek(0)
+    f.write(new_contents)
+    f.truncate()
 
 # helper function
 def EXPECT_INCLUDE_EXCLUDE(options, included, excluded, expected_exception=None):
     opts = { "loadUsers": True, "showProgress": False, "resetProgress": True }
     opts.update(options)
     shell.connect(__sandbox_uri2)
-    wipeout_server(session)
+    try:
+        reset_server(session)
+    except NameError:
+        wipeout_server(session)
     WIPE_OUTPUT()
     if expected_exception:
         EXPECT_THROWS(lambda: util.load_dump(users_outdir, opts), expected_exception)
@@ -329,7 +344,7 @@ def EXPECT_INCLUDE_EXCLUDE(options, included, excluded, expected_exception=None)
         EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user {0}".format(e))
         EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT statements for user {0}".format(e))
     for u in included + excluded:
-        if u.find('mysql') != -1:
+        if u.find('mysql.') != -1:
             session.run_sql("DROP USER IF EXISTS {0};".format(u))
 
 #@<> the `includeUsers` and `excludeUsers` options cannot be used when `loadUsers` is false
@@ -362,8 +377,10 @@ EXPECT_STDOUT_CONTAINS("NOTE: Account 'root'@'%' already exists")
 #@<> include non-existent user, no accounts are loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["third"] }, [], ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
 
-#@<> exclude non-existent user (and root@%), all accounts are loaded
+#@<> exclude non-existent user (and root@%), all accounts are loaded, mysql.sys is always excluded (and it already exists)
 EXPECT_INCLUDE_EXCLUDE({ "excludeUsers": ["third", "'root'@'%'"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"], [])
+EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user 'mysql.sys'@'localhost'")
+EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT statements for user 'mysql.sys'@'localhost'")
 
 #@<> include an existing user, one account is loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first@localhost"] }, ["'first'@'localhost'"], ["'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
@@ -422,6 +439,20 @@ EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "second@localhost"], "exclude
 #@<> include using an username and non-existing username, exclude using a non-existing username, two accounts are loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["first", "third"], "excludeUsers": ["fourth"]  }, ["'first'@'localhost'", "'first'@'10.11.12.13'"], ["'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
 
+#@<> don't include or exclude anything, mysql.sys is always excluded (and it already exists)
+EXPECT_INCLUDE_EXCLUDE({ "ignoreExistingObjects": True }, [], [])
+EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user 'mysql.sys'@'localhost'")
+EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT statements for user 'mysql.sys'@'localhost'")
+
+#@<> don't include or exclude anything when loading into MDS, ocimonitor is always excluded {VER(>=8.0.0) and not __dbug_off}
+testutil.dbug_set("+d,dump_loader_force_mds")
+
+EXPECT_INCLUDE_EXCLUDE({ "ignoreExistingObjects": True, 'ignoreVersion': True }, [], ["'ocimonitor'@'localhost'"])
+EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user 'mysql.sys'@'localhost'")
+EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT statements for user 'mysql.sys'@'localhost'")
+
+testutil.dbug_set("")
+
 #@<> cleanup tests with include/exclude users
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP USER 'first'@'localhost';")
@@ -429,6 +460,8 @@ session.run_sql("DROP USER 'first'@'10.11.12.13';")
 session.run_sql("DROP USER 'firstfirst'@'localhost';")
 session.run_sql("DROP USER 'second'@'localhost';")
 session.run_sql("DROP USER 'second'@'10.11.12.14';")
+session.run_sql("DROP USER 'mysql.sys-ex'@'localhost';")
+session.run_sql("DROP USER 'ocimonitor'@'localhost';")
 
 #@<> BUG#31748786 {not __dbug_off}
 # create a MDS-compatible dump

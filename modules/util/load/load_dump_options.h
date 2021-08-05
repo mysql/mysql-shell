@@ -200,6 +200,8 @@ class Load_dump_options {
 
   void set_max_bytes_per_transaction(const std::string &value);
 
+  void add_excluded_users(std::vector<shcore::Account> &&users);
+
   std::string m_url;
   std::string m_prefix;
   mysqlshdk::storage::backend::oci::Par_type m_par_type;

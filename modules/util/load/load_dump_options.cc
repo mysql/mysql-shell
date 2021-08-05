@@ -91,7 +91,10 @@ void parse_tables(const std::vector<std::string> &opt_tables,
 using mysqlsh::dump::Dump_manifest;
 using mysqlsh::dump::Manifest_mode;
 Load_dump_options::Load_dump_options() : Load_dump_options("") {}
-Load_dump_options::Load_dump_options(const std::string &url) : m_url(url) {}
+Load_dump_options::Load_dump_options(const std::string &url) : m_url(url) {
+  // some users are always excluded
+  add_excluded_users(shcore::to_accounts(k_excluded_users));
+}
 
 const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
   static const auto opts =
@@ -188,17 +191,7 @@ void Load_dump_options::set_str_unordered_set_option(
       }
     } else {
       try {
-        // some users are always excluded
-        auto excluded_users = data;
-        excluded_users.insert(std::begin(k_excluded_users),
-                              std::end(k_excluded_users));
-
-        if (is_mds()) {
-          excluded_users.insert(std::begin(k_oci_excluded_users),
-                                std::end(k_oci_excluded_users));
-        }
-
-        m_excluded_users = shcore::to_accounts(excluded_users);
+        add_excluded_users(shcore::to_accounts(data));
       } catch (const std::runtime_error &e) {
         throw std::invalid_argument(e.what());
       }
@@ -291,6 +284,18 @@ void Load_dump_options::set_session(
   m_server_uuid = m_base_session->query("SELECT @@server_uuid")
                       ->fetch_one_or_throw()
                       ->get_string(0);
+
+  if (m_load_users) {
+    if (is_mds()) {
+      add_excluded_users(shcore::to_accounts(k_oci_excluded_users));
+    }
+
+    m_excluded_users.emplace_back(
+        shcore::split_account(m_base_session->query("SELECT current_user()")
+                                  ->fetch_one()
+                                  ->get_string(0),
+                              true));
+  }
 }
 
 void Load_dump_options::validate() {
@@ -374,12 +379,6 @@ void Load_dump_options::validate() {
   if (m_progress_file.is_null()) {
     m_default_progress_file = "load-progress." + m_server_uuid + ".json";
   }
-
-  m_excluded_users.emplace_back(
-      shcore::split_account(m_base_session->query("SELECT current_user()")
-                                ->fetch_one()
-                                ->get_string(0),
-                            true));
 }
 
 std::string Load_dump_options::target_import_info() const {
@@ -451,15 +450,17 @@ void Load_dump_options::on_unpacked_options() {
 
   if (!m_load_data && !m_load_ddl && !m_load_users &&
       m_analyze_tables == Analyze_table_mode::OFF &&
-      m_update_gtid_set == Update_gtid_set::OFF)
+      m_update_gtid_set == Update_gtid_set::OFF) {
     throw shcore::Exception::argument_error(
         "At least one of loadData, loadDdl or loadUsers options must be "
         "enabled");
+  }
 
-  if (!m_load_indexes && m_defer_table_indexes == Defer_index_mode::OFF)
+  if (!m_load_indexes && m_defer_table_indexes == Defer_index_mode::OFF) {
     throw std::invalid_argument(
         "'deferTableIndexes' option needs to be enabled when "
         "'loadIndexes' option is disabled");
+  }
 }
 
 void Load_dump_options::on_log_options(const char *msg) const {
@@ -544,6 +545,11 @@ bool Load_dump_options::include_user(const shcore::Account &account) const {
   return m_included_users.end() != std::find_if(m_included_users.begin(),
                                                 m_included_users.end(),
                                                 predicate);
+}
+
+void Load_dump_options::add_excluded_users(
+    std::vector<shcore::Account> &&users) {
+  std::move(users.begin(), users.end(), std::back_inserter(m_excluded_users));
 }
 
 }  // namespace mysqlsh

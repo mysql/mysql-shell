@@ -184,12 +184,13 @@ DESCRIPTION
       - users: bool (default: true) - Include users, roles and grants in the
         dump file.
       - excludeUsers: array of strings (default not set) - Skip dumping the
-        specified users. Strings are in format user_name (equivalent to
-        'user_name'@'%') or 'user_name'@'host'.
+        specified users. Each user is in the format of 'user_name'[@'host']. If
+        the host is not specified, all the accounts with the given user name
+        are excluded.
       - includeUsers: array of strings (default not set) - Dump only the
-        specified users. Strings are in format user_name (equivalent to
-        'user_name'@'%') or 'user_name'@'host'. By default, all users are
-        included.
+        specified users. Each user is in the format of 'user_name'[@'host']. If
+        the host is not specified, all the accounts with the given user name
+        are included. By default, all users are included.
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
@@ -1577,8 +1578,9 @@ DESCRIPTION
         specified tables from the dump. Strings are in format schema.table or
         `schema`.`table`.
       - excludeUsers: array of strings (default not set) - Skip loading
-        specified users from the dump. Strings are in format user_name
-        (equivalent to 'user_name'@'%') or 'user_name'@'host'.
+        specified users from the dump. Each user is in the format of
+        'user_name'[@'host']. If the host is not specified, all the accounts
+        with the given user name are excluded.
       - ignoreExistingObjects: bool (default false) - Load the dump even if it
         contains objects that already exist in the target database.
       - ignoreVersion: bool (default false) - Load the dump even if the major
@@ -1590,9 +1592,10 @@ DESCRIPTION
         specified tables from the dump. Strings are in format schema.table or
         `schema`.`table`. By default, all tables from all schemas are included.
       - includeUsers: array of strings (default not set) - Load only the
-        specified users from the dump. Strings are in format user_name
-        (equivalent to 'user_name'@'%') or 'user_name'@'host'. By default, all
-        users are included.
+        specified users from the dump. Each user is in the format of
+        'user_name'[@'host']. If the host is not specified, all the accounts
+        with the given user name are included. By default, all users are
+        included.
       - loadData: bool (default: true) - Loads table data from the dump.
       - loadDdl: bool (default: true) - Executes DDL/SQL scripts in the dump.
       - loadIndexes: bool (default: true) - use together with
@@ -1647,11 +1650,11 @@ DESCRIPTION
 
       Examples:
 
-      util.loadDump("sakila_dump")
+      util.loadDump('sakila_dump')
 
-      util.loadDump("mysql/sales", {
-          "osBucketName": "mybucket",    // OCI Object Storage bucket
-          "waitDumpTimeout": 1800        // wait for new data for up to 30mins
+      util.loadDump('mysql/sales', {
+          'osBucketName': 'mybucket',    // OCI Object Storage bucket
+          'waitDumpTimeout': 1800        // wait for new data for up to 30mins
       })
 
       Loading a dump using Pre-authenticated Requests (PAR)
@@ -1671,8 +1674,10 @@ DESCRIPTION
       Dump Location: root of 'test' bucket
 
       util.loadDump(
-          "https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/",
-          {"progressFile":"load_progress.txt"})
+        'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/', {
+          'progressFile': 'load_progress.txt'
+        }
+      )
 
       Given a dump located at some folder within a bucket and a PAR created for
       the given folder, the dump can be loaded by providing the PAR and the
@@ -1684,8 +1689,10 @@ DESCRIPTION
       PAR created using the 'dump/' prefix.
 
       util.loadDump(
-          "https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/",
-          {progressFile:"load_progress.txt"})
+        'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/', {
+          'progressFile': 'load_progress.txt'
+        }
+      )
 
       In both of the above cases the load is done using pure HTTP GET requests,
       for that reason the progressFile option is mandatory and should be the
@@ -1712,5 +1719,6 @@ DESCRIPTION
 
       util.loadDump(
 
-      "https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json",
-        {progressFile:"load_progress.txt"})
+      'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json',
+        { 'progressFile': 'load_progress.txt' }
+      )

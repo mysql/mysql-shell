@@ -1259,8 +1259,9 @@ specified schemas from the dump.
 specified tables from the dump. Strings are in format schema.table or
 `schema`.`table`.
 @li <b>excludeUsers</b>: array of strings (default not set) - Skip loading
-specified users from the dump. Strings are in format user_name (equivalent to
-'user_name'@'@%') or 'user_name'@'host'.
+specified users from the dump. Each user is in the format of
+'user_name'[@'host']. If the host is not specified, all the accounts with the
+given user name are excluded.
 @li <b>ignoreExistingObjects</b>: bool (default false) - Load the dump even if
 it contains objects that already exist in the target database.
 @li <b>ignoreVersion</b>: bool (default false) - Load the dump even if the
@@ -1272,8 +1273,9 @@ specified schemas from the dump. By default, all schemas are included.
 specified tables from the dump. Strings are in format schema.table or
 `schema`.`table`. By default, all tables from all schemas are included.
 @li <b>includeUsers</b>: array of strings (default not set) - Load only the
-specified users from the dump. Strings are in format user_name (equivalent to
-'user_name'@'@%') or 'user_name'@'host'. By default, all users are included.
+specified users from the dump. Each user is in the format of
+'user_name'[@'host']. If the host is not specified, all the accounts with the
+given user name are included. By default, all users are included.
 @li <b>loadData</b>: bool (default: true) - Loads table data from the dump.
 @li <b>loadDdl</b>: bool (default: true) - Executes DDL/SQL scripts in the
 dump.
@@ -1320,11 +1322,11 @@ are inherited by load sessions.
 Examples:
 <br>
 @code
-util.<<<loadDump>>>("sakila_dump")
+util.<<<loadDump>>>('sakila_dump')
 
-util.<<<loadDump>>>("mysql/sales", {
-    "osBucketName": "mybucket",    // OCI Object Storage bucket
-    "waitDumpTimeout": 1800        // wait for new data for up to 30mins
+util.<<<loadDump>>>('mysql/sales', {
+    'osBucketName': 'mybucket',    // OCI Object Storage bucket
+    'waitDumpTimeout': 1800        // wait for new data for up to 30mins
 })
 @endcode
 
@@ -1347,8 +1349,10 @@ Example:
 Dump Location: root of 'test' bucket
 
 util.<<<loadDump>>>(
-    "https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/",
-    {"progressFile":"load_progress.txt"})
+  'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/', {
+    'progressFile': 'load_progress.txt'
+  }
+)
 @endcode
 
 Given a dump located at some folder within a bucket and a PAR created for the
@@ -1362,8 +1366,10 @@ Dump Location: folder 'dump' at the 'test' bucket
 PAR created using the 'dump/' prefix.
 
 util.<<<loadDump>>>(
-    "https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/",
-    {progressFile:"load_progress.txt"})
+  'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/dump/', {
+    'progressFile': 'load_progress.txt'
+  }
+)
 @endcode
 
 In both of the above cases the load is done using pure HTTP GET requests, for
@@ -1390,8 +1396,9 @@ Example:
 Dump Location: root of 'test' bucket:
 
 util.<<<loadDump>>>(
-  "https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json",
-  {progressFile:"load_progress.txt"})
+  'https://objectstorage.*.oraclecloud.com/p/*/n/main/b/test/o/@.manifest.json',
+  { 'progressFile': 'load_progress.txt' }
+)
 @endcode
 )*");
 /**
@@ -2053,11 +2060,12 @@ ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS}
 @li <b>users</b>: bool (default: true) - Include users, roles and grants in the
 dump file.
 @li <b>excludeUsers</b>: array of strings (default not set) - Skip dumping the
-specified users. Strings are in format user_name (equivalent to
-'user_name'@'@%') or 'user_name'@'host'.
+specified users. Each user is in the format of 'user_name'[@'host']. If the host
+is not specified, all the accounts with the given user name are excluded.
 @li <b>includeUsers</b>: array of strings (default not set) - Dump only the
-specified users. Strings are in format user_name (equivalent to
-'user_name'@'@%') or 'user_name'@'host'. By default, all users are included.
+specified users. Each user is in the format of 'user_name'[@'host']. If the host
+is not specified, all the accounts with the given user name are included. By
+default, all users are included.
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_DDL_COMPRESSION}

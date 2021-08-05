@@ -308,14 +308,15 @@ OPTIONS
             Include users, roles and grants in the dump file. Default: true.
 
 --excludeUsers=<str list>
-            Skip dumping the specified users. Strings are in format user_name
-            (equivalent to 'user_name'@'%') or 'user_name'@'host'. Default: not
-            set.
+            Skip dumping the specified users. Each user is in the format of
+            'user_name'[@'host']. If the host is not specified, all the
+            accounts with the given user name are excluded. Default: not set.
 
 --includeUsers=<str list>
-            Dump only the specified users. Strings are in format user_name
-            (equivalent to 'user_name'@'%') or 'user_name'@'host'. By default,
-            all users are included. Default: not set.
+            Dump only the specified users. Each user is in the format of
+            'user_name'[@'host']. If the host is not specified, all the
+            accounts with the given user name are included. By default, all
+            users are included. Default: not set.
 
 //@<OUT> CLI util dump-schemas --help
 NAME
@@ -900,14 +901,16 @@ OPTIONS
             Default: not set.
 
 --excludeUsers=<str list>
-            Skip loading specified users from the dump. Strings are in format
-            user_name (equivalent to 'user_name'@'%') or 'user_name'@'host'.
-            Default: not set.
+            Skip loading specified users from the dump. Each user is in the
+            format of 'user_name'[@'host']. If the host is not specified, all
+            the accounts with the given user name are excluded. Default: not
+            set.
 
 --includeUsers=<str list>
-            Load only the specified users from the dump. Strings are in format
-            user_name (equivalent to 'user_name'@'%') or 'user_name'@'host'. By
-            default, all users are included. Default: not set.
+            Load only the specified users from the dump. Each user is in the
+            format of 'user_name'[@'host']. If the host is not specified, all
+            the accounts with the given user name are included. By default, all
+            users are included. Default: not set.
 
 --updateGtidSet=<str>
             "off", "replace", "append" (default: off) - if set to a value other
