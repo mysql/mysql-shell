@@ -98,20 +98,9 @@ inline bool str_caseeq(const std::string &a, const std::string &b) {
   return a.length() == b.length() && str_caseeq(a.c_str(), b.c_str());
 }
 
-template <typename T>
-inline bool str_caseeq_mv(const T &) {
-  return false;
-}
-
 template <typename T, typename... Args>
-bool str_caseeq_mv(const std::string &token, const T &val, Args... args) {
-  return str_caseeq(token.c_str(), val) ||
-         str_caseeq_mv(token.c_str(), args...);
-}
-
-template <typename T, typename... Args>
-bool str_caseeq_mv(const char *token, const T &val, Args... args) {
-  return str_caseeq(token, val) || str_caseeq_mv(token, args...);
+bool str_caseeq_mv(T &&token, Args &&... args) {
+  return (str_caseeq(std::forward<T>(token), std::forward<Args>(args)) || ...);
 }
 
 /** Checks whether a string has another as a prefix */

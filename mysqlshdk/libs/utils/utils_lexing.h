@@ -30,6 +30,8 @@
 #include <string>
 #include <utility>
 
+#include "mysqlshdk/libs/utils/utils_string.h"
+
 namespace mysqlshdk {
 namespace utils {
 
@@ -322,6 +324,13 @@ class SQL_iterator {
   std::string next_sql_function();
 
   bool inside_hint() const { return m_comment_hint; }
+
+  template <class... Types>
+  bool consume_tokens(Types &&... tokens) {
+    if (!valid()) return false;
+    return (shcore::str_caseeq(next_token(), std::forward<Types>(tokens)) &&
+            ...);
+  }
 
  private:
   const std::string &m_s;

@@ -1525,5 +1525,41 @@ std::string convert_grant_to_create_user(
   return create_user;
 }
 
+std::string strip_default_role(const std::string &create_user,
+                               std::string *rewritten) {
+  std::string ret;
+  SQL_iterator it(create_user, 0, false);
+
+  if (it.consume_tokens("CREATE", "USER")) {
+    while (it.valid()) {
+      auto tok = it.next_token_and_offset();
+      if (!shcore::str_caseeq(tok.first, "DEFAULT") ||
+          !shcore::str_caseeq(it.next_token(), "ROLE"))
+        continue;
+
+      std::string::size_type end = it.position();
+      std::string::size_type next_start = end;
+      while (true) {
+        get_account(&it);
+        end = it.position();
+        auto next = it.next_token_and_offset();
+        next_start = next.second;
+        if (next.first != ",") break;
+      }
+
+      assert(end != it.position());
+      ret = create_user.substr(tok.second, end - tok.second);
+      if (rewritten)
+        *rewritten =
+            create_user.substr(0, tok.second) + create_user.substr(next_start);
+      break;
+    }
+  }
+
+  if (ret.empty() && rewritten != nullptr && rewritten != &create_user)
+    *rewritten = create_user;
+  return ret;
+}
+
 }  // namespace compatibility
 }  // namespace mysqlsh

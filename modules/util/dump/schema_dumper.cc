@@ -39,6 +39,7 @@
 #include <sys/types.h>
 #include <array>
 #include <functional>
+#include <map>
 #include <regex>
 #include <unordered_set>
 
@@ -2686,6 +2687,8 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
     IFile *file, const std::vector<shcore::Account> &included,
     const std::vector<shcore::Account> &excluded) {
   std::vector<Issue> problems;
+  std::map<std::string, std::string> default_roles;
+
   bool compatibility = opt_strip_restricted_grants;
   log_debug("Dumping grants for server");
 
@@ -2845,6 +2848,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
 
     if (add_user) {
       fputs("-- begin user " + user + "\n", file);
+      auto default_role =
+          compatibility::strip_default_role(create_user, &create_user);
+      if (!default_role.empty())
+        default_roles.emplace(user, std::move(default_role));
       fputs(create_user + ";\n", file);
       fputs("-- end user " + user + "\n\n", file);
 
@@ -2931,6 +2938,13 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
       fputs("-- end grants " + user + "\n\n", file);
     }
   }
+
+  for (const auto &df : default_roles) {
+    fputs("-- begin default role " + df.first + "\n", file);
+    fprintf(file, "SET %s TO %s;\n", df.second.c_str(), df.first.c_str());
+    fputs("-- end default role " + df.first + "\n\n", file);
+  }
+
   fputs("-- End of dumping user accounts\n\n", file);
   return problems;
 }
@@ -3013,6 +3027,7 @@ std::string Schema_dumper::preprocess_users_script(
 
   static constexpr const char *k_create_user_cmt = "-- begin user ";
   static constexpr const char *k_grant_cmt = "-- begin grants ";
+  constexpr auto k_default_role_cmt = "-- begin default role ";
   static constexpr const char *k_end_cmt = "-- end ";
 
   // Skip create and grant statements for the excluded users
@@ -3022,6 +3037,8 @@ std::string Schema_dumper::preprocess_users_script(
 
     if (shcore::str_beginswith(line, k_create_user_cmt)) {
       user = line.substr(strlen(k_create_user_cmt));
+    } else if (shcore::str_beginswith(line, k_default_role_cmt)) {
+      user = line.substr(strlen(k_default_role_cmt));
     } else if (shcore::str_beginswith(line, k_grant_cmt)) {
       user = line.substr(strlen(k_grant_cmt));
       grant_statement = true;

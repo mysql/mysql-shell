@@ -121,6 +121,9 @@ std::string convert_grant_to_create_user(
     const std::string &grant, const std::string &authentication_plugin,
     std::string *rewritten);
 
+std::string strip_default_role(const std::string &create_user,
+                               std::string *rewritten);
+
 }  // namespace compatibility
 }  // namespace mysqlsh
 

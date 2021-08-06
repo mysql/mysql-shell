@@ -330,7 +330,7 @@ TEST(Utils_lexing, SQL_string_iterator_get_next_sql_token) {
   EXPECT_EQ("TO", itg.next_token());
   EXPECT_EQ("@", itg.next_token());
   EXPECT_EQ(";", itg.next_token());
-  EXPECT_TRUE(itg.next_sql_function().empty());
+  EXPECT_TRUE(itg.next_token().empty());
   EXPECT_FALSE(itg.valid());
 
   SQL_iterator git(grant, 0, false);
@@ -359,7 +359,7 @@ TEST(Utils_lexing, SQL_string_iterator_get_next_sql_token) {
   EXPECT_EQ("@", git.next_token());
   EXPECT_EQ("`%`", git.next_token());
   EXPECT_EQ(";", git.next_token());
-  EXPECT_TRUE(git.next_sql_function().empty());
+  EXPECT_TRUE(git.next_token().empty());
   EXPECT_FALSE(git.valid());
 
   std::string ct =
@@ -387,7 +387,7 @@ TEST(Utils_lexing, SQL_string_iterator_get_next_sql_token) {
   EXPECT_EQ("=", cit.next_token());
   EXPECT_EQ("InnoDB", cit.next_token());
   EXPECT_EQ(";", cit.next_token());
-  EXPECT_TRUE(cit.next_sql_function().empty());
+  EXPECT_TRUE(cit.next_token().empty());
   EXPECT_FALSE(cit.valid());
 
   std::string proc = R"(delimiter //
@@ -484,7 +484,7 @@ END//)";
   EXPECT_EQ("str", pit.next_token());
   EXPECT_EQ(";", pit.next_token());
   EXPECT_EQ("END//", pit.next_token());
-  EXPECT_TRUE(pit.next_sql_function().empty());
+  EXPECT_TRUE(pit.next_token().empty());
   EXPECT_FALSE(pit.valid());
 
   std::string select =
@@ -604,6 +604,34 @@ TEST(Utils_lexing, SQL_string_iterator_get_next_sql_function) {
   SQL_iterator it1(sql1);
   EXPECT_EQ("ST_TOUCHES", it1.next_sql_function());
   EXPECT_TRUE(it1.next_sql_function().empty());
+}
+
+TEST(Utils_lexing, SQL_iterator_consume_tokens) {
+  std::string ct =
+      "CREATE TABLE t(i int) ENCRYPTION = 'N' DATA DIRECTORY = '\tmp', "
+      "/*!50100 TABLESPACE `t s 1` */ ENGINE = InnoDB;";
+  SQL_iterator cit(ct, 0, false);
+  EXPECT_TRUE(cit.consume_tokens("CREATE", "TABLE"));
+  EXPECT_EQ("t", cit.next_token());
+  EXPECT_EQ("(", cit.next_token());
+  EXPECT_EQ("i", cit.next_token());
+  EXPECT_EQ("int", cit.next_token());
+  // next token is not encryption EXPECT_EQ(")", cit.next_token());
+  EXPECT_FALSE(cit.consume_tokens("ENCRYPTION"));
+  EXPECT_TRUE(cit.consume_tokens("encryption"));
+  EXPECT_EQ("=", cit.next_token());
+  EXPECT_EQ("'N'", cit.next_token());
+  EXPECT_EQ("DATA", cit.next_token());
+  EXPECT_EQ("DIRECTORY", cit.next_token());
+  EXPECT_EQ("=", cit.next_token());
+  EXPECT_EQ("'\tmp'", cit.next_token());
+  EXPECT_EQ(",", cit.next_token());
+  EXPECT_EQ("TABLESPACE", cit.next_token());
+  EXPECT_EQ("`t s 1`", cit.next_token());
+  EXPECT_TRUE(cit.consume_tokens("ENGINE", "=", "InnoDB", ";"));
+  EXPECT_TRUE(cit.next_token().empty());
+  EXPECT_FALSE(cit.consume_tokens(""));
+  EXPECT_FALSE(cit.valid());
 }
 
 }  // namespace utils

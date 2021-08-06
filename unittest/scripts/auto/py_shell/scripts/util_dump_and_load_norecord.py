@@ -463,6 +463,31 @@ session.run_sql("DROP USER 'second'@'10.11.12.14';")
 session.run_sql("DROP USER 'mysql.sys-ex'@'localhost';")
 session.run_sql("DROP USER 'ocimonitor'@'localhost';")
 
+#@<> Bug#33128803 default roles {VER(>= 8.0.11)}
+shell.connect(__sandbox_uri1)
+session.run_sql("CREATE ROLE IF NOT EXISTS 'aaabra';")
+session.run_sql("CREATE ROLE IF NOT EXISTS aaabby;")
+session.run_sql("CREATE ROLE IF NOT EXISTS 'local'@'localhost';")
+session.run_sql("create user IF NOT EXISTS wolodia@localhost default role 'aaabra', local@localhost, aaabby;")
+session.run_sql("create user IF NOT EXISTS zenon@localhost default role aaabby;")
+
+default_roles_dir = os.path.join(outdir, "default_roles_dir")
+util.dump_instance(default_roles_dir, { "users": True, "showProgress": False })
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session2)
+
+EXPECT_NO_THROWS(lambda: util.load_dump(default_roles_dir, {"loadUsers":True, "excludeUsers":["root@%"]}), "Load")
+
+compare_servers(session1, session2)
+
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP ROLE 'aaabra';")
+session.run_sql("DROP ROLE aaabby;")
+session.run_sql("DROP ROLE 'local'@'localhost';")
+session.run_sql("DROP user wolodia@localhost;")
+session.run_sql("DROP user zenon@localhost;")
+
 #@<> BUG#31748786 {not __dbug_off}
 # create a MDS-compatible dump
 shell.connect(__sandbox_uri1)

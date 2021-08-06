@@ -2286,5 +2286,56 @@ TEST_F(Compatibility_test, grant_on_table_from_mysql_schema) {
                 "GRANT SELECT ON FUNCTION mysql.test TO `zenon`@`localhost`"));
 }
 
+TEST_F(Compatibility_test, strip_default_role) {
+  const auto EXPECT_STRIPPED = [&](const std::string &statement,
+                                   const std::string &clause = "",
+                                   std::string rewritten = "") {
+    SCOPED_TRACE(statement);
+    if (rewritten.empty()) rewritten = statement;
+    std::string out;
+    auto ret = mysqlsh::compatibility::strip_default_role(statement, &out);
+    EXPECT_EQ(clause, ret);
+    EXPECT_EQ(rewritten, out);
+  };
+
+  EXPECT_STRIPPED(
+      "CREATE USER IF NOT EXISTS 'abra'@'%' IDENTIFIED WITH "
+      "'caching_sha2_password' REQUIRE NONE PASSWORD EXPIRE ACCOUNT LOCK "
+      "PASSWORD HISTORY DEFAULT PASSWORD REUSE INTERVAL DEFAULT PASSWORD "
+      "REQUIRE CURRENT DEFAULT;");
+
+  EXPECT_STRIPPED(
+      "CREATE USER IF NOT EXISTS 'aaabra'@'localhost' IDENTIFIED WITH "
+      "'caching_sha2_password' DEFAULT ROLE `abra`@`%` REQUIRE NONE PASSWORD "
+      "EXPIRE DEFAULT ACCOUNT UNLOCK PASSWORD HISTORY DEFAULT PASSWORD REUSE "
+      "INTERVAL DEFAULT PASSWORD REQUIRE CURRENT DEFAULT;",
+      "DEFAULT ROLE `abra`@`%`",
+      "CREATE USER IF NOT EXISTS 'aaabra'@'localhost' IDENTIFIED WITH "
+      "'caching_sha2_password' REQUIRE NONE PASSWORD EXPIRE DEFAULT ACCOUNT "
+      "UNLOCK PASSWORD HISTORY DEFAULT PASSWORD REUSE INTERVAL DEFAULT "
+      "PASSWORD REQUIRE CURRENT DEFAULT;");
+
+  EXPECT_STRIPPED(
+      "CREATE USER IF NOT EXISTS 'anonymous'@'localhost' IDENTIFIED WITH "
+      "'caching_sha2_password' DEFAULT ROLE `abra`@`%`, yyy, zzz REQUIRE NONE "
+      "PASSWORD EXPIRE DEFAULT ACCOUNT UNLOCK PASSWORD HISTORY DEFAULT "
+      "PASSWORD REUSE INTERVAL DEFAULT PASSWORD REQUIRE CURRENT DEFAULT;",
+      "DEFAULT ROLE `abra`@`%`, yyy, zzz",
+      "CREATE USER IF NOT EXISTS 'anonymous'@'localhost' IDENTIFIED WITH "
+      "'caching_sha2_password' REQUIRE NONE PASSWORD EXPIRE DEFAULT ACCOUNT "
+      "UNLOCK PASSWORD HISTORY DEFAULT PASSWORD REUSE INTERVAL DEFAULT "
+      "PASSWORD REQUIRE CURRENT DEFAULT;");
+
+  EXPECT_STRIPPED(
+      "CREATE USER IF NOT EXISTS 'wolodia'@'localhost' IDENTIFIED WITH "
+      "'caching_sha2_password' DEFAULT ROLE "
+      "`local`@`localhost`,yyy@%,`zzz`@`%` REQUIRE NONE PASSWORD EXPIRE "
+      "DEFAULT ACCOUNT UNLOCK PASSWORD HISTORY DEFAULT PASSWORD REUSE",
+      "DEFAULT ROLE `local`@`localhost`,yyy@%,`zzz`@`%`",
+      "CREATE USER IF NOT EXISTS 'wolodia'@'localhost' IDENTIFIED WITH "
+      "'caching_sha2_password' REQUIRE NONE PASSWORD EXPIRE DEFAULT ACCOUNT "
+      "UNLOCK PASSWORD HISTORY DEFAULT PASSWORD REUSE");
+}
+
 }  // namespace compatibility
 }  // namespace mysqlsh
