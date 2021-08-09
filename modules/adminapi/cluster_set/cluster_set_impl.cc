@@ -1614,16 +1614,22 @@ void Cluster_set_impl::update_replica(
     const Async_replication_options &ar_options, bool dry_run) {
   auto primary_uuid = replica->get_cluster_server()->get_uuid();
 
+  // Update SECONDARY instances before the PRIMARY, because we need to ensure
+  // the async channel exists everywhere before we can start the channel at the
+  // PRIMARY with auto-failover enabled
+
   replica->execute_in_members(
       {mysqlshdk::gr::Member_state::ONLINE}, master->get_connection_options(),
-      {},
+      {replica->get_cluster_server()->descr()},
       [=](const std::shared_ptr<Instance> &instance,
           const mysqlshdk::gr::Member &gr_member) {
-        update_replica(instance.get(), master, ar_options,
-                       (gr_member.role == mysqlshdk::gr::Member_role::PRIMARY),
-                       dry_run);
+        if (gr_member.role != mysqlshdk::gr::Member_role::PRIMARY)
+          update_replica(instance.get(), master, ar_options, false, dry_run);
         return true;
       });
+
+  update_replica(replica->get_cluster_server().get(), master, ar_options, true,
+                 dry_run);
 }
 
 void Cluster_set_impl::update_replica(

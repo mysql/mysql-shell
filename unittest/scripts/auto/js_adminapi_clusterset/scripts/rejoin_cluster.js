@@ -34,12 +34,12 @@ session6 = mysql.getSession(__sandbox_uri6);
 //@<> Create a 3/3 clusterset
 
 shell.connect(__sandbox_uri1);
-c1 = dba.createCluster("cluster1", {gtidSetIsComplete:1});
+c1 = dba.createCluster("cluster1", {gtidSetIsComplete:1, manualStartOnBoot:1});
 c1.addInstance(__sandbox_uri2);
 
 cs = c1.createClusterSet("cs");
 
-c2 = cs.createReplicaCluster(__sandbox_uri4, "cluster2");
+c2 = cs.createReplicaCluster(__sandbox_uri4, "cluster2", {manualStartOnBoot:1});
 c2.addInstance(__sandbox_uri5);
 c1.addInstance(__sandbox_uri3);
 c2.addInstance(__sandbox_uri6);
@@ -301,13 +301,47 @@ cs.status({extended:1});
 c2.setPrimaryInstance(__sandbox_uri4);
 wait_channel_ready(session4, __mysql_sandbox_port1, "clusterset_replication");
 
+//@<> rejoinCluster primary cluster after rebooting it
+// see Bug #33166390 CLUSTERSET: when doing rejoincluster, a member is kicked out of GR
+
+testutil.stopSandbox(__mysql_sandbox_port1);
+testutil.stopSandbox(__mysql_sandbox_port2);
+testutil.stopSandbox(__mysql_sandbox_port3);
+
+shell.connect(__sandbox_uri4);
+c2 = dba.getCluster();
+cs = dba.getClusterSet();
+cs.forcePrimaryCluster("cluster2");
+
+testutil.startSandbox(__mysql_sandbox_port1);
+testutil.startSandbox(__mysql_sandbox_port2);
+testutil.startSandbox(__mysql_sandbox_port3);
+session1 = mysql.getSession(__sandbox_uri1);
+session2 = mysql.getSession(__sandbox_uri2);
+session3 = mysql.getSession(__sandbox_uri3);
+
+shell.connect(__sandbox_uri1);
+c1 = dba.rebootClusterFromCompleteOutage();
+c1.rejoinInstance(__sandbox_uri2);
+c1.rejoinInstance(__sandbox_uri3);
+
+cs.rejoinCluster("cluster1");
+
+cs.status({extended:1});
+
+CHECK_REPLICA_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c2, c1);
+
+cs.setPrimaryCluster("cluster1");
+cs = dba.getClusterSet();
+
 //@<> turn into a 3/2/1 clusterset
 c2.removeInstance(__sandbox_uri6);
 
+shell.connect(__sandbox_uri4);
+c1 = dba.getCluster("cluster1");
 c2 = dba.getCluster("cluster2");
 
-// XXX workaround for Bug #33076051, the clone shouldn't be needed
-c3 = cs.createReplicaCluster(__sandbox_uri6, "cluster3", {recoveryMethod:"clone"});
+c3 = cs.createReplicaCluster(__sandbox_uri6, "cluster3");
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], c1);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri5], c1, c2);
