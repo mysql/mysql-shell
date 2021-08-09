@@ -669,15 +669,19 @@ EXPECT_SHELL_LOG_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warn
 
 #@<> WL14632: create tables with partitions
 dump_dir = os.path.join(outdir, "part")
+metadata_file = os.path.join(dump_dir, "@.json")
 schema_name = "wl14632"
+no_partitions_table_name = "no_partitions"
 partitions_table_name = "partitions"
 subpartitions_table_name = "subpartitions"
-all_tables = [ partitions_table_name, subpartitions_table_name ]
+all_tables = [ no_partitions_table_name, partitions_table_name, subpartitions_table_name ]
 subpartition_prefix = "@o" if __os_type == "windows" else "@ó"
 
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
 session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [schema_name])
+
+session.run_sql("CREATE TABLE !.! (`id` int NOT NULL AUTO_INCREMENT PRIMARY KEY, `data` blob)", [ schema_name, no_partitions_table_name ])
 
 session.run_sql("""CREATE TABLE !.!
 (`id` int NOT NULL AUTO_INCREMENT PRIMARY KEY, `data` blob)
@@ -700,6 +704,7 @@ SUBPARTITIONS 2
 for x in range(4):
     session.run_sql(f"""INSERT INTO !.! (`data`) VALUES {",".join([f"('{random_string(100,200)}')" for i in range(10000)])}""", [ schema_name, partitions_table_name ])
 session.run_sql("INSERT INTO !.! SELECT * FROM !.!", [ schema_name, subpartitions_table_name, schema_name, partitions_table_name ])
+session.run_sql("INSERT INTO !.! SELECT * FROM !.!", [ schema_name, no_partitions_table_name, schema_name, partitions_table_name ])
 
 for table in all_tables:
     session.run_sql("ANALYZE TABLE !.!;", [ schema_name, table ])
@@ -707,7 +712,7 @@ for table in all_tables:
 partition_names = {}
 for table in all_tables:
     partition_names[table] = []
-    for row in session.run_sql("SELECT IFNULL(SUBPARTITION_NAME, PARTITION_NAME) FROM information_schema.partitions WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?;", [ schema_name, table ]).fetch_all():
+    for row in session.run_sql("SELECT IFNULL(SUBPARTITION_NAME, PARTITION_NAME) FROM information_schema.partitions WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND PARTITION_NAME IS NOT NULL;", [ schema_name, table ]).fetch_all():
         partition_names[table].append(row[0])
 
 # helper functions
@@ -761,11 +766,61 @@ EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_schemas([ schema_name ], dump
 EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_schemas([ schema_name ], dump_dir, { "bytesPerChunk": "128k", "showProgress": False }))
 
 #@<> WL14632-TSFR_1_3
+# test table with partitions
 EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_tables(schema_name, [ partitions_table_name ], dump_dir, { "showProgress": False }), [ partitions_table_name ])
 EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_tables(schema_name, [ partitions_table_name ], dump_dir, { "bytesPerChunk": "128k", "showProgress": False }), [ partitions_table_name ])
 
+# BUG#33063035 check if the metadata file has the partition awareness capability
+EXPECT_CAPABILITIES(metadata_file, [ partition_awareness_capability ])
+
+# test table with sub-partitions
 EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_tables(schema_name, [ subpartitions_table_name ], dump_dir, { "showProgress": False }), [ subpartitions_table_name ])
 EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_tables(schema_name, [ subpartitions_table_name ], dump_dir, { "bytesPerChunk": "128k", "showProgress": False }), [ subpartitions_table_name ])
+
+# BUG#33063035 check if the metadata file has the partition awareness capability
+EXPECT_CAPABILITIES(metadata_file, [ partition_awareness_capability ])
+
+#@<> BUG#33063035 dump table without partitions, metadata should not have the partition awareness capability
+EXPECT_DUMP_AND_LOAD_PARTITIONED(lambda: util.dump_tables(schema_name, [ no_partitions_table_name ], dump_dir, { "showProgress": False }), [ ])
+EXPECT_NO_CAPABILITIES(metadata_file, [ partition_awareness_capability ])
+
+#@<> BUG#33063035 reuse previous dump, hack metadata with some fake capability
+metadata = read_json(metadata_file)
+metadata["capabilities"].append({
+    "id": "make_toast",
+    "description": "Makes toasts, yummy.",
+    "versionRequired": "8.0.28",
+})
+write_json(metadata_file, metadata)
+
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Unsupported dump capabilities")
+EXPECT_STDOUT_CONTAINS("""
+ERROR: Dump is using capabilities which are not supported by this version of MySQL Shell:
+
+* Makes toasts, yummy.
+
+The minimum required version of MySQL Shell to load this dump is: 8.0.28.
+""")
+
+#@<> BUG#33063035 reuse previous dump, hack metadata with another fake capability, check if the correct version is suggested
+metadata = read_json(metadata_file)
+metadata["capabilities"].append({
+    "id": "make_another_toast",
+    "description": "Makes more toasts, great!",
+    "versionRequired": "8.0.29",
+})
+write_json(metadata_file, metadata)
+
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Unsupported dump capabilities")
+EXPECT_STDOUT_CONTAINS("""
+ERROR: Dump is using capabilities which are not supported by this version of MySQL Shell:
+
+* Makes toasts, yummy.
+
+* Makes more toasts, great!
+
+The minimum required version of MySQL Shell to load this dump is: 8.0.29.
+""")
 
 #@<> WL14632-TSFR_3_1
 exported_file = os.path.join(outdir, "part.tsv")

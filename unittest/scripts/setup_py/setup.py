@@ -99,6 +99,16 @@ def EXPECT_LT(expected, actual, note=""):
     context = "Tested values not as expected: "+note+"\n\t"+str(expected)+" (expected) < "+str(actual)+" (actual)"
     testutil.fail(context)
 
+def EXPECT_GE(expected, actual, note=""):
+  if expected < actual:
+    context = "Tested values not as expected: "+note+"\n\t"+str(expected)+" (expected) >= "+str(actual)+" (actual)"
+    testutil.fail(context)
+
+def EXPECT_GT(expected, actual, note=""):
+  if expected <= actual:
+    context = "Tested values not as expected: "+note+"\n\t"+str(expected)+" (expected) > "+str(actual)+" (actual)"
+    testutil.fail(context)
+
 def EXPECT_BETWEEN(expected_from, expected_to, actual, note=""):
   if expected_from >= actual >= expected_to:
     context = "Tested value not as expected: "+note+f"\n\t{expected_from} >= {actual} >= {expected_to}"

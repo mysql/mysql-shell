@@ -1894,6 +1894,8 @@ void Dumper::initialize_instance_cache() {
 }
 
 void Dumper::create_schema_tasks() {
+  bool has_partitions = false;
+
   for (const auto &s : m_cache.schemas) {
     Schema_info schema;
     schema.name = s.first;
@@ -1909,6 +1911,8 @@ void Dumper::create_schema_tasks() {
       table.info = &t.second;
 
       for (const auto &p : t.second.partitions) {
+        has_partitions = true;
+
         Partition_info partition;
         partition.info = &p;
         partition.basename = get_basename(
@@ -1931,6 +1935,10 @@ void Dumper::create_schema_tasks() {
     }
 
     m_schema_infos.emplace_back(std::move(schema));
+  }
+
+  if (has_partitions) {
+    m_used_capabilities.emplace(Capability::PARTITION_AWARENESS);
   }
 }
 
@@ -2690,6 +2698,26 @@ void Dumper::write_dump_started_metadata() const {
 
     doc.AddMember(StringRef("compatibilityOptions"), std::move(compatibility),
                   a);
+  }
+
+  {
+    // list of used capabilities
+    Value capabilities{Type::kArrayType};
+
+    for (const auto &c : m_used_capabilities) {
+      Value capability{Type::kObjectType};
+
+      capability.AddMember(StringRef("id"), {capability::id(c).c_str(), a}, a);
+      capability.AddMember(StringRef("description"),
+                           {capability::description(c).c_str(), a}, a);
+      capability.AddMember(
+          StringRef("versionRequired"),
+          {capability::version_required(c).get_base().c_str(), a}, a);
+
+      capabilities.PushBack(std::move(capability), a);
+    }
+
+    doc.AddMember(StringRef("capabilities"), std::move(capabilities), a);
   }
 
   doc.AddMember(StringRef("begin"),

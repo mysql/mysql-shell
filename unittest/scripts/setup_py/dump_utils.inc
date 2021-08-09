@@ -278,7 +278,39 @@ def remove_file(name):
     except:
         pass
 
+def read_json(path):
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def write_json(path, data):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+
+def EXPECT_CAPABILITIES(path, capabilities):
+    metadata = read_json(path)
+    EXPECT_TRUE("capabilities" in metadata, "Metadata file should have 'capabilities' array")
+    for expected in capabilities:
+        actual = next(filter(lambda capability: expected["id"] == capability["id"], metadata["capabilities"]), None)
+        EXPECT_TRUE(actual is not None, f"Metadata should have '{expected['id']}' capability")
+        if actual:
+            EXPECT_EQ(expected["id"], actual["id"], "IDs of the capability should match")
+            EXPECT_EQ(expected["description"], actual["description"], "Descriptions of the capability should match")
+            EXPECT_EQ(expected["versionRequired"], actual["versionRequired"], "Version required of the capability should match")
+
+def EXPECT_NO_CAPABILITIES(path, capabilities):
+    metadata = read_json(path)
+    EXPECT_TRUE("capabilities" in metadata, "Metadata file should have 'capabilities' array")
+    for expected in capabilities:
+        actual = next(filter(lambda capability: expected["id"] == capability["id"], metadata["capabilities"]), None)
+        EXPECT_FALSE(actual is not None, f"Metadata should NOT have '{expected['id']}' capability")
+
 # constants
 test_user = "sample_user"
 test_user_account = get_test_user_account(test_user)
 test_user_pwd = "p4$$"
+
+partition_awareness_capability = {
+    "id": "partition_awareness",
+    "description": "Partition awareness - dumper treats each partition as a separate table, improving both dump and load times.",
+    "versionRequired": "8.0.27",
+}

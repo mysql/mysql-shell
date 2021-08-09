@@ -217,6 +217,16 @@ class Dump_reader {
 
   uint64_t metadata_parsed() { return m_metadata_parsed; }
 
+  struct Capability_info {
+    std::string id;
+    std::string description;
+    mysqlshdk::utils::Version version_required;
+  };
+
+  const std::vector<Capability_info> &capabilities() const {
+    return m_contents.capabilities;
+  }
+
   struct View_info {
     std::string schema;
     std::string table;
@@ -390,6 +400,8 @@ class Dump_reader {
         table_data_size;
     // total file sizes available in the dump location
     size_t dump_size = 0;
+
+    std::vector<Capability_info> capabilities;
 
     bool ready() const;
 

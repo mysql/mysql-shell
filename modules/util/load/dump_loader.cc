@@ -34,6 +34,7 @@
 #include <vector>
 
 #include "modules/mod_utils.h"
+#include "modules/util/dump/capability.h"
 #include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/import_table/load_data.h"
@@ -55,6 +56,8 @@
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
+
+using mysqlshdk::utils::Version;
 
 FI_DEFINE(dump_loader, [](const mysqlshdk::utils::FI::Args &args) {
   throw std::runtime_error(args.get_string("msg"));
@@ -85,8 +88,8 @@ class dump_wait_timeout : public std::runtime_error {
 
 namespace {
 
-bool histograms_supported(const mysqlshdk::utils::Version &version) {
-  return version > mysqlshdk::utils::Version(8, 0, 0);
+bool histograms_supported(const Version &version) {
+  return version > Version(8, 0, 0);
 }
 
 bool has_pke(mysqlshdk::db::ISession *session, const std::string &schema,
@@ -1741,13 +1744,38 @@ void Dump_loader::open_dump(
     throw std::runtime_error("Unsupported dump version");
   }
 
-  if (m_dump->dump_version() <
-      mysqlshdk::utils::Version(dump::Schema_dumper::version())) {
+  if (m_dump->dump_version() < Version(dump::Schema_dumper::version())) {
     console->print_note(
         "Dump format has version " + m_dump->dump_version().get_full() +
         " and was created by an older version of MySQL Shell. "
         "If you experience problems loading it, please recreate the dump using "
         "the current version of MySQL Shell and try again.");
+  }
+
+  std::string missing_capabilities;
+  // 8.0.27 is the version where capabilities were added
+  Version minimum_version{8, 0, 27};
+
+  for (const auto &capability : m_dump->capabilities()) {
+    if (!dump::capability::is_supported(capability.id)) {
+      if (minimum_version < capability.version_required) {
+        minimum_version = capability.version_required;
+      }
+
+      missing_capabilities += "* ";
+      missing_capabilities += capability.description;
+      missing_capabilities += "\n\n";
+    }
+  }
+
+  if (!missing_capabilities.empty()) {
+    console->print_error(
+        "Dump is using capabilities which are not supported by this version of "
+        "MySQL Shell:\n\n" +
+        missing_capabilities +
+        "The minimum required version of MySQL Shell to load this dump is: " +
+        minimum_version.get_base() + ".");
+    throw std::runtime_error("Unsupported dump capabilities");
   }
 
   if (status != Dump_reader::Status::COMPLETE) {
@@ -1787,7 +1815,7 @@ void Dump_loader::check_server_version() {
 
   console->print_info(msg);
 
-  if (target_server < mysqlshdk::utils::Version(5, 7, 0)) {
+  if (target_server < Version(5, 7, 0)) {
     throw std::runtime_error(
         "Loading dumps is only supported in MySQL 5.7 or newer");
   }
@@ -1858,7 +1886,7 @@ void Dump_loader::check_server_version() {
           "updateGtidSet option cannot be used on server with group "
           "replication running");
 
-    if (target_server < mysqlshdk::utils::Version(8, 0, 0)) {
+    if (target_server < Version(8, 0, 0)) {
       if (m_options.update_gtid_set() ==
           Load_dump_options::Update_gtid_set::APPEND)
         throw std::runtime_error(
@@ -1908,8 +1936,7 @@ void Dump_loader::check_server_version() {
     }
   }
 
-  if (should_create_pks() &&
-      target_server < mysqlshdk::utils::Version(8, 0, 24)) {
+  if (should_create_pks() && target_server < Version(8, 0, 24)) {
     throw std::runtime_error(
         "The 'createInvisiblePKs' option requires server 8.0.24 or newer.");
   }
@@ -1939,7 +1966,7 @@ void Dump_loader::check_tables_without_primary_key() {
     current_console()->print_warning(msg);
   }
 
-  if (m_options.target_server_version() < mysqlshdk::utils::Version(8, 0, 13) ||
+  if (m_options.target_server_version() < Version(8, 0, 13) ||
       should_create_pks()) {
     return;
   }

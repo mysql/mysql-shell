@@ -43,6 +43,7 @@
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 #include "mysqlshdk/libs/utils/version.h"
 
+#include "modules/util/dump/capability.h"
 #include "modules/util/dump/dump_options.h"
 #include "modules/util/dump/dump_writer.h"
 #include "modules/util/dump/instance_cache.h"
@@ -314,10 +315,11 @@ class Dumper {
   std::vector<Schema_info> m_schema_infos;
   std::unordered_map<std::string, std::size_t> m_truncated_basenames;
 
-  // status
+  // status variables
   bool m_instance_locked = false;
   // whether FLUSH TABLES WITH READ LOCK has failed
   bool m_ftwrl_failed = false;
+  std::unordered_set<Capability> m_used_capabilities;
 
   // counters
   uint64_t m_total_rows = 0;

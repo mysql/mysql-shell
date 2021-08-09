@@ -40,6 +40,8 @@ namespace mysqlsh {
 
 namespace {
 
+using mysqlshdk::utils::Version;
+
 std::string fetch_file(mysqlshdk::storage::IDirectory *dir,
                        const std::string &fn) {
   auto file = dir->file(fn);
@@ -113,12 +115,10 @@ Dump_reader::Status Dump_reader::open() {
   }
 
   if (md->has_key("version"))
-    m_contents.dump_version =
-        mysqlshdk::utils::Version(md->get_string("version"));
+    m_contents.dump_version = Version(md->get_string("version"));
 
   if (md->has_key("serverVersion"))
-    m_contents.server_version =
-        mysqlshdk::utils::Version(md->get_string("serverVersion"));
+    m_contents.server_version = Version(md->get_string("serverVersion"));
 
   if (md->has_key("origin")) m_contents.origin = md->get_string("origin");
 
@@ -160,6 +160,19 @@ Dump_reader::Status Dump_reader::open() {
     m_contents.bytes_per_chunk = md->get_uint("bytesPerChunk");
 
   m_contents.has_users = md->has_key("users");
+
+  if (md->has_key("capabilities")) {
+    const auto capabilities = md->at("capabilities").as_array();
+
+    for (const auto &entry : *capabilities) {
+      const auto capability = entry.as_map();
+
+      m_contents.capabilities.emplace_back(Capability_info{
+          capability->at("id").as_string(),
+          capability->at("description").as_string(),
+          Version(capability->at("versionRequired").as_string())});
+    }
+  }
 
   try {
     m_contents.parse_done_metadata(m_dir.get());
