@@ -29,9 +29,9 @@ testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 shell.connect(__sandbox_uri1);
 
 //@ WL#11465: Create single-primary cluster with specific options
-var __local_port1 = 30000 + __mysql_sandbox_port1;
-var __local_port2 = 30000 + __mysql_sandbox_port2;
-var __local_port3 = 30000 + __mysql_sandbox_port3;
+var __local_port1 = __mysql_sandbox_port4;
+var __local_port2 = __mysql_sandbox_port5;
+var __local_port3 = __mysql_sandbox_port6;
 var __cfg_local_address1 = localhost + ":" + __local_port1;
 var __cfg_local_address2 = localhost + ":" + __local_port2;
 var __cfg_local_address3 = localhost + ":" + __local_port3;

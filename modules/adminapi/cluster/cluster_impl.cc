@@ -1629,7 +1629,21 @@ void Cluster_impl::dissolve(const mysqlshdk::null_bool &force,
   // operation otherwise GR blocks the writes to preserve the consistency
   // of the group and we end up with a hang.
   // This check is done at check_preconditions()
-  check_preconditions("dissolve");
+  try {
+    check_preconditions("dissolve");
+  } catch (const shcore::Exception &e) {
+    // special case for dissolving a cluster that was removed from a clusterset
+    // but its local metadata couldn't be updated
+    if (e.code() == SHERR_DBA_CLUSTER_ALREADY_IN_CLUSTERSET &&
+        m_cs_md_remove_pending) {
+      log_info(
+          "Dissolving cluster '%s' which was removed from a clusterset without "
+          "a local metadata update.",
+          get_name().c_str());
+    } else {
+      throw;
+    }
+  }
 
   acquire_primary();
   auto finally_primary =

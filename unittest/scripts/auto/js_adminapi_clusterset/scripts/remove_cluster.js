@@ -175,7 +175,15 @@ clusterset.removeCluster("replicacluster", {force:1});
 
 CHECK_REMOVED_CLUSTER([__sandbox_uri4], cluster, "replicacluster");
 
-wipeout_cluster(session1, replicacluster);
+//@<> Dissolve the removed cluster which still thinks it's in the clusterset
+// Bug#33166307 ClusterSet: cannot dissolve cluster that was removed from clusterset
+shell.connect(__sandbox_uri4);
+cc = dba.getCluster();
+EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replicacluster' appears to have been removed from the ClusterSet 'myClusterSet', however its own metadata copy wasn't properly updated during the removal");
+
+cc.dissolve();
+
+reset_instance(session4);
 
 //@<> Remove cluster when replica has applier error (should fail)
 replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster");
