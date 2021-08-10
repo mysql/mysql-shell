@@ -450,15 +450,11 @@ DESCRIPTION
       Using a PAR with permissions to read the manifest is another option to
       load the dump using PAR.
 
-      The ociParManifest option cannot be used if osBucketName is not set. The
-      default value of this option depends on the dump settings: if ocimds is
-      enabled and osBucketName is specified then it will be enabled, otherwise
-      it will be disabled. In any case, if the option is explicitly set to a
-      value, the user provided value will be used.
+      The ociParManifest option cannot be used if osBucketName is not set.
 
       When creating PARs, an expiration time is required, it can be defined
       through the ociParExpireTime option. If the option is not used, a
-      predefined expiration time will be used equivalent to a week afer the
+      predefined expiration time will be used equivalent to a week after the
       dump operation started. The values assigned to this option should be
       conformant to RFC3339.
 
@@ -765,15 +761,11 @@ DESCRIPTION
       Using a PAR with permissions to read the manifest is another option to
       load the dump using PAR.
 
-      The ociParManifest option cannot be used if osBucketName is not set. The
-      default value of this option depends on the dump settings: if ocimds is
-      enabled and osBucketName is specified then it will be enabled, otherwise
-      it will be disabled. In any case, if the option is explicitly set to a
-      value, the user provided value will be used.
+      The ociParManifest option cannot be used if osBucketName is not set.
 
       When creating PARs, an expiration time is required, it can be defined
       through the ociParExpireTime option. If the option is not used, a
-      predefined expiration time will be used equivalent to a week afer the
+      predefined expiration time will be used equivalent to a week after the
       dump operation started. The values assigned to this option should be
       conformant to RFC3339.
 
@@ -1074,15 +1066,11 @@ DESCRIPTION
       Using a PAR with permissions to read the manifest is another option to
       load the dump using PAR.
 
-      The ociParManifest option cannot be used if osBucketName is not set. The
-      default value of this option depends on the dump settings: if ocimds is
-      enabled and osBucketName is specified then it will be enabled, otherwise
-      it will be disabled. In any case, if the option is explicitly set to a
-      value, the user provided value will be used.
+      The ociParManifest option cannot be used if osBucketName is not set.
 
       When creating PARs, an expiration time is required, it can be defined
       through the ociParExpireTime option. If the option is not used, a
-      predefined expiration time will be used equivalent to a week afer the
+      predefined expiration time will be used equivalent to a week after the
       dump operation started. The values assigned to this option should be
       conformant to RFC3339.
 

@@ -158,10 +158,6 @@ void Oci_options::on_unpacked_options() {
           "The option 'ociParManifest' cannot be used when the value of "
           "'osBucketName' option is not set.");
     }
-  } else {
-    // If the Namespace is given, sets the right value for PAR manifest
-    if (oci_par_manifest.is_null() && par_manifest_default)
-      oci_par_manifest = par_manifest_default;
   }
 
   if (target == OBJECT_STORAGE) {
@@ -283,8 +279,6 @@ const std::string &Oci_options::get_hash() const {
     m_hash.append(std::to_string(part_size.get_safe(0)));
     m_hash.append(1, '-');
     m_hash.append(std::to_string(oci_par_manifest.get_safe()));
-    m_hash.append(1, '-');
-    m_hash.append(std::to_string(par_manifest_default));
   }
 
   return m_hash;

@@ -35,10 +35,11 @@ prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 EXPECT_THROWS(lambda:util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ociParManifest": True, "ociParExpireTime":"InvalidValue"}),
     "Util.dump_tables: Failed creating PAR for object '{}/@.json': Failed to create ObjectRead PAR for object {}/@.json: PAR expiration must conform to RFC 3339: InvalidValue".format(prefix, prefix))
 
-#@<> Doing a dump to OCI with ocimds set to True. Validate that PAR objects are generated for each file of the dump.
+#@<> Doing a dump to OCI with ocimds set to True. The ociParManifest is not set and defaults to false, manifest is not created.
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants", "ignore_missing_pks"]})
-validate_full_dump(OS_NAMESPACE, OS_BUCKET_NAME, prefix, today_plus_days(7))
+EXPECT_THROWS(lambda:testutil.download_oci_object(OS_NAMESPACE, OS_BUCKET_NAME, prefix + '/@.manifest.json', "@.manifest.json"),
+    "Testutils.download_oci_object: Failed opening object '{}/@.manifest.json' in READ mode: Not Found (404)".format(prefix))
 
 #@<> Doing a dump to OCI with ociParManifest set to True. Validate that PAR objects are generated for each file of the dump.
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
@@ -57,11 +58,11 @@ util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "os
 EXPECT_THROWS(lambda:testutil.download_oci_object(OS_NAMESPACE, OS_BUCKET_NAME, prefix + '/@.manifest.json', "@.manifest.json"),
     "Testutils.download_oci_object: Failed opening object '{}/@.manifest.json' in READ mode: Not Found (404)".format(prefix))
 
-#@<> Doing a dump to OCI ociParManifest not set, ocimds set to True and ociParExpireTime set to a valid value. Validate that the dump success and the expiration date for the PAR objects matches the set to the option ociParExpireTime.
+#@<> Doing a dump to OCI ociParManifest not set, ocimds set to True and ociParExpireTime set to a valid value. The ociParManifest is not set and defaults to false, ociParExpireTime cannot be used.
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 expire_time = today_plus_days(7, RFC3339)
-util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants", "ignore_missing_pks"], "ociParExpireTime": expire_time})
-validate_full_dump(OS_NAMESPACE, OS_BUCKET_NAME, prefix, expire_time)
+EXPECT_THROWS(lambda:util.dump_tables("sample", ["data"], prefix, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ocimds": True, "compatibility":["strip_restricted_grants", "ignore_missing_pks"], "ociParExpireTime": expire_time}),
+    "Util.dump_tables: Argument #4: The option 'ociParExpireTime' cannot be used when the value of 'ociParManifest' option is not True.")
 
 #@<> Doing a dump to OCI ociParManifest set to False, ocimds set to True and ociParExpireTime set to a valid value. Validate that the dump fail because ociParExpireTime it's valid only when ociParManifest is set to True.
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)

@@ -95,13 +95,13 @@ def CHECK_OUTPUT_SANITY(outdir, min_chunk_size, min_chunks, allow_min_chunk_size
                 chunks_per_table[table] = 1
             else:
                 chunks_per_table[table] += 1
-    min_chunk_size_failures = 0
+    min_chunk_size_errors = 0
     for f, fsize in files:
         # don't check the last file if there are many chunks
         if "@@" not in f or len(files) == 1:
             if fsize < min_chunk_size:
-                min_chunk_size_failures += 1
-            if min_chunk_size_failures > allow_min_chunk_size_errors:
+                min_chunk_size_errors += 1
+            if min_chunk_size_errors > allow_min_chunk_size_errors:
                 EXPECT_LE(min_chunk_size, fsize, "Size of "+f+" too small")
     for t, c in chunks_per_table.items():
         EXPECT_LE(min_chunks, c, "Too few chunks for "+t)
