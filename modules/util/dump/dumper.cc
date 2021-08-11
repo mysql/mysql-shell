@@ -1651,12 +1651,29 @@ void Dumper::acquire_read_locks() {
 
     // user can execute FLUSH statements if has RELOAD privilege or, starting
     // with 8.0.23, FLUSH_TABLES privilege
-    if (!m_user_privileges->validate({"RELOAD"}).has_missing_privileges() ||
+    const auto execute_ftwrl =
+        !m_user_privileges->validate({"RELOAD"}).has_missing_privileges() ||
         (session()->get_server_version() >= Version(8, 0, 23) &&
          !m_user_privileges->validate({"FLUSH_TABLES"})
-              .has_missing_privileges())) {
-      if (!m_options.is_dry_run()) {
-        try {
+              .has_missing_privileges());
+    m_ftwrl_failed = !execute_ftwrl;
+
+    if (execute_ftwrl) {
+      if (m_options.is_dry_run()) {
+        // in case of a dry run we need to attempt to acquire FTWRL, because
+        // it may require some other privileges, set the lock_wait_timeout to
+        // smallest possible value to avoid waiting for long periods of time
+        session()->execute(
+            "SET @current_lock_wait_timeout = @@session.lock_wait_timeout");
+        session()->execute("SET @@session.lock_wait_timeout = 1");
+      }
+
+      bool timeout = false;
+
+      try {
+        // no need to flush in case of a dry run, we're only interested if FTWRL
+        // succeeds
+        if (!m_options.is_dry_run()) {
           // We do first a FLUSH TABLES. If a long update is running, the FLUSH
           // TABLES will wait but will not stall the whole mysqld, and when the
           // long update is done the FLUSH TABLES WITH READ LOCK will start and
@@ -1665,22 +1682,49 @@ void Dumper::acquire_read_locks() {
           // course, if a second long update starts between the two FLUSHes, we
           // have that bad stall.
           session()->execute("FLUSH NO_WRITE_TO_BINLOG TABLES;");
-          session()->execute("FLUSH TABLES WITH READ LOCK;");
-        } catch (const mysqlshdk::db::Error &e) {
+        }
+
+        session()->execute("FLUSH TABLES WITH READ LOCK;");
+      } catch (const mysqlshdk::db::Error &e) {
+        if (ER_LOCK_WAIT_TIMEOUT == e.code() && m_options.is_dry_run()) {
+          // it's a dry run and FTWRL failed due to a timeout, treat this as a
+          // success - user had privileges required to execute FTWRL
+          timeout = true;
+        } else if (ER_SPECIFIC_ACCESS_DENIED_ERROR == e.code() ||
+                   ER_DBACCESS_DENIED_ERROR == e.code() ||
+                   ER_ACCESS_DENIED_ERROR == e.code()) {
+          // FTWRL failed due to an access denied error, fall back to LOCK
+          // TABLES
+          m_ftwrl_failed = true;
+        } else {
           current_console()->print_error(
               "Failed to acquire global read lock: " + e.format());
           throw std::runtime_error("Unable to acquire global read lock");
         }
       }
 
-      current_console()->print_info("Global read lock acquired");
+      if (m_options.is_dry_run()) {
+        // restore previous value of lock_wait_timeout
+        session()->execute(
+            "SET @@session.lock_wait_timeout = @current_lock_wait_timeout");
 
-      // FTWRL was used to lock the tables, it is safe to start a transaction,
-      // as it will not release the global read lock
-      start_transaction(session());
-    } else {
-      m_ftwrl_failed = true;
+        if (!timeout && !m_ftwrl_failed) {
+          // we've successfully acquired FTWRL, but it's a dry run and we don't
+          // want to interfere with the live server, release it immediately
+          session()->execute("UNLOCK TABLES");
+        }
+      }
 
+      if (!m_ftwrl_failed) {
+        current_console()->print_info("Global read lock acquired");
+
+        // FTWRL was used to lock the tables, it is safe to start a transaction,
+        // as it will not release the global read lock
+        start_transaction(session());
+      }
+    }
+
+    if (m_ftwrl_failed) {
       current_console()->print_warning(
           "The current user lacks privileges to acquire a global read lock "
           "using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK "

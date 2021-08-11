@@ -1901,6 +1901,32 @@ TEST_LOAD(world_x_schema, world_x_table)
 session.run_sql("SET NAMES 'utf8mb4';")
 session.run_sql("SET GLOBAL SQL_MODE='';")
 
+#@<> BUG#33173739 - lock one of the tables, user has privileges required to execute FTWRL, dry run will execute it do double check the privileges, but will not hang
+session.run_sql("LOCK TABLES !.! WRITE", [ types_schema, types_schema_tables[0] ])
+
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS("Global read lock acquired")
+
+session.run_sql("UNLOCK TABLES")
+
+#@<> BUG#33173739 - user has privileges required to execute FTWRL, dumper will execute it do double check the privileges, but it throws access denied error, fallback to LOCK TABLES {not __dbug_off}
+testutil.set_trap("mysql", ["sql == FLUSH TABLES WITH READ LOCK;"], { "code": 1045, "msg": "Access denied for user ‘root’@‘%’ (using password: YES)", "state": "28000" })
+
+for dry_run in [ True, False ]:
+    WIPE_OUTPUT()
+    EXPECT_SUCCESS([types_schema], test_output_absolute, { "dryRun": dry_run, "showProgress": False })
+    EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+
+testutil.clear_traps("mysql")
+
+#@<> BUG#33173739 - user has privileges required to execute FTWRL, dumper will execute it do double check the privileges, but it throws some random error {not __dbug_off}
+testutil.set_trap("mysql", ["sql == FLUSH TABLES WITH READ LOCK;"], { "code": 1226, "msg": "User 'root' has exceeded the 'max_questions' resource (current value: 2)", "state": "42000" })
+
+EXPECT_FAIL("RuntimeError", "Unable to acquire global read lock", test_output_absolute, { "showProgress": False })
+EXPECT_STDOUT_CONTAINS("ERROR: Failed to acquire global read lock: MySQL Error 1226 (42000): User 'root' has exceeded the 'max_questions' resource (current value: 2)")
+
+testutil.clear_traps("mysql")
+
 #@<> prepare user privileges, switch user
 session.run_sql(f"GRANT ALL ON *.* TO {test_user_account};")
 session.run_sql(f"REVOKE RELOAD /*!80023 , FLUSH_TABLES */ ON *.* FROM {test_user_account};")
