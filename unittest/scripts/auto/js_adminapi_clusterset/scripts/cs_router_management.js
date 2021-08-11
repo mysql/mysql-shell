@@ -63,6 +63,9 @@ var cr_router3 = "routerhost2::";
 //@<> clusterset.routingOptions on invalid router
 EXPECT_THROWS(function(){ clusterset.routingOptions("invalid_router"); }, "Router 'invalid_router' is not registered in the ClusterSet");
 
+//@ clusterset.routingOptions() with all defaults
+clusterset.routingOptions();
+
 //@ clusterset.setRoutingOption for a router, all valid values
 clusterset.setRoutingOption(cm_router, "target_cluster", "primary");
 clusterset.routingOptions(cm_router);

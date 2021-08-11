@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2021 Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,11 @@ namespace dba {
 
 constexpr auto k_router_option_invalidated_cluster_routing_policy =
     "invalidated_cluster_policy";
+constexpr auto k_router_option_invalidated_cluster_routing_policy_drop_all =
+    "drop_all";
+constexpr auto k_router_option_invalidated_cluster_routing_policy_accept_ro =
+    "accept_ro";
+
 constexpr auto k_router_option_target_cluster = "target_cluster";
 constexpr auto k_router_option_target_cluster_primary = "primary";
 

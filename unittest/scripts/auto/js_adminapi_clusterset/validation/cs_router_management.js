@@ -1,13 +1,42 @@
+//@<OUT> clusterset.routingOptions() with all defaults
+{
+    "domainName": "clusterset", 
+    "global": {
+        "invalidated_cluster_policy": "drop_all", 
+        "target_cluster": "primary"
+    }, 
+    "routers": {
+        "routerhost1::system": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "primary"
+        }, 
+        "routerhost2::": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "primary"
+        }, 
+        "routerhost2::another": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "primary"
+        }, 
+        "routerhost2::system": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "primary"
+        }
+    }
+}
+
 //@<OUT> clusterset.setRoutingOption for a router, all valid values
 Routing option 'target_cluster' successfully updated in router 'routerhost1::system'.
 {
     "routerhost1::system": {
+        "invalidated_cluster_policy": "drop_all",
         "target_cluster": "primary"
     }
 }
 Routing option 'target_cluster' successfully updated in router 'routerhost1::system'.
 {
     "routerhost1::system": {
+        "invalidated_cluster_policy": "drop_all",
         "target_cluster": "cluster"
     }
 }
@@ -32,114 +61,191 @@ Routing option 'target_cluster' successfully updated in router 'routerhost1::sys
 Routing option 'invalidated_cluster_policy' successfully updated in router 'routerhost1::system'.
 Routing option 'invalidated_cluster_policy' successfully updated in router 'routerhost1::system'.
 {
-    "routerhost1::system": {}
+    "routerhost1::system": {
+        "invalidated_cluster_policy": "drop_all",
+        "target_cluster": "primary"
+    }
 }
 
 //@<OUT> clusterset.setRoutingOption all valid values
 Routing option 'target_cluster' successfully updated.
 {
-    "domainName": "clusterset",
+    "domainName": "clusterset", 
     "global": {
+        "invalidated_cluster_policy": "drop_all", 
         "target_cluster": "primary"
-    },
+    }, 
     "routers": {
-        "routerhost1::system": {},
-        "routerhost2::": {},
-        "routerhost2::another": {},
-        "routerhost2::system": {}
+        "routerhost1::system": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "primary"
+        }, 
+        "routerhost2::": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "primary"
+        }, 
+        "routerhost2::another": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "primary"
+        }, 
+        "routerhost2::system": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "primary"
+        }
     }
 }
 Routing option 'target_cluster' successfully updated.
 {
-    "domainName": "clusterset",
+    "domainName": "clusterset", 
     "global": {
+        "invalidated_cluster_policy": "drop_all", 
         "target_cluster": "cluster"
-    },
+    }, 
     "routers": {
-        "routerhost1::system": {},
-        "routerhost2::": {},
-        "routerhost2::another": {},
-        "routerhost2::system": {}
+        "routerhost1::system": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::another": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::system": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "cluster"
+        }
     }
 }
 Routing option 'invalidated_cluster_policy' successfully updated.
 {
-    "domainName": "clusterset",
+    "domainName": "clusterset", 
     "global": {
-        "invalidated_cluster_policy": "drop_all",
+        "invalidated_cluster_policy": "drop_all", 
         "target_cluster": "cluster"
-    },
+    }, 
     "routers": {
-        "routerhost1::system": {},
-        "routerhost2::": {},
-        "routerhost2::another": {},
-        "routerhost2::system": {}
+        "routerhost1::system": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::another": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::system": {
+            "invalidated_cluster_policy": "drop_all", 
+            "target_cluster": "cluster"
+        }
     }
 }
 Routing option 'invalidated_cluster_policy' successfully updated.
 {
-    "domainName": "clusterset",
+    "domainName": "clusterset", 
     "global": {
-        "invalidated_cluster_policy": "accept_ro",
+        "invalidated_cluster_policy": "accept_ro", 
         "target_cluster": "cluster"
-    },
+    }, 
     "routers": {
-        "routerhost1::system": {},
-        "routerhost2::": {},
-        "routerhost2::another": {},
-        "routerhost2::system": {}
+        "routerhost1::system": {
+            "invalidated_cluster_policy": "accept_ro", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::": {
+            "invalidated_cluster_policy": "accept_ro", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::another": {
+            "invalidated_cluster_policy": "accept_ro", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::system": {
+            "invalidated_cluster_policy": "accept_ro", 
+            "target_cluster": "cluster"
+        }
     }
 }
 Routing option 'target_cluster' successfully updated in router 'routerhost1::system'.
 {
-    "domainName": "clusterset",
+    "domainName": "clusterset", 
     "global": {
-        "invalidated_cluster_policy": "accept_ro",
+        "invalidated_cluster_policy": "accept_ro", 
         "target_cluster": "cluster"
-    },
+    }, 
     "routers": {
         "routerhost1::system": {
+            "invalidated_cluster_policy": "accept_ro", 
             "target_cluster": "cluster"
-        },
-        "routerhost2::": {},
-        "routerhost2::another": {},
-        "routerhost2::system": {}
+        }, 
+        "routerhost2::": {
+            "invalidated_cluster_policy": "accept_ro", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::another": {
+            "invalidated_cluster_policy": "accept_ro", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::system": {
+            "invalidated_cluster_policy": "accept_ro", 
+            "target_cluster": "cluster"
+        }
     }
 }
 Routing option 'target_cluster' successfully updated in router 'routerhost2::system'.
 {
-    "domainName": "clusterset",
+    "domainName": "clusterset", 
     "global": {
-        "invalidated_cluster_policy": "accept_ro",
+        "invalidated_cluster_policy": "accept_ro", 
         "target_cluster": "cluster"
-    },
+    }, 
     "routers": {
         "routerhost1::system": {
+            "invalidated_cluster_policy": "accept_ro", 
             "target_cluster": "cluster"
-        },
-        "routerhost2::": {},
-        "routerhost2::another": {},
+        }, 
+        "routerhost2::": {
+            "invalidated_cluster_policy": "accept_ro", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::another": {
+            "invalidated_cluster_policy": "accept_ro", 
+            "target_cluster": "cluster"
+        }, 
         "routerhost2::system": {
+            "invalidated_cluster_policy": "accept_ro", 
             "target_cluster": "replicacluster"
         }
     }
 }
 Routing option 'invalidated_cluster_policy' successfully updated in router 'routerhost2::'.
 {
-    "domainName": "clusterset",
+    "domainName": "clusterset", 
     "global": {
-        "invalidated_cluster_policy": "accept_ro",
+        "invalidated_cluster_policy": "accept_ro", 
         "target_cluster": "cluster"
-    },
+    }, 
     "routers": {
         "routerhost1::system": {
+            "invalidated_cluster_policy": "accept_ro", 
             "target_cluster": "cluster"
-        },
+        }, 
         "routerhost2::": {
-            "invalidated_cluster_policy": "accept_ro"
-        },
-        "routerhost2::another": {},
+            "invalidated_cluster_policy": "accept_ro", 
+            "target_cluster": "cluster"
+        }, 
+        "routerhost2::another": {
+            "invalidated_cluster_policy": "accept_ro", 
+            "target_cluster": "cluster"
+        }, 
         "routerhost2::system": {
+            "invalidated_cluster_policy": "accept_ro", 
             "target_cluster": "replicacluster"
         }
     }
@@ -153,16 +259,27 @@ Routing option 'invalidated_cluster_policy' successfully updated.
 Routing option 'target_cluster' successfully updated in router 'routerhost2::system'.
 {
     "domainName": "clusterset",
-    "global": {},
+    "global": {
+        "invalidated_cluster_policy": "drop_all",
+        "target_cluster": "primary"
+    },
     "routers": {
         "routerhost1::system": {
+            "invalidated_cluster_policy": "drop_all",
             "target_cluster": "cluster"
         },
         "routerhost2::": {
-            "invalidated_cluster_policy": "accept_ro"
+            "invalidated_cluster_policy": "accept_ro",
+            "target_cluster": "primary"
         },
-        "routerhost2::another": {},
-        "routerhost2::system": {}
+        "routerhost2::another": {
+            "invalidated_cluster_policy": "drop_all",
+            "target_cluster": "primary"
+        },
+        "routerhost2::system": {
+            "invalidated_cluster_policy": "drop_all",
+            "target_cluster": "primary"
+        }
     }
 }
 
