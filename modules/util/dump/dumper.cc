@@ -318,6 +318,11 @@ class Dumper::Table_worker final {
     m_dumper->on_init_thread_session(m_session);
   }
 
+  inline std::shared_ptr<mysqlshdk::db::IResult> query(
+      const std::string &sql) const {
+    return Dumper::query(m_session, sql);
+  }
+
   std::string prepare_query(
       const Table_data_task &table,
       std::vector<Dump_writer::Encoding_type> *out_pre_encoded_columns) const {
@@ -378,8 +383,7 @@ class Dumper::Table_worker final {
 
     timer.stage_begin("dumping");
 
-    const auto result =
-        m_session->query(prepare_query(table, &pre_encoded_columns));
+    const auto result = query(prepare_query(table, &pre_encoded_columns));
 
     shcore::on_leave_scope close_index_file([&table]() {
       try {
@@ -702,10 +706,9 @@ class Dumper::Table_worker final {
 
     const auto row_count = [&info, &comment, this](const auto begin,
                                                    const auto end) {
-      return m_session
-          ->query("EXPLAIN SELECT COUNT(*) FROM " + info.table->quoted_name +
-                  info.partition + where(between(info, begin, end)) +
-                  info.order_by + comment)
+      return query("EXPLAIN SELECT COUNT(*) FROM " + info.table->quoted_name +
+                   info.partition + where(between(info, begin, end)) +
+                   info.order_by + comment)
           ->fetch_one_or_throw()
           ->get_uint(info.explain_rows_idx);
     };
@@ -922,8 +925,7 @@ class Dumper::Table_worker final {
       const auto chunk_id = std::to_string(ranges_count);
       const auto comment = get_query_comment(*info.table, chunk_id);
 
-      result =
-          m_session->query(select + condition + order_by_and_limit + comment);
+      result = query(select + condition + order_by_and_limit + comment);
 
       if (m_dumper->m_worker_interrupt) {
         return 0;
@@ -942,11 +944,11 @@ class Dumper::Table_worker final {
   }
 
   std::size_t chunk_column(const Chunking_info &info) {
-    const auto query =
+    const auto sql =
         "SELECT SQL_NO_CACHE " + info.table->info->index.columns_sql() +
         " FROM " + info.table->quoted_name + info.partition + where(info.where);
 
-    auto result = m_session->query(query + info.order_by + " LIMIT 1");
+    auto result = query(sql + info.order_by + " LIMIT 1");
     auto row = result->fetch_one();
 
     const auto handle_empty_table = [&info, this]() {
@@ -960,7 +962,7 @@ class Dumper::Table_worker final {
 
     const Row begin = fetch_row(row);
 
-    result = m_session->query(query + info.order_by_desc + " LIMIT 1");
+    result = query(sql + info.order_by_desc + " LIMIT 1");
     row = result->fetch_one();
 
     if (!row) {
@@ -1014,9 +1016,9 @@ class Dumper::Table_worker final {
     if (0 == average_row_length) {
       average_row_length = k_default_row_size;
 
-      const auto result = m_session->query(
-          "SELECT " + table.info->index.columns_sql() + " FROM " +
-          table.quoted_name + partition + " LIMIT 1");
+      const auto result =
+          query("SELECT " + table.info->index.columns_sql() + " FROM " +
+                table.quoted_name + partition + " LIMIT 1");
 
       // print the message only if table is not empty
       if (result->fetch_one()) {
@@ -1444,20 +1446,20 @@ void Dumper::on_init_thread_session(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
   // transaction cannot be started here, as the main thread has to acquire read
   // locks first
-  session->execute("SET SQL_MODE = '';");
-  session->executef("SET NAMES ?;", m_options.character_set());
+  execute(session, "SET SQL_MODE = '';");
+  executef(session, "SET NAMES ?;", m_options.character_set());
 
   // The amount of time the server should wait for us to read data from it
   // like resultsets. Result reading can be delayed by slow uploads.
-  session->executef("SET SESSION net_write_timeout = ?",
-                    k_mysql_server_net_write_timeout);
+  executef(session, "SET SESSION net_write_timeout = ?",
+           k_mysql_server_net_write_timeout);
 
   // Amount of time before server disconnects idle clients.
-  session->executef("SET SESSION wait_timeout = ?",
-                    k_mysql_server_wait_timeout);
+  executef(session, "SET SESSION wait_timeout = ?",
+           k_mysql_server_wait_timeout);
 
   if (m_options.use_timezone_utc()) {
-    session->execute("SET TIME_ZONE = '+00:00';");
+    execute(session, "SET TIME_ZONE = '+00:00';");
   }
 }
 
@@ -1508,7 +1510,7 @@ void Dumper::lock_all_tables() {
   uint64_t max_packet_size = 0;
 
   {
-    const auto r = session()->query("select @@max_allowed_packet");
+    const auto r = query("select @@max_allowed_packet");
     // 1024 is the minimum allowed value
     max_packet_size = r->fetch_one_or_throw()->get_uint(0, 1024);
   }
@@ -1549,7 +1551,7 @@ void Dumper::lock_all_tables() {
     // be possible to list tables
     validate_privileges(mysql);
 
-    const auto result = session()->query(
+    const auto result = query(
         "SHOW TABLES IN mysql WHERE Tables_in_mysql IN"
         "('columns_priv', 'db', 'default_roles', 'func', 'global_grants', "
         "'proc', 'procs_priv', 'proxies_priv', 'role_edges', 'tables_priv', "
@@ -1569,7 +1571,7 @@ void Dumper::lock_all_tables() {
     log_info("Locking tables: %s", stmt.c_str());
 
     if (!m_options.is_dry_run()) {
-      session()->execute(stmt);
+      execute(stmt);
     }
   } catch (const mysqlshdk::db::Error &e) {
     console->print_error("Could not lock mysql system tables: " + e.format());
@@ -1611,7 +1613,7 @@ void Dumper::lock_all_tables() {
         // initialize session
         auto s = establish_session(session()->get_connection_options(), false);
         on_init_thread_session(s);
-        s->execute(stmt);
+        execute(s, stmt);
         m_lock_sessions.emplace_back(std::move(s));
       }
     };
@@ -1664,9 +1666,8 @@ void Dumper::acquire_read_locks() {
         // in case of a dry run we need to attempt to acquire FTWRL, because
         // it may require some other privileges, set the lock_wait_timeout to
         // smallest possible value to avoid waiting for long periods of time
-        session()->execute(
-            "SET @current_lock_wait_timeout = @@session.lock_wait_timeout");
-        session()->execute("SET @@session.lock_wait_timeout = 1");
+        execute("SET @current_lock_wait_timeout = @@session.lock_wait_timeout");
+        execute("SET @@session.lock_wait_timeout = 1");
       }
 
       bool timeout = false;
@@ -1682,10 +1683,10 @@ void Dumper::acquire_read_locks() {
           // stage where both shell and most client connections are stalled. Of
           // course, if a second long update starts between the two FLUSHes, we
           // have that bad stall.
-          session()->execute("FLUSH NO_WRITE_TO_BINLOG TABLES;");
+          execute("FLUSH NO_WRITE_TO_BINLOG TABLES;");
         }
 
-        session()->execute("FLUSH TABLES WITH READ LOCK;");
+        execute("FLUSH TABLES WITH READ LOCK;");
       } catch (const mysqlshdk::db::Error &e) {
         if (ER_LOCK_WAIT_TIMEOUT == e.code() && m_options.is_dry_run()) {
           // it's a dry run and FTWRL failed due to a timeout, treat this as a
@@ -1706,13 +1707,12 @@ void Dumper::acquire_read_locks() {
 
       if (m_options.is_dry_run()) {
         // restore previous value of lock_wait_timeout
-        session()->execute(
-            "SET @@session.lock_wait_timeout = @current_lock_wait_timeout");
+        execute("SET @@session.lock_wait_timeout = @current_lock_wait_timeout");
 
         if (!timeout && !m_ftwrl_failed) {
           // we've successfully acquired FTWRL, but it's a dry run and we don't
           // want to interfere with the live server, release it immediately
-          session()->execute("UNLOCK TABLES");
+          execute("UNLOCK TABLES");
         }
       }
 
@@ -1771,7 +1771,7 @@ void Dumper::release_read_locks() const {
     } else {
       // FTWRL has succeeded, transaction is active, UNLOCK TABLES will not
       // automatically commit the transaction
-      session()->execute("UNLOCK TABLES;");
+      execute("UNLOCK TABLES;");
     }
 
     if (!m_worker_interrupt) {
@@ -1785,9 +1785,9 @@ void Dumper::release_read_locks() const {
 void Dumper::start_transaction(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
   if (m_options.consistent_dump() && !m_options.is_dry_run()) {
-    session->execute(
-        "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;");
-    session->execute("START TRANSACTION WITH CONSISTENT SNAPSHOT;");
+    execute(session,
+            "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;");
+    execute(session, "START TRANSACTION WITH CONSISTENT SNAPSHOT;");
   }
 }
 
@@ -1799,7 +1799,7 @@ void Dumper::assert_transaction_is_open(
   if (m_options.consistent_dump() && !m_options.is_dry_run()) {
     try {
       // if there's an active transaction, this will throw
-      session->execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+      execute(session, "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
       // no exception -> transaction is not active
       assert(false);
     } catch (const mysqlshdk::db::Error &e) {
@@ -1833,7 +1833,7 @@ void Dumper::lock_instance() {
 
       if (!m_options.is_dry_run()) {
         try {
-          session()->execute("LOCK INSTANCE FOR BACKUP");
+          execute("LOCK INSTANCE FOR BACKUP");
         } catch (const shcore::Error &e) {
           console->print_error("Could not acquire the backup lock: " +
                                e.format());
@@ -3253,7 +3253,7 @@ void Dumper::kill_query() const {
       }
 
       kill_session->connect(co);
-      kill_session->executef("KILL QUERY ?", s->get_connection_id());
+      executef(kill_session, "KILL QUERY ?", s->get_connection_id());
       kill_session->close();
     } catch (const std::exception &e) {
       log_warning("Error canceling SQL query: %s", e.what());

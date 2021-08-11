@@ -70,7 +70,34 @@ class Dumper {
   void run();
 
  protected:
-  const std::shared_ptr<mysqlshdk::db::ISession> &session() const;
+  template <typename T>
+  static inline std::shared_ptr<mysqlshdk::db::IResult> query(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session, const T &sql) {
+    return session->query_log_error(sql);
+  }
+
+  template <typename T>
+  static inline void execute(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session, const T &sql) {
+    session->execute_log_error(sql);
+  }
+
+  template <typename... Args>
+  static inline void executef(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session, const char *sql,
+      Args &&... args) {
+    session->executef_log_error(sql, std::forward<Args>(args)...);
+  }
+
+  template <typename T>
+  inline std::shared_ptr<mysqlshdk::db::IResult> query(const T &sql) const {
+    return query(session(), sql);
+  }
+
+  template <typename T>
+  inline void execute(const T &sql) const {
+    return execute(session(), sql);
+  }
 
   virtual std::unique_ptr<Schema_dumper> schema_dumper(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
@@ -132,6 +159,8 @@ class Dumper {
   virtual void on_create_table_task(const std::string &schema,
                                     const std::string &table,
                                     const Instance_cache::Table *cache) = 0;
+
+  const std::shared_ptr<mysqlshdk::db::ISession> &session() const;
 
   void do_run();
 

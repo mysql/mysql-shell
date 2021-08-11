@@ -141,7 +141,7 @@ std::set<std::string> Dump_options::find_missing_impl(
            ") AS o ON STRCMP(o.name COLLATE utf8_bin, n.name)=0 "
            "WHERE o.name IS NULL";
 
-  const auto result = m_session->query(query);
+  const auto result = session()->query_log_error(query);
   std::set<std::string> missing;
 
   while (const auto row = result->fetch_one()) {

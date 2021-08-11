@@ -371,7 +371,7 @@ Instance_cache_builder &Instance_cache_builder::binlog_info() {
   Profiler profiler{"fetching binlog info"};
 
   try {
-    const auto result = m_session->query("SHOW MASTER STATUS;");
+    const auto result = query("SHOW MASTER STATUS;");
 
     if (const auto row = result->fetch_one()) {
       m_cache.binlog_file = row->get_string(0);    // File
@@ -394,7 +394,7 @@ Instance_cache Instance_cache_builder::build() { return std::move(m_cache); }
 void Instance_cache_builder::filter_schemas() {
   Profiler profiler{"filtering schemas"};
 
-  std::string query =
+  std::string sql =
       "SELECT "
       "SCHEMA_NAME,"             // NOT NULL
       "DEFAULT_COLLATION_NAME "  // NOT NULL
@@ -403,11 +403,11 @@ void Instance_cache_builder::filter_schemas() {
   const auto filter = schema_filter("SCHEMA_NAME");
 
   if (!filter.empty()) {
-    query += " WHERE " + filter;
+    sql += " WHERE " + filter;
   }
 
   {
-    const auto result = m_session->query(query);
+    const auto result = query(sql);
 
     while (const auto row = result->fetch_one()) {
       const auto schema = row->get_string(0);  // SCHEMA_NAME
@@ -480,7 +480,7 @@ void Instance_cache_builder::fetch_metadata() {
 void Instance_cache_builder::fetch_version() {
   Profiler profiler{"fetching version"};
 
-  const auto result = m_session->query("SELECT @@GLOBAL.VERSION;");
+  const auto result = query("SELECT @@GLOBAL.VERSION;");
 
   if (const auto row = result->fetch_one()) {
     using mysqlshdk::utils::Version;
@@ -501,7 +501,7 @@ void Instance_cache_builder::fetch_version() {
 
 void Instance_cache_builder::fetch_explain_select_rows_index() {
   m_cache.explain_rows_idx =
-      m_session->query("EXPLAIN SELECT 1")->field_names()->field_index("rows");
+      query("EXPLAIN SELECT 1")->field_names()->field_index("rows");
 }
 
 void Instance_cache_builder::fetch_server_metadata() {
@@ -512,7 +512,7 @@ void Instance_cache_builder::fetch_server_metadata() {
   m_cache.user = co.get_user();
 
   {
-    const auto result = m_session->query("SELECT @@GLOBAL.HOSTNAME;");
+    const auto result = query("SELECT @@GLOBAL.HOSTNAME;");
 
     if (const auto row = result->fetch_one()) {
       m_cache.server = row->get_string(0);
@@ -524,7 +524,7 @@ void Instance_cache_builder::fetch_server_metadata() {
   m_cache.hostname = mysqlshdk::utils::Net::get_hostname();
 
   try {
-    const auto result = m_session->query("SELECT @@GLOBAL.GTID_EXECUTED;");
+    const auto result = query("SELECT @@GLOBAL.GTID_EXECUTED;");
 
     if (const auto row = result->fetch_one()) {
       m_cache.gtid_executed = row->get_string(0);
@@ -541,8 +541,7 @@ void Instance_cache_builder::fetch_ndbinfo() {
   Profiler profiler{"fetching ndbinfo"};
 
   try {
-    const auto result =
-        m_session->query("SHOW VARIABLES LIKE 'ndbinfo\\_version'");
+    const auto result = query("SHOW VARIABLES LIKE 'ndbinfo\\_version'");
     m_cache.has_ndbinfo = nullptr != result->fetch_one();
   } catch (const mysqlshdk::db::Error &) {
     log_error("Failed to check if instance is a part of NDB cluster.");
@@ -903,8 +902,7 @@ void Instance_cache_builder::iterate_schemas(
                              const mysqlshdk::db::IRow *)> &callback) {
   Profiler profiler{"iterating schemas"};
 
-  const auto result =
-      m_session->query(QH::build_query(info, schema_filter(info)));
+  const auto result = query(QH::build_query(info, schema_filter(info)));
 
   std::string current_schema;
   Instance_cache::Schema *schema = nullptr;
@@ -943,7 +941,7 @@ void Instance_cache_builder::iterate_tables_and_views(
   Profiler profiler{"iterating tables and views"};
 
   const auto result =
-      m_session->query(QH::build_query(info, schema_and_table_filter(info)));
+      query(QH::build_query(info, schema_and_table_filter(info)));
 
   std::string current_schema;
   Instance_cache::Schema *schema = nullptr;

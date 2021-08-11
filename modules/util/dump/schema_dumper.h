@@ -207,6 +207,10 @@ class Schema_dumper {
   std::shared_ptr<mysqlshdk::db::IResult> query_log_and_throw(
       const std::string &s);
 
+  std::shared_ptr<mysqlshdk::db::IResult> query_log_error(
+      const std::string &sql, const std::string &schema,
+      const std::string &table) const;
+
   int query_with_binary_charset(
       const std::string &s, std::shared_ptr<mysqlshdk::db::IResult> *out_result,
       mysqlshdk::db::Error *out_error = nullptr);
@@ -214,6 +218,8 @@ class Schema_dumper {
   void fetch_db_collation(const std::string &db, std::string *out_db_cl_name);
 
   void switch_character_set_results(const char *cs_name);
+
+  void use(const std::string &db) const;
 
   void unescape(IFile *file, const char *pos, size_t length);
 

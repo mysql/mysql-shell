@@ -386,6 +386,40 @@ class Dump_loader {
 
   void on_ddl_done_for_schema(const std::string &schema);
 
+  template <typename T>
+  static inline std::shared_ptr<mysqlshdk::db::IResult> query(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session, const T &sql) {
+    return session->query_log_error(sql);
+  }
+
+  template <typename T>
+  static inline void execute(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session, const T &sql) {
+    session->execute_log_error(sql);
+  }
+
+  template <typename... Args>
+  static inline void executef(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session, const char *sql,
+      Args &&... args) {
+    session->executef_log_error(sql, std::forward<Args>(args)...);
+  }
+
+  template <typename T>
+  inline std::shared_ptr<mysqlshdk::db::IResult> query(const T &sql) const {
+    return query(m_session, sql);
+  }
+
+  template <typename T>
+  inline void execute(const T &sql) const {
+    return execute(m_session, sql);
+  }
+
+  template <typename... Args>
+  inline void executef(const char *sql, Args &&... args) {
+    executef(m_session, sql, std::forward<Args>(args)...);
+  }
+
  private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);

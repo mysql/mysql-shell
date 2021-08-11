@@ -264,14 +264,13 @@ void Load_dump_options::set_session(
   }
 
   m_target_server_version = mysqlshdk::utils::Version(
-      m_base_session->query("SELECT @@version")->fetch_one()->get_string(0));
+      query("SELECT @@version")->fetch_one()->get_string(0));
 
   m_is_mds = ::mysqlsh::is_mds(m_target_server_version);
   DBUG_EXECUTE_IF("dump_loader_force_mds", { m_is_mds = true; });
 
   try {
-    m_base_session->query(
-        "SELECT @@SESSION.sql_generate_invisible_primary_key;");
+    query("SELECT @@SESSION.sql_generate_invisible_primary_key;");
     m_auto_create_pks_supported = true;
   } catch (const mysqlshdk::db::Error &e) {
     if (e.code() == ER_UNKNOWN_SYSTEM_VARIABLE) {
@@ -281,20 +280,16 @@ void Load_dump_options::set_session(
     }
   }
 
-  m_server_uuid = m_base_session->query("SELECT @@server_uuid")
-                      ->fetch_one_or_throw()
-                      ->get_string(0);
+  m_server_uuid =
+      query("SELECT @@server_uuid")->fetch_one_or_throw()->get_string(0);
 
   if (m_load_users) {
     if (is_mds()) {
       add_excluded_users(shcore::to_accounts(k_oci_excluded_users));
     }
 
-    m_excluded_users.emplace_back(
-        shcore::split_account(m_base_session->query("SELECT current_user()")
-                                  ->fetch_one()
-                                  ->get_string(0),
-                              true));
+    m_excluded_users.emplace_back(shcore::split_account(
+        query("SELECT current_user()")->fetch_one()->get_string(0), true));
   }
 }
 
@@ -363,10 +358,9 @@ void Load_dump_options::validate() {
   m_oci_options.check_option_values();
 
   {
-    auto result =
-        m_base_session->query("SHOW GLOBAL VARIABLES LIKE 'local_infile'");
-    auto row = result->fetch_one();
-    auto local_infile_value = row->get_string(1);
+    const auto result = query("SHOW GLOBAL VARIABLES LIKE 'local_infile'");
+    const auto row = result->fetch_one();
+    const auto local_infile_value = row->get_string(1);
 
     if (shcore::str_caseeq(local_infile_value, "off")) {
       mysqlsh::current_console()->print_error(

@@ -733,7 +733,7 @@ void Dump_reader::validate_options() {
         throw std::invalid_argument("The target schema was not specified.");
       }
     } else {
-      const auto result = m_options.base_session()->queryf(
+      const auto result = m_options.base_session()->queryf_log_error(
           "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE "
           "SCHEMA_NAME = ?",
           m_options.target_schema());

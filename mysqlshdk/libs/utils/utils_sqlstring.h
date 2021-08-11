@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -100,6 +100,7 @@ class SHCORE_PUBLIC sqlstring {
   operator std::string() const;
   sqlstring &operator=(const sqlstring &) = default;
   std::string str() const;
+  std::size_t size() const;
 
   //! modifies formatting options
   sqlstring &operator<<(const sqlstringformat);

@@ -109,26 +109,40 @@ class SHCORE_PUBLIC ISession {
   virtual mysqlshdk::utils::Version get_server_version() const = 0;
 
   // Execution
-  inline std::shared_ptr<IResult> query(const std::string &sql,
-                                        bool buffered = false) {
-    return querys(sql.data(), sql.length(), buffered);
-  }
-
-  inline std::shared_ptr<IResult> query(const char *sql,
-                                        bool buffered = false) {
-    return querys(sql, ::strlen(sql), buffered);
-  }
-
-  inline void execute(const std::string &sql) {
-    executes(sql.data(), sql.length());
-  }
-
-  inline void execute(const char *sql) { executes(sql, ::strlen(sql)); }
-
   virtual std::shared_ptr<IResult> querys(const char *sql, size_t len,
                                           bool buffered = false) = 0;
 
+  inline std::shared_ptr<IResult> querys_log_error(const char *sql, size_t len,
+                                                   bool buffered = false) {
+    return run_sql_log_error(&ISession::querys, sql, len, buffered);
+  }
+
+  template <typename T>
+  inline std::shared_ptr<IResult> query(const T &sql, bool buffered = false) {
+    return querys(data(sql), length(sql), buffered);
+  }
+
+  template <typename T>
+  inline std::shared_ptr<IResult> query_log_error(const T &sql,
+                                                  bool buffered = false) {
+    return querys_log_error(data(sql), length(sql), buffered);
+  }
+
   virtual void executes(const char *sql, size_t len) = 0;
+
+  inline void executes_log_error(const char *sql, size_t len) {
+    run_sql_log_error(&ISession::executes, sql, len);
+  }
+
+  template <typename T>
+  inline void execute(const T &sql) {
+    executes(data(sql), length(sql));
+  }
+
+  template <typename T>
+  inline void execute_log_error(const T &sql) {
+    executes_log_error(data(sql), length(sql));
+  }
 
   /**
    * Execute query and perform client-side placeholder substitution
@@ -146,8 +160,19 @@ class SHCORE_PUBLIC ISession {
   }
 
   template <typename... Args>
+  inline std::shared_ptr<IResult> queryf_log_error(const std::string &sql,
+                                                   const Args &... args) {
+    return query_log_error(shcore::sqlformat(sql, args...));
+  }
+
+  template <typename... Args>
   inline void executef(const std::string &sql, const Args &... args) {
     execute(shcore::sqlformat(sql, args...));
+  }
+
+  template <typename... Args>
+  inline void executef_log_error(const std::string &sql, const Args &... args) {
+    execute_log_error(shcore::sqlformat(sql, args...));
   }
 
   // Disconnection
@@ -201,6 +226,40 @@ class SHCORE_PUBLIC ISession {
   }
 
  private:
+  template <typename T>
+  using is_char_ptr = std::is_convertible<T, const char *>;
+
+  template <typename T, std::enable_if_t<!is_char_ptr<T>::value, int> = 0>
+  static inline std::size_t length(T &&str) {
+    return std::size(std::forward<T>(str));
+  }
+
+  template <std::size_t N>
+  static inline std::size_t length(const char (&)[N]) {
+    return N - 1;
+  }
+
+  template <typename T, std::enable_if_t<is_char_ptr<T>::value, int> = 0>
+  static inline std::size_t length(T str) {
+    return ::strlen(str);
+  }
+
+  static inline const char *data(const char *str) { return str; }
+
+  static inline const char *data(const std::string &str) { return str.c_str(); }
+
+  template <typename R, typename... Args>
+  inline R run_sql_log_error(R (ISession::*fun)(const char *, size_t, Args...),
+                             const char *sql, size_t len, Args... args) {
+    try {
+      return (this->*fun)(sql, len, args...);
+    } catch (const Error &e) {
+      log_error("Error while executing: '%.*s': %s", static_cast<int>(len), sql,
+                e.format().c_str());
+      throw;
+    }
+  }
+
   std::unique_ptr<std::string> m_sql_mode;
   bool m_ansi_quotes_enabled = false;
 };

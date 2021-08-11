@@ -468,6 +468,12 @@ std::shared_ptr<mysqlshdk::db::IResult> Schema_dumper::query_log_and_throw(
   }
 }
 
+std::shared_ptr<mysqlshdk::db::IResult> Schema_dumper::query_log_error(
+    const std::string &sql, const std::string &schema,
+    const std::string &table) const {
+  return m_mysql->queryf_log_error(sql, schema, table);
+}
+
 int Schema_dumper::query_with_binary_charset(
     const std::string &s, std::shared_ptr<mysqlshdk::db::IResult> *out_result,
     mysqlshdk::db::Error *out_error) {
@@ -485,7 +491,7 @@ void Schema_dumper::fetch_db_collation(const std::string &db,
   } else {
     bool err_status = false;
 
-    m_mysql->executef("use !", db);
+    use(db);
     auto db_cl_res = query_log_and_throw("select @@collation_database");
 
     do {
@@ -529,6 +535,10 @@ void Schema_dumper::switch_character_set_results(const char *cs_name) {
     throw std::runtime_error(
         std::string("Unable to set character_set_results to") + cs_name);
   }
+}
+
+void Schema_dumper::use(const std::string &db) const {
+  m_mysql->executef_log_error("USE !", db);
 }
 
 void Schema_dumper::unescape(IFile *file, const char *pos, size_t length) {
@@ -929,7 +939,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
   if (opt_pk_mandatory_check) {
     try {
       // check if table has primary key
-      auto result = m_mysql->queryf(
+      const auto result = query_log_error(
           "SELECT count(column_name) FROM information_schema.columns where "
           "table_schema = ? and table_name = ? and column_key = 'PRI';",
           db.c_str(), table.c_str());
@@ -1008,7 +1018,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
     if (m_cache) {
       count = m_cache->schemas.at(db).tables.at(table).all_columns.size();
     } else {
-      const auto result = m_mysql->queryf(
+      const auto result = query_log_error(
           "SELECT COUNT(column_name) FROM information_schema.columns WHERE "
           "table_schema=? AND table_name=?",
           db, table);
@@ -2000,7 +2010,7 @@ int Schema_dumper::init_dumping(
     return 0;
   }
 
-  m_mysql->executef("USE !", database);
+  use(database);
 
   if (opt_databases || opt_alldbs) {
     std::string qdatabase = opt_quoted
@@ -2102,8 +2112,8 @@ char Schema_dumper::check_if_ignore_table(const std::string &db,
     }
   } else {
     try {
-      res = m_mysql->query("show table status like " +
-                           quote_for_like(table_name));
+      res = m_mysql->query_log_error("show table status like " +
+                                     quote_for_like(table_name));
     } catch (const mysqlshdk::db::Error &e) {
       if (e.code() != ER_PARSE_ERROR) { /* If old MySQL version */
         log_debug(
@@ -2427,7 +2437,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
           snprintf(qbuf, sizeof(qbuf), "SHOW CREATE DATABASE IF NOT EXISTS %s",
                    qdatabase.c_str());
 
-      auto result = m_mysql->querys(qbuf, qlen);
+      auto result = m_mysql->querys_log_error(qbuf, qlen);
 
       if (opt_drop_database)
         fprintf(file, "\n/*!40000 DROP DATABASE IF EXISTS %s*/;\n",
@@ -2507,7 +2517,7 @@ int Schema_dumper::count_triggers_for_table(const std::string &db,
   if (m_cache) {
     return m_cache->schemas.at(db).tables.at(table).triggers.size();
   } else {
-    auto res = m_mysql->queryf(
+    const auto res = query_log_error(
         "select count(TRIGGER_NAME) from information_schema.triggers where "
         "TRIGGER_SCHEMA = ? and EVENT_OBJECT_TABLE = ?;",
         db.c_str(), table.c_str());
@@ -2537,7 +2547,7 @@ std::vector<std::string> Schema_dumper::get_triggers(const std::string &db,
       triggers.emplace_back(trigger);
     }
   } else {
-    m_mysql->executef("USE !", db);
+    use(db);
     auto show_triggers_rs =
         query_log_and_throw("SHOW TRIGGERS LIKE " + quote_for_like(table));
 
@@ -2567,7 +2577,7 @@ std::vector<std::string> Schema_dumper::get_events(const std::string &db) {
       events.emplace_back(event);
     }
   } else {
-    m_mysql->executef("USE !", db);
+    use(db);
     auto event_res = query_log_and_throw("show events");
 
     while (auto row = event_res->fetch_one()) {
@@ -2601,7 +2611,7 @@ std::vector<std::string> Schema_dumper::get_routines(const std::string &db,
       routine_list.emplace_back(routine);
     }
   } else {
-    m_mysql->executef("USE !", db);
+    use(db);
 
     shcore::sqlstring query(
         shcore::str_format("SHOW %s STATUS WHERE Db = ?", type.c_str()), 0);
@@ -2997,7 +3007,7 @@ std::vector<shcore::Account> Schema_dumper::get_roles(
 
   try {
     // check if server supports roles
-    m_mysql->query("SELECT @@GLOBAL.activate_all_roles_on_login");
+    m_mysql->query_log_error("SELECT @@GLOBAL.activate_all_roles_on_login");
   } catch (const mysqlshdk::db::Error &e) {
     if (ER_UNKNOWN_SYSTEM_VARIABLE == e.code()) {
       // roles are not supported

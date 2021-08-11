@@ -269,6 +269,11 @@ class Instance_cache_builder final {
 
   std::string schema_and_table_filter(const Iterate_table &info) const;
 
+  template <typename T>
+  inline std::shared_ptr<mysqlshdk::db::IResult> query(const T &sql) const {
+    return m_session->query_log_error(sql);
+  }
+
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 
   Instance_cache m_cache;

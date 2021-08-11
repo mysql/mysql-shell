@@ -70,7 +70,7 @@ void Export_table_options::set_table(const std::string &schema_table) {
 void Export_table_options::on_set_session(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   if (m_schema.empty()) {
-    const auto result = session->query("SELECT SCHEMA();");
+    const auto result = session->query_log_error("SELECT SCHEMA();");
 
     if (const auto row = result->fetch_one()) {
       if (!row->is_null(0)) {

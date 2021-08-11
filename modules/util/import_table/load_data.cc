@@ -550,28 +550,36 @@ void Load_data_worker::execute(
     fi.user_interrupt = &m_interrupt;
     fi.max_rate = m_opt.max_rate();
     uint64_t max_trx_size = 0;
+    const auto query = [&session](const auto &sql) {
+      return session->query_log_error(sql);
+    };
+    const auto execute = [&session](const auto &sql) {
+      session->execute_log_error(sql);
+    };
+    const auto executef = [&session](const auto &sql, auto &&... args) {
+      session->executef_log_error(sql, std::forward<decltype(args)>(args)...);
+    };
 
     // this sets the character_set_database and collation_database server
     // variables to the values the schema has
-    session->executef("USE !;", m_opt.schema());
+    executef("USE !;", m_opt.schema());
 
     // SQL mode:
     //  - no_auto_value_on_zero - normally, 0 generates the next sequence
     //    number, use this mode to prevent this behaviour (solves problems if
     //    dump has 0 stored in an AUTO_INCREMENT column)
-    session->execute("SET SQL_MODE = 'no_auto_value_on_zero';");
+    execute("SET SQL_MODE = 'no_auto_value_on_zero';");
 
     // if user has specified the character set, set the session variables
     // related to the client connection
     if (!m_opt.character_set().empty()) {
-      session->executef("SET NAMES ?;", m_opt.character_set());
+      executef("SET NAMES ?;", m_opt.character_set());
     }
 
     // set session variables
-    session->execute("SET unique_checks = 0");
-    session->execute("SET foreign_key_checks = 0");
-    session->execute(
-        "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
+    execute("SET unique_checks = 0");
+    execute("SET foreign_key_checks = 0");
+    execute("SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
 
     session->set_local_infile_userdata(static_cast<void *>(&fi));
     session->set_local_infile_init(local_infile_init);
@@ -763,7 +771,7 @@ void Load_data_worker::execute(
 
       try {
         fi.buffer.before_query();
-        load_result = session->query(m_query_comment + full_query);
+        load_result = query(m_query_comment + full_query);
         fi.buffer.flush_done(&fi.continuation);
         m_stats.total_bytes += fi.bytes;
         ++m_stats.total_files_processed;

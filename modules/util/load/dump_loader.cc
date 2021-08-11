@@ -95,7 +95,7 @@ bool histograms_supported(const Version &version) {
 bool has_pke(mysqlshdk::db::ISession *session, const std::string &schema,
              const std::string &table) {
   // Return true if the table has a PK or equivalent (UNIQUE NOT NULL)
-  auto res = session->queryf("SHOW INDEX IN !.!", schema, table);
+  auto res = session->queryf_log_error("SHOW INDEX IN !.!", schema, table);
   while (auto row = res->fetch_one_named()) {
     if (row.get_int("Non_unique") == 0 && row.get_string("Null").empty())
       return true;
@@ -167,7 +167,7 @@ void execute_statement(const std::shared_ptr<mysqlshdk::db::ISession> &session,
 
   while (true) {
     try {
-      session->executes(stmt.data(), stmt.length());
+      session->executes_log_error(stmt.data(), stmt.length());
       return;
     } catch (const mysqlshdk::db::Error &e) {
       log_info("Error executing SQL: %s:\n%.*s", e.format().c_str(),
@@ -398,7 +398,7 @@ bool Dump_loader::Worker::Table_ddl_task::execute(
 
     if (!loader->m_options.dry_run()) {
       // this is here to detect if data is loaded into a non-existing schema
-      session->executef("use !", m_schema.c_str());
+      Dump_loader::executef(session, "use !", m_schema.c_str());
     }
 
     load_ddl(session, loader);
@@ -448,7 +448,7 @@ void Dump_loader::Worker::Table_ddl_task::extract_pending_indexes(
     // this handles the case where the table was already created in a previous
     // run and some indexes may already have been re-created
     try {
-      auto ct = session->query("show create table " + key())
+      auto ct = Dump_loader::query(session, "show create table " + key())
                     ->fetch_one()
                     ->get_string(1);
       auto recreated =
@@ -599,7 +599,7 @@ void Dump_loader::Worker::Load_chunk_task::load(
           "Truncating table `%s`.`%s` because of resume and it "
           "has no PK or equivalent key",
           schema().c_str(), table().c_str()));
-      session->executef("TRUNCATE TABLE !.!", schema(), table());
+      Dump_loader::executef(session, "TRUNCATE TABLE !.!", schema(), table());
 
       m_bytes_to_skip = 0;
     }
@@ -790,7 +790,7 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
     if (!loader->m_options.dry_run()) {
       if (m_histograms.empty() ||
           !histograms_supported(loader->m_options.target_server_version())) {
-        session->executef("ANALYZE TABLE !.!", schema(), table());
+        Dump_loader::executef(session, "ANALYZE TABLE !.!", schema(), table());
       } else {
         for (const auto &h : m_histograms) {
           shcore::sqlstring q(
@@ -799,7 +799,7 @@ bool Dump_loader::Worker::Analyze_table_task::execute(
 
           std::string sql = q.str();
           log_debug("Executing %s", sql.c_str());
-          session->execute(sql);
+          Dump_loader::execute(session, sql);
         }
       }
     }
@@ -994,42 +994,42 @@ std::shared_ptr<mysqlshdk::db::mysql::Session> Dump_loader::create_session() {
   // Set timeouts to larger values since worker threads may get stuck
   // downloading data for some time before they have a chance to get back to
   // doing MySQL work.
-  session->executef("SET SESSION net_read_timeout = ?",
-                    k_mysql_server_net_read_timeout);
+  executef(session, "SET SESSION net_read_timeout = ?",
+           k_mysql_server_net_read_timeout);
 
   // This is the time until the server kicks out idle connections. Our
   // connections should last for as long as the dump lasts even if they're
   // idle.
-  session->executef("SET SESSION wait_timeout = ?",
-                    k_mysql_server_wait_timeout);
+  executef(session, "SET SESSION wait_timeout = ?",
+           k_mysql_server_wait_timeout);
 
   // Disable binlog if requested by user
   if (m_options.skip_binlog()) {
     try {
-      session->execute("SET sql_log_bin=0");
+      execute(session, "SET sql_log_bin=0");
     } catch (const mysqlshdk::db::Error &e) {
       throw shcore::Exception::runtime_error(
           "'SET sql_log_bin=0' failed with error - " + e.format());
     }
   }
 
-  session->execute("SET foreign_key_checks = 0");
-  session->execute("SET unique_checks = 0");
+  execute(session, "SET foreign_key_checks = 0");
+  execute(session, "SET unique_checks = 0");
 
   // Make sure we don't get affected by user customizations of sql_mode
-  session->execute("SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO'");
+  execute(session, "SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO'");
 
   if (!m_character_set.empty())
-    session->executef("SET NAMES ?", m_character_set);
+    executef(session, "SET NAMES ?", m_character_set);
 
-  if (m_dump->tz_utc()) session->execute("SET TIME_ZONE='+00:00'");
+  if (m_dump->tz_utc()) execute(session, "SET TIME_ZONE='+00:00'");
 
   if (m_options.load_ddl() && m_options.auto_create_pks_supported()) {
     // target server supports automatic creation of primary keys, we need to
     // explicitly set the value of session variable, so we won't end up creating
     // primary keys when user doesn't want to do that
-    session->executef("SET @@SESSION.sql_generate_invisible_primary_key=?",
-                      should_create_pks());
+    executef(session, "SET @@SESSION.sql_generate_invisible_primary_key=?",
+             should_create_pks());
   }
 
   return session;
@@ -1186,13 +1186,13 @@ void Dump_loader::on_dump_end() {
               "Resetting GTID_PURGED to dumped gtid set");
           log_info("Setting GTID_PURGED to %s",
                    m_dump->gtid_executed().c_str());
-          m_session->executef(query, m_dump->gtid_executed());
+          executef(query, m_dump->gtid_executed());
         } else {
           current_console()->print_status(
               "Appending dumped gtid set to GTID_PURGED");
           log_info("Appending %s to GTID_PURGED",
                    m_dump->gtid_executed().c_str());
-          m_session->executef(query, "+" + m_dump->gtid_executed());
+          executef(query, "+" + m_dump->gtid_executed());
         }
         m_load_log->end_gtid_update();
       } catch (const std::exception &e) {
@@ -1207,7 +1207,7 @@ void Dump_loader::on_dump_end() {
   }
 
   // check if redo log is disabled and print a reminder if so
-  auto res = m_session->query(
+  auto res = query(
       "SELECT VARIABLE_VALUE = 'OFF' FROM "
       "performance_schema.global_status "
       "WHERE variable_name = 'Innodb_redo_log_enabled'");
@@ -1230,7 +1230,7 @@ void Dump_loader::on_schema_end(const std::string &schema) {
       if (!m_options.dry_run()) {
         for (const auto &q : fks) {
           try {
-            m_session->execute(q);
+            execute(q);
           } catch (const std::exception &e) {
             current_console()->print_error(
                 "Error while restoring FOREIGN KEY constraint in schema `" +
@@ -1264,7 +1264,7 @@ void Dump_loader::on_schema_end(const std::string &schema) {
         it.second->close();
 
         if (!m_options.dry_run()) {
-          m_session->executef("USE !", schema);
+          executef("USE !", schema);
 
           execute_script(m_session, script, "While executing triggers SQL",
                          m_default_sql_transforms);
@@ -1279,7 +1279,7 @@ void Dump_loader::on_schema_end(const std::string &schema) {
 void Dump_loader::switch_schema(const std::string &schema, bool load_done) {
   if (!m_options.dry_run()) {
     try {
-      m_session->executef("use !", schema.c_str());
+      executef("use !", schema.c_str());
     } catch (const std::exception &e) {
       current_console()->print_error(shcore::str_format(
           "Unable to use schema `%s`%s, error message: %s", schema.c_str(),
@@ -1971,7 +1971,7 @@ void Dump_loader::check_tables_without_primary_key() {
     return;
   }
 
-  if (m_session->query("show variables like 'sql_require_primary_key';")
+  if (query("show variables like 'sql_require_primary_key';")
           ->fetch_one()
           ->get_string(1) != "ON")
     return;
@@ -2021,7 +2021,7 @@ std::shared_ptr<mysqlshdk::db::IResult> query_names(
   set = set.empty() ? "" : "(" + set + ")";
 
   if (!set.empty())
-    return session->queryf(query_prefix + set, schema);
+    return session->queryf_log_error(query_prefix + set, schema);
   else
     return {};
 }
@@ -2065,7 +2065,7 @@ void Dump_loader::check_existing_objects() {
             shcore::str_format("'%s'@'%s'", a.user.c_str(), a.host.c_str())));
     }
 
-    auto result = m_session->query(
+    auto result = query(
         "SELECT DISTINCT grantee FROM information_schema.user_privileges");
     for (auto row = result->fetch_one(); row; row = result->fetch_one()) {
       auto grantee = row->get_string(0);
@@ -2093,7 +2093,7 @@ void Dump_loader::check_existing_objects() {
       [](const std::string &s) { return shcore::quote_sql_string(s); });
   if (set.empty()) return;
 
-  auto result = m_session->query(
+  auto result = query(
       "SELECT schema_name FROM information_schema.schemata"
       " WHERE schema_name in (" +
       set + ")");
@@ -2515,7 +2515,7 @@ void Dump_loader::execute_view_ddl_tasks() {
                          schema.c_str(), view.c_str());
 
                 if (!m_options.dry_run()) {
-                  m_session->executef("use !", schema.c_str());
+                  executef("use !", schema.c_str());
 
                   // execute sql
                   execute_script(
