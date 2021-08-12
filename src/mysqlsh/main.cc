@@ -58,44 +58,142 @@ const char *g_mysqlsh_path;
 
 static int enable_x_protocol(
     std::shared_ptr<mysqlsh::Command_line_shell> shell) {
+  auto shell_session = shell->shell_context()->get_dev_session();
+
+  mysqlshdk::db::Connection_options connection_options =
+      shell_session->get_connection_options();
+
+  connection_options.clear_scheme();
+  connection_options.set_scheme("mysqlx");
+  // Temporary port to be replaced by the X port
+  connection_options.clear_port();
+  connection_options.set_port(0);
+
+  std::string temp_uri =
+      connection_options.as_uri(mysqlshdk::db::uri::formats::full());
+
+  shell->process_line("var uri_template = '" + temp_uri + "'");
+
   // clang-format off
   static const char *script =
-      R"*(function enableXProtocol() {
+      R"*(
+// Returns object with code and message about X Protocol state
+function checkXProtocol() {
+  result = {}
+  result.code = 0;
+  result.message = '';
+
+  // Return codes:
+  // - 0: X Protocol is active for TCP connections
+  // - 1: X Protocol is active but is not listening for TCP connections
+  // - 2: X Protocol is inactive
+  // - 3: Error verifying xprotocol state
+
   try {
     if (session.uri.indexOf("mysqlx://") == 0) {
-      var mysqlx_port = session.sql('select @@mysqlx_port').execute().fetchOne();
-      println('enableXProtocol: X Protocol plugin is already enabled and listening for connections on port '+mysqlx_port[0]);
-      return 0;
+      let x_port = session.runSql('select @@mysqlx_port as xport').fetchOneObject().xport;
+      result.code = 0;
+      result.message = `X Protocol plugin is already enabled and listening for connections on port ${x_port}`;
+    } else {
+      let active = session.runSql(`SELECT COUNT(*) AS active
+                                    FROM information_schema.plugins WHERE plugin_name='mysqlx'
+                                    AND plugin_status='ACTIVE'`).fetchOneObject().active;
+
+      if (active) {
+        let x_port = session.runSql("SELECT @@mysqlx_port AS xport").fetchOneObject().xport;
+        let server_uuid = session.runSql("SELECT @@server_uuid AS uuid").fetchOneObject().uuid;
+
+        // Attempts a TCP connection to the X protocol
+        let x_uri = uri_template.replace(":0", ":" + x_port.toString());
+        let x_session;
+        try {
+          x_session = shell.openSession(x_uri);
+          let x_server_uuid = x_session.runSql("SELECT @@server_uuid AS uuid").fetchOneObject().uuid;
+          x_session.close();
+          if (server_uuid != x_server_uuid) {
+            result.code = 1;
+            result.message = 'The X Protocol plugin is enabled, however a different ' +
+                            `server is listening for TCP connections at port ${x_port}` +
+                            ', check the MySQL Server log for more details';
+          } else {
+            result.message = `The X Protocol plugin is already enabled and listening for connections on port ${x_port}`;
+          }
+        } catch (error) {
+          result.code = 1;
+          result.message = 'The X plugin is enabled, however failed to create a session using ' +
+                    `port ${x_port}, check the MySQL Server log for more details`;
+        }
+      } else {
+        result.code = 2;
+        result.message = 'The X plugin is not enabled';
+      }
     }
-    var mysqlx_port = session.runSql('select @@mysqlx_port').fetchOne();
-    println('enableXProtocol: X Protocol plugin is already enabled and listening for connections on port '+mysqlx_port[0]);
-    return 0;
   } catch (error) {
-    if (error["code"] != 1193) { // unknown system variable
-      println('enableXProtocol: Error checking for X Protocol plugin: '+error["message"]);
-      return 1;
-    }
+    result.code = 3;
+    result.message = `Error checking for X Protocol plugin: ${error["message"]}`;
   }
+
+  return result;
+}
+
+function enableXProtocol() {
   println('enableXProtocol: Installing plugin mysqlx...');
   var row = session.runSql("select @@version_compile_os, substr(@@version, 1, instr(@@version, '-')-1)").fetchOne();
   var version = row[1].split(".");
   var vernum = parseInt(version[0]) * 10000 + parseInt(version[1]) * 100 + parseInt(version[2]);
+  let error_str = '';
+
+  if (row[0] == "Win32" || row[0] == "Win64") {
+    var r = session.runSql("install plugin mysqlx soname 'mysqlx.dll';");
+    if (vernum >= 80004)
+      var r = session.runSql("install plugin mysqlx_cache_cleaner soname 'mysqlx.dll';");
+  } else {
+    var r = session.runSql("install plugin mysqlx soname 'mysqlx.so';")
+    if (vernum >= 80004)
+      var r = session.runSql("install plugin mysqlx_cache_cleaner soname 'mysqlx.so';");
+  }
+  println('enableXProtocol: Verifying plugin is active...')
+  let active = session.runSql(`SELECT COUNT(*) AS active
+                                FROM information_schema.plugins WHERE plugin_name='mysqlx'
+                                AND plugin_status='ACTIVE'`).fetchOneObject().active;
+
+  return error_str;
+}
+
+// Initial verification for X protocol state
+let state = checkXProtocol(session);
+
+// If it is OK or there was an error verifying there's nothing else to do.
+if (state.code == 0 || state.code == 3) {
+  println(`enableXProtocol: ${state.message}`);
+} else {
   try {
-    if (row[0] == "Win32" || row[0] == "Win64") {
-      var r = session.runSql("install plugin mysqlx soname 'mysqlx.dll';");
-      if (vernum >= 80004)
-        var r = session.runSql("install plugin mysqlx_cache_cleaner soname 'mysqlx.dll';");
-    } else {
-      var r = session.runSql("install plugin mysqlx soname 'mysqlx.so';")
-      if (vernum >= 80004)
-        var r = session.runSql("install plugin mysqlx_cache_cleaner soname 'mysqlx.so';");
+    if (state.code == 2) {
+      error = enableXProtocol();
+
+      if (error == '') {
+        state = checkXProtocol();
+      }
     }
-    println("enableXProtocol: done");
+
+    switch (state.code) {
+      case 0:
+        println('enableXProtocol: successfully installed the X protocol plugin!');
+        break;
+      case 1:
+        println(`enableXProtocol: WARNING: ${state.message}`);
+        break;
+      case 2:
+        throw state.message;
+        break;
+      case 3:
+        println(`enableXProtocol: Error verifying X protocol state: ${state.message}`);
+        break;
+    }
   } catch (error) {
-    println('enableXProtocol: Error installing the X Plugin: '+error['message']);
+    println('Error installing the X Plugin: '+ error['message']);
   }
 }
-enableXProtocol();
 println();
 )*";
   // clang-format on

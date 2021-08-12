@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2017, 2021, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -101,7 +101,8 @@ TEST_F(Command_line_test, bug23508428) {
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "enableXProtocol: Installing plugin "
         "mysqlx...");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("enableXProtocol: done");
+    MY_EXPECT_CMD_OUTPUT_CONTAINS(
+        "enableXProtocol: successfully installed the X protocol plugin!");
   }
 
   execute({_mysqlsh, uri.c_str(), "--interactive=full", "-e",
@@ -119,8 +120,8 @@ TEST_F(Command_line_test, bug23508428) {
 
   execute({_mysqlsh, uri.c_str(), "--mysql", "--dba", "enableXProtocol", NULL});
   MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "enableXProtocol: X Protocol plugin is already enabled and listening for "
-      "connections on port " +
+      "enableXProtocol: The X Protocol plugin is already enabled and listening "
+      "for connections on port " +
       _port);
 }
 #endif
