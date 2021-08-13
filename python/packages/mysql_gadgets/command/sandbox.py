@@ -606,12 +606,11 @@ def create_sandbox(**kwargs):
         if mysqld_ver >= (8, 0, 26):
             opt_dict["mysqld"]["replica_preserve_commit_order"] = "ON"
             opt_dict["mysqld"]["replica_parallel_type"] = "LOGICAL_CLOCK"
-            opt_dict["mysqld"]["replica_parallel_workers"] = 4;
+            opt_dict["mysqld"]["replica_parallel_workers"] = 4
         else:
             opt_dict["mysqld"]["slave_preserve_commit_order"] = "ON"
             opt_dict["mysqld"]["slave_parallel_type"] = "LOGICAL_CLOCK"
-            opt_dict["mysqld"]["slave_parallel_workers"] = 4;
-
+            opt_dict["mysqld"]["slave_parallel_workers"] = 4
 
     # MySQLx plugin is automatically loaded starting from versions 8.0.11.
     if mysqld_ver < (8, 0, 11):
@@ -662,13 +661,13 @@ def create_sandbox(**kwargs):
         if mysqld_ver >= (8, 0, 18):
             library_path = os.path.join(basedir, "lib", "mysql", "private")
             sandbox_lib_dir = os.path.join(sandbox_dir, "lib", "mysql",
-                "private")
+                                           "private")
 
             if not os.path.exists(library_path):
                 library_path = os.path.join(basedir, "lib64", "mysql",
-                    "private")
+                                            "private")
                 sandbox_lib_dir = os.path.join(sandbox_dir, "lib64", "mysql",
-                    "private")
+                                               "private")
 
             if not os.path.exists(library_path):
                 library_path = os.path.join(basedir, "lib", "private")
@@ -682,8 +681,8 @@ def create_sandbox(**kwargs):
                 except OSError as err:
                     raise exceptions.GadgetError(
                         _ERROR_CREATE_DIR.format(dir="protobuf library",
-                                                dir_path=sandbox_lib_dir,
-                                                error=str(err)))
+                                                 dir_path=sandbox_lib_dir,
+                                                 error=str(err)))
 
                 try:
                     for name in os.listdir(tools.fs_encode(library_path)):
@@ -692,10 +691,10 @@ def create_sandbox(**kwargs):
                             target_path = os.path.join(sandbox_lib_dir, name)
 
                             _LOGGER.debug(u"Copying library '%s' to '%s'", path,
-                            sandbox_lib_dir)
+                                          sandbox_lib_dir)
 
                             shutil.copy(tools.fs_encode(path),
-                            tools.fs_encode(target_path))
+                                        tools.fs_encode(target_path))
                 except (IOError, shutil.Error) as err:
                     raise exceptions.GadgetError(
                         u"Unable to copy mysqld library '{0}' to '{1}': '{2}'."
@@ -920,7 +919,8 @@ def create_sandbox(**kwargs):
                     "".format(start_ret_code,
                               os.path.join(datadir, "error.log")))
         # change password of root account
-        query = server.Query("ALTER USER 'root'@'localhost' IDENTIFIED BY ?", server.Secret(password))
+        query = server.Query(
+            "ALTER USER 'root'@'localhost' IDENTIFIED BY ?", server.Secret(password))
         s.toggle_binlog(action="disable")
         s.exec_query(query)
         s.toggle_binlog(action="enable")
@@ -981,7 +981,6 @@ def start_sandbox(**kwargs):
     # Get list of options to override
     mysqld_opts = kwargs.get("opt", [])
     opt_override_dict = option_list_to_dictionary(mysqld_opts)
-
 
     _, sandbox_dir = _get_sandbox_dirs(**kwargs)
 
@@ -1199,6 +1198,7 @@ def start_sandbox(**kwargs):
                     u"Unable to remove lock file '{0}': {1}".format(
                         lock_file_path, unicode(err)))
 
+
 def stop_sandbox(**kwargs):
     """Stop an existing MySQL sandbox.
     :param kwargs:      Keyword arguments:
@@ -1220,67 +1220,51 @@ def stop_sandbox(**kwargs):
     # Get default values for optional variables
     timeout = kwargs.get("timeout", SANDBOX_TIMEOUT)
     _, sandbox_dir = _get_sandbox_dirs(**kwargs)
-    # pid file path
-    pidf_path = os.path.join(sandbox_dir, "{0}.pid".format(port))
 
     # Check if the pid file exists and if the port on which it is running is
     # still listening, meaning the sandbox is running.
     # pylint: disable=E1101
     _LOGGER.step("Stopping MySQL sandbox on '%s'.", sandbox_dir)
-    # if a pid file still exists
-    enc_pidf_path = tools.fs_encode(pidf_path)
-    if os.path.exists(enc_pidf_path):
-        _LOGGER.debug("Found pid file '%s'", pidf_path)
-        with open(enc_pidf_path) as f:
-            pid = int(f.readline().strip())
-            _LOGGER.debug("Got pid '%i' from pid file '%s'", pid,
-                          pidf_path)
-        _LOGGER.debug("Executing SHUTDOWN SQL command on server with "
-                      "PID '%i'", pid)
-        # Send shutdown signal
-        conn_dict = {"user": "root",
-                     "host": "localhost",
-                     "port": port,
-                     "passwd": password}
-        s = server.Server({"conn_info": conn_dict})
-        try:
-            s.connect()
-        except exceptions.GadgetServerError as err:
-            raise exceptions.GadgetError(
-                "Unable to connect to MySQL sandbox {0} to send the "
-                "SHUTDOWN request: '{1}'".format(str(s), str(err)))
-        try:
-            s.exec_query("SHUTDOWN")
-        except exceptions.GadgetQueryError:
-            # ignore query timeout or connection lost errors.
-            pass
-        # Wait for server to stop (listening on port).
-        i = 0
-        _LOGGER.debug("Waiting for MySQL sandbox on port '%i' to stop.",
-                      port)
-        while i < timeout:
-            if tools.is_listening("localhost", port):
-                time.sleep(1)
-                i += 1
-            else:
-                # port is listening, break out of loop
-                _LOGGER.debug(
-                    "MySQL sandbox on port '%i' stopped.", port)
-                break
+    _LOGGER.debug("Executing SHUTDOWN SQL command localhost:%i", port)
+    # Send shutdown signal
+    conn_dict = {"user": "root",
+                    "host": "localhost",
+                    "port": port,
+                    "passwd": password}
+    s = server.Server({"conn_info": conn_dict})
+    try:
+        s.connect()
+    except exceptions.GadgetServerError as err:
+        raise exceptions.GadgetError(
+            "Unable to connect to MySQL sandbox {0} to send the "
+            "SHUTDOWN request: '{1}'".format(str(s), str(err)))
+    try:
+        s.exec_query("SHUTDOWN")
+    except exceptions.GadgetQueryError:
+        # ignore query timeout or connection lost errors.
+        pass
+    # Wait for server to stop (listening on port).
+    i = 0
+    _LOGGER.debug("Waiting for MySQL sandbox on port '%i' to stop.",
+                    port)
+    while i < timeout:
+        if tools.is_listening("localhost", port):
+            time.sleep(1)
+            i += 1
         else:
-            # Timeout occurred, issue an error
-            raise exceptions.GadgetError(
-                "Timeout waiting for sandbox mysqld process with pid "
-                "'{0}' to stop. You might need to terminate it manually "
-                "or use the '{1} {2}' command.".format(pid, SANDBOX,
-                                                       SANDBOX_KILL))
-        # Server was stopped
-        _LOGGER.info("MySQL sandbox was stopped on port '%i' with process "
-                     "ID: '%i'.", port, pid)
+            # port is listening, break out of loop
+            _LOGGER.debug(
+                "MySQL sandbox on port '%i' stopped.", port)
+            break
     else:
-        # no pid file was found
-        raise exceptions.GadgetError("Unable to find pid file. Stop "
-                                     "operation will not proceed.")
+        # Timeout occurred, issue an error
+        raise exceptions.GadgetError(
+            "Timeout waiting for sandbox at localhost:{0} to stop. "
+            "You might need to terminate it manually "
+            "or use the '{1} {2}' command.".format(port, SANDBOX,
+                                                    SANDBOX_KILL))
+    # Server was stopped
+    _LOGGER.info("MySQL sandbox was stopped on port '%i'.", port)
 
 
 def kill_sandbox(**kwargs):
