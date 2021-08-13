@@ -107,17 +107,22 @@ class Progress_vt100 : public Progress {
 
 class Spinny_stick {
  public:
-  explicit Spinny_stick(const std::string &label) : m_label(label) {}
+  explicit Spinny_stick(const std::string &label, bool use_json = false)
+      : m_label(label), m_use_json(use_json) {}
   virtual ~Spinny_stick() = default;
 
-  void set_right_label(const std::string &label) { m_right_label = label; }
+  void set_right_label(const std::string &label);
   void update();
   void done(const std::string &text);
 
  private:
+  void print(const std::string &text = {});
+
   std::string m_label;
   std::string m_right_label;
   int m_step = 0;
+  bool m_use_json = false;
+  bool m_needs_refresh = true;
 };
 
 class Threaded_spinny_stick : Spinny_stick {

@@ -28,6 +28,8 @@
 #include <mutex>
 #include <thread>
 
+#include "mysqlshdk/include/shellcore/console.h"
+
 #include "mysqlshdk/libs/textui/term_vt100.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -169,17 +171,58 @@ void Progress_vt100::draw_bar(const Item &item, int indent,
 
 constexpr const char k_spinny_sticks[] = "\\|/-";
 
+void Spinny_stick::set_right_label(const std::string &label) {
+  m_right_label = label;
+  m_needs_refresh = true;
+}
+
 void Spinny_stick::update() {
-  printf("%s %c %s\r", m_label.c_str(), k_spinny_sticks[m_step],
-         m_right_label.c_str());
-  fflush(stdout);
+  print();
   m_step++;
   if (m_step >= int(std::size(k_spinny_sticks) - 1)) m_step = 0;
 }
 
 void Spinny_stick::done(const std::string &text) {
-  printf("%s %s %s\n", m_label.c_str(), text.c_str(),
-         std::string(m_right_label.size(), ' ').c_str());
+  m_needs_refresh = true;
+  print(text);
+}
+
+void Spinny_stick::print(const std::string &text) {
+  if (m_use_json) {
+    if (m_needs_refresh) {
+      std::string msg;
+
+      msg.reserve(m_label.length() + 3 + text.length() +
+                  m_right_label.length() + 1);
+
+      msg += m_label;
+
+      if (text.empty()) {
+        if (!m_right_label.empty()) {
+          msg += " - ";
+          msg += m_right_label;
+        }
+      } else {
+        msg += ' ';
+        msg += text;
+      }
+
+      mysqlsh::current_console()->raw_print(msg, mysqlsh::Output_stream::STDOUT,
+                                            true);
+    }
+  } else {
+    if (text.empty()) {
+      printf("%s %c %s\r", m_label.c_str(), k_spinny_sticks[m_step],
+             m_right_label.c_str());
+    } else {
+      printf("%s %s %s\n", m_label.c_str(), text.c_str(),
+             std::string(m_right_label.size(), ' ').c_str());
+    }
+
+    fflush(stdout);
+  }
+
+  m_needs_refresh = false;
 }
 
 class Threaded_spinny_stick::Impl {

@@ -391,6 +391,7 @@ class Progress_thread final {
   // configuration
   std::string m_description;
   bool m_show_progress = false;
+  bool m_json_output = false;
 
   // console
   std::unique_ptr<Scoped_console> m_console;

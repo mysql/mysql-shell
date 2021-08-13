@@ -1369,10 +1369,9 @@ void Dumper::do_run() {
 
   initialize_dump();
 
-  create_schema_metadata_tasks();
-
   dump_ddl();
 
+  create_schema_metadata_tasks();
   create_schema_ddl_tasks();
   create_table_tasks();
 

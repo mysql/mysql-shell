@@ -2036,6 +2036,15 @@ EXPECT_FAIL("DBError: MySQL Error (7777)", "Internal error.", test_output_absolu
 testutil.clear_traps("mysql")
 testutil.clear_traps("dumper")
 
+#@<> BUG#33223635 when JSON output is requested, running a dump with showProgress: true should produce only valid JSON
+shutil.rmtree(test_output_absolute, True)
+os.mkdir(test_output_absolute)
+
+EXPECT_EQ(0, testutil.call_mysqlsh([uri, "--json=raw", "--interactive=full", "--", "util", "dump-instance", test_output_absolute, "--show-progress=true"]))
+
+for line in testutil.fetch_captured_stdout(False).splitlines():
+    EXPECT_NO_THROWS(lambda: json.loads(line), f"testing line: {line}")
+
 #@<> Drop roles {VER(>=8.0.0)}
 session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])
 
