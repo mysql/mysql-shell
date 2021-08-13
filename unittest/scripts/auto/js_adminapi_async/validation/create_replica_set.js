@@ -38,7 +38,7 @@
 ||Unable to create replicaset. The instance '<<<__address1>>>' already belongs to a replicaset. Use dba.getReplicaSet() to access it. (MYSQLSH 51306)
 
 //@# create with insufficient privs (should fail)
-||Unable to detect target instance state. Please check account privileges. (RuntimeError)
+||Unable to detect state for instance '127.0.0.1:<<<__mysql_sandbox_port1>>>'. Please check account privileges. (RuntimeError)
 
 //@# create with bad configs (should fail) {VER(<8.0.23)}
 |NOTE: Some configuration options need to be fixed:|

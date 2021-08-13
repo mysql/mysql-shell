@@ -1835,9 +1835,10 @@ TargetType::Type get_instance_type(const MetadataStorage &metadata,
     if (error.code() == ER_NO_SUCH_TABLE) {
       gr_active = false;
     } else if (error.code() == ER_TABLEACCESS_DENIED_ERROR) {
-      throw std::runtime_error(
-          "Unable to detect target instance state. Please check account "
-          "privileges.");
+      throw std::runtime_error(shcore::str_format(
+          "Unable to detect state for instance '%s'. Please check account "
+          "privileges.",
+          target_instance->get_canonical_address().c_str()));
     } else {
       throw shcore::Exception::mysql_error_with_code(error.what(),
                                                      error.code());

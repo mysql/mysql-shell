@@ -156,8 +156,8 @@ TEST_F(Preconditions, check_instance_configuration_preconditions_errors) {
 
   std::vector<Invalid_types> validations = {
       {mysqlsh::dba::TargetType::Unknown, 0, 0,
-       "Unable to detect target instance state. Please see the shell log "
-       "for more details."},
+       "Unable to detect state for instance 'mock@localhost:3306'. Please see "
+       "the shell log for more details."},
       {mysqlsh::dba::TargetType::Standalone, 0,
        SHERR_DBA_BADARG_INSTANCE_NOT_MANAGED,
        "This function is not available through a session to a standalone "

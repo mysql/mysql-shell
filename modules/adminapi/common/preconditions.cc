@@ -779,12 +779,16 @@ void Precondition_checker::check_instance_configuration_preconditions(
 
   error = "This function is not available through a session";
   switch (instance_type) {
-    case TargetType::Unknown:
+    case TargetType::Unknown: {
       // The original failure detecting the instance type gets logged.
-      error =
-          "Unable to detect target instance state. Please see the shell log "
-          "for more details.";
+      auto instance =
+          m_group_server ? m_group_server : m_metadata->get_md_server();
+      error = shcore::str_format(
+          "Unable to detect state for instance '%s'. Please see the shell log "
+          "for more details.",
+          instance->get_canonical_address().c_str());
       break;
+    }
     case TargetType::Standalone:
       error += " to a standalone instance";
       code = SHERR_DBA_BADARG_INSTANCE_NOT_MANAGED;

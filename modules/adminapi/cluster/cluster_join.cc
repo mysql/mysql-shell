@@ -321,8 +321,9 @@ void Cluster_join::refresh_target_connections() {
 
       if (CR_SERVER_LOST == e.code()) {
         log_debug(
-            "Target instance connection lost: %s. Re-establishing a "
+            "Connection to instance '%s' lost: %s. Re-establishing a "
             "connection.",
+            m_target_instance->get_canonical_address().c_str(),
             e.format().c_str());
 
         try {

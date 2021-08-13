@@ -633,9 +633,9 @@ void refresh_target_connections(mysqlshdk::mysql::IInstance *target) {
   } catch (const shcore::Error &e) {
     if (mysqlshdk::db::is_mysql_client_error(e.code())) {
       log_debug(
-          "Target instance connection lost: %s. Re-establishing a "
+          "Connection to instance '%s' is lost: %s. Re-establishing a "
           "connection.",
-          e.format().c_str());
+          target->get_canonical_address().c_str(), e.format().c_str());
 
       target->get_session()->connect(opts);
     } else {

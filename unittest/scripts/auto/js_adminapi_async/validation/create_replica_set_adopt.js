@@ -28,7 +28,7 @@
 ||Unable to create replicaset. The instance '<<<__address2>>>' already belongs to a replicaset. Use dba.getReplicaSet() to access it. (MYSQLSH 51306)
 
 //@# adopt with insufficient privs (should fail)
-||Unable to detect target instance state. Please check account privileges. (RuntimeError)
+||Unable to detect state for instance '127.0.0.1:<<<__mysql_sandbox_port1>>>'. Please check account privileges. (RuntimeError)
 |ERROR: <<<__address1>>>: could not query instance: MySQL Error 1227 (42000): Access denied; you need (at least one of) the REPLICATION SLAVE privilege(s) for this operation|
 |ERROR: <<<__address1>>>: could not query instance: MySQL Error 1227 (42000): Access denied; you need (at least one of) the REPLICATION SLAVE privilege(s) for this operation|
 ||Access denied; you need (at least one of) the SUPER, REPLICATION CLIENT privilege(s) for this operation (MYSQLSH 1227)
@@ -71,7 +71,7 @@
 ||Could not open connection to '127.0.0.1:<<<__mysql_sandbox_port2>>>': Access denied for user 'rooty'@'localhost' (using password: YES) (MySQL Error 1045)
 
 //@# admin account passwords match, but they don't allow connection from the shell (should fail)
-||Unable to detect target instance state. Please check account privileges. (RuntimeError)
+||Unable to detect state for instance '127.0.0.1:<<<__mysql_sandbox_port1>>>'. Please check account privileges. (RuntimeError)
 
 //@# invalid topology: master-master (should fail)
 |ERROR: Unable to determine the PRIMARY instance in the topology. Multi-master topologies are not supported.|
