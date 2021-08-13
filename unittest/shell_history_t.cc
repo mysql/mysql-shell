@@ -440,13 +440,10 @@ TEST_F(Shell_history, history_ignore_pattern_py) {
       "setattr(shell.options, 'history.sql.ignorePattern', 'WHAT A PROPERTY');",
       linenoiseHistoryLine(0));
 
-// FIXME uncomment when python comment handling is fixed
-#if 0
   // Second issue - comments not recorded in history
   shell.process_line("# WHAT A PROPERTY NAME");
   EXPECT_EQ(2, linenoiseHistorySize());
   EXPECT_STREQ("# WHAT A PROPERTY NAME", linenoiseHistoryLine(1));
-#endif
 }
 
 TEST_F(Shell_history, history_linenoise) {

@@ -205,8 +205,6 @@ EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--syslog", "--sql" ], stdin="""
 \connect
 \c
 \disconnect
-# \edit - too problematic to simulate correctly
-# \e
 \help
 \?
 \h
@@ -234,8 +232,6 @@ EXPECT_MYSQLSH_NO_SYSLOG([ "-ifull", "--syslog", "--sql" ], stdin="""
 \warnings
 \W
 \watch
-# \exit
-# \quit
 \q
 """)
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,7 +46,7 @@ Shell_python::Shell_python(Shell_core *shcore)
 std::string Shell_python::preprocess_input_line(const std::string &s) {
   const char *p = s.c_str();
   while (*p && isblank(*p)) ++p;
-  if (*p == '#') return std::string();
+
   return s;
 }
 
