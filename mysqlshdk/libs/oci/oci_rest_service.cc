@@ -168,7 +168,11 @@ mysqlshdk::rest::Rest_service *get_rest_service(const std::string &uri,
   auto &service = services[uri];
 
   if (!service) {
-    service = std::make_unique<mysqlshdk::rest::Rest_service>(uri, true, label);
+    // copy the value, Rest_service may outlive the original caller
+    auto real = uri;
+    Masked_string copy = {std::move(real)};
+    service =
+        std::make_unique<mysqlshdk::rest::Rest_service>(copy, true, label);
   }
 
   return service.get();

@@ -375,13 +375,13 @@ class Dumper::Table_worker final {
     uint64_t bytes_written_per_idx = 0;
     const uint64_t write_idx_every = 1024 * 1024;  // bytes
     Dump_write_result bytes_written;
-    mysqlshdk::utils::Profile_timer timer;
+    mysqlshdk::utils::Duration duration;
     std::vector<Dump_writer::Encoding_type> pre_encoded_columns;
 
     log_debug("Dumping %s (chunk %s) using condition: %s",
               table.task_name.c_str(), table.id.c_str(), table.where.c_str());
 
-    timer.stage_begin("dumping");
+    duration.start();
 
     const auto result = query(prepare_query(table, &pre_encoded_columns));
 
@@ -451,7 +451,7 @@ class Dumper::Table_worker final {
     bytes_written_per_file += bytes_written;
     bytes_written_per_update += bytes_written;
 
-    timer.stage_end();
+    duration.finish();
 
     if (table.index_file) {
       const auto total = mysqlshdk::utils::host_to_network(
@@ -464,7 +464,7 @@ class Dumper::Table_worker final {
              " rows (%" PRIu64 " bytes), longest row has %" PRIu64 " bytes",
              table.task_name.c_str(),
              table.writer->output()->full_path().masked().c_str(),
-             table.id.c_str(), timer.total_seconds_elapsed(),
+             table.id.c_str(), duration.seconds_elapsed(),
              rows_written_per_file, bytes_written_per_file.data_bytes(),
              max_row_size);
 
@@ -998,8 +998,8 @@ class Dumper::Table_worker final {
       return 0;
     }
 
-    mysqlshdk::utils::Profile_timer timer;
-    timer.stage_begin("chunking");
+    mysqlshdk::utils::Duration duration;
+    duration.start();
 
     const auto &task_name = table.task_name;
 
@@ -1074,9 +1074,9 @@ class Dumper::Table_worker final {
 
     const auto ranges_count = chunk_column(info);
 
-    timer.stage_end();
+    duration.finish();
     log_debug("Chunking of %s took %f seconds", task_name.c_str(),
-              timer.total_seconds_elapsed());
+              duration.seconds_elapsed());
 
     return ranges_count;
   }
@@ -1397,8 +1397,9 @@ void Dumper::do_run() {
   wait_for_all_tasks();
 
   if (!m_options.is_dry_run() && !m_worker_interrupt) {
-    shutdown_progress();
     write_dump_finished_metadata();
+    close_output_directory();
+    shutdown_progress();
     summarize();
   }
 
@@ -2136,6 +2137,25 @@ void Dumper::create_output_directory() {
   }
 }
 
+void Dumper::close_output_directory() {
+  if (m_options.is_dry_run()) {
+    return;
+  }
+
+  Progress_thread::Stage *stage = nullptr;
+  shcore::on_leave_scope finish_stage([&stage]() {
+    if (stage) {
+      stage->finish();
+    }
+  });
+
+  if (m_options.oci_options().oci_par_manifest.get_safe()) {
+    stage = m_current_stage = m_progress_thread.start_stage("Writing manifest");
+  }
+
+  directory()->close();
+}
+
 void Dumper::create_worker_threads() {
   m_worker_exceptions.clear();
   m_worker_exceptions.resize(m_options.threads());
@@ -2180,6 +2200,10 @@ void Dumper::wait_for_all_tasks() {
 
   m_workers.clear();
   m_worker_writers.clear();
+
+  if (m_data_dump_stage && !m_worker_interrupt) {
+    m_data_dump_stage->finish();
+  }
 }
 
 void Dumper::dump_ddl() const {
@@ -2741,8 +2765,17 @@ void Dumper::write_dump_finished_metadata() const {
   Document doc{Type::kObjectType};
   auto &a = doc.GetAllocator();
 
+  // We cannot use m_progress_thread.duration().finished_at() here, because
+  // progress thread was not terminated yet, as it needs to optionally show
+  // progress when closing the output directory, if ociParManifest was enabled.
+  // We cannot close it before writing the @.done.json, because manifest will be
+  // missing that file, and loader will assume that the dump is not complete.
+  // We're writing the current time here, it's a good approximation, which will
+  // be off only if writing the manifest takes a lot of time. On the other hand,
+  // dump is now complete, writing the manifest is an extra step, and the
+  // summary will include the time it takes.
   doc.AddMember(StringRef("end"),
-                refs(m_progress_thread.duration().finished_at()), a);
+                {Progress_thread::Duration::current_time().c_str(), a}, a);
   doc.AddMember(StringRef("dataBytes"), m_data_bytes.load(), a);
 
   {

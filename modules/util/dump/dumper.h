@@ -201,6 +201,8 @@ class Dumper {
 
   void create_output_directory();
 
+  void close_output_directory();
+
   void create_worker_threads();
 
   void wait_for_workers();

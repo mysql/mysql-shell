@@ -51,7 +51,7 @@ class Progress_thread final {
   /**
    * Represents a duration in time.
    */
-  class Duration final {
+  class Duration final : private mysqlshdk::utils::Duration {
    public:
     Duration(const Duration &) = delete;
     Duration(Duration &&) = delete;
@@ -60,6 +60,13 @@ class Progress_thread final {
     Duration &operator=(Duration &&) = delete;
 
     ~Duration() = default;
+
+    /**
+     * Returns current date and time, formatted: %Y-%m-%d %T.
+     *
+     * @returns formatted current time
+     */
+    static std::string current_time();
 
     /**
      * Returns date and time when time measurement has started, formatted:
@@ -78,6 +85,13 @@ class Progress_thread final {
      * @throws std::logic_error if time measurement is not finished yet
      */
     const std::string &finished_at() const;
+
+    /**
+     * Returns current duration in seconds.
+     *
+     * @returns current duration in seconds
+     */
+    double current() const;
 
     /**
      * Returns duration in seconds.
@@ -109,9 +123,8 @@ class Progress_thread final {
 
     void validate() const;
 
-    mysqlshdk::utils::Profile_timer m_timer;
-    std::string m_start;
-    std::string m_finish;
+    std::string m_started_at;
+    std::string m_finished_at;
   };
 
   /**

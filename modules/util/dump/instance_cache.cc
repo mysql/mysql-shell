@@ -61,7 +61,7 @@ class Profiler final {
   explicit Profiler(const char *msg) : m_msg(msg) {
     log_debug("-> %s", m_msg);
 
-    m_timer.stage_begin(m_msg);
+    m_duration.start();
   }
 
   Profiler(const Profiler &) = delete;
@@ -71,15 +71,15 @@ class Profiler final {
   Profiler &operator=(Profiler &&) = delete;
 
   ~Profiler() {
-    m_timer.stage_end();
+    m_duration.finish();
 
-    log_debug("<- %s took %f seconds", m_msg, m_timer.total_seconds_elapsed());
+    log_debug("<- %s took %f seconds", m_msg, m_duration.seconds_elapsed());
   }
 
  private:
   const char *m_msg = nullptr;
 
-  mysqlshdk::utils::Profile_timer m_timer;
+  mysqlshdk::utils::Duration m_duration;
 };
 
 }  // namespace

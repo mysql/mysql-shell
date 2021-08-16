@@ -37,9 +37,45 @@
 namespace mysqlshdk {
 namespace utils {
 
-class Profile_timer {
-  using high_resolution_clock = std::chrono::high_resolution_clock;
+class Duration {
+ public:
+  Duration() = default;
 
+  Duration(const Duration &) = default;
+  Duration(Duration &&) = default;
+
+  Duration &operator=(const Duration &) = default;
+  Duration &operator=(Duration &&) = default;
+
+  virtual ~Duration() = default;
+
+  void start() { m_start = std::chrono::high_resolution_clock::now(); }
+
+  void finish() { m_finish = std::chrono::high_resolution_clock::now(); }
+
+  std::chrono::high_resolution_clock::duration elapsed() const {
+    return m_finish - m_start;
+  }
+
+  uint64_t nanoseconds_elapsed() const {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed())
+        .count();
+  }
+
+  double milliseconds_elapsed() const {
+    return nanoseconds_elapsed() / 1000000.0;
+  }
+
+  double seconds_elapsed() const {
+    return nanoseconds_elapsed() / 1000000000.0;
+  }
+
+ private:
+  std::chrono::high_resolution_clock::time_point m_start;
+  std::chrono::high_resolution_clock::time_point m_finish;
+};
+
+class Profile_timer {
  public:
   Profile_timer() {
     _trace_points.reserve(32);
@@ -49,7 +85,7 @@ class Profile_timer {
   inline void reserve(size_t space) { _trace_points.reserve(space); }
 
   inline void stage_begin(const char *note) {
-    _trace_points.emplace_back(note, high_resolution_clock::now(), _depth);
+    _trace_points.emplace_back(note, _depth).start();
     _nesting_levels.emplace_back(_trace_points.size() - 1);
     ++_depth;
   }
@@ -58,11 +94,11 @@ class Profile_timer {
     size_t stage = _nesting_levels.back();
     _nesting_levels.pop_back();
     --_depth;
-    _trace_points.at(stage).end = high_resolution_clock::now();
+    _trace_points.at(stage).finish();
   }
 
   uint64_t total_nanoseconds_elapsed() const {
-    auto dur = high_resolution_clock::duration::zero();
+    auto dur = std::chrono::high_resolution_clock::duration::zero();
     for (const auto &tp : _trace_points) {
       if (tp.depth == 0) dur += tp.elapsed();
     }
@@ -78,30 +114,12 @@ class Profile_timer {
   }
 
  public:
-  struct Trace_point {
+  struct Trace_point : public Duration {
     char note[33];
-    high_resolution_clock::time_point start;
-    high_resolution_clock::time_point end;
     int depth;
 
-    Trace_point(const char *n, high_resolution_clock::time_point &&t, int d)
-        : start(std::move(t)), depth(d) {
+    Trace_point(const char *n, int d) : depth(d) {
       snprintf(note, sizeof(note), "%s", n);
-    }
-
-    high_resolution_clock::duration elapsed() const { return end - start; }
-
-    uint64_t nanoseconds_elapsed() const {
-      return std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed())
-          .count();
-    }
-
-    double milliseconds_elapsed() const {
-      return nanoseconds_elapsed() / 1000000.0;
-    }
-
-    double seconds_elapsed() const {
-      return nanoseconds_elapsed() / 1000000000.0;
     }
   };
 

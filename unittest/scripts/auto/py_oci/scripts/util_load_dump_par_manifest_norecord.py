@@ -33,8 +33,12 @@ shell.connect(__sandbox_uri1)
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 
 PREPARE_PAR_IS_SECRET_TEST()
-util.dump_instance("shell-test", {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file, "ociParManifest": True})
+# not using --osNamespace=OS_NAMESPACE here, to trigger automatic detection of the namespace
+EXPECT_EQ(0, testutil.call_mysqlsh([__sandbox_uri1, "--log-level=8", "--", "util", "dump-instance", "shell-test", "--showProgress", "true", "--osBucketName", OS_BUCKET_NAME, "--ociConfigFile", oci_config_file, "--ociParManifest", "true"]))
 EXPECT_PAR_IS_SECRET()
+
+# BUG#33181308 - shell should display an information that it is writing the manifest before the summary
+EXPECT_STDOUT_MATCHES(re.compile(r'Writing manifest - done.*Dump duration: ', re.DOTALL))
 
 testutil.deploy_sandbox(__mysql_sandbox_port2, "root", {"local_infile":1})
 shell.connect(__sandbox_uri2)

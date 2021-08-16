@@ -49,8 +49,6 @@ std::string format_seconds(double seconds) {
                             (sec % 3600ull) / 60ull, sec % 60ull);
 }
 
-std::string current_time() { return mysqlshdk::utils::fmttime("%Y-%m-%d %T"); }
-
 class Spinner_progress : public Progress_thread::Stage {
  public:
   Spinner_progress(const std::string &description, bool show_progress,
@@ -191,20 +189,30 @@ class Throughput_progress : public Progress_thread::Stage {
 
 }  // namespace
 
+std::string Progress_thread::Duration::current_time() {
+  return mysqlshdk::utils::fmttime("%Y-%m-%d %T");
+}
+
 const std::string &Progress_thread::Duration::started_at() const {
-  return m_start;
+  return m_started_at;
 }
 
 const std::string &Progress_thread::Duration::finished_at() const {
   validate();
 
-  return m_finish;
+  return m_finished_at;
+}
+
+double Progress_thread::Duration::current() const {
+  mysqlshdk::utils::Duration duration = *this;
+  duration.finish();
+  return duration.seconds_elapsed();
 }
 
 double Progress_thread::Duration::seconds() const {
   validate();
 
-  return m_timer.total_seconds_elapsed();
+  return mysqlshdk::utils::Duration::seconds_elapsed();
 }
 
 std::string Progress_thread::Duration::to_string() const {
@@ -212,21 +220,21 @@ std::string Progress_thread::Duration::to_string() const {
 }
 
 void Progress_thread::Duration::start() {
-  if (!m_start.empty()) {
+  if (!m_started_at.empty()) {
     throw std::logic_error("Already started");
   }
 
-  m_start = current_time();
-  m_timer.stage_begin("duration");
+  m_started_at = current_time();
+  mysqlshdk::utils::Duration::start();
 }
 
 void Progress_thread::Duration::finish() {
-  m_timer.stage_end();
-  m_finish = current_time();
+  mysqlshdk::utils::Duration::finish();
+  m_finished_at = current_time();
 }
 
 void Progress_thread::Duration::validate() const {
-  if (m_finish.empty()) {
+  if (m_finished_at.empty()) {
     throw std::logic_error("Still in progress");
   }
 }

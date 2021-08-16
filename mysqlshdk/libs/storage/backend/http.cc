@@ -52,7 +52,11 @@ Rest_service *get_rest_service(const Masked_string &base) {
   auto &service = services[base.real()];
 
   if (!service) {
-    service = std::make_unique<mysqlshdk::rest::Rest_service>(base, true);
+    // copy the values, Rest_service may outlive the original caller
+    auto real = base.real();
+    auto masked = base.masked();
+    Masked_string copy = {std::move(real), std::move(masked)};
+    service = std::make_unique<mysqlshdk::rest::Rest_service>(copy, true);
 
     // Timeout conditions:
     // - 30 seconds for HEAD and DELETE requests
