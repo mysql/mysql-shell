@@ -2239,6 +2239,22 @@ EXPECT_EQ(checksum, compute_checksum(tested_schema, tested_table), "checksum mis
 #@<> BUG#32926856 cleanup
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
+#@<> BUG#33232480 setup
+tested_schema = "test_schema"
+tested_table = "test_table"
+
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (`c (from, to)` varchar(16) NOT NULL, `c (to, from)` varchar(16) NOT NULL, `data` blob, PRIMARY KEY (`c (from, to)`, `c (to, from)`));", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! (`c (from, to)`, `c (to, from)`, `data`) VALUES (REPEAT('a',15), REPEAT('a',15), REPEAT('a',115));", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! (`c (from, to)`, `c (to, from)`, `data`) VALUES (REPEAT('z',15), REPEAT('z',15), REPEAT('z',115));", [ tested_schema, tested_table ])
+session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+
+#@<> BUG#33232480 - test
+EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showProgress": False })
+
+#@<> BUG#33232480 cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")

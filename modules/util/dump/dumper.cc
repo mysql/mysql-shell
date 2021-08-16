@@ -595,6 +595,7 @@ class Dumper::Table_worker final {
     std::string partition;
     std::string where;
     std::string order_by;
+    std::string order_by_desc;
     std::size_t index_column;
   };
 
@@ -959,11 +960,7 @@ class Dumper::Table_worker final {
 
     const Row begin = fetch_row(row);
 
-    const auto desc_order_by =
-        shcore::str_join(shcore::str_split(info.order_by, ","), ",",
-                         [](const auto &s) { return s + " DESC"; });
-
-    result = m_session->query(query + desc_order_by + " LIMIT 1");
+    result = m_session->query(query + info.order_by_desc + " LIMIT 1");
     row = result->fetch_one();
 
     if (!row) {
@@ -1061,6 +1058,11 @@ class Dumper::Table_worker final {
     }
 
     info.order_by = " ORDER BY " + table.info->index.columns_sql();
+    info.order_by_desc =
+        " ORDER BY " +
+        shcore::str_join(table.info->index.columns(), ",", [](const auto &c) {
+          return c->quoted_name + " DESC";
+        });
     info.index_column = 0;
 
     log_info("Chunking %s, rows: %" PRIu64 ", average row length: %" PRIu64
