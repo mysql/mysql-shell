@@ -198,7 +198,7 @@ cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance
 
 // Test both rejoinInstances and removeInstances on a single call
 //@ Dba.rebootClusterFromCompleteOutage success
-cluster = dba.rebootClusterFromCompleteOutage("dev", {rejoinInstances: [instance2], removeInstances: [instance3], clearReadOnly: true});
+cluster = dba.rebootClusterFromCompleteOutage("dev", {user:'root', password:'root', rejoinInstances: [instance2], removeInstances: [instance3], clearReadOnly: true});
 
 // Waiting for the second added instance to become online
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");

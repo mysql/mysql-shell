@@ -43,6 +43,8 @@ The instance cluster settings were successfully persisted.
 ||The following instances: 'localhost:<<<__mysql_sandbox_port2>>>' belong to both 'rejoinInstances' and 'removeInstances' lists.
 
 //@ Dba.rebootClusterFromCompleteOutage success
+|WARNING: The user option is deprecated and will be removed in a future release. If not specified, the user name is taken from the active session.|
+|WARNING: The password option is deprecated and will be removed in a future release. If not specified, the password is taken from the active session.|
 ||
 
 //@<OUT> Confirm no new replication user was created on bootstrap member.

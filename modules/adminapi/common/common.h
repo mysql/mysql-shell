@@ -619,10 +619,13 @@ std::vector<std::string> create_router_grants(
  * be printed when old option is used:
  * - true: indicates the new option will be set instead.
  * - false: suggest the new option should be used instead.
+ * @param additional_info information to be included as part of the deprecation
+ * warning.
  */
 void handle_deprecated_option(const std::string &deprecated_name,
                               const std::string &new_name, bool new_set = false,
-                              bool fall_back_to_new_option = false);
+                              bool fall_back_to_new_option = false,
+                              const std::string &additional_info = "");
 
 /**
  * Returns the Type of instance represented by the indicated address.

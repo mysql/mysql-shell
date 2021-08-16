@@ -892,7 +892,6 @@ DESCRIPTION
       unavailable, although ClusterSet change operations will not be possible,
       except for failover with force_primary_cluster().
 
-
 #@<OUT> dba.help
 NAME
       help - Provides help about this object and it's members
@@ -961,6 +960,10 @@ DESCRIPTION
 
       ATTENTION: The clearReadOnly option will be removed in a future release.
 
+      ATTENTION: The user option will be removed in a future release.
+
+      ATTENTION: The password option will be removed in a future release.
+
       This function reboots a cluster from complete outage. It picks the
       instance the MySQL Shell is connected to as new seed instance and
       recovers the cluster. Optionally it also updates the cluster
@@ -977,6 +980,9 @@ DESCRIPTION
       cluster.
 
       If name is not specified, the default cluster will be returned.
+
+      NOTE: The user and password options are no longer used, the connection
+            data is taken from the active shell session.
 
 #@<OUT> dba.start_sandbox_instance
 NAME

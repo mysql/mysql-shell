@@ -453,12 +453,6 @@ OPTIONS
 --clearReadOnly=<bool>
             Boolean value used to confirm that super_read_only must be disabled
 
---user=<str>
-            The user used for the instances sessions required operations.
-
---password=<str>
-            The password used for the instances sessions required operations.
-
 //@<OUT> CLI dba start-sandbox-instance --help
 NAME
       start-sandbox-instance - Starts an existing MySQL Server instance on

@@ -1770,35 +1770,45 @@ void execute_script(const std::shared_ptr<Instance> &group_server,
 
 void handle_deprecated_option(const std::string &deprecated_name,
                               const std::string &new_name, bool already_set,
-                              bool fall_back_to_new_option) {
-  // This function is meant to be used with options that are deprecated in favor
-  // of other options.
+                              bool fall_back_to_new_option,
+                              const std::string &additional_info) {
   assert(!deprecated_name.empty());
-  assert(!new_name.empty());
+
+  std::string message;
+
+  if (!new_name.empty()) {
+    if (already_set) {
+      // If the value is already set (the new name was already read) then errors
+      // out
+      throw shcore::Exception::argument_error(
+          "Cannot use the " + deprecated_name + " and " + new_name +
+          " options simultaneously. The " + deprecated_name +
+          " option is deprecated, please use the " + new_name +
+          " option instead.");
+    } else {
+      // Otherwise just prints a warning
+      if (fall_back_to_new_option) {
+        message = "The " + deprecated_name +
+                  " option is deprecated in favor of " + new_name + ". " +
+                  new_name + " will be set instead.";
+      } else {
+        message = "The " + deprecated_name +
+                  " option is deprecated. Please use the " + new_name +
+                  " option instead.";
+      }
+    }
+  } else {
+    message = "The " + deprecated_name +
+              " option is deprecated and will be removed in a future release.";
+  }
+
+  if (!additional_info.empty()) {
+    message += " " + additional_info;
+  }
 
   auto console = current_console();
-  if (already_set) {
-    // If the value is already set (the new name was already read) then errors
-    // out
-    throw shcore::Exception::argument_error(
-        "Cannot use the " + deprecated_name + " and " + new_name +
-        " options simultaneously. The " + deprecated_name +
-        " option is deprecated, please use the " + new_name +
-        " option instead.");
-  } else {
-    // Otherwise just prints a warning
-    if (fall_back_to_new_option) {
-      console->print_warning("The " + deprecated_name +
-                             " option is deprecated in favor of " + new_name +
-                             ". " + new_name + " will be set instead.");
-    } else {
-      console->print_warning("The " + deprecated_name +
-                             " option is deprecated. "
-                             "Please use the " +
-                             new_name + " option instead.");
-    }
-    console->print_info();
-  }
+  console->print_warning(message);
+  console->print_info();
 }
 
 TargetType::Type get_instance_type(const MetadataStorage &metadata,

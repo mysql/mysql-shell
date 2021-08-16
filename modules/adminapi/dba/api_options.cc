@@ -265,12 +265,16 @@ const shcore::Option_pack_def<Reboot_cluster_options>
           .optional(kRejoinInstances, &Reboot_cluster_options::rejoin_instances)
           .optional(kClearReadOnly,
                     &Reboot_cluster_options::set_clear_read_only)
-          .optional(mysqlshdk::db::kUser, &Reboot_cluster_options::set_user)
+          .optional(mysqlshdk::db::kUser, &Reboot_cluster_options::set_user, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE,
+                    shcore::Option_scope::DEPRECATED)
           .optional(mysqlshdk::db::kDbUser, &Reboot_cluster_options::set_user,
                     "", shcore::Option_extract_mode::CASE_INSENSITIVE,
                     shcore::Option_scope::DEPRECATED)
           .optional(mysqlshdk::db::kPassword,
-                    &Reboot_cluster_options::set_password)
+                    &Reboot_cluster_options::set_password, "",
+                    shcore::Option_extract_mode::CASE_INSENSITIVE,
+                    shcore::Option_scope::DEPRECATED)
           .optional(mysqlshdk::db::kDbPassword,
                     &Reboot_cluster_options::set_password, "",
                     shcore::Option_extract_mode::CASE_INSENSITIVE,
@@ -284,6 +288,10 @@ void Reboot_cluster_options::set_user(const std::string &option,
   if (option == mysqlshdk::db::kDbUser) {
     handle_deprecated_option(mysqlshdk::db::kDbUser, mysqlshdk::db::kUser,
                              !user.is_null(), true);
+  } else if (option == mysqlshdk::db::kUser) {
+    handle_deprecated_option(
+        mysqlshdk::db::kUser, "", false, false,
+        "If not specified, the user name is taken from the active session.");
   }
 
   user = value;
@@ -294,6 +302,10 @@ void Reboot_cluster_options::set_password(const std::string &option,
   if (option == mysqlshdk::db::kDbPassword) {
     handle_deprecated_option(mysqlshdk::db::kDbPassword,
                              mysqlshdk::db::kPassword, !user.is_null(), true);
+  } else if (option == mysqlshdk::db::kPassword) {
+    handle_deprecated_option(
+        mysqlshdk::db::kPassword, "", false, false,
+        "If not specified, the password is taken from the active session.");
   }
 
   password = value;

@@ -2557,6 +2557,10 @@ disabled
 
 @attention The clearReadOnly option will be removed in a future release.
 
+@attention The user option will be removed in a future release.
+
+@attention The password option will be removed in a future release.
+
 This function reboots a cluster from complete outage. It picks the instance the
 MySQL Shell is connected to as new seed instance and recovers the cluster.
 Optionally it also updates the cluster configuration based on user provided
@@ -2571,6 +2575,9 @@ On success, the restored cluster object is returned by the function.
 The current session must be connected to a former instance of the cluster.
 
 If name is not specified, the default cluster will be returned.
+
+@note The user and password options are no longer used, the connection data is
+taken from the active shell session.
 )*");
 
 /**
