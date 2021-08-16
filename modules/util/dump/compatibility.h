@@ -50,6 +50,9 @@ std::string filter_grant_or_revoke(
                              const std::string &object_type,
                              const std::string &priv_level)> &filter);
 
+/// Return mysql schema table if it is an object of a grant statement
+std::string is_grant_on_object_from_mysql_schema(const std::string &grant);
+
 bool check_create_table_for_data_index_dir_option(
     const std::string &create_table, std::string *rewritten = nullptr);
 

@@ -135,6 +135,16 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
     }
   }
 
+  auto create_table_in_mysql_schema_for_grant(const std::string &user) {
+    session->execute("create table IF NOT EXISTS mysql.abradabra (i integer);");
+    session->execute("grant select on mysql.abradabra to " + user);
+    const auto deleter = [s = session](mysqlshdk::db::ISession *) {
+      s->execute("drop table mysql.abradabra;");
+    };
+    return std::unique_ptr<mysqlshdk::db::ISession, decltype(deleter)>(
+        session.get(), std::move(deleter));
+  }
+
   std::shared_ptr<mysqlshdk::db::ISession> session;
   std::string file_path;
   std::unique_ptr<IFile> file;
@@ -891,6 +901,7 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
   sd.opt_pk_mandatory_check = true;
 
   session->execute(std::string("use ") + compat_db_name);
+  auto mstg = create_table_in_mysql_schema_for_grant("testusr6@localhost");
 
   const auto EXPECT_TABLE = [&](const std::string &table,
                                 std::vector<std::string> msg) {
@@ -1042,7 +1053,9 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
       "RELOAD",
       "User 'testusr4'@'localhost' is granted restricted privilege: SUPER",
       "User 'testusr5'@'localhost' is granted restricted privilege: FILE",
-      "User 'testusr6'@'localhost' is granted restricted privilege: FILE"} :
+      "User 'testusr6'@'localhost' is granted restricted privilege: FILE",
+      "User 'testusr6'@'localhost' has explicit grants on mysql schema object:"
+      " `mysql`.`abradabra`"} :
       std::set<std::string>{
         "User 'testusr1'@'localhost' is granted restricted privileges: "
         "BINLOG_ADMIN, FILE, RELOAD, SUPER",
@@ -1051,7 +1064,9 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
         "BINLOG_ADMIN, FILE, RELOAD",
         "User 'testusr4'@'localhost' is granted restricted privilege: SUPER",
         "User 'testusr5'@'localhost' is granted restricted privilege: FILE",
-        "User 'testusr6'@'localhost' is granted restricted privilege: FILE"};
+        "User 'testusr6'@'localhost' is granted restricted privilege: FILE",
+        "User 'testusr6'@'localhost' has explicit grants on mysql "
+        "schema object: `mysql`.`abradabra`"};
   for (const auto &i : iss) {
     const auto it = expected_issues.find(i.description);
     if (it != expected_issues.end()) expected_issues.erase(it);
@@ -1072,6 +1087,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
   sd.opt_strip_definer = true;
 
   session->execute(std::string("use ") + compat_db_name);
+  auto mstg = create_table_in_mysql_schema_for_grant("testusr6@localhost");
 
   const auto EXPECT_TABLE = [&](const std::string &table,
                                 std::vector<std::string> msg,
@@ -1366,6 +1382,17 @@ TEST_F(Schema_dumper_test, compat_ddl) {
   EXPECT_DUMP_CONTAINS(
       {"/*!50001 CREATE ALGORITHM=UNDEFINED SQL SECURITY INVOKER VIEW view3 AS "
        "select 1 AS 1 */"});
+
+  // Users
+  EXPECT_NO_THROW(
+      iss = sd.dump_grants(file.get(), {}, {{"mysql", ""}, {"root", ""}}));
+
+  EXPECT_NE(iss.end(),
+            std::find_if(iss.begin(), iss.end(), [](const auto &issue) {
+              return issue.description ==
+                     "User 'testusr6'@'localhost' had explicit grants on mysql "
+                     "schema object `mysql`.`abradabra` removed";
+            }));
 }
 
 TEST_F(Schema_dumper_test, dump_and_load) {

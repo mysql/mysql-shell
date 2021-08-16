@@ -2244,5 +2244,47 @@ TEST_F(Compatibility_test, convert_grant_to_create_user) {
       "GRANT ALL PRIVILEGES ON *.* TO u@h WITH GRANT OPTION");
 }
 
+TEST_F(Compatibility_test, grant_on_table_from_mysql_schema) {
+  EXPECT_EQ("", is_grant_on_object_from_mysql_schema(
+                    "GRANT USAGE ON *.* TO `zenon`@`localhost`"));
+  EXPECT_EQ("", is_grant_on_object_from_mysql_schema(
+                    "GRANT UPDATE ON `mysql`.* TO `zenon`@`localhost`"));
+  EXPECT_EQ("", is_grant_on_object_from_mysql_schema(
+                    "GRANT UPDATE ON mysql.* TO `zenon`@`localhost`"));
+  EXPECT_EQ("", is_grant_on_object_from_mysql_schema(
+                    "GRANT UPDATE ON mysqls.test TO `zenon`@`localhost`"));
+  EXPECT_EQ("",
+            is_grant_on_object_from_mysql_schema(
+                "GRANT UPDATE ON TABLE mysqls.test TO `zenon`@`localhost`"));
+
+  EXPECT_EQ("`mysql`.`test`",
+            is_grant_on_object_from_mysql_schema(
+                "GRANT SELECT ON `mysql`.`test` TO `zenon`@`localhost`"));
+  EXPECT_EQ("`mysql`.`test`",
+            is_grant_on_object_from_mysql_schema(
+                "GRANT SELECT ON table `mysql`.`test` TO `zenon`@`localhost`"));
+  EXPECT_EQ(
+      "`mysql`.`test`",
+      is_grant_on_object_from_mysql_schema(
+          "GRANT SELECT ON procedure `mysql`.`test` TO `zenon`@`localhost`"));
+  EXPECT_EQ(
+      "`mysql`.`test`",
+      is_grant_on_object_from_mysql_schema(
+          "GRANT SELECT ON function `mysql`.`test` TO `zenon`@`localhost`"));
+
+  EXPECT_EQ("mysql.test",
+            is_grant_on_object_from_mysql_schema(
+                "GRANT SELECT ON mysql.test TO `zenon`@`localhost`"));
+  EXPECT_EQ("mysql.test",
+            is_grant_on_object_from_mysql_schema(
+                "GRANT SELECT ON table mysql.test TO `zenon`@`localhost`"));
+  EXPECT_EQ("mysql.test",
+            is_grant_on_object_from_mysql_schema(
+                "GRANT SELECT ON PROCEDURE mysql.test TO `zenon`@`localhost`"));
+  EXPECT_EQ("mysql.test",
+            is_grant_on_object_from_mysql_schema(
+                "GRANT SELECT ON FUNCTION mysql.test TO `zenon`@`localhost`"));
+}
+
 }  // namespace compatibility
 }  // namespace mysqlsh

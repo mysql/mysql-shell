@@ -451,6 +451,27 @@ std::string filter_grant_or_revoke(
   return filtered_stmt;
 }
 
+std::string is_grant_on_object_from_mysql_schema(const std::string &grant) {
+  SQL_iterator it(grant, 0, false);
+
+  if (shcore::str_caseeq_mv(it.next_token(), "GRANT", "REVOKE")) {
+    while (!shcore::str_caseeq_mv(it.next_token(), "ON", "")) {
+    }
+
+    for (auto token = it.next_token();
+         !token.empty() && !shcore::str_caseeq(token, "TO");
+         token = it.next_token()) {
+      if ((shcore::str_ibeginswith(token, "mysql.") &&
+           !shcore::str_caseeq(token, "mysql.*")) ||
+          (shcore::str_ibeginswith(token, "`mysql`.") &&
+           !shcore::str_caseeq(token, "`mysql`.*")))
+        return token;
+    }
+  }
+
+  return "";
+}
+
 bool check_create_table_for_data_index_dir_option(
     const std::string &create_table, std::string *rewritten) {
   /*

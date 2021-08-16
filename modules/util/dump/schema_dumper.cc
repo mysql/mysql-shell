@@ -2858,6 +2858,26 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
 
     for (auto &grant : grants) {
       if (opt_mysqlaas || compatibility) {
+        auto mysql_table_grant =
+            compatibility::is_grant_on_object_from_mysql_schema(grant);
+        if (!mysql_table_grant.empty()) {
+          if (opt_strip_restricted_grants) {
+            grant.clear();
+            problems.emplace_back(
+                "User " + user +
+                    " had explicit grants on mysql schema object " +
+                    mysql_table_grant + " removed",
+                Issue::Status::FIXED);
+            continue;
+          } else {
+            problems.emplace_back(
+                "User " + user +
+                    " has explicit grants on mysql schema object: " +
+                    mysql_table_grant,
+                Issue::Status::USE_STRIP_RESTRICTED_GRANTS);
+          }
+        }
+
         // In MySQL <= 5.7, if a user has all privs, the SHOW GRANTS will say
         // ALL PRIVILEGES, which isn't helpful for filtering out grants.
         // Also, ALL PRIVILEGES can appear even in 8.0 for DB grants
