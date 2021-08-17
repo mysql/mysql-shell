@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 #define _SHELLCORE_PYTHON_H_
 
 #include <string>
+#include <vector>
 
 #include "shellcore/shell_core.h"
 
@@ -36,6 +37,8 @@ class Shell_python : public Shell_language {
   Shell_python(Shell_core *shcore);
 
   void set_global(const std::string &name, const Value &value) override;
+
+  void set_argv(const std::vector<std::string> &argv = {}) override;
 
   void set_result_processor(
       std::function<void(shcore::Value, bool)> result_processor);

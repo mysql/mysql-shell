@@ -599,6 +599,7 @@ PyObject *Python_context::get_shell_python_support_module() {
 }
 
 void Python_context::set_argv(const std::vector<std::string> &argv) {
+  WillEnterPython lock;
   if (!argv.empty()) {
     const auto &input = to_py_char_t(argv);
     std::vector<const py_char_t *> argvv;
@@ -612,13 +613,10 @@ void Python_context::set_argv(const std::vector<std::string> &argv) {
 }
 
 Value Python_context::execute(const std::string &code,
-                              const std::string &source,
-                              const std::vector<std::string> &argv) {
+                              const std::string &source) {
   PyObject *py_result;
   Value retvalue;
   shcore::Scoped_naming_style ns(shcore::NamingStyle::LowerCaseUnderscores);
-
-  set_argv(argv);
 
   PyObject *m = PyImport_AddModule("__main__");
   if (!m) return Value();

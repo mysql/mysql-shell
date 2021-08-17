@@ -148,8 +148,7 @@ class TYPES_COMMON_PUBLIC Python_context {
   PyObject *get_shell_stdin_module();
   PyObject *get_shell_python_support_module();
 
-  Value execute(const std::string &code, const std::string &source = "",
-                const std::vector<std::string> &argv = {});
+  Value execute(const std::string &code, const std::string &source = "");
   Value execute_interactive(const std::string &code,
                             Input_state &r_state) noexcept;
 
@@ -166,6 +165,7 @@ class TYPES_COMMON_PUBLIC Python_context {
 
   Value get_global(const std::string &value);
   void set_global(const std::string &name, const Value &value);
+  void set_argv(const std::vector<std::string> &argv);
 
   PyObject *get_global_py(const std::string &value);
 
@@ -221,7 +221,6 @@ class TYPES_COMMON_PUBLIC Python_context {
   static PyMethodDef ShellStdInMethods[];
   static PyMethodDef ShellPythonSupportMethods[];
 
- private:
   PyObject *_globals;
   PyObject *_locals;
   PyThreadState *_main_thread_state;
@@ -256,8 +255,6 @@ class TYPES_COMMON_PUBLIC Python_context {
   void init_shell_dict_type();
   void init_shell_object_type();
   void init_shell_function_type();
-
-  void set_argv(const std::vector<std::string> &argv);
 
   py::Store m_captured_eval_result;
 

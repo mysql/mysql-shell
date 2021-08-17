@@ -74,8 +74,7 @@ void Shell_python::handle_input(std::string &code, Input_state &state) {
   } else {
     try {
       WillEnterPython lock;
-      result = _py->execute(code, _owner->get_input_source(),
-                            _owner->get_input_args());
+      result = _py->execute(code, _owner->get_input_source());
     } catch (Exception &exc) {
       // This exception was already printed in PY
       // and the correct return_value of undefined is set
@@ -95,6 +94,10 @@ void Shell_python::handle_input(std::string &code, Input_state &state) {
  */
 void Shell_python::set_global(const std::string &name, const Value &value) {
   _py->set_global(name, value);
+}
+
+void Shell_python::set_argv(const std::vector<std::string> &argv) {
+  _py->set_argv(argv);
 }
 
 void Shell_python::abort() noexcept {

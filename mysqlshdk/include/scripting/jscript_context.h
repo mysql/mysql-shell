@@ -49,8 +49,7 @@ class SHCORE_PUBLIC JScript_context {
   ~JScript_context();
 
   std::pair<Value, bool> execute(const std::string &code,
-                                 const std::string &source = "",
-                                 const std::vector<std::string> &argv = {});
+                                 const std::string &source = "");
   std::pair<Value, bool> execute_interactive(const std::string &code,
                                              Input_state *r_state) noexcept;
 
@@ -63,6 +62,8 @@ class SHCORE_PUBLIC JScript_context {
 
   void set_global(const std::string &name, const Value &value);
   Value get_global(const std::string &name);
+
+  void set_argv(const std::vector<std::string> &args);
 
   std::tuple<JSObject, std::string> get_global_js(const std::string &name);
 

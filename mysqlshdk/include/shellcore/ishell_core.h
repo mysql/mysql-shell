@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,14 +62,15 @@ class SHCORE_PUBLIC IShell_core {
                           Mode_mask mode = Mode_mask::any()) = 0;
   virtual Value get_global(const std::string &name) = 0;
   virtual bool is_global(const std::string &name) = 0;
+  virtual void set_argv(const std::vector<std::string> &args = {}) = 0;
 
   virtual Object_registry *registry() = 0;
   virtual void handle_input(std::string &code, Input_state &state) = 0;
   virtual bool handle_shell_command(const std::string &code) = 0;
   virtual size_t handle_inline_shell_command(const std::string &code) = 0;
   virtual std::string get_handled_input() = 0;
-  virtual int process_stream(std::istream &stream, const std::string &source,
-                             const std::vector<std::string> &argv) = 0;
+  virtual int process_stream(std::istream &stream,
+                             const std::string &source) = 0;
 
   // Development Session Handling
   virtual std::shared_ptr<mysqlsh::ShellBaseSession> set_dev_session(
@@ -77,7 +78,6 @@ class SHCORE_PUBLIC IShell_core {
   virtual std::shared_ptr<mysqlsh::ShellBaseSession> get_dev_session() = 0;
 
   virtual const std::string &get_input_source() = 0;
-  virtual const std::vector<std::string> &get_input_args() = 0;
 
   virtual Help_manager *get_helper() = 0;
   virtual std::vector<std::string> get_global_objects(Mode mode) = 0;

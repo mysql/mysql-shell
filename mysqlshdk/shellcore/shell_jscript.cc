@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,8 +54,8 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state) {
     std::tie(result, got_error) = _js->execute_interactive(code, &state);
   else {
     try {
-      std::tie(result, got_error) = _js->execute(
-          code, _owner->get_input_source(), _owner->get_input_args());
+      std::tie(result, got_error) =
+          _js->execute(code, _owner->get_input_source());
     } catch (const std::exception &exc) {
       mysqlsh::current_console()->print_diag(exc.what());
     }
@@ -69,6 +69,10 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state) {
 
 void Shell_javascript::set_global(const std::string &name, const Value &value) {
   _js->set_global(name, value);
+}
+
+void Shell_javascript::set_argv(const std::vector<std::string> &argv) {
+  _js->set_argv(argv);
 }
 
 void Shell_javascript::abort() noexcept {

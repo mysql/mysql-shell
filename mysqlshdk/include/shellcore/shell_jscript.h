@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 #define _SHELLCORE_JS_H_
 
 #include <string>
+#include <vector>
 
 #include "shellcore/shell_core.h"
 
@@ -43,6 +44,8 @@ class Shell_javascript : public Shell_language {
   }
 
   void set_global(const std::string &name, const Value &value) override;
+
+  void set_argv(const std::vector<std::string> &argv = {}) override;
 
   void handle_input(std::string &code, Input_state &state) override;
 

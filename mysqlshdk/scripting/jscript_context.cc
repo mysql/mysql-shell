@@ -589,7 +589,7 @@ void JScript_context::Impl::f_source(const V8_args &args) {
   // Loads the source content
   std::string source;
   if (load_text_file(str, source)) {
-    self->m_owner->execute(source, str, {});
+    self->m_owner->execute(source, str);
   } else {
     isolate->ThrowException(v8_string(isolate, "Error loading script"));
   }
@@ -1073,9 +1073,17 @@ v8::Local<v8::String> JScript_context::type_info(
   return m_types->type_info(value);
 }
 
-std::pair<Value, bool> JScript_context::execute(
-    const std::string &code_str, const std::string &source,
-    const std::vector<std::string> &argv) {
+void JScript_context::set_argv(const std::vector<std::string> &argv) {
+  shcore::Value args_value = get_global("sys").as_object()->get_member("argv");
+  auto args = args_value.as_array();
+  args->clear();
+  for (auto &arg : argv) {
+    args->push_back(Value(arg));
+  }
+}
+
+std::pair<Value, bool> JScript_context::execute(const std::string &code_str,
+                                                const std::string &source) {
   // makes isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(isolate());
   // creates a pool for all the handles that are created in this scope
@@ -1097,13 +1105,6 @@ std::pair<Value, bool> JScript_context::execute(
   // Will use a boolean flag
 
   shcore::Scoped_naming_style style(NamingStyle::LowerCamelCase);
-
-  shcore::Value args_value = get_global("sys").as_object()->get_member("argv");
-  auto args = args_value.as_array();
-  args->clear();
-  for (auto &arg : argv) {
-    args->push_back(Value(arg));
-  }
 
   m_impl->clear_is_terminating();
 

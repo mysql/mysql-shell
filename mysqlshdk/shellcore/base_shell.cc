@@ -607,6 +607,8 @@ int Base_shell::run_module(const std::string &module,
 int Base_shell::process_stream(std::istream &stream, const std::string &source,
                                const std::vector<std::string> &argv,
                                bool force_batch) {
+  _shell->set_argv(argv);
+
   // If interactive is set, it means that the shell was started with the option
   // to Emulate interactive mode while processing the stream
   if (!force_batch && options().interactive) {
@@ -647,7 +649,7 @@ int Base_shell::process_stream(std::istream &stream, const std::string &source,
     // Being interactive, we do not care about the return value
     return 0;
   } else {
-    return _shell->process_stream(stream, source, argv);
+    return _shell->process_stream(stream, source);
   }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <iostream>
 #include <list>
 #include <utility>
+#include <vector>
 
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
@@ -104,6 +105,8 @@ class SHCORE_PUBLIC Shell_language {
   virtual ~Shell_language() {}
 
   virtual void set_global(const std::string &name, const Value &value) = 0;
+
+  virtual void set_argv(const std::vector<std::string> & = {}) {}
 
   virtual bool handle_input_stream(std::istream * /*istream*/) {
     throw std::logic_error("not implemented");
@@ -188,8 +191,7 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   bool handle_shell_command(const std::string &code) override;
   size_t handle_inline_shell_command(const std::string &code) override;
   std::string get_handled_input() override;
-  int process_stream(std::istream &stream, const std::string &source,
-                     const std::vector<std::string> &argv) override;
+  int process_stream(std::istream &stream, const std::string &source) override;
 
   virtual void execute_module(const std::string &module_name,
                               const std::vector<std::string> &argv);
@@ -214,19 +216,17 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
  public:
   void cancel_input();
   const std::string &get_input_source() override { return _input_source; }
-  const std::vector<std::string> &get_input_args() override {
-    return _input_args;
-  }
   std::string get_main_delimiter() const;
 
   void init_py();
+
+  void set_argv(const std::vector<std::string> &args = {}) override;
 
  private:
   void init_sql();
   void init_js();
   void init_mode(Mode mode);
 
- private:
   Object_registry *_registry;
   std::map<std::string, std::pair<Mode_mask, Value>> _globals;
   std::map<Mode, Shell_language *> _langs;
@@ -236,7 +236,6 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   std::shared_ptr<mysqlsh::ShellBaseSession> _global_dev_session;
 
   std::string _input_source;
-  std::vector<std::string> _input_args;
   Mode _mode;
   int m_global_return_code;
   Help_manager m_help;

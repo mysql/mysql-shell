@@ -111,6 +111,10 @@ std::string Shell_core::get_handled_input() {
   return _langs[_mode]->get_handled_input();
 }
 
+void Shell_core::set_argv(const std::vector<std::string> &args) {
+  return _langs[_mode]->set_argv(args);
+}
+
 /*
  * process_stream will process the content of an opened stream until EOF is
  * found.
@@ -119,8 +123,8 @@ std::string Shell_core::get_handled_input() {
  * - 1 in case of any processing error is found.
  * - 0 if no processing errors were found.
  */
-int Shell_core::process_stream(std::istream &stream, const std::string &source,
-                               const std::vector<std::string> &argv) {
+int Shell_core::process_stream(std::istream &stream,
+                               const std::string &source) {
   // NOTE: global return code is unused at the moment
   //       return code should be determined at application level on
   //       process_result this global return code may be used again once the
@@ -129,8 +133,6 @@ int Shell_core::process_stream(std::istream &stream, const std::string &source,
   m_global_return_code = 0;
 
   _input_source = source;
-  _input_args = argv;
-
   if (_mode == Shell_core::Mode::SQL) {
     if (!_langs[_mode]->handle_input_stream(&stream)) m_global_return_code = 1;
   } else {
@@ -158,9 +160,6 @@ int Shell_core::process_stream(std::istream &stream, const std::string &source,
 
     handle_input(data, state);
   }
-
-  _input_source.clear();
-  _input_args.clear();
 
   return m_global_return_code;
 }
