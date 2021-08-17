@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -302,6 +302,9 @@ std::shared_ptr<mysqlsh::dba::Instance> wait_clone_start(
     return true;
   });
 
+  auto poll_interval_ms = k_recovery_status_poll_interval_ms;
+  DBUG_EXECUTE_IF("clone_rig_poll_interval", { poll_interval_ms = 10; });
+
   while (timeout_sec > 0 && !stop) {
     if (reconnect) {
       try {
@@ -338,7 +341,7 @@ std::shared_ptr<mysqlsh::dba::Instance> wait_clone_start(
       }
     }
 
-    shcore::sleep_ms(k_recovery_status_poll_interval_ms);
+    shcore::sleep_ms(poll_interval_ms);
     timeout_sec--;
   }
 
@@ -442,6 +445,9 @@ std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
     return true;
   });
 
+  auto poll_interval_ms = k_clone_status_poll_interval_ms;
+  DBUG_EXECUTE_IF("clone_rig_poll_interval", { poll_interval_ms = 10; });
+
   bool first = true;
   console->print_info("* Waiting for clone to finish...");
   while (!stop) {
@@ -492,7 +498,7 @@ std::shared_ptr<mysqlsh::dba::Instance> monitor_clone_recovery(
       break;
     }
 
-    shcore::sleep_ms(k_clone_status_poll_interval_ms);
+    shcore::sleep_ms(poll_interval_ms);
   }
   if (stop && !ignore_cancel) throw stop_monitoring();
 

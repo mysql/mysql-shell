@@ -177,52 +177,56 @@ void Spinny_stick::set_right_label(const std::string &label) {
 }
 
 void Spinny_stick::update() {
-  print();
-  m_step++;
-  if (m_step >= int(std::size(k_spinny_sticks) - 1)) m_step = 0;
-}
-
-void Spinny_stick::done(const std::string &text) {
-  m_needs_refresh = true;
-  print(text);
-}
-
-void Spinny_stick::print(const std::string &text) {
   if (m_use_json) {
     if (m_needs_refresh) {
       std::string msg;
 
-      msg.reserve(m_label.length() + 3 + text.length() +
-                  m_right_label.length() + 1);
-
+      msg.reserve(m_label.length() + 3 + m_right_label.length() + 1);
       msg += m_label;
 
-      if (text.empty()) {
-        if (!m_right_label.empty()) {
-          msg += " - ";
-          msg += m_right_label;
-        }
-      } else {
-        msg += ' ';
-        msg += text;
+      if (!m_right_label.empty()) {
+        msg += " - ";
+        msg += m_right_label;
       }
 
-      mysqlsh::current_console()->raw_print(msg, mysqlsh::Output_stream::STDOUT,
-                                            true);
+      print_json(msg);
     }
   } else {
-    if (text.empty()) {
-      printf("%s %c %s\r", m_label.c_str(), k_spinny_sticks[m_step],
-             m_right_label.c_str());
-    } else {
-      printf("%s %s %s\n", m_label.c_str(), text.c_str(),
-             std::string(m_right_label.size(), ' ').c_str());
-    }
-
+    printf("%s %c %s\r", m_label.c_str(), k_spinny_sticks[m_step],
+           m_right_label.c_str());
     fflush(stdout);
+
+    m_step++;
+    if (m_step >= int(std::size(k_spinny_sticks) - 1)) m_step = 0;
   }
 
   m_needs_refresh = false;
+}
+
+void Spinny_stick::done(const std::string &text) {
+  if (m_use_json) {
+    std::string msg;
+
+    msg.reserve(m_label.length() + 1 + text.length() + 1);
+
+    msg += m_label;
+
+    if (!text.empty()) {
+      msg += ' ';
+      msg += text;
+    }
+
+    print_json(msg);
+  } else {
+    printf("%s %s %s\n", m_label.c_str(), text.c_str(),
+           std::string(m_right_label.size(), ' ').c_str());
+    fflush(stdout);
+  }
+}
+
+void Spinny_stick::print_json(const std::string &msg) {
+  mysqlsh::current_console()->raw_print(msg, mysqlsh::Output_stream::STDOUT,
+                                        true);
 }
 
 class Threaded_spinny_stick::Impl {

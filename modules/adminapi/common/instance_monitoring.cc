@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,7 +36,10 @@ namespace dba {
 std::shared_ptr<mysqlsh::dba::Instance> wait_server_startup(
     const mysqlshdk::db::Connection_options &instance_def, int timeout,
     Recovery_progress_style progress_style) {
-  mysqlshdk::textui::Spinny_stick stick("* Waiting for server restart...");
+  bool json_output = "off" != mysqlsh::current_shell_options()->get().wrap_json;
+
+  mysqlshdk::textui::Spinny_stick stick("* Waiting for server restart...",
+                                        json_output);
 
   std::shared_ptr<mysqlsh::dba::Instance> out_instance;
 

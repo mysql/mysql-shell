@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -132,9 +132,14 @@ tests::Test_net_utilities test_net_utilities;
 
 void handle_debug_options(int *argc, char ***argv) {
   if (const char *mode = getenv("MYSQLSH_RECORDER_MODE")) {
+    const auto quiet = nullptr != getenv("MYSQLSH_RECORDER_QUIET");
+
     if (strcasecmp(mode, "direct") == 0 || !*mode) {
       mysqlshdk::db::replay::set_mode(Mode::Direct);
-      puts("Disabled classic session recording");
+
+      if (!quiet) {
+        puts("Disabled classic session recording");
+      }
     } else if (strcasecmp(mode, "record") == 0) {
       mysqlshdk::db::replay::set_mode(Mode::Record);
 
@@ -152,14 +157,19 @@ void handle_debug_options(int *argc, char ***argv) {
       mysqlshdk::db::replay::on_recorder_close_hook =
           std::bind(&on_session_close, std::placeholders::_1);
 
-      printf("Recording classic sessions to %s\n",
-             mysqlshdk::db::replay::g_recording_path_prefix);
+      if (!quiet) {
+        printf("Recording classic sessions to %s\n",
+               mysqlshdk::db::replay::g_recording_path_prefix);
+      }
 
       {
         const auto hostname = getenv("MYSQL_HOSTNAME");
 
         if (hostname) {
-          printf("Capturing network utilities on %s\n", hostname);
+          if (!quiet) {
+            printf("Capturing network utilities on %s\n", hostname);
+          }
+
           test_net_utilities.inject(hostname, {},
                                     mysqlshdk::db::replay::Mode::Record);
 
@@ -176,10 +186,14 @@ void handle_debug_options(int *argc, char ***argv) {
             "MYSQLSH_RECORDER_MODE set but MYSQLSH_RECORDER_PREFIX is not!\n");
         return;
       }
+
       mysqlshdk::db::replay::set_recording_path_prefix(
           getenv("MYSQLSH_RECORDER_PREFIX"));
-      printf("Replaying classic sessions from %s\n",
-             mysqlshdk::db::replay::g_recording_path_prefix);
+
+      if (!quiet) {
+        printf("Replaying classic sessions from %s\n",
+               mysqlshdk::db::replay::g_recording_path_prefix);
+      }
 
       {
         auto info = mysqlshdk::db::replay::load_test_case_info();

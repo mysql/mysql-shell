@@ -116,7 +116,7 @@ class Spinny_stick {
   void done(const std::string &text);
 
  private:
-  void print(const std::string &text = {});
+  static void print_json(const std::string &msg);
 
   std::string m_label;
   std::string m_right_label;

@@ -556,6 +556,41 @@ shell.options["dba.restartWaitTimeout"] = 60;
 //--------------------------------
 // Ensure clean rollback after failures
 
+//@<> BUG#33237648: check if output is all-JSON {VER(>= 8.0.17)}
+
+// if DBUG is OFF and we don't have traces, this test will fail
+// if we're running in replay mode, we assume traces were recorded in Jenkins, where DBUG is ON
+
+if (!__recording && !__replaying && __dbug_off) {
+    testutil.skip("Running in direct mode and DBUG is OFF");
+}
+
+if (__recording && __dbug_off) {
+    testutil.skip("Recording and DBUG is OFF");
+}
+
+shell.connect(__sandbox_uri1);
+
+reset_instance(session);
+reset_instance(mysql.getSession(__sandbox_uri2));
+
+var rs = dba.createReplicaSet("myrs", {gtidSetIsComplete:true});
+
+WIPE_OUTPUT();
+
+// if DBUG is OFF, use some other option, as using --debug will result in non-JSON message
+EXPECT_EQ(0, testutil.callMysqlsh([__dbug_off ? "--log-level=8" : "--debug=+d,clone_rig_poll_interval", "--json=raw", "--js", "-e", `shell.connect('${__sandbox_uri1}'); dba.getReplicaSet().addInstance('${__sandbox2}', {'recoveryMethod': 'clone'})`], "", [ "MYSQLSH_RECORDER_QUIET=1" ]))
+
+EXPECT_STDOUT_CONTAINS(`${__endpoint_uri2} is shutting down...`)
+EXPECT_STDOUT_CONTAINS("* Waiting for server restart...")
+EXPECT_STDOUT_CONTAINS("* Waiting for server restart... ready")
+EXPECT_STDOUT_CONTAINS(`* ${__endpoint_uri2} has restarted, waiting for clone to finish...`)
+
+for (const line of testutil.fetchCapturedStdout(false).split(/[\r\n]+/)) {
+    if (line) {
+        EXPECT_NO_THROWS(function() { JSON.parse(line); }, `testing line: ${line}`);
+    }
+}
 
 //@ Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
