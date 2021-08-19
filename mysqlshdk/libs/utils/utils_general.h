@@ -254,6 +254,13 @@ void SHCORE_PUBLIC sleep_ms(uint32_t ms);
 OperatingSystem SHCORE_PUBLIC get_os_type();
 
 /**
+ * Provides host CPU type, i.e. aarch64, x86_64, etc.
+ *
+ * @return machine type
+ */
+std::string SHCORE_PUBLIC get_machine_type();
+
+/**
  * Provides long version of mysqlsh, including version number, OS type, MySQL
  * version number and build type.
  *

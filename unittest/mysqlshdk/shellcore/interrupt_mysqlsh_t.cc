@@ -672,7 +672,8 @@ TEST_F(Interrupt_mysqlsh, command_show_watch) {
 TEST_F(Interrupt_mysqlsh, prompt) { test_prompt(false, false, false); }
 
 TEST_F(Interrupt_mysqlsh, prompt_password) {
-  if (shcore::OperatingSystem::MACOS == shcore::get_os_type() &&
+  if ((shcore::OperatingSystem::MACOS == shcore::get_os_type() ||
+       "aarch64" == shcore::get_machine_type()) &&
       getenv("PB2WORKDIR")) {
     SKIP_TEST("This test does not work in PB2");
   }
@@ -688,7 +689,8 @@ TEST_F(Interrupt_mysqlsh, prompt_password_from_stdin) {
 TEST_F(Interrupt_mysqlsh, js_prompt) { test_prompt(true, false, false); }
 
 TEST_F(Interrupt_mysqlsh, js_prompt_password) {
-  if (shcore::OperatingSystem::MACOS == shcore::get_os_type() &&
+  if ((shcore::OperatingSystem::MACOS == shcore::get_os_type() ||
+       "aarch64" == shcore::get_machine_type()) &&
       getenv("PB2WORKDIR")) {
     SKIP_TEST("This test does not work in PB2");
   }

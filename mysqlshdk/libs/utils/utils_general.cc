@@ -1081,6 +1081,8 @@ OperatingSystem get_os_type() {
   return os;
 }
 
+std::string get_machine_type() { return MACHINE_TYPE; }
+
 std::string to_string(OperatingSystem os_type) {
   switch (os_type) {
     case OperatingSystem::UNKNOWN:
