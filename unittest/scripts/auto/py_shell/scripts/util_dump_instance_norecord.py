@@ -2045,6 +2045,16 @@ EXPECT_EQ(0, testutil.call_mysqlsh([uri, "--json=raw", "--interactive=full", "--
 for line in testutil.fetch_captured_stdout(False).splitlines():
     EXPECT_NO_THROWS(lambda: json.loads(line), f"testing line: {line}")
 
+#@<> BUG#32109967 run a dump when connected via socket {__os_type != 'windows'}
+# connect using socket
+setup_session(get_socket_uri(session, uri))
+# host should not be specified in URI
+EXPECT_FALSE("host" in shell.parse_uri(session.uri))
+# run a successful dump
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
+# restore connection
+setup_session()
+
 #@<> Drop roles {VER(>=8.0.0)}
 session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])
 

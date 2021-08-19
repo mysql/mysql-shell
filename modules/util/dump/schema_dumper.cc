@@ -387,7 +387,13 @@ void Schema_dumper::write_comment(IFile *sql_file, const std::string &db_name,
         sql_file, false, "-- MySQLShell dump %s  Distrib %s, for %s (%s)\n--\n",
         DUMP_VERSION, shcore::get_long_version(), SYSTEM_TYPE, MACHINE_TYPE);
 
-    std::string host = m_mysql->get_connection_options().get_host();
+    std::string host;
+    const auto &co = m_mysql->get_connection_options();
+
+    if (co.has_host()) {
+      host = co.get_host();
+    }
+
     print_comment(sql_file, false, "-- Host: %s",
                   host.empty() ? "localhost" : host.c_str());
 

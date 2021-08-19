@@ -2,6 +2,7 @@ from __future__ import print_function
 import difflib
 import hashlib
 import mysqlsh
+import os.path
 import random
 import re
 import string
@@ -344,6 +345,30 @@ def libmysql_host_description(hostname, port):
     return hostname + ":" + str(port)
 
   return hostname
+
+def get_socket_path(session, uri = None):
+    if uri is None:
+        uri = session.uri
+    row = session.run_sql(f"SELECT @@{'socket' if 'mysql' == shell.parse_uri(uri).scheme else 'mysqlx_socket'}, @@datadir").fetch_one()
+    if row[0][0] == '/':
+        p = row[0]
+    else:
+        p = os.path.join(row[1], row[0])
+    if len(p) > 100:
+        testutil.fail("socket path is too long (>100): " + p)
+    return p
+
+def get_socket_uri(session, uri = None):
+    if uri is None:
+        uri = session.uri
+    parsed = shell.parse_uri(uri)
+    if "password" not in parsed:
+        parsed["password"] = ""
+    new_uri = {}
+    for key in ["scheme", "user", "password"]:
+        new_uri[key] = parsed[key]
+    new_uri["socket"] = get_socket_path(session, uri)
+    return shell.unparse_uri(new_uri)
 
 def random_string(lower, upper=None):
   if upper is None:
