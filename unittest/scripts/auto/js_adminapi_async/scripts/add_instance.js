@@ -581,7 +581,7 @@ WIPE_OUTPUT();
 // if DBUG is OFF, use some other option, as using --debug will result in non-JSON message
 EXPECT_EQ(0, testutil.callMysqlsh([__dbug_off ? "--log-level=8" : "--debug=+d,clone_rig_poll_interval", "--json=raw", "--js", "-e", `shell.connect('${__sandbox_uri1}'); dba.getReplicaSet().addInstance('${__sandbox2}', {'recoveryMethod': 'clone'})`], "", [ "MYSQLSH_RECORDER_QUIET=1" ]))
 
-EXPECT_STDOUT_CONTAINS(`${__endpoint_uri2} is shutting down...`)
+EXPECT_STDOUT_MATCHES(new RegExp(`(${__endpoint_uri2} is shutting down...)|(Connection to server lost, restart probably in progress...)`))
 EXPECT_STDOUT_CONTAINS("* Waiting for server restart...")
 EXPECT_STDOUT_CONTAINS("* Waiting for server restart... ready")
 EXPECT_STDOUT_CONTAINS(`* ${__endpoint_uri2} has restarted, waiting for clone to finish...`)
