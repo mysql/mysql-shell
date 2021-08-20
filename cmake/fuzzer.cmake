@@ -1,4 +1,4 @@
-# Copyright (c) 2017, 2020, Oracle and/or its affiliates.
+# Copyright (c) 2017, 2021, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -22,10 +22,19 @@
 
 INCLUDE(CMakePushCheckState)
 
-# Only supported for Clang/llvm
-IF(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+# Only supported for Clang/llvm 6.0+, starting with this version
+# -fsanitize=fuzzer will automatically enable the -fsanitize-coverage=trace-cmp
+# option and link with the libFuzzer.
+# Note: -fsanitize-coverage=edge is enabled by default.
+# Note: -fsanitize-coverage=trace-pc-guard is not compatible with
+#       -fsanitize=fuzzer starting with 7.0+, we ignore this option.
+IF(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_VERSION VERSION_LESS 6)
+  MESSAGE(STATUS "Fuzz tests require clang 6.0+")
   RETURN()
 ENDIF()
+
+SET(SAVE_CMAKE_C_LINK_FLAGS ${CMAKE_C_LINK_FLAGS})
+SET(SAVE_CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS})
 
 # ld.lld: error:
 # /usr/lib64/clang/7.0.1/lib/linux/libclang_rt.fuzzer-x86_64.a
@@ -41,49 +50,6 @@ IF(USE_LD_LLD AND C_LD_LLD_RESULT AND CXX_LD_LLD_RESULT)
     CMAKE_CXX_LINK_FLAGS ${CMAKE_CXX_LINK_FLAGS})
 ENDIF()
 
-# check if clang knows about the coverage and trace-pc-guard
-#
-# compiler  | CFLAGS                             | LDFLAGS
-# ----------|------------------------------------|------------------
-# llvm 6.0+ | -fsanitize=fuzzer                  | -fsanitize=fuzzer
-# llvm 4.0  | -fsanitize-coverage=trace-pc-guard | -lFuzzer
-# llvm 3.9  | -fsanitize-coverage=trace-cmp      | -lFuzzer
-# llvm 3.7  | -fsanitize-coverage=edge           | -lFuzzer
-
-# llvm 4.0+
-CMAKE_PUSH_CHECK_STATE(RESET)
-SET(CMAKE_REQUIRED_FLAGS "-fsanitize-coverage=trace-pc-guard")
-CHECK_CXX_COMPILER_FLAG("-fsanitize-coverage=trace-pc-guard"
-  COMPILER_HAS_SANITIZE_COVERAGE_TRACE_PC_GUARD)
-CMAKE_POP_CHECK_STATE()
-
-# llvm 3.8+
-CMAKE_PUSH_CHECK_STATE(RESET)
-SET(CMAKE_REQUIRED_FLAGS "-fsanitize-coverage=edge")
-CHECK_CXX_COMPILER_FLAG("-fsanitize-coverage=edge"
-  COMPILER_HAS_SANITIZE_COVERAGE_TRACE_EDGE)
-CMAKE_POP_CHECK_STATE()
-
-# http://llvm.org/docs/LibFuzzer.html#tracing-cmp-instructions
-CMAKE_PUSH_CHECK_STATE(RESET)
-SET(CMAKE_REQUIRED_FLAGS "-fsanitize-coverage=trace-cmp")
-CHECK_CXX_COMPILER_FLAG("-fsanitize-coverage=trace-cmp"
-  COMPILER_HAS_SANITIZE_COVERAGE_TRACE_CMP)
-CMAKE_POP_CHECK_STATE()
-
-CMAKE_PUSH_CHECK_STATE(RESET)
-SET(CMAKE_REQUIRED_FLAGS "-fprofile-instr-generate")
-CHECK_CXX_COMPILER_FLAG("-fprofile-instr-generate"
-  COMPILER_HAS_PROFILE_INSTR_GENERATE)
-CMAKE_POP_CHECK_STATE()
-
-CMAKE_PUSH_CHECK_STATE(RESET)
-# invalid argument '-fcoverage-mapping' only allowed
-# with '-fprofile-instr-generate'
-SET(CMAKE_REQUIRED_FLAGS "-fprofile-instr-generate")
-CHECK_CXX_COMPILER_FLAG("-fcoverage-mapping" COMPILER_HAS_COVERAGE_MAPPING)
-CMAKE_POP_CHECK_STATE()
-
 CMAKE_PUSH_CHECK_STATE(RESET)
 SET(CMAKE_REQUIRED_LIBRARIES "-fsanitize=address,fuzzer")
 SET(CMAKE_REQUIRED_FLAGS "-fsanitize=address,fuzzer")
@@ -93,41 +59,31 @@ extern \"C\" int LLVMFuzzerTestOneInput (void *, int)
 COMPILER_HAS_SANITIZE_FUZZER)
 CMAKE_POP_CHECK_STATE()
 
-
 IF(COMPILER_HAS_SANITIZE_FUZZER)
   SET(SANITIZE_COVERAGE_FLAGS "-fsanitize=address,fuzzer")
-ELSEIF(COMPILER_HAS_SANITIZE_COVERAGE_TRACE_PC_GUARD)
-  SET(SANITIZE_COVERAGE_FLAGS "-fsanitize-coverage=trace-pc-guard")
-ELSEIF(COMPILER_HAS_SANITIZE_COVERAGE_TRACE_CMP)
-  SET(SANITIZE_COVERAGE_FLAGS "-fsanitize-coverage=trace-cmp")
-ELSEIF(COMPILER_HAS_SANITIZE_COVERAGE_TRACE_EDGE)
-  SET(SANITIZE_COVERAGE_FLAGS "-fsanitize-coverage=edge")
 ELSE()
-  MESSAGE(WARNING "Coverage is not supported. Skiping build fuzz tests.")
+  MESSAGE(WARNING "Coverage is not supported. Skipping build fuzz tests.")
+  SET(CMAKE_C_LINK_FLAGS ${SAVE_CMAKE_C_LINK_FLAGS})
+  SET(CMAKE_CXX_LINK_FLAGS ${SAVE_CMAKE_CXX_LINK_FLAGS})
+  RETURN()
 ENDIF()
 
-# check that libFuzzer is found
-#
-# check_library_exists() doesn't work here as it would provide a main() which
-# calls a test-function ... which collides with libFuzzer's main():
-#
-# if the libFuzzer is found by the compiler it will provide a 'main()' and
-# require that we provide a 'LLVMFuzzerTestOneInput' at link-time.
-IF(SANITIZE_COVERAGE_FLAGS)
+CMAKE_PUSH_CHECK_STATE(RESET)
+SET(CMAKE_REQUIRED_FLAGS "-fprofile-instr-generate")
+CHECK_CXX_COMPILER_FLAG("-fprofile-instr-generate"
+  COMPILER_HAS_PROFILE_INSTR_GENERATE)
+CMAKE_POP_CHECK_STATE()
+
+IF(COMPILER_HAS_PROFILE_INSTR_GENERATE)
   CMAKE_PUSH_CHECK_STATE(RESET)
-  SET(CMAKE_REQUIRED_LIBRARIES Fuzzer)
-  SET(CMAKE_REQUIRED_FLAGS ${SANITIZE_COVERAGE_FLAGS})
-  CHECK_CXX_SOURCE_COMPILES("
-      extern \"C\" int LLVMFuzzerTestOneInput (void *, int)
-      { return 0; }"
-      CLANG_HAS_LIBFUZZER)
+  # invalid argument '-fcoverage-mapping' only allowed
+  # with '-fprofile-instr-generate'
+  SET(CMAKE_REQUIRED_FLAGS "-fprofile-instr-generate")
+  CHECK_CXX_COMPILER_FLAG("-fcoverage-mapping" COMPILER_HAS_COVERAGE_MAPPING)
   CMAKE_POP_CHECK_STATE()
 ENDIF()
 
-IF(COMPILER_HAS_SANITIZE_FUZZER OR CLANG_HAS_LIBFUZZER)
-  IF(CLANG_HAS_LIBFUZZER)
-    SET(LIBFUZZER_LIBRARIES Fuzzer)
-  ENDIF()
+IF(COMPILER_HAS_SANITIZE_FUZZER)
   SET(LIBFUZZER_LINK_FLAGS ${SANITIZE_COVERAGE_FLAGS})
   SET(LIBFUZZER_COMPILE_FLAGS)
   LIST(APPEND LIBFUZZER_COMPILE_FLAGS ${SANITIZE_COVERAGE_FLAGS})
@@ -141,7 +97,6 @@ IF(COMPILER_HAS_SANITIZE_FUZZER OR CLANG_HAS_LIBFUZZER)
     ENDIF()
   ENDIF()
 ENDIF()
-
 
 FUNCTION(LIBFUZZER_ADD_TEST TARGET)
   SET(OPTS)
@@ -166,10 +121,6 @@ FUNCTION(LIBFUZZER_ADD_TEST TARGET)
     COMPILE_OPTIONS "${LIBFUZZER_COMPILE_FLAGS}"
     LINK_FLAGS "${LIBFUZZER_LINK_FLAGS}"
     )
-
-  IF(LIBFUZZER_LIBRARIES)
-    TARGET_LINK_LIBRARIES(${TARGET} ${LIBFUZZER_LIBRARIES})
-  ENDIF()
 
   # reset the artifact and corpus dir if the binary changed.
   ADD_CUSTOM_COMMAND(TARGET ${TARGET}

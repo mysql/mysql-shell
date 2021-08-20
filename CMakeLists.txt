@@ -368,6 +368,39 @@ ENDIF()
 
 project(mysqlsh)
 
+IF(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  SET(MY_COMPILER_IS_CLANG 1)
+ELSEIF(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+  SET(MY_COMPILER_IS_GNU 1)
+  IF(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9 AND
+      NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8)
+    SET(MY_COMPILER_IS_GNU_8 1)
+  ENDIF()
+ELSEIF(CMAKE_CXX_COMPILER_ID MATCHES "SunPro")
+  SET(MY_COMPILER_IS_SUNPRO 1)
+ENDIF()
+
+IF(MY_COMPILER_IS_CLANG OR MY_COMPILER_IS_GNU)
+  SET(MY_COMPILER_IS_GNU_OR_CLANG 1)
+ENDIF()
+
+# Include the platform-specific file. To allow exceptions, this code
+# looks for files in order of how specific they are. If there is, for
+# example, a generic Linux.cmake and a version-specific
+# Linux-2.6.28-11-generic, it will pick Linux-2.6.28-11-generic and
+# include it. It is then up to the file writer to include the generic
+# version if necessary.
+FOREACH(_base
+    ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_VERSION}-${CMAKE_SYSTEM_PROCESSOR}
+    ${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_VERSION}
+    ${CMAKE_SYSTEM_NAME})
+  SET(_file ${CMAKE_SOURCE_DIR}/cmake/os/${_base}.cmake)
+  IF(EXISTS ${_file})
+    INCLUDE(${_file})
+    BREAK()
+  ENDIF()
+ENDFOREACH()
+
 IF(CMAKE_VERSION VERSION_GREATER "3.12.0")
   CMAKE_POLICY(SET CMP0075 NEW)
 ENDIF()
@@ -414,9 +447,113 @@ INCLUDE(exeutils)
 INCLUDE(libutils)
 INCLUDE(compiler)
 INCLUDE(static_analysis)
-include(cmake/compile_flags.cmake)
-include(cmake/fuzzer.cmake)
+include(compile_flags)
 INCLUDE(msvc)
+
+# Set correct search path for executables, libraries, and data files.
+IF(LINUX_RHEL)
+  IF(ALTERNATIVE_GCC)
+    GET_FILENAME_COMPONENT(GCC_B_PREFIX ${ALTERNATIVE_GCC} DIRECTORY)
+    STRING_PREPEND(CMAKE_C_FLAGS "-B${GCC_B_PREFIX} ")
+  ENDIF()
+  IF(ALTERNATIVE_GPP)
+    GET_FILENAME_COMPONENT(GPP_B_PREFIX ${ALTERNATIVE_GPP} DIRECTORY)
+    STRING_PREPEND(CMAKE_CXX_FLAGS "-B${GPP_B_PREFIX} ")
+  ENDIF()
+ENDIF()
+
+IF(CMAKE_C_FLAGS MATCHES " -flto" OR CMAKE_CXX_FLAGS MATCHES " -flto")
+  SET(CMAKE_COMPILER_FLAG_WITH_LTO 1)
+ENDIF()
+
+include(CheckCSourceCompiles)
+include(CheckCXXSourceCompiles)
+
+# Use lld for Clang if available and not explicitly disabled.
+# Also works for gcc on Debian/Ubuntu. Do 'apt install lld'.
+# LTO build fails with lld, so turn it off by default.
+IF(LINUX AND NOT WITH_LTO AND NOT CMAKE_COMPILER_FLAG_WITH_LTO)
+  OPTION(USE_LD_LLD "Use llvm lld linker" ON)
+ELSE()
+  OPTION(USE_LD_LLD "Use llvm lld linker" OFF)
+ENDIF()
+
+IF(USE_LD_LLD)
+  CMAKE_PUSH_CHECK_STATE(RESET)
+
+  # RPM builds on Fedora use -specs files.
+  # This may cause the test for -fuse-ld=lld to succeed, when it should fail.
+  SET(SAVE_CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
+  SET(SAVE_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+  IF(CMAKE_C_FLAGS)
+    STRING(REGEX REPLACE "-specs=/usr/lib/rpm/redhat/.*"  ""
+      CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
+  ENDIF()
+  IF(CMAKE_CXX_FLAGS)
+    STRING(REGEX REPLACE "-specs=/usr/lib/rpm/redhat/.*"  ""
+      CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+  ENDIF()
+
+  SET(CMAKE_REQUIRED_LIBRARIES "-fuse-ld=lld")
+  CHECK_C_SOURCE_COMPILES("int main() {}" C_LD_LLD_RESULT)
+  CHECK_CXX_SOURCE_COMPILES("int main() {}" CXX_LD_LLD_RESULT)
+  IF(C_LD_LLD_RESULT AND CXX_LD_LLD_RESULT)
+    FOREACH(flag
+        CMAKE_C_LINK_FLAGS
+        CMAKE_CXX_LINK_FLAGS
+        CMAKE_EXE_LINKER_FLAGS
+        CMAKE_MODULE_LINKER_FLAGS
+        CMAKE_SHARED_LINKER_FLAGS
+        )
+      STRING_APPEND(${flag} " -fuse-ld=lld")
+    ENDFOREACH()
+  ENDIF()
+  SET(CMAKE_C_FLAGS ${SAVE_CMAKE_C_FLAGS})
+  SET(CMAKE_CXX_FLAGS ${SAVE_CMAKE_CXX_FLAGS})
+  CMAKE_POP_CHECK_STATE()
+ENDIF()
+
+# Use gold on x86 if available and not explicitly disabled.
+# LTO build fails with gold, so turn it off by default.
+IF(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"
+    AND NOT WIN32
+    AND NOT WITH_LTO
+    AND NOT CMAKE_COMPILER_FLAG_WITH_LTO)
+  OPTION(USE_LD_GOLD "Use GNU gold linker" ON)
+ELSE()
+  OPTION(USE_LD_GOLD "Use GNU gold linker" OFF)
+ENDIF()
+
+IF (USE_LD_GOLD AND NOT (C_LD_LLD_RESULT AND CXX_LD_LLD_RESULT))
+  CMAKE_PUSH_CHECK_STATE(RESET)
+  SET(CMAKE_REQUIRED_LIBRARIES "-fuse-ld=gold")
+  CHECK_C_SOURCE_COMPILES("int main() {}" C_LD_GOLD_RESULT)
+  CHECK_CXX_SOURCE_COMPILES("int main() {}" CXX_LD_GOLD_RESULT)
+  IF (C_LD_GOLD_RESULT AND CXX_LD_GOLD_RESULT AND NOT SOLARIS)
+    STRING_APPEND(CMAKE_C_LINK_FLAGS " -fuse-ld=gold")
+    STRING_APPEND(CMAKE_CXX_LINK_FLAGS " -fuse-ld=gold")
+
+    # Seemingly --gc-sections causes problems with randomization, so only
+    # turn it on if we are not making a randomized build.
+    IF (NOT LINK_RANDOMIZE)
+      STRING_APPEND(CMAKE_C_LINK_FLAGS " -Wl,--gc-sections")
+      STRING_APPEND(CMAKE_CXX_LINK_FLAGS " -Wl,--gc-sections")
+    ENDIF()
+  ENDIF()
+  CMAKE_POP_CHECK_STATE()
+ENDIF()
+
+# Linker/binutils bug in Fedora 28, undefined reference to symbol '__bss_start'
+# Similar bug on 32bit Ubuntu.
+# Fedora 34: undefined reference to symbol 'crc32_z@@ZLIB_1.2.9'
+IF(LINUX_FEDORA_28 OR LINUX_FEDORA_34 OR LINUX_UBUNTU_16_04)
+  IF(NOT CMAKE_CXX_LINK_FLAGS MATCHES "-fuse-ld=lld" AND
+      NOT CMAKE_CXX_LINK_FLAGS MATCHES "-fuse-ld=gold")
+    STRING_APPEND(CMAKE_CXX_LINK_FLAGS " -Wl,--copy-dt-needed-entries")
+  ENDIF()
+ENDIF()
+
+include(fuzzer)
 
 INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
