@@ -23,6 +23,12 @@
 #include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
 
+#ifndef _WIN32
+#include <fcntl.h>
+#include <unistd.h>
+#include <cstdio>
+#endif
+
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysql_session.h"
 #include "mysqlshdk/libs/utils/profiling.h"
@@ -37,6 +43,39 @@
 #endif
 
 namespace mysqlsh {
+
+namespace {
+
+enum class Process_type {
+  NO_CONTROLLING_TERMINAL,
+  BACKGROUND,
+  FOREGROUND,
+};
+
+Process_type current_process_type() {
+#ifdef _WIN32
+  return Process_type::FOREGROUND;
+#else   // !_WIN32
+  char controlling_terminal[L_ctermid];
+  int fd = -1;
+  Process_type result = Process_type::NO_CONTROLLING_TERMINAL;
+
+  if (ctermid(controlling_terminal) &&
+      (fd = ::open(controlling_terminal, O_RDWR | O_NOCTTY)) >= 0) {
+    if (getpgrp() == tcgetpgrp(fd)) {
+      result = Process_type::FOREGROUND;
+    } else {
+      result = Process_type::BACKGROUND;
+    }
+
+    ::close(fd);
+  }
+
+  return result;
+#endif  // !_WIN32
+}
+
+}  // namespace
 
 class Interrupt_tester : public shcore::Interrupt_helper {
  public:
@@ -672,10 +711,13 @@ TEST_F(Interrupt_mysqlsh, command_show_watch) {
 TEST_F(Interrupt_mysqlsh, prompt) { test_prompt(false, false, false); }
 
 TEST_F(Interrupt_mysqlsh, prompt_password) {
-  if ((shcore::OperatingSystem::MACOS == shcore::get_os_type() ||
-       "aarch64" == shcore::get_machine_type()) &&
-      getenv("PB2WORKDIR")) {
-    SKIP_TEST("This test does not work in PB2");
+  // If this process is a foreground one, password prompt test will simply pass.
+  // If this process does not have a controlling terminal, password prompt will
+  // switch to reading from STDIN and tests will pass.
+  // If this process is a background one, password prompt will cause shell to
+  // receive SIGTTIN/SIGTTOU signal, and the test suite will freeze.
+  if (Process_type::BACKGROUND == current_process_type()) {
+    SKIP_TEST("This test cannot be executed by a background process");
   }
 
   test_prompt(false, true, false);
@@ -689,10 +731,8 @@ TEST_F(Interrupt_mysqlsh, prompt_password_from_stdin) {
 TEST_F(Interrupt_mysqlsh, js_prompt) { test_prompt(true, false, false); }
 
 TEST_F(Interrupt_mysqlsh, js_prompt_password) {
-  if ((shcore::OperatingSystem::MACOS == shcore::get_os_type() ||
-       "aarch64" == shcore::get_machine_type()) &&
-      getenv("PB2WORKDIR")) {
-    SKIP_TEST("This test does not work in PB2");
+  if (Process_type::BACKGROUND == current_process_type()) {
+    SKIP_TEST("This test cannot be executed by a background process");
   }
 
   test_prompt(true, true, false);
