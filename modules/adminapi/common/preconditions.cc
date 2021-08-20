@@ -495,7 +495,7 @@ const std::map<std::string, Function_availability>
          {k_min_cs_version,
           TargetType::InnoDBClusterSet,
           ReplicationQuorum::State::any(),
-          ManagedInstance::State::OnlineRW,
+          ManagedInstance::State::Any,
           {{metadata::kIncompatibleOrUpgrading, MDS_actions::RAISE_ERROR}},
           kClusterGlobalStateAnyOk}},
         {"ClusterSet.routingOptions",

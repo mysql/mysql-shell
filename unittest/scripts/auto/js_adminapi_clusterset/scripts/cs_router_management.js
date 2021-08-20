@@ -7,6 +7,7 @@ testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {report_host: hostname}
 testutil.snapshotSandboxConf(__mysql_sandbox_port1);
 testutil.deployRawSandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.snapshotSandboxConf(__mysql_sandbox_port2);
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host:hostname});
 
 shell.options.useWizards = false;
 
@@ -184,6 +185,20 @@ clusterset.setRoutingOption(cr_router2, "target_cluster", "cluster");
 EXPECT_EQ(replicacluster.status({extended:1})["defaultReplicaSet"]["groupName"], session.runSql("select options->>'$.target_cluster' from mysql_innodb_cluster_metadata.routers where router_id=4").fetchOne()[0]);
 EXPECT_EQ(cluster.status({extended:1})["defaultReplicaSet"]["groupName"], session.runSql("select options->>'$.target_cluster' from mysql_innodb_cluster_metadata.routers where router_id=3").fetchOne()[0]);
 
+//@<> setRoutingOption() after changing the primary instance of a clusterset cluster
+cluster.addInstance(__sandbox_uri3, {recoveryMethod:"clone"});
+cluster.setPrimaryInstance(__sandbox_uri3);
+
+EXPECT_NO_THROWS(function() { clusterset.setRoutingOption(cr_router3, "target_cluster", "primary"); });
+
+//@<> setRoutingOption() when Shell's active session is not established a primary member
+shell.connect(__sandbox_uri1);
+cluster = dba.getCluster()
+clusterset = dba.getClusterSet()
+
+EXPECT_NO_THROWS(function() { clusterset.setRoutingOption(cr_router3, "target_cluster", "replicacluster"); });
+
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
+testutil.destroySandbox(__mysql_sandbox_port3);
