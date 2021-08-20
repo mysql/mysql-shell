@@ -71,11 +71,13 @@ class Help_registry;
 struct Help_topic;
 
 struct Help_topic_compare {
-  bool operator()(Help_topic *const &lhs, Help_topic *const &rhs) const;
+  bool operator()(const Help_topic *const &lhs,
+                  const Help_topic *const &rhs) const;
 };
 
 struct Help_topic_id_compare {
-  bool operator()(Help_topic *const &lhs, Help_topic *const &rhs) const;
+  bool operator()(const Help_topic *const &lhs,
+                  const Help_topic *const &rhs) const;
 };
 
 struct icomp {
@@ -94,7 +96,7 @@ struct Help_topic {
   Help_topic_refs m_childs;
   bool m_enabled;
 
-  Help_topic *get_category();
+  const Help_topic *get_category() const;
 
   bool is_module() const { return m_type == Topic_type::MODULE; }
   bool is_class() const { return m_type == Topic_type::CLASS; }
@@ -282,11 +284,11 @@ class Help_registry {
 
   // Searches the help topics associated to a keyword matching the specified
   // pattern if they are enabled for the indicated mode
-  std::vector<Help_topic *> search_topics(const std::string &pattern,
-                                          IShell_core::Mode mode);
-  std::vector<Help_topic *> search_topics(const std::string &pattern,
-                                          IShell_core::Mode_mask mode,
-                                          bool case_sensitive);
+  std::vector<const Help_topic *> search_topics(const std::string &pattern,
+                                                IShell_core::Mode mode);
+  std::vector<const Help_topic *> search_topics(const std::string &pattern,
+                                                IShell_core::Mode_mask mode,
+                                                bool case_sensitive);
 
   Help_topic *get_topic(const std::string &id, bool allow_unexisting = false,
                         const Topic_mask &type = Topic_mask::any()) const;
@@ -500,7 +502,7 @@ class Help_manager {
   IShell_core::Mode get_mode() { return m_mode; }
 
   // Searches for topics matching the specified pattern
-  std::vector<Help_topic *> search_topics(const std::string &pattern);
+  std::vector<const Help_topic *> search_topics(const std::string &pattern);
 
   /**
    * Retrieves the help text for a topic uniquely identified by the given
@@ -522,7 +524,7 @@ class Help_manager {
                        const Help_options &options = Help_options::any(),
                        cli::Shell_cli_mapper *cli = nullptr);
 
-  void add_childs_section(const std::vector<Help_topic *> &childs,
+  void add_childs_section(const std::vector<const Help_topic *> &childs,
                           std::vector<std::string> *sections, size_t padding,
                           bool members, const std::string &tag,
                           const std::string &default_title, bool alias = false);
@@ -551,9 +553,9 @@ class Help_manager {
    * Naming honors the active language naming convention
    */
   std::string format_member_list(
-      const std::vector<Help_topic *> &topics, size_t lpadding = 0,
+      const std::vector<const Help_topic *> &topics, size_t lpadding = 0,
       bool do_signatures = true,
-      std::function<std::string(Help_topic *)> format_name_cb = nullptr);
+      std::function<std::string(const Help_topic *)> format_name_cb = nullptr);
 
  private:
   // Holds the active mode to be used for the help handling
@@ -649,7 +651,7 @@ class Help_manager {
    * - Member names (honoring naming convention)
    * - Topic aliases (command alias)
    */
-  size_t get_max_topic_length(const std::vector<Help_topic *> &topics,
+  size_t get_max_topic_length(const std::vector<const Help_topic *> &topics,
                               bool members, bool alias = false) const;
 
   /**
@@ -668,7 +670,7 @@ class Help_manager {
    *   ...
    * - CommandNameN (\z)     CommandZ brief description
    */
-  std::string format_topic_list(const std::vector<Help_topic *> &topics,
+  std::string format_topic_list(const std::vector<const Help_topic *> &topics,
                                 size_t lpadding = 0, bool alias = false);
   std::string format_list_description(const std::string &name,
                                       std::vector<std::string> *help_text,
@@ -676,8 +678,8 @@ class Help_manager {
                                       const std::string &alias = "",
                                       size_t alas_max_len = 0);
 
-  std::vector<std::string> get_member_brief(Help_topic *member);
-  std::vector<std::string> get_topic_brief(Help_topic *member);
+  std::vector<std::string> get_member_brief(const Help_topic *member);
+  std::vector<std::string> get_topic_brief(const Help_topic *member);
 };
 
 }  // namespace shcore

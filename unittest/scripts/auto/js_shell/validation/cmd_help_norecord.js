@@ -670,3 +670,83 @@ $ mysqlsh -- util check-for-server-upgrade --user=root --host=localhost
       mysql-js> util.checkForServerUpgrade({user:"root", host:"localhost"},
       {password:""})
 
+//@<OUT> Help using wildcard prefix prints single element found
+NAME
+      createClusterSet - Creates a MySQL InnoDB ClusterSet from an existing
+                         standalone InnoDB Cluster.
+
+SYNTAX
+      <Cluster>.createClusterSet(domainName[, options])
+
+WHERE
+      domainName: An identifier for the ClusterSet's logical dataset.
+      options: Dictionary with additional parameters described below.
+
+RETURNS
+      The created ClusterSet object.
+
+DESCRIPTION
+      Creates a ClusterSet object from an existing cluster, with the given data
+      domain name.
+
+      Several checks and validations are performed to ensure that the target
+      Cluster complies with the requirements for ClusterSets and if so, the
+      Metadata schema will be updated to create the new ClusterSet and the
+      target Cluster becomes the PRIMARY cluster of the ClusterSet.
+
+      InnoDB ClusterSet
+
+      A ClusterSet is composed of a single PRIMARY InnoDB Cluster that can have
+      one or more replica InnoDB Clusters that replicate from the PRIMARY using
+      asynchronous replication.
+
+      ClusterSets allow InnoDB Cluster deployments to achieve fault-tolerance
+      at a whole Data Center / region or geographic location, by creating
+      REPLICA clusters in different locations (Data Centers), ensuring Disaster
+      Recovery is possible.
+
+      If the PRIMARY InnoDB Cluster becomes completely unavailable, it's
+      possible to promote a REPLICA of that cluster to take over its duties
+      with minimal downtime or data loss.
+
+      All Cluster operations are available at each individual member (cluster)
+      of the ClusterSet. The AdminAPI ensures all updates are performed at the
+      PRIMARY and controls the command availability depending on the individual
+      status of each Cluster.
+
+      Please note that InnoDB ClusterSets don't have the same consistency and
+      data loss guarantees as InnoDB Clusters. To read more about ClusterSets,
+      see \? ClusterSet or refer to the MySQL manual.
+
+      Pre-requisites
+
+      The following is a non-exhaustive list of requirements to create a
+      ClusterSet:
+
+      - The target cluster must not already be part of a ClusterSet.
+      - MySQL 8.0.27 or newer.
+      - The target cluster's Metadata schema version is 2.1.0 or newer.
+      - Unmanaged replication channels are not allowed.
+
+      Options
+
+      The options dictionary can contain the following values:
+
+      - dryRun: boolean if true, all validations and steps for creating a
+        ClusterSet are executed, but no changes are actually made. An exception
+        will be thrown when finished.
+      - clusterSetReplicationSslMode: SSL mode for the ClusterSet replication
+        channels.
+
+      The clusterSetReplicationSslMode option supports the following values:
+
+      - REQUIRED: if used, SSL (encryption) will be enabled for the ClusterSet
+        replication channels.
+      - DISABLED: if used, SSL (encryption) will be disabled for the ClusterSet
+        replication channels.
+      - AUTO: if used, SSL (encryption) will be enabled if supported by the
+        instance, otherwise disabled.
+
+      If clusterSetReplicationSslMode is not specified AUTO will be used by
+      default.
+

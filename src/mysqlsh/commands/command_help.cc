@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,7 +47,7 @@ bool Command_help::execute(const std::vector<std::string> &args) {
     std::vector<shcore::Help_topic> sql_topics;
     const auto tokens = shcore::str_split(shcore::str_strip(args[0]), " ", 1);
     const auto pattern = shcore::str_strip(tokens[1]);
-    std::vector<shcore::Help_topic *> topics;
+    std::vector<const shcore::Help_topic *> topics;
     bool is_sql_search = false;
 
     // Avoids local search if it is for sure a SQL search
@@ -103,7 +103,7 @@ bool Command_help::execute(const std::vector<std::string> &args) {
 std::vector<shcore::Help_topic> Command_help::get_sql_topics(
     const std::string &pattern) {
   std::vector<shcore::Help_topic> sql_topics;
-  shcore::Help_topic *sql;
+  const shcore::Help_topic *sql;
   std::string sql_pattern(pattern);
 
   auto dev_session = _shell->get_dev_session();
@@ -162,7 +162,7 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
                                   name,
                                   shcore::Topic_type::SQL,
                                   name,
-                                  sql,
+                                  const_cast<shcore::Help_topic *>(sql),
                                   {},
                                   true});
             entry = result->fetch_one();
@@ -176,7 +176,7 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
                                 entry->get_string(0),
                                 shcore::Topic_type::SQL,
                                 entry->get_string(desc_col),
-                                sql,
+                                const_cast<shcore::Help_topic *>(sql),
                                 {},
                                 true});
         }
@@ -198,7 +198,8 @@ std::vector<shcore::Help_topic> Command_help::get_sql_topics(
  *          the topic index if one match was found.
  */
 mysqlshdk::utils::nullable<int> Command_help::find_exact_match(
-    const std::string &pattern, const std::vector<shcore::Help_topic *> &topics,
+    const std::string &pattern,
+    const std::vector<const shcore::Help_topic *> &topics,
     bool case_sensitive) {
   // Verifies if in the topics there is an exact match case sensitive;
   mysqlshdk::utils::nullable<int> match_index;
@@ -224,9 +225,9 @@ mysqlshdk::utils::nullable<int> Command_help::find_exact_match(
 
 void Command_help::print_help_multiple_topics(
     const std::string &pattern,
-    const std::vector<shcore::Help_topic *> &topics) {
+    const std::vector<const shcore::Help_topic *> &topics) {
   std::map<std::string,
-           std::set<shcore::Help_topic *, shcore::Help_topic_id_compare>>
+           std::set<const shcore::Help_topic *, shcore::Help_topic_id_compare>>
       groups;
 
   // attempts to find  a case sensitive exact match on the found topics
@@ -235,7 +236,7 @@ void Command_help::print_help_multiple_topics(
   // If no exact match was found, now attempts case insensitive
   if (index.is_null()) index = find_exact_match(pattern, topics, false);
 
-  shcore::Help_topic *match = nullptr;
+  const shcore::Help_topic *match = nullptr;
   if (!index.is_null() && *index != -1) match = topics[*index];
 
   for (auto topic : topics) {
@@ -311,7 +312,7 @@ void Command_help::print_help_global() {
   // Retrieves the global objects if in a scripting mode
   if (_shell->interactive_mode() != shcore::IShell_core::Mode::SQL) {
     std::vector<shcore::Help_topic> global_topics;
-    std::vector<shcore::Help_topic *> global_refs;
+    std::vector<const shcore::Help_topic *> global_refs;
     // shcore::Help_topic_refs global_refs;
     auto globals = _shell->get_global_objects(_shell->interactive_mode());
 

@@ -191,8 +191,8 @@ std::string strip_param_type(const std::string &input) {
 }  // namespace
 using Mode_mask = shcore::IShell_core::Mode_mask;
 
-bool Help_topic_compare::operator()(Help_topic *const &lhs,
-                                    Help_topic *const &rhs) const {
+bool Help_topic_compare::operator()(const Help_topic *const &lhs,
+                                    const Help_topic *const &rhs) const {
   if (!lhs) {
     return true;
   } else if (!rhs) {
@@ -205,8 +205,8 @@ bool Help_topic_compare::operator()(Help_topic *const &lhs,
   }
 }
 
-bool Help_topic_id_compare::operator()(Help_topic *const &lhs,
-                                       Help_topic *const &rhs) const {
+bool Help_topic_id_compare::operator()(const Help_topic *const &lhs,
+                                       const Help_topic *const &rhs) const {
   if (!lhs) {
     return true;
   } else if (!rhs) {
@@ -274,8 +274,8 @@ std::string Help_topic::get_base_name() const {
   return m_name;
 }
 
-Help_topic *Help_topic::get_category() {
-  Help_topic *category = this;
+const Help_topic *Help_topic::get_category() const {
+  const Help_topic *category = this;
   while (category->m_parent != nullptr &&
          category->m_parent->m_name != Help_registry::HELP_ROOT) {
     category = category->m_parent;
@@ -1011,10 +1011,10 @@ bool is_pattern(const std::string &pattern) {
 }
 
 template <class Iterable>
-std::vector<Help_topic *> get_topics(const Iterable &topic_map,
-                                     const std::string &pattern,
-                                     IShell_core::Mode_mask mode) {
-  std::vector<Help_topic *> ret_val;
+std::set<const Help_topic *> get_topics(const Iterable &topic_map,
+                                        const std::string &pattern,
+                                        IShell_core::Mode_mask mode) {
+  std::set<const Help_topic *> ret_val;
 
   if (is_pattern(pattern)) {
     // First we look in the case sensitive registry
@@ -1025,7 +1025,7 @@ std::vector<Help_topic *> get_topics(const Iterable &topic_map,
         // the active mode
         for (auto &topic : entry.second) {
           if (topic.second.matches_any(mode)) {
-            ret_val.push_back(topic.first);
+            ret_val.insert(topic.first);
           }
         }
       }
@@ -1034,7 +1034,7 @@ std::vector<Help_topic *> get_topics(const Iterable &topic_map,
     auto topics = topic_map.at(pattern);
     for (auto &topic : topics) {
       if (topic.second.matches_any(mode)) {
-        ret_val.push_back(topic.first);
+        ret_val.insert(topic.first);
       }
     }
   }
@@ -1042,34 +1042,39 @@ std::vector<Help_topic *> get_topics(const Iterable &topic_map,
   return ret_val;
 }
 
-std::vector<Help_topic *> Help_registry::search_topics(
+std::vector<const Help_topic *> Help_registry::search_topics(
     const std::string &pattern, IShell_core::Mode_mask mode,
     bool case_sensitive) {
   // First searches on the case sensitive topics
-  std::vector<Help_topic *> ret_val = get_topics(m_cs_keywords, pattern, mode);
+  std::set<const Help_topic *> found_topics =
+      get_topics(m_cs_keywords, pattern, mode);
 
   // If not restricted to case sensitive, searches in the case insensitive
-  if (ret_val.empty() && !case_sensitive) {
-    ret_val = get_topics(m_keywords, pattern, mode);
+  if (found_topics.empty() && !case_sensitive) {
+    found_topics = get_topics(m_keywords, pattern, mode);
   }
 
   // We need to also look for the pattern in the thread context help,
   {
-    std::vector<Help_topic *> thread_result =
+    std::set<const Help_topic *> thread_result =
         get_topics(get_thread_context_help()->m_cs_keywords, pattern, mode);
-    ret_val.insert(ret_val.end(), thread_result.begin(), thread_result.end());
+    found_topics.insert(thread_result.begin(), thread_result.end());
   }
 
-  if (ret_val.empty() && !case_sensitive) {
-    std::vector<Help_topic *> thread_result =
+  if (found_topics.empty() && !case_sensitive) {
+    std::set<const Help_topic *> thread_result =
         get_topics(get_thread_context_help()->m_keywords, pattern, mode);
-    ret_val.insert(ret_val.end(), thread_result.begin(), thread_result.end());
+    found_topics.insert(thread_result.begin(), thread_result.end());
   }
+
+  std::vector<const Help_topic *> ret_val;
+
+  ret_val.insert(ret_val.end(), found_topics.begin(), found_topics.end());
 
   return ret_val;
 }
 
-std::vector<Help_topic *> Help_registry::search_topics(
+std::vector<const Help_topic *> Help_registry::search_topics(
     const std::string &pattern, IShell_core::Mode mode) {
   return search_topics(pattern, IShell_core::Mode_mask(mode), false);
 }
@@ -1180,7 +1185,7 @@ Help_manager::Help_manager() {
   m_registry = Help_registry::get();
 }
 
-std::vector<Help_topic *> Help_manager::search_topics(
+std::vector<const Help_topic *> Help_manager::search_topics(
     const std::string &pattern) {
   return Help_registry::get()->search_topics(pattern, m_mode);
 }
@@ -1501,13 +1506,13 @@ void Help_manager::add_chained_function_help(
   std::map<std::string, std::string> signatures;
 
   std::vector<std::string> full_syntax;
-  std::vector<Help_topic *> function_topics;
+  std::vector<const Help_topic *> function_topics;
 
   auto resolve = [this, &signatures, &function_topics](const std::string &id) {
     // Searches the topic corresponding to the given id
     auto topics = m_registry->search_topics(id, m_mode);
     assert(topics.size() == 1);
-    Help_topic *function = *topics.begin();
+    const Help_topic *function = *topics.begin();
     function_topics.push_back(function);
 
     // Now retrieves the display signature
@@ -1656,7 +1661,8 @@ std::string Help_manager::format_list_description(
 }
 
 size_t Help_manager::get_max_topic_length(
-    const std::vector<Help_topic *> &topics, bool members, bool alias) const {
+    const std::vector<const Help_topic *> &topics, bool members,
+    bool alias) const {
   size_t ret_val = 0;
 
   if (members) {
@@ -1681,7 +1687,8 @@ size_t Help_manager::get_max_topic_length(
   return ret_val;
 }
 
-std::vector<std::string> Help_manager::get_topic_brief(Help_topic *topic) {
+std::vector<std::string> Help_manager::get_topic_brief(
+    const Help_topic *topic) {
   auto help_text = get_help_text(topic->m_help_tag + "_BRIEF");
 
   // Deprecation notices are added as part of the description on list format
@@ -1693,7 +1700,8 @@ std::vector<std::string> Help_manager::get_topic_brief(Help_topic *topic) {
 }
 
 std::string Help_manager::format_topic_list(
-    const std::vector<Help_topic *> &topics, size_t lpadding, bool alias) {
+    const std::vector<const Help_topic *> &topics, size_t lpadding,
+    bool alias) {
   std::vector<std::string> formatted;
 
   // Gets the required padding for the descriptions
@@ -1716,7 +1724,8 @@ std::string Help_manager::format_topic_list(
   return shcore::str_join(formatted, "\n");
 }
 
-std::vector<std::string> Help_manager::get_member_brief(Help_topic *member) {
+std::vector<std::string> Help_manager::get_member_brief(
+    const Help_topic *member) {
   std::string tag = member->m_help_tag + "_BRIEF";
   auto help_text = resolve_help_text(*member->m_parent, tag);
 
@@ -1731,9 +1740,9 @@ std::vector<std::string> Help_manager::get_member_brief(Help_topic *member) {
 }
 
 std::string Help_manager::format_member_list(
-    const std::vector<Help_topic *> &topics, size_t lpadding,
+    const std::vector<const Help_topic *> &topics, size_t lpadding,
     bool do_signatures,
-    std::function<std::string(Help_topic *)> format_name_cb) {
+    std::function<std::string(const Help_topic *)> format_name_cb) {
   std::vector<std::string> descriptions;
   for (auto member : topics) {
     std::string description(format_name_cb ? 0 : SECTION_PADDING, ' ');
@@ -1781,12 +1790,10 @@ std::string Help_manager::format_member_list(
   return shcore::str_join(descriptions, "\n\n");
 }
 
-void Help_manager::add_childs_section(const std::vector<Help_topic *> &childs,
-                                      std::vector<std::string> *sections,
-                                      size_t lpadding, bool members,
-                                      const std::string &tag,
-                                      const std::string &default_title,
-                                      bool alias) {
+void Help_manager::add_childs_section(
+    const std::vector<const Help_topic *> &childs,
+    std::vector<std::string> *sections, size_t lpadding, bool members,
+    const std::string &tag, const std::string &default_title, bool alias) {
   if (!childs.empty()) {
     // Child list can be configured to be ignored
     if (m_registry->get_token(tag + "_DESC") != HELP_IGNORE_STR) {
@@ -1898,7 +1905,8 @@ std::string Help_manager::format_object_help(const Help_topic &object,
   }
 
   // Classifies the child topics
-  std::vector<Help_topic *> cat, prop, func, mod, cls, obj, consts, others;
+  std::vector<const Help_topic *> cat, prop, func, mod, cls, obj, consts,
+      others;
   {
     auto lock = Help_registry::get()->ensure_lock();
     for (auto child : object.m_childs) {

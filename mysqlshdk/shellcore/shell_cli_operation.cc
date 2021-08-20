@@ -282,7 +282,7 @@ void Shell_cli_operation::print_help() {
       target_object += "'";
     }
 
-    std::vector<shcore::Help_topic *> cli_members;
+    std::vector<const shcore::Help_topic *> cli_members;
     size_t provider_count = m_current_provider->get_providers().size();
     if (provider_count > 0) {
       help_text = shcore::str_format(
@@ -291,7 +291,7 @@ void Shell_cli_operation::print_help() {
           target_object.empty() ? "" : target_object.c_str());
     }
 
-    std::map<Help_topic *, std::string> object_names;
+    std::map<const Help_topic *, std::string> object_names;
 
     // Objects members require the fully qualified object chain
     std::string qualified_parent = shcore::str_join(object_chain, ".");
@@ -307,7 +307,8 @@ void Shell_cli_operation::print_help() {
     }
 
     help_text.append(help.format_member_list(
-        cli_members, 0UL, false, [object_names](shcore::Help_topic *topic) {
+        cli_members, 0UL, false,
+        [object_names](const shcore::Help_topic *topic) {
           return "   " + object_names.at(topic);
         }));
 
@@ -332,7 +333,7 @@ void Shell_cli_operation::print_help() {
         help_text +=
             "The following operations are available" + target_object + ":\n\n";
         help_text.append(help.format_member_list(
-            cli_members, 0UL, false, [](shcore::Help_topic *topic) {
+            cli_members, 0UL, false, [](const shcore::Help_topic *topic) {
               return "   " + shcore::from_camel_case_to_dashes(topic->get_name(
                                  shcore::IShell_core::Mode::JavaScript));
             }));

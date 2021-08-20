@@ -62,3 +62,6 @@ session.close()
 
 //@ Help for API Command Line Integration
 \? cmdline
+
+//@ Help using wildcard prefix prints single element found
+\? *createClusterSet
