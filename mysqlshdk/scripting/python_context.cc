@@ -252,6 +252,22 @@ Python_init_singleton::Python_init_singleton() : m_local_initialization(false) {
   if (!Py_IsInitialized()) {
     std::string home;
 #ifdef _WIN32
+
+#if PY_VERSION_HEX >= 0x03080000
+    // Do not load user preffered locale on Windows (it is not utf8)
+    PyPreConfig pre_config;
+    PyPreConfig_InitPythonConfig(&pre_config);
+    pre_config.configure_locale = 0;
+    pre_config.coerce_c_locale = 0;
+    pre_config.coerce_c_locale_warn = 0;
+    auto status = Py_PreInitialize(&pre_config);
+    if (PyStatus_Exception(status)) {
+      mysqlsh::current_console()->print_error(
+          "Unable to preconfigure Python locale");
+      Py_ExitStatusException(status);
+    }
+#endif
+
 #define MAJOR_MINOR STRINGIFY(PY_MAJOR_VERSION) "." STRINGIFY(PY_MINOR_VERSION)
     {
       // If not will associate what should be the right path in

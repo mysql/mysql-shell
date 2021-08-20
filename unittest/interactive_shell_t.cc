@@ -3366,4 +3366,16 @@ TEST_F(Interactive_shell_test, redefine_let) {
 }
 #endif  // HAVE_V8
 
+#if defined(HAVE_PYTHON) && defined(_WIN32)
+TEST_F(Interactive_shell_test, windows_python_locale) {
+  execute("\\py");
+  execute("import locale");
+  ASSERT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+  execute("locale.getlocale() == (None, None)");
+  EXPECT_EQ("true\n", output_handler.std_out);
+  EXPECT_TRUE(output_handler.std_err.empty());
+}
+#endif
+
 }  // namespace mysqlsh
