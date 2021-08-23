@@ -874,6 +874,9 @@ DESCRIPTION
         dumped with consistent data.
       - Views and triggers to be dumped must not use qualified names to
         reference other views or tables.
+      - Since util.dump_tables() function does not dump routines, any routines
+        referenced by the dumped objects are expected to already exist when the
+        dump is loaded.
 
       Details
 

@@ -1903,6 +1903,9 @@ ${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_DDL_COMMON_REQUIREMENTS}
 @li Views and triggers to be dumped must not use qualified names to reference
 other views or tables.
+@li Since util.<<<dumpTables>>>() function does not dump routines, any routines
+referenced by the dumped objects are expected to already exist when the dump is
+loaded.
 
 <b>Details</b>
 
