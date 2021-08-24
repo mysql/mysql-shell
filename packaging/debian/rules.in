@@ -36,6 +36,7 @@ override_dh_auto_configure:
 	    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	    -DEXTRA_INSTALL="@EXTRA_INSTALL@" \
 	    -DEXTRA_NAME_SUFFIX="@PRODUCT_SUFFIX@" \
+	    -DUSE_LD_LLD=OFF \
 	    @EXTRA_CMAKE_OPTS@ \
 	    .
 	DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1
