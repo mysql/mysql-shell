@@ -151,7 +151,10 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
 }
 
 void Load_dump_options::set_wait_timeout(const double &timeout_seconds) {
-  m_wait_dump_timeout_ms = timeout_seconds * 1000;
+  // we're using double here, so that tests can set it to millisecond values
+  if (timeout_seconds > 0.0) {
+    m_wait_dump_timeout_ms = timeout_seconds * 1000;
+  }
 }
 
 void Load_dump_options::set_str_vector_option(

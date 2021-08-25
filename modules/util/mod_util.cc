@@ -1310,9 +1310,10 @@ data.
 @li <b>updateGtidSet</b>: "off", "replace", "append" (default: off) - if set to
 a value other than 'off' updates GTID_PURGED by either replacing its contents
 or appending to it the gtid set present in the dump.
-@li <b>waitDumpTimeout</b>: int (default: 0) - Loads a dump while it's still
+@li <b>waitDumpTimeout</b>: float (default: 0) - Loads a dump while it's still
 being created. Once all uploaded tables are processed the command will either
-wait for more data, the dump is marked as completed or the given timeout passes.
+wait for more data, the dump is marked as completed or the given timeout (in
+seconds) passes.
 <= 0 disables waiting.
 ${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
 

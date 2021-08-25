@@ -817,8 +817,8 @@ OPTIONS
 --waitDumpTimeout=<float>
             Loads a dump while it's still being created. Once all uploaded
             tables are processed the command will either wait for more data,
-            the dump is marked as completed or the given timeout passes. <= 0
-            disables waiting. Default: 0.
+            the dump is marked as completed or the given timeout (in seconds)
+            passes. <= 0 disables waiting. Default: 0.
 
 --loadData=<bool>
             Loads table data from the dump. Default: true.

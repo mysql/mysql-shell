@@ -1634,10 +1634,10 @@ DESCRIPTION
       - updateGtidSet: "off", "replace", "append" (default: off) - if set to a
         value other than 'off' updates GTID_PURGED by either replacing its
         contents or appending to it the gtid set present in the dump.
-      - waitDumpTimeout: int (default: 0) - Loads a dump while it's still being
-        created. Once all uploaded tables are processed the command will either
-        wait for more data, the dump is marked as completed or the given
-        timeout passes. <= 0 disables waiting.
+      - waitDumpTimeout: float (default: 0) - Loads a dump while it's still
+        being created. Once all uploaded tables are processed the command will
+        either wait for more data, the dump is marked as completed or the given
+        timeout (in seconds) passes. <= 0 disables waiting.
       - osBucketName: string (default: not set) - Use specified OCI bucket for
         the location of the dump.
       - osNamespace: string (default: not set) - Specifies the namespace where

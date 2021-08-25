@@ -1001,6 +1001,10 @@ testutil.rename(__tmp_dir+"/ldtest/dump/@.done.json", __tmp_dir+"/ldtest/dump/@.
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump");}, "Incomplete dump");
 EXPECT_OUTPUT_CONTAINS("ERROR: Dump is not yet finished. Use the 'waitDumpTimeout' option to enable concurrent load and set a timeout for when we need to wait for new data to become available.");
 
+//@<> BUG#33212873: Unfinished dump with negative timeout (fail)
+EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {waitDumpTimeout: -1});}, "Incomplete dump");
+EXPECT_OUTPUT_CONTAINS("ERROR: Dump is not yet finished. Use the 'waitDumpTimeout' option to enable concurrent load and set a timeout for when we need to wait for new data to become available.");
+
 //@<> Unfinished dump with timeout (fail)
 // TSFR3_2
 EXPECT_THROWS(function () {util.loadDump(__tmp_dir+"/ldtest/dump", {waitDumpTimeout: 2});}, "Dump timeout");
