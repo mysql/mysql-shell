@@ -891,6 +891,26 @@ bool is_active_member(const mysqlshdk::mysql::IInstance &instance,
   return ret_val;
 }
 
+void wait_member_online(const mysqlshdk::mysql::IInstance &instance,
+                        int32_t timeout_ms) {
+  uint32_t sleep_time = 0.5 * 1000;  // half second
+
+  while (true) {
+    if (mysqlshdk::gr::get_member_state(instance) ==
+        mysqlshdk::gr::Member_state::ONLINE) {
+      return;
+    } else {
+      if (timeout_ms <= 0) {
+        throw std::runtime_error("Timeout waiting for '" + instance.descr() +
+                                 "' to become ONLINE in the Group");
+      }
+
+      shcore::sleep_ms(sleep_time);
+      timeout_ms -= sleep_time;
+    }
+  }
+}
+
 void update_auto_increment(mysqlshdk::config::Config *config,
                            const Topology_mode &topology_mode,
                            uint64_t group_size) {

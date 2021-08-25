@@ -310,6 +310,16 @@ bool is_active_member(const mysqlshdk::mysql::IInstance &instance,
                       const std::string &host = "", const int port = 0);
 
 /**
+ * Waits for a specific instance to become an ONLINE member of the group
+ * from its own perspective.
+ *
+ * @param instance Instance to use to perform the check.
+ * @param timeout_ms Integer with the maximum wait time (in milliseconds).
+ */
+void wait_member_online(const mysqlshdk::mysql::IInstance &instance,
+                        int32_t timeout_ms);
+
+/**
  * Update auto-increment setting based on the GR mode.
  *
  * IMPORTANT NOTE: It is assumed that the Config object used as parameter

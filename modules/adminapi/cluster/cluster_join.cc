@@ -1213,6 +1213,19 @@ void Cluster_join::reboot() {
   mysqlsh::dba::start_cluster(*m_target_instance, m_gr_opts, multi_primary,
                               cfg.get());
 
+  // Wait for the seed instance to become ONLINE in the Group.
+  // Especially relevant on Replica Clusters to ensure the seed instance is
+  // already ONLINE when other members try to rejoin the Cluster, otherwise, the
+  // rejoining members will fail to rejoin because the managed replication
+  // channel may be started with auto-failover while the members haven't
+  // obtained those channel configurations yet.
+  uint32_t timeout = 5 * 60 * 1000;  // 5 minutes
+
+  mysqlsh::current_console()->print_info(
+      "* Waiting for seed instance to become ONLINE...");
+
+  mysqlshdk::gr::wait_member_online(*m_target_instance, timeout);
+
   log_debug("Instance add finished");
 }
 

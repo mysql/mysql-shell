@@ -169,16 +169,17 @@ testutil.startSandbox(__mysql_sandbox_port5)
 
 shell.connect(__sandbox_uri3);
 
-EXPECT_NO_THROWS(function() { replicacluster = dba.rebootClusterFromCompleteOutage("replica"); });
+// BUG#33223867: dba.rebootClusterFromCompleteOutage() is failing for replica cluster in CS
+// When using the rejoinInstances option in rebootCluster*() of a Replica Cluster, the command would fail since it wouldn't wait
+// for the seed instance to become ONLINE within the group before trying to rejoin the remaining instances
+EXPECT_NO_THROWS(function() { replicacluster = dba.rebootClusterFromCompleteOutage("replica", {rejoinInstances: [__endpoint5]})});
+EXPECT_OUTPUT_CONTAINS("* Waiting for seed instance to become ONLINE...");
 
 var sro3 = session.runSql("select @@global.super_read_only").fetchOne()[0];
 EXPECT_EQ(1, sro3);
 
 ensure_cs_replication_channel_ready(__sandbox_uri3, __mysql_sandbox_port4);
-
-// Rejoin instance 5 back to the cluster
-testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
-replicacluster.rejoinInstance(__sandbox_uri5);
+ensure_cs_replication_channel_ready(__sandbox_uri5, __mysql_sandbox_port4);
 
 // Check that the cluster rejoined the ClusterSet
 CHECK_REPLICA_CLUSTER([__sandbox_uri3, __sandbox_uri5], cluster, replicacluster);
