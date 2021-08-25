@@ -446,7 +446,7 @@ session2.runSql("RESET MASTER");
 session3.runSql("RESET MASTER");
 
 //@ addInstance: recoveryMethod:auto, interactive, purged GTID -> prompt c/a {VER(>=8.0.17)}
-testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Abort): ", "a");
+testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Clone): ", "a");
 mark_gtid_set_complete(false);
 rs.addInstance(__sandbox_uri2, {interactive: true});
 

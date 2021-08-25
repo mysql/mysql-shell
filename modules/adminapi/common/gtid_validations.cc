@@ -41,6 +41,7 @@ enum Prompt_type {
   None,
   Clone_incremental_abort,
   Clone_abort,
+  Abort_clone,
   Incremental_abort
 };
 
@@ -165,7 +166,7 @@ Prompt_type validate_auto_recovery(Cluster_type cluster_type,
         if (op_action == Member_op_action::ADD_INSTANCE) {
           prompt = Clone_incremental_abort;
         } else {
-          prompt = Clone_abort;
+          prompt = Abort_clone;
         }
       } else {
         if (op_action == Member_op_action::ADD_INSTANCE) {
@@ -185,7 +186,15 @@ Prompt_type validate_auto_recovery(Cluster_type cluster_type,
   } else {  // recovery not possible, can only do clone
     if (op_action == Member_op_action::ADD_INSTANCE) {
       if (clone_supported && !clone_disabled && interactive) {
-        prompt = Clone_abort;
+        // Clone should be the default in addInstance when the target instance
+        // GTID-SET is empty regardless if transactions were purged or not from
+        // the cluster (recoverable)
+        // If the GTID-SET is diverged, the default should always be Abort
+        if (!recovery_safe && !gtid_set_diverged) {
+          prompt = Clone_abort;
+        } else {
+          prompt = Abort_clone;
+        }
       } else {
         console->print_error(target_clone_or_provisioned_add);
 
@@ -199,7 +208,7 @@ Prompt_type validate_auto_recovery(Cluster_type cluster_type,
     } else if (op_action == Member_op_action::REJOIN_INSTANCE) {
       if (clone_supported && !clone_disabled) {
         if (!gtid_set_diverged) {
-          prompt = Clone_abort;
+          prompt = Abort_clone;
         } else {
           console->print_error(target_clone_or_provisioned_rejoin);
 
@@ -507,6 +516,18 @@ Member_recovery_method validate_instance_recovery(
           break;
 
         case Clone_abort:
+          switch (console->confirm("Please select a recovery method",
+                                   mysqlsh::Prompt_answer::YES, "&Clone",
+                                   "&Abort")) {
+            case mysqlsh::Prompt_answer::YES:
+              recovery_method = Member_recovery_method::CLONE;
+              break;
+            default:
+              throw shcore::cancelled("Cancelled");
+          }
+          break;
+
+        case Abort_clone:
           switch (console->confirm("Please select a recovery method",
                                    mysqlsh::Prompt_answer::NO, "&Clone",
                                    "&Abort")) {

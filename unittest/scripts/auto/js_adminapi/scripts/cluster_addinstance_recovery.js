@@ -470,7 +470,7 @@ session.runSql("FLUSH BINARY LOGS");
 session.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(6), INTERVAL 1 DAY)");
 
 //@ recoveryMethod:auto, interactive, purged GTID, new -> prompt c/a {VER(>=8.0.17)}
-testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Abort): ", "a");
+testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Clone): ", "a");
 mark_gtid_set_complete(false);
 session2.runSql("RESET MASTER");
 

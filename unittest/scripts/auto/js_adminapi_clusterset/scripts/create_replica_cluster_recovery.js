@@ -306,7 +306,7 @@ session4.runSql("RESET MASTER");
 session4.runSql("RESET MASTER");
 
 //@<> createReplicaCluster: recoveryMethod:auto, interactive, purged GTID -> prompt c/a
-testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Abort): ", "a");
+testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Clone): ", "a");
 mark_gtid_set_complete(false);
 
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {interactive: true})}, "Cancelled", "RuntimeError");
