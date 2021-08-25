@@ -313,7 +313,7 @@ users_outdir = os.path.join(outdir, "users")
 util.dump_instance(users_outdir, { "users": True, "ddlOnly": True, "showProgress": False })
 
 # replace 'mysql.sys-ex'@'localhost' with 'mysql.sys'@'localhost' in the SQL
-with open(os.path.join(users_outdir, "@.users.sql"), "r+", encoding="utf-8") as f:
+with open(os.path.join(users_outdir, "@.users.sql"), "r+", encoding="utf-8", newline="") as f:
     new_contents = f.read().replace("mysql.sys-ex", "mysql.sys")
     # overwrite the file
     f.seek(0)
