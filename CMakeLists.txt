@@ -535,7 +535,9 @@ IF (USE_LD_GOLD AND NOT (C_LD_LLD_RESULT AND CXX_LD_LLD_RESULT))
 
     # Seemingly --gc-sections causes problems with randomization, so only
     # turn it on if we are not making a randomized build.
-    IF (NOT LINK_RANDOMIZE)
+    # The --gc-sections seems to be causing OOM errors when building 32-bit
+    # binaries for Ubuntu 18.04, do not use it there.
+    IF (NOT LINK_RANDOMIZE AND NOT LINUX_UBUNTU_18_04)
       STRING_APPEND(CMAKE_C_LINK_FLAGS " -Wl,--gc-sections")
       STRING_APPEND(CMAKE_CXX_LINK_FLAGS " -Wl,--gc-sections")
     ENDIF()
