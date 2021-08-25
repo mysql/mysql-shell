@@ -57,13 +57,11 @@ class Test_server {
         shcore::path::join_path(g_test_home, "data", "rest", "test-server.py");
     const auto port_number = std::to_string(m_port);
 
-    std::string python_cmd = "python";
-
     bool server_ready = false;
-
-    while (!server_ready) {
-      std::vector<const char *> args{python_cmd.c_str(), script.c_str(),
-                                     port_number.c_str(), nullptr};
+    for (const auto python_cmd : {"python", "python3"}) {
+      if (server_ready) break;
+      std::vector<const char *> args = {python_cmd, script.c_str(),
+                                        port_number.c_str(), nullptr};
 
       m_server = std::make_unique<shcore::Process_launcher>(&args[0]);
       m_server->enable_reader_thread();
@@ -75,27 +73,17 @@ class Test_server {
       m_address = "https://127.0.0.1:" + port_number;
 
       static constexpr uint32_t sleep_time = 100;   // 100ms
-      static constexpr uint32_t wait_time = 10000;  // 10s
+      static constexpr uint32_t wait_time = 10100;  // 10s
       uint32_t current_time = 0;
       Rest_service rest{m_address, false};
       const auto debug = getenv("TEST_DEBUG") != nullptr;
 
-      while (!server_ready && current_time < wait_time) {
+      while (!server_ready) {
         shcore::sleep_ms(sleep_time);
         current_time += sleep_time;
 
-        if (m_server->check()) {
-          // process is not running, stop testing
-          if (python_cmd == "python") {
-            // Some platforms don't have python command but python3 in that case
-            // the server will not be running but er need to try with python3
-            // command
-            python_cmd = "python3";
-            break;
-          } else {
-            return false;
-          }
-        }
+        // Server not running or time exceeded
+        if (m_server->check() || current_time > wait_time) break;
 
         try {
           const auto response = rest.head("/ping");
