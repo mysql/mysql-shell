@@ -78,7 +78,9 @@ BuildRequires:  mysql-devel
 %if 0%{!?bundled_openssl:1}
 BuildRequires:  openssl-devel
 %endif
+%if 0%{!?bundled_curl:1}
 BuildRequires:  libcurl-devel
+%endif
 #BuildRequires:  v8-devel
 #BuildRequires:  v8-python
 %endif
@@ -181,6 +183,9 @@ cmake .. \
 %endif
 %if 0%{?bundled_openssl:1}
     -DBUNDLED_OPENSSL_DIR="%{bundled_openssl}" \
+%endif
+%if 0%{?bundled_curl:1}
+    -DWITH_CURL="%{bundled_curl}" \
 %endif
 %if 0%{?bundled_python:1}
     -DBUNDLED_PYTHON_DIR="%{bundled_python}" \
