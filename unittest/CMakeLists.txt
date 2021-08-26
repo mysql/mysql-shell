@@ -107,6 +107,8 @@ set(mysqlsh_tests_SRC
 
     if(NOT HAVE_PYTHON)
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/value_py_bridging_t.cc")
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/test_py_dev_api_samples_t.cc")
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/mysqlshdk/shellcore/completer_python_t.cc")
     endif()
 
     LIST(APPEND mysqlsh_tests_SRC
