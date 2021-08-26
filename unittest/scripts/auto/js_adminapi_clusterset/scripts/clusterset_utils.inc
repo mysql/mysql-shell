@@ -374,7 +374,7 @@ function CHECK_PRIMARY_CLUSTER(uris, cluster, values) {
     var have_ssl = session.runSql("SELECT @@have_ssl").fetchOne()[0];
 
     // check metadata consistency
-    var res = session.runSql("select async_topology_type, clusterset_id, domain_name, attributes->>'$.opt_clusterSetReplicationSslMode' as ssl_mode from mysql_innodb_cluster_metadata.v2_cs_clustersets");
+    var res = session.runSql("select async_topology_type, clusterset_id, domain_name, attributes->>'$.opt_clusterSetReplicationSslMode' as ssl_mode, router_options->>'$.target_cluster' as target_cluster, router_options->>'$.invalidated_cluster_policy' as invalidated_cluster_policy from mysql_innodb_cluster_metadata.v2_cs_clustersets");
     while (r = res.fetchOne()) {
       EXPECT_EQ("SINGLE-PRIMARY-TREE", r["async_topology_type"], uri+".v2_cs_members.v2_cs_clustersets");
       EXPECT_NE(null, r["clusterset_id"], uri+".v2_cs_members.v2_cs_clustersets");
@@ -386,6 +386,9 @@ function CHECK_PRIMARY_CLUSTER(uris, cluster, values) {
       } else {
         EXPECT_EQ("DISABLED", r["ssl_mode"], uri+".v2_cs_members.v2_cs_clustersets");
       }
+
+      EXPECT_EQ("primary", r["target_cluster"], uri+".v2_cs_members.v2_cs_clustersets");
+      EXPECT_EQ("drop_all", r["invalidated_cluster_policy"], uri+".v2_cs_members.v2_cs_clustersets");
     }
 
     // If the cluster already has at least one replica, there shall be a replication channel so we must verify the SSL configuration accordingly

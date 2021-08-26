@@ -645,14 +645,14 @@ DROP VIEW IF EXISTS v2_routers;
 CREATE SQL SECURITY INVOKER VIEW v2_routers AS
   SELECT r.router_id,
          r.cluster_id,
-         r.clusterset_id,
          r.router_name,
          r.product_name,
          r.address,
          r.version,
          r.last_check_in,
          r.attributes,
-         r.options
+         r.options,
+         r.clusterset_id
   FROM routers r;
 
 /*
@@ -987,10 +987,18 @@ END //
 DELIMITER ;
 
 
-DROP VIEW IF EXISTS v2_router_options;
-CREATE SQL SECURITY INVOKER VIEW v2_router_options AS
-  select concat(r.address, '::', r.router_name) as router_id,
-  r.clusterset_id, r.options as router_options
-  from mysql_innodb_cluster_metadata.routers r
-  union select NULL, clusterset_id, router_options
-  from mysql_innodb_cluster_metadata.clustersets;
+/*
+  List of router options per router in a ClusterSet.
+  Merges global defaults if router specific values are not set.
+ */
+DROP VIEW IF EXISTS v2_cs_router_options;
+CREATE SQL SECURITY INVOKER VIEW v2_cs_router_options AS
+  SELECT
+        r.router_id,
+        CONCAT(r.address, '::', r.router_name) as router_label,
+        r.clusterset_id,
+        JSON_MERGE_PATCH((SELECT COALESCE(router_options, '{}')
+                          FROM mysql_innodb_cluster_metadata.clustersets
+                          WHERE clusterset_id = r.clusterset_id),
+                        COALESCE(r.options, '{}')) as router_options
+  FROM mysql_innodb_cluster_metadata.routers r;

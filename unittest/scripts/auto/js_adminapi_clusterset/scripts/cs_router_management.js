@@ -138,8 +138,6 @@ EXPECT_THROWS(function(){ clusterset.setRoutingOption("invalidated_cluster_polic
 //@ Resetting clusterset routing option
 clusterset.setRoutingOption("target_cluster", null);
 clusterset.setRoutingOption('invalidated_cluster_policy', null);
-clusterset.setRoutingOption('invalidated_cluster_policy', null);
-clusterset.setRoutingOption('invalidated_cluster_policy', null);
 clusterset.setRoutingOption(cr_router, 'target_cluster', null);
 clusterset.routingOptions();
 

@@ -46,6 +46,8 @@ constexpr std::array<decltype(k_router_option_target_cluster), 2>
     k_router_options = {k_router_option_invalidated_cluster_routing_policy,
                         k_router_option_target_cluster};
 
+extern const Router_options_metadata k_default_router_options;
+
 class Cluster_set_impl;
 
 shcore::Value router_list(MetadataStorage *md, const Cluster_id &cluster_id,
@@ -57,7 +59,7 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
 
 shcore::Dictionary_t router_options(MetadataStorage *md,
                                     const std::string &clusterset_id,
-                                    const std::string &router_id = "");
+                                    const std::string &router_label = "");
 
 void validate_router_option(const Cluster_set_impl &cluster_set,
                             std::string name, const shcore::Value &value);

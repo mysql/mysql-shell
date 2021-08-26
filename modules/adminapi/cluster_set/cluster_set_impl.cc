@@ -1506,8 +1506,8 @@ void Cluster_set_impl::set_routing_option(const std::string &router,
 
   auto msg = "Routing option '" + option + "' successfully updated";
   if (router.empty()) {
-    get_metadata_storage()->set_global_routing_option(get_id(), option,
-                                                      value_copy);
+    get_metadata_storage()->set_clusterset_global_routing_option(
+        get_id(), option, value_copy);
     msg += ".";
   } else {
     get_metadata_storage()->set_routing_option(router, get_id(), option,
@@ -1695,12 +1695,18 @@ void Cluster_set_impl::record_in_metadata(
       csid, k_cluster_set_attribute_ssl_mode,
       shcore::Value(to_string(m_options.ssl_mode)));
 
-  // Migrate Router registered in the Cluster to the ClusterSet
+  // Migrate Routers registered in the Cluster to the ClusterSet
   log_info(
       "Migrating Metadata records of the Cluster Router instances to "
       "the ClusterSet");
   get_metadata_storage()->migrate_routers_to_clusterset(seed_cluster_id,
                                                         get_id());
+
+  // Set and store the default Routing Options
+  for (const auto &option : k_default_router_options.defined_options) {
+    get_metadata_storage()->set_clusterset_global_routing_option(
+        csid, option.first, option.second);
+  }
 }
 
 shcore::Value Cluster_set_impl::status(int extended) {

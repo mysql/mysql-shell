@@ -121,7 +121,7 @@ struct Router_metadata {
 };
 
 struct Router_options_metadata {
-  mysqlshdk::utils::nullable<std::string> router_id;
+  mysqlshdk::utils::nullable<std::string> router_label;
   std::map<std::string, shcore::Value> defined_options;
 };
 
@@ -390,9 +390,9 @@ class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
   std::string get_cluster_name(const std::string &group_replication_group_name);
   std::string get_cluster_group_name(const std::string &cluster_name);
 
-  void set_global_routing_option(const Cluster_set_id &id,
-                                 const std::string option,
-                                 const shcore::Value &value);
+  void set_clusterset_global_routing_option(const Cluster_set_id &id,
+                                            const std::string option,
+                                            const shcore::Value &value);
 
   void set_routing_option(const std::string &router,
                           const std::string &clusterset_id,

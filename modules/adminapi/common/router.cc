@@ -32,7 +32,7 @@
 namespace mysqlsh {
 namespace dba {
 
-Router_options_metadata k_default_router_options = {
+const Router_options_metadata k_default_router_options = {
     {},
     {{k_router_option_invalidated_cluster_routing_policy,
       shcore::Value(
@@ -158,54 +158,36 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
 
 shcore::Dictionary_t router_options(MetadataStorage *md,
                                     const std::string &clusterset_id,
-                                    const std::string &router_id) {
+                                    const std::string &router_label) {
   auto router_options = shcore::make_dict();
-  auto romds = md->get_routing_options(clusterset_id);
+  auto romd = md->get_routing_options(clusterset_id);
 
-  Router_options_metadata global_defaults;
-  for (const auto &entry : romds) {
-    if (entry.router_id.is_null()) {
-      global_defaults = entry;
-      break;
-    }
-  }
+  const auto get_options_dict = [](const Router_options_metadata &entry) {
+    auto ret = shcore::make_dict();
+    for (const auto &option : entry.defined_options)
+      (*ret)[option.first] = option.second;
+    return shcore::Value(ret);
+  };
 
-  const auto get_options_dict =
-      [global_defaults](const Router_options_metadata &entry) {
-        auto ret = shcore::make_dict();
-        for (const auto &option : entry.defined_options)
-          (*ret)[option.first] = option.second;
-
-        for (const auto &option : global_defaults.defined_options) {
-          if (!(*ret).has_key(option.first))
-            (*ret)[option.first] = option.second;
-        }
-
-        for (const auto &option : k_default_router_options.defined_options) {
-          if (!(*ret).has_key(option.first))
-            (*ret)[option.first] = option.second;
-        }
-        return shcore::Value(ret);
-      };
-
-  if (!router_id.empty()) {
-    for (const auto &entry : romds) {
-      if (entry.router_id == router_id) {
-        (*router_options)[*entry.router_id] = get_options_dict(entry);
+  if (!router_label.empty()) {
+    for (const auto &entry : romd) {
+      if (entry.router_label == router_label) {
+        (*router_options)[*entry.router_label] = get_options_dict(entry);
       }
     }
 
     if (router_options->empty()) {
       throw shcore::Exception::argument_error(
-          "Router '" + router_id + "' is not registered in the ClusterSet");
+          "Router '" + router_label + "' is not registered in the ClusterSet");
     }
+
   } else {
     auto routers = shcore::make_dict();
-    for (const auto &entry : romds) {
-      if (entry.router_id.is_null()) {
+    for (const auto &entry : romd) {
+      if (entry.router_label.is_null()) {
         (*router_options)["global"] = get_options_dict(entry);
       } else {
-        (*routers)[*entry.router_id] = get_options_dict(entry);
+        (*routers)[*entry.router_label] = get_options_dict(entry);
       }
     }
     (*router_options)["routers"] = shcore::Value(routers);
