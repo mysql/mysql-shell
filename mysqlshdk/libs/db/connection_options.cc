@@ -506,7 +506,7 @@ mysqlsh::SessionType Connection_options::get_session_type() const {
 
 void Connection_options::set_default_connection_data() {
   // Default values
-  if (!has_user() && !is_kerberos_authentication()) {
+  if (!has_user() && !is_auth_method(mysqlshdk::db::kAuthMethodKerberos)) {
     // The system user is not used with kerberos to trigger the client lib
     // functionality of using cashed TGT
     set_user(shcore::get_system_user());
@@ -561,14 +561,16 @@ void Connection_options::show_tls_deprecation_warning(bool show) const {
   }
 }
 
-bool Connection_options::is_kerberos_authentication() const {
+bool Connection_options::is_auth_method(const std::string &method_id) const {
   bool ret_val = false;
 
   if (has_value(mysqlshdk::db::kAuthMethod)) {
     auto auth_method = get(mysqlshdk::db::kAuthMethod);
-    if (auth_method == mysqlshdk::db::kAuthMethodKerberos ||
-        auth_method == mysqlshdk::db::kAuthMethodLdapSasl) {
-      ret_val = true;
+    if (method_id == mysqlshdk::db::kAuthMethodKerberos) {
+      ret_val = auth_method == mysqlshdk::db::kAuthMethodKerberos ||
+                auth_method == mysqlshdk::db::kAuthMethodLdapSasl;
+    } else {
+      ret_val = auth_method == method_id;
     }
   }
 

@@ -108,6 +108,7 @@ constexpr const char kCompressionDisabled[] = "DISABLED";
 constexpr char kAuthMethodClearPassword[] = "mysql_clear_password";
 constexpr char kAuthMethodLdapSasl[] = "authentication_ldap_sasl_client";
 constexpr char kAuthMethodKerberos[] = "authentication_kerberos_client";
+constexpr char kAuthMethodOci[] = "authentication_oci_client";
 
 const std::set<std::string> connection_attributes = {kHost,
                                                      kPort,

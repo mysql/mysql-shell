@@ -485,7 +485,8 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
         bool prompted_for_password = false;
 
         if (!copy.has_password() && copy.has_user() &&
-            !copy.is_kerberos_authentication()) {
+            !copy.is_auth_method(mysqlshdk::db::kAuthMethodKerberos) &&
+            !copy.is_auth_method(mysqlshdk::db::kAuthMethodOci)) {
           password_prompt(&copy);
           prompted_for_password = true;
         }

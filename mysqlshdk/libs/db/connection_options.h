@@ -183,7 +183,7 @@ class SHCORE_PUBLIC Connection_options {
 
   void show_tls_deprecation_warning(bool show) const;
 
-  bool is_kerberos_authentication() const;
+  bool is_auth_method(const std::string &method_id) const;
 
  private:
   void _set_fixed(const std::string &key, const std::string &val);
