@@ -3013,6 +3013,17 @@ void Dumper::write_table_metadata(
 void Dumper::summarize() const {
   const auto console = current_console();
 
+  if (!m_options.consistent_dump() && m_options.threads() > 1) {
+    const auto gtid_executed = schema_dumper(session())->gtid_executed(true);
+
+    if (gtid_executed != m_cache.gtid_executed) {
+      console->print_warning(
+          "The value of the gtid_executed system variable has changed during "
+          "the dump, from: '" +
+          m_cache.gtid_executed + "' to: '" + gtid_executed + "'.");
+    }
+  }
+
   console->print_status("Dump duration: " +
                         m_data_dump_stage->duration().to_string());
   console->print_status("Total duration: " +

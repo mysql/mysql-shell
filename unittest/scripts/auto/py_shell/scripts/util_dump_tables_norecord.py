@@ -11,6 +11,7 @@ import re
 import shutil
 import stat
 import string
+import time
 
 # constants
 world_x_schema = "world_x_cities"
@@ -269,7 +270,11 @@ EXPECT_FAIL("RuntimeError", "An open session is required to perform this operati
 testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root", {
     "loose_innodb_directories": filename_for_file(table_data_directory),
     "early-plugin-load": "keyring_file." + ("dll" if __os_type == "windows" else "so"),
-    "keyring_file_data": filename_for_file(os.path.join(incompatible_table_directory, "keyring"))
+    "keyring_file_data": filename_for_file(os.path.join(incompatible_table_directory, "keyring")),
+    "server_id": 1234567890,
+    "log_bin": 1,
+    "enforce_gtid_consistency": "ON",
+    "gtid_mode": "ON",
 })
 
 #@<> wait for server
@@ -2223,7 +2228,8 @@ tested_table = "test_table"
 session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
 session.run_sql("SET @saved_sql_mode = @@SQL_MODE;")
 session.run_sql("SET SQL_MODE='no_auto_value_on_zero';")
-session.run_sql("CREATE TABLE !.!  (a INT PRIMARY KEY AUTO_INCREMENT) AS SELECT 0 as a UNION SELECT 1;", [ tested_schema, tested_table ])
+session.run_sql("CREATE TABLE !.! (a INT PRIMARY KEY AUTO_INCREMENT);", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! VALUES (0), (1);", [ tested_schema, tested_table ])
 session.run_sql("SET @@SQL_MODE = @saved_sql_mode;")
 
 checksum = compute_checksum(tested_schema, tested_table)
@@ -2253,6 +2259,41 @@ session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
 EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showProgress": False })
 
 #@<> BUG#33232480 cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
+#@<> BUG#32954757 setup
+tested_schema = "test_schema"
+tested_table = "test_table"
+
+session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (data INT PRIMARY KEY);", [ tested_schema, tested_table ])
+for i in range(10):
+    session.run_sql(f"INSERT INTO !.! VALUES (-{i});", [ tested_schema, tested_table ])
+session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+
+#@<> BUG#32954757 - test
+# constantly insert values to the table
+insert_values = f"""v = 1
+while True:
+    session.run_sql("INSERT {tested_schema}.{tested_table} VALUES({{0}})".format(v))
+    v = v + 1
+session.close()
+"""
+
+# run a process which constantly inserts some values
+pid = testutil.call_mysqlsh_async(["--py", uri], insert_values)
+
+# wait a bit for process to start
+time.sleep(1)
+
+# run a dump, expect a warning that gtid_executed has changed
+EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "consistent": False, "threads": 2, "showProgress": False })
+EXPECT_STDOUT_CONTAINS("WARNING: The value of the gtid_executed system variable has changed during the dump, from: ")
+
+# terminate the process immediately, it will not stop on its own
+testutil.wait_mysqlsh_async(pid, 0)
+
+#@<> BUG#32954757 cleanup
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
 #@<> Cleanup

@@ -523,18 +523,7 @@ void Instance_cache_builder::fetch_server_metadata() {
 
   m_cache.hostname = mysqlshdk::utils::Net::get_hostname();
 
-  try {
-    const auto result = query("SELECT @@GLOBAL.GTID_EXECUTED;");
-
-    if (const auto row = result->fetch_one()) {
-      m_cache.gtid_executed = row->get_string(0);
-    }
-  } catch (const mysqlshdk::db::Error &e) {
-    log_error("Failed to fetch value of @@GLOBAL.GTID_EXECUTED: %s.",
-              e.format().c_str());
-    current_console()->print_warning(
-        "Failed to fetch value of @@GLOBAL.GTID_EXECUTED.");
-  }
+  m_cache.gtid_executed = Schema_dumper{m_session}.gtid_executed();
 }
 
 void Instance_cache_builder::fetch_ndbinfo() {

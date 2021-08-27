@@ -3184,5 +3184,24 @@ std::vector<shcore::Account> Schema_dumper::fetch_users(
           std::make_move_iterator(users.end())};
 }
 
+std::string Schema_dumper::gtid_executed(bool quiet) {
+  try {
+    const auto result = m_mysql->query("SELECT @@GLOBAL.GTID_EXECUTED;");
+
+    if (const auto row = result->fetch_one()) {
+      return row->get_string(0);
+    }
+  } catch (const mysqlshdk::db::Error &e) {
+    log_error("Failed to fetch value of @@GLOBAL.GTID_EXECUTED: %s.",
+              e.format().c_str());
+    if (!quiet) {
+      current_console()->print_warning(
+          "Failed to fetch value of @@GLOBAL.GTID_EXECUTED.");
+    }
+  }
+
+  return {};
+}
+
 }  // namespace dump
 }  // namespace mysqlsh

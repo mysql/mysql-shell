@@ -125,6 +125,8 @@ class Schema_dumper {
 
   void use_cache(const Instance_cache *cache) { m_cache = cache; }
 
+  std::string gtid_executed(bool quiet = false);
+
  public:
   // Config options
   bool opt_force = false;
