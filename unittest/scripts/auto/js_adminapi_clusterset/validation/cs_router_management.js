@@ -256,3 +256,56 @@ Routing option 'target_cluster' successfully updated in router 'routerhost2::sys
         "version": "8.0.27"
     }
 }
+
+//@<OUT> clusterset.listRouters() warning re-bootstrap
+{
+    "domainName": "clusterset",
+    "routers": {
+        "routerhost1::system": {
+            "hostname": "routerhost1",
+            "lastCheckIn": "2021-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "targetCluster": "cluster",
+            "version": "8.0.27"
+        },
+        "routerhost2::": {
+            "hostname": "routerhost2",
+            "lastCheckIn": "2021-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "rwPort": null,
+            "rwXPort": null,
+            "targetCluster": "replicacluster",
+            "version": "8.0.27"
+        },
+        "routerhost2::another": {
+            "hostname": "routerhost2",
+            "lastCheckIn": "2021-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "routerErrors": [
+                "WARNING: Router needs to be re-bootstraped."
+            ],
+            "rwPort": null,
+            "rwXPort": null,
+            "targetCluster": "cluster",
+            "version": "8.0.27"
+        },
+        "routerhost2::system": {
+            "hostname": "routerhost2",
+            "lastCheckIn": "2021-01-01 11:22:33",
+            "roPort": null,
+            "roXPort": null,
+            "routerErrors": [
+                "WARNING: Router needs to be re-bootstraped."
+            ],
+            "rwPort": null,
+            "rwXPort": null,
+            "targetCluster": "replicacluster",
+            "version": "8.0.27"
+        }
+    }
+}

@@ -151,8 +151,8 @@ exports.test_router_functions = function(cluster, port) {
 
     var old_num_routers = asession.runSql("select count(*) from mysql_innodb_cluster_metadata.routers").fetchOne()[0];
 
-    var attrs1 = '{"ROEndpoint": "6447", "RWEndpoint": "6446", "ROXEndpoint": "64470", "RWXEndpoint": "64460", "MetadataUser": "mysql_router_12345"}';
-    var attrs2 = '{"ROEndpoint": "6447", "RWEndpoint": "6446", "ROXEndpoint": "6448", "RWXEndpoint": "6449", "MetadataUser": "mysql_router1_12345"}';
+    var attrs1 = '{"ROEndpoint": "6447", "RWEndpoint": "6446", "ROXEndpoint": "64470", "RWXEndpoint": "64460", "MetadataUser": "mysql_router_12345", "bootstrapTargetType": "cluster"}';
+    var attrs2 = '{"ROEndpoint": "6447", "RWEndpoint": "6446", "ROXEndpoint": "6448", "RWXEndpoint": "6449", "MetadataUser": "mysql_router1_12345", "bootstrapTargetType": "cluster"}';
 
     if (metadata_201) {
         asession.runSql(`INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost1', '8.0.18', '2019-01-01 11:22:33', '${attrs1}', ?, NULL, NULL)`, [cluster_id]);

@@ -56,6 +56,9 @@ Router_metadata unserialize_router(const mysqlshdk::db::Row_ref_by_name &row) {
     router.ro_x_port = std::stoi(row.get_string("ro_x_port"));
   if (!row.is_null("rw_x_port"))
     router.rw_x_port = std::stoi(row.get_string("rw_x_port"));
+  if (row.has_field("bootstrap_target_type") &&
+      !row.is_null("bootstrap_target_type"))
+    router.bootstrap_target_type = row.get_string("bootstrap_target_type");
   if (!row.is_null("last_check_in"))
     router.last_checkin = row.get_string("last_check_in");
   if (!row.is_null("version")) router.version = row.get_string("version");
@@ -2084,7 +2087,9 @@ std::vector<Router_metadata> MetadataStorage::get_clusterset_routers(
       "r.attributes->>'$.ROEndpoint' AS ro_port,  "
       "r.attributes->>'$.RWEndpoint' AS rw_port, "
       "r.attributes->>'$.ROXEndpoint' AS ro_x_port, "
-      "r.attributes->>'$.RWXEndpoint' AS rw_x_port, r.last_check_in, "
+      "r.attributes->>'$.RWXEndpoint' AS rw_x_port, "
+      "r.attributes->>'$.bootstrapTargetType' AS bootstrap_target_type, "
+      "r.last_check_in, "
       "r.version, r.options->>'$.target_cluster' as targetCluster FROM "
       "mysql_innodb_cluster_metadata.v2_routers r WHERE r.clusterset_id = ?";
 

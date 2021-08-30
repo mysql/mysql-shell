@@ -24,6 +24,7 @@
 #include "modules/adminapi/common/router.h"
 
 #include <unordered_set>
+#include <vector>
 
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/common.h"
@@ -126,8 +127,10 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
                                       const std::string &router) {
   auto router_list = shcore::make_dict();
   auto routers_md = md->get_clusterset_routers(clusterset_id);
+  std::vector<std::string> routers_needing_rebootstrap;
 
   for (const auto &router_md : routers_md) {
+    shcore::Array_t router_errors = shcore::make_array();
     std::string label = router_md.hostname + "::" + router_md.name;
     if (!router.empty() && router != label) continue;
     auto r = get_router_dict(router_md, false);
@@ -147,11 +150,35 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
     }
 
     router_list->set(label, shcore::Value(r));
+
+    // Check if the Router needs a re-bootstrap
+    if (router_md.bootstrap_target_type.get_safe() != "clusterset") {
+      std::string router_identifier =
+          router_md.hostname + "::" + router_md.name;
+      routers_needing_rebootstrap.push_back(router_identifier);
+
+      router_errors->push_back(
+          shcore::Value("WARNING: Router needs to be re-bootstraped."));
+    }
+
+    if (router_errors && !router_errors->empty()) {
+      (*r)["routerErrors"] = shcore::Value(router_errors);
+    }
   }
 
   if (!router.empty() && router_list->empty())
     throw shcore::Exception::argument_error(
         "Router '" + router + "' is not registered in the ClusterSet");
+
+  // Print a warning if there are Routers needing a re-bootstrap
+  if (!routers_needing_rebootstrap.empty()) {
+    mysqlsh::current_console()->print_warning(
+        "The following Routers were bootstrapped before the ClusterSet was "
+        "created: [" +
+        shcore::str_join(routers_needing_rebootstrap, ", ") +
+        "]. Please re-bootstrap the Routers to ensure the optimal "
+        "configurations are set.");
+  }
 
   return shcore::Value(router_list);
 }

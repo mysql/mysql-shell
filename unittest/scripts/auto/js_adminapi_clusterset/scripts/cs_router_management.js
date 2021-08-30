@@ -52,13 +52,13 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri2], cluster, replicacluster);
 
 //@<> create routers
 var clusterset_id = session.runSql("SELECT clusterset_id FROM mysql_innodb_cluster_metadata.clustersets").fetchOne()[0];
-session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (1, 'system', 'mysqlrouter', 'routerhost1', '8.0.27', '2021-01-01 11:22:33', NULL, NULL, NULL, ?)", [clusterset_id]);
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (1, 'system', 'mysqlrouter', 'routerhost1', '8.0.27', '2021-01-01 11:22:33', '{\"bootstrapTargetType\": \"clusterset\"}', NULL, NULL, ?)", [clusterset_id]);
 var cm_router = "routerhost1::system";
-session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (2, 'system', 'mysqlrouter', 'routerhost2', '8.0.27', '2021-01-01 11:22:33', NULL, NULL, NULL, ?)", [clusterset_id]);
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (2, 'system', 'mysqlrouter', 'routerhost2', '8.0.27', '2021-01-01 11:22:33', '{\"bootstrapTargetType\": \"clusterset\"}', NULL, NULL, ?)", [clusterset_id]);
 var cr_router = "routerhost2::system";
-session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (3, 'another', 'mysqlrouter', 'routerhost2', '8.0.27', '2021-01-01 11:22:33', NULL, NULL, NULL, ?)", [clusterset_id]);
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (3, 'another', 'mysqlrouter', 'routerhost2', '8.0.27', '2021-01-01 11:22:33', '{\"bootstrapTargetType\": \"clusterset\"}', NULL, NULL, ?)", [clusterset_id]);
 var cr_router2 = "routerhost2::another";
-session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (4, '', 'mysqlrouter', 'routerhost2', '8.0.27', '2021-01-01 11:22:33', NULL, NULL, NULL, ?)", [clusterset_id]);
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (4, '', 'mysqlrouter', 'routerhost2', '8.0.27', '2021-01-01 11:22:33', '{\"bootstrapTargetType\": \"clusterset\"}', NULL, NULL, ?)", [clusterset_id]);
 var cr_router3 = "routerhost2::";
 
 //@<> clusterset.routingOptions on invalid router
@@ -195,6 +195,19 @@ cluster = dba.getCluster()
 clusterset = dba.getClusterSet()
 
 EXPECT_NO_THROWS(function() { clusterset.setRoutingOption(cr_router3, "target_cluster", "replicacluster"); });
+
+//BUG#33250212 Warn about Routers requiring a re-bootstrap in ClusterSets
+
+//<> listRouters() must print a warning for routers needing a re-bootstrap
+shell.connect(__sandbox_uri3);
+session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET attributes = JSON_SET(attributes, '$.bootstrapTargetType', 'cluster') WHERE router_id=2");
+session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET attributes = JSON_SET(attributes, '$.bootstrapTargetType', 'cluster') WHERE router_id=3");
+
+// 'routerhost2::' and 'routerhost2::another' must be displayed in the warning msg
+
+//@<> clusterset.listRouters() warning re-bootstrap
+cs.listRouters();
+EXPECT_OUTPUT_CONTAINS("WARNING: The following Routers were bootstrapped before the ClusterSet was created: [routerhost2::system, routerhost2::another]. Please re-bootstrap the Routers to ensure the optimal configurations are set.");
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

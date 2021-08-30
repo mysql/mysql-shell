@@ -116,6 +116,7 @@ struct Router_metadata {
   mysqlshdk::utils::nullable<uint64_t> ro_port;
   mysqlshdk::utils::nullable<uint64_t> rw_x_port;
   mysqlshdk::utils::nullable<uint64_t> ro_x_port;
+  mysqlshdk::utils::nullable<std::string> bootstrap_target_type;
   mysqlshdk::utils::nullable<std::string> last_checkin;
   mysqlshdk::utils::nullable<std::string> version;
   mysqlshdk::utils::nullable<std::string> target_cluster;
