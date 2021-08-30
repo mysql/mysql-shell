@@ -102,8 +102,11 @@ void Oci_options::load_defaults() {
       std::lock_guard<std::mutex> lock(s_tenancy_name_mutex);
       if (s_tenancy_names.find(object_storage.get_tenancy_id()) ==
           s_tenancy_names.end()) {
-        mysqlshdk::rest::String_buffer raw_data;
-        object_storage.get("/n/", {}, &raw_data);
+        rest::String_response response;
+        const auto &raw_data = response.buffer;
+        auto request = Oci_request("/n/");
+
+        object_storage.get(&request, &response);
 
         try {
           s_tenancy_names[object_storage.get_tenancy_id()] =

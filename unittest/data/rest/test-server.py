@@ -53,7 +53,7 @@ class TestRequestHandler(BaseHTTPRequestHandler):
         self._handlers = {
             r'^/timeout/([0-9]*\.?[0-9]*)$': self.handle_timeout,
             r'^/redirect/([1-9][0-9]*)$': self.handle_redirect,
-            r'^/server_error/([1-9][0-9]*)$': self.handle_server_error,
+            r'^/server_error/([1-9][0-9]*)/?(.*)$': self.handle_server_error,
             r'^/basic/([^/]+)/(.+)$': self.handle_basic,
             r'^/headers?.+$': self.handle_headers
         }
@@ -108,7 +108,10 @@ class TestRequestHandler(BaseHTTPRequestHandler):
         return True
 
     def handle_server_error(self, args):
-        self.reply(status=int(args[0]))
+        response = {}
+        if len(args) >= 2:
+            response['message'] = args[1]
+        self.reply(status=int(args[0]), extra_response=response)
         return True
 
     def handle_headers(self, args):

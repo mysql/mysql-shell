@@ -28,19 +28,16 @@
 #include <memory>
 #include <string>
 
-#include "mysqlshdk/include/scripting/types.h"
-
 #include "mysqlshdk/libs/utils/masked_value.h"
 
 #include "mysqlshdk/libs/rest/authentication.h"
 #include "mysqlshdk/libs/rest/error.h"
 #include "mysqlshdk/libs/rest/headers.h"
+#include "mysqlshdk/libs/rest/request.h"
 #include "mysqlshdk/libs/rest/response.h"
 
 namespace mysqlshdk {
 namespace rest {
-
-enum class Type { GET, HEAD, POST, PUT, PATCH, DELETE };
 
 std::string type_name(Type t);
 
@@ -115,280 +112,83 @@ class Rest_service {
   /**
    * Executes a GET request, blocks until response is available.
    *
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
+   * @param request Request to be sent.
    *
    * @returns Received response.
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response get(const Masked_string &path, const Headers &headers = {},
-               Retry_strategy *retry_strategy = nullptr);
+  String_response get(Request *request);
 
   /**
    * Executes a HEAD request, blocks until response is available.
    *
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
+   * @param request Request to be sent.
    *
    * @returns Received response.
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response head(const Masked_string &path, const Headers &headers = {},
-                Retry_strategy *retry_strategy = nullptr);
+  String_response head(Request *request);
 
   /**
    * Executes a POST request, blocks until response is available.
    *
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param body Optional body which is going to be sent along with the request.
-   *        Content-Type is going to be set to 'application/json', unless it is
-   *        explicitly set in headers.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
+   * @param request Request to be sent.
    *
    * @returns Received response.
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response post(const Masked_string &path, const shcore::Value &body = {},
-                const Headers &headers = {},
-                Retry_strategy *retry_strategy = nullptr);
+  String_response post(Request *request);
 
   /**
    * Executes a PUT request, blocks until response is available.
    *
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param body Optional body which is going to be sent along with the
-   * request. Content-Type is going to be set to 'application/json', unless it
-   * is explicitly set in headers.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
+   * @param request Request to be sent.
    *
    * @returns Received response.
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response put(const Masked_string &path, const shcore::Value &body = {},
-               const Headers &headers = {},
-               Retry_strategy *retry_strategy = nullptr);
+  String_response put(Request *request);
 
   /**
    * Executes a PATCH request, blocks until response is available.
    *
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param body Optional body which is going to be sent along with the
-   * request. Content-Type is going to be set to 'application/json', unless it
-   * is explicitly set in headers.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
+   * @param request Request to be sent.
    *
    * @returns Received response.
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response patch(const Masked_string &path, const shcore::Value &body = {},
-                 const Headers &headers = {},
-                 Retry_strategy *retry_strategy = nullptr);
+  String_response patch(Request *request);
 
   /**
    * Executes a DELETE request, blocks until response is available.
    *
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param body Optional body which is going to be sent along with the
-   * request. Content-Type is going to be set to 'application/json', unless it
-   * is explicitly set in headers.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
+   * @param request Request to be sent.
    *
    * @returns Received response.
    *
    * @throws Connection_error In case of any connection-related problems.
    */
-  Response delete_(const Masked_string &path, const shcore::Value &body = {},
-                   const Headers &headers = {},
-                   Retry_strategy *retry_strategy = nullptr);
+  String_response delete_(Request *request);
 
   /**
    * Executes a request, blocks until response is available.
    *
-   * @param type Method to be used on the request execution.
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param body Optional body which is going to be sent along with the
-   * request. Content-Type is going to be set to 'application/json', unless it
-   * is explicitly set in headers.
-   * @param size The length in bytes of the body to be sent.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
-   * @param response_data pointer to a string buffer where the content of the
-   * response body will be written.
-   * @param response_headers pointer to a Headers struct where the response
-   * headers will be placed.
+   * @param request Request to be sent.
+   * @param response Response received.
    *
    * @returns The code of the request response.
    *
    * @throw Connection_error In case of any connection-related problems.
    */
-  Response::Status_code execute(Type type, const Masked_string &path,
-                                const char *body = nullptr, size_t size = 0,
-                                const Headers &request_headers = {},
-                                Base_response_buffer *buffer = nullptr,
-                                Headers *response_headers = nullptr,
-                                Retry_strategy *retry_strategy = nullptr);
-
-  /**
-   * Asynchronously executes a GET request. This object must not be modified
-   * nor any other request can be executed again until response is received.
-   *
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
-   *
-   * @returns Received response.
-   *
-   * @throws Connection_error In case of any connection-related problems. This
-   *         method does not throw on its own, exception could be thrown from
-   *         future object.
-   */
-  std::future<Response> async_get(const Masked_string &path,
-                                  const Headers &headers = {});
-
-  /**
-   * Asynchronously executes a HEAD request. This object must not be modified
-   * nor any other request can be executed again until response is received.
-   *
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
-   *
-   * @returns Received response.
-   *
-   * @throws Connection_error In case of any connection-related problems. This
-   *         method does not throw on its own, exception could be thrown from
-   *         future object.
-   */
-  std::future<Response> async_head(const Masked_string &path,
-                                   const Headers &headers = {});
-
-  /**
-   * Asynchronously executes a POST request. This object must not be modified
-   * nor any other request can be executed again until response is received.
-   *
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param body Optional body which is going to be sent along with the
-   * request. Content-Type is going to be set to 'application/json', unless it
-   * is explicitly set in headers.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
-   *
-   * @returns Received response.
-   *
-   * @throws Connection_error In case of any connection-related problems. This
-   *         method does not throw on its own, exception could be thrown from
-   *         future object.
-   */
-  std::future<Response> async_post(const Masked_string &path,
-                                   const shcore::Value &body = {},
-                                   const Headers &headers = {});
-
-  /**
-   * Asynchronously executes a PUT request. This object must not be modified
-   * nor any other request can be executed again until response is received.
-   *
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param body Optional body which is going to be sent along with the
-   * request. Content-Type is going to be set to 'application/json', unless it
-   * is explicitly set in headers.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
-   *
-   * @returns Received response.
-   *
-   * @throws Connection_error In case of any connection-related problems. This
-   *         method does not throw on its own, exception could be thrown from
-   *         future object.
-   */
-  std::future<Response> async_put(const Masked_string &path,
-                                  const shcore::Value &body = {},
-                                  const Headers &headers = {});
-
-  /**
-   * Asynchronously executes a PATCH request. This object must not be modified
-   * nor any other request can be executed again until response is received.
-   *
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param body Optional body which is going to be sent along with the
-   * request. Content-Type is going to be set to 'application/json', unless it
-   * is explicitly set in headers.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
-   *
-   * @returns Received response.
-   *
-   * @throws Connection_error In case of any connection-related problems. This
-   *         method does not throw on its own, exception could be thrown from
-   *         future object.
-   */
-  std::future<Response> async_patch(const Masked_string &path,
-                                    const shcore::Value &body = {},
-                                    const Headers &headers = {});
-
-  /**
-   * Asynchronously executes a DELETE request. This object must not be
-   * modified nor any other request can be executed again until response is
-   * received.
-   *
-   * @param path Path to the request, it is going to be appended to the base
-   *        URL.
-   * @param body Optional body which is going to be sent along with the
-   * request. Content-Type is going to be set to 'application/json', unless it
-   * is explicitly set in headers.
-   * @param headers Optional request-specific headers. If default headers were
-   *        also specified, request-specific headers are going to be appended
-   *        that set, overwriting any duplicated values.
-   *
-   * @returns Received response.
-   *
-   * @throws Connection_error In case of any connection-related problems. This
-   *         method does not throw on its own, exception could be thrown from
-   *         future object.
-   */
-  std::future<Response> async_delete(const Masked_string &path,
-                                     const shcore::Value &body = {},
-                                     const Headers &headers = {});
+  Response::Status_code execute(Request *request, Response *response = nullptr);
 
  private:
-  Response execute_internal(Type type, const Masked_string &path,
-                            const shcore::Value &body = shcore::Value(),
-                            const Headers &request_headers = {},
-                            Retry_strategy *retry_strategy = nullptr);
+  String_response execute_internal(Request *request);
 
   class Impl;
   std::unique_ptr<Impl> m_impl;

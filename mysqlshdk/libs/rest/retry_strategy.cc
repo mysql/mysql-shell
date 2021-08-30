@@ -32,25 +32,32 @@
 namespace mysqlshdk {
 namespace rest {
 
-Exponential_backoff_retry default_retry_strategy() {
-  mysqlshdk::rest::Exponential_backoff_retry retry_strategy(1, 2, 60);
+std::unique_ptr<Retry_strategy> default_retry_strategy() {
+  auto retry_strategy = std::make_unique<Exponential_backoff_retry>(1, 2, 60);
 
   // Retry up to 10 times
-  retry_strategy.set_max_attempts(10);
+  retry_strategy->set_max_attempts(10);
 
   // Keep retrying for 10 minutes
-  retry_strategy.set_max_ellapsed_time(600);
+  retry_strategy->set_max_ellapsed_time(600);
 
   // Throttling handling: a response with TOO_MANY_REQUESTS makes the retry
   // strategy to continue
-  retry_strategy.add_retriable_status(Response::Status_code::TOO_MANY_REQUESTS);
+  retry_strategy->add_retriable_status(
+      Response::Status_code::TOO_MANY_REQUESTS);
+
+  // retry if the authorization header got too old
+  retry_strategy->add_retriable_status(
+      Response::Status_code::UNAUTHORIZED,
+      "The Authorization header has a date that is either too early or too "
+      "late, check that your local clock is correct");
 
   // Throttling handling: equal jitter guarantees some wait time before next
   // attempt
-  retry_strategy.set_equal_jitter_for_throttling(true);
+  retry_strategy->set_equal_jitter_for_throttling(true);
 
   // Retry continues in responses with codes about server errors >=500
-  retry_strategy.set_retry_on_server_errors(true);
+  retry_strategy->set_retry_on_server_errors(true);
 
   return retry_strategy;
 }
@@ -69,7 +76,8 @@ void Retry_strategy::init() {
 
 bool Retry_strategy::should_retry(
     const mysqlshdk::utils::nullable<Response::Status_code>
-        &response_status_code) {
+        &response_status_code,
+    const std::string &error_msg) {
   // If max attempts criteria is set, validates we are still on the allowed
   // number of attempts
   if (!m_max_attempts.is_null() && m_retry_count >= *m_max_attempts) {
@@ -91,19 +99,31 @@ bool Retry_strategy::should_retry(
       return false;
   }
 
-  // Validation for status codes return FALSE if:
-  // - The status code is NOT registered to allow retries AND
-  // - Retry on server errors is disabled OR
-  // - Retry on server errors is enabled but it is not a server error
   if (!response_status_code.is_null()) {
-    // If the status code NOT specifically configured to allow retries...
-    if (m_retriable_status.find(*response_status_code) ==
-            m_retriable_status.end() &&
-        (!m_retry_on_server_errors ||
-         *response_status_code <
-             Response::Status_code::INTERNAL_SERVER_ERROR)) {
-      return false;
+    // Retry on server errors if configured so
+    if (m_retry_on_server_errors &&
+        *response_status_code >= Response::Status_code::INTERNAL_SERVER_ERROR) {
+      return true;
     }
+
+    const auto msgs = m_retriable_status.find(*response_status_code);
+
+    if (m_retriable_status.end() != msgs) {
+      for (const auto &msg : msgs->second) {
+        // Retry on the configured response status (in such case error message
+        // is empty)
+        if (msg.empty()) {
+          return true;
+        }
+
+        // Retry on the configured response errors
+        if (!error_msg.empty() && std::string::npos != error_msg.find(msg)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   // Any other situation would cause a retry logic to continue

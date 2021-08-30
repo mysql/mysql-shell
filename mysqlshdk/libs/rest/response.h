@@ -27,12 +27,16 @@
 #include "mysqlshdk/include/scripting/types.h"
 
 #include <algorithm>
+#include <optional>
 #include <string>
 
 #include "mysqlshdk/libs/rest/headers.h"
 
 namespace mysqlshdk {
 namespace rest {
+
+class Response_error;
+class Base_response_buffer;
 
 /**
  * A REST response.
@@ -88,11 +92,7 @@ struct Response {
     HTTP_VERSION_NOT_SUPPORTED = 505,
   };
 
-  static void check_and_throw(Response::Status_code code,
-                              const Headers &headers, const char *buffer,
-                              size_t size);
-
-  void check_and_throw();
+  virtual ~Response() = default;
 
   static std::string status_code(Status_code c);
 
@@ -106,8 +106,23 @@ struct Response {
    * 'application/json'.
    *
    * @return Decoded JSON object.
+   *
+   * @throws runtime_error If Content-Type is not 'application/json' or there's
+   *         no body.
    */
   shcore::Value json() const;
+
+  /**
+   * If response is an error, returns the corresponding Response_error object.
+   *
+   * @returns Response_error if request failed with an error
+   */
+  std::optional<Response_error> get_error() const;
+
+  /**
+   * Throws an error returned by get_error(), if there's one.
+   */
+  void throw_if_error() const;
 
   /**
    * HTTP status code of the response.
@@ -120,9 +135,9 @@ struct Response {
   Headers headers;
 
   /**
-   * Body of the response. Raw string.
+   * Body of the response.
    */
-  std::string body;
+  Base_response_buffer *body = nullptr;
 };
 
 class Response_error : public std::runtime_error {
@@ -159,10 +174,10 @@ class Base_response_buffer {
   //!  Returns the amount of data received so far
   virtual size_t size() const = 0;
 
-  //! Retuns a reference to the data received
+  //! Returns a reference to the data received
   virtual const char *data() const = 0;
 
-  //! Clears the buffer..
+  //! Clears the buffer.
   virtual void clear() = 0;
 };
 
@@ -197,6 +212,8 @@ class String_buffer : public Base_response_buffer {
 
   void clear() override { m_buffer.clear(); }
 
+  const std::string &raw() const { return m_buffer; }
+
  private:
   std::string m_buffer;
 };
@@ -205,7 +222,7 @@ class String_buffer : public Base_response_buffer {
  * Response buffer that uses external char* to write the data directly there.
  *
  * Instances of this class require both valid buffer and buffer size to be
- * provided. Unlimited buffer is not allowed (0).
+ * provided. Unlimited buffer (0) is not allowed.
  */
 class Static_char_ref_buffer : public Base_response_buffer {
  public:
@@ -237,34 +254,30 @@ class Static_char_ref_buffer : public Base_response_buffer {
   size_t m_content_size;
 };
 
-/**
- * Response buffer that uses external string to hold the data.
- *
- * @param buffer pointer to a string to hold the data.
- */
-class String_ref_buffer : public Base_response_buffer {
+struct String_response : public Response {
  public:
-  explicit String_ref_buffer(std::string *buffer) : m_buffer(buffer) {}
+  String_response() { body = &buffer; }
 
-  String_ref_buffer(const String_ref_buffer &other) = delete;
-  String_ref_buffer(String_ref_buffer &&other) = delete;
+  String_response(const String_response &other) { *this = other; }
 
-  String_ref_buffer &operator=(const String_ref_buffer &other) = delete;
-  String_ref_buffer &operator=(String_ref_buffer &&other) = delete;
+  String_response(String_response &&other) { *this = std::move(other); }
 
-  size_t append_data(const char *data, size_t data_size) override {
-    m_buffer->append(data, data_size);
-    return data_size;
+  String_response &operator=(const String_response &other) {
+    buffer = other.buffer;
+    body = &buffer;
+    return *this;
   }
 
-  const char *data() const override { return m_buffer->data(); }
+  String_response &operator=(String_response &&other) {
+    buffer = std::move(other.buffer);
+    body = &buffer;
 
-  size_t size() const override { return m_buffer->size(); }
+    other.body = nullptr;
 
-  void clear() override { m_buffer->clear(); }
+    return *this;
+  }
 
- private:
-  std::string *m_buffer;
+  String_buffer buffer;
 };
 
 }  // namespace rest

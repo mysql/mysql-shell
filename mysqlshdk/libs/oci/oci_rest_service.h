@@ -45,44 +45,46 @@ enum class Oci_service { IDENTITY, OBJECT_STORAGE };
 
 std::string service_identifier(Oci_service service);
 
+class Oci_rest_service;
+
+struct Oci_request : public rest::Request {
+ public:
+  explicit Oci_request(Masked_string path, rest::Headers headers = {},
+                       bool sign = true)
+      : Request(std::move(path), std::move(headers)), sign_request(sign) {}
+
+  bool sign_request;
+
+  const Headers &headers() const override;
+
+ private:
+  friend class Oci_rest_service;
+
+  Oci_rest_service *m_service = nullptr;
+
+  rest::Headers m_signed_headers;
+};
+
 class Oci_rest_service {
  public:
   Oci_rest_service() = default;
   Oci_rest_service &operator=(Oci_rest_service &&other) = delete;
   Oci_rest_service(Oci_service service, const Oci_options &options);
 
-  Response::Status_code get(const Masked_string &path,
-                            const Headers &headers = {},
-                            Base_response_buffer *buffer = nullptr,
-                            Headers *response_headers = nullptr,
-                            bool sign_request = true);
+  Response::Status_code get(Oci_request *request, Response *response = nullptr);
 
-  Response::Status_code head(const Masked_string &path,
-                             const Headers &headers = {},
-                             Base_response_buffer *buffer = nullptr,
-                             Headers *response_headers = nullptr,
-                             bool sign_request = true);
+  Response::Status_code head(Oci_request *request,
+                             Response *response = nullptr);
 
-  Response ::Status_code post(const Masked_string &path, const char *body,
-                              size_t size, const Headers &headers = {},
-                              Base_response_buffer *buffer = nullptr,
-                              Headers *response_headers = nullptr);
+  Response ::Status_code post(Oci_request *request,
+                              Response *response = nullptr);
 
-  Response::Status_code put(const Masked_string &path, const char *body,
-                            size_t size, const Headers &headers = {},
-                            Base_response_buffer *buffer = nullptr,
-                            Headers *response_headers = nullptr,
-                            bool sign_request = true);
+  Response::Status_code put(Oci_request *request, Response *response = nullptr);
 
-  Response::Status_code delete_(const Masked_string &path, const char *body,
-                                size_t size, const Headers &headers = {});
+  Response::Status_code delete_(Oci_request *request);
 
-  Response::Status_code execute(Type type, const Masked_string &path,
-                                const char *body = nullptr, size_t size = 0,
-                                const Headers &request_headers = {},
-                                Base_response_buffer *buffer = nullptr,
-                                Headers *response_headers = nullptr,
-                                bool sign_request = true);
+  Response::Status_code execute(Oci_request *request,
+                                Response *response = nullptr);
 
   // TODO(rennox): These configuration properties/functions exists here because
   // the configuration was loaded on the constructor of the REST service,
@@ -92,7 +94,7 @@ class Oci_rest_service {
   const std::string &get_tenancy_id() const { return m_tenancy_id; }
 
   /**
-   * This function allows upadting the m_host to point to the right service to
+   * This function allows updating the m_host to point to the right service to
    * be used
    */
   void set_service(Oci_service service);
@@ -100,6 +102,14 @@ class Oci_rest_service {
   const std::string &end_point() const { return m_end_point; }
 
  private:
+  friend struct Oci_request;
+
+  Headers make_headers(Oci_request *request, time_t now);
+
+  bool valid_headers(Oci_request *request, time_t now) const;
+
+  void clear_cache(time_t now);
+
   Oci_service m_service;
   std::string m_region;
   std::string m_tenancy_id;
@@ -115,11 +125,6 @@ class Oci_rest_service {
 
   std::string m_end_point;
   std::string m_service_label;
-
-  Headers make_header(Type method, const std::string &path, const char *body,
-                      size_t size, const Headers headers);
-
-  void clear_cache(time_t now);
 };
 }  // namespace oci
 }  // namespace mysqlshdk

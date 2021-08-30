@@ -160,28 +160,28 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
   /**
    * Creates an object on the bucket.
    *
-   * @param objectName: The name of the object to be created.
+   * @param object_name: The name of the object to be created.
    * @param data: Buffer containing the information to be stored on the object.
    * @param size: The length of the data contained on the buffer.
    * @param override: Flag to indicate the object should be overwritten if
    * already exists.
    */
-  void put_object(const std::string &objectName, const char *data, size_t size,
+  void put_object(const std::string &object_name, const char *data, size_t size,
                   bool override = true);
 
   /**
    * Deletes an object from the bucket.
    *
-   * @param: objectName: the name of the object to be deleted.
+   * @param: object_name: the name of the object to be deleted.
    *
    * @throw Response_error if the given object does not exist.
    */
-  void delete_object(const std::string &objectName);
+  void delete_object(const std::string &object_name);
 
   /**
    * Retrieves basic information from an object in the bucket.
    *
-   * @param objectName: the name of the object for which to retrieve the
+   * @param object_name: the name of the object for which to retrieve the
    * information.
    *
    * NOTE: This function is returning just the size, additional information is
@@ -190,12 +190,12 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
    *
    * @throw Response_error if the object does not exist.
    */
-  size_t head_object(const std::string &objectName);
+  size_t head_object(const std::string &object_name);
 
   /**
    * Retrieves content data from an object.
    *
-   * @param objectName: The object from which the data is to be retrieved.
+   * @param object_name: The object from which the data is to be retrieved.
    * @param buffer: A buffer where the data will be stored.
    * @param from_byte: First byte to be retrieved from the object.
    * @param to_byte: Last byte to be retrieved from the object.
@@ -210,17 +210,17 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
    * from-: Retrieves all the data starting at from.
    * -to: Retrieves the last 'to' bytes. Use nullable<> overload.
    */
-  size_t get_object(const std::string &objectName,
+  size_t get_object(const std::string &object_name,
                     mysqlshdk::rest::Base_response_buffer *buffer,
                     const mysqlshdk::utils::nullable<size_t> &from_byte,
                     const mysqlshdk::utils::nullable<size_t> &to_byte);
-  size_t get_object(const std::string &objectName,
+  size_t get_object(const std::string &object_name,
                     mysqlshdk::rest::Base_response_buffer *buffer,
                     size_t from_byte, size_t to_byte);
-  size_t get_object(const std::string &objectName,
+  size_t get_object(const std::string &object_name,
                     mysqlshdk::rest::Base_response_buffer *buffer,
                     size_t from_byte);
-  size_t get_object(const std::string &objectName,
+  size_t get_object(const std::string &object_name,
                     mysqlshdk::rest::Base_response_buffer *buffer);
 
   void rename_object(const std::string &srcName, const std::string &newName);
@@ -254,12 +254,12 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
   /**
    * Initiates a multipart object upload.
    *
-   * @param objectName: the name of the object to be uploaded.
+   * @param object_name: the name of the object to be uploaded.
    *
    * @returns a Multipart_object with the information of the object being
    * uploaded.
    */
-  Multipart_object create_multipart_upload(const std::string &objectName);
+  Multipart_object create_multipart_upload(const std::string &object_name);
 
   /**
    * Uploads a part for an object being uploaded.
@@ -286,7 +286,7 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
   /**
    * Aborts a multipart object upload.
    *
-   * @param objectName: the name of the multipart object to be discarded.
+   * @param object_name: the name of the multipart object to be discarded.
    */
   void abort_multipart_upload(const Multipart_object &object);
 
@@ -313,6 +313,11 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
   void delete_();
 
  private:
+  void ensure_connection();
+
+  Oci_request create_request(const std::string &object_name,
+                             Headers headers = {}) const;
+
   Oci_options m_options;
   Oci_rest_service *m_rest_service = nullptr;
 
@@ -325,9 +330,8 @@ class Bucket : public std::enable_shared_from_this<Bucket> {
   const std::string kUploadPartFormat;
   const std::string kMultipartActionFormat;
   const std::string kParActionPath;
-
-  void ensure_connection();
 };
+
 }  // namespace oci
 }  // namespace mysqlshdk
 

@@ -139,8 +139,7 @@ std::string format_exception(const std::exception &e) {
   return std::string{"Exception: "} + e.what();
 }
 
-void log_failed_request(Type type, const std::string &path,
-                        const Headers &headers,
+void log_failed_request(const Oci_request &request,
                         const std::string &context = {}) {
   std::string full_context;
 
@@ -149,14 +148,16 @@ void log_failed_request(Type type, const std::string &path,
   }
 
   log_warning("Request failed: %s %s%s",
-              shcore::str_upper(type_name(type)).c_str(), path.c_str(),
-              full_context.c_str());
-  log_info("REQUEST HEADERS:\n%s", format_headers(headers).c_str());
+              shcore::str_upper(type_name(request.type)).c_str(),
+              request.path().masked().c_str(), full_context.c_str());
+  log_info("REQUEST HEADERS:\n%s", format_headers(request.headers()).c_str());
 }
 
-void log_failed_response(const Headers &headers, Base_response_buffer *buffer) {
-  log_info("RESPONSE HEADERS:\n%s", format_headers(headers).c_str());
-  log_info("RESPONSE BODY:\n%s", buffer->size() ? buffer->data() : "<EMPTY>");
+void log_failed_response(const Response &response) {
+  log_info("RESPONSE HEADERS:\n%s", format_headers(response.headers).c_str());
+  log_info("RESPONSE BODY:\n%s", response.body && response.body->size()
+                                     ? response.body->data()
+                                     : "<EMPTY>");
 }
 
 mysqlshdk::rest::Rest_service *get_rest_service(const std::string &uri,
@@ -179,6 +180,25 @@ mysqlshdk::rest::Rest_service *get_rest_service(const std::string &uri,
 }
 
 }  // namespace
+
+const Headers &Oci_request::headers() const {
+  if (sign_request) {
+    auto self = const_cast<Oci_request *>(this);
+    const auto now = time(nullptr);
+
+    if (!m_signed_headers.empty() && !m_service->valid_headers(self, now)) {
+      self->m_signed_headers.clear();
+    }
+
+    if (m_signed_headers.empty()) {
+      self->m_signed_headers = m_service->make_headers(self, now);
+    }
+
+    return m_signed_headers;
+  } else {
+    return m_headers;
+  }
+}
 
 Oci_rest_service::Oci_rest_service(Oci_service service,
                                    const Oci_options &options) {
@@ -242,47 +262,37 @@ void Oci_rest_service::set_service(Oci_service service) {
   m_end_point = "https://" + m_host;
 }
 
-Response::Status_code Oci_rest_service::get(const Masked_string &path,
-                                            const Headers &headers,
-                                            Base_response_buffer *buffer,
-                                            Headers *response_headers,
-                                            bool sign_request) {
-  return execute(Type::GET, path, nullptr, 0L, headers, buffer,
-                 response_headers, sign_request);
+Response::Status_code Oci_rest_service::get(Oci_request *request,
+                                            Response *response) {
+  request->type = Type::GET;
+  request->body = nullptr;
+  request->size = 0;
+  return execute(request, response);
 }
 
-Response::Status_code Oci_rest_service::head(const Masked_string &path,
-                                             const Headers &headers,
-                                             Base_response_buffer *buffer,
-                                             Headers *response_headers,
-                                             bool sign_request) {
-  return execute(Type::HEAD, path, nullptr, 0, headers, buffer,
-                 response_headers, sign_request);
+Response::Status_code Oci_rest_service::head(Oci_request *request,
+                                             Response *response) {
+  request->type = Type::HEAD;
+  request->body = nullptr;
+  request->size = 0;
+  return execute(request, response);
 }
 
-Response::Status_code Oci_rest_service::post(const Masked_string &path,
-                                             const char *body, size_t size,
-                                             const Headers &headers,
-                                             Base_response_buffer *buffer,
-                                             Headers *response_headers) {
-  return execute(Type::POST, path, body, size, headers, buffer,
-                 response_headers);
+Response::Status_code Oci_rest_service::post(Oci_request *request,
+                                             Response *response) {
+  request->type = Type::POST;
+  return execute(request, response);
 }
 
-Response::Status_code Oci_rest_service::put(const Masked_string &path,
-                                            const char *body, size_t size,
-                                            const Headers &headers,
-                                            Base_response_buffer *buffer,
-                                            Headers *response_headers,
-                                            bool sign_request) {
-  return execute(Type::PUT, path, body, size, headers, buffer, response_headers,
-                 sign_request);
+Response::Status_code Oci_rest_service::put(Oci_request *request,
+                                            Response *response) {
+  request->type = Type::PUT;
+  return execute(request, response);
 }
 
-Response::Status_code Oci_rest_service::delete_(const Masked_string &path,
-                                                const char *body, size_t size,
-                                                const Headers &headers) {
-  return execute(Type::DELETE, path, body, size, headers);
+Response::Status_code Oci_rest_service::delete_(Oci_request *request) {
+  request->type = Type::DELETE;
+  return execute(request);
 }
 
 void Oci_rest_service::clear_cache(time_t now) {
@@ -320,13 +330,22 @@ void Oci_rest_service::clear_cache(time_t now) {
   }
 }
 
-Headers Oci_rest_service::make_header(Type method, const std::string &path,
-                                      const char *body, size_t size,
-                                      const Headers headers) {
-  time_t now = time(nullptr);
+bool Oci_rest_service::valid_headers(Oci_request *request, time_t now) const {
+  const auto &path = request->path().real();
+  const auto method = request->type;
 
+  // we assume that headers were cached, and that body did not change (no need
+  // to rehash the body)
+  return now - m_signed_header_cache_time.at(path).at(method) <=
+         k_header_cache_ttl;
+}
+
+Headers Oci_rest_service::make_headers(Oci_request *request, time_t now) {
   clear_cache(now);
 
+  const auto &path = request->path().real();
+  const auto method = request->type;
+  const auto &headers = request->m_headers;
   auto &cached_time = m_signed_header_cache_time[path][method];
 
   // Maximum Allowed Client Clock Skew from the server's clock for OCI
@@ -352,8 +371,9 @@ Headers Oci_rest_service::make_header(Type method, const std::string &path,
       all_headers["content-type"] = "application/json";
 
     if (method == Type::POST) {
-      all_headers["x-content-sha256"] = encode_sha256(size ? body : "", size);
-      all_headers["content-length"] = std::to_string(size);
+      all_headers["x-content-sha256"] =
+          encode_sha256(request->size ? request->body : "", request->size);
+      all_headers["content-length"] = std::to_string(request->size);
       string_to_sign.append(
           "\nx-content-sha256: " + all_headers["x-content-sha256"] +
           "\ncontent-length: " + all_headers["content-length"] +
@@ -390,57 +410,47 @@ Headers Oci_rest_service::make_header(Type method, const std::string &path,
   return final_headers;
 }
 
-Response::Status_code Oci_rest_service::execute(
-    Type type, const Masked_string &path, const char *body, size_t size,
-    const Headers &request_headers, Base_response_buffer *buffer,
-    Headers *response_headers, bool sign_request) {
-  Headers rheaders;
-
+Response::Status_code Oci_rest_service::execute(Oci_request *request,
+                                                Response *response) {
   const auto rest = get_rest_service(end_point(), m_service_label);
-
-  if (!response_headers) response_headers = &rheaders;
-
-  auto retry_strategy = rest::default_retry_strategy();
 
   // Caller might not be interested on handling the response data directly, i.e.
   // if just expecting the call to either succeed or fail.
   // We need to ensure a response handler is in place in order to properly fail
   // on errors.
-  mysqlshdk::rest::String_buffer response_data;
-  Base_response_buffer *response_buffer_ptr = buffer;
-  if (!response_buffer_ptr) response_buffer_ptr = &response_data;
+  rest::String_response string_response;
+  if (!response) response = &string_response;
+  if (!response->body) response->body = &string_response.buffer;
 
-  const auto &headers_to_send =
-      sign_request ? make_header(type, path.real(), body, size, request_headers)
-                   : request_headers;
+  std::unique_ptr<rest::Retry_strategy> retry_strategy;
+
+  if (!request->retry_strategy) {
+    retry_strategy = rest::default_retry_strategy();
+    request->retry_strategy = retry_strategy.get();
+  }
+
+  request->m_service = this;
 
   try {
-    auto code =
-        rest->execute(type, path, body, size, headers_to_send,
-                      response_buffer_ptr, response_headers, &retry_strategy);
+    const auto code = rest->execute(request, response);
 
-    mysqlshdk::rest::Response::check_and_throw(code, *response_headers,
-                                               response_buffer_ptr->data(),
-                                               response_buffer_ptr->size());
+    response->throw_if_error();
 
     return code;
   } catch (const rest::Connection_error &e) {
     // exception was thrown when connection was being established, there is no
     // response
-    log_failed_request(type, path.masked(), headers_to_send,
-                       format_exception(e));
+    log_failed_request(*request, format_exception(e));
     throw;
   } catch (const Response_error &e) {
     // exception was thrown after we got the response, log it as well
-    log_failed_request(type, path.masked(), headers_to_send,
-                       format_code(e.code()));
-    log_failed_response(*response_headers, response_buffer_ptr);
+    log_failed_request(*request, format_code(e.code()));
+    log_failed_response(*response);
     throw;
   } catch (const std::exception &e) {
     // we don't know when the exception was thrown, log response just in case
-    log_failed_request(type, path.masked(), headers_to_send,
-                       format_exception(e));
-    log_failed_response(*response_headers, response_buffer_ptr);
+    log_failed_request(*request, format_exception(e));
+    log_failed_response(*response);
     throw;
   }
 }

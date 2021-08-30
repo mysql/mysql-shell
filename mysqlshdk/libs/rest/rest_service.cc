@@ -212,17 +212,19 @@ class Rest_service::Impl {
 
   ~Impl() = default;
 
-  void log_request(Type type, const std::string &path, const Headers &headers) {
+  void log_request(const Request &request) {
     if (shcore::current_logger()->get_log_level() >=
         shcore::Logger::LOG_LEVEL::LOG_DEBUG) {
       log_debug("%s-%d: %s %s %s", m_id.c_str(), m_request_sequence,
                 m_base_url.masked().c_str(),
-                shcore::str_upper(type_name(type)).c_str(), path.c_str());
+                shcore::str_upper(type_name(request.type)).c_str(),
+                request.path().masked().c_str());
 
-      if (!headers.empty() && shcore::current_logger()->get_log_level() >=
-                                  shcore::Logger::LOG_LEVEL::LOG_DEBUG2) {
+      if (!request.headers().empty() &&
+          shcore::current_logger()->get_log_level() >=
+              shcore::Logger::LOG_LEVEL::LOG_DEBUG2) {
         std::vector<std::string> header_data;
-        for (const auto &header : headers) {
+        for (const auto &header : request.headers()) {
           header_data.push_back("'" + header.first + "' : '" + header.second +
                                 "'");
         }
@@ -247,47 +249,27 @@ class Rest_service::Impl {
     }
   }
 
-  Response execute(Type type, const Masked_string &path,
-                   const shcore::Value &body, const Headers &headers,
-                   bool synch = true) {
-    // NOTE: This variable is required here so in synch requests the buffer is
-    // valid through the entire request
-    std::string body_str = body.repr();
-    if (body.type == shcore::Value_type::Undefined) {
-      body_str.clear();
-    }
+  Response::Status_code execute(bool synch, Request *request,
+                                Response *response = nullptr) {
+    assert(request);
 
-    // set callbacks which will receive the response
-    Response response;
-    std::string response_headers;
-    String_ref_buffer buffer(&response.body);
-
-    response.status = execute(type, path, body_str.data(), body_str.size(),
-                              headers, synch, &buffer, &response.headers);
-
-    return response;
-  }
-
-  Response::Status_code execute(Type type, const Masked_string &path,
-                                const char *body, size_t size,
-                                const Headers &request_headers, bool synch,
-                                Base_response_buffer *buffer,
-                                Headers *response_headers) {
     m_request_sequence++;
 
-    log_request(type, path.masked(), request_headers);
+    log_request(*request);
 
-    set_url(path.real());
+    set_url(request->path().real());
     // body needs to be set before the type, because it implicitly sets type
     // to POST
-    set_body(body, size, synch);
-    set_type(type);
-    const auto headers_deleter = set_headers(request_headers, size != 0);
+    set_body(request->body, request->size, synch);
+    set_type(request->type);
+    const auto headers_deleter =
+        set_headers(request->headers(), request->size != 0);
 
     // set callbacks which will receive the response
     std::string header_data;
     curl_easy_setopt(m_handle.get(), CURLOPT_HEADERDATA, &header_data);
-    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA, buffer);
+    curl_easy_setopt(m_handle.get(), CURLOPT_WRITEDATA,
+                     response ? response->body : nullptr);
 
     // execute the request
     auto ret_val = curl_easy_perform(m_handle.get());
@@ -301,7 +283,10 @@ class Rest_service::Impl {
 
     log_response(m_request_sequence, status, header_data);
 
-    if (response_headers) *response_headers = parse_headers(header_data);
+    if (response) {
+      response->status = status;
+      response->headers = parse_headers(header_data);
+    }
 
     return status;
   }
@@ -314,19 +299,6 @@ class Rest_service::Impl {
     } else {
       curl_easy_setopt(m_handle.get(), CURLOPT_COPYPOSTFIELDS, body);
     }
-  }
-
-  std::future<Response> execute_async(Type type, const Masked_string &path,
-                                      const shcore::Value &body,
-                                      const Headers &headers) {
-    auto current_logger = shcore::current_logger();
-    return std::async(std::launch::async,
-                      [this, type, path, body, headers, current_logger]() {
-                        // We're here in different thread, but we should use the
-                        // parent logger
-                        mysqlsh::Scoped_logger logger(current_logger);
-                        return execute(type, path, body, headers, false);
-                      });
   }
 
   void set(const Basic_authentication &basic) {
@@ -494,132 +466,91 @@ Rest_service &Rest_service::set_timeout(long timeout, long low_speed_limit,
   return *this;
 }
 
-Response Rest_service::get(const Masked_string &path, const Headers &headers,
-                           Retry_strategy *retry_strategy) {
-  return execute_internal(Type::GET, path, {}, headers, retry_strategy);
+String_response Rest_service::get(Request *request) {
+  request->type = Type::GET;
+  request->body = nullptr;
+  request->size = 0;
+  return execute_internal(request);
 }
 
-Response Rest_service::head(const Masked_string &path, const Headers &headers,
-                            Retry_strategy *retry_strategy) {
-  return execute_internal(Type::HEAD, path, {}, headers, retry_strategy);
+String_response Rest_service::head(Request *request) {
+  request->type = Type::HEAD;
+  request->body = nullptr;
+  request->size = 0;
+  return execute_internal(request);
 }
 
-Response Rest_service::post(const Masked_string &path,
-                            const shcore::Value &body, const Headers &headers,
-                            Retry_strategy *retry_strategy) {
-  return execute_internal(Type::POST, path, body, headers, retry_strategy);
+String_response Rest_service::post(Request *request) {
+  request->type = Type::POST;
+  return execute_internal(request);
 }
 
-Response Rest_service::put(const Masked_string &path, const shcore::Value &body,
-                           const Headers &headers,
-                           Retry_strategy *retry_strategy) {
-  return execute_internal(Type::PUT, path, body, headers, retry_strategy);
+String_response Rest_service::put(Request *request) {
+  request->type = Type::PUT;
+  return execute_internal(request);
 }
 
-Response Rest_service::patch(const Masked_string &path,
-                             const shcore::Value &body, const Headers &headers,
-                             Retry_strategy *retry_strategy) {
-  return execute_internal(Type::PATCH, path, body, headers, retry_strategy);
+String_response Rest_service::patch(Request *request) {
+  request->type = Type::PATCH;
+  return execute_internal(request);
 }
 
-Response Rest_service::delete_(const Masked_string &path,
-                               const shcore::Value &body,
-                               const Headers &headers,
-                               Retry_strategy *retry_strategy) {
-  return execute_internal(Type::DELETE, path, body, headers, retry_strategy);
+String_response Rest_service::delete_(Request *request) {
+  request->type = Type::DELETE;
+  return execute_internal(request);
 }
 
-Response Rest_service::execute_internal(Type type, const Masked_string &path,
-                                        const shcore::Value &body,
-                                        const Headers &request_headers,
-                                        Retry_strategy *retry_strategy) {
-  std::string body_str = body.repr();
-  if (body.type == shcore::Value_type::Undefined) {
-    body_str.clear();
-  }
+String_response Rest_service::execute_internal(Request *request) {
+  String_response response;
 
-  // set callbacks which will receive the response
-  Response response;
-  std::string response_headers;
-  String_ref_buffer buffer(&response.body);
-
-  response.status =
-      execute(type, path, body_str.data(), body_str.size(), request_headers,
-              &buffer, &response.headers, retry_strategy);
+  execute(request, &response);
 
   return response;
 }
 
-Response::Status_code Rest_service::execute(
-    Type type, const Masked_string &path, const char *body, size_t size,
-    const Headers &request_headers, Base_response_buffer *buffer,
-    Headers *response_headers, Retry_strategy *retry_strategy) {
+Response::Status_code Rest_service::execute(Request *request,
+                                            Response *response) {
+  const auto retry_strategy = request->retry_strategy;
+
   if (retry_strategy) {
     retry_strategy->init();
   }
 
+  const auto retry = [&response, &retry_strategy, this](const char *msg) {
+    if (response && response->body) response->body->clear();
+    retry_strategy->wait_for_retry();
+    // this log is to have visibility of the error
+    log_info("RETRYING %s: %s", m_impl->get_last_request_id().c_str(), msg);
+  };
+
   while (true) {
     try {
-      auto code = m_impl->execute(type, path, body, size, request_headers, true,
-                                  buffer, response_headers);
+      const auto code = m_impl->execute(true, request, response);
+      std::optional<Response_error> error;
 
-      if (!retry_strategy || !retry_strategy->should_retry(code)) {
-        return code;
+      if (response) {
+        error = response->get_error();
+      }
+
+      if (retry_strategy && retry_strategy->should_retry(
+                                code, error ? error.value().what() : "")) {
+        // A retriable error occurred
+        retry(shcore::str_format("%d-%s", static_cast<int>(code),
+                                 Response::status_code(code).c_str())
+                  .c_str());
       } else {
-        if (buffer) buffer->clear();
-        retry_strategy->wait_for_retry();
-        // A retriable error occurred, this log is to have visibility of it
-        log_info("RETRYING %s: Error %d-%s",
-                 m_impl->get_last_request_id().c_str(), static_cast<int>(code),
-                 Response::status_code(code).c_str());
+        return code;
       }
     } catch (const std::exception &error) {
       if (retry_strategy && retry_strategy->should_retry()) {
         // A unexpected error occurred but the retry strategy indicates we
-        // should retry, this log is to have visibility of the error
-        if (buffer) buffer->clear();
-        retry_strategy->wait_for_retry();
-        log_info("RETRYING %s: %s", m_impl->get_last_request_id().c_str(),
-                 error.what());
+        // should retry
+        retry(error.what());
       } else {
         throw;
       }
     }
   }
-}
-
-std::future<Response> Rest_service::async_get(const Masked_string &path,
-                                              const Headers &headers) {
-  return m_impl->execute_async(Type::GET, path, {}, headers);
-}
-
-std::future<Response> Rest_service::async_head(const Masked_string &path,
-                                               const Headers &headers) {
-  return m_impl->execute_async(Type::HEAD, path, {}, headers);
-}
-
-std::future<Response> Rest_service::async_post(const Masked_string &path,
-                                               const shcore::Value &body,
-                                               const Headers &headers) {
-  return m_impl->execute_async(Type::POST, path, body, headers);
-}
-
-std::future<Response> Rest_service::async_put(const Masked_string &path,
-                                              const shcore::Value &body,
-                                              const Headers &headers) {
-  return m_impl->execute_async(Type::PUT, path, body, headers);
-}
-
-std::future<Response> Rest_service::Rest_service::async_patch(
-    const Masked_string &path, const shcore::Value &body,
-    const Headers &headers) {
-  return m_impl->execute_async(Type::PATCH, path, body, headers);
-}
-
-std::future<Response> Rest_service::async_delete(const Masked_string &path,
-                                                 const shcore::Value &body,
-                                                 const Headers &headers) {
-  return m_impl->execute_async(Type::DELETE, path, body, headers);
 }
 
 }  // namespace rest

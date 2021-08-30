@@ -227,10 +227,12 @@ std::vector<Object_details> Bucket::list_objects(
                                 ? shcore::str_replace(path, start_place_holder,
                                                       encode_query(next_start))
                                 : path;
+    rest::String_response response;
+    const auto &raw_data = response.buffer;
 
-    mysqlshdk::rest::String_buffer raw_data;
     try {
-      m_rest_service->get(real_path, {}, &raw_data);
+      auto request = Oci_request(real_path);
+      m_rest_service->get(&request, &response);
     } catch (const Response_error &error) {
       throw Response_error(error.code(), msg + ": " + error.what());
     }
@@ -310,7 +312,7 @@ std::vector<Object_details> Bucket::list_objects(
   return list;
 }
 
-void Bucket::put_object(const std::string &objectName, const char *body,
+void Bucket::put_object(const std::string &object_name, const char *body,
                         size_t size, bool override) {
   // Ensures the REST connection is established
   ensure_connection();
@@ -322,66 +324,67 @@ void Bucket::put_object(const std::string &objectName, const char *body,
   }
 
   try {
-    if (is_par(objectName)) {
-      m_rest_service->put(anonymize_par(objectName), body, size, headers,
-                          nullptr, nullptr, false);
-    } else {
-      m_rest_service->put(shcore::str_format(kObjectActionFormat.c_str(),
-                                             encode_path(objectName).c_str()),
-                          body, size, headers);
-    }
+    auto request = create_request(object_name, std::move(headers));
+    request.body = body;
+    request.size = size;
+
+    m_rest_service->put(&request);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(), "Failed to put object '" + objectName +
+    throw Response_error(error.code(), "Failed to put object '" + object_name +
                                            "': " + error.what());
   }
 }
 
-void Bucket::delete_object(const std::string &objectName) {
+void Bucket::delete_object(const std::string &object_name) {
   // Ensures the REST connection is established
   ensure_connection();
 
   try {
-    if (is_par(objectName)) {
-      // truncate the file, a PAR URL does not support DELETE
-      Headers headers{{"content-type", "application/octet-stream"}};
-      char body = 0;
-      m_rest_service->put(anonymize_par(objectName), &body, 0, headers, nullptr,
-                          nullptr, false);
+    Headers headers;
+    const auto par = is_par(object_name);
+
+    if (par) {
+      headers.emplace("content-type", "application/octet-stream");
     } else {
-      m_rest_service->delete_(
-          shcore::str_format(kObjectActionFormat.c_str(),
-                             encode_path(objectName).c_str()),
-          nullptr, 0L, {{"accept", "*/*"}});
+      headers.emplace("accept", "*/*");
+    }
+
+    auto request = create_request(object_name, std::move(headers));
+
+    if (par) {
+      // truncate the file, a PAR URL does not support DELETE
+      char body = 0;
+      request.body = &body;
+      request.size = 0;
+
+      m_rest_service->put(&request);
+    } else {
+      m_rest_service->delete_(&request);
     }
   } catch (const Response_error &error) {
     throw Response_error(error.code(), "Failed to delete object '" +
-                                           objectName + "': " + error.what());
+                                           object_name + "': " + error.what());
   }
 }
 
-size_t Bucket::head_object(const std::string &objectName) {
+size_t Bucket::head_object(const std::string &object_name) {
   // Ensures the REST connection is established
   ensure_connection();
 
-  Headers response_headers;
+  Response response;
+
   try {
-    if (is_par(objectName)) {
-      m_rest_service->head(anonymize_par(objectName), {}, nullptr,
-                           &response_headers, false);
-    } else {
-      m_rest_service->head(shcore::str_format(kObjectActionFormat.c_str(),
-                                              encode_path(objectName).c_str()),
-                           {}, nullptr, &response_headers);
-    }
+    auto request = create_request(object_name);
+    m_rest_service->head(&request, &response);
   } catch (const Response_error &error) {
     throw Response_error(error.code(), "Failed to get summary for object '" +
-                                           objectName + "': " + error.what());
+                                           object_name + "': " + error.what());
   }
 
-  return std::stoul(response_headers.at("content-length"));
+  return std::stoul(response.headers.at("content-length"));
 }
 
-size_t Bucket::get_object(const std::string &objectName,
+size_t Bucket::get_object(const std::string &object_name,
                           mysqlshdk::rest::Base_response_buffer *buffer,
                           const mysqlshdk::utils::nullable<size_t> &from_byte,
                           const mysqlshdk::utils::nullable<size_t> &to_byte) {
@@ -389,97 +392,51 @@ size_t Bucket::get_object(const std::string &objectName,
   ensure_connection();
 
   Headers headers;
+  std::string range;
+
   if (!from_byte.is_null() || !to_byte.is_null()) {
-    headers["range"] = shcore::str_format(
+    range = shcore::str_format(
         "bytes=%s-%s",
         (from_byte.is_null() ? "" : std::to_string(*from_byte).c_str()),
         (to_byte.is_null() ? "" : std::to_string(*to_byte).c_str()));
+    headers["range"] = range;
   }
 
   try {
-    if (is_par(objectName)) {
-      m_rest_service->get(anonymize_par(objectName), headers, buffer, nullptr,
-                          false);
-    } else {
-      m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
-                                             encode_path(objectName).c_str()),
-                          headers, buffer);
-    }
+    auto request = create_request(object_name, std::move(headers));
+    Response response;
+    response.body = buffer;
+    m_rest_service->get(&request, &response);
   } catch (const Response_error &error) {
-    throw Response_error(error.code(), "Failed to get object '" + objectName +
-                                           "' [" + headers["range"] +
-                                           "]: " + error.what());
+    throw Response_error(error.code(),
+                         "Failed to get object '" + object_name + "'" +
+                             (range.empty() ? "" : " [" + range + "]") + ": " +
+                             error.what());
   }
 
   return buffer->size();
 }
 
-size_t Bucket::get_object(const std::string &objectName,
+size_t Bucket::get_object(const std::string &object_name,
                           mysqlshdk::rest::Base_response_buffer *buffer,
                           size_t from_byte, size_t to_byte) {
-  // Ensures the REST connection is established
-  ensure_connection();
-
-  Headers headers{{"range", "bytes=" + std::to_string(from_byte) + "-" +
-                                std::to_string(to_byte) + ""}};
-
-  try {
-    if (is_par(objectName)) {
-      m_rest_service->get(anonymize_par(objectName), headers, buffer, nullptr,
-                          false);
-    } else {
-      m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
-                                             encode_path(objectName).c_str()),
-                          headers, buffer);
-    }
-  } catch (const Response_error &error) {
-    throw Response_error(error.code(), "Failed to get object '" + objectName +
-                                           "' [" + headers["range"] +
-                                           "]: " + error.what());
-  }
-
-  return buffer->size();
+  return get_object(object_name, buffer,
+                    mysqlshdk::utils::nullable<size_t>{from_byte},
+                    mysqlshdk::utils::nullable<size_t>{to_byte});
 }
 
-size_t Bucket::get_object(const std::string &objectName,
+size_t Bucket::get_object(const std::string &object_name,
                           mysqlshdk::rest::Base_response_buffer *buffer,
                           size_t from_byte) {
-  // Ensures the REST connection is established
-  ensure_connection();
-
-  Headers headers{{"range", "bytes=" + std::to_string(from_byte) + "-"}};
-
-  try {
-    m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
-                                           encode_path(objectName).c_str()),
-                        headers, buffer);
-  } catch (const Response_error &error) {
-    throw Response_error(error.code(), "Failed to get object '" + objectName +
-                                           "' [" + headers["range"] +
-                                           "]: " + error.what());
-  }
-  return buffer->size();
+  return get_object(object_name, buffer,
+                    mysqlshdk::utils::nullable<size_t>{from_byte},
+                    mysqlshdk::utils::nullable<size_t>{});
 }
 
-size_t Bucket::get_object(const std::string &objectName,
+size_t Bucket::get_object(const std::string &object_name,
                           mysqlshdk::rest::Base_response_buffer *buffer) {
-  // Ensures the REST connection is established
-  ensure_connection();
-
-  try {
-    if (is_par(objectName)) {
-      m_rest_service->get(anonymize_par(objectName), {}, buffer, nullptr,
-                          false);
-    } else {
-      m_rest_service->get(shcore::str_format(kObjectActionFormat.c_str(),
-                                             encode_path(objectName).c_str()),
-                          {}, buffer);
-    }
-  } catch (const Response_error &error) {
-    throw Response_error(error.code(), "Failed to get object '" + objectName +
-                                           "': " + error.what());
-  }
-  return buffer->size();
+  return get_object(object_name, buffer, mysqlshdk::utils::nullable<size_t>{},
+                    mysqlshdk::utils::nullable<size_t>{});
 }
 
 void Bucket::rename_object(const std::string &sourceName,
@@ -491,7 +448,10 @@ void Bucket::rename_object(const std::string &sourceName,
   std::string rod = encode_json("sourceName", sourceName, "newName", newName);
 
   try {
-    m_rest_service->post(kRenameObjectPath, rod.data(), rod.size());
+    auto request = Oci_request(kRenameObjectPath);
+    request.body = rod.data();
+    request.size = rod.size();
+    m_rest_service->post(&request);
   } catch (const Response_error &error) {
     throw Response_error(error.code(), "Failed to rename object '" +
                                            sourceName + "' to '" + newName +
@@ -508,11 +468,13 @@ std::vector<Multipart_object> Bucket::list_multipart_uploads(size_t limit) {
   auto path = kMultipartActionPath;
   if (limit) path.append("?limit=" + std::to_string(limit));
 
-  mysqlshdk::rest::String_buffer raw_data;
+  rest::String_response response;
+  const auto &raw_data = response.buffer;
 
   std::string msg("Failed to list multipart uploads: ");
   try {
-    m_rest_service->get(path, {}, &raw_data);
+    auto request = Oci_request(path);
+    m_rest_service->get(&request, &response);
   } catch (const Response_error &error) {
     throw Response_error(error.code(), msg + error.what());
   }
@@ -549,12 +511,14 @@ std::vector<Multipart_object_part> Bucket::list_multipart_upload_parts(
   path.append("?uploadId=" + object.upload_id);
   if (limit) path.append("&limit=" + std::to_string(limit));
 
-  mysqlshdk::rest::String_buffer raw_data;
+  rest::String_response response;
+  const auto &raw_data = response.buffer;
 
   std::string msg("Failed to list uploaded parts for object '" + object.name +
                   "': ");
   try {
-    m_rest_service->get(path, {}, &raw_data);
+    auto request = Oci_request(path);
+    m_rest_service->get(&request, &response);
   } catch (const Response_error &error) {
     throw Response_error(error.code(), msg + error.what());
   }
@@ -582,19 +546,22 @@ std::vector<Multipart_object_part> Bucket::list_multipart_upload_parts(
 }
 
 Multipart_object Bucket::create_multipart_upload(
-    const std::string &objectName) {
+    const std::string &object_name) {
   // Ensures the REST connection is established
   ensure_connection();
 
-  std::string body = encode_json("object", objectName);
+  std::string body = encode_json("object", object_name);
   std::string upload_id;
 
-  mysqlshdk::rest::String_buffer data;
+  rest::String_response response;
+  const auto &data = response.buffer;
   std::string msg("Failed to create a multipart upload for object '" +
-                  objectName + "': ");
+                  object_name + "': ");
   try {
-    m_rest_service->post(kMultipartActionPath, body.c_str(), body.size(), {},
-                         &data);
+    auto request = Oci_request(kMultipartActionPath);
+    request.body = body.c_str();
+    request.size = body.size();
+    m_rest_service->post(&request, &response);
   } catch (const Response_error &error) {
     throw Response_error(error.code(), msg + error.what());
   }
@@ -613,7 +580,7 @@ Multipart_object Bucket::create_multipart_upload(
 
   upload_id = map->get_string("uploadId");
 
-  return {objectName, upload_id};
+  return {object_name, upload_id};
 }
 
 Multipart_object_part Bucket::upload_part(const Multipart_object &object,
@@ -626,9 +593,13 @@ Multipart_object_part Bucket::upload_part(const Multipart_object &object,
                                  encode_path(object.name).c_str(),
                                  object.upload_id.c_str(), partNum);
 
-  Headers response_headers;
+  Response response;
+
   try {
-    m_rest_service->put(path, body, size, {}, nullptr, &response_headers);
+    auto request = Oci_request(path);
+    request.body = body;
+    request.size = size;
+    m_rest_service->put(&request, &response);
   } catch (const Response_error &error) {
     throw Response_error(
         error.code(),
@@ -636,7 +607,7 @@ Multipart_object_part Bucket::upload_part(const Multipart_object &object,
                            partNum, object.name.c_str(), error.what()));
   }
 
-  return {partNum, response_headers.at("Etag"), size};
+  return {partNum, response.headers.at("Etag"), size};
 }
 
 void Bucket::commit_multipart_upload(
@@ -659,7 +630,10 @@ void Bucket::commit_multipart_upload(
                                  object.upload_id.c_str());
 
   try {
-    m_rest_service->post(path, body.c_str(), body.size());
+    auto request = Oci_request(path);
+    request.body = body.c_str();
+    request.size = body.size();
+    m_rest_service->post(&request);
   } catch (const Response_error &error) {
     throw Response_error(error.code(),
                          "Failed to commit multipart upload for object '" +
@@ -675,7 +649,8 @@ void Bucket::abort_multipart_upload(const Multipart_object &object) {
                                  encode_path(object.name).c_str(),
                                  object.upload_id.c_str());
   try {
-    m_rest_service->delete_(path, nullptr, 0L);
+    auto request = Oci_request(path);
+    m_rest_service->delete_(&request);
   } catch (const Response_error &error) {
     throw Response_error(error.code(),
                          "Failed to abort multipart upload for object '" +
@@ -720,7 +695,8 @@ PAR Bucket::create_pre_authenticated_request(
 
   body.append(", \"timeExpires\":\"" + expiration_time + "\"}");
 
-  mysqlshdk::rest::String_buffer data;
+  rest::String_response response;
+  const auto &data = response.buffer;
 
   std::string target;
   if (object_name.empty()) {
@@ -732,7 +708,10 @@ PAR Bucket::create_pre_authenticated_request(
   std::string error_msg = shcore::str_format(
       "Failed to create %s PAR %s: ", access_type_str.c_str(), target.c_str());
   try {
-    m_rest_service->post(kParActionPath, body.data(), body.size(), {}, &data);
+    auto request = Oci_request(kParActionPath);
+    request.body = body.data();
+    request.size = body.size();
+    m_rest_service->post(&request, &response);
   } catch (const Response_error &error) {
     throw Response_error(error.code(), error_msg + error.what());
   }
@@ -767,7 +746,8 @@ void Bucket::delete_pre_authenticated_request(const std::string &id) {
   ensure_connection();
 
   try {
-    m_rest_service->delete_(kParActionPath + id, nullptr, 0L);
+    auto request = Oci_request(kParActionPath + id);
+    m_rest_service->delete_(&request);
   } catch (const Response_error &error) {
     throw Response_error(
         error.code(),
@@ -806,9 +786,12 @@ std::vector<PAR> Bucket::list_preauthenticated_requests(
 
   // TODO(rennox): Pagiing loop?
   //  while (!done) {
-  mysqlshdk::rest::String_buffer raw_data;
+  rest::String_response response;
+  const auto &raw_data = response.buffer;
+
   try {
-    m_rest_service->get(path, {}, &raw_data);
+    auto request = Oci_request(path);
+    m_rest_service->get(&request, &response);
   } catch (const Response_error &error) {
     throw Response_error(error.code(), msg + ": " + error.what());
   }
@@ -848,7 +831,8 @@ bool Bucket::exists() {
   ensure_connection();
 
   try {
-    m_rest_service->head(kBucketPath);
+    auto request = Oci_request(kBucketPath);
+    m_rest_service->head(&request);
     return true;
   } catch (const Response_error &error) {
     if (rest::Response::Status_code::NOT_FOUND == error.code()) {
@@ -867,14 +851,30 @@ void Bucket::create(const std::string &compartment_id) {
   const auto body = encode_json("compartmentId", compartment_id, "name",
                                 encode_path(*m_options.os_bucket_name));
 
-  m_rest_service->post(kNamespacePath, body.c_str(), body.size());
+  auto request = Oci_request(kNamespacePath);
+  request.body = body.c_str();
+  request.size = body.size();
+  m_rest_service->post(&request);
 }
 
 void Bucket::delete_() {
   // Ensures the REST connection is established
   ensure_connection();
 
-  m_rest_service->delete_(kBucketPath, "", 0);
+  auto request = Oci_request(kBucketPath);
+  request.body = "";
+  request.size = 0;
+  m_rest_service->delete_(&request);
+}
+
+Oci_request Bucket::create_request(const std::string &object_name,
+                                   Headers headers) const {
+  const auto par = is_par(object_name);
+
+  return Oci_request(par ? anonymize_par(object_name)
+                         : shcore::str_format(kObjectActionFormat.c_str(),
+                                              encode_path(object_name).c_str()),
+                     std::move(headers), !par);
 }
 
 }  // namespace oci

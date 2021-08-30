@@ -37,6 +37,14 @@ namespace mysqlshdk {
 namespace storage {
 namespace backend {
 
+struct Http_request : public rest::Request {
+ public:
+  Http_request(Masked_string path, bool use_retry, rest::Headers headers = {});
+
+ private:
+  std::unique_ptr<rest::Retry_strategy> m_retry_strategy;
+};
+
 class Http_get : public IFile {
  public:
   Http_get() = delete;

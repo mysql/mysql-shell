@@ -56,6 +56,7 @@ class Test_server {
     const auto script =
         shcore::path::join_path(g_test_home, "data", "rest", "test-server.py");
     const auto port_number = std::to_string(m_port);
+    m_address = "https://127.0.0.1:" + port_number;
 
     bool server_ready = false;
     for (const auto python_cmd : {"python", "python3"}) {
@@ -69,8 +70,6 @@ class Test_server {
       m_server->set_create_process_group();
 #endif  // _WIN32
       m_server->start();
-
-      m_address = "https://127.0.0.1:" + port_number;
 
       static constexpr uint32_t sleep_time = 100;   // 100ms
       static constexpr uint32_t wait_time = 10100;  // 10s
@@ -86,7 +85,8 @@ class Test_server {
         if (m_server->check() || current_time > wait_time) break;
 
         try {
-          const auto response = rest.head("/ping");
+          auto request = Request("/ping");
+          const auto response = rest.head(&request);
 
           if (debug) {
             std::cerr << "HTTPS server replied with: "
@@ -202,143 +202,88 @@ TEST_F(Rest_service_test, cycle_methods) {
 
   // execute all possible requests, make sure that transmitted data is updated
 
-  auto response = m_service.get("/get", {{"one", "1"}});
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("GET", response.json().as_map()->get_string("method"));
-  EXPECT_EQ(nullptr, response.json().as_map()->get_map("json"));
-  EXPECT_EQ("1",
-            response.json().as_map()->get_map("headers")->get_string("one"));
+  {
+    auto request = Request("/get", {{"one", "1"}});
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("GET", response.json().as_map()->get_string("method"));
+    EXPECT_EQ(nullptr, response.json().as_map()->get_map("json"));
+    EXPECT_EQ("1",
+              response.json().as_map()->get_map("headers")->get_string("one"));
+  }
 
-  response = m_service.head("/head", {{"two", "2"}});
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("", response.body);
+  {
+    auto request = Request("/head", {{"two", "2"}});
+    auto response = m_service.head(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("", response.buffer.raw());
+  }
 
-  response = m_service.post("/post", shcore::Value::parse("{'id' : 10}"),
-                            {{"three", "3"}});
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("POST", response.json().as_map()->get_string("method"));
-  EXPECT_EQ(10, response.json().as_map()->get_map("json")->get_int("id"));
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("one"));
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("two"));
-  EXPECT_EQ("3",
-            response.json().as_map()->get_map("headers")->get_string("three"));
+  {
+    auto request = Json_request("/post", shcore::Value::parse("{'id' : 10}"),
+                                {{"three", "3"}});
+    auto response = m_service.post(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("POST", response.json().as_map()->get_string("method"));
+    EXPECT_EQ(10, response.json().as_map()->get_map("json")->get_int("id"));
+    EXPECT_EQ(shcore::Value_type::Undefined,
+              response.json().as_map()->get_map("headers")->get_type("one"));
+    EXPECT_EQ(shcore::Value_type::Undefined,
+              response.json().as_map()->get_map("headers")->get_type("two"));
+    EXPECT_EQ(
+        "3", response.json().as_map()->get_map("headers")->get_string("three"));
+  }
 
-  response = m_service.put("/put", shcore::Value::parse("{'id' : 20}"),
-                           {{"four", "4"}});
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("PUT", response.json().as_map()->get_string("method"));
-  EXPECT_EQ(20, response.json().as_map()->get_map("json")->get_int("id"));
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("three"));
-  EXPECT_EQ("4",
-            response.json().as_map()->get_map("headers")->get_string("four"));
+  {
+    auto request = Json_request("/put", shcore::Value::parse("{'id' : 20}"),
+                                {{"four", "4"}});
+    auto response = m_service.put(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("PUT", response.json().as_map()->get_string("method"));
+    EXPECT_EQ(20, response.json().as_map()->get_map("json")->get_int("id"));
+    EXPECT_EQ(shcore::Value_type::Undefined,
+              response.json().as_map()->get_map("headers")->get_type("three"));
+    EXPECT_EQ("4",
+              response.json().as_map()->get_map("headers")->get_string("four"));
+  }
 
-  response = m_service.patch("/patch", shcore::Value::parse("{'id' : 30}"),
-                             {{"five", "5"}});
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("PATCH", response.json().as_map()->get_string("method"));
-  EXPECT_EQ(30, response.json().as_map()->get_map("json")->get_int("id"));
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("four"));
-  EXPECT_EQ("5",
-            response.json().as_map()->get_map("headers")->get_string("five"));
+  {
+    auto request = Json_request("/patch", shcore::Value::parse("{'id' : 30}"),
+                                {{"five", "5"}});
+    auto response = m_service.patch(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("PATCH", response.json().as_map()->get_string("method"));
+    EXPECT_EQ(30, response.json().as_map()->get_map("json")->get_int("id"));
+    EXPECT_EQ(shcore::Value_type::Undefined,
+              response.json().as_map()->get_map("headers")->get_type("four"));
+    EXPECT_EQ("5",
+              response.json().as_map()->get_map("headers")->get_string("five"));
+  }
 
-  response = m_service.delete_("/delete", shcore::Value::parse("{'id' : 40}"),
-                               {{"six", "6"}});
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("DELETE", response.json().as_map()->get_string("method"));
-  EXPECT_EQ(40, response.json().as_map()->get_map("json")->get_int("id"));
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("five"));
-  EXPECT_EQ("6",
-            response.json().as_map()->get_map("headers")->get_string("six"));
+  {
+    auto request = Json_request("/delete", shcore::Value::parse("{'id' : 40}"),
+                                {{"six", "6"}});
+    auto response = m_service.delete_(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("DELETE", response.json().as_map()->get_string("method"));
+    EXPECT_EQ(40, response.json().as_map()->get_map("json")->get_int("id"));
+    EXPECT_EQ(shcore::Value_type::Undefined,
+              response.json().as_map()->get_map("headers")->get_type("five"));
+    EXPECT_EQ("6",
+              response.json().as_map()->get_map("headers")->get_string("six"));
+  }
 
-  response = m_service.get("/get", {{"seven", "7"}});
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("GET", response.json().as_map()->get_string("method"));
-  EXPECT_EQ(nullptr, response.json().as_map()->get_map("json"));
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("six"));
-  EXPECT_EQ("7",
-            response.json().as_map()->get_map("headers")->get_string("seven"));
-}
-
-TEST_F(Rest_service_test, cycle_async_methods) {
-  FAIL_IF_NO_SERVER
-
-  // execute all possible requests, make sure that transmitted data is updated
-
-  auto response = m_service.async_get("/get", {{"one", "1"}}).get();
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("GET", response.json().as_map()->get_string("method"));
-  EXPECT_EQ(nullptr, response.json().as_map()->get_map("json"));
-  EXPECT_EQ("1",
-            response.json().as_map()->get_map("headers")->get_string("one"));
-
-  response = m_service.async_head("/head", {{"two", "2"}}).get();
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("", response.body);
-
-  response = m_service
-                 .async_post("/post", shcore::Value::parse("{'id' : 10}"),
-                             {{"three", "3"}})
-                 .get();
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("POST", response.json().as_map()->get_string("method"));
-  EXPECT_EQ(10, response.json().as_map()->get_map("json")->get_int("id"));
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("one"));
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("two"));
-  EXPECT_EQ("3",
-            response.json().as_map()->get_map("headers")->get_string("three"));
-
-  response = m_service
-                 .async_put("/put", shcore::Value::parse("{'id' : 20}"),
-                            {{"four", "4"}})
-                 .get();
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("PUT", response.json().as_map()->get_string("method"));
-  EXPECT_EQ(20, response.json().as_map()->get_map("json")->get_int("id"));
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("three"));
-  EXPECT_EQ("4",
-            response.json().as_map()->get_map("headers")->get_string("four"));
-
-  response = m_service
-                 .async_patch("/patch", shcore::Value::parse("{'id' : 30}"),
-                              {{"five", "5"}})
-                 .get();
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("PATCH", response.json().as_map()->get_string("method"));
-  EXPECT_EQ(30, response.json().as_map()->get_map("json")->get_int("id"));
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("four"));
-  EXPECT_EQ("5",
-            response.json().as_map()->get_map("headers")->get_string("five"));
-
-  response = m_service
-                 .async_delete("/delete", shcore::Value::parse("{'id' : 40}"),
-                               {{"six", "6"}})
-                 .get();
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("DELETE", response.json().as_map()->get_string("method"));
-  EXPECT_EQ(40, response.json().as_map()->get_map("json")->get_int("id"));
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("five"));
-  EXPECT_EQ("6",
-            response.json().as_map()->get_map("headers")->get_string("six"));
-
-  response = m_service.async_get("/get", {{"seven", "7"}}).get();
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("GET", response.json().as_map()->get_string("method"));
-  EXPECT_EQ(nullptr, response.json().as_map()->get_map("json"));
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("six"));
-  EXPECT_EQ("7",
-            response.json().as_map()->get_map("headers")->get_string("seven"));
+  {
+    auto request = Request("/get", {{"seven", "7"}});
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("GET", response.json().as_map()->get_string("method"));
+    EXPECT_EQ(nullptr, response.json().as_map()->get_map("json"));
+    EXPECT_EQ(shcore::Value_type::Undefined,
+              response.json().as_map()->get_map("headers")->get_type("six"));
+    EXPECT_EQ(
+        "7", response.json().as_map()->get_map("headers")->get_string("seven"));
+  }
 }
 
 TEST_F(Rest_service_test, redirect) {
@@ -348,7 +293,8 @@ TEST_F(Rest_service_test, redirect) {
   EXPECT_THROW(
       {
         try {
-          m_service.get("/redirect/21");
+          auto request = Request("/redirect/21");
+          m_service.get(&request);
         } catch (const Connection_error &ex) {
           EXPECT_THAT(ex.what(),
                       ::testing::HasSubstr("Maximum (20) redirects followed"));
@@ -358,13 +304,15 @@ TEST_F(Rest_service_test, redirect) {
       Connection_error);
 
   // 20 redirections is OK
-  EXPECT_EQ(Response::Status_code::OK, m_service.get("/redirect/20").status);
+  auto request = Request("/redirect/20");
+  EXPECT_EQ(Response::Status_code::OK, m_service.get(&request).status);
 }
 
 TEST_F(Rest_service_test, user_agent) {
   FAIL_IF_NO_SERVER
 
-  const auto response = m_service.get("/get");
+  auto request = Request("/get");
+  const auto response = m_service.get(&request);
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ(
       "mysqlsh/" MYSH_VERSION,
@@ -374,39 +322,57 @@ TEST_F(Rest_service_test, user_agent) {
 TEST_F(Rest_service_test, basic_authentication) {
   FAIL_IF_NO_SERVER
 
-  m_service.set(Basic_authentication{"first", "one"});
-  auto response = m_service.get("/basic/first/one");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
+  {
+    m_service.set(Basic_authentication{"first", "one"});
+    auto request = Request("/basic/first/one");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
+  }
 
-  m_service.set(Basic_authentication{"second", "two"});
-  response = m_service.head("/basic/second/two");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
+  {
+    m_service.set(Basic_authentication{"second", "two"});
+    auto request = Request("/basic/second/two");
+    auto response = m_service.head(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+  }
 
-  m_service.set(Basic_authentication{"third", "three"});
-  response = m_service.post("/basic/third/three");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
+  {
+    m_service.set(Basic_authentication{"third", "three"});
+    auto request = Request("/basic/third/three");
+    auto response = m_service.post(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
+  }
 
-  m_service.set(Basic_authentication{"fourth", "four"});
-  response = m_service.put("/basic/fourth/four");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
+  {
+    m_service.set(Basic_authentication{"fourth", "four"});
+    auto request = Request("/basic/fourth/four");
+    auto response = m_service.put(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
+  }
 
-  m_service.set(Basic_authentication{"fifth", "five"});
-  response = m_service.patch("/basic/fifth/five");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
+  {
+    m_service.set(Basic_authentication{"fifth", "five"});
+    auto request = Request("/basic/fifth/five");
+    auto response = m_service.patch(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
+  }
 
-  m_service.set(Basic_authentication{"sixth", "six"});
-  response = m_service.delete_("/basic/sixth/six");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
+  {
+    m_service.set(Basic_authentication{"sixth", "six"});
+    auto request = Request("/basic/sixth/six");
+    auto response = m_service.delete_(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
 
-  // same login:pass, different method
-  response = m_service.get("/basic/sixth/six");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
+    // same login:pass, different method
+    response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("OK", response.json().as_map()->get_string("authentication"));
+  }
 }
 
 TEST_F(Rest_service_test, basic_authentication_failure) {
@@ -414,132 +380,189 @@ TEST_F(Rest_service_test, basic_authentication_failure) {
 
   m_service.set(Basic_authentication{"first", "one"});
 
-  auto response = m_service.get("/basic/first/two");
-  EXPECT_EQ(Response::Status_code::UNAUTHORIZED, response.status);
-  EXPECT_EQ("NO", response.json().as_map()->get_string("authentication"));
+  {
+    auto request = Request("/basic/first/two");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::UNAUTHORIZED, response.status);
+    EXPECT_EQ("NO", response.json().as_map()->get_string("authentication"));
+  }
 
-  response = m_service.get("/basic/second/one");
-  EXPECT_EQ(Response::Status_code::UNAUTHORIZED, response.status);
-  EXPECT_EQ("NO", response.json().as_map()->get_string("authentication"));
+  {
+    auto request = Request("/basic/second/one");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::UNAUTHORIZED, response.status);
+    EXPECT_EQ("NO", response.json().as_map()->get_string("authentication"));
+  }
 
-  response = m_service.get("/basic/second/two");
-  EXPECT_EQ(Response::Status_code::UNAUTHORIZED, response.status);
-  EXPECT_EQ("NO", response.json().as_map()->get_string("authentication"));
+  {
+    auto request = Request("/basic/second/two");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::UNAUTHORIZED, response.status);
+    EXPECT_EQ("NO", response.json().as_map()->get_string("authentication"));
+  }
 }
 
 TEST_F(Rest_service_test, request_headers) {
   FAIL_IF_NO_SERVER
 
-  // request without any extra headers
-  auto response = m_service.get("/get");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ(shcore::Value_type::Undefined,
-            response.json().as_map()->get_map("headers")->get_type("one"));
+  {
+    // request without any extra headers
+    auto request = Request("/get");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ(shcore::Value_type::Undefined,
+              response.json().as_map()->get_map("headers")->get_type("one"));
+  }
 
-  // request with extra header
-  response = m_service.get("/get", {{"one", "1"}});
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("1",
-            response.json().as_map()->get_map("headers")->get_string("one"));
+  {
+    // request with extra header
+    auto request = Request("/get", {{"one", "1"}});
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("1",
+              response.json().as_map()->get_map("headers")->get_string("one"));
+  }
 
-  // set the default headers, it should be used for all requests from now on
-  m_service.set_default_headers({{"two", "2"}});
+  {
+    // set the default headers, it should be used for all requests from now on
+    m_service.set_default_headers({{"two", "2"}});
 
-  response = m_service.get("/first");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("2",
-            response.json().as_map()->get_map("headers")->get_string("two"));
+    auto request = Request("/first");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("2",
+              response.json().as_map()->get_map("headers")->get_string("two"));
+  }
 
-  response = m_service.get("/second");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("2",
-            response.json().as_map()->get_map("headers")->get_string("two"));
+  {
+    auto request = Request("/second");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("2",
+              response.json().as_map()->get_map("headers")->get_string("two"));
+  }
 
-  // override the default header, new value should be used
-  response = m_service.get("/third", {{"two", "3"}});
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("3",
-            response.json().as_map()->get_map("headers")->get_string("two"));
+  {
+    // override the default header, new value should be used
+    auto request = Request("/third", {{"two", "3"}});
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("3",
+              response.json().as_map()->get_map("headers")->get_string("two"));
+  }
 
-  // this one should use the default header
-  response = m_service.get("/fourth");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("2",
-            response.json().as_map()->get_map("headers")->get_string("two"));
+  {
+    // this one should use the default header
+    auto request = Request("/fourth");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("2",
+              response.json().as_map()->get_map("headers")->get_string("two"));
+  }
 }
 
 TEST_F(Rest_service_test, content_type) {
   FAIL_IF_NO_SERVER
 
-  // POST with no data means that CURL will set Content-Type to its default
-  auto response = m_service.post("/post", shcore::Value());
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ(
-      "application/x-www-form-urlencoded",
-      response.json().as_map()->get_map("headers")->get_string("content-type"));
+  {
+    // POST with no data means that CURL will set Content-Type to its default
+    auto request = Json_request("/post", shcore::Value());
+    auto response = m_service.post(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("application/x-www-form-urlencoded",
+              response.json().as_map()->get_map("headers")->get_string(
+                  "content-type"));
+  }
 
-  // POST with some data will set the Content-Type to application/json
-  response = m_service.post("/post", shcore::Value::parse("{'id' : 30}"));
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ(
-      "application/json",
-      response.json().as_map()->get_map("headers")->get_string("content-type"));
+  {
+    // POST with some data will set the Content-Type to application/json
+    auto request = Json_request("/post", shcore::Value::parse("{'id' : 30}"));
+    auto response = m_service.post(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("application/json",
+              response.json().as_map()->get_map("headers")->get_string(
+                  "content-type"));
+  }
 
-  // if Content-Type header is specified, it's going to be used instead
-  response = m_service.post("/post", shcore::Value::parse("{'id' : 30}"),
-                            {{"Content-Type", "text/plain"}});
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ(
-      "text/plain",
-      response.json().as_map()->get_map("headers")->get_string("content-type"));
+  {
+    // if Content-Type header is specified, it's going to be used instead
+    auto request = Json_request("/post", shcore::Value::parse("{'id' : 30}"),
+                                {{"Content-Type", "text/plain"}});
+    auto response = m_service.post(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("text/plain",
+              response.json().as_map()->get_map("headers")->get_string(
+                  "content-type"));
+  }
 }
 
 TEST_F(Rest_service_test, response_headers) {
   FAIL_IF_NO_SERVER
 
-  // server should reply with some headers by default
-  auto response = m_service.get("/get");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_FALSE(response.headers["Content-Length"].empty());
+  {
+    // server should reply with some headers by default
+    auto request = Request("/get");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_FALSE(response.headers["Content-Length"].empty());
+  }
 
-  // check if we get the headers we requested
-  response = m_service.get("/headers?one=two");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("two", response.headers["one"]);
+  {
+    // check if we get the headers we requested
+    auto request = Request("/headers?one=two");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("two", response.headers["one"]);
+  }
 
-  response = m_service.get("/headers?one=two&three=four");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("two", response.headers["one"]);
-  EXPECT_EQ("four", response.headers["three"]);
+  {
+    auto request = Request("/headers?one=two&three=four");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("two", response.headers["one"]);
+    EXPECT_EQ("four", response.headers["three"]);
+  }
 
-  // BUG#31979374 it should be possible to fetch a header with an empty value
-  response = m_service.get("/headers?one=");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  ASSERT_TRUE(response.headers.find("one") != response.headers.end());
-  EXPECT_EQ("", response.headers["one"]);
+  {
+    // BUG#31979374 it should be possible to fetch a header with an empty value
+    auto request = Request("/headers?one=");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    ASSERT_TRUE(response.headers.find("one") != response.headers.end());
+    EXPECT_EQ("", response.headers["one"]);
+  }
 }
 
 TEST_F(Rest_service_test, response_content_type) {
   FAIL_IF_NO_SERVER
 
-  // server replies with application/json by default
-  auto response = m_service.get("/get");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("application/json", response.headers["Content-Type"]);
-  EXPECT_EQ(shcore::Value_type::Map, response.json().type);
+  {
+    // server replies with application/json by default
+    auto request = Request("/get");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("application/json", response.headers["Content-Type"]);
+    EXPECT_EQ(shcore::Value_type::Map, response.json().type);
+  }
 
-  // force server to return different Content-Type, body is going to be an
-  // unparsed string
-  response = m_service.get("/headers?Content-Type=text/plain");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("text/plain", response.headers["Content-Type"]);
+  {
+    // force server to return different Content-Type, body is going to be an
+    // unparsed string
+    auto request = Request("/headers?Content-Type=text/plain");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("text/plain", response.headers["Content-Type"]);
+  }
 
-  response = m_service.get(
-      "/headers?Content-Type=application/json%3B%20charset=UTF-8");
-  EXPECT_EQ(Response::Status_code::OK, response.status);
-  EXPECT_EQ("application/json; charset=UTF-8",
-            response.headers["Content-Type"]);
-  EXPECT_EQ(shcore::Value_type::Map, response.json().type);
+  {
+    auto request =
+        Request("/headers?Content-Type=application/json%3B%20charset=UTF-8");
+    auto response = m_service.get(&request);
+    EXPECT_EQ(Response::Status_code::OK, response.status);
+    EXPECT_EQ("application/json; charset=UTF-8",
+              response.headers["Content-Type"]);
+    EXPECT_EQ(shcore::Value_type::Map, response.json().type);
+  }
 }
 
 TEST_F(Rest_service_test, timeout) {
@@ -548,10 +571,12 @@ TEST_F(Rest_service_test, timeout) {
   // reduce the timeout
   m_service.set_timeout(1999, 1, 2);
 
-  EXPECT_THROW_LIKE(m_service.head("/timeout/2.1"), Connection_error,
+  auto request = Request("/timeout/2.1");
+
+  EXPECT_THROW_LIKE(m_service.head(&request), Connection_error,
                     "Operation timed out after ");
 
-  EXPECT_THROW_LIKE(m_service.delete_("/timeout/2.1"), Connection_error,
+  EXPECT_THROW_LIKE(m_service.delete_(&request), Connection_error,
                     "Operation timed out after ");
 
   // Tests for low transfer rate timeout in EL6 fail because the functionality
@@ -563,17 +588,17 @@ TEST_F(Rest_service_test, timeout) {
 
   if (curl_version > no_transfer_rate_timeout_curl_version) {
     EXPECT_THROW_LIKE(
-        m_service.get("/timeout/2.1"), Connection_error,
+        m_service.get(&request), Connection_error,
         "Operation too slow. Less than 1 bytes/sec transferred the "
         "last 2 seconds");
 
     EXPECT_THROW_LIKE(
-        m_service.put("/timeout/2.1"), Connection_error,
+        m_service.put(&request), Connection_error,
         "Operation too slow. Less than 1 bytes/sec transferred the "
         "last 2 seconds");
 
     EXPECT_THROW_LIKE(
-        m_service.post("/timeout/2.1"), Connection_error,
+        m_service.post(&request), Connection_error,
         "Operation too slow. Less than 1 bytes/sec transferred the "
         "last 2 seconds");
   }
@@ -582,9 +607,9 @@ TEST_F(Rest_service_test, timeout) {
   m_service.set_timeout(3000, 0, 0);
 
   // request should be completed without any issues
-  EXPECT_EQ(Response::Status_code::OK, m_service.get("/timeout/2.1").status);
+  EXPECT_EQ(Response::Status_code::OK, m_service.get(&request).status);
 
-  EXPECT_EQ(Response::Status_code::OK, m_service.head("/timeout/2.1").status);
+  EXPECT_EQ(Response::Status_code::OK, m_service.head(&request).status);
 }
 
 TEST_F(Rest_service_test, retry_strategy_generic_errors) {
@@ -595,66 +620,145 @@ TEST_F(Rest_service_test, retry_strategy_generic_errors) {
 
   s_test_server->stop_server();
 
+  auto request = Request("/get");
+  request.type = Type::GET;
+
   // With no retries a generic error would throw an exception
-  EXPECT_THROW_MSG_CONTAINS(local_service.execute(Type::GET, "/get"),
-                            Connection_error,
+  EXPECT_THROW_MSG_CONTAINS(local_service.execute(&request), Connection_error,
                             "Connection refused|couldn't connect to host");
 
   // One second retry strategy
   Retry_strategy retry_strategy(1);
+  request.retry_strategy = &retry_strategy;
 
   // Some stop criteria must be defined otherwise we have infinite retries
   EXPECT_THROW_MSG(
-      local_service.execute(Type::GET, "/get", nullptr, 0L, {}, nullptr,
-                            nullptr, &retry_strategy),
-      std::logic_error,
+      local_service.execute(&request), std::logic_error,
       "A stop criteria must be defined to avoid infinite retries.");
 
   retry_strategy.set_max_attempts(2);
 
   // Even with retry logic the same error is generated at the end
-  EXPECT_THROW_MSG_CONTAINS(
-      local_service.execute(Type::GET, "/get", nullptr, 0L, {}, nullptr,
-                            nullptr, &retry_strategy),
-      Connection_error, "Connection refused|couldn't connect to host");
+  EXPECT_THROW_MSG_CONTAINS(local_service.execute(&request), Connection_error,
+                            "Connection refused|couldn't connect to host");
   EXPECT_EQ(2, retry_strategy.get_retry_count());
 }
 
 TEST_F(Rest_service_test, retry_strategy_server_errors) {
   FAIL_IF_NO_SERVER
 
+  auto request_500 = Request("/server_error/500");
+  request_500.type = Type::GET;
+
   // No retry test
-  auto code = m_service.execute(Type::GET, "/server_error/500");
+  auto code = m_service.execute(&request_500);
   EXPECT_EQ(Response::Status_code::INTERNAL_SERVER_ERROR, code);
 
   // One second retry strategy
   Retry_strategy retry_strategy(1);
   retry_strategy.set_max_attempts(2);
 
+  request_500.retry_strategy = &retry_strategy;
+
   // Server error codes are not configured to be retriable, so no retry is done
-  code = m_service.execute(Type::GET, "/server_error/500", nullptr, 0L, {},
-                           nullptr, nullptr, &retry_strategy);
+  code = m_service.execute(&request_500);
   EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
   EXPECT_EQ(0, retry_strategy.get_retry_count());
 
   // Configure specific error to be retriable
   retry_strategy.add_retriable_status(
       Response::Status_code::INTERNAL_SERVER_ERROR);
-  code = m_service.execute(Type::GET, "/server_error/500", nullptr, 0L, {},
-                           nullptr, nullptr, &retry_strategy);
+  code = m_service.execute(&request_500);
   EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
   EXPECT_EQ(2, retry_strategy.get_retry_count());
 
+  auto request_503 = Request("/server_error/503");
+  request_503.type = Type::GET;
+  request_503.retry_strategy = &retry_strategy;
+
   // Other server error would not be retriable
-  code = m_service.execute(Type::GET, "/server_error/503", nullptr, 0L, {},
-                           nullptr, nullptr, &retry_strategy);
+  code = m_service.execute(&request_503);
   EXPECT_EQ(code, Response::Status_code::SERVICE_UNAVAILABLE);
   EXPECT_EQ(0, retry_strategy.get_retry_count());
 
+  // add handling of a status code with specific error message
+  retry_strategy.add_retriable_status(
+      Response::Status_code::INTERNAL_SERVER_ERROR, "Unexpected-error");
+
+  // response is not used (so there is no place to store body), but this error
+  // is retriable regardless of error message, because it is also registered
+  // using just the status code
+  code = m_service.execute(&request_500);
+  EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
+  EXPECT_EQ(2, retry_strategy.get_retry_count());
+
+  {
+    // response is used, this error is retriable regardless of error message,
+    // even if it does not match
+    auto request = Request("/server_error/500/Some-error");
+    request.type = Type::GET;
+    request.retry_strategy = &retry_strategy;
+    String_response response;
+
+    code = m_service.execute(&request, &response);
+    EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
+    EXPECT_EQ(2, retry_strategy.get_retry_count());
+  }
+
+  {
+    // response is used, error message matches
+    auto request = Request("/server_error/500/Unexpected-error");
+    request.type = Type::GET;
+    request.retry_strategy = &retry_strategy;
+    String_response response;
+
+    code = m_service.execute(&request, &response);
+    EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
+    EXPECT_EQ(2, retry_strategy.get_retry_count());
+  }
+
+  // add handling of a status code with specific another error message
+  retry_strategy.add_retriable_status(Response::Status_code::GATEWAY_TIMEOUT,
+                                      "Serious-error");
+
+  {
+    // response is not used, not possible to get the error message -> no retires
+    auto request = Request("/server_error/504");
+    request.type = Type::GET;
+    request.retry_strategy = &retry_strategy;
+
+    code = m_service.execute(&request);
+    EXPECT_EQ(code, Response::Status_code::GATEWAY_TIMEOUT);
+    EXPECT_EQ(0, retry_strategy.get_retry_count());
+  }
+
+  {
+    // response is used, error message does not match -> no retires
+    auto request = Request("/server_error/504/Something-went-wrong");
+    request.type = Type::GET;
+    request.retry_strategy = &retry_strategy;
+    String_response response;
+
+    code = m_service.execute(&request, &response);
+    EXPECT_EQ(code, Response::Status_code::GATEWAY_TIMEOUT);
+    EXPECT_EQ(0, retry_strategy.get_retry_count());
+  }
+
+  {
+    // response is used, error message matches -> retires
+    auto request = Request("/server_error/504/Serious-error");
+    request.type = Type::GET;
+    request.retry_strategy = &retry_strategy;
+    String_response response;
+
+    code = m_service.execute(&request, &response);
+    EXPECT_EQ(code, Response::Status_code::GATEWAY_TIMEOUT);
+    EXPECT_EQ(2, retry_strategy.get_retry_count());
+  }
+
   // All the server error are now retriable
   retry_strategy.set_retry_on_server_errors(true);
-  code = m_service.execute(Type::GET, "/server_error/503", nullptr, 0L, {},
-                           nullptr, nullptr, &retry_strategy);
+  code = m_service.execute(&request_503);
   EXPECT_EQ(code, Response::Status_code::SERVICE_UNAVAILABLE);
   EXPECT_EQ(2, retry_strategy.get_retry_count());
 }
@@ -668,8 +772,12 @@ TEST_F(Rest_service_test, retry_strategy_max_ellapsed_time) {
 
   // All the server error are now retriable
   retry_strategy.set_retry_on_server_errors(true);
-  auto code = m_service.execute(Type::GET, "/server_error/500", nullptr, 0L, {},
-                                nullptr, nullptr, &retry_strategy);
+
+  auto request = Request("/server_error/500");
+  request.type = Type::GET;
+  request.retry_strategy = &retry_strategy;
+
+  auto code = m_service.execute(&request);
   EXPECT_EQ(code, Response::Status_code::INTERNAL_SERVER_ERROR);
 
   {
@@ -724,8 +832,11 @@ TEST_F(Rest_service_test, retry_strategy_throttling) {
   retry_strategy.set_equal_jitter_for_throttling(true);
   retry_strategy.set_max_ellapsed_time(12);
 
-  auto code = m_service.execute(Type::GET, "/server_error/429", nullptr, 0L, {},
-                                nullptr, nullptr, &retry_strategy);
+  auto request = Request("/server_error/429");
+  request.type = Type::GET;
+  request.retry_strategy = &retry_strategy;
+
+  auto code = m_service.execute(&request);
 
   EXPECT_EQ(code, Response::Status_code::TOO_MANY_REQUESTS);
 

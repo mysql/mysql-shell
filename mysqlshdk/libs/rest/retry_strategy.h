@@ -25,7 +25,10 @@
 #define MYSQLSHDK_LIBS_REST_RETRY_STRATEGY_H_
 
 #include <chrono>
+#include <memory>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "mysqlshdk/libs/rest/response.h"
 #include "mysqlshdk/libs/utils/nullable.h"
@@ -62,19 +65,26 @@ class Retry_strategy {
         m_next_sleep_time(std::chrono::seconds(0)),
         m_ellapsed_time(std::chrono::seconds(0)) {}
 
+  virtual ~Retry_strategy() = default;
+
   void set_max_attempts(uint32_t value) { m_max_attempts = value; }
+
   void set_max_ellapsed_time(uint32_t seconds) {
     m_max_ellapsed_time = std::chrono::seconds(seconds);
   }
-  void add_retriable_status(Response::Status_code code) {
-    m_retriable_status.insert(code);
+
+  void add_retriable_status(Response::Status_code code,
+                            const std::string &msg = {}) {
+    m_retriable_status[code].emplace(msg);
   }
+
   void set_retry_on_server_errors(bool value) {
     m_retry_on_server_errors = value;
   }
 
   bool should_retry(const mysqlshdk::utils::nullable<Response::Status_code>
-                        &response_status_code = {});
+                        &response_status_code = {},
+                    const std::string &error_msg = {});
 
   void wait_for_retry();
 
@@ -100,7 +110,8 @@ class Retry_strategy {
   // Retry criteria members
   mysqlshdk::utils::nullable<uint32_t> m_max_attempts;
   mysqlshdk::utils::nullable<std::chrono::seconds> m_max_ellapsed_time;
-  std::set<Response::Status_code> m_retriable_status;
+  std::unordered_map<Response::Status_code, std::unordered_set<std::string>>
+      m_retriable_status;
   bool m_retry_on_server_errors = false;
 
   // Tracking members
@@ -147,7 +158,7 @@ class Exponential_backoff_retry : public Retry_strategy {
           &response_status_code = {}) override;
 };
 
-Exponential_backoff_retry default_retry_strategy();
+std::unique_ptr<Retry_strategy> default_retry_strategy();
 }  // namespace rest
 }  // namespace mysqlshdk
 

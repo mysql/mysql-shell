@@ -109,6 +109,15 @@ std::string get_uri_path(const std::string &uri) {
 
 }  // namespace
 
+Http_request::Http_request(Masked_string path, bool use_retry,
+                           rest::Headers headers)
+    : Request(std::move(path), std::move(headers)) {
+  if (use_retry) {
+    m_retry_strategy = mysqlshdk::rest::default_retry_strategy();
+    retry_strategy = m_retry_strategy.get();
+  }
+}
+
 Http_get::Http_get(const std::string &full_path, bool use_retry)
     : Http_get(get_uri_base(full_path), get_uri_path(full_path), use_retry) {}
 
@@ -154,11 +163,10 @@ std::string Http_get::filename() const {
 
 bool Http_get::exists() const {
   if (!m_exists.has_value()) {
-    auto retry_strategy = mysqlshdk::rest::default_retry_strategy();
-    auto response = get_rest_service(m_base)->head(
-        m_path, {}, m_use_retry ? &retry_strategy : nullptr);
+    auto request = Http_request(m_path, m_use_retry);
+    auto response = get_rest_service(m_base)->head(&request);
 
-    response.check_and_throw();
+    response.throw_if_error();
 
     m_file_size = std::stoul(response.headers["content-length"]);
     if (response.headers["Accept-Ranges"] != "bytes") {
@@ -212,11 +220,11 @@ ssize_t Http_get::read(void *buffer, size_t length) {
       "bytes=" + std::to_string(first) + "-" + std::to_string(last);
   Headers h{{"range", range}};
 
-  auto retry_strategy = mysqlshdk::rest::default_retry_strategy();
-  auto response = get_rest_service(m_base)->get(
-      m_path, h, m_use_retry ? &retry_strategy : nullptr);
+  auto request = Http_request(m_path, m_use_retry, std::move(h));
+  auto response = get_rest_service(m_base)->get(&request);
+
   if (Response::Status_code::PARTIAL_CONTENT == response.status) {
-    const auto &content = response.body;
+    const auto &content = response.buffer;
     if (length < content.size()) {
       throw std::runtime_error("Got more data than expected");
     }
@@ -261,14 +269,13 @@ std::unordered_set<IDirectory::File_info> Http_directory::get_file_list(
 
   do {
     // This may throw but we just let it bubble up
-    auto retry_strategy = mysqlshdk::rest::default_retry_strategy();
-    mysqlshdk::rest::Response response =
-        rest->get(get_list_url(), {}, m_use_retry ? &retry_strategy : nullptr);
+    auto request = Http_request(get_list_url(), m_use_retry);
+    auto response = rest->get(&request);
 
-    response.check_and_throw();
+    response.throw_if_error();
 
     try {
-      auto list = parse_file_list(response.body, pattern);
+      auto list = parse_file_list(response.buffer.raw(), pattern);
       file_info.reserve(list.size() + file_info.size());
       std::move(list.begin(), list.end(),
                 std::inserter(file_info, file_info.begin()));
@@ -276,7 +283,7 @@ std::unordered_set<IDirectory::File_info> Http_directory::get_file_list(
       std::string msg = "Error " + context;
       msg.append(": ").append(error.what());
 
-      log_debug2("%s\n%s", msg.c_str(), response.body.c_str());
+      log_debug2("%s\n%s", msg.c_str(), response.buffer.data());
 
       throw shcore::Exception::runtime_error(msg);
     }
