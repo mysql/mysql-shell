@@ -46,6 +46,7 @@
 #include "mysqlshdk/libs/utils/structured_text.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/shellcore/shell_console.h"
@@ -1016,9 +1017,11 @@ shcore::Prompt_result Command_line_shell::do_prompt(
 }
 
 std::string Command_line_shell::history_file(shcore::Shell_core::Mode mode) {
-  return shcore::get_user_config_path() + "/history." +
-         to_string(mode == shcore::Shell_core::Mode::None ? interactive_mode()
-                                                          : mode);
+  return shcore::path::join_path(
+      shcore::get_user_config_path(),
+      "history." + to_string(mode == shcore::Shell_core::Mode::None
+                                 ? interactive_mode()
+                                 : mode));
 }
 
 void Command_line_shell::pre_command_loop() {

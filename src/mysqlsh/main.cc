@@ -444,8 +444,8 @@ std::string pick_prompt_theme() {
   }
 
   // check user overriden prompt theme
-  std::string path = shcore::get_user_config_path();
-  path.append("prompt.json");
+  std::string path =
+      shcore::path::join_path(shcore::get_user_config_path(), "prompt.json");
 
   if (shcore::is_file(path)) {
     log_debug("Using prompt theme file %s", path.c_str());

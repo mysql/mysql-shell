@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/test_utils/command_line_test.h"
 
@@ -931,8 +932,9 @@ TEST(Shell_prompt_manager, attributes_other) {
 class Shell_prompt_exe : public tests::Command_line_test {
  public:
   static void SetUpTestCase() {
-    shcore::create_file(shcore::get_user_config_path() + "/prompt.json",
-                        "{\"segments\":[{\"text\":\"TEST_PROMPT\"}]}");
+    shcore::create_file(
+        shcore::path::join_path(shcore::get_user_config_path(), "prompt.json"),
+        "{\"segments\":[{\"text\":\"TEST_PROMPT\"}]}");
     shcore::create_file("altprompt.json",
                         "{\"segments\":[{\"text\":\"ALT_PROMPT\"}]}");
     shcore::create_file("badprompt.json",
@@ -940,7 +942,8 @@ class Shell_prompt_exe : public tests::Command_line_test {
   }
 
   static void TearDownTestCase() {
-    shcore::delete_file(shcore::get_user_config_path() + "/prompt.json");
+    shcore::delete_file(
+        shcore::path::join_path(shcore::get_user_config_path(), "prompt.json"));
     shcore::delete_file("altprompt.json");
     shcore::delete_file("badprompt.json");
   }

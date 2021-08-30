@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -338,8 +338,8 @@ int ProvisioningInterface::execute_mysqlprovision(
               std::to_string(exit_code).c_str(), full_output.c_str());
 
     // This error implies a wrong integratio nbetween the chell and MP
-    std::string log_path = shcore::get_user_config_path();
-    log_path += "mysqlsh.log";
+    std::string log_path =
+        shcore::path::join_path(shcore::get_user_config_path(), "mysqlsh.log");
 
     throw shcore::Exception::runtime_error(
         "Error calling mysqlprovision. For more details look at the log at: " +

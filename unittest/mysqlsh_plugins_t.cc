@@ -81,8 +81,8 @@ class Mysqlsh_extension_test : public Command_line_test {
 
     args.emplace_back(nullptr);
 
-    auto user_config = shcore::get_user_config_path();
-    user_config = "MYSQLSH_USER_CONFIG_HOME=" + user_config;
+    const auto user_config = std::string{"MYSQLSH_USER_CONFIG_HOME="} +
+                             shcore::get_user_config_path();
     EXPECT_EQ(0, execute(args, nullptr, k_file, {user_config}))
         << "unexpected exit code";
   }
@@ -96,8 +96,8 @@ class Mysqlsh_extension_test : public Command_line_test {
 
     args.emplace_back(nullptr);
 
-    auto user_config = shcore::get_user_config_path();
-    user_config = "MYSQLSH_USER_CONFIG_HOME=" + user_config;
+    const auto user_config = std::string{"MYSQLSH_USER_CONFIG_HOME="} +
+                             shcore::get_user_config_path();
     execute(args, nullptr, nullptr, {user_config});
   }
 
