@@ -820,7 +820,7 @@ Changes the value of either a global Routing option or of a single Router instan
 
 @param router optional identifier of the target router instance (e.g. 192.168.45.70@::system).
 @param option The Router option to be changed.
-@param value The value that the option shall get.
+@param value The value that the option shall get (or null to unset).
 
 @returns Nothing.
 
@@ -841,6 +841,8 @@ The invalidated_cluster_policy option supports the following values:
 are be accepted. RO connections keep being accepted and handled.
 @li drop_all: all connections to the target Cluster are closed and no new
 connections will be accepted.
+
+If the value is null, the option value is cleared and the default value takes effect.
 )*");
 
 #if DOXYGEN_JS

@@ -703,7 +703,7 @@ WHERE
       router: Identifier of the target router instance (e.g.
               192.168.45.70::system).
       option: The Router option to be changed.
-      value: The value that the option shall get.
+      value: The value that the option shall get (or null to unset).
 
 RETURNS
       Nothing.
@@ -728,3 +728,5 @@ DESCRIPTION
       - drop_all: all connections to the target Cluster are closed and no new
         connections will be accepted.
 
+      If the value is null, the option value is cleared and the default value
+      takes effect.
