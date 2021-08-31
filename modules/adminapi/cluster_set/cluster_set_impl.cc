@@ -971,10 +971,6 @@ void Cluster_set_impl::remove_cluster(
       console->print_info("The Cluster '" + cluster_name +
                           "' will be removed from the InnoDB ClusterSet.");
       console->print_info();
-      console->print_note(
-          "The Cluster's Group Replication configurations will be kept and the "
-          "Cluster will become an independent entity.");
-      console->print_info();
 
       // Check if the channel exists and its OK (not ERROR) first
       mysqlshdk::mysql::Replication_channel channel;

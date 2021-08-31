@@ -49,7 +49,6 @@ EXPECT_THROWS_TYPE(function(){clusterset.removeCluster("foobar")}, "The cluster 
 EXPECT_NO_THROWS(function() {clusterset.removeCluster("replicacluster", {dryRun: 1}); });
 
 EXPECT_OUTPUT_CONTAINS(`The Cluster 'replicacluster' will be removed from the InnoDB ClusterSet.`);
-EXPECT_OUTPUT_CONTAINS(`NOTE: The Cluster's Group Replication configurations will be kept and the Cluster will become an independent entity.`);
 EXPECT_OUTPUT_CONTAINS(`* Waiting for the Cluster to synchronize with the PRIMARY Cluster...`);
 EXPECT_OUTPUT_CONTAINS(`* Updating topology`);
 EXPECT_OUTPUT_CONTAINS(`* Stopping and deleting ClusterSet managed replication channel...`);
