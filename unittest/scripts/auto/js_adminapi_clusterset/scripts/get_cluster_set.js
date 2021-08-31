@@ -96,6 +96,18 @@ EXPECT_OUTPUT_NOT_CONTAINS("WARNING: Could not connect to any member of the PRIM
 
 //TODO(miguel): check the Clusterset.status output
 
+//@<> getClusterSet() from a member of the replica cluster after primary instance changes
+cluster.setPrimaryInstance(__sandbox_uri2);
+WIPE_OUTPUT();
+EXPECT_NO_THROWS(function() {clusterset = dba.getClusterSet(); });
+EXPECT_OUTPUT_EMPTY();
+
+cluster.setPrimaryInstance(__sandbox_uri1);
+
+WIPE_OUTPUT();
+EXPECT_NO_THROWS(function() {clusterset = dba.getClusterSet(); });
+EXPECT_OUTPUT_EMPTY();
+
 //@<> Cluster.getClusterSet() from a member of the replica cluster
 rc = dba.getCluster();
 
@@ -219,7 +231,7 @@ EXPECT_EQ(replica.status()["metadataServer"], undefined); // undefined means the
 
 //@<> dba.getClusterSet() on a instance that belongs to a Cluster that is no longer a ClusterSet member but its Metadata indicates that is
 EXPECT_THROWS_TYPE(function() {dba.getClusterSet();}, "Cluster is not part of a ClusterSet" , "MYSQLSH");
-EXPECT_OUTPUT_CONTAINS("ERROR: The Cluster 'replica' appears to have been removed from the ClusterSet 'domain', however its own metadata copy wasn't properly updated during the removal");
+EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replica' appears to have been removed from the ClusterSet 'domain', however its own metadata copy wasn't properly updated during the removal");
 
 //@<> dba.getCluster() on a Cluster member of a ClusterSet that group_replication_group_name does not match the Metadata
 shell.connect(__sandbox_uri1);

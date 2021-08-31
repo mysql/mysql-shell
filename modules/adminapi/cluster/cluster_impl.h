@@ -430,13 +430,15 @@ class Cluster_impl : public Base_cluster_impl,
   bool is_invalidated() const;
   bool is_primary_cluster() const;
 
-  void invalidate_clusterset_metadata_cache();
+  void invalidate_cluster_set_metadata_cache();
 
   void refresh_metadata_session();
 
   void set_cluster_set_remove_pending(bool flag) {
     m_cs_md_remove_pending = flag;
   }
+
+  bool is_cluster_set_remove_pending() const { return m_cs_md_remove_pending; }
 
   /**
    * Reset the password for the Cluster's replication account in use for the

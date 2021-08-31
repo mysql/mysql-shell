@@ -972,6 +972,15 @@ function EXPECT_OUTPUT_NOT_CONTAINS(text) {
   }
 }
 
+function EXPECT_OUTPUT_EMPTY() {
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  if (out.length > 0 || err.length > 0) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Output not empty as expected:</red>\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
+  }
+}
+
 function EXPECT_STDOUT_CONTAINS(text) {
   var out = testutil.fetchCapturedStdout(false);
   var err = testutil.fetchCapturedStderr(false);

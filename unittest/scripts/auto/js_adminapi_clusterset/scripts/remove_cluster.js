@@ -184,7 +184,40 @@ cc.dissolve();
 
 reset_instance(session4);
 
+//@<> Dissolve cluster that was the primary and got invalidated
+replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster");
+clusterset.setPrimaryCluster("replicacluster");
+
+testutil.stopSandbox(__mysql_sandbox_port4);
+clusterset.forcePrimaryCluster("cluster");
+testutil.startSandbox(__mysql_sandbox_port4);
+session4 = mysql.getSession(__sandbox_uri4);
+clusterset.removeCluster("replicacluster", {force:1});
+
+shell.connect(__sandbox_uri4);
+rc = dba.rebootClusterFromCompleteOutage();
+
+// reboot should also check for bogus metadata
+EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replicacluster' appears to have been removed from the ClusterSet 'myClusterSet', however its own metadata copy wasn't properly updated during the removal");
+
+//@<> getCluster() from the invalidated PC after reboot 
+// (Bug#33166307)
+cc = dba.getCluster();
+EXPECT_OUTPUT_CONTAINS("WARNING: The Cluster 'replicacluster' appears to have been removed from the ClusterSet 'myClusterSet', however its own metadata copy wasn't properly updated during the removal");
+
+//@<> dissolve invalidated primary cluster with the handle from the reboot
+// (Bug#33166307)
+rc.dissolve();
+
+reset_instance(session4);
+
 //@<> Remove cluster when replica has applier error (should fail)
+
+// We have to change the server_id of the instance before adding it as a replica
+// otherwise a replication bug will prevent transactions originating from this
+// instance to be replicated back to it, even after a reset master all
+session4.runSql("set persist server_id=1221");
+
 replicacluster = clusterset.createReplicaCluster(__sandbox_uri4, "replicacluster");
 
 values = {

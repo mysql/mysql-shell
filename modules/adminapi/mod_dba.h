@@ -212,6 +212,12 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
 
   void init();
 
+  void find_real_cluster_set_primary(
+      const std::shared_ptr<Cluster_set_impl> &cs) const;
+
+  std::shared_ptr<Cluster_set_impl> check_and_get_cluster_set_for_cluster(
+      const std::shared_ptr<Cluster_impl> &cluster) const;
+
  private:
   ProvisioningInterface _provisioning_interface;
 

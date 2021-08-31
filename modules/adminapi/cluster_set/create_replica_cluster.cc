@@ -787,11 +787,9 @@ shcore::Value Create_replica_cluster::execute() {
         m_target_instance->set_sysvar("super_read_only", true);
       }
 
-      if (!skip_replica_start) {
-        m_target_instance->set_sysvar(
-            "skip_replica_start", true,
-            mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
-      }
+      m_target_instance->set_sysvar(
+          "skip_replica_start", true,
+          mysqlshdk::mysql::Var_qualifier::PERSIST_ONLY);
 
       undo_list.push_front([=]() {
         if (skip_replica_start) {

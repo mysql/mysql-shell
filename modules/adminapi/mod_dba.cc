@@ -998,12 +998,9 @@ std::shared_ptr<Cluster> Dba::get_cluster(
     auto cluster = get_cluster(!cluster_name ? nullptr : cluster_name->c_str(),
                                metadata, group_server, false, true);
 
-    // Check if the target Cluster is invalidated
-    if (cluster->impl()->is_cluster_set_member() &&
-        cluster->impl()->is_invalidated()) {
-      console->print_warning(
-          "Cluster '" + cluster->impl()->get_name() +
-          "' was INVALIDATED and must be removed from the ClusterSet.");
+    // Check if the target Cluster is invalidated in a clusterset
+    if (cluster->impl()->is_cluster_set_member()) {
+      check_and_get_cluster_set_for_cluster(cluster->impl());
     }
 
     return cluster;
@@ -1042,6 +1039,8 @@ std::shared_ptr<Cluster> Dba::get_cluster(
                         metadata_at_target, group_server);
 
         std::string cs_domain_name;
+        // The correct MD thinks this cluster is a member, check if it thinks
+        // it's a member itself
         if (metadata_at_target->check_cluster_set(target_member.get(), nullptr,
                                                   &cs_domain_name)) {
           console->print_warning(
@@ -1051,6 +1050,8 @@ std::shared_ptr<Cluster> Dba::get_cluster(
               "', however its own metadata copy wasn't properly updated during "
               "the removal");
 
+          // Mark that the cluster was already removed from the clusterset but
+          // doesn't know about it yet
           cluster->impl()->set_cluster_set_remove_pending(true);
 
           return cluster;
@@ -1815,30 +1816,21 @@ std::shared_ptr<ClusterSet> Dba::get_cluster_set() {
   auto cluster = get_cluster(cluster_md.cluster_name.c_str(), metadata,
                              target_server, false, true);
 
-  // Check if the target Cluster is invalidated
-  if (cluster->impl()->is_invalidated()) {
-    mysqlsh::current_console()->print_warning(
-        "Cluster '" + cluster->impl()->get_name() +
-        "' was INVALIDATED and must be removed from the ClusterSet.");
-  }
+  auto cs = check_and_get_cluster_set_for_cluster(cluster->impl());
 
-  auto cs = cluster->impl()->get_cluster_set(true);
+  cluster->impl()->invalidate_cluster_set_metadata_cache();
 
-  // Check if the target Cluster still belongs to the ClusterSet
-  Cluster_set_member_metadata cluster_member_md;
-  if (!cs->get_metadata_storage()->get_cluster_set_member(
-          cluster->impl()->get_id(), &cluster_member_md)) {
-    current_console()->print_error("The Cluster '" + cluster_md.cluster_name +
-                                   "' appears to have been removed from "
-                                   "the ClusterSet '" +
-                                   cs->get_name() +
-                                   "', however its own metadata copy wasn't "
-                                   "properly updated during the removal");
-
+  if (!cs || !cluster->impl()->is_cluster_set_member() ||
+      cluster->impl()->is_cluster_set_remove_pending()) {
     throw shcore::Exception("Cluster is not part of a ClusterSet",
                             SHERR_DBA_CLUSTER_DOES_NOT_BELONG_TO_CLUSTERSET);
   }
 
+  return std::make_shared<mysqlsh::dba::ClusterSet>(cs);
+}
+
+void Dba::find_real_cluster_set_primary(
+    const std::shared_ptr<Cluster_set_impl> &cs) const {
   for (;;) {
     cs->connect_primary();
 
@@ -1850,8 +1842,58 @@ std::shared_ptr<ClusterSet> Dba::get_cluster_set() {
       break;
     }
   }
+}
 
-  return std::make_shared<mysqlsh::dba::ClusterSet>(cs);
+std::shared_ptr<Cluster_set_impl> Dba::check_and_get_cluster_set_for_cluster(
+    const std::shared_ptr<Cluster_impl> &cluster) const {
+  auto console = current_console();
+
+  auto cs = cluster->get_cluster_set(true);
+
+  if (cluster->is_invalidated()) {
+    console->print_warning(
+        "Cluster '" + cluster->get_name() +
+        "' was INVALIDATED and must be removed from the ClusterSet.");
+  } else {
+    bool pc_changed = false;
+    // if we think we're the primary cluster, try connecting to replica
+    // clusters and look for a newer view_id generation, in case we got
+    // failed over from and invalidated
+    if (cluster->is_primary_cluster()) {
+      find_real_cluster_set_primary(cs);
+
+      auto pc = cs->get_primary_cluster();
+      // If the real PC is different, it means we're actually invalidated
+      pc_changed = pc->get_id() != cluster->get_id();
+    }
+    if (pc_changed ||
+        cs->get_metadata_storage()->get_md_server()->descr() !=
+            cluster->get_metadata_storage()->get_md_server()->descr()) {
+      // Check if the cluster was removed from the cs according to the MD in
+      // the correct primary cluster
+      if (!cs->get_metadata_storage()->check_cluster_set(
+              cluster->get_cluster_server().get())) {
+        std::string msg =
+            "The Cluster '" + cluster->get_name() +
+            "' appears to have been removed from the ClusterSet '" +
+            cs->get_name() +
+            "', however its own metadata copy wasn't properly updated "
+            "during the removal";
+        console->print_warning(msg);
+
+        // Mark that the cluster was already removed from the clusterset but
+        // doesn't know about it yet
+        cluster->set_cluster_set_remove_pending(true);
+
+        return nullptr;
+      } else if (cluster->is_invalidated()) {
+        console->print_warning(
+            "Cluster '" + cluster->get_name() +
+            "' was INVALIDATED and must be removed from the ClusterSet.");
+      }
+    }
+  }
+  return cs;
 }
 
 // -----
@@ -2957,10 +2999,14 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
   // If this is a REPLICA Cluster of a ClusterSet, ensure SRO is enabled on all
   // members
-  if (cluster_impl->is_cluster_set_member() &&
-      !cluster_impl->is_primary_cluster()) {
-    auto cs = cluster_impl->get_cluster_set();
-    cs->ensure_replica_settings(cluster_impl.get(), false);
+  if (cluster_impl->is_cluster_set_member()) {
+    // Check for various clusterset MD consistency scenarios
+    auto cs = check_and_get_cluster_set_for_cluster(cluster_impl);
+
+    if (cluster_impl->is_cluster_set_member() &&
+        !cluster_impl->is_primary_cluster()) {
+      cs->ensure_replica_settings(cluster_impl.get(), false);
+    }
   }
 
   console->print_info("The cluster was successfully rebooted.");

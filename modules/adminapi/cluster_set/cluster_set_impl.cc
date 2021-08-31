@@ -2489,7 +2489,7 @@ void Cluster_set_impl::rejoin_cluster(
 
   console->print_info();
 
-  rejoining_cluster->invalidate_clusterset_metadata_cache();
+  rejoining_cluster->invalidate_cluster_set_metadata_cache();
 
   console->print_info("Cluster '" + cluster_name +
                       "' was rejoined to the clusterset");

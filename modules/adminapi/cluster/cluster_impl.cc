@@ -2597,7 +2597,7 @@ bool Cluster_impl::is_cluster_set_member(const std::string &cs_id) const {
   return is_member;
 }
 
-void Cluster_impl::invalidate_clusterset_metadata_cache() {
+void Cluster_impl::invalidate_cluster_set_metadata_cache() {
   m_cs_md.cluster_set_id.clear();
 }
 
@@ -2617,7 +2617,7 @@ void Cluster_impl::handle_notification(const std::string &name,
                                        const shcore::Object_bridge_ref &,
                                        shcore::Value::Map_type_ref) {
   if (name == kNotifyClusterSetPrimaryChanged) {
-    invalidate_clusterset_metadata_cache();
+    invalidate_cluster_set_metadata_cache();
   }
 }
 
