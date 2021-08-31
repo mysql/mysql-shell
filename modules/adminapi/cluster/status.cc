@@ -23,6 +23,7 @@
 
 #include "modules/adminapi/cluster/status.h"
 #include <algorithm>
+#include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/common_status.h"
 #include "modules/adminapi/common/metadata_storage.h"
@@ -1542,6 +1543,45 @@ shcore::Value Status::execute() {
   shcore::Dictionary_t dict = shcore::make_dict();
 
   (*dict)["clusterName"] = shcore::Value(m_cluster.get_name());
+
+  // If the Cluster belongs to a ClusterSet, include relevant ClusterSet
+  // information:
+  //   - domainName
+  //   - clusterRole
+  //   - clusterSetReplicationStatus
+  if (m_cluster.is_cluster_set_member()) {
+    auto cs_md = m_cluster.get_clusterset_metadata();
+    Cluster_set_metadata cset;
+
+    m_cluster.get_metadata_storage()->get_cluster_set(cs_md.cluster_set_id,
+                                                      true, &cset, nullptr);
+
+    (*dict)["domainName"] = shcore::Value(cset.domain_name);
+    (*dict)["clusterRole"] =
+        shcore::Value(m_cluster.is_primary_cluster() ? "PRIMARY" : "REPLICA");
+
+    // Get the ClusterSet replication channel status
+    std::shared_ptr<Cluster_impl> cluster_cpy =
+        std::make_unique<Cluster_impl>(m_cluster);
+
+    Cluster_channel_status ch_status =
+        cluster_cpy->get_cluster_set()->get_replication_channel_status(
+            m_cluster);
+
+    // If the Cluster is a Replica, add the status right away
+    if (!m_cluster.is_primary_cluster()) {
+      (*dict)["clusterSetReplicationStatus"] =
+          shcore::Value(to_string(ch_status));
+    } else {
+      // If it's a Primary, add the status in case is suspicious (not Missing or
+      // Stopped)
+      if (ch_status != Cluster_channel_status::MISSING &&
+          ch_status != Cluster_channel_status::STOPPED) {
+        (*dict)["clusterSetReplicationStatus"] =
+            shcore::Value(to_string(ch_status));
+      }
+    }
+  }
 
   // Get the default replicaSet options
   (*dict)["defaultReplicaSet"] = shcore::Value(get_default_replicaset_status());

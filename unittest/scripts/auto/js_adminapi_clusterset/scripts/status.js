@@ -72,9 +72,29 @@ function delete_last_view(session) {
   session.runSql("commit");
 }
 
+function CHECK_STANDALONE_STATUS_PRIMARY(s) {
+EXPECT_EQ("cs", s["domainName"]);
+EXPECT_EQ("PRIMARY", s["clusterRole"]);
+EXPECT_EQ(undefined, s["clusterSetReplicationStatus"]);
+}
+
+function CHECK_STANDALONE_STATUS_REPLICA(s) {
+EXPECT_EQ("cs", s["domainName"]);
+EXPECT_EQ("REPLICA", s["clusterRole"]);
+EXPECT_EQ("OK", s["clusterSetReplicationStatus"]);
+}
 
 //@ Plain
 cs.status();
+
+c1s = c1.status();
+CHECK_STANDALONE_STATUS_PRIMARY(c1s);
+
+c2s = c2.status();
+CHECK_STANDALONE_STATUS_REPLICA(c2s);
+
+c3s = c3.status();
+CHECK_STANDALONE_STATUS_REPLICA(c3s);
 
 EXPECT_THROWS(function(){cs.status(123)}, "");
 
@@ -123,10 +143,28 @@ s = cs.status({extended:1});
 
 CHECK_EXTENDED_1(s);
 
+c1s = c1.status({extended:1});
+CHECK_STANDALONE_STATUS_PRIMARY(c1s);
+
+c2s = c2.status({extended:1});
+CHECK_STANDALONE_STATUS_REPLICA(c2s);
+
+c3s = c3.status({extended:1});
+CHECK_STANDALONE_STATUS_REPLICA(c3s);
+
 //@<> Extended 2
 s = cs.status({extended:2});
 
 CHECK_EXTENDED_1(s);
+
+c1s = c1.status({extended:2});
+CHECK_STANDALONE_STATUS_PRIMARY(c1s);
+
+c2s = c2.status({extended:2});
+CHECK_STANDALONE_STATUS_REPLICA(c2s);
+
+c3s = c3.status({extended:2});
+CHECK_STANDALONE_STATUS_REPLICA(c3s);
 
 EXPECT_EQ("ONLINE", cluster1(s)["topology"][__address1h]["memberState"]);
 EXPECT_EQ([], cluster1(s)["topology"][__address1h]["fenceSysVars"]);
@@ -230,29 +268,41 @@ c1.removeInstance(__sandbox_uri2);
 //@<> Wrong SRO at PRIMARY of RC
 session4.runSql("set global super_read_only=0");
 s = cs.status();
+s1 = c1.status();
+s2 = c2.status();
+s3 = c3.status();
 EXPECT_EQ("HEALTHY", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
 var s = cs.status({extended:1});
+s1 = c1.status({extended:1});
+s2 = c2.status({extended:1});
+s3 = c3.status({extended:1});
 EXPECT_EQ("R/W", cluster2(s)["topology"][__address4h]["mode"]);
 EXPECT_EQ("HEALTHY", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster1(s)["status"]);
 
 EXPECT_EQ("OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster2(s)["status"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 
 EXPECT_EQ(["WARNING: Instance is NOT the global PRIMARY but super_read_only option is OFF. Errant transactions and inconsistencies may be accidentally introduced."], instance4(s)["instanceErrors"]);
@@ -262,29 +312,41 @@ session4.runSql("set global super_read_only=1");
 //@<> Wrong SRO at SECONDARY of RC
 session5.runSql("set global super_read_only=0");
 s = cs.status();
+s1 = c1.status();
+s2 = c2.status();
+s3 = c3.status();
 EXPECT_EQ("HEALTHY", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
 var s = cs.status({extended:1});
+s1 = c1.status({extended:1});
+s2 = c2.status({extended:1});
+s3 = c3.status({extended:1});
 EXPECT_EQ("R/W", cluster2(s)["topology"][__address5h]["mode"]);
 EXPECT_EQ("HEALTHY", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK_NO_TOLERANCE", cluster1(s)["status"]);
 EXPECT_EQ("OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK_NO_TOLERANCE", cluster2(s)["status"]);
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 
 EXPECT_EQ(["WARNING: Instance is NOT the global PRIMARY but super_read_only option is OFF. Errant transactions and inconsistencies may be accidentally introduced."], instance5(s)["instanceErrors"]);
@@ -297,52 +359,72 @@ session5.runSql("set global super_read_only=1");
 //@<> RC partial OFFLINE
 session5.runSql("stop group_replication");
 s = cs.status();
+s1 = c1.status();
+s2 = c2.status();
+s3 = c3.status();
 
 EXPECT_EQ("HEALTHY", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
 s = cs.status({extended:1});
+s1 = c1.status({extended:1});
+s2 = c2.status({extended:1});
+s3 = c3.status({extended:1});
 EXPECT_EQ("HEALTHY", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster1(s)["status"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster2(s)["status"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 EXPECT_EQ(["NOTE: group_replication is stopped."], instance5(s)["instanceErrors"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
 //@<> RC OFFLINE
 
 session4.runSql("stop group_replication");
 s = cs.status();
+s1 = c1.status();
+s3 = c3.status();
 
 EXPECT_EQ("AVAILABLE", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("NOT_OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("STOPPED", cluster2(s)["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
 s = cs.status({extended:1});
+s1 = c1.status({extended:1});
+s3 = c3.status({extended:1});
+
 EXPECT_EQ("AVAILABLE", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster1(s)["status"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("NOT_OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OFFLINE", cluster2(s)["status"]);
@@ -351,6 +433,7 @@ EXPECT_EQ("STOPPED", cluster2(s)["clusterSetReplicationStatus"]);
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
 //@<> RC NO_QUORUM
 
@@ -368,43 +451,59 @@ testutil.waitMemberState(__mysql_sandbox_port5, "UNREACHABLE");
 c2.status();
 
 s = cs.status();
+s1 = c1.status();
+s2 = c2.status();
+s3 = c3.status();
 
 EXPECT_EQ("AVAILABLE", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["status"]);
 
 EXPECT_EQ("NOT_OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
+
 EXPECT_EQ(["ERROR: Could not find ONLINE members forming a quorum. Cluster will be unable to perform updates until it's restored."], cluster2(s)["clusterErrors"]);
 EXPECT_EQ("NO_QUORUM", cluster2(s)["status"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, cluster3(s)["status"]);
 
 s = cs.status({extended:1});
+s1 = c1.status({extended:1});
+s2 = c2.status({extended:1});
+s3 = c3.status({extended:1});
 EXPECT_EQ("AVAILABLE", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster1(s)["status"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("NOT_OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("NO_QUORUM", cluster2(s)["status"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 EXPECT_GT(instance5(s)["shellConnectError"].length, 0);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
 //@<> RC UNREACHABLE
 testutil.killSandbox(__mysql_sandbox_port4);
 
 s = cs.status();
+s1 = c1.status();
+s3 = c3.status();
 EXPECT_EQ("AVAILABLE", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterErrors"]);
 EXPECT_EQ(undefined, cluster1(s)["status"]);
 
@@ -415,14 +514,18 @@ EXPECT_EQ("UNREACHABLE", cluster2(s)["status"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, cluster3(s)["clusterErrors"]);
 EXPECT_EQ(undefined, cluster3(s)["status"]);
 
 s = cs.status({extended:1});
+s1 = c1.status({extended:1});
+s3 = c3.status({extended:1});
 EXPECT_EQ("AVAILABLE", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster1(s)["status"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("UNKNOWN", cluster2(s)["globalStatus"]);
 EXPECT_EQ("UNREACHABLE", cluster2(s)["status"]);
@@ -432,6 +535,7 @@ EXPECT_GT(instance4(s)["shellConnectError"].length, 0);
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
 //@<> RC INVALIDATED (and unreachable)
 
@@ -442,9 +546,12 @@ testutil.killSandbox(__mysql_sandbox_port5);
 invalidate_cluster("cluster2", c1);
 
 s = cs.status();
+s1 = c1.status();
+s3 = c3.status();
 EXPECT_EQ("AVAILABLE", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["status"]);
 
 EXPECT_EQ("INVALIDATED", cluster2(s)["globalStatus"]);
@@ -453,13 +560,17 @@ EXPECT_EQ("UNREACHABLE", cluster2(s)["status"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, cluster3(s)["status"]);
 
 var s = cs.status({extended:1});
+s1 = c1.status({extended:1});
+s3 = c3.status({extended:1});
 EXPECT_EQ("AVAILABLE", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster1(s)["status"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("INVALIDATED", cluster2(s)["globalStatus"]);
 EXPECT_EQ("UNREACHABLE", cluster2(s)["status"]);
@@ -469,6 +580,7 @@ EXPECT_GT(instance4(s)["shellConnectError"].length, 0);
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
 //@<> RC INVALIDATED
 testutil.startSandbox(__mysql_sandbox_port4);
@@ -490,33 +602,45 @@ invalidate_cluster("cluster2", c1);
 
 
 s = cs.status();
+s1 = c1.status();
+s2 = c2.status();
+s3 = c3.status();
 EXPECT_EQ("AVAILABLE", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["status"]);
 
 EXPECT_EQ("INVALIDATED", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 EXPECT_EQ(["WARNING: Cluster was invalidated and must be either removed from the ClusterSet or rejoined"], cluster2(s)["clusterErrors"]);
 EXPECT_EQ("INVALIDATED", cluster2(s)["status"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, cluster3(s)["status"]);
 
 var s = cs.status({extended:1});
+s1 = c1.status({extended:1});
+s2 = c2.status({extended:1});
+s3 = c3.status({extended:1});
 EXPECT_EQ("AVAILABLE", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster1(s)["status"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("INVALIDATED", cluster2(s)["globalStatus"]);
 EXPECT_EQ("INVALIDATED", cluster2(s)["status"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
 // ensure status via cluster.status() also shows INVALIDATED
 shell.connect(__sandbox_uri4);

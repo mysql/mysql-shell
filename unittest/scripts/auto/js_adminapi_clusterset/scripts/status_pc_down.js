@@ -76,31 +76,43 @@ function delete_last_view(session) {
 
 //@<> PC partial
 s = cs.status();
+s1 = c1.status();
+s2 = c2.status();
+s3 = c3.status();
 EXPECT_EQ("HEALTHY", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 EXPECT_EQ(__address1h, s["globalPrimaryInstance"]);
 
 EXPECT_EQ(__address1h, cluster1(s)["primary"]);
 EXPECT_EQ("OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
 s = cs.status({extended:1});
+s1 = c1.status({extended:1});
+s2 = c2.status({extended:1});
+s3 = c3.status({extended:1});
 EXPECT_EQ("HEALTHY", s["status"]);
 EXPECT_EQ("OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster1(s)["status"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ(undefined, s1["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster2(s)["status"]);
 EXPECT_EQ("OK", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 
 EXPECT_EQ("OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 
 //@<> PC NO_QUORUM
 shell.connect(__sandbox_uri1);
@@ -119,6 +131,8 @@ testutil.waitForReplConnectionError(__mysql_sandbox_port4, "clusterset_replicati
 testutil.waitForReplConnectionError(__mysql_sandbox_port6, "clusterset_replication");
 
 s = cs.status();
+s2 = c2.status();
+s3 = c3.status();
 EXPECT_EQ("UNAVAILABLE", s["status"]);
 EXPECT_EQ(null, s["globalPrimaryInstance"]);
 
@@ -129,13 +143,17 @@ EXPECT_EQ("NO_QUORUM", cluster1(s)["status"]);
 
 EXPECT_EQ("NOT_OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("ERROR", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s2["clusterSetReplicationStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster2(s)["status"]);
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 
 s = cs.status({extended:1});
+s2 = c2.status({extended:1});
+s3 = c3.status({extended:1});
 EXPECT_EQ("UNAVAILABLE", s["status"]);
 EXPECT_EQ(null, s["globalPrimaryInstance"]);
 
@@ -149,14 +167,17 @@ EXPECT_EQ("NOT_OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster2(s)["status"]);
 if (cluster2(s)["clusterSetReplicationStatus"] == "OK") {
 EXPECT_EQ("Connecting to source", cluster2(s)["clusterSetReplication"]["receiverThreadState"]);
+EXPECT_EQ("OK", s2["clusterSetReplicationStatus"]);
 } else {
 EXPECT_EQ("ERROR", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s2["clusterSetReplicationStatus"]);
 }
 EXPECT_LT(0, cluster2(s)["transactionSet"].length);
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
 EXPECT_LT(0, cluster3(s)["transactionSet"].length);
 
 //@<> Both PC and RC NO_QUORUM
@@ -189,6 +210,8 @@ EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
 // EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
 
 s = cs.status({extended:1});
+s2 = c2.status({extended:1});
+s3 = c3.status({extended:1});
 EXPECT_EQ("UNAVAILABLE", s["status"]);
 EXPECT_EQ(null, s["globalPrimaryInstance"]);
 
@@ -200,11 +223,13 @@ EXPECT_EQ(["ERROR: Could not find ONLINE members forming a quorum. Cluster will 
 
 EXPECT_EQ("NOT_OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("ERROR", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s2["clusterSetReplicationStatus"]);
 EXPECT_EQ("NO_QUORUM", cluster2(s)["status"]);
 EXPECT_EQ(["ERROR: Could not find ONLINE members forming a quorum. Cluster will be unable to perform updates until it's restored.", "WARNING: Replication from the Primary Cluster not in expected state"], cluster2(s)["clusterErrors"]);
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
 
@@ -213,8 +238,10 @@ testutil.stopSandbox(__mysql_sandbox_port1);
 
 shell.connect(__sandbox_uri4);
 cs = dba.getClusterSet();
+c2 = dba.getCluster();
 
 s = cs.status();
+s2 = c2.status();
 EXPECT_EQ("UNAVAILABLE", s["status"]);
 EXPECT_EQ(null, s["globalPrimaryInstance"]);
 
@@ -225,6 +252,7 @@ EXPECT_EQ(["ERROR: Could not connect to any ONLINE members but there are unreach
 
 EXPECT_EQ("NOT_OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("ERROR", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s2["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, cluster2(s)["transactionSetConsistencyStatus"]);
 EXPECT_EQ(["ERROR: Could not find ONLINE members forming a quorum. Cluster will be unable to perform updates until it's restored.", "WARNING: Replication from the Primary Cluster not in expected state"], cluster2(s)["clusterErrors"]);
 
@@ -234,6 +262,7 @@ EXPECT_EQ(undefined, cluster3(s)["transactionSetConsistencyStatus"]);
 EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
 
 s = cs.status({extended:1});
+s2 = c2.status({extended:1});
 EXPECT_EQ("UNAVAILABLE", s["status"]);
 EXPECT_EQ("UNKNOWN", cluster1(s)["globalStatus"]);
 EXPECT_EQ("UNREACHABLE", cluster1(s)["status"]);
@@ -243,6 +272,7 @@ EXPECT_EQ(null, cluster1(s)["transactionSet"]);
 EXPECT_EQ("NOT_OK", cluster2(s)["globalStatus"]);
 EXPECT_EQ("NO_QUORUM", cluster2(s)["status"]);
 EXPECT_EQ("ERROR", cluster2(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s2["clusterSetReplicationStatus"]);
 EXPECT_LT(0, cluster2(s)["transactionSet"].length);
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
@@ -256,8 +286,10 @@ testutil.stopSandbox(__mysql_sandbox_port4);
 // from the remaining ONLINE cluster
 shell.connect(__sandbox_uri6);
 cs = dba.getClusterSet();
+c3 = dba.getCluster()
 
 s = cs.status();
+s3 = c3.status();
 EXPECT_EQ("UNAVAILABLE", s["status"]);
 EXPECT_EQ(null, s["globalPrimaryInstance"]);
 
@@ -272,9 +304,11 @@ EXPECT_EQ(["ERROR: Could not connect to any ONLINE members but there are unreach
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
 
 s = cs.status({extended:1});
+s3 = c3.status({extended:1});
 EXPECT_EQ("UNAVAILABLE", s["status"]);
 EXPECT_EQ("UNKNOWN", cluster1(s)["globalStatus"]);
 EXPECT_EQ("UNKNOWN", cluster1(s)["clusterSetReplicationStatus"]);
@@ -286,6 +320,7 @@ EXPECT_EQ("UNREACHABLE", cluster2(s)["status"]);
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 
 
@@ -316,9 +351,11 @@ EXPECT_EQ(["ERROR: Could not connect to any ONLINE members but there are unreach
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
 if (cluster3(s)["clusterSetReplicationStatus"] == "OK") {
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ("Connecting to source", cluster3(s)["clusterSetReplication"]["receiverThreadState"]);
 } else {
 EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
 }
 
@@ -338,8 +375,10 @@ EXPECT_EQ("UNREACHABLE", cluster2(s)["status"]);
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
 if (cluster3(s)["clusterSetReplicationStatus"] == "OK") {
 EXPECT_EQ("Connecting to source", cluster3(s)["clusterSetReplication"]["receiverThreadState"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 } else {
 EXPECT_EQ("ERROR", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("ERROR", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ(["WARNING: Replication from the Primary Cluster not in expected state"], cluster3(s)["clusterErrors"]);
 }
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
@@ -354,8 +393,10 @@ testutil.startSandbox(__mysql_sandbox_port5);
 // from the remaining ONLINE cluster
 shell.connect(__sandbox_uri6);
 cs = dba.getClusterSet();
+c3 = dba.getCluster()
 
 s = cs.status();
+s3 = c3.status();
 EXPECT_EQ("UNAVAILABLE", s["status"]);
 EXPECT_EQ("NOT_OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
@@ -367,9 +408,11 @@ EXPECT_EQ(["ERROR: Cluster members are reachable but they're all OFFLINE.", "WAR
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ(undefined, cluster3(s)["clusterErrors"]);
 
 s = cs.status({extended:1});
+s3 = c3.status({extended:1});
 EXPECT_EQ("UNAVAILABLE", s["status"]);
 EXPECT_EQ("NOT_OK", cluster1(s)["globalStatus"]);
 EXPECT_EQ(undefined, cluster1(s)["clusterSetReplicationStatus"]);
@@ -381,6 +424,7 @@ EXPECT_EQ("OFFLINE", cluster2(s)["status"]);
 
 EXPECT_EQ("NOT_OK", cluster3(s)["globalStatus"]);
 EXPECT_EQ("OK", cluster3(s)["clusterSetReplicationStatus"]);
+EXPECT_EQ("OK", s3["clusterSetReplicationStatus"]);
 EXPECT_EQ("OK_NO_TOLERANCE", cluster3(s)["status"]);
 
 //@<> All clusters OFFLINE or unreachable
