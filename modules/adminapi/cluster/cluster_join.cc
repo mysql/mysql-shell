@@ -420,6 +420,9 @@ void Cluster_join::configure_cluster_set_member() {
 
     // Setup the replication channel at the target instance but do not start
     // it since that's handled by Group Replication
+    mysqlsh::current_console()->print_info(
+        "* Configuring ClusterSet managed replication channel...");
+
     async_add_replica(m_cluster->get_primary_master().get(),
                       m_target_instance.get(), k_clusterset_async_channel_name,
                       ar_options, true, false, false);

@@ -19,6 +19,8 @@ replicacluster = cs.createReplicaCluster(__sandbox_uri3, "replica");
 replicacluster.addInstance(__sandbox_uri4);
 
 CHECK_REPLICA_CLUSTER([__sandbox_uri3, __sandbox_uri4], cluster, replicacluster);
+EXPECT_OUTPUT_CONTAINS("* Configuring ClusterSet managed replication channel...");
+EXPECT_OUTPUT_CONTAINS("** Changing replication source of <<<hostname>>>:<<<__mysql_sandbox_port4>>> to <<<hostname>>>:<<<__mysql_sandbox_port1>>>");
 
 // Cluster topology changes that affect the replication channel between cluster update the replication channels accordingly:
 //   - When the primary instance is removed (of either REPLICA or PRIMARY cluster).
@@ -96,6 +98,8 @@ session4.runSql("SET PERSIST_ONLY group_replication_start_on_boot=0");
 testutil.restartSandbox(__mysql_sandbox_port4);
 
 EXPECT_NO_THROWS(function() { replicacluster.rejoinInstance(__sandbox_uri4); });
+EXPECT_OUTPUT_CONTAINS("* Configuring ClusterSet managed replication channel...");
+EXPECT_OUTPUT_CONTAINS("** Changing replication source of <<<hostname>>>:<<<__mysql_sandbox_port4>>> to <<<hostname>>>:<<<__mysql_sandbox_port1>>>");
 
 testutil.waitMemberState(__mysql_sandbox_port4, "ONLINE");
 
