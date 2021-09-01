@@ -26,6 +26,24 @@ Routing option 'target_cluster' successfully updated in router 'routerhost1::sys
         "target_cluster": "cluster"
     }
 }
+Routing option 'target_cluster' successfully updated in router 'routerhost1::system'.
+{
+    "routerhost1::system": {
+        "target_cluster": "cluster"
+    }
+}
+Routing option 'target_cluster' successfully updated in router 'routerhost1::system'.
+{
+    "routerhost1::system": {
+        "target_cluster": "cluster"
+    }
+}
+Routing option 'target_cluster' successfully updated in router 'routerhost1::system'.
+{
+    "routerhost1::system": {
+        "target_cluster": "cluster"
+    }
+}
 Routing option 'invalidated_cluster_policy' successfully updated in router 'routerhost1::system'.
 {
     "routerhost1::system": {

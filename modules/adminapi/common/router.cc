@@ -248,9 +248,12 @@ void validate_router_option(const Cluster_set_impl &cluster_set,
     } else if (name == k_router_option_target_cluster) {
       const auto is_cluster_name = [&cluster_set](const std::string &cname) {
         auto clusters = cluster_set.get_clusters();
+        // Do case-insensitive comparison for the Cluster name since it's
+        // guaranteed to be unique
         return std::find_if(clusters.begin(), clusters.end(),
                             [&](const Cluster_metadata &c) {
-                              return c.cluster_name == cname;
+                              return shcore::str_lower(c.cluster_name) ==
+                                     shcore::str_lower(cname);
                             }) != clusters.end();
       };
 

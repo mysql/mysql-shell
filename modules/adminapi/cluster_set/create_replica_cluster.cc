@@ -469,11 +469,15 @@ void Create_replica_cluster::prepare() {
   }
 
   // Check if the cluster name is unique within the ClusterSet
+  // NOTE: The cluster name is case insensitive. This is enforced in the
+  // Metadata schema by making cluster_name an UNIQUE KEY
   auto clusters = m_cluster_set->get_clusters();
 
+  // Do case-insensitive comparison for the Cluster name to error out right away
   auto it = std::find_if(clusters.begin(), clusters.end(),
                          [&](const Cluster_metadata &c) {
-                           return c.cluster_name == m_cluster_name;
+                           return shcore::str_lower(c.cluster_name) ==
+                                  shcore::str_lower(m_cluster_name);
                          });
 
   if (it != clusters.end()) {

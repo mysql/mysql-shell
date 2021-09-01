@@ -156,7 +156,8 @@ CREATE TABLE IF NOT EXISTS clusters (
    */
   `clusterset_id` VARCHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
 
-  PRIMARY KEY(cluster_id)
+  PRIMARY KEY(cluster_id),
+  UNIQUE KEY(cluster_name)
 ) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
 
 

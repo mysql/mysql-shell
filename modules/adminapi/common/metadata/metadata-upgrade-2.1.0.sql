@@ -71,6 +71,10 @@ ALTER TABLE
 MODIFY `cluster_name` VARCHAR(63) NOT NULL;
 
 ALTER TABLE
+  `mysql_innodb_cluster_metadata`.`clusters`
+ADD UNIQUE (cluster_name);
+
+ALTER TABLE
   `mysql_innodb_cluster_metadata`.`instances`
 MODIFY `mysql_server_uuid` CHAR(36) NOT NULL;
 

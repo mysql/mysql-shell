@@ -72,6 +72,14 @@ clusterset.setRoutingOption(cm_router, "target_cluster", "primary");
 clusterset.routingOptions(cm_router);
 clusterset.setRoutingOption(cm_router, "target_cluster", cluster.getName());
 clusterset.routingOptions(cm_router);
+// BUG#33298735 clusterset: inconsistent case in/sensitivity in clustername
+// Verify combinations of the same name using lower and uppercase to test that the command accepts it
+clusterset.setRoutingOption(cm_router, "target_cluster", "Cluster");
+clusterset.routingOptions(cm_router);
+clusterset.setRoutingOption(cm_router, "target_cluster", "clusteR");
+clusterset.routingOptions(cm_router);
+clusterset.setRoutingOption(cm_router, "target_cluster", "CLUSTER");
+clusterset.routingOptions(cm_router);
 
 clusterset.setRoutingOption(cm_router, 'invalidated_cluster_policy', 'drop_all');
 clusterset.routingOptions(cm_router);

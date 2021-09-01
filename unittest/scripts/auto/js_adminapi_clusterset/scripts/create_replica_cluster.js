@@ -45,6 +45,17 @@ run_nolog(session3, "set password='root'");
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri3, "cluster")}, "Cluster name already in use.", "MYSQLSH");
 EXPECT_OUTPUT_CONTAINS("ERROR: A Cluster named 'cluster' already exists in the ClusterSet. Please use a different name.");
 
+// BUG#33298735 clusterset: inconsistent case in/sensitivity in clustername
+// Verify combinations of the same name using lower and uppercase to test that the check is case insensitive
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri3, "Cluster")}, "Cluster name already in use.", "MYSQLSH");
+EXPECT_OUTPUT_CONTAINS("ERROR: A Cluster named 'cluster' already exists in the ClusterSet. Please use a different name.");
+
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri3, "clusteR")}, "Cluster name already in use.", "MYSQLSH");
+EXPECT_OUTPUT_CONTAINS("ERROR: A Cluster named 'cluster' already exists in the ClusterSet. Please use a different name.");
+
+EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri3, "CLUSTER")}, "Cluster name already in use.", "MYSQLSH");
+EXPECT_OUTPUT_CONTAINS("ERROR: A Cluster named 'cluster' already exists in the ClusterSet. Please use a different name.");
+
 // FR5.3: The target instance must not have any pre-existing replication channels configured.
 setup_replica(session3, __mysql_sandbox_port4);
 
