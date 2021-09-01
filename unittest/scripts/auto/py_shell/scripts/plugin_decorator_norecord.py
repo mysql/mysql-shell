@@ -76,6 +76,23 @@ def test_optional_parameters(aString, anInt, aBool, aDict, aList=[1,2,3], anUnde
     if anUndefined is not None:
         print("anUndefined value:", anUndefined)
 
+@plugin_function("decorator.testRequiredDictParams", cli=True)
+def test_required_dict_params(first, dict_param=dict()):
+    """
+    Tests documentation for dictionary required parameters.
+
+    Args:
+        first (str): First required parameter.
+        dict_param (dict): Options.
+
+    Allowed options for dict_param:
+        param1 (str,required): First parameter
+        param2 (str,required): Second parameter
+        description (str): Description
+
+    """
+    print("first value:", first)
+    print("dict:", dict_param)
 
 @plugin_function("decorator.inner.testOptions", cli=True)
 def test_options(stritem, options=None):
@@ -175,6 +192,9 @@ rc = call_mysqlsh_e("\\? decorator.testSimpleTypes")
 #@<> Lists help of plugin function with optional parameters (js)
 rc = call_mysqlsh_e("\\? decorator.testOptionalParameters")
 
+#@<> Lists help of plugin function with required dictionary parameters (js)
+rc = call_mysqlsh_e("\\? decorator.testRequiredDictParams")
+
 #@<> Lists help of plugin function with options (js)
 rc = call_mysqlsh_e("\\? decorator.inner.testOptions")
 
@@ -189,6 +209,15 @@ rc = call_mysqlsh_e("decorator.testOptionalParameters('two', 1, true, {whateverO
 
 #@<> Test calling function with optionals 3 (js)
 rc = call_mysqlsh_e("decorator.testOptionalParameters('two', 1, true, {whateverOption:'whateverValue'}, [4,5,6], {anykey:'anyValue'})")
+
+#@<> Test calling function with required dictionary parameters 1 (js)
+rc = call_mysqlsh_e("decorator.testRequiredDictParams('one')")
+
+#@<> Test calling function with required dictionary parameters 2 (js)
+rc = call_mysqlsh_e("decorator.testRequiredDictParams('one', {'param1': 'value1'})")
+
+#@<> Test calling function with required dictionary parameters 3 (js)
+rc = call_mysqlsh_e("decorator.testRequiredDictParams('one', {'param1': 'value1', 'param2': 'value2'})")
 
 #@<> Test calling function with options 1 (js)
 rc = call_mysqlsh_e("decorator.inner.testOptions('Passing No Options')")
@@ -219,6 +248,9 @@ rc = call_mysqlsh_py_e("\\? decorator.test_simple_types")
 #@<> Lists help of plugin function with optional parameters (py)
 rc = call_mysqlsh_py_e("\\? decorator.test_optional_parameters")
 
+#@<> Lists help of plugin function with required dictionary parameters (py)
+rc = call_mysqlsh_py_e("\\? decorator.test_required_dict_params")
+
 #@<> Lists help of plugin function with options (py)
 rc = call_mysqlsh_py_e("\\? decorator.inner.test_options")
 
@@ -236,6 +268,15 @@ rc = call_mysqlsh_py_e("decorator.test_optional_parameters('two', 1, True, {'wha
 
 #@<> Test calling function with optionals 3 (py)
 rc = call_mysqlsh_py_e("decorator.test_optional_parameters('two', 1, True, {'whateverOption':'whateverValue'}, [4,5,6], {'anykey':'anyValue'})")
+
+#@<> Test calling function with required dictionary parameters 1 (py)
+rc = call_mysqlsh_py_e("decorator.test_required_dict_params('one')")
+
+#@<> Test calling function with required dictionary parameters 2 (py)
+rc = call_mysqlsh_py_e("decorator.test_required_dict_params('one', {'param1': 'value1'})")
+
+#@<> Test calling function with required dictionary parameters 3 (py)
+rc = call_mysqlsh_py_e("decorator.test_required_dict_params('one', {'param1': 'value1', 'param2': 'value2'})")
 
 #@<> Test calling function with options 1 (py)
 rc = call_mysqlsh_py_e("decorator.inner.test_options('Passing No Options')")

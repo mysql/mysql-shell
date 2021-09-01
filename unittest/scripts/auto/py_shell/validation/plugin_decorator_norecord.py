@@ -22,6 +22,9 @@ FUNCTIONS
       testOptionalParameters(aString, anInt, aBool, aDict[, aList][, anUndefined])
             Tests documentation for optional parameters.
 
+      testRequiredDictParams(first[, dict_param])
+            Tests documentation for dictionary required parameters.
+
       testSimpleTypes(aString, anInt, aBool, aDict, aList, anUndefined)
             Tests documentation for simple types, no options defined.
 
@@ -97,6 +100,27 @@ DESCRIPTION
       The aDict parameter accepts any key/value pair.
 
 
+#@<OUT> Lists help of plugin function with required dictionary parameters (js)
+[[*]]> \? decorator.testRequiredDictParams
+NAME
+      testRequiredDictParams - Tests documentation for dictionary required
+                               parameters.
+
+SYNTAX
+      decorator.testRequiredDictParams(first[, dict_param])
+
+WHERE
+      first: String - First required parameter.
+      dict_param: Dictionary - Options.
+
+DESCRIPTION
+      The dict_param parameter accepts the following options:
+
+      - param1: String (required) - First parameter.
+      - param2: String (required) - Second parameter.
+      - description: String - Description.
+[[*]]> 
+
 #@<OUT> Lists help of plugin function with options (js)
 [[*]]> \? decorator.inner.testOptions
 NAME
@@ -154,6 +178,24 @@ aDict value: {"whateverOption": "whateverValue"}
 aList value: [4, 5, 6]
 anUndefined value: {"anykey": "anyValue"}
 
+#@<OUT> Test calling function with required dictionary parameters 1 (js)
+[[*]]> decorator.testRequiredDictParams('one')
+first value: one
+dict: {}
+[[*]]> 
+
+#@<OUT> Test calling function with required dictionary parameters 2 (js)
+[[*]]> decorator.testRequiredDictParams('one', {'param1': 'value1'})
+decorator.testRequiredDictParams: Missing required options at Argument #2: param2 (ArgumentError)
+[[*]]> 
+
+#@<OUT> Test calling function with required dictionary parameters 3 (js)
+[[*]]> decorator.testRequiredDictParams('one', {'param1': 'value1', 'param2': 'value2'})
+first value: one
+dict: {"param1": "value1", "param2": "value2"}
+[[*]]> 
+
+
 #@<OUT> Test calling function with options 1 (js)
 [[*]]> decorator.inner.testOptions('Passing No Options')
 stritem value: Passing No Options
@@ -202,6 +244,9 @@ FUNCTIONS
 
       test_optional_parameters(aString, anInt, aBool, aDict[, aList][, anUndefined])
             Tests documentation for optional parameters.
+
+      test_required_dict_params(first[, dict_param])
+            Tests documentation for dictionary required parameters.
 
       test_simple_types(aString, anInt, aBool, aDict, aList, anUndefined)
             Tests documentation for simple types, no options defined.
@@ -276,6 +321,27 @@ DESCRIPTION
       with default values are documented as optional params.
 
       The aDict parameter accepts any key/value pair.
+
+#@<OUT> Lists help of plugin function with required dictionary parameters (py)
+[[*]]> \? decorator.test_required_dict_params
+NAME
+      test_required_dict_params - Tests documentation for dictionary required
+                                  parameters.
+
+SYNTAX
+      decorator.test_required_dict_params(first[, dict_param])
+
+WHERE
+      first: String - First required parameter.
+      dict_param: Dictionary - Options.
+
+DESCRIPTION
+      The dict_param parameter accepts the following options:
+
+      - param1: String (required) - First parameter.
+      - param2: String (required) - Second parameter.
+      - description: String - Description.
+[[*]]> 
 
 
 #@<OUT> Lists help of plugin function with options (py)
@@ -380,6 +446,20 @@ aDict value: {"whateverOption": "whateverValue"}
 aList value: [4, 5, 6]
 anUndefined value: {"anykey": "anyValue"}
 
+#@ Test calling function with required dictionary parameters 1 (py)
+|[[*]]> decorator.test_required_dict_params('one')|
+|ValueError: decorator.test_required_dict_params: Missing required options at Argument #2: param1, param2|
+
+#@ Test calling function with required dictionary parameters 2 (py)
+|[[*]]> decorator.test_required_dict_params('one', {'param1': 'value1'})|
+|ValueError: decorator.test_required_dict_params: Missing required options at Argument #2: param2|
+
+#@<OUT> Test calling function with required dictionary parameters 3 (py)
+[[*]]> decorator.test_required_dict_params('one', {'param1': 'value1', 'param2': 'value2'})
+first value: one
+dict: {"param1": "value1", "param2": "value2"}
+[[*]]> 
+
 #@<OUT> Test calling function with options 1 (py)
 [[*]]> decorator.inner.test_options('Passing No Options')
 stritem value: Passing No Options
@@ -414,6 +494,9 @@ The following operations are available at 'decorator':
 
    test-optional-parameters
       Tests documentation for optional parameters.
+
+   test-required-dict-params
+      Tests documentation for dictionary required parameters.
 
    test-simple-types
       Tests documentation for simple types, no options defined.

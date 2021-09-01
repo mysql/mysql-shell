@@ -89,32 +89,18 @@ class PluginRegistrar:
         def __init__(self, option_def):
             self.docs = PluginRegistrar.ItemDoc()
             self.name = option_def["name"]
-            if "type" in option_def:
-                self.type = option_def["type"]
-            else:
-                self.type = None
+            self.type = option_def.get("type")
             self.docs.brief = option_def["brief"]
             self.options = []
-            self.required = False
+            self.required = option_def.get("required", False)
 
-            try:
+            if "details" in option_def:
                 self.docs.details = option_def["details"]
-            except KeyError:
-                pass
 
-            try:
-                self.required = option_def["required"]
-            except KeyError:
-                pass
-
-            try:
-                options = option_def["options"]
-                for option in options:
+            if "options" in option_def:
+                for option in option_def["options"]:
                     self.options.append(PluginRegistrar.OptionData(option))
-            except KeyError:
-                pass
 
-            self.required = False
             self.default = None
 
         def format_info(self):
