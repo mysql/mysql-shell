@@ -21,8 +21,10 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <iterator>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "unittest/gtest_clean.h"
@@ -58,9 +60,17 @@ class Test_server {
     const auto port_number = std::to_string(m_port);
     m_address = "https://127.0.0.1:" + port_number;
 
+    const auto debug = getenv("TEST_DEBUG") != nullptr;
     bool server_ready = false;
+
     for (const auto python_cmd : {"python", "python3"}) {
       if (server_ready) break;
+
+      if (debug) {
+        std::cerr << "executing: " << python_cmd << " " << script << " "
+                  << port_number << std::endl;
+      }
+
       std::vector<const char *> args = {python_cmd, script.c_str(),
                                         port_number.c_str(), nullptr};
 
@@ -75,7 +85,10 @@ class Test_server {
       static constexpr uint32_t wait_time = 10100;  // 10s
       uint32_t current_time = 0;
       Rest_service rest{m_address, false};
-      const auto debug = getenv("TEST_DEBUG") != nullptr;
+
+      if (debug) {
+        std::cerr << "Trying to connect to: " << m_address << std::endl;
+      }
 
       while (!server_ready) {
         shcore::sleep_ms(sleep_time);
@@ -91,6 +104,7 @@ class Test_server {
           if (debug) {
             std::cerr << "HTTPS server replied with: "
                       << Response::status_code(response.status)
+                      << ", body: " << response.buffer.raw()
                       << ", waiting time: " << current_time << "ms"
                       << std::endl;
           }
@@ -156,6 +170,8 @@ class Rest_service_test : public ::testing::Test {
 
  protected:
   static void SetUpTestCase() {
+    setup_env_vars();
+
     s_test_server = std::make_unique<Test_server>();
 
     if (s_test_server->start_server(8080, true)) {
@@ -180,9 +196,45 @@ class Rest_service_test : public ::testing::Test {
     if (s_test_server && s_test_server->is_alive()) {
       s_test_server->stop_server();
     }
+
+    restore_env_vars();
+  }
+
+  static void setup_env_vars() {
+    const auto no_proxy = ::getenv(s_no_proxy);
+
+    if (no_proxy) {
+      s_no_proxy_env = no_proxy;
+    }
+
+    std::unordered_set<std::string> unique_hosts;
+
+    {
+      auto hosts = shcore::str_split(s_no_proxy_env, ",", -1, true);
+      std::move(hosts.begin(), hosts.end(),
+                std::inserter(unique_hosts, unique_hosts.begin()));
+    }
+
+    unique_hosts.emplace("localhost");
+    unique_hosts.emplace("127.0.0.1");
+    unique_hosts.emplace("::1");
+
+    shcore::setenv(s_no_proxy, shcore::str_join(unique_hosts, ","));
+  }
+
+  static void restore_env_vars() {
+    if (s_no_proxy_env.empty()) {
+      shcore::unsetenv(s_no_proxy);
+    } else {
+      shcore::setenv(s_no_proxy, s_no_proxy_env);
+    }
   }
 
   static std::unique_ptr<Test_server> s_test_server;
+
+  static constexpr auto s_no_proxy = "no_proxy";
+
+  static std::string s_no_proxy_env;
 
   // static std::string s_test_server_address;
 
@@ -190,6 +242,7 @@ class Rest_service_test : public ::testing::Test {
 };  // namespace test
 
 std::unique_ptr<Test_server> Rest_service_test::s_test_server;
+std::string Rest_service_test::s_no_proxy_env;
 // std::string Rest_service_test::s_test_server_address;
 
 #define FAIL_IF_NO_SERVER                                \
