@@ -24,6 +24,17 @@ import inspect
 import re
 from functools import wraps
 
+# Callbacks for additional handling on registered plugin
+# functions should be added here, they should be in the form
+# def callback(definition)
+#
+# Where definition is an instance of FunctionData
+_registration_callbacks = []
+
+
+def add_registration_callback(callback):
+    _registration_callbacks.append(callback)
+
 
 class PluginRegistrar:
     """Helper class to register a shell plugin.
@@ -211,10 +222,26 @@ class PluginRegistrar:
         The documentation provides  brief and details.
         """
 
-        def __init__(self, function, cli=False):
-            self.name = function.__name__
+        def __init__(self, function,
+                     fully_qualified_name=None,
+                     shell=True,
+                     cli=False,
+                     web=False):
+            # Get the plugin name by stripping the function name
+            name = None
+            if not fully_qualified_name is None:
+                name_path = fully_qualified_name.split(".")
+                name = name_path[-1]
+
+            self.function = function
+            self.fully_qualified_name = fully_qualified_name
+            self.name = function.__name__ if name is None else name
             self.docs = PluginRegistrar.ItemDoc()
+
+            # These flags indicate where the function should be available
+            self.shell = shell
             self.cli = cli
+            self.web = web
 
             signature = inspect.signature(function)
             self.parameters = [
@@ -520,7 +547,7 @@ class PluginRegistrar:
         """
         import mysqlsh
 
-        shell = mysqlsh.globals.shell
+        shell_obj = mysqlsh.globals.shell
 
         hierarchy = name.split(".")
 
@@ -549,16 +576,16 @@ class PluginRegistrar:
                             f"No docs specified for plugin object " f"{name}"
                         )
                     # If it does not exist yet, create it
-                    plugin_obj = shell.create_extension_object()
-                    shell.add_extension_object_member(
+                    plugin_obj = shell_obj.create_extension_object()
+                    shell_obj.add_extension_object_member(
                         parent, plugin_name, plugin_obj, docs
                     )
             else:
                 try:
                     plugin_obj = getattr(mysqlsh.globals, name, None)
                 except KeyError:
-                    plugin_obj = shell.create_extension_object()
-                    shell.register_global(name, plugin_obj, docs)
+                    plugin_obj = shell_obj.create_extension_object()
+                    shell_obj.register_global(name, plugin_obj, docs)
             return plugin_obj
         except Exception as e:
             raise Exception(
@@ -566,24 +593,39 @@ class PluginRegistrar:
             )
 
     def register_function(
-        self, plugin_obj, function, plugin_function_name=None, cli=None
+        self, plugin_obj, function,
+        fully_qualified_name=None,
+        shell=True,
+        cli=False,
+        web=False
     ):
         """Registers a new member into the provided shell extension object"""
         import mysqlsh
 
-        shell = mysqlsh.globals.shell
+        shell_obj = mysqlsh.globals.shell
 
-        definition = PluginRegistrar.FunctionData(function, cli)
+        if cli and not shell:
+            raise Exception(
+                "The CLI can only be enabled on registered functions.")
+
+        definition = PluginRegistrar.FunctionData(
+            function, shell=shell,
+            fully_qualified_name=fully_qualified_name,
+            cli=cli,
+            web=web)
 
         try:
-            shell.add_extension_object_member(
-                plugin_obj,
-                definition.name
-                if plugin_function_name is None
-                else plugin_function_name,
-                function,
-                definition.format_info(),
-            )
+            if shell:
+                shell_obj.add_extension_object_member(
+                    plugin_obj,
+                    definition.name,
+                    function,
+                    definition.format_info(),
+                )
+
+            # On success registration, the function is reported to the callbacks
+            for callback in _registration_callbacks:
+                callback(definition)
         except Exception as e:
             raise Exception(
                 f"Could not add function '{definition.name}' "
@@ -662,7 +704,11 @@ def plugin(cls):
     return wrapper
 
 
-def plugin_function(fully_qualified_name, plugin_docs=None, cli=False):
+def plugin_function(fully_qualified_name,
+                    plugin_docs=None,
+                    shell=True,
+                    cli=False,
+                    web=False):
     """Decorator factory to register Shell plugins functions
 
     Args:
@@ -693,7 +739,11 @@ def plugin_function(fully_qualified_name, plugin_docs=None, cli=False):
 
             # register the function
             plugin_manager.register_function(
-                plugin_obj, function, function_name, cli
+                plugin_obj, function,
+                fully_qualified_name=fully_qualified_name,
+                shell=shell,
+                cli=cli,
+                web=web
             )
         except Exception as e:
             print(
