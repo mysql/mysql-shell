@@ -39,6 +39,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
+#include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/config/config_file_handler.h"
 #include "mysqlshdk/libs/config/config_server_handler.h"
 #include "mysqlshdk/libs/db/connection_options.h"
@@ -46,9 +47,11 @@
 #include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/mysql/clone.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/script.h"
 #include "mysqlshdk/libs/mysql/user_privileges.h"
+#include "mysqlshdk/libs/textui/progress.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -1709,6 +1712,7 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
                             const std::string &gtid_set,
                             const std::string &channel_name, int timeout,
                             bool cancelable) {
+  size_t total_transactions_primary, missing_transactions;
   // The GTID wait will not abort if an error occurs, so calling it without a
   // timeout will just freeze forever. To prevent that, we call the wait with
   // smaller incremental timeouts and wait for errors during that.
@@ -1729,7 +1733,73 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
       !cancelable);
 
   bool sync_res;
+
+  // Get the Progress_reporting style option in use
+  auto progress_reporting = current_shell_options()->get().progress_reporting;
+  std::unique_ptr<mysqlshdk::textui::Progress_vt100> progress_bar;
+
+  const auto update_progress = [](mysqlshdk::textui::Progress_vt100 *bar,
+                                  uint64_t total, size_t missing) {
+    bar->set_current(total - missing);
+    bar->update();
+  };
+
+  // Get the total count of GTID_EXECUTED from the primary
+  auto gtid_set_primary =
+      mysqlshdk::mysql::Gtid_set::from_normalized_string(gtid_set);
+  total_transactions_primary = gtid_set_primary.count();
+
+  using Progress_reporting = Shell_options::Storage::Progress_reporting;
+
+  if (progress_reporting == Progress_reporting::PROGRESSBAR) {
+    // Init the progress bar
+    progress_bar = std::make_unique<mysqlshdk::textui::Progress_vt100>(0);
+    progress_bar->set_label("** Transactions replicated");
+    progress_bar->set_total(total_transactions_primary);
+    progress_bar->start();
+
+    // Update the progress bar to show the current state of the transactions
+    // missing
+    auto gtid_set_target =
+        mysqlshdk::mysql::Gtid_set::from_gtid_executed(target_instance);
+    missing_transactions = mysqlshdk::mysql::estimate_gtid_set_size(
+        gtid_set_primary.subtract(gtid_set_target, target_instance));
+
+    update_progress(progress_bar.get(), total_transactions_primary,
+                    missing_transactions);
+  }
+
   do {
+    // Every minute, get the executed gtid_set at the target instance to check
+    // how many transactions are still missing to provide that info to the user
+    if (time_elapsed != 0 && time_elapsed % 60 == 0) {
+      auto gtid_set_target =
+          mysqlshdk::mysql::Gtid_set::from_gtid_executed(target_instance);
+
+      missing_transactions = mysqlshdk::mysql::estimate_gtid_set_size(
+          gtid_set_primary.subtract(gtid_set_target, target_instance));
+
+      switch (progress_reporting) {
+        case Progress_reporting::PROGRESSBAR: {
+          update_progress(progress_bar.get(), total_transactions_primary,
+                          missing_transactions);
+          break;
+        }
+        case Progress_reporting::SIMPLE: {
+          // Simple progress reporting, just print info about the transactions
+          // left
+          mysqlsh::current_console()->print_info(
+              "** " + std::to_string(missing_transactions) + " of " +
+              std::to_string(total_transactions_primary) +
+              " transactions left");
+          break;
+        }
+        default:
+          // Nothing to do
+          break;
+      }
+    }
+
     sync_res = mysqlshdk::mysql::wait_for_gtid_set(target_instance, gtid_set,
                                                    incremental_timeout);
     if (!sync_res) {
@@ -1743,6 +1813,10 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
       // continue waiting if there were no errors
     } else {
       // wait succeeded, get out of here
+      if (progress_reporting == Progress_reporting::PROGRESSBAR) {
+        update_progress(progress_bar.get(), total_transactions_primary, 0);
+        progress_bar->end();
+      }
       break;
     }
   } while ((timeout == 0 || time_elapsed < timeout) && !stop);
@@ -1862,8 +1936,8 @@ TargetType::Type get_instance_type(const MetadataStorage &metadata,
       // - others
       if (cluster_type != Cluster_type::NONE) {
         log_warning(
-            "Instance %s is running Group Replication, but does not belong "
-            "to a InnoDB cluster",
+            "Instance %s is running Group Replication, but does not belong to "
+            "a InnoDB cluster",
             target_server->descr().c_str());
       }
 
@@ -1912,8 +1986,8 @@ Cluster_check_info get_cluster_check_info(const MetadataStorage &metadata,
     // active session
     state = get_replication_group_state(*group_instance, state.source_type);
 
-    // On IDC we want to also determine whether the quorum is just Normal or
-    // if All the instances are ONLINE
+    // On IDC we want to also determine whether the quorum is just Normal or if
+    // All the instances are ONLINE
     if (state.source_type == TargetType::InnoDBCluster) {
       if (state.quorum == ReplicationQuorum::States::Normal) {
         try {

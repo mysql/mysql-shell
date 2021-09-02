@@ -98,6 +98,7 @@ session4.runSql("SET PERSIST_ONLY group_replication_start_on_boot=0");
 testutil.restartSandbox(__mysql_sandbox_port4);
 
 EXPECT_NO_THROWS(function() { replicacluster.rejoinInstance(__sandbox_uri4); });
+EXPECT_OUTPUT_CONTAINS("* Waiting for the Cluster to synchronize with the PRIMARY Cluster...");
 EXPECT_OUTPUT_CONTAINS("* Configuring ClusterSet managed replication channel...");
 EXPECT_OUTPUT_CONTAINS("** Changing replication source of <<<hostname>>>:<<<__mysql_sandbox_port4>>> to <<<hostname>>>:<<<__mysql_sandbox_port1>>>");
 

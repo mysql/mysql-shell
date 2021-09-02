@@ -399,6 +399,10 @@ void Cluster_join::configure_cluster_set_member() {
   }
 
   if (!m_cluster->is_primary_cluster()) {
+    auto console = mysqlsh::current_console();
+
+    console->print_info(
+        "* Waiting for the Cluster to synchronize with the PRIMARY Cluster...");
     m_cluster->sync_transactions(*m_primary_instance,
                                  k_clusterset_async_channel_name, 0);
     auto cs = m_cluster->get_cluster_set();
@@ -420,12 +424,14 @@ void Cluster_join::configure_cluster_set_member() {
 
     // Setup the replication channel at the target instance but do not start
     // it since that's handled by Group Replication
-    mysqlsh::current_console()->print_info(
+    console->print_info(
         "* Configuring ClusterSet managed replication channel...");
 
     async_add_replica(m_cluster->get_primary_master().get(),
                       m_target_instance.get(), k_clusterset_async_channel_name,
                       ar_options, true, false, false);
+
+    console->print_info();
   }
 }
 
@@ -1140,6 +1146,7 @@ void Cluster_join::rejoin() {
 
   console->print_info("Rejoining instance '" + m_target_instance->descr() +
                       "' to cluster '" + m_cluster->get_name() + "'...");
+  console->print_info();
 
   // Make sure the GR plugin is installed (only installed if needed).
   // NOTE: An error is issued if it fails to be installed (e.g., DISABLED).

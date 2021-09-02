@@ -24,6 +24,8 @@
 #ifndef MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_OPTIONS_H_
 #define MYSQLSHDK_INCLUDE_SHELLCORE_SHELL_OPTIONS_H_
 
+#include "mysqlshdk/libs/utils/utils_general.h"
+
 #define SN_SHELL_OPTION_CHANGED "SN_SHELL_OPTION_CHANGED"
 
 #define SHCORE_RESULT_FORMAT "resultFormat"
@@ -53,6 +55,8 @@
 #define SHCORE_VERBOSE "verbose"
 #define SHCORE_DEBUG "debug"
 #define SHCORE_MYSQL_PLUGIN_DIR "mysqlPluginDir"
+
+#define SHCORE_PROGRESS_REPORTING "progressReporting"
 
 #include <stdlib.h>
 #include <iostream>
@@ -153,6 +157,15 @@ class Shell_options : public shcore::Options {
     // override default plugin search path ; separated in windows, : elsewhere
     mysqlshdk::null_string plugins_path;
     std::string mysql_plugin_dir;
+
+    // TODO(anyone): Expose the option
+    enum class Progress_reporting {
+      DISABLED,
+      SIMPLE,
+      PROGRESSBAR
+    } progress_reporting = isatty(STDOUT_FILENO)
+                               ? Progress_reporting::PROGRESSBAR
+                               : Progress_reporting::SIMPLE;
 
     int exit_code = 0;
 
