@@ -40,7 +40,8 @@ void Shell_javascript::set_result_processor(
   _result_processor = result_processor;
 }
 
-void Shell_javascript::handle_input(std::string &code, Input_state &state) {
+void Shell_javascript::handle_input(std::string &code, Input_state &state,
+                                    bool interactive) {
   // Undefined to be returned in case of errors
   Value result;
 
@@ -50,7 +51,7 @@ void Shell_javascript::handle_input(std::string &code, Input_state &state) {
   });
 
   bool got_error = true;
-  if (mysqlsh::current_shell_options()->get().interactive)
+  if (interactive)
     std::tie(result, got_error) = _js->execute_interactive(code, &state);
   else {
     try {

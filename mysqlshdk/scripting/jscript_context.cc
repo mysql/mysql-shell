@@ -548,18 +548,13 @@ void JScript_context::Impl::f_print(const V8_args &args, bool new_line) {
   v8::HandleScope outer_handle_scope(isolate);
 
   std::string text;
-  // FIXME this doesn't belong here?
-  std::string format = mysqlsh::current_shell_options()->get().wrap_json;
 
   for (int i = 0; i < args.Length(); i++) {
     v8::HandleScope handle_scope(isolate);
     if (i > 0) text.push_back(' ');
 
     try {
-      if (format.find("json") == 0)
-        text += self->convert(args[i]).json(format == "json");
-      else
-        text += self->convert(args[i]).descr(true);
+      text += self->convert(args[i]).descr(true);
     } catch (const std::exception &e) {
       isolate->ThrowException(v8_string(isolate, e.what()));
       break;

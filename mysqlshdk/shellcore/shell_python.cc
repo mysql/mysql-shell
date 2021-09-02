@@ -58,7 +58,8 @@ void Shell_python::set_result_processor(
 /*
  * Handle shell input on Python mode
  */
-void Shell_python::handle_input(std::string &code, Input_state &state) {
+void Shell_python::handle_input(std::string &code, Input_state &state,
+                                bool interactive) {
   shcore::Interrupt_handler inth([this]() {
     abort();
     return true;
@@ -68,7 +69,7 @@ void Shell_python::handle_input(std::string &code, Input_state &state) {
   }
 
   Value result;
-  if (mysqlsh::current_shell_options()->get().interactive) {
+  if (interactive) {
     WillEnterPython lock;
     result = _py->execute_interactive(code, state);
   } else {

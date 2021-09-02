@@ -48,7 +48,8 @@ class Shell_python : public Shell_language {
   }
 
   std::string preprocess_input_line(const std::string &s) override;
-  void handle_input(std::string &code, Input_state &state) override;
+  void handle_input(std::string &code, Input_state &state,
+                    bool interactive) override;
 
   void execute_module(const std::string &module_name,
                       const std::vector<std::string> &args) override;

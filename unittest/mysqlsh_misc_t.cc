@@ -315,12 +315,17 @@ TEST_F(Mysqlsh_misc, js_sys_argv) {
   // NOTE: Uses --json because in JS the array is printed in pretty format
   // (multiline) so we avoid dealing with line ending differences on this test
   execute({_mysqlsh, "--json=raw", "-f", "sysargv.js", "1", "2", nullptr});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("[\\\"sysargv.js\\\",\\\"1\\\",\\\"2\\\"]");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("\\\"sysargv.js\\\"");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("\\\"sysargv.js\\\"");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("\\\"1\\\"");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("\\\"2\\\"");
   wipe_out();
 
   execute({_mysqlsh, "--interactive", "--json=raw", "-f", "sysargv.js", "3",
            "4", nullptr});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("[\\\"sysargv.js\\\",\\\"3\\\",\\\"4\\\"]");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("\\\"sysargv.js\\\"");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("\\\"3\\\"");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("\\\"4\\\"");
   wipe_out();
 
   try {

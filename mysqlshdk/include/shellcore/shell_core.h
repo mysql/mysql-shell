@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/common.h"
 #include "shellcore/ishell_core.h"
@@ -113,7 +114,8 @@ class SHCORE_PUBLIC Shell_language {
   }
 
   virtual std::string preprocess_input_line(const std::string &s) { return s; }
-  virtual void handle_input(std::string &code, Input_state &state) = 0;
+  virtual void handle_input(std::string &code, Input_state &state,
+                            bool interactive) = 0;
 
   virtual std::string get_handled_input() { return _last_handled; }
 
@@ -187,11 +189,17 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   }
 
   virtual std::string preprocess_input_line(const std::string &s);
-  void handle_input(std::string &code, Input_state &state) override;
+  void handle_input(std::string &code, Input_state &state,
+                    bool interactive = mysqlsh::current_shell_options()
+                                           ->get()
+                                           .interactive) override;
   bool handle_shell_command(const std::string &code) override;
   size_t handle_inline_shell_command(const std::string &code) override;
   std::string get_handled_input() override;
-  int process_stream(std::istream &stream, const std::string &source) override;
+  int process_stream(std::istream &stream, const std::string &source,
+                     bool interactive = mysqlsh::current_shell_options()
+                                            ->get()
+                                            .interactive) override;
 
   virtual void execute_module(const std::string &module_name,
                               const std::vector<std::string> &argv);

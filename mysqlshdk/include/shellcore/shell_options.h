@@ -214,6 +214,11 @@ class Shell_options : public shcore::Options {
     storage.oci_config_file = path;
   }
 
+  void set_json_output() {
+    storage.wrap_json = "json/raw";
+    storage.result_format = "json/raw";
+  }
+
   std::vector<std::string> get_details() { return get_cmdline_help(32, 46); }
 
   bool action_print_help() const { return print_cmd_line_helper; }

@@ -253,7 +253,8 @@ bool Shell_sql::handle_input_stream(std::istream *istream) {
   return true;
 }
 
-void Shell_sql::handle_input(std::string &code, Input_state &state) {
+void Shell_sql::handle_input(std::string &code, Input_state &state,
+                             [[maybe_unused]] bool interactive) {
   // TODO(kolesink) this is a temporary solution and should be removed when
   // splitter is adjusted to be able to restart parsing from previous state
   if (state == Input_state::ContinuedSingle) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2020, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,7 +63,8 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language {
 
   virtual void set_global(const std::string &, const Value &) {}
 
-  virtual void handle_input(std::string &code, Input_state &state);
+  virtual void handle_input(std::string &code, Input_state &state,
+                            bool interactive);
 
   virtual bool handle_input_stream(std::istream *istream);
 

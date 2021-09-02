@@ -21,48 +21,27 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _SHELLCORE_JS_H_
-#define _SHELLCORE_JS_H_
+#ifndef SRC_MYSQLSH_JSON_SHELL_H_
+#define SRC_MYSQLSH_JSON_SHELL_H_
 
+#include <memory>
 #include <string>
-#include <vector>
+#include <utility>
 
-#include "shellcore/shell_core.h"
+#include "mysqlshdk/include/shellcore/shell_options.h"
+#include "src/mysqlsh/cmdline_shell.h"
 
-namespace shcore {
-class JScript_context;
+namespace mysqlsh {
 
-class Shell_javascript : public Shell_language {
+class Json_shell : public Command_line_shell {
  public:
-  explicit Shell_javascript(Shell_core *shcore);
+  explicit Json_shell(std::shared_ptr<Shell_options> options);
+  Json_shell(std::shared_ptr<Shell_options> cmdline_options,
+             std::unique_ptr<shcore::Interpreter_delegate> delegate);
 
-  void set_result_processor(
-      std::function<void(shcore::Value, bool)> result_processor);
+  ~Json_shell() override = default;
 
-  std::function<void(shcore::Value, bool)> result_processor() const {
-    return _result_processor;
-  }
-
-  void set_global(const std::string &name, const Value &value) override;
-
-  void set_argv(const std::vector<std::string> &argv = {}) override;
-
-  void handle_input(std::string &code, Input_state &state,
-                    bool interactive) override;
-
-  std::shared_ptr<JScript_context> javascript_context() { return _js; }
-
-  void clear_input() override;
-  std::string get_continued_input_context() override;
-
-  bool load_plugin(const Plugin_definition &plugin) override;
-
- private:
-  void abort() noexcept;
-  std::shared_ptr<JScript_context> _js;
-  std::function<void(shcore::Value, bool)> _result_processor;
-  Input_state m_last_input_state;
+  void process_line(const std::string &line) override;
 };
-}  // namespace shcore
-
-#endif
+}  // namespace mysqlsh
+#endif  // SRC_MYSQLSH_JSON_SHELL_H_

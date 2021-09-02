@@ -24,6 +24,7 @@
 #include "modules/mod_utils.h"
 #include "modules/util/json_importer.h"
 #include "mysqlsh/cmdline_shell.h"
+#include "mysqlsh/json_shell.h"
 #include "mysqlshdk/include/shellcore/interrupt_helper.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/libs/textui/textui.h"
@@ -681,7 +682,14 @@ int main(int argc, char **argv) {
 
     bool valid_color_capability = detect_color_capability();
 
-    shell.reset(new mysqlsh::Command_line_shell(shell_options), finalize_shell);
+    // The Json_shell mode is enabled when this env variable is defined
+    char *json_shell = getenv("MYSQLSH_JSON_SHELL");
+    if (json_shell) {
+      shell.reset(new mysqlsh::Json_shell(shell_options), finalize_shell);
+    } else {
+      shell.reset(new mysqlsh::Command_line_shell(shell_options),
+                  finalize_shell);
+    }
 
     init_shell(shell);
 
