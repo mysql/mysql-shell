@@ -653,7 +653,7 @@ wipe_instance(session);
 //@<> showProgress:true
 // TSFR11_1
 testutil.callMysqlsh([__sandbox_uri1, "--", "util", "load-dump", __tmp_dir+"/ldtest/dump", "--showProgress=true", "--deferTableIndexes=all"]);
-EXPECT_STDOUT_MATCHES(/, \d+ \/ \d+ tables done/);
+EXPECT_STDOUT_MATCHES(/, \d+ \/ \d+ tables( and partitions)? done/);
 
 testutil.rmfile(__tmp_dir+"/ldtest/dump/load-progress*");
 wipe_instance(session);

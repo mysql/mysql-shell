@@ -217,6 +217,14 @@ class Dump_reader {
 
   uint64_t metadata_parsed() { return m_metadata_parsed; }
 
+  void on_table_with_data() { ++m_unique_tables_with_data; }
+
+  uint64_t unique_tables() { return m_unique_tables_with_data; }
+
+  void on_table_with_partitions() { m_dump_has_partitions = true; }
+
+  bool has_partitions() const { return m_dump_has_partitions; }
+
   struct Capability_info {
     std::string id;
     std::string description;
@@ -430,8 +438,13 @@ class Dump_reader {
   Dump_info m_contents;
   size_t m_filtered_data_size = 0;
 
-  // Tables that are ready to be loaded
+  // Tables and partitions that are ready to be loaded
   std::unordered_set<Table_data_info *> m_tables_with_data;
+
+  // tables which have data to be loaded (possibly partitioned)
+  std::atomic<uint64_t> m_unique_tables_with_data{0};
+
+  bool m_dump_has_partitions = false;
 
   std::atomic<uint64_t> m_metadata_available{0};
   std::atomic<uint64_t> m_metadata_parsed{0};

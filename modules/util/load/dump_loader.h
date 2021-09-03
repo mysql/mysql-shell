@@ -493,6 +493,7 @@ class Dump_loader {
   dump::Progress_thread::Stage *m_create_indexes_stage = nullptr;
   dump::Progress_thread::Stage *m_analyze_tables_stage = nullptr;
 
+  // tables and partitions loaded
   std::unordered_set<std::string> m_unique_tables_loaded;
   size_t m_total_tables_with_data = 0;
 

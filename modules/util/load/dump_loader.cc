@@ -1702,12 +1702,13 @@ void Dump_loader::show_summary() {
     const auto load_seconds = m_load_data_stage->duration().seconds();
 
     console->print_info(shcore::str_format(
-        "%zi chunks (%s, %s) for %zi tables in %zi schemas were "
+        "%zi chunks (%s, %s) for %" PRIu64
+        " tables in %zi schemas were "
         "loaded in %s (avg throughput %s)",
         m_num_chunks_loaded.load(),
         format_items("rows", "rows", m_num_rows_loaded.load()).c_str(),
         format_bytes(m_num_bytes_loaded.load()).c_str(),
-        m_unique_tables_loaded.size(), m_dump->schemas().size(),
+        m_dump->unique_tables(), m_dump->schemas().size(),
         format_seconds(seconds, false).c_str(),
         format_throughput_bytes(
             m_num_bytes_loaded.load() - m_num_bytes_previously_loaded,
@@ -2889,9 +2890,10 @@ void Dump_loader::setup_load_data_progress() {
   };
 
   config.right_label = [this]() {
-    return shcore::str_format(", %zu / %zu tables done",
-                              m_unique_tables_loaded.size(),
-                              m_total_tables_with_data);
+    return shcore::str_format(
+        ", %zu / %zu tables%s done", m_unique_tables_loaded.size(),
+        m_total_tables_with_data,
+        m_dump->has_partitions() ? " and partitions" : "");
   };
   config.on_display_started = []() {
     current_console()->print_status("Starting data load");

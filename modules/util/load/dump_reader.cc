@@ -796,6 +796,10 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
   has_sql = md->get_bool("includesDdl", true);
   di.has_data = md->get_bool("includesData", true);
 
+  if (di.has_data) {
+    reader->on_table_with_data();
+  }
+
   options = md->get_map("options");
 
   if (options) {
@@ -851,6 +855,8 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
     const auto basenames = md->get_map("basenames");
 
     if (basenames && !basenames->empty()) {
+      reader->on_table_with_partitions();
+
       for (const auto &p : *basenames) {
         auto copy = di;
 
