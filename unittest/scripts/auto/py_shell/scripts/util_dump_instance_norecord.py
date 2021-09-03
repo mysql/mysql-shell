@@ -1088,10 +1088,12 @@ def EXPECT_INCLUDE_EXCLUDE(options, included, excluded):
     opts = { "ddlOnly": True, "showProgress": False }
     opts.update(options)
     EXPECT_SUCCESS([test_schema], test_output_absolute, opts)
+    def make_regexp(user):
+        return user.replace("'", "['`]")
     for i in included:
-        EXPECT_FILE_CONTAINS("CREATE USER IF NOT EXISTS {0}".format(i), os.path.join(test_output_absolute, "@.users.sql"))
+        EXPECT_FILE_MATCHES(re.compile(f"CREATE USER IF NOT EXISTS {make_regexp(i)}"), os.path.join(test_output_absolute, "@.users.sql"))
     for e in excluded:
-        EXPECT_FILE_NOT_CONTAINS("CREATE USER IF NOT EXISTS {0}".format(e), os.path.join(test_output_absolute, "@.users.sql"))
+        EXPECT_FILE_NOT_MATCHES(re.compile(f"CREATE USER IF NOT EXISTS {make_regexp(e)}"), os.path.join(test_output_absolute, "@.users.sql"))
 
 #@<> don't include or exclude any users, all accounts are dumped
 # some accounts are always excluded
@@ -1314,7 +1316,7 @@ EXPECT_FILE_CONTAINS("CREATE USER IF NOT EXISTS", os.path.join(test_output_absol
 EXPECT_FILE_CONTAINS("GRANT ", os.path.join(test_output_absolute, "@.users.sql"))
 
 #@<> Check for roles {VER(>=8.0.0)}
-EXPECT_FILE_CONTAINS("CREATE USER IF NOT EXISTS '{0}'@'%' IDENTIFIED WITH 'caching_sha2_password'".format(test_role), os.path.join(test_output_absolute, "@.users.sql"))
+EXPECT_FILE_MATCHES(re.compile(f"CREATE USER IF NOT EXISTS ['`]{test_role}['`]@['`]%['`] IDENTIFIED WITH 'caching_sha2_password'"), os.path.join(test_output_absolute, "@.users.sql"))
 EXPECT_FILE_CONTAINS("GRANT USAGE ON *.* TO `{0}`@`%`;".format(test_role), os.path.join(test_output_absolute, "@.users.sql"))
 
 #@<> WL13807-FR13 - Once the dump is complete, in addition to the summary described in WL#13804, FR15, the following information must be presented to the user:

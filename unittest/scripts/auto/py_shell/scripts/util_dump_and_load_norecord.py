@@ -124,7 +124,7 @@ shell.connect(__sandbox_uri2)
 util.dump_instance(__tmp_dir+"/ldtest/dump_root", {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True})
 
 # CREATE USER for role is converted to CREATE ROLE
-EXPECT_FILE_CONTAINS("CREATE ROLE IF NOT EXISTS 'administrator'@'%'", os.path.join(__tmp_dir, "ldtest", "dump_root", "@.users.sql"))
+EXPECT_FILE_MATCHES(re.compile(r"CREATE ROLE IF NOT EXISTS ['`]administrator['`]@['`]%['`]"), os.path.join(__tmp_dir, "ldtest", "dump_root", "@.users.sql"))
 
 # dump with admin user
 shell.connect(f"mysql://admin:pass@localhost:{__mysql_sandbox_port2}")
@@ -132,7 +132,7 @@ shell.connect(f"mysql://admin:pass@localhost:{__mysql_sandbox_port2}")
 util.dump_instance(__tmp_dir+"/ldtest/dump_admin", {"compatibility":["strip_restricted_grants", "strip_definers"], "ocimds":True, "consistent":False})
 
 # CREATE USER for role is converted to CREATE ROLE
-EXPECT_FILE_CONTAINS("CREATE ROLE IF NOT EXISTS 'administrator'@'%'", os.path.join(__tmp_dir, "ldtest", "dump_admin", "@.users.sql"))
+EXPECT_FILE_MATCHES(re.compile(r"CREATE ROLE IF NOT EXISTS ['`]administrator['`]@['`]%['`]"), os.path.join(__tmp_dir, "ldtest", "dump_admin", "@.users.sql"))
 
 # load with admin user
 reset_server(session2)

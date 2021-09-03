@@ -239,12 +239,24 @@ def EXPECT_FILE_CONTAINS(expected, path):
         context = "<b>Context:</b> " + __test_context + "\n<red>Missing contents:</red> " + expected + "\n<yellow>Actual contents:</yellow> " + contents + "\n<yellow>File:</yellow> " + path
         testutil.fail(context)
 
+def EXPECT_FILE_MATCHES(re, path):
+    with open(path, encoding='utf-8') as f:
+        contents = f.read()
+    if re.search(contents) is None:
+        testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Missing match for:</red> {re.pattern}\n<yellow>Actual contents:</yellow> {contents}\n<yellow>File:</yellow> {path}")
+
 def EXPECT_FILE_NOT_CONTAINS(expected, path):
     with open(path, encoding='utf-8') as f:
         contents = f.read()
     if contents.find(expected) != -1:
         context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected contents:</red> " + expected + "\n<yellow>Actual contents:</yellow> " + contents + "\n<yellow>File:</yellow> " + path
         testutil.fail(context)
+
+def EXPECT_FILE_NOT_MATCHES(re, path):
+    with open(path, encoding='utf-8') as f:
+        contents = f.read()
+    if re.search(contents) is not None:
+        testutil.fail(f"<b>Context:</b> {__test_context}\n<red>Unexpected match for:</red> {re.pattern}\n<yellow>Actual contents:</yellow> {contents}\n<yellow>File:</yellow> {path}")
 
 def validate_crud_functions(crud, expected):
   actual = dir(crud)
