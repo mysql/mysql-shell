@@ -45,7 +45,7 @@ extern "C" const char *g_test_home;
 namespace mysqlsh {
 namespace dump {
 
-using ::testing::ContainsRegex;
+using ::testing::AnyOf;
 using ::testing::HasSubstr;
 using ::testing::Not;
 
@@ -819,14 +819,16 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   }
 
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
+    const std::string da_dumper =
+        "CREATE ROLE IF NOT EXISTS 'da_dumper'@'%';\n"
+        "ALTER USER 'da_dumper'@'%' IDENTIFIED WITH "
+        "'caching_sha2_password' REQUIRE NONE PASSWORD EXPIRE ACCOUNT "
+        "LOCK PASSWORD HISTORY DEFAULT PASSWORD REUSE INTERVAL DEFAULT "
+        "PASSWORD REQUIRE CURRENT DEFAULT;";
     EXPECT_THAT(
-        out,
-        ContainsRegex(
-            "CREATE ROLE IF NOT EXISTS ['`]da_dumper['`]@['`]%['`];\n"
-            "ALTER USER ['`]da_dumper['`]@['`]%['`] IDENTIFIED WITH "
-            "'caching_sha2_password' REQUIRE NONE PASSWORD EXPIRE ACCOUNT "
-            "LOCK PASSWORD HISTORY DEFAULT PASSWORD REUSE INTERVAL DEFAULT "
-            "PASSWORD REQUIRE CURRENT DEFAULT;"));
+        out, AnyOf(HasSubstr(da_dumper),
+                   HasSubstr(shcore::str_replace(da_dumper, "'da_dumper'@'%'",
+                                                 "`da_dumper`@`%`"))));
 
     EXPECT_THAT(
         out,
@@ -843,10 +845,11 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
             "CREATE USER, EVENT, TRIGGER ON `mysql`.* FROM `dave`@`%`;"));
   }
 
-  EXPECT_THAT(
-      out,
-      ContainsRegex(
-          "CREATE USER IF NOT EXISTS ['`]dumptestuser['`]@['`]localhost['`]"));
+  const std::string dumptestuser =
+      "CREATE USER IF NOT EXISTS 'dumptestuser'@'localhost'";
+  EXPECT_THAT(out,
+              AnyOf(HasSubstr(dumptestuser),
+                    HasSubstr(shcore::str_replace(dumptestuser, "'", "`"))));
   EXPECT_THAT(out, HasSubstr("-- begin user 'abr@dab'@'localhost'"));
 
   if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 20)) {
